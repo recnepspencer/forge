@@ -1,8 +1,7 @@
 use crate::courtroom::harness::test_support::physical_scope_admission_test_support::{
-    extent_admission, extent_validation, frame_request, free_space_slot_admission,
-    mismatched_checksum_request, page_cell, page_request, page_slot_admission, root_admission,
-    root_with_extent, root_with_slot, root_with_slot_root_generation, root_with_slot_under_root,
-    scope_membership, validation, with_checked_frame, with_checked_page,
+    extent_validation, frame_request, mismatched_checksum_request, page_cell, page_request,
+    root_with_extent, root_with_slot, root_with_slot_under_root, scope_membership, validation,
+    with_checked_frame, with_checked_page,
 };
 use forge_store_physical_format::{
     CheckpointAdjacencyPosture, ManifestMembershipProof, PhysicalReferenceScope,

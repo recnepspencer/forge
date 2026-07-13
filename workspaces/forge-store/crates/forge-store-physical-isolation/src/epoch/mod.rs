@@ -21,9 +21,19 @@ pub(crate) use kinds::{
     segment_epoch_from_publication,
 };
 pub use kinds::{ChunkEpoch, ExtentEpoch, ManifestEpoch, PageEpoch, RootEpoch, SegmentEpoch};
+
+#[cfg(any(test, feature = "certification-authority"))]
+pub fn next_root_epoch_for_certification(source: RootEpoch) -> RootEpoch {
+    RootEpoch::from_admitted_physical_basis(
+        source
+            .get()
+            .checked_add(1)
+            .expect("certification root epoch must have a successor"),
+    )
+}
 pub use ordering::{
-    required_physical_isolation_ordering_contracts, PhysicalOrderingContract, PhysicalOrderingContractDenial,
-    PhysicalOrderingSite, PhysicalOrderingStrength,
+    required_physical_isolation_ordering_contracts, PhysicalOrderingContract,
+    PhysicalOrderingContractDenial, PhysicalOrderingSite, PhysicalOrderingStrength,
 };
 pub use publication::{
     ExtentPublicationEpochBasis, FutureChunkPublicationEpochBasis, PagePublicationEpochBasis,

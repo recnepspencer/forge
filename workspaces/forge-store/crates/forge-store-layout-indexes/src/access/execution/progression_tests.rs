@@ -1,302 +1,200 @@
-use crate::facade::{access_planning, deterministic_plan_selection, layout_execution_freshness};
-use crate::strategy::tests_support::admit_strategy_scope;
-use crate::{
-    access_lowering, S8AccessLoweringDenied, S8AccessLoweringOutcome, S8DegradedExactScanRequest,
-};
-use forge_store_budgets::S8PreExecutionBudgetEnvelope;
+use crate::facade::{access_planning, deterministic_plan_selection};
+use crate::strategy::tests_support::{admit_persisted_lsm_scope, persisted_lsm_materialization};
+use forge_store_budgets::PreExecutionBudgetEnvelope;
 use forge_store_contracts::DurableArtifactFamilyId;
-use forge_store_physical_format::PhysicalEpoch;
-use forge_store_recovery_physics::LogSequenceNumber;
 use forge_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
     StoreKeyScope, StoreTenantScope,
 };
 
 #[test]
-fn lowering_progression_defers_lsm_point_paths_until_runtime_lease() {
+fn lsm_point_selection_does_not_issue_btree_lookup_authority() {
     let (lifecycle, key_domain) = admit_wal_scope();
-    let coverage = access_planning()
-        .exact_wal_lsn_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                lifecycle.declaration().family(),
-            ),
-            LogSequenceNumber::new(17),
-        )
-        .unwrap();
-    let selected = deterministic_plan_selection()
-        .select_with_budget(
-            lifecycle,
-            key_domain,
-            access_planning()
-                .require_exact_point_access(coverage)
-                .unwrap(),
-            S8PreExecutionBudgetEnvelope::foreground_default(),
-        )
-        .unwrap();
-    let lowered = access_lowering().lower_selected(selected).into_lowered();
-
-    let reason = access_lowering()
-        .admit_ready(lowered)
-        .into_deferred()
-        .expect("LSM point access should defer until runtime lease");
+    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
+    let (materialization, source) = persisted_lsm_materialization(lifecycle, &catalog);
+    let outcome = deterministic_plan_selection().select_admitted_with_budget(
+        crate::planning::AccessPlanSelector
+            .admit_read_request(
+                lifecycle,
+                crate::keyspace::admit_wal_key(
+                    key_domain,
+                    forge_store_contracts::WalRecordFamily::DurableMutationIntent,
+                    forge_store_wal::StoreWalRecordIdentity::new(1),
+                )
+                .expect("WAL identity must pass ordinary key admission"),
+                materialization,
+                access_planning().point_access(),
+            )
+            .expect("test request must pass ordinary admission"),
+        PreExecutionBudgetEnvelope::foreground_default(),
+    );
+    let outcome = outcome
+        .into_btree_lookup()
+        .expect_err("LSM point selection must not mint B-tree lookup authority");
+    let selected = outcome
+        .into_lsm_lookup()
+        .expect("LSM point selection must issue exact LSM lookup authority");
+    assert_eq!(
+        selected.selected_family(),
+        crate::strategy::LayoutStrategyFamily::BaselineLsmWriteOptimized
+    );
+    let admission = crate::BaselineLsmLookupAdmission::admit(
+        selected.clone(),
+        access_planning().current_lsm_materialization_frontier(&catalog, &source),
+    );
     assert!(matches!(
-        reason.spent_cost_receipt(),
-        crate::S8AccessAttemptCostReceipt::NoExecutionCountersSpent { .. }
+        admission.view(),
+        crate::BaselineLsmLookupAdmissionView::Admitted(_)
     ));
+    let admission = admission
+        .into_admitted()
+        .expect("current exact LSM selection must be admitted");
+    assert_eq!(
+        admission.selected(),
+        &selected,
+        "LSM admission must retain the owner-issued selection rather than reconstruct authority from its projections",
+    );
 }
 
 #[test]
-fn lowering_progression_surfaces_stale_and_readmitted_outcomes_for_degraded_scan() {
-    let (lifecycle, key_domain) = admit_page_scope();
-    let coverage = access_planning()
-        .exact_root_epoch_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                lifecycle.declaration().family(),
-            ),
-            PhysicalEpoch::from_raw(9).unwrap(),
-        )
-        .unwrap();
-    let degraded = crate::access_shapes()
-        .explicit_degraded_exact_scan(
-            S8DegradedExactScanRequest::new(coverage.require_exact().unwrap()).with_budget_rows(8),
-        )
-        .unwrap();
+fn lsm_lookup_readiness_declares_exactly_the_cases_owner_admission_observes() {
+    let (family, key_domain) = admit_wal_scope();
+    let current_catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
+    let (materialization, source) = persisted_lsm_materialization(family, &current_catalog);
     let selected = deterministic_plan_selection()
-        .select_with_budget(
-            lifecycle,
-            key_domain,
-            degraded,
-            S8PreExecutionBudgetEnvelope::terminal_default(),
+        .select_admitted_with_budget(
+            crate::planning::AccessPlanSelector
+                .admit_read_request(
+                    family,
+                    crate::keyspace::admit_wal_key(
+                        key_domain,
+                        forge_store_contracts::WalRecordFamily::DurableMutationIntent,
+                        forge_store_wal::StoreWalRecordIdentity::new(1),
+                    )
+                    .expect("WAL identity must pass ordinary key admission"),
+                    materialization,
+                    access_planning().point_access(),
+                )
+                .expect("test request must pass ordinary admission"),
+            PreExecutionBudgetEnvelope::foreground_default(),
         )
+        .into_lsm_lookup()
         .unwrap();
-    let lowered = access_lowering().lower_selected(selected).into_lowered();
-    let stale = access_lowering()
-        .admit_ready(lowered)
-        .into_stale()
-        .expect("degraded scan should require readmission");
+    let advanced_catalog =
+        crate::bootstrap::test_support::advanced_bootstrap_catalog_read_admission();
+    let observed = [
+        crate::BaselineLsmLookupAdmission::admit(
+            selected.clone(),
+            access_planning().current_lsm_materialization_frontier(&current_catalog, &source),
+        )
+        .case_id()
+        .name(),
+        crate::BaselineLsmLookupAdmission::admit(
+            selected,
+            access_planning().current_lsm_materialization_frontier(&advanced_catalog, &source),
+        )
+        .case_id()
+        .name(),
+    ]
+    .into_iter()
+    .collect::<std::collections::BTreeSet<_>>();
+    let declared = crate::baseline_lsm_lookup_admission_cases()
+        .map(|case| case.name())
+        .collect::<std::collections::BTreeSet<_>>();
 
-    let witness = layout_execution_freshness()
-        .admit_current_for_stale(&stale, lifecycle, key_domain, coverage)
-        .unwrap();
-    assert!(access_lowering()
-        .readmit_stale(stale, witness)
-        .into_readmitted()
-        .is_ok());
+    assert_eq!(observed, declared);
 }
 
 #[test]
-fn lowering_progression_denies_mismatched_readmission_witnesses() {
-    let (lifecycle, key_domain) = admit_page_scope();
-    let coverage = access_planning()
-        .exact_root_epoch_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                lifecycle.declaration().family(),
-            ),
-            PhysicalEpoch::from_raw(11).unwrap(),
-        )
-        .unwrap();
-    let first = crate::access_shapes()
-        .explicit_degraded_exact_scan(
-            S8DegradedExactScanRequest::new(coverage.require_exact().unwrap()).with_budget_rows(8),
-        )
-        .unwrap();
-    let second = crate::access_shapes()
-        .explicit_degraded_exact_scan(
-            S8DegradedExactScanRequest::new(coverage.require_exact().unwrap()).with_budget_rows(9),
-        )
-        .unwrap();
+fn lsm_mutation_and_recovery_intents_issue_exact_operation_capabilities() {
+    let (lifecycle, key_domain) = admit_wal_scope();
+    let budget = PreExecutionBudgetEnvelope::maintenance_default();
 
-    let first_selected = deterministic_plan_selection()
-        .select_with_budget(
-            lifecycle,
-            key_domain,
-            first,
-            S8PreExecutionBudgetEnvelope::terminal_default(),
+    let publication = deterministic_plan_selection()
+        .select_admitted_with_budget(
+            crate::planning::AccessPlanSelector
+                .admit_mutation_request(
+                    lifecycle,
+                    crate::keyspace::admit_wal_key(
+                        key_domain,
+                        forge_store_contracts::WalRecordFamily::DurableMutationIntent,
+                        forge_store_wal::StoreWalRecordIdentity::new(1),
+                    )
+                    .expect("WAL identity must pass ordinary key admission"),
+                    crate::access_shapes()
+                        .append(crate::PhysicalMutationShape::LogStructuredAppend)
+                        .unwrap(),
+                )
+                .expect("test request must pass ordinary admission"),
+            budget,
         )
-        .unwrap();
-    let second_selected = deterministic_plan_selection()
-        .select_with_budget(
-            lifecycle,
-            key_domain,
-            second,
-            S8PreExecutionBudgetEnvelope::terminal_default(),
+        .into_lsm_run_publication()
+        .expect("LSM append must issue run-publication authority");
+    let replay = deterministic_plan_selection()
+        .select_admitted_with_budget(
+            crate::planning::AccessPlanSelector
+                .admit_recovery_request(
+                    lifecycle,
+                    crate::keyspace::admit_wal_key(
+                        key_domain,
+                        forge_store_contracts::WalRecordFamily::DurableMutationIntent,
+                        forge_store_wal::StoreWalRecordIdentity::new(1),
+                    )
+                    .expect("WAL identity must pass ordinary key admission"),
+                    wal_materialization(lifecycle, 23),
+                    crate::access_shapes()
+                        .rebuild_read(crate::AccessLaneClassification::Maintenance)
+                        .unwrap(),
+                )
+                .expect("test request must pass ordinary admission"),
+            budget,
         )
-        .unwrap();
+        .into_lsm_replay_recovery()
+        .expect("LSM rebuild read must issue replay authority");
+    let compaction = deterministic_plan_selection()
+        .select_admitted_with_budget(
+            crate::planning::AccessPlanSelector
+                .admit_mutation_request(
+                    lifecycle,
+                    crate::keyspace::admit_wal_key(
+                        key_domain,
+                        forge_store_contracts::WalRecordFamily::DurableMutationIntent,
+                        forge_store_wal::StoreWalRecordIdentity::new(1),
+                    )
+                    .expect("WAL identity must pass ordinary key admission"),
+                    crate::access_shapes()
+                        .compaction_read(crate::PhysicalMutationShape::CompactionRewrite)
+                        .unwrap(),
+                )
+                .expect("test request must pass ordinary admission"),
+            budget,
+        )
+        .into_lsm_compaction()
+        .expect("LSM compaction read must issue compaction authority");
 
-    let stale = access_lowering()
-        .admit_ready(
-            access_lowering()
-                .lower_selected(first_selected)
-                .into_lowered(),
-        )
-        .into_stale()
-        .expect("first degraded plan should become stale");
-    let wrong_stale = access_lowering()
-        .admit_ready(
-            access_lowering()
-                .lower_selected(second_selected)
-                .into_lowered(),
-        )
-        .into_stale()
-        .expect("second degraded plan should become stale");
+    let publication_admission =
+        crate::BaselineLsmRunPublicationAdmission::admit(publication.clone());
+    let compaction_admission = crate::BaselineLsmCompactionAdmission::admit(compaction.clone());
 
-    let wrong_witness = layout_execution_freshness()
-        .admit_current_for_stale(&wrong_stale, lifecycle, key_domain, coverage)
-        .unwrap();
-    let denial = access_lowering()
-        .readmit_stale(stale, wrong_witness)
-        .into_denial()
-        .expect("mismatched witness must deny");
-    assert!(matches!(
-        denial,
-        S8AccessLoweringDenied::ReadmissionWitnessMismatch { .. }
-    ));
+    assert_eq!(publication_admission.selected(), &publication);
+    assert_eq!(compaction_admission.selected(), &compaction);
+    assert_eq!(publication.request_identity(), replay.request_identity());
+    assert_eq!(replay.request_identity(), compaction.request_identity());
+    assert_ne!(publication.fingerprint(), replay.fingerprint());
+    assert_ne!(replay.fingerprint(), compaction.fingerprint());
 }
 
 #[test]
-fn lowering_progression_supports_explicit_rebind_boundary() {
-    let (lifecycle, key_domain) = admit_page_scope();
-    let coverage = access_planning()
-        .exact_root_epoch_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                lifecycle.declaration().family(),
-            ),
-            PhysicalEpoch::from_raw(13).unwrap(),
-        )
-        .unwrap();
-    let selected = deterministic_plan_selection()
-        .select_with_budget(
-            lifecycle,
-            key_domain,
-            access_planning()
-                .require_exact_range_access(coverage)
-                .unwrap(),
-            S8PreExecutionBudgetEnvelope::foreground_default(),
-        )
-        .unwrap();
-    let lowered = access_lowering().lower_selected(selected).into_lowered();
-    let rebound = access_lowering()
-        .require_rebind(lowered)
-        .into_required()
-        .expect("range path should require rebind");
-    let witness = layout_execution_freshness()
-        .admit_rebind_for_execution(&rebound, lifecycle, key_domain, coverage)
-        .unwrap();
-
-    assert!(access_lowering()
-        .rebind_for_execution(rebound, witness)
-        .into_rebound()
-        .is_ok());
+fn degraded_owner_readmission_preserves_the_selected_operation_identity() {
+    let ready = super::tests_support::readmitted_owner_degraded_scan();
+    assert_eq!(ready.basis().fingerprint(), ready.selected().fingerprint());
 }
 
 #[test]
-fn lowering_progression_requires_exact_coverage_for_readmission_capability() {
-    let denial = super::tests_support::expect_readmission_coverage_denial();
-    assert!(matches!(
-        denial,
-        S8AccessLoweringDenied::CoverageDenied { .. }
-    ));
-}
-
-#[test]
-fn lowering_progression_denies_exact_but_wrong_current_coverage_for_readmission() {
-    let (lifecycle, key_domain) = admit_page_scope();
-    let selected_coverage = access_planning()
-        .exact_root_epoch_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                lifecycle.declaration().family(),
-            ),
-            PhysicalEpoch::from_raw(21).unwrap(),
-        )
-        .unwrap();
-    let wrong_exact_coverage = access_planning()
-        .exact_root_epoch_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                lifecycle.declaration().family(),
-            ),
-            PhysicalEpoch::from_raw(22).unwrap(),
-        )
-        .unwrap();
-    let degraded = crate::access_shapes()
-        .explicit_degraded_exact_scan(
-            S8DegradedExactScanRequest::new(selected_coverage.require_exact().unwrap())
-                .with_budget_rows(10),
-        )
-        .unwrap();
-    let selected = deterministic_plan_selection()
-        .select_with_budget(
-            lifecycle,
-            key_domain,
-            degraded,
-            S8PreExecutionBudgetEnvelope::terminal_default(),
-        )
-        .unwrap();
-    let stale = access_lowering()
-        .admit_ready(access_lowering().lower_selected(selected).into_lowered())
-        .into_stale()
-        .expect("degraded plan should become stale");
-
-    assert!(matches!(
-        layout_execution_freshness().admit_current_for_stale(
-            &stale,
-            lifecycle,
-            key_domain,
-            wrong_exact_coverage
-        ),
-        Err(S8AccessLoweringDenied::CurrentCoverageMismatch { .. })
-    ));
-}
-
-#[test]
-fn lowering_progression_denies_exact_but_wrong_current_coverage_for_rebind() {
-    let (lifecycle, key_domain) = admit_page_scope();
-    let selected_coverage = access_planning()
-        .exact_root_epoch_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                lifecycle.declaration().family(),
-            ),
-            PhysicalEpoch::from_raw(23).unwrap(),
-        )
-        .unwrap();
-    let wrong_exact_coverage = access_planning()
-        .exact_root_epoch_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                lifecycle.declaration().family(),
-            ),
-            PhysicalEpoch::from_raw(24).unwrap(),
-        )
-        .unwrap();
-    let selected = deterministic_plan_selection()
-        .select_with_budget(
-            lifecycle,
-            key_domain,
-            access_planning()
-                .require_exact_range_access(selected_coverage)
-                .unwrap(),
-            S8PreExecutionBudgetEnvelope::foreground_default(),
-        )
-        .unwrap();
-    let rebind = access_lowering()
-        .require_rebind(access_lowering().lower_selected(selected).into_lowered())
-        .into_required()
-        .expect("range plan should require rebind");
-
-    assert!(matches!(
-        layout_execution_freshness().admit_rebind_for_execution(
-            &rebind,
-            lifecycle,
-            key_domain,
-            wrong_exact_coverage
-        ),
-        Err(S8AccessLoweringDenied::CurrentCoverageMismatch { .. })
-    ));
-}
-
-fn admit_page_scope() -> (
-    crate::ArtifactFamilyLifecycleAdmission,
-    crate::PhysicalKeyDomainWitness,
-) {
-    admit_strategy_scope(
+fn degraded_readmission_rejects_equal_coverage_from_another_store_authority() {
+    let stale = super::tests_support::stale_owner_degraded_scan();
+    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
+    let (foreign_family, _) = crate::strategy::tests_support::admit_strategy_scope_for_store(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -304,20 +202,110 @@ fn admit_page_scope() -> (
             StoreAuthenticityRequirementClass::AuthenticatedFrame,
         ),
         StoreCustodyPosture::InternalStoreCustody,
-    )
+        "store.foreign.degraded_readmission",
+    );
+    let foreign = access_planning()
+        .admit_current_catalog_root_materialization(foreign_family, &catalog)
+        .unwrap()
+        .require_current_at(access_planning().current_materialization_frontier(&catalog))
+        .unwrap();
+
+    assert!(matches!(
+        crate::degraded_scan_runtime().admit_stale_readmission(&stale, foreign),
+        Err(crate::DegradedScanAdmissionDenied::ArtifactFamilyAuthorityMismatch { .. })
+    ));
+}
+
+#[test]
+fn degraded_readmission_rejects_equal_family_coverage_from_another_source() {
+    let stale = super::tests_support::stale_owner_degraded_scan();
+    let advanced = crate::bootstrap::test_support::advanced_bootstrap_catalog_read_admission();
+    let other_source = access_planning()
+        .admit_current_catalog_root_materialization(stale.selected().admitted_family(), &advanced)
+        .unwrap()
+        .require_current_at(access_planning().current_materialization_frontier(&advanced))
+        .unwrap();
+
+    assert!(matches!(
+        crate::degraded_scan_runtime().admit_stale_readmission(&stale, other_source),
+        Err(crate::DegradedScanAdmissionDenied::CurrentCoverageMismatch { .. })
+    ));
+}
+
+#[test]
+fn degraded_owner_current_readiness_retains_materialization_authority() {
+    let ready = super::tests_support::ready_owner_degraded_scan();
+    assert_eq!(
+        ready.current_materialization().materialization(),
+        ready.selected().materialization().unwrap()
+    );
+}
+
+#[test]
+fn degraded_owner_execution_retains_current_materialization_and_physical_observation() {
+    let ready = super::tests_support::ready_owner_degraded_scan();
+    let current = ready.current_materialization().clone();
+    let selected = ready.selected().clone();
+    let mut physical = crate::bootstrap::test_support::open_physical_facade_for_store(
+        crate::strategy::tests_support::strategy_test_store_identity(),
+    );
+    physical
+        .publish_physical_root()
+        .expect("degraded scan fixture requires an admitted physical root");
+    let execution = crate::degraded_scan_runtime()
+        .execute_physical(ready, &mut physical)
+        .expect("admitted degraded scan must execute through the physical facade");
+
+    assert_eq!(execution.selected(), &selected);
+    assert_eq!(execution.current_materialization(), &current);
+    assert_eq!(execution.observed_rows(), 1);
+    assert_eq!(
+        execution
+            .physical_observation()
+            .scan()
+            .request()
+            .budget_rows(),
+        8
+    );
+}
+
+#[test]
+fn degraded_readiness_declares_exactly_the_cases_ordinary_execution_observes() {
+    let declared = crate::degraded_scan_readiness_cases()
+        .map(|case| case.name())
+        .collect::<std::collections::BTreeSet<_>>();
+    let observed = super::tests_support::observed_degraded_readiness_cases()
+        .into_iter()
+        .map(|case| case.name())
+        .collect::<std::collections::BTreeSet<_>>();
+
+    assert_eq!(declared, observed);
+}
+
+#[test]
+fn btree_lookup_readiness_declares_exactly_the_cases_ordinary_execution_observes() {
+    let declared = crate::btree_lookup_readiness_cases()
+        .map(|case| case.name())
+        .collect::<std::collections::BTreeSet<_>>();
+    let observed = super::tests_support::observed_btree_lookup_readiness_cases()
+        .into_iter()
+        .map(|case| case.name())
+        .collect::<std::collections::BTreeSet<_>>();
+
+    assert_eq!(declared, observed);
 }
 
 fn admit_wal_scope() -> (
-    crate::ArtifactFamilyLifecycleAdmission,
-    crate::PhysicalKeyDomainWitness,
+    crate::AdmittedPhysicalArtifactFamily,
+    crate::AdmittedPhysicalKeyDomain,
 ) {
-    admit_strategy_scope(
-        DurableArtifactFamilyId::PublicationWalIntent,
-        StoreKeyScope::WalCheckpointEnvelope,
-        StoreTenantScope::StoreInternal,
-        StoreAuthenticityRequirement::required(
-            StoreAuthenticityRequirementClass::AuthenticatedWalRecord,
-        ),
-        StoreCustodyPosture::InternalStoreCustody,
-    )
+    admit_persisted_lsm_scope()
+}
+
+fn wal_materialization(
+    family: crate::AdmittedPhysicalArtifactFamily,
+    _lsn: u64,
+) -> crate::AdmittedLayoutMaterialization {
+    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
+    persisted_lsm_materialization(family, &catalog).0
 }

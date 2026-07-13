@@ -1,19 +1,18 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
-use forge_store_layout_indexes::access_planning::S8AccessShape;
 use forge_store_security::StoreSecurityScopeIdentity;
 
 use super::behavior::{
     corruption_behavior_for, declared_rebuild_posture, BlobLayoutCorruptionBehavior,
     BlobLayoutScopeSafeAbsenceBehavior,
 };
-use super::{BlobLayoutAccessDenial, BlobLayoutAccessPathEvidence};
+use super::{BlobLayoutAccessDenial, BlobLayoutAccessPathEvidence, BlobLayoutAccessShape};
 use crate::{BlobChunkDedupeCollisionPosture, BlobChunkDedupeShareClaim, BlobChunkIdentity};
 use forge_store_contracts::StableDigest;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DedupeLayoutReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: BlobLayoutAccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     absence_behavior: BlobLayoutScopeSafeAbsenceBehavior,
     corruption_behavior: BlobLayoutCorruptionBehavior,
@@ -26,7 +25,7 @@ pub struct DedupeLayoutReport {
 }
 
 impl DedupeLayoutReport {
-    fn admit_dedupe(
+    fn project_dedupe(
         claim: &BlobChunkDedupeShareClaim,
     ) -> Result<DedupeLayoutReport, BlobLayoutAccessDenial> {
         Ok(DedupeLayoutReport::from_claim(claim))
@@ -39,7 +38,7 @@ impl DedupeLayoutReport {
         let rebuild_posture = declared_rebuild_posture(family_id);
         Self {
             family_id,
-            access_shape: S8AccessShape::PointLookup,
+            access_shape: BlobLayoutAccessShape::PointLookup,
             rebuild_posture,
             absence_behavior: BlobLayoutScopeSafeAbsenceBehavior::ExactIndex,
             corruption_behavior: corruption_behavior_for(rebuild_posture),
@@ -59,7 +58,7 @@ impl DedupeLayoutReport {
         self.family_id
     }
 
-    pub const fn access_shape(&self) -> S8AccessShape {
+    pub const fn access_shape(&self) -> BlobLayoutAccessShape {
         self.access_shape
     }
 
@@ -108,7 +107,7 @@ impl DedupeLayoutReport {
 }
 
 impl BlobChunkDedupeShareClaim {
-    pub fn admit_dedupe_layout(&self) -> Result<DedupeLayoutReport, BlobLayoutAccessDenial> {
-        DedupeLayoutReport::admit_dedupe(self)
+    pub fn project_dedupe_layout(&self) -> Result<DedupeLayoutReport, BlobLayoutAccessDenial> {
+        DedupeLayoutReport::project_dedupe(self)
     }
 }

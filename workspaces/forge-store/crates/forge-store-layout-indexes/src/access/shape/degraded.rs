@@ -1,30 +1,21 @@
-use super::contract::S8AccessShapeContract;
-use super::denial::S8AccessShapeUnsupportedDenial;
-use super::detail::{S8AccessShapeDetail, S8DegradedExactScanBasis};
-use super::lane::S8AccessLaneClassification;
-use crate::materialization::S8LayoutCoverageWitness;
+use super::contract::AccessShapeContract;
+use super::denial::AccessShapeUnsupportedDenial;
+use super::detail::{AccessShapeDetail, DegradedExactScanBasis};
+use super::lane::AccessLaneClassification;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8DegradedExactScanRequest {
-    coverage: S8LayoutCoverageWitness,
+pub struct DegradedExactScanRequest {
     budget_rows: u64,
 }
 
-impl S8DegradedExactScanRequest {
-    pub const fn new(coverage: S8LayoutCoverageWitness) -> Self {
-        Self {
-            coverage,
-            budget_rows: 0,
-        }
+impl DegradedExactScanRequest {
+    pub const fn new() -> Self {
+        Self { budget_rows: 0 }
     }
 
     pub const fn with_budget_rows(mut self, budget_rows: u64) -> Self {
         self.budget_rows = budget_rows;
         self
-    }
-
-    pub const fn coverage(self) -> S8LayoutCoverageWitness {
-        self.coverage
     }
 
     pub const fn budget_rows(self) -> u64 {
@@ -33,21 +24,17 @@ impl S8DegradedExactScanRequest {
 }
 
 pub(crate) fn explicit_degraded_exact_scan(
-    request: S8DegradedExactScanRequest,
-) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
+    request: DegradedExactScanRequest,
+) -> Result<AccessShapeContract, AccessShapeUnsupportedDenial> {
     if request.budget_rows() == 0 {
-        return Err(S8AccessShapeUnsupportedDenial::DegradedExactScanBudgetRequired);
+        return Err(AccessShapeUnsupportedDenial::DegradedExactScanBudgetRequired);
     }
 
-    Ok(S8AccessShapeContract::explicit_degraded_exact_scan(
-        S8AccessShapeDetail::DegradedExactScan(
-            S8DegradedExactScanBasis::BudgetedCounterBoundedTraversal,
+    Ok(AccessShapeContract::explicit_degraded_exact_scan(
+        AccessShapeDetail::DegradedExactScan(
+            DegradedExactScanBasis::BudgetedCounterBoundedTraversal,
         ),
-        S8AccessLaneClassification::Terminal,
-        request
-            .coverage()
-            .require_exact()
-            .map_err(S8AccessShapeUnsupportedDenial::MaterializationDenied)?,
+        AccessLaneClassification::Terminal,
         request.budget_rows(),
     ))
 }

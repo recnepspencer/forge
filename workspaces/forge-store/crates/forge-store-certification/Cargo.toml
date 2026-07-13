@@ -11,7 +11,7 @@ forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-analysis.workspace = true
 forge-store-aspect-native.workspace = true
 forge-store-authority.workspace = true
-forge-store-blob-chunks.workspace = true
+forge-store-blob-chunks = { workspace = true, features = ["certification-test-authority"] }
 forge-store-budgets.workspace = true
 forge-store-buffer-pool.workspace = true
 forge-store-claim-boundaries.workspace = true
@@ -27,6 +27,7 @@ forge-store-physical-certification.workspace = true
 forge-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
 forge-store-io-scheduler.workspace = true
 forge-store-layout-indexes.workspace = true
+forge-store-lsm-authority.workspace = true
 forge-store-readiness.workspace = true
 forge-store-reclaim-policy.workspace = true
 forge-store-recovery-physics.workspace = true
@@ -378,10 +379,6 @@ name = "s5_interleaving_harness_denials"
 path = "tests/scenarios/physical_isolation/interleaving_harness_denials/interleaving_harness_denials.rs"
 
 [[test]]
-name = "s5_interleaving_harness_resources"
-path = "tests/scenarios/physical_isolation/interleaving_harness_resources/interleaving_harness_resources.rs"
-
-[[test]]
 name = "s5_latch_acquisition_order"
 path = "tests/scenarios/physical_isolation/latch_acquisition_order/latch_acquisition_order.rs"
 
@@ -508,3 +505,15 @@ path = "tests/scenarios/layout/layout_access_path_harness/layout_access_path_har
 [[test]]
 name = "s8_layout_corruption_rebuild"
 path = "tests/scenarios/layout/layout_corruption_rebuild/layout_corruption_rebuild.rs"
+
+[[test]]
+name = "s8_lsm_lookup_authority"
+path = "tests/scenarios/layout/lsm_lookup_authority/lsm_lookup_authority.rs"
+
+[[test]]
+name = "s8_btree_lookup_authority"
+path = "tests/scenarios/layout/btree_lookup_authority/btree_lookup_authority.rs"
+
+[[test]]
+name = "s8_btree_replay_authority"
+path = "tests/scenarios/layout/btree_replay_authority/btree_replay_authority.rs"

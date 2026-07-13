@@ -1,4 +1,6 @@
-use crate::{certify_io_qos_backend_capability_admission, publish_io_qos_backend_capability_readiness};
+use crate::{
+    certify_io_qos_backend_capability_admission, publish_io_qos_backend_capability_readiness,
+};
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,

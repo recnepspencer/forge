@@ -1,9 +1,9 @@
 use crate::{
-    access::counters::PhysicalLayoutAccessCounterSnapshot, ExtentBackedRecordView,
+    ExtentBackedRecordView,
     ManifestTraversalReport, MinimalManifestVerifierReport, PersistedPhysicalLayout,
     PhysicalBootstrapCatalogDenial, PhysicalBootstrapCatalogOpenWitness, PhysicalHeaderAuthority,
-    PhysicalReference, PlatformPhysicalFacadeCounterSnapshot, PlatformPhysicalFacadeEvidence,
-    RecordAppendReport, RecordLocateReport,
+    PhysicalReference, PhysicalStoreIdentity, PlatformPhysicalFacadeCounterSnapshot,
+    PlatformPhysicalFacadeEvidence, RecordAppendReport, RecordLocateReport,
 };
 use forge_store_contracts::RoadmapScope;
 
@@ -48,51 +48,12 @@ impl<'a> PlatformPhysicalFramedRecord<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PlatformPhysicalLocateReport<'a> {
-    reference: PhysicalReference,
-    framed_record: PlatformPhysicalFramedRecord<'a>,
-    counters: PlatformPhysicalFacadeCounterSnapshot,
-    layout_counters: PhysicalLayoutAccessCounterSnapshot,
-}
-
-impl<'a> PlatformPhysicalLocateReport<'a> {
-    pub(crate) const fn new(
-        reference: PhysicalReference,
-        framed_record: PlatformPhysicalFramedRecord<'a>,
-        counters: PlatformPhysicalFacadeCounterSnapshot,
-        layout_counters: PhysicalLayoutAccessCounterSnapshot,
-    ) -> Self {
-        Self {
-            reference,
-            framed_record,
-            counters,
-            layout_counters,
-        }
-    }
-
-    pub const fn reference(self) -> PhysicalReference {
-        self.reference
-    }
-
-    pub const fn framed_record(self) -> PlatformPhysicalFramedRecord<'a> {
-        self.framed_record
-    }
-
-    pub const fn counters(self) -> PlatformPhysicalFacadeCounterSnapshot {
-        self.counters
-    }
-
-    pub const fn layout_counters(self) -> PhysicalLayoutAccessCounterSnapshot {
-        self.layout_counters
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlatformPhysicalRootPublicationReport {
     headers: PhysicalHeaderAuthority,
     layout: PersistedPhysicalLayout,
     counters: PlatformPhysicalFacadeCounterSnapshot,
+    store_identity: PhysicalStoreIdentity,
 }
 
 impl PlatformPhysicalRootPublicationReport {
@@ -100,11 +61,13 @@ impl PlatformPhysicalRootPublicationReport {
         headers: PhysicalHeaderAuthority,
         layout: PersistedPhysicalLayout,
         counters: PlatformPhysicalFacadeCounterSnapshot,
+        store_identity: PhysicalStoreIdentity,
     ) -> Self {
         Self {
             headers,
             layout,
             counters,
+            store_identity,
         }
     }
 
@@ -116,6 +79,7 @@ impl PlatformPhysicalRootPublicationReport {
         super::PlatformPhysicalReplayArtifact::from_persisted_layout(
             self.headers.clone(),
             self.layout.clone(),
+            self.store_identity.clone(),
         )
     }
 

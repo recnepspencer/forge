@@ -58,7 +58,9 @@ impl StorePhysicalAuthorityWitness {
         )
     }
 
-    pub fn for_physical_format_vocabulary(roadmap_scope: RoadmapScope) -> StoreContractResult<Self> {
+    pub fn for_physical_format_vocabulary(
+        roadmap_scope: RoadmapScope,
+    ) -> StoreContractResult<Self> {
         Self::admit(
             roadmap_scope,
             ROADMAP_2_S1_SCOPE,

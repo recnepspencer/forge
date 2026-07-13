@@ -84,7 +84,7 @@ fn fixture_path(manifest_dir: &std::path::Path, fixture_name: &str) -> std::path
     manifest_dir
         .join("tests")
         .join("compile_fail")
-            .join("recovery")
+        .join("recovery")
         .join("entry_boundary")
         .join(fixture_name)
 }

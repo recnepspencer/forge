@@ -1,95 +1,81 @@
-use super::contract::{S8AccessShapeContract, S8ExpectedCounterClass};
-use super::denial::S8AccessShapeUnsupportedDenial;
+use super::contract::{AccessShapeContract, ExpectedCounterClass};
+use super::denial::AccessShapeUnsupportedDenial;
 use super::detail::{
-    S8AccessShapeDetail, S8ChunkTreeWalkBasis, S8CoalescedPageReadBasis,
-    S8StreamingContinuationBasis, S8StreamingReadBasis,
+    AccessShapeDetail, ChunkTreeWalkBasis, CoalescedPageReadBasis, StreamingContinuationBasis,
+    StreamingReadBasis,
 };
-use super::lane::S8AccessLaneClassification;
-use super::shape::S8AccessShape;
-use crate::materialization::S8LayoutCoverageWitness;
+use super::lane::AccessLaneClassification;
+use super::shape::AccessShape;
 
-pub(crate) fn coalesced_page_read(
-    coverage: S8LayoutCoverageWitness,
-) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
-    Ok(S8AccessShapeContract::exact_read(
-        S8AccessShapeDetail::CoalescedPageRead(S8CoalescedPageReadBasis::AdjacentPageWindow),
-        S8AccessLaneClassification::Foreground,
-        S8ExpectedCounterClass::CoalescedPageRead,
-        coverage
-            .require_exact()
-            .map_err(S8AccessShapeUnsupportedDenial::MaterializationDenied)?,
+#[cfg(test)]
+pub(crate) fn coalesced_page_read() -> Result<AccessShapeContract, AccessShapeUnsupportedDenial> {
+    Ok(AccessShapeContract::exact_read_declaration(
+        AccessShapeDetail::CoalescedPageRead(CoalescedPageReadBasis::AdjacentPageWindow),
+        AccessLaneClassification::Foreground,
+        ExpectedCounterClass::CoalescedPageRead,
     ))
 }
 
+#[cfg(test)]
 pub(crate) fn chunk_tree_walk(
-    coverage: S8LayoutCoverageWitness,
-    lane: S8AccessLaneClassification,
-) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
+    lane: AccessLaneClassification,
+) -> Result<AccessShapeContract, AccessShapeUnsupportedDenial> {
     match lane {
-        S8AccessLaneClassification::Foreground | S8AccessLaneClassification::Maintenance => {}
+        AccessLaneClassification::Foreground | AccessLaneClassification::Maintenance => {}
         _ => {
-            return Err(S8AccessShapeUnsupportedDenial::LaneDoesNotSupportShape {
-                shape: S8AccessShape::ChunkTreeWalk,
+            return Err(AccessShapeUnsupportedDenial::LaneDoesNotSupportShape {
+                shape: AccessShape::ChunkTreeWalk,
                 lane,
             });
         }
     }
 
-    Ok(S8AccessShapeContract::exact_read(
-        S8AccessShapeDetail::ChunkTreeWalk(S8ChunkTreeWalkBasis::RootedChunkTraversal),
+    Ok(AccessShapeContract::exact_read_declaration(
+        AccessShapeDetail::ChunkTreeWalk(ChunkTreeWalkBasis::RootedChunkTraversal),
         lane,
-        S8ExpectedCounterClass::ChunkTreeWalk,
-        coverage
-            .require_exact()
-            .map_err(S8AccessShapeUnsupportedDenial::MaterializationDenied)?,
+        ExpectedCounterClass::ChunkTreeWalk,
     ))
 }
 
+#[cfg(test)]
 pub(crate) fn streaming_read(
-    coverage: S8LayoutCoverageWitness,
-    lane: S8AccessLaneClassification,
-) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
+    lane: AccessLaneClassification,
+) -> Result<AccessShapeContract, AccessShapeUnsupportedDenial> {
     match lane {
-        S8AccessLaneClassification::Foreground | S8AccessLaneClassification::Maintenance => {}
+        AccessLaneClassification::Foreground | AccessLaneClassification::Maintenance => {}
         _ => {
-            return Err(S8AccessShapeUnsupportedDenial::LaneDoesNotSupportShape {
-                shape: S8AccessShape::StreamingRead,
+            return Err(AccessShapeUnsupportedDenial::LaneDoesNotSupportShape {
+                shape: AccessShape::StreamingRead,
                 lane,
             });
         }
     }
 
-    Ok(S8AccessShapeContract::exact_read(
-        S8AccessShapeDetail::StreamingRead(S8StreamingReadBasis::SequentialStreamTraversal),
+    Ok(AccessShapeContract::exact_read_declaration(
+        AccessShapeDetail::StreamingRead(StreamingReadBasis::SequentialStreamTraversal),
         lane,
-        S8ExpectedCounterClass::StreamingRead,
-        coverage
-            .require_exact()
-            .map_err(S8AccessShapeUnsupportedDenial::MaterializationDenied)?,
+        ExpectedCounterClass::StreamingRead,
     ))
 }
 
+#[cfg(test)]
 pub(crate) fn streaming_continuation_read(
-    coverage: S8LayoutCoverageWitness,
-    lane: S8AccessLaneClassification,
-    basis: S8StreamingContinuationBasis,
-) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
+    lane: AccessLaneClassification,
+    basis: StreamingContinuationBasis,
+) -> Result<AccessShapeContract, AccessShapeUnsupportedDenial> {
     match lane {
-        S8AccessLaneClassification::Foreground | S8AccessLaneClassification::Maintenance => {}
+        AccessLaneClassification::Foreground | AccessLaneClassification::Maintenance => {}
         _ => {
-            return Err(S8AccessShapeUnsupportedDenial::LaneDoesNotSupportShape {
-                shape: S8AccessShape::StreamingContinuationRead,
+            return Err(AccessShapeUnsupportedDenial::LaneDoesNotSupportShape {
+                shape: AccessShape::StreamingContinuationRead,
                 lane,
             });
         }
     }
 
-    Ok(S8AccessShapeContract::exact_read(
-        S8AccessShapeDetail::StreamingContinuationRead(basis),
+    Ok(AccessShapeContract::exact_read_declaration(
+        AccessShapeDetail::StreamingContinuationRead(basis),
         lane,
-        S8ExpectedCounterClass::StreamingContinuationRead,
-        coverage
-            .require_exact()
-            .map_err(S8AccessShapeUnsupportedDenial::MaterializationDenied)?,
+        ExpectedCounterClass::StreamingContinuationRead,
     ))
 }

@@ -10,7 +10,9 @@ pub(crate) fn checksum_declaration() -> ChecksumAlgorithmDeclaration {
 }
 
 pub(crate) fn checksum_scope() -> ChecksumScopeDeclaration {
-    let format = forge_store_physical_format::PhysicalFormatDeclaration::physical_format_canonical().unwrap();
+    let format =
+        forge_store_physical_format::PhysicalFormatDeclaration::physical_format_canonical()
+            .unwrap();
     ChecksumScopeDeclaration::for_physical_format(
         format.identity(),
         ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap(),

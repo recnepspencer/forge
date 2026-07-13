@@ -1,3 +1,5 @@
+#![cfg_attr(not(test), allow(dead_code, unused_imports))]
+
 use forge_proof::TransitionOutcome;
 use forge_store_contracts::StableDigest;
 use forge_store_security::StoreTenantScope;

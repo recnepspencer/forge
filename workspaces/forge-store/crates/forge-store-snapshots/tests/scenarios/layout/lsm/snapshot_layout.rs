@@ -6,8 +6,13 @@ use forge_store_snapshots::{
 
 #[test]
 fn snapshot_family_binds_snapshot_reads_to_admitted_image_authority() {
-    let snapshot_id = SnapshotId::from_artifact_id(StableArtifactId::new("phase23-snapshot").unwrap());
-    let handle = snapshot_semantic_authority().publish_snapshot_image(snapshot_id.clone(), "sha256:image", 8);
+    let snapshot_id =
+        SnapshotId::from_artifact_id(StableArtifactId::new("phase23-snapshot").unwrap());
+    let handle = snapshot_semantic_authority().publish_snapshot_image(
+        snapshot_id.clone(),
+        "sha256:image",
+        8,
+    );
     let request = SnapshotReadRequest::new(snapshot_id.clone(), 5);
 
     let report = handle
@@ -26,17 +31,14 @@ fn snapshot_family_binds_snapshot_reads_to_admitted_image_authority() {
     assert_eq!(report.support_estimate().planned_page_touches(), 5);
 
     let bundle = SnapshotImageBundle::new(snapshot_id.clone(), "sha256:image", 8);
-    let denial = reject_snapshot_bundle_layout_authority(&bundle)
-        .unwrap_err();
+    let denial = reject_snapshot_bundle_layout_authority(&bundle).unwrap_err();
     assert_eq!(
         denial.kind(),
         SnapshotLayoutAccessDenialKind::SnapshotBundleCannotStandInForLayoutAuthority
     );
 
     let broad_request = SnapshotReadRequest::new(snapshot_id.clone(), 9);
-    let denial = handle
-        .admit_layout_support(&broad_request)
-        .unwrap_err();
+    let denial = handle.admit_layout_support(&broad_request).unwrap_err();
     assert_eq!(
         denial.kind(),
         SnapshotLayoutAccessDenialKind::SnapshotReadBroadensBeyondPublishedImage
@@ -46,9 +48,7 @@ fn snapshot_family_binds_snapshot_reads_to_admitted_image_authority() {
         SnapshotId::from_artifact_id(StableArtifactId::new("phase23-other-snapshot").unwrap()),
         4,
     );
-    let denial = handle
-        .admit_layout_support(&mismatched)
-        .unwrap_err();
+    let denial = handle.admit_layout_support(&mismatched).unwrap_err();
     assert_eq!(
         denial.kind(),
         SnapshotLayoutAccessDenialKind::SnapshotHandleDoesNotMatchReadRequest

@@ -1,16 +1,16 @@
 use crate::catalog::ArtifactFamilyAccessLane;
 
-use super::S8FutureLayoutCapabilityRequest;
+use super::FutureLayoutCapabilityRequest;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8FutureLayoutWorkloadEnvelope {
+pub enum FutureLayoutWorkloadEnvelope {
     ForegroundLowFanout,
     ForegroundBoundedTraversal,
     BackgroundRebuildProjection,
     VerifierCorpusInspection,
 }
 
-impl S8FutureLayoutWorkloadEnvelope {
+impl FutureLayoutWorkloadEnvelope {
     pub const fn foreground_low_fanout() -> Self {
         Self::ForegroundLowFanout
     }
@@ -37,25 +37,23 @@ impl S8FutureLayoutWorkloadEnvelope {
         }
     }
 
-    pub const fn supports_capability(self, capability: S8FutureLayoutCapabilityRequest) -> bool {
+    pub const fn supports_capability(self, capability: FutureLayoutCapabilityRequest) -> bool {
         match (self, capability) {
-            (Self::ForegroundLowFanout, S8FutureLayoutCapabilityRequest::PointLookup { .. }) => {
-                true
-            }
+            (Self::ForegroundLowFanout, FutureLayoutCapabilityRequest::PointLookup { .. }) => true,
             (
                 Self::ForegroundBoundedTraversal,
-                S8FutureLayoutCapabilityRequest::PointLookup { .. }
-                | S8FutureLayoutCapabilityRequest::OrderedRange { .. }
-                | S8FutureLayoutCapabilityRequest::PrefixTraversal { .. }
-                | S8FutureLayoutCapabilityRequest::BlobStreaming { .. },
+                FutureLayoutCapabilityRequest::PointLookup { .. }
+                | FutureLayoutCapabilityRequest::OrderedRange { .. }
+                | FutureLayoutCapabilityRequest::PrefixTraversal { .. }
+                | FutureLayoutCapabilityRequest::BlobStreaming { .. },
             ) => true,
             (
                 Self::BackgroundRebuildProjection,
-                S8FutureLayoutCapabilityRequest::RebuildableProjection { .. },
+                FutureLayoutCapabilityRequest::RebuildableProjection { .. },
             ) => true,
             (
                 Self::VerifierCorpusInspection,
-                S8FutureLayoutCapabilityRequest::VerifierDeclaredScan { .. },
+                FutureLayoutCapabilityRequest::VerifierDeclaredScan { .. },
             ) => true,
             _ => false,
         }

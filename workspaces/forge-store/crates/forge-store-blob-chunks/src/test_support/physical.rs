@@ -57,9 +57,12 @@ fn admitted_page<'a>(
 }
 
 fn record_authority() -> PhysicalPageRecordAuthority {
-    PhysicalPageRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
-        PhysicalBinaryEncodingWitness::physical_format_canonical().expect("canonical physical binary format"),
-    ))
+    PhysicalPageRecordAuthority::for_canonical_physical_format(
+        PhysicalHeaderAuthority::for_canonical_physical_format(
+            PhysicalBinaryEncodingWitness::physical_format_canonical()
+                .expect("canonical physical binary format"),
+        ),
+    )
 }
 
 fn page_bytes(generation: PhysicalGeneration, payload: &[u8]) -> Vec<u8> {

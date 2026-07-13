@@ -13,12 +13,14 @@ pub struct PhysicalIsolationEntryIdentity {
     source_decision_digest: String,
     replayed_frames: usize,
     source_candidate_count: usize,
+    store_authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalIsolationRootEpochBasis {
     root_epoch: RootEpoch,
     manifest_epoch: ManifestEpoch,
+    store_authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
 }
 
 impl PhysicalIsolationEntryIdentity {
@@ -28,6 +30,7 @@ impl PhysicalIsolationEntryIdentity {
         source_decision_digest: &str,
         replayed_frames: usize,
         source_candidate_count: usize,
+        store_authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
     ) -> Self {
         Self {
             recovered_root: recovered_root.to_string(),
@@ -35,6 +38,7 @@ impl PhysicalIsolationEntryIdentity {
             source_decision_digest: source_decision_digest.to_string(),
             replayed_frames,
             source_candidate_count,
+            store_authority_identity,
         }
     }
 
@@ -58,11 +62,18 @@ impl PhysicalIsolationEntryIdentity {
         self.source_candidate_count
     }
 
+    pub const fn store_authority_identity(
+        &self,
+    ) -> forge_store_authority::StoreCurrentAuthorityIdentity {
+        self.store_authority_identity
+    }
+
     pub fn root_epoch_basis(&self) -> PhysicalIsolationRootEpochBasis {
         let seed = stable_identity_hash(self);
         PhysicalIsolationRootEpochBasis {
             root_epoch: root_epoch_from_entry_seed(seed),
             manifest_epoch: manifest_epoch_from_entry_seed(seed),
+            store_authority_identity: self.store_authority_identity,
         }
     }
 
@@ -81,7 +92,11 @@ impl PhysicalIsolationRootEpochBasis {
     }
 
     pub const fn current_root_basis(&self) -> CurrentPhysicalRootBasis {
-        CurrentPhysicalRootBasis::new(self.root_epoch, self.manifest_epoch)
+        CurrentPhysicalRootBasis::new(
+            self.root_epoch,
+            self.manifest_epoch,
+            self.store_authority_identity,
+        )
     }
 
     pub const fn checkpoint_publication_root_basis(&self) -> CheckpointPublicationRootBasis {
@@ -104,6 +119,7 @@ fn stable_identity_hash(identity: &PhysicalIsolationEntryIdentity) -> u64 {
     mix_bytes(&mut hash, identity.source_decision_digest.as_bytes());
     mix_u64(&mut hash, identity.replayed_frames as u64);
     mix_u64(&mut hash, identity.source_candidate_count as u64);
+    mix_bytes(&mut hash, &identity.store_authority_identity.fingerprint());
     hash
 }
 

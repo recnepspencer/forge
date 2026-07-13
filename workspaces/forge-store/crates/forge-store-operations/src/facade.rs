@@ -4,10 +4,13 @@ pub use crate::backup::export::{
     BackupExportTerminalProjectionPreparation, S10BackupExportCustodyHandoff,
     S10BackupExportCustodyPermission,
 };
+pub use crate::backup::import::admit_restored_layout_materialization;
 pub use crate::backup::import::{
-    admit_backup_import_source_custody_scope, BackupImportCustodyReadmission,
-    BackupImportSourceCustodyDenial, BackupImportSourceCustodyScope, ImportPlacementDisposition,
-    ImportPlacementPlan, ImportPlacementSource,
+    admit_backup_import_source_custody_scope, restored_layout_materialization_cases,
+    BackupImportCustodyReadmission, BackupImportSourceCustodyDenial,
+    BackupImportSourceCustodyScope, ImportPlacementDisposition, ImportPlacementPlan,
+    ImportPlacementSource, RestoredLayoutMaterializationCaseId,
+    RestoredLayoutMaterializationOutcome, RestoredLayoutMaterializationView,
 };
 pub use crate::backup_export_custody_scheduler_demand::backup_prep_background_pressure_shape;
 pub use crate::capsule_chunk_availability::{

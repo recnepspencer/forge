@@ -1,6 +1,6 @@
-use forge_store_layout_indexes::layout_customization::S8FutureLayoutCustomizationRequest;
+use forge_store_layout_indexes::customization::FutureLayoutCustomizationRequest;
 
-fn require_request(_: S8FutureLayoutCustomizationRequest) {}
+fn require_request(_: FutureLayoutCustomizationRequest) {}
 
 fn callback() {}
 

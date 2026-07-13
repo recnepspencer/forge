@@ -15,6 +15,21 @@ use super::{
 };
 
 impl PlatformPhysicalFacade {
+    pub fn execute_admitted_degraded_exact_scan(
+        &mut self,
+        ready: super::PlatformPhysicalDegradedExactScanReady,
+    ) -> Result<super::PlatformPhysicalDegradedExecutionObservation, PlatformPhysicalFacadeDenial>
+    {
+        let request = PlatformPhysicalLayoutAccessRequest::explicit_degraded_exact_scan(
+            ready.admitted_rows(),
+        );
+        let scan = self.execute_explicit_degraded_exact_scan(request)?;
+        Ok(super::PlatformPhysicalDegradedExecutionObservation::issue(
+            ready.budget(),
+            scan,
+        ))
+    }
+
     pub fn scan_physical_layout(
         &mut self,
     ) -> Result<PlatformPhysicalScanReport, PlatformPhysicalFacadeDenial> {

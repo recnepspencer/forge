@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StrategyDenial {
+pub enum StrategyDenial {
     UnsupportedFamily,
     FamilyDoesNotMatchKeyDomain,
     FamilyDoesNotMatchLifecycleAdmission,

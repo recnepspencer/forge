@@ -1,18 +1,18 @@
-use forge_store_physical_format::PhysicalRootReference;
+use forge_store_physical_format::PhysicalReference;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CheckpointRootPosture {
-    RootPresent(PhysicalRootReference),
+    RootPresent(PhysicalReference),
     MissingRoot,
-    StaleRoot(PhysicalRootReference),
+    StaleRoot(PhysicalReference),
 }
 
 impl CheckpointRootPosture {
-    pub const fn root_present(reference: PhysicalRootReference) -> Self {
+    pub const fn root_present(reference: PhysicalReference) -> Self {
         Self::RootPresent(reference)
     }
 
-    pub const fn root_reference(self) -> Option<PhysicalRootReference> {
+    pub const fn root_reference(self) -> Option<PhysicalReference> {
         match self {
             Self::RootPresent(reference) => Some(reference),
             Self::MissingRoot | Self::StaleRoot(_) => None,

@@ -9,6 +9,14 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BlobLayoutAccessShape {
+    PointLookup,
+    BoundedScan,
+    CompactionRead,
+    QuarantineRead,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlobLayoutAccessPathEvidence {
     family_id: DurableArtifactFamilyId,
     strength: CounterEvidenceStrength,

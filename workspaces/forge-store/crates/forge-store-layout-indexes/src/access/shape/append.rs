@@ -1,49 +1,49 @@
-use super::contract::S8ExpectedCounterClass;
-use super::contract::{S8AccessShapeContract, S8AccessStaleDisposition};
-use super::denial::S8AccessShapeUnsupportedDenial;
-use super::detail::{S8AccessShapeDetail, S8MutationAccessBasis};
-use super::lane::S8AccessLaneClassification;
-use super::shape::S8AccessShape;
-use crate::maintenance::S8PhysicalMutationShape;
+use super::contract::ExpectedCounterClass;
+use super::contract::{AccessShapeContract, AccessStaleDisposition};
+use super::denial::AccessShapeUnsupportedDenial;
+use super::detail::{AccessShapeDetail, MutationAccessBasis};
+use super::lane::AccessLaneClassification;
+use super::shape::AccessShape;
+use crate::maintenance::PhysicalMutationShape;
 
 pub(crate) fn append_path(
-    mutation_shape: S8PhysicalMutationShape,
-) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
-    if mutation_shape != S8PhysicalMutationShape::LogStructuredAppend {
+    mutation_shape: PhysicalMutationShape,
+) -> Result<AccessShapeContract, AccessShapeUnsupportedDenial> {
+    if mutation_shape != PhysicalMutationShape::LogStructuredAppend {
         return Err(
-            S8AccessShapeUnsupportedDenial::MutationShapeDoesNotSupportAccessShape {
-                requested_shape: S8AccessShape::Append,
+            AccessShapeUnsupportedDenial::MutationShapeDoesNotSupportAccessShape {
+                requested_shape: AccessShape::Append,
                 mutation_shape,
             },
         );
     }
 
-    Ok(S8AccessShapeContract::mutation_path(
-        S8AccessShapeDetail::Append(S8MutationAccessBasis::WalBeforeDataAppend),
-        S8AccessLaneClassification::Maintenance,
-        S8AccessStaleDisposition::RebindBeforeExecution,
-        S8ExpectedCounterClass::AppendTraversal,
+    Ok(AccessShapeContract::mutation_path(
+        AccessShapeDetail::Append(MutationAccessBasis::WalBeforeDataAppend),
+        AccessLaneClassification::Maintenance,
+        AccessStaleDisposition::RebindBeforeExecution,
+        ExpectedCounterClass::AppendTraversal,
         mutation_shape,
     ))
 }
 
 pub(crate) fn compaction_read(
-    mutation_shape: S8PhysicalMutationShape,
-) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
-    if mutation_shape != S8PhysicalMutationShape::CompactionRewrite {
+    mutation_shape: PhysicalMutationShape,
+) -> Result<AccessShapeContract, AccessShapeUnsupportedDenial> {
+    if mutation_shape != PhysicalMutationShape::CompactionRewrite {
         return Err(
-            S8AccessShapeUnsupportedDenial::MutationShapeDoesNotSupportAccessShape {
-                requested_shape: S8AccessShape::CompactionRead,
+            AccessShapeUnsupportedDenial::MutationShapeDoesNotSupportAccessShape {
+                requested_shape: AccessShape::CompactionRead,
                 mutation_shape,
             },
         );
     }
 
-    Ok(S8AccessShapeContract::mutation_path(
-        S8AccessShapeDetail::CompactionRead(S8MutationAccessBasis::CompactionRewriteTraversal),
-        S8AccessLaneClassification::Maintenance,
-        S8AccessStaleDisposition::RebindBeforeExecution,
-        S8ExpectedCounterClass::CompactionTraversal,
+    Ok(AccessShapeContract::mutation_path(
+        AccessShapeDetail::CompactionRead(MutationAccessBasis::CompactionRewriteTraversal),
+        AccessLaneClassification::Maintenance,
+        AccessStaleDisposition::RebindBeforeExecution,
+        ExpectedCounterClass::CompactionTraversal,
         mutation_shape,
     ))
 }

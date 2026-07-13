@@ -24,8 +24,10 @@ fn every_required_physical_format_operation_has_verified_complexity_contract() {
 #[test]
 fn complexity_contracts_name_the_declared_locality_classes() {
     assert_eq!(
-        PhysicalOperationComplexityContract::required_complexity_contract(PhysicalOperationKind::LocateByReference)
-            .locality(),
+        PhysicalOperationComplexityContract::required_complexity_contract(
+            PhysicalOperationKind::LocateByReference
+        )
+        .locality(),
         PhysicalLocalityClass::PageLocal
     );
     assert_eq!(

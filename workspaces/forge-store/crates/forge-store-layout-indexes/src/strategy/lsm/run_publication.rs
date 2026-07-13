@@ -1,13 +1,13 @@
 use crate::keyspace::{CanonicalKeyBytes, ComparatorLaw};
-use crate::strategy::S8StrategyDenial;
+use crate::strategy::StrategyDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LsmRunPublicationLaw {
+pub struct LsmRunPublicationLaw {
     comparator: ComparatorLaw,
     manifest_sequence_must_advance: bool,
 }
 
-impl S8LsmRunPublicationLaw {
+impl LsmRunPublicationLaw {
     pub(crate) const fn new(comparator: ComparatorLaw) -> Self {
         Self {
             comparator,
@@ -24,27 +24,27 @@ impl S8LsmRunPublicationLaw {
         previous_manifest_sequence: u64,
         next_manifest_sequence: u64,
         published_run_count: u16,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         if (!self.manifest_sequence_must_advance
             || next_manifest_sequence > previous_manifest_sequence)
             && published_run_count > 0
         {
             return Ok(());
         }
-        Err(S8StrategyDenial::RootPublicationViolation)
+        Err(StrategyDenial::RootPublicationViolation)
     }
 
     pub const fn verify_manifest_publication_progress(
         self,
         manifest_sequence_advanced: bool,
         published_run_count: u16,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         if (!self.manifest_sequence_must_advance || manifest_sequence_advanced)
             && published_run_count > 0
         {
             return Ok(());
         }
-        Err(S8StrategyDenial::RootPublicationViolation)
+        Err(StrategyDenial::RootPublicationViolation)
     }
 
     pub const fn verify_manifest_update_protocol(
@@ -52,27 +52,27 @@ impl S8LsmRunPublicationLaw {
         previous_manifest_sequence: u64,
         next_manifest_sequence: u64,
         stale_runs_removed: bool,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         if (!self.manifest_sequence_must_advance
             || next_manifest_sequence > previous_manifest_sequence)
             && stale_runs_removed
         {
             return Ok(());
         }
-        Err(S8StrategyDenial::ManifestUpdateViolation)
+        Err(StrategyDenial::ManifestUpdateViolation)
     }
 
     pub const fn verify_manifest_update_progress(
         self,
         manifest_sequence_advanced: bool,
         stale_runs_removed: bool,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         if (!self.manifest_sequence_must_advance || manifest_sequence_advanced)
             && stale_runs_removed
         {
             return Ok(());
         }
-        Err(S8StrategyDenial::ManifestUpdateViolation)
+        Err(StrategyDenial::ManifestUpdateViolation)
     }
 
     pub fn verify_sorted_run_lookup(
@@ -80,12 +80,12 @@ impl S8LsmRunPublicationLaw {
         probe: &CanonicalKeyBytes,
         run_start: &CanonicalKeyBytes,
         run_end: &CanonicalKeyBytes,
-    ) -> Result<bool, S8StrategyDenial> {
+    ) -> Result<bool, StrategyDenial> {
         if probe.encoding() != self.comparator.encoding()
             || run_start.encoding() != self.comparator.encoding()
             || run_end.encoding() != self.comparator.encoding()
         {
-            return Err(S8StrategyDenial::ComparatorOrderViolation);
+            return Err(StrategyDenial::ComparatorOrderViolation);
         }
         Ok(run_start.as_bytes() <= probe.as_bytes() && probe.as_bytes() < run_end.as_bytes())
     }
@@ -93,7 +93,7 @@ impl S8LsmRunPublicationLaw {
     pub const fn verify_sorted_run_membership(
         self,
         probe_within_run: bool,
-    ) -> Result<bool, S8StrategyDenial> {
+    ) -> Result<bool, StrategyDenial> {
         Ok(probe_within_run)
     }
 
@@ -102,26 +102,26 @@ impl S8LsmRunPublicationLaw {
         newer_start: &CanonicalKeyBytes,
         older_start: &CanonicalKeyBytes,
         newer_precedence_preserved: bool,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         if newer_start.encoding() != self.comparator.encoding()
             || older_start.encoding() != self.comparator.encoding()
         {
-            return Err(S8StrategyDenial::MergeOrderingViolation);
+            return Err(StrategyDenial::MergeOrderingViolation);
         }
         if older_start.as_bytes() <= newer_start.as_bytes() && newer_precedence_preserved {
             return Ok(());
         }
-        Err(S8StrategyDenial::MergeOrderingViolation)
+        Err(StrategyDenial::MergeOrderingViolation)
     }
 
     pub const fn verify_merge_order_boundary(
         self,
         older_precedes_newer_start: bool,
         newer_precedence_preserved: bool,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         if older_precedes_newer_start && newer_precedence_preserved {
             return Ok(());
         }
-        Err(S8StrategyDenial::MergeOrderingViolation)
+        Err(StrategyDenial::MergeOrderingViolation)
     }
 }

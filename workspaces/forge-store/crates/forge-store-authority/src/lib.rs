@@ -4,6 +4,7 @@ mod aspect_native_authority;
 mod authority_readmission;
 mod canonical_authority_record;
 mod current_authority;
+mod current_authority_identity;
 mod derived_authority_evidence;
 mod external_authority_token;
 mod retained_authority_evidence;
@@ -35,3 +36,4 @@ pub use retained_authority_evidence::{
     compare_retained_store_authority_evidence, report_retained_store_authority_evidence,
     StoreRetainedAuthorityEvidence, StoreRetainedAuthorityEvidenceComparison,
 };
+pub use current_authority_identity::StoreCurrentAuthorityIdentity;

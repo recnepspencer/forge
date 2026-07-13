@@ -31,14 +31,14 @@ const BYTES: &[u8] = b"abcdefghijkl";
 fn layout_admission_uses_published_and_verified_runtime_path() {
     let (published, _, read_request, verified) = layout_runtime_case(CASE, BYTES, 4, 4);
 
-    let blob = published.admit_blob_object_layout().unwrap();
-    let chunk_tree = blob.admit_chunk_tree_layout(&verified).unwrap();
+    let blob = published.project_blob_object_layout().unwrap();
+    let chunk_tree = blob.project_chunk_tree_layout(&verified).unwrap();
     let streaming = chunk_tree
-        .admit_streaming_layout(&read_request, &verified)
+        .project_streaming_layout(&read_request, &verified)
         .unwrap();
-    let publication = blob.admit_generation_publication_layout();
-    let chunk_lookup = chunk_tree.admit_stored_chunk_lookup_layout();
-    let resume = streaming.admit_resume_index_layout();
+    let publication = blob.project_generation_publication_layout();
+    let chunk_lookup = chunk_tree.project_stored_chunk_lookup_layout();
+    let resume = streaming.project_resume_index_layout();
 
     assert_eq!(
         blob.family_id(),
@@ -99,7 +99,7 @@ fn layout_admission_uses_runtime_maintenance_authority() {
             TransitionOutcome::Success(claim) => claim,
             other => panic!("dedupe share claim should admit: {other:?}"),
         };
-    let dedupe = claim.admit_dedupe_layout().unwrap();
+    let dedupe = claim.project_dedupe_layout().unwrap();
 
     let reachability_scope = blob_scope(
         "phase25-reachability",
@@ -116,21 +116,21 @@ fn layout_admission_uses_runtime_maintenance_authority() {
         .admit_retention_hold(&BlobRetentionHold::generation("phase25-hold"))
         .unwrap();
     let reachability = registry.prove_reachable_chunks().unwrap();
-    let reachability_layout = reachability.admit_reachability_layout().unwrap();
+    let reachability_layout = reachability.project_reachability_layout().unwrap();
 
     let admission = phase25_reclaim_fixture("phase25-reclaim", 11);
     let request = BlobRetentionReclaimRequest::for_admission(admission);
     let permit = BlobRetentionSafeReclaimPlanner::new_store_owned()
         .plan_reclaim(request)
         .into_permit();
-    let retention = reachability.admit_retention_layout().unwrap();
-    let reclaim = permit.admit_reclaim_layout().unwrap();
+    let retention = reachability.project_retention_layout().unwrap();
+    let reclaim = permit.project_reclaim_layout().unwrap();
     let (quarantine_published, _) =
         publish_generation_with_bytes_and_chunk_size("phase25-quarantine", b"aaaabbbb", 4);
     let visible = BlobVisibleGeneration::from_published(&quarantine_published);
     let quarantine =
         quarantined_read_corruption("phase25-quarantine", &quarantine_published, visible);
-    let quarantine_layout = quarantine.admit_quarantine_layout().unwrap();
+    let quarantine_layout = quarantine.project_quarantine_layout().unwrap();
 
     let plan = BlobCompactionAuthority::store_owned()
         .plan_compaction(phase25_compaction_intent("phase25-compaction"))
@@ -140,7 +140,7 @@ fn layout_admission_uses_runtime_maintenance_authority() {
     let equivalence =
         BlobCompactionEquivalence::from_rewritten_root_and_verified_read(&plan, &rewritten, &read)
             .unwrap();
-    let compaction = plan.admit_compaction_layout(&equivalence).unwrap();
+    let compaction = plan.project_compaction_layout(&equivalence).unwrap();
 
     assert_eq!(dedupe.family_id(), DurableArtifactFamilyId::DedupeIndex);
     assert_eq!(
@@ -200,7 +200,7 @@ fn layout_admission_uses_runtime_maintenance_authority() {
     );
 
     let retention_shortcut_denial = permit
-        .admit_retention_layout(RetentionDisposition::Retain)
+        .project_retention_layout(RetentionDisposition::Retain)
         .expect_err("reclaim permit cannot stand in for retention layout authority");
     assert_eq!(
         retention_shortcut_denial.kind(),
@@ -236,11 +236,10 @@ fn layout_rejects_proxy_authority_inputs() {
         BlobLayoutAccessDenialKind::FullBlobBufferCannotStandInForStreamingLayoutAuthority
     );
 
-    let blob = published.admit_blob_object_layout().unwrap();
-    let (_, _, _, wrong_verified) =
-        layout_runtime_case("phase10.streaming.unrelated", BYTES, 4, 4);
+    let blob = published.project_blob_object_layout().unwrap();
+    let (_, _, _, wrong_verified) = layout_runtime_case("phase10.streaming.unrelated", BYTES, 4, 4);
     let denial = blob
-        .admit_chunk_tree_layout(&wrong_verified)
+        .project_chunk_tree_layout(&wrong_verified)
         .expect_err("unrelated verified read should not satisfy chunk-tree layout");
     assert_eq!(
         denial.kind(),
@@ -253,10 +252,10 @@ fn streaming_layout_denies_whole_blob_residency() {
     let (published, _, read_request, verified) =
         layout_runtime_case(CASE, BYTES, BYTES.len() as u64, BYTES.len() as u64);
 
-    let blob = published.admit_blob_object_layout().unwrap();
-    let chunk_tree = blob.admit_chunk_tree_layout(&verified).unwrap();
+    let blob = published.project_blob_object_layout().unwrap();
+    let chunk_tree = blob.project_chunk_tree_layout(&verified).unwrap();
     let denial = chunk_tree
-        .admit_streaming_layout(&read_request, &verified)
+        .project_streaming_layout(&read_request, &verified)
         .expect_err("whole-object residency must deny streaming layout");
     assert_eq!(
         denial.kind(),

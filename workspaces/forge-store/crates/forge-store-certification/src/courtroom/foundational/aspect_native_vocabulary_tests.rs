@@ -228,7 +228,8 @@ fn patch_fact_rejects_patch_without_store_identity_key() {
 
 #[test]
 fn store_physical_boundary_witness_rejects_non_aspect_native_scope() {
-    let s1_witness = StorePhysicalAuthorityWitness::for_physical_format_vocabulary(ROADMAP_2_S1_SCOPE).unwrap();
+    let s1_witness =
+        StorePhysicalAuthorityWitness::for_physical_format_vocabulary(ROADMAP_2_S1_SCOPE).unwrap();
 
     assert_eq!(
         StorePhysicalBoundaryWitness::from_physical_authority(s1_witness),

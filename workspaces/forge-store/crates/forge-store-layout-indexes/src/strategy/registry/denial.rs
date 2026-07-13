@@ -3,15 +3,15 @@ use crate::catalog::{
     PhysicalArtifactFamily,
 };
 use crate::keyspace::PhysicalKeyDomainWitness;
-use crate::maintenance::{S8IndexMaintenanceMode, S8PhysicalMutationShape};
-use crate::materialization::S8MaterializationDenial;
-use crate::strategy::{S8LayoutStrategyFamily, S8StrategyDenial};
+use crate::maintenance::{IndexMaintenanceMode, PhysicalMutationShape};
+use crate::materialization::MaterializationDenial;
+use crate::strategy::{LayoutStrategyFamily, StrategyDenial};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8LayoutAdmissionDenial {
-    StrategyVocabularyDenied(S8StrategyDenial),
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LayoutAdmissionDenial {
+    StrategyVocabularyDenied(StrategyDenial),
     RequestedLaneDoesNotMatchFamilyLane {
-        family: S8LayoutStrategyFamily,
+        family: LayoutStrategyFamily,
         requested_lane: ArtifactFamilyAccessLane,
         declared_lane: ArtifactFamilyAccessLane,
     },
@@ -20,32 +20,32 @@ pub enum S8LayoutAdmissionDenial {
         key_domain_scope: ArtifactScopePartitionWitness,
     },
     MaintenanceModeIncompatibleWithRequestedLane {
-        family: S8LayoutStrategyFamily,
-        maintenance_mode: S8IndexMaintenanceMode,
+        family: LayoutStrategyFamily,
+        maintenance_mode: IndexMaintenanceMode,
         requested_lane: ArtifactFamilyAccessLane,
     },
     MutationShapeIncompatibleWithStrategy {
-        family: S8LayoutStrategyFamily,
-        mutation_shape: S8PhysicalMutationShape,
+        family: LayoutStrategyFamily,
+        mutation_shape: PhysicalMutationShape,
     },
     MigrationPostureIncompatibleWithStrategy {
-        family: S8LayoutStrategyFamily,
+        family: LayoutStrategyFamily,
         required_migration_posture: DurableArtifactMigrationPosture,
         admitted_migration_posture: DurableArtifactMigrationPosture,
     },
     StrategyDoesNotSupportRequestedCapability {
-        family: S8LayoutStrategyFamily,
-        capability: super::S8LayoutRequestedCapability,
+        family: LayoutStrategyFamily,
+        capability: super::LayoutRequestedCapability,
     },
     ComparatorLawRequired {
-        family: S8LayoutStrategyFamily,
-        capability: super::S8LayoutRequestedCapability,
+        family: LayoutStrategyFamily,
+        capability: super::LayoutRequestedCapability,
     },
     PrefixLawRequired {
-        family: S8LayoutStrategyFamily,
+        family: LayoutStrategyFamily,
     },
     RangeBoundLawRequired {
-        family: S8LayoutStrategyFamily,
+        family: LayoutStrategyFamily,
     },
     HashEqualityLawDoesNotMatchKeyDomain {
         requested_domain: PhysicalKeyDomainWitness,
@@ -64,9 +64,102 @@ pub enum S8LayoutAdmissionDenial {
         strategy_family: PhysicalArtifactFamily,
     },
     LiveExactMaintenanceCoverageDoesNotMatchRequest {
-        witness_coverage: crate::materialization::S8LayoutCoverageWitness,
-        requested_coverage: crate::materialization::S8LayoutCoverageWitness,
+        witness_coverage: crate::materialization::LayoutCoverageWitness,
+        requested_coverage: crate::materialization::LayoutCoverageWitness,
     },
-    ExactCoverageDenied(S8MaterializationDenial),
-    ExactAbsenceProofDenied(S8MaterializationDenial),
+    ExactMaterializationRequired,
+    ExactCoverageDenied(MaterializationDenial),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LayoutAdmissionDenialCase {
+    StrategyVocabularyDenied,
+    RequestedLaneDoesNotMatchFamilyLane,
+    RequestedScopeDoesNotMatchKeyDomain,
+    MaintenanceModeIncompatibleWithRequestedLane,
+    MutationShapeIncompatibleWithStrategy,
+    MigrationPostureIncompatibleWithStrategy,
+    StrategyDoesNotSupportRequestedCapability,
+    ComparatorLawRequired,
+    PrefixLawRequired,
+    RangeBoundLawRequired,
+    HashEqualityLawDoesNotMatchKeyDomain,
+    CompositeOrderingLawDoesNotMatchKeyDomain,
+    CoverageFamilyDoesNotMatchStrategy,
+    LiveExactMaintenanceWitnessDoesNotMatchStrategy,
+    LiveExactMaintenanceCoverageDoesNotMatchRequest,
+    ExactMaterializationRequired,
+    ExactCoverageDenied,
+}
+
+impl LayoutAdmissionDenialCase {
+    pub const ALL: [Self; 17] = [
+        Self::StrategyVocabularyDenied,
+        Self::RequestedLaneDoesNotMatchFamilyLane,
+        Self::RequestedScopeDoesNotMatchKeyDomain,
+        Self::MaintenanceModeIncompatibleWithRequestedLane,
+        Self::MutationShapeIncompatibleWithStrategy,
+        Self::MigrationPostureIncompatibleWithStrategy,
+        Self::StrategyDoesNotSupportRequestedCapability,
+        Self::ComparatorLawRequired,
+        Self::PrefixLawRequired,
+        Self::RangeBoundLawRequired,
+        Self::HashEqualityLawDoesNotMatchKeyDomain,
+        Self::CompositeOrderingLawDoesNotMatchKeyDomain,
+        Self::CoverageFamilyDoesNotMatchStrategy,
+        Self::LiveExactMaintenanceWitnessDoesNotMatchStrategy,
+        Self::LiveExactMaintenanceCoverageDoesNotMatchRequest,
+        Self::ExactMaterializationRequired,
+        Self::ExactCoverageDenied,
+    ];
+}
+
+impl LayoutAdmissionDenial {
+    pub const fn case(&self) -> LayoutAdmissionDenialCase {
+        match self {
+            Self::StrategyVocabularyDenied(_) => {
+                LayoutAdmissionDenialCase::StrategyVocabularyDenied
+            }
+            Self::RequestedLaneDoesNotMatchFamilyLane { .. } => {
+                LayoutAdmissionDenialCase::RequestedLaneDoesNotMatchFamilyLane
+            }
+            Self::RequestedScopeDoesNotMatchKeyDomain { .. } => {
+                LayoutAdmissionDenialCase::RequestedScopeDoesNotMatchKeyDomain
+            }
+            Self::MaintenanceModeIncompatibleWithRequestedLane { .. } => {
+                LayoutAdmissionDenialCase::MaintenanceModeIncompatibleWithRequestedLane
+            }
+            Self::MutationShapeIncompatibleWithStrategy { .. } => {
+                LayoutAdmissionDenialCase::MutationShapeIncompatibleWithStrategy
+            }
+            Self::MigrationPostureIncompatibleWithStrategy { .. } => {
+                LayoutAdmissionDenialCase::MigrationPostureIncompatibleWithStrategy
+            }
+            Self::StrategyDoesNotSupportRequestedCapability { .. } => {
+                LayoutAdmissionDenialCase::StrategyDoesNotSupportRequestedCapability
+            }
+            Self::ComparatorLawRequired { .. } => LayoutAdmissionDenialCase::ComparatorLawRequired,
+            Self::PrefixLawRequired { .. } => LayoutAdmissionDenialCase::PrefixLawRequired,
+            Self::RangeBoundLawRequired { .. } => LayoutAdmissionDenialCase::RangeBoundLawRequired,
+            Self::HashEqualityLawDoesNotMatchKeyDomain { .. } => {
+                LayoutAdmissionDenialCase::HashEqualityLawDoesNotMatchKeyDomain
+            }
+            Self::CompositeOrderingLawDoesNotMatchKeyDomain { .. } => {
+                LayoutAdmissionDenialCase::CompositeOrderingLawDoesNotMatchKeyDomain
+            }
+            Self::CoverageFamilyDoesNotMatchStrategy { .. } => {
+                LayoutAdmissionDenialCase::CoverageFamilyDoesNotMatchStrategy
+            }
+            Self::LiveExactMaintenanceWitnessDoesNotMatchStrategy { .. } => {
+                LayoutAdmissionDenialCase::LiveExactMaintenanceWitnessDoesNotMatchStrategy
+            }
+            Self::LiveExactMaintenanceCoverageDoesNotMatchRequest { .. } => {
+                LayoutAdmissionDenialCase::LiveExactMaintenanceCoverageDoesNotMatchRequest
+            }
+            Self::ExactMaterializationRequired => {
+                LayoutAdmissionDenialCase::ExactMaterializationRequired
+            }
+            Self::ExactCoverageDenied(_) => LayoutAdmissionDenialCase::ExactCoverageDenied,
+        }
+    }
 }

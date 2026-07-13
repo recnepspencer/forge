@@ -98,7 +98,8 @@ fn secure_operation_for_test_work(work: QueueWorkDeclaration) -> SecureIoOperati
 }
 
 fn io_qos_security_scope_admission() -> crate::IoSchedulerSecurityScopeAdmission {
-    let security_scope = forge_store_security::admitted_store_internal_security_scope_for_io_qos_test();
+    let security_scope =
+        forge_store_security::admitted_store_internal_security_scope_for_io_qos_test();
     admit_security_scope_for_scheduler(&security_scope)
         .expect("test security scope should admit for scheduler use")
 }

@@ -5,13 +5,13 @@ use crate::PhysicalArtifactFamilyDeclaration;
 use super::LayoutVersion;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutStaleBinding {
+pub struct LayoutStaleBinding {
     family: &'static PhysicalArtifactFamilyDeclaration,
     bound_version: LayoutVersion,
     observed_version: LayoutVersion,
 }
 
-impl S8LayoutStaleBinding {
+impl LayoutStaleBinding {
     pub(crate) const fn new(
         family: &'static PhysicalArtifactFamilyDeclaration,
         bound_version: LayoutVersion,
@@ -38,12 +38,12 @@ impl S8LayoutStaleBinding {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S8LayoutRebindRequired {
+pub struct LayoutRebindRequired {
     family: &'static PhysicalArtifactFamilyDeclaration,
     bound_authority: StoreCurrentAuthorityWitness,
 }
 
-impl S8LayoutRebindRequired {
+impl LayoutRebindRequired {
     pub(crate) fn new(
         family: &'static PhysicalArtifactFamilyDeclaration,
         bound_authority: &StoreCurrentAuthorityWitness,

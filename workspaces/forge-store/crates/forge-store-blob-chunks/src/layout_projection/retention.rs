@@ -1,5 +1,4 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
-use forge_store_layout_indexes::access_planning::S8AccessShape;
 use forge_store_retention::RetentionDisposition;
 use forge_store_security::StoreSecurityScopeIdentity;
 
@@ -7,13 +6,16 @@ use super::behavior::{
     corruption_behavior_for, declared_rebuild_posture, BlobLayoutCorruptionBehavior,
     BlobLayoutScopeSafeAbsenceBehavior,
 };
-use super::{BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence};
+use super::{
+    BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence,
+    BlobLayoutAccessShape,
+};
 use crate::{BlobChunkReachabilityProofSet, BlobRetentionReclaimPermit};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RetentionLayoutReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: BlobLayoutAccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     absence_behavior: BlobLayoutScopeSafeAbsenceBehavior,
     corruption_behavior: BlobLayoutCorruptionBehavior,
@@ -24,7 +26,7 @@ pub struct RetentionLayoutReport {
 }
 
 impl RetentionLayoutReport {
-    fn admit_retention(
+    fn project_retention(
         proof: &BlobChunkReachabilityProofSet,
     ) -> Result<RetentionLayoutReport, BlobLayoutAccessDenial> {
         if proof.protected_holds().is_empty() {
@@ -42,7 +44,7 @@ impl RetentionLayoutReport {
         let rebuild_posture = declared_rebuild_posture(family_id);
         Self {
             family_id,
-            access_shape: S8AccessShape::BoundedScan,
+            access_shape: BlobLayoutAccessShape::BoundedScan,
             rebuild_posture,
             absence_behavior: BlobLayoutScopeSafeAbsenceBehavior::ScopedMaintenanceScan,
             corruption_behavior: corruption_behavior_for(rebuild_posture),
@@ -60,7 +62,7 @@ impl RetentionLayoutReport {
         self.family_id
     }
 
-    pub const fn access_shape(&self) -> S8AccessShape {
+    pub const fn access_shape(&self) -> BlobLayoutAccessShape {
         self.access_shape
     }
 
@@ -101,13 +103,15 @@ impl RetentionLayoutReport {
 }
 
 impl BlobChunkReachabilityProofSet {
-    pub fn admit_retention_layout(&self) -> Result<RetentionLayoutReport, BlobLayoutAccessDenial> {
-        RetentionLayoutReport::admit_retention(self)
+    pub fn project_retention_layout(
+        &self,
+    ) -> Result<RetentionLayoutReport, BlobLayoutAccessDenial> {
+        RetentionLayoutReport::project_retention(self)
     }
 }
 
 impl BlobRetentionReclaimPermit {
-    pub fn admit_retention_layout(
+    pub fn project_retention_layout(
         &self,
         _disposition: RetentionDisposition,
     ) -> Result<RetentionLayoutReport, BlobLayoutAccessDenial> {

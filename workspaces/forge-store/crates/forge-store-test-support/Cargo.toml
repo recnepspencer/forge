@@ -16,10 +16,11 @@ forge-store-buffer-pool.workspace = true
 forge-store-contracts.workspace = true
 forge-store-io-scheduler.workspace = true
 forge-store-layout-indexes.workspace = true
+forge-store-lsm-authority.workspace = true
 forge-store-physical-certification = { workspace = true, features = ["certification-test-support"] }
 forge-store-physical-backend.workspace = true
 forge-store-physical-format.workspace = true
-forge-store-physical-isolation.workspace = true
+forge-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
 forge-store-physical-integrity.workspace = true
 forge-store-readiness.workspace = true
 forge-store-recovery-physics.workspace = true

@@ -217,9 +217,10 @@ fn stale_root_publication_denies_before_manifest_traversal() {
     let segment_cell = generations
         .segment_cell(segment(7))
         .with_segment_generation(generation(1));
-    let manifest = crate::PhysicalManifestUniverseBuilder::for_canonical_physical_format(current_root)
-        .segment(segment_cell)
-        .publish();
+    let manifest =
+        crate::PhysicalManifestUniverseBuilder::for_canonical_physical_format(current_root)
+            .segment(segment_cell)
+            .publish();
 
     let denial = discovery
         .reopen_from_root(&manifest, references.admit_root_publication(old_root))
@@ -252,9 +253,10 @@ fn wrong_root_publication_reference_denies_before_manifest_traversal() {
     let segment_cell = generations
         .segment_cell(segment(7))
         .with_segment_generation(generation(1));
-    let manifest = crate::PhysicalManifestUniverseBuilder::for_canonical_physical_format(current_root)
-        .segment(segment_cell)
-        .publish();
+    let manifest =
+        crate::PhysicalManifestUniverseBuilder::for_canonical_physical_format(current_root)
+            .segment(segment_cell)
+            .publish();
 
     let denial = discovery
         .reopen_from_root(

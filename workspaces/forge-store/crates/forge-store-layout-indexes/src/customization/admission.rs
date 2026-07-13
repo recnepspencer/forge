@@ -1,16 +1,14 @@
 use super::{
-    S8FutureLayoutCustomizationAdmission, S8FutureLayoutCustomizationDeferred,
-    S8FutureLayoutCustomizationDenial, S8FutureLayoutCustomizationRequest,
+    FutureLayoutCustomizationAdmission, FutureLayoutCustomizationDeferred,
+    FutureLayoutCustomizationDenial, FutureLayoutCustomizationRequest,
 };
-use crate::strategy::registry::{
-    layout_admission_registry, S8LayoutAdmissionOutcome, S8LayoutAdmissionRequest,
-};
+use crate::strategy::registry::{layout_admission_registry, LayoutAdmissionRequest};
 use forge_proof::TransitionOutcome;
 
-pub type S8FutureLayoutCustomizationOutcome = TransitionOutcome<
-    S8FutureLayoutCustomizationAdmission,
-    S8FutureLayoutCustomizationDenial,
-    S8FutureLayoutCustomizationDeferred,
+pub type FutureLayoutCustomizationOutcome = TransitionOutcome<
+    FutureLayoutCustomizationAdmission,
+    FutureLayoutCustomizationDenial,
+    FutureLayoutCustomizationDeferred,
 >;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19,13 +17,12 @@ pub struct LayoutCustomizationBoundaryFacade;
 impl LayoutCustomizationBoundaryFacade {
     pub fn admit(
         &self,
-        request: S8FutureLayoutCustomizationRequest,
-    ) -> S8FutureLayoutCustomizationOutcome {
-        if request.authority_source().family_id()
-            != request.capability_request().key_domain().family_id()
+        request: FutureLayoutCustomizationRequest,
+    ) -> FutureLayoutCustomizationOutcome {
+        if request.authority_source() != request.capability_request().admitted_key_domain().family()
         {
             return TransitionOutcome::denied(
-                S8FutureLayoutCustomizationDenial::AuthoritySourceDoesNotMatchKeyDomain,
+                FutureLayoutCustomizationDenial::AuthoritySourceDoesNotMatchKeyDomain,
             );
         }
 
@@ -33,7 +30,7 @@ impl LayoutCustomizationBoundaryFacade {
             Some(capability) => capability,
             None => {
                 return TransitionOutcome::denied(
-                    S8FutureLayoutCustomizationDenial::RebuildableProjectionNotYetSupported {
+                    FutureLayoutCustomizationDenial::RebuildableProjectionNotYetSupported {
                         key_domain: request.capability_request().key_domain(),
                     },
                 );
@@ -44,7 +41,7 @@ impl LayoutCustomizationBoundaryFacade {
             Some(family) => family,
             None => {
                 return TransitionOutcome::denied(
-                    S8FutureLayoutCustomizationDenial::NoStrategySupportsRequestedCapability {
+                    FutureLayoutCustomizationDenial::NoStrategySupportsRequestedCapability {
                         capability: request.capability_request(),
                         key_domain: request.capability_request().key_domain(),
                     },
@@ -57,16 +54,16 @@ impl LayoutCustomizationBoundaryFacade {
             .supports_capability(request.capability_request())
         {
             return TransitionOutcome::denied(
-                S8FutureLayoutCustomizationDenial::WorkloadEnvelopeDoesNotSupportCapability {
+                FutureLayoutCustomizationDenial::WorkloadEnvelopeDoesNotSupportCapability {
                     capability: request.capability_request(),
                     envelope: request.workload_envelope(),
                 },
             );
         }
 
-        let layout_request = S8LayoutAdmissionRequest::new(
+        let layout_request = LayoutAdmissionRequest::from_admitted(
             request.authority_source(),
-            request.capability_request().key_domain(),
+            request.capability_request().admitted_key_domain(),
             admitted_family,
             requested_capability,
             request.workload_envelope().admitted_lane(),
@@ -74,12 +71,12 @@ impl LayoutCustomizationBoundaryFacade {
 
         let admission = layout_admission_registry().admit(layout_request);
         match admission.into_result() {
-            Ok(snapshot) => TransitionOutcome::success(S8FutureLayoutCustomizationAdmission::new(
+            Ok(snapshot) => TransitionOutcome::success(FutureLayoutCustomizationAdmission::new(
                 request, snapshot,
             )),
             Err(denial) => {
-                TransitionOutcome::denied(S8FutureLayoutCustomizationDenial::StoreAdmissionDenied(
-                    super::S8LayoutAdmissionDenialProjection::new(denial),
+                TransitionOutcome::denied(FutureLayoutCustomizationDenial::StoreAdmissionDenied(
+                    super::LayoutAdmissionDenialProjection::new(denial),
                 ))
             }
         }

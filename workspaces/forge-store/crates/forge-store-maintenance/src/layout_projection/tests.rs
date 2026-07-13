@@ -11,7 +11,7 @@ fn maintenance_queue_layout_preserves_declared_budget_from_compaction_envelope()
     let envelope = admitted_background_envelope(BackgroundEnvelopeRequest::compaction_planning());
     let report = CompactionPlanningMemoryEnvelope::from_admitted(envelope)
         .expect("compaction planning envelope should admit")
-        .admit_maintenance_queue_layout();
+        .project_maintenance_queue_layout();
 
     assert_eq!(report.family_id().label(), "maintenance_queue_declaration");
     assert_eq!(report.declared_budget().resident_frames(), 2);
@@ -26,7 +26,7 @@ fn maintenance_queue_layout_preserves_declared_budget_from_import_export_envelop
     let envelope = admitted_background_envelope(BackgroundEnvelopeRequest::import_export());
     let report = ImportExportMemoryEnvelope::from_admitted(envelope)
         .expect("import-export envelope should admit")
-        .admit_maintenance_queue_layout();
+        .project_maintenance_queue_layout();
 
     assert_eq!(report.family_id().label(), "maintenance_queue_declaration");
     assert_eq!(report.declared_budget().resident_frames(), 2);

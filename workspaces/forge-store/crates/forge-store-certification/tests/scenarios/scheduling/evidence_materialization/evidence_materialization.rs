@@ -1,6 +1,3 @@
-#[allow(dead_code)]
-#[path = "../../../support/scheduling/access_policy_support/access_policy_support.rs"]
-mod s6_access_policy_support;
 #[path = "../evidence_materialization_support/mod.rs"]
 mod s6_evidence_materialization_support;
 
@@ -283,3 +280,5 @@ fn materialization_rejects_near_miss_store_execution_bindings() {
         S6CertificationMaterializationDenial::EmptyQualificationMatrix
     );
 }
+#[path = "../../../support/scheduling/access_policy_support/access_policy_support.rs"]
+mod s6_access_policy_support;

@@ -3080,313 +3080,383 @@ replay/rebuild/readmission expectations, and broad-scan rejection evidence.
 This phase is done when S.8 has executed evidence across the major lifecycle
 families, not just compile-time shape.
 
-## Phase 34: Transition Fact Authority
+## Phase 34: Complete Layout Runtime Authority
 
 ### Purpose
 
-Make production layout outcomes, not S.9 handoff tables, the source of S.8
-state-machine transition truth.
+Complete the ordinary read-side layout path from durable-family declaration
+through executed access evidence, with every decision issued by the permanent
+domain operation that owns it.
 
 ### Relevant APIs
 
-- `S8LayoutProductionTransition`, `S8LayoutMachineEdge`,
-  `S8LayoutStateMachine`, `S8LayoutMachineTransition`
-- owner outcome families for artifact declaration, key-domain admission,
-  strategy invariant admission, layout admission, plan selection, budget
-  admission, access lowering, execution readiness, executed evidence,
-  materialization/coverage/absence, rebuild/parity, maintenance, migration,
-  stale/rebind/readmission, corruption/quarantine, bootstrap discovery, legacy
-  disposition, hidden-scan denial, degraded exact scan, and compaction cutover
-- aggregation-only consumers: `S9LayoutStateMachineInventory`,
-  `StorageFoundationS9LayoutHandoff`
+- `PhysicalArtifactFamilyDeclaration`, `ArtifactFamilyAuthorityWitness`,
+  `PhysicalKeyDomainWitness`, `AdmittedLayoutStrategy`
+- `LayoutMaterializationState`, `LayoutCoverageWitness`,
+  `MaterializationCompleteness`, `PhysicalAbsenceProof`
+- access-shape admission, candidate classification, deterministic plan
+  selection, `AccessPlanBudget`, and `PlannedCounterEnvelope`
+- indexed and degraded lowering, execution readiness, counter admission,
+  executed evidence, and planned-versus-observed receipts
+- `forge_proof::AuthorityWitness`, `forge_proof::TransitionOutcome`, and the
+  existing Foundational canonical-basis, receipt, diagnostic, and performance
+  evidence surfaces already adopted by Store
 
 ### Required Work
 
-Replace the parallel S.9 transition contract family with owner-emitted
-transition facts. Every ordinary production success, denial, deferred, stale,
-readmission, and compatibility outcome that claims a state-machine transition
-must carry or expose the sealed transition fact established by that owner.
+Implement one typed capability chain:
 
-The S.9 handoff may aggregate those facts. It must not author complete
-transition arrays, infer operation ownership from machine names, or certify
-table self-consistency as production equivalence.
+```text
+admitted family
+-> admitted key domain
+-> admitted strategy and invariant suite
+-> admitted materialization/coverage posture
+-> selected access plan
+-> admitted budget and planned counter envelope
+-> owner-specific lowered operation
+-> owner-specific readiness
+-> owner-observed counters
+-> executed access evidence
+```
 
-The phase covers the transition grammar for at least:
+Catalog rows and declarations are inputs, not authority. Key laws become
+usable only after keyspace admission. Strategy declarations become usable only
+after invariant and scope admission. Materialization labels, counter rows, and
+absence-shaped results cannot substitute for their owner-issued witnesses.
 
-- artifact declaration and physical artifact-family admission
-- key-domain admission and canonical key law
-- strategy invariant admission and layout strategy admission
-- access selection, budget admission, lowering, readiness, and execution
-- materialization, coverage, absence, and derived rebuild/parity
-- live index maintenance and publication
-- migration, rollback, stale rebind, and readmission
-- corruption classification, quarantine, and readmission
-- bootstrap catalog discovery and legacy disposition
-- hidden-scan denial and explicit degraded exact scan
-- compaction cutover as a lower-owner transition source
+Indexed access and degraded exact scan are separate owner operations. A shared
+read-only view may project them for callers, but no shared constructor may
+inspect a payload or path-kind field after construction to decide which owner
+supposedly issued it.
+
+Every operation owns its private case enum and private issuance functions in
+the same module as the decision. `pub(crate)` outcome constructors are not an
+acceptable boundary: sibling modules, certification, and test support must be
+unable to mint an outcome. `TransitionOutcome` may expose success, denial,
+deferred, stale, rebind, or failure as a projection after issuance; it may not
+be the raw authority exchanged between unrelated operations.
+
+Rename every touched type, module, export, compile-fail fixture, and public
+documentation surface into permanent database vocabulary. The phase must
+remove obsolete root compatibility facades for the migrated read path rather
+than retaining milestone-named aliases.
+
+Planning must resolve strategy, locality, exactness, and budget before the hot
+path. Execution consumes the narrowest admitted operation and may not repeat
+candidate selection, materialization classification, or key-law validation
+inside the same trust boundary. Exact structural counters remain attached to
+the executed result.
 
 ### Tests
 
-- Production-equivalence matrix: key coverage by owner family and sealed owner
-  case. Every case advertised by an owner-family contract must be observed
-  through its ordinary production facade, and the observed and advertised sets
-  must be exactly equal. Representative membership checks do not satisfy this
-  requirement.
-- Hostile outcome coverage: exercise every success, denial, deferred, stale,
-  rebind, readmission, compatibility, quarantine, and compaction case that an
-  owner family advertises. Test support may prepare inputs, but it may not
-  construct outcomes, owner cases, transition facts, or owner contracts.
-- Static-table denial: removing or mutating a hand-authored S.9 contract table
-  must not be able to satisfy the handoff if the corresponding owner outcome
-  does not emit the transition.
-- Exhaustiveness proof: success, denial, deferred, stale, readmission, and
-  compatibility outcomes must have named transition coverage where that outcome
-  participates in a required S.8 state machine.
-- Compaction ownership proof: S.9 compaction cutover obligations must be
-  derived from the physical-isolation/WAL owner path, not from a layout-indexes
-  projection table. Prove exact case count, unique case identity, and a
-  bijective physical-to-S.8 projection that cannot add, omit, merge, or split
-  physical owner cases.
-- Compile-fail proof: external crates cannot construct owner outcomes, mint
-  issuance authority, pair payloads or denials with copied facts, construct
-  owner-family contracts, or use a displaced generic-result/catalog lane. Each
-  fixture must fail for its intended privacy or type error; missing-crate
-  `E0463` failures are invalid evidence.
-- Architectural residue proof: reject independent transition arrays,
-  catalog-only outcome families, public transition-fact fields,
-  payload-derived machine selection, certification-authored outcomes, and old
-  catalogs preserved under new names.
+- Execute every admitted durable family through its supported access shapes,
+  including unsupported-shape, missing-strategy, stale, rebind, budget-denied,
+  hidden-scan, corrupt-derived, and degraded-exact cases.
+- Prove identical semantic requests produce deterministic selection and plan
+  fingerprints independent of declaration order, registry iteration order, or
+  certification scenario ordering.
+- Prove copied declarations, copied witnesses, copied counters, copied
+  materialization labels, and recomputed digests cannot enter lowering,
+  readiness, or execution.
+- Prove indexed evidence cannot be minted from degraded execution and degraded
+  evidence cannot claim bounded indexed locality.
+- Assert exact page-touch, index-probe, key-comparison, byte-read, allocation,
+  and amplification counters for the baseline B-tree and LSM paths and for
+  every declared equivalence class.
+- Add compile-fail cases proving external callers and sibling domains cannot
+  invoke issuance, construct private cases, pair payloads with outcomes, skip
+  budget admission, or use removed compatibility facades. Every fixture must
+  fail for the intended privacy/type error, never `E0463`.
+- Add structural residue checks rejecting milestone vocabulary, crate-wide
+  outcome issuers, payload-derived owner selection, generic transition
+  catalogs, and business logic in root or `mod.rs` facades.
 
 ### Closeout Gate
 
-This phase is done when S.8 transition truth is carried by owner outcomes, the
-S.9 inventory is visibly aggregation-only, and exact ordinary-production
-coverage proves every advertised owner case rather than one example per
-machine.
+This phase is done when the complete ordinary read path is expressed by
+permanent owner-issued capabilities, all supported families execute through
+that path with exact counters, and neither sibling modules nor projections can
+manufacture a stronger stage.
 
-## Phase 35: WAL And Manifest Membership Authority
+## Phase 35: Complete Layout Mutation And Recovery Authority
 
 ### Purpose
 
-Make baseline LSM membership, freshness, retirement, and compaction publication
-derive from WAL/manifest authority instead of caller-authored journals,
-certification fixtures, or copied record rows.
+Complete the write-side and exceptional-state layout graph so derived indexes
+can be maintained, failed, rebuilt, evolved, quarantined, and readmitted
+without broad transition bags or certification-authored authority.
 
 ### Relevant APIs
 
-- WAL layout-access baseline LSM surfaces:
-  `BaselineLsmWalIndexSession`, `BaselineLsmAdmittedRecord`,
+- live mutation admission, maintenance mode, lag witness, lowered publication,
+  exact publication authority, and mutation counter evidence
+- derived rebuild request/plan/receipt and parity identity, coverage, ordering,
+  counter-shape, and cost-envelope witnesses
+- migration request resolution, compatibility admission, lowering, readiness,
+  interruption, rollback, stale binding, and explicit rebind
+- corruption classification, quarantine authority, record-backed recovery,
+  offline evidence, import readmission, and materialization restoration
+- bootstrap catalog discovery, admitted root reads, and bounded legacy-surface
+  disposition
+
+### Required Work
+
+Split maintenance into owner operations for mutation admission, publication
+lowering, lag/deferred handling, rebuild admission, rebuild execution, and
+parity verification. Exact, lagged, advisory, verifier-only, migration-only,
+rebuild-only, and deferred modes remain distinct capabilities. One broad
+maintenance outcome must not erase which operation established the result.
+
+Rebuild and parity are separate transitions. Rebuild consumes canonical or
+declared physical authority and produces a candidate derived artifact. Parity
+compares that artifact against admitted authority and alone may produce parity
+evidence. A rebuild receipt cannot imply parity, exact publication, or current
+coverage.
+
+Migration and rollback remain separate owner operations even where they share
+algorithms. Resolve declaration and compatibility before lowering; lower
+before readiness; require rebind or readmission whenever store authority,
+tenant/key scope, version, strategy, coverage, or freshness changes. A generic
+`TransitionOutcome` may project an issued operation result but may not be
+unwrapped and repackaged by a facade into stronger authority.
+
+Corruption classification adapts lower physical-integrity evidence without
+claiming ownership of physical damage truth. Quarantine, record-backed recovery
+readmission, offline-evidence readmission, and import readmission are distinct
+operations with distinct trust boundaries. Deserialized declarations and
+terminal projections are hostile inputs and must be readmitted before they can
+become layout witnesses.
+
+Bootstrap discovery may issue materialization evidence only after an admitted
+catalog read from the physical root. Legacy disposition is explicit: every old
+surface is removed, denied, or isolated behind a bounded compatibility owner;
+no adapter may preserve a raw-result or milestone authority lane.
+
+All touched types, files, exports, and tests adopt permanent vocabulary and
+owner-shaped directories. Facades delegate; they do not classify corruption,
+select maintenance cases, or issue outcomes.
+
+### Tests
+
+- Exercise exact, lagged, advisory, verifier-only, migration-only,
+  rebuild-only, and deferred maintenance through ordinary production requests;
+  prove none can be substituted for exact publication.
+- Prove rebuild followed by parity converges to the same derived identity and
+  counters as uninterrupted maintenance, while a forged rebuild receipt or
+  copied parity row cannot publish.
+- Crash and resume migration and rollback at every declared interruption
+  boundary; independent replay must converge on the same compatibility,
+  binding, and publication posture.
+- Reject cross-store, cross-tenant, cross-key-scope, stale-version,
+  stale-coverage, recomputed-digest, and equal-looking authority substitutions
+  before mutation, rollback, or readmission.
+- Prove physical corruption cannot be converted into empty results, stale
+  materialization, or successful readmission, and derived corruption cannot be
+  promoted into physical authority.
+- Prove bootstrap cannot use an ordinary family path before catalog admission
+  and cannot construct current coverage from copied root rows.
+- Add compile-fail and structural tests preventing sibling modules,
+  certification, and test support from constructing maintenance, evolution,
+  integrity, bootstrap, or legacy outcomes.
+- Assert exact mutation, publication, rebuild, parity, migration, quarantine,
+  and bootstrap counters with scale-sensitive workloads.
+
+### Closeout Gate
+
+This phase is done when every write-side and exceptional-state transition is
+issued by its permanent owner, recovery and evolution converge under replay,
+and no broad outcome, facade, compatibility adapter, or test helper can mint a
+stronger layout capability.
+
+## Phase 36: Complete Physical Compaction And Durable Membership Authority
+
+### Purpose
+
+Join layout execution to real physical compaction, WAL, checkpoint, and
+manifest authority so LSM membership, publication, retirement, recovery
+visibility, and reclaim cannot be authored inside layout code.
+
+### Relevant APIs
+
+- physical-isolation compaction lowering, cutover, publication, stable-read,
+  recovery-visibility, deferred-reclaim, drain, and mutation-denial outcomes
+- `BaselineLsmWalIndexSession`, `BaselineLsmAdmittedRecord`,
   `BaselineLsmAdmittedKey`, `BaselineLsmDurableInputs`,
-  `BaselineLsmExecutionWitness`, `BaselineLsmCompactionPlan`
-- WAL persistence and manifest surfaces:
-  `AdmittedWalAppendReceipt`, `AdmittedCheckpointPublicationReceipt`,
-  WAL frame scopes, manifest membership digests, segment/generation identity,
-  LSN ranges, frame digests, and persisted byte counts
-- certification and test-support callers that currently author baseline LSM
-  inputs, manifests, or membership rows
+  `BaselineLsmExecutionWitness`, and `BaselineLsmCompactionPlan`
+- admitted WAL append and checkpoint publication receipts, manifest membership,
+  store/root identity, segment generation, LSN coverage, frame digest, persisted
+  path, byte count, and checksum
+- layout's read-only physical compaction projection and downstream formal-model
+  observation surfaces
 
 ### Required Work
 
-Introduce a WAL-owned persisted store handle or equivalent lower-authority seam
-that owns baseline LSM membership. The append-only journal may remain as a
-derived cache, but replay must rederive or readmit from authoritative WAL and
-manifest artifacts before restoring membership, freshness, or retirement.
+Physical isolation and WAL remain the sole owners of compaction cutover,
+tombstone retention, publication ordering, recovery visibility, stable-reader
+protection, reclaim deferral, reclaim drain, and mutation-lane denial. Layout
+may expose a read-only vocabulary projection for planning or formal modeling;
+the projection may not add, omit, merge, split, or reinterpret a physical
+case.
 
-Persisted record and manifest identity must bind:
+Introduce a WAL-owned persisted store handle or equivalent lower-authority
+seam that owns baseline LSM membership. An append-only journal may exist as a
+derived corruption-detecting cache, but reopen and replay must rederive or
+readmit membership from authoritative WAL/checkpoint/manifest artifacts.
 
-- tenant scope and key scope
-- full canonical key bytes
-- WAL store identity
-- segment id and generation
-- LSN start/end coverage
-- frame digest and record identity
-- checkpoint or manifest publication identity
-- persisted artifact path under the admitted store root
-- persisted byte count and checksum over the complete authoritative envelope
+Persisted membership binds tenant and key scope, full canonical key bytes, WAL
+store identity, segment id and generation, LSN range, frame and record digest,
+checkpoint/manifest publication identity, admitted path under the store root,
+persisted byte count, and checksum over the complete envelope.
 
-Retirement must be derived from authoritative manifest membership over the
-same store, scope, checkpoint, coverage, and component identities. Equal-looking
-digests, copied rows, or rewritten journal lines must not retire membership.
+Retirement and tombstone removal derive from authoritative manifest membership
+over the same store, scope, checkpoint, coverage, component identity, and
+stable-reader horizon. Equal-looking digests, copied rows, rewritten journal
+lines, or layout-authored retirement declarations cannot retire membership.
+
+Compaction ordinary operations themselves must be the source of the physical
+case vocabulary. A static `all()` list or state-machine table may support
+exhaustive iteration, but it cannot advertise a case that no production
+operation emits. Mutation denials retain exact case identity through the
+physical outcome and layout projection.
+
+Formal-model input is an observation over owner-issued outcomes and durable
+artifacts, not a production milestone handoff. Runtime crates must not expose
+`S9` inventories, roadmap state machines, or generic transition arrays.
 
 ### Tests
 
-- Reopen equivalence proof: destroying the derived in-memory index and replaying
-  from WAL/manifest authority must produce the same key-local membership and
-  counters as the original execution.
-- Valid semantic forgery denial: a syntactically valid journal edit that changes
-  tenant scope, key scope, key bytes, ordering identity, store identity,
-  segment/generation, LSN range, frame digest, persisted path, or byte count
-  must be rejected by ordinary reopen/readmission.
-- Retirement forgery denial: equal-digest, cross-scope, cross-store,
-  checkpoint-disagreement, coverage-disagreement, duplicate replay, and
-  forged-retirement cases must fail on the ordinary retirement path.
-- Scale-sensitive proof: key-local membership lookup, retirement, and reopen
-  must expose exact counters and must not require broad scans where the layout
-  claims locality-bounded behavior.
+- Destroy the derived in-memory index and journal cache, reopen from admitted
+  WAL/checkpoint/manifest authority, and prove identical key-local membership,
+  visibility, retirement, and exact counters.
+- Exercise every physical compaction success and denial through its ordinary
+  owner operation; compare the observed case set exactly with the physical
+  declared set.
+- Prove a bijective physical-to-layout projection with unique case identity and
+  round-trip observation for every cutover, publication, visibility, reclaim,
+  and mutation-denial case.
+- Reject syntactically valid mutations to tenant/key scope, canonical key,
+  store identity, segment/generation, LSN range, frame digest, checkpoint,
+  manifest membership, persisted path, byte count, or checksum during ordinary
+  reopen/readmission.
+- Reject early tombstone retirement, active-reader reclaim, copied manifest
+  membership, equal-digest cross-store retirement, duplicate replay, and
+  checkpoint/coverage disagreement.
+- Prove key-local lookup, retirement, reopen, and compaction do not require a
+  broad scan where locality-bounded behavior is claimed, using exact
+  page/run/manifest/record/byte counters.
+- Compile-fail proof must prevent layout, certification, and test support from
+  constructing physical outcomes, durable membership, publication authority,
+  or reclaim readiness from raw fields.
 
 ### Closeout Gate
 
-This phase is done when baseline LSM membership authority lives in WAL/manifest
-artifacts, the journal is only a corruption-detecting cache, and certification
-cannot author membership or retirement authority directly.
+This phase is done when physical operations and durable WAL/manifest artifacts
+are the only sources of compaction and membership truth, layout projection is
+provably bijective and observational, and reopen reconstructs the same bounded
+membership without certification or cache authority.
 
-## Phase 36: Layout Hazard Inventory And S.9 Handoff Assembly
+## Phase 37: Exhaustive Runtime And Hostile Coverage
 
 ### Purpose
 
-Assemble the S.8 hazard inventory and S.9 handoff only after the transition and
-WAL/manifest authority sources are real.
+Build the executed observation and adversarial harness surfaces needed to prove
+Phases 34-36 completely, rather than accepting representative examples or
+compile-only privacy as evidence of architectural closure.
 
 ### Relevant APIs
 
-- `S8LayoutHazardInventory`, `S8LayoutHazardRow`,
-  hazard detection/containment/recovery/proof-lane/residual-risk rows
-- owner-emitted transition facts from Phase 34
-- WAL/manifest membership authority from Phase 35
-- S.9 roadmap targets: WAL/checkpoint/page flush ordering, recovery source
-  precedence, compaction cutover, physical leases, repair/quarantine,
-  replication/import admission
-- `StorageFoundationS9LayoutHandoff`, `S9LayoutStateMachineInventory`,
-  downstream formal-model target inventory
+- owner-private case declarations and read-only case observations from every
+  operation completed in Phases 34-36
+- S.4.5 scenario descriptors, deterministic schedules, production drivers,
+  observers, oracles, shrink traces, and exact counter receipts
+- B-tree, LSM, blob, recovery, physical-compaction, security-scope, and
+  compatibility scenario families
+- compile-fail suites and structural source guards for layout authority
 
 ### Required Work
 
-Produce the S.8 hazard inventory that S.12 will certify later and S.9 can model
-next. It must include at least:
+Each owner operation exposes a sealed observation identity suitable for cold
+coverage accounting. The declared case set comes from the same private
+declaration that defines the operation's cases; the harness cannot author or
+extend it. The observed case set is populated only after the ordinary
+production facade executes and the owner issues the outcome.
 
-- hidden broad scan accepted as bounded access
-- stale index accepted as exact
-- partial index returns false absence
-- derived projection used as authority
-- wrong tenant/key-scope index shared
-- corruption converted into empty result
-- migration reads derived data as rollback authority
-- B-tree separator corruption misroutes lookup
-- LSM tombstone lost during compaction
-- cache hit bypasses layout admission
-- legacy helper constructs ready plan
-- copied counter rows become evidence without execution
+For every operation, require exact set equality:
 
-The S.9 handoff must explicitly name the state machines S.8 created, but it
-must consume Phase 34 owner transition facts and Phase 35 WAL/manifest authority
-where hazards depend on them. It must not downgrade those sources into generic
-labels, raw counters, digest strings, or static summary arrays.
+```text
+declared owner cases == cases observed through ordinary production execution
+```
 
-- layout admission
-- access selection, budget, lowering, readiness, and execution
-- derived rebuild and parity
-- live index maintenance and publication
-- migration and rollback
-- stale, rebind, and readmission
-- corruption and quarantine
-- bootstrap catalog discovery
-- hidden-scan denial and explicit degraded exact scan
+The matrix covers all success, denial, deferred, stale, rebind, readmission,
+quarantine, compatibility, bootstrap, compaction, publication, retirement, and
+reclaim cases. Equivalence classes are allowed only when the spec names the
+shared algorithm and proves the class preserves authority, denial behavior,
+counter shape, and recovery semantics. One representative case per subsystem
+is not coverage.
 
-### Tests
+Build scenarios from existing harness architecture: immutable scenario
+descriptors, deterministic schedule generation, production-backed drivers,
+separate observers and oracles, replay bundles, shrinkable failure traces, and
+exact counter evidence. Test support may prepare bytes, persisted artifacts,
+fault schedules, hostile declarations, and workload inputs. It may not issue
+outcomes, witnesses, membership, publication, retirement, readiness, or case
+observations.
 
-- Hazard coverage: every listed hazard maps to at least one compile-fail,
-  runtime, simulation, or formal-model handoff lane.
-- Owner-source coverage: every runtime or formal-model handoff row must name the
-  owner transition fact or WAL/manifest authority source that makes it real.
-- Handoff denial: S.9 cannot consume a generic layout summary that omits the
-  state machines S.8 introduced.
-- Synthetic source denial: copied counters, copied receipt rows, certification
-  fixture outputs, or table-only state-machine rows cannot satisfy the handoff.
-- Residual-risk honesty: any residual risk must name detection, containment,
-  recovery action, proof lane, and why it is not ordinary completion work.
+The hostile matrix must include forged/cross-scope authority, copied payload
+and receipt pairing, declaration-order drift, payload-derived owner selection,
+static case-table substitution, stale/rebind bypass, false absence, hidden
+broad scans, B-tree separator misrouting, LSM tombstone loss, corruption-to-
+empty conversion, same-root cross-store redirection, duplicate replay,
+recomputed checksums, and checkpoint/coverage disagreement.
 
-### Closeout Gate
-
-This phase is done when S.8 has a concrete hazard inventory and S.9 receives the
-layout/access state machines it must model from real owner sources, not from
-parallel handoff ontology.
-
-## Phase 37: Hostile Certification Boundary Proof
-
-### Purpose
-
-Prove certification acts as courtroom over owner evidence instead of becoming
-the law for transition facts, WAL membership, retirement, or S.9 handoff
-readiness.
-
-### Relevant APIs
-
-- `forge-store-certification` S.8 layout closeout and courtroom surfaces
-- `forge-store-physical-certification` scenario/transcript/coverage surfaces
-- compile-fail UI suites for S.8 layout authority
-- runtime harnesses from S.4.5/S.8 and the S.8 layout-access test-support
-  architecture
-- owner transition and WAL/manifest artifacts from Phases 34-36
-
-### Required Work
-
-Move all positive certification proof onto ordinary owner-produced artifacts.
-Certification may assemble suites, verdicts, transcripts, and courtroom records,
-but it must not mint lower authority, invent transition contracts, author WAL
-membership, or create S.9 readiness by pairing independently supplied artifacts.
-
-The hostile proof suite must target the exact seams that caused the Phase 34
-loop:
-
-- transition substitution and static contract table substitution
-- certification-authored transition facts
-- certification-authored WAL/manifest membership
-- copied counters or copied receipts as executed evidence
-- equal-digest cross-scope retirement
-- same-root cross-store artifact redirection
-- manifest/checkpoint/coverage disagreement
-- recomputed-checksum mutation
-- duplicate replay and ordering disagreement
+Add mechanical residue guards for milestone vocabulary, broad generic outcomes,
+crate-wide outcome issuers, business logic in facades or `mod.rs`, independent
+transition arrays, certification-authored lower evidence, and compatibility
+aliases preserving removed paths.
 
 ### Tests
 
-- Positive courtroom proof: a real owner transition set and real WAL/manifest
-  membership authority must flow through handoff readiness into certification
-  without certification constructing lower evidence.
-- Compile-fail authority proof: external crates and certification fixtures
-  cannot construct transition contracts, WAL membership authority, retirement
-  authority, or S.9 readiness from raw fields.
-- Runtime forgery proof: same-root same-segment cross-store redirection,
-  cross-tenant/key-scope retirement, recomputed-checksum mutation,
-  checkpoint/coverage disagreement, duplicate replay, and ordering disagreement
-  are rejected by ordinary production paths.
-- Test-quality proof: the positive and hostile tests must exercise production
-  facades or owner-certified test authority, not private constructors or
-  certification-only shortcuts.
+- Exact matrix proof for every owner family, including explicit failure output
+  naming missing and unexpectedly observed cases.
+- Replay/convergence proof across independent process reconstruction, schedule
+  order, registry order, and supported access-family equivalence classes.
+- Runtime forgery proof for every copied, cross-scope, stale, reordered,
+  recomputed, duplicate, and projection-as-authority attack named above.
+- Scale simulations proving claimed locality and amplification slopes with
+  exact structural counters, including S.7 multi-GB blob fixtures where layout
+  behavior touches blob storage.
+- Compile-fail proof that external callers, sibling domains, certification, and
+  test support cannot issue outcomes, construct owner cases, mint authority,
+  skip lifecycle stages, or use a projection as a stronger input. Every case
+  must assert the intended privacy/type failure and reject `E0463` evidence.
+- Mutation testing or equivalent deliberate fault injection proving each
+  critical oracle fails when its production invariant is removed or inverted.
+- Test-quality QA must inspect the matrix for synthetic execution, private
+  constructor use, assertion tautology, copied production logic, and weak
+  representative coverage before the phase can close.
 
 ### Closeout Gate
 
-This phase is done when certification consumes lower owner evidence as
-courtroom material, and every known shortcut from the failed Phase 34 loop is
-mechanically denied.
+This phase is done when every declared owner case has exact ordinary-production
+evidence, every named forgery is rejected at its real boundary, scale claims
+have exact counters, and test support cannot manufacture the facts it observes.
 
-## Phase 38: Workspace-Wide Closeout And S.9 Handoff
+## Phase 38: Certification Courtroom, Formal-Model Input, And S.8 Closeout
 
 ### Purpose
 
-Prove the milestone is complete and does not leave a hidden generic layout
-fallback behind.
+Close S.8 through certification-side verdicts over ordinary owner evidence and
+produce formal-model observations without introducing a production milestone
+handoff, generic transition ontology, or hidden layout fallback.
 
 ### Relevant APIs
 
-- S.8 closeout must consume:
-  `S8DomainSkeletonInventory`, `S8CrateResponsibilityMap`,
-  `S8SubsystemTopologyCloseout`, `S8CrossCrateAuthorityFlowReport`,
-  `PhysicalArtifactFamilyDeclaration`, `AuthorityRole`,
-  `DerivedAccuracyClass`, `PhysicalKeyDomain`, `CanonicalKeyEncoding`,
-  `ComparatorLaw`, `PrefixLaw`, `RangeBoundLaw`, `HashCollisionLaw`,
-  `CompositeKeyOrderingLaw`, `LayoutStrategyInvariantSuite`,
-  `BTreeLayoutStrategy`, `LsmLayoutStrategy`, `LayoutMaterializationState`,
-  `LayoutCoverageWitness`, `PhysicalAbsenceProof`,
-  `AdmittedLayoutStrategy`, `PlanSelectionReceipt`,
-  `AccessPlanBudget`, `PlannedCounterEnvelope`, `LoweredAccessPlan`,
-  `ExecutionReadyAccessPlan`, `ExecutedAccessPathEvidence`,
-  `AccessPathCounterSnapshot`, `AccessPathAmplificationReceipt`,
-  `PlannedVsObservedCounterReceipt`, `DerivedIndexParityWitness`,
-  `LayoutMutationPlan`, `IndexMaintenanceMode`,
-  `LayoutReadmissionWitness`, `BootstrapLayoutCatalog`,
-  `LegacyAccessPathBypassInventory`, `S8LayoutHazardInventory`, and
-  `StorageFoundationS9LayoutHandoff`
+- production evidence from every permanent operation completed in Phases
+  34-36 and exact coverage receipts from Phase 37
+- certification courtroom scenario, transcript, oracle, verdict, hazard,
+  residual-risk, and closeout-report surfaces
+- read-only formal-model observations over owner-issued outcomes, durable
+  membership, publication ordering, and recovery/reclaim behavior
 - Foundational closeout must consume:
   `FoundationalCounterBackedPerformanceReceipt`,
   `FoundationalPerformanceReportPlan`,
@@ -3396,7 +3466,7 @@ fallback behind.
   executed proof progression, non-success outcome evidence, stale/rebind
   evidence, and compile-fail proof that weaker stages cannot enter stronger
   APIs
-- Existing Store closeout must cover:
+- Store closeout must cover:
   page/frame/segment/extent/root-manifest/allocation/placement families,
   WAL/checkpoint/replay/recovery/crash-boundary families,
   snapshot/branch/continuation families, blob/chunk/streaming/reachability/
@@ -3406,22 +3476,43 @@ fallback behind.
 
 ### Required Work
 
-Run focused closeout across:
+Certification acts only as courtroom. It consumes immutable owner observations,
+durable artifacts, executed counter evidence, replay bundles, and hostile
+scenario results. It may assemble coverage matrices, hazard rows, verdicts,
+diagnostics, residual-risk records, and terminal reports. It may not mint
+layout outcomes, physical compaction outcomes, WAL/manifest membership,
+publication or retirement authority, readiness, or formal-model truth by
+pairing independently supplied fields.
 
-- production layout declarations
-- skeleton inventory updates for every phase that touched a crate boundary
-- lower-crate visibility boundaries
-- compile-fail authority tests
-- runtime integration tests
-- code-quality QA
-- test-quality QA
-- performance-counter assertions
-- planned-versus-observed budget assertions
-- baseline B-tree and LSM invariant assertions
-- materialization, coverage, and absence-proof assertions
-- legacy surface disposition proof
-- S.8 hazard inventory and S.9 state-machine handoff
-- docs and roadmap consistency
+Build the S.8 hazard inventory in certification, not runtime. It must cover at
+least hidden broad scans, stale-as-exact acceptance, partial false absence,
+projection-as-authority, cross-scope index reuse, corruption converted into an
+empty result, derived rollback authority, B-tree separator misrouting, LSM
+tombstone loss, cache admission bypass, compatibility-path readiness, copied
+counter evidence, static case substitution, and certification-authored lower
+authority. Every hazard names detection, containment, recovery action, executed
+proof lane, and any genuinely residual risk.
+
+Formal modeling receives a cold, read-only inventory derived from owner
+observations and durable artifacts. It may identify operations, cases,
+ordering, and invariant relationships, but it cannot become runtime admission
+and cannot require production types named for S.8, S.9, phases, milestones, or
+handoffs. There is no `StorageFoundationS9LayoutHandoff` or production
+state-machine inventory.
+
+Perform a workspace-wide hard-cutover audit. Production Rust identifiers,
+module paths, filenames, exports, and public code documentation use permanent
+domain vocabulary. Root facades and `mod.rs` files aggregate only. Compatibility
+aliases, generic transition facts, crate-wide issuers, static authority tables,
+and certification/test authority shortcuts are removed rather than deprecated.
+
+Run focused closeout across production facades, owner-local visibility,
+compile-fail authority, exact runtime coverage, replay and integration
+simulations, performance counters, planned-versus-observed budgets, B-tree and
+LSM invariants, materialization/absence, rebuild/parity, durable membership,
+compaction bijection, legacy disposition, hazard coverage, docs/roadmap
+consistency, `qa-loop`, hostile test QA, and code-quality QA. Findings are
+repaired and all three QA passes repeated until clean.
 
 ### Required Verification
 
@@ -3430,9 +3521,13 @@ focused checks equivalent to:
 
 ```text
 cargo check -p forge-store-physical-isolation --features certification-authority
+cargo check -p forge-store-layout-indexes
 cargo check -p forge-store-certification
+cargo test -p forge-store-layout-indexes --lib
 cargo test -p forge-store-certification --test s8_layout_access_path_harness
 cargo test -p forge-store-certification --test s8_layout_corruption_rebuild
+the physical compaction exact-case and projection-bijection suites
+the WAL/manifest reopen, membership, and retirement suites
 the relevant compile-fail UI suite for S.8 layout authority
 the workspace Rust line-cap and code-quality guards
 ```
@@ -3441,8 +3536,8 @@ the workspace Rust line-cap and code-quality guards
 
 `S.8` is not closed until each admitted durable artifact family has:
 
-- a skeleton inventory entry naming its owning crate, consumer crates, public
-  facade, courtroom/test-support boundary, and forbidden shortcut path
+- a permanent owner, consumer, public facade, courtroom/test-support boundary,
+  and mechanically forbidden shortcut path
 - declared layout strategy
 - admitted physical key-domain law
 - tested strategy invariant suite, including baseline B-tree/LSM where claimed
@@ -3460,9 +3555,22 @@ the workspace Rust line-cap and code-quality guards
 - trust-boundary behavior where relevant
 - bootstrap/catalog behavior where relevant
 - legacy-surface disposition where relevant
-- S.8 hazard inventory coverage
+- certification-side hazard inventory coverage
 - compile-fail protection against raw construction
 - runtime tests proving the honest path and adversarial denials
 
 No required family may fall back to an implicit whole-store scan where the
 roadmap claims indexed, locality-bounded, streaming, or strategy-bound access.
+
+Closeout also requires all of the following:
+
+- no production identifier, module, file, export, or public code comment uses
+  roadmap order as domain vocabulary;
+- no sibling module, certification crate, test-support crate, payload,
+  projection, denial, receipt, or copied witness can issue an owner outcome;
+- every owner case has exact ordinary-production coverage;
+- physical compaction projection and durable membership preserve lower-owner
+  authority without reinterpretation;
+- certification remains courtroom and formal-model input remains observation;
+- focused verification, full workspace tests, `qa-loop`, hostile test QA, and
+  code-quality QA complete without warnings or unresolved findings.

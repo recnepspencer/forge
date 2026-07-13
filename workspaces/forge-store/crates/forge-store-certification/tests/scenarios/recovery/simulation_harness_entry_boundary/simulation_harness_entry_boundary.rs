@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod fixture;
+use forge_store_test_support::harness::recovery::closeout as fixture;
 
 use forge_store_physical_certification::{
     admit_simulation_harness_entry, reject_simulation_harness_copied_recovery_report,
@@ -7,9 +6,8 @@ use forge_store_physical_certification::{
     reject_simulation_harness_log_output, reject_simulation_harness_old_semantic_harness_label,
     reject_simulation_harness_physical_isolation_authority_attempt,
     reject_simulation_harness_same_run_self_comparison,
-    reject_simulation_harness_terminal_projection,
-    ExistingSimulationHarnessInventory, RegisteredSimulationHarnessSurface,
-    SimulationHarnessBoundaryDenial, SimulationHarnessNonClaim,
+    reject_simulation_harness_terminal_projection, ExistingSimulationHarnessInventory,
+    RegisteredSimulationHarnessSurface, SimulationHarnessBoundaryDenial, SimulationHarnessNonClaim,
     SimulationHarnessRoadmapRequirement, SimulationHarnessRoadmapRequirementSet,
 };
 

@@ -1,5 +1,5 @@
 use forge_store_physical_backend::BackendDurabilityProfile;
-use forge_store_physical_format::PhysicalRootReference;
+use forge_store_physical_format::PhysicalReference;
 
 use super::super::{
     CheckpointCutoverReceipt, CheckpointDurabilityEvidence, CheckpointDurabilityRole, CheckpointId,
@@ -33,7 +33,7 @@ impl RecoveredCheckpointSelector {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoveredCheckpointRoot {
     checkpoint_id: CheckpointId,
-    root_reference: PhysicalRootReference,
+    root_reference: PhysicalReference,
 }
 
 impl RecoveredCheckpointRoot {
@@ -56,7 +56,7 @@ impl RecoveredCheckpointRoot {
         &self.checkpoint_id
     }
 
-    pub const fn root_reference(&self) -> PhysicalRootReference {
+    pub const fn root_reference(&self) -> PhysicalReference {
         self.root_reference
     }
 }

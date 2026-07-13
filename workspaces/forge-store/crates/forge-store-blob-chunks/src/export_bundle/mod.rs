@@ -16,9 +16,11 @@ mod tests;
 mod transition_verification;
 
 pub use bundle::BlobExportPublishedBundle;
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) use canonical::prepare_export_artifact;
 pub use chunk_bytes::BlobExportedChunkBytes;
 pub use counters::BlobExportBundleCounters;
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) use counters::BlobExportEvidenceCounts;
 pub use custody_receipt::BlobExportCustodyEvidence;
 pub use denial::{

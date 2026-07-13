@@ -7,6 +7,7 @@ pub(crate) fn repository_root() -> &'static Path {
         .expect("certification crate lives under workspaces/forge-store/crates")
 }
 
+#[cfg(test)]
 pub(crate) fn repository_source(relative_path: &str) -> PathBuf {
     repository_root().join(relative_path)
 }
@@ -18,6 +19,7 @@ pub(crate) fn store_crate_source(crate_name: &str) -> PathBuf {
         .join("src")
 }
 
+#[cfg(test)]
 pub(crate) fn certification_source(relative_path: &str) -> PathBuf {
     store_crate_source("forge-store-certification").join(relative_path)
 }

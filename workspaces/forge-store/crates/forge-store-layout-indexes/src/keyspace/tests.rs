@@ -13,6 +13,61 @@ use forge_store_security::{
 use std::cmp::Ordering;
 
 #[test]
+fn admitted_domain_binds_family_security_and_exact_applicable_law_suite() {
+    let page_security = admitted_scope(
+        StoreKeyScope::PageEnvelope,
+        StoreTenantScope::TenantPhysicalBoundary,
+        StoreAuthenticityRequirement::required(
+            StoreAuthenticityRequirementClass::AuthenticatedFrame,
+        ),
+        StoreCustodyPosture::InternalStoreCustody,
+    );
+    let page_declaration = layout_declarations()
+        .declaration(DurableArtifactFamilyId::PhysicalPage)
+        .unwrap();
+    let page_family = layout_declarations()
+        .admit_physical_artifact_family(page_declaration, page_security.witnesses())
+        .unwrap();
+    let page = layout_declarations()
+        .admit_physical_key_domain(page_family, page_security.witnesses())
+        .unwrap();
+
+    assert_eq!(page.family(), page_family);
+    assert_eq!(page.domain(), PhysicalKeyDomain::PageAddressKey);
+    assert_eq!(page.encoding().domain(), page.witness());
+    assert_eq!(page.comparator().encoding(), page.encoding());
+    assert!(page.prefix().is_some());
+    assert!(page.range().is_some());
+    assert_eq!(page.hash_collision().domain(), page.witness());
+    assert_eq!(page.composite_ordering().domain(), page.witness());
+    assert_eq!(page.tenant_partition().domain(), page.witness());
+
+    let root_security = admitted_scope(
+        StoreKeyScope::StoreManagedRoot,
+        StoreTenantScope::StoreInternal,
+        StoreAuthenticityRequirement::not_required(),
+        StoreCustodyPosture::InternalStoreCustody,
+    );
+    assert_eq!(
+        layout_declarations().admit_physical_key_domain(page_family, root_security.witnesses()),
+        Err(ArtifactFamilyDenial::SecurityAuthorityMismatch),
+    );
+    let root_declaration = layout_declarations()
+        .declaration(DurableArtifactFamilyId::PhysicalRootManifest)
+        .unwrap();
+    let root_family = layout_declarations()
+        .admit_physical_artifact_family(root_declaration, root_security.witnesses())
+        .unwrap();
+    let root = layout_declarations()
+        .admit_physical_key_domain(root_family, root_security.witnesses())
+        .unwrap();
+
+    assert_eq!(root.domain(), PhysicalKeyDomain::RootManifestKey);
+    assert!(root.prefix().is_none());
+    assert!(root.range().is_none());
+}
+
+#[test]
 fn pages_admit_concrete_bytes_order_prefix_and_range() {
     let scope = admit_key_domain_scope(
         DurableArtifactFamilyId::PhysicalPage,

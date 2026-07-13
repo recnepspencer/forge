@@ -1,11 +1,11 @@
 use forge_store_physical_format::{PhysicalBootstrapCatalogIdentity, PhysicalFormatVersion};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S8BootstrapCatalogReadAdmission {
+pub struct BootstrapCatalogReadAdmission {
     identity: PhysicalBootstrapCatalogIdentity,
 }
 
-impl S8BootstrapCatalogReadAdmission {
+impl BootstrapCatalogReadAdmission {
     pub(crate) fn new(identity: PhysicalBootstrapCatalogIdentity) -> Self {
         Self { identity }
     }
@@ -20,12 +20,5 @@ impl S8BootstrapCatalogReadAdmission {
 
     pub fn physical_format_version(&self) -> PhysicalFormatVersion {
         self.identity().physical_format_version()
-    }
-
-    pub fn exact_materialization_for(
-        &self,
-        family: crate::PhysicalArtifactFamily,
-    ) -> crate::access_planning::S8LayoutMaterializationState {
-        crate::materialization::S8LayoutMaterializationState::exact_through_physical_basis(family)
     }
 }

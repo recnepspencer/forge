@@ -1,20 +1,20 @@
 use crate::keyspace::PhysicalKeyDomainWitness;
 use crate::strategy::registry::{
-    S8LayoutAdmissionDeferred, S8LayoutAdmissionDenial, S8LayoutStrategyRegistrySnapshot,
+    LayoutAdmissionDeferred, LayoutAdmissionDenial, LayoutStrategyRegistrySnapshot,
 };
 
-use super::{S8FutureLayoutCapabilityRequest, S8FutureLayoutWorkloadEnvelope};
+use super::{FutureLayoutCapabilityRequest, FutureLayoutWorkloadEnvelope};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8FutureLayoutCustomizationAdmission {
-    request: super::S8FutureLayoutCustomizationRequest,
-    registry_snapshot: S8LayoutStrategyRegistrySnapshot,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FutureLayoutCustomizationAdmission {
+    request: super::FutureLayoutCustomizationRequest,
+    registry_snapshot: LayoutStrategyRegistrySnapshot,
 }
 
-impl S8FutureLayoutCustomizationAdmission {
+impl FutureLayoutCustomizationAdmission {
     pub(crate) const fn new(
-        request: super::S8FutureLayoutCustomizationRequest,
-        registry_snapshot: S8LayoutStrategyRegistrySnapshot,
+        request: super::FutureLayoutCustomizationRequest,
+        registry_snapshot: LayoutStrategyRegistrySnapshot,
     ) -> Self {
         Self {
             request,
@@ -22,48 +22,48 @@ impl S8FutureLayoutCustomizationAdmission {
         }
     }
 
-    pub const fn request(self) -> super::S8FutureLayoutCustomizationRequest {
+    pub const fn request(&self) -> super::FutureLayoutCustomizationRequest {
         self.request
     }
 
-    pub const fn registry_snapshot(self) -> S8LayoutStrategyRegistrySnapshot {
-        self.registry_snapshot
+    pub const fn registry_snapshot(&self) -> &LayoutStrategyRegistrySnapshot {
+        &self.registry_snapshot
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8FutureLayoutCustomizationDenial {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FutureLayoutCustomizationDenial {
     AuthoritySourceDoesNotMatchKeyDomain,
     NoStrategySupportsRequestedCapability {
-        capability: S8FutureLayoutCapabilityRequest,
+        capability: FutureLayoutCapabilityRequest,
         key_domain: PhysicalKeyDomainWitness,
     },
     WorkloadEnvelopeDoesNotSupportCapability {
-        capability: S8FutureLayoutCapabilityRequest,
-        envelope: S8FutureLayoutWorkloadEnvelope,
+        capability: FutureLayoutCapabilityRequest,
+        envelope: FutureLayoutWorkloadEnvelope,
     },
     RebuildableProjectionNotYetSupported {
         key_domain: PhysicalKeyDomainWitness,
     },
-    StoreAdmissionDenied(S8LayoutAdmissionDenialProjection),
+    StoreAdmissionDenied(LayoutAdmissionDenialProjection),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutAdmissionDenialProjection {
-    denial: S8LayoutAdmissionDenial,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LayoutAdmissionDenialProjection {
+    denial: LayoutAdmissionDenial,
 }
 
-impl S8LayoutAdmissionDenialProjection {
-    pub(crate) const fn new(denial: S8LayoutAdmissionDenial) -> Self {
+impl LayoutAdmissionDenialProjection {
+    pub(crate) const fn new(denial: LayoutAdmissionDenial) -> Self {
         Self { denial }
     }
 
-    pub const fn denial(self) -> S8LayoutAdmissionDenial {
-        self.denial
+    pub const fn denial(&self) -> &LayoutAdmissionDenial {
+        &self.denial
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8FutureLayoutCustomizationDeferred {
-    StoreAdmissionDeferred(S8LayoutAdmissionDeferred),
+pub enum FutureLayoutCustomizationDeferred {
+    StoreAdmissionDeferred(LayoutAdmissionDeferred),
 }

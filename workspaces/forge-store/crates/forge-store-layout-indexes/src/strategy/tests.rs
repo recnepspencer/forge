@@ -1,14 +1,13 @@
 #[test]
 fn denies_unsupported_or_incomplete_strategy_claims_before_declaration() {
     use super::tests_support::{admit_strategy_scope, root_manifest_scope};
-    use crate::strategy::registry::S8LayoutAdmissionDenial;
+    use crate::strategy::registry::LayoutAdmissionDenial;
     use crate::strategy::registry::{
-        layout_admission_registry, S8LayoutAdmissionOutcome, S8LayoutAdmissionRequest,
-        S8LayoutRequestedCapability,
+        layout_admission_registry, LayoutAdmissionRequest, LayoutRequestedCapability,
     };
-    use crate::strategy::S8LayoutStrategyFamily;
-    use crate::{ArtifactFamilyAccessLane, S8StrategyDenial};
-    use forge_proof::TransitionOutcome;
+    use crate::strategy::LayoutStrategyFamily;
+    use crate::{ArtifactFamilyAccessLane, StrategyDenial};
+
     use forge_store_contracts::DurableArtifactFamilyId;
     use forge_store_security::{
         StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
@@ -27,67 +26,67 @@ fn denies_unsupported_or_incomplete_strategy_claims_before_declaration() {
     let (root_lifecycle, root_domain) = root_manifest_scope();
     assert_eq!(
         layout_admission_registry()
-            .admit(S8LayoutAdmissionRequest::new(
+            .admit(LayoutAdmissionRequest::from_admitted(
                 page_lifecycle,
                 page_domain,
-                S8LayoutStrategyFamily::StreamingCursorIndex,
-                S8LayoutRequestedCapability::point_lookup(),
+                LayoutStrategyFamily::StreamingCursorIndex,
+                LayoutRequestedCapability::point_lookup(),
                 ArtifactFamilyAccessLane::HotPath,
             ))
             .unwrap_err(),
-        S8LayoutAdmissionDenial::StrategyVocabularyDenied(S8StrategyDenial::UnsupportedFamily,)
+        LayoutAdmissionDenial::StrategyVocabularyDenied(StrategyDenial::UnsupportedFamily,)
     );
     assert_eq!(
         layout_admission_registry()
-            .admit(S8LayoutAdmissionRequest::new(
+            .admit(LayoutAdmissionRequest::from_admitted(
                 root_lifecycle,
                 root_domain,
-                S8LayoutStrategyFamily::BaselineBTreeRange,
-                S8LayoutRequestedCapability::point_lookup(),
+                LayoutStrategyFamily::BaselineBTreeRange,
+                LayoutRequestedCapability::point_lookup(),
                 ArtifactFamilyAccessLane::MaintenancePath,
             ))
             .unwrap_err(),
-        S8LayoutAdmissionDenial::StrategyVocabularyDenied(
-            S8StrategyDenial::PhysicalKeyDomainDoesNotSupportBaselineBTree,
+        LayoutAdmissionDenial::StrategyVocabularyDenied(
+            StrategyDenial::PhysicalKeyDomainDoesNotSupportBaselineBTree,
         )
     );
     assert_eq!(
         layout_admission_registry()
-            .admit(S8LayoutAdmissionRequest::new(
+            .admit(LayoutAdmissionRequest::from_admitted(
                 page_lifecycle,
                 root_domain,
-                S8LayoutStrategyFamily::BaselineBTreeRange,
-                S8LayoutRequestedCapability::point_lookup(),
+                LayoutStrategyFamily::BaselineBTreeRange,
+                LayoutRequestedCapability::point_lookup(),
                 ArtifactFamilyAccessLane::HotPath,
             ))
             .unwrap_err(),
-        S8LayoutAdmissionDenial::StrategyVocabularyDenied(
-            S8StrategyDenial::FamilyDoesNotMatchKeyDomain,
+        LayoutAdmissionDenial::StrategyVocabularyDenied(
+            StrategyDenial::FamilyDoesNotMatchKeyDomain,
         )
     );
     assert_eq!(
         layout_admission_registry()
-            .admit(S8LayoutAdmissionRequest::new(
+            .admit(LayoutAdmissionRequest::from_admitted(
                 page_lifecycle,
                 page_domain,
-                S8LayoutStrategyFamily::ExactScan,
-                S8LayoutRequestedCapability::exact_scan(),
+                LayoutStrategyFamily::ExactScan,
+                LayoutRequestedCapability::exact_scan(),
                 ArtifactFamilyAccessLane::HotPath,
             ))
             .unwrap_err(),
-        S8LayoutAdmissionDenial::StrategyVocabularyDenied(S8StrategyDenial::UnsupportedFamily,)
+        LayoutAdmissionDenial::StrategyVocabularyDenied(StrategyDenial::UnsupportedFamily,)
     );
     assert_eq!(
         layout_admission_registry()
-            .admit(S8LayoutAdmissionRequest::new(
+            .admit(LayoutAdmissionRequest::from_admitted(
                 page_lifecycle,
                 page_domain,
-                S8LayoutStrategyFamily::ManifestTable,
-                S8LayoutRequestedCapability::point_lookup(),
+                LayoutStrategyFamily::ManifestTable,
+                LayoutRequestedCapability::point_lookup(),
                 ArtifactFamilyAccessLane::HotPath,
             ))
             .unwrap_err(),
-        S8LayoutAdmissionDenial::StrategyVocabularyDenied(S8StrategyDenial::UnsupportedFamily,)
+        LayoutAdmissionDenial::StrategyVocabularyDenied(StrategyDenial::UnsupportedFamily,)
     );
 }
 
@@ -95,9 +94,9 @@ fn denies_unsupported_or_incomplete_strategy_claims_before_declaration() {
 fn admission_binds_counter_profiles_and_posture_to_strategy_families() {
     use super::tests_support::{admit_btree_page_strategy, admit_lsm_wal_strategy};
     use crate::{
-        ArtifactFamilyAccessLane, S8AccessShapeDetail, S8MaterializationStateClass,
-        S8StrategyAmplificationProfile, S8StrategyLocalityProfile, S8StrategyLookupInvariant,
-        S8StrategyPublicationInvariant, S8StrategyRebuildSourceRequirement,
+        AccessShapeDetail, ArtifactFamilyAccessLane, MaterializationStateClass,
+        StrategyAmplificationProfile, StrategyLocalityProfile, StrategyLookupInvariant,
+        StrategyPublicationInvariant, StrategyRebuildSourceRequirement,
     };
 
     let btree = admit_btree_page_strategy();
@@ -107,11 +106,11 @@ fn admission_binds_counter_profiles_and_posture_to_strategy_families() {
 
     assert_eq!(
         btree_suite.lookup_invariant(),
-        S8StrategyLookupInvariant::SeparatorDirectedLookup
+        StrategyLookupInvariant::SeparatorDirectedLookup
     );
     assert_eq!(
         lsm_suite.publication_invariant(),
-        S8StrategyPublicationInvariant::ManifestPublication
+        StrategyPublicationInvariant::ManifestPublication
     );
     assert!(btree.supports_point_access());
     assert!(btree.supports_range_access());
@@ -124,31 +123,31 @@ fn admission_binds_counter_profiles_and_posture_to_strategy_families() {
     assert!(!btree.allows_access_lane(ArtifactFamilyAccessLane::VerifierPath));
     assert_eq!(
         btree.locality_profile(),
-        S8StrategyLocalityProfile::OrderedPageLocality
+        StrategyLocalityProfile::OrderedPageLocality
     );
     assert_eq!(
         lsm.locality_profile(),
-        S8StrategyLocalityProfile::BufferedRunLocality
+        StrategyLocalityProfile::BufferedRunLocality
     );
     assert_eq!(
         btree.amplification_profile(),
-        S8StrategyAmplificationProfile::SplitMergeBounded
+        StrategyAmplificationProfile::SplitMergeBounded
     );
     assert_eq!(
         lsm.amplification_profile(),
-        S8StrategyAmplificationProfile::CompactionWriteAmplified
+        StrategyAmplificationProfile::CompactionWriteAmplified
     );
     assert_eq!(
         btree.rebuild_source_requirement(),
-        S8StrategyRebuildSourceRequirement::PhysicalSnapshotReplay
+        StrategyRebuildSourceRequirement::PhysicalSnapshotReplay
     );
     assert_eq!(
         lsm.rebuild_source_requirement(),
-        S8StrategyRebuildSourceRequirement::WalReplay
+        StrategyRebuildSourceRequirement::WalReplay
     );
-    assert!(btree.supports_materialization_state(S8MaterializationStateClass::Exact));
-    assert!(lsm.supports_materialization_state(S8MaterializationStateClass::Lagged));
-    assert!(!lsm.supports_materialization_state(S8MaterializationStateClass::Exact));
+    assert!(btree.supports_materialization_state(MaterializationStateClass::Exact));
+    assert!(lsm.supports_materialization_state(MaterializationStateClass::Lagged));
+    assert!(!lsm.supports_materialization_state(MaterializationStateClass::Exact));
     assert!(btree.canonical_key_encoding().is_some());
     assert!(btree.comparator_law().is_some());
     assert!(btree.prefix_law().is_some());
@@ -166,23 +165,23 @@ fn admission_binds_counter_profiles_and_posture_to_strategy_families() {
     );
     assert_eq!(
         btree
-            .planned_counter_envelope_for(S8AccessShapeDetail::PointLookup)
+            .planned_counter_envelope_for(AccessShapeDetail::PointLookup)
             .expect("btree point counters should be available")
             .aggregate_profile(),
-        crate::S8StrategyCounterProfile::new(1, 0, 0, 1, 1)
+        crate::strategy::StrategyCounterProfile::new(1, 0, 1, 1, 3)
     );
     assert_eq!(
         btree.declared_counter_profile(),
         btree_suite.counter_evidence().aggregate_profile()
     );
     assert!(btree
-        .planned_counter_envelope_for(S8AccessShapeDetail::RangeLookup(
-            crate::S8RangeBasis::CanonicalRangeBounds
+        .planned_counter_envelope_for(AccessShapeDetail::RangeLookup(
+            crate::access::shape::RangeBasis::CanonicalRangeBounds
         ))
         .is_some());
     assert!(btree
-        .planned_counter_envelope_for(S8AccessShapeDetail::PrefixLookup(
-            crate::S8PrefixBasis::CanonicalPrefixBounds
+        .planned_counter_envelope_for(AccessShapeDetail::PrefixLookup(
+            crate::access::shape::PrefixBasis::CanonicalPrefixBounds
         ))
         .is_some());
 
@@ -195,7 +194,7 @@ fn admission_binds_counter_profiles_and_posture_to_strategy_families() {
             .point_lookup()
             .expect("btree point declarative envelope should exist"),
         btree
-            .planned_counter_envelope_for(S8AccessShapeDetail::PointLookup)
+            .planned_counter_envelope_for(AccessShapeDetail::PointLookup)
             .expect("btree point counters should be available")
     );
     assert_eq!(
@@ -203,8 +202,8 @@ fn admission_binds_counter_profiles_and_posture_to_strategy_families() {
             .range_lookup()
             .expect("btree range declarative envelope should exist"),
         btree
-            .planned_counter_envelope_for(S8AccessShapeDetail::RangeLookup(
-                crate::S8RangeBasis::CanonicalRangeBounds
+            .planned_counter_envelope_for(AccessShapeDetail::RangeLookup(
+                crate::access::shape::RangeBasis::CanonicalRangeBounds
             ))
             .expect("btree range counters should be available")
     );
@@ -213,22 +212,22 @@ fn admission_binds_counter_profiles_and_posture_to_strategy_families() {
             .prefix_lookup()
             .expect("btree prefix declarative envelope should exist"),
         btree
-            .planned_counter_envelope_for(S8AccessShapeDetail::PrefixLookup(
-                crate::S8PrefixBasis::CanonicalPrefixBounds
+            .planned_counter_envelope_for(AccessShapeDetail::PrefixLookup(
+                crate::access::shape::PrefixBasis::CanonicalPrefixBounds
             ))
             .expect("btree prefix counters should be available")
     );
     assert_eq!(
         btree_evidence.publication(),
         btree
-            .planned_counter_envelope_for(S8AccessShapeDetail::PointLookup)
+            .planned_counter_envelope_for(AccessShapeDetail::PointLookup)
             .expect("btree point counters should be available")
             .publication()
     );
     assert_eq!(
         btree_evidence.recovery(),
         btree
-            .planned_counter_envelope_for(S8AccessShapeDetail::PointLookup)
+            .planned_counter_envelope_for(AccessShapeDetail::PointLookup)
             .expect("btree point counters should be available")
             .recovery()
     );
@@ -256,12 +255,12 @@ fn admission_binds_counter_profiles_and_posture_to_strategy_families() {
 #[test]
 fn strategy_identity_preserves_family_and_lane_posture() {
     use super::tests_support::admit_strategy_scope;
+    use crate::catalog::ArtifactFamilyAccessLane;
     use crate::strategy::registry::{
-        layout_admission_registry, S8LayoutAdmissionRequest, S8LayoutRequestedCapability,
+        layout_admission_registry, LayoutAdmissionRequest, LayoutRequestedCapability,
     };
-    use crate::strategy::S8LayoutStrategyFamily;
-    use crate::ArtifactFamilyAccessLane;
-    use forge_proof::TransitionOutcome;
+    use crate::strategy::LayoutStrategyFamily;
+
     use forge_store_contracts::DurableArtifactFamilyId;
     use forge_store_security::{
         StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
@@ -288,21 +287,21 @@ fn strategy_identity_preserves_family_and_lane_posture() {
     );
 
     let page = layout_admission_registry()
-        .admit(S8LayoutAdmissionRequest::new(
+        .admit(LayoutAdmissionRequest::from_admitted(
             page_lifecycle,
             page_domain,
-            S8LayoutStrategyFamily::BaselineBTreeRange,
-            S8LayoutRequestedCapability::point_lookup(),
+            LayoutStrategyFamily::BaselineBTreeRange,
+            LayoutRequestedCapability::point_lookup(),
             ArtifactFamilyAccessLane::HotPath,
         ))
         .unwrap()
         .admitted_strategy();
     let segment = layout_admission_registry()
-        .admit(S8LayoutAdmissionRequest::new(
+        .admit(LayoutAdmissionRequest::from_admitted(
             segment_lifecycle,
             segment_domain,
-            S8LayoutStrategyFamily::BaselineBTreeRange,
-            S8LayoutRequestedCapability::point_lookup(),
+            LayoutStrategyFamily::BaselineBTreeRange,
+            LayoutRequestedCapability::point_lookup(),
             ArtifactFamilyAccessLane::HotPath,
         ))
         .unwrap()
@@ -319,7 +318,7 @@ fn strategy_identity_preserves_family_and_lane_posture() {
 #[test]
 fn btree_strategy_counter_surface_requires_shape_specific_lookup_truth() {
     use super::tests_support::admit_btree_page_strategy;
-    use crate::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
+    use crate::{AccessShapeDetail, PrefixBasis, RangeBasis};
 
     let btree = admit_btree_page_strategy();
     let evidence = btree.invariant_suite().counter_evidence();
@@ -327,7 +326,7 @@ fn btree_strategy_counter_surface_requires_shape_specific_lookup_truth() {
     assert_eq!(btree.planned_counter_envelope(), None);
     assert_eq!(evidence.lookup(), None);
     assert_eq!(
-        btree.planned_counter_envelope_for(S8AccessShapeDetail::PointLookup),
+        btree.planned_counter_envelope_for(AccessShapeDetail::PointLookup),
         evidence.point_lookup()
     );
     assert_eq!(
@@ -335,8 +334,8 @@ fn btree_strategy_counter_surface_requires_shape_specific_lookup_truth() {
             .range_lookup()
             .expect("range declarative counters should exist"),
         btree
-            .planned_counter_envelope_for(S8AccessShapeDetail::RangeLookup(
-                S8RangeBasis::CanonicalRangeBounds
+            .planned_counter_envelope_for(AccessShapeDetail::RangeLookup(
+                RangeBasis::CanonicalRangeBounds
             ))
             .expect("range counters should be available")
     );
@@ -345,18 +344,42 @@ fn btree_strategy_counter_surface_requires_shape_specific_lookup_truth() {
             .prefix_lookup()
             .expect("prefix declarative counters should exist"),
         btree
-            .planned_counter_envelope_for(S8AccessShapeDetail::PrefixLookup(
-                S8PrefixBasis::CanonicalPrefixBounds
+            .planned_counter_envelope_for(AccessShapeDetail::PrefixLookup(
+                PrefixBasis::CanonicalPrefixBounds
             ))
             .expect("prefix counters should be available")
     );
     assert_eq!(
         evidence.aggregate_profile(),
-        crate::S8StrategyCounterProfile::new(1, 1, 0, 1, 1)
+        crate::strategy::StrategyCounterProfile::new(1, 1, 1, 1, 3)
     );
 }
 
-pub(crate) fn exercise_owner_outcome_cases() {
-    denies_unsupported_or_incomplete_strategy_claims_before_declaration();
-    admission_binds_counter_profiles_and_posture_to_strategy_families();
+#[test]
+fn strategy_admission_has_no_raw_witness_authority_lane() {
+    let authority_basis = include_str!("authority_basis.rs");
+    let admission = include_str!("admission.rs");
+    let registry_request = include_str!("registry/request.rs");
+
+    for forbidden in ["LegacyWitnesses", "StrategyAuthorityBasis::legacy"] {
+        assert!(
+            !authority_basis.contains(forbidden),
+            "strategy authority must not preserve the removed {forbidden} lane"
+        );
+    }
+    for forbidden in ["fn admit_strategy(", "fn declare_strategy("] {
+        assert!(
+            !admission.contains(forbidden),
+            "strategy admission must not accept raw lifecycle/domain witnesses through {forbidden}"
+        );
+    }
+    for forbidden in [
+        "StrategyAuthorityBasis::legacy",
+        "lifecycle: ArtifactFamilyLifecycleAdmission,\n        key_domain: PhysicalKeyDomainWitness,\n        family: LayoutStrategyFamily",
+    ] {
+        assert!(
+            !registry_request.contains(forbidden),
+            "registry requests must not recover raw strategy authority through {forbidden}"
+        );
+    }
 }

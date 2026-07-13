@@ -163,10 +163,12 @@ fn decode_canonical_root_manifest(
             decoded.allocation_classes,
             decoded.free_space,
         );
-        let manifest_counters = match ManifestDiscoveryAuthority::for_canonical_physical_format().reopen_from_root(
-            &root,
-            PhysicalReferenceAuthority::for_canonical_physical_format().admit_root_publication(root.root_publication()),
-        ) {
+        let manifest_counters = match ManifestDiscoveryAuthority::for_canonical_physical_format()
+            .reopen_from_root(
+                &root,
+                PhysicalReferenceAuthority::for_canonical_physical_format()
+                    .admit_root_publication(root.root_publication()),
+            ) {
             Ok(report) => report.counters(),
             Err(denial) => {
                 discovery_denial = Some(denial);

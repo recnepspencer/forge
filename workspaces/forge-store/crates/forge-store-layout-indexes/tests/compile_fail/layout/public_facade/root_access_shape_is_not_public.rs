@@ -1,5 +1,5 @@
-use forge_store_layout_indexes::S8AccessShape;
+use forge_store_layout_indexes::BTreeLookupReady;
 
 fn main() {
-    let _ = core::mem::size_of::<S8AccessShape>();
+    let _ = BTreeLookupReady { recipe: todo!() };
 }

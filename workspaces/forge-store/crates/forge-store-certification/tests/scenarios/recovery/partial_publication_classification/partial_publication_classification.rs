@@ -7,7 +7,7 @@ mod non_authoritative_observations;
 
 use forge_store_recovery_physics::{
     BackendResidueKind, LogSequenceNumber, PartialPublicationClassification,
-    PartialPublicationEvidence, PartialPublicationObservationSet, PartialPublicationPersistedBytes,
+    PartialPublicationEvidence, PartialPublicationObservationSet,
     RecoveredOrRejectedPartialPublication, RollbackImageRequiredPosture, TornPublicationDenial,
     UnacknowledgedPublicationOutcome,
 };

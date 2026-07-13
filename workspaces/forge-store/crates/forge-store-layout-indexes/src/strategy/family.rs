@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8LayoutStrategyFamily {
+pub enum LayoutStrategyFamily {
     AppendLog,
     HeapFile,
     PageTable,
@@ -16,7 +16,7 @@ pub enum S8LayoutStrategyFamily {
     ExactScan,
 }
 
-impl S8LayoutStrategyFamily {
+impl LayoutStrategyFamily {
     pub const fn is_baseline_family(self) -> bool {
         matches!(
             self,

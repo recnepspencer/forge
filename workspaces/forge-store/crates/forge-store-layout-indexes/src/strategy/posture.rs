@@ -1,82 +1,82 @@
-use crate::materialization::S8MaterializationStateClass;
+use crate::materialization::MaterializationStateClass;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StrategyLocalityProfile {
+pub enum StrategyLocalityProfile {
     OrderedPageLocality,
     BufferedRunLocality,
     LinearLayoutTraversal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StrategyAmplificationProfile {
+pub enum StrategyAmplificationProfile {
     SplitMergeBounded,
     CompactionWriteAmplified,
     ReadMostlyBounded,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StrategyCorruptionIsolationBehavior {
+pub enum StrategyCorruptionIsolationBehavior {
     PageScoped,
     RunScoped,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StrategyRebuildSourceRequirement {
+pub enum StrategyRebuildSourceRequirement {
     PhysicalSnapshotReplay,
     WalReplay,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StrategyMaterializationPosture {
+pub enum StrategyMaterializationPosture {
     PublishedTreeLifecycle,
     WalBufferedRunLifecycle,
     RangeScannableSnapshots,
 }
 
-impl S8StrategyMaterializationPosture {
-    pub const fn supports_state(self, state: S8MaterializationStateClass) -> bool {
+impl StrategyMaterializationPosture {
+    pub const fn supports_state(self, state: MaterializationStateClass) -> bool {
         match self {
             Self::PublishedTreeLifecycle => matches!(
                 state,
-                S8MaterializationStateClass::DeclaredOnly
-                    | S8MaterializationStateClass::EmptyInitialized
-                    | S8MaterializationStateClass::Building
-                    | S8MaterializationStateClass::PartiallyCovered
-                    | S8MaterializationStateClass::Exact
-                    | S8MaterializationStateClass::ExactThroughPhysicalBasis
-                    | S8MaterializationStateClass::Lagged
-                    | S8MaterializationStateClass::Stale
-                    | S8MaterializationStateClass::RebuildRequired
-                    | S8MaterializationStateClass::Migrating
-                    | S8MaterializationStateClass::Quarantined
-                    | S8MaterializationStateClass::Retired
+                MaterializationStateClass::DeclaredOnly
+                    | MaterializationStateClass::EmptyInitialized
+                    | MaterializationStateClass::Building
+                    | MaterializationStateClass::PartiallyCovered
+                    | MaterializationStateClass::Exact
+                    | MaterializationStateClass::ExactThroughPhysicalBasis
+                    | MaterializationStateClass::Lagged
+                    | MaterializationStateClass::Stale
+                    | MaterializationStateClass::RebuildRequired
+                    | MaterializationStateClass::Migrating
+                    | MaterializationStateClass::Quarantined
+                    | MaterializationStateClass::Retired
             ),
             Self::WalBufferedRunLifecycle => matches!(
                 state,
-                S8MaterializationStateClass::DeclaredOnly
-                    | S8MaterializationStateClass::EmptyInitialized
-                    | S8MaterializationStateClass::Building
-                    | S8MaterializationStateClass::PartiallyCovered
-                    | S8MaterializationStateClass::ExactThroughPhysicalBasis
-                    | S8MaterializationStateClass::Lagged
-                    | S8MaterializationStateClass::Stale
-                    | S8MaterializationStateClass::RebuildRequired
-                    | S8MaterializationStateClass::Migrating
-                    | S8MaterializationStateClass::Quarantined
-                    | S8MaterializationStateClass::Retired
+                MaterializationStateClass::DeclaredOnly
+                    | MaterializationStateClass::EmptyInitialized
+                    | MaterializationStateClass::Building
+                    | MaterializationStateClass::PartiallyCovered
+                    | MaterializationStateClass::ExactThroughPhysicalBasis
+                    | MaterializationStateClass::Lagged
+                    | MaterializationStateClass::Stale
+                    | MaterializationStateClass::RebuildRequired
+                    | MaterializationStateClass::Migrating
+                    | MaterializationStateClass::Quarantined
+                    | MaterializationStateClass::Retired
             ),
             Self::RangeScannableSnapshots => matches!(
                 state,
-                S8MaterializationStateClass::DeclaredOnly
-                    | S8MaterializationStateClass::EmptyInitialized
-                    | S8MaterializationStateClass::Building
-                    | S8MaterializationStateClass::PartiallyCovered
-                    | S8MaterializationStateClass::Lagged
-                    | S8MaterializationStateClass::Stale
-                    | S8MaterializationStateClass::RebuildRequired
-                    | S8MaterializationStateClass::Migrating
-                    | S8MaterializationStateClass::Quarantined
-                    | S8MaterializationStateClass::Retired
+                MaterializationStateClass::DeclaredOnly
+                    | MaterializationStateClass::EmptyInitialized
+                    | MaterializationStateClass::Building
+                    | MaterializationStateClass::PartiallyCovered
+                    | MaterializationStateClass::Lagged
+                    | MaterializationStateClass::Stale
+                    | MaterializationStateClass::RebuildRequired
+                    | MaterializationStateClass::Migrating
+                    | MaterializationStateClass::Quarantined
+                    | MaterializationStateClass::Retired
             ),
         }
     }

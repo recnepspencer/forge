@@ -1,0 +1,110 @@
+use forge_store_lsm_authority::{
+    AdmittedLsmReplaySource, LsmMembershipKey, LsmMembershipRecord, LsmMembershipSession,
+    LsmReplaySourceDenial,
+};
+use forge_store_wal::{
+    AdmittedCheckpointPublicationReceipt, AdmittedWalAppendReceipt, BlobWalRecordEnvelope,
+    WalSecurityMetadataCarrier,
+};
+
+use super::{
+    AdmittedLsmCompactionDemand, BaselineLsmCompactionPlan, BaselineLsmExecutionAdmissionDenial,
+    LsmPhysicalCompactionIntent,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LsmStrategy;
+
+pub const fn lsm_strategy() -> LsmStrategy {
+    LsmStrategy
+}
+
+impl LsmStrategy {
+    pub fn readmit_lookup_source(
+        self,
+        family: crate::AdmittedPhysicalArtifactFamily,
+        replacement: &forge_store_lsm_authority::PublishedLsmMembershipReplacement,
+    ) -> Result<super::BaselineLsmLookupSource, BaselineLsmExecutionAdmissionDenial> {
+        let key = replacement.key();
+        if key.authority_identity() != family.authority_identity()
+            || key.security_identity() != family.security_identity()
+        {
+            return Err(BaselineLsmExecutionAdmissionDenial::RecordKeyScopeMismatch);
+        }
+        Ok(super::BaselineLsmLookupSource::from_published_replacement(
+            replacement,
+        ))
+    }
+
+    pub fn open_index(
+        self,
+        durable_anchor: &AdmittedWalAppendReceipt,
+        current_scope: &forge_store_security::StoreCurrentSecurityScopeWitnessSet,
+    ) -> Result<LsmMembershipSession, BaselineLsmExecutionAdmissionDenial> {
+        LsmMembershipSession::open(durable_anchor, current_scope)
+            .map_err(super::execution::map_membership_denial)
+    }
+
+    pub fn admit_key(
+        self,
+        metadata: WalSecurityMetadataCarrier,
+        admission: super::BaselineLsmCompactionAdmission,
+    ) -> Result<LsmMembershipKey, BaselineLsmExecutionAdmissionDenial> {
+        let selected = admission.selected();
+        let identity = selected.request_identity();
+        let family = selected.admitted_family();
+        if metadata.authority_identity() != family.authority_identity()
+            || metadata.security_identity() != family.security_identity()
+        {
+            return Err(BaselineLsmExecutionAdmissionDenial::RecordKeyScopeMismatch);
+        }
+        LsmMembershipKey::admit(metadata, identity.canonical_key())
+            .ok_or(BaselineLsmExecutionAdmissionDenial::CanonicalKeyRequired)
+    }
+
+    pub fn persist_record(
+        self,
+        session: &mut LsmMembershipSession,
+        envelope: BlobWalRecordEnvelope,
+        durable: &AdmittedWalAppendReceipt,
+        key: LsmMembershipKey,
+    ) -> Result<LsmMembershipRecord, BaselineLsmExecutionAdmissionDenial> {
+        let record = LsmMembershipRecord::admit(envelope, durable, key)
+            .ok_or(BaselineLsmExecutionAdmissionDenial::DurableRecordBindingMismatch)?;
+        session
+            .persist(record.clone())
+            .map_err(super::execution::map_membership_denial)?;
+        Ok(record)
+    }
+
+    pub fn lower_compaction(
+        self,
+        session: &LsmMembershipSession,
+        key: LsmMembershipKey,
+        admission: super::BaselineLsmCompactionAdmission,
+    ) -> Result<BaselineLsmCompactionPlan, BaselineLsmExecutionAdmissionDenial> {
+        BaselineLsmCompactionPlan::lower_from_persisted(session, key, admission)
+    }
+
+    pub fn admit_compaction_demand(
+        self,
+        plan: BaselineLsmCompactionPlan,
+        output_append: AdmittedWalAppendReceipt,
+        physical_intent: LsmPhysicalCompactionIntent,
+    ) -> Result<AdmittedLsmCompactionDemand, BaselineLsmExecutionAdmissionDenial> {
+        AdmittedLsmCompactionDemand::admit(plan, output_append, physical_intent)
+    }
+
+    pub fn admit_replay_source(
+        self,
+        plan: &BaselineLsmCompactionPlan,
+        checkpoint: Option<&AdmittedCheckpointPublicationReceipt>,
+        partial: Option<&forge_store_recovery_physics::PartialPublicationClassification>,
+    ) -> Result<AdmittedLsmReplaySource, LsmReplaySourceDenial> {
+        AdmittedLsmReplaySource::admit_recovered_membership(
+            plan.replay_membership(),
+            checkpoint,
+            partial,
+        )
+    }
+}

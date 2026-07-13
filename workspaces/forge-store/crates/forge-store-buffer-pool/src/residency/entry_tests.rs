@@ -50,7 +50,8 @@ fn buffer_pool_entry_consumes_physical_format_readiness_and_budget() {
 }
 
 #[test]
-fn independent_physical_format_handoffs_lower_to_same_physical_substrate_entry_facts_and_vocabulary() {
+fn independent_physical_format_handoffs_lower_to_same_physical_substrate_entry_facts_and_vocabulary(
+) {
     let first_independent_entry = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
         physical_substrate_readiness().physical_substrate_snapshot(),
     )
@@ -111,7 +112,8 @@ fn budget_declaration_keeps_resident_pinned_and_dirty_distinct() {
 }
 
 fn physical_substrate_readiness() -> PhysicalSubstrateReadiness {
-    let closeout = close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap();
+    let closeout =
+        close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap();
     prove_physical_substrate_readiness(closeout).unwrap()
 }
 

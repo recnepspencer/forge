@@ -38,8 +38,8 @@ pub type StoreHostileReadmissionJsonFixtureBoundaryOutcome = TransitionOutcome<
 >;
 
 #[track_caller]
-pub(crate) fn require_terminal_projection_boundary()
--> StoreTerminalProjectionJsonFixtureBoundaryOutcome {
+pub(crate) fn require_terminal_projection_boundary(
+) -> StoreTerminalProjectionJsonFixtureBoundaryOutcome {
     let caller = std::panic::Location::caller();
     if path_names_terminal_projection_boundary(caller.file()) {
         TransitionOutcome::success(StoreTerminalProjectionJsonFixtureBoundaryWitness::new())
@@ -51,8 +51,8 @@ pub(crate) fn require_terminal_projection_boundary()
 }
 
 #[track_caller]
-pub(crate) fn require_hostile_readmission_boundary()
--> StoreHostileReadmissionJsonFixtureBoundaryOutcome {
+pub(crate) fn require_hostile_readmission_boundary(
+) -> StoreHostileReadmissionJsonFixtureBoundaryOutcome {
     let caller = std::panic::Location::caller();
     if path_names_hostile_readmission_boundary(caller.file()) {
         TransitionOutcome::success(StoreHostileReadmissionJsonFixtureBoundaryWitness::new())

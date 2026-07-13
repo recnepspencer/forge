@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum S8LayoutFaultLane {
+pub enum LayoutFaultLane {
     NoFaultControl,
     CrashInterruption,
     ByteCorruption,

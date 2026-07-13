@@ -1,16 +1,16 @@
-use crate::access::planning::S8SelectedAccessPlan;
+use crate::planning::SelectedAccessPlanBasis;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct S8AccessLoweringRequest {
-    selected: S8SelectedAccessPlan,
+pub(crate) struct AccessLoweringRequest {
+    selected: SelectedAccessPlanBasis,
 }
 
-impl S8AccessLoweringRequest {
-    pub(crate) const fn new(selected: S8SelectedAccessPlan) -> Self {
+impl AccessLoweringRequest {
+    pub(crate) const fn new(selected: SelectedAccessPlanBasis) -> Self {
         Self { selected }
     }
 
-    pub(crate) const fn selected(self) -> S8SelectedAccessPlan {
+    pub(crate) const fn selected(self) -> SelectedAccessPlanBasis {
         self.selected
     }
 }

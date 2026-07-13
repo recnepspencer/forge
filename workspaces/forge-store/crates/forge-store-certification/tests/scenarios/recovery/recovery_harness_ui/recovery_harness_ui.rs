@@ -11,8 +11,8 @@ struct S4RecoveryHarnessCompileFailFixture {
     expected_stderr: &'static [&'static str],
 }
 
-fn recovery_harness_public_facade_compile_fail_fixtures(
-) -> Vec<S4RecoveryHarnessCompileFailFixture> {
+fn recovery_harness_public_facade_compile_fail_fixtures() -> Vec<S4RecoveryHarnessCompileFailFixture>
+{
     vec![
         S4RecoveryHarnessCompileFailFixture {
             name: "direct_private_mutation_cannot_certify.rs",

@@ -1,11 +1,11 @@
 use crate::catalog::PhysicalArtifactFamily;
-use crate::materialization::S8LayoutCoverageWitness;
+use crate::materialization::LayoutCoverageWitness;
 
-use super::maintenance_mode::S8IndexMaintenanceMode;
-use super::publication_protocol::S8IndexPublicationProtocol;
+use super::maintenance_mode::IndexMaintenanceMode;
+use super::publication_protocol::IndexPublicationProtocol;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8LagReason {
+pub enum LagReason {
     DeferredPublication,
     BackgroundCatchUp,
     RebuildRequired,
@@ -14,22 +14,22 @@ pub enum S8LagReason {
     MigrationCutover,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8IndexLagWitness {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IndexLagWitness {
     family: PhysicalArtifactFamily,
-    coverage: S8LayoutCoverageWitness,
-    maintenance_mode: S8IndexMaintenanceMode,
-    publication_protocol: S8IndexPublicationProtocol,
-    reason: S8LagReason,
+    coverage: LayoutCoverageWitness,
+    maintenance_mode: IndexMaintenanceMode,
+    publication_protocol: IndexPublicationProtocol,
+    reason: LagReason,
 }
 
-impl S8IndexLagWitness {
+impl IndexLagWitness {
     pub const fn new(
         family: PhysicalArtifactFamily,
-        coverage: S8LayoutCoverageWitness,
-        maintenance_mode: S8IndexMaintenanceMode,
-        publication_protocol: S8IndexPublicationProtocol,
-        reason: S8LagReason,
+        coverage: LayoutCoverageWitness,
+        maintenance_mode: IndexMaintenanceMode,
+        publication_protocol: IndexPublicationProtocol,
+        reason: LagReason,
     ) -> Self {
         Self {
             family,
@@ -40,30 +40,30 @@ impl S8IndexLagWitness {
         }
     }
 
-    pub const fn family(self) -> PhysicalArtifactFamily {
+    pub const fn family(&self) -> PhysicalArtifactFamily {
         self.family
     }
 
-    pub const fn coverage(self) -> S8LayoutCoverageWitness {
-        self.coverage
+    pub const fn coverage(&self) -> &LayoutCoverageWitness {
+        &self.coverage
     }
 
-    pub const fn maintenance_mode(self) -> S8IndexMaintenanceMode {
+    pub const fn maintenance_mode(&self) -> IndexMaintenanceMode {
         self.maintenance_mode
     }
 
-    pub const fn publication_protocol(self) -> S8IndexPublicationProtocol {
+    pub const fn publication_protocol(&self) -> IndexPublicationProtocol {
         self.publication_protocol
     }
 
-    pub const fn reason(self) -> S8LagReason {
+    pub const fn reason(&self) -> LagReason {
         self.reason
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8IndexLagOutcome {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IndexLagOutcome {
     Exact,
-    Lagged(S8IndexLagWitness),
-    NonExact(S8IndexMaintenanceMode),
+    Lagged(IndexLagWitness),
+    NonExact(IndexMaintenanceMode),
 }

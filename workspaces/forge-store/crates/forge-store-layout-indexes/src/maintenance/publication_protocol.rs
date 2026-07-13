@@ -1,9 +1,9 @@
-use crate::strategy::S8StrategyPublicationInvariant;
+use crate::strategy::StrategyPublicationInvariant;
 
-use super::maintenance_mode::S8IndexMaintenanceMode;
+use super::maintenance_mode::IndexMaintenanceMode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8IndexPublicationProtocol {
+pub enum IndexPublicationProtocol {
     StableRootSwap,
     StableManifestInstall,
     DeferredCatchUp,
@@ -12,7 +12,7 @@ pub enum S8IndexPublicationProtocol {
     VerifierObservationOnly,
 }
 
-impl S8IndexPublicationProtocol {
+impl IndexPublicationProtocol {
     pub const fn stable_root_swap() -> Self {
         Self::StableRootSwap
     }
@@ -41,40 +41,40 @@ impl S8IndexPublicationProtocol {
         !matches!(self, Self::DeferredCatchUp | Self::VerifierObservationOnly)
     }
 
-    pub const fn supports_mode(self, mode: S8IndexMaintenanceMode) -> bool {
+    pub const fn supports_mode(self, mode: IndexMaintenanceMode) -> bool {
         match self {
             Self::StableRootSwap | Self::StableManifestInstall => {
-                matches!(mode, S8IndexMaintenanceMode::SynchronousExact)
+                matches!(mode, IndexMaintenanceMode::SynchronousExact)
             }
             Self::DeferredCatchUp => matches!(
                 mode,
-                S8IndexMaintenanceMode::AsynchronousLagged
-                    | S8IndexMaintenanceMode::LazyMaterializedOnDemand
-                    | S8IndexMaintenanceMode::AdvisoryOnly
+                IndexMaintenanceMode::AsynchronousLagged
+                    | IndexMaintenanceMode::LazyMaterializedOnDemand
+                    | IndexMaintenanceMode::AdvisoryOnly
             ),
             Self::CompactionCutover => matches!(
                 mode,
-                S8IndexMaintenanceMode::AsynchronousLagged
-                    | S8IndexMaintenanceMode::RebuildOnly
-                    | S8IndexMaintenanceMode::MigrationOnly
+                IndexMaintenanceMode::AsynchronousLagged
+                    | IndexMaintenanceMode::RebuildOnly
+                    | IndexMaintenanceMode::MigrationOnly
             ),
-            Self::MigrationCutover => matches!(mode, S8IndexMaintenanceMode::MigrationOnly),
-            Self::VerifierObservationOnly => matches!(mode, S8IndexMaintenanceMode::VerifierOnly),
+            Self::MigrationCutover => matches!(mode, IndexMaintenanceMode::MigrationOnly),
+            Self::VerifierObservationOnly => matches!(mode, IndexMaintenanceMode::VerifierOnly),
         }
     }
 
-    pub const fn matches_invariant(self, invariant: S8StrategyPublicationInvariant) -> bool {
+    pub const fn matches_invariant(self, invariant: StrategyPublicationInvariant) -> bool {
         match (self, invariant) {
             (
                 Self::StableRootSwap | Self::CompactionCutover | Self::MigrationCutover,
-                S8StrategyPublicationInvariant::RootPublication,
+                StrategyPublicationInvariant::RootPublication,
             ) => true,
             (
                 Self::StableManifestInstall
                 | Self::DeferredCatchUp
                 | Self::CompactionCutover
                 | Self::MigrationCutover,
-                S8StrategyPublicationInvariant::ManifestPublication,
+                StrategyPublicationInvariant::ManifestPublication,
             ) => true,
             (Self::VerifierObservationOnly, _) => true,
             _ => false,

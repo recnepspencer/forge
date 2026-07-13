@@ -1,8 +1,8 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8PreExecutionBudgetDenial {
+pub enum PreExecutionBudgetDenial {
     ScopeMismatch {
-        requested: super::admission::S8PreExecutionBudgetScope,
-        admitted: super::admission::S8PreExecutionBudgetScope,
+        requested: super::admission::PreExecutionBudgetScope,
+        admitted: super::admission::PreExecutionBudgetScope,
     },
     MemoryBytesExceeded {
         estimated: u64,

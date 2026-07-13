@@ -1,10 +1,10 @@
 use crate::strategy::registry::{
-    layout_admission_registry, S8LayoutAdmissionDenial, S8LayoutAdmissionRequest,
-    S8LayoutAdmissionView, S8LayoutRequestedCapability, S8LayoutStrategyCapability,
+    layout_admission_registry, LayoutAdmissionDenial, LayoutAdmissionRequest,
+    LayoutRequestedCapability, LayoutStrategyCapability,
 };
 use crate::strategy::tests_support::{admit_strategy_scope, root_manifest_scope};
-use crate::strategy::S8LayoutStrategyFamily;
-use crate::{ArtifactFamilyAccessLane, S8IndexMaintenanceMode, S8PhysicalMutationShape};
+use crate::strategy::LayoutStrategyFamily;
+use crate::{ArtifactFamilyAccessLane, IndexMaintenanceMode, PhysicalMutationShape};
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
@@ -14,25 +14,31 @@ use forge_store_security::{
 #[test]
 fn registry_admits_supported_requests_to_stable_owner_snapshots() {
     let (lifecycle, domain) = page_scope();
-    let request = S8LayoutAdmissionRequest::new(
+    let request = LayoutAdmissionRequest::from_admitted(
         lifecycle,
         domain,
-        S8LayoutStrategyFamily::BaselineBTreeRange,
-        S8LayoutRequestedCapability::point_lookup(),
+        LayoutStrategyFamily::BaselineBTreeRange,
+        LayoutRequestedCapability::point_lookup(),
         ArtifactFamilyAccessLane::HotPath,
     );
 
-    let first = layout_admission_registry().admit(request).unwrap();
-    let second = layout_admission_registry().admit(request).unwrap();
+    let first = layout_admission_registry()
+        .admit(request.clone())
+        .into_result()
+        .unwrap();
+    let second = layout_admission_registry()
+        .admit(request)
+        .into_result()
+        .unwrap();
 
     assert_eq!(first, second);
     assert_eq!(
         first.admitted_strategy().family(),
-        S8LayoutStrategyFamily::BaselineBTreeRange
+        LayoutStrategyFamily::BaselineBTreeRange
     );
     assert_eq!(
         first.granted_capability(),
-        S8LayoutStrategyCapability::PointLookup
+        LayoutStrategyCapability::PointLookup
     );
 }
 
@@ -40,76 +46,99 @@ fn registry_admits_supported_requests_to_stable_owner_snapshots() {
 fn registry_denies_unsupported_capability_and_scope_mismatch() {
     let (lifecycle, domain) = page_scope();
     let (_, root_domain) = root_manifest_scope();
-    let unsupported = S8LayoutAdmissionRequest::new(
+    let unsupported = LayoutAdmissionRequest::from_admitted(
         lifecycle,
         domain,
-        S8LayoutStrategyFamily::BaselineBTreeRange,
-        S8LayoutRequestedCapability::blob_streaming(),
+        LayoutStrategyFamily::BaselineBTreeRange,
+        LayoutRequestedCapability::blob_streaming(),
         ArtifactFamilyAccessLane::HotPath,
     );
-    let scope_mismatch = S8LayoutAdmissionRequest::new(
+    let scope_mismatch = LayoutAdmissionRequest::from_admitted(
         lifecycle,
         domain,
-        S8LayoutStrategyFamily::BaselineBTreeRange,
-        S8LayoutRequestedCapability::point_lookup(),
+        LayoutStrategyFamily::BaselineBTreeRange,
+        LayoutRequestedCapability::point_lookup(),
         ArtifactFamilyAccessLane::HotPath,
     )
-    .within_scope_partition(root_domain.scope());
+    .within_scope_partition(root_domain.witness().scope());
 
     assert!(matches!(
-        layout_admission_registry().admit(unsupported).view(),
-        S8LayoutAdmissionView::Denied(
-            S8LayoutAdmissionDenial::StrategyDoesNotSupportRequestedCapability { .. }
-        )
+        layout_admission_registry().admit(unsupported).into_result(),
+        Err(LayoutAdmissionDenial::StrategyDoesNotSupportRequestedCapability { .. })
     ));
     assert!(matches!(
-        layout_admission_registry().admit(scope_mismatch).view(),
-        S8LayoutAdmissionView::Denied(
-            S8LayoutAdmissionDenial::RequestedScopeDoesNotMatchKeyDomain { .. }
-        )
+        layout_admission_registry()
+            .admit(scope_mismatch)
+            .into_result(),
+        Err(LayoutAdmissionDenial::RequestedScopeDoesNotMatchKeyDomain { .. })
     ));
 }
 
 #[test]
 fn registry_denies_mode_and_mutation_mismatches() {
     let (page_lifecycle, page_domain) = page_scope();
-    let verifier = S8LayoutAdmissionRequest::new(
+    let verifier = LayoutAdmissionRequest::from_admitted(
         page_lifecycle,
         page_domain,
-        S8LayoutStrategyFamily::BaselineBTreeRange,
-        S8LayoutRequestedCapability::point_lookup(),
+        LayoutStrategyFamily::BaselineBTreeRange,
+        LayoutRequestedCapability::point_lookup(),
         ArtifactFamilyAccessLane::HotPath,
     )
-    .under_maintenance_mode(S8IndexMaintenanceMode::VerifierOnly);
+    .under_maintenance_mode(IndexMaintenanceMode::VerifierOnly);
     let (wal_lifecycle, wal_domain) = wal_scope();
-    let mutation = S8LayoutAdmissionRequest::new(
+    let mutation = LayoutAdmissionRequest::from_admitted(
         wal_lifecycle,
         wal_domain,
-        S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
-        S8LayoutRequestedCapability::point_lookup(),
+        LayoutStrategyFamily::BaselineLsmWriteOptimized,
+        LayoutRequestedCapability::point_lookup(),
         ArtifactFamilyAccessLane::HotPath,
     )
-    .for_mutation_shape(S8PhysicalMutationShape::PointRewrite);
+    .for_mutation_shape(PhysicalMutationShape::PointRewrite);
 
     assert!(matches!(
-        layout_admission_registry().admit(verifier).view(),
-        S8LayoutAdmissionView::Denied(
-            S8LayoutAdmissionDenial::MaintenanceModeIncompatibleWithRequestedLane { .. }
-        )
+        layout_admission_registry().admit(verifier).into_result(),
+        Err(LayoutAdmissionDenial::MaintenanceModeIncompatibleWithRequestedLane { .. })
     ));
     assert!(matches!(
-        layout_admission_registry().admit(mutation).view(),
-        S8LayoutAdmissionView::Denied(
-            S8LayoutAdmissionDenial::MutationShapeIncompatibleWithStrategy { .. }
-        )
+        layout_admission_registry().admit(mutation).into_result(),
+        Err(LayoutAdmissionDenial::MutationShapeIncompatibleWithStrategy { .. })
     ));
 }
 
+#[test]
+fn registry_requires_real_coverage_when_exact_materialization_is_requested() {
+    let (lifecycle, domain) = page_scope();
+    let request = LayoutAdmissionRequest::from_admitted(
+        lifecycle,
+        domain,
+        LayoutStrategyFamily::BaselineBTreeRange,
+        LayoutRequestedCapability::point_lookup(),
+        ArtifactFamilyAccessLane::HotPath,
+    )
+    .require_exact_readiness();
+
+    let denial = layout_admission_registry().admit(request).unwrap_err();
+    assert_eq!(denial, LayoutAdmissionDenial::ExactMaterializationRequired);
+    assert_eq!(
+        denial.case(),
+        crate::strategy::registry::LayoutAdmissionDenialCase::ExactMaterializationRequired
+    );
+}
+
+#[test]
+fn registry_denial_case_inventory_is_exhaustive_and_unique() {
+    use std::collections::HashSet;
+
+    let cases = crate::strategy::registry::LayoutAdmissionDenialCase::ALL;
+    assert_eq!(cases.len(), 17);
+    assert_eq!(cases.into_iter().collect::<HashSet<_>>().len(), cases.len());
+}
+
 fn page_scope() -> (
-    crate::ArtifactFamilyLifecycleAdmission,
-    crate::PhysicalKeyDomainWitness,
+    crate::AdmittedPhysicalArtifactFamily,
+    crate::AdmittedPhysicalKeyDomain,
 ) {
-    admit_strategy_scope(
+    let (family, domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -117,14 +146,15 @@ fn page_scope() -> (
             StoreAuthenticityRequirementClass::AuthenticatedFrame,
         ),
         StoreCustodyPosture::InternalStoreCustody,
-    )
+    );
+    (family, domain)
 }
 
 fn wal_scope() -> (
-    crate::ArtifactFamilyLifecycleAdmission,
-    crate::PhysicalKeyDomainWitness,
+    crate::AdmittedPhysicalArtifactFamily,
+    crate::AdmittedPhysicalKeyDomain,
 ) {
-    admit_strategy_scope(
+    let (family, domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PublicationWalIntent,
         StoreKeyScope::WalCheckpointEnvelope,
         StoreTenantScope::StoreInternal,
@@ -132,5 +162,6 @@ fn wal_scope() -> (
             StoreAuthenticityRequirementClass::AuthenticatedWalRecord,
         ),
         StoreCustodyPosture::InternalStoreCustody,
-    )
+    );
+    (family, domain)
 }

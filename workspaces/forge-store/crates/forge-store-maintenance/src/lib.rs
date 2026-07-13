@@ -6,8 +6,8 @@ mod memory_envelopes;
 mod scrub_workflow;
 
 pub use layout_projection::{
-    MaintenanceQueueAccessBudget, MaintenanceQueueClass,
-    MaintenanceQueueInterferencePosture, MaintenanceQueueLayoutReport,
+    MaintenanceQueueAccessBudget, MaintenanceQueueClass, MaintenanceQueueInterferencePosture,
+    MaintenanceQueueLayoutReport,
 };
 pub use memory_envelopes::{
     CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope, MaintenanceMemoryEnvelopeDenial,

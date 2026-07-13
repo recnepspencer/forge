@@ -66,8 +66,11 @@ fn facade_shortcut_rejections_materialize_certification_trace() {
 }
 
 fn open_facade() -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
-        .expect("open S.1 facade")
+    PlatformPhysicalFacade::open_physical_format(
+        readiness(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
+    )
+    .expect("open S.1 facade")
 }
 
 fn readiness() -> AcceptedHandoffReadiness {

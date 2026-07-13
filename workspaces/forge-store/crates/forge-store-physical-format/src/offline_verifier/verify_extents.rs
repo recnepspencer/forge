@@ -20,7 +20,8 @@ pub(crate) fn verify_all_extents(
     counters: OfflineVerifierCounterSnapshot,
     discovered: &mut Vec<PhysicalReference>,
 ) -> Result<OfflineVerifierCounterSnapshot, OfflineVerifierDenial> {
-    let extent_records = PhysicalExtentRecordAuthority::for_canonical_physical_format(ctx.headers.clone());
+    let extent_records =
+        PhysicalExtentRecordAuthority::for_canonical_physical_format(ctx.headers.clone());
     let mut counters = counters;
     for entry in &decoded.extents {
         let cell = entry.extent();

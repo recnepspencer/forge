@@ -1,17 +1,11 @@
 #![allow(dead_code)]
 
-#[path = "../../recovery/checkpoint_publication_oracle/support.rs"]
-mod checkpoint_support;
-#[path = "../../recovery/closeout/fixture.rs"]
-mod closeout_fixture;
-#[path = "../../../scenarios/recovery/counter_strength/compaction_interlock_trace.rs"]
-mod compaction_interlock_trace;
-#[path = "../../recovery/compaction_mutation_support/compaction_mutation_support.rs"]
-mod compaction_mutation_support;
-#[path = "../../recovery/coverage_support/coverage_support.rs"]
-mod coverage_support;
-#[path = "../../../scenarios/physical_isolation/interleaving_harness_resources/interleaving_harness_resources.rs"]
-mod resources;
+use forge_store_test_support::harness::physical_isolation::interleaving_resources as resources;
+use forge_store_test_support::harness::recovery::checkpoint_publication as checkpoint_support;
+use forge_store_test_support::harness::recovery::closeout as closeout_fixture;
+use forge_store_test_support::harness::recovery::compaction_mutation as compaction_mutation_support;
+use forge_store_test_support::harness::recovery::compaction_observation as compaction_interlock_trace;
+use forge_store_test_support::harness::recovery::coverage as coverage_support;
 #[path = "../../../scenarios/physical_isolation/readiness/shortcut_report.rs"]
 mod shortcut_report;
 

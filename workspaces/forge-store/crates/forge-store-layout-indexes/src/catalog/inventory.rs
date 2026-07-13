@@ -22,7 +22,7 @@ impl ArtifactFamilyInventoryRow {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8ArtifactFamilyInventory;
+pub struct ArtifactFamilyInventory;
 
 pub trait ExistingArtifactFamilySurface: private::Sealed {
     fn canonical_family_id(&self) -> DurableArtifactFamilyId;
@@ -32,7 +32,7 @@ mod private {
     pub trait Sealed {}
 }
 
-impl S8ArtifactFamilyInventory {
+impl ArtifactFamilyInventory {
     pub const fn current() -> Self {
         Self
     }

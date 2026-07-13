@@ -1,11 +1,10 @@
 use super::{
-    layout_customization_boundary, S8FutureLayoutCapabilityRequest,
-    S8FutureLayoutCustomizationDenial, S8FutureLayoutCustomizationRequest,
-    S8FutureLayoutWorkloadEnvelope,
+    layout_customization_boundary, FutureLayoutCapabilityRequest, FutureLayoutCustomizationDenial,
+    FutureLayoutCustomizationRequest, FutureLayoutWorkloadEnvelope,
 };
-use crate::strategy::registry::{S8LayoutAdmissionDenial, S8LayoutRequestedCapability};
+use crate::strategy::registry::{LayoutAdmissionDenial, LayoutRequestedCapability};
 use crate::strategy::tests_support::{admit_strategy_scope, root_manifest_scope};
-use crate::strategy::S8LayoutStrategyFamily;
+use crate::strategy::LayoutStrategyFamily;
 use forge_proof::TransitionOutcome;
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_security::{
@@ -24,10 +23,10 @@ fn customization_admits_supported_foreground_requests_as_registry_snapshots() {
         ),
         StoreCustodyPosture::InternalStoreCustody,
     );
-    let request = S8FutureLayoutCustomizationRequest::new(
+    let request = FutureLayoutCustomizationRequest::new(
         page_lifecycle,
-        S8FutureLayoutCapabilityRequest::ordered_range(page_domain),
-        S8FutureLayoutWorkloadEnvelope::foreground_bounded_traversal(),
+        FutureLayoutCapabilityRequest::ordered_range(page_domain),
+        FutureLayoutWorkloadEnvelope::foreground_bounded_traversal(),
     );
 
     match layout_customization_boundary().admit(request) {
@@ -35,11 +34,11 @@ fn customization_admits_supported_foreground_requests_as_registry_snapshots() {
             let snapshot = admitted.registry_snapshot();
             assert_eq!(
                 snapshot.admitted_strategy().family(),
-                S8LayoutStrategyFamily::BaselineBTreeRange
+                LayoutStrategyFamily::BaselineBTreeRange
             );
             assert_eq!(
                 snapshot.request().family(),
-                S8LayoutStrategyFamily::BaselineBTreeRange
+                LayoutStrategyFamily::BaselineBTreeRange
             );
         }
         other => panic!("supported customization request should admit: {other:?}"),
@@ -57,31 +56,31 @@ fn customization_denies_envelope_masquerade_and_unready_projection_requests() {
         ),
         StoreCustodyPosture::InternalStoreCustody,
     );
-    let masquerade = S8FutureLayoutCustomizationRequest::new(
+    let masquerade = FutureLayoutCustomizationRequest::new(
         page_lifecycle,
-        S8FutureLayoutCapabilityRequest::ordered_range(page_domain),
-        S8FutureLayoutWorkloadEnvelope::verifier_corpus_inspection(),
+        FutureLayoutCapabilityRequest::ordered_range(page_domain),
+        FutureLayoutWorkloadEnvelope::verifier_corpus_inspection(),
     );
-    let rebuildable_projection = S8FutureLayoutCustomizationRequest::new(
+    let rebuildable_projection = FutureLayoutCustomizationRequest::new(
         page_lifecycle,
-        S8FutureLayoutCapabilityRequest::rebuildable_projection(page_domain),
-        S8FutureLayoutWorkloadEnvelope::background_rebuild_projection(),
+        FutureLayoutCapabilityRequest::rebuildable_projection(page_domain),
+        FutureLayoutWorkloadEnvelope::background_rebuild_projection(),
     );
 
     assert_eq!(
         layout_customization_boundary().admit(masquerade),
         TransitionOutcome::Denied(
-            S8FutureLayoutCustomizationDenial::WorkloadEnvelopeDoesNotSupportCapability {
-                capability: S8FutureLayoutCapabilityRequest::ordered_range(page_domain),
-                envelope: S8FutureLayoutWorkloadEnvelope::VerifierCorpusInspection,
+            FutureLayoutCustomizationDenial::WorkloadEnvelopeDoesNotSupportCapability {
+                capability: FutureLayoutCapabilityRequest::ordered_range(page_domain),
+                envelope: FutureLayoutWorkloadEnvelope::VerifierCorpusInspection,
             }
         )
     );
     assert_eq!(
         layout_customization_boundary().admit(rebuildable_projection),
         TransitionOutcome::Denied(
-            S8FutureLayoutCustomizationDenial::RebuildableProjectionNotYetSupported {
-                key_domain: page_domain,
+            FutureLayoutCustomizationDenial::RebuildableProjectionNotYetSupported {
+                key_domain: page_domain.witness(),
             }
         )
     );
@@ -98,36 +97,36 @@ fn customization_propagates_store_missing_layout_facts_honestly() {
         ),
         StoreCustodyPosture::InternalStoreCustody,
     );
-    let unsupported_range = S8FutureLayoutCustomizationRequest::new(
+    let unsupported_range = FutureLayoutCustomizationRequest::new(
         wal_lifecycle,
-        S8FutureLayoutCapabilityRequest::ordered_range(wal_domain),
-        S8FutureLayoutWorkloadEnvelope::foreground_bounded_traversal(),
+        FutureLayoutCapabilityRequest::ordered_range(wal_domain),
+        FutureLayoutWorkloadEnvelope::foreground_bounded_traversal(),
     );
-    let verifier_scan = S8FutureLayoutCustomizationRequest::new(
+    let verifier_scan = FutureLayoutCustomizationRequest::new(
         wal_lifecycle,
-        S8FutureLayoutCapabilityRequest::verifier_declared_scan(wal_domain),
-        S8FutureLayoutWorkloadEnvelope::verifier_corpus_inspection(),
+        FutureLayoutCapabilityRequest::verifier_declared_scan(wal_domain),
+        FutureLayoutWorkloadEnvelope::verifier_corpus_inspection(),
     );
 
     assert_eq!(
         layout_customization_boundary().admit(unsupported_range),
-        TransitionOutcome::Denied(S8FutureLayoutCustomizationDenial::StoreAdmissionDenied(
-            super::S8LayoutAdmissionDenialProjection::new(
-                S8LayoutAdmissionDenial::StrategyDoesNotSupportRequestedCapability {
-                    family: S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
-                    capability: S8LayoutRequestedCapability::OrderedRange,
+        TransitionOutcome::Denied(FutureLayoutCustomizationDenial::StoreAdmissionDenied(
+            super::LayoutAdmissionDenialProjection::new(
+                LayoutAdmissionDenial::StrategyDoesNotSupportRequestedCapability {
+                    family: LayoutStrategyFamily::BaselineLsmWriteOptimized,
+                    capability: LayoutRequestedCapability::OrderedRange,
                 },
             )
         ))
     );
     assert_eq!(
         layout_customization_boundary().admit(verifier_scan),
-        TransitionOutcome::Denied(S8FutureLayoutCustomizationDenial::StoreAdmissionDenied(
-            super::S8LayoutAdmissionDenialProjection::new(
-                S8LayoutAdmissionDenial::RequestedLaneDoesNotMatchFamilyLane {
-                    family: S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
-                    requested_lane: crate::ArtifactFamilyAccessLane::VerifierPath,
-                    declared_lane: crate::ArtifactFamilyAccessLane::HotPath,
+        TransitionOutcome::Denied(FutureLayoutCustomizationDenial::StoreAdmissionDenied(
+            super::LayoutAdmissionDenialProjection::new(
+                LayoutAdmissionDenial::RequestedLaneDoesNotMatchFamilyLane {
+                    family: LayoutStrategyFamily::BaselineLsmWriteOptimized,
+                    requested_lane: crate::catalog::ArtifactFamilyAccessLane::VerifierPath,
+                    declared_lane: crate::catalog::ArtifactFamilyAccessLane::HotPath,
                 },
             )
         ))
@@ -137,18 +136,18 @@ fn customization_propagates_store_missing_layout_facts_honestly() {
 #[test]
 fn customization_denies_key_domains_without_supported_store_strategy() {
     let (root_manifest_lifecycle, root_manifest_domain) = root_manifest_scope();
-    let unsupported = S8FutureLayoutCustomizationRequest::new(
+    let unsupported = FutureLayoutCustomizationRequest::new(
         root_manifest_lifecycle,
-        S8FutureLayoutCapabilityRequest::point_lookup(root_manifest_domain),
-        S8FutureLayoutWorkloadEnvelope::foreground_low_fanout(),
+        FutureLayoutCapabilityRequest::point_lookup(root_manifest_domain),
+        FutureLayoutWorkloadEnvelope::foreground_low_fanout(),
     );
 
     assert_eq!(
         layout_customization_boundary().admit(unsupported),
         TransitionOutcome::Denied(
-            S8FutureLayoutCustomizationDenial::NoStrategySupportsRequestedCapability {
-                capability: S8FutureLayoutCapabilityRequest::point_lookup(root_manifest_domain),
-                key_domain: root_manifest_domain,
+            FutureLayoutCustomizationDenial::NoStrategySupportsRequestedCapability {
+                capability: FutureLayoutCapabilityRequest::point_lookup(root_manifest_domain),
+                key_domain: root_manifest_domain.witness(),
             }
         )
     );

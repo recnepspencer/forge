@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8AccessShape {
+pub enum AccessShape {
     PointLookup,
     BatchPointLookup,
     SortedBatchLookup,

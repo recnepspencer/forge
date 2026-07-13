@@ -1,9 +1,7 @@
 #[path = "../../../s4_5_physical_simulation_harness_closeout/support.rs"]
 mod closeout_support;
-#[path = "../../../support/recovery/counter_strength/support.rs"]
-mod counter_support;
-#[path = "../../../support/recovery/coverage_support/coverage_support.rs"]
-mod coverage_support;
+use forge_store_test_support::harness::recovery::counter_evidence as counter_support;
+use forge_store_test_support::harness::recovery::coverage as coverage_support;
 
 use std::collections::BTreeSet;
 
@@ -11,21 +9,21 @@ use closeout_support::{
     acceptance_suite_receipts, alternate_recovery_slice_evidence,
     complete_acceptance_suite_receipts, complete_executed_acceptance_suites,
     complete_shortcut_report, executed_acceptance_suites,
-    physical_isolation_readiness_slice_evidence, recovery_slice_evidence,
-    shortcut_slice_evidence,
+    physical_isolation_readiness_slice_evidence, recovery_slice_evidence, shortcut_slice_evidence,
 };
 
 use forge_store_physical_certification::{
     ExecutedSimulationHarnessAcceptanceSuiteEvidenceSet, ForbiddenShortcutKind,
-    PhysicalSimulationHarnessCertificationBundle, PhysicalSimulationHarnessCloseoutDenial,
-    PhysicalSimulationHarnessCloseoutSuite, ShortcutRejectionBoundary,
-    SimulationHarnessAcceptanceEvidenceLane, SimulationHarnessAcceptanceSuiteName,
-    SimulationHarnessAcceptanceSuiteReceiptSet, SimulationHarnessCloseoutCoverageReport,
-    SimulationHarnessDogfoodEvidence, PhysicalIsolationCorrectnessNonClaimEvidence,
+    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalSimulationHarnessCertificationBundle,
+    PhysicalSimulationHarnessCloseoutDenial, PhysicalSimulationHarnessCloseoutSuite,
+    ShortcutRejectionBoundary, SimulationHarnessAcceptanceEvidenceLane,
+    SimulationHarnessAcceptanceSuiteName, SimulationHarnessAcceptanceSuiteReceiptSet,
+    SimulationHarnessCloseoutCoverageReport, SimulationHarnessDogfoodEvidence,
 };
 
 #[test]
-fn simulation_harness_closeout_dogfoods_public_authoring_and_publishes_physical_isolation_readiness() {
+fn simulation_harness_closeout_dogfoods_public_authoring_and_publishes_physical_isolation_readiness(
+) {
     let recovery = recovery_slice_evidence();
     let shortcut = shortcut_slice_evidence();
     let s5_probe = physical_isolation_readiness_slice_evidence();

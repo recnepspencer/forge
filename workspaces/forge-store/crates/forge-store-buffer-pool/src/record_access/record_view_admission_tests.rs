@@ -292,9 +292,11 @@ fn admitted_page<'a>(
 }
 
 fn record_authority() -> PhysicalPageRecordAuthority {
-    PhysicalPageRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
-        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
-    ))
+    PhysicalPageRecordAuthority::for_canonical_physical_format(
+        PhysicalHeaderAuthority::for_canonical_physical_format(
+            PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+        ),
+    )
 }
 
 fn page_cell(

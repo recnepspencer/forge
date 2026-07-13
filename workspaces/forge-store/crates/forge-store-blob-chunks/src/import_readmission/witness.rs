@@ -10,6 +10,7 @@ use super::counters::BlobImportReadmissionCounters;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobImportReadmissionReceipt {
     security_metadata: BlobChunkSecurityMetadataWitness,
+    authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
     counters: BlobImportReadmissionCounters,
 }
 
@@ -20,6 +21,7 @@ pub struct ImportedBlobWitness {
     chunk_tree_root: ChunkTreeRoot,
     logical_content_digest: LogicalContentDigest,
     security_metadata: BlobChunkSecurityMetadataWitness,
+    authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
     reachable_chunks: Vec<BlobChunkIdentity>,
     stored_digest: StoredChunkDigest,
     placement_plan: ImportPlacementPlan,
@@ -29,10 +31,12 @@ pub struct ImportedBlobWitness {
 impl BlobImportReadmissionReceipt {
     pub(crate) const fn new(
         security_metadata: BlobChunkSecurityMetadataWitness,
+        authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
         counters: BlobImportReadmissionCounters,
     ) -> Self {
         Self {
             security_metadata,
+            authority_identity,
             counters,
         }
     }
@@ -44,6 +48,12 @@ impl BlobImportReadmissionReceipt {
     pub const fn counters(&self) -> BlobImportReadmissionCounters {
         self.counters
     }
+
+    pub const fn authority_identity(
+        &self,
+    ) -> forge_store_authority::StoreCurrentAuthorityIdentity {
+        self.authority_identity
+    }
 }
 
 impl ImportedBlobWitness {
@@ -53,6 +63,7 @@ impl ImportedBlobWitness {
         chunk_tree_root: ChunkTreeRoot,
         logical_content_digest: LogicalContentDigest,
         security_metadata: BlobChunkSecurityMetadataWitness,
+        authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
         reachable_chunks: Vec<BlobChunkIdentity>,
         stored_digest: StoredChunkDigest,
         placement_plan: ImportPlacementPlan,
@@ -64,6 +75,7 @@ impl ImportedBlobWitness {
             chunk_tree_root,
             logical_content_digest,
             security_metadata,
+            authority_identity,
             reachable_chunks,
             stored_digest,
             placement_plan,
@@ -89,6 +101,12 @@ impl ImportedBlobWitness {
 
     pub const fn security_metadata(&self) -> BlobChunkSecurityMetadataWitness {
         self.security_metadata
+    }
+
+    pub const fn authority_identity(
+        &self,
+    ) -> forge_store_authority::StoreCurrentAuthorityIdentity {
+        self.authority_identity
     }
 
     pub fn reachable_chunks(&self) -> &[BlobChunkIdentity] {

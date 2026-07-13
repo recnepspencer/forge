@@ -104,7 +104,15 @@ pub fn stable_physical_read_receipt_for_certification_root(
 pub fn stable_physical_read_plan_for_certification_test(
     guarded_bytes: u64,
 ) -> StablePhysicalReadPlan {
-    let root = current_root_for_certification_seed(17);
+    stable_physical_read_plan_for_certification_seed(17, guarded_bytes)
+}
+
+#[cfg(any(test, feature = "certification-authority"))]
+pub fn stable_physical_read_plan_for_certification_seed(
+    root_seed: u64,
+    guarded_bytes: u64,
+) -> StablePhysicalReadPlan {
+    let root = current_root_for_certification_seed(root_seed);
     let reference = current_page_slot_reference_for_certification_test();
     let protected = ProtectedPhysicalReferenceSet::from_current_generation_refs_with_scratch(
         [reference],
@@ -167,9 +175,14 @@ fn current_root_for_certification_seed(seed: u64) -> CurrentPhysicalRoot {
     let basis = CurrentPhysicalRootBasis::new(
         root_epoch_from_entry_seed(seed),
         manifest_epoch_from_entry_seed(seed),
+        forge_store_physical_format::PhysicalStoreIdentity::physical_format_default()
+            .authority_identity(),
     );
-    CurrentPhysicalRoot::from_physical_isolation_entry(basis, PhysicalOrderingContract::root_swap_acquire_release())
-        .expect("certification root ordering should admit")
+    CurrentPhysicalRoot::from_physical_isolation_entry(
+        basis,
+        PhysicalOrderingContract::root_swap_acquire_release(),
+    )
+    .expect("certification root ordering should admit")
 }
 
 #[cfg(any(test, feature = "certification-authority"))]

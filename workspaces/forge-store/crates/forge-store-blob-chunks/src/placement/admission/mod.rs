@@ -23,7 +23,7 @@ mod receipt_construction;
 mod types;
 mod verification;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) mod test_support;
 #[cfg(test)]
 mod tests;

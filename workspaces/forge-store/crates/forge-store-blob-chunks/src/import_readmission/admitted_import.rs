@@ -65,6 +65,7 @@ impl<'a> ReadmittedBlobImport<'a> {
             self.artifact.declaration().chunk_tree_root().clone(),
             self.artifact.declaration().logical_content_digest().clone(),
             basis.chunk_security_metadata,
+            self.receipt.authority_identity(),
             basis.reachable_chunks.clone(),
             basis.stored_digest.clone(),
             *placement_plan,

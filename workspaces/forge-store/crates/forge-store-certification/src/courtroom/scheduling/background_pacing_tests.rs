@@ -353,7 +353,8 @@ fn io_qos_readiness() -> forge_store_io_scheduler::IoSchedulerIsolationAdmission
         .expect("scheduler should admit readiness")
 }
 
-fn io_qos_security_scope_admission() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission {
+fn io_qos_security_scope_admission() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission
+{
     let security_scope = admitted_store_internal_security_scope_for_io_qos_test();
     admit_security_scope_for_scheduler(&security_scope)
         .expect("Store security scope should admit for scheduler use")

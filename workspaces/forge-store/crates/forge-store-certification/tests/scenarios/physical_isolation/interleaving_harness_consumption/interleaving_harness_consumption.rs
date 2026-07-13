@@ -1,5 +1,3 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
 #[path = "../../../support/physical_isolation/interleaving_harness_support/interleaving_harness_support.rs"]
 mod s5_interleaving_harness_support;
 
@@ -15,7 +13,8 @@ use s5_interleaving_harness_support::{
 };
 
 #[test]
-fn physical_isolation_scenario_families_lower_replay_cover_and_emit_evidence_through_simulation_harness_pipeline() {
+fn physical_isolation_scenario_families_lower_replay_cover_and_emit_evidence_through_simulation_harness_pipeline(
+) {
     for lane in forge_store_certification::physical_isolation_lanes() {
         let plan = lower_physical_simulation_plan(lane.scenario().clone(), complete_context())
             .unwrap_or_else(|err| panic!("{} failed to lower: {err:?}", lane.name()));
@@ -25,13 +24,12 @@ fn physical_isolation_scenario_families_lower_replay_cover_and_emit_evidence_thr
             plan.scenario_family(),
             &replay,
         );
-        let matrix =
-            forge_store_certification::physical_isolation_coverage_matrix(
-                lane.scenario(),
-                &plan,
-                &replay,
-                &mutation,
-            );
+        let matrix = forge_store_certification::physical_isolation_coverage_matrix(
+            lane.scenario(),
+            &plan,
+            &replay,
+            &mutation,
+        );
         assert_family_counter_topology(plan.scenario_family(), &plan);
         assert_family_mutation_topology(plan.scenario_family(), &mutation, &matrix);
         let evidence =
@@ -70,7 +68,8 @@ fn physical_isolation_scenario_families_lower_replay_cover_and_emit_evidence_thr
 }
 
 #[test]
-fn physical_isolation_family_lowering_is_readiness_gated_and_rejects_missing_required_simulation_harness_surfaces() {
+fn physical_isolation_family_lowering_is_readiness_gated_and_rejects_missing_required_simulation_harness_surfaces(
+) {
     let lane = forge_store_certification::physical_isolation_lanes()
         .into_iter()
         .find(|lane| {
@@ -141,8 +140,11 @@ fn readiness_shape_probe_remains_non_claiming_and_not_physical_isolation_closeou
         .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .unwrap();
-    let plan =
-        lower_physical_simulation_plan(probe, context_without_physical_isolation_lane_registration()).unwrap();
+    let plan = lower_physical_simulation_plan(
+        probe,
+        context_without_physical_isolation_lane_registration(),
+    )
+    .unwrap();
 
     assert!(plan
         .oracle_families()

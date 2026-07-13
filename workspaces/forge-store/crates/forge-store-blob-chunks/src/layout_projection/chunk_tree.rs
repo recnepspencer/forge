@@ -16,7 +16,7 @@ pub fn reject_streaming_frontier_as_chunk_tree_layout_authority(
 }
 
 impl ChunkTreeLayoutReport {
-    fn admit_chunk_tree(
+    fn project_chunk_tree(
         blob: &BlobObjectLayoutReport,
         read: &BlobStreamingVerifiedRead,
     ) -> Result<ChunkTreeLayoutReport, BlobLayoutAccessDenial> {
@@ -65,7 +65,7 @@ impl ChunkTreeLayoutReport {
         }
     }
 
-    pub fn admit_stored_chunk_lookup_layout(&self) -> StoredChunkLookupLayoutReport {
+    pub fn project_stored_chunk_lookup_layout(&self) -> StoredChunkLookupLayoutReport {
         StoredChunkLookupLayoutReport {
             family_id: DurableArtifactFamilyId::BlobChunk,
             chunk_tree_root: self.chunk_tree_root.clone(),
@@ -114,10 +114,10 @@ impl StoredChunkLookupLayoutReport {
 }
 
 impl BlobObjectLayoutReport {
-    pub fn admit_chunk_tree_layout(
+    pub fn project_chunk_tree_layout(
         &self,
         read: &BlobStreamingVerifiedRead,
     ) -> Result<ChunkTreeLayoutReport, BlobLayoutAccessDenial> {
-        ChunkTreeLayoutReport::admit_chunk_tree(self, read)
+        ChunkTreeLayoutReport::project_chunk_tree(self, read)
     }
 }

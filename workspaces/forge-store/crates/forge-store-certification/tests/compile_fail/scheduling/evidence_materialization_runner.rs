@@ -107,7 +107,7 @@ fn run_compile_fail_case(repo_root: &std::path::Path, fixture_name: &str) -> std
     let fixture_path = manifest_dir
         .join("tests")
         .join("compile_fail")
-            .join("scheduling")
+        .join("scheduling")
         .join("evidence_materialization")
         .join(fixture_name);
     std::process::Command::new("rustc")

@@ -1,20 +1,20 @@
-use super::S8PlannedCounterEnvelope;
+use super::PlannedCounterEnvelope;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8AccessPlanBudget {
-    planned_counter_envelope: S8PlannedCounterEnvelope,
+pub struct AccessPlanBudget {
+    planned_counter_envelope: PlannedCounterEnvelope,
 }
 
-impl S8AccessPlanBudget {
+impl AccessPlanBudget {
     pub(crate) const fn from_planned_counter_envelope(
-        planned_counter_envelope: S8PlannedCounterEnvelope,
+        planned_counter_envelope: PlannedCounterEnvelope,
     ) -> Self {
         Self {
             planned_counter_envelope,
         }
     }
 
-    pub const fn planned_counter_envelope(self) -> S8PlannedCounterEnvelope {
+    pub const fn planned_counter_envelope(self) -> PlannedCounterEnvelope {
         self.planned_counter_envelope
     }
 }

@@ -1,6 +1,4 @@
-use forge_store_contracts::{
-    BackgroundPressureDeclaration, BackgroundPressureKind,
-};
+use forge_store_contracts::{BackgroundPressureDeclaration, BackgroundPressureKind};
 use forge_store_io_scheduler::{BackgroundIoPressureClass, BackgroundPacingCapability};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

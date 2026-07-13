@@ -4,15 +4,15 @@ use forge_store_buffer_pool::{
     BackgroundWorkBudgetSnapshot, FixedMetadataReservation,
 };
 use forge_store_contracts::{
-    AcceptedHandoffReadiness, BufferPoolAuthorityRecap, HandoffEvidenceDigestSet,
-    IntegrityInspectionLifetimeLaw, PhysicalAuthorityRecap, ProtectedIntegrityViewCapability,
-    BoundedCounterRecap, DenialBehaviorRecap, DeniedBoundaryKind, NoMaterializationWitness,
-    PhysicalIntegrityReadinessPayload, ScrubPlanningAllocationEnvelope, StableDigest,
+    AcceptedHandoffReadiness, BoundedCounterRecap, BufferPoolAuthorityRecap, DenialBehaviorRecap,
+    DeniedBoundaryKind, HandoffEvidenceDigestSet, IntegrityInspectionLifetimeLaw,
+    NoMaterializationWitness, PhysicalAuthorityRecap, PhysicalIntegrityReadinessPayload,
+    ProtectedIntegrityViewCapability, ScrubPlanningAllocationEnvelope, StableDigest,
     VerifierResidentEnvelope, ROADMAP_2_S1_SCOPE,
 };
 use forge_store_readiness::{
     close_physical_substrate_readiness, prove_physical_substrate_readiness,
-    PhysicalSubstrateReadiness, PhysicalIntegrityReadiness,
+    PhysicalIntegrityReadiness, PhysicalSubstrateReadiness,
 };
 use forge_store_recovery_physics::RecoveryMemoryEnvelope;
 
@@ -35,7 +35,8 @@ pub(super) fn physical_integrity_readiness() -> PhysicalIntegrityReadiness {
         .unwrap(),
         BufferPoolAuthorityRecap::physical_substrate_authority(true, true, true, true).unwrap(),
     );
-    PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(s2, payload).unwrap()
+    PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(s2, payload)
+        .unwrap()
 }
 
 pub(super) fn physical_substrate_readiness() -> PhysicalSubstrateReadiness {

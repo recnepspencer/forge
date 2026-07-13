@@ -26,7 +26,7 @@ const fn fixtures() -> [CompileFailFixture; 2] {
         },
         CompileFailFixture {
             name: "layout_rebind_required_struct_literal_is_not_public.rs",
-            expected_stderr: &["private", "S8LayoutRebindRequired"],
+            expected_stderr: &["private", "LayoutRebindRequired"],
         },
     ]
 }

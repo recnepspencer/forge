@@ -24,6 +24,10 @@ impl StoreCurrentAuthorityWitness {
         self.boundary_fact.authority_input().physical_witness()
     }
 
+    pub fn authority_identity(&self) -> crate::StoreCurrentAuthorityIdentity {
+        crate::StoreCurrentAuthorityIdentity::from_aspect_identity(self.identity())
+    }
+
     pub const fn current_physical_authority(&self) -> StoreCurrentPhysicalAuthorityWitness<'_> {
         StoreCurrentPhysicalAuthorityWitness {
             identity: self.boundary_fact.identity(),

@@ -8,14 +8,23 @@ pub struct CompactionProtectedReferenceSet {
     root: CurrentPhysicalRoot,
     footprint_basis: PhysicalReadProtectedFootprintBasis,
     ranges: ProtectedReferenceRangeSet,
+    owners: Vec<forge_store_physical_format::PhysicalGenerationOwner>,
 }
 
 impl CompactionProtectedReferenceSet {
     pub fn from_read_plan(plan: &StablePhysicalReadPlan) -> Self {
+        let owners = plan
+            .footprint()
+            .protected()
+            .references()
+            .iter()
+            .map(|reference| reference.owner())
+            .collect();
         Self {
             root: plan.root(),
             footprint_basis: plan.footprint().declared_footprint_basis(),
             ranges: plan.footprint().protected().ranges().clone(),
+            owners,
         }
     }
 
@@ -35,6 +44,13 @@ impl CompactionProtectedReferenceSet {
         &self,
         owner: forge_store_physical_format::PhysicalGenerationOwner,
     ) -> bool {
-        self.ranges.contains_owner(owner)
+        self.owners.contains(&owner)
+    }
+
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub(super) fn first_owner(
+        &self,
+    ) -> Option<forge_store_physical_format::PhysicalGenerationOwner> {
+        self.owners.first().copied()
     }
 }

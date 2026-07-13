@@ -6,7 +6,7 @@ use forge_store_authority::StoreCurrentAuthorityWitness;
 use super::{
     LayoutBindingWitness, LayoutEvolutionDeclaration, LayoutEvolutionDenial,
     LayoutInterruptedMigrationDisposition, LayoutInterruptionPolicy, LayoutInterruptionState,
-    LayoutRollbackRequest, LayoutVersion, S8LayoutRebindRequired, S8LayoutStaleBinding,
+    LayoutRebindRequired, LayoutRollbackRequest, LayoutStaleBinding, LayoutVersion,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -115,10 +115,10 @@ impl ResolvedLayoutMigrationRequest {
         LayoutEvolutionDenial,
         Infallible,
         Infallible,
-        S8LayoutRebindRequired,
+        LayoutRebindRequired,
     > {
         if self.binding.bound_authority().identity() != current_store_authority.identity() {
-            return TransitionOutcome::rebind_required(S8LayoutRebindRequired::new(
+            return TransitionOutcome::rebind_required(LayoutRebindRequired::new(
                 self.declaration.family().declaration(),
                 self.binding.bound_authority(),
             ));
@@ -143,11 +143,11 @@ impl LoweredLayoutMigrationPlan {
         LayoutMigrationPlan,
         LayoutEvolutionDenial,
         Infallible,
-        S8LayoutStaleBinding,
-        S8LayoutRebindRequired,
+        LayoutStaleBinding,
+        Infallible,
     > {
         if self.binding.bound_version() != self.binding.observed_version() {
-            return TransitionOutcome::stale(S8LayoutStaleBinding::new(
+            return TransitionOutcome::stale(LayoutStaleBinding::new(
                 self.declaration.family().declaration(),
                 self.binding.bound_version(),
                 self.binding.observed_version(),
@@ -175,14 +175,6 @@ pub struct LayoutMigrationPlan {
     binding: LayoutBindingWitness,
     fingerprint: LayoutPlanFingerprint,
 }
-
-pub type LayoutMigrationOutcome = TransitionOutcome<
-    LayoutMigrationPlan,
-    LayoutEvolutionDenial,
-    Infallible,
-    S8LayoutStaleBinding,
-    S8LayoutRebindRequired,
->;
 
 impl LayoutMigrationPlan {
     pub const fn declaration(&self) -> LayoutEvolutionDeclaration {

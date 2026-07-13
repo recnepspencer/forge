@@ -1,6 +1,7 @@
 mod catalog;
 mod identity;
 mod sections;
+#[cfg(test)]
 mod tests;
 
 pub use catalog::{

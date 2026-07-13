@@ -1,13 +1,12 @@
-use super::capability::S8StrategyCapability;
+use super::capability::StrategyCapability;
 use super::counter_planning::declared_strategy_counter_envelope;
-use super::key_law_validation::S8DeclaredKeyLawPosture;
+use super::key_law_validation::DeclaredKeyLawPosture;
 use super::posture::{
-    S8StrategyAmplificationProfile, S8StrategyCorruptionIsolationBehavior,
-    S8StrategyLocalityProfile, S8StrategyMaterializationPosture,
-    S8StrategyRebuildSourceRequirement,
+    StrategyAmplificationProfile, StrategyCorruptionIsolationBehavior, StrategyLocalityProfile,
+    StrategyMaterializationPosture, StrategyRebuildSourceRequirement,
 };
-use super::S8LayoutStrategyFamily;
-use crate::access::budget::S8PlannedCounterEnvelope;
+use super::{LayoutStrategyFamily, StrategyAuthorityBasis};
+use crate::access::budget::PlannedCounterEnvelope;
 use crate::catalog::{
     ArtifactFamilyAccessLane, ArtifactFamilyAuthorityClass, ArtifactFamilyLifecycleAdmission,
     DurableArtifactMigrationPosture, DurableArtifactProjectionClass, DurableArtifactRebuildPosture,
@@ -18,16 +17,15 @@ use crate::keyspace::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct S8StrategyDeclaration {
-    lifecycle: ArtifactFamilyLifecycleAdmission,
-    key_domain: PhysicalKeyDomainWitness,
-    family: S8LayoutStrategyFamily,
-    capability: S8StrategyCapability,
-    locality: S8StrategyLocalityProfile,
-    amplification: S8StrategyAmplificationProfile,
-    materialization: S8StrategyMaterializationPosture,
-    rebuild_source: S8StrategyRebuildSourceRequirement,
-    corruption_isolation: S8StrategyCorruptionIsolationBehavior,
+pub(crate) struct StrategyDeclaration {
+    authority_basis: StrategyAuthorityBasis,
+    family: LayoutStrategyFamily,
+    capability: StrategyCapability,
+    locality: StrategyLocalityProfile,
+    amplification: StrategyAmplificationProfile,
+    materialization: StrategyMaterializationPosture,
+    rebuild_source: StrategyRebuildSourceRequirement,
+    corruption_isolation: StrategyCorruptionIsolationBehavior,
     access_lane: ArtifactFamilyAccessLane,
     authority_class: ArtifactFamilyAuthorityClass,
     rebuild_posture: DurableArtifactRebuildPosture,
@@ -37,26 +35,25 @@ pub(crate) struct S8StrategyDeclaration {
     comparator_law: Option<ComparatorLaw>,
     prefix_law: Option<PrefixLawWitness>,
     range_bound_law: Option<RangeBoundLawWitness>,
-    planned_counter_envelope: Option<S8PlannedCounterEnvelope>,
+    planned_counter_envelope: Option<PlannedCounterEnvelope>,
 }
 
-impl S8StrategyDeclaration {
+impl StrategyDeclaration {
     pub(super) const fn baseline_btree_range(
-        lifecycle: ArtifactFamilyLifecycleAdmission,
-        key_domain: PhysicalKeyDomainWitness,
-        key_laws: S8DeclaredKeyLawPosture,
+        authority_basis: StrategyAuthorityBasis,
+        key_laws: DeclaredKeyLawPosture,
     ) -> Self {
+        let lifecycle = authority_basis.lifecycle();
         let artifact = lifecycle.declaration();
         Self {
-            lifecycle,
-            key_domain,
-            family: S8LayoutStrategyFamily::BaselineBTreeRange,
-            capability: S8StrategyCapability::baseline_btree_range(),
-            locality: S8StrategyLocalityProfile::OrderedPageLocality,
-            amplification: S8StrategyAmplificationProfile::SplitMergeBounded,
-            materialization: S8StrategyMaterializationPosture::PublishedTreeLifecycle,
-            rebuild_source: S8StrategyRebuildSourceRequirement::PhysicalSnapshotReplay,
-            corruption_isolation: S8StrategyCorruptionIsolationBehavior::PageScoped,
+            authority_basis,
+            family: LayoutStrategyFamily::BaselineBTreeRange,
+            capability: StrategyCapability::baseline_btree_range(),
+            locality: StrategyLocalityProfile::OrderedPageLocality,
+            amplification: StrategyAmplificationProfile::SplitMergeBounded,
+            materialization: StrategyMaterializationPosture::PublishedTreeLifecycle,
+            rebuild_source: StrategyRebuildSourceRequirement::PhysicalSnapshotReplay,
+            corruption_isolation: StrategyCorruptionIsolationBehavior::PageScoped,
             access_lane: artifact.access_lane(),
             authority_class: artifact.authority(),
             rebuild_posture: artifact.rebuild_posture(),
@@ -71,21 +68,20 @@ impl S8StrategyDeclaration {
     }
 
     pub(super) const fn baseline_lsm_write_optimized(
-        lifecycle: ArtifactFamilyLifecycleAdmission,
-        key_domain: PhysicalKeyDomainWitness,
-        key_laws: S8DeclaredKeyLawPosture,
+        authority_basis: StrategyAuthorityBasis,
+        key_laws: DeclaredKeyLawPosture,
     ) -> Self {
+        let lifecycle = authority_basis.lifecycle();
         let artifact = lifecycle.declaration();
         Self {
-            lifecycle,
-            key_domain,
-            family: S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
-            capability: S8StrategyCapability::baseline_lsm_write_optimized(),
-            locality: S8StrategyLocalityProfile::BufferedRunLocality,
-            amplification: S8StrategyAmplificationProfile::CompactionWriteAmplified,
-            materialization: S8StrategyMaterializationPosture::WalBufferedRunLifecycle,
-            rebuild_source: S8StrategyRebuildSourceRequirement::WalReplay,
-            corruption_isolation: S8StrategyCorruptionIsolationBehavior::RunScoped,
+            authority_basis,
+            family: LayoutStrategyFamily::BaselineLsmWriteOptimized,
+            capability: StrategyCapability::baseline_lsm_write_optimized(),
+            locality: StrategyLocalityProfile::BufferedRunLocality,
+            amplification: StrategyAmplificationProfile::CompactionWriteAmplified,
+            materialization: StrategyMaterializationPosture::WalBufferedRunLifecycle,
+            rebuild_source: StrategyRebuildSourceRequirement::WalReplay,
+            corruption_isolation: StrategyCorruptionIsolationBehavior::RunScoped,
             access_lane: artifact.access_lane(),
             authority_class: artifact.authority(),
             rebuild_posture: artifact.rebuild_posture(),
@@ -96,44 +92,48 @@ impl S8StrategyDeclaration {
             prefix_law: None,
             range_bound_law: None,
             planned_counter_envelope: declared_strategy_counter_envelope(
-                S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
+                LayoutStrategyFamily::BaselineLsmWriteOptimized,
             ),
         }
     }
 
     pub const fn lifecycle(self) -> ArtifactFamilyLifecycleAdmission {
-        self.lifecycle
+        self.authority_basis.lifecycle()
     }
 
     pub const fn key_domain(self) -> PhysicalKeyDomainWitness {
-        self.key_domain
+        self.authority_basis.key_domain()
     }
 
-    pub const fn family(self) -> S8LayoutStrategyFamily {
+    pub const fn authority_basis(self) -> StrategyAuthorityBasis {
+        self.authority_basis
+    }
+
+    pub const fn family(self) -> LayoutStrategyFamily {
         self.family
     }
 
-    pub(crate) const fn capability(self) -> S8StrategyCapability {
+    pub(crate) const fn capability(self) -> StrategyCapability {
         self.capability
     }
 
-    pub(crate) const fn locality(self) -> S8StrategyLocalityProfile {
+    pub(crate) const fn locality(self) -> StrategyLocalityProfile {
         self.locality
     }
 
-    pub(crate) const fn amplification(self) -> S8StrategyAmplificationProfile {
+    pub(crate) const fn amplification(self) -> StrategyAmplificationProfile {
         self.amplification
     }
 
-    pub(crate) const fn materialization(self) -> S8StrategyMaterializationPosture {
+    pub(crate) const fn materialization(self) -> StrategyMaterializationPosture {
         self.materialization
     }
 
-    pub(crate) const fn rebuild_source(self) -> S8StrategyRebuildSourceRequirement {
+    pub(crate) const fn rebuild_source(self) -> StrategyRebuildSourceRequirement {
         self.rebuild_source
     }
 
-    pub(crate) const fn corruption_isolation(self) -> S8StrategyCorruptionIsolationBehavior {
+    pub(crate) const fn corruption_isolation(self) -> StrategyCorruptionIsolationBehavior {
         self.corruption_isolation
     }
 
@@ -173,7 +173,7 @@ impl S8StrategyDeclaration {
         self.range_bound_law
     }
 
-    pub(crate) const fn planned_counter_envelope(self) -> Option<S8PlannedCounterEnvelope> {
+    pub(crate) const fn planned_counter_envelope(self) -> Option<PlannedCounterEnvelope> {
         self.planned_counter_envelope
     }
 }

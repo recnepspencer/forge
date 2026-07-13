@@ -1,18 +1,19 @@
-use super::invariant_suite::S8AdmittedStrategyInvariants;
-use super::{S8LayoutStrategyFamily, S8StrategyDeclaration, S8StrategyInvariantSuite};
+use super::invariant_suite::AdmittedStrategyInvariants;
+use super::{LayoutStrategyFamily, StrategyDeclaration, StrategyInvariantSuite};
 use crate::catalog::ArtifactFamilyLifecycleAdmission;
 use crate::keyspace::PhysicalKeyDomainWitness;
+use crate::{AdmittedPhysicalArtifactFamily, AdmittedPhysicalKeyDomain};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8AdmittedLayoutStrategy {
-    pub(super) declaration: S8StrategyDeclaration,
-    pub(super) invariants: S8AdmittedStrategyInvariants,
+pub struct AdmittedLayoutStrategy {
+    pub(super) declaration: StrategyDeclaration,
+    pub(super) invariants: AdmittedStrategyInvariants,
 }
 
-impl S8AdmittedLayoutStrategy {
+impl AdmittedLayoutStrategy {
     pub(super) const fn new(
-        declaration: S8StrategyDeclaration,
-        invariants: S8AdmittedStrategyInvariants,
+        declaration: StrategyDeclaration,
+        invariants: AdmittedStrategyInvariants,
     ) -> Self {
         Self {
             declaration,
@@ -20,10 +21,10 @@ impl S8AdmittedLayoutStrategy {
         }
     }
 
-    pub const fn family(&self) -> S8LayoutStrategyFamily {
+    pub const fn family(&self) -> LayoutStrategyFamily {
         self.declaration.family()
     }
-    pub const fn invariant_suite(&self) -> S8StrategyInvariantSuite {
+    pub const fn invariant_suite(&self) -> StrategyInvariantSuite {
         self.invariants.suite()
     }
     pub const fn key_domain(&self) -> PhysicalKeyDomainWitness {
@@ -31,5 +32,13 @@ impl S8AdmittedLayoutStrategy {
     }
     pub const fn lifecycle(&self) -> ArtifactFamilyLifecycleAdmission {
         self.declaration.lifecycle()
+    }
+
+    pub const fn admitted_family(&self) -> AdmittedPhysicalArtifactFamily {
+        self.declaration.authority_basis().admitted_family()
+    }
+
+    pub const fn admitted_key_domain(&self) -> AdmittedPhysicalKeyDomain {
+        self.declaration.authority_basis().admitted_key_domain()
     }
 }

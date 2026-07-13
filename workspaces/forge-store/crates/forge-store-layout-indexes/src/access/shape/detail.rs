@@ -1,78 +1,78 @@
-use super::shape::S8AccessShape;
+use super::shape::AccessShape;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8BatchPointBasis {
+pub enum BatchPointBasis {
     DeclaredBatchSet,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8SortedBatchBasis {
+pub enum SortedBatchBasis {
     CanonicallySortedBatch,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8RangeBasis {
+pub enum RangeBasis {
     CanonicalRangeBounds,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8MultiRangeBasis {
+pub enum MultiRangeBasis {
     DeclaredDisjointRangeSet,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8PrefixBasis {
+pub enum PrefixBasis {
     CanonicalPrefixBounds,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8GroupedPrefixBasis {
+pub enum GroupedPrefixBasis {
     CanonicalGroupedPrefixes,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8CoalescedPageReadBasis {
+pub enum CoalescedPageReadBasis {
     AdjacentPageWindow,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8ChunkTreeWalkBasis {
+pub enum ChunkTreeWalkBasis {
     RootedChunkTraversal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8ManifestGraphWalkBasis {
+pub enum ManifestGraphWalkBasis {
     ManifestAuthorityGraph,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8BoundedScanBasis {
+pub enum BoundedScanBasis {
     LocalityBoundedTraversal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8FullDeclaredScanBasis {
+pub enum FullDeclaredScanBasis {
     DeclaredFullTraversal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StreamingReadBasis {
+pub enum StreamingReadBasis {
     SequentialStreamTraversal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StreamingContinuationBasis {
+pub enum StreamingContinuationBasis {
     ResumeCursorContinuation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8MutationAccessBasis {
+pub enum MutationAccessBasis {
     WalBeforeDataAppend,
     CompactionRewriteTraversal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8MaintenanceReadBasis {
+pub enum MaintenanceReadBasis {
     RebuildTraversal,
     VerifierTraversal,
     RepairTraversal,
@@ -80,59 +80,59 @@ pub enum S8MaintenanceReadBasis {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8DegradedExactScanBasis {
+pub enum DegradedExactScanBasis {
     BudgetedCounterBoundedTraversal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8AccessShapeDetail {
+pub enum AccessShapeDetail {
     PointLookup,
-    BatchPointLookup(S8BatchPointBasis),
-    SortedBatchLookup(S8SortedBatchBasis),
-    RangeLookup(S8RangeBasis),
-    MultiRangeLookup(S8MultiRangeBasis),
-    PrefixLookup(S8PrefixBasis),
-    GroupedPrefixLookup(S8GroupedPrefixBasis),
-    CoalescedPageRead(S8CoalescedPageReadBasis),
-    ChunkTreeWalk(S8ChunkTreeWalkBasis),
-    ManifestGraphWalk(S8ManifestGraphWalkBasis),
-    BoundedScan(S8BoundedScanBasis),
-    FullDeclaredScan(S8FullDeclaredScanBasis),
-    StreamingRead(S8StreamingReadBasis),
-    StreamingContinuationRead(S8StreamingContinuationBasis),
-    Append(S8MutationAccessBasis),
-    CompactionRead(S8MutationAccessBasis),
-    RebuildRead(S8MaintenanceReadBasis),
-    VerifierRead(S8MaintenanceReadBasis),
-    RepairRead(S8MaintenanceReadBasis),
-    QuarantineRead(S8MaintenanceReadBasis),
-    DegradedExactScan(S8DegradedExactScanBasis),
+    BatchPointLookup(BatchPointBasis),
+    SortedBatchLookup(SortedBatchBasis),
+    RangeLookup(RangeBasis),
+    MultiRangeLookup(MultiRangeBasis),
+    PrefixLookup(PrefixBasis),
+    GroupedPrefixLookup(GroupedPrefixBasis),
+    CoalescedPageRead(CoalescedPageReadBasis),
+    ChunkTreeWalk(ChunkTreeWalkBasis),
+    ManifestGraphWalk(ManifestGraphWalkBasis),
+    BoundedScan(BoundedScanBasis),
+    FullDeclaredScan(FullDeclaredScanBasis),
+    StreamingRead(StreamingReadBasis),
+    StreamingContinuationRead(StreamingContinuationBasis),
+    Append(MutationAccessBasis),
+    CompactionRead(MutationAccessBasis),
+    RebuildRead(MaintenanceReadBasis),
+    VerifierRead(MaintenanceReadBasis),
+    RepairRead(MaintenanceReadBasis),
+    QuarantineRead(MaintenanceReadBasis),
+    DegradedExactScan(DegradedExactScanBasis),
 }
 
-impl S8AccessShapeDetail {
-    pub const fn shape(self) -> S8AccessShape {
+impl AccessShapeDetail {
+    pub const fn shape(self) -> AccessShape {
         match self {
-            Self::PointLookup => S8AccessShape::PointLookup,
-            Self::BatchPointLookup(_) => S8AccessShape::BatchPointLookup,
-            Self::SortedBatchLookup(_) => S8AccessShape::SortedBatchLookup,
-            Self::RangeLookup(_) => S8AccessShape::RangeLookup,
-            Self::MultiRangeLookup(_) => S8AccessShape::MultiRangeLookup,
-            Self::PrefixLookup(_) => S8AccessShape::PrefixLookup,
-            Self::GroupedPrefixLookup(_) => S8AccessShape::GroupedPrefixLookup,
-            Self::CoalescedPageRead(_) => S8AccessShape::CoalescedPageRead,
-            Self::ChunkTreeWalk(_) => S8AccessShape::ChunkTreeWalk,
-            Self::ManifestGraphWalk(_) => S8AccessShape::ManifestGraphWalk,
-            Self::BoundedScan(_) => S8AccessShape::BoundedScan,
-            Self::FullDeclaredScan(_) => S8AccessShape::FullDeclaredScan,
-            Self::StreamingRead(_) => S8AccessShape::StreamingRead,
-            Self::StreamingContinuationRead(_) => S8AccessShape::StreamingContinuationRead,
-            Self::Append(_) => S8AccessShape::Append,
-            Self::CompactionRead(_) => S8AccessShape::CompactionRead,
-            Self::RebuildRead(_) => S8AccessShape::RebuildRead,
-            Self::VerifierRead(_) => S8AccessShape::VerifierRead,
-            Self::RepairRead(_) => S8AccessShape::RepairRead,
-            Self::QuarantineRead(_) => S8AccessShape::QuarantineRead,
-            Self::DegradedExactScan(_) => S8AccessShape::DegradedExactScan,
+            Self::PointLookup => AccessShape::PointLookup,
+            Self::BatchPointLookup(_) => AccessShape::BatchPointLookup,
+            Self::SortedBatchLookup(_) => AccessShape::SortedBatchLookup,
+            Self::RangeLookup(_) => AccessShape::RangeLookup,
+            Self::MultiRangeLookup(_) => AccessShape::MultiRangeLookup,
+            Self::PrefixLookup(_) => AccessShape::PrefixLookup,
+            Self::GroupedPrefixLookup(_) => AccessShape::GroupedPrefixLookup,
+            Self::CoalescedPageRead(_) => AccessShape::CoalescedPageRead,
+            Self::ChunkTreeWalk(_) => AccessShape::ChunkTreeWalk,
+            Self::ManifestGraphWalk(_) => AccessShape::ManifestGraphWalk,
+            Self::BoundedScan(_) => AccessShape::BoundedScan,
+            Self::FullDeclaredScan(_) => AccessShape::FullDeclaredScan,
+            Self::StreamingRead(_) => AccessShape::StreamingRead,
+            Self::StreamingContinuationRead(_) => AccessShape::StreamingContinuationRead,
+            Self::Append(_) => AccessShape::Append,
+            Self::CompactionRead(_) => AccessShape::CompactionRead,
+            Self::RebuildRead(_) => AccessShape::RebuildRead,
+            Self::VerifierRead(_) => AccessShape::VerifierRead,
+            Self::RepairRead(_) => AccessShape::RepairRead,
+            Self::QuarantineRead(_) => AccessShape::QuarantineRead,
+            Self::DegradedExactScan(_) => AccessShape::DegradedExactScan,
         }
     }
 }

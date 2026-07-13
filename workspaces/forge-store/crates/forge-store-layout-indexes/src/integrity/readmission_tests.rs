@@ -5,28 +5,28 @@ use super::readmission_test_support::{
 };
 use super::tests::{family, offline_admission, other_family};
 use crate::integrity::{
-    layout_corruption, S8CorruptionDenial, S8LayoutCorruptionInput, S8LayoutCorruptionView,
-    S8LayoutReadmissionSource, S8LayoutReadmissionView,
+    layout_corruption, CorruptionDenial, ImportReadmissionView, LayoutCorruptionInput,
+    LayoutCorruptionView, LayoutReadmissionSource, OfflineReadmissionView,
+    QuarantineReadmissionView,
 };
 
 #[test]
 fn offline_readmission_resumes_foreground_authority_with_family_bound_store_witness() {
-    let required = layout_corruption().classify(S8LayoutCorruptionInput::OfflineEvidence {
-        family: family(),
-        admission: offline_admission("offline-success"),
-    });
-    let outcome = layout_corruption().readmit_with(
-        required,
-        crate::integrity::S8NativeReadmissionInput::RecoveryWitness {
-            witness: offline_witness(family(), "offline-success"),
-        },
-    );
+    let required = layout_corruption()
+        .classify(LayoutCorruptionInput::OfflineEvidence {
+            family: family(),
+            admission: offline_admission("offline-success"),
+        })
+        .into_offline_readmission_requirement()
+        .expect("offline classification must issue offline readmission requirement");
+    let outcome =
+        layout_corruption().readmit_offline(required, offline_witness(family(), "offline-success"));
 
     assert!(matches!(
         outcome.view(),
-        S8LayoutReadmissionView::OfflineReadmitted(witness)
+        OfflineReadmissionView::Readmitted(witness)
             if witness.family() == family()
-                && witness.source() == S8LayoutReadmissionSource::OfflineRecoveryEvidence
+                && witness.source() == LayoutReadmissionSource::OfflineRecoveryEvidence
     ));
 }
 
@@ -35,25 +35,25 @@ fn quarantine_readmission_resumes_foreground_authority_with_family_bound_store_w
     let quarantine_record = authoritative_quarantine_record("quarantine-success");
     let required = layout_corruption()
         .require_record_backed_recovery_readmission(
-            layout_corruption().classify(S8LayoutCorruptionInput::AuthoritativeQuarantine {
+            layout_corruption().classify(LayoutCorruptionInput::AuthoritativeQuarantine {
                 family: family(),
                 record: quarantine_record.clone(),
             }),
             &current_authority("store.new.corruption", "quarantine-success"),
         )
-        .expect("record-backed quarantine should derive readmission requirement");
-    let outcome = layout_corruption().readmit_with(
+        .expect("record-backed quarantine should derive readmission requirement")
+        .into_quarantine_readmission_requirement()
+        .expect("record-backed classification must issue quarantine requirement");
+    let outcome = layout_corruption().readmit_quarantine(
         required,
-        crate::integrity::S8NativeReadmissionInput::RecoveryWitness {
-            witness: record_backed_witness(family(), &quarantine_record, "quarantine-success"),
-        },
+        record_backed_witness(family(), &quarantine_record, "quarantine-success"),
     );
 
     assert!(matches!(
         outcome.view(),
-        S8LayoutReadmissionView::QuarantineReadmitted(witness)
+        QuarantineReadmissionView::Readmitted(witness)
             if witness.family() == family()
-                && witness.source() == S8LayoutReadmissionSource::QuarantineRecovery
+                && witness.source() == LayoutReadmissionSource::QuarantineRecovery
     ));
 }
 
@@ -62,55 +62,51 @@ fn quarantine_readmission_rejects_witness_for_different_family_or_artifact_ident
     let quarantine_record = authoritative_quarantine_record("quarantine-required-a");
     let required = layout_corruption()
         .require_record_backed_recovery_readmission(
-            layout_corruption().classify(S8LayoutCorruptionInput::AuthoritativeQuarantine {
+            layout_corruption().classify(LayoutCorruptionInput::AuthoritativeQuarantine {
                 family: family(),
                 record: quarantine_record.clone(),
             }),
             &current_authority("store.new.corruption", "quarantine-required-a"),
         )
-        .expect("record-backed quarantine should derive readmission requirement");
+        .expect("record-backed quarantine should derive readmission requirement")
+        .into_quarantine_readmission_requirement()
+        .expect("record-backed classification must issue quarantine requirement");
 
     let wrong_family_required = layout_corruption()
         .require_record_backed_recovery_readmission(
-            layout_corruption().classify(S8LayoutCorruptionInput::AuthoritativeQuarantine {
+            layout_corruption().classify(LayoutCorruptionInput::AuthoritativeQuarantine {
                 family: family(),
                 record: quarantine_record.clone(),
             }),
             &current_authority("store.new.corruption", "quarantine-required-a"),
         )
+        .unwrap()
+        .into_quarantine_readmission_requirement()
         .unwrap();
-    let wrong_family = layout_corruption().readmit_with(
+    let wrong_family = layout_corruption().readmit_quarantine(
         wrong_family_required,
-        crate::integrity::S8NativeReadmissionInput::RecoveryWitness {
-            witness: record_backed_witness(
-                other_family(),
-                &quarantine_record,
-                "quarantine-required-a",
-            ),
-        },
+        record_backed_witness(other_family(), &quarantine_record, "quarantine-required-a"),
     );
 
-    let wrong_identity = layout_corruption().readmit_with(
+    let wrong_identity = layout_corruption().readmit_quarantine(
         required,
-        crate::integrity::S8NativeReadmissionInput::RecoveryWitness {
-            witness: quarantine_witness(family(), "quarantine-required-b"),
-        },
+        quarantine_witness(family(), "quarantine-required-b"),
     );
 
     assert!(matches!(
         wrong_family.view(),
-        S8LayoutReadmissionView::QuarantineDenied(denied)
-            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        QuarantineReadmissionView::Denied(denied)
+            if matches!(denied.denial(), CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
-                source: S8LayoutReadmissionSource::QuarantineRecovery,
+                source: LayoutReadmissionSource::QuarantineRecovery,
             } if *actual_family == family())
     ));
     assert!(matches!(
         wrong_identity.view(),
-        S8LayoutReadmissionView::QuarantineDenied(denied)
-            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        QuarantineReadmissionView::Denied(denied)
+            if matches!(denied.denial(), CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
-                source: S8LayoutReadmissionSource::QuarantineRecovery,
+                source: LayoutReadmissionSource::QuarantineRecovery,
             } if *actual_family == family())
     ));
 }
@@ -118,13 +114,13 @@ fn quarantine_readmission_rejects_witness_for_different_family_or_artifact_ident
 #[test]
 fn quarantine_readmission_requirement_refuses_placeholder_quarantine_outcomes() {
     let rebuild_required =
-        layout_corruption().classify(S8LayoutCorruptionInput::RebuildClassification(
+        layout_corruption().classify(LayoutCorruptionInput::RebuildClassification(
             crate::LayoutCorruptionClassification::AuthoritativeSourceQuarantineRequired {
                 family: family(),
             },
         ));
     let materialization_required =
-        layout_corruption().classify(S8LayoutCorruptionInput::Materialization(
+        layout_corruption().classify(LayoutCorruptionInput::Materialization(
             crate::facade::access_planning()
                 .quarantined_wal_lsn_coverage(
                     crate::layout_declarations().seed_family(),
@@ -150,13 +146,13 @@ fn quarantine_readmission_requirement_refuses_placeholder_quarantine_outcomes() 
 
     assert!(matches!(
         rebuild_denied,
-        Err(S8CorruptionDenial::QuarantineRecordBackedReadmissionEvidenceRequired {
+        Err(CorruptionDenial::QuarantineRecordBackedReadmissionEvidenceRequired {
             family: actual_family,
         }) if actual_family == family()
     ));
     assert!(matches!(
         materialization_denied,
-        Err(S8CorruptionDenial::QuarantineRecordBackedReadmissionEvidenceRequired {
+        Err(CorruptionDenial::QuarantineRecordBackedReadmissionEvidenceRequired {
             family: actual_family,
         }) if actual_family == family()
     ));
@@ -164,86 +160,87 @@ fn quarantine_readmission_requirement_refuses_placeholder_quarantine_outcomes() 
 
 #[test]
 fn offline_readmission_rejects_witness_for_different_family_or_artifact_identity() {
-    let required = layout_corruption().classify(S8LayoutCorruptionInput::OfflineEvidence {
-        family: family(),
-        admission: offline_admission("offline-required-a"),
-    });
-
-    let wrong_family_required =
-        layout_corruption().classify(S8LayoutCorruptionInput::OfflineEvidence {
+    let required = layout_corruption()
+        .classify(LayoutCorruptionInput::OfflineEvidence {
             family: family(),
             admission: offline_admission("offline-required-a"),
-        });
-    let wrong_family = layout_corruption().readmit_with(
+        })
+        .into_offline_readmission_requirement()
+        .unwrap();
+
+    let wrong_family_required = layout_corruption()
+        .classify(LayoutCorruptionInput::OfflineEvidence {
+            family: family(),
+            admission: offline_admission("offline-required-a"),
+        })
+        .into_offline_readmission_requirement()
+        .unwrap();
+    let wrong_family = layout_corruption().readmit_offline(
         wrong_family_required,
-        crate::integrity::S8NativeReadmissionInput::RecoveryWitness {
-            witness: offline_witness(other_family(), "offline-required-a"),
-        },
+        offline_witness(other_family(), "offline-required-a"),
     );
 
-    let wrong_identity = layout_corruption().readmit_with(
-        required,
-        crate::integrity::S8NativeReadmissionInput::RecoveryWitness {
-            witness: offline_witness(family(), "offline-required-b"),
-        },
-    );
+    let wrong_identity = layout_corruption()
+        .readmit_offline(required, offline_witness(family(), "offline-required-b"));
 
     assert!(matches!(
         wrong_family.view(),
-        S8LayoutReadmissionView::OfflineDenied(denied)
-            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        OfflineReadmissionView::Denied(denied)
+            if matches!(denied.denial(), CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
-                source: S8LayoutReadmissionSource::OfflineRecoveryEvidence,
+                source: LayoutReadmissionSource::OfflineRecoveryEvidence,
             } if *actual_family == family())
     ));
     assert!(matches!(
         wrong_identity.view(),
-        S8LayoutReadmissionView::OfflineDenied(denied)
-            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        OfflineReadmissionView::Denied(denied)
+            if matches!(denied.denial(), CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
-                source: S8LayoutReadmissionSource::OfflineRecoveryEvidence,
+                source: LayoutReadmissionSource::OfflineRecoveryEvidence,
             } if *actual_family == family())
     ));
 }
 
 #[test]
 fn terminal_import_readmission_resumes_foreground_authority_with_family_bound_store_witness() {
-    let required = layout_corruption().classify(S8LayoutCorruptionInput::TerminalImport {
-        witness: import_witness(family(), "terminal-import-success"),
-    });
-    let outcome = layout_corruption().readmit_with(
-        required,
-        crate::integrity::S8NativeReadmissionInput::RecoveryWitness {
+    let required = layout_corruption()
+        .classify(LayoutCorruptionInput::TerminalImport {
             witness: import_witness(family(), "terminal-import-success"),
-        },
+        })
+        .into_import_readmission_requirement()
+        .unwrap();
+    let outcome = layout_corruption().readmit_import(
+        required,
+        import_witness(family(), "terminal-import-success"),
     );
 
     assert!(matches!(
         outcome.view(),
-        S8LayoutReadmissionView::ImportReadmitted(witness)
+        ImportReadmissionView::Readmitted(witness)
             if witness.family() == family()
-                && witness.source() == S8LayoutReadmissionSource::TerminalImport
+                && witness.source() == LayoutReadmissionSource::TerminalImport
     ));
 }
 
 #[test]
 fn terminal_import_does_not_accept_offline_recovery_witness_as_readmission_authority() {
-    let required = layout_corruption().classify(S8LayoutCorruptionInput::TerminalImport {
-        witness: import_witness(family(), "terminal-import"),
-    });
-    let outcome = layout_corruption().readmit_with(
+    let required = layout_corruption()
+        .classify(LayoutCorruptionInput::TerminalImport {
+            witness: import_witness(family(), "terminal-import"),
+        })
+        .into_import_readmission_requirement()
+        .unwrap();
+    let outcome = layout_corruption().readmit_import(
         required,
-        crate::integrity::S8NativeReadmissionInput::RecoveryWitness {
-            witness: offline_witness(family(), "offline-terminal-mismatch"),
-        },
+        offline_witness(family(), "offline-terminal-mismatch"),
     );
 
     assert!(matches!(
         outcome.view(),
-        S8LayoutReadmissionView::ImportDenied(denied)
-            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        ImportReadmissionView::Denied(denied)
+            if matches!(denied.denial(), CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
-                source: S8LayoutReadmissionSource::TerminalImport,
+                source: LayoutReadmissionSource::TerminalImport,
             } if *actual_family == family())
     ));
 }
@@ -252,12 +249,11 @@ fn terminal_import_does_not_accept_offline_recovery_witness_as_readmission_autho
 fn terminal_import_keeps_receipt_identity_in_required_outcome() {
     let witness = import_witness(family(), "terminal-import-identity");
     let expected_identity = witness.identity().clone();
-    let required =
-        layout_corruption().classify(S8LayoutCorruptionInput::TerminalImport { witness });
+    let required = layout_corruption().classify(LayoutCorruptionInput::TerminalImport { witness });
 
     assert!(matches!(
         required.view(),
-        S8LayoutCorruptionView::ImportReadmissionRequired(requirement)
+        LayoutCorruptionView::ImportReadmissionRequired(requirement)
             if requirement.family() == family()
                 && requirement.identity() == &expected_identity
     ));
@@ -265,42 +261,135 @@ fn terminal_import_keeps_receipt_identity_in_required_outcome() {
 
 #[test]
 fn terminal_import_readmission_rejects_witness_for_different_family_or_artifact_identity() {
-    let required = layout_corruption().classify(S8LayoutCorruptionInput::TerminalImport {
-        witness: import_witness(family(), "terminal-required-a"),
-    });
-
-    let wrong_family_required =
-        layout_corruption().classify(S8LayoutCorruptionInput::TerminalImport {
+    let required = layout_corruption()
+        .classify(LayoutCorruptionInput::TerminalImport {
             witness: import_witness(family(), "terminal-required-a"),
-        });
-    let wrong_family = layout_corruption().readmit_with(
+        })
+        .into_import_readmission_requirement()
+        .unwrap();
+
+    let wrong_family_required = layout_corruption()
+        .classify(LayoutCorruptionInput::TerminalImport {
+            witness: import_witness(family(), "terminal-required-a"),
+        })
+        .into_import_readmission_requirement()
+        .unwrap();
+    let wrong_family = layout_corruption().readmit_import(
         wrong_family_required,
-        crate::integrity::S8NativeReadmissionInput::RecoveryWitness {
-            witness: import_witness(other_family(), "terminal-required-a"),
-        },
+        import_witness(other_family(), "terminal-required-a"),
     );
 
-    let wrong_identity = layout_corruption().readmit_with(
-        required,
-        crate::integrity::S8NativeReadmissionInput::RecoveryWitness {
-            witness: import_witness(family(), "terminal-required-b"),
-        },
-    );
+    let wrong_identity = layout_corruption()
+        .readmit_import(required, import_witness(family(), "terminal-required-b"));
 
     assert!(matches!(
         wrong_family.view(),
-        S8LayoutReadmissionView::ImportDenied(denied)
-            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        ImportReadmissionView::Denied(denied)
+            if matches!(denied.denial(), CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
-                source: S8LayoutReadmissionSource::TerminalImport,
+                source: LayoutReadmissionSource::TerminalImport,
             } if *actual_family == family())
     ));
     assert!(matches!(
         wrong_identity.view(),
-        S8LayoutReadmissionView::ImportDenied(denied)
-            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        ImportReadmissionView::Denied(denied)
+            if matches!(denied.denial(), CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
-                source: S8LayoutReadmissionSource::TerminalImport,
+                source: LayoutReadmissionSource::TerminalImport,
             } if *actual_family == family())
     ));
+}
+
+#[test]
+fn readmission_families_declare_exactly_the_cases_ordinary_operations_emit() {
+    use std::collections::BTreeSet;
+
+    let offline_required = || {
+        layout_corruption()
+            .classify(LayoutCorruptionInput::OfflineEvidence {
+                family: family(),
+                admission: offline_admission("offline-case-matrix"),
+            })
+            .into_offline_readmission_requirement()
+            .unwrap()
+    };
+    let offline_observed = [
+        layout_corruption()
+            .readmit_offline(
+                offline_required(),
+                offline_witness(family(), "offline-case-matrix"),
+            )
+            .case_id(),
+        layout_corruption()
+            .readmit_offline(
+                offline_required(),
+                offline_witness(family(), "offline-case-matrix-other"),
+            )
+            .case_id(),
+    ];
+
+    let import_required = || {
+        layout_corruption()
+            .classify(LayoutCorruptionInput::TerminalImport {
+                witness: import_witness(family(), "import-case-matrix"),
+            })
+            .into_import_readmission_requirement()
+            .unwrap()
+    };
+    let import_observed = [
+        layout_corruption()
+            .readmit_import(
+                import_required(),
+                import_witness(family(), "import-case-matrix"),
+            )
+            .case_id(),
+        layout_corruption()
+            .readmit_import(
+                import_required(),
+                offline_witness(family(), "import-case-matrix-other"),
+            )
+            .case_id(),
+    ];
+
+    let quarantine_record = authoritative_quarantine_record("quarantine-case-matrix");
+    let quarantine_required = || {
+        layout_corruption()
+            .require_record_backed_recovery_readmission(
+                layout_corruption().classify(LayoutCorruptionInput::AuthoritativeQuarantine {
+                    family: family(),
+                    record: quarantine_record.clone(),
+                }),
+                &current_authority("store.new.corruption", "quarantine-case-matrix"),
+            )
+            .unwrap()
+            .into_quarantine_readmission_requirement()
+            .unwrap()
+    };
+    let quarantine_observed = [
+        layout_corruption()
+            .readmit_quarantine(
+                quarantine_required(),
+                record_backed_witness(family(), &quarantine_record, "quarantine-case-matrix"),
+            )
+            .case_id(),
+        layout_corruption()
+            .readmit_quarantine(
+                quarantine_required(),
+                quarantine_witness(family(), "quarantine-case-matrix-other"),
+            )
+            .case_id(),
+    ];
+
+    assert_eq!(
+        crate::integrity::offline_readmission_cases().collect::<BTreeSet<_>>(),
+        offline_observed.into_iter().collect()
+    );
+    assert_eq!(
+        crate::integrity::import_readmission_cases().collect::<BTreeSet<_>>(),
+        import_observed.into_iter().collect()
+    );
+    assert_eq!(
+        crate::integrity::quarantine_readmission_cases().collect::<BTreeSet<_>>(),
+        quarantine_observed.into_iter().collect()
+    );
 }

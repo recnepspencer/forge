@@ -22,11 +22,11 @@ const fn fixtures() -> [CompileFailFixture; 3] {
     [
         CompileFailFixture {
             name: "bootstrap_catalog_struct_literal_is_not_public.rs",
-            expected_stderr: &["private", "S8BootstrapLayoutCatalog"],
+            expected_stderr: &["private", "BootstrapLayoutCatalog"],
         },
         CompileFailFixture {
             name: "bootstrap_catalog_read_admission_struct_literal_is_not_public.rs",
-            expected_stderr: &["private", "S8BootstrapCatalogReadAdmission"],
+            expected_stderr: &["private", "BootstrapCatalogReadAdmission"],
         },
         CompileFailFixture {
             name: "raw_persisted_layout_cannot_reopen_bootstrap_lane.rs",

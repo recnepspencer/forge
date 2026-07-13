@@ -1,11 +1,11 @@
-use crate::strategy::S8StrategyDenial;
+use crate::strategy::StrategyDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8BTreeSiblingLinkLaw {
+pub struct BTreeSiblingLinkLaw {
     sibling_links_supported: bool,
 }
 
-impl S8BTreeSiblingLinkLaw {
+impl BTreeSiblingLinkLaw {
     pub(crate) const fn baseline_absent() -> Self {
         Self {
             sibling_links_supported: false,
@@ -19,10 +19,10 @@ impl S8BTreeSiblingLinkLaw {
     pub const fn verify_sibling_link_posture(
         self,
         sibling_link_present: bool,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         if sibling_link_present == self.sibling_links_supported {
             return Ok(());
         }
-        Err(S8StrategyDenial::SiblingLinkViolation)
+        Err(StrategyDenial::SiblingLinkViolation)
     }
 }

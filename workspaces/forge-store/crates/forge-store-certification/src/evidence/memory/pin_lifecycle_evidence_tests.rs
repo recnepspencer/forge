@@ -217,7 +217,9 @@ fn frame_header_witness(bytes: &[u8]) -> PhysicalHeaderDecodeWitness {
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+    )
 }
 
 fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {

@@ -2,8 +2,8 @@ use forge_proof::TransitionOutcome;
 use forge_store_physical_isolation::{
     CompactionCandidateRangeSet, CompactionCutoverDelta, CompactionCutoverStabilityProof,
     CompactionDeferredReclaimQueue, CompactionProtectedReferenceSet, CompactionReadInterlockDenial,
-    CompactionReadInterlockPlan, CompactionRewritePublication, PhysicalPublicationIntent,
-    ReadDuringCompactionVerdict, StablePhysicalReadExecution,
+    CompactionReadInterlockPlan, PhysicalPublicationIntent, ReadDuringCompactionVerdict,
+    StablePhysicalReadExecution,
 };
 use forge_store_recovery_physics::CompactionCutoverRecoveryPosture;
 

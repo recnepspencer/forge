@@ -23,29 +23,37 @@ pub struct CompactionMutationLaneOrigin {
 }
 
 macro_rules! define_compaction_mutation_outcomes {
-    ($( $variant:ident => $fact:ident ),+ $(,)?) => {
+    ($( $variant:ident => ($id:literal, $from:ident) ),+ $(,)?) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub enum CompactionMutationLaneReceiptKind {
             $($variant),+
         }
 
         impl CompactionMutationLaneReceiptKind {
-            const fn production_transition(self) -> super::CompactionCutoverTransition {
+            const fn owner_case(self) -> super::CompactionOwnerCase {
                 match self {
-                    $(Self::$variant => super::CompactionCutoverTransitionKind::$fact.transition()),+
+                    $(Self::$variant => super::CompactionOwnerCase::issued_by_owner(
+                        super::CompactionOwnerCaseId::owned($id),
+                        super::CompactionCutoverState::$from,
+                        super::CompactionCutoverState::Denied,
+                    )),+
                 }
+            }
+
+            fn all() -> impl Iterator<Item = Self> {
+                [$(Self::$variant),+].into_iter()
             }
         }
     };
 }
 
 define_compaction_mutation_outcomes!(
-    InPlaceOverwriteDenied => DenyInPlaceOverwrite,
-    EarlyReclaimDenied => DenyEarlyReclaim,
-    StaleEpochReuseDenied => DenyStaleEpochReuse,
-    BackendResidueCandidateSelectionDenied => DenyBackendResidue,
-    LatchHierarchyInversionDenied => DenyLatchHierarchyInversion,
-    MixedRootReadDenied => DenyMixedRootRead,
+    InPlaceOverwriteDenied => ("physical.compaction.deny_in_place_overwrite", PlanAdmitted),
+    EarlyReclaimDenied => ("physical.compaction.deny_early_reclaim", ReclaimDeferred),
+    StaleEpochReuseDenied => ("physical.compaction.deny_stale_epoch_reuse", PlanAdmitted),
+    BackendResidueCandidateSelectionDenied => ("physical.compaction.deny_backend_residue", PublicationCommitted),
+    LatchHierarchyInversionDenied => ("physical.compaction.deny_latch_hierarchy_inversion", PlanAdmitted),
+    MixedRootReadDenied => ("physical.compaction.deny_mixed_root_read", PublicationCommitted),
 );
 
 impl CompactionMutationLaneReceipt {
@@ -149,31 +157,8 @@ impl CompactionMutationLaneReceipt {
         self.kind
     }
 
-    pub const fn cutover_transition_kind(&self) -> super::CompactionCutoverTransitionKind {
-        match self.kind {
-            CompactionMutationLaneReceiptKind::InPlaceOverwriteDenied => {
-                super::CompactionCutoverTransitionKind::DenyInPlaceOverwrite
-            }
-            CompactionMutationLaneReceiptKind::EarlyReclaimDenied => {
-                super::CompactionCutoverTransitionKind::DenyEarlyReclaim
-            }
-            CompactionMutationLaneReceiptKind::StaleEpochReuseDenied => {
-                super::CompactionCutoverTransitionKind::DenyStaleEpochReuse
-            }
-            CompactionMutationLaneReceiptKind::BackendResidueCandidateSelectionDenied => {
-                super::CompactionCutoverTransitionKind::DenyBackendResidue
-            }
-            CompactionMutationLaneReceiptKind::LatchHierarchyInversionDenied => {
-                super::CompactionCutoverTransitionKind::DenyLatchHierarchyInversion
-            }
-            CompactionMutationLaneReceiptKind::MixedRootReadDenied => {
-                super::CompactionCutoverTransitionKind::DenyMixedRootRead
-            }
-        }
-    }
-
-    pub const fn cutover_transition(&self) -> super::CompactionCutoverTransition {
-        self.kind.production_transition()
+    pub const fn owner_case(&self) -> super::CompactionOwnerCase {
+        self.kind.owner_case()
     }
 
     pub const fn denial(&self) -> CompactionReadInterlockDenial {
@@ -183,6 +168,10 @@ impl CompactionMutationLaneReceipt {
     pub const fn origin(&self) -> &CompactionMutationLaneOrigin {
         &self.origin
     }
+}
+
+pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCase> {
+    CompactionMutationLaneReceiptKind::all().map(CompactionMutationLaneReceiptKind::owner_case)
 }
 
 impl CompactionMutationLaneOrigin {

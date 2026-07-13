@@ -1,4 +1,4 @@
-use crate::access_planning::S8AccessShape;
+use crate::access_planning::AccessShape;
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 
 use forge_store_io_scheduler::foreground_reservation::{
@@ -16,7 +16,7 @@ pub enum SchedulerReservationInterferencePosture {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SchedulerReservationLayoutReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: AccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     fairness_class: ForegroundFairnessClass,
     requested_budget: BackgroundResourceBudget,
@@ -30,7 +30,7 @@ pub fn project_scheduler_reservation(
 ) -> SchedulerReservationLayoutReport {
     SchedulerReservationLayoutReport {
         family_id: DurableArtifactFamilyId::SchedulerReservationIndex,
-        access_shape: S8AccessShape::PointLookup,
+        access_shape: AccessShape::PointLookup,
         rebuild_posture: DurableArtifactRebuildPosture::RebuildFromAuthoritativeState,
         fairness_class: receipt.fairness_class(),
         requested_budget: receipt.counters().requested().into_background_budget(),
@@ -48,7 +48,7 @@ impl SchedulerReservationLayoutReport {
         self.family_id
     }
 
-    pub const fn access_shape(&self) -> S8AccessShape {
+    pub const fn access_shape(&self) -> AccessShape {
         self.access_shape
     }
 

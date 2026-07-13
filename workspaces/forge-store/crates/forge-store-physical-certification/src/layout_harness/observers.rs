@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum S8LayoutObserverLane {
+pub enum LayoutObserverLane {
     DeclarationInventoryObserver,
     CounterReceiptObserver,
     RecoveryOutcomeObserver,

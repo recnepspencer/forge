@@ -24,19 +24,19 @@ fn tiering_layout_reports_preserve_budget_and_owner_identity_basis() {
         posture.clone(),
     );
 
-    let placement = admission.admit_tier_placement_layout();
+    let placement = admission.project_tier_placement_layout();
     assert_eq!(placement.declared_budget().reclaim_permits(), 1);
     assert_eq!(placement.reclaim_region().byte_len(), 4096);
     assert_eq!(placement.security_scope(), posture.security_scope());
     assert_eq!(placement.exact_counters(), admission.scheduler().counters());
 
-    let recall = posture.admit_cold_recall_layout();
+    let recall = posture.project_cold_recall_layout();
     assert_eq!(recall.declared_budget().reclaim_permits(), 1);
     assert_eq!(recall.declared_budget().region_bytes(), 4096);
     assert_eq!(recall.security_scope(), posture.security_scope());
     assert_eq!(recall.exact_counters().executed(), 1);
 
-    let amplification = posture.admit_recall_amplification_layout();
+    let amplification = posture.project_recall_amplification_layout();
     assert_eq!(amplification.declared_budget().reclaim_permits(), 1);
     assert_eq!(amplification.declared_budget().region_bytes(), 4096);
     assert_eq!(amplification.security_scope(), posture.security_scope());

@@ -2,7 +2,7 @@ use crate::{
     courtroom::harness::test_support::bounded_memory_closeout_test_support::{
         background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
         harness_evidence, harness_evidence_for_class, harness_evidence_without_acceptance_suite,
-        pressure_bundles, physical_substrate_readiness, synthetic_rejections,
+        physical_substrate_readiness, pressure_bundles, synthetic_rejections,
     },
     BoundedMemoryCloseoutReport, BoundedMemoryOperationKind, BoundedMemoryResidencySuite,
     BoundedMemoryResidencySuiteDenial, BoundedOperationEnvelopeCounters,

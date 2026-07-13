@@ -4,7 +4,10 @@ use crate::{
     PlatformPhysicalAppendRequest, PlatformPhysicalFacade, PlatformPhysicalFacadeDenialKind,
     PlatformPhysicalLayoutAccessRequest, PlatformPhysicalOpenRequest, SlotGenerationCell,
 };
-use forge_store_budgets::S8PreExecutionPlanBinding;
+use forge_store_budgets::{
+    pre_execution_budget_admission, PreExecutionBudgetAdmissionOutcome, PreExecutionBudgetEnvelope,
+    PreExecutionBudgetRequest, PreExecutionBudgetScope,
+};
 use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
@@ -26,7 +29,6 @@ fn facade_append_publish_scan_reopen_and_locate_stays_physical() {
         .locate_record(append.reference())
         .expect("locate through facade");
     assert_eq!(located.record_view().payload().as_bytes(), b"small");
-
     let mut page_layout = facade.page_access();
     let read = page_layout
         .read_record(append.reference())
@@ -66,17 +68,49 @@ fn facade_append_publish_scan_reopen_and_locate_stays_physical() {
 fn hidden_broad_scan_is_rejected_before_physical_traversal_with_owner_receipt() {
     let mut facade = open_facade();
     let denial =
-        facade.reject_hidden_broad_scan(PlatformPhysicalLayoutAccessRequest::hidden_broad_scan(
-            S8PreExecutionPlanBinding::new(1, 2, 3, 4, 0),
-        ));
+        facade.reject_hidden_broad_scan(PlatformPhysicalLayoutAccessRequest::hidden_broad_scan());
 
     assert!(denial.is_owner_denial());
-    assert_eq!(
-        denial.request().plan_binding(),
-        S8PreExecutionPlanBinding::new(1, 2, 3, 4, 0)
-    );
     assert_eq!(denial.counters().scans(), 0);
     assert_eq!(denial.counters().full_store_materialization_rejections(), 1);
+}
+
+#[test]
+fn physical_owner_admits_only_operation_compatible_resource_grants() {
+    let facade = open_facade();
+    let foreground = admitted_budget(PreExecutionBudgetEnvelope::foreground_default());
+    let maintenance = admitted_budget(PreExecutionBudgetEnvelope::maintenance_default());
+
+    assert!(facade
+        .admit_root_publication(
+            PlatformPhysicalAppendRequest::page_slot(slot_cell(), b"root"),
+            foreground,
+        )
+        .is_ok());
+    assert!(facade
+        .admit_root_publication(
+            PlatformPhysicalAppendRequest::page_slot(slot_cell(), b"root"),
+            maintenance,
+        )
+        .is_err());
+    assert!(facade.admit_degraded_exact_scan(0, maintenance).is_err());
+    assert!(facade.admit_degraded_exact_scan(33, maintenance).is_err());
+    assert!(facade.admit_degraded_exact_scan(8, maintenance).is_ok());
+}
+
+#[test]
+fn physical_admission_cannot_spend_unused_envelope_capacity() {
+    let facade = open_facade();
+    let request =
+        PreExecutionBudgetRequest::new(PreExecutionBudgetScope::Maintenance, 1_024, 1, 0, 1, 4_096);
+    let PreExecutionBudgetAdmissionOutcome::Admitted(receipt) = pre_execution_budget_admission()
+        .admit(request, PreExecutionBudgetEnvelope::maintenance_default())
+    else {
+        panic!("small maintenance demand must admit")
+    };
+
+    assert!(facade.admit_degraded_exact_scan(1, receipt).is_ok());
+    assert!(facade.admit_degraded_exact_scan(8, receipt).is_err());
 }
 
 #[test]
@@ -114,6 +148,9 @@ fn reopen_rejects_ambiguous_root_candidates_without_guessing() {
                 .headers()
                 .clone(),
             builder.build(),
+            PlatformPhysicalOpenRequest::physical_format_canonical()
+                .store_identity()
+                .clone(),
         ),
     )
     .expect_err("ambiguous persisted root candidates deny reopen");
@@ -214,8 +251,30 @@ fn forbidden_shortcuts_are_typed_and_counted() {
 }
 
 fn open_facade() -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
-        .expect("open S.1 facade")
+    PlatformPhysicalFacade::open_physical_format(
+        readiness(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
+    )
+    .expect("open S.1 facade")
+}
+
+fn admitted_budget(
+    envelope: PreExecutionBudgetEnvelope,
+) -> forge_store_budgets::PreExecutionBudgetAdmissionReceipt {
+    let request = PreExecutionBudgetRequest::new(
+        envelope.scope(),
+        envelope.admitted_memory_bytes(),
+        envelope.admitted_page_reads(),
+        envelope.admitted_chunk_reads(),
+        envelope.admitted_range_touches(),
+        envelope.admitted_byte_reads(),
+    );
+    let PreExecutionBudgetAdmissionOutcome::Admitted(receipt) =
+        pre_execution_budget_admission().admit(request, envelope)
+    else {
+        panic!("test resource demand must fit its envelope")
+    };
+    receipt
 }
 
 fn readiness() -> AcceptedHandoffReadiness {

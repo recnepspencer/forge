@@ -8,7 +8,10 @@ use crate::{
     CheckpointPublicationIdentity, CheckpointPublicationRoot, CheckpointPublicationRootBasis,
     CurrentPhysicalRoot, CurrentPhysicalRootBasis, PhysicalOrderingContract,
 };
-use forge_store_physical_format::PhysicalRootReference;
+use forge_store_physical_format::{
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalReferenceAuthority,
+    PhysicalRootReference,
+};
 use forge_store_recovery_physics::{
     CheckpointCoveredLsnRange, CheckpointCutoverReceipt, CheckpointManifest,
     CheckpointPageLsnFrontier, CheckpointRedoBoundary, CheckpointRootPosture, CheckpointValidation,
@@ -50,7 +53,17 @@ pub fn read_during_checkpoint_verdict_for_certification_test() -> ReadDuringChec
 fn checkpoint_validation_for_certification_test() -> CheckpointValidation {
     let manifest = CheckpointManifest::sharp(
         CheckpointRootPosture::root_present(
-            PhysicalRootReference::from_raw(1).expect("root reference"),
+            PhysicalReferenceAuthority::for_canonical_physical_format()
+                .admit_root_publication(
+                    PhysicalGenerationAuthority::for_canonical_physical_format()
+                        .root_publication_cell(
+                            PhysicalRootReference::from_raw(1).expect("root reference"),
+                        )
+                        .with_root_publication_generation(
+                            PhysicalGeneration::from_raw(1).expect("generation"),
+                        ),
+                )
+                .reference(),
         ),
         CheckpointPageLsnFrontier::from_pages([(
             forge_store_physical_format::PhysicalGenerationAuthority::for_canonical_physical_format()
@@ -83,6 +96,8 @@ fn current_root_for_certification_test(seed: u64) -> CurrentPhysicalRoot {
         CurrentPhysicalRootBasis::new(
             root_epoch_from_entry_seed(seed),
             manifest_epoch_from_entry_seed(seed),
+            forge_store_physical_format::PhysicalStoreIdentity::physical_format_default()
+                .authority_identity(),
         ),
         PhysicalOrderingContract::root_swap_acquire_release(),
     )

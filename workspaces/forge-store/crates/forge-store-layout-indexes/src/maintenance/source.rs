@@ -1,18 +1,18 @@
 use crate::catalog::PhysicalArtifactFamily;
 use crate::facade::layout_declarations;
-use crate::materialization::S8LayoutCoverageWitness;
-use crate::strategy::S8StrategyRebuildSourceRequirement;
+use crate::materialization::LayoutCoverageWitness;
+use crate::strategy::StrategyRebuildSourceRequirement;
 use crate::PhysicalKeyDomainWitness;
 use forge_store_contracts::WalRecordFamily;
 use forge_store_physical_format::PhysicalRootManifestRebuildWitness;
 use forge_store_wal::{BlobWalReplayRebuildWitness, StoreWalRecordIdentity};
 
-use super::basis::S8DerivedIndexParityBasis;
-use super::identity::{S8DerivedIndexCostEnvelopeParity, S8DerivedIndexIdentityParity};
-use super::outcome::S8DerivedIndexRebuildDenied;
+use super::basis::DerivedIndexParityBasis;
+use super::identity::{DerivedIndexCostEnvelopeParity, DerivedIndexIdentityParity};
+use super::outcome::DerivedIndexRebuildDenied;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum S8DerivedIndexRebuildSourceInput {
+pub enum DerivedIndexRebuildSourceInput {
     PhysicalRootManifest {
         source_witness: PhysicalRootManifestRebuildWitness,
     },
@@ -27,36 +27,36 @@ pub enum S8DerivedIndexRebuildSourceInput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum S8DerivedIndexAuthoritySource {
+pub(crate) enum DerivedIndexAuthoritySource {
     PhysicalSnapshotReplay {
         family: PhysicalArtifactFamily,
-        coverage: S8LayoutCoverageWitness,
+        coverage: LayoutCoverageWitness,
         source_witness: PhysicalRootManifestRebuildWitness,
-        parity_basis: S8DerivedIndexParityBasis,
+        parity_basis: DerivedIndexParityBasis,
     },
     WalReplay {
         family: PhysicalArtifactFamily,
-        coverage: S8LayoutCoverageWitness,
+        coverage: LayoutCoverageWitness,
         source_witness: BlobWalReplayRebuildWitness,
-        parity_basis: S8DerivedIndexParityBasis,
+        parity_basis: DerivedIndexParityBasis,
     },
 }
 
-impl S8DerivedIndexAuthoritySource {
+impl DerivedIndexAuthoritySource {
     pub(crate) fn declare(
-        requirement: S8StrategyRebuildSourceRequirement,
+        requirement: StrategyRebuildSourceRequirement,
         family: PhysicalArtifactFamily,
-        coverage: S8LayoutCoverageWitness,
+        coverage: LayoutCoverageWitness,
         key_domain: PhysicalKeyDomainWitness,
-        source_input: &S8DerivedIndexRebuildSourceInput,
-    ) -> Result<Option<Self>, S8DerivedIndexRebuildDenied> {
+        source_input: &DerivedIndexRebuildSourceInput,
+    ) -> Result<Option<Self>, DerivedIndexRebuildDenied> {
         match (requirement, source_input) {
             (
-                S8StrategyRebuildSourceRequirement::PhysicalSnapshotReplay,
-                S8DerivedIndexRebuildSourceInput::PhysicalRootManifest { source_witness },
+                StrategyRebuildSourceRequirement::PhysicalSnapshotReplay,
+                DerivedIndexRebuildSourceInput::PhysicalRootManifest { source_witness },
             ) => Ok(Some(Self::PhysicalSnapshotReplay {
                 family,
-                coverage,
+                coverage: coverage.clone(),
                 parity_basis: physical_root_manifest_parity_basis(
                     source_witness,
                     key_domain,
@@ -65,11 +65,11 @@ impl S8DerivedIndexAuthoritySource {
                 source_witness: source_witness.clone(),
             })),
             (
-                S8StrategyRebuildSourceRequirement::WalReplay,
-                S8DerivedIndexRebuildSourceInput::WalReplayRecord { source_witness },
+                StrategyRebuildSourceRequirement::WalReplay,
+                DerivedIndexRebuildSourceInput::WalReplayRecord { source_witness },
             ) => Ok(Some(Self::WalReplay {
                 family,
-                coverage,
+                coverage: coverage.clone(),
                 parity_basis: wal_replay_parity_basis(source_witness, key_domain, coverage)?,
                 source_witness: source_witness.clone(),
             })),
@@ -83,33 +83,25 @@ impl S8DerivedIndexAuthoritySource {
         }
     }
 
-    pub const fn coverage(&self) -> S8LayoutCoverageWitness {
-        match self {
-            Self::PhysicalSnapshotReplay { coverage, .. } | Self::WalReplay { coverage, .. } => {
-                *coverage
-            }
-        }
-    }
-
-    pub(crate) const fn parity_basis(&self) -> &S8DerivedIndexParityBasis {
+    pub(crate) const fn parity_basis(&self) -> &DerivedIndexParityBasis {
         match self {
             Self::PhysicalSnapshotReplay { parity_basis, .. }
             | Self::WalReplay { parity_basis, .. } => parity_basis,
         }
     }
 
-    pub(crate) const fn value_identity_parity(&self) -> S8DerivedIndexIdentityParity {
+    pub(crate) const fn value_identity_parity(&self) -> DerivedIndexIdentityParity {
         match self {
             Self::PhysicalSnapshotReplay { .. } | Self::WalReplay { .. } => {
-                S8DerivedIndexIdentityParity::SourceArtifactDoesNotProveIdentity
+                DerivedIndexIdentityParity::SourceArtifactDoesNotProveIdentity
             }
         }
     }
 
-    pub(crate) const fn cost_envelope_parity(&self) -> S8DerivedIndexCostEnvelopeParity {
+    pub(crate) const fn cost_envelope_parity(&self) -> DerivedIndexCostEnvelopeParity {
         match self {
             Self::PhysicalSnapshotReplay { .. } | Self::WalReplay { .. } => {
-                S8DerivedIndexCostEnvelopeParity::SourceArtifactDoesNotProveDeclaredEnvelope
+                DerivedIndexCostEnvelopeParity::SourceArtifactDoesNotProveDeclaredEnvelope
             }
         }
     }
@@ -125,8 +117,8 @@ impl S8DerivedIndexAuthoritySource {
 fn physical_root_manifest_parity_basis(
     source_witness: &PhysicalRootManifestRebuildWitness,
     key_domain: PhysicalKeyDomainWitness,
-    coverage: S8LayoutCoverageWitness,
-) -> Result<S8DerivedIndexParityBasis, S8DerivedIndexRebuildDenied> {
+    coverage: LayoutCoverageWitness,
+) -> Result<DerivedIndexParityBasis, DerivedIndexRebuildDenied> {
     let encoding = layout_declarations().require_canonical_key_encoding(key_domain);
     let comparator = layout_declarations().declare_comparator_law(encoding);
     let rows = source_witness
@@ -140,11 +132,11 @@ fn physical_root_manifest_parity_basis(
                 .canonical_key_bytes(comparator, key)
                 .expect("admitted page address key should encode canonically");
 
-            super::basis::S8DerivedIndexParityRow::new(key, "")
+            super::basis::DerivedIndexParityRow::new(key, "")
         })
         .collect::<Vec<_>>();
 
-    S8DerivedIndexParityBasis::new(
+    DerivedIndexParityBasis::new(
         rows,
         coverage,
         false,
@@ -155,8 +147,8 @@ fn physical_root_manifest_parity_basis(
 fn wal_replay_parity_basis(
     source_witness: &BlobWalReplayRebuildWitness,
     key_domain: PhysicalKeyDomainWitness,
-    coverage: S8LayoutCoverageWitness,
-) -> Result<S8DerivedIndexParityBasis, S8DerivedIndexRebuildDenied> {
+    coverage: LayoutCoverageWitness,
+) -> Result<DerivedIndexParityBasis, DerivedIndexRebuildDenied> {
     let record = source_witness.record();
     let encoding = layout_declarations().require_canonical_key_encoding(key_domain);
     let comparator = layout_declarations().declare_comparator_law(encoding);
@@ -171,8 +163,8 @@ fn wal_replay_parity_basis(
         .canonical_key_bytes(comparator, key)
         .expect("admitted wal record key should encode canonically");
 
-    S8DerivedIndexParityBasis::new(
-        vec![super::basis::S8DerivedIndexParityRow::new(key, "")],
+    DerivedIndexParityBasis::new(
+        vec![super::basis::DerivedIndexParityRow::new(key, "")],
         coverage,
         false,
         source_witness.counter_shape().to_vec(),

@@ -1,13 +1,14 @@
 use crate::{
     close_physical_integrity_from_executed_evidence,
     courtroom::blobs::chunk_integrity_without_blob_lifecycle_tests::inspect_chunk_denial,
+    courtroom::harness::test_support::integrity_handoff_test_support::intact_readiness,
     courtroom::harness::test_support::physical_integrity_closeout_line_cap_test_support::line_cap_composition_evidence,
     courtroom::harness::test_support::physical_integrity_closeout_test_support::{
-        assert_synthetic_rejection, complete_physical_integrity_closeout_evidence, complete_physical_integrity_closeout_suite,
-        copied_physical_substrate_synthetic_rejections, executed_boundary_denial_evidence,
-        executed_localization_evidence, lane_plan_and_transcript, physical_integrity_harness, physical_integrity_readiness,
+        assert_synthetic_rejection, complete_physical_integrity_closeout_evidence,
+        complete_physical_integrity_closeout_suite, copied_physical_substrate_synthetic_rejections,
+        executed_boundary_denial_evidence, executed_localization_evidence,
+        lane_plan_and_transcript, physical_integrity_harness, physical_integrity_readiness,
     },
-    courtroom::harness::test_support::integrity_handoff_test_support::intact_readiness,
     courtroom::physical_integrity::physical_integrity_closeout_bundle::PhysicalIntegrityCloseoutRequest,
     PhysicalIntegrityCertificationBundle, PhysicalIntegrityCloseoutDenial,
     PhysicalIntegrityCloseoutSuite, PhysicalIntegrityCloseoutSuiteEvidence,
@@ -45,7 +46,10 @@ fn physical_integrity_closeout_publishes_physical_integrity_report_and_recovery_
         closeout.report().harness_lane(),
         RoadmapLaneFamily::Integrity
     );
-    assert_eq!(closeout.report().recovery_handoff_identity(), &expected_identity);
+    assert_eq!(
+        closeout.report().recovery_handoff_identity(),
+        &expected_identity
+    );
     assert_eq!(closeout.report().recovery_counters(), expected_counters);
     assert_eq!(closeout.report().suite_harnesses().len(), 6);
     assert!(closeout.report().suite_harnesses().iter().all(|harness| {
@@ -244,10 +248,13 @@ fn closeout_rejects_recovery_suite_evidence_copied_from_another_handoff() {
     let copied_handoff = intact_readiness("copied-handoff");
     let suite = complete_physical_integrity_closeout_suite(&copied_handoff);
 
-    let denial = PhysicalIntegrityCertificationBundle::close(
-        PhysicalIntegrityCloseoutRequest::new(suite, physical_integrity_readiness(), request_handoff),
-    )
-    .unwrap_err();
+    let denial =
+        PhysicalIntegrityCertificationBundle::close(PhysicalIntegrityCloseoutRequest::new(
+            suite,
+            physical_integrity_readiness(),
+            request_handoff,
+        ))
+        .unwrap_err();
 
     assert_eq!(
         denial,

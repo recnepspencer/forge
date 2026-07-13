@@ -13,13 +13,15 @@ mod cutover_delta;
 mod denial;
 mod foundational_evidence;
 mod mutation_lane_receipt;
+mod owner_case;
+mod owner_inventory;
 mod plan;
+mod plan_identity;
 mod protected_set;
 mod publication;
 mod reclaim_queue;
 mod scheduler_demand;
 mod stability_proof;
-mod state_machine_contract;
 #[cfg(test)]
 mod state_machine_contract_tests;
 #[cfg(any(test, feature = "certification-authority"))]
@@ -34,6 +36,10 @@ pub use foundational_evidence::CompactionInterlockFoundationalEvidence;
 pub use mutation_lane_receipt::{
     CompactionMutationLaneOrigin, CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
 };
+pub use owner_case::{CompactionCutoverState, CompactionOwnerCase, CompactionOwnerCaseId};
+pub use owner_inventory::compaction_owner_case_inventory;
+#[cfg(any(test, feature = "certification-authority"))]
+pub use plan::compaction_read_interlock_plan_for_certification_root_seed;
 #[cfg(any(test, feature = "certification-authority"))]
 pub use plan::compaction_read_interlock_plan_for_certification_test;
 pub use plan::{CompactionReadInterlockPlan, CompactionSourceIntegrityEvidence};
@@ -44,10 +50,6 @@ pub use publication::CompactionRewritePublication;
 pub use reclaim_queue::{CompactionDeferredReclaimQueue, DrainedCompactionReclaim};
 pub use scheduler_demand::compaction_rewrite_scheduler_demand;
 pub use stability_proof::CompactionCutoverStabilityProof;
-pub use state_machine_contract::{
-    compaction_cutover_outcome_facts, CompactionCutoverState, CompactionCutoverTransition,
-    CompactionCutoverTransitionKind,
-};
 #[cfg(any(test, feature = "certification-authority"))]
 pub use test_authority::{
     compaction_cutover_evidence_for_certification_plan,

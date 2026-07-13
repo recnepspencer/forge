@@ -1,6 +1,4 @@
-#[allow(dead_code)]
-#[path = "../page_lsn_publication/wal_durability_paths.rs"]
-mod wal_durability_paths;
+use forge_store_test_support::harness::recovery::wal_durability as wal_durability_paths;
 
 use forge_store_recovery_physics::{
     AcknowledgmentPrecondition, DurableAckReceipt, LogSequenceNumber, PartialPublicationCrashEdge,

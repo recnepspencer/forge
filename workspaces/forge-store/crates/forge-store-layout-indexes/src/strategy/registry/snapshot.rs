@@ -1,21 +1,21 @@
-use super::{S8LayoutAdmissionRequest, S8LayoutStrategyCapability};
+use super::{LayoutAdmissionRequest, LayoutStrategyCapability};
 use crate::keyspace::{CompositeKeyOrderingLaw, HashCollisionLaw};
-use crate::strategy::S8AdmittedLayoutStrategy;
+use crate::strategy::AdmittedLayoutStrategy;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutStrategyRegistrySnapshot {
-    admitted_strategy: S8AdmittedLayoutStrategy,
-    request: S8LayoutAdmissionRequest,
-    granted_capability: S8LayoutStrategyCapability,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LayoutStrategyRegistrySnapshot {
+    admitted_strategy: AdmittedLayoutStrategy,
+    request: LayoutAdmissionRequest,
+    granted_capability: LayoutStrategyCapability,
     hash_equality_law: Option<HashCollisionLaw>,
     composite_ordering_law: Option<CompositeKeyOrderingLaw>,
 }
 
-impl S8LayoutStrategyRegistrySnapshot {
+impl LayoutStrategyRegistrySnapshot {
     pub(crate) const fn new(
-        admitted_strategy: S8AdmittedLayoutStrategy,
-        request: S8LayoutAdmissionRequest,
-        granted_capability: S8LayoutStrategyCapability,
+        admitted_strategy: AdmittedLayoutStrategy,
+        request: LayoutAdmissionRequest,
+        granted_capability: LayoutStrategyCapability,
         hash_equality_law: Option<HashCollisionLaw>,
         composite_ordering_law: Option<CompositeKeyOrderingLaw>,
     ) -> Self {
@@ -28,23 +28,23 @@ impl S8LayoutStrategyRegistrySnapshot {
         }
     }
 
-    pub const fn admitted_strategy(self) -> S8AdmittedLayoutStrategy {
+    pub const fn admitted_strategy(&self) -> AdmittedLayoutStrategy {
         self.admitted_strategy
     }
 
-    pub const fn request(self) -> S8LayoutAdmissionRequest {
-        self.request
+    pub const fn request(&self) -> &LayoutAdmissionRequest {
+        &self.request
     }
 
-    pub const fn granted_capability(self) -> S8LayoutStrategyCapability {
+    pub const fn granted_capability(&self) -> LayoutStrategyCapability {
         self.granted_capability
     }
 
-    pub const fn hash_equality_law(self) -> Option<HashCollisionLaw> {
+    pub const fn hash_equality_law(&self) -> Option<HashCollisionLaw> {
         self.hash_equality_law
     }
 
-    pub const fn composite_ordering_law(self) -> Option<CompositeKeyOrderingLaw> {
+    pub const fn composite_ordering_law(&self) -> Option<CompositeKeyOrderingLaw> {
         self.composite_ordering_law
     }
 }

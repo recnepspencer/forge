@@ -7,5 +7,5 @@ pub(crate) use publish::{
 };
 pub(crate) use wal::{
     chunk_write_replay_evidence, durable_wal_publication, generic_recovery_replay_entry,
-    recovery_entry, recovery_replay_entry, replayable_wal_classification,
+    recovery_replay_entry, replayable_wal_classification,
 };

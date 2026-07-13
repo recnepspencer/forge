@@ -185,12 +185,14 @@ impl PhysicalFixtureCells {
     }
 
     fn root_manifest(&self) -> forge_store_physical_format::PhysicalRootManifest {
-        forge_store_physical_format::PhysicalManifestUniverseBuilder::for_canonical_physical_format(self.root_cell)
-            .segment(self.segment_cell)
-            .ordinary_page(self.slot_cell)
-            .extent(self.extent_cell)
-            .free_space_reuse(self.free_space)
-            .publish()
+        forge_store_physical_format::PhysicalManifestUniverseBuilder::for_canonical_physical_format(
+            self.root_cell,
+        )
+        .segment(self.segment_cell)
+        .ordinary_page(self.slot_cell)
+        .extent(self.extent_cell)
+        .free_space_reuse(self.free_space)
+        .publish()
     }
 }
 
@@ -252,7 +254,9 @@ fn header_bytes(
 ) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload_len);
     bytes.push(tag);
-    bytes.extend_from_slice(&byte_order.write_u16(PhysicalFormatVersion::initial_format_version().value()));
+    bytes.extend_from_slice(
+        &byte_order.write_u16(PhysicalFormatVersion::initial_format_version().value()),
+    );
     bytes.extend_from_slice(&byte_order.write_u16(PHYSICAL_HEADER_LENGTH));
     bytes.extend_from_slice(&byte_order.write_u32(payload_len as u32));
     bytes.extend_from_slice(&byte_order.write_u64(generation.get()));

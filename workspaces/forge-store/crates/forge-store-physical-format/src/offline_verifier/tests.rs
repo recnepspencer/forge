@@ -59,7 +59,8 @@ fn missing_and_ambiguous_roots_deny_before_manifest_decode() {
 #[test]
 fn backend_residue_denies_before_page_header_walk() {
     let mut fixture = verifier_fixture();
-    let residue = PhysicalReferenceAuthority::for_canonical_physical_format().admit_extent(fixture.extent_cell);
+    let residue = PhysicalReferenceAuthority::for_canonical_physical_format()
+        .admit_extent(fixture.extent_cell);
     fixture.layout = PersistedPhysicalLayout::builder()
         .root_manifest(fixture.root_manifest)
         .segment_manifest(fixture.segment_manifest)
@@ -205,9 +206,11 @@ fn assert_malformed_section_denies_before_header_decode(
     layout: PersistedPhysicalLayout,
     expected: OfflineVerifierDenialKind,
 ) {
-    let verifier = OfflinePhysicalVerifier::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
-        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
-    ));
+    let verifier = OfflinePhysicalVerifier::for_canonical_physical_format(
+        PhysicalHeaderAuthority::for_canonical_physical_format(
+            PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+        ),
+    );
 
     let denial = verifier.verify(&layout).unwrap_err();
 

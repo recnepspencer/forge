@@ -97,8 +97,9 @@ fn assert_pressure_denial(
     capacity: forge_store_io_scheduler::BackgroundCapacityAdmission,
     expected: BlobStreamingIngestDenial,
 ) {
-    let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(capacity, 0, false)
-        .expect("S.6 blob pressure admission should build");
+    let pressure =
+        BlobStreamingPressureAdmission::from_io_qos_background_capacity(capacity, 0, false)
+            .expect("S.6 blob pressure admission should build");
     let denial = run_ingest(pressure).expect_err("non-current blob pressure must deny ingest");
     assert_eq!(denial, expected);
 }

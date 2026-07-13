@@ -6,12 +6,9 @@ mod snapshot;
 #[cfg(test)]
 pub(crate) mod tests;
 
-pub use deferred::S8LayoutAdmissionDeferred;
-pub use denial::S8LayoutAdmissionDenial;
-pub(crate) use registry::LayoutAdmissionRegistryFacade;
-pub use registry::{layout_admission_registry, S8LayoutAdmissionOutcome, S8LayoutAdmissionView};
-pub use request::{
-    S8LayoutAdmissionRequest, S8LayoutRequestedCapability, S8LayoutStrategyCapability,
-    S8RequestedKeyLawSet,
-};
-pub use snapshot::S8LayoutStrategyRegistrySnapshot;
+pub use deferred::LayoutAdmissionDeferred;
+pub use denial::{LayoutAdmissionDenial, LayoutAdmissionDenialCase};
+pub(crate) use registry::family_lane_supports_operation;
+pub use registry::layout_admission_registry;
+pub use request::{LayoutAdmissionRequest, LayoutRequestedCapability, LayoutStrategyCapability};
+pub use snapshot::LayoutStrategyRegistrySnapshot;

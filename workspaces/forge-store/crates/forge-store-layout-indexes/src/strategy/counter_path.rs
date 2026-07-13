@@ -1,21 +1,21 @@
-use super::counter_evidence::S8StrategyCounterEvidence;
-use super::declaration::S8StrategyDeclaration;
-use crate::access::shape::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
+use super::counter_evidence::StrategyCounterEvidence;
+use super::declaration::StrategyDeclaration;
+use crate::access::shape::{AccessShapeDetail, PrefixBasis, RangeBasis};
 
 pub(super) fn derive_strategy_counter_evidence(
-    declaration: S8StrategyDeclaration,
-) -> S8StrategyCounterEvidence {
+    declaration: StrategyDeclaration,
+) -> StrategyCounterEvidence {
     let point_lookup = super::counter_planning::planned_counter_envelope_for(
         declaration.family(),
-        S8AccessShapeDetail::PointLookup,
+        AccessShapeDetail::PointLookup,
     );
     let range_lookup = super::counter_planning::planned_counter_envelope_for(
         declaration.family(),
-        S8AccessShapeDetail::RangeLookup(S8RangeBasis::CanonicalRangeBounds),
+        AccessShapeDetail::RangeLookup(RangeBasis::CanonicalRangeBounds),
     );
     let prefix_lookup = super::counter_planning::planned_counter_envelope_for(
         declaration.family(),
-        S8AccessShapeDetail::PrefixLookup(S8PrefixBasis::CanonicalPrefixBounds),
+        AccessShapeDetail::PrefixLookup(PrefixBasis::CanonicalPrefixBounds),
     );
     let publication =
         super::counter_planning::planned_publication_counter_snapshot_for(declaration.family());
@@ -29,7 +29,7 @@ pub(super) fn derive_strategy_counter_evidence(
         })
         .unwrap_or_else(zero_counter_profile);
 
-    S8StrategyCounterEvidence::new(
+    StrategyCounterEvidence::new(
         point_lookup,
         range_lookup,
         prefix_lookup,
@@ -40,10 +40,10 @@ pub(super) fn derive_strategy_counter_evidence(
 }
 
 const fn derive_shape_specific_aggregate_profile(
-    point_lookup: Option<crate::access::budget::S8PlannedCounterEnvelope>,
-    range_lookup: Option<crate::access::budget::S8PlannedCounterEnvelope>,
-    prefix_lookup: Option<crate::access::budget::S8PlannedCounterEnvelope>,
-) -> Option<super::S8StrategyCounterProfile> {
+    point_lookup: Option<crate::access::budget::PlannedCounterEnvelope>,
+    range_lookup: Option<crate::access::budget::PlannedCounterEnvelope>,
+    prefix_lookup: Option<crate::access::budget::PlannedCounterEnvelope>,
+) -> Option<super::StrategyCounterProfile> {
     match (point_lookup, range_lookup, prefix_lookup) {
         (Some(point), Some(range), Some(prefix)) => Some(max_counter_profile(
             point.aggregate_profile(),
@@ -55,11 +55,11 @@ const fn derive_shape_specific_aggregate_profile(
 }
 
 const fn max_counter_profile(
-    point: super::S8StrategyCounterProfile,
-    range: super::S8StrategyCounterProfile,
-    prefix: super::S8StrategyCounterProfile,
-) -> super::S8StrategyCounterProfile {
-    super::S8StrategyCounterProfile::new(
+    point: super::StrategyCounterProfile,
+    range: super::StrategyCounterProfile,
+    prefix: super::StrategyCounterProfile,
+) -> super::StrategyCounterProfile {
+    super::StrategyCounterProfile::new(
         max3(
             point.point_lookups(),
             range.point_lookups(),
@@ -97,6 +97,6 @@ const fn max3(first: u16, second: u16, third: u16) -> u16 {
     }
 }
 
-const fn zero_counter_profile() -> super::S8StrategyCounterProfile {
-    super::S8StrategyCounterProfile::new(0, 0, 0, 0, 0)
+const fn zero_counter_profile() -> super::StrategyCounterProfile {
+    super::StrategyCounterProfile::new(0, 0, 0, 0, 0)
 }

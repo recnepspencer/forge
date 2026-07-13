@@ -1,7 +1,7 @@
 use crate::{
     courtroom::harness::test_support::bounded_memory_closeout_test_support::{
         background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
-        harness_evidence, pressure_bundles, physical_substrate_readiness, synthetic_rejections,
+        harness_evidence, physical_substrate_readiness, pressure_bundles, synthetic_rejections,
     },
     courtroom::harness::test_support::record_view_evidence_test_support::{
         admit_payload_frame, resident_frame_table,
@@ -16,7 +16,8 @@ use forge_store_physical_integrity::{
 };
 
 #[test]
-fn equivalent_physical_substrate_closeouts_lower_to_same_physical_integrity_entry_basis_and_scrub_limits() {
+fn equivalent_physical_substrate_closeouts_lower_to_same_physical_integrity_entry_basis_and_scrub_limits(
+) {
     let first = admit_entry_from_independent_closeout(b"phase1-first");
     let second = admit_entry_from_independent_closeout(b"phase1-second");
 
@@ -32,11 +33,13 @@ fn physical_integrity_entry_admits_only_live_protected_physical_substrate_views(
 }
 
 #[test]
-fn physical_integrity_entry_denies_empty_live_protected_physical_substrate_view_before_witness_minting() {
+fn physical_integrity_entry_denies_empty_live_protected_physical_substrate_view_before_witness_minting(
+) {
     let readiness = complete_closeout_report()
         .publish_physical_integrity_readiness(physical_substrate_readiness())
         .unwrap();
-    let admission = IntegrityEntryAdmission::from_physical_integrity_payload(readiness.payload()).unwrap();
+    let admission =
+        IntegrityEntryAdmission::from_physical_integrity_payload(readiness.payload()).unwrap();
     let mut table = resident_frame_table();
     let frame = admit_payload_frame(&mut table, 31, 5, b"");
     let page = table.lease_page(frame.resident_frame_token()).unwrap();
@@ -66,7 +69,8 @@ fn admit_entry_from_independent_closeout(payload: &[u8]) -> EntryAdmissionObserv
     let readiness = complete_closeout_report()
         .publish_physical_integrity_readiness(physical_substrate_readiness())
         .unwrap();
-    let admission = IntegrityEntryAdmission::from_physical_integrity_payload(readiness.payload()).unwrap();
+    let admission =
+        IntegrityEntryAdmission::from_physical_integrity_payload(readiness.payload()).unwrap();
     let mut table = resident_frame_table();
     let frame = admit_payload_frame(&mut table, 31, 5, payload);
     let page = table.lease_page(frame.resident_frame_token()).unwrap();

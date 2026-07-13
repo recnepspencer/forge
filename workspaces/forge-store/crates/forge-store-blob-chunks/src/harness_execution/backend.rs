@@ -122,9 +122,11 @@ where
 }
 
 fn record_receipt(bytes: &[u8]) -> StorePhysicalChunkWriteReceipt {
-    let records = PhysicalPageRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
-        PhysicalBinaryEncodingWitness::physical_format_canonical().expect("binary encoding"),
-    ));
+    let records = PhysicalPageRecordAuthority::for_canonical_physical_format(
+        PhysicalHeaderAuthority::for_canonical_physical_format(
+            PhysicalBinaryEncodingWitness::physical_format_canonical().expect("binary encoding"),
+        ),
+    );
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations

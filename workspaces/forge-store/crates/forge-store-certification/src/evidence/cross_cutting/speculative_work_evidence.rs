@@ -135,8 +135,7 @@ impl SpeculativeWorkEvidenceReport {
     ) -> Result<Self, SpeculativeWorkEvidenceDenial> {
         match row {
             SpeculativeWorkEvidenceRow::DenialBeforeScheduling
-                if denial_is_boundary(denial.kind())
-                    && total_denials(denial.counters()) > 0 =>
+                if denial_is_boundary(denial.kind()) && total_denials(denial.counters()) > 0 =>
             {
                 Ok(Self {
                     row,

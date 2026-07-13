@@ -1,11 +1,11 @@
 use super::BaselineLsmCompactionPublicationReceipt;
 
-use crate::strategy::S8StrategyDenial;
+use crate::strategy::StrategyDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct S8LsmCompactionOrderingLaw;
+pub(crate) struct LsmCompactionOrderingLaw;
 
-impl S8LsmCompactionOrderingLaw {
+impl LsmCompactionOrderingLaw {
     pub(crate) const fn baseline() -> Self {
         Self
     }
@@ -15,7 +15,7 @@ impl S8LsmCompactionOrderingLaw {
     pub(crate) fn verify_owner_receipt(
         self,
         receipt: &BaselineLsmCompactionPublicationReceipt,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         let inputs = receipt.input_runs();
         let generations_are_strict = inputs
             .windows(2)
@@ -32,6 +32,6 @@ impl S8LsmCompactionOrderingLaw {
         {
             return Ok(());
         }
-        Err(S8StrategyDenial::CompactionOrderingViolation)
+        Err(StrategyDenial::CompactionOrderingViolation)
     }
 }

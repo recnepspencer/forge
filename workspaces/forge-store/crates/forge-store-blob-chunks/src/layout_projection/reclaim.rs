@@ -1,5 +1,4 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture, StableDigest};
-use forge_store_layout_indexes::access_planning::S8AccessShape;
 use forge_store_physical_format::{PhysicalReclaimRegion, ReclaimedByteInterpretation};
 use forge_store_security::StoreSecurityScopeIdentity;
 
@@ -7,13 +6,16 @@ use super::behavior::{
     corruption_behavior_for, declared_rebuild_posture, BlobLayoutCorruptionBehavior,
     BlobLayoutScopeSafeAbsenceBehavior,
 };
-use super::{BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence};
+use super::{
+    BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence,
+    BlobLayoutAccessShape,
+};
 use crate::{BlobChunkIdentity, BlobRetentionReclaimPermit};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReclaimLayoutReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: BlobLayoutAccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     absence_behavior: BlobLayoutScopeSafeAbsenceBehavior,
     corruption_behavior: BlobLayoutCorruptionBehavior,
@@ -27,7 +29,7 @@ pub struct ReclaimLayoutReport {
 }
 
 impl ReclaimLayoutReport {
-    fn admit_reclaim(
+    fn project_reclaim(
         permit: &BlobRetentionReclaimPermit,
     ) -> Result<ReclaimLayoutReport, BlobLayoutAccessDenial> {
         if permit.reclaim_release().released_edges().is_empty() {
@@ -46,7 +48,7 @@ impl ReclaimLayoutReport {
         let receipt = permit.reclaim_policy_evidence().receipt();
         Self {
             family_id,
-            access_shape: S8AccessShape::BoundedScan,
+            access_shape: BlobLayoutAccessShape::BoundedScan,
             rebuild_posture,
             absence_behavior: BlobLayoutScopeSafeAbsenceBehavior::ScopedMaintenanceScan,
             corruption_behavior: corruption_behavior_for(rebuild_posture),
@@ -67,7 +69,7 @@ impl ReclaimLayoutReport {
         self.family_id
     }
 
-    pub const fn access_shape(&self) -> S8AccessShape {
+    pub const fn access_shape(&self) -> BlobLayoutAccessShape {
         self.access_shape
     }
 
@@ -129,7 +131,7 @@ impl ReclaimLayoutReport {
 }
 
 impl BlobRetentionReclaimPermit {
-    pub fn admit_reclaim_layout(&self) -> Result<ReclaimLayoutReport, BlobLayoutAccessDenial> {
-        ReclaimLayoutReport::admit_reclaim(self)
+    pub fn project_reclaim_layout(&self) -> Result<ReclaimLayoutReport, BlobLayoutAccessDenial> {
+        ReclaimLayoutReport::project_reclaim(self)
     }
 }

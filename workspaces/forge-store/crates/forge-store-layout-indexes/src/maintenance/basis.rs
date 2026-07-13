@@ -1,16 +1,16 @@
-use crate::{CanonicalKeyBytes, S8LayoutCoverageWitness};
+use crate::{CanonicalKeyBytes, LayoutCoverageWitness};
 use forge_proof::CanonicalVec;
 use std::cmp::Ordering;
 
-use super::outcome::S8DerivedIndexRebuildDenied;
+use super::outcome::DerivedIndexRebuildDenied;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S8DerivedIndexParityRow {
+pub struct DerivedIndexParityRow {
     key: CanonicalKeyBytes,
     value_fingerprint: String,
 }
 
-impl S8DerivedIndexParityRow {
+impl DerivedIndexParityRow {
     pub fn new(key: CanonicalKeyBytes, value_fingerprint: impl Into<String>) -> Self {
         Self {
             key,
@@ -27,13 +27,13 @@ impl S8DerivedIndexParityRow {
     }
 }
 
-impl PartialOrd for S8DerivedIndexParityRow {
+impl PartialOrd for DerivedIndexParityRow {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for S8DerivedIndexParityRow {
+impl Ord for DerivedIndexParityRow {
     fn cmp(&self, other: &Self) -> Ordering {
         self.key
             .as_bytes()
@@ -43,23 +43,23 @@ impl Ord for S8DerivedIndexParityRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S8DerivedIndexParityBasis {
+pub struct DerivedIndexParityBasis {
     unique_keys: Vec<CanonicalKeyBytes>,
-    ordered_rows: CanonicalVec<S8DerivedIndexParityRow>,
-    coverage: S8LayoutCoverageWitness,
+    ordered_rows: CanonicalVec<DerivedIndexParityRow>,
+    coverage: LayoutCoverageWitness,
     cost_envelope_compliant: bool,
     counter_shape: CanonicalVec<u64>,
 }
 
-impl S8DerivedIndexParityBasis {
+impl DerivedIndexParityBasis {
     pub fn new(
-        ordered_rows: Vec<S8DerivedIndexParityRow>,
-        coverage: S8LayoutCoverageWitness,
+        ordered_rows: Vec<DerivedIndexParityRow>,
+        coverage: LayoutCoverageWitness,
         cost_envelope_compliant: bool,
         counter_shape: Vec<u64>,
-    ) -> Result<Self, S8DerivedIndexRebuildDenied> {
+    ) -> Result<Self, DerivedIndexRebuildDenied> {
         let ordered_rows = CanonicalVec::try_from_sorted(ordered_rows)
-            .map_err(|_| S8DerivedIndexRebuildDenied::ParityRowsMustBeCanonical)?;
+            .map_err(|_| DerivedIndexRebuildDenied::ParityRowsMustBeCanonical)?;
         let unique_keys = ordered_rows
             .as_slice()
             .iter()
@@ -69,10 +69,10 @@ impl S8DerivedIndexParityBasis {
             .windows(2)
             .any(|keys| keys[0].as_bytes() >= keys[1].as_bytes())
         {
-            return Err(S8DerivedIndexRebuildDenied::ParityKeysMustBeUnique);
+            return Err(DerivedIndexRebuildDenied::ParityKeysMustBeUnique);
         }
         let counter_shape = CanonicalVec::try_from_sorted(counter_shape)
-            .map_err(|_| S8DerivedIndexRebuildDenied::ParityCounterShapeMustBeCanonical)?;
+            .map_err(|_| DerivedIndexRebuildDenied::ParityCounterShapeMustBeCanonical)?;
 
         Ok(Self {
             unique_keys,
@@ -87,12 +87,12 @@ impl S8DerivedIndexParityBasis {
         &self.unique_keys
     }
 
-    pub fn ordered_rows(&self) -> &[S8DerivedIndexParityRow] {
+    pub fn ordered_rows(&self) -> &[DerivedIndexParityRow] {
         self.ordered_rows.as_slice()
     }
 
-    pub const fn coverage(&self) -> S8LayoutCoverageWitness {
-        self.coverage
+    pub const fn coverage(&self) -> &LayoutCoverageWitness {
+        &self.coverage
     }
 
     pub const fn cost_envelope_compliant(&self) -> bool {

@@ -1,19 +1,21 @@
 use forge_store_budgets::CounterEvidenceStrength;
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
-use forge_store_layout_indexes::access_planning::S8AccessShape;
 use forge_store_security::StoreSecurityScopeIdentity;
 
 use super::behavior::{
     corruption_behavior_for, declared_rebuild_posture, BlobLayoutCorruptionBehavior,
     BlobLayoutScopeSafeAbsenceBehavior,
 };
-use super::{BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence};
+use super::{
+    BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence,
+    BlobLayoutAccessShape,
+};
 use crate::{BlobChunkReachabilityProofSet, StoredChunkDigest};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReachabilityLayoutReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: BlobLayoutAccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     absence_behavior: BlobLayoutScopeSafeAbsenceBehavior,
     corruption_behavior: BlobLayoutCorruptionBehavior,
@@ -27,7 +29,7 @@ pub struct ReachabilityLayoutReport {
 }
 
 impl ReachabilityLayoutReport {
-    fn admit_reachability(
+    fn project_reachability(
         proof: &BlobChunkReachabilityProofSet,
     ) -> Result<ReachabilityLayoutReport, BlobLayoutAccessDenial> {
         if proof.reachable_chunks().is_empty() {
@@ -45,7 +47,7 @@ impl ReachabilityLayoutReport {
         let rebuild_posture = declared_rebuild_posture(family_id);
         Self {
             family_id,
-            access_shape: S8AccessShape::BoundedScan,
+            access_shape: BlobLayoutAccessShape::BoundedScan,
             rebuild_posture,
             absence_behavior: BlobLayoutScopeSafeAbsenceBehavior::ScopedMaintenanceScan,
             corruption_behavior: corruption_behavior_for(rebuild_posture),
@@ -66,7 +68,7 @@ impl ReachabilityLayoutReport {
         self.family_id
     }
 
-    pub const fn access_shape(&self) -> S8AccessShape {
+    pub const fn access_shape(&self) -> BlobLayoutAccessShape {
         self.access_shape
     }
 
@@ -116,9 +118,9 @@ impl ReachabilityLayoutReport {
 }
 
 impl BlobChunkReachabilityProofSet {
-    pub fn admit_reachability_layout(
+    pub fn project_reachability_layout(
         &self,
     ) -> Result<ReachabilityLayoutReport, BlobLayoutAccessDenial> {
-        ReachabilityLayoutReport::admit_reachability(self)
+        ReachabilityLayoutReport::project_reachability(self)
     }
 }

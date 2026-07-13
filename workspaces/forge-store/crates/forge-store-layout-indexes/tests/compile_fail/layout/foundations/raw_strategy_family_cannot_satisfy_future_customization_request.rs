@@ -1,8 +1,8 @@
-use forge_store_layout_indexes::layout_customization::S8FutureLayoutCustomizationRequest;
-use forge_store_layout_indexes::layout_strategy_admission::S8LayoutStrategyFamily;
+use forge_store_layout_indexes::customization::FutureLayoutCustomizationRequest;
+use forge_store_layout_indexes::strategy_declarations::LayoutStrategyFamily;
 
-fn require_request(_: S8FutureLayoutCustomizationRequest) {}
+fn require_request(_: FutureLayoutCustomizationRequest) {}
 
 fn main() {
-    require_request(S8LayoutStrategyFamily::BaselineBTreeRange);
+    require_request(LayoutStrategyFamily::BaselineBTreeRange);
 }

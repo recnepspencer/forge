@@ -51,7 +51,9 @@ pub(crate) fn page_witness(payload: &[u8]) -> PhysicalHeaderDecodeWitness {
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+    )
 }
 
 fn slot_cell(generation: u64) -> SlotGenerationCell {

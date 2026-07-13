@@ -4,13 +4,14 @@ use crate::catalog::{
 };
 use crate::keyspace::{CompositeKeyOrderingLaw, HashCollisionLaw, PhysicalKeyDomainWitness};
 use crate::maintenance::{
-    S8IndexMaintenanceMode, S8LiveExactMaintenanceWitness, S8PhysicalMutationShape,
+    IndexMaintenanceMode, LiveExactMaintenanceWitness, PhysicalMutationShape,
 };
-use crate::materialization::S8LayoutCoverageWitness;
-use crate::strategy::S8LayoutStrategyFamily;
+use crate::materialization::LayoutCoverageWitness;
+use crate::strategy::LayoutStrategyFamily;
+use crate::strategy::StrategyAuthorityBasis;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8LayoutRequestedCapability {
+pub enum LayoutRequestedCapability {
     PointLookup,
     OrderedRange,
     PrefixTraversal,
@@ -18,7 +19,7 @@ pub enum S8LayoutRequestedCapability {
     BlobStreaming,
 }
 
-impl S8LayoutRequestedCapability {
+impl LayoutRequestedCapability {
     pub const fn point_lookup() -> Self {
         Self::PointLookup
     }
@@ -41,7 +42,7 @@ impl S8LayoutRequestedCapability {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8LayoutStrategyCapability {
+pub enum LayoutStrategyCapability {
     PointLookup,
     OrderedRange,
     PrefixTraversal,
@@ -49,25 +50,25 @@ pub enum S8LayoutStrategyCapability {
     BlobStreaming,
 }
 
-impl S8LayoutStrategyCapability {
-    pub const fn from_requested(requested: S8LayoutRequestedCapability) -> Self {
+impl LayoutStrategyCapability {
+    pub const fn from_requested(requested: LayoutRequestedCapability) -> Self {
         match requested {
-            S8LayoutRequestedCapability::PointLookup => Self::PointLookup,
-            S8LayoutRequestedCapability::OrderedRange => Self::OrderedRange,
-            S8LayoutRequestedCapability::PrefixTraversal => Self::PrefixTraversal,
-            S8LayoutRequestedCapability::ExactScan => Self::ExactScan,
-            S8LayoutRequestedCapability::BlobStreaming => Self::BlobStreaming,
+            LayoutRequestedCapability::PointLookup => Self::PointLookup,
+            LayoutRequestedCapability::OrderedRange => Self::OrderedRange,
+            LayoutRequestedCapability::PrefixTraversal => Self::PrefixTraversal,
+            LayoutRequestedCapability::ExactScan => Self::ExactScan,
+            LayoutRequestedCapability::BlobStreaming => Self::BlobStreaming,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8RequestedKeyLawSet {
+pub struct RequestedKeyLawSet {
     hash_equality_law: Option<HashCollisionLaw>,
     composite_ordering_law: Option<CompositeKeyOrderingLaw>,
 }
 
-impl S8RequestedKeyLawSet {
+impl RequestedKeyLawSet {
     pub const fn new() -> Self {
         Self {
             hash_equality_law: None,
@@ -94,47 +95,58 @@ impl S8RequestedKeyLawSet {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutAdmissionRequest {
-    lifecycle: ArtifactFamilyLifecycleAdmission,
-    key_domain: PhysicalKeyDomainWitness,
-    family: S8LayoutStrategyFamily,
-    requested_capability: S8LayoutRequestedCapability,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LayoutAdmissionRequest {
+    authority_basis: StrategyAuthorityBasis,
+    family: LayoutStrategyFamily,
+    requested_capability: LayoutRequestedCapability,
     requested_lane: ArtifactFamilyAccessLane,
     required_scope_partition: ArtifactScopePartitionWitness,
-    maintenance_mode: S8IndexMaintenanceMode,
-    mutation_shape: S8PhysicalMutationShape,
+    maintenance_mode: IndexMaintenanceMode,
+    mutation_shape: PhysicalMutationShape,
     required_migration_posture: Option<DurableArtifactMigrationPosture>,
-    required_key_laws: S8RequestedKeyLawSet,
+    required_key_laws: RequestedKeyLawSet,
     require_exact_materialization: bool,
-    exact_coverage: Option<S8LayoutCoverageWitness>,
-    exact_maintenance_witness: Option<S8LiveExactMaintenanceWitness>,
-    require_exact_absence_proof: bool,
+    exact_coverage: Option<LayoutCoverageWitness>,
+    exact_maintenance_witness: Option<LiveExactMaintenanceWitness>,
 }
 
-impl S8LayoutAdmissionRequest {
-    pub const fn new(
-        lifecycle: ArtifactFamilyLifecycleAdmission,
-        key_domain: PhysicalKeyDomainWitness,
-        family: S8LayoutStrategyFamily,
-        requested_capability: S8LayoutRequestedCapability,
+impl LayoutAdmissionRequest {
+    pub(crate) const fn from_admitted(
+        family_authority: crate::AdmittedPhysicalArtifactFamily,
+        key_domain: crate::AdmittedPhysicalKeyDomain,
+        family: LayoutStrategyFamily,
+        requested_capability: LayoutRequestedCapability,
         requested_lane: ArtifactFamilyAccessLane,
     ) -> Self {
+        Self::from_authority_basis(
+            StrategyAuthorityBasis::admitted(family_authority, key_domain),
+            family,
+            requested_capability,
+            requested_lane,
+        )
+    }
+
+    const fn from_authority_basis(
+        authority_basis: StrategyAuthorityBasis,
+        family: LayoutStrategyFamily,
+        requested_capability: LayoutRequestedCapability,
+        requested_lane: ArtifactFamilyAccessLane,
+    ) -> Self {
+        let key_domain = authority_basis.key_domain();
         Self {
-            lifecycle,
-            key_domain,
+            authority_basis,
             family,
             requested_capability,
             requested_lane,
             required_scope_partition: key_domain.scope(),
-            maintenance_mode: S8IndexMaintenanceMode::SynchronousExact,
-            mutation_shape: S8PhysicalMutationShape::ObservationOnly,
+            maintenance_mode: IndexMaintenanceMode::SynchronousExact,
+            mutation_shape: PhysicalMutationShape::ObservationOnly,
             required_migration_posture: None,
-            required_key_laws: S8RequestedKeyLawSet::new(),
+            required_key_laws: RequestedKeyLawSet::new(),
             require_exact_materialization: false,
             exact_coverage: None,
             exact_maintenance_witness: None,
-            require_exact_absence_proof: false,
         }
     }
 
@@ -143,12 +155,12 @@ impl S8LayoutAdmissionRequest {
         self
     }
 
-    pub const fn under_maintenance_mode(mut self, mode: S8IndexMaintenanceMode) -> Self {
+    pub const fn under_maintenance_mode(mut self, mode: IndexMaintenanceMode) -> Self {
         self.maintenance_mode = mode;
         self
     }
 
-    pub const fn for_mutation_shape(mut self, mutation_shape: S8PhysicalMutationShape) -> Self {
+    pub const fn for_mutation_shape(mut self, mutation_shape: PhysicalMutationShape) -> Self {
         self.mutation_shape = mutation_shape;
         self
     }
@@ -176,81 +188,70 @@ impl S8LayoutAdmissionRequest {
         self
     }
 
-    pub const fn require_exact_materialization(
-        mut self,
-        coverage: S8LayoutCoverageWitness,
-    ) -> Self {
+    pub fn require_exact_materialization(mut self, coverage: LayoutCoverageWitness) -> Self {
         self.require_exact_materialization = true;
         self.exact_coverage = Some(coverage);
         self
     }
 
-    pub const fn under_live_exact_maintenance(
-        mut self,
-        witness: S8LiveExactMaintenanceWitness,
-    ) -> Self {
+    pub fn under_live_exact_maintenance(mut self, witness: LiveExactMaintenanceWitness) -> Self {
         self.exact_maintenance_witness = Some(witness);
         self
     }
 
-    pub const fn require_exact_absence_proof(mut self) -> Self {
-        self.require_exact_absence_proof = true;
-        self
+    pub const fn lifecycle(&self) -> ArtifactFamilyLifecycleAdmission {
+        self.authority_basis.lifecycle()
     }
 
-    pub const fn lifecycle(self) -> ArtifactFamilyLifecycleAdmission {
-        self.lifecycle
+    pub const fn key_domain(&self) -> PhysicalKeyDomainWitness {
+        self.authority_basis.key_domain()
     }
 
-    pub const fn key_domain(self) -> PhysicalKeyDomainWitness {
-        self.key_domain
+    pub(crate) const fn authority_basis(&self) -> StrategyAuthorityBasis {
+        self.authority_basis
     }
 
-    pub const fn family(self) -> S8LayoutStrategyFamily {
+    pub const fn family(&self) -> LayoutStrategyFamily {
         self.family
     }
 
-    pub const fn requested_capability(self) -> S8LayoutRequestedCapability {
+    pub const fn requested_capability(&self) -> LayoutRequestedCapability {
         self.requested_capability
     }
 
-    pub const fn requested_lane(self) -> ArtifactFamilyAccessLane {
+    pub const fn requested_lane(&self) -> ArtifactFamilyAccessLane {
         self.requested_lane
     }
 
-    pub const fn required_scope_partition(self) -> ArtifactScopePartitionWitness {
+    pub const fn required_scope_partition(&self) -> ArtifactScopePartitionWitness {
         self.required_scope_partition
     }
 
-    pub const fn maintenance_mode(self) -> S8IndexMaintenanceMode {
+    pub const fn maintenance_mode(&self) -> IndexMaintenanceMode {
         self.maintenance_mode
     }
 
-    pub const fn mutation_shape(self) -> S8PhysicalMutationShape {
+    pub const fn mutation_shape(&self) -> PhysicalMutationShape {
         self.mutation_shape
     }
 
-    pub const fn required_migration_posture(self) -> Option<DurableArtifactMigrationPosture> {
+    pub const fn required_migration_posture(&self) -> Option<DurableArtifactMigrationPosture> {
         self.required_migration_posture
     }
 
-    pub const fn required_key_laws(self) -> S8RequestedKeyLawSet {
+    pub const fn required_key_laws(&self) -> RequestedKeyLawSet {
         self.required_key_laws
     }
 
-    pub const fn requires_exact_materialization(self) -> bool {
+    pub const fn requires_exact_materialization(&self) -> bool {
         self.require_exact_materialization
     }
 
-    pub const fn exact_coverage(self) -> Option<S8LayoutCoverageWitness> {
-        self.exact_coverage
+    pub const fn exact_coverage(&self) -> Option<&LayoutCoverageWitness> {
+        self.exact_coverage.as_ref()
     }
 
-    pub const fn exact_maintenance_witness(self) -> Option<S8LiveExactMaintenanceWitness> {
-        self.exact_maintenance_witness
-    }
-
-    pub const fn requires_exact_absence_proof(self) -> bool {
-        self.require_exact_absence_proof
+    pub const fn exact_maintenance_witness(&self) -> Option<&LiveExactMaintenanceWitness> {
+        self.exact_maintenance_witness.as_ref()
     }
 }

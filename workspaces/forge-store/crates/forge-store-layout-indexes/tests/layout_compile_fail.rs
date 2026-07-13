@@ -17,5 +17,7 @@ mod migration;
 mod public_facade;
 #[path = "compile_fail/layout/recovery_readmission_runner.rs"]
 mod recovery_readmission;
+#[path = "compile_fail/layout/runtime_authority_runner.rs"]
+mod runtime_authority;
 #[path = "compile_fail/layout/strategy_admission_runner.rs"]
 mod strategy_admission;

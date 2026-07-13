@@ -1,13 +1,12 @@
-#[path = "../../../support/recovery/coverage_support/coverage_support.rs"]
-mod coverage_support;
+use forge_store_test_support::harness::recovery::coverage as coverage_support;
 
 use forge_store_physical_certification::{
-    reject_edited_matrix_row, reject_manual_coverage_prose, reject_unchecked_maturity_claim,
+    reject_edited_matrix_row, reject_manual_coverage_prose,
+    reject_missing_physical_isolation_correctness_non_claim, reject_unchecked_maturity_claim,
     CoverageGapDenial, CoverageSurfaceKind, FaultDeliveryAttempt, HarnessCoverageStage,
     OracleFamilyKind, PhysicalCoverageRegistry, PhysicalDriverKind, PhysicalHarnessReadinessReport,
+    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessReadinessDenial,
     PhysicalMutationCoverageEvidence,
-    reject_missing_physical_isolation_correctness_non_claim, PhysicalIsolationCorrectnessNonClaimEvidence,
-    PhysicalIsolationHarnessReadinessDenial,
 };
 use forge_store_test_support::admitted_developer_smoke_driver_contracts;
 
@@ -344,11 +343,10 @@ fn missing_coverage_gap_materializes_foundational_named_gap_report() {
     let denial = CoverageGapDenial::MissingRegistrationEvidence {
         surface: CoverageSurfaceKind::MutationResult,
     };
-    let report =
-        PhysicalHarnessReadinessReport::from_coverage_gap(
-            HarnessCoverageStage::SimulationAdmission,
-            &denial,
-        );
+    let report = PhysicalHarnessReadinessReport::from_coverage_gap(
+        HarnessCoverageStage::SimulationAdmission,
+        &denial,
+    );
 
     assert_eq!(report.sequence(), HarnessCoverageStage::SimulationAdmission);
     assert_eq!(report.named_gaps().len(), 1);

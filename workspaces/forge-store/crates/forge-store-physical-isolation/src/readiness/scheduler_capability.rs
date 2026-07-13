@@ -57,7 +57,8 @@ pub(crate) struct SchedulerIsolationCapabilityRequest {
 pub fn publish_scheduler_isolation_capability_from_executed_evidence(
     closeout: ExecutedIsolationEvidence,
 ) -> Result<SchedulerIsolationCapability, IsolationReadinessDenial> {
-    let evidence = S6StoreIsolationHandoffEvidence::from_executed_physical_isolation_closeout(closeout)?;
+    let evidence =
+        S6StoreIsolationHandoffEvidence::from_executed_physical_isolation_closeout(closeout)?;
     publish_scheduler_isolation_capability(
         SchedulerIsolationCapabilityRequest::from_store_handoff_evidence(evidence),
     )

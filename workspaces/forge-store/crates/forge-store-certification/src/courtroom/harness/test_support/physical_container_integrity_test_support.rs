@@ -100,7 +100,8 @@ pub(crate) fn inspect_frame_with_witness_payload(
     let mut denial = None;
     let validation = validation(1, 2, 3, 7);
     with_entry_seed(protected_payload, |seed| {
-        let declaration = checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
+        let declaration =
+            checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
         let admission = seed.with_checksum_declaration(declaration).unwrap();
         let checked = admission
             .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
@@ -202,7 +203,9 @@ fn occupied_slot_entry_offset() -> usize {
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+    )
 }
 
 fn page_bytes(cell: PageGenerationCell, payload: &[u8]) -> Vec<u8> {

@@ -153,7 +153,10 @@ impl PhysicalPageSegmentExtentSubstrateCloseout {
             evidence.platform_grade_witness(),
             evidence.foundation.scope(),
         )?;
-        require_physical_substrate_readiness_scope(evidence.physical_substrate_readiness(), evidence.foundation.scope())?;
+        require_physical_substrate_readiness_scope(
+            evidence.physical_substrate_readiness(),
+            evidence.foundation.scope(),
+        )?;
         Ok(Self {
             scope: evidence.foundation.scope(),
             run,
@@ -172,6 +175,7 @@ impl PhysicalPageSegmentExtentSubstrateCloseout {
         self.run.evidence()
     }
 
+    #[cfg(test)]
     pub(crate) fn into_physical_substrate_readiness(self) -> PhysicalSubstrateReadiness {
         self.evidence().physical_substrate_readiness()
     }

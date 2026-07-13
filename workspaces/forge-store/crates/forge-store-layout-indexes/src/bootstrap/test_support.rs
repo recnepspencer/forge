@@ -1,17 +1,32 @@
-use crate::{bootstrap_catalog, S8BootstrapOnlyAccessPath, S8LayoutMaterializationState};
+use crate::{bootstrap_catalog, BootstrapOnlyAccessPath, LayoutMaterializationState};
 use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
 use forge_store_physical_format::{
     physical_bootstrap_catalog, PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority,
     PhysicalPageId, PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId,
-    PlatformPhysicalAppendRequest, PlatformPhysicalFacade, PlatformPhysicalOpenRequest,
+    PhysicalStoreIdentity, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
+    PlatformPhysicalOpenRequest,
 };
 
 pub(crate) fn bootstrap_exact_materialization(
     family: crate::PhysicalArtifactFamily,
-) -> S8LayoutMaterializationState {
-    let published = published_layout();
+) -> LayoutMaterializationState {
+    let _ = bootstrap_catalog_read_admission();
+    crate::LayoutMaterializationState::exact_through_physical_basis(family)
+}
+
+pub(crate) fn bootstrap_catalog_read_admission() -> crate::BootstrapCatalogReadAdmission {
+    catalog_read_admission(published_layout(false))
+}
+
+pub(crate) fn advanced_bootstrap_catalog_read_admission() -> crate::BootstrapCatalogReadAdmission {
+    catalog_read_admission(published_layout(true))
+}
+
+fn catalog_read_admission(
+    published: forge_store_physical_format::PlatformPhysicalRootPublicationReport,
+) -> crate::BootstrapCatalogReadAdmission {
     let open = published
         .admit_bootstrap_open_witness()
         .expect("bootstrap fixture layout should admit bootstrap open witness");
@@ -20,7 +35,7 @@ pub(crate) fn bootstrap_exact_materialization(
         .expect("bootstrap fixture layout should discover a catalog");
     let (catalog, admission) = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
+            BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             catalog,
             physical_bootstrap_catalog()
                 .discover_catalog(&open)
@@ -38,18 +53,16 @@ pub(crate) fn bootstrap_exact_materialization(
         admission.physical_format_version(),
         catalog.physical_format_version()
     );
-
-    crate::S8LayoutMaterializationState::exact_through_physical_basis(family)
+    admission
 }
 
-fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
-    let mut facade =
-        PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
-            .expect("open S.1 facade");
-    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+fn published_layout(
+    advance_root: bool,
+) -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
+    let mut facade = open_physical_facade();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
-            generations
+            generations()
                 .slot_cell(segment(7), page(3), slot(1))
                 .with_slot_generation(generation(2)),
             b"small",
@@ -57,15 +70,40 @@ fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublic
         .expect("append page-backed record");
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::extent(
-            generations
+            generations()
                 .extent_cell(segment(7), PhysicalExtentId::from_raw(20).unwrap())
                 .with_extent_generation(generation(3)),
             b"large",
         ))
         .expect("append extent-backed record");
-    facade
+    let published = facade
         .publish_physical_root()
-        .expect("publish physical root")
+        .expect("publish physical root");
+    if advance_root {
+        facade
+            .publish_physical_root()
+            .expect("advance physical root publication")
+    } else {
+        published
+    }
+}
+
+pub(crate) fn open_physical_facade() -> PlatformPhysicalFacade {
+    open_physical_facade_for_store(PhysicalStoreIdentity::physical_format_default())
+}
+
+pub(crate) fn open_physical_facade_for_store(
+    store_identity: PhysicalStoreIdentity,
+) -> PlatformPhysicalFacade {
+    PlatformPhysicalFacade::open_physical_format(
+        readiness(),
+        PlatformPhysicalOpenRequest::physical_format_for_store(store_identity),
+    )
+    .expect("open physical facade")
+}
+
+fn generations() -> PhysicalGenerationAuthority {
+    PhysicalGenerationAuthority::for_canonical_physical_format()
 }
 
 fn readiness() -> AcceptedHandoffReadiness {

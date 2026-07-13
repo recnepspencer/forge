@@ -1,11 +1,10 @@
-use forge_store_security::{StoreKeyScope, StoreTenantScope};
-
+use forge_store_lsm_authority::LsmMembershipKey;
 use forge_store_wal::{
     BlobWalRecordEnvelope, BlobWalRecordIdentity, DurablePublicationDeclaration,
     DurablePublicationScope,
 };
 
-use super::{BaselineLsmCounterObservation, BaselineLsmPhysicalPublicationBinding};
+use super::BaselineLsmCounterObservation;
 
 pub(super) struct BaselineLsmCompactionExecutionEffects {
     retired_runs: [BaselineLsmRunIdentity; 3],
@@ -14,22 +13,20 @@ pub(super) struct BaselineLsmCompactionExecutionEffects {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BaselineLsmCompactionKeyIdentity {
-    tenant_scope: StoreTenantScope,
-    key_scope: StoreKeyScope,
-    canonical_key_bytes: [u8; 8],
+    key: LsmMembershipKey,
 }
 
 impl BaselineLsmCompactionKeyIdentity {
-    pub const fn tenant_scope(self) -> StoreTenantScope {
-        self.tenant_scope
+    pub const fn tenant_scope(self) -> forge_store_security::StoreTenantScope {
+        self.key.tenant_scope()
     }
 
-    pub const fn key_scope(self) -> StoreKeyScope {
-        self.key_scope
+    pub const fn key_scope(self) -> forge_store_security::StoreKeyScope {
+        self.key.key_scope()
     }
 
-    pub const fn canonical_key_bytes(self) -> [u8; 8] {
-        self.canonical_key_bytes
+    pub fn canonical_key_bytes(&self) -> &[u8] {
+        self.key.canonical()
     }
 }
 
@@ -109,7 +106,6 @@ pub struct BaselineLsmCompactionPublicationReceipt {
     bytes_out: u64,
     rewritten_runs: u16,
     counters: BaselineLsmCounterObservation,
-    physical_publication: BaselineLsmPhysicalPublicationBinding,
 }
 
 impl BaselineLsmCompactionPublicationReceipt {
@@ -131,7 +127,6 @@ impl BaselineLsmCompactionPublicationReceipt {
         bytes_in: u64,
         bytes_out: u64,
         effects: BaselineLsmCompactionExecutionEffects,
-        physical_publication: BaselineLsmPhysicalPublicationBinding,
     ) -> Self {
         Self {
             key,
@@ -156,20 +151,11 @@ impl BaselineLsmCompactionPublicationReceipt {
             bytes_out,
             rewritten_runs: effects.counters.maintenance_reads(),
             counters: effects.counters,
-            physical_publication,
         }
     }
 
-    pub(super) const fn admitted_key(
-        tenant_scope: StoreTenantScope,
-        key_scope: StoreKeyScope,
-        canonical_key_bytes: [u8; 8],
-    ) -> BaselineLsmCompactionKeyIdentity {
-        BaselineLsmCompactionKeyIdentity {
-            tenant_scope,
-            key_scope,
-            canonical_key_bytes,
-        }
+    pub(super) const fn admitted_key(key: LsmMembershipKey) -> BaselineLsmCompactionKeyIdentity {
+        BaselineLsmCompactionKeyIdentity { key }
     }
 
     pub(super) const fn run(
@@ -283,14 +269,6 @@ impl BaselineLsmCompactionPublicationReceipt {
         self.counters
     }
 
-    pub const fn target_physical_epoch(&self) -> u64 {
-        self.physical_publication.target_epoch()
-    }
-
-    pub const fn physical_publication(&self) -> BaselineLsmPhysicalPublicationBinding {
-        self.physical_publication
-    }
-
     pub fn publication_is_bound(&self) -> bool {
         matches!(
             self.manifest_publication.scope(),
@@ -305,11 +283,10 @@ impl BaselineLsmCompactionPublicationReceipt {
 impl BaselineLsmCompactionExecutionEffects {
     pub(super) const fn from_persisted_execution(
         retired_runs: [BaselineLsmRunIdentity; 3],
-        counters: BaselineLsmCounterObservation,
     ) -> Self {
         Self {
             retired_runs,
-            counters,
+            counters: BaselineLsmCounterObservation::compaction(retired_runs.len() as u16),
         }
     }
 }

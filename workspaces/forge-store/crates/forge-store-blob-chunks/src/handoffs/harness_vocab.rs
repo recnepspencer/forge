@@ -109,6 +109,7 @@ impl BlobHarnessChunkTopology {
         })
     }
 
+    #[cfg(any(test, feature = "certification-test-authority"))]
     pub(crate) fn from_executed_projection(
         chunk_count: u64,
         logical_bytes: u64,

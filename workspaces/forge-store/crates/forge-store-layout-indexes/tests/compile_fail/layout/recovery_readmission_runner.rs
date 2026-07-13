@@ -30,7 +30,7 @@ const fn fixtures() -> [CompileFailFixture; 3] {
         },
         CompileFailFixture {
             name: "layout_quarantine_readmission_shortcut_surface_is_not_public.rs",
-            expected_stderr: &["private field", "S8LayoutReadmissionWitness"],
+            expected_stderr: &["private field", "LayoutReadmissionWitness"],
         },
     ]
 }

@@ -1,6 +1,7 @@
 use crate::{
     scenario::physical_integrity::physical_integrity_closeout_harness_runner::{
-        run_physical_integrity_closeout_harness, physical_integrity_closeout_suite_plan_and_transcript,
+        physical_integrity_closeout_suite_plan_and_transcript,
+        run_physical_integrity_closeout_harness,
     },
     PhysicalIntegrityCloseoutDenial, PhysicalIntegrityCloseoutReport,
     PhysicalIntegrityCloseoutSuite, PhysicalIntegrityCloseoutSuiteEvidence, S3AcceptanceSuiteKind,
@@ -117,10 +118,12 @@ fn executed_closeout_suite_evidence(
             )?,
             denied_boundaries,
         ),
-        PhysicalIntegrityCloseoutSuiteEvidence::harness_transcript(physical_integrity_suite_harness(
-            S3AcceptanceSuiteKind::HarnessTranscript,
-            S3CloseoutHarnessExecutionEvidence::harness_transcript(1),
-        )?),
+        PhysicalIntegrityCloseoutSuiteEvidence::harness_transcript(
+            physical_integrity_suite_harness(
+                S3AcceptanceSuiteKind::HarnessTranscript,
+                S3CloseoutHarnessExecutionEvidence::harness_transcript(1),
+            )?,
+        ),
         PhysicalIntegrityCloseoutSuiteEvidence::synthetic_rejection(
             physical_integrity_suite_harness(
                 S3AcceptanceSuiteKind::SyntheticShortcutRejection,
@@ -149,13 +152,16 @@ fn physical_integrity_suite_harness(
     suite: S3AcceptanceSuiteKind,
     execution: S3CloseoutHarnessExecutionEvidence,
 ) -> Result<crate::S3HarnessTranscriptEvidence, PhysicalIntegrityCloseoutDenial> {
-    Ok(run_physical_integrity_closeout_harness(suite, execution)?.harness().clone())
+    Ok(run_physical_integrity_closeout_harness(suite, execution)?
+        .harness()
+        .clone())
 }
 
 fn executed_synthetic_shortcut_rejections(
 ) -> Result<Vec<SyntheticCloseoutShortcutRejectionReport>, PhysicalIntegrityCloseoutDenial> {
-    let (_, transcript) =
-        physical_integrity_closeout_suite_plan_and_transcript(S3AcceptanceSuiteKind::SyntheticShortcutRejection)?;
+    let (_, transcript) = physical_integrity_closeout_suite_plan_and_transcript(
+        S3AcceptanceSuiteKind::SyntheticShortcutRejection,
+    )?;
     let mut reports = Vec::new();
     for attempt in required_synthetic_attempts() {
         let input = SyntheticCloseoutShortcutInput::from_transcript(attempt, &transcript);

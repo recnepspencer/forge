@@ -1,11 +1,11 @@
 use forge_store_blob_chunks::ReadmittedBlobImport;
 use forge_store_contracts::DurableArtifactFamilyId;
-use forge_store_layout_indexes::access_planning::S8AccessShape;
+use forge_store_layout_indexes::observation::AccessShape;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportLayoutEvidenceReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: AccessShape,
     declared_chunks: u64,
     local_chunks: u64,
 }
@@ -18,7 +18,7 @@ impl ImportLayoutEvidenceReport {
     fn from_import_source(declared_chunks: u64, local_chunks: u64) -> Self {
         Self {
             family_id: DurableArtifactFamilyId::ImportBundle,
-            access_shape: S8AccessShape::PointLookup,
+            access_shape: AccessShape::PointLookup,
             declared_chunks,
             local_chunks,
         }
@@ -28,7 +28,7 @@ impl ImportLayoutEvidenceReport {
         self.family_id
     }
 
-    pub const fn declared_access_shape(&self) -> S8AccessShape {
+    pub const fn declared_access_shape(&self) -> AccessShape {
         self.access_shape
     }
 

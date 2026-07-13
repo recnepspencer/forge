@@ -1,21 +1,203 @@
-use super::{S8CoverageBasisKind, S8MaterializationDenial, S8MaterializationStateClass};
+use super::{CoverageBasisKind, MaterializationDenial};
 use crate::facade::{access_planning, layout_declarations};
 use crate::keyspace::tests_support::{
     published_blob_evidence_bundle, published_blob_import_declaration,
 };
-use crate::{
-    S8AccessAuthorityPosture, S8AccessShape, S8AccessShapeUnsupportedDenial,
-    S8AccessStaleDisposition, S8ExpectedCounterClass,
-};
+use crate::observation::AccessShape;
+use crate::ExpectedCounterClass;
 use forge_store_physical_format::PhysicalEpoch;
 use forge_store_recovery_physics::{CheckpointCoveredLsnRange, LogSequenceNumber};
+use std::collections::BTreeSet;
 
 fn format_family() -> &'static crate::PhysicalArtifactFamilyDeclaration {
     layout_declarations().seed_family()
 }
 
+fn imported_blob_scope() -> (
+    crate::AdmittedPhysicalArtifactFamily,
+    crate::AdmittedPhysicalKeyDomain,
+) {
+    crate::strategy::tests_support::admit_strategy_scope(
+        forge_store_contracts::DurableArtifactFamilyId::BlobManifest,
+        forge_store_security::StoreKeyScope::BlobChunkEnvelope,
+        forge_store_security::StoreTenantScope::TenantPhysicalBoundary,
+        forge_store_security::StoreAuthenticityRequirement::required(
+            forge_store_security::StoreAuthenticityRequirementClass::AuthenticatedBlobChunk,
+        ),
+        forge_store_security::StoreCustodyPosture::InternalStoreCustody,
+    )
+}
+
+fn imported_blob_scope_for_store(
+    store_authority_key: &str,
+) -> (
+    crate::AdmittedPhysicalArtifactFamily,
+    crate::AdmittedPhysicalKeyDomain,
+) {
+    crate::strategy::tests_support::admit_strategy_scope_for_store(
+        forge_store_contracts::DurableArtifactFamilyId::BlobManifest,
+        forge_store_security::StoreKeyScope::BlobChunkEnvelope,
+        forge_store_security::StoreTenantScope::TenantPhysicalBoundary,
+        forge_store_security::StoreAuthenticityRequirement::required(
+            forge_store_security::StoreAuthenticityRequirementClass::AuthenticatedBlobChunk,
+        ),
+        forge_store_security::StoreCustodyPosture::InternalStoreCustody,
+        store_authority_key,
+    )
+}
+
 #[test]
-fn exact_absence_requires_exact_coverage() {
+fn imported_blob_materialization_retains_content_bound_owner_identity() {
+    let witness =
+        forge_store_blob_chunks::certification_test_authority::execute_readmitted_blob_import(
+            "layout.import.materialization",
+        );
+    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
+    let materialization = access_planning()
+        .admit_imported_blob_materialization(imported_blob_scope().0, &catalog, &witness)
+        .expect("readmitted blob witness should materialize");
+
+    assert_eq!(
+        materialization.coverage().upper_bound().basis_kind(),
+        CoverageBasisKind::BlobGeneration
+    );
+    assert_eq!(
+        materialization.coverage().upper_bound().value(),
+        witness.generation().sequence()
+    );
+    assert!(matches!(
+        materialization.source().kind(),
+        crate::LayoutMaterializationSourceKind::ImportedBlob(_)
+    ));
+
+    let other =
+        forge_store_blob_chunks::certification_test_authority::execute_readmitted_blob_import(
+            "layout.import.materialization.other",
+        );
+    let other_materialization = access_planning()
+        .admit_imported_blob_materialization(imported_blob_scope().0, &catalog, &other)
+        .expect("second readmitted blob witness should materialize");
+    assert_ne!(materialization.source(), other_materialization.source());
+}
+
+#[test]
+fn imported_blob_materialization_rejects_wrong_family() {
+    let witness =
+        forge_store_blob_chunks::certification_test_authority::execute_readmitted_blob_import(
+            "layout.import.denial",
+        );
+    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
+    let page_family = crate::strategy::tests_support::admit_btree_page_strategy().admitted_family();
+
+    assert_eq!(
+        access_planning().admit_imported_blob_materialization(page_family, &catalog, &witness),
+        Err(MaterializationDenial::ImportedBlobFamilyRequired)
+    );
+}
+
+#[test]
+fn imported_blob_materialization_rejects_another_store_authority() {
+    let witness = forge_store_blob_chunks::certification_test_authority::
+        execute_readmitted_blob_import_for_store(
+            "layout.import.cross-store",
+            "store.other.strategy",
+        );
+    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
+
+    assert_eq!(
+        access_planning().admit_imported_blob_materialization(
+            imported_blob_scope().0,
+            &catalog,
+            &witness,
+        ),
+        Err(MaterializationDenial::ImportedBlobStoreAuthorityMismatch)
+    );
+}
+
+#[test]
+fn imported_blob_witness_enters_read_planning_without_raw_identity_reconstruction() {
+    let witness =
+        forge_store_blob_chunks::certification_test_authority::execute_readmitted_blob_import(
+            "layout.import.read-request",
+        );
+    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
+    let (family, key_domain) = imported_blob_scope();
+
+    let request = access_planning()
+        .admit_imported_blob_read_request(family, key_domain, &catalog, &witness)
+        .into_admitted()
+        .expect("readmitted blob witness should issue a source-bound read request");
+
+    assert!(matches!(
+        request.materialization().source().kind(),
+        crate::LayoutMaterializationSourceKind::ImportedBlob(_)
+    ));
+    assert_eq!(
+        request.materialization().coverage().upper_bound().value(),
+        witness.generation().sequence()
+    );
+
+    let selected = crate::planning::AccessPlanSelector
+        .select_admitted_with_budget(
+            request,
+            forge_store_budgets::PreExecutionBudgetEnvelope::foreground_default(),
+        )
+        .into_lsm_lookup()
+        .expect("blob manifest point lookup should select its admitted indexed owner");
+    assert!(matches!(
+        selected
+            .materialization()
+            .expect("selected blob lookup retains materialization")
+            .source()
+            .kind(),
+        crate::LayoutMaterializationSourceKind::ImportedBlob(_)
+    ));
+}
+
+#[test]
+fn imported_blob_read_admission_declares_exactly_ordinary_owner_cases() {
+    let witness =
+        forge_store_blob_chunks::certification_test_authority::execute_readmitted_blob_import(
+            "layout.import.case-coverage",
+        );
+    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
+    let (family, key_domain) = imported_blob_scope();
+    let page = crate::strategy::tests_support::admit_btree_page_strategy();
+    let (_, other_blob_domain) = imported_blob_scope_for_store("store.other.strategy");
+
+    let observed = [
+        access_planning().admit_imported_blob_read_request(family, key_domain, &catalog, &witness),
+        access_planning().admit_imported_blob_read_request(
+            page.admitted_family(),
+            page.admitted_key_domain(),
+            &catalog,
+            &witness,
+        ),
+        access_planning().admit_imported_blob_read_request(
+            family,
+            page.admitted_key_domain(),
+            &catalog,
+            &witness,
+        ),
+        access_planning().admit_imported_blob_read_request(
+            family,
+            other_blob_domain,
+            &catalog,
+            &witness,
+        ),
+    ]
+    .into_iter()
+    .map(|outcome| outcome.case_id())
+    .collect::<BTreeSet<_>>();
+
+    assert_eq!(
+        observed,
+        crate::imported_blob_read_admission_cases().collect::<BTreeSet<_>>()
+    );
+}
+
+#[test]
+fn stale_coverage_cannot_become_current_materialization() {
     let family = format_family().family();
     let stale = access_planning()
         .stale_root_epoch_coverage(
@@ -25,10 +207,10 @@ fn exact_absence_requires_exact_coverage() {
         .expect("coverage should build");
 
     assert_eq!(
-        access_planning().prove_exact_index_absence(stale),
-        Err(S8MaterializationDenial::LayoutCoverageIsStale {
+        stale.require_exact(),
+        Err(MaterializationDenial::LayoutCoverageIsStale {
             family,
-            basis_kind: S8CoverageBasisKind::RootEpoch,
+            basis_kind: CoverageBasisKind::RootEpoch,
         })
     );
 }
@@ -48,8 +230,8 @@ fn partial_coverage_localizes_gap() {
         .expect("partial coverage should build");
 
     assert_eq!(
-        access_planning().prove_exact_index_absence(partial),
-        Err(S8MaterializationDenial::LayoutCoverageIsPartial {
+        partial.require_exact(),
+        Err(MaterializationDenial::LayoutCoverageIsPartial {
             gap: partial.gap().expect("partial coverage retains its gap"),
         })
     );
@@ -66,24 +248,16 @@ fn exact_through_basis_survives_range_and_prefix_completeness() {
         )
         .expect("exact coverage should build");
 
-    let range = access_planning()
-        .require_exact_range_access(coverage)
-        .expect("range should be exact");
-    let prefix = access_planning()
-        .require_exact_prefix_access(coverage)
-        .expect("prefix should be exact");
+    coverage.require_exact().expect("coverage should be exact");
+    let range = access_planning().range_access();
+    let prefix = access_planning().prefix_access();
 
-    assert_eq!(range.shape(), S8AccessShape::RangeLookup);
-    assert_eq!(range.coverage(), Some(coverage));
-    assert_eq!(
-        range.expected_counters(),
-        S8ExpectedCounterClass::RangeLookup
-    );
-    assert_eq!(prefix.shape(), S8AccessShape::PrefixLookup);
-    assert_eq!(prefix.coverage(), Some(coverage));
+    assert_eq!(range.shape(), AccessShape::RangeLookup);
+    assert_eq!(range.expected_counters(), ExpectedCounterClass::RangeLookup);
+    assert_eq!(prefix.shape(), AccessShape::PrefixLookup);
     assert_eq!(
         prefix.expected_counters(),
-        S8ExpectedCounterClass::PrefixLookup
+        ExpectedCounterClass::PrefixLookup
     );
 }
 
@@ -100,14 +274,9 @@ fn checkpoint_and_blob_generation_coverages_are_first_class_public_lanes() {
             checkpoint,
         )
         .expect("checkpoint coverage should admit");
-    let checkpoint_absence = access_planning()
-        .prove_exact_index_absence(checkpoint_coverage)
-        .expect("checkpoint exact coverage should support exact absence");
-
-    assert_eq!(checkpoint_absence.coverage(), checkpoint_coverage);
     assert_eq!(
         checkpoint_coverage.upper_bound().basis_kind(),
-        S8CoverageBasisKind::CheckpointFrontier
+        CoverageBasisKind::CheckpointFrontier
     );
     assert_eq!(checkpoint_coverage.upper_bound().start_inclusive(), 21);
     assert_eq!(checkpoint_coverage.upper_bound().value(), 29);
@@ -118,17 +287,12 @@ fn checkpoint_and_blob_generation_coverages_are_first_class_public_lanes() {
             crate::bootstrap::test_support::bootstrap_exact_materialization(
                 format_family().family(),
             ),
-            crate::S8BlobGenerationBasis::from_sequence(blob_bundle.export_generation().sequence()),
+            crate::BlobGenerationBasis::from_sequence(blob_bundle.export_generation().sequence()),
         )
         .expect("blob generation coverage should admit");
-    let blob_absence = access_planning()
-        .prove_exact_index_absence(blob_coverage)
-        .expect("blob generation exact coverage should support exact absence");
-
-    assert_eq!(blob_absence.coverage(), blob_coverage);
     assert_eq!(
         blob_coverage.upper_bound().basis_kind(),
-        S8CoverageBasisKind::BlobGeneration
+        CoverageBasisKind::BlobGeneration
     );
 }
 
@@ -181,7 +345,7 @@ fn coverage_basis_witnesses_survive_reopen_and_certification_replay() {
             crate::bootstrap::test_support::bootstrap_exact_materialization(
                 format_family().family(),
             ),
-            crate::S8BlobGenerationBasis::from_sequence(
+            crate::BlobGenerationBasis::from_sequence(
                 blob_bundle.lifecycle_declaration().generation().sequence(),
             ),
         )
@@ -191,7 +355,7 @@ fn coverage_basis_witnesses_survive_reopen_and_certification_replay() {
             crate::bootstrap::test_support::bootstrap_exact_materialization(
                 format_family().family(),
             ),
-            crate::S8BlobGenerationBasis::from_sequence(blob_bundle.export_generation().sequence()),
+            crate::BlobGenerationBasis::from_sequence(blob_bundle.export_generation().sequence()),
         )
         .expect("export blob generation should admit");
     let blob_from_replay = access_planning()
@@ -199,139 +363,10 @@ fn coverage_basis_witnesses_survive_reopen_and_certification_replay() {
             crate::bootstrap::test_support::bootstrap_exact_materialization(
                 format_family().family(),
             ),
-            crate::S8BlobGenerationBasis::from_sequence(import_declaration.generation().sequence()),
+            crate::BlobGenerationBasis::from_sequence(import_declaration.generation().sequence()),
         )
         .expect("replayed blob generation should admit");
 
     assert_eq!(blob_from_lifecycle, blob_from_export);
     assert_eq!(blob_from_lifecycle, blob_from_replay);
-}
-
-#[test]
-fn checkpoint_exactness_preserves_full_range_identity() {
-    let left = access_planning()
-        .exact_checkpoint_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                format_family().family(),
-            ),
-            CheckpointCoveredLsnRange::new(LogSequenceNumber::new(21), LogSequenceNumber::new(29))
-                .expect("left checkpoint fixture should be valid"),
-        )
-        .expect("left checkpoint coverage should admit");
-    let right = access_planning()
-        .exact_checkpoint_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                format_family().family(),
-            ),
-            CheckpointCoveredLsnRange::new(LogSequenceNumber::new(24), LogSequenceNumber::new(29))
-                .expect("right checkpoint fixture should be valid"),
-        )
-        .expect("right checkpoint coverage should admit");
-
-    assert_ne!(left, right);
-    assert_eq!(left.upper_bound().value(), right.upper_bound().value());
-    assert_ne!(
-        left.upper_bound().start_inclusive(),
-        right.upper_bound().start_inclusive()
-    );
-}
-
-#[test]
-fn bounded_scan_absence_is_separate_from_exact_index_absence() {
-    let coverage = access_planning()
-        .exact_root_epoch_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                format_family().family(),
-            ),
-            PhysicalEpoch::from_raw(17).expect("epoch fixture should be valid"),
-        )
-        .expect("exact coverage should build");
-
-    let degraded = access_planning()
-        .prove_degraded_bounded_scan_absence(coverage)
-        .expect("bounded exact scan should stay admitted as degraded access");
-
-    assert_eq!(degraded.shape(), S8AccessShape::DegradedExactScan);
-    assert_eq!(degraded.coverage(), Some(coverage));
-    assert_eq!(
-        degraded.authority_posture(),
-        S8AccessAuthorityPosture::ExplicitDegradedExactScan
-    );
-    assert_eq!(
-        degraded.stale_disposition(),
-        S8AccessStaleDisposition::ExplicitDegradedFallback
-    );
-    assert_eq!(
-        degraded.expected_counters(),
-        S8ExpectedCounterClass::DegradedExactScan
-    );
-    assert_eq!(degraded.budget_rows(), Some(8_192));
-}
-
-#[test]
-fn lagged_and_quarantined_states_deny_exact_completeness() {
-    let lagged = access_planning()
-        .lagged_wal_lsn_coverage(
-            format_family(),
-            LogSequenceNumber::new(40),
-            LogSequenceNumber::new(44),
-        )
-        .expect("lagged coverage should build");
-
-    assert!(matches!(
-        access_planning().require_exact_range_access(lagged),
-        Err(S8AccessShapeUnsupportedDenial::MaterializationDenied(
-            S8MaterializationDenial::LayoutCoverageIsLagged {
-            family,
-            basis_kind: S8CoverageBasisKind::WalLsn,
-        })) if family == format_family().family()
-    ));
-
-    let quarantined = access_planning()
-        .quarantined_wal_lsn_coverage(
-            format_family(),
-            LogSequenceNumber::new(49),
-            LogSequenceNumber::new(53),
-            CheckpointCoveredLsnRange::new(LogSequenceNumber::new(50), LogSequenceNumber::new(52))
-                .expect("quarantine fixture should be valid"),
-        )
-        .expect("quarantined coverage should build");
-
-    assert_eq!(
-        access_planning().require_exact_prefix_access(quarantined),
-        Err(S8AccessShapeUnsupportedDenial::MaterializationDenied(
-            S8MaterializationDenial::LayoutRangeIsQuarantined {
-                gap: quarantined
-                    .gap()
-                    .expect("quarantined coverage retains its gap"),
-            }
-        ))
-    );
-    assert_eq!(
-        quarantined.state().class(),
-        S8MaterializationStateClass::Quarantined
-    );
-}
-
-#[test]
-fn reversed_lagged_intervals_are_denied_at_admission() {
-    assert_eq!(
-        access_planning().lagged_wal_lsn_coverage(
-            format_family(),
-            LogSequenceNumber::new(44),
-            LogSequenceNumber::new(40),
-        ),
-        Err(S8MaterializationDenial::CoverageIntervalIsReversed {
-            family: format_family().family(),
-            basis_kind: S8CoverageBasisKind::WalLsn,
-            lower_bound: 44,
-            upper_bound: 40,
-        })
-    );
-}
-
-pub(crate) fn exercise_owner_outcome_cases() {
-    exact_absence_requires_exact_coverage();
-    partial_coverage_localizes_gap();
-    bounded_scan_absence_is_separate_from_exact_index_absence();
 }

@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
-#[path = "../../recovery/counter_strength/compaction_interlock_trace.rs"]
-mod compaction_interlock_trace;
+use forge_store_test_support::harness::recovery::compaction_observation as compaction_interlock_trace;
 
 use forge_store_physical_certification::{
     admit_physical_counter_evidence, lower_physical_simulation_plan,
@@ -198,7 +197,9 @@ fn executed_evidence_bundle(
     PhysicalCertificationEvidenceBundle::from_replay_bundle(replay).unwrap()
 }
 
-fn physical_isolation_fault_events(expected_fault: PhysicalScenarioFaultKind) -> Vec<PhysicalFaultEvent> {
+fn physical_isolation_fault_events(
+    expected_fault: PhysicalScenarioFaultKind,
+) -> Vec<PhysicalFaultEvent> {
     physical_isolation_stable_read_plan_fault_event(expected_fault)
         .unwrap()
         .into_iter()

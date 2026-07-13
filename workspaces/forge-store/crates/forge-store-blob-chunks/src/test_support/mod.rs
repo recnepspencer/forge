@@ -1,19 +1,19 @@
 #[cfg(test)]
 mod dedupe;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
 mod identity;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
 mod integrity;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
 mod physical;
 #[cfg(test)]
 mod streaming;
 
 #[cfg(test)]
 pub(crate) use dedupe::*;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) use identity::*;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) use integrity::*;
 #[cfg(test)]
 pub(crate) use physical::physical_payload_for_bytes;

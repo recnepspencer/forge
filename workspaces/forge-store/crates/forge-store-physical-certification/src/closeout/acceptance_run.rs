@@ -281,11 +281,7 @@ fn dogfood_slice_scenario_digests(dogfood: &SimulationHarnessDogfoodEvidence) ->
 
 fn dogfood_slice_transcript_digests(dogfood: &SimulationHarnessDogfoodEvidence) -> [[u8; 32]; 3] {
     [
-        *dogfood
-            .recovery()
-            .evidence()
-            .primary()
-            .transcript_digest(),
+        *dogfood.recovery().evidence().primary().transcript_digest(),
         *dogfood
             .shortcut_rejection()
             .evidence()

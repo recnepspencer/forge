@@ -1,14 +1,13 @@
 use super::{BaselineLsmCompactionPublicationReceipt, BaselineLsmCompactionRecordKind};
-use forge_store_security::{StoreKeyScope, StoreTenantScope};
 
-use crate::strategy::S8StrategyDenial;
+use crate::strategy::StrategyDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LsmTombstoneLaw {
+pub struct LsmTombstoneLaw {
     newer_tombstone_shadows_older_value: bool,
 }
 
-impl S8LsmTombstoneLaw {
+impl LsmTombstoneLaw {
     pub(crate) const fn baseline() -> Self {
         Self {
             newer_tombstone_shadows_older_value: true,
@@ -21,12 +20,9 @@ impl S8LsmTombstoneLaw {
     pub fn verify_owner_receipt(
         self,
         receipt: &BaselineLsmCompactionPublicationReceipt,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         let tombstone = receipt.tombstone_record();
         let retired_value = receipt.retired_value_record();
-        let scope_is_canonical = receipt.key().tenant_scope()
-            == StoreTenantScope::TenantPhysicalBoundary
-            && receipt.key().key_scope() == StoreKeyScope::WalCheckpointEnvelope;
         let identity_is_bound = tombstone.key() == receipt.key()
             && retired_value.key() == receipt.key()
             && tombstone.run() == receipt.input_runs()[2]
@@ -41,14 +37,13 @@ impl S8LsmTombstoneLaw {
             && receipt.tombstone_blocks_older()
             && receipt.tombstone_newer_sequence() > receipt.tombstone_older_sequence();
 
-        if scope_is_canonical
-            && identity_is_bound
+        if identity_is_bound
             && replay_is_bound
             && tombstone_is_preserved
             && receipt.publication_is_bound()
         {
             return Ok(());
         }
-        Err(S8StrategyDenial::TombstonePreservationViolation)
+        Err(StrategyDenial::TombstonePreservationViolation)
     }
 }

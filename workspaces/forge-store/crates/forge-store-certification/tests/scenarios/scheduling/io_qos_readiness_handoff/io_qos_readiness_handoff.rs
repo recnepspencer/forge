@@ -1,17 +1,10 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
 #[path = "../../../support/physical_isolation/executed_closeout_fixture/executed_closeout_fixture.rs"]
 mod executed_closeout_fixture;
-#[path = "../../physical_isolation/stable_read_execution/plan_admission.rs"]
-mod plan_admission;
-#[path = "../../../support/physical_isolation/copy_on_write_publication/support.rs"]
-mod publication_support;
-#[path = "../../../support/physical_isolation/reclaim_reachability_hazard_barriers/support.rs"]
-mod reclaim_support;
-#[path = "../../../support/recovery/recovery_source_precedence/source_precedence_fixture.rs"]
-mod source_precedence_fixture;
-#[path = "../../../support/physical_isolation/epoch_scope_and_root_kind/support.rs"]
-mod support;
+use forge_store_test_support::harness::physical_isolation::epoch_scope as support;
+use forge_store_test_support::harness::physical_isolation::publication as publication_support;
+use forge_store_test_support::harness::physical_isolation::read_plan as plan_admission;
+use forge_store_test_support::harness::physical_isolation::reclaim as reclaim_support;
+use forge_store_test_support::harness::recovery::source_precedence as source_precedence_fixture;
 
 use forge_store_io_scheduler::admit_store_published_isolation_capability;
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_from_executed_evidence;

@@ -58,24 +58,6 @@ pub struct IoSchedulerIsolationAdmission {
     counters: IoSchedulerIsolationCounterSnapshot,
 }
 
-#[cfg(any(test, feature = "certification-test-authority"))]
-pub fn admit_isolation_for_certification_test(
-    request: IoSchedulerIsolationAdmissionRequest,
-) -> Result<IoSchedulerIsolationAdmission, IoSchedulerIsolationAdmissionDenial> {
-    require_counters(request.counters)?;
-    verify_io_qos_non_claims(&request.non_claims)?;
-    Ok(IoSchedulerIsolationAdmission {
-        assumptions: request.assumptions,
-        foreground_interference: IoSchedulerForegroundInterferenceSurface::from_counters(
-            request.counters,
-        ),
-        background_maintenance: IoSchedulerBackgroundMaintenanceAssumption::from_counters(
-            request.counters,
-        ),
-        counters: request.counters,
-    })
-}
-
 pub fn admit_store_published_isolation_capability(
     readiness: &SchedulerIsolationCapability,
 ) -> Result<IoSchedulerIsolationAdmission, IoSchedulerIsolationAdmissionDenial> {
@@ -90,21 +72,6 @@ pub fn admit_store_published_isolation_capability(
         background_maintenance,
         request.counters,
     ))
-}
-
-pub const fn reject_log_or_metric_projection_as_isolation_admission(
-) -> Result<(), IoSchedulerIsolationAdmissionDenial> {
-    Err(IoSchedulerIsolationAdmissionDenial::LogOrMetricProjection)
-}
-
-pub const fn reject_hardware_queue_depth_claim_as_isolation_admission(
-) -> Result<(), IoSchedulerIsolationAdmissionDenial> {
-    Err(IoSchedulerIsolationAdmissionDenial::HardwareQueueDepthClaim)
-}
-
-pub const fn reject_media_qos_claim_as_isolation_admission(
-) -> Result<(), IoSchedulerIsolationAdmissionDenial> {
-    Err(IoSchedulerIsolationAdmissionDenial::MediaQosClaim)
 }
 
 impl IoSchedulerPhysicalStabilityAssumption {
@@ -202,7 +169,8 @@ impl IoSchedulerIsolationAdmission {
     #[cfg(any(test, feature = "certification-test-authority"))]
     pub const fn for_certification_test() -> Self {
         Self {
-            assumptions: IoSchedulerPhysicalStabilityAssumption::required_physical_stability_assumptions(),
+            assumptions:
+                IoSchedulerPhysicalStabilityAssumption::required_physical_stability_assumptions(),
             foreground_interference:
                 IoSchedulerForegroundInterferenceSurface::for_certification_test(1, 1, 1),
             background_maintenance:

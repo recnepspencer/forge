@@ -1,4 +1,4 @@
-use super::{S8AdmittedLayoutStrategy, S8LayoutStrategyFamily, S8StrategyDenial};
+use super::{AdmittedLayoutStrategy, LayoutStrategyFamily, StrategyDenial};
 use crate::keyspace::{
     declare_comparator_law, require_canonical_key_encoding, require_prefix_law,
     require_range_bound_law, CanonicalKeyEncoding, ComparatorLaw, PhysicalKeyDomainWitness,
@@ -6,14 +6,14 @@ use crate::keyspace::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct S8DeclaredKeyLawPosture {
+pub(super) struct DeclaredKeyLawPosture {
     encoding: CanonicalKeyEncoding,
     comparator: ComparatorLaw,
     prefix: Option<PrefixLawWitness>,
     range: Option<RangeBoundLawWitness>,
 }
 
-impl S8DeclaredKeyLawPosture {
+impl DeclaredKeyLawPosture {
     pub(super) const fn encoding(self) -> CanonicalKeyEncoding {
         self.encoding
     }
@@ -29,31 +29,31 @@ impl S8DeclaredKeyLawPosture {
 }
 
 pub(super) fn admit_strategy_key_laws(
-    family: S8LayoutStrategyFamily,
+    family: LayoutStrategyFamily,
     key_domain: PhysicalKeyDomainWitness,
-) -> Result<S8DeclaredKeyLawPosture, S8StrategyDenial> {
+) -> Result<DeclaredKeyLawPosture, StrategyDenial> {
     let encoding = require_canonical_key_encoding(key_domain);
     let comparator = declare_comparator_law(encoding);
     let prefix = require_prefix_law(encoding).ok();
     let range = require_range_bound_law(comparator).ok();
     match family {
-        S8LayoutStrategyFamily::BaselineBTreeRange => Ok(S8DeclaredKeyLawPosture {
+        LayoutStrategyFamily::BaselineBTreeRange => Ok(DeclaredKeyLawPosture {
             encoding,
             comparator,
-            prefix: Some(prefix.ok_or(S8StrategyDenial::RangeOrPrefixLawRequired)?),
-            range: Some(range.ok_or(S8StrategyDenial::RangeOrPrefixLawRequired)?),
+            prefix: Some(prefix.ok_or(StrategyDenial::RangeOrPrefixLawRequired)?),
+            range: Some(range.ok_or(StrategyDenial::RangeOrPrefixLawRequired)?),
         }),
-        S8LayoutStrategyFamily::BaselineLsmWriteOptimized => Ok(S8DeclaredKeyLawPosture {
+        LayoutStrategyFamily::BaselineLsmWriteOptimized => Ok(DeclaredKeyLawPosture {
             encoding,
             comparator,
             prefix: None,
             range: None,
         }),
-        _ => Err(S8StrategyDenial::UnsupportedFamily),
+        _ => Err(StrategyDenial::UnsupportedFamily),
     }
 }
 
-impl S8AdmittedLayoutStrategy {
+impl AdmittedLayoutStrategy {
     pub const fn canonical_key_encoding(&self) -> Option<CanonicalKeyEncoding> {
         self.declaration.canonical_key_encoding()
     }

@@ -2,16 +2,13 @@ use forge_store_certification::S6AccessPolicyEvidenceRow;
 use forge_store_physical_backend::{
     AccessPolicyAdmission, AccessPolicyBufferLifecycle, AccessPolicyExecutionObservation,
     AccessPolicyExecutionRequest, AccessPolicyExecutionSession, AccessPolicyRequest,
-    AccessPolicySecurityScope, AdmittedAccessPolicy, BackendCapabilityAdmissionRequest,
-    BackendCapabilityEvidenceBasis, BackendCapabilityKind, BackendCapabilitySupportPosture,
-    BackendCapabilitySupportSet, BackendMediaAssumptionSet, BackendRebindTriggers,
-    BackendTargetProfile, MixedAccessTransition, PageCachePolicyProof,
-    PhysicalBackendCapabilityAdmissionAuthority, PhysicalStoreAccessPolicyExecutor,
-    StoreAccessMode, StoreAccessPolicyProofAuthority, StoreOwnedAccessPolicyExecution,
+    AccessPolicySecurityScope, AdmittedAccessPolicy, MixedAccessTransition, PageCachePolicyProof,
+    PhysicalStoreAccessPolicyExecutor, StoreAccessMode, StoreAccessPolicyProofAuthority,
+    StoreOwnedAccessPolicyExecution,
 };
 use forge_store_physical_format::{
-    PhysicalAlignmentClass, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
-    PhysicalRecordSlot, PhysicalReference, PhysicalReferenceAuthority, PhysicalSegmentId,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
+    PhysicalReference, PhysicalReferenceAuthority, PhysicalSegmentId,
 };
 use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
@@ -68,25 +65,6 @@ pub fn violation_row(
     S6AccessPolicyEvidenceRow::from_violation(mode, violation)
 }
 
-pub fn direct_io_request(
-    backend: &forge_store_physical_backend::AdmittedBackendCapabilityWitness,
-) -> AccessPolicyRequest {
-    base_request(
-        backend,
-        AccessPolicyRequest::direct_io_read().with_alignment_requirement(
-            StoreAccessPolicyProofAuthority::for_admitted_backend(backend)
-                .direct_io_page_and_sector_aligned(
-                    test_reference(),
-                    pinned_lifecycle(),
-                    4096,
-                    PhysicalAlignmentClass::page_start_4k(),
-                    PhysicalAlignmentClass::extent_start_4k(),
-                )
-                .expect("test backend carries direct I/O alignment assumptions"),
-        ),
-    )
-}
-
 pub fn mmap_request(
     backend: &forge_store_physical_backend::AdmittedBackendCapabilityWitness,
 ) -> AccessPolicyRequest {
@@ -96,61 +74,8 @@ pub fn mmap_request(
     )
 }
 
-pub fn mixed_request(
-    backend: &forge_store_physical_backend::AdmittedBackendCapabilityWitness,
-    transition: MixedAccessTransition,
-) -> AccessPolicyRequest {
-    let reference = test_reference();
-    let scope = test_security_scope();
-    AccessPolicyRequest::mixed_read(transition)
-        .for_physical_reference(reference)
-        .with_security_scope(scope)
-        .with_buffer_lifecycle(pinned_lifecycle())
-        .with_page_cache_policy(page_cache_policy(backend))
-        .with_alignment_requirement(
-            StoreAccessPolicyProofAuthority::for_admitted_backend(backend)
-                .direct_io_page_and_sector_aligned(
-                    reference,
-                    pinned_lifecycle(),
-                    4096,
-                    PhysicalAlignmentClass::page_start_4k(),
-                    PhysicalAlignmentClass::extent_start_4k(),
-                )
-                .expect("test backend carries direct I/O alignment assumptions"),
-        )
-        .with_coherence_basis(
-            StoreAccessPolicyProofAuthority::for_admitted_backend(backend)
-                .mixed_coherence(transition, reference, scope)
-                .expect("test backend carries mixed access coherence assumptions"),
-        )
-}
-
 pub fn pinned_lifecycle() -> AccessPolicyBufferLifecycle {
     AccessPolicyBufferLifecycle::for_certification_pinned_physical_substrate_lease()
-}
-
-pub fn backend_with_access(
-    direct_io: BackendCapabilitySupportPosture,
-) -> forge_store_physical_backend::AdmittedBackendCapabilityWitness {
-    let support = BackendCapabilitySupportSet::all_supported()
-        .with_posture(BackendCapabilityKind::DirectIo, direct_io);
-    let assumptions = BackendMediaAssumptionSet::platform_file_defaults()
-        .with_direct_io_alignment()
-        .with_sector_atomicity()
-        .with_page_cache_policy()
-        .with_mmap_coherence()
-        .with_mixed_access_coherence();
-    PhysicalBackendCapabilityAdmissionAuthority::store_owned()
-        .admit_backend_capability(BackendCapabilityAdmissionRequest::new(
-            BackendTargetProfile::PosixFileFsyncDirSync,
-            BackendCapabilityEvidenceBasis::certified_backend_profile(),
-            support,
-            assumptions,
-            BackendRebindTriggers::kernel_filesystem_mount_firmware_and_backend()
-                .with_sector_alignment()
-                .with_security_posture(),
-        ))
-        .expect("backend admits")
 }
 
 pub fn test_reference() -> PhysicalReference {
@@ -166,7 +91,7 @@ pub fn test_reference() -> PhysicalReference {
         .reference()
 }
 
-fn page_cache_policy(
+pub(crate) fn page_cache_policy(
     backend: &forge_store_physical_backend::AdmittedBackendCapabilityWitness,
 ) -> PageCachePolicyProof {
     StoreAccessPolicyProofAuthority::for_admitted_backend(backend)
@@ -182,7 +107,7 @@ fn admitted_mmap_posture(
         .expect("test backend carries mmap capability posture")
 }
 
-fn test_security_scope() -> AccessPolicySecurityScope {
+pub(crate) fn test_security_scope() -> AccessPolicySecurityScope {
     let admitted = admitted_store_internal_security_scope_for_io_qos_test();
     AccessPolicySecurityScope::from_current_store_scope(admitted.witnesses())
 }
@@ -205,15 +130,7 @@ impl ExpectedExecutionRequest {
         Self::new(StoreAccessMode::Mmap, None, false, true)
     }
 
-    pub fn direct_io() -> Self {
-        Self::new(StoreAccessMode::DirectIo, None, true, false)
-    }
-
-    pub fn mixed(transition: MixedAccessTransition) -> Self {
-        Self::new(StoreAccessMode::Mixed, Some(transition), true, false)
-    }
-
-    fn new(
+    pub(crate) fn new(
         mode: StoreAccessMode,
         transition: Option<MixedAccessTransition>,
         requires_direct_io: bool,

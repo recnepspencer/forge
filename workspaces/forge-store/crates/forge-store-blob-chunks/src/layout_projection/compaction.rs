@@ -1,11 +1,13 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
-use forge_store_layout_indexes::access_planning::S8AccessShape;
 
 use super::behavior::{
     corruption_behavior_for, declared_rebuild_posture, BlobLayoutCorruptionBehavior,
     BlobLayoutScopeSafeAbsenceBehavior,
 };
-use super::{BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence};
+use super::{
+    BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence,
+    BlobLayoutAccessShape,
+};
 use crate::{
     BlobAuthorityClassification, BlobChunkSecurityMetadataWitness, BlobCompactionEquivalence,
     BlobCompactionRewritePlan, LogicalContentDigest,
@@ -14,7 +16,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompactionLayoutReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: BlobLayoutAccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     absence_behavior: BlobLayoutScopeSafeAbsenceBehavior,
     corruption_behavior: BlobLayoutCorruptionBehavior,
@@ -29,7 +31,7 @@ pub struct CompactionLayoutReport {
 }
 
 impl CompactionLayoutReport {
-    fn admit_compaction(
+    fn project_compaction(
         plan: &BlobCompactionRewritePlan,
         equivalence: &BlobCompactionEquivalence,
     ) -> Result<CompactionLayoutReport, BlobLayoutAccessDenial> {
@@ -51,7 +53,7 @@ impl CompactionLayoutReport {
         let rebuild_posture = declared_rebuild_posture(family_id);
         Self {
             family_id,
-            access_shape: S8AccessShape::CompactionRead,
+            access_shape: BlobLayoutAccessShape::CompactionRead,
             rebuild_posture,
             absence_behavior: BlobLayoutScopeSafeAbsenceBehavior::ScopedMaintenanceScan,
             corruption_behavior: corruption_behavior_for(rebuild_posture),
@@ -73,7 +75,7 @@ impl CompactionLayoutReport {
         self.family_id
     }
 
-    pub const fn access_shape(&self) -> S8AccessShape {
+    pub const fn access_shape(&self) -> BlobLayoutAccessShape {
         self.access_shape
     }
 
@@ -130,10 +132,10 @@ impl CompactionLayoutReport {
 }
 
 impl BlobCompactionRewritePlan {
-    pub fn admit_compaction_layout(
+    pub fn project_compaction_layout(
         &self,
         equivalence: &BlobCompactionEquivalence,
     ) -> Result<CompactionLayoutReport, BlobLayoutAccessDenial> {
-        CompactionLayoutReport::admit_compaction(self, equivalence)
+        CompactionLayoutReport::project_compaction(self, equivalence)
     }
 }

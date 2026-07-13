@@ -1,14 +1,14 @@
-use super::S8LayoutStrategyCapability;
-use crate::strategy::S8LayoutStrategyFamily;
+use super::LayoutStrategyCapability;
+use crate::strategy::LayoutStrategyFamily;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8LayoutAdmissionDeferred {
+pub enum LayoutAdmissionDeferred {
     ExactCoverageEvidenceRequired {
-        family: S8LayoutStrategyFamily,
-        capability: S8LayoutStrategyCapability,
+        family: LayoutStrategyFamily,
+        capability: LayoutStrategyCapability,
     },
     LiveExactMaintenanceWitnessRequired {
-        family: S8LayoutStrategyFamily,
-        capability: S8LayoutStrategyCapability,
+        family: LayoutStrategyFamily,
+        capability: LayoutStrategyCapability,
     },
 }

@@ -1,8 +1,7 @@
+#[cfg(test)]
+use super::accuracy_class::require_exact_accuracy_claim as require_phase_three_exact_accuracy_claim;
 use super::{
-    accuracy_class::{
-        declare_derived_accuracy_class as declare_phase_three_accuracy_class,
-        require_exact_accuracy_claim as require_phase_three_exact_accuracy_claim,
-    },
+    accuracy_class::declare_derived_accuracy_class as declare_phase_three_accuracy_class,
     authority_role::declare_authority_role as declare_phase_three_authority_role,
     scope_partition::require_scope_partition as require_phase_three_scope_partition,
     ArtifactAuthorityRoleWitness, ArtifactDerivedAccuracyWitness,
@@ -127,6 +126,7 @@ pub(crate) fn declare_derived_accuracy_class(
     declare_phase_three_accuracy_class(role)
 }
 
+#[cfg(test)]
 pub(crate) fn require_exact_accuracy_claim(
     accuracy: ArtifactDerivedAccuracyWitness,
 ) -> Result<ArtifactDerivedAccuracyWitness, ArtifactFamilyDenial> {

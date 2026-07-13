@@ -2,7 +2,6 @@ use super::{
     PlatformPhysicalAppendReport, PlatformPhysicalFacadeCounterSnapshot,
     PlatformPhysicalRootPublicationReport,
 };
-use forge_store_budgets::S8PreExecutionPlanBinding;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlatformPhysicalLayoutAccessIntent {
@@ -13,36 +12,26 @@ pub enum PlatformPhysicalLayoutAccessIntent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PlatformPhysicalLayoutAccessRequest {
     intent: PlatformPhysicalLayoutAccessIntent,
-    plan_binding: S8PreExecutionPlanBinding,
     budget_rows: u64,
 }
 
 impl PlatformPhysicalLayoutAccessRequest {
-    pub const fn hidden_broad_scan(plan_binding: S8PreExecutionPlanBinding) -> Self {
+    pub const fn hidden_broad_scan() -> Self {
         Self {
             intent: PlatformPhysicalLayoutAccessIntent::HiddenBroadScan,
-            plan_binding,
             budget_rows: 0,
         }
     }
 
-    pub const fn explicit_degraded_exact_scan(
-        plan_binding: S8PreExecutionPlanBinding,
-        budget_rows: u64,
-    ) -> Self {
+    pub const fn explicit_degraded_exact_scan(budget_rows: u64) -> Self {
         Self {
             intent: PlatformPhysicalLayoutAccessIntent::ExplicitDegradedExactScan,
-            plan_binding,
             budget_rows,
         }
     }
 
     pub const fn intent(self) -> PlatformPhysicalLayoutAccessIntent {
         self.intent
-    }
-
-    pub const fn plan_binding(self) -> S8PreExecutionPlanBinding {
-        self.plan_binding
     }
 
     pub const fn budget_rows(self) -> u64 {
@@ -103,7 +92,7 @@ pub struct PlatformPhysicalDegradedExactScanReceipt {
 }
 
 impl PlatformPhysicalDegradedExactScanReceipt {
-    pub(crate) const fn new(
+    pub(super) const fn new(
         request: PlatformPhysicalLayoutAccessRequest,
         observed_rows: u64,
         counters: PlatformPhysicalFacadeCounterSnapshot,

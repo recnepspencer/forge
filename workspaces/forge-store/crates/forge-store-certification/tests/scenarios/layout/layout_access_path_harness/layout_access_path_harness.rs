@@ -15,10 +15,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 2] {
     [
         CompileFailFixture {
             name: "scenario_certificate_cannot_form_replay_bundle.rs",
-            expected_stderr: &[
-                "S8LayoutExecutedScenarioWitness",
-                "S8LayoutScenarioDefinition",
-            ],
+            expected_stderr: &["LayoutExecutedScenarioWitness", "LayoutScenarioDefinition"],
         },
         CompileFailFixture {
             name: "direct_executed_witness_construction_is_not_public.rs",

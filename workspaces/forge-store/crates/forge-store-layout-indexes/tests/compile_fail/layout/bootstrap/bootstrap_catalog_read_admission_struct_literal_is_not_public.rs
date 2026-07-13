@@ -1,7 +1,5 @@
-use forge_store_layout_indexes::S8BootstrapCatalogReadAdmission;
+use forge_store_layout_indexes::BootstrapCatalogReadAdmission;
 
 fn main() {
-    let _forged = S8BootstrapCatalogReadAdmission {
-        identity: todo!(),
-    };
+    let _forged = BootstrapCatalogReadAdmission { identity: todo!() };
 }

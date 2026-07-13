@@ -30,22 +30,9 @@ impl HarnessPhysicalReference {
                 .reference(),
         )
     }
-
-    /// Expose the underlying reference only inside test-support for courtroom wiring.
-    pub(crate) fn as_physical_reference(self) -> PhysicalReference {
-        self.0
-    }
 }
 
 /// Construct a harness-only physical reference at the given slot index.
 pub fn harness_physical_reference(slot_index: u16) -> HarnessPhysicalReference {
     HarnessPhysicalReference::for_courtroom_replay(slot_index)
-}
-
-#[deprecated(
-    since = "0.0.0",
-    note = "use harness_physical_reference — test support must not imply production authority"
-)]
-pub fn test_physical_reference(slot_index: u16) -> HarnessPhysicalReference {
-    harness_physical_reference(slot_index)
 }

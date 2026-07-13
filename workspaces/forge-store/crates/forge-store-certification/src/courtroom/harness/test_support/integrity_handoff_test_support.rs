@@ -1,4 +1,5 @@
 use crate::{
+    courtroom::harness::test_support::integrity_readiness_test_support::physical_integrity_readiness,
     courtroom::harness::test_support::physical_container_integrity_test_support::{
         inspect_page_report, page_payload_with_record,
     },
@@ -6,7 +7,6 @@ use crate::{
         page_cell, page_slot_admission, root_admission, root_with_slot, scope_membership,
         validation, with_checked_frame, with_checked_page,
     },
-    courtroom::harness::test_support::integrity_readiness_test_support::physical_integrity_readiness,
     courtroom::layout::derived_index_damage_tests::inspect_with_damaged_authority,
 };
 use forge_store_physical_format::{
@@ -24,7 +24,7 @@ use forge_store_recovery_physics::{
     AdmittedRecoveryIntegrityInput, BoundedInspectionEnvelopeEvidence, IntegrityHandoffAdmission,
     IntegrityHandoffDenialKind, IntegrityHandoffPayload, IntegrityVettedCheckpointRecord,
     IntegrityVettedPageFrameRecord, IntegrityVettedRootManifestRecord,
-    IntegrityVettedSegmentManifestRecord, IntegrityVettedWalFrame, QuarantineSummary,
+    IntegrityVettedSegmentManifestRecord, IntegrityVettedWalFrame,
     RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt,
 };
 
@@ -208,11 +208,6 @@ fn with_wal_payload_input(
         let admission = PhysicalScopeAdmission::admit_frame(checked, request).unwrap();
         run(ScopedPhysicalValidatorInput::wal_frame(admission).unwrap());
     });
-}
-
-fn quarantine_summary() -> QuarantineSummary {
-    let (record, receipt, damage) = recovery_blocking_quarantine_binding();
-    QuarantineSummary::from_recovery_blocking_damage(&record, receipt, &damage).unwrap()
 }
 
 pub(crate) fn recovery_blocking_quarantine_binding() -> (

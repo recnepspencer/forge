@@ -20,6 +20,7 @@ pub enum PhysicalReadPlanAdmissionDenial {
     StaleGeneration(PhysicalReferenceGenerationMismatch),
     WrongPhysicalReferenceKind,
     ExecutionTimeReferenceDiscovery,
+    StoreAuthorityMismatch,
     PostProtectionObservationHazardMismatch {
         expected_protected_references: u64,
         observed_protected_references: u64,

@@ -50,7 +50,8 @@ fn backup_and_restore_layout_reports_preserve_terminal_and_readmission_required_
         ),
     )
     .expect("offline observation");
-    let restore = BackupImportCustodyReadmission::new(observation).admit_restore_evidence_layout();
+    let restore =
+        BackupImportCustodyReadmission::new(observation).project_restore_evidence_layout();
     assert_eq!(restore.family_id(), DurableArtifactFamilyId::ImportBundle);
     assert!(restore.requires_explicit_readmission());
 
@@ -79,7 +80,7 @@ fn backup_and_restore_layout_reports_preserve_terminal_and_readmission_required_
     )
     .expect("key-rotation observation");
     let restore_after_key_rotation =
-        BackupImportCustodyReadmission::new(rotation_observation).admit_restore_evidence_layout();
+        BackupImportCustodyReadmission::new(rotation_observation).project_restore_evidence_layout();
     assert!(restore_after_key_rotation.requires_explicit_readmission());
     assert_eq!(
         restore_after_key_rotation.readmission_trigger().crossing(),

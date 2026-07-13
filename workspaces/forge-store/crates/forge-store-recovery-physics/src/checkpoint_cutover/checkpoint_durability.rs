@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use forge_store_physical_backend::{BackendDurabilityProfile, BackendDurabilityProfileId};
-use forge_store_physical_format::PhysicalRootReference;
+use forge_store_physical_format::PhysicalReference;
 
 use crate::{DurableAckBasis, DurableAckReceipt, WalSegmentGeneration, WalSegmentId};
 
@@ -22,7 +22,7 @@ pub enum CheckpointDurabilityRole {
 pub struct CheckpointArtifactDurabilityCommitment {
     checkpoint_id: CheckpointId,
     role: CheckpointDurabilityRole,
-    root_reference: PhysicalRootReference,
+    root_reference: PhysicalReference,
     digest: String,
 }
 
@@ -72,7 +72,7 @@ impl CheckpointArtifactDurabilityCommitment {
         self.role
     }
 
-    pub const fn root_reference(&self) -> PhysicalRootReference {
+    pub const fn root_reference(&self) -> PhysicalReference {
         self.root_reference
     }
 
@@ -145,7 +145,7 @@ impl<P: BackendDurabilityProfile> CheckpointDurabilityEvidence<P> {
         self.commitment.checkpoint_id()
     }
 
-    pub const fn root_reference(&self) -> PhysicalRootReference {
+    pub const fn root_reference(&self) -> PhysicalReference {
         self.commitment.root_reference()
     }
 

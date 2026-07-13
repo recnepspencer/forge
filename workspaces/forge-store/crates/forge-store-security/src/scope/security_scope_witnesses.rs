@@ -120,6 +120,7 @@ impl StoreCurrentCustodyScopeWitness {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct StoreCurrentSecurityScopeWitnessSet {
+    authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
     key_scope: StoreCurrentKeyScopeWitness,
     key_version_scope: StoreCurrentKeyVersionScopeWitness,
     tenant_scope: StoreCurrentTenantScopeWitness,
@@ -128,8 +129,12 @@ pub struct StoreCurrentSecurityScopeWitnessSet {
 }
 
 impl StoreCurrentSecurityScopeWitnessSet {
-    pub(crate) const fn new(identity: StoreSecurityScopeIdentity) -> Self {
+    pub(crate) const fn new(
+        identity: StoreSecurityScopeIdentity,
+        authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
+    ) -> Self {
         Self {
+            authority_identity,
             key_scope: StoreCurrentKeyScopeWitness::new(identity),
             key_version_scope: StoreCurrentKeyVersionScopeWitness::new(identity),
             tenant_scope: StoreCurrentTenantScopeWitness::new(identity),
@@ -140,6 +145,12 @@ impl StoreCurrentSecurityScopeWitnessSet {
 
     pub const fn key_scope(&self) -> &StoreCurrentKeyScopeWitness {
         &self.key_scope
+    }
+
+    pub const fn authority_identity(
+        &self,
+    ) -> forge_store_authority::StoreCurrentAuthorityIdentity {
+        self.authority_identity
     }
 
     pub const fn key_version_scope(&self) -> &StoreCurrentKeyVersionScopeWitness {

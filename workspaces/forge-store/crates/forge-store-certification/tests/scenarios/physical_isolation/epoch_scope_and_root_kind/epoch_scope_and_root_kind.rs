@@ -1,13 +1,6 @@
-#[path = "../../../support/recovery/checkpoint_cutover/checkpoint_basis_fixture.rs"]
-#[allow(dead_code)]
-mod checkpoint_basis_fixture;
-#[path = "../../../support/recovery/checkpoint_cutover/checkpoint_durability_fixture.rs"]
-#[allow(dead_code)]
-mod checkpoint_durability_fixture;
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
-#[path = "../../../support/physical_isolation/epoch_scope_and_root_kind/support.rs"]
-mod support;
+use forge_store_test_support::harness::physical_isolation::epoch_scope as support;
+use forge_store_test_support::harness::recovery::checkpoint_basis as checkpoint_basis_fixture;
+use forge_store_test_support::harness::recovery::checkpoint_durability as checkpoint_durability_fixture;
 
 use forge_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,

@@ -21,10 +21,9 @@ pub use chunk_tree::{
     StoredChunkLookupLayoutReport,
 };
 pub use compaction::CompactionLayoutReport;
-pub use counters::BlobLayoutAccessPathEvidence;
+pub use counters::{BlobLayoutAccessPathEvidence, BlobLayoutAccessShape};
 pub use dedupe::DedupeLayoutReport;
 pub use denial::{BlobLayoutAccessDenial, BlobLayoutAccessDenialKind};
-pub use quarantine::QuarantineLayoutReport;
 pub use reachability::ReachabilityLayoutReport;
 pub use reclaim::ReclaimLayoutReport;
 pub use retention::RetentionLayoutReport;

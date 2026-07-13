@@ -1,41 +1,44 @@
-use super::completeness::{S8PrefixCompletenessWitness, S8RangeCompletenessWitness};
-use super::denial::{S8CoverageGapWitness, S8MaterializationDenial};
-use super::state::{S8LayoutMaterializationState, S8MaterializationStateClass};
-use super::watermark::S8LayoutWatermark;
+use super::coverage_basis::AdmittedCoverageBasis;
+use super::denial::{CoverageGapWitness, MaterializationDenial};
+use super::state::{LayoutMaterializationState, MaterializationStateClass};
+use super::watermark::LayoutWatermark;
+use super::LayoutMaterializationSourceIdentity;
 use crate::catalog::PhysicalArtifactFamily;
-use crate::integrity::{layout_corruption, S8LayoutCorruptionInput, S8LayoutCorruptionOutcome};
+use crate::integrity::{layout_corruption, LayoutCorruptionInput};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutCoverageWitness {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LayoutCoverageWitness {
     family: PhysicalArtifactFamily,
-    state: S8LayoutMaterializationState,
-    lower_bound: S8LayoutWatermark,
-    upper_bound: S8LayoutWatermark,
-    gap: Option<S8CoverageGapWitness>,
+    state: LayoutMaterializationState,
+    lower_bound: LayoutWatermark,
+    upper_bound: LayoutWatermark,
+    gap: Option<CoverageGapWitness>,
+    source: LayoutMaterializationSourceIdentity,
 }
 
-impl S8LayoutCoverageWitness {
+impl LayoutCoverageWitness {
     fn new(
-        state: S8LayoutMaterializationState,
-        lower_bound: S8LayoutWatermark,
-        upper_bound: S8LayoutWatermark,
-        gap: Option<S8CoverageGapWitness>,
-    ) -> Result<Self, S8MaterializationDenial> {
+        state: LayoutMaterializationState,
+        lower_bound: LayoutWatermark,
+        upper_bound: LayoutWatermark,
+        gap: Option<CoverageGapWitness>,
+        source: LayoutMaterializationSourceIdentity,
+    ) -> Result<Self, MaterializationDenial> {
         let family = state.family();
         let ordered_basis = matches!(
             state.class(),
-            S8MaterializationStateClass::Exact
-                | S8MaterializationStateClass::ExactThroughPhysicalBasis
-                | S8MaterializationStateClass::EmptyInitialized
-                | S8MaterializationStateClass::Lagged
-                | S8MaterializationStateClass::Stale
-                | S8MaterializationStateClass::PartiallyCovered
-                | S8MaterializationStateClass::Quarantined
+            MaterializationStateClass::Exact
+                | MaterializationStateClass::ExactThroughPhysicalBasis
+                | MaterializationStateClass::EmptyInitialized
+                | MaterializationStateClass::Lagged
+                | MaterializationStateClass::Stale
+                | MaterializationStateClass::PartiallyCovered
+                | MaterializationStateClass::Quarantined
         );
 
         if ordered_basis && lower_bound.basis_kind() != upper_bound.basis_kind() {
             return Err(
-                S8MaterializationDenial::CoverageBasisDoesNotMatchMaterializationState {
+                MaterializationDenial::CoverageBasisDoesNotMatchMaterializationState {
                     family,
                     state: state.class(),
                     basis_kind: upper_bound.basis_kind(),
@@ -44,7 +47,7 @@ impl S8LayoutCoverageWitness {
         }
 
         if lower_bound.value() > upper_bound.value() {
-            return Err(S8MaterializationDenial::CoverageIntervalIsReversed {
+            return Err(MaterializationDenial::CoverageIntervalIsReversed {
                 family,
                 basis_kind: upper_bound.basis_kind(),
                 lower_bound: lower_bound.value(),
@@ -58,134 +61,150 @@ impl S8LayoutCoverageWitness {
             lower_bound,
             upper_bound,
             gap,
+            source,
         })
     }
 
-    pub(crate) fn exact_through(
-        state: S8LayoutMaterializationState,
-        watermark: S8LayoutWatermark,
-    ) -> Result<Self, S8MaterializationDenial> {
-        Self::new(state, watermark, watermark, None)
+    pub(super) fn from_admitted_bases(
+        state: LayoutMaterializationState,
+        lower: AdmittedCoverageBasis,
+        upper: AdmittedCoverageBasis,
+        gap: Option<CoverageGapWitness>,
+    ) -> Result<Self, MaterializationDenial> {
+        if lower.source() != upper.source() {
+            return Err(MaterializationDenial::CoverageSourceMismatch);
+        }
+        Self::new(
+            state,
+            lower.watermark(),
+            upper.watermark(),
+            gap,
+            lower.source().clone(),
+        )
     }
 
-    pub(crate) fn lagged(
-        state: S8LayoutMaterializationState,
-        lower_bound: S8LayoutWatermark,
-        upper_bound: S8LayoutWatermark,
-    ) -> Result<Self, S8MaterializationDenial> {
-        Self::new(state, lower_bound, upper_bound, None)
+    #[cfg(test)]
+    pub(super) fn observed_exact_through(
+        state: LayoutMaterializationState,
+        watermark: LayoutWatermark,
+        source: LayoutMaterializationSourceIdentity,
+    ) -> Result<Self, MaterializationDenial> {
+        Self::new(state, watermark, watermark, None, source)
     }
 
-    pub(crate) fn partially_covered(
-        state: S8LayoutMaterializationState,
-        lower_bound: S8LayoutWatermark,
-        upper_bound: S8LayoutWatermark,
-        gap: S8CoverageGapWitness,
-    ) -> Result<Self, S8MaterializationDenial> {
-        Self::new(state, lower_bound, upper_bound, Some(gap))
+    #[cfg(test)]
+    pub(super) fn observed_lagged(
+        state: LayoutMaterializationState,
+        lower_bound: LayoutWatermark,
+        upper_bound: LayoutWatermark,
+        source: LayoutMaterializationSourceIdentity,
+    ) -> Result<Self, MaterializationDenial> {
+        Self::new(state, lower_bound, upper_bound, None, source)
     }
 
-    pub const fn family(self) -> PhysicalArtifactFamily {
+    #[cfg(test)]
+    pub(super) fn observed_partial(
+        state: LayoutMaterializationState,
+        lower_bound: LayoutWatermark,
+        upper_bound: LayoutWatermark,
+        gap: CoverageGapWitness,
+        source: LayoutMaterializationSourceIdentity,
+    ) -> Result<Self, MaterializationDenial> {
+        Self::new(state, lower_bound, upper_bound, Some(gap), source)
+    }
+
+    pub const fn family(&self) -> PhysicalArtifactFamily {
         self.family
     }
 
-    pub const fn state(self) -> S8LayoutMaterializationState {
+    pub const fn state(&self) -> LayoutMaterializationState {
         self.state
     }
 
-    pub const fn lower_bound(self) -> S8LayoutWatermark {
+    pub const fn lower_bound(&self) -> LayoutWatermark {
         self.lower_bound
     }
 
-    pub const fn upper_bound(self) -> S8LayoutWatermark {
+    pub const fn upper_bound(&self) -> LayoutWatermark {
         self.upper_bound
     }
 
-    pub const fn gap(self) -> Option<S8CoverageGapWitness> {
+    pub const fn gap(&self) -> Option<CoverageGapWitness> {
         self.gap
     }
 
-    pub const fn is_exact(self) -> bool {
+    pub const fn source(&self) -> &LayoutMaterializationSourceIdentity {
+        &self.source
+    }
+
+    pub const fn is_exact(&self) -> bool {
         self.state.supports_exact_access() && self.gap.is_none()
     }
 
-    pub fn require_exact(self) -> Result<Self, S8MaterializationDenial> {
+    pub fn require_exact(&self) -> Result<Self, MaterializationDenial> {
         if let Some(gap) = self.gap {
-            if self.state.class() != S8MaterializationStateClass::Quarantined {
-                return Err(S8MaterializationDenial::LayoutCoverageIsPartial { gap });
+            if self.state.class() != MaterializationStateClass::Quarantined {
+                return Err(MaterializationDenial::LayoutCoverageIsPartial { gap });
             }
         }
 
-        let outcome = layout_corruption().classify(S8LayoutCorruptionInput::Materialization(self));
+        let outcome =
+            layout_corruption().classify(LayoutCorruptionInput::Materialization(self.clone()));
         match outcome.view() {
-            crate::S8LayoutCorruptionView::Clean(coverage) => Ok(*coverage),
-            crate::S8LayoutCorruptionView::StaleBinding(coverage) => {
-                Err(S8MaterializationDenial::LayoutCoverageIsStale {
+            crate::LayoutCorruptionView::Clean(coverage) => Ok(coverage.clone()),
+            crate::LayoutCorruptionView::StaleBinding(coverage) => {
+                Err(MaterializationDenial::LayoutCoverageIsStale {
                     family: coverage.family(),
                     basis_kind: coverage.upper_bound().basis_kind(),
                 })
             }
-            crate::S8LayoutCorruptionView::Quarantined(quarantine) => {
+            crate::LayoutCorruptionView::Quarantined(quarantine) => {
                 let coverage = quarantine
                     .coverage()
                     .expect("materialization-backed quarantine retains its coverage");
                 let gap = coverage.gap().unwrap_or_else(|| {
-                    S8CoverageGapWitness::physical_range(
+                    CoverageGapWitness::physical_range(
                         coverage.family(),
                         coverage.upper_bound().basis_kind(),
                         coverage.lower_bound().value(),
                         coverage.upper_bound().value(),
                     )
                 });
-                Err(S8MaterializationDenial::LayoutRangeIsQuarantined { gap })
+                Err(MaterializationDenial::LayoutRangeIsQuarantined { gap })
             }
-            crate::S8LayoutCorruptionView::RebuildRequired(_) => {
-                Err(S8MaterializationDenial::LayoutRequiresRebuild {
+            crate::LayoutCorruptionView::RebuildRequired(_) => {
+                Err(MaterializationDenial::LayoutRequiresRebuild {
                     family: self.family,
                 })
             }
-            crate::S8LayoutCorruptionView::MigrationRequired(family) => {
-                Err(S8MaterializationDenial::LayoutIsMigrating { family: *family })
+            crate::LayoutCorruptionView::MigrationRequired(family) => {
+                Err(MaterializationDenial::LayoutIsMigrating { family: *family })
             }
-            crate::S8LayoutCorruptionView::Unsupported(unsupported)
-                if unsupported.state() == S8MaterializationStateClass::Lagged =>
+            crate::LayoutCorruptionView::Unsupported(unsupported)
+                if unsupported.state() == MaterializationStateClass::Lagged =>
             {
-                Err(S8MaterializationDenial::LayoutCoverageIsLagged {
+                Err(MaterializationDenial::LayoutCoverageIsLagged {
                     family: unsupported.family(),
                     basis_kind: self.upper_bound.basis_kind(),
                 })
             }
-            crate::S8LayoutCorruptionView::NotFound(family) => Err(
-                S8MaterializationDenial::MaterializationStateDoesNotSupportExactAccess {
+            crate::LayoutCorruptionView::NotFound(family) => Err(
+                MaterializationDenial::MaterializationStateDoesNotSupportExactAccess {
                     family: *family,
-                    state: S8MaterializationStateClass::Absent,
+                    state: MaterializationStateClass::Absent,
                 },
             ),
-            crate::S8LayoutCorruptionView::Unsupported(unsupported) => Err(
-                S8MaterializationDenial::MaterializationStateDoesNotSupportExactAccess {
+            crate::LayoutCorruptionView::Unsupported(unsupported) => Err(
+                MaterializationDenial::MaterializationStateDoesNotSupportExactAccess {
                     family: unsupported.family(),
                     state: unsupported.state(),
                 },
             ),
-            crate::S8LayoutCorruptionView::QuarantineReadmissionRequired(_)
-            | crate::S8LayoutCorruptionView::OfflineReadmissionRequired(_)
-            | crate::S8LayoutCorruptionView::ImportReadmissionRequired(_) => {
+            crate::LayoutCorruptionView::QuarantineReadmissionRequired(_)
+            | crate::LayoutCorruptionView::OfflineReadmissionRequired(_)
+            | crate::LayoutCorruptionView::ImportReadmissionRequired(_) => {
                 unreachable!("materialization classification does not emit readmission outcomes")
             }
         }
-    }
-
-    pub fn require_exact_range_completeness(
-        self,
-    ) -> Result<S8RangeCompletenessWitness, S8MaterializationDenial> {
-        let exact = self.require_exact()?;
-        Ok(S8RangeCompletenessWitness::new(exact))
-    }
-
-    pub fn require_exact_prefix_completeness(
-        self,
-    ) -> Result<S8PrefixCompletenessWitness, S8MaterializationDenial> {
-        let exact = self.require_exact()?;
-        Ok(S8PrefixCompletenessWitness::new(exact))
     }
 }

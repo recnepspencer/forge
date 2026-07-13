@@ -1,18 +1,18 @@
-use crate::access::execution::S8AccessPathCounterSnapshot;
-use crate::strategy::S8StrategyCounterProfile;
+use crate::access::execution::AccessPathCounterSnapshot;
+use crate::strategy::StrategyCounterProfile;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8PlannedCounterEnvelope {
-    lookup: S8AccessPathCounterSnapshot,
-    publication: S8AccessPathCounterSnapshot,
-    recovery: S8AccessPathCounterSnapshot,
+pub struct PlannedCounterEnvelope {
+    lookup: AccessPathCounterSnapshot,
+    publication: AccessPathCounterSnapshot,
+    recovery: AccessPathCounterSnapshot,
 }
 
-impl S8PlannedCounterEnvelope {
+impl PlannedCounterEnvelope {
     pub(crate) const fn new(
-        lookup: S8AccessPathCounterSnapshot,
-        publication: S8AccessPathCounterSnapshot,
-        recovery: S8AccessPathCounterSnapshot,
+        lookup: AccessPathCounterSnapshot,
+        publication: AccessPathCounterSnapshot,
+        recovery: AccessPathCounterSnapshot,
     ) -> Self {
         Self {
             lookup,
@@ -21,20 +21,20 @@ impl S8PlannedCounterEnvelope {
         }
     }
 
-    pub const fn lookup(self) -> S8AccessPathCounterSnapshot {
+    pub const fn lookup(self) -> AccessPathCounterSnapshot {
         self.lookup
     }
 
-    pub const fn publication(self) -> S8AccessPathCounterSnapshot {
+    pub const fn publication(self) -> AccessPathCounterSnapshot {
         self.publication
     }
 
-    pub const fn recovery(self) -> S8AccessPathCounterSnapshot {
+    pub const fn recovery(self) -> AccessPathCounterSnapshot {
         self.recovery
     }
 
-    pub const fn aggregate_profile(self) -> S8StrategyCounterProfile {
-        S8StrategyCounterProfile::new(
+    pub const fn aggregate_profile(self) -> StrategyCounterProfile {
+        StrategyCounterProfile::new(
             self.lookup.point_lookups()
                 + self.publication.point_lookups()
                 + self.recovery.point_lookups(),

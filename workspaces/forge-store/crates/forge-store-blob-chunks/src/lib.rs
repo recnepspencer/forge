@@ -20,6 +20,7 @@
 mod capsule_readiness;
 mod chunk_identity;
 mod chunk_integrity;
+#[cfg(any(test, feature = "certification-test-authority"))]
 mod closeout_bundle;
 mod compaction;
 mod compile_fail;
@@ -28,7 +29,9 @@ mod dedupe;
 mod export_bundle;
 mod exports;
 mod handoffs;
+#[cfg(any(test, feature = "certification-test-authority"))]
 mod harness_execution;
+#[cfg(any(test, feature = "certification-test-authority"))]
 mod heavy_fixture;
 mod import_readmission;
 mod layout_projection;
@@ -39,9 +42,10 @@ mod reachability;
 mod recovery;
 mod retention_reclaim;
 mod streaming;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
 mod test_support;
 
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub use closeout_bundle::ExecutedBlobLifecycleEvidenceBundle;
 #[cfg(test)]
 pub(crate) use compaction::test_support::{
@@ -52,6 +56,7 @@ pub(crate) use compaction::test_support::{
 #[cfg(test)]
 pub use exports::hostile_lane::*;
 pub use exports::*;
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub use heavy_fixture::*;
 pub use layout_projection::{
     reject_chunk_tree_root_as_blob_object_layout_authority,

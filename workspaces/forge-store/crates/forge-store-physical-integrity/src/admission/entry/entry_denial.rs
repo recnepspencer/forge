@@ -1,4 +1,6 @@
-use forge_store_contracts::{PhysicalIntegrityReadinessDenial, PhysicalIntegrityReadinessDenialKind};
+use forge_store_contracts::{
+    PhysicalIntegrityReadinessDenial, PhysicalIntegrityReadinessDenialKind,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IntegrityEntryDenial {

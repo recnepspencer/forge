@@ -1,52 +1,52 @@
 use crate::catalog::ArtifactFamilyDenial;
 
 #[derive(Debug, PartialEq, Eq)]
-enum S8KeyDomainAdmissionCase {
+enum KeyDomainAdmissionCase {
     Success(super::PhysicalKeyDomainWitness),
     Denied(ArtifactFamilyDenial),
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct S8KeyDomainAdmissionOutcome {
-    case: S8KeyDomainAdmissionCase,
+pub struct KeyDomainAdmissionOutcome {
+    case: KeyDomainAdmissionCase,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8KeyDomainAdmissionView<'a> {
+pub enum KeyDomainAdmissionView<'a> {
     Success(&'a super::PhysicalKeyDomainWitness),
     Denied(&'a ArtifactFamilyDenial),
 }
 
-impl S8KeyDomainAdmissionOutcome {
+impl KeyDomainAdmissionOutcome {
     pub(crate) fn admitted(value: super::PhysicalKeyDomainWitness) -> Self {
-        Self::from_owner_payload(S8KeyDomainAdmissionCase::Success(value))
+        Self::from_owner_payload(KeyDomainAdmissionCase::Success(value))
     }
 
     pub(crate) fn denied(value: ArtifactFamilyDenial) -> Self {
-        Self::from_owner_payload(S8KeyDomainAdmissionCase::Denied(value))
+        Self::from_owner_payload(KeyDomainAdmissionCase::Denied(value))
     }
 
-    fn from_owner_payload(case: S8KeyDomainAdmissionCase) -> Self {
+    fn from_owner_payload(case: KeyDomainAdmissionCase) -> Self {
         Self { case }
     }
 
-    pub fn view(&self) -> S8KeyDomainAdmissionView<'_> {
+    pub fn view(&self) -> KeyDomainAdmissionView<'_> {
         match &self.case {
-            S8KeyDomainAdmissionCase::Success(value) => S8KeyDomainAdmissionView::Success(value),
-            S8KeyDomainAdmissionCase::Denied(value) => S8KeyDomainAdmissionView::Denied(value),
+            KeyDomainAdmissionCase::Success(value) => KeyDomainAdmissionView::Success(value),
+            KeyDomainAdmissionCase::Denied(value) => KeyDomainAdmissionView::Denied(value),
         }
     }
 
-    fn into_owner_payload(self) -> S8KeyDomainAdmissionCase {
+    fn into_owner_payload(self) -> KeyDomainAdmissionCase {
         self.case
     }
 }
 
-impl S8KeyDomainAdmissionOutcome {
+impl KeyDomainAdmissionOutcome {
     pub fn into_result(self) -> Result<super::PhysicalKeyDomainWitness, ArtifactFamilyDenial> {
         match self.into_owner_payload() {
-            S8KeyDomainAdmissionCase::Success(value) => Ok(value),
-            S8KeyDomainAdmissionCase::Denied(denial) => Err(denial),
+            KeyDomainAdmissionCase::Success(value) => Ok(value),
+            KeyDomainAdmissionCase::Denied(denial) => Err(denial),
         }
     }
 
@@ -59,12 +59,12 @@ impl S8KeyDomainAdmissionOutcome {
 }
 
 impl PartialEq<Result<super::PhysicalKeyDomainWitness, ArtifactFamilyDenial>>
-    for S8KeyDomainAdmissionOutcome
+    for KeyDomainAdmissionOutcome
 {
     fn eq(&self, other: &Result<super::PhysicalKeyDomainWitness, ArtifactFamilyDenial>) -> bool {
         match (self.view(), other) {
-            (S8KeyDomainAdmissionView::Success(left), Ok(right)) => left == right,
-            (S8KeyDomainAdmissionView::Denied(left), Err(right)) => left == right,
+            (KeyDomainAdmissionView::Success(left), Ok(right)) => left == right,
+            (KeyDomainAdmissionView::Denied(left), Err(right)) => left == right,
             _ => false,
         }
     }
@@ -72,9 +72,9 @@ impl PartialEq<Result<super::PhysicalKeyDomainWitness, ArtifactFamilyDenial>>
 
 pub(crate) fn issue_key_domain_admission(
     result: Result<super::PhysicalKeyDomainWitness, ArtifactFamilyDenial>,
-) -> S8KeyDomainAdmissionOutcome {
+) -> KeyDomainAdmissionOutcome {
     match result {
-        Ok(domain) => S8KeyDomainAdmissionOutcome::admitted(domain),
-        Err(denial) => S8KeyDomainAdmissionOutcome::denied(denial),
+        Ok(domain) => KeyDomainAdmissionOutcome::admitted(domain),
+        Err(denial) => KeyDomainAdmissionOutcome::denied(denial),
     }
 }

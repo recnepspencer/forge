@@ -1,5 +1,5 @@
 use forge_store_contracts::{
-    BufferPoolAuthorityRecap, PhysicalAuthorityRecap, BoundedCounterRecap, DenialBehaviorRecap,
+    BoundedCounterRecap, BufferPoolAuthorityRecap, DenialBehaviorRecap, PhysicalAuthorityRecap,
     PhysicalIntegrityReadinessPayload,
 };
 

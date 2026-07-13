@@ -83,7 +83,7 @@ fn io_qos_readiness_handoff_fixture_path(
     manifest_dir
         .join("tests")
         .join("compile_fail")
-            .join("scheduling")
+        .join("scheduling")
         .join("io_qos_readiness_handoff")
         .join(fixture_name)
 }

@@ -5,18 +5,16 @@ use forge_store_physical_format::{
 };
 use forge_store_physical_integrity::{
     ChecksumAlgorithmDeclaration, ChecksumAlgorithmId, ChecksumScopeDeclaration,
-    DeclaredPhysicalChecksum, ExecutedQuarantineFinding, IntegrityEntryAdmission,
-    IntegrityEntryRequest, ManifestExpectedReference, ManifestIntegrityAuthority,
-    ManifestIntegrityInspectionRequest, PhysicalContainerIntegrity, PhysicalIntegrityAdmission,
-    PhysicalIntegrityAdmissionRequest, PhysicalIntegrityAdmissionSeed,
-    PhysicalIntegrityEvidenceAuthority, PhysicalIntegrityEvidenceProfile,
-    PhysicalQuarantineAuthority, PhysicalScopeAdmission, PhysicalScopeAdmissionRequest,
-    QuarantineSealRequest, ScopedPhysicalValidatorInput, StoreExecutedIntegrityEvidence,
-    WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
+    DeclaredPhysicalChecksum, IntegrityEntryAdmission, IntegrityEntryRequest,
+    ManifestExpectedReference, ManifestIntegrityAuthority, ManifestIntegrityInspectionRequest,
+    PhysicalContainerIntegrity, PhysicalIntegrityAdmission, PhysicalIntegrityAdmissionRequest,
+    PhysicalIntegrityAdmissionSeed, PhysicalIntegrityEvidenceAuthority,
+    PhysicalIntegrityEvidenceProfile, PhysicalScopeAdmission, PhysicalScopeAdmissionRequest,
+    ScopedPhysicalValidatorInput, StoreExecutedIntegrityEvidence, WalFrameIntegrityAuthority,
+    WalFrameIntegrityInspectionRequest,
 };
 use forge_store_recovery_physics::{
-    BoundedInspectionEnvelopeEvidence, QuarantineSummary, RecoveryBlockedByIntegrityDamage,
-    RecoveryIntegrityHandoffReceipt,
+    BoundedInspectionEnvelopeEvidence, RecoveryIntegrityHandoffReceipt,
 };
 
 use super::s4_recovery_physical_fixture::{
@@ -56,10 +54,12 @@ pub(super) fn inspect_manifest() -> forge_store_physical_integrity::ManifestInte
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),
-                PhysicalReferenceAuthority::for_canonical_physical_format().admit_root_publication(root.root_publication()),
+                PhysicalReferenceAuthority::for_canonical_physical_format()
+                    .admit_root_publication(root.root_publication()),
             )
             .with_expected_reference(ManifestExpectedReference::page_slot(
-                PhysicalReferenceAuthority::for_canonical_physical_format().admit_page_slot(slot_cell(1, 2, 3, 7)),
+                PhysicalReferenceAuthority::for_canonical_physical_format()
+                    .admit_page_slot(slot_cell(1, 2, 3, 7)),
             )),
         )
         .unwrap()
@@ -99,28 +99,6 @@ pub(super) fn inspection_envelope(payload: &[u8]) -> BoundedInspectionEnvelopeEv
         );
     });
     envelope.unwrap()
-}
-
-pub(super) fn quarantine_summary() -> QuarantineSummary {
-    let wal_damage = inspect_wal_damage(CheckpointAdjacencyPosture::NotCheckpointAdjacent);
-    let record = PhysicalQuarantineAuthority::seal(QuarantineSealRequest::from_executed_finding(
-        ExecutedQuarantineFinding::from_wal_frame_denial(&wal_damage).unwrap(),
-    ))
-    .unwrap();
-    let evidence = PhysicalIntegrityEvidenceAuthority::store_local()
-        .materialize(
-            StoreExecutedIntegrityEvidence::receipt_evidence(&record),
-            PhysicalIntegrityEvidenceProfile::reduced(),
-        )
-        .unwrap();
-    let receipt =
-        RecoveryIntegrityHandoffReceipt::from_quarantine_receipt_evidence(&evidence).unwrap();
-    QuarantineSummary::from_recovery_blocking_damage(
-        &record,
-        receipt,
-        &RecoveryBlockedByIntegrityDamage::damaged_wal_frame(&wal_damage),
-    )
-    .unwrap()
 }
 
 pub(super) fn inspect_wal_damage(
@@ -226,7 +204,10 @@ fn checksum_admission(
 
 fn with_entry_seed(payload: &[u8], run: impl FnOnce(PhysicalIntegrityAdmissionSeed<'_>)) {
     with_protected_payload_view(payload, |protected| {
-        let entry = IntegrityEntryAdmission::from_physical_integrity_payload(physical_integrity_readiness().payload()).unwrap();
+        let entry = IntegrityEntryAdmission::from_physical_integrity_payload(
+            physical_integrity_readiness().payload(),
+        )
+        .unwrap();
         let lease = entry.admit(IntegrityEntryRequest::new(protected)).unwrap();
         run(PhysicalIntegrityAdmission::from_entry(lease));
     });
@@ -239,7 +220,9 @@ fn checksum_declaration() -> ChecksumAlgorithmDeclaration {
 }
 
 fn checksum_scope() -> ChecksumScopeDeclaration {
-    let format = forge_store_physical_format::PhysicalFormatDeclaration::physical_format_canonical().unwrap();
+    let format =
+        forge_store_physical_format::PhysicalFormatDeclaration::physical_format_canonical()
+            .unwrap();
     ChecksumScopeDeclaration::for_physical_format(
         format.identity(),
         ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap(),

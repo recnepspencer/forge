@@ -12,12 +12,12 @@ use forge_store_contracts::QueueProducerResourceShape;
 use forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use forge_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
-    admit_security_scope_for_scheduler, admit_secure_io_scope_for_scheduler,
+    admit_secure_io_scope_for_scheduler, admit_security_scope_for_scheduler,
     assess_queue_latency_envelope, execute_ready_queue_plan, lower_buffer_pool_queue_declaration,
     BackgroundResourceBudget, CacheResidencyHint, InterferenceCounterName,
     InterferenceCounterRequirement, LatencyEnvelopeClaim, QueueExecutionReadyPlan, QueueSlot,
-    ReadAheadWindow, SecureIoOperation, SecureIoPostureRequirement,
-    SecureIoPreservationRequest, WorkerPermit,
+    ReadAheadWindow, SecureIoOperation, SecureIoPostureRequirement, SecureIoPreservationRequest,
+    WorkerPermit,
 };
 use forge_store_physical_backend::{
     AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionRequest,
@@ -188,7 +188,8 @@ fn backend_witness() -> AdmittedBackendCapabilityWitness {
         .expect("backend witness should admit")
 }
 
-fn io_qos_security_scope_admission() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission {
+fn io_qos_security_scope_admission() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission
+{
     let scope = forge_store_security::admitted_store_internal_security_scope_for_io_qos_test();
     admit_security_scope_for_scheduler(&scope).expect("scheduler security scope should admit")
 }

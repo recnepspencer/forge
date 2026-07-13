@@ -26,8 +26,10 @@ impl BinaryPhysicalFormatEvidence {
     ) -> Result<Self, BinaryPhysicalFormatEvidenceDenial> {
         let canonical_digest = derive_witness_canonical_digest(witness)?;
         Ok(Self {
-            artifact_id: StableArtifactId::new("forge_store.binary_format.for_canonical_physical_format")
-                .expect("static artifact id"),
+            artifact_id: StableArtifactId::new(
+                "forge_store.binary_format.for_canonical_physical_format",
+            )
+            .expect("static artifact id"),
             foundational_basis: StableArtifactId::new("forge_foundational.canonical_bytes")
                 .expect("static artifact id"),
             canonical_digest,
@@ -135,7 +137,8 @@ mod tests {
 
         assert_eq!(
             evidence.artifact_id(),
-            &StableArtifactId::new("forge_store.binary_format.for_canonical_physical_format").unwrap()
+            &StableArtifactId::new("forge_store.binary_format.for_canonical_physical_format")
+                .unwrap()
         );
         assert_eq!(
             evidence.foundational_basis(),

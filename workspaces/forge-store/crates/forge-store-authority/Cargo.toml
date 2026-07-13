@@ -9,6 +9,7 @@ description = "Canonical Store authority records and artifact identity contracts
 forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-aspect-native.workspace = true
 forge-store-contracts.workspace = true
+sha2 = "0.10"
 
 [lints]
 workspace = true

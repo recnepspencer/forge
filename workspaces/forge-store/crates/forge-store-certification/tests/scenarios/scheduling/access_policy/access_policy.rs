@@ -7,12 +7,15 @@ use forge_store_physical_backend::{
 };
 use forge_store_physical_format::PhysicalAlignmentClass;
 
+#[path = "../../../support/scheduling/access_policy_support/extended.rs"]
+mod extended_access_policy_support;
 #[path = "../../../support/scheduling/access_policy_support/access_policy_support.rs"]
 mod s6_access_policy_support;
 
+use extended_access_policy_support::{backend_with_access, direct_io_request, mixed_request};
 use s6_access_policy_support::{
-    admit, backend_with_access, base_request, direct_io_request, executed_row, mixed_request,
-    mmap_request, pinned_lifecycle, test_reference, violation_row, ExpectedExecutionRequest,
+    admit, base_request, executed_row, mmap_request, pinned_lifecycle, test_reference,
+    violation_row, ExpectedExecutionRequest,
 };
 
 #[test]

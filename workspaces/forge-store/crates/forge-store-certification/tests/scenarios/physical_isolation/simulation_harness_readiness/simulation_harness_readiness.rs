@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/coverage_support/coverage_support.rs"]
-mod coverage_support;
+use forge_store_test_support::harness::recovery::coverage as coverage_support;
 #[path = "../readiness/shortcut_report.rs"]
 mod shortcut_report;
 
@@ -9,17 +8,17 @@ use forge_store_physical_certification::{
     accept_store_owned_physical_isolation_harness_readiness,
     reject_foundational_or_proof_projection_as_physical_isolation_harness_readiness,
     reject_future_slot_as_physical_isolation_harness_readiness,
-    reject_generic_runner_as_physical_isolation_harness_readiness,
-    CounterContractKind, CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind,
-    OracleFamilyKind, PhysicalCertificationEvidenceBundle, PhysicalDriverKind,
-    PhysicalIsolationCompactionMutationKind, PhysicalIsolationCounterContractReadiness,
-    PhysicalIsolationHarnessFutureExtensionReservation,
-    PhysicalIsolationHarnessFutureExtensionSlot, PhysicalIsolationHarnessReadinessReceipt,
-    PhysicalIsolationInterleavingHarnessCapability, PhysicalIsolationMaintenanceActorCapability,
-    PhysicalIsolationProductionDriverCapability, PhysicalIsolationRequiredYieldpoint,
-    PhysicalIsolationReusableOracleReadiness, PhysicalProofOracleKind, PhysicalScenarioActorRole,
-    ShortcutRejectionObservationKind, SimulationPlanDenial,
-    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessReadinessDenial,
+    reject_generic_runner_as_physical_isolation_harness_readiness, CounterContractKind,
+    CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind, OracleFamilyKind,
+    PhysicalCertificationEvidenceBundle, PhysicalDriverKind,
+    PhysicalIsolationCompactionMutationKind, PhysicalIsolationCorrectnessNonClaimEvidence,
+    PhysicalIsolationCounterContractReadiness, PhysicalIsolationHarnessFutureExtensionReservation,
+    PhysicalIsolationHarnessFutureExtensionSlot, PhysicalIsolationHarnessReadinessDenial,
+    PhysicalIsolationHarnessReadinessReceipt, PhysicalIsolationInterleavingHarnessCapability,
+    PhysicalIsolationMaintenanceActorCapability, PhysicalIsolationProductionDriverCapability,
+    PhysicalIsolationRequiredYieldpoint, PhysicalIsolationReusableOracleReadiness,
+    PhysicalProofOracleKind, PhysicalScenarioActorRole, ShortcutRejectionObservationKind,
+    SimulationPlanDenial,
 };
 
 #[test]

@@ -19,6 +19,7 @@ impl PlatformPhysicalFacade {
             request.headers().clone(),
             PlatformPhysicalFacadeStorage::empty(),
             PlatformPhysicalFacadeCounterSnapshot::empty().with_open(),
+            request.store_identity().clone(),
         ))
     }
 
@@ -79,12 +80,18 @@ pub(crate) fn construct_storage_from_verified_layout(
 
 pub(crate) fn reopen_from_verified_layout(
     readiness: AcceptedHandoffReadiness,
-    _request: PlatformPhysicalOpenRequest,
+    request: PlatformPhysicalOpenRequest,
     headers: PhysicalHeaderAuthority,
     layout: PersistedPhysicalLayout,
+    artifact_store_identity: crate::PhysicalStoreIdentity,
 ) -> Result<PlatformPhysicalFacade, PlatformPhysicalFacadeDenial> {
     verify_handoff_readiness(&readiness)?;
-    let request = PlatformPhysicalOpenRequest::new(headers);
+    if request.store_identity() != &artifact_store_identity {
+        return Err(PlatformPhysicalFacadeDenial::new(
+            PlatformPhysicalFacadeDenialKind::StoreIdentityMismatch,
+        ));
+    }
+    let request = PlatformPhysicalOpenRequest::for_store(headers, artifact_store_identity);
     let evidence = collect_reopen_layout_evidence(&request, &layout);
     let verifier_report = verify_persisted_layout_for_reopen(&evidence)?;
     let storage = construct_storage_from_verified_layout(&layout, &verifier_report);
@@ -95,6 +102,7 @@ pub(crate) fn reopen_from_verified_layout(
         PlatformPhysicalFacadeCounterSnapshot::empty()
             .with_open()
             .with_reopen(),
+        request.store_identity().clone(),
     ))
 }
 

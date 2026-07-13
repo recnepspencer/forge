@@ -1,11 +1,11 @@
 use forge_store_blob_chunks::BlobExportPublishedBundle;
 use forge_store_contracts::DurableArtifactFamilyId;
-use forge_store_layout_indexes::access_planning::S8AccessShape;
+use forge_store_layout_indexes::observation::AccessShape;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExportLayoutEvidenceReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: AccessShape,
     declared_chunks: u64,
 }
 
@@ -17,7 +17,7 @@ impl ExportLayoutEvidenceReport {
     fn from_export_source(declared_chunks: u64) -> Self {
         Self {
             family_id: DurableArtifactFamilyId::ExportBundle,
-            access_shape: S8AccessShape::ManifestGraphWalk,
+            access_shape: AccessShape::ManifestGraphWalk,
             declared_chunks,
         }
     }
@@ -26,7 +26,7 @@ impl ExportLayoutEvidenceReport {
         self.family_id
     }
 
-    pub const fn declared_access_shape(&self) -> S8AccessShape {
+    pub const fn declared_access_shape(&self) -> AccessShape {
         self.access_shape
     }
 

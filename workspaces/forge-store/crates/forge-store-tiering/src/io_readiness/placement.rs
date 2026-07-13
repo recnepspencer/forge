@@ -26,5 +26,4 @@ impl TierPlacementIoAdmission {
     pub const fn cold_tier_posture(&self) -> &ColdTierIoPosture {
         &self.cold_tier_posture
     }
-
 }

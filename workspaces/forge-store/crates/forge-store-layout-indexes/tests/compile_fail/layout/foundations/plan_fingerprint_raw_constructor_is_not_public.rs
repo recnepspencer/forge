@@ -1,16 +1,16 @@
 use forge_store_layout_indexes::access_planning::{
-    S8AccessAuthorityPosture, S8AccessLaneClassification, S8AccessShape, S8AccessStaleDisposition,
-    S8PlanFingerprint,
+    AccessAuthorityPosture, AccessLaneClassification, AccessPlanIdentity, AccessShape,
+    AccessStaleDisposition,
 };
-use forge_store_layout_indexes::layout_strategy_admission::S8LayoutStrategyFamily;
+use forge_store_layout_indexes::strategy_declarations::LayoutStrategyFamily;
 
 fn main() {
-    let _ = S8PlanFingerprint::new(
-        S8LayoutStrategyFamily::ExactScan,
-        S8AccessShape::DegradedExactScan,
-        S8AccessLaneClassification::Foreground,
-        S8AccessAuthorityPosture::ExplicitDegradedExactScan,
-        S8AccessStaleDisposition::ExplicitDegradedFallback,
+    let _ = AccessPlanIdentity::new(
+        LayoutStrategyFamily::ExactScan,
+        AccessShape::DegradedExactScan,
+        AccessLaneClassification::Foreground,
+        AccessAuthorityPosture::ExplicitDegradedExactScan,
+        AccessStaleDisposition::ExplicitDegradedFallback,
         todo!(),
     );
 }

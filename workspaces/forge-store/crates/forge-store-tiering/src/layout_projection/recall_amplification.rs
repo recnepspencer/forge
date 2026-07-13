@@ -1,5 +1,5 @@
+use super::TierLayoutTraversal;
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
-use forge_store_layout_indexes::access_planning::S8AccessShape;
 use forge_store_reclaim_policy::ReclaimPolicyCounterSnapshot;
 
 use crate::ColdTierIoPosture;
@@ -18,7 +18,7 @@ pub struct RecallAmplificationAccessBudget {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecallAmplificationLayoutReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: TierLayoutTraversal,
     rebuild_posture: DurableArtifactRebuildPosture,
     interference_posture: RecallAmplificationInterferencePosture,
     posture: ColdTierIoPosture,
@@ -28,7 +28,7 @@ impl RecallAmplificationLayoutReport {
     fn from_posture(posture: &ColdTierIoPosture) -> Self {
         RecallAmplificationLayoutReport {
             family_id: DurableArtifactFamilyId::RecallAmplificationIndex,
-            access_shape: S8AccessShape::BoundedScan,
+            access_shape: TierLayoutTraversal::BoundedScan,
             rebuild_posture: DurableArtifactRebuildPosture::PartialRebuildOnly,
             interference_posture: RecallAmplificationInterferencePosture::ColdTierReadAmplification,
             posture: posture.clone(),
@@ -39,7 +39,7 @@ impl RecallAmplificationLayoutReport {
         self.family_id
     }
 
-    pub const fn access_shape(&self) -> S8AccessShape {
+    pub const fn access_shape(&self) -> TierLayoutTraversal {
         self.access_shape
     }
 
@@ -82,7 +82,7 @@ impl RecallAmplificationAccessBudget {
 }
 
 impl ColdTierIoPosture {
-    pub fn admit_recall_amplification_layout(&self) -> RecallAmplificationLayoutReport {
+    pub fn project_recall_amplification_layout(&self) -> RecallAmplificationLayoutReport {
         RecallAmplificationLayoutReport::from_posture(self)
     }
 }

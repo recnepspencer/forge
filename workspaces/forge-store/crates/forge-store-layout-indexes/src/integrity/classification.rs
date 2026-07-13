@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8LayoutCorruptionClass {
+pub enum LayoutCorruptionClass {
     Clean,
     NotFound,
     Unsupported,
@@ -12,7 +12,7 @@ pub enum S8LayoutCorruptionClass {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8LayoutReadmissionSource {
+pub enum LayoutReadmissionSource {
     QuarantineRecovery,
     OfflineRecoveryEvidence,
     TerminalImport,

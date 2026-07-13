@@ -1,5 +1,4 @@
-#[path = "../counter_strength/compaction_interlock_trace.rs"]
-mod compaction_interlock_trace;
+use forge_store_test_support::harness::recovery::compaction_observation as compaction_interlock_trace;
 
 use forge_store_physical_certification::{
     expected_error_text_oracle_attempt, fixture_label_oracle_attempt, log_only_oracle_attempt,
@@ -194,7 +193,8 @@ fn fake_verdict_sources_are_explicitly_denied() {
 }
 
 #[test]
-fn physical_isolation_readiness_family_is_reusable_without_claiming_physical_isolation_correctness() {
+fn physical_isolation_readiness_family_is_reusable_without_claiming_physical_isolation_correctness()
+{
     let plan = lower_physical_isolation_plan();
     let trace = PhysicalSimulationObserver::independent_physical_trace()
         .observe_plan(&plan)

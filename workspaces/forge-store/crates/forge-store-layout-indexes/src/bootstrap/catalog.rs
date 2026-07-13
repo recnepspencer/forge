@@ -2,12 +2,12 @@ use forge_store_physical_format::{
     PhysicalBootstrapCatalogIdentity, PhysicalFormatVersion, PhysicalRootReference,
 };
 
-use super::root_discovery::S8MinimalRootDiscoveryLayout;
+use super::root_discovery::MinimalRootDiscoveryLayout;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S8BootstrapLayoutCatalog {
+pub struct BootstrapLayoutCatalog {
     identity: PhysicalBootstrapCatalogIdentity,
-    discovery_layout: S8MinimalRootDiscoveryLayout,
+    discovery_layout: MinimalRootDiscoveryLayout,
     root_entry_count: u32,
     segment_count: u32,
     page_slot_count: u32,
@@ -16,10 +16,10 @@ pub struct S8BootstrapLayoutCatalog {
     free_space_count: u32,
 }
 
-impl S8BootstrapLayoutCatalog {
+impl BootstrapLayoutCatalog {
     pub(crate) fn new(
         identity: PhysicalBootstrapCatalogIdentity,
-        discovery_layout: S8MinimalRootDiscoveryLayout,
+        discovery_layout: MinimalRootDiscoveryLayout,
         root_entry_count: u32,
         segment_count: u32,
         page_slot_count: u32,
@@ -39,7 +39,7 @@ impl S8BootstrapLayoutCatalog {
         }
     }
 
-    pub const fn discovery_layout(&self) -> S8MinimalRootDiscoveryLayout {
+    pub const fn discovery_layout(&self) -> MinimalRootDiscoveryLayout {
         self.discovery_layout
     }
 

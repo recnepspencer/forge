@@ -1,9 +1,9 @@
 use crate::{
-    courtroom::harness::test_support::pre_decode_physical_admission_test_support::checksum_scope,
     courtroom::harness::test_support::integrity_handoff_test_support::{
         forged_inspection_envelope_counter_denial_kind, intact_readiness,
         manifest_receipt_swap_denial_kind,
     },
+    courtroom::harness::test_support::pre_decode_physical_admission_test_support::checksum_scope,
     courtroom::harness::test_support::recovery_blocking_damage_test_support::{
         assert_all_recovery_blocking_sources, recovery_blocking_damage_fixture,
     },

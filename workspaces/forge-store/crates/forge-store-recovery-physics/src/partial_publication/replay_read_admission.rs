@@ -101,10 +101,6 @@ impl PartialPublicationReplayReadArtifact {
         &self.persisted_bytes_digest
     }
 
-    pub(crate) fn classification(&self) -> &PartialPublicationClassification {
-        &self.classification
-    }
-
     pub const fn crash_report(&self) -> &CrashBoundaryLayoutReport {
         &self.crash_report
     }
@@ -127,10 +123,6 @@ impl PartialPublicationReplayReadRecord {
 
     pub fn persisted_bytes_digest(&self) -> &str {
         &self.persisted_bytes_digest
-    }
-
-    pub(crate) fn classification(&self) -> &PartialPublicationClassification {
-        &self.classification
     }
 
     pub const fn crash_report(&self) -> &CrashBoundaryLayoutReport {

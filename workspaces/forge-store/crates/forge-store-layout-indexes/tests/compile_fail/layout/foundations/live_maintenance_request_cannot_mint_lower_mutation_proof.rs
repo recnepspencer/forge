@@ -1,6 +1,6 @@
-use forge_store_layout_indexes::layout_rebuild::S8LiveMaintenanceRequest;
+use forge_store_layout_indexes::maintenance::LiveMaintenanceRequest;
 
-fn attempt_to_mint_lower_mutation_proof(request: S8LiveMaintenanceRequest) {
+fn attempt_to_mint_lower_mutation_proof(request: LiveMaintenanceRequest) {
     let _ = request.prove_wal_before_data();
 }
 

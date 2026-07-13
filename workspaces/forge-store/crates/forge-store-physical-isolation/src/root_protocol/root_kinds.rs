@@ -11,6 +11,7 @@ pub struct CurrentPhysicalRoot {
     epoch: RootEpoch,
     manifest_epoch: ManifestEpoch,
     ordering: PhysicalOrderingContract,
+    store_authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,6 +35,7 @@ pub struct ManifestLocatorRoot {
 pub struct CurrentPhysicalRootBasis {
     root_epoch: RootEpoch,
     manifest_epoch: ManifestEpoch,
+    store_authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -73,6 +75,7 @@ impl CurrentPhysicalRoot {
             epoch: basis.root_epoch,
             manifest_epoch: basis.manifest_epoch,
             ordering,
+            store_authority_identity: basis.store_authority_identity,
         })
     }
 
@@ -90,6 +93,12 @@ impl CurrentPhysicalRoot {
 
     pub const fn scope(self) -> u64 {
         self.epoch.get()
+    }
+
+    pub const fn store_authority_identity(
+        self,
+    ) -> forge_store_authority::StoreCurrentAuthorityIdentity {
+        self.store_authority_identity
     }
 
     pub fn admit_segment_publication_epoch(
@@ -180,10 +189,15 @@ impl ManifestLocatorRoot {
 }
 
 impl CurrentPhysicalRootBasis {
-    pub(crate) const fn new(root_epoch: RootEpoch, manifest_epoch: ManifestEpoch) -> Self {
+    pub(crate) const fn new(
+        root_epoch: RootEpoch,
+        manifest_epoch: ManifestEpoch,
+        store_authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
+    ) -> Self {
         Self {
             root_epoch,
             manifest_epoch,
+            store_authority_identity,
         }
     }
 
@@ -193,6 +207,12 @@ impl CurrentPhysicalRootBasis {
 
     pub const fn manifest_epoch(self) -> ManifestEpoch {
         self.manifest_epoch
+    }
+
+    pub const fn store_authority_identity(
+        self,
+    ) -> forge_store_authority::StoreCurrentAuthorityIdentity {
+        self.store_authority_identity
     }
 }
 

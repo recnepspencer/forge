@@ -1,207 +1,214 @@
-use super::failure::S8IndexMaintenanceFailureOutcome;
-use super::lag::S8IndexLagWitness;
-use super::mutation_plan::S8LayoutMutationPlan;
+use super::failure::IndexMaintenanceFailureOutcome;
+use super::lag::IndexLagWitness;
+use super::mutation_plan::LayoutMutationPlan;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LoweredMaintenanceProtocol {
-    plan: S8LayoutMutationPlan,
+macro_rules! maintenance_plan {
+    ($plan:ident) => {
+        #[derive(Debug, PartialEq, Eq)]
+        pub struct $plan {
+            plan: LayoutMutationPlan,
+        }
+
+        impl $plan {
+            pub(crate) const fn issue(plan: LayoutMutationPlan) -> Self {
+                Self { plan }
+            }
+
+            pub const fn observation(&self) -> &LayoutMutationPlan {
+                &self.plan
+            }
+        }
+    };
 }
 
-impl S8LoweredMaintenanceProtocol {
-    pub(crate) const fn new(plan: S8LayoutMutationPlan) -> Self {
-        Self { plan }
-    }
+macro_rules! maintenance_protocol {
+    ($protocol:ident) => {
+        #[derive(Debug, PartialEq, Eq)]
+        pub struct $protocol {
+            plan: LayoutMutationPlan,
+        }
 
-    pub const fn plan(self) -> S8LayoutMutationPlan {
-        self.plan
-    }
+        impl $protocol {
+            pub(crate) const fn issue(plan: LayoutMutationPlan) -> Self {
+                Self { plan }
+            }
+
+            pub(crate) const fn plan(&self) -> &LayoutMutationPlan {
+                &self.plan
+            }
+        }
+    };
 }
 
-type LaggedMutationPlan = (S8LayoutMutationPlan, S8IndexLagWitness);
+maintenance_plan!(ExactMaintenancePlan);
+maintenance_plan!(LaggedMaintenancePlan);
+maintenance_plan!(RebuildMaintenancePlan);
+maintenance_plan!(LazyMaintenancePlan);
+maintenance_plan!(AdvisoryMaintenancePlan);
+maintenance_plan!(VerifierMaintenancePlan);
+maintenance_plan!(MigrationMaintenancePlan);
+
+maintenance_protocol!(ExactMaintenanceProtocol);
+maintenance_protocol!(LaggedMaintenanceProtocol);
+maintenance_protocol!(VerifierMaintenanceProtocol);
 
 #[derive(Debug, PartialEq, Eq)]
-enum S8LayoutMutationAdmissionCase {
-    Ready(S8LayoutMutationPlan),
-    Lagged(LaggedMutationPlan),
-    Deferred(LaggedMutationPlan),
-    Denied(S8IndexMaintenanceFailureOutcome),
+enum LayoutMutationAdmissionCase {
+    Exact(ExactMaintenancePlan),
+    Lagged(LaggedMaintenancePlan, IndexLagWitness),
+    Rebuild(RebuildMaintenancePlan, IndexLagWitness),
+    Lazy(LazyMaintenancePlan, IndexLagWitness),
+    Advisory(AdvisoryMaintenancePlan, IndexLagWitness),
+    Verifier(VerifierMaintenancePlan, IndexLagWitness),
+    Migration(MigrationMaintenancePlan, IndexLagWitness),
+    Denied(IndexMaintenanceFailureOutcome),
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct S8LayoutMutationAdmissionOutcome {
-    case: S8LayoutMutationAdmissionCase,
+pub struct LayoutMutationAdmissionOutcome {
+    case: LayoutMutationAdmissionCase,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8LayoutMutationAdmissionView<'a> {
-    Ready(&'a S8LayoutMutationPlan),
-    Lagged(&'a LaggedMutationPlan),
-    Deferred(&'a LaggedMutationPlan),
-    Denied(&'a S8IndexMaintenanceFailureOutcome),
+pub enum LayoutMutationAdmissionView<'a> {
+    Exact(&'a ExactMaintenancePlan),
+    Lagged(&'a LaggedMaintenancePlan, &'a IndexLagWitness),
+    Rebuild(&'a RebuildMaintenancePlan, &'a IndexLagWitness),
+    Lazy(&'a LazyMaintenancePlan, &'a IndexLagWitness),
+    Advisory(&'a AdvisoryMaintenancePlan, &'a IndexLagWitness),
+    Verifier(&'a VerifierMaintenancePlan, &'a IndexLagWitness),
+    Migration(&'a MigrationMaintenancePlan, &'a IndexLagWitness),
+    Denied(&'a IndexMaintenanceFailureOutcome),
 }
 
-impl S8LayoutMutationAdmissionOutcome {
-    pub(crate) fn ready(value: S8LayoutMutationPlan) -> Self {
-        Self::from_owner_payload(S8LayoutMutationAdmissionCase::Ready(value))
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MaintenanceAdmissionCaseId(&'static str);
+
+impl MaintenanceAdmissionCaseId {
+    pub const fn as_str(self) -> &'static str {
+        self.0
+    }
+}
+
+const SUCCESS_CASES: [MaintenanceAdmissionCaseId; 7] = [
+    MaintenanceAdmissionCaseId("maintenance.admission.exact"),
+    MaintenanceAdmissionCaseId("maintenance.admission.lagged"),
+    MaintenanceAdmissionCaseId("maintenance.admission.rebuild"),
+    MaintenanceAdmissionCaseId("maintenance.admission.lazy"),
+    MaintenanceAdmissionCaseId("maintenance.admission.advisory"),
+    MaintenanceAdmissionCaseId("maintenance.admission.verifier"),
+    MaintenanceAdmissionCaseId("maintenance.admission.migration"),
+];
+
+const DENIAL_CASES: [MaintenanceAdmissionCaseId; 14] = [
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.strategy"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.lane"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.mutation_shape"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.publication_protocol"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.exact_publication_authority"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.publication_coverage_binding"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.exact_coverage"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.coverage_family"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.lag_witness_missing"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.lag_witness_unexpected"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.migration_posture"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.lower_mutation_capability"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.lower_publication_capability"),
+    MaintenanceAdmissionCaseId("maintenance.admission.denied.lag_coverage_binding"),
+];
+
+pub fn maintenance_admission_cases() -> impl Iterator<Item = MaintenanceAdmissionCaseId> {
+    SUCCESS_CASES.into_iter().chain(DENIAL_CASES)
+}
+
+macro_rules! admission_case {
+    ($issue:ident, $take:ident, $variant:ident, $plan:ident) => {
+        pub(crate) fn $issue(plan: LayoutMutationPlan, lag: IndexLagWitness) -> Self {
+            Self {
+                case: LayoutMutationAdmissionCase::$variant($plan::issue(plan), lag),
+            }
+        }
+
+        pub fn $take(self) -> Result<($plan, IndexLagWitness), Self> {
+            match self.case {
+                LayoutMutationAdmissionCase::$variant(plan, lag) => Ok((plan, lag)),
+                case => Err(Self { case }),
+            }
+        }
+    };
+}
+
+impl LayoutMutationAdmissionOutcome {
+    pub(crate) fn exact(plan: LayoutMutationPlan) -> Self {
+        Self {
+            case: LayoutMutationAdmissionCase::Exact(ExactMaintenancePlan::issue(plan)),
+        }
     }
 
-    pub(crate) fn lagged(value: LaggedMutationPlan) -> Self {
-        Self::from_owner_payload(S8LayoutMutationAdmissionCase::Lagged(value))
+    admission_case!(lagged, into_lagged, Lagged, LaggedMaintenancePlan);
+    admission_case!(rebuild, into_rebuild, Rebuild, RebuildMaintenancePlan);
+    admission_case!(lazy, into_lazy, Lazy, LazyMaintenancePlan);
+    admission_case!(advisory, into_advisory, Advisory, AdvisoryMaintenancePlan);
+    admission_case!(verifier, into_verifier, Verifier, VerifierMaintenancePlan);
+    admission_case!(
+        migration,
+        into_migration,
+        Migration,
+        MigrationMaintenancePlan
+    );
+
+    pub(crate) fn denied(denial: IndexMaintenanceFailureOutcome) -> Self {
+        Self {
+            case: LayoutMutationAdmissionCase::Denied(denial),
+        }
     }
 
-    pub(crate) fn deferred(value: LaggedMutationPlan) -> Self {
-        Self::from_owner_payload(S8LayoutMutationAdmissionCase::Deferred(value))
-    }
-
-    pub(crate) fn denied(value: S8IndexMaintenanceFailureOutcome) -> Self {
-        Self::from_owner_payload(S8LayoutMutationAdmissionCase::Denied(value))
-    }
-
-    fn from_owner_payload(case: S8LayoutMutationAdmissionCase) -> Self {
-        Self { case }
-    }
-
-    pub fn view(&self) -> S8LayoutMutationAdmissionView<'_> {
+    pub fn view(&self) -> LayoutMutationAdmissionView<'_> {
         match &self.case {
-            S8LayoutMutationAdmissionCase::Ready(value) => {
-                S8LayoutMutationAdmissionView::Ready(value)
+            LayoutMutationAdmissionCase::Exact(plan) => LayoutMutationAdmissionView::Exact(plan),
+            LayoutMutationAdmissionCase::Lagged(plan, lag) => {
+                LayoutMutationAdmissionView::Lagged(plan, lag)
             }
-            S8LayoutMutationAdmissionCase::Lagged(value) => {
-                S8LayoutMutationAdmissionView::Lagged(value)
+            LayoutMutationAdmissionCase::Rebuild(plan, lag) => {
+                LayoutMutationAdmissionView::Rebuild(plan, lag)
             }
-            S8LayoutMutationAdmissionCase::Deferred(value) => {
-                S8LayoutMutationAdmissionView::Deferred(value)
+            LayoutMutationAdmissionCase::Lazy(plan, lag) => {
+                LayoutMutationAdmissionView::Lazy(plan, lag)
             }
-            S8LayoutMutationAdmissionCase::Denied(value) => {
-                S8LayoutMutationAdmissionView::Denied(value)
+            LayoutMutationAdmissionCase::Advisory(plan, lag) => {
+                LayoutMutationAdmissionView::Advisory(plan, lag)
+            }
+            LayoutMutationAdmissionCase::Verifier(plan, lag) => {
+                LayoutMutationAdmissionView::Verifier(plan, lag)
+            }
+            LayoutMutationAdmissionCase::Migration(plan, lag) => {
+                LayoutMutationAdmissionView::Migration(plan, lag)
+            }
+            LayoutMutationAdmissionCase::Denied(denial) => {
+                LayoutMutationAdmissionView::Denied(denial)
             }
         }
     }
 
-    fn into_owner_payload(self) -> S8LayoutMutationAdmissionCase {
-        self.case
-    }
-}
-
-impl S8LayoutMutationAdmissionOutcome {
-    pub fn into_lagged(self) -> Result<LaggedMutationPlan, Self> {
-        match self.into_owner_payload() {
-            S8LayoutMutationAdmissionCase::Lagged(value) => Ok(value),
-            case => Err(Self::from_owner_payload(case)),
-        }
-    }
-
-    pub fn into_deferred(self) -> Result<LaggedMutationPlan, Self> {
-        match self.into_owner_payload() {
-            S8LayoutMutationAdmissionCase::Deferred(value) => Ok(value),
-            case => Err(Self::from_owner_payload(case)),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-enum S8IndexMaintenanceTransitionCase {
-    ReadyExact(S8LoweredMaintenanceProtocol),
-    Lagged(S8LoweredMaintenanceProtocol),
-    RebuildOnly(S8LoweredMaintenanceProtocol),
-    AdvisoryOnly(S8LoweredMaintenanceProtocol),
-    VerifierOnly(S8LoweredMaintenanceProtocol),
-    MigrationOnly(S8LoweredMaintenanceProtocol),
-    Deferred(S8LoweredMaintenanceProtocol),
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct S8IndexMaintenanceTransitionOutcome {
-    case: S8IndexMaintenanceTransitionCase,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8IndexMaintenanceTransitionView<'a> {
-    ReadyExact(&'a S8LoweredMaintenanceProtocol),
-    Lagged(&'a S8LoweredMaintenanceProtocol),
-    RebuildOnly(&'a S8LoweredMaintenanceProtocol),
-    AdvisoryOnly(&'a S8LoweredMaintenanceProtocol),
-    VerifierOnly(&'a S8LoweredMaintenanceProtocol),
-    MigrationOnly(&'a S8LoweredMaintenanceProtocol),
-    Deferred(&'a S8LoweredMaintenanceProtocol),
-}
-
-impl S8IndexMaintenanceTransitionOutcome {
-    pub(crate) fn ready_exact(value: S8LoweredMaintenanceProtocol) -> Self {
-        Self::from_owner_payload(S8IndexMaintenanceTransitionCase::ReadyExact(value))
-    }
-
-    pub(crate) fn lagged(value: S8LoweredMaintenanceProtocol) -> Self {
-        Self::from_owner_payload(S8IndexMaintenanceTransitionCase::Lagged(value))
-    }
-
-    pub(crate) fn rebuild_only(value: S8LoweredMaintenanceProtocol) -> Self {
-        Self::from_owner_payload(S8IndexMaintenanceTransitionCase::RebuildOnly(value))
-    }
-
-    pub(crate) fn advisory_only(value: S8LoweredMaintenanceProtocol) -> Self {
-        Self::from_owner_payload(S8IndexMaintenanceTransitionCase::AdvisoryOnly(value))
-    }
-
-    pub(crate) fn verifier_only(value: S8LoweredMaintenanceProtocol) -> Self {
-        Self::from_owner_payload(S8IndexMaintenanceTransitionCase::VerifierOnly(value))
-    }
-
-    pub(crate) fn migration_only(value: S8LoweredMaintenanceProtocol) -> Self {
-        Self::from_owner_payload(S8IndexMaintenanceTransitionCase::MigrationOnly(value))
-    }
-
-    pub(crate) fn deferred(value: S8LoweredMaintenanceProtocol) -> Self {
-        Self::from_owner_payload(S8IndexMaintenanceTransitionCase::Deferred(value))
-    }
-
-    fn from_owner_payload(case: S8IndexMaintenanceTransitionCase) -> Self {
-        Self { case }
-    }
-
-    pub fn view(&self) -> S8IndexMaintenanceTransitionView<'_> {
+    pub fn case_id(&self) -> MaintenanceAdmissionCaseId {
         match &self.case {
-            S8IndexMaintenanceTransitionCase::ReadyExact(value) => {
-                S8IndexMaintenanceTransitionView::ReadyExact(value)
-            }
-            S8IndexMaintenanceTransitionCase::Lagged(value) => {
-                S8IndexMaintenanceTransitionView::Lagged(value)
-            }
-            S8IndexMaintenanceTransitionCase::RebuildOnly(value) => {
-                S8IndexMaintenanceTransitionView::RebuildOnly(value)
-            }
-            S8IndexMaintenanceTransitionCase::AdvisoryOnly(value) => {
-                S8IndexMaintenanceTransitionView::AdvisoryOnly(value)
-            }
-            S8IndexMaintenanceTransitionCase::VerifierOnly(value) => {
-                S8IndexMaintenanceTransitionView::VerifierOnly(value)
-            }
-            S8IndexMaintenanceTransitionCase::MigrationOnly(value) => {
-                S8IndexMaintenanceTransitionView::MigrationOnly(value)
-            }
-            S8IndexMaintenanceTransitionCase::Deferred(value) => {
-                S8IndexMaintenanceTransitionView::Deferred(value)
+            LayoutMutationAdmissionCase::Exact(_) => SUCCESS_CASES[0],
+            LayoutMutationAdmissionCase::Lagged(..) => SUCCESS_CASES[1],
+            LayoutMutationAdmissionCase::Rebuild(..) => SUCCESS_CASES[2],
+            LayoutMutationAdmissionCase::Lazy(..) => SUCCESS_CASES[3],
+            LayoutMutationAdmissionCase::Advisory(..) => SUCCESS_CASES[4],
+            LayoutMutationAdmissionCase::Verifier(..) => SUCCESS_CASES[5],
+            LayoutMutationAdmissionCase::Migration(..) => SUCCESS_CASES[6],
+            LayoutMutationAdmissionCase::Denied(denial) => {
+                MaintenanceAdmissionCaseId(denial.case_name())
             }
         }
     }
 
-    fn into_owner_payload(self) -> S8IndexMaintenanceTransitionCase {
-        self.case
-    }
-}
-
-impl S8IndexMaintenanceTransitionOutcome {
-    pub fn into_lagged(self) -> Result<S8LoweredMaintenanceProtocol, Self> {
-        match self.into_owner_payload() {
-            S8IndexMaintenanceTransitionCase::Lagged(value) => Ok(value),
-            case => Err(Self::from_owner_payload(case)),
-        }
-    }
-
-    pub fn into_verifier_only(self) -> Result<S8LoweredMaintenanceProtocol, Self> {
-        match self.into_owner_payload() {
-            S8IndexMaintenanceTransitionCase::VerifierOnly(value) => Ok(value),
-            case => Err(Self::from_owner_payload(case)),
+    pub fn into_exact(self) -> Result<ExactMaintenancePlan, Self> {
+        match self.case {
+            LayoutMutationAdmissionCase::Exact(plan) => Ok(plan),
+            case => Err(Self { case }),
         }
     }
 }

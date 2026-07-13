@@ -1,145 +1,56 @@
-use crate::{
-    access::execution::{
-        attempt_cost::S8AccessAttemptCostReceipt, S8AccessLoweringBasis,
-        S8AccessPathCounterSnapshot,
-    },
-    catalog::PhysicalArtifactFamily,
-    keyspace::PhysicalKeyDomain,
-    materialization::{S8LayoutCoverageWitness, S8MaterializationDenial},
-};
-use forge_store_budgets::S8PreExecutionPlanBinding;
+use super::DegradedScanLoweringBasis;
+use crate::catalog::PhysicalArtifactFamily;
+use crate::materialization::LayoutCoverageWitness;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8AccessLoweringDenied {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PhysicalDegradedExecutionDenial {
+    StoreAuthorityMismatch {
+        expected: forge_store_authority::StoreCurrentAuthorityIdentity,
+        actual: forge_store_authority::StoreCurrentAuthorityIdentity,
+    },
+    Admission(forge_store_physical_format::PlatformPhysicalOperationAdmissionDenial),
+    Physical(forge_store_physical_format::PlatformPhysicalFacadeDenial),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DegradedScanAdmissionDenied {
     ReadmissionWitnessMismatch {
-        basis: S8AccessLoweringBasis,
-        expected: S8AccessLoweringBasis,
-        actual: S8AccessLoweringBasis,
-    },
-    ReadmissionPlannedCountersMismatch {
-        basis: S8AccessLoweringBasis,
-        expected: S8AccessPathCounterSnapshot,
-        actual: S8AccessPathCounterSnapshot,
-    },
-    RebindWitnessMismatch {
-        basis: S8AccessLoweringBasis,
-        expected: S8AccessLoweringBasis,
-        actual: S8AccessLoweringBasis,
-    },
-    CoverageDenied {
-        basis: S8AccessLoweringBasis,
-        denial: S8MaterializationDenial,
+        basis: DegradedScanLoweringBasis,
+        expected: DegradedScanLoweringBasis,
+        actual: DegradedScanLoweringBasis,
     },
     LifecycleFamilyMismatch {
-        basis: S8AccessLoweringBasis,
+        basis: DegradedScanLoweringBasis,
         expected: PhysicalArtifactFamily,
         actual: PhysicalArtifactFamily,
     },
-    KeyDomainMismatch {
-        basis: S8AccessLoweringBasis,
-        expected: PhysicalKeyDomain,
-        actual: PhysicalKeyDomain,
+    ArtifactFamilyAuthorityMismatch {
+        basis: DegradedScanLoweringBasis,
+        expected_security: forge_store_security::StoreSecurityScopeIdentity,
+        actual_security: forge_store_security::StoreSecurityScopeIdentity,
+        expected_store: forge_store_authority::StoreCurrentAuthorityIdentity,
+        actual_store: forge_store_authority::StoreCurrentAuthorityIdentity,
     },
     CurrentCoverageMismatch {
-        basis: S8AccessLoweringBasis,
-        expected: S8LayoutCoverageWitness,
-        actual: S8LayoutCoverageWitness,
-    },
-    RebindCurrentCoverageMismatch {
-        basis: S8AccessLoweringBasis,
-        expected: S8LayoutCoverageWitness,
-        actual: S8LayoutCoverageWitness,
+        basis: DegradedScanLoweringBasis,
+        expected: LayoutCoverageWitness,
+        actual: LayoutCoverageWitness,
     },
     ReadmissionCurrentCoverageMismatch {
-        basis: S8AccessLoweringBasis,
-        expected: S8LayoutCoverageWitness,
-        actual: S8LayoutCoverageWitness,
-    },
-    ExecutedCounterWitnessPathMismatch {
-        expected: S8AccessLoweringBasis,
-        actual_path_kind: crate::access::execution::S8AccessPathKind,
-        observed: crate::access::execution::S8ObservedAccessPathCounters,
-    },
-    ExecutedCounterWitnessPlanBindingMismatch {
-        expected: S8AccessLoweringBasis,
-        expected_plan_binding: S8PreExecutionPlanBinding,
-        actual_plan_binding: S8PreExecutionPlanBinding,
-        observed: crate::access::execution::S8ObservedAccessPathCounters,
-    },
-    ObservedCounterBasisMismatch {
-        expected: S8AccessLoweringBasis,
-        actual: S8AccessLoweringBasis,
-        observed: crate::access::execution::S8AdmittedExecutedCounters,
+        basis: DegradedScanLoweringBasis,
+        expected: LayoutCoverageWitness,
+        actual: LayoutCoverageWitness,
     },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8AccessLoweringDeferred {
-    RuntimeLeaseRequired { basis: S8AccessLoweringBasis },
-}
-
-impl S8AccessLoweringDenied {
-    pub const fn basis(self) -> S8AccessLoweringBasis {
+impl DegradedScanAdmissionDenied {
+    pub const fn basis(&self) -> &DegradedScanLoweringBasis {
         match self {
             Self::ReadmissionWitnessMismatch { basis, .. }
-            | Self::ReadmissionPlannedCountersMismatch { basis, .. }
-            | Self::RebindWitnessMismatch { basis, .. }
-            | Self::CoverageDenied { basis, .. }
             | Self::LifecycleFamilyMismatch { basis, .. }
-            | Self::KeyDomainMismatch { basis, .. }
+            | Self::ArtifactFamilyAuthorityMismatch { basis, .. }
             | Self::CurrentCoverageMismatch { basis, .. }
-            | Self::RebindCurrentCoverageMismatch { basis, .. }
-            | Self::ReadmissionCurrentCoverageMismatch { basis, .. }
-            | Self::ExecutedCounterWitnessPlanBindingMismatch {
-                expected: basis, ..
-            } => basis,
-            Self::ExecutedCounterWitnessPathMismatch { expected, .. }
-            | Self::ObservedCounterBasisMismatch { expected, .. } => expected,
-        }
-    }
-
-    pub const fn spent_cost_receipt(self) -> S8AccessAttemptCostReceipt {
-        match self {
-            Self::ExecutedCounterWitnessPlanBindingMismatch { observed, .. }
-            | Self::ExecutedCounterWitnessPathMismatch { observed, .. } => {
-                S8AccessAttemptCostReceipt::DeniedObservedExecutionCost {
-                    fingerprint: observed.basis().fingerprint(),
-                    path_kind: observed.basis().path_kind(),
-                    observed: observed.snapshot(),
-                    counter_strength: observed.strength(),
-                }
-            }
-            Self::ObservedCounterBasisMismatch { observed, .. } => {
-                S8AccessAttemptCostReceipt::DeniedObservedExecutionCost {
-                    fingerprint: observed.basis().fingerprint(),
-                    path_kind: observed.basis().path_kind(),
-                    observed: observed.snapshot(),
-                    counter_strength: observed.strength(),
-                }
-            }
-            denial => {
-                let basis = denial.basis();
-                S8AccessAttemptCostReceipt::NoExecutionCountersSpent {
-                    fingerprint: basis.fingerprint(),
-                    path_kind: basis.path_kind(),
-                }
-            }
-        }
-    }
-}
-
-impl S8AccessLoweringDeferred {
-    pub const fn basis(self) -> S8AccessLoweringBasis {
-        match self {
-            Self::RuntimeLeaseRequired { basis } => basis,
-        }
-    }
-
-    pub const fn spent_cost_receipt(self) -> S8AccessAttemptCostReceipt {
-        let basis = self.basis();
-        S8AccessAttemptCostReceipt::NoExecutionCountersSpent {
-            fingerprint: basis.fingerprint(),
-            path_kind: basis.path_kind(),
+            | Self::ReadmissionCurrentCoverageMismatch { basis, .. } => basis,
         }
     }
 }

@@ -17,7 +17,6 @@ forge-store-buffer-pool.workspace = true
 forge-store-contracts.workspace = true
 forge-store-authority.workspace = true
 forge-store-io-scheduler = { workspace = true, features = ["certification-test-authority"] }
-forge-store-layout-indexes.workspace = true
 forge-store-operations-vocabulary.workspace = true
 forge-store-physical-backend.workspace = true
 forge-store-physical-format.workspace = true

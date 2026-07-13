@@ -46,7 +46,8 @@ impl ResidentFrameLoadRequest {
         reject_non_frame_header(header)?;
         reject_header_reference_mismatch(reference, header)?;
         let frame_size = ResidentFrameSize::from_header(header)?;
-        let source_key = ResidentFrameSourceKey::from_physical_format_frame_witnesses(reference, header);
+        let source_key =
+            ResidentFrameSourceKey::from_physical_format_frame_witnesses(reference, header);
         Ok(Self {
             reference,
             header,

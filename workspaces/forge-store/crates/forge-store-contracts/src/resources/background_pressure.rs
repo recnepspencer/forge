@@ -69,8 +69,7 @@ impl BackgroundPressureDeclaration {
     }
 
     pub const fn repair_scan(read_ahead_pages: u64) -> Self {
-        Self::new(BackgroundPressureKind::RepairScan)
-            .with_read_ahead_pages(read_ahead_pages)
+        Self::new(BackgroundPressureKind::RepairScan).with_read_ahead_pages(read_ahead_pages)
     }
 
     pub const fn verification_pressure(read_ahead_pages: u64) -> Self {
@@ -173,4 +172,3 @@ impl BackgroundPressureDeclaration {
         self
     }
 }
-

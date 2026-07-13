@@ -1,11 +1,9 @@
 #[path = "adversarial_publication_denials.rs"]
 mod adversarial_publication_denials;
-#[path = "dirty_publication_paths.rs"]
-mod dirty_publication_paths;
+use forge_store_test_support::harness::recovery::dirty_publication as dirty_publication_paths;
 #[path = "page_generation_paths.rs"]
 mod page_generation_paths;
-#[path = "wal_durability_paths.rs"]
-mod wal_durability_paths;
+use forge_store_test_support::harness::recovery::wal_durability as wal_durability_paths;
 
 use forge_store_physical_backend::PosixFileFsyncDirFsyncProfile;
 use forge_store_recovery_physics::{

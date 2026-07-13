@@ -18,8 +18,8 @@ use forge_store_physical_backend::{
     SimulatedStrictDurableProfile, WalDurabilityBarrier,
 };
 use forge_store_physical_format::{
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReferenceScope,
-    PhysicalRootReference, PhysicalSegmentId,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReferenceAuthority,
+    PhysicalReferenceScope, PhysicalRootReference, PhysicalSegmentId,
 };
 use forge_store_physical_integrity::{
     ExecutedQuarantineFinding, PhysicalQuarantineAuthority, QuarantineRecord, QuarantineSealRequest,
@@ -190,7 +190,15 @@ fn validated_checkpoint() -> CheckpointValidation {
 fn checkpoint_manifest() -> CheckpointManifest {
     let redo_lsn = PageLsn::from_lsn(LogSequenceNumber::new(20));
     CheckpointManifest::sharp(
-        CheckpointRootPosture::root_present(PhysicalRootReference::from_raw(7).unwrap()),
+        CheckpointRootPosture::root_present(
+            PhysicalReferenceAuthority::for_canonical_physical_format()
+                .admit_root_publication(
+                    PhysicalGenerationAuthority::for_canonical_physical_format()
+                        .root_publication_cell(PhysicalRootReference::from_raw(7).unwrap())
+                        .with_root_publication_generation(PhysicalGeneration::from_raw(1).unwrap()),
+                )
+                .reference(),
+        ),
         CheckpointPageLsnFrontier::from_pages([(
             PhysicalGenerationAuthority::for_canonical_physical_format()
                 .page_cell(segment(1), page(1))

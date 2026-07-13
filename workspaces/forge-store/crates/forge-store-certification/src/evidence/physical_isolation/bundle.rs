@@ -52,7 +52,10 @@ impl S5ExecutedIsolationEvidenceBundle {
         projection: ProjectionArtifactKind,
         requested_surface: StorePhysicalAuthoritySurface,
     ) -> Result<(), ProjectionAuthorityDenial> {
-        reject_foundational_projection_as_physical_isolation_store_authority(projection, requested_surface)
+        reject_foundational_projection_as_physical_isolation_store_authority(
+            projection,
+            requested_surface,
+        )
     }
 
     pub fn reject_proof_as_store_authority(
@@ -73,7 +76,9 @@ impl S5ExecutedIsolationEvidenceBundle {
         &self,
         requested_surface: StorePhysicalAuthoritySurface,
     ) -> Result<(), ProjectionAuthorityDenial> {
-        reject_planned_or_support_projection_as_physical_isolation_store_authority(requested_surface)
+        reject_planned_or_support_projection_as_physical_isolation_store_authority(
+            requested_surface,
+        )
     }
 
     pub fn reject_projection_as_store_authority(

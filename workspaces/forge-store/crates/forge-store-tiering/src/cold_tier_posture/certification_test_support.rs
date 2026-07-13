@@ -66,18 +66,20 @@ pub fn cold_tier_io_posture_for_certification_test(
 }
 
 fn certification_region() -> PhysicalReclaimRegion {
-    let cell = forge_store_physical_format::PhysicalGenerationAuthority::for_canonical_physical_format()
-        .slot_cell(
-            forge_store_physical_format::PhysicalSegmentId::from_raw(1).expect("test segment"),
-            forge_store_physical_format::PhysicalPageId::from_raw(1).expect("test page"),
-            forge_store_physical_format::PhysicalRecordSlot::from_raw(1).expect("test slot"),
-        )
-        .with_slot_generation(
-            forge_store_physical_format::PhysicalGeneration::from_raw(1).expect("generation"),
-        );
-    let reference = forge_store_physical_format::PhysicalReferenceAuthority::for_canonical_physical_format()
-        .admit_page_slot(cell)
-        .reference();
+    let cell =
+        forge_store_physical_format::PhysicalGenerationAuthority::for_canonical_physical_format()
+            .slot_cell(
+                forge_store_physical_format::PhysicalSegmentId::from_raw(1).expect("test segment"),
+                forge_store_physical_format::PhysicalPageId::from_raw(1).expect("test page"),
+                forge_store_physical_format::PhysicalRecordSlot::from_raw(1).expect("test slot"),
+            )
+            .with_slot_generation(
+                forge_store_physical_format::PhysicalGeneration::from_raw(1).expect("generation"),
+            );
+    let reference =
+        forge_store_physical_format::PhysicalReferenceAuthority::for_canonical_physical_format()
+            .admit_page_slot(cell)
+            .reference();
     PhysicalReclaimRegion::new(reference, 4096).expect("test reclaim region")
 }
 

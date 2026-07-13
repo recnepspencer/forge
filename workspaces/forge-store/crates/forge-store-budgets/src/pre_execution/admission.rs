@@ -1,9 +1,9 @@
-use super::denial::S8PreExecutionBudgetDenial;
-use super::receipt::S8PreExecutionBudgetAdmissionReceipt;
-use super::request::S8PreExecutionBudgetRequest;
+use super::denial::PreExecutionBudgetDenial;
+use super::receipt::PreExecutionBudgetAdmissionReceipt;
+use super::request::PreExecutionBudgetRequest;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8PreExecutionBudgetScope {
+pub enum PreExecutionBudgetScope {
     Foreground,
     Maintenance,
     Verifier,
@@ -12,8 +12,8 @@ pub enum S8PreExecutionBudgetScope {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8PreExecutionBudgetEnvelope {
-    scope: S8PreExecutionBudgetScope,
+pub struct PreExecutionBudgetEnvelope {
+    scope: PreExecutionBudgetScope,
     admitted_memory_bytes: u64,
     admitted_page_reads: u16,
     admitted_chunk_reads: u16,
@@ -21,9 +21,9 @@ pub struct S8PreExecutionBudgetEnvelope {
     admitted_byte_reads: u64,
 }
 
-impl S8PreExecutionBudgetEnvelope {
+impl PreExecutionBudgetEnvelope {
     pub const fn new(
-        scope: S8PreExecutionBudgetScope,
+        scope: PreExecutionBudgetScope,
         admitted_memory_bytes: u64,
         admitted_page_reads: u16,
         admitted_chunk_reads: u16,
@@ -42,7 +42,7 @@ impl S8PreExecutionBudgetEnvelope {
 
     pub const fn foreground_default() -> Self {
         Self::new(
-            S8PreExecutionBudgetScope::Foreground,
+            PreExecutionBudgetScope::Foreground,
             16_384,
             8,
             0,
@@ -53,7 +53,7 @@ impl S8PreExecutionBudgetEnvelope {
 
     pub const fn maintenance_default() -> Self {
         Self::new(
-            S8PreExecutionBudgetScope::Maintenance,
+            PreExecutionBudgetScope::Maintenance,
             32_768,
             16,
             4,
@@ -63,39 +63,18 @@ impl S8PreExecutionBudgetEnvelope {
     }
 
     pub const fn verifier_default() -> Self {
-        Self::new(
-            S8PreExecutionBudgetScope::Verifier,
-            24_576,
-            12,
-            2,
-            24,
-            98_304,
-        )
+        Self::new(PreExecutionBudgetScope::Verifier, 24_576, 12, 2, 24, 98_304)
     }
 
     pub const fn terminal_default() -> Self {
-        Self::new(
-            S8PreExecutionBudgetScope::Terminal,
-            24_576,
-            12,
-            2,
-            24,
-            98_304,
-        )
+        Self::new(PreExecutionBudgetScope::Terminal, 24_576, 12, 2, 24, 98_304)
     }
 
     pub const fn streaming_default() -> Self {
-        Self::new(
-            S8PreExecutionBudgetScope::Streaming,
-            32_768,
-            4,
-            8,
-            8,
-            262_144,
-        )
+        Self::new(PreExecutionBudgetScope::Streaming, 32_768, 4, 8, 8, 262_144)
     }
 
-    pub const fn scope(self) -> S8PreExecutionBudgetScope {
+    pub const fn scope(self) -> PreExecutionBudgetScope {
         self.scope
     }
 
@@ -121,23 +100,23 @@ impl S8PreExecutionBudgetEnvelope {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8PreExecutionBudgetAdmissionOutcome {
-    Admitted(S8PreExecutionBudgetAdmissionReceipt),
-    Denied(S8PreExecutionBudgetDenial),
+pub enum PreExecutionBudgetAdmissionOutcome {
+    Admitted(PreExecutionBudgetAdmissionReceipt),
+    Denied(PreExecutionBudgetDenial),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8PreExecutionBudgetAdmission;
+pub struct PreExecutionBudgetAdmission;
 
-impl S8PreExecutionBudgetAdmission {
+impl PreExecutionBudgetAdmission {
     pub fn admit(
         &self,
-        request: S8PreExecutionBudgetRequest,
-        envelope: S8PreExecutionBudgetEnvelope,
-    ) -> S8PreExecutionBudgetAdmissionOutcome {
+        request: PreExecutionBudgetRequest,
+        envelope: PreExecutionBudgetEnvelope,
+    ) -> PreExecutionBudgetAdmissionOutcome {
         if request.scope() != envelope.scope() {
-            return S8PreExecutionBudgetAdmissionOutcome::Denied(
-                S8PreExecutionBudgetDenial::ScopeMismatch {
+            return PreExecutionBudgetAdmissionOutcome::Denied(
+                PreExecutionBudgetDenial::ScopeMismatch {
                     requested: request.scope(),
                     admitted: envelope.scope(),
                 },
@@ -145,54 +124,54 @@ impl S8PreExecutionBudgetAdmission {
         }
 
         if request.estimated_memory_bytes() > envelope.admitted_memory_bytes() {
-            return S8PreExecutionBudgetAdmissionOutcome::Denied(
-                S8PreExecutionBudgetDenial::MemoryBytesExceeded {
+            return PreExecutionBudgetAdmissionOutcome::Denied(
+                PreExecutionBudgetDenial::MemoryBytesExceeded {
                     estimated: request.estimated_memory_bytes(),
                     admitted: envelope.admitted_memory_bytes(),
                 },
             );
         }
         if request.estimated_page_reads() > envelope.admitted_page_reads() {
-            return S8PreExecutionBudgetAdmissionOutcome::Denied(
-                S8PreExecutionBudgetDenial::PageReadsExceeded {
+            return PreExecutionBudgetAdmissionOutcome::Denied(
+                PreExecutionBudgetDenial::PageReadsExceeded {
                     estimated: request.estimated_page_reads(),
                     admitted: envelope.admitted_page_reads(),
                 },
             );
         }
         if request.estimated_chunk_reads() > envelope.admitted_chunk_reads() {
-            return S8PreExecutionBudgetAdmissionOutcome::Denied(
-                S8PreExecutionBudgetDenial::ChunkReadsExceeded {
+            return PreExecutionBudgetAdmissionOutcome::Denied(
+                PreExecutionBudgetDenial::ChunkReadsExceeded {
                     estimated: request.estimated_chunk_reads(),
                     admitted: envelope.admitted_chunk_reads(),
                 },
             );
         }
         if request.estimated_range_touches() > envelope.admitted_range_touches() {
-            return S8PreExecutionBudgetAdmissionOutcome::Denied(
-                S8PreExecutionBudgetDenial::RangeTouchesExceeded {
+            return PreExecutionBudgetAdmissionOutcome::Denied(
+                PreExecutionBudgetDenial::RangeTouchesExceeded {
                     estimated: request.estimated_range_touches(),
                     admitted: envelope.admitted_range_touches(),
                 },
             );
         }
         if request.estimated_byte_reads() > envelope.admitted_byte_reads() {
-            return S8PreExecutionBudgetAdmissionOutcome::Denied(
-                S8PreExecutionBudgetDenial::ByteReadsExceeded {
+            return PreExecutionBudgetAdmissionOutcome::Denied(
+                PreExecutionBudgetDenial::ByteReadsExceeded {
                     estimated: request.estimated_byte_reads(),
                     admitted: envelope.admitted_byte_reads(),
                 },
             );
         }
 
-        S8PreExecutionBudgetAdmissionOutcome::Admitted(S8PreExecutionBudgetAdmissionReceipt::new(
-            request.plan_binding(),
+        PreExecutionBudgetAdmissionOutcome::Admitted(PreExecutionBudgetAdmissionReceipt::new(
+            request,
             request.scope(),
             envelope,
         ))
     }
 }
 
-pub const fn pre_execution_budget_admission() -> S8PreExecutionBudgetAdmission {
-    S8PreExecutionBudgetAdmission
+pub const fn pre_execution_budget_admission() -> PreExecutionBudgetAdmission {
+    PreExecutionBudgetAdmission
 }

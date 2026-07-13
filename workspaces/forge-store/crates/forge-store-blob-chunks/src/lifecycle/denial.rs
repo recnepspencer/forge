@@ -34,7 +34,9 @@ pub const fn reject_copied_counters_as_lifecycle_receipt(
     BlobLifecycleDenial::CopiedCounterSnapshotRejected { counters }
 }
 
-pub const fn reject_physical_integrity_report_as_lifecycle_receipt<T>(_: &T) -> BlobLifecycleDenial {
+pub const fn reject_physical_integrity_report_as_lifecycle_receipt<T>(
+    _: &T,
+) -> BlobLifecycleDenial {
     BlobLifecycleDenial::S3IntegrityReportRejected
 }
 

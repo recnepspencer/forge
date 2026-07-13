@@ -11,18 +11,12 @@ use crate::{
     PhysicalSubstrateCertificationDenial,
 };
 use forge_store_contracts::StableArtifactId;
-use forge_store_readiness::PhysicalSubstrateReadiness;
 
 pub fn certify_physical_page_segment_extent_substrate(
 ) -> Result<crate::PhysicalPageSegmentExtentSubstrateCloseout, PhysicalSubstrateCertificationDenial>
 {
     crate::PhysicalPageSegmentExtentSubstrateCloseout::admit(closeout_run()?)
         .map_err(PhysicalSubstrateCertificationDenial::CloseoutDenied)
-}
-
-pub(crate) fn certify_physical_substrate_readiness(
-) -> Result<PhysicalSubstrateReadiness, PhysicalSubstrateCertificationDenial> {
-    Ok(certify_physical_page_segment_extent_substrate()?.into_physical_substrate_readiness())
 }
 
 pub(crate) fn closeout_run(

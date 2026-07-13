@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod append;
+pub mod artifact_store;
 pub mod checkpoint;
 pub mod layout_access;
 pub mod recovery_read;
@@ -23,6 +24,10 @@ pub enum DurablePublicationPhase {
 }
 
 pub use append::admit_durable_append;
+pub use artifact_store::{
+    AdmittedWalArtifactStore, WalArtifactScanCounters, WalArtifactStoreDenial,
+    WalPersistedArtifact, WalPersistedArtifactSet, WalStoreIdentity,
+};
 pub use blob_records::{
     durable_phase_for_record_kind, record_kind_admits_recovery_replay, BlobWalRecordEnvelope,
     BlobWalRecordIdentity, BlobWalRecordKind, BlobWalRecordScopeDenial,

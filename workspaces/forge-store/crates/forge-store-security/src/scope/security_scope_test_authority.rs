@@ -85,6 +85,18 @@ pub fn admitted_tenant_wal_checkpoint_security_scope_for_layout_partition_test(
     )
 }
 
+pub fn admitted_store_wal_checkpoint_security_scope_for_layout_partition_test(
+) -> StoreAdmittedSecurityScope {
+    admitted_scope(
+        StoreKeyScope::WalCheckpointEnvelope,
+        StoreTenantScope::StoreInternal,
+        StoreAuthenticityRequirement::required(
+            crate::StoreAuthenticityRequirementClass::AuthenticatedWalRecord,
+        ),
+        StoreCustodyPosture::InternalStoreCustody,
+    )
+}
+
 pub fn admitted_tenant_page_without_authenticity_for_layout_partition_test(
 ) -> StoreAdmittedSecurityScope {
     admitted_scope(
@@ -113,7 +125,7 @@ fn admitted_scope(
     authenticity_requirement: StoreAuthenticityRequirement,
     custody_posture: StoreCustodyPosture,
 ) -> StoreAdmittedSecurityScope {
-    let current_authority = current_authority("store.s6.security_scope", "test-current");
+    let current_authority = current_authority("store.physical.default_instance", "test-current");
     let expectation = StoreSecurityScopeAdmissionExpectation::new(
         key_scope,
         tenant_scope,

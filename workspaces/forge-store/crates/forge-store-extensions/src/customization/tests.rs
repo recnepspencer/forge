@@ -13,14 +13,12 @@ use forge_store_authority::{require_current_store_authority, StoreCurrentAuthori
 use forge_store_contracts::{
     DurableArtifactFamilyId, StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
 };
-use forge_store_layout_indexes::layout_customization::{
-    S8FutureLayoutCapabilityRequest, S8FutureLayoutCustomizationDenial,
-    S8FutureLayoutWorkloadEnvelope,
+use forge_store_layout_indexes::customization::{
+    FutureLayoutCapabilityRequest,
+    FutureLayoutCustomizationDenial as StoreLayoutCustomizationDenial,
 };
-use forge_store_layout_indexes::layout_families::{
-    layout_declarations, ArtifactFamilyLifecycleAdmission,
-};
-use forge_store_layout_indexes::layout_strategy_admission::PhysicalKeyDomainWitness;
+use forge_store_layout_indexes::declarations::layout_declarations;
+use forge_store_layout_indexes::{AdmittedPhysicalArtifactFamily, AdmittedPhysicalKeyDomain};
 use forge_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
     StoreAuthenticityRequirementClass, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
@@ -47,7 +45,7 @@ fn extensions_registered_targets_preserve_store_customization_admission() {
             assert_eq!(admitted.target(), target);
             assert_eq!(
                 admitted.store_admission().request().capability_request(),
-                S8FutureLayoutCapabilityRequest::point_lookup(page_domain)
+                FutureLayoutCapabilityRequest::point_lookup(page_domain)
             );
         }
         other => panic!("registered target should admit store request: {other:?}"),
@@ -115,17 +113,17 @@ fn extensions_targets_own_capability_and_workload_semantics() {
     assert_eq!(
         layout_customization_catalog().admit(support_trust),
         TransitionOutcome::Denied(FutureLayoutCustomizationDenial::StoreDenied(
-            S8FutureLayoutCustomizationDenial::NoStrategySupportsRequestedCapability {
-                capability: S8FutureLayoutCapabilityRequest::verifier_declared_scan(page_domain),
-                key_domain: page_domain,
+            StoreLayoutCustomizationDenial::NoStrategySupportsRequestedCapability {
+                capability: FutureLayoutCapabilityRequest::verifier_declared_scan(page_domain),
+                key_domain: page_domain.witness(),
             }
         ))
     );
     assert_eq!(
         layout_customization_catalog().admit(aspect_projection),
         TransitionOutcome::Denied(FutureLayoutCustomizationDenial::StoreDenied(
-            S8FutureLayoutCustomizationDenial::RebuildableProjectionNotYetSupported {
-                key_domain: page_domain,
+            StoreLayoutCustomizationDenial::RebuildableProjectionNotYetSupported {
+                key_domain: page_domain.witness(),
             }
         ))
     );
@@ -137,28 +135,16 @@ fn admit_strategy_scope(
     tenant_scope: StoreTenantScope,
     authenticity: StoreAuthenticityRequirement,
     custody: StoreCustodyPosture,
-) -> (ArtifactFamilyLifecycleAdmission, PhysicalKeyDomainWitness) {
+) -> (AdmittedPhysicalArtifactFamily, AdmittedPhysicalKeyDomain) {
     let security_scope = admitted_scope(key_scope, tenant_scope, authenticity, custody);
     let declaration = layout_declarations().declaration(family_id).unwrap();
-    let classification = layout_declarations().classify_family(declaration);
-    let authority = layout_declarations()
-        .require_production_authority(classification)
-        .unwrap();
-    let lifecycle = layout_declarations()
-        .require_strategy_lifecycle(authority)
-        .unwrap();
-    let scope = layout_declarations()
-        .require_scope_partition(
-            layout_declarations().declare_derived_accuracy_class(
-                layout_declarations().declare_authority_role(classification),
-            ),
-            security_scope.witnesses(),
-        )
+    let family = layout_declarations()
+        .admit_physical_artifact_family(declaration, security_scope.witnesses())
         .unwrap();
     let key_domain = layout_declarations()
-        .declare_physical_key_domain(scope)
+        .admit_physical_key_domain(family, security_scope.witnesses())
         .unwrap();
-    (lifecycle, key_domain)
+    (family, key_domain)
 }
 
 fn admitted_scope(

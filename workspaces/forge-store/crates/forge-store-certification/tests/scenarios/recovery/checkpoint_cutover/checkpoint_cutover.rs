@@ -14,13 +14,11 @@ use forge_store_recovery_physics::{
     WalSegmentGeneration, WalSegmentId,
 };
 
-#[path = "../../../support/recovery/checkpoint_cutover/checkpoint_basis_fixture.rs"]
-mod checkpoint_basis_fixture;
-#[path = "../../../support/recovery/checkpoint_cutover/checkpoint_durability_fixture.rs"]
-mod checkpoint_durability_fixture;
+use forge_store_test_support::harness::recovery::checkpoint_basis as checkpoint_basis_fixture;
+use forge_store_test_support::harness::recovery::checkpoint_durability as checkpoint_durability_fixture;
 
 use checkpoint_basis_fixture::{
-    covered_range, frontier, manifest, page_cell, redo_boundary, root_reference, wal_range,
+    covered_range, frontier, manifest, page_cell, redo_boundary, wal_range,
 };
 use checkpoint_durability_fixture::{
     checkpoint_durability, durable_ack_for_digest, locate, recovered_locator, validate,
@@ -58,7 +56,7 @@ fn torn_missing_stale_and_recovery_blocking_checkpoint_inputs_deny() {
     );
     assert_denial(
         CheckpointManifest::sharp(
-            CheckpointRootPosture::root_present(root_reference()),
+            CheckpointRootPosture::root_present(checkpoint_basis_fixture::root_record_reference()),
             frontier(12),
             covered_range(10, 20),
             redo_boundary(19),

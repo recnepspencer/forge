@@ -1,10 +1,18 @@
+mod admission;
+#[cfg(test)]
+mod admission_case_tests;
 mod basis;
 mod corruption;
+mod entrypoint;
+mod exact_certification;
 mod failure;
 mod identity;
 mod lag;
+mod lag_observation;
 #[cfg(test)]
 pub(crate) mod live_tests;
+mod lowering;
+mod lsm;
 mod maintenance_mode;
 mod mutation_plan;
 mod outcome;
@@ -15,37 +23,46 @@ mod rebuild;
 mod scope;
 mod source;
 #[cfg(test)]
+pub(crate) mod test_support;
+#[cfg(test)]
 pub(crate) mod tests;
 mod transition;
 
-pub use basis::{S8DerivedIndexParityBasis, S8DerivedIndexParityRow};
+pub use basis::{DerivedIndexParityBasis, DerivedIndexParityRow};
 pub use corruption::LayoutCorruptionClassification;
+pub use entrypoint::{layout_maintenance, LayoutMaintenanceFacade};
 pub use failure::{
-    S8IndexMaintenanceFailureOutcome, S8MutationProofRequirement, S8PublicationProofRequirement,
+    IndexMaintenanceFailureOutcome, MutationProofRequirement, PublicationProofRequirement,
 };
 pub use identity::{
-    S8DerivedIndexCostEnvelopeParity, S8DerivedIndexCounterShapeParity,
-    S8DerivedIndexCoverageParity, S8DerivedIndexIdentityParity, S8DerivedIndexOrderingParity,
+    DerivedIndexCostEnvelopeParity, DerivedIndexCounterShapeParity, DerivedIndexCoverageParity,
+    DerivedIndexIdentityParity, DerivedIndexOrderingParity,
 };
-pub use lag::{S8IndexLagOutcome, S8IndexLagWitness, S8LagReason};
-pub use maintenance_mode::S8IndexMaintenanceMode;
+pub use lag::{IndexLagOutcome, IndexLagWitness, LagReason};
+pub use lsm::{
+    layout_lsm_maintenance, LayoutLsmMaintenance, LsmCompactionAdmissionRequest,
+    LsmMaintenanceAdmissionDenied, LsmReplayAdmissionRequest, LsmRunPublicationAdmissionRequest,
+};
+pub use maintenance_mode::IndexMaintenanceMode;
 pub use mutation_plan::{
-    S8ExactPublicationAuthoritySource, S8LayoutMutationPlan, S8LiveExactMaintenanceWitness,
-    S8LiveMaintenanceRequest, S8PhysicalMutationShape,
+    ExactPublicationAuthoritySource, LayoutMutationPlan, LiveExactMaintenanceWitness,
+    LiveMaintenanceRequest, LsmManifestPublicationBinding, PhysicalMutationShape,
 };
 pub use outcome::{
-    S8DerivedIndexParityOutcome, S8DerivedIndexParityView, S8DerivedIndexRebuildDenied,
-    S8DerivedIndexRebuildOutcome, S8DerivedIndexRebuildView,
+    DerivedIndexParityOutcome, DerivedIndexRebuildDenied, DerivedIndexRebuildOutcome,
 };
-pub use parity::S8DerivedIndexParityWitness;
-pub use plan::{
-    S8DerivedIndexRebuildPlan, S8DerivedIndexRebuildRequest, S8DerivedIndexResultIdentity,
-};
-pub use publication_protocol::S8IndexPublicationProtocol;
-pub use rebuild::{layout_rebuild, S8DerivedIndexRebuildReceipt, S8LayoutRebuildFacade};
-pub use scope::{S8DerivedIndexPartialKeySpace, S8DerivedIndexRebuildScope};
-pub use source::S8DerivedIndexRebuildSourceInput;
+#[cfg(test)]
+pub(crate) use outcome::{DerivedIndexParityView, DerivedIndexRebuildView};
+pub use parity::DerivedIndexParityWitness;
+pub use plan::{DerivedIndexRebuildPlan, DerivedIndexRebuildRequest, DerivedIndexResultIdentity};
+pub use publication_protocol::IndexPublicationProtocol;
+pub use rebuild::{layout_rebuild, DerivedIndexRebuildReceipt, LayoutRebuildFacade};
+pub use scope::{DerivedIndexPartialKeySpace, DerivedIndexRebuildScope};
+pub use source::DerivedIndexRebuildSourceInput;
 pub use transition::{
-    S8IndexMaintenanceTransitionOutcome, S8IndexMaintenanceTransitionView,
-    S8LayoutMutationAdmissionOutcome, S8LayoutMutationAdmissionView, S8LoweredMaintenanceProtocol,
+    maintenance_admission_cases, AdvisoryMaintenancePlan, ExactMaintenancePlan,
+    ExactMaintenanceProtocol, LaggedMaintenancePlan, LaggedMaintenanceProtocol,
+    LayoutMutationAdmissionOutcome, LayoutMutationAdmissionView, LazyMaintenancePlan,
+    MaintenanceAdmissionCaseId, MigrationMaintenancePlan, RebuildMaintenancePlan,
+    VerifierMaintenancePlan, VerifierMaintenanceProtocol,
 };

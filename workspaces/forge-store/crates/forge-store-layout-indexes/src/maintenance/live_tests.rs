@@ -1,51 +1,47 @@
-use super::{S8IndexMaintenanceTransitionView, S8LayoutMutationAdmissionView};
-use crate::facade::layout_maintenance;
+use super::{IndexPublicationProtocol, LayoutMutationAdmissionView};
+use crate::maintenance::layout_maintenance;
 use crate::strategy::tests_support::{admit_btree_page_strategy, admit_lsm_wal_strategy};
 use crate::{
-    access_planning, ArtifactFamilyAccessLane, S8ExactPublicationAuthoritySource,
-    S8IndexLagOutcome, S8IndexLagWitness, S8IndexMaintenanceFailureOutcome, S8IndexMaintenanceMode,
-    S8IndexMaintenanceTransitionOutcome, S8IndexPublicationProtocol, S8LagReason,
-    S8LayoutMutationAdmissionOutcome, S8LiveMaintenanceRequest, S8PhysicalMutationShape,
+    access_planning, ArtifactFamilyAccessLane, ExactPublicationAuthoritySource, IndexLagOutcome,
+    IndexLagWitness, IndexMaintenanceFailureOutcome, IndexMaintenanceMode, LagReason,
+    LiveMaintenanceRequest, PhysicalMutationShape,
 };
 use forge_store_physical_format::{
-    PhysicalEpoch, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalReferenceAuthority,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalReferenceAuthority,
     PhysicalRootReference,
 };
 use forge_store_recovery_physics::LogSequenceNumber;
 
 #[test]
-fn live_exact_root_publication_requires_lower_epoch_binding_capability() {
+fn live_exact_root_publication_accepts_matching_lower_epoch_binding() {
     let strategy = admit_btree_page_strategy();
+    let authority = validated_root_publication_authority(17);
+    let ExactPublicationAuthoritySource::CurrentRootPublication(validation) = authority else {
+        panic!("root authority helper must issue root publication authority")
+    };
+    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
     let coverage = access_planning()
-        .exact_root_epoch_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                strategy.lifecycle().declaration().family(),
-            ),
-            PhysicalEpoch::from_raw(17).unwrap(),
-        )
+        .admit_btree_publication_materialization(strategy.admitted_family(), &catalog, validation)
         .unwrap();
 
-    let request = S8LiveMaintenanceRequest::new(
-        strategy.lifecycle(),
-        strategy.key_domain(),
+    let request = LiveMaintenanceRequest::new(
+        strategy.admitted_family(),
+        strategy.admitted_key_domain(),
         strategy.family(),
         ArtifactFamilyAccessLane::HotPath,
-        S8IndexMaintenanceMode::SynchronousExact,
-        S8PhysicalMutationShape::ObservationOnly,
-        S8IndexPublicationProtocol::StableRootSwap,
+        IndexMaintenanceMode::SynchronousExact,
+        PhysicalMutationShape::ObservationOnly,
+        IndexPublicationProtocol::StableRootSwap,
     )
-    .with_exact_publication_authority(validated_root_publication_authority(17))
-    .with_exact_coverage(coverage);
+    .with_exact_publication_authority(authority)
+    .with_exact_coverage(coverage.coverage().clone());
 
-    assert!(matches!(
-        layout_maintenance().admit_mutation(request).view(),
-        S8LayoutMutationAdmissionView::Denied(
-            S8IndexMaintenanceFailureOutcome::LowerPublicationCapabilityRequired {
-                missing: crate::S8PublicationProofRequirement::RootEpochPublicationBinding,
-                ..
-            }
-        )
-    ));
+    let plan = layout_maintenance()
+        .admit_mutation(request)
+        .into_exact()
+        .expect("matching lower root publication must admit exact maintenance");
+    let lowered = layout_maintenance().lower_exact(plan);
+    assert!(layout_maintenance().certify_live_exact(&lowered).is_some());
 }
 
 #[test]
@@ -60,21 +56,21 @@ fn exact_manifest_publication_stays_denied_without_lower_owned_manifest_witness(
         )
         .unwrap();
 
-    let request = S8LiveMaintenanceRequest::new(
-        strategy.lifecycle(),
-        strategy.key_domain(),
+    let request = LiveMaintenanceRequest::new(
+        strategy.admitted_family(),
+        strategy.admitted_key_domain(),
         strategy.family(),
         ArtifactFamilyAccessLane::HotPath,
-        S8IndexMaintenanceMode::SynchronousExact,
-        S8PhysicalMutationShape::ObservationOnly,
-        S8IndexPublicationProtocol::StableManifestInstall,
+        IndexMaintenanceMode::SynchronousExact,
+        PhysicalMutationShape::ObservationOnly,
+        IndexPublicationProtocol::StableManifestInstall,
     )
     .with_exact_coverage(coverage);
 
     assert!(matches!(
         layout_maintenance().admit_mutation(request).view(),
-        S8LayoutMutationAdmissionView::Denied(
-            S8IndexMaintenanceFailureOutcome::LowerPublicationCapabilityRequired { .. }
+        LayoutMutationAdmissionView::Denied(
+            IndexMaintenanceFailureOutcome::ExactPublicationAuthorityRequired { .. }
         )
     ));
 }
@@ -90,25 +86,25 @@ fn lagged_live_maintenance_requires_explicit_lag_witness() {
             LogSequenceNumber::new(29),
         )
         .unwrap();
-    let lag = S8IndexLagWitness::new(
+    let lag = IndexLagWitness::new(
         strategy.lifecycle().declaration().family(),
-        coverage,
-        S8IndexMaintenanceMode::AsynchronousLagged,
-        S8IndexPublicationProtocol::DeferredCatchUp,
-        S8LagReason::BackgroundCatchUp,
+        coverage.clone(),
+        IndexMaintenanceMode::AsynchronousLagged,
+        IndexPublicationProtocol::DeferredCatchUp,
+        LagReason::BackgroundCatchUp,
     );
 
-    let request = S8LiveMaintenanceRequest::new(
-        strategy.lifecycle(),
-        strategy.key_domain(),
+    let request = LiveMaintenanceRequest::new(
+        strategy.admitted_family(),
+        strategy.admitted_key_domain(),
         strategy.family(),
         ArtifactFamilyAccessLane::HotPath,
-        S8IndexMaintenanceMode::AsynchronousLagged,
-        S8PhysicalMutationShape::ObservationOnly,
-        S8IndexPublicationProtocol::DeferredCatchUp,
+        IndexMaintenanceMode::AsynchronousLagged,
+        PhysicalMutationShape::ObservationOnly,
+        IndexPublicationProtocol::DeferredCatchUp,
     )
-    .with_exact_coverage(coverage)
-    .with_lag_witness(lag);
+    .with_exact_coverage(coverage.clone())
+    .with_lag_witness(lag.clone());
 
     let (plan, witness) = layout_maintenance()
         .admit_mutation(request)
@@ -116,13 +112,10 @@ fn lagged_live_maintenance_requires_explicit_lag_witness() {
         .expect("lagged maintenance should stay caller-visible");
     assert_eq!(witness, lag);
 
-    let lowered = layout_maintenance()
-        .lower_protocol(plan)
-        .into_lagged()
-        .expect("lagged maintenance should lower as lagged");
+    let lowered = layout_maintenance().lower_lagged(plan);
     assert_eq!(
-        layout_maintenance().inspect_lag(&lowered),
-        S8IndexLagOutcome::Lagged(lag)
+        layout_maintenance().inspect_lagged(&lowered),
+        IndexLagOutcome::Lagged(lag)
     );
 }
 
@@ -137,30 +130,30 @@ fn point_rewrite_without_lower_owned_mutation_capability_is_denied() {
             LogSequenceNumber::new(21),
         )
         .unwrap();
-    let lag = S8IndexLagWitness::new(
+    let lag = IndexLagWitness::new(
         strategy.lifecycle().declaration().family(),
-        coverage,
-        S8IndexMaintenanceMode::AsynchronousLagged,
-        S8IndexPublicationProtocol::DeferredCatchUp,
-        S8LagReason::BackgroundCatchUp,
+        coverage.clone(),
+        IndexMaintenanceMode::AsynchronousLagged,
+        IndexPublicationProtocol::DeferredCatchUp,
+        LagReason::BackgroundCatchUp,
     );
 
-    let request = S8LiveMaintenanceRequest::new(
-        strategy.lifecycle(),
-        strategy.key_domain(),
+    let request = LiveMaintenanceRequest::new(
+        strategy.admitted_family(),
+        strategy.admitted_key_domain(),
         strategy.family(),
         ArtifactFamilyAccessLane::HotPath,
-        S8IndexMaintenanceMode::AsynchronousLagged,
-        S8PhysicalMutationShape::LogStructuredAppend,
-        S8IndexPublicationProtocol::DeferredCatchUp,
+        IndexMaintenanceMode::AsynchronousLagged,
+        PhysicalMutationShape::LogStructuredAppend,
+        IndexPublicationProtocol::DeferredCatchUp,
     )
-    .with_exact_coverage(coverage)
+    .with_exact_coverage(coverage.clone())
     .with_lag_witness(lag);
 
     assert!(matches!(
         layout_maintenance().admit_mutation(request).view(),
-        S8LayoutMutationAdmissionView::Denied(
-            S8IndexMaintenanceFailureOutcome::LowerMutationCapabilityRequired { .. }
+        LayoutMutationAdmissionView::Denied(
+            IndexMaintenanceFailureOutcome::LowerMutationCapabilityRequired { .. }
         )
     ));
 }
@@ -177,22 +170,21 @@ fn exact_maintenance_rejects_deferred_publication_protocols() {
         )
         .unwrap();
 
-    let request = S8LiveMaintenanceRequest::new(
-        strategy.lifecycle(),
-        strategy.key_domain(),
+    let request = LiveMaintenanceRequest::new(
+        strategy.admitted_family(),
+        strategy.admitted_key_domain(),
         strategy.family(),
         ArtifactFamilyAccessLane::HotPath,
-        S8IndexMaintenanceMode::SynchronousExact,
-        S8PhysicalMutationShape::ObservationOnly,
-        S8IndexPublicationProtocol::DeferredCatchUp,
+        IndexMaintenanceMode::SynchronousExact,
+        PhysicalMutationShape::ObservationOnly,
+        IndexPublicationProtocol::DeferredCatchUp,
     )
     .with_exact_coverage(coverage);
 
     assert!(matches!(
         layout_maintenance().admit_mutation(request).view(),
-        S8LayoutMutationAdmissionView::Denied(
-            S8IndexMaintenanceFailureOutcome::PublicationProtocolIncompatibleWithStrategy { .. }
-                | S8IndexMaintenanceFailureOutcome::ReplayStablePublicationRequired { .. }
+        LayoutMutationAdmissionView::Denied(
+            IndexMaintenanceFailureOutcome::PublicationProtocolIncompatibleWithStrategy { .. }
         )
     ));
 }
@@ -208,84 +200,86 @@ fn verifier_only_mode_lowers_without_claiming_exact_publication() {
             LogSequenceNumber::new(37),
         )
         .unwrap();
-    let lag = S8IndexLagWitness::new(
+    let lag = IndexLagWitness::new(
         strategy.lifecycle().declaration().family(),
-        coverage,
-        S8IndexMaintenanceMode::VerifierOnly,
-        S8IndexPublicationProtocol::VerifierObservationOnly,
-        S8LagReason::AdvisoryResidue,
+        coverage.clone(),
+        IndexMaintenanceMode::VerifierOnly,
+        IndexPublicationProtocol::VerifierObservationOnly,
+        LagReason::AdvisoryResidue,
     );
-    let request = S8LiveMaintenanceRequest::new(
-        strategy.lifecycle(),
-        strategy.key_domain(),
+    let request = LiveMaintenanceRequest::new(
+        strategy.admitted_family(),
+        strategy.admitted_key_domain(),
         strategy.family(),
         ArtifactFamilyAccessLane::VerifierPath,
-        S8IndexMaintenanceMode::VerifierOnly,
-        S8PhysicalMutationShape::ObservationOnly,
-        S8IndexPublicationProtocol::VerifierObservationOnly,
+        IndexMaintenanceMode::VerifierOnly,
+        PhysicalMutationShape::ObservationOnly,
+        IndexPublicationProtocol::VerifierObservationOnly,
     )
-    .with_exact_coverage(coverage)
-    .with_lag_witness(lag);
+    .with_exact_coverage(coverage.clone())
+    .with_lag_witness(lag.clone());
 
     let (plan, witness) = layout_maintenance()
         .admit_mutation(request)
-        .into_deferred()
+        .into_verifier()
         .expect("verifier mode should stay non-exact");
     assert_eq!(witness, lag);
 
-    let lowered = layout_maintenance()
-        .lower_protocol(plan)
-        .into_verifier_only()
-        .expect("verifier mode should lower to verifier-only");
+    let lowered = layout_maintenance().lower_verifier(plan);
     assert_eq!(
-        layout_maintenance().inspect_lag(&lowered),
-        S8IndexLagOutcome::Lagged(lag)
+        layout_maintenance().inspect_verifier(&lowered),
+        IndexLagOutcome::Lagged(lag)
     );
-    assert!(layout_maintenance().certify_live_exact(&lowered).is_none());
 }
 
 #[test]
 fn root_publication_validation_cannot_be_reused_for_mismatched_exact_coverage() {
     let strategy = admit_btree_page_strategy();
+    let coverage_authority = validated_root_publication_authority(19);
+    let ExactPublicationAuthoritySource::CurrentRootPublication(coverage_validation) =
+        coverage_authority
+    else {
+        panic!("root authority helper must issue root publication authority")
+    };
+    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
     let coverage = access_planning()
-        .exact_root_epoch_coverage(
-            crate::bootstrap::test_support::bootstrap_exact_materialization(
-                strategy.lifecycle().declaration().family(),
-            ),
-            PhysicalEpoch::from_raw(19).unwrap(),
+        .admit_btree_publication_materialization(
+            strategy.admitted_family(),
+            &catalog,
+            coverage_validation,
         )
         .unwrap();
 
-    let request = S8LiveMaintenanceRequest::new(
-        strategy.lifecycle(),
-        strategy.key_domain(),
+    let request = LiveMaintenanceRequest::new(
+        strategy.admitted_family(),
+        strategy.admitted_key_domain(),
         strategy.family(),
         ArtifactFamilyAccessLane::HotPath,
-        S8IndexMaintenanceMode::SynchronousExact,
-        S8PhysicalMutationShape::ObservationOnly,
-        S8IndexPublicationProtocol::StableRootSwap,
+        IndexMaintenanceMode::SynchronousExact,
+        PhysicalMutationShape::ObservationOnly,
+        IndexPublicationProtocol::StableRootSwap,
     )
     .with_exact_publication_authority(validated_root_publication_authority(17))
-    .with_exact_coverage(coverage);
+    .with_exact_coverage(coverage.coverage().clone());
 
     assert!(matches!(
         layout_maintenance().admit_mutation(request).view(),
-        S8LayoutMutationAdmissionView::Denied(
-            S8IndexMaintenanceFailureOutcome::LowerPublicationCapabilityRequired {
-                missing: crate::S8PublicationProofRequirement::RootEpochPublicationBinding,
-                ..
-            }
+        LayoutMutationAdmissionView::Denied(
+            IndexMaintenanceFailureOutcome::PublicationAuthorityDoesNotMatchExactCoverage { .. }
         )
     ));
 }
 
-fn validated_root_publication_authority(generation: u64) -> S8ExactPublicationAuthoritySource {
+pub(super) fn validated_root_publication_authority(
+    generation: u64,
+) -> ExactPublicationAuthoritySource {
     let root = PhysicalGenerationAuthority::for_canonical_physical_format()
         .root_publication_cell(PhysicalRootReference::from_raw(1).unwrap())
         .with_root_publication_generation(PhysicalGeneration::from_raw(generation).unwrap());
-    let admission = PhysicalReferenceAuthority::for_canonical_physical_format().admit_root_publication(root);
+    let admission =
+        PhysicalReferenceAuthority::for_canonical_physical_format().admit_root_publication(root);
     let validation = PhysicalReferenceAuthority::for_canonical_physical_format()
         .validate_root_publication(admission, root)
         .expect("test root publication should validate");
-    S8ExactPublicationAuthoritySource::current_root_publication(validation)
+    ExactPublicationAuthoritySource::current_root_publication(validation)
 }

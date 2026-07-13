@@ -1,6 +1,5 @@
 use crate::{
-    layout_declarations, ArtifactScopePartitionWitness, S8BlobGenerationBasis,
-    S8BlobIdentityKeyBasis,
+    layout_declarations, ArtifactScopePartitionWitness, BlobGenerationBasis, BlobIdentityKeyBasis,
 };
 use forge_foundational::{aspects, AspectContract, AspectValue, InternedString, ScalarAspectType};
 use forge_proof::TransitionOutcome;
@@ -77,19 +76,19 @@ pub(crate) fn admit_key_domain_scope(
         .unwrap()
 }
 
-pub(crate) fn published_blob_identity() -> S8BlobIdentityKeyBasis {
+pub(crate) fn published_blob_identity() -> BlobIdentityKeyBasis {
     let evidence = published_blob_evidence_bundle();
-    S8BlobIdentityKeyBasis::new(
+    BlobIdentityKeyBasis::new(
         evidence.export_object_id().digest().clone(),
-        S8BlobGenerationBasis::from_sequence(evidence.export_generation().sequence()),
+        BlobGenerationBasis::from_sequence(evidence.export_generation().sequence()),
     )
 }
 
-pub(crate) fn alternate_blob_identity() -> S8BlobIdentityKeyBasis {
+pub(crate) fn alternate_blob_identity() -> BlobIdentityKeyBasis {
     let evidence = alternate_blob_evidence_bundle();
-    S8BlobIdentityKeyBasis::new(
+    BlobIdentityKeyBasis::new(
         evidence.export_object_id().digest().clone(),
-        S8BlobGenerationBasis::from_sequence(evidence.export_generation().sequence()),
+        BlobGenerationBasis::from_sequence(evidence.export_generation().sequence()),
     )
 }
 

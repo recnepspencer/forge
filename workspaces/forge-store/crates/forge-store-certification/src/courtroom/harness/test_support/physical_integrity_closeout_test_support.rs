@@ -4,7 +4,7 @@ pub(crate) use super::physical_integrity_closeout_harness_test_support::{
 use super::{
     bounded_memory_closeout_test_support::{
         background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
-        harness_evidence, operation_reports, pressure_bundles, physical_substrate_readiness,
+        harness_evidence, operation_reports, physical_substrate_readiness, pressure_bundles,
         synthetic_rejections as bounded_memory_synthetic_rejections,
     },
     physical_container_integrity_test_support::{
@@ -42,7 +42,10 @@ use forge_store_physical_integrity::{
 pub(crate) fn complete_physical_integrity_closeout_suite(
     s4_readiness: &forge_store_recovery_physics::AdmittedRecoveryIntegrityInput,
 ) -> PhysicalIntegrityCloseoutSuite {
-    PhysicalIntegrityCloseoutSuite::admit(complete_physical_integrity_closeout_evidence(s4_readiness)).unwrap()
+    PhysicalIntegrityCloseoutSuite::admit(complete_physical_integrity_closeout_evidence(
+        s4_readiness,
+    ))
+    .unwrap()
 }
 
 pub(crate) fn complete_physical_integrity_closeout_evidence(
@@ -131,7 +134,8 @@ pub(crate) fn physical_integrity_readiness() -> forge_store_readiness::PhysicalI
         .unwrap()
 }
 
-pub(crate) fn copied_physical_substrate_synthetic_rejections() -> Vec<SyntheticCloseoutShortcutRejectionReport> {
+pub(crate) fn copied_physical_substrate_synthetic_rejections(
+) -> Vec<SyntheticCloseoutShortcutRejectionReport> {
     bounded_memory_synthetic_rejections()
 }
 

@@ -1,28 +1,75 @@
+use forge_store_recovery_physics::{
+    LogSequenceNumber, PersistedRecoveryArtifactDigest, RecoveryLayoutReadmissionIdentity,
+};
+use sha2::{Digest, Sha256};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutReadmissionWitness {
-    family: crate::PhysicalArtifactFamily,
-    source: super::classification::S8LayoutReadmissionSource,
+pub struct LayoutReadmissionIdentity([u8; 32]);
+
+impl LayoutReadmissionIdentity {
+    pub(crate) fn from_recovery_identity(identity: &RecoveryLayoutReadmissionIdentity) -> Self {
+        let mut digest = Sha256::new();
+        match identity {
+            RecoveryLayoutReadmissionIdentity::QuarantineReceipt(receipt) => {
+                digest.update(b"quarantine-receipt");
+                update_field(&mut digest, receipt.as_str());
+            }
+            RecoveryLayoutReadmissionIdentity::OfflineArtifactDigest(artifact) => {
+                digest.update(b"offline-artifact");
+                update_artifact_digest(&mut digest, artifact);
+            }
+        }
+        Self(digest.finalize().into())
+    }
+
+    pub const fn fingerprint(self) -> [u8; 32] {
+        self.0
+    }
 }
 
-impl S8LayoutReadmissionWitness {
-    pub(crate) const fn quarantine_recovery(family: crate::PhysicalArtifactFamily) -> Self {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LayoutReadmissionWitness {
+    family: crate::PhysicalArtifactFamily,
+    source: super::classification::LayoutReadmissionSource,
+    identity: LayoutReadmissionIdentity,
+    replay_frontier: Option<LogSequenceNumber>,
+}
+
+impl LayoutReadmissionWitness {
+    pub(crate) fn quarantine_recovery(
+        family: crate::PhysicalArtifactFamily,
+        identity: &RecoveryLayoutReadmissionIdentity,
+    ) -> Self {
         Self {
             family,
-            source: super::classification::S8LayoutReadmissionSource::QuarantineRecovery,
+            source: super::classification::LayoutReadmissionSource::QuarantineRecovery,
+            identity: LayoutReadmissionIdentity::from_recovery_identity(identity),
+            replay_frontier: None,
         }
     }
 
-    pub(crate) const fn offline_evidence(family: crate::PhysicalArtifactFamily) -> Self {
+    pub(crate) fn offline_evidence(
+        family: crate::PhysicalArtifactFamily,
+        identity: &RecoveryLayoutReadmissionIdentity,
+        replay_frontier: LogSequenceNumber,
+    ) -> Self {
         Self {
             family,
-            source: super::classification::S8LayoutReadmissionSource::OfflineRecoveryEvidence,
+            source: super::classification::LayoutReadmissionSource::OfflineRecoveryEvidence,
+            identity: LayoutReadmissionIdentity::from_recovery_identity(identity),
+            replay_frontier: Some(replay_frontier),
         }
     }
 
-    pub(crate) const fn terminal_import(family: crate::PhysicalArtifactFamily) -> Self {
+    pub(crate) fn terminal_import(
+        family: crate::PhysicalArtifactFamily,
+        identity: &RecoveryLayoutReadmissionIdentity,
+    ) -> Self {
         Self {
             family,
-            source: super::classification::S8LayoutReadmissionSource::TerminalImport,
+            source: super::classification::LayoutReadmissionSource::TerminalImport,
+            identity: LayoutReadmissionIdentity::from_recovery_identity(identity),
+            replay_frontier: None,
         }
     }
 
@@ -30,14 +77,29 @@ impl S8LayoutReadmissionWitness {
         self.family
     }
 
-    pub const fn source(self) -> super::classification::S8LayoutReadmissionSource {
+    pub const fn source(self) -> super::classification::LayoutReadmissionSource {
         self.source
+    }
+
+    pub const fn identity(self) -> LayoutReadmissionIdentity {
+        self.identity
+    }
+
+    pub const fn replay_frontier(self) -> Option<LogSequenceNumber> {
+        self.replay_frontier
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum S8NativeReadmissionInput {
-    RecoveryWitness {
-        witness: forge_store_recovery_physics::RecoveryLayoutReadmissionWitness,
-    },
+fn update_artifact_digest(digest: &mut Sha256, artifact: &PersistedRecoveryArtifactDigest) {
+    update_field(digest, artifact.value());
+    update_field(digest, artifact.format_version());
+    update_field(digest, artifact.backend_profile());
+    update_field(digest, artifact.recovery_profile());
+    digest.update((artifact.record_count() as u64).to_be_bytes());
+    digest.update((artifact.byte_count() as u64).to_be_bytes());
+}
+
+fn update_field(digest: &mut Sha256, value: &str) {
+    digest.update((value.len() as u64).to_be_bytes());
+    digest.update(value.as_bytes());
 }

@@ -1,11 +1,14 @@
 mod classification;
+mod classification_operation;
+mod classification_outcome;
 mod denial;
-mod facade;
+mod entrypoint;
 mod input;
-mod outcome;
 mod quarantine;
 mod quarantine_authority;
 mod readmission;
+mod readmission_operation;
+mod readmission_outcome;
 #[cfg(test)]
 mod readmission_test_support;
 #[cfg(test)]
@@ -13,14 +16,20 @@ pub(crate) mod readmission_tests;
 #[cfg(test)]
 pub(crate) mod tests;
 
-pub use classification::{S8LayoutCorruptionClass, S8LayoutReadmissionSource};
-pub use denial::S8CorruptionDenial;
-pub use facade::{layout_corruption, LayoutCorruptionFacade};
-pub use input::S8LayoutCorruptionInput;
-pub use outcome::{
-    S8LayoutCorruptionOutcome, S8LayoutCorruptionView, S8LayoutReadmissionOutcome,
-    S8LayoutReadmissionView, S8QuarantineReadmissionRequirement, S8ReadmissionDenied,
-    S8ReadmissionRequirement, S8UnsupportedCorruptionState,
+pub use classification::LayoutReadmissionSource;
+pub use classification_outcome::{
+    corruption_classification_cases, CorruptionClassificationCaseId, ImportReadmissionRequirement,
+    LayoutCorruptionOutcome, LayoutCorruptionView, OfflineReadmissionRequirement,
+    QuarantineReadmissionRequirement,
 };
-pub use quarantine::S8LayoutQuarantineWitness;
-pub use readmission::{S8LayoutReadmissionWitness, S8NativeReadmissionInput};
+pub use denial::CorruptionDenial;
+pub use entrypoint::layout_corruption;
+pub use input::LayoutCorruptionInput;
+pub use quarantine::LayoutQuarantineWitness;
+pub use readmission::{LayoutReadmissionIdentity, LayoutReadmissionWitness};
+pub use readmission_outcome::{
+    import_readmission_cases, offline_readmission_cases, quarantine_readmission_cases,
+    ImportReadmissionCaseId, ImportReadmissionOutcome, ImportReadmissionView,
+    OfflineReadmissionCaseId, OfflineReadmissionOutcome, OfflineReadmissionView,
+    QuarantineReadmissionCaseId, QuarantineReadmissionOutcome, QuarantineReadmissionView,
+};

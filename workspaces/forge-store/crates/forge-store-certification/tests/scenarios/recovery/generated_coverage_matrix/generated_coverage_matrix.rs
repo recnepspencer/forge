@@ -1,12 +1,11 @@
-#[path = "../../../support/recovery/coverage_support/coverage_support.rs"]
-mod coverage_support;
+use forge_store_test_support::harness::recovery::coverage as coverage_support;
 
 use forge_store_physical_certification::{
     CounterContractKind, CoverageRowDimension, CoverageSurfaceKind, FixtureClassKind,
     GeneratedCoverageMatrix, HarnessCoverageStage, HarnessMaturityLevel, HarnessSubsystem,
     MutationValidationPosture, ObserverKind, OracleFamilyKind, PhysicalDriverKind,
-    PhysicalIsolationHarnessMaturityDependencyEvidence, PhysicalIsolationReadinessDependencySet,
     PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessMaturityDependency,
+    PhysicalIsolationHarnessMaturityDependencyEvidence, PhysicalIsolationReadinessDependencySet,
     PhysicalProofOracleKind, PhysicalScenarioActorRole, PhysicalScenarioFaultKind,
     PhysicalSimulationProfile,
 };
@@ -113,7 +112,8 @@ fn coverage_matrix_is_generated_from_registered_execution_surfaces() {
 }
 
 #[test]
-fn generated_maturity_maps_physical_isolation_ci_dependencies_without_physical_isolation_correctness_claim() {
+fn generated_maturity_maps_physical_isolation_ci_dependencies_without_physical_isolation_correctness_claim(
+) {
     let plan = coverage_support::lowered_ci_plan();
     let replay = coverage_support::replay_bundle(&plan);
     let matrix = coverage_support::complete_registry(&plan, &replay)

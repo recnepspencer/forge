@@ -1,7 +1,5 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
-#[path = "../../../support/recovery/coverage_support/coverage_support.rs"]
-mod coverage_support;
+use forge_store_test_support::harness::recovery::closeout as closeout_fixture;
+use forge_store_test_support::harness::recovery::coverage as coverage_support;
 
 use forge_foundational::{
     FoundationalBoundaryEvidenceFreshnessPosture, FoundationalBoundaryEvidenceReceiptKind,
@@ -9,24 +7,22 @@ use forge_foundational::{
 };
 use forge_proof::{RecipeStageDxExt, RecipeStageKind};
 use forge_store_physical_certification::{
-    fixture_label_oracle_attempt,
-    register_physical_isolation_certification_lane,
+    fixture_label_oracle_attempt, register_physical_isolation_certification_lane,
     reject_copied_simulation_harness_readiness_rows_as_physical_isolation_lane_registration,
     reject_generic_runner_as_physical_isolation_lane_registration,
     reject_harness_projection_as_physical_isolation_lane_registration,
-    reject_loose_log_evidence_attempt,
-    reject_raw_json_scenario_authority_attempt, reject_same_run_self_comparison_evidence_attempt,
-    reject_terminal_json_evidence_attempt, reject_unresolved_simulation_plan_recipe,
-    shortcut_denial_from_evidence_bundle_denial, shortcut_denial_from_fault_delivery_denial,
-    shortcut_denial_from_oracle_denial, shortcut_denial_from_plan_denial,
-    shortcut_denial_from_scenario_denial, shortcut_denial_from_terminal_projection_denial,
-    shortcut_denial_from_transcript_denial, test_support_oracle_verdict_attempt, CoverageGapDenial,
-    FaultDeliveryAttempt, ForbiddenShortcutKind, OracleFamilyKind,
-    PhysicalCertificationEvidenceBundle, PhysicalDriverKind,
-    PhysicalIsolationHarnessReadinessReceipt, PhysicalIsolationLaneRegistrationDenial,
-    ShortcutRejectionBoundary, SimulationPlanDenial, SyntheticHarnessShortcutDenialReceipt,
-    SyntheticHarnessShortcutRejectionReport, PhysicalIsolationCorrectnessNonClaimEvidence,
-    PhysicalIsolationHarnessReadinessDenial,
+    reject_loose_log_evidence_attempt, reject_raw_json_scenario_authority_attempt,
+    reject_same_run_self_comparison_evidence_attempt, reject_terminal_json_evidence_attempt,
+    reject_unresolved_simulation_plan_recipe, shortcut_denial_from_evidence_bundle_denial,
+    shortcut_denial_from_fault_delivery_denial, shortcut_denial_from_oracle_denial,
+    shortcut_denial_from_plan_denial, shortcut_denial_from_scenario_denial,
+    shortcut_denial_from_terminal_projection_denial, shortcut_denial_from_transcript_denial,
+    test_support_oracle_verdict_attempt, CoverageGapDenial, FaultDeliveryAttempt,
+    ForbiddenShortcutKind, OracleFamilyKind, PhysicalCertificationEvidenceBundle,
+    PhysicalDriverKind, PhysicalIsolationCorrectnessNonClaimEvidence,
+    PhysicalIsolationHarnessReadinessDenial, PhysicalIsolationHarnessReadinessReceipt,
+    PhysicalIsolationLaneRegistrationDenial, ShortcutRejectionBoundary, SimulationPlanDenial,
+    SyntheticHarnessShortcutDenialReceipt, SyntheticHarnessShortcutRejectionReport,
 };
 use forge_store_physical_isolation::{
     admit_physical_isolation_entry, reject_copied_recovery_fields_as_physical_isolation_entry,
@@ -201,8 +197,7 @@ fn physical_isolation_lane_requires_entry_and_simulation_harness_readiness() {
     .unwrap();
     let receipt = simulation_harness_readiness_receipt();
 
-    let registration =
-        register_physical_isolation_certification_lane(&entry, receipt);
+    let registration = register_physical_isolation_certification_lane(&entry, receipt);
 
     assert_eq!(registration.entry_recovered_root(), entry.recovered_root());
     assert!(registration.does_not_claim_physical_isolation_correctness());

@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/counter_strength/support.rs"]
-mod support;
+use forge_store_test_support::harness::recovery::counter_evidence as support;
 
 use forge_store_physical_certification::{
     admit_physical_counter_evidence, BlockedReclaimUntilReleaseOracle, CounterMismatchEvidence,

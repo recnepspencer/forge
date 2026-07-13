@@ -1,9 +1,9 @@
-use crate::strategy::S8StrategyDenial;
+use crate::strategy::StrategyDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LsmStaleRunCleanupLaw;
+pub struct LsmStaleRunCleanupLaw;
 
-impl S8LsmStaleRunCleanupLaw {
+impl LsmStaleRunCleanupLaw {
     pub(crate) const fn baseline() -> Self {
         Self
     }
@@ -13,13 +13,13 @@ impl S8LsmStaleRunCleanupLaw {
         stale_runs_retired: u16,
         shadowed_runs_identified: u16,
         live_manifest_runs: u16,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         if stale_runs_retired > 0
             && shadowed_runs_identified >= stale_runs_retired
             && live_manifest_runs > 0
         {
             return Ok(());
         }
-        Err(S8StrategyDenial::StaleRunCleanupViolation)
+        Err(StrategyDenial::StaleRunCleanupViolation)
     }
 }

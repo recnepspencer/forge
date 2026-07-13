@@ -1,8 +1,11 @@
-use forge_store_layout_indexes::S8ExecutionReadmissionWitness;
-use forge_store_offline_verifier::OfflineLayoutReport;
+use forge_store_layout_indexes::{
+    integrity::LayoutReadmissionWitness, OfflineVerifierLayoutProjection,
+};
 
-fn require_readmission(_: S8ExecutionReadmissionWitness) {}
+fn require_readmission(_: LayoutReadmissionWitness) {}
 
-fn main() {
-    require_readmission(OfflineLayoutReport::new(Vec::new()));
+fn forged_readmission(report: OfflineVerifierLayoutProjection) {
+    require_readmission(report);
 }
+
+fn main() {}

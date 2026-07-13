@@ -296,7 +296,9 @@ fn page_header_uses_page_generation_owner() {
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+    )
 }
 
 fn validated_slot_reference(generation_value: u64) -> crate::PhysicalReferenceValidationWitness {

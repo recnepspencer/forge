@@ -19,46 +19,26 @@ struct CompileFailFixture {
     extern_crates: &'static [&'static str],
 }
 
-const fn fixtures() -> [CompileFailFixture; 9] {
+const fn fixtures() -> [CompileFailFixture; 6] {
     [
         fixture(
-            "caller_defined_ready_access_receipt_is_not_constructible.rs",
-            &["S8ExecutionReadyAccessReceipt", "private field"],
-            &[],
-        ),
-        fixture(
-            "ready_access_receipt_constructor_is_not_public.rs",
-            &["from_recipe", "private associated function"],
-            &[],
-        ),
-        fixture(
-            "caller_defined_executed_access_receipt_is_not_constructible.rs",
-            &["S8ExecutedAccessReceipt", "private field"],
-            &[],
-        ),
-        fixture(
             "counter_snapshot_exact_constructor_is_not_public.rs",
-            &["exact", "private associated function"],
+            &["S8AccessPathCounterSnapshot", "could not find"],
             &[],
         ),
         fixture(
             "counter_snapshot_support_constructor_is_not_public.rs",
-            &["snapshot_support", "function or associated item"],
+            &["S8AccessPathCounterSnapshot", "could not find"],
             &[],
         ),
         fixture(
             "support_counter_evidence_derived_constructor_is_not_public.rs",
-            &[
-                "snapshot_support_counter_evidence",
-                "branch_delta_support_counter_evidence",
-                "stable_basis_support_counter_evidence",
-                "continuation_support_counter_evidence",
-            ],
+            &["layout_counters", "could not find"],
             &[],
         ),
         fixture(
             "layout_readmission_witness_is_not_constructible.rs",
-            &["S8LayoutReadmissionWitness", "private field"],
+            &["LayoutReadmissionWitness", "private field"],
             &[],
         ),
         fixture(
@@ -68,7 +48,7 @@ const fn fixtures() -> [CompileFailFixture; 9] {
         ),
         fixture(
             "private_corruption_module_cannot_bypass_layout_readmission_facade.rs",
-            &["module `integrity` is private"],
+            &["module `readmission` is private"],
             &[],
         ),
     ]

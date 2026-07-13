@@ -50,27 +50,31 @@ pub use checkpoint_interlock::{
     ReadDuringCheckpointVerdict,
 };
 #[cfg(any(test, feature = "certification-authority"))]
-pub use compaction_interlock::compaction_read_interlock_plan_for_certification_test;
-#[cfg(any(test, feature = "certification-authority"))]
 pub use compaction_interlock::{
     compaction_cutover_evidence_for_certification_plan,
     compaction_cutover_evidence_for_certification_rewrite_manifest,
     publish_compaction_rewrite_for_certification, CompactionCutoverEvidenceForCertification,
 };
 pub use compaction_interlock::{
-    compaction_cutover_outcome_facts, compaction_rewrite_scheduler_demand,
+    compaction_owner_case_inventory, compaction_rewrite_scheduler_demand,
     execute_read_during_compaction_cutover, CompactionCandidateRangeSet, CompactionCutoverDelta,
-    CompactionCutoverStabilityProof, CompactionCutoverState, CompactionCutoverTransition,
-    CompactionCutoverTransitionKind, CompactionDeferredReclaimQueue,
+    CompactionCutoverStabilityProof, CompactionCutoverState, CompactionDeferredReclaimQueue,
     CompactionInterlockFoundationalEvidence, CompactionMutationLaneOrigin,
-    CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
-    CompactionProtectedReferenceSet, CompactionReadInterlockCounters,
+    CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind, CompactionOwnerCase,
+    CompactionOwnerCaseId, CompactionProtectedReferenceSet, CompactionReadInterlockCounters,
     CompactionReadInterlockDenial, CompactionReadInterlockPlan, CompactionRewritePublication,
     CompactionSourceIntegrityEvidence, DrainedCompactionReclaim, ReadDuringCompactionVerdict,
 };
+#[cfg(any(test, feature = "certification-authority"))]
+pub use compaction_interlock::{
+    compaction_read_interlock_plan_for_certification_root_seed,
+    compaction_read_interlock_plan_for_certification_test,
+};
+#[cfg(any(test, feature = "certification-authority"))]
+pub use epoch::next_root_epoch_for_certification;
 pub use epoch::{
-    compare_physical_epoch_vectors_with_evidence, required_physical_isolation_ordering_contracts, ChunkEpoch,
-    EpochComparisonScope, EpochComparisonScopeMismatch, EpochRetryDecision,
+    compare_physical_epoch_vectors_with_evidence, required_physical_isolation_ordering_contracts,
+    ChunkEpoch, EpochComparisonScope, EpochComparisonScopeMismatch, EpochRetryDecision,
     EpochStabilityScopeKind, ExtentEpoch, ExtentPublicationEpochBasis,
     FutureChunkPublicationEpochBasis, ManifestEpoch, PageEpoch, PagePublicationEpochBasis,
     PhysicalEpochComparisonEvidence, PhysicalEpochComparisonEvidenceDenial, PhysicalEpochDriftKind,
@@ -88,9 +92,9 @@ pub use executed_isolation_evidence::{
     reject_projection_as_physical_epoch_basis_authority,
     reject_projection_as_reclaim_eligibility_proof_authority,
     reject_projection_as_stable_physical_read_plan_authority,
-    reject_proof_projection_as_physical_isolation_store_authority, PhysicalIsolationEvidenceProfile,
-    ProjectionArtifactKind, ProjectionAuthorityDenial, S5IsolationEvidenceRichness,
-    StorePhysicalAuthoritySurface,
+    reject_proof_projection_as_physical_isolation_store_authority,
+    PhysicalIsolationEvidenceProfile, ProjectionArtifactKind, ProjectionAuthorityDenial,
+    S5IsolationEvidenceRichness, StorePhysicalAuthoritySurface,
 };
 pub use executed_isolation_evidence::{
     ExecutedIsolationCounterKind, ExecutedIsolationEvidence, ExecutedIsolationReceipts,
@@ -234,6 +238,7 @@ pub use security_scope_propagation::{
 };
 #[cfg(any(test, feature = "certification-authority"))]
 pub use stable_read_execution::{
+    stable_physical_read_plan_for_certification_seed,
     stable_physical_read_plan_for_certification_test,
     stable_physical_read_receipt_for_certification_root,
     stable_physical_read_receipt_for_certification_test,

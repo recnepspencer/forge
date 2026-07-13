@@ -1,25 +1,25 @@
-use super::invariant_suite::S8StrategyCounterProfile;
-use crate::access::budget::S8PlannedCounterEnvelope;
-use crate::access::execution::S8AccessPathCounterSnapshot;
+use super::invariant_suite::StrategyCounterProfile;
+use crate::access::budget::PlannedCounterEnvelope;
+use crate::access::execution::AccessPathCounterSnapshot;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8StrategyCounterEvidence {
-    point_lookup: Option<S8PlannedCounterEnvelope>,
-    range_lookup: Option<S8PlannedCounterEnvelope>,
-    prefix_lookup: Option<S8PlannedCounterEnvelope>,
-    publication: S8AccessPathCounterSnapshot,
-    recovery: S8AccessPathCounterSnapshot,
-    aggregate: S8StrategyCounterProfile,
+pub struct StrategyCounterEvidence {
+    point_lookup: Option<PlannedCounterEnvelope>,
+    range_lookup: Option<PlannedCounterEnvelope>,
+    prefix_lookup: Option<PlannedCounterEnvelope>,
+    publication: AccessPathCounterSnapshot,
+    recovery: AccessPathCounterSnapshot,
+    aggregate: StrategyCounterProfile,
 }
 
-impl S8StrategyCounterEvidence {
+impl StrategyCounterEvidence {
     pub(crate) const fn new(
-        point_lookup: Option<S8PlannedCounterEnvelope>,
-        range_lookup: Option<S8PlannedCounterEnvelope>,
-        prefix_lookup: Option<S8PlannedCounterEnvelope>,
-        publication: S8AccessPathCounterSnapshot,
-        recovery: S8AccessPathCounterSnapshot,
-        aggregate: S8StrategyCounterProfile,
+        point_lookup: Option<PlannedCounterEnvelope>,
+        range_lookup: Option<PlannedCounterEnvelope>,
+        prefix_lookup: Option<PlannedCounterEnvelope>,
+        publication: AccessPathCounterSnapshot,
+        recovery: AccessPathCounterSnapshot,
+        aggregate: StrategyCounterProfile,
     ) -> Self {
         Self {
             point_lookup,
@@ -31,7 +31,7 @@ impl S8StrategyCounterEvidence {
         }
     }
 
-    pub const fn lookup(self) -> Option<S8PlannedCounterEnvelope> {
+    pub const fn lookup(self) -> Option<PlannedCounterEnvelope> {
         if self.range_lookup.is_some() || self.prefix_lookup.is_some() {
             None
         } else {
@@ -39,27 +39,27 @@ impl S8StrategyCounterEvidence {
         }
     }
 
-    pub const fn point_lookup(self) -> Option<S8PlannedCounterEnvelope> {
+    pub const fn point_lookup(self) -> Option<PlannedCounterEnvelope> {
         self.point_lookup
     }
 
-    pub const fn range_lookup(self) -> Option<S8PlannedCounterEnvelope> {
+    pub const fn range_lookup(self) -> Option<PlannedCounterEnvelope> {
         self.range_lookup
     }
 
-    pub const fn prefix_lookup(self) -> Option<S8PlannedCounterEnvelope> {
+    pub const fn prefix_lookup(self) -> Option<PlannedCounterEnvelope> {
         self.prefix_lookup
     }
 
-    pub const fn publication(self) -> S8AccessPathCounterSnapshot {
+    pub const fn publication(self) -> AccessPathCounterSnapshot {
         self.publication
     }
 
-    pub const fn recovery(self) -> S8AccessPathCounterSnapshot {
+    pub const fn recovery(self) -> AccessPathCounterSnapshot {
         self.recovery
     }
 
-    pub const fn aggregate_profile(self) -> S8StrategyCounterProfile {
+    pub const fn aggregate_profile(self) -> StrategyCounterProfile {
         self.aggregate
     }
 }

@@ -1,14 +1,14 @@
 use crate::catalog::ArtifactFamilyAccessLane;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8AccessLaneClassification {
+pub enum AccessLaneClassification {
     Foreground,
     Maintenance,
     Verifier,
     Terminal,
 }
 
-impl S8AccessLaneClassification {
+impl AccessLaneClassification {
     pub const fn admitted_lane(self) -> ArtifactFamilyAccessLane {
         match self {
             Self::Foreground => ArtifactFamilyAccessLane::HotPath,

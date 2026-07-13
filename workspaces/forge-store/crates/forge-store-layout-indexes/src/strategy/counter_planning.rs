@@ -1,10 +1,10 @@
-use super::{S8AdmittedLayoutStrategy, S8LayoutStrategyFamily, S8StrategyCounterProfile};
-use crate::access::budget::S8PlannedCounterEnvelope;
-use crate::access::execution::S8AccessPathCounterSnapshot;
-use crate::access::shape::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
+use super::{AdmittedLayoutStrategy, LayoutStrategyFamily, StrategyCounterProfile};
+use crate::access::budget::PlannedCounterEnvelope;
+use crate::access::execution::AccessPathCounterSnapshot;
+use crate::access::shape::{AccessShapeDetail, PrefixBasis, RangeBasis};
 
-impl S8AdmittedLayoutStrategy {
-    pub const fn declared_counter_profile(&self) -> S8StrategyCounterProfile {
+impl AdmittedLayoutStrategy {
+    pub const fn declared_counter_profile(&self) -> StrategyCounterProfile {
         match self.planned_counter_envelope() {
             Some(envelope) => envelope.aggregate_profile(),
             None => self
@@ -15,7 +15,7 @@ impl S8AdmittedLayoutStrategy {
         }
     }
 
-    pub const fn planned_counter_envelope(&self) -> Option<S8PlannedCounterEnvelope> {
+    pub const fn planned_counter_envelope(&self) -> Option<PlannedCounterEnvelope> {
         if family_requires_shape_specific_lookup_envelope(self.declaration.family()) {
             None
         } else {
@@ -25,29 +25,33 @@ impl S8AdmittedLayoutStrategy {
 
     pub const fn planned_counter_envelope_for(
         &self,
-        detail: S8AccessShapeDetail,
-    ) -> Option<S8PlannedCounterEnvelope> {
+        detail: AccessShapeDetail,
+    ) -> Option<PlannedCounterEnvelope> {
         planned_counter_envelope_for(self.declaration.family(), detail)
     }
 }
 
 pub(crate) const fn planned_counter_envelope_for(
-    family: S8LayoutStrategyFamily,
-    detail: S8AccessShapeDetail,
-) -> Option<S8PlannedCounterEnvelope> {
+    family: LayoutStrategyFamily,
+    detail: AccessShapeDetail,
+) -> Option<PlannedCounterEnvelope> {
     match family {
-        S8LayoutStrategyFamily::BaselineBTreeRange => match detail {
-            S8AccessShapeDetail::PointLookup => Some(baseline_btree_point_counter_envelope()),
-            S8AccessShapeDetail::RangeLookup(S8RangeBasis::CanonicalRangeBounds) => {
+        LayoutStrategyFamily::BaselineBTreeRange => match detail {
+            AccessShapeDetail::PointLookup => Some(baseline_btree_point_counter_envelope()),
+            AccessShapeDetail::RangeLookup(RangeBasis::CanonicalRangeBounds) => {
                 Some(baseline_btree_range_counter_envelope())
             }
-            S8AccessShapeDetail::PrefixLookup(S8PrefixBasis::CanonicalPrefixBounds) => {
+            AccessShapeDetail::PrefixLookup(PrefixBasis::CanonicalPrefixBounds) => {
                 Some(baseline_btree_prefix_counter_envelope())
             }
+            AccessShapeDetail::RebuildRead(_) => Some(baseline_btree_replay_counter_envelope()),
             _ => None,
         },
-        S8LayoutStrategyFamily::BaselineLsmWriteOptimized => match detail {
-            S8AccessShapeDetail::PointLookup => declared_strategy_counter_envelope(family),
+        LayoutStrategyFamily::BaselineLsmWriteOptimized => match detail {
+            AccessShapeDetail::PointLookup
+            | AccessShapeDetail::Append(_)
+            | AccessShapeDetail::CompactionRead(_)
+            | AccessShapeDetail::RebuildRead(_) => declared_strategy_counter_envelope(family),
             _ => None,
         },
         _ => None,
@@ -55,31 +59,27 @@ pub(crate) const fn planned_counter_envelope_for(
 }
 
 pub(super) const fn declared_strategy_counter_envelope(
-    family: S8LayoutStrategyFamily,
-) -> Option<S8PlannedCounterEnvelope> {
+    family: LayoutStrategyFamily,
+) -> Option<PlannedCounterEnvelope> {
     match family {
-        S8LayoutStrategyFamily::BaselineBTreeRange => None,
-        S8LayoutStrategyFamily::BaselineLsmWriteOptimized => Some(S8PlannedCounterEnvelope::new(
-            S8AccessPathCounterSnapshot::exact(
-                1, 1, 0, 0, 0, 2, 2, 2, 1, 0, 0, 0, 8_192, 0, 0, 2, 0,
-            ),
-            S8AccessPathCounterSnapshot::exact(
+        LayoutStrategyFamily::BaselineBTreeRange => None,
+        LayoutStrategyFamily::BaselineLsmWriteOptimized => Some(PlannedCounterEnvelope::new(
+            AccessPathCounterSnapshot::exact(1, 1, 0, 0, 0, 2, 2, 2, 1, 0, 0, 0, 8_192, 0, 0, 2, 0),
+            AccessPathCounterSnapshot::exact(
                 0, 0, 0, 2, 2, 4, 0, 0, 0, 0, 0, 4, 16_384, 8_192, 2, 4, 2,
             ),
-            S8AccessPathCounterSnapshot::exact(
-                0, 0, 1, 0, 1, 2, 0, 0, 0, 0, 0, 1, 8_192, 0, 0, 2, 0,
-            ),
+            AccessPathCounterSnapshot::exact(0, 0, 1, 0, 1, 2, 0, 0, 0, 0, 0, 1, 8_192, 0, 0, 2, 0),
         )),
         _ => None,
     }
 }
 
 pub(super) const fn planned_publication_counter_snapshot_for(
-    family: S8LayoutStrategyFamily,
-) -> S8AccessPathCounterSnapshot {
+    family: LayoutStrategyFamily,
+) -> AccessPathCounterSnapshot {
     match family {
-        S8LayoutStrategyFamily::BaselineBTreeRange => baseline_btree_publication_snapshot(),
-        S8LayoutStrategyFamily::BaselineLsmWriteOptimized => {
+        LayoutStrategyFamily::BaselineBTreeRange => baseline_btree_publication_snapshot(),
+        LayoutStrategyFamily::BaselineLsmWriteOptimized => {
             declared_strategy_counter_envelope(family)
                 .expect("LSM strategy declares planned counter envelope")
                 .publication()
@@ -89,11 +89,11 @@ pub(super) const fn planned_publication_counter_snapshot_for(
 }
 
 pub(super) const fn planned_recovery_counter_snapshot_for(
-    family: S8LayoutStrategyFamily,
-) -> S8AccessPathCounterSnapshot {
+    family: LayoutStrategyFamily,
+) -> AccessPathCounterSnapshot {
     match family {
-        S8LayoutStrategyFamily::BaselineBTreeRange => baseline_btree_recovery_snapshot(),
-        S8LayoutStrategyFamily::BaselineLsmWriteOptimized => {
+        LayoutStrategyFamily::BaselineBTreeRange => baseline_btree_recovery_snapshot(),
+        LayoutStrategyFamily::BaselineLsmWriteOptimized => {
             declared_strategy_counter_envelope(family)
                 .expect("LSM strategy declares planned counter envelope")
                 .recovery()
@@ -103,43 +103,51 @@ pub(super) const fn planned_recovery_counter_snapshot_for(
 }
 
 pub(super) const fn family_requires_shape_specific_lookup_envelope(
-    family: S8LayoutStrategyFamily,
+    family: LayoutStrategyFamily,
 ) -> bool {
-    matches!(family, S8LayoutStrategyFamily::BaselineBTreeRange)
+    matches!(family, LayoutStrategyFamily::BaselineBTreeRange)
 }
 
-const fn baseline_btree_point_counter_envelope() -> S8PlannedCounterEnvelope {
-    S8PlannedCounterEnvelope::new(
-        S8AccessPathCounterSnapshot::exact(1, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 8_192, 0, 0, 2, 0),
+const fn baseline_btree_point_counter_envelope() -> PlannedCounterEnvelope {
+    PlannedCounterEnvelope::new(
+        AccessPathCounterSnapshot::exact(1, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 8_192, 0, 0, 2, 0),
         baseline_btree_publication_snapshot(),
         baseline_btree_recovery_snapshot(),
     )
 }
 
-const fn baseline_btree_range_counter_envelope() -> S8PlannedCounterEnvelope {
-    S8PlannedCounterEnvelope::new(
-        S8AccessPathCounterSnapshot::exact(0, 1, 0, 0, 0, 2, 2, 2, 1, 0, 0, 0, 8_192, 0, 0, 2, 0),
+const fn baseline_btree_replay_counter_envelope() -> PlannedCounterEnvelope {
+    PlannedCounterEnvelope::new(
+        zero_counter_snapshot(),
+        zero_counter_snapshot(),
+        baseline_btree_recovery_snapshot(),
+    )
+}
+
+const fn baseline_btree_range_counter_envelope() -> PlannedCounterEnvelope {
+    PlannedCounterEnvelope::new(
+        AccessPathCounterSnapshot::exact(0, 1, 0, 0, 0, 2, 2, 2, 1, 0, 0, 0, 8_192, 0, 0, 2, 0),
         baseline_btree_publication_snapshot(),
         baseline_btree_recovery_snapshot(),
     )
 }
 
-const fn baseline_btree_prefix_counter_envelope() -> S8PlannedCounterEnvelope {
-    S8PlannedCounterEnvelope::new(
-        S8AccessPathCounterSnapshot::exact(0, 1, 0, 0, 0, 2, 2, 2, 0, 1, 0, 0, 8_192, 0, 0, 2, 0),
+const fn baseline_btree_prefix_counter_envelope() -> PlannedCounterEnvelope {
+    PlannedCounterEnvelope::new(
+        AccessPathCounterSnapshot::exact(0, 1, 0, 0, 0, 2, 2, 2, 0, 1, 0, 0, 8_192, 0, 0, 2, 0),
         baseline_btree_publication_snapshot(),
         baseline_btree_recovery_snapshot(),
     )
 }
 
-pub(super) const fn baseline_btree_publication_snapshot() -> S8AccessPathCounterSnapshot {
-    S8AccessPathCounterSnapshot::exact(0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 4_096, 4_096, 1, 1, 1)
+pub(super) const fn baseline_btree_publication_snapshot() -> AccessPathCounterSnapshot {
+    AccessPathCounterSnapshot::exact(0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 4_096, 4_096, 1, 1, 1)
 }
 
-pub(super) const fn baseline_btree_recovery_snapshot() -> S8AccessPathCounterSnapshot {
-    S8AccessPathCounterSnapshot::exact(0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 4_096, 0, 0, 1, 0)
+pub(super) const fn baseline_btree_recovery_snapshot() -> AccessPathCounterSnapshot {
+    AccessPathCounterSnapshot::exact(0, 0, 1, 0, 3, 3, 6, 6, 0, 0, 0, 1, 12_288, 0, 0, 3, 0)
 }
 
-const fn zero_counter_snapshot() -> S8AccessPathCounterSnapshot {
-    S8AccessPathCounterSnapshot::exact(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+const fn zero_counter_snapshot() -> AccessPathCounterSnapshot {
+    AccessPathCounterSnapshot::exact(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 }

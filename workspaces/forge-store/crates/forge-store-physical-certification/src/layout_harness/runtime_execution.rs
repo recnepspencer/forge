@@ -1,5 +1,4 @@
 use super::runtime::{LayoutRuntimeCoverageMatrix, LayoutRuntimeEvidence};
-use forge_store_budgets::S8PreExecutionPlanBinding;
 use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
@@ -59,9 +58,7 @@ pub fn execute_core_physical_hidden_scan_denial(
 ) -> Result<LayoutRuntimeEvidence, LayoutRuntimeExecutionDenial> {
     let mut facade = open_core_physical_facade()?;
     let receipt =
-        facade.reject_hidden_broad_scan(PlatformPhysicalLayoutAccessRequest::hidden_broad_scan(
-            S8PreExecutionPlanBinding::new(34, 1, 1, 1, 0),
-        ));
+        facade.reject_hidden_broad_scan(PlatformPhysicalLayoutAccessRequest::hidden_broad_scan());
     let runtime = PlatformPhysicalRuntimeReceipt::from_hidden_scan_denial(receipt)
         .map_err(|_| LayoutRuntimeExecutionDenial::PhysicalFacade)?;
     Ok(LayoutRuntimeEvidence::PlatformPhysical(runtime))
@@ -83,8 +80,11 @@ fn open_core_physical_facade() -> Result<PlatformPhysicalFacade, LayoutRuntimeEx
         ),
     )
     .map_err(|_| LayoutRuntimeExecutionDenial::PhysicalFacade)?;
-    PlatformPhysicalFacade::open_physical_format(readiness, PlatformPhysicalOpenRequest::physical_format_canonical())
-        .map_err(|_| LayoutRuntimeExecutionDenial::PhysicalFacade)
+    PlatformPhysicalFacade::open_physical_format(
+        readiness,
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
+    )
+    .map_err(|_| LayoutRuntimeExecutionDenial::PhysicalFacade)
 }
 
 #[cfg(test)]

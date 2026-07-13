@@ -98,8 +98,11 @@ mod tests {
     }
 
     fn readiness() -> AcceptedHandoffReadiness {
-        AcceptedHandoffReadiness::from_foundational_handoff_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
-            .expect("S.1 readiness")
+        AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
+            ROADMAP_2_S1_SCOPE,
+            digest_set(),
+        )
+        .expect("S.1 readiness")
     }
 
     fn digest_set() -> HandoffEvidenceDigestSet {

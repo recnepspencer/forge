@@ -75,7 +75,10 @@ pub use scope::security_scope_admission_denial::{
 };
 pub use scope::security_scope_admission_request::StoreSecurityScopeAdmissionRequest;
 pub use scope::security_scope_counters::StoreSecurityScopeAdmissionCounterSnapshot;
-pub use scope::security_scope_custody_readmission::readmit_trust_boundary_security_scope_declaration;
+pub use scope::security_scope_custody_readmission::{
+    admit_readmitted_trust_boundary_security_scope,
+    readmit_trust_boundary_security_scope_declaration, StoreReadmittedSecurityScope,
+};
 pub use scope::security_scope_denial::{
     reject_non_store_security_scope_source, StoreSecurityScopeDenial, StoreSecurityScopeDenialKind,
 };
@@ -102,6 +105,7 @@ pub use scope::security_scope_test_authority::{
     admitted_security_scope_for_identity_for_test,
     admitted_store_internal_security_scope_for_io_qos_test,
     admitted_store_managed_root_security_scope_for_layout_partition_test,
+    admitted_store_wal_checkpoint_security_scope_for_layout_partition_test,
     admitted_tenant_artifact_security_scope_for_layout_partition_test,
     admitted_tenant_page_export_prepared_scope_for_layout_partition_test,
     admitted_tenant_page_security_scope_for_layout_partition_test,

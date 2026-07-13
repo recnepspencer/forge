@@ -123,8 +123,11 @@ impl PhysicalSubstrateCertificationScan {
 }
 
 fn open_facade() -> Result<PlatformPhysicalFacade, PhysicalSubstrateCertificationDenial> {
-    PlatformPhysicalFacade::open_physical_format(readiness()?, PlatformPhysicalOpenRequest::physical_format_canonical())
-        .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)
+    PlatformPhysicalFacade::open_physical_format(
+        readiness()?,
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
+    )
+    .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)
 }
 
 fn readiness() -> Result<AcceptedHandoffReadiness, PhysicalSubstrateCertificationDenial> {

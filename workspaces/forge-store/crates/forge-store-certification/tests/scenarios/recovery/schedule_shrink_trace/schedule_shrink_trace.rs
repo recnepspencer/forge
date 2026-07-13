@@ -14,7 +14,8 @@ use forge_store_test_support::{
 
 #[test]
 fn shrink_trace_preserves_failure_evidence() {
-    let plan = lower_physical_simulation_plan(physical_isolation_scenario(), complete_context()).unwrap();
+    let plan =
+        lower_physical_simulation_plan(physical_isolation_scenario(), complete_context()).unwrap();
     let schedule = deterministic_developer_smoke_schedule(&plan).unwrap();
     let proving_step = schedule.actor_steps()[0].clone();
     let proving_actor_id = proving_step.actor_id().to_owned();
@@ -60,7 +61,8 @@ fn shrink_trace_preserves_failure_evidence() {
 
 #[test]
 fn shrink_trace_denies_when_minimization_erases_fault_locus() {
-    let plan = lower_physical_simulation_plan(physical_isolation_scenario(), complete_context()).unwrap();
+    let plan =
+        lower_physical_simulation_plan(physical_isolation_scenario(), complete_context()).unwrap();
     let schedule = deterministic_developer_smoke_schedule(&plan).unwrap();
     let proving_step = schedule.actor_steps()[0].clone();
     let wrong_actor_same_yieldpoint = schedule

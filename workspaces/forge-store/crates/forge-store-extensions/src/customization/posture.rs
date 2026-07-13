@@ -1,8 +1,8 @@
 use super::FutureLayoutTarget;
-use forge_store_layout_indexes::layout_customization::{
-    S8FutureLayoutCapabilityRequest, S8FutureLayoutWorkloadEnvelope,
+use forge_store_layout_indexes::customization::{
+    FutureLayoutCapabilityRequest, FutureLayoutWorkloadEnvelope,
 };
-use forge_store_layout_indexes::layout_strategy_admission::PhysicalKeyDomainWitness;
+use forge_store_layout_indexes::AdmittedPhysicalKeyDomain;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExtensionFamilyPosture {
@@ -15,14 +15,14 @@ pub enum ExtensionFamilyPosture {
 pub struct FutureLayoutTargetDeclaration {
     target: FutureLayoutTarget,
     posture: ExtensionFamilyPosture,
-    declared_domain: PhysicalKeyDomainWitness,
+    declared_domain: AdmittedPhysicalKeyDomain,
 }
 
 impl FutureLayoutTargetDeclaration {
     pub(crate) const fn new(
         target: FutureLayoutTarget,
         posture: ExtensionFamilyPosture,
-        declared_domain: PhysicalKeyDomainWitness,
+        declared_domain: AdmittedPhysicalKeyDomain,
     ) -> Self {
         Self {
             target,
@@ -39,40 +39,40 @@ impl FutureLayoutTargetDeclaration {
         self.posture
     }
 
-    pub const fn declared_domain(self) -> PhysicalKeyDomainWitness {
+    pub const fn declared_domain(self) -> AdmittedPhysicalKeyDomain {
         self.declared_domain
     }
 
-    pub const fn capability_request(self) -> S8FutureLayoutCapabilityRequest {
+    pub const fn capability_request(self) -> FutureLayoutCapabilityRequest {
         match self.target {
             FutureLayoutTarget::StableBasisRead => {
-                S8FutureLayoutCapabilityRequest::point_lookup(self.declared_domain)
+                FutureLayoutCapabilityRequest::point_lookup(self.declared_domain)
             }
             FutureLayoutTarget::AspectProjection => {
-                S8FutureLayoutCapabilityRequest::rebuildable_projection(self.declared_domain)
+                FutureLayoutCapabilityRequest::rebuildable_projection(self.declared_domain)
             }
             FutureLayoutTarget::SubscriptionSupport => {
-                S8FutureLayoutCapabilityRequest::ordered_range(self.declared_domain)
+                FutureLayoutCapabilityRequest::ordered_range(self.declared_domain)
             }
             FutureLayoutTarget::SupportTrust => {
-                S8FutureLayoutCapabilityRequest::verifier_declared_scan(self.declared_domain)
+                FutureLayoutCapabilityRequest::verifier_declared_scan(self.declared_domain)
             }
         }
     }
 
-    pub const fn workload_envelope(self) -> S8FutureLayoutWorkloadEnvelope {
+    pub const fn workload_envelope(self) -> FutureLayoutWorkloadEnvelope {
         match self.target {
             FutureLayoutTarget::StableBasisRead => {
-                S8FutureLayoutWorkloadEnvelope::foreground_low_fanout()
+                FutureLayoutWorkloadEnvelope::foreground_low_fanout()
             }
             FutureLayoutTarget::AspectProjection => {
-                S8FutureLayoutWorkloadEnvelope::background_rebuild_projection()
+                FutureLayoutWorkloadEnvelope::background_rebuild_projection()
             }
             FutureLayoutTarget::SubscriptionSupport => {
-                S8FutureLayoutWorkloadEnvelope::foreground_bounded_traversal()
+                FutureLayoutWorkloadEnvelope::foreground_bounded_traversal()
             }
             FutureLayoutTarget::SupportTrust => {
-                S8FutureLayoutWorkloadEnvelope::verifier_corpus_inspection()
+                FutureLayoutWorkloadEnvelope::verifier_corpus_inspection()
             }
         }
     }

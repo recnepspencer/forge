@@ -1,12 +1,12 @@
-use crate::{LayoutCorruptionClassification, PhysicalArtifactFamily, S8LayoutCoverageWitness};
+use crate::{LayoutCorruptionClassification, LayoutCoverageWitness, PhysicalArtifactFamily};
 use forge_store_physical_integrity::QuarantineRecord;
 use forge_store_recovery_physics::{
     RecoveryLayoutReadmissionWitness, ReopenedRecoveryArtifactAdmission,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum S8LayoutCorruptionInput {
-    Materialization(S8LayoutCoverageWitness),
+pub enum LayoutCorruptionInput {
+    Materialization(LayoutCoverageWitness),
     RebuildClassification(LayoutCorruptionClassification),
     AuthoritativeQuarantine {
         family: PhysicalArtifactFamily,

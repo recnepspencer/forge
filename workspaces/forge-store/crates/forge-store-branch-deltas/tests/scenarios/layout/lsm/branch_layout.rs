@@ -1,7 +1,6 @@
 use forge_store_branch_deltas::{
-    branch_semantic_authority, reject_branch_delta_read_plan,
-    BranchDeltaLayoutAccessDenialKind, BranchDeltaLayerId, BranchDeltaReadPlan,
-    BranchDeltaReadRequest,
+    branch_semantic_authority, reject_branch_delta_read_plan, BranchDeltaLayerId,
+    BranchDeltaLayoutAccessDenialKind, BranchDeltaReadPlan, BranchDeltaReadRequest,
 };
 
 #[test]

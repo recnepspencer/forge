@@ -51,7 +51,7 @@ impl BlobObjectLayoutReport {
         }
     }
 
-    pub fn admit_generation_publication_layout(&self) -> BlobGenerationPublicationLayoutReport {
+    pub fn project_generation_publication_layout(&self) -> BlobGenerationPublicationLayoutReport {
         BlobGenerationPublicationLayoutReport {
             family_id: DurableArtifactFamilyId::PublicationWalPublicationProgress,
             object_id: self.object_id.clone(),
@@ -113,7 +113,7 @@ impl BlobGenerationPublicationLayoutReport {
 }
 
 impl BlobGenerationPublished {
-    pub fn admit_blob_object_layout(
+    pub fn project_blob_object_layout(
         &self,
     ) -> Result<BlobObjectLayoutReport, BlobLayoutAccessDenial> {
         Ok(BlobObjectLayoutReport::from_published(self))

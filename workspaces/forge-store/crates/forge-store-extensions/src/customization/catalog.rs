@@ -1,13 +1,14 @@
 use super::{ExtensionFamilyPosture, FutureLayoutTarget, FutureLayoutTargetDeclaration};
 use forge_proof::TransitionOutcome;
 use forge_store_layout_indexes::{
-    layout_customization::{
-        layout_customization_boundary, S8FutureLayoutCustomizationAdmission,
-        S8FutureLayoutCustomizationDeferred, S8FutureLayoutCustomizationDenial,
-        S8FutureLayoutCustomizationRequest,
+    customization::{
+        layout_customization_boundary,
+        FutureLayoutCustomizationAdmission as StoreLayoutCustomizationAdmission,
+        FutureLayoutCustomizationDeferred as StoreLayoutCustomizationDeferred,
+        FutureLayoutCustomizationDenial as StoreLayoutCustomizationDenial,
+        FutureLayoutCustomizationRequest,
     },
-    layout_families::ArtifactFamilyLifecycleAdmission,
-    layout_strategy_admission::PhysicalKeyDomainWitness,
+    AdmittedPhysicalArtifactFamily, AdmittedPhysicalKeyDomain,
 };
 
 pub type FutureLayoutCustomizationOutcome = TransitionOutcome<
@@ -19,13 +20,13 @@ pub type FutureLayoutCustomizationOutcome = TransitionOutcome<
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FutureLayoutCustomizationAdmissionRequest {
     declaration: FutureLayoutTargetDeclaration,
-    authority_source: ArtifactFamilyLifecycleAdmission,
+    authority_source: AdmittedPhysicalArtifactFamily,
 }
 
 impl FutureLayoutCustomizationAdmissionRequest {
     pub const fn new(
         declaration: FutureLayoutTargetDeclaration,
-        authority_source: ArtifactFamilyLifecycleAdmission,
+        authority_source: AdmittedPhysicalArtifactFamily,
     ) -> Self {
         Self {
             declaration,
@@ -37,21 +38,21 @@ impl FutureLayoutCustomizationAdmissionRequest {
         self.declaration
     }
 
-    pub const fn authority_source(self) -> ArtifactFamilyLifecycleAdmission {
+    pub const fn authority_source(self) -> AdmittedPhysicalArtifactFamily {
         self.authority_source
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FutureLayoutCustomizationAdmission {
     target: FutureLayoutTargetDeclaration,
-    store_admission: S8FutureLayoutCustomizationAdmission,
+    store_admission: StoreLayoutCustomizationAdmission,
 }
 
 impl FutureLayoutCustomizationAdmission {
     const fn new(
         target: FutureLayoutTargetDeclaration,
-        store_admission: S8FutureLayoutCustomizationAdmission,
+        store_admission: StoreLayoutCustomizationAdmission,
     ) -> Self {
         Self {
             target,
@@ -59,25 +60,25 @@ impl FutureLayoutCustomizationAdmission {
         }
     }
 
-    pub const fn target(self) -> FutureLayoutTargetDeclaration {
+    pub const fn target(&self) -> FutureLayoutTargetDeclaration {
         self.target
     }
 
-    pub const fn store_admission(self) -> S8FutureLayoutCustomizationAdmission {
-        self.store_admission
+    pub const fn store_admission(&self) -> &StoreLayoutCustomizationAdmission {
+        &self.store_admission
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FutureLayoutCustomizationDenial {
     TargetRejected { target: FutureLayoutTarget },
-    StoreDenied(S8FutureLayoutCustomizationDenial),
+    StoreDenied(StoreLayoutCustomizationDenial),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FutureLayoutCustomizationDeferred {
     TargetRebuildRequired { target: FutureLayoutTarget },
-    StoreDeferred(S8FutureLayoutCustomizationDeferred),
+    StoreDeferred(StoreLayoutCustomizationDeferred),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -87,7 +88,7 @@ impl FutureLayoutCustomizationCatalogFacade {
     pub const fn declare_stable_basis_read(
         &self,
         posture: ExtensionFamilyPosture,
-        declared_domain: PhysicalKeyDomainWitness,
+        declared_domain: AdmittedPhysicalKeyDomain,
     ) -> FutureLayoutTargetDeclaration {
         FutureLayoutTargetDeclaration::new(
             FutureLayoutTarget::StableBasisRead,
@@ -99,7 +100,7 @@ impl FutureLayoutCustomizationCatalogFacade {
     pub const fn declare_aspect_projection(
         &self,
         posture: ExtensionFamilyPosture,
-        declared_domain: PhysicalKeyDomainWitness,
+        declared_domain: AdmittedPhysicalKeyDomain,
     ) -> FutureLayoutTargetDeclaration {
         FutureLayoutTargetDeclaration::new(
             FutureLayoutTarget::AspectProjection,
@@ -111,7 +112,7 @@ impl FutureLayoutCustomizationCatalogFacade {
     pub const fn declare_subscription_support(
         &self,
         posture: ExtensionFamilyPosture,
-        declared_domain: PhysicalKeyDomainWitness,
+        declared_domain: AdmittedPhysicalKeyDomain,
     ) -> FutureLayoutTargetDeclaration {
         FutureLayoutTargetDeclaration::new(
             FutureLayoutTarget::SubscriptionSupport,
@@ -123,7 +124,7 @@ impl FutureLayoutCustomizationCatalogFacade {
     pub const fn declare_support_trust(
         &self,
         posture: ExtensionFamilyPosture,
-        declared_domain: PhysicalKeyDomainWitness,
+        declared_domain: AdmittedPhysicalKeyDomain,
     ) -> FutureLayoutTargetDeclaration {
         FutureLayoutTargetDeclaration::new(
             FutureLayoutTarget::SupportTrust,
@@ -154,7 +155,7 @@ impl FutureLayoutCustomizationCatalogFacade {
             }
         }
 
-        let store_request = S8FutureLayoutCustomizationRequest::new(
+        let store_request = FutureLayoutCustomizationRequest::new(
             request.authority_source(),
             request.declaration().capability_request(),
             request.declaration().workload_envelope(),

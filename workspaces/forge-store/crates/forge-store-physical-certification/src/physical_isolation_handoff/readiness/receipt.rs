@@ -1,6 +1,6 @@
 use crate::{
-    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessReadinessDenial,
-    PhysicalIsolationHarnessMaturityDependency,
+    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessMaturityDependency,
+    PhysicalIsolationHarnessReadinessDenial,
 };
 
 use crate::{
@@ -227,9 +227,7 @@ fn dependency_for_surface(
         CoverageSurfaceKind::YieldpointSchedule => {
             PhysicalIsolationHarnessMaturityDependency::DeterministicScheduler
         }
-        CoverageSurfaceKind::Actor => {
-            PhysicalIsolationHarnessMaturityDependency::ActorModel
-        }
+        CoverageSurfaceKind::Actor => PhysicalIsolationHarnessMaturityDependency::ActorModel,
         CoverageSurfaceKind::Driver => {
             PhysicalIsolationHarnessMaturityDependency::ProductionDriverContracts
         }

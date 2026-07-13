@@ -1,4 +1,4 @@
-use forge_store_layout_indexes::layout_strategy_admission::S8LayoutStrategyFamily;
+use forge_store_layout_indexes::strategy_declarations::LayoutStrategyFamily;
 use forge_store_physical_certification::layout_harness::runtime::{
     LayoutRuntimeCoverageMatrix, LayoutRuntimeFamily, LayoutRuntimeObligation,
 };
@@ -6,7 +6,7 @@ use forge_store_physical_certification::layout_harness::runtime::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LayoutRuntimeCompletenessDenial {
     MissingExecutedStrategyCase {
-        strategy: S8LayoutStrategyFamily,
+        strategy: LayoutStrategyFamily,
         equivalence_class: LayoutRuntimeStrategyEquivalenceClass,
         case: LayoutRuntimeObligation,
     },
@@ -26,23 +26,23 @@ pub enum LayoutRuntimeStrategyEquivalenceClass {
 }
 
 impl LayoutRuntimeStrategyEquivalenceClass {
-    pub const fn for_strategy(strategy: S8LayoutStrategyFamily) -> Self {
+    pub const fn for_strategy(strategy: LayoutStrategyFamily) -> Self {
         match strategy {
-            S8LayoutStrategyFamily::HeapFile
-            | S8LayoutStrategyFamily::PageTable
-            | S8LayoutStrategyFamily::BaselineBTreeRange
-            | S8LayoutStrategyFamily::BaselineLsmWriteOptimized
-            | S8LayoutStrategyFamily::SparseIndex
-            | S8LayoutStrategyFamily::BitmapAllocationMap
-            | S8LayoutStrategyFamily::RangeMap => Self::CorePhysicalStructure,
-            S8LayoutStrategyFamily::AppendLog => Self::RecoveryReplayStructure,
-            S8LayoutStrategyFamily::ChunkTree
-            | S8LayoutStrategyFamily::HashEqualityIndex
-            | S8LayoutStrategyFamily::QuarantineMap => Self::BlobLayoutStructure,
-            S8LayoutStrategyFamily::StreamingCursorIndex | S8LayoutStrategyFamily::ExactScan => {
+            LayoutStrategyFamily::HeapFile
+            | LayoutStrategyFamily::PageTable
+            | LayoutStrategyFamily::BaselineBTreeRange
+            | LayoutStrategyFamily::BaselineLsmWriteOptimized
+            | LayoutStrategyFamily::SparseIndex
+            | LayoutStrategyFamily::BitmapAllocationMap
+            | LayoutStrategyFamily::RangeMap => Self::CorePhysicalStructure,
+            LayoutStrategyFamily::AppendLog => Self::RecoveryReplayStructure,
+            LayoutStrategyFamily::ChunkTree
+            | LayoutStrategyFamily::HashEqualityIndex
+            | LayoutStrategyFamily::QuarantineMap => Self::BlobLayoutStructure,
+            LayoutStrategyFamily::StreamingCursorIndex | LayoutStrategyFamily::ExactScan => {
                 Self::MaintenanceIoStructure
             }
-            S8LayoutStrategyFamily::ManifestTable => Self::SecurityCustodyExportStructure,
+            LayoutStrategyFamily::ManifestTable => Self::SecurityCustodyExportStructure,
         }
     }
 
@@ -100,22 +100,22 @@ pub const fn required_layout_runtime_families() -> [LayoutRuntimeFamily; 5] {
     ]
 }
 
-const fn required_strategies() -> [S8LayoutStrategyFamily; 14] {
+const fn required_strategies() -> [LayoutStrategyFamily; 14] {
     [
-        S8LayoutStrategyFamily::AppendLog,
-        S8LayoutStrategyFamily::HeapFile,
-        S8LayoutStrategyFamily::PageTable,
-        S8LayoutStrategyFamily::BaselineBTreeRange,
-        S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
-        S8LayoutStrategyFamily::SparseIndex,
-        S8LayoutStrategyFamily::ChunkTree,
-        S8LayoutStrategyFamily::ManifestTable,
-        S8LayoutStrategyFamily::BitmapAllocationMap,
-        S8LayoutStrategyFamily::HashEqualityIndex,
-        S8LayoutStrategyFamily::RangeMap,
-        S8LayoutStrategyFamily::QuarantineMap,
-        S8LayoutStrategyFamily::StreamingCursorIndex,
-        S8LayoutStrategyFamily::ExactScan,
+        LayoutStrategyFamily::AppendLog,
+        LayoutStrategyFamily::HeapFile,
+        LayoutStrategyFamily::PageTable,
+        LayoutStrategyFamily::BaselineBTreeRange,
+        LayoutStrategyFamily::BaselineLsmWriteOptimized,
+        LayoutStrategyFamily::SparseIndex,
+        LayoutStrategyFamily::ChunkTree,
+        LayoutStrategyFamily::ManifestTable,
+        LayoutStrategyFamily::BitmapAllocationMap,
+        LayoutStrategyFamily::HashEqualityIndex,
+        LayoutStrategyFamily::RangeMap,
+        LayoutStrategyFamily::QuarantineMap,
+        LayoutStrategyFamily::StreamingCursorIndex,
+        LayoutStrategyFamily::ExactScan,
     ]
 }
 
@@ -138,7 +138,7 @@ mod tests {
             require_complete_layout_runtime_matrix(&matrix),
             Err(
                 LayoutRuntimeCompletenessDenial::MissingExecutedStrategyCase {
-                    strategy: S8LayoutStrategyFamily::AppendLog,
+                    strategy: LayoutStrategyFamily::AppendLog,
                     equivalence_class:
                         LayoutRuntimeStrategyEquivalenceClass::RecoveryReplayStructure,
                     case: LayoutRuntimeObligation::Success,
@@ -162,12 +162,12 @@ mod tests {
     #[test]
     fn strategy_equivalence_classes_are_explicit_courtroom_law() {
         assert_eq!(
-            LayoutRuntimeStrategyEquivalenceClass::for_strategy(S8LayoutStrategyFamily::ChunkTree)
+            LayoutRuntimeStrategyEquivalenceClass::for_strategy(LayoutStrategyFamily::ChunkTree)
                 .covering_family(),
             LayoutRuntimeFamily::Blob
         );
         assert_eq!(
-            LayoutRuntimeStrategyEquivalenceClass::for_strategy(S8LayoutStrategyFamily::ExactScan)
+            LayoutRuntimeStrategyEquivalenceClass::for_strategy(LayoutStrategyFamily::ExactScan)
                 .covering_family(),
             LayoutRuntimeFamily::MaintenanceIo
         );
@@ -180,7 +180,7 @@ mod tests {
             require_complete_layout_runtime_matrix(&matrix),
             Err(
                 LayoutRuntimeCompletenessDenial::MissingExecutedStrategyCase {
-                    strategy: S8LayoutStrategyFamily::AppendLog,
+                    strategy: LayoutStrategyFamily::AppendLog,
                     equivalence_class:
                         LayoutRuntimeStrategyEquivalenceClass::RecoveryReplayStructure,
                     case: LayoutRuntimeObligation::Success,

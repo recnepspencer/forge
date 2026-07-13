@@ -1,21 +1,22 @@
-use super::actors::S8LayoutActorLane;
-use super::closeout::S8LayoutCloseoutEvidenceLane;
-use super::coverage::S8LayoutCoverageRowKind;
-use super::faults::S8LayoutFaultLane;
-use super::observers::S8LayoutObserverLane;
-use super::oracles::S8LayoutOracleLane;
-use super::shortcut_denials::S8LayoutShortcutDenialKind;
-use super::transcripts::S8LayoutTranscriptKind;
+use super::actors::LayoutActorLane;
+use super::closeout::LayoutCloseoutEvidenceLane;
+use super::coverage::LayoutCoverageRowKind;
+use super::faults::LayoutFaultLane;
+use super::observers::LayoutObserverLane;
+use super::oracles::LayoutOracleLane;
+use super::shortcut_denials::LayoutShortcutDenialKind;
+use super::transcripts::LayoutTranscriptKind;
 mod queries;
 
 pub use queries::{
     all_layout_index_layout_scenarios, canonical_layout_index_layout_production_apis,
-    canonical_layout_index_layout_required_transitions, canonical_layout_index_layout_shortcut_denials,
+    canonical_layout_index_layout_required_transitions,
+    canonical_layout_index_layout_shortcut_denials,
     canonical_layout_index_layout_supported_scenarios,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum S8LayoutProductionApi {
+pub enum LayoutProductionApi {
     LayoutFamilies,
     LayoutStrategyAdmission,
     AccessPlanning,
@@ -27,7 +28,7 @@ pub enum S8LayoutProductionApi {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum S8LayoutTransitionState {
+pub enum LayoutTransitionState {
     Declared,
     Admitted,
     Planned,
@@ -40,7 +41,7 @@ pub enum S8LayoutTransitionState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum S8LayoutScenarioKind {
+pub enum LayoutScenarioKind {
     LayoutDeclarationInventory,
     AccessShapeDenial,
     BroadScanRejection,
@@ -52,206 +53,200 @@ pub enum S8LayoutScenarioKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S8LayoutScenarioDefinition {
-    kind: S8LayoutScenarioKind,
-    production_apis: &'static [S8LayoutProductionApi],
-    actors: &'static [S8LayoutActorLane],
-    faults: &'static [S8LayoutFaultLane],
-    observers: &'static [S8LayoutObserverLane],
-    oracles: &'static [S8LayoutOracleLane],
-    coverage: &'static [S8LayoutCoverageRowKind],
-    shortcut_denials: &'static [S8LayoutShortcutDenialKind],
-    transitions: &'static [S8LayoutTransitionState],
-    transcript: S8LayoutTranscriptKind,
-    closeout: S8LayoutCloseoutEvidenceLane,
+pub struct LayoutScenarioDefinition {
+    kind: LayoutScenarioKind,
+    production_apis: &'static [LayoutProductionApi],
+    actors: &'static [LayoutActorLane],
+    faults: &'static [LayoutFaultLane],
+    observers: &'static [LayoutObserverLane],
+    oracles: &'static [LayoutOracleLane],
+    coverage: &'static [LayoutCoverageRowKind],
+    shortcut_denials: &'static [LayoutShortcutDenialKind],
+    transitions: &'static [LayoutTransitionState],
+    transcript: LayoutTranscriptKind,
+    closeout: LayoutCloseoutEvidenceLane,
 }
 
-const DECLARATION_APIS: &[S8LayoutProductionApi] = &[
-    S8LayoutProductionApi::LayoutFamilies,
-    S8LayoutProductionApi::LayoutStrategyAdmission,
+const DECLARATION_APIS: &[LayoutProductionApi] = &[
+    LayoutProductionApi::LayoutFamilies,
+    LayoutProductionApi::LayoutStrategyAdmission,
 ];
-const ACCESS_APIS: &[S8LayoutProductionApi] = &[
-    S8LayoutProductionApi::AccessPlanning,
-    S8LayoutProductionApi::AccessLowering,
+const ACCESS_APIS: &[LayoutProductionApi] = &[
+    LayoutProductionApi::AccessPlanning,
+    LayoutProductionApi::AccessLowering,
 ];
-const EXECUTION_APIS: &[S8LayoutProductionApi] = &[
-    S8LayoutProductionApi::AccessPlanning,
-    S8LayoutProductionApi::AccessLowering,
-    S8LayoutProductionApi::AccessExecution,
+const EXECUTION_APIS: &[LayoutProductionApi] = &[
+    LayoutProductionApi::AccessPlanning,
+    LayoutProductionApi::AccessLowering,
+    LayoutProductionApi::AccessExecution,
 ];
-const REBUILD_APIS: &[S8LayoutProductionApi] = &[
-    S8LayoutProductionApi::LayoutRebuild,
-    S8LayoutProductionApi::LayoutReadmission,
+const REBUILD_APIS: &[LayoutProductionApi] = &[
+    LayoutProductionApi::LayoutRebuild,
+    LayoutProductionApi::LayoutReadmission,
 ];
-const MIGRATION_APIS: &[S8LayoutProductionApi] = &[
-    S8LayoutProductionApi::LayoutMigration,
-    S8LayoutProductionApi::LayoutReadmission,
+const MIGRATION_APIS: &[LayoutProductionApi] = &[
+    LayoutProductionApi::LayoutMigration,
+    LayoutProductionApi::LayoutReadmission,
 ];
-const READMISSION_APIS: &[S8LayoutProductionApi] = &[S8LayoutProductionApi::LayoutReadmission];
-const INTEGRATION_APIS: &[S8LayoutProductionApi] = &[
-    S8LayoutProductionApi::LayoutFamilies,
-    S8LayoutProductionApi::LayoutStrategyAdmission,
-    S8LayoutProductionApi::AccessPlanning,
-    S8LayoutProductionApi::AccessLowering,
-    S8LayoutProductionApi::AccessExecution,
-    S8LayoutProductionApi::LayoutRebuild,
-    S8LayoutProductionApi::LayoutMigration,
-    S8LayoutProductionApi::LayoutReadmission,
-];
-
-const DECLARATION_ACTORS: &[S8LayoutActorLane] = &[
-    S8LayoutActorLane::DeclarationCatalog,
-    S8LayoutActorLane::OfflineVerifier,
-];
-const ACCESS_ACTORS: &[S8LayoutActorLane] = &[S8LayoutActorLane::ForegroundAccess];
-const RECOVERY_ACTORS: &[S8LayoutActorLane] =
-    &[S8LayoutActorLane::Recovery, S8LayoutActorLane::Maintenance];
-const MIGRATION_ACTORS: &[S8LayoutActorLane] =
-    &[S8LayoutActorLane::Migration, S8LayoutActorLane::Recovery];
-const READMISSION_ACTORS: &[S8LayoutActorLane] = &[
-    S8LayoutActorLane::OfflineVerifier,
-    S8LayoutActorLane::Recovery,
-];
-const INTEGRATION_ACTORS: &[S8LayoutActorLane] = &[
-    S8LayoutActorLane::DeclarationCatalog,
-    S8LayoutActorLane::ForegroundAccess,
-    S8LayoutActorLane::Recovery,
-    S8LayoutActorLane::Migration,
-    S8LayoutActorLane::Maintenance,
-    S8LayoutActorLane::OfflineVerifier,
+const READMISSION_APIS: &[LayoutProductionApi] = &[LayoutProductionApi::LayoutReadmission];
+const INTEGRATION_APIS: &[LayoutProductionApi] = &[
+    LayoutProductionApi::LayoutFamilies,
+    LayoutProductionApi::LayoutStrategyAdmission,
+    LayoutProductionApi::AccessPlanning,
+    LayoutProductionApi::AccessLowering,
+    LayoutProductionApi::AccessExecution,
+    LayoutProductionApi::LayoutRebuild,
+    LayoutProductionApi::LayoutMigration,
+    LayoutProductionApi::LayoutReadmission,
 ];
 
-const NO_FAULTS: &[S8LayoutFaultLane] = &[S8LayoutFaultLane::NoFaultControl];
-const REBUILD_FAULTS: &[S8LayoutFaultLane] = &[
-    S8LayoutFaultLane::ByteCorruption,
-    S8LayoutFaultLane::StaleGeneration,
+const DECLARATION_ACTORS: &[LayoutActorLane] = &[
+    LayoutActorLane::DeclarationCatalog,
+    LayoutActorLane::OfflineVerifier,
 ];
-const MIGRATION_FAULTS: &[S8LayoutFaultLane] = &[
-    S8LayoutFaultLane::CrashInterruption,
-    S8LayoutFaultLane::ReorderedPersistence,
-];
-const READMISSION_FAULTS: &[S8LayoutFaultLane] = &[
-    S8LayoutFaultLane::TerminalProjectionShortcut,
-    S8LayoutFaultLane::StaleGeneration,
-];
-const INTEGRATION_FAULTS: &[S8LayoutFaultLane] = &[
-    S8LayoutFaultLane::CrashInterruption,
-    S8LayoutFaultLane::ByteCorruption,
-    S8LayoutFaultLane::ReorderedPersistence,
-];
-
-const DECLARATION_OBSERVERS: &[S8LayoutObserverLane] = &[
-    S8LayoutObserverLane::DeclarationInventoryObserver,
-    S8LayoutObserverLane::OfflineVerifierObserver,
-];
-const EXECUTION_OBSERVERS: &[S8LayoutObserverLane] = &[
-    S8LayoutObserverLane::CounterReceiptObserver,
-    S8LayoutObserverLane::MultiArtifactTraceObserver,
-];
-const RECOVERY_OBSERVERS: &[S8LayoutObserverLane] = &[
-    S8LayoutObserverLane::RecoveryOutcomeObserver,
-    S8LayoutObserverLane::OfflineVerifierObserver,
-];
-const READMISSION_OBSERVERS: &[S8LayoutObserverLane] = &[
-    S8LayoutObserverLane::ReadmissionObserver,
-    S8LayoutObserverLane::OfflineVerifierObserver,
-];
-const INTEGRATION_OBSERVERS: &[S8LayoutObserverLane] = &[
-    S8LayoutObserverLane::CounterReceiptObserver,
-    S8LayoutObserverLane::RecoveryOutcomeObserver,
-    S8LayoutObserverLane::MultiArtifactTraceObserver,
+const ACCESS_ACTORS: &[LayoutActorLane] = &[LayoutActorLane::ForegroundAccess];
+const RECOVERY_ACTORS: &[LayoutActorLane] =
+    &[LayoutActorLane::Recovery, LayoutActorLane::Maintenance];
+const MIGRATION_ACTORS: &[LayoutActorLane] =
+    &[LayoutActorLane::Migration, LayoutActorLane::Recovery];
+const READMISSION_ACTORS: &[LayoutActorLane] =
+    &[LayoutActorLane::OfflineVerifier, LayoutActorLane::Recovery];
+const INTEGRATION_ACTORS: &[LayoutActorLane] = &[
+    LayoutActorLane::DeclarationCatalog,
+    LayoutActorLane::ForegroundAccess,
+    LayoutActorLane::Recovery,
+    LayoutActorLane::Migration,
+    LayoutActorLane::Maintenance,
+    LayoutActorLane::OfflineVerifier,
 ];
 
-const DECLARATION_ORACLES: &[S8LayoutOracleLane] =
-    &[S8LayoutOracleLane::DeclarationInventoryOracle];
-const ACCESS_ORACLES: &[S8LayoutOracleLane] = &[
-    S8LayoutOracleLane::AccessShapeDenialOracle,
-    S8LayoutOracleLane::BroadScanRejectionOracle,
+const NO_FAULTS: &[LayoutFaultLane] = &[LayoutFaultLane::NoFaultControl];
+const REBUILD_FAULTS: &[LayoutFaultLane] = &[
+    LayoutFaultLane::ByteCorruption,
+    LayoutFaultLane::StaleGeneration,
 ];
-const COUNTER_ORACLES: &[S8LayoutOracleLane] = &[S8LayoutOracleLane::ExactCounterOracle];
-const REBUILD_ORACLES: &[S8LayoutOracleLane] = &[S8LayoutOracleLane::RebuildParityOracle];
-const MIGRATION_ORACLES: &[S8LayoutOracleLane] = &[S8LayoutOracleLane::MigrationRollbackOracle];
-const READMISSION_ORACLES: &[S8LayoutOracleLane] = &[S8LayoutOracleLane::ReadmissionBoundaryOracle];
-const INTEGRATION_ORACLES: &[S8LayoutOracleLane] =
-    &[S8LayoutOracleLane::MultiArtifactIntegrationOracle];
-
-const DECLARATION_COVERAGE: &[S8LayoutCoverageRowKind] =
-    &[S8LayoutCoverageRowKind::DeclarationInventory];
-const ACCESS_SHAPE_COVERAGE: &[S8LayoutCoverageRowKind] =
-    &[S8LayoutCoverageRowKind::AccessShapeDenial];
-const BROAD_SCAN_COVERAGE: &[S8LayoutCoverageRowKind] =
-    &[S8LayoutCoverageRowKind::BroadScanRejection];
-const COUNTER_COVERAGE: &[S8LayoutCoverageRowKind] = &[S8LayoutCoverageRowKind::ExactCounter];
-const REBUILD_COVERAGE: &[S8LayoutCoverageRowKind] = &[S8LayoutCoverageRowKind::RebuildParity];
-const MIGRATION_COVERAGE: &[S8LayoutCoverageRowKind] =
-    &[S8LayoutCoverageRowKind::MigrationRollback];
-const READMISSION_COVERAGE: &[S8LayoutCoverageRowKind] =
-    &[S8LayoutCoverageRowKind::ReadmissionBoundary];
-const INTEGRATION_COVERAGE: &[S8LayoutCoverageRowKind] =
-    &[S8LayoutCoverageRowKind::MultiArtifactIntegration];
-
-const ACCESS_SHORTCUTS: &[S8LayoutShortcutDenialKind] = &[
-    S8LayoutShortcutDenialKind::BroadScanMasqueradingAsPointLookup,
-    S8LayoutShortcutDenialKind::CopiedCounterRows,
+const MIGRATION_FAULTS: &[LayoutFaultLane] = &[
+    LayoutFaultLane::CrashInterruption,
+    LayoutFaultLane::ReorderedPersistence,
 ];
-const READMISSION_SHORTCUTS: &[S8LayoutShortcutDenialKind] = &[
-    S8LayoutShortcutDenialKind::TerminalProjectionAuthority,
-    S8LayoutShortcutDenialKind::FoundationalMaterializationAuthority,
+const READMISSION_FAULTS: &[LayoutFaultLane] = &[
+    LayoutFaultLane::TerminalProjectionShortcut,
+    LayoutFaultLane::StaleGeneration,
 ];
-const FIXTURE_SHORTCUTS: &[S8LayoutShortcutDenialKind] =
-    &[S8LayoutShortcutDenialKind::SyntheticFixtureAuthority];
-const INTEGRATION_SHORTCUTS: &[S8LayoutShortcutDenialKind] = &[
-    S8LayoutShortcutDenialKind::CopiedCounterRows,
-    S8LayoutShortcutDenialKind::LooseLogEvidence,
-    S8LayoutShortcutDenialKind::SyntheticFixtureAuthority,
+const INTEGRATION_FAULTS: &[LayoutFaultLane] = &[
+    LayoutFaultLane::CrashInterruption,
+    LayoutFaultLane::ByteCorruption,
+    LayoutFaultLane::ReorderedPersistence,
 ];
 
-const DECLARATION_TRANSITIONS: &[S8LayoutTransitionState] = &[
-    S8LayoutTransitionState::Declared,
-    S8LayoutTransitionState::Admitted,
+const DECLARATION_OBSERVERS: &[LayoutObserverLane] = &[
+    LayoutObserverLane::DeclarationInventoryObserver,
+    LayoutObserverLane::OfflineVerifierObserver,
 ];
-const ACCESS_TRANSITIONS: &[S8LayoutTransitionState] = &[
-    S8LayoutTransitionState::Admitted,
-    S8LayoutTransitionState::Planned,
-    S8LayoutTransitionState::Lowered,
+const EXECUTION_OBSERVERS: &[LayoutObserverLane] = &[
+    LayoutObserverLane::CounterReceiptObserver,
+    LayoutObserverLane::MultiArtifactTraceObserver,
 ];
-const EXECUTION_TRANSITIONS: &[S8LayoutTransitionState] = &[
-    S8LayoutTransitionState::Admitted,
-    S8LayoutTransitionState::Planned,
-    S8LayoutTransitionState::Lowered,
-    S8LayoutTransitionState::ExecutionReady,
-    S8LayoutTransitionState::Executed,
+const RECOVERY_OBSERVERS: &[LayoutObserverLane] = &[
+    LayoutObserverLane::RecoveryOutcomeObserver,
+    LayoutObserverLane::OfflineVerifierObserver,
 ];
-const REBUILD_TRANSITIONS: &[S8LayoutTransitionState] = &[
-    S8LayoutTransitionState::Executed,
-    S8LayoutTransitionState::Rebuilt,
-    S8LayoutTransitionState::Readmitted,
+const READMISSION_OBSERVERS: &[LayoutObserverLane] = &[
+    LayoutObserverLane::ReadmissionObserver,
+    LayoutObserverLane::OfflineVerifierObserver,
 ];
-const MIGRATION_TRANSITIONS: &[S8LayoutTransitionState] = &[
-    S8LayoutTransitionState::Declared,
-    S8LayoutTransitionState::Admitted,
-    S8LayoutTransitionState::Rebound,
-    S8LayoutTransitionState::Readmitted,
-];
-const READMISSION_TRANSITIONS: &[S8LayoutTransitionState] = &[
-    S8LayoutTransitionState::Executed,
-    S8LayoutTransitionState::Readmitted,
-];
-const INTEGRATION_TRANSITIONS: &[S8LayoutTransitionState] = &[
-    S8LayoutTransitionState::Declared,
-    S8LayoutTransitionState::Admitted,
-    S8LayoutTransitionState::Planned,
-    S8LayoutTransitionState::Lowered,
-    S8LayoutTransitionState::ExecutionReady,
-    S8LayoutTransitionState::Executed,
-    S8LayoutTransitionState::Rebuilt,
-    S8LayoutTransitionState::Rebound,
-    S8LayoutTransitionState::Readmitted,
+const INTEGRATION_OBSERVERS: &[LayoutObserverLane] = &[
+    LayoutObserverLane::CounterReceiptObserver,
+    LayoutObserverLane::RecoveryOutcomeObserver,
+    LayoutObserverLane::MultiArtifactTraceObserver,
 ];
 
-pub fn layout_scenario(kind: S8LayoutScenarioKind) -> S8LayoutScenarioDefinition {
+const DECLARATION_ORACLES: &[LayoutOracleLane] = &[LayoutOracleLane::DeclarationInventoryOracle];
+const ACCESS_ORACLES: &[LayoutOracleLane] = &[
+    LayoutOracleLane::AccessShapeDenialOracle,
+    LayoutOracleLane::BroadScanRejectionOracle,
+];
+const COUNTER_ORACLES: &[LayoutOracleLane] = &[LayoutOracleLane::ExactCounterOracle];
+const REBUILD_ORACLES: &[LayoutOracleLane] = &[LayoutOracleLane::RebuildParityOracle];
+const MIGRATION_ORACLES: &[LayoutOracleLane] = &[LayoutOracleLane::MigrationRollbackOracle];
+const READMISSION_ORACLES: &[LayoutOracleLane] = &[LayoutOracleLane::ReadmissionBoundaryOracle];
+const INTEGRATION_ORACLES: &[LayoutOracleLane] =
+    &[LayoutOracleLane::MultiArtifactIntegrationOracle];
+
+const DECLARATION_COVERAGE: &[LayoutCoverageRowKind] =
+    &[LayoutCoverageRowKind::DeclarationInventory];
+const ACCESS_SHAPE_COVERAGE: &[LayoutCoverageRowKind] = &[LayoutCoverageRowKind::AccessShapeDenial];
+const BROAD_SCAN_COVERAGE: &[LayoutCoverageRowKind] = &[LayoutCoverageRowKind::BroadScanRejection];
+const COUNTER_COVERAGE: &[LayoutCoverageRowKind] = &[LayoutCoverageRowKind::ExactCounter];
+const REBUILD_COVERAGE: &[LayoutCoverageRowKind] = &[LayoutCoverageRowKind::RebuildParity];
+const MIGRATION_COVERAGE: &[LayoutCoverageRowKind] = &[LayoutCoverageRowKind::MigrationRollback];
+const READMISSION_COVERAGE: &[LayoutCoverageRowKind] =
+    &[LayoutCoverageRowKind::ReadmissionBoundary];
+const INTEGRATION_COVERAGE: &[LayoutCoverageRowKind] =
+    &[LayoutCoverageRowKind::MultiArtifactIntegration];
+
+const ACCESS_SHORTCUTS: &[LayoutShortcutDenialKind] = &[
+    LayoutShortcutDenialKind::BroadScanMasqueradingAsPointLookup,
+    LayoutShortcutDenialKind::CopiedCounterRows,
+];
+const READMISSION_SHORTCUTS: &[LayoutShortcutDenialKind] = &[
+    LayoutShortcutDenialKind::TerminalProjectionAuthority,
+    LayoutShortcutDenialKind::FoundationalMaterializationAuthority,
+];
+const FIXTURE_SHORTCUTS: &[LayoutShortcutDenialKind] =
+    &[LayoutShortcutDenialKind::SyntheticFixtureAuthority];
+const INTEGRATION_SHORTCUTS: &[LayoutShortcutDenialKind] = &[
+    LayoutShortcutDenialKind::CopiedCounterRows,
+    LayoutShortcutDenialKind::LooseLogEvidence,
+    LayoutShortcutDenialKind::SyntheticFixtureAuthority,
+];
+
+const DECLARATION_TRANSITIONS: &[LayoutTransitionState] = &[
+    LayoutTransitionState::Declared,
+    LayoutTransitionState::Admitted,
+];
+const ACCESS_TRANSITIONS: &[LayoutTransitionState] = &[
+    LayoutTransitionState::Admitted,
+    LayoutTransitionState::Planned,
+    LayoutTransitionState::Lowered,
+];
+const EXECUTION_TRANSITIONS: &[LayoutTransitionState] = &[
+    LayoutTransitionState::Admitted,
+    LayoutTransitionState::Planned,
+    LayoutTransitionState::Lowered,
+    LayoutTransitionState::ExecutionReady,
+    LayoutTransitionState::Executed,
+];
+const REBUILD_TRANSITIONS: &[LayoutTransitionState] = &[
+    LayoutTransitionState::Executed,
+    LayoutTransitionState::Rebuilt,
+    LayoutTransitionState::Readmitted,
+];
+const MIGRATION_TRANSITIONS: &[LayoutTransitionState] = &[
+    LayoutTransitionState::Declared,
+    LayoutTransitionState::Admitted,
+    LayoutTransitionState::Rebound,
+    LayoutTransitionState::Readmitted,
+];
+const READMISSION_TRANSITIONS: &[LayoutTransitionState] = &[
+    LayoutTransitionState::Executed,
+    LayoutTransitionState::Readmitted,
+];
+const INTEGRATION_TRANSITIONS: &[LayoutTransitionState] = &[
+    LayoutTransitionState::Declared,
+    LayoutTransitionState::Admitted,
+    LayoutTransitionState::Planned,
+    LayoutTransitionState::Lowered,
+    LayoutTransitionState::ExecutionReady,
+    LayoutTransitionState::Executed,
+    LayoutTransitionState::Rebuilt,
+    LayoutTransitionState::Rebound,
+    LayoutTransitionState::Readmitted,
+];
+
+pub fn layout_scenario(kind: LayoutScenarioKind) -> LayoutScenarioDefinition {
     match kind {
-        S8LayoutScenarioKind::LayoutDeclarationInventory => S8LayoutScenarioDefinition {
+        LayoutScenarioKind::LayoutDeclarationInventory => LayoutScenarioDefinition {
             kind,
             production_apis: DECLARATION_APIS,
             actors: DECLARATION_ACTORS,
@@ -261,10 +256,10 @@ pub fn layout_scenario(kind: S8LayoutScenarioKind) -> S8LayoutScenarioDefinition
             coverage: DECLARATION_COVERAGE,
             shortcut_denials: FIXTURE_SHORTCUTS,
             transitions: DECLARATION_TRANSITIONS,
-            transcript: S8LayoutTranscriptKind::ScenarioTranscript,
-            closeout: S8LayoutCloseoutEvidenceLane::ScenarioDefinition,
+            transcript: LayoutTranscriptKind::ScenarioTranscript,
+            closeout: LayoutCloseoutEvidenceLane::ScenarioDefinition,
         },
-        S8LayoutScenarioKind::AccessShapeDenial => S8LayoutScenarioDefinition {
+        LayoutScenarioKind::AccessShapeDenial => LayoutScenarioDefinition {
             kind,
             production_apis: ACCESS_APIS,
             actors: ACCESS_ACTORS,
@@ -274,10 +269,10 @@ pub fn layout_scenario(kind: S8LayoutScenarioKind) -> S8LayoutScenarioDefinition
             coverage: ACCESS_SHAPE_COVERAGE,
             shortcut_denials: ACCESS_SHORTCUTS,
             transitions: ACCESS_TRANSITIONS,
-            transcript: S8LayoutTranscriptKind::ShortcutDenialTrace,
-            closeout: S8LayoutCloseoutEvidenceLane::ScenarioDefinition,
+            transcript: LayoutTranscriptKind::ShortcutDenialTrace,
+            closeout: LayoutCloseoutEvidenceLane::ScenarioDefinition,
         },
-        S8LayoutScenarioKind::BroadScanRejection => S8LayoutScenarioDefinition {
+        LayoutScenarioKind::BroadScanRejection => LayoutScenarioDefinition {
             kind,
             production_apis: ACCESS_APIS,
             actors: ACCESS_ACTORS,
@@ -287,10 +282,10 @@ pub fn layout_scenario(kind: S8LayoutScenarioKind) -> S8LayoutScenarioDefinition
             coverage: BROAD_SCAN_COVERAGE,
             shortcut_denials: ACCESS_SHORTCUTS,
             transitions: ACCESS_TRANSITIONS,
-            transcript: S8LayoutTranscriptKind::ShortcutDenialTrace,
-            closeout: S8LayoutCloseoutEvidenceLane::PerformanceEvidence,
+            transcript: LayoutTranscriptKind::ShortcutDenialTrace,
+            closeout: LayoutCloseoutEvidenceLane::PerformanceEvidence,
         },
-        S8LayoutScenarioKind::ExactCounter => S8LayoutScenarioDefinition {
+        LayoutScenarioKind::ExactCounter => LayoutScenarioDefinition {
             kind,
             production_apis: EXECUTION_APIS,
             actors: ACCESS_ACTORS,
@@ -300,10 +295,10 @@ pub fn layout_scenario(kind: S8LayoutScenarioKind) -> S8LayoutScenarioDefinition
             coverage: COUNTER_COVERAGE,
             shortcut_denials: ACCESS_SHORTCUTS,
             transitions: EXECUTION_TRANSITIONS,
-            transcript: S8LayoutTranscriptKind::ScenarioTranscript,
-            closeout: S8LayoutCloseoutEvidenceLane::PerformanceEvidence,
+            transcript: LayoutTranscriptKind::ScenarioTranscript,
+            closeout: LayoutCloseoutEvidenceLane::PerformanceEvidence,
         },
-        S8LayoutScenarioKind::CorruptionRebuildParity => S8LayoutScenarioDefinition {
+        LayoutScenarioKind::CorruptionRebuildParity => LayoutScenarioDefinition {
             kind,
             production_apis: REBUILD_APIS,
             actors: RECOVERY_ACTORS,
@@ -313,10 +308,10 @@ pub fn layout_scenario(kind: S8LayoutScenarioKind) -> S8LayoutScenarioDefinition
             coverage: REBUILD_COVERAGE,
             shortcut_denials: READMISSION_SHORTCUTS,
             transitions: REBUILD_TRANSITIONS,
-            transcript: S8LayoutTranscriptKind::ReplayBundle,
-            closeout: S8LayoutCloseoutEvidenceLane::CertificationCloseout,
+            transcript: LayoutTranscriptKind::ReplayBundle,
+            closeout: LayoutCloseoutEvidenceLane::CertificationCloseout,
         },
-        S8LayoutScenarioKind::MigrationRollbackInterruption => S8LayoutScenarioDefinition {
+        LayoutScenarioKind::MigrationRollbackInterruption => LayoutScenarioDefinition {
             kind,
             production_apis: MIGRATION_APIS,
             actors: MIGRATION_ACTORS,
@@ -326,10 +321,10 @@ pub fn layout_scenario(kind: S8LayoutScenarioKind) -> S8LayoutScenarioDefinition
             coverage: MIGRATION_COVERAGE,
             shortcut_denials: FIXTURE_SHORTCUTS,
             transitions: MIGRATION_TRANSITIONS,
-            transcript: S8LayoutTranscriptKind::ReplayBundle,
-            closeout: S8LayoutCloseoutEvidenceLane::CertificationCloseout,
+            transcript: LayoutTranscriptKind::ReplayBundle,
+            closeout: LayoutCloseoutEvidenceLane::CertificationCloseout,
         },
-        S8LayoutScenarioKind::TrustBoundaryReadmission => S8LayoutScenarioDefinition {
+        LayoutScenarioKind::TrustBoundaryReadmission => LayoutScenarioDefinition {
             kind,
             production_apis: READMISSION_APIS,
             actors: READMISSION_ACTORS,
@@ -339,10 +334,10 @@ pub fn layout_scenario(kind: S8LayoutScenarioKind) -> S8LayoutScenarioDefinition
             coverage: READMISSION_COVERAGE,
             shortcut_denials: READMISSION_SHORTCUTS,
             transitions: READMISSION_TRANSITIONS,
-            transcript: S8LayoutTranscriptKind::ShortcutDenialTrace,
-            closeout: S8LayoutCloseoutEvidenceLane::CertificationCloseout,
+            transcript: LayoutTranscriptKind::ShortcutDenialTrace,
+            closeout: LayoutCloseoutEvidenceLane::CertificationCloseout,
         },
-        S8LayoutScenarioKind::MultiArtifactIntegration => S8LayoutScenarioDefinition {
+        LayoutScenarioKind::MultiArtifactIntegration => LayoutScenarioDefinition {
             kind,
             production_apis: INTEGRATION_APIS,
             actors: INTEGRATION_ACTORS,
@@ -352,44 +347,44 @@ pub fn layout_scenario(kind: S8LayoutScenarioKind) -> S8LayoutScenarioDefinition
             coverage: INTEGRATION_COVERAGE,
             shortcut_denials: INTEGRATION_SHORTCUTS,
             transitions: INTEGRATION_TRANSITIONS,
-            transcript: S8LayoutTranscriptKind::ReplayBundle,
-            closeout: S8LayoutCloseoutEvidenceLane::CertificationCloseout,
+            transcript: LayoutTranscriptKind::ReplayBundle,
+            closeout: LayoutCloseoutEvidenceLane::CertificationCloseout,
         },
     }
 }
 
-impl S8LayoutScenarioDefinition {
-    pub const fn kind(&self) -> S8LayoutScenarioKind {
+impl LayoutScenarioDefinition {
+    pub const fn kind(&self) -> LayoutScenarioKind {
         self.kind
     }
-    pub const fn production_apis(&self) -> &'static [S8LayoutProductionApi] {
+    pub const fn production_apis(&self) -> &'static [LayoutProductionApi] {
         self.production_apis
     }
-    pub const fn actors(&self) -> &'static [S8LayoutActorLane] {
+    pub const fn actors(&self) -> &'static [LayoutActorLane] {
         self.actors
     }
-    pub const fn faults(&self) -> &'static [S8LayoutFaultLane] {
+    pub const fn faults(&self) -> &'static [LayoutFaultLane] {
         self.faults
     }
-    pub const fn observers(&self) -> &'static [S8LayoutObserverLane] {
+    pub const fn observers(&self) -> &'static [LayoutObserverLane] {
         self.observers
     }
-    pub const fn oracles(&self) -> &'static [S8LayoutOracleLane] {
+    pub const fn oracles(&self) -> &'static [LayoutOracleLane] {
         self.oracles
     }
-    pub const fn coverage(&self) -> &'static [S8LayoutCoverageRowKind] {
+    pub const fn coverage(&self) -> &'static [LayoutCoverageRowKind] {
         self.coverage
     }
-    pub const fn shortcut_denials(&self) -> &'static [S8LayoutShortcutDenialKind] {
+    pub const fn shortcut_denials(&self) -> &'static [LayoutShortcutDenialKind] {
         self.shortcut_denials
     }
-    pub const fn transitions(&self) -> &'static [S8LayoutTransitionState] {
+    pub const fn transitions(&self) -> &'static [LayoutTransitionState] {
         self.transitions
     }
-    pub const fn transcript(&self) -> S8LayoutTranscriptKind {
+    pub const fn transcript(&self) -> LayoutTranscriptKind {
         self.transcript
     }
-    pub const fn closeout(&self) -> S8LayoutCloseoutEvidenceLane {
+    pub const fn closeout(&self) -> LayoutCloseoutEvidenceLane {
         self.closeout
     }
 }

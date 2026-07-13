@@ -1,5 +1,6 @@
 pub(crate) mod budget;
-pub(crate) mod degraded;
 pub(crate) mod execution;
-pub(crate) mod planning;
+mod intent;
 pub(crate) mod shape;
+
+pub use intent::AdmittedAccessIntent;

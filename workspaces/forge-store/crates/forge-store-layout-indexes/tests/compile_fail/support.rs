@@ -41,6 +41,9 @@ fn run_compile_fail_case(
     fixture_name: &str,
     extern_crates: &[&str],
 ) -> std::process::Output {
+    if ui_dir == "runtime_authority" {
+        return run_cargo_compile_fail_case(source_path, ui_dir, fixture_name, extern_crates);
+    }
     let output_dir = std::env::temp_dir()
         .join(format!("layout-indexes-{ui_dir}-ui"))
         .join(std::process::id().to_string())
@@ -71,6 +74,59 @@ fn run_compile_fail_case(
         ));
     }
     command.arg(source_path).output().unwrap()
+}
+
+fn run_cargo_compile_fail_case(
+    source_path: &std::path::Path,
+    ui_dir: &str,
+    fixture_name: &str,
+    extern_crates: &[&str],
+) -> std::process::Output {
+    let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let case_dir = std::env::temp_dir()
+        .join(format!("layout-indexes-{ui_dir}-cargo-ui"))
+        .join(std::process::id().to_string())
+        .join(fixture_name.trim_end_matches(".rs"));
+    let source_dir = case_dir.join("src");
+    std::fs::create_dir_all(&source_dir).unwrap();
+    std::fs::copy(source_path, source_dir.join("main.rs")).unwrap();
+
+    let manifest_path = manifest_dir.to_string_lossy().replace('\\', "/");
+    let mut dependencies =
+        format!("forge-store-layout-indexes = {{ path = \"{manifest_path}\" }}\n");
+    for crate_name in extern_crates {
+        let package = crate_name.replace('_', "-");
+        let sibling = manifest_dir.parent().unwrap().join(&package);
+        let repository = store_workspace_root(&manifest_dir)
+            .parent()
+            .and_then(std::path::Path::parent)
+            .expect("forge-store workspace lives under the repository workspaces directory");
+        let repository_crate = repository.join("crates").join(&package);
+        let path = if sibling.join("Cargo.toml").is_file() {
+            sibling
+        } else {
+            repository_crate
+        };
+        let path = path.to_string_lossy().replace('\\', "/");
+        dependencies.push_str(&format!("{package} = {{ path = \"{path}\" }}\n"));
+    }
+    let manifest = format!(
+        "[package]\nname = \"layout-runtime-authority-ui\"\nversion = \"0.0.0\"\nedition = \"2021\"\n\n[workspace]\n\n[dependencies]\n{dependencies}"
+    );
+    std::fs::write(case_dir.join("Cargo.toml"), manifest).unwrap();
+
+    std::process::Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
+        .arg("check")
+        .arg("--offline")
+        .arg("--quiet")
+        .arg("--manifest-path")
+        .arg(case_dir.join("Cargo.toml"))
+        .env(
+            "CARGO_TARGET_DIR",
+            compiled_dependency_dir().parent().unwrap(),
+        )
+        .output()
+        .unwrap()
 }
 
 fn compiled_dependency_dir() -> std::path::PathBuf {

@@ -1,7 +1,4 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
-#[path = "../../../support/physical_isolation/epoch_scope_and_root_kind/support.rs"]
-mod support;
+use forge_store_test_support::harness::physical_isolation::epoch_scope as support;
 
 use std::collections::HashSet;
 use std::hash::{BuildHasher, Hasher};

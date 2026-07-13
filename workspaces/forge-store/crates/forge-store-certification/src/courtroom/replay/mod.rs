@@ -22,7 +22,7 @@ pub use crate::courtroom::layout::layout_observers::{
     OfflineVerifierObserver, PhysicalLayoutParity, PhysicalLayoutParityDenial,
     PhysicalLayoutParityReport, RuntimeLayoutObserver,
 };
-pub use crate::replay::layout::{assemble_layout_index_layout_replay_bundle, S8LayoutReplayBundle};
+pub use crate::replay::layout::{assemble_layout_index_layout_replay_bundle, LayoutReplayBundle};
 pub use crate::scenario::cross_cutting::scale_fixture::{
     PhysicalHostileScaleCondition, PhysicalHostileScaleFixtureDenial,
     PhysicalHostileScaleFixtureReport, PhysicalHostileScaleFixtureSource,

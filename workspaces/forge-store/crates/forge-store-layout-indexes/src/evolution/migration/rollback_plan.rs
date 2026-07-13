@@ -4,8 +4,8 @@ use forge_proof::TransitionOutcome;
 use forge_store_authority::StoreCurrentAuthorityWitness;
 
 use super::{
-    LayoutBindingWitness, LayoutEvolutionDeclaration, LayoutEvolutionDenial, LayoutVersion,
-    S8LayoutRebindRequired, S8LayoutStaleBinding,
+    LayoutBindingWitness, LayoutEvolutionDeclaration, LayoutEvolutionDenial, LayoutRebindRequired,
+    LayoutStaleBinding, LayoutVersion,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -61,10 +61,10 @@ impl ResolvedLayoutRollbackRequest {
         LayoutEvolutionDenial,
         Infallible,
         Infallible,
-        S8LayoutRebindRequired,
+        LayoutRebindRequired,
     > {
         if self.binding.bound_authority().identity() != current_store_authority.identity() {
-            return TransitionOutcome::rebind_required(S8LayoutRebindRequired::new(
+            return TransitionOutcome::rebind_required(LayoutRebindRequired::new(
                 self.declaration.family().declaration(),
                 self.binding.bound_authority(),
             ));
@@ -90,11 +90,11 @@ impl LoweredLayoutRollbackPlan {
         LayoutRollbackPlan,
         LayoutEvolutionDenial,
         Infallible,
-        S8LayoutStaleBinding,
-        S8LayoutRebindRequired,
+        LayoutStaleBinding,
+        Infallible,
     > {
         if self.binding.bound_version() != self.binding.observed_version() {
-            return TransitionOutcome::stale(S8LayoutStaleBinding::new(
+            return TransitionOutcome::stale(LayoutStaleBinding::new(
                 self.declaration.family().declaration(),
                 self.binding.bound_version(),
                 self.binding.observed_version(),
@@ -113,14 +113,6 @@ pub struct LayoutRollbackPlan {
     declaration: LayoutEvolutionDeclaration,
     binding: LayoutBindingWitness,
 }
-
-pub type LayoutRollbackOutcome = TransitionOutcome<
-    LayoutRollbackPlan,
-    LayoutEvolutionDenial,
-    Infallible,
-    S8LayoutStaleBinding,
-    S8LayoutRebindRequired,
->;
 
 impl LayoutRollbackPlan {
     pub const fn rollback_target(&self) -> LayoutVersion {

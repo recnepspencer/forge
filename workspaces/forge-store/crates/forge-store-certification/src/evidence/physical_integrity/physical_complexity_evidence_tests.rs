@@ -68,7 +68,9 @@ fn algorithm_review_operation_must_match_contract() {
         scale_property_for_fixture(fixture),
     );
     let denial = PhysicalComplexityEvidenceReport::verify(
-        PhysicalOperationComplexityContract::required_complexity_contract(PhysicalOperationKind::HeaderDecode),
+        PhysicalOperationComplexityContract::required_complexity_contract(
+            PhysicalOperationKind::HeaderDecode,
+        ),
         proof,
     )
     .unwrap_err();
@@ -92,7 +94,9 @@ fn locate_counters_are_stable_under_real_unrelated_growth_fixture() {
         PhysicalScalePropertyEvidence::CounterStableAcrossUnrelatedGrowth { fixture },
     );
     let report = PhysicalComplexityEvidenceReport::verify(
-        PhysicalOperationComplexityContract::required_complexity_contract(PhysicalOperationKind::LocateByReference),
+        PhysicalOperationComplexityContract::required_complexity_contract(
+            PhysicalOperationKind::LocateByReference,
+        ),
         proof,
     )
     .unwrap();
@@ -152,7 +156,9 @@ fn unstable_scale_property_is_rejected() {
         PhysicalScalePropertyEvidence::CounterStableAcrossUnrelatedGrowth { fixture },
     );
     let denial = PhysicalComplexityEvidenceReport::verify(
-        PhysicalOperationComplexityContract::required_complexity_contract(PhysicalOperationKind::ManifestLookup),
+        PhysicalOperationComplexityContract::required_complexity_contract(
+            PhysicalOperationKind::ManifestLookup,
+        ),
         proof,
     )
     .unwrap_err();
@@ -184,7 +190,9 @@ fn detached_scale_property_fixture_is_rejected() {
         },
     );
     let denial = PhysicalComplexityEvidenceReport::verify(
-        PhysicalOperationComplexityContract::required_complexity_contract(PhysicalOperationKind::ManifestLookup),
+        PhysicalOperationComplexityContract::required_complexity_contract(
+            PhysicalOperationKind::ManifestLookup,
+        ),
         proof,
     )
     .unwrap_err();

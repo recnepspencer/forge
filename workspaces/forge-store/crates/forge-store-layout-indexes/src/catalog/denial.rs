@@ -17,6 +17,7 @@ pub enum ArtifactFamilyDenial {
     PhysicalKeyDomainDoesNotSupportPrefixBounds,
     PhysicalKeyDomainDoesNotSupportRangeBounds,
     ReadmissionFamilyCannotEnterStrategyAdmission,
+    SecurityAuthorityMismatch,
     VerifierLaneCannotEnterStrategyAdmission,
     TransferBoundaryFamilyCannotEnterStrategyAdmission,
     OfflineImportOnlyFamilyCannotEnterStrategyAdmission,

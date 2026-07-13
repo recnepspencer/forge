@@ -1,6 +1,6 @@
+use super::TierLayoutTraversal;
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_io_scheduler::IoSchedulerIsolationCounterSnapshot;
-use forge_store_layout_indexes::access_planning::S8AccessShape;
 
 use crate::TierPlacementIoAdmission;
 
@@ -19,7 +19,7 @@ pub struct TierPlacementAccessBudget {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TierPlacementLayoutReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: TierLayoutTraversal,
     rebuild_posture: DurableArtifactRebuildPosture,
     interference_posture: TierPlacementInterferencePosture,
     admission: TierPlacementIoAdmission,
@@ -29,7 +29,7 @@ impl TierPlacementLayoutReport {
     fn from_admission(admission: &TierPlacementIoAdmission) -> Self {
         TierPlacementLayoutReport {
             family_id: DurableArtifactFamilyId::TierPlacementManifest,
-            access_shape: S8AccessShape::BoundedScan,
+            access_shape: TierLayoutTraversal::BoundedScan,
             rebuild_posture: DurableArtifactRebuildPosture::RebuildFromAuthoritativeState,
             interference_posture: TierPlacementInterferencePosture::PublishedSchedulerCounters,
             admission: admission.clone(),
@@ -40,7 +40,7 @@ impl TierPlacementLayoutReport {
         self.family_id
     }
 
-    pub const fn access_shape(&self) -> S8AccessShape {
+    pub const fn access_shape(&self) -> TierLayoutTraversal {
         self.access_shape
     }
 
@@ -104,7 +104,7 @@ impl TierPlacementAccessBudget {
 }
 
 impl TierPlacementIoAdmission {
-    pub fn admit_tier_placement_layout(&self) -> TierPlacementLayoutReport {
+    pub fn project_tier_placement_layout(&self) -> TierPlacementLayoutReport {
         TierPlacementLayoutReport::from_admission(self)
     }
 }

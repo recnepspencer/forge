@@ -13,7 +13,7 @@ mod receipts;
 
 #[cfg(test)]
 mod boundary_tests;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) mod generation_registry_test_support;
 #[cfg(test)]
 mod generation_registry_tests;
@@ -25,7 +25,8 @@ pub use counters::BlobLifecycleCounterSnapshot;
 pub use denial::{
     reject_copied_counters_as_lifecycle_receipt, reject_copied_digest_string_as_lifecycle_receipt,
     reject_imported_manifest_text_as_lifecycle_receipt,
-    reject_physical_integrity_report_as_lifecycle_receipt, reject_io_qos_placement_seed_as_lifecycle_receipt,
+    reject_io_qos_placement_seed_as_lifecycle_receipt,
+    reject_physical_integrity_report_as_lifecycle_receipt,
     reject_terminal_projection_row_as_lifecycle_receipt, BlobLifecycleDenial,
 };
 pub use generation_classification::{

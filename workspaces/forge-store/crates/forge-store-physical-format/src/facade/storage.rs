@@ -282,20 +282,6 @@ impl PlatformPhysicalFacadeStorage {
         u32::from(!self.page_slots.is_empty()) + u32::from(!self.extent_cells.is_empty())
     }
 
-    pub(crate) const fn root_publication(&self) -> Option<RootPublicationCell> {
-        self.root_publication
-    }
-
-    pub(crate) fn manifest_bytes_len(&self) -> usize {
-        self.root_manifest_candidates
-            .iter()
-            .map(Vec::len)
-            .sum::<usize>()
-            + self.segment_manifest.len()
-            + self.extent_manifest.len()
-            + self.free_space_map.len()
-    }
-
     pub(crate) fn admit_bootstrap_open_witness(
         &self,
         headers: &crate::PhysicalHeaderAuthority,

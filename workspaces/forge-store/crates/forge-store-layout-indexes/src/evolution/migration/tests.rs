@@ -56,9 +56,9 @@ fn interrupted_migration_resumes_or_rolls_back_according_to_declaration() {
             ),
             &current,
         )
-        .into_transition_outcome()
+        .into_ready()
     {
-        TransitionOutcome::Success(plan) => plan,
+        Ok(plan) => plan,
         outcome => panic!("migration plan should be ready: {outcome:?}"),
     };
 
@@ -96,9 +96,9 @@ fn interrupted_migration_resumes_or_rolls_back_according_to_declaration() {
             ),
             &current,
         )
-        .into_transition_outcome()
+        .into_ready()
     {
-        TransitionOutcome::Success(plan) => plan,
+        Ok(plan) => plan,
         outcome => panic!("rollback-interrupt plan should be ready: {outcome:?}"),
     };
     let rollback = match rollback_plan.resume_or_rollback(rollback_plan.interruption_state()) {
@@ -122,9 +122,9 @@ fn interruption_state_rejects_declaration_drift_with_same_migration_pair() {
             ),
             &current,
         )
-        .into_transition_outcome()
+        .into_ready()
     {
-        TransitionOutcome::Success(plan) => plan,
+        Ok(plan) => plan,
         outcome => panic!("base migration plan should be ready: {outcome:?}"),
     };
 
@@ -146,9 +146,9 @@ fn interruption_state_rejects_declaration_drift_with_same_migration_pair() {
             ),
             &current,
         )
-        .into_transition_outcome()
+        .into_ready()
     {
-        TransitionOutcome::Success(plan) => plan,
+        Ok(plan) => plan,
         outcome => panic!("drifted migration plan should be ready: {outcome:?}"),
     };
 
@@ -171,9 +171,9 @@ fn rollback_preserves_authority_and_rejects_stale_projection_truth() {
 
     let plan = match layout_migration()
         .plan_rollback(request, &current)
-        .into_transition_outcome()
+        .into_ready()
     {
-        TransitionOutcome::Success(plan) => plan,
+        Ok(plan) => plan,
         outcome => panic!("rollback plan should be ready: {outcome:?}"),
     };
 
@@ -184,10 +184,11 @@ fn rollback_preserves_authority_and_rejects_stale_projection_truth() {
         declaration(),
         binding(version(6, 9, 9), version(7, 2, 1), current.clone()),
     );
-    let stale = layout_migration()
-        .plan_rollback(stale_request, &current)
-        .into_transition_outcome();
-    assert!(matches!(stale, TransitionOutcome::Stale(_)));
+    let stale = layout_migration().plan_rollback(stale_request, &current);
+    assert!(matches!(
+        stale.view(),
+        super::RollbackPlanningView::Stale(_)
+    ));
 }
 
 #[test]
@@ -198,12 +199,12 @@ fn rollback_rejects_binding_from_wrong_family_even_when_versions_match() {
         other_family_binding(version(7, 2, 1), version(7, 2, 1), current.clone()),
     );
 
-    let outcome = layout_migration()
-        .plan_rollback(request, &current)
-        .into_transition_outcome();
+    let outcome = layout_migration().plan_rollback(request, &current);
     assert!(matches!(
-        outcome,
-        TransitionOutcome::Denied(super::LayoutEvolutionDenial::FamilyMismatch { .. })
+        outcome.view(),
+        super::RollbackPlanningView::DeclarationDenied(
+            super::LayoutEvolutionDenial::FamilyMismatch { .. }
+        )
     ));
 }
 
@@ -212,15 +213,101 @@ fn migration_requires_rebind_when_current_authority_changes() {
     let bound = current_authority("store.new.rebind", "bound");
     let current = current_authority("store.new.rebind.current", "current");
 
-    let outcome = layout_migration()
-        .plan_migration(
+    let outcome = layout_migration().plan_migration(
+        super::LayoutMigrationRequest::new(
+            declaration(),
+            binding(version(5, 1, 0), version(5, 1, 0), bound),
+        ),
+        &current,
+    );
+
+    assert!(matches!(
+        outcome.view(),
+        super::MigrationPlanningView::LoweringRebindRequired(_)
+    ));
+}
+
+#[test]
+fn migration_and_rollback_declare_exactly_the_cases_ordinary_planning_emits() {
+    use std::collections::BTreeSet;
+
+    let current = current_authority("store.migration.case.coverage", "current");
+    let rebound = current_authority("store.migration.case.coverage.rebound", "rebound");
+
+    let migration_observed = [
+        layout_migration().plan_migration(
             super::LayoutMigrationRequest::new(
                 declaration(),
-                binding(version(5, 1, 0), version(5, 1, 0), bound),
+                binding(version(5, 1, 0), version(5, 1, 0), current.clone()),
             ),
             &current,
-        )
-        .into_transition_outcome();
+        ),
+        layout_migration().plan_migration(
+            super::LayoutMigrationRequest::new(
+                declaration(),
+                other_family_binding(version(5, 1, 0), version(5, 1, 0), current.clone()),
+            ),
+            &current,
+        ),
+        layout_migration().plan_migration(
+            super::LayoutMigrationRequest::new(
+                declaration(),
+                binding(version(5, 1, 0), version(5, 1, 0), rebound.clone()),
+            ),
+            &current,
+        ),
+        layout_migration().plan_migration(
+            super::LayoutMigrationRequest::new(
+                declaration(),
+                binding(version(5, 1, 0), version(5, 0, 9), current.clone()),
+            ),
+            &current,
+        ),
+    ]
+    .into_iter()
+    .map(|outcome| outcome.case_id())
+    .collect::<BTreeSet<_>>();
 
-    assert!(matches!(outcome, TransitionOutcome::RebindRequired(_)));
+    let rollback_observed = [
+        layout_migration().plan_rollback(
+            LayoutRollbackRequest::new(
+                declaration(),
+                binding(version(7, 2, 1), version(7, 2, 1), current.clone()),
+            ),
+            &current,
+        ),
+        layout_migration().plan_rollback(
+            LayoutRollbackRequest::new(
+                declaration(),
+                other_family_binding(version(7, 2, 1), version(7, 2, 1), current.clone()),
+            ),
+            &current,
+        ),
+        layout_migration().plan_rollback(
+            LayoutRollbackRequest::new(
+                declaration(),
+                binding(version(7, 2, 1), version(7, 2, 1), rebound),
+            ),
+            &current,
+        ),
+        layout_migration().plan_rollback(
+            LayoutRollbackRequest::new(
+                declaration(),
+                binding(version(7, 1, 9), version(7, 2, 1), current.clone()),
+            ),
+            &current,
+        ),
+    ]
+    .into_iter()
+    .map(|outcome| outcome.case_id())
+    .collect::<BTreeSet<_>>();
+
+    assert_eq!(
+        migration_observed,
+        super::migration_planning_cases().collect::<BTreeSet<_>>()
+    );
+    assert_eq!(
+        rollback_observed,
+        super::rollback_planning_cases().collect::<BTreeSet<_>>()
+    );
 }

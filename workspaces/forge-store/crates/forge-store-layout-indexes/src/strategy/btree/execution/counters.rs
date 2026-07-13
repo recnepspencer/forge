@@ -93,6 +93,39 @@ impl BaselineBTreeExactCounterWitness {
     pub const fn write_amplification(self) -> u16 {
         self.write_amplification
     }
+
+    pub(super) fn from_replay_reads(
+        reads: [forge_store_physical_format::PhysicalLayoutAccessCounterSnapshot; 3],
+    ) -> Self {
+        let page_touches = reads
+            .iter()
+            .map(|read| read.page_touches())
+            .fold(0_u16, u16::saturating_add);
+        let index_probes = reads
+            .iter()
+            .map(|read| read.index_probes())
+            .fold(0_u16, u16::saturating_add);
+        let key_comparisons = reads
+            .iter()
+            .map(|read| read.key_comparisons())
+            .fold(0_u16, u16::saturating_add);
+        let bytes_read = reads
+            .iter()
+            .map(|read| read.bytes_read())
+            .fold(0_u64, u64::saturating_add);
+
+        Self::new(BaselineBTreeExactCounterValues {
+            wal_replays: 1,
+            maintenance_reads: page_touches,
+            page_touches,
+            index_probes,
+            key_comparisons,
+            manifest_reads: 1,
+            bytes_read,
+            read_amplification: page_touches,
+            ..BaselineBTreeExactCounterValues::default()
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

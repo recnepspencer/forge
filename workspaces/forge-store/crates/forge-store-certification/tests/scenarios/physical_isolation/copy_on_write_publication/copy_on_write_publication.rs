@@ -1,13 +1,7 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
 #[path = "crash_recovery.rs"]
 mod crash_recovery;
-#[path = "../stable_read_execution/plan_admission.rs"]
-mod plan_admission;
-#[path = "../../../support/physical_isolation/copy_on_write_publication/support.rs"]
-mod publication_support;
-#[path = "../../../support/physical_isolation/epoch_scope_and_root_kind/support.rs"]
-mod support;
+use forge_store_test_support::harness::physical_isolation::epoch_scope as support;
+use forge_store_test_support::harness::physical_isolation::publication as publication_support;
 
 use forge_foundational::{
     FoundationalBoundaryEvidenceContinuityAttachmentScope, FoundationalBoundaryEvidenceReceiptKind,

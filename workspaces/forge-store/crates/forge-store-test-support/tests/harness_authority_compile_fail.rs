@@ -21,7 +21,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 4] {
         },
         CompileFailFixture {
             name: "harness_reference_cannot_expose_private_reference_lane.rs",
-            expected_stderr: &["as_physical_reference", "private"],
+            expected_stderr: &["no method named `as_physical_reference`"],
             include_physical_certification: true,
         },
         CompileFailFixture {

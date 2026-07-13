@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/coverage_support/coverage_support.rs"]
-mod coverage_support;
+use forge_store_test_support::harness::recovery::coverage as coverage_support;
 
 use forge_proof::{Recipe, Unresolved};
 use forge_store_physical_certification::{

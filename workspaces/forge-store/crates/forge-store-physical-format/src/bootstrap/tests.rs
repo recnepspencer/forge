@@ -100,9 +100,11 @@ fn bootstrap_identity_replays_stably_across_publish_and_reopen() {
 
 #[test]
 fn bootstrap_identity_replays_stably_across_crash_recovery() {
-    let mut facade =
-        PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
-            .expect("open S.1 facade");
+    let mut facade = PlatformPhysicalFacade::open_physical_format(
+        readiness(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
+    )
+    .expect("open S.1 facade");
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -142,7 +144,7 @@ fn bootstrap_identity_replays_stably_across_crash_recovery() {
         facade.publish_interrupted_physical_root().is_err(),
         "interrupted publish should simulate crash lane"
     );
-    let recovered = PlatformPhysicalFacade::reopen(
+    let _recovered = PlatformPhysicalFacade::reopen(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
         durable.replay_artifact(),
@@ -161,9 +163,11 @@ fn bootstrap_identity_replays_stably_across_crash_recovery() {
 }
 
 fn published_layout() -> crate::PlatformPhysicalRootPublicationReport {
-    let mut facade =
-        PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
-            .expect("open S.1 facade");
+    let mut facade = PlatformPhysicalFacade::open_physical_format(
+        readiness(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
+    )
+    .expect("open S.1 facade");
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(

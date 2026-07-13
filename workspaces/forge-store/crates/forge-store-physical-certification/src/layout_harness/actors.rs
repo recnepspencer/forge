@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum S8LayoutActorLane {
+pub enum LayoutActorLane {
     DeclarationCatalog,
     ForegroundAccess,
     Recovery,

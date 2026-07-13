@@ -1,6 +1,4 @@
-use forge_store_contracts::{
-    BackgroundPressureDeclaration, BackgroundPressureKind,
-};
+use forge_store_contracts::{BackgroundPressureDeclaration, BackgroundPressureKind};
 
 use crate::{
     BandwidthToken, CacheResidencyHint, DirtyPageBudget, FlushPermit,
@@ -105,9 +103,7 @@ impl BackgroundIoPressureShape {
             BackgroundPressureKind::ScrubScan => Self::scrub_scan(),
             BackgroundPressureKind::ReplicationPrepRead => Self::replication_prep_read(),
             BackgroundPressureKind::BlobIngestPressure => Self::blob_ingest_pressure(),
-            BackgroundPressureKind::BlobMigrationPressure => {
-                Self::blob_migration_pressure()
-            }
+            BackgroundPressureKind::BlobMigrationPressure => Self::blob_migration_pressure(),
             BackgroundPressureKind::BackupPrepRead => Self::backup_prep_read(),
             BackgroundPressureKind::RepairScan => Self::repair_scan(),
             BackgroundPressureKind::VerificationPressure => Self::verification_pressure(),

@@ -220,7 +220,9 @@ fn reference_cell(generation_value: u64, page_value: u64) -> SlotGenerationCell 
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+    )
 }
 
 fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {

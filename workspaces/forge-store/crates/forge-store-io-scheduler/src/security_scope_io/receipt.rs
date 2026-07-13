@@ -25,7 +25,9 @@ pub struct SecureIoPreservationReceipt {
 }
 
 impl SecureIoScopeBasis {
-    pub const fn from_security_scope_admission(receipt: StoreSecurityScopeAdmissionReceipt) -> Self {
+    pub const fn from_security_scope_admission(
+        receipt: StoreSecurityScopeAdmissionReceipt,
+    ) -> Self {
         Self {
             admission_receipt: receipt,
             identity: receipt.identity(),

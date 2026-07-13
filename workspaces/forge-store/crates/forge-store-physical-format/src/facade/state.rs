@@ -1,7 +1,8 @@
 use super::{storage::PlatformPhysicalFacadeStorage, PlatformPhysicalFacadeCounterSnapshot};
 use crate::{
     PhysicalHeaderAuthority, PhysicalPageRecordAuthority, PhysicalReference,
-    PhysicalReferenceAuthority, PlatformPhysicalFacadeDenial, PlatformPhysicalFacadeDenialKind,
+    PhysicalReferenceAuthority, PhysicalStoreIdentity, PlatformPhysicalFacadeDenial,
+    PlatformPhysicalFacadeDenialKind,
 };
 use forge_store_contracts::RoadmapScope;
 
@@ -15,6 +16,7 @@ pub struct PlatformPhysicalFacade {
     pub(super) storage: PlatformPhysicalFacadeStorage,
     pub(super) counters: PlatformPhysicalFacadeCounterSnapshot,
     pub(super) next_root_generation: u64,
+    pub(super) store_identity: PhysicalStoreIdentity,
 }
 
 impl PlatformPhysicalFacade {
@@ -43,17 +45,27 @@ impl PlatformPhysicalFacade {
         headers: PhysicalHeaderAuthority,
         storage: PlatformPhysicalFacadeStorage,
         counters: PlatformPhysicalFacadeCounterSnapshot,
+        store_identity: PhysicalStoreIdentity,
     ) -> Self {
         Self {
             scope,
-            page_records: PhysicalPageRecordAuthority::for_canonical_physical_format(headers.clone()),
-            extent_records: crate::PhysicalExtentRecordAuthority::for_canonical_physical_format(headers.clone()),
+            page_records: PhysicalPageRecordAuthority::for_canonical_physical_format(
+                headers.clone(),
+            ),
+            extent_records: crate::PhysicalExtentRecordAuthority::for_canonical_physical_format(
+                headers.clone(),
+            ),
             references: PhysicalReferenceAuthority::for_canonical_physical_format(),
             headers,
             storage,
             counters,
             next_root_generation: 1,
+            store_identity,
         }
+    }
+
+    pub const fn store_identity(&self) -> &PhysicalStoreIdentity {
+        &self.store_identity
     }
 
     pub(crate) fn ensure_admitted_reference(

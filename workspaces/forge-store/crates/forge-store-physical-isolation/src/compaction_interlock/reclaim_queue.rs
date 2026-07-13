@@ -16,12 +16,18 @@ pub struct DrainedCompactionReclaim {
 }
 
 impl CompactionDeferredReclaimQueue {
+    const OWNER_CASE: super::CompactionOwnerCase = super::CompactionOwnerCase::issued_by_owner(
+        super::CompactionOwnerCaseId::owned("physical.compaction.defer_reclaim"),
+        super::CompactionCutoverState::PublicationCommitted,
+        super::CompactionCutoverState::ReclaimDeferred,
+    );
+
     pub const fn cutover_state(&self) -> super::CompactionCutoverState {
         super::CompactionCutoverState::ReclaimDeferred
     }
 
-    pub const fn cutover_transition(&self) -> super::CompactionCutoverTransition {
-        super::CompactionCutoverTransitionKind::DeferReclaim.transition()
+    pub const fn owner_case(&self) -> super::CompactionOwnerCase {
+        Self::OWNER_CASE
     }
 
     pub fn admit(
@@ -92,12 +98,18 @@ impl CompactionDeferredReclaimQueue {
 }
 
 impl DrainedCompactionReclaim {
+    const OWNER_CASE: super::CompactionOwnerCase = super::CompactionOwnerCase::issued_by_owner(
+        super::CompactionOwnerCaseId::owned("physical.compaction.drain_reclaim_after_read_release"),
+        super::CompactionCutoverState::ReclaimDeferred,
+        super::CompactionCutoverState::Reclaimed,
+    );
+
     pub const fn cutover_state(&self) -> super::CompactionCutoverState {
         super::CompactionCutoverState::Reclaimed
     }
 
-    pub const fn cutover_transition(&self) -> super::CompactionCutoverTransition {
-        super::CompactionCutoverTransitionKind::DrainReclaimAfterReadRelease.transition()
+    pub const fn owner_case(&self) -> super::CompactionOwnerCase {
+        Self::OWNER_CASE
     }
 
     pub const fn released(&self) -> ReleasedOldReachability {
@@ -107,4 +119,12 @@ impl DrainedCompactionReclaim {
     pub const fn counters(&self) -> CompactionReadInterlockCounters {
         self.counters
     }
+}
+
+pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCase> {
+    [
+        CompactionDeferredReclaimQueue::OWNER_CASE,
+        DrainedCompactionReclaim::OWNER_CASE,
+    ]
+    .into_iter()
 }

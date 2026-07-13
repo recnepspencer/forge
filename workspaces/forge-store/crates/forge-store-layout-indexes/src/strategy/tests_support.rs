@@ -1,10 +1,10 @@
 use crate::strategy::registry::{
-    layout_admission_registry, S8LayoutAdmissionRequest, S8LayoutRequestedCapability,
+    layout_admission_registry, LayoutAdmissionRequest, LayoutRequestedCapability,
 };
-use crate::strategy::{S8AdmittedLayoutStrategy, S8LayoutStrategyFamily};
+use crate::strategy::{AdmittedLayoutStrategy, LayoutStrategyFamily};
 use crate::{
-    layout_declarations, ArtifactFamilyAccessLane, ArtifactFamilyLifecycleAdmission,
-    CanonicalKeyBytes, PhysicalKeyDomainWitness,
+    layout_declarations, AdmittedPhysicalArtifactFamily, AdmittedPhysicalKeyDomain,
+    ArtifactFamilyAccessLane, CanonicalKeyBytes,
 };
 use forge_foundational::{aspects, AspectContract, AspectValue, InternedString, ScalarAspectType};
 use forge_proof::TransitionOutcome;
@@ -31,31 +31,57 @@ pub(crate) fn admit_strategy_scope(
     tenant_scope: StoreTenantScope,
     authenticity: StoreAuthenticityRequirement,
     custody: StoreCustodyPosture,
-) -> (ArtifactFamilyLifecycleAdmission, PhysicalKeyDomainWitness) {
-    let security_scope = admitted_scope(key_scope, tenant_scope, authenticity, custody);
-    let declaration = layout_declarations().declaration(family_id).unwrap();
-    let classification = layout_declarations().classify_family(declaration);
-    let authority = layout_declarations()
-        .require_production_authority(classification)
-        .unwrap();
-    let lifecycle = layout_declarations()
-        .require_strategy_lifecycle(authority)
-        .unwrap();
-    let scope = layout_declarations()
-        .require_scope_partition(
-            layout_declarations().declare_derived_accuracy_class(
-                layout_declarations().declare_authority_role(classification),
-            ),
-            security_scope.witnesses(),
-        )
-        .unwrap();
-    let key_domain = layout_declarations()
-        .declare_physical_key_domain(scope)
-        .unwrap();
-    (lifecycle, key_domain)
+) -> (AdmittedPhysicalArtifactFamily, AdmittedPhysicalKeyDomain) {
+    admit_strategy_scope_for_store(
+        family_id,
+        key_scope,
+        tenant_scope,
+        authenticity,
+        custody,
+        strategy_store_authority_key(),
+    )
 }
 
-pub(crate) fn admit_btree_page_strategy() -> S8AdmittedLayoutStrategy {
+pub(crate) fn strategy_test_store_identity() -> forge_store_physical_format::PhysicalStoreIdentity {
+    let key = forge_foundational::aspects()
+        .vocabulary()
+        .key(strategy_store_authority_key())
+        .expect("strategy test Store identity key");
+    forge_store_physical_format::PhysicalStoreIdentity::from_aspect_identity(
+        StoreAspectIdentity::from_aspect_key(key),
+    )
+}
+
+const fn strategy_store_authority_key() -> &'static str {
+    "store.new.strategy"
+}
+
+pub(crate) fn admit_strategy_scope_for_store(
+    family_id: DurableArtifactFamilyId,
+    key_scope: StoreKeyScope,
+    tenant_scope: StoreTenantScope,
+    authenticity: StoreAuthenticityRequirement,
+    custody: StoreCustodyPosture,
+    store_authority_key: &str,
+) -> (AdmittedPhysicalArtifactFamily, AdmittedPhysicalKeyDomain) {
+    let security_scope = admitted_scope(
+        key_scope,
+        tenant_scope,
+        authenticity,
+        custody,
+        store_authority_key,
+    );
+    let declaration = layout_declarations().declaration(family_id).unwrap();
+    let family = layout_declarations()
+        .admit_physical_artifact_family(declaration, security_scope.witnesses())
+        .unwrap();
+    let key_domain = layout_declarations()
+        .admit_physical_key_domain(family, security_scope.witnesses())
+        .unwrap();
+    (family, key_domain)
+}
+
+pub(crate) fn admit_btree_page_strategy() -> AdmittedLayoutStrategy {
     let (lifecycle, key_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
@@ -66,18 +92,18 @@ pub(crate) fn admit_btree_page_strategy() -> S8AdmittedLayoutStrategy {
         StoreCustodyPosture::InternalStoreCustody,
     );
     layout_admission_registry()
-        .admit(S8LayoutAdmissionRequest::new(
+        .admit(LayoutAdmissionRequest::from_admitted(
             lifecycle,
             key_domain,
-            S8LayoutStrategyFamily::BaselineBTreeRange,
-            S8LayoutRequestedCapability::point_lookup(),
+            LayoutStrategyFamily::BaselineBTreeRange,
+            LayoutRequestedCapability::point_lookup(),
             ArtifactFamilyAccessLane::HotPath,
         ))
         .unwrap()
         .admitted_strategy()
 }
 
-pub(crate) fn admit_lsm_wal_strategy() -> S8AdmittedLayoutStrategy {
+pub(crate) fn admit_lsm_wal_strategy() -> AdmittedLayoutStrategy {
     let (lifecycle, key_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PublicationWalIntent,
         StoreKeyScope::WalCheckpointEnvelope,
@@ -88,15 +114,63 @@ pub(crate) fn admit_lsm_wal_strategy() -> S8AdmittedLayoutStrategy {
         StoreCustodyPosture::InternalStoreCustody,
     );
     layout_admission_registry()
-        .admit(S8LayoutAdmissionRequest::new(
+        .admit(LayoutAdmissionRequest::from_admitted(
             lifecycle,
             key_domain,
-            S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
-            S8LayoutRequestedCapability::point_lookup(),
+            LayoutStrategyFamily::BaselineLsmWriteOptimized,
+            LayoutRequestedCapability::point_lookup(),
             ArtifactFamilyAccessLane::HotPath,
         ))
         .unwrap()
         .admitted_strategy()
+}
+
+pub(crate) fn admit_persisted_lsm_strategy() -> AdmittedLayoutStrategy {
+    let (family, key_domain) = admit_persisted_lsm_scope();
+    layout_admission_registry()
+        .admit(LayoutAdmissionRequest::from_admitted(
+            family,
+            key_domain,
+            LayoutStrategyFamily::BaselineLsmWriteOptimized,
+            LayoutRequestedCapability::point_lookup(),
+            ArtifactFamilyAccessLane::HotPath,
+        ))
+        .unwrap()
+        .admitted_strategy()
+}
+
+pub(crate) fn admit_persisted_lsm_scope(
+) -> (AdmittedPhysicalArtifactFamily, AdmittedPhysicalKeyDomain) {
+    let security =
+        forge_store_security::admitted_store_wal_checkpoint_security_scope_for_layout_partition_test();
+    let declaration = layout_declarations()
+        .declaration(DurableArtifactFamilyId::PublicationWalIntent)
+        .unwrap();
+    let family = layout_declarations()
+        .admit_physical_artifact_family(declaration, security.witnesses())
+        .unwrap();
+    let key_domain = layout_declarations()
+        .admit_physical_key_domain(family, security.witnesses())
+        .unwrap();
+    (family, key_domain)
+}
+
+pub(crate) fn persisted_lsm_materialization(
+    family: AdmittedPhysicalArtifactFamily,
+    catalog: &crate::BootstrapCatalogReadAdmission,
+) -> (
+    crate::AdmittedLayoutMaterialization,
+    crate::BaselineLsmLookupSource,
+) {
+    let replacement =
+        forge_store_test_support::harness::execute_baseline_lsm_membership_replacement_fixture();
+    let source = crate::lsm_strategy()
+        .readmit_lookup_source(family, &replacement)
+        .expect("persisted LSM membership must readmit under its exact Store family");
+    let materialization = crate::access_planning()
+        .admit_lsm_lookup_materialization(family, catalog, &source)
+        .expect("persisted LSM owner source must admit exact materialization");
+    (materialization, source)
 }
 
 pub(crate) fn admitted_page_key_bytes(segment: u64, page: u64) -> CanonicalKeyBytes {
@@ -129,8 +203,7 @@ pub(crate) fn admitted_wal_key_bytes(sequence: u64) -> CanonicalKeyBytes {
         .unwrap()
 }
 
-pub(crate) fn root_manifest_scope() -> (ArtifactFamilyLifecycleAdmission, PhysicalKeyDomainWitness)
-{
+pub(crate) fn root_manifest_scope() -> (AdmittedPhysicalArtifactFamily, AdmittedPhysicalKeyDomain) {
     admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalRootManifest,
         StoreKeyScope::StoreManagedRoot,
@@ -145,8 +218,9 @@ fn admitted_scope(
     tenant_scope: StoreTenantScope,
     authenticity_requirement: StoreAuthenticityRequirement,
     custody_posture: StoreCustodyPosture,
+    store_authority_key: &str,
 ) -> StoreAdmittedSecurityScope {
-    let current_authority = current_authority("store.new.strategy", "test-current");
+    let current_authority = current_authority(store_authority_key, "test-current");
     let expectation = StoreSecurityScopeAdmissionExpectation::new(
         key_scope,
         tenant_scope,

@@ -26,7 +26,10 @@ pub(super) fn with_protected_payload_view(
 }
 
 pub(super) fn page_payload_with_record(payload: &[u8]) -> Vec<u8> {
-    let records = forge_store_physical_format::PhysicalPageRecordAuthority::for_canonical_physical_format(header_authority());
+    let records =
+        forge_store_physical_format::PhysicalPageRecordAuthority::for_canonical_physical_format(
+            header_authority(),
+        );
     let cell = page_cell(1, 2, 7);
     let empty = page_bytes(7, &[]);
     let header = records
@@ -54,10 +57,12 @@ pub(super) fn root_with_slot(
     slot: u64,
     generation: u64,
 ) -> PhysicalRootManifest {
-    forge_store_physical_format::PhysicalManifestUniverseBuilder::for_canonical_physical_format(root_publication(99))
-        .segment(segment_cell(segment))
-        .ordinary_page(slot_cell(segment, page, slot, generation))
-        .publish()
+    forge_store_physical_format::PhysicalManifestUniverseBuilder::for_canonical_physical_format(
+        root_publication(99),
+    )
+    .segment(segment_cell(segment))
+    .ordinary_page(slot_cell(segment, page, slot, generation))
+    .publish()
 }
 
 pub(super) fn validation(
@@ -147,7 +152,9 @@ fn admit_payload_frame(
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+    )
 }
 
 fn segment_cell(segment: u64) -> forge_store_physical_format::SegmentGenerationCell {

@@ -1,34 +1,24 @@
-use super::contract::{S8AccessShapeContract, S8ExpectedCounterClass};
-use super::denial::S8AccessShapeUnsupportedDenial;
-use super::detail::{S8AccessShapeDetail, S8GroupedPrefixBasis, S8PrefixBasis};
-use super::lane::S8AccessLaneClassification;
-use crate::materialization::S8LayoutCoverageWitness;
+use super::contract::{AccessShapeContract, ExpectedCounterClass};
+#[cfg(test)]
+use super::detail::GroupedPrefixBasis;
+use super::detail::{AccessShapeDetail, PrefixBasis};
+use super::lane::AccessLaneClassification;
 
-pub(crate) fn prefix_lookup(
-    coverage: S8LayoutCoverageWitness,
-) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
-    let completeness = coverage
-        .require_exact_prefix_completeness()
-        .map_err(S8AccessShapeUnsupportedDenial::MaterializationDenied)?;
-    Ok(S8AccessShapeContract::exact_read(
-        S8AccessShapeDetail::PrefixLookup(S8PrefixBasis::CanonicalPrefixBounds),
-        S8AccessLaneClassification::Foreground,
-        S8ExpectedCounterClass::PrefixLookup,
-        completeness.coverage(),
-    ))
+pub(crate) const fn prefix_lookup_declaration() -> AccessShapeContract {
+    AccessShapeContract::exact_read_declaration(
+        AccessShapeDetail::PrefixLookup(PrefixBasis::CanonicalPrefixBounds),
+        AccessLaneClassification::Foreground,
+        ExpectedCounterClass::PrefixLookup,
+    )
 }
 
-pub(crate) fn grouped_prefix_lookup(
-    coverage: S8LayoutCoverageWitness,
-    basis: S8GroupedPrefixBasis,
-) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
-    let completeness = coverage
-        .require_exact_prefix_completeness()
-        .map_err(S8AccessShapeUnsupportedDenial::MaterializationDenied)?;
-    Ok(S8AccessShapeContract::exact_read(
-        S8AccessShapeDetail::GroupedPrefixLookup(basis),
-        S8AccessLaneClassification::Foreground,
-        S8ExpectedCounterClass::GroupedPrefixLookup,
-        completeness.coverage(),
-    ))
+#[cfg(test)]
+pub(crate) const fn grouped_prefix_lookup_declaration(
+    basis: GroupedPrefixBasis,
+) -> AccessShapeContract {
+    AccessShapeContract::exact_read_declaration(
+        AccessShapeDetail::GroupedPrefixLookup(basis),
+        AccessLaneClassification::Foreground,
+        ExpectedCounterClass::GroupedPrefixLookup,
+    )
 }

@@ -1,9 +1,9 @@
-use crate::blob_basis::S8BlobGenerationBasis;
+use crate::blob_basis::BlobGenerationBasis;
 use forge_store_physical_format::PhysicalEpoch;
 use forge_store_recovery_physics::{CheckpointCoveredLsnRange, LogSequenceNumber};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8CoverageBasisKind {
+pub enum CoverageBasisKind {
     WalLsn,
     RootEpoch,
     BlobGeneration,
@@ -11,14 +11,14 @@ pub enum S8CoverageBasisKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum S8PhysicalCoverageBasis {
+pub enum PhysicalCoverageBasis {
     WalLsn(LogSequenceNumber),
     RootEpoch(PhysicalEpoch),
-    BlobGeneration(S8BlobGenerationBasis),
+    BlobGeneration(BlobGenerationBasis),
     CheckpointFrontier(CheckpointCoveredLsnRange),
 }
 
-impl S8PhysicalCoverageBasis {
+impl PhysicalCoverageBasis {
     pub const fn wal_lsn(lsn: LogSequenceNumber) -> Self {
         Self::WalLsn(lsn)
     }
@@ -27,7 +27,7 @@ impl S8PhysicalCoverageBasis {
         Self::RootEpoch(epoch)
     }
 
-    pub const fn blob_generation(generation: S8BlobGenerationBasis) -> Self {
+    pub const fn blob_generation(generation: BlobGenerationBasis) -> Self {
         Self::BlobGeneration(generation)
     }
 
@@ -35,29 +35,29 @@ impl S8PhysicalCoverageBasis {
         Self::CheckpointFrontier(range)
     }
 
-    pub const fn basis_kind(&self) -> S8CoverageBasisKind {
+    pub const fn basis_kind(&self) -> CoverageBasisKind {
         match self {
-            Self::WalLsn(_) => S8CoverageBasisKind::WalLsn,
-            Self::RootEpoch(_) => S8CoverageBasisKind::RootEpoch,
-            Self::BlobGeneration(_) => S8CoverageBasisKind::BlobGeneration,
-            Self::CheckpointFrontier(_) => S8CoverageBasisKind::CheckpointFrontier,
+            Self::WalLsn(_) => CoverageBasisKind::WalLsn,
+            Self::RootEpoch(_) => CoverageBasisKind::RootEpoch,
+            Self::BlobGeneration(_) => CoverageBasisKind::BlobGeneration,
+            Self::CheckpointFrontier(_) => CoverageBasisKind::CheckpointFrontier,
         }
     }
 
-    pub fn watermark(&self) -> S8LayoutWatermark {
-        S8LayoutWatermark::from_physical_basis(self)
+    pub fn watermark(&self) -> LayoutWatermark {
+        LayoutWatermark::from_physical_basis(self)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutWatermark {
-    basis_kind: S8CoverageBasisKind,
+pub struct LayoutWatermark {
+    basis_kind: CoverageBasisKind,
     start_inclusive: u64,
     end_exclusive: u64,
 }
 
-impl S8LayoutWatermark {
-    pub(crate) const fn exact(basis_kind: S8CoverageBasisKind, value: u64) -> Self {
+impl LayoutWatermark {
+    pub(crate) const fn exact(basis_kind: CoverageBasisKind, value: u64) -> Self {
         Self {
             basis_kind,
             start_inclusive: value,
@@ -66,7 +66,7 @@ impl S8LayoutWatermark {
     }
 
     pub(crate) const fn ranged(
-        basis_kind: S8CoverageBasisKind,
+        basis_kind: CoverageBasisKind,
         start_inclusive: u64,
         end_exclusive: u64,
     ) -> Self {
@@ -77,26 +77,24 @@ impl S8LayoutWatermark {
         }
     }
 
-    pub fn from_physical_basis(basis: &S8PhysicalCoverageBasis) -> Self {
+    pub fn from_physical_basis(basis: &PhysicalCoverageBasis) -> Self {
         match basis {
-            S8PhysicalCoverageBasis::WalLsn(lsn) => {
-                Self::exact(S8CoverageBasisKind::WalLsn, lsn.get())
+            PhysicalCoverageBasis::WalLsn(lsn) => Self::exact(CoverageBasisKind::WalLsn, lsn.get()),
+            PhysicalCoverageBasis::RootEpoch(epoch) => {
+                Self::exact(CoverageBasisKind::RootEpoch, epoch.get())
             }
-            S8PhysicalCoverageBasis::RootEpoch(epoch) => {
-                Self::exact(S8CoverageBasisKind::RootEpoch, epoch.get())
+            PhysicalCoverageBasis::BlobGeneration(generation) => {
+                Self::exact(CoverageBasisKind::BlobGeneration, generation.sequence())
             }
-            S8PhysicalCoverageBasis::BlobGeneration(generation) => {
-                Self::exact(S8CoverageBasisKind::BlobGeneration, generation.sequence())
-            }
-            S8PhysicalCoverageBasis::CheckpointFrontier(range) => Self::ranged(
-                S8CoverageBasisKind::CheckpointFrontier,
+            PhysicalCoverageBasis::CheckpointFrontier(range) => Self::ranged(
+                CoverageBasisKind::CheckpointFrontier,
                 range.range().start().get(),
                 range.range().end_exclusive().get(),
             ),
         }
     }
 
-    pub const fn basis_kind(self) -> S8CoverageBasisKind {
+    pub const fn basis_kind(self) -> CoverageBasisKind {
         self.basis_kind
     }
 

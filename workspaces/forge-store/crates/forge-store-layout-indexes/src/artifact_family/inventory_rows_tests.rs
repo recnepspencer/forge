@@ -1,9 +1,9 @@
-use super::S8ArtifactFamilyInventory;
+use crate::catalog::ArtifactFamilyInventory;
 use forge_store_contracts::DurableArtifactFamilyId as Family;
 
 #[test]
 fn canonical_inventory_preserves_family_order() {
-    let actual: Vec<_> = S8ArtifactFamilyInventory::current()
+    let actual: Vec<_> = ArtifactFamilyInventory::current()
         .rows()
         .iter()
         .map(|row| row.declaration().family_id())

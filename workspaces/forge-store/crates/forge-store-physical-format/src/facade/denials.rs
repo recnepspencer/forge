@@ -6,6 +6,7 @@ use crate::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlatformPhysicalFacadeDenialKind {
     HandoffReadinessRejected,
+    StoreIdentityMismatch,
     MissingPhysicalRecord,
     MissingPhysicalRoot,
     AmbiguousRootPublication,

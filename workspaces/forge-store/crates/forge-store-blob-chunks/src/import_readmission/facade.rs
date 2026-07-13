@@ -36,6 +36,7 @@ impl BlobImportReadmissionAuthority {
             verified.witness_basis,
             BlobImportReadmissionReceipt::new(
                 security_metadata,
+                self.current_authority().authority_identity(),
                 counters.with_readmitted_chunks(verified.local_chunks),
             ),
         ))

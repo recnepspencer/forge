@@ -1,38 +1,36 @@
 use crate::catalog::PhysicalArtifactFamily;
-use crate::materialization::{S8LayoutCoverageWitness, S8MaterializationDenial};
-use crate::strategy::{
-    S8LayoutStrategyFamily, S8StrategyDenial, S8StrategyRebuildSourceRequirement,
-};
-use crate::S8LayoutQuarantineWitness;
+use crate::materialization::{LayoutCoverageWitness, MaterializationDenial};
+use crate::strategy::{LayoutStrategyFamily, StrategyDenial, StrategyRebuildSourceRequirement};
+use crate::LayoutQuarantineWitness;
 
-use super::parity::S8DerivedIndexParityWitness;
-use super::rebuild::S8DerivedIndexRebuildReceipt;
-use super::source::S8DerivedIndexRebuildSourceInput;
+use super::parity::DerivedIndexParityWitness;
+use super::rebuild::DerivedIndexRebuildReceipt;
+use super::source::DerivedIndexRebuildSourceInput;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum S8DerivedIndexRebuildDenied {
+pub enum DerivedIndexRebuildDenied {
     StrategyDenied {
-        denial: S8StrategyDenial,
+        denial: StrategyDenial,
     },
     SourceInputIsNotAuthority {
-        source: S8DerivedIndexRebuildSourceInput,
+        source: DerivedIndexRebuildSourceInput,
     },
     CoverageDenied {
-        denial: S8MaterializationDenial,
+        denial: MaterializationDenial,
     },
     RebuildShapeRequired {
-        family: S8LayoutStrategyFamily,
+        family: LayoutStrategyFamily,
     },
     SourceCoverageDoesNotMatchRebuildShape {
-        expected: S8LayoutCoverageWitness,
-        actual: S8LayoutCoverageWitness,
+        expected: LayoutCoverageWitness,
+        actual: LayoutCoverageWitness,
     },
     SourceFamilyMismatch {
         expected: PhysicalArtifactFamily,
         actual: PhysicalArtifactFamily,
     },
     SourceArtifactDoesNotMatchStrategy {
-        required: S8StrategyRebuildSourceRequirement,
+        required: StrategyRebuildSourceRequirement,
         source: &'static str,
     },
     SourceParityBasisDoesNotMatchAuthorityArtifact {
@@ -47,119 +45,119 @@ pub enum S8DerivedIndexRebuildDenied {
     ParityValueIdentityMismatch,
     ParityOrderingMismatch,
     ParityCoverageMismatch {
-        expected: S8LayoutCoverageWitness,
-        actual: S8LayoutCoverageWitness,
+        expected: LayoutCoverageWitness,
+        actual: LayoutCoverageWitness,
     },
     ParityCostEnvelopeMismatch,
     ParityCounterShapeMismatch,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum S8DerivedIndexRebuildCase {
-    Rebuilt(S8DerivedIndexRebuildReceipt),
-    Quarantined(S8LayoutQuarantineWitness),
-    Denied(S8DerivedIndexRebuildDenied),
+enum DerivedIndexRebuildCase {
+    Rebuilt(DerivedIndexRebuildReceipt),
+    Quarantined(LayoutQuarantineWitness),
+    Denied(DerivedIndexRebuildDenied),
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct S8DerivedIndexRebuildOutcome {
-    case: S8DerivedIndexRebuildCase,
+pub struct DerivedIndexRebuildOutcome {
+    case: DerivedIndexRebuildCase,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8DerivedIndexRebuildView<'a> {
-    Rebuilt(&'a S8DerivedIndexRebuildReceipt),
-    Quarantined(&'a S8LayoutQuarantineWitness),
-    Denied(&'a S8DerivedIndexRebuildDenied),
+pub enum DerivedIndexRebuildView<'a> {
+    Rebuilt(&'a DerivedIndexRebuildReceipt),
+    Quarantined(&'a LayoutQuarantineWitness),
+    Denied(&'a DerivedIndexRebuildDenied),
 }
 
-impl S8DerivedIndexRebuildOutcome {
-    pub(crate) fn rebuilt(value: S8DerivedIndexRebuildReceipt) -> Self {
-        Self::from_owner_payload(S8DerivedIndexRebuildCase::Rebuilt(value))
+impl DerivedIndexRebuildOutcome {
+    pub(crate) fn rebuilt(value: DerivedIndexRebuildReceipt) -> Self {
+        Self::from_owner_payload(DerivedIndexRebuildCase::Rebuilt(value))
     }
 
-    pub(crate) fn quarantined(value: S8LayoutQuarantineWitness) -> Self {
-        Self::from_owner_payload(S8DerivedIndexRebuildCase::Quarantined(value))
+    pub(crate) fn quarantined(value: LayoutQuarantineWitness) -> Self {
+        Self::from_owner_payload(DerivedIndexRebuildCase::Quarantined(value))
     }
 
-    pub(crate) fn denied(value: S8DerivedIndexRebuildDenied) -> Self {
-        Self::from_owner_payload(S8DerivedIndexRebuildCase::Denied(value))
+    pub(crate) fn denied(value: DerivedIndexRebuildDenied) -> Self {
+        Self::from_owner_payload(DerivedIndexRebuildCase::Denied(value))
     }
 
-    fn from_owner_payload(case: S8DerivedIndexRebuildCase) -> Self {
+    fn from_owner_payload(case: DerivedIndexRebuildCase) -> Self {
         Self { case }
     }
 
-    pub fn view(&self) -> S8DerivedIndexRebuildView<'_> {
+    pub fn view(&self) -> DerivedIndexRebuildView<'_> {
         match &self.case {
-            S8DerivedIndexRebuildCase::Rebuilt(value) => S8DerivedIndexRebuildView::Rebuilt(value),
-            S8DerivedIndexRebuildCase::Quarantined(value) => {
-                S8DerivedIndexRebuildView::Quarantined(value)
+            DerivedIndexRebuildCase::Rebuilt(value) => DerivedIndexRebuildView::Rebuilt(value),
+            DerivedIndexRebuildCase::Quarantined(value) => {
+                DerivedIndexRebuildView::Quarantined(value)
             }
-            S8DerivedIndexRebuildCase::Denied(value) => S8DerivedIndexRebuildView::Denied(value),
+            DerivedIndexRebuildCase::Denied(value) => DerivedIndexRebuildView::Denied(value),
         }
     }
 
-    fn into_owner_payload(self) -> S8DerivedIndexRebuildCase {
+    fn into_owner_payload(self) -> DerivedIndexRebuildCase {
         self.case
     }
 }
 
-impl S8DerivedIndexRebuildOutcome {
-    pub fn into_rebuilt(self) -> Result<S8DerivedIndexRebuildReceipt, Self> {
+impl DerivedIndexRebuildOutcome {
+    pub fn into_rebuilt(self) -> Result<DerivedIndexRebuildReceipt, Self> {
         match self.into_owner_payload() {
-            S8DerivedIndexRebuildCase::Rebuilt(value) => Ok(value),
+            DerivedIndexRebuildCase::Rebuilt(value) => Ok(value),
             case => Err(Self::from_owner_payload(case)),
         }
     }
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum S8DerivedIndexParityCase {
-    Verified(S8DerivedIndexParityWitness),
-    Denied(S8DerivedIndexRebuildDenied),
+enum DerivedIndexParityCase {
+    Verified(DerivedIndexParityWitness),
+    Denied(DerivedIndexRebuildDenied),
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct S8DerivedIndexParityOutcome {
-    case: S8DerivedIndexParityCase,
+pub struct DerivedIndexParityOutcome {
+    case: DerivedIndexParityCase,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8DerivedIndexParityView<'a> {
-    Verified(&'a S8DerivedIndexParityWitness),
-    Denied(&'a S8DerivedIndexRebuildDenied),
+pub enum DerivedIndexParityView<'a> {
+    Verified(&'a DerivedIndexParityWitness),
+    Denied(&'a DerivedIndexRebuildDenied),
 }
 
-impl S8DerivedIndexParityOutcome {
-    pub(crate) fn verified(value: S8DerivedIndexParityWitness) -> Self {
-        Self::from_owner_payload(S8DerivedIndexParityCase::Verified(value))
+impl DerivedIndexParityOutcome {
+    pub(crate) fn verified(value: DerivedIndexParityWitness) -> Self {
+        Self::from_owner_payload(DerivedIndexParityCase::Verified(value))
     }
 
-    pub(crate) fn denied(value: S8DerivedIndexRebuildDenied) -> Self {
-        Self::from_owner_payload(S8DerivedIndexParityCase::Denied(value))
+    pub(crate) fn denied(value: DerivedIndexRebuildDenied) -> Self {
+        Self::from_owner_payload(DerivedIndexParityCase::Denied(value))
     }
 
-    fn from_owner_payload(case: S8DerivedIndexParityCase) -> Self {
+    fn from_owner_payload(case: DerivedIndexParityCase) -> Self {
         Self { case }
     }
 
-    pub fn view(&self) -> S8DerivedIndexParityView<'_> {
+    pub fn view(&self) -> DerivedIndexParityView<'_> {
         match &self.case {
-            S8DerivedIndexParityCase::Verified(value) => S8DerivedIndexParityView::Verified(value),
-            S8DerivedIndexParityCase::Denied(value) => S8DerivedIndexParityView::Denied(value),
+            DerivedIndexParityCase::Verified(value) => DerivedIndexParityView::Verified(value),
+            DerivedIndexParityCase::Denied(value) => DerivedIndexParityView::Denied(value),
         }
     }
 
-    fn into_owner_payload(self) -> S8DerivedIndexParityCase {
+    fn into_owner_payload(self) -> DerivedIndexParityCase {
         self.case
     }
 }
 
-impl S8DerivedIndexParityOutcome {
-    pub fn into_verified(self) -> Result<S8DerivedIndexParityWitness, Self> {
+impl DerivedIndexParityOutcome {
+    pub fn into_verified(self) -> Result<DerivedIndexParityWitness, Self> {
         match self.into_owner_payload() {
-            S8DerivedIndexParityCase::Verified(value) => Ok(value),
+            DerivedIndexParityCase::Verified(value) => Ok(value),
             case => Err(Self::from_owner_payload(case)),
         }
     }

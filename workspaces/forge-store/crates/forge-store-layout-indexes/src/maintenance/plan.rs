@@ -1,106 +1,121 @@
-use crate::access::shape::S8AccessShapeContract;
+use crate::access::shape::AccessShapeContract;
 use crate::catalog::ArtifactFamilyLifecycleAdmission;
 use crate::keyspace::PhysicalKeyDomainWitness;
-use crate::strategy::S8LayoutStrategyFamily;
-use crate::S8LayoutCorruptionOutcome;
+use crate::strategy::LayoutStrategyFamily;
+use crate::LayoutCorruptionOutcome;
 
-use super::scope::S8DerivedIndexRebuildScope;
-use super::source::{S8DerivedIndexAuthoritySource, S8DerivedIndexRebuildSourceInput};
+use super::scope::DerivedIndexRebuildScope;
+use super::source::{DerivedIndexAuthoritySource, DerivedIndexRebuildSourceInput};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S8DerivedIndexRebuildRequest {
-    lifecycle: ArtifactFamilyLifecycleAdmission,
-    key_domain: PhysicalKeyDomainWitness,
-    strategy_family: S8LayoutStrategyFamily,
-    rebuild_shape: S8AccessShapeContract,
-    source_input: S8DerivedIndexRebuildSourceInput,
+pub struct DerivedIndexRebuildRequest {
+    admitted_family: crate::AdmittedPhysicalArtifactFamily,
+    admitted_key_domain: crate::AdmittedPhysicalKeyDomain,
+    strategy_family: LayoutStrategyFamily,
+    rebuild_shape: AccessShapeContract,
+    materialization: crate::AdmittedLayoutMaterialization,
+    source_input: DerivedIndexRebuildSourceInput,
 }
 
-impl S8DerivedIndexRebuildRequest {
+impl DerivedIndexRebuildRequest {
     pub const fn new(
-        lifecycle: ArtifactFamilyLifecycleAdmission,
-        key_domain: PhysicalKeyDomainWitness,
-        strategy_family: S8LayoutStrategyFamily,
-        rebuild_shape: S8AccessShapeContract,
-        source_input: S8DerivedIndexRebuildSourceInput,
+        admitted_family: crate::AdmittedPhysicalArtifactFamily,
+        admitted_key_domain: crate::AdmittedPhysicalKeyDomain,
+        strategy_family: LayoutStrategyFamily,
+        rebuild_shape: AccessShapeContract,
+        materialization: crate::AdmittedLayoutMaterialization,
+        source_input: DerivedIndexRebuildSourceInput,
     ) -> Self {
         Self {
-            lifecycle,
-            key_domain,
+            admitted_family,
+            admitted_key_domain,
             strategy_family,
             rebuild_shape,
+            materialization,
             source_input,
         }
     }
 
     pub const fn lifecycle(&self) -> ArtifactFamilyLifecycleAdmission {
-        self.lifecycle
+        self.admitted_family.lifecycle()
     }
 
     pub const fn key_domain(&self) -> PhysicalKeyDomainWitness {
-        self.key_domain
+        self.admitted_key_domain.witness()
     }
 
-    pub const fn strategy_family(&self) -> S8LayoutStrategyFamily {
+    pub const fn admitted_family(&self) -> crate::AdmittedPhysicalArtifactFamily {
+        self.admitted_family
+    }
+
+    pub const fn admitted_key_domain(&self) -> crate::AdmittedPhysicalKeyDomain {
+        self.admitted_key_domain
+    }
+
+    pub const fn strategy_family(&self) -> LayoutStrategyFamily {
         self.strategy_family
     }
 
-    pub const fn rebuild_shape(&self) -> S8AccessShapeContract {
+    pub const fn rebuild_shape(&self) -> AccessShapeContract {
         self.rebuild_shape
     }
 
-    pub fn source_input(&self) -> &S8DerivedIndexRebuildSourceInput {
+    pub const fn materialization(&self) -> &crate::AdmittedLayoutMaterialization {
+        &self.materialization
+    }
+
+    pub fn source_input(&self) -> &DerivedIndexRebuildSourceInput {
         &self.source_input
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8DerivedIndexResultIdentity {
+pub enum DerivedIndexResultIdentity {
     RemainsDerivedProjection,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct S8DerivedIndexRebuildPlan {
-    request: S8DerivedIndexRebuildRequest,
-    source_authority: S8DerivedIndexAuthoritySource,
-    rebuild_scope: S8DerivedIndexRebuildScope,
-    corruption: S8LayoutCorruptionOutcome,
-    result_identity: S8DerivedIndexResultIdentity,
+pub struct DerivedIndexRebuildPlan {
+    request: DerivedIndexRebuildRequest,
+    source_authority: DerivedIndexAuthoritySource,
+    rebuild_scope: DerivedIndexRebuildScope,
+    corruption: LayoutCorruptionOutcome,
+    result_identity: DerivedIndexResultIdentity,
 }
 
-impl S8DerivedIndexRebuildPlan {
+impl DerivedIndexRebuildPlan {
     pub(crate) const fn new(
-        request: S8DerivedIndexRebuildRequest,
-        source_authority: S8DerivedIndexAuthoritySource,
-        rebuild_scope: S8DerivedIndexRebuildScope,
-        corruption: S8LayoutCorruptionOutcome,
+        request: DerivedIndexRebuildRequest,
+        source_authority: DerivedIndexAuthoritySource,
+        rebuild_scope: DerivedIndexRebuildScope,
+        corruption: LayoutCorruptionOutcome,
     ) -> Self {
         Self {
             request,
             source_authority,
             rebuild_scope,
             corruption,
-            result_identity: S8DerivedIndexResultIdentity::RemainsDerivedProjection,
+            result_identity: DerivedIndexResultIdentity::RemainsDerivedProjection,
         }
     }
 
-    pub const fn request(&self) -> &S8DerivedIndexRebuildRequest {
+    pub const fn request(&self) -> &DerivedIndexRebuildRequest {
         &self.request
     }
 
-    pub(crate) const fn source_authority(&self) -> &S8DerivedIndexAuthoritySource {
+    pub(crate) const fn source_authority(&self) -> &DerivedIndexAuthoritySource {
         &self.source_authority
     }
 
-    pub const fn rebuild_scope(&self) -> S8DerivedIndexRebuildScope {
-        self.rebuild_scope
+    pub const fn rebuild_scope(&self) -> &DerivedIndexRebuildScope {
+        &self.rebuild_scope
     }
 
-    pub const fn corruption(&self) -> &S8LayoutCorruptionOutcome {
+    pub const fn corruption(&self) -> &LayoutCorruptionOutcome {
         &self.corruption
     }
 
-    pub const fn result_identity(&self) -> S8DerivedIndexResultIdentity {
+    pub const fn result_identity(&self) -> DerivedIndexResultIdentity {
         self.result_identity
     }
 }

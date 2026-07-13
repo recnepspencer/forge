@@ -188,15 +188,21 @@ pub fn real_reachability_for_region(
     )
     .unwrap();
     let removal = proof.admit_reachability_removal().unwrap();
-    reachability_from_physical_isolation_removal(removal.lower_for_io_qos_reclaim_policy(region).unwrap(), region)
-        .unwrap()
+    reachability_from_physical_isolation_removal(
+        removal.lower_for_io_qos_reclaim_policy(region).unwrap(),
+        region,
+    )
+    .unwrap()
 }
 
 pub fn reachability_from_physical_isolation_removal(
     evidence: S6ReclaimReachabilityRemovalEvidence,
     requested_region: PhysicalReclaimRegion,
 ) -> Result<ReclaimPolicyReachabilityProof, ReclaimPolicyReachabilityDenial> {
-    ReclaimPolicyReachabilityProof::from_physical_isolation_reclaim_reachability_removal(evidence, requested_region)
+    ReclaimPolicyReachabilityProof::from_physical_isolation_reclaim_reachability_removal(
+        evidence,
+        requested_region,
+    )
 }
 
 pub fn admitted_backend() -> forge_store_physical_backend::AdmittedBackendCapabilityWitness {

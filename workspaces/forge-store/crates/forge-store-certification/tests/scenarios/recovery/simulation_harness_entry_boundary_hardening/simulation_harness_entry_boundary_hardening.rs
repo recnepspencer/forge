@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod fixture;
+use forge_store_test_support::harness::recovery::closeout as fixture;
 
 use forge_store_physical_certification::{
     admit_simulation_harness_entry, ExistingSimulationHarnessInventory,

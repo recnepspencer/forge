@@ -1,4 +1,4 @@
-use crate::access_planning::S8AccessShape;
+use crate::access_planning::AccessShape;
 use forge_store_budgets::CounterEvidenceStrength;
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 
@@ -25,7 +25,7 @@ pub struct ForegroundInterferenceAccessBudget {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForegroundInterferenceLayoutReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: AccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     interference_posture: ForegroundInterferencePosture,
     declared_budget: ForegroundInterferenceAccessBudget,
@@ -37,7 +37,7 @@ pub fn project_foreground_interference(
 ) -> ForegroundInterferenceLayoutReport {
     ForegroundInterferenceLayoutReport {
         family_id: DurableArtifactFamilyId::ForegroundInterferenceRecord,
-        access_shape: S8AccessShape::PointLookup,
+        access_shape: AccessShape::PointLookup,
         rebuild_posture: DurableArtifactRebuildPosture::NoRebuild,
         interference_posture: posture_for(assessment.status()),
         declared_budget: ForegroundInterferenceAccessBudget {
@@ -53,7 +53,7 @@ impl ForegroundInterferenceLayoutReport {
         self.family_id
     }
 
-    pub const fn access_shape(&self) -> S8AccessShape {
+    pub const fn access_shape(&self) -> AccessShape {
         self.access_shape
     }
 

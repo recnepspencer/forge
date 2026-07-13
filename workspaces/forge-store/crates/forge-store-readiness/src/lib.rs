@@ -89,12 +89,12 @@ mod aspect_native_vocabulary_readiness;
 mod evidence_fields;
 #[cfg(test)]
 mod evidence_fields_tests;
-mod foundational_adoption;
 mod foundational;
+mod foundational_adoption;
 mod foundational_lanes;
-mod proof_vocabulary;
 mod physical_integrity;
 mod physical_substrate;
+mod proof_vocabulary;
 
 pub use adoption_denial::FoundationalAdoptionDenial;
 pub use aspect_native_vocabulary_readiness::{
@@ -102,23 +102,27 @@ pub use aspect_native_vocabulary_readiness::{
     StoreAspectNativeVocabularyReadiness,
 };
 pub use evidence_fields::PhysicalFoundationEvidenceField;
-pub use foundational_adoption::{
-    FoundationalAdoptionFamily, FoundationalAdoptionRow, FoundationalAdoptionStatus,
-    FoundationalVocabularyAdoptionMap, FoundationalVocabularyAdoptionMapBuilder,
-};
-pub use foundational_lanes::FoundationalPublicLaneSet;
-pub use proof_vocabulary::{FoundationalAdoptionDigest, ProofVocabularyAdoptionMap};
 pub use foundational::{
     accept_aspect_native_gate_handoff, reconstruct_aspect_native_handoff_verdict,
     reject_terminal_json_projection_as_aspect_native_handoff, AspectNativeGateHandoff,
     AspectNativeGateHandoffDenial, AspectNativeGateHandoffVerdict,
 };
+pub use foundational_adoption::{
+    FoundationalAdoptionFamily, FoundationalAdoptionRow, FoundationalAdoptionStatus,
+    FoundationalVocabularyAdoptionMap, FoundationalVocabularyAdoptionMapBuilder,
+};
+pub use foundational_lanes::FoundationalPublicLaneSet;
+pub use physical_integrity::PhysicalIntegrityReadiness;
 pub use physical_substrate::{
     close_physical_substrate_readiness, prove_physical_substrate_readiness,
     PhysicalSubstrateCloseoutReceipt,
 };
-pub use physical_substrate::{PhysicalSubstrateReadiness, PhysicalSubstrateReadinessDenial, PhysicalSubstrateReadinessDenialKind};
 pub use physical_substrate::{
-    PhysicalSubstrateReadinessFact, PhysicalSubstrateReadinessFacts, PhysicalSubstrateReadinessFactPosture,
+    PhysicalSubstrateReadiness, PhysicalSubstrateReadinessDenial,
+    PhysicalSubstrateReadinessDenialKind,
 };
-pub use physical_integrity::PhysicalIntegrityReadiness;
+pub use physical_substrate::{
+    PhysicalSubstrateReadinessFact, PhysicalSubstrateReadinessFactPosture,
+    PhysicalSubstrateReadinessFacts,
+};
+pub use proof_vocabulary::{FoundationalAdoptionDigest, ProofVocabularyAdoptionMap};

@@ -6,11 +6,11 @@ mod request;
 #[cfg(test)]
 mod tests;
 
-pub use admission::{layout_customization_boundary, S8FutureLayoutCustomizationOutcome};
-pub use capability::S8FutureLayoutCapabilityRequest;
+pub use admission::{layout_customization_boundary, FutureLayoutCustomizationOutcome};
+pub use capability::FutureLayoutCapabilityRequest;
 pub use denial::{
-    S8FutureLayoutCustomizationAdmission, S8FutureLayoutCustomizationDeferred,
-    S8FutureLayoutCustomizationDenial, S8LayoutAdmissionDenialProjection,
+    FutureLayoutCustomizationAdmission, FutureLayoutCustomizationDeferred,
+    FutureLayoutCustomizationDenial, LayoutAdmissionDenialProjection,
 };
-pub use envelope::S8FutureLayoutWorkloadEnvelope;
-pub use request::S8FutureLayoutCustomizationRequest;
+pub use envelope::FutureLayoutWorkloadEnvelope;
+pub use request::FutureLayoutCustomizationRequest;

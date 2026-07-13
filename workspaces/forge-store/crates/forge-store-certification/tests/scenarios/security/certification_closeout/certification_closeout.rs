@@ -1,12 +1,9 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
 #[path = "receipt_assertions.rs"]
 mod receipt_assertions;
+#[path = "../../../support/security/security_scope_simulation_harness/replay.rs"]
+mod replay_support;
 #[path = "../../../support/physical_isolation/interleaving_harness_support/interleaving_harness_support.rs"]
 mod s5_interleaving_harness_support;
-#[allow(dead_code)]
-#[path = "../../../support/security/security_scope_simulation_harness/support.rs"]
-mod support;
 
 use forge_foundational::{
     aspects, AspectContract, AspectKey, AspectValue,
@@ -42,7 +39,7 @@ use forge_store_test_support::{
     security_scope_replayed_custody_scenario, security_scope_stale_key_scenario,
     security_scope_wrong_tenant_scenario,
 };
-use support::{physical_replay_for_scenario, replay_scenario};
+use replay_support::{physical_replay_for_scenario, replay_scenario};
 
 #[test]
 fn certifies_closeout_from_lower_store_evidence_and_counter_receipts() {

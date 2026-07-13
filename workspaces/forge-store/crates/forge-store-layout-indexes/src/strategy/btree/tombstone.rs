@@ -1,11 +1,11 @@
-use crate::strategy::S8StrategyDenial;
+use crate::strategy::StrategyDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8BTreeTombstoneLaw {
+pub struct BTreeTombstoneLaw {
     tombstones_supported: bool,
 }
 
-impl S8BTreeTombstoneLaw {
+impl BTreeTombstoneLaw {
     pub(crate) const fn baseline_absent() -> Self {
         Self {
             tombstones_supported: false,
@@ -19,10 +19,10 @@ impl S8BTreeTombstoneLaw {
     pub const fn verify_tombstone_posture(
         self,
         tombstone_seen: bool,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         if tombstone_seen == self.tombstones_supported {
             return Ok(());
         }
-        Err(S8StrategyDenial::TombstonePostureViolation)
+        Err(StrategyDenial::TombstonePostureViolation)
     }
 }

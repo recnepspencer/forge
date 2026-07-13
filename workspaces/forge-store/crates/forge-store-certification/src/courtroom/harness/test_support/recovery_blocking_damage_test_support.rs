@@ -1,7 +1,7 @@
+use super::integrity_handoff_test_support::unresolved_authority_record;
 use super::physical_scope_admission_test_support::{
     root_with_slot, scope_membership, validation, with_checked_frame,
 };
-use super::integrity_handoff_test_support::unresolved_authority_record;
 use forge_store_physical_format::{
     CheckpointAdjacencyPosture, PhysicalReferenceScope, RootManifestIntegrityPosture,
 };

@@ -1,10 +1,6 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
 #[path = "../../../support/scheduling/reclaim_policy/support.rs"]
 mod reclaim_support;
-#[allow(dead_code)]
-#[path = "../../../support/physical_isolation/epoch_scope_and_root_kind/support.rs"]
-mod support;
+use forge_store_test_support::harness::physical_isolation::epoch_scope as support;
 
 use forge_store_physical_format::{PhysicalReclaimRegion, ReclaimedByteInterpretation};
 use forge_store_physical_isolation::{
@@ -21,8 +17,8 @@ use forge_store_tiering::ColdTierIoPosture;
 use reclaim_support::{
     admitted_backend, admitted_policy_for_region, backend_without_reclaim_posture,
     base_real_chain_request, execute_policy_with_observation, internal_security_scope,
-    reachability_from_physical_isolation_removal, real_reachability_for_region, region_for_generation,
-    S6ReclaimFixture,
+    reachability_from_physical_isolation_removal, real_reachability_for_region,
+    region_for_generation, S6ReclaimFixture,
 };
 
 #[test]

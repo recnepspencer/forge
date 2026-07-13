@@ -125,7 +125,8 @@ impl FoundationalVocabularyAdoptionMapBuilder {
             rows,
             lane_set: FoundationalPublicLaneSet::from_public_foundational_apis(),
             proof_vocabulary,
-            required_evidence: PhysicalFoundationEvidenceField::required_for_physical_format().to_vec(),
+            required_evidence: PhysicalFoundationEvidenceField::required_for_physical_format()
+                .to_vec(),
         })
     }
 }

@@ -4,7 +4,6 @@ mod lane;
 mod observer;
 mod replay;
 
-pub use crate::{physical_isolation_required_mutation_rows, PhysicalIsolationMutationEvidence};
 pub use context::{
     physical_isolation_ci_certification_context_without_lane_registration,
     physical_isolation_ci_certification_planning_context,

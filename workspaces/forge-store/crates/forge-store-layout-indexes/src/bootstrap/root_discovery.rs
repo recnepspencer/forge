@@ -1,13 +1,13 @@
 use forge_store_physical_format::{PhysicalFormatVersion, PhysicalRootReference};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8MinimalRootDiscoveryLayout {
+pub struct MinimalRootDiscoveryLayout {
     root_reference: PhysicalRootReference,
     physical_format_version: PhysicalFormatVersion,
     checksum_bytes_checked: u64,
 }
 
-impl S8MinimalRootDiscoveryLayout {
+impl MinimalRootDiscoveryLayout {
     pub(crate) const fn new(
         root_reference: PhysicalRootReference,
         physical_format_version: PhysicalFormatVersion,

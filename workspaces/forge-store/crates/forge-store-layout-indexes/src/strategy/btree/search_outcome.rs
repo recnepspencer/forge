@@ -1,29 +1,29 @@
-use crate::strategy::S8StrategyDenial;
+use crate::strategy::StrategyDenial;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct S8BTreeSearchOutcome<T> {
-    result: Result<T, S8StrategyDenial>,
+pub struct BTreeSearchOutcome<T> {
+    result: Result<T, StrategyDenial>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8BTreeSearchOutcomeView<'a, T> {
+pub enum BTreeSearchOutcomeView<'a, T> {
     Validated(&'a T),
-    Denied(&'a S8StrategyDenial),
+    Denied(&'a StrategyDenial),
 }
 
-impl<T> S8BTreeSearchOutcome<T> {
-    pub(super) fn issue(result: Result<T, S8StrategyDenial>) -> Self {
+impl<T> BTreeSearchOutcome<T> {
+    pub(super) fn issue(result: Result<T, StrategyDenial>) -> Self {
         Self { result }
     }
 
-    pub fn view(&self) -> S8BTreeSearchOutcomeView<'_, T> {
+    pub fn view(&self) -> BTreeSearchOutcomeView<'_, T> {
         match self.result.as_ref() {
-            Ok(value) => S8BTreeSearchOutcomeView::Validated(value),
-            Err(denial) => S8BTreeSearchOutcomeView::Denied(denial),
+            Ok(value) => BTreeSearchOutcomeView::Validated(value),
+            Err(denial) => BTreeSearchOutcomeView::Denied(denial),
         }
     }
 
-    pub fn into_result(self) -> Result<T, S8StrategyDenial> {
+    pub fn into_result(self) -> Result<T, StrategyDenial> {
         self.result
     }
 
@@ -31,7 +31,7 @@ impl<T> S8BTreeSearchOutcome<T> {
         self.into_result().unwrap()
     }
 
-    pub fn unwrap_err(self) -> S8StrategyDenial
+    pub fn unwrap_err(self) -> StrategyDenial
     where
         T: core::fmt::Debug,
     {
@@ -39,8 +39,8 @@ impl<T> S8BTreeSearchOutcome<T> {
     }
 }
 
-impl<T: PartialEq> PartialEq<Result<T, S8StrategyDenial>> for S8BTreeSearchOutcome<T> {
-    fn eq(&self, other: &Result<T, S8StrategyDenial>) -> bool {
+impl<T: PartialEq> PartialEq<Result<T, StrategyDenial>> for BTreeSearchOutcome<T> {
+    fn eq(&self, other: &Result<T, StrategyDenial>) -> bool {
         self.result.as_ref() == other.as_ref()
     }
 }

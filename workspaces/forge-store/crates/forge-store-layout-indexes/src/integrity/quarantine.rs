@@ -2,13 +2,13 @@ use forge_store_physical_integrity::QuarantineRecord;
 use forge_store_recovery_physics::RecoveryLayoutReadmissionIdentity;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S8LayoutQuarantineWitness {
+pub struct LayoutQuarantineWitness {
     family: crate::PhysicalArtifactFamily,
     record: Option<QuarantineRecord>,
-    coverage: Option<crate::S8LayoutCoverageWitness>,
+    coverage: Option<crate::LayoutCoverageWitness>,
 }
 
-impl S8LayoutQuarantineWitness {
+impl LayoutQuarantineWitness {
     pub(crate) fn new(family: crate::PhysicalArtifactFamily, record: QuarantineRecord) -> Self {
         Self {
             family,
@@ -17,7 +17,7 @@ impl S8LayoutQuarantineWitness {
         }
     }
 
-    pub(crate) const fn from_materialization(coverage: crate::S8LayoutCoverageWitness) -> Self {
+    pub(crate) const fn from_materialization(coverage: crate::LayoutCoverageWitness) -> Self {
         Self {
             family: coverage.family(),
             record: None,
@@ -41,8 +41,8 @@ impl S8LayoutQuarantineWitness {
         self.record.as_ref()
     }
 
-    pub const fn coverage(&self) -> Option<crate::S8LayoutCoverageWitness> {
-        self.coverage
+    pub const fn coverage(&self) -> Option<&crate::LayoutCoverageWitness> {
+        self.coverage.as_ref()
     }
 
     pub fn readmission_identity(&self) -> Option<RecoveryLayoutReadmissionIdentity> {

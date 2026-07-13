@@ -1,11 +1,11 @@
 use forge_store_contracts::StableDigest;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8BlobGenerationBasis {
+pub struct BlobGenerationBasis {
     sequence: u64,
 }
 
-impl S8BlobGenerationBasis {
+impl BlobGenerationBasis {
     pub const fn from_sequence(sequence: u64) -> Self {
         Self { sequence }
     }
@@ -16,13 +16,13 @@ impl S8BlobGenerationBasis {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S8BlobIdentityKeyBasis {
+pub struct BlobIdentityKeyBasis {
     object_digest: StableDigest,
-    generation: S8BlobGenerationBasis,
+    generation: BlobGenerationBasis,
 }
 
-impl S8BlobIdentityKeyBasis {
-    pub const fn new(object_digest: StableDigest, generation: S8BlobGenerationBasis) -> Self {
+impl BlobIdentityKeyBasis {
+    pub const fn new(object_digest: StableDigest, generation: BlobGenerationBasis) -> Self {
         Self {
             object_digest,
             generation,
@@ -33,7 +33,7 @@ impl S8BlobIdentityKeyBasis {
         &self.object_digest
     }
 
-    pub const fn generation(&self) -> S8BlobGenerationBasis {
+    pub const fn generation(&self) -> BlobGenerationBasis {
         self.generation
     }
 }

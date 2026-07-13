@@ -1,5 +1,5 @@
-pub use crate::access::planning::S8AccessPlanSelection;
+pub use crate::planning::AccessPlanSelector;
 
-pub const fn deterministic_plan_selection() -> S8AccessPlanSelection {
-    S8AccessPlanSelection
+pub const fn deterministic_plan_selection() -> AccessPlanSelector {
+    AccessPlanSelector
 }

@@ -1,25 +1,25 @@
-use super::lane::S8AccessLaneClassification;
-use super::shape::S8AccessShape;
-use crate::maintenance::S8PhysicalMutationShape;
-use crate::materialization::S8MaterializationDenial;
+use super::lane::AccessLaneClassification;
+use super::shape::AccessShape;
+use crate::maintenance::PhysicalMutationShape;
+use crate::materialization::MaterializationDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8AccessShapeUnsupportedDenial {
-    MaterializationDenied(S8MaterializationDenial),
+pub enum AccessShapeUnsupportedDenial {
+    MaterializationDenied(MaterializationDenial),
     #[non_exhaustive]
     HiddenBroadScan {
-        requested_shape: S8AccessShape,
+        requested_shape: AccessShape,
     },
     LaneDoesNotSupportShape {
-        shape: S8AccessShape,
-        lane: S8AccessLaneClassification,
+        shape: AccessShape,
+        lane: AccessLaneClassification,
     },
     MutationShapeDoesNotSupportAccessShape {
-        requested_shape: S8AccessShape,
-        mutation_shape: S8PhysicalMutationShape,
+        requested_shape: AccessShape,
+        mutation_shape: PhysicalMutationShape,
     },
     ExplicitDegradedExactScanRequired {
-        requested_shape: S8AccessShape,
+        requested_shape: AccessShape,
     },
     DegradedExactScanBudgetRequired,
 }

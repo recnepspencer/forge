@@ -17,13 +17,17 @@ pub const fn map_offline_damage_hint_to_handoff(
     hint: OfflineBlobDamageCaseHint,
 ) -> CorruptionHandoffDamageCase {
     match hint {
-        OfflineBlobDamageCaseHint::ChecksumMismatch => CorruptionHandoffDamageCase::ChecksumMismatch,
+        OfflineBlobDamageCaseHint::ChecksumMismatch => {
+            CorruptionHandoffDamageCase::ChecksumMismatch
+        }
         OfflineBlobDamageCaseHint::AuthenticityFailure => {
             CorruptionHandoffDamageCase::AuthenticityFailure
         }
         OfflineBlobDamageCaseHint::MissingChunk => CorruptionHandoffDamageCase::MissingChunk,
         OfflineBlobDamageCaseHint::StaleGeneration => CorruptionHandoffDamageCase::StaleGeneration,
-        OfflineBlobDamageCaseHint::CrossScopeImport => CorruptionHandoffDamageCase::CrossScopeImport,
+        OfflineBlobDamageCaseHint::CrossScopeImport => {
+            CorruptionHandoffDamageCase::CrossScopeImport
+        }
     }
 }
 

@@ -1,7 +1,7 @@
-use forge_store_layout_indexes::S8BootstrapLayoutCatalog;
+use forge_store_layout_indexes::BootstrapLayoutCatalog;
 
 fn main() {
-    let _ = S8BootstrapLayoutCatalog {
+    let _ = BootstrapLayoutCatalog {
         identity: todo!(),
         discovery_layout: todo!(),
         root_entry_count: 1,

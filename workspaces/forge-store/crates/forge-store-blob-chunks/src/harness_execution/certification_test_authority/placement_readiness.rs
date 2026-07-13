@@ -46,7 +46,8 @@ fn cold_tier_reclaim_receipt(
     let physical_reference = current_physical_reference_raw(1);
     let region =
         PhysicalReclaimRegion::new(physical_reference.reference(), 4096).expect("reclaim region");
-    let reachability = lower_physical_isolation_reclaim_reachability_for_region(region, physical_reference);
+    let reachability =
+        lower_physical_isolation_reclaim_reachability_for_region(region, physical_reference);
     let request = ReclaimPolicyRequest::new()
         .for_region(region)
         .with_posture(
@@ -82,8 +83,10 @@ fn lower_physical_isolation_reclaim_reachability_for_region(
     let evidence = removal_receipt
         .lower_for_io_qos_reclaim_policy(region)
         .expect("reclaim policy evidence");
-    ReclaimPolicyReachabilityProof::from_physical_isolation_reclaim_reachability_removal(evidence, region)
-        .expect("reclaim reachability proof")
+    ReclaimPolicyReachabilityProof::from_physical_isolation_reclaim_reachability_removal(
+        evidence, region,
+    )
+    .expect("reclaim reachability proof")
 }
 
 fn admitted_security_scope_for_identity(

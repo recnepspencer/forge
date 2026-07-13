@@ -1,15 +1,15 @@
-use super::{S8DerivedIndexParityView, S8DerivedIndexRebuildView};
+use super::{DerivedIndexParityView, DerivedIndexRebuildView};
 use crate::maintenance::layout_rebuild;
+use crate::maintenance::test_support::admitted_materialization;
 use crate::strategy::tests_support::{
-    admit_btree_page_strategy, admit_lsm_wal_strategy, admitted_page_key_bytes,
+    admit_btree_page_strategy, admit_persisted_lsm_strategy, admitted_page_key_bytes,
     admitted_wal_key_bytes,
 };
 use crate::{
-    access_shapes, S8AccessLaneClassification, S8DerivedIndexCostEnvelopeParity,
-    S8DerivedIndexCounterShapeParity, S8DerivedIndexParityBasis, S8DerivedIndexParityOutcome,
-    S8DerivedIndexParityRow, S8DerivedIndexRebuildDenied, S8DerivedIndexRebuildOutcome,
-    S8DerivedIndexRebuildRequest, S8DerivedIndexRebuildSourceInput, S8DerivedIndexResultIdentity,
-    S8LayoutCorruptionView,
+    access_shapes, AccessLaneClassification, DerivedIndexCostEnvelopeParity,
+    DerivedIndexCounterShapeParity, DerivedIndexParityBasis, DerivedIndexParityRow,
+    DerivedIndexRebuildDenied, DerivedIndexRebuildRequest, DerivedIndexRebuildSourceInput,
+    DerivedIndexResultIdentity, LayoutCorruptionView,
 };
 use forge_store_physical_format::{
     PhysicalEpoch, PhysicalGeneration, PhysicalGenerationAuthority,
@@ -25,15 +25,17 @@ use forge_store_wal::{
 #[test]
 fn derived_projection_rebuilds_to_visible_parity_from_root_manifest_authority() {
     let strategy = admit_btree_page_strategy();
-    let rebuild_shape = root_rebuild_shape(strategy.lifecycle(), 31);
-    let authority_coverage = rebuild_shape.coverage().expect("rebuild coverage");
+    let (rebuild_shape, authority_coverage) = root_rebuild_shape(strategy.lifecycle(), 31);
+    let materialization = admitted_materialization(strategy.admitted_family(), authority_coverage);
+    let authority_coverage = materialization.coverage().clone();
     let source_witness = root_manifest_source_witness(7, 11);
-    let request = S8DerivedIndexRebuildRequest::new(
-        strategy.lifecycle(),
-        strategy.key_domain(),
+    let request = DerivedIndexRebuildRequest::new(
+        strategy.admitted_family(),
+        strategy.admitted_key_domain(),
         strategy.family(),
         rebuild_shape,
-        S8DerivedIndexRebuildSourceInput::PhysicalRootManifest {
+        materialization,
+        DerivedIndexRebuildSourceInput::PhysicalRootManifest {
             source_witness: source_witness.clone(),
         },
     );
@@ -41,19 +43,19 @@ fn derived_projection_rebuilds_to_visible_parity_from_root_manifest_authority() 
     let plan = layout_rebuild().admit_plan(request).unwrap();
     assert!(matches!(
         plan.corruption().view(),
-        S8LayoutCorruptionView::RebuildRequired(_)
+        LayoutCorruptionView::RebuildRequired(_)
     ));
 
     let rebuilt = layout_rebuild()
         .rebuild(
             plan,
-            root_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-page"),
+            root_rebuilt_parity_basis(authority_coverage.clone(), &source_witness, "rebuilt-page"),
         )
         .into_rebuilt()
         .expect("expected rebuilt outcome");
     assert_eq!(
         rebuilt.plan().result_identity(),
-        S8DerivedIndexResultIdentity::RemainsDerivedProjection
+        DerivedIndexResultIdentity::RemainsDerivedProjection
     );
 
     let parity = layout_rebuild()
@@ -63,30 +65,32 @@ fn derived_projection_rebuilds_to_visible_parity_from_root_manifest_authority() 
     assert!(parity.parity_holds());
     assert_eq!(
         parity.value_identity(),
-        crate::S8DerivedIndexIdentityParity::SourceArtifactDoesNotProveIdentity
+        crate::maintenance::DerivedIndexIdentityParity::SourceArtifactDoesNotProveIdentity
     );
     assert_eq!(
         parity.cost_envelope(),
-        S8DerivedIndexCostEnvelopeParity::SourceArtifactDoesNotProveDeclaredEnvelope
+        DerivedIndexCostEnvelopeParity::SourceArtifactDoesNotProveDeclaredEnvelope
     );
     assert_eq!(
         parity.counter_shape(),
-        S8DerivedIndexCounterShapeParity::ExactDeterministicPhysicalShape
+        DerivedIndexCounterShapeParity::ExactDeterministicPhysicalShape
     );
 }
 
 #[test]
 fn authoritative_wal_source_quarantines_without_caller_relabeling() {
-    let strategy = admit_lsm_wal_strategy();
-    let rebuild_shape = wal_rebuild_shape(strategy.lifecycle(), 37);
-    let authority_coverage = rebuild_shape.coverage().expect("rebuild coverage");
+    let strategy = admit_persisted_lsm_strategy();
+    let (rebuild_shape, authority_coverage) = wal_rebuild_shape(strategy.lifecycle(), 37);
+    let materialization = admitted_materialization(strategy.admitted_family(), authority_coverage);
+    let authority_coverage = materialization.coverage().clone();
     let source_witness = wal_replay_source_witness(43, BlobWalRecordKind::RootCandidate);
-    let request = S8DerivedIndexRebuildRequest::new(
-        strategy.lifecycle(),
-        strategy.key_domain(),
+    let request = DerivedIndexRebuildRequest::new(
+        strategy.admitted_family(),
+        strategy.admitted_key_domain(),
         strategy.family(),
         rebuild_shape,
-        S8DerivedIndexRebuildSourceInput::WalReplayRecord {
+        materialization,
+        DerivedIndexRebuildSourceInput::WalReplayRecord {
             source_witness: source_witness.clone(),
         },
     );
@@ -95,35 +99,36 @@ fn authoritative_wal_source_quarantines_without_caller_relabeling() {
     assert!(matches!(
         layout_rebuild().rebuild(
             plan,
-            wal_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-wal")
+            wal_rebuilt_parity_basis(authority_coverage.clone(), &source_witness, "rebuilt-wal")
         ),
-        outcome if matches!(outcome.view(), S8DerivedIndexRebuildView::Quarantined(_))
+        outcome if matches!(outcome.view(), DerivedIndexRebuildView::Quarantined(_))
     ));
 }
 
 #[test]
 fn derived_data_inputs_are_denied_as_rebuild_sources() {
     let strategy = admit_btree_page_strategy();
-    let rebuild_shape = root_rebuild_shape(strategy.lifecycle(), 41);
+    let (rebuild_shape, authority_coverage) = root_rebuild_shape(strategy.lifecycle(), 41);
 
     for source in [
-        S8DerivedIndexRebuildSourceInput::DerivedProjectionRows,
-        S8DerivedIndexRebuildSourceInput::CertificationRows,
-        S8DerivedIndexRebuildSourceInput::DiagnosticReport,
-        S8DerivedIndexRebuildSourceInput::JsonProjection,
-        S8DerivedIndexRebuildSourceInput::TerminalProjection,
+        DerivedIndexRebuildSourceInput::DerivedProjectionRows,
+        DerivedIndexRebuildSourceInput::CertificationRows,
+        DerivedIndexRebuildSourceInput::DiagnosticReport,
+        DerivedIndexRebuildSourceInput::JsonProjection,
+        DerivedIndexRebuildSourceInput::TerminalProjection,
     ] {
-        let request = S8DerivedIndexRebuildRequest::new(
-            strategy.lifecycle(),
-            strategy.key_domain(),
+        let request = DerivedIndexRebuildRequest::new(
+            strategy.admitted_family(),
+            strategy.admitted_key_domain(),
             strategy.family(),
             rebuild_shape,
+            admitted_materialization(strategy.admitted_family(), authority_coverage.clone()),
             source,
         );
 
         assert!(matches!(
             layout_rebuild().admit_plan(request),
-            Err(S8DerivedIndexRebuildDenied::SourceInputIsNotAuthority { .. })
+            Err(DerivedIndexRebuildDenied::SourceInputIsNotAuthority { .. })
         ));
     }
 }
@@ -131,15 +136,17 @@ fn derived_data_inputs_are_denied_as_rebuild_sources() {
 #[test]
 fn visible_parity_does_not_claim_source_value_or_cost_truth_for_root_manifest_authority() {
     let strategy = admit_btree_page_strategy();
-    let rebuild_shape = root_rebuild_shape(strategy.lifecycle(), 47);
-    let authority_coverage = rebuild_shape.coverage().expect("rebuild coverage");
+    let (rebuild_shape, authority_coverage) = root_rebuild_shape(strategy.lifecycle(), 47);
+    let materialization = admitted_materialization(strategy.admitted_family(), authority_coverage);
+    let authority_coverage = materialization.coverage().clone();
     let source_witness = root_manifest_source_witness(7, 11);
-    let request = S8DerivedIndexRebuildRequest::new(
-        strategy.lifecycle(),
-        strategy.key_domain(),
+    let request = DerivedIndexRebuildRequest::new(
+        strategy.admitted_family(),
+        strategy.admitted_key_domain(),
         strategy.family(),
         rebuild_shape,
-        S8DerivedIndexRebuildSourceInput::PhysicalRootManifest {
+        materialization,
+        DerivedIndexRebuildSourceInput::PhysicalRootManifest {
             source_witness: source_witness.clone(),
         },
     );
@@ -148,7 +155,11 @@ fn visible_parity_does_not_claim_source_value_or_cost_truth_for_root_manifest_au
     let rebuilt = layout_rebuild()
         .rebuild(
             plan,
-            root_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-page-mismatch"),
+            root_rebuilt_parity_basis(
+                authority_coverage.clone(),
+                &source_witness,
+                "rebuilt-page-mismatch",
+            ),
         )
         .into_rebuilt()
         .expect("expected rebuilt outcome");
@@ -159,26 +170,28 @@ fn visible_parity_does_not_claim_source_value_or_cost_truth_for_root_manifest_au
         .expect("expected parity witness");
     assert_eq!(
         parity.value_identity(),
-        crate::S8DerivedIndexIdentityParity::SourceArtifactDoesNotProveIdentity
+        crate::maintenance::DerivedIndexIdentityParity::SourceArtifactDoesNotProveIdentity
     );
     assert_eq!(
         parity.cost_envelope(),
-        S8DerivedIndexCostEnvelopeParity::SourceArtifactDoesNotProveDeclaredEnvelope
+        DerivedIndexCostEnvelopeParity::SourceArtifactDoesNotProveDeclaredEnvelope
     );
 }
 
 #[test]
 fn visible_parity_does_not_claim_source_value_or_cost_truth_for_wal_authority() {
-    let strategy = admit_lsm_wal_strategy();
-    let rebuild_shape = wal_rebuild_shape(strategy.lifecycle(), 51);
-    let authority_coverage = rebuild_shape.coverage().expect("rebuild coverage");
+    let strategy = admit_persisted_lsm_strategy();
+    let (rebuild_shape, authority_coverage) = wal_rebuild_shape(strategy.lifecycle(), 51);
+    let materialization = admitted_materialization(strategy.admitted_family(), authority_coverage);
+    let authority_coverage = materialization.coverage().clone();
     let source_witness = wal_replay_source_witness(61, BlobWalRecordKind::GenerationPublication);
-    let request = S8DerivedIndexRebuildRequest::new(
-        strategy.lifecycle(),
-        strategy.key_domain(),
+    let request = DerivedIndexRebuildRequest::new(
+        strategy.admitted_family(),
+        strategy.admitted_key_domain(),
         strategy.family(),
         rebuild_shape,
-        S8DerivedIndexRebuildSourceInput::WalReplayRecord {
+        materialization,
+        DerivedIndexRebuildSourceInput::WalReplayRecord {
             source_witness: source_witness.clone(),
         },
     );
@@ -187,7 +200,11 @@ fn visible_parity_does_not_claim_source_value_or_cost_truth_for_wal_authority() 
     let rebuilt = layout_rebuild()
         .rebuild(
             plan,
-            wal_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-wal-mismatch"),
+            wal_rebuilt_parity_basis(
+                authority_coverage.clone(),
+                &source_witness,
+                "rebuilt-wal-mismatch",
+            ),
         )
         .into_rebuilt()
         .expect("expected rebuilt outcome");
@@ -198,26 +215,28 @@ fn visible_parity_does_not_claim_source_value_or_cost_truth_for_wal_authority() 
         .expect("expected parity witness");
     assert_eq!(
         parity.value_identity(),
-        crate::S8DerivedIndexIdentityParity::SourceArtifactDoesNotProveIdentity
+        crate::maintenance::DerivedIndexIdentityParity::SourceArtifactDoesNotProveIdentity
     );
     assert_eq!(
         parity.cost_envelope(),
-        S8DerivedIndexCostEnvelopeParity::SourceArtifactDoesNotProveDeclaredEnvelope
+        DerivedIndexCostEnvelopeParity::SourceArtifactDoesNotProveDeclaredEnvelope
     );
 }
 
 #[test]
 fn parity_lane_denies_rebuilt_counter_shape_mismatch_against_source_owned_witness() {
     let strategy = admit_btree_page_strategy();
-    let rebuild_shape = root_rebuild_shape(strategy.lifecycle(), 53);
-    let authority_coverage = rebuild_shape.coverage().expect("rebuild coverage");
+    let (rebuild_shape, authority_coverage) = root_rebuild_shape(strategy.lifecycle(), 53);
+    let materialization = admitted_materialization(strategy.admitted_family(), authority_coverage);
+    let authority_coverage = materialization.coverage().clone();
     let source_witness = root_manifest_source_witness(7, 11);
-    let request = S8DerivedIndexRebuildRequest::new(
-        strategy.lifecycle(),
-        strategy.key_domain(),
+    let request = DerivedIndexRebuildRequest::new(
+        strategy.admitted_family(),
+        strategy.admitted_key_domain(),
         strategy.family(),
         rebuild_shape,
-        S8DerivedIndexRebuildSourceInput::PhysicalRootManifest {
+        materialization,
+        DerivedIndexRebuildSourceInput::PhysicalRootManifest {
             source_witness: source_witness.clone(),
         },
     );
@@ -226,12 +245,12 @@ fn parity_lane_denies_rebuilt_counter_shape_mismatch_against_source_owned_witnes
     let rebuilt = layout_rebuild()
         .rebuild(
             plan,
-            S8DerivedIndexParityBasis::new(
-                vec![S8DerivedIndexParityRow::new(
+            DerivedIndexParityBasis::new(
+                vec![DerivedIndexParityRow::new(
                     admitted_page_key_bytes(7, 11),
                     "rebuilt-page",
                 )],
-                authority_coverage,
+                authority_coverage.clone(),
                 true,
                 vec![999],
             )
@@ -244,8 +263,8 @@ fn parity_lane_denies_rebuilt_counter_shape_mismatch_against_source_owned_witnes
         layout_rebuild().verify_parity(rebuilt),
         outcome if matches!(
             outcome.view(),
-            S8DerivedIndexParityView::Denied(
-                S8DerivedIndexRebuildDenied::ParityCounterShapeMismatch
+            DerivedIndexParityView::Denied(
+                DerivedIndexRebuildDenied::ParityCounterShapeMismatch
             )
         )
     ));
@@ -254,49 +273,53 @@ fn parity_lane_denies_rebuilt_counter_shape_mismatch_against_source_owned_witnes
 fn root_rebuild_shape(
     lifecycle: crate::ArtifactFamilyLifecycleAdmission,
     epoch: u64,
-) -> crate::S8AccessShapeContract {
-    access_shapes()
-        .rebuild_read(
-            crate::facade::access_planning()
-                .exact_root_epoch_coverage(
-                    crate::bootstrap::test_support::bootstrap_exact_materialization(
-                        lifecycle.declaration().family(),
-                    ),
-                    PhysicalEpoch::from_raw(epoch).unwrap(),
-                )
-                .unwrap(),
-            S8AccessLaneClassification::Maintenance,
+) -> (
+    crate::access::shape::AccessShapeContract,
+    crate::LayoutCoverageWitness,
+) {
+    let coverage = crate::facade::access_planning()
+        .exact_root_epoch_coverage(
+            crate::bootstrap::test_support::bootstrap_exact_materialization(
+                lifecycle.declaration().family(),
+            ),
+            PhysicalEpoch::from_raw(epoch).unwrap(),
         )
-        .unwrap()
+        .unwrap();
+    let shape = access_shapes()
+        .rebuild_read(AccessLaneClassification::Maintenance)
+        .unwrap();
+    (shape, coverage)
 }
 
 fn wal_rebuild_shape(
     lifecycle: crate::ArtifactFamilyLifecycleAdmission,
     lsn: u64,
-) -> crate::S8AccessShapeContract {
-    access_shapes()
-        .rebuild_read(
-            crate::facade::access_planning()
-                .exact_wal_lsn_coverage(
-                    crate::bootstrap::test_support::bootstrap_exact_materialization(
-                        lifecycle.declaration().family(),
-                    ),
-                    LogSequenceNumber::new(lsn),
-                )
-                .unwrap(),
-            S8AccessLaneClassification::Maintenance,
+) -> (
+    crate::access::shape::AccessShapeContract,
+    crate::LayoutCoverageWitness,
+) {
+    let coverage = crate::facade::access_planning()
+        .exact_wal_lsn_coverage(
+            crate::bootstrap::test_support::bootstrap_exact_materialization(
+                lifecycle.declaration().family(),
+            ),
+            LogSequenceNumber::new(lsn),
         )
-        .unwrap()
+        .unwrap();
+    let shape = access_shapes()
+        .rebuild_read(AccessLaneClassification::Maintenance)
+        .unwrap();
+    (shape, coverage)
 }
 
 fn root_rebuilt_parity_basis(
-    coverage: crate::S8LayoutCoverageWitness,
+    coverage: crate::LayoutCoverageWitness,
     source_witness: &PhysicalRootManifestRebuildWitness,
     value: &str,
-) -> S8DerivedIndexParityBasis {
+) -> DerivedIndexParityBasis {
     let row = &source_witness.rows()[0];
-    S8DerivedIndexParityBasis::new(
-        vec![S8DerivedIndexParityRow::new(
+    DerivedIndexParityBasis::new(
+        vec![DerivedIndexParityRow::new(
             admitted_page_key_bytes(row.segment_id().get(), row.page_id().get()),
             value,
         )],
@@ -308,12 +331,12 @@ fn root_rebuilt_parity_basis(
 }
 
 fn wal_rebuilt_parity_basis(
-    coverage: crate::S8LayoutCoverageWitness,
+    coverage: crate::LayoutCoverageWitness,
     source_witness: &BlobWalReplayRebuildWitness,
     value: &str,
-) -> S8DerivedIndexParityBasis {
-    S8DerivedIndexParityBasis::new(
-        vec![S8DerivedIndexParityRow::new(
+) -> DerivedIndexParityBasis {
+    DerivedIndexParityBasis::new(
+        vec![DerivedIndexParityRow::new(
             admitted_wal_key_bytes(source_witness.record().identity().sequence()),
             value,
         )],

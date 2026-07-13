@@ -232,7 +232,8 @@ impl S6CertificationEvidenceSources {
         {
             return Err(S6CertificationMaterializationDenial::MissingHarnessReplayEvidence);
         }
-        let readiness = crate::publish_io_qos_backend_capability_readiness(&sources.backend_witness);
+        let readiness =
+            crate::publish_io_qos_backend_capability_readiness(&sources.backend_witness);
         let backend_admission =
             certify_io_qos_backend_capability_admission(&sources.backend_witness, &readiness)
                 .ok_or(S6CertificationMaterializationDenial::BackendAdmissionReadinessMismatch)?;
@@ -240,8 +241,10 @@ impl S6CertificationEvidenceSources {
             sources.foreground_receipt,
             sources.foreground_receipt,
         )?;
-        let background_pacing =
-            certify_io_qos_background_pacing(sources.background_outcome, sources.background_outcome)?;
+        let background_pacing = certify_io_qos_background_pacing(
+            sources.background_outcome,
+            sources.background_outcome,
+        )?;
         let queue_execution =
             S6CertifiedQueueExecutionEvidence::from_outcome(&sources.queue_outcome)?;
         Ok(Self {

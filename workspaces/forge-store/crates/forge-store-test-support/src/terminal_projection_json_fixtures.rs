@@ -1,13 +1,13 @@
 use forge_proof::TransitionOutcome;
 use forge_store_aspect_native::{
-    StoreAspectBoundaryFact, StoreTerminalJsonProjection, StoreTerminalProjectionDenial,
-    project_store_boundary_fact_to_terminal_json,
+    project_store_boundary_fact_to_terminal_json, StoreAspectBoundaryFact,
+    StoreTerminalJsonProjection, StoreTerminalProjectionDenial,
 };
 
 use crate::{
+    json_fixture_boundary::require_terminal_projection_boundary,
     StoreTerminalProjectionJsonFixtureBoundaryOutcome,
     StoreTerminalProjectionJsonFixtureBoundaryWitness,
-    json_fixture_boundary::require_terminal_projection_boundary,
 };
 
 #[derive(Debug, Clone)]

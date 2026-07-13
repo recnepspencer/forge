@@ -2,20 +2,16 @@ use super::classify_generation_posture;
 use super::test_support::{assert_denial, assert_downstream_denial, quarantined_read_corruption};
 use crate::lifecycle::generation_registry_test_support::current_authority;
 use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
-use crate::test_support::{
-    blob_scope, candidate_for_bytes_and_scope, canonical_equivalence, frontier_for,
-};
+use crate::test_support::frontier_for;
 use crate::{
-    AuthoritativeBlobCorruptionPosture, BlobChunkDedupeAdmission, BlobChunkDedupeAdmissionDenial,
-    BlobChunkOrdinal, BlobCorruptedChunkLocalization, BlobCorruptionCapsuleReadiness,
-    BlobCorruptionDenial, BlobCorruptionDetectionSource, BlobCorruptionExportAdmission,
-    BlobCorruptionGuard, BlobCorruptionImportReadmission, BlobCorruptionPlacementClass,
-    BlobCorruptionReferenceEdge, BlobCorruptionReferenceEdges, BlobCorruptionReferenceSharingScope,
-    BlobDamageCase, BlobObjectClassification, BlobQuarantineLifecycleState,
-    DerivedBlobRebuildAuthority,
+    BlobChunkDedupeAdmission, BlobChunkDedupeAdmissionDenial, BlobChunkOrdinal,
+    BlobCorruptedChunkLocalization, BlobCorruptionCapsuleReadiness, BlobCorruptionDenial,
+    BlobCorruptionDetectionSource, BlobCorruptionExportAdmission, BlobCorruptionGuard,
+    BlobCorruptionImportReadmission, BlobCorruptionPlacementClass, BlobCorruptionReferenceEdge,
+    BlobCorruptionReferenceEdges, BlobCorruptionReferenceSharingScope, BlobDamageCase,
+    BlobObjectClassification, BlobQuarantineLifecycleState, DerivedBlobRebuildAuthority,
 };
 use forge_proof::TransitionOutcome;
-use forge_store_security::StoreTenantScope;
 
 #[test]
 fn damage_case_decision_table_keeps_spec_cases_distinct() {

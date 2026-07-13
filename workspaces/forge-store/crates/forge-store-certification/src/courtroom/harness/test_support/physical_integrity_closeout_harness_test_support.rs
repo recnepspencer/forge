@@ -1,5 +1,5 @@
 use crate::scenario::physical_integrity::physical_integrity_closeout_harness_runner::{
-    run_physical_integrity_closeout_harness, physical_integrity_closeout_suite_plan_and_transcript,
+    physical_integrity_closeout_suite_plan_and_transcript, run_physical_integrity_closeout_harness,
 };
 use crate::{
     LaneFamilyExtension, PhysicalProofOracleKind, PhysicalScenarioDefinition,
@@ -20,9 +20,11 @@ pub(crate) fn physical_integrity_harness(
 }
 
 pub(crate) fn physical_integrity_synthetic_transcript() -> crate::PhysicalStoryTranscript {
-    physical_integrity_closeout_suite_plan_and_transcript(S3AcceptanceSuiteKind::SyntheticShortcutRejection)
-        .unwrap()
-        .1
+    physical_integrity_closeout_suite_plan_and_transcript(
+        S3AcceptanceSuiteKind::SyntheticShortcutRejection,
+    )
+    .unwrap()
+    .1
 }
 
 pub(crate) fn lane_plan_and_transcript(

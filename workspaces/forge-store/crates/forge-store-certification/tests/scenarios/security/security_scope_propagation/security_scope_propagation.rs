@@ -1,10 +1,5 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
-#[path = "../../physical_isolation/stable_read_execution/plan_admission.rs"]
-mod plan_admission;
-#[path = "../../../support/physical_isolation/epoch_scope_and_root_kind/support.rs"]
-#[allow(dead_code)]
-mod s5_support;
+use forge_store_test_support::harness::physical_isolation::epoch_scope as s5_support;
+use forge_store_test_support::harness::physical_isolation::read_plan as plan_admission;
 
 use forge_foundational::{
     aspects, AspectContract, AspectKey, AspectValue, InternedString, ScalarAspectType,
@@ -170,19 +165,20 @@ fn decoded_page_header(generation_value: u64) -> PhysicalPageHeader {
     let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment(1), page(2))
         .with_page_generation(generation(generation_value));
-    let report =
-        PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
-            .decode_page_header(
-                cell,
-                &header_bytes(
-                    PhysicalPageKind::DataPage.tag(),
-                    generation_value,
-                    PhysicalPublicationState::Published,
-                    b"page",
-                ),
-                PhysicalPageKind::DataPage,
-            )
-            .unwrap();
+    let report = PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+    )
+    .decode_page_header(
+        cell,
+        &header_bytes(
+            PhysicalPageKind::DataPage.tag(),
+            generation_value,
+            PhysicalPublicationState::Published,
+            b"page",
+        ),
+        PhysicalPageKind::DataPage,
+    )
+    .unwrap();
     match report.witness().header() {
         PhysicalDecodedHeader::Page(header) => header,
         PhysicalDecodedHeader::Frame(_) => panic!("expected decoded page header"),

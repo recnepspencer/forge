@@ -1,6 +1,6 @@
 use forge_store_physical_format::{
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRootReference,
-    PhysicalSegmentId,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReference,
+    PhysicalReferenceAuthority, PhysicalRootReference, PhysicalSegmentId,
 };
 
 use crate::{
@@ -27,7 +27,7 @@ fn unlocated_candidate_cannot_be_validated() {
 
 fn manifest(start: u64, end: u64, redo: u64) -> CheckpointManifest {
     CheckpointManifest::sharp(
-        CheckpointRootPosture::root_present(root_reference()),
+        CheckpointRootPosture::root_present(root_record_reference()),
         frontier(redo),
         CheckpointCoveredLsnRange::new(lsn(start), lsn(end)).unwrap(),
         CheckpointRedoBoundary::from_page_lsn(PageLsn::from_lsn(lsn(redo))),
@@ -51,6 +51,15 @@ fn page_cell() -> forge_store_physical_format::PageGenerationCell {
 
 fn root_reference() -> PhysicalRootReference {
     PhysicalRootReference::from_raw(1).unwrap()
+}
+
+fn root_record_reference() -> PhysicalReference {
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
+        .root_publication_cell(root_reference())
+        .with_root_publication_generation(PhysicalGeneration::from_raw(1).unwrap());
+    PhysicalReferenceAuthority::for_canonical_physical_format()
+        .admit_root_publication(cell)
+        .reference()
 }
 
 fn lsn(value: u64) -> LogSequenceNumber {

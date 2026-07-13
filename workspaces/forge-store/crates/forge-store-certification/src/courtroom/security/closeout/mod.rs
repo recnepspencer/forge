@@ -17,8 +17,7 @@ pub fn certify_security_scope_closeout(
     let counter_matrix = S51CloseoutCounterMatrix::from_input(&input)?;
     let performance_receipts =
         S51CloseoutPerformanceReceipts::from_counter_matrix(&counter_matrix)?;
-    let boundary_evidence = S51CloseoutBoundaryEvidencePublication::from_input_and_counter_matrix(
-        &input,
+    let boundary_evidence = S51CloseoutBoundaryEvidencePublication::from_counter_matrix(
         &counter_matrix,
         &performance_receipts,
     )?;

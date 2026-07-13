@@ -1,5 +1,4 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
-use forge_store_layout_indexes::layout_families::layout_declarations;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobLayoutScopeSafeAbsenceBehavior {
@@ -14,13 +13,22 @@ pub enum BlobLayoutCorruptionBehavior {
     QuarantineRequired,
 }
 
-pub(crate) fn declared_rebuild_posture(
+pub(crate) const fn declared_rebuild_posture(
     family_id: DurableArtifactFamilyId,
 ) -> DurableArtifactRebuildPosture {
-    layout_declarations()
-        .declaration(family_id)
-        .expect("phase family must stay declared")
-        .rebuild_posture()
+    match family_id {
+        DurableArtifactFamilyId::DedupeIndex | DurableArtifactFamilyId::ReachabilityEdge => {
+            DurableArtifactRebuildPosture::RebuildFromAuthoritativeState
+        }
+        DurableArtifactFamilyId::RetentionHold | DurableArtifactFamilyId::QuarantineRecord => {
+            DurableArtifactRebuildPosture::QuarantineOnly
+        }
+        DurableArtifactFamilyId::ReclaimReceipt => DurableArtifactRebuildPosture::NoRebuild,
+        DurableArtifactFamilyId::MaintenanceCompaction => {
+            DurableArtifactRebuildPosture::PartialRebuildOnly
+        }
+        _ => panic!("blob layout behavior requested for a non-blob projection family"),
+    }
 }
 
 pub(crate) const fn corruption_behavior_for(

@@ -1,5 +1,3 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
 #[path = "../../../support/physical_isolation/interleaving_harness_support/interleaving_harness_support.rs"]
 mod s5_interleaving_harness_support;
 
@@ -35,10 +33,9 @@ fn physical_isolation_interleaving_oracle_rejects_wrong_family_observation_topol
             }
             other => panic!("unexpected S5 interleaving family {other:?}"),
         };
-        let trace = forge_store_certification::observe_physical_isolation_trace(
-            &plan, &schedule, fixtures,
-        )
-        .unwrap();
+        let trace =
+            forge_store_certification::observe_physical_isolation_trace(&plan, &schedule, fixtures)
+                .unwrap();
 
         assert_eq!(
             oracle_denial(&plan, &trace),

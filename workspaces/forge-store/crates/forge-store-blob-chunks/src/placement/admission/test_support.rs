@@ -1,3 +1,5 @@
+#![cfg_attr(not(test), allow(dead_code, unused_imports))]
+
 use forge_store_io_scheduler::IoSchedulerIsolationAdmission;
 use forge_store_physical_backend::{
     AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionRequest,

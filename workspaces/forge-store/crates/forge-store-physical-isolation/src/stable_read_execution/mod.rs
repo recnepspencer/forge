@@ -21,6 +21,7 @@ pub use outcome::{StablePhysicalReadEpochFreshnessOutcome, StablePhysicalReadExe
 pub use receipt::StablePhysicalReadReceipt;
 #[cfg(any(test, feature = "certification-authority"))]
 pub use receipt::{
+    stable_physical_read_plan_for_certification_seed,
     stable_physical_read_plan_for_certification_test,
     stable_physical_read_receipt_for_certification_root,
     stable_physical_read_receipt_for_certification_test,

@@ -1,7 +1,7 @@
 use crate::catalog::ArtifactFamilyAccessLane;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct S8StrategyCapability {
+pub(crate) struct StrategyCapability {
     point: bool,
     range: bool,
     prefix: bool,
@@ -13,7 +13,7 @@ pub(crate) struct S8StrategyCapability {
     terminal: bool,
 }
 
-impl S8StrategyCapability {
+impl StrategyCapability {
     pub(crate) const fn new(
         point: bool,
         range: bool,

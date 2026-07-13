@@ -124,8 +124,9 @@ mod tests {
         forge_store_physical_format::PhysicalPayloadViewAdmission<'static>,
     ) {
         let bytes = Box::leak(header_bytes(generation_value, payload).into_boxed_slice());
-        let authority =
-            PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap());
+        let authority = PhysicalHeaderAuthority::for_canonical_physical_format(
+            PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+        );
         let report = authority
             .decode_frame_header(
                 validated_slot_reference(generation_value),

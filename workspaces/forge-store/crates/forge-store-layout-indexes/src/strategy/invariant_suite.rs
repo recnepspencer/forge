@@ -1,42 +1,42 @@
-use super::btree::{declare_btree_invariant_suite, S8BTreeInvariantSuite};
-use super::counter_evidence::S8StrategyCounterEvidence;
+use super::btree::{declare_btree_invariant_suite, BTreeInvariantSuite};
+use super::counter_evidence::StrategyCounterEvidence;
 use super::counter_path::derive_strategy_counter_evidence;
-use super::declaration::S8StrategyDeclaration;
-use super::lsm::{declare_lsm_invariant_suite, S8LsmInvariantSuite};
-use super::{S8LayoutStrategyFamily, S8StrategyDenial};
+use super::declaration::StrategyDeclaration;
+use super::lsm::{declare_lsm_invariant_suite, LsmInvariantSuite};
+use super::{LayoutStrategyFamily, StrategyDenial};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StrategyLookupInvariant {
+pub enum StrategyLookupInvariant {
     SeparatorDirectedLookup,
     NewestRunLookup,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StrategyPublicationInvariant {
+pub enum StrategyPublicationInvariant {
     RootPublication,
     ManifestPublication,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StrategyMutationInvariant {
+pub enum StrategyMutationInvariant {
     SplitMaintainsOccupancy,
     TombstonesSurviveCompaction,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StrategyIntegrityInvariant {
+pub enum StrategyIntegrityInvariant {
     ChecksumLocalizesCorruption,
     ManifestBindsRunDigests,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8StrategyRecoveryInvariant {
+pub enum StrategyRecoveryInvariant {
     StableReadReplay,
     WalReplayRecovery,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8StrategyCounterProfile {
+pub struct StrategyCounterProfile {
     point_lookups: u16,
     range_lookups: u16,
     wal_replays: u16,
@@ -44,7 +44,7 @@ pub struct S8StrategyCounterProfile {
     maintenance_reads: u16,
 }
 
-impl S8StrategyCounterProfile {
+impl StrategyCounterProfile {
     pub(crate) const fn new(
         point_lookups: u16,
         range_lookups: u16,
@@ -84,172 +84,153 @@ impl S8StrategyCounterProfile {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StrategySpecificInvariantSuite {
-    BTree(S8BTreeInvariantSuite),
-    Lsm(S8LsmInvariantSuite),
+    BTree(BTreeInvariantSuite),
+    Lsm(LsmInvariantSuite),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8StrategyInvariantSuite {
-    declaration: S8StrategyDeclaration,
-    lookup: S8StrategyLookupInvariant,
-    publication: S8StrategyPublicationInvariant,
-    mutation: S8StrategyMutationInvariant,
-    integrity: S8StrategyIntegrityInvariant,
-    recovery: S8StrategyRecoveryInvariant,
-    counter_evidence: S8StrategyCounterEvidence,
+pub struct StrategyInvariantSuite {
+    declaration: StrategyDeclaration,
+    lookup: StrategyLookupInvariant,
+    publication: StrategyPublicationInvariant,
+    mutation: StrategyMutationInvariant,
+    integrity: StrategyIntegrityInvariant,
+    recovery: StrategyRecoveryInvariant,
+    counter_evidence: StrategyCounterEvidence,
     specific: StrategySpecificInvariantSuite,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum S8StrategyInvariantAdmissionCase {
-    Success(S8StrategyInvariantSuite),
-    Denied(S8StrategyDenial),
+enum StrategyInvariantAdmissionCase {
+    Success(StrategyInvariantSuite),
+    Denied(StrategyDenial),
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) struct S8StrategyInvariantAdmissionOutcome {
-    case: S8StrategyInvariantAdmissionCase,
+pub(crate) struct StrategyInvariantAdmissionOutcome {
+    case: StrategyInvariantAdmissionCase,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum S8StrategyInvariantAdmissionView<'a> {
-    Success(&'a S8StrategyInvariantSuite),
-    Denied(&'a S8StrategyDenial),
-}
-
-impl S8StrategyInvariantAdmissionOutcome {
-    pub(crate) fn admitted(value: S8StrategyInvariantSuite) -> Self {
-        Self::from_owner_payload(S8StrategyInvariantAdmissionCase::Success(value))
+impl StrategyInvariantAdmissionOutcome {
+    pub(crate) fn admitted(value: StrategyInvariantSuite) -> Self {
+        Self::from_owner_payload(StrategyInvariantAdmissionCase::Success(value))
     }
 
-    pub(crate) fn denied(value: S8StrategyDenial) -> Self {
-        Self::from_owner_payload(S8StrategyInvariantAdmissionCase::Denied(value))
+    pub(crate) fn denied(value: StrategyDenial) -> Self {
+        Self::from_owner_payload(StrategyInvariantAdmissionCase::Denied(value))
     }
 
-    fn from_owner_payload(case: S8StrategyInvariantAdmissionCase) -> Self {
+    fn from_owner_payload(case: StrategyInvariantAdmissionCase) -> Self {
         Self { case }
     }
 
-    pub fn view(&self) -> S8StrategyInvariantAdmissionView<'_> {
-        match &self.case {
-            S8StrategyInvariantAdmissionCase::Success(value) => {
-                S8StrategyInvariantAdmissionView::Success(value)
-            }
-            S8StrategyInvariantAdmissionCase::Denied(value) => {
-                S8StrategyInvariantAdmissionView::Denied(value)
-            }
-        }
-    }
-
-    fn into_owner_payload(self) -> S8StrategyInvariantAdmissionCase {
+    fn into_owner_payload(self) -> StrategyInvariantAdmissionCase {
         self.case
     }
 }
 
-impl S8StrategyInvariantAdmissionOutcome {
-    pub(crate) fn into_admitted(self) -> Result<S8AdmittedStrategyInvariants, S8StrategyDenial> {
+impl StrategyInvariantAdmissionOutcome {
+    pub(crate) fn into_admitted(self) -> Result<AdmittedStrategyInvariants, StrategyDenial> {
         match self.into_owner_payload() {
-            S8StrategyInvariantAdmissionCase::Success(suite) => {
-                Ok(S8AdmittedStrategyInvariants { suite })
+            StrategyInvariantAdmissionCase::Success(suite) => {
+                Ok(AdmittedStrategyInvariants { suite })
             }
-            S8StrategyInvariantAdmissionCase::Denied(denial) => Err(denial),
+            StrategyInvariantAdmissionCase::Denied(denial) => Err(denial),
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct S8AdmittedStrategyInvariants {
-    suite: S8StrategyInvariantSuite,
+pub(crate) struct AdmittedStrategyInvariants {
+    suite: StrategyInvariantSuite,
 }
 
-impl S8AdmittedStrategyInvariants {
-    pub(crate) const fn suite(self) -> S8StrategyInvariantSuite {
+impl AdmittedStrategyInvariants {
+    pub(crate) const fn suite(self) -> StrategyInvariantSuite {
         self.suite
     }
 }
 
-impl S8StrategyInvariantSuite {
-    pub(crate) fn declare(
-        declaration: S8StrategyDeclaration,
-    ) -> S8StrategyInvariantAdmissionOutcome {
+impl StrategyInvariantSuite {
+    pub(crate) fn declare(declaration: StrategyDeclaration) -> StrategyInvariantAdmissionOutcome {
         match Self::declare_result(declaration) {
-            Ok(suite) => S8StrategyInvariantAdmissionOutcome::admitted(suite),
-            Err(denial) => S8StrategyInvariantAdmissionOutcome::denied(denial),
+            Ok(suite) => StrategyInvariantAdmissionOutcome::admitted(suite),
+            Err(denial) => StrategyInvariantAdmissionOutcome::denied(denial),
         }
     }
 
-    fn declare_result(declaration: S8StrategyDeclaration) -> Result<Self, S8StrategyDenial> {
+    fn declare_result(declaration: StrategyDeclaration) -> Result<Self, StrategyDenial> {
         match declaration.family() {
-            S8LayoutStrategyFamily::BaselineBTreeRange => Ok(Self {
+            LayoutStrategyFamily::BaselineBTreeRange => Ok(Self {
                 declaration,
-                lookup: S8StrategyLookupInvariant::SeparatorDirectedLookup,
-                publication: S8StrategyPublicationInvariant::RootPublication,
-                mutation: S8StrategyMutationInvariant::SplitMaintainsOccupancy,
-                integrity: S8StrategyIntegrityInvariant::ChecksumLocalizesCorruption,
-                recovery: S8StrategyRecoveryInvariant::StableReadReplay,
+                lookup: StrategyLookupInvariant::SeparatorDirectedLookup,
+                publication: StrategyPublicationInvariant::RootPublication,
+                mutation: StrategyMutationInvariant::SplitMaintainsOccupancy,
+                integrity: StrategyIntegrityInvariant::ChecksumLocalizesCorruption,
+                recovery: StrategyRecoveryInvariant::StableReadReplay,
                 counter_evidence: derive_strategy_counter_evidence(declaration),
                 specific: StrategySpecificInvariantSuite::BTree(declare_btree_invariant_suite(
                     declaration,
                 )?),
             }),
-            S8LayoutStrategyFamily::BaselineLsmWriteOptimized => Ok(Self {
+            LayoutStrategyFamily::BaselineLsmWriteOptimized => Ok(Self {
                 declaration,
-                lookup: S8StrategyLookupInvariant::NewestRunLookup,
-                publication: S8StrategyPublicationInvariant::ManifestPublication,
-                mutation: S8StrategyMutationInvariant::TombstonesSurviveCompaction,
-                integrity: S8StrategyIntegrityInvariant::ManifestBindsRunDigests,
-                recovery: S8StrategyRecoveryInvariant::WalReplayRecovery,
+                lookup: StrategyLookupInvariant::NewestRunLookup,
+                publication: StrategyPublicationInvariant::ManifestPublication,
+                mutation: StrategyMutationInvariant::TombstonesSurviveCompaction,
+                integrity: StrategyIntegrityInvariant::ManifestBindsRunDigests,
+                recovery: StrategyRecoveryInvariant::WalReplayRecovery,
                 counter_evidence: derive_strategy_counter_evidence(declaration),
                 specific: StrategySpecificInvariantSuite::Lsm(declare_lsm_invariant_suite(
                     declaration,
                 )?),
             }),
-            _ => Err(S8StrategyDenial::InvariantSuiteNotAvailableForFamily),
+            _ => Err(StrategyDenial::InvariantSuiteNotAvailableForFamily),
         }
     }
 
-    pub const fn family(self) -> S8LayoutStrategyFamily {
+    pub const fn family(self) -> LayoutStrategyFamily {
         self.declaration.family()
     }
 
-    pub const fn lookup_invariant(self) -> S8StrategyLookupInvariant {
+    pub const fn lookup_invariant(self) -> StrategyLookupInvariant {
         self.lookup
     }
 
-    pub const fn publication_invariant(self) -> S8StrategyPublicationInvariant {
+    pub const fn publication_invariant(self) -> StrategyPublicationInvariant {
         self.publication
     }
 
-    pub const fn mutation_invariant(self) -> S8StrategyMutationInvariant {
+    pub const fn mutation_invariant(self) -> StrategyMutationInvariant {
         self.mutation
     }
 
-    pub const fn integrity_invariant(self) -> S8StrategyIntegrityInvariant {
+    pub const fn integrity_invariant(self) -> StrategyIntegrityInvariant {
         self.integrity
     }
 
-    pub const fn recovery_invariant(self) -> S8StrategyRecoveryInvariant {
+    pub const fn recovery_invariant(self) -> StrategyRecoveryInvariant {
         self.recovery
     }
 
-    pub const fn counter_evidence(self) -> S8StrategyCounterEvidence {
+    pub const fn counter_evidence(self) -> StrategyCounterEvidence {
         self.counter_evidence
     }
 
-    pub const fn require_btree_suite(self) -> Result<S8BTreeInvariantSuite, S8StrategyDenial> {
+    pub const fn require_btree_suite(self) -> Result<BTreeInvariantSuite, StrategyDenial> {
         match self.specific {
             StrategySpecificInvariantSuite::BTree(suite) => Ok(suite),
             StrategySpecificInvariantSuite::Lsm(_) => {
-                Err(S8StrategyDenial::InvariantSuiteNotAvailableForFamily)
+                Err(StrategyDenial::InvariantSuiteNotAvailableForFamily)
             }
         }
     }
 
-    pub const fn require_lsm_suite(self) -> Result<S8LsmInvariantSuite, S8StrategyDenial> {
+    pub const fn require_lsm_suite(self) -> Result<LsmInvariantSuite, StrategyDenial> {
         match self.specific {
             StrategySpecificInvariantSuite::Lsm(suite) => Ok(suite),
             StrategySpecificInvariantSuite::BTree(_) => {
-                Err(S8StrategyDenial::InvariantSuiteNotAvailableForFamily)
+                Err(StrategyDenial::InvariantSuiteNotAvailableForFamily)
             }
         }
     }

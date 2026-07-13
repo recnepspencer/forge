@@ -1,6 +1,6 @@
 use forge_store_buffer_pool::{AllocationScope, BackgroundEnvelopeCounterSnapshot};
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
-use forge_store_layout_indexes::access_planning::S8AccessShape;
+use forge_store_layout_indexes::observation::AccessShape;
 
 use crate::{CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope};
 
@@ -35,7 +35,7 @@ enum MaintenanceQueueLayoutEvidence {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MaintenanceQueueLayoutReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: AccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     queue_class: MaintenanceQueueClass,
     interference_posture: MaintenanceQueueInterferencePosture,
@@ -46,7 +46,7 @@ impl MaintenanceQueueLayoutReport {
     const fn from_compaction(envelope: CompactionPlanningMemoryEnvelope) -> Self {
         Self {
             family_id: DurableArtifactFamilyId::MaintenanceQueueDeclaration,
-            access_shape: S8AccessShape::BoundedScan,
+            access_shape: AccessShape::BoundedScan,
             rebuild_posture: DurableArtifactRebuildPosture::PartialRebuildOnly,
             queue_class: MaintenanceQueueClass::CompactionPlanning,
             interference_posture: MaintenanceQueueInterferencePosture::ForegroundMemoryBounded,
@@ -57,7 +57,7 @@ impl MaintenanceQueueLayoutReport {
     const fn from_import_export(envelope: ImportExportMemoryEnvelope) -> Self {
         Self {
             family_id: DurableArtifactFamilyId::MaintenanceQueueDeclaration,
-            access_shape: S8AccessShape::BoundedScan,
+            access_shape: AccessShape::BoundedScan,
             rebuild_posture: DurableArtifactRebuildPosture::PartialRebuildOnly,
             queue_class: MaintenanceQueueClass::ImportExport,
             interference_posture: MaintenanceQueueInterferencePosture::ImportExportMemoryBounded,
@@ -69,7 +69,7 @@ impl MaintenanceQueueLayoutReport {
         self.family_id
     }
 
-    pub const fn access_shape(&self) -> S8AccessShape {
+    pub const fn access_shape(&self) -> AccessShape {
         self.access_shape
     }
 
@@ -160,13 +160,13 @@ impl MaintenanceQueueAccessBudget {
 }
 
 impl CompactionPlanningMemoryEnvelope {
-    pub fn admit_maintenance_queue_layout(&self) -> MaintenanceQueueLayoutReport {
+    pub fn project_maintenance_queue_layout(&self) -> MaintenanceQueueLayoutReport {
         MaintenanceQueueLayoutReport::from_compaction(*self)
     }
 }
 
 impl ImportExportMemoryEnvelope {
-    pub fn admit_maintenance_queue_layout(&self) -> MaintenanceQueueLayoutReport {
+    pub fn project_maintenance_queue_layout(&self) -> MaintenanceQueueLayoutReport {
         MaintenanceQueueLayoutReport::from_import_export(*self)
     }
 }

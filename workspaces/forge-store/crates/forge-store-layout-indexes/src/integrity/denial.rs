@@ -1,11 +1,11 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8CorruptionDenial {
+pub enum CorruptionDenial {
     ReadmissionInputDoesNotMatchRequiredOutcome {
-        required: super::classification::S8LayoutCorruptionClass,
+        required: super::classification::LayoutCorruptionClass,
     },
     FamilyBoundReadmissionWitnessRequired {
         family: crate::PhysicalArtifactFamily,
-        source: super::classification::S8LayoutReadmissionSource,
+        source: super::classification::LayoutReadmissionSource,
     },
     QuarantineRecordBackedReadmissionEvidenceRequired {
         family: crate::PhysicalArtifactFamily,

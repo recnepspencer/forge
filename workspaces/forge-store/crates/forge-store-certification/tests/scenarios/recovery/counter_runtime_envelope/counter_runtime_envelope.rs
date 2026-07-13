@@ -4,8 +4,7 @@ use forge_store_buffer_pool::{
 };
 use forge_store_io_scheduler::{IoQueueExecutionDenial, IoQueueExecutionRecorder};
 
-#[path = "../../../support/recovery/counter_strength/support.rs"]
-mod support;
+use forge_store_test_support::harness::recovery::counter_evidence as support;
 
 use support::{counter_receipt, lower_physical_isolation_plan, observed_trace};
 

@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/counter_strength/support.rs"]
-mod counter_support;
+use forge_store_test_support::harness::recovery::counter_evidence as counter_support;
 
 use forge_foundational::{BoundaryArtifactField, BoundaryArtifactId, BoundaryArtifactLocator};
 use forge_store_physical_backend::ProductionStorageBoundarySeam;

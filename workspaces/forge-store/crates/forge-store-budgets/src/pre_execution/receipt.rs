@@ -1,35 +1,33 @@
-use super::admission::{S8PreExecutionBudgetEnvelope, S8PreExecutionBudgetScope};
-use super::request::S8PreExecutionPlanBinding;
-
+use super::admission::{PreExecutionBudgetEnvelope, PreExecutionBudgetScope};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8PreExecutionBudgetAdmissionReceipt {
-    plan_binding: S8PreExecutionPlanBinding,
-    scope: S8PreExecutionBudgetScope,
-    admitted_envelope: S8PreExecutionBudgetEnvelope,
+pub struct PreExecutionBudgetAdmissionReceipt {
+    request: super::request::PreExecutionBudgetRequest,
+    scope: PreExecutionBudgetScope,
+    admitted_envelope: PreExecutionBudgetEnvelope,
 }
 
-impl S8PreExecutionBudgetAdmissionReceipt {
+impl PreExecutionBudgetAdmissionReceipt {
     pub(crate) const fn new(
-        plan_binding: S8PreExecutionPlanBinding,
-        scope: S8PreExecutionBudgetScope,
-        admitted_envelope: S8PreExecutionBudgetEnvelope,
+        request: super::request::PreExecutionBudgetRequest,
+        scope: PreExecutionBudgetScope,
+        admitted_envelope: PreExecutionBudgetEnvelope,
     ) -> Self {
         Self {
-            plan_binding,
+            request,
             scope,
             admitted_envelope,
         }
     }
 
-    pub const fn plan_binding(self) -> S8PreExecutionPlanBinding {
-        self.plan_binding
+    pub const fn request(self) -> super::request::PreExecutionBudgetRequest {
+        self.request
     }
 
-    pub const fn scope(self) -> S8PreExecutionBudgetScope {
+    pub const fn scope(self) -> PreExecutionBudgetScope {
         self.scope
     }
 
-    pub const fn admitted_envelope(self) -> S8PreExecutionBudgetEnvelope {
+    pub const fn admitted_envelope(self) -> PreExecutionBudgetEnvelope {
         self.admitted_envelope
     }
 }

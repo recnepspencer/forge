@@ -15,7 +15,10 @@ pub struct DirtyPublicationEvidence {
 }
 
 impl DirtyPublicationEvidence {
-    pub fn from_physical_substrate_publication(receipt: DirtyPublicationReceipt, page_lsn: PageLsn) -> Self {
+    pub fn from_physical_substrate_publication(
+        receipt: DirtyPublicationReceipt,
+        page_lsn: PageLsn,
+    ) -> Self {
         Self {
             dirty_identity: receipt.dirty_identity(),
             page_generation: receipt.page_generation(),

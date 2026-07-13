@@ -25,7 +25,6 @@ pub(crate) mod handoff_contract_tests;
 pub(crate) mod store_json_residue_certification;
 pub(crate) mod store_json_residue_denial;
 pub(crate) mod store_json_residue_entry;
-pub(crate) mod store_json_residue_exports;
 pub(crate) mod store_json_residue_inventory;
 pub(crate) mod store_json_residue_prelude_scan;
 pub(crate) mod store_json_residue_scan;

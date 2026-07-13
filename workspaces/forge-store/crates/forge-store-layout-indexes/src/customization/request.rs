@@ -1,19 +1,17 @@
-use crate::catalog::ArtifactFamilyLifecycleAdmission;
-
-use super::{S8FutureLayoutCapabilityRequest, S8FutureLayoutWorkloadEnvelope};
+use super::{FutureLayoutCapabilityRequest, FutureLayoutWorkloadEnvelope};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8FutureLayoutCustomizationRequest {
-    authority_source: ArtifactFamilyLifecycleAdmission,
-    capability_request: S8FutureLayoutCapabilityRequest,
-    workload_envelope: S8FutureLayoutWorkloadEnvelope,
+pub struct FutureLayoutCustomizationRequest {
+    authority_source: crate::AdmittedPhysicalArtifactFamily,
+    capability_request: FutureLayoutCapabilityRequest,
+    workload_envelope: FutureLayoutWorkloadEnvelope,
 }
 
-impl S8FutureLayoutCustomizationRequest {
+impl FutureLayoutCustomizationRequest {
     pub const fn new(
-        authority_source: ArtifactFamilyLifecycleAdmission,
-        capability_request: S8FutureLayoutCapabilityRequest,
-        workload_envelope: S8FutureLayoutWorkloadEnvelope,
+        authority_source: crate::AdmittedPhysicalArtifactFamily,
+        capability_request: FutureLayoutCapabilityRequest,
+        workload_envelope: FutureLayoutWorkloadEnvelope,
     ) -> Self {
         Self {
             authority_source,
@@ -22,15 +20,15 @@ impl S8FutureLayoutCustomizationRequest {
         }
     }
 
-    pub const fn authority_source(self) -> ArtifactFamilyLifecycleAdmission {
+    pub const fn authority_source(self) -> crate::AdmittedPhysicalArtifactFamily {
         self.authority_source
     }
 
-    pub const fn capability_request(self) -> S8FutureLayoutCapabilityRequest {
+    pub const fn capability_request(self) -> FutureLayoutCapabilityRequest {
         self.capability_request
     }
 
-    pub const fn workload_envelope(self) -> S8FutureLayoutWorkloadEnvelope {
+    pub const fn workload_envelope(self) -> FutureLayoutWorkloadEnvelope {
         self.workload_envelope
     }
 }

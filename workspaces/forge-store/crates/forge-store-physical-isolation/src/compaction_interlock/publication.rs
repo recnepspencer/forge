@@ -12,12 +12,18 @@ pub struct CompactionRewritePublication {
 }
 
 impl CompactionRewritePublication {
+    const OWNER_CASE: super::CompactionOwnerCase = super::CompactionOwnerCase::issued_by_owner(
+        super::CompactionOwnerCaseId::owned("physical.compaction.publish_rewrite"),
+        super::CompactionCutoverState::RewriteLowered,
+        super::CompactionCutoverState::PublicationCommitted,
+    );
+
     pub const fn cutover_state(&self) -> super::CompactionCutoverState {
         super::CompactionCutoverState::PublicationCommitted
     }
 
-    pub const fn cutover_transition(&self) -> super::CompactionCutoverTransition {
-        super::CompactionCutoverTransitionKind::PublishRewrite.transition()
+    pub const fn owner_case(&self) -> super::CompactionOwnerCase {
+        Self::OWNER_CASE
     }
 
     pub fn publish_rewrite(
@@ -48,6 +54,10 @@ impl CompactionRewritePublication {
     pub const fn foundational_evidence(&self) -> CompactionInterlockFoundationalEvidence {
         CompactionInterlockFoundationalEvidence::after_store_decision(self.counters)
     }
+}
+
+pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCase> {
+    std::iter::once(CompactionRewritePublication::OWNER_CASE)
 }
 
 #[cfg(any(test, feature = "certification-authority"))]

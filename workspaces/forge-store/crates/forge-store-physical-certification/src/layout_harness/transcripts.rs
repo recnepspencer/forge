@@ -1,20 +1,20 @@
-use super::closeout::S8LayoutCloseoutEvidenceLane;
-use super::coverage::S8LayoutCoverageRowKind;
+use super::closeout::LayoutCloseoutEvidenceLane;
+use super::coverage::LayoutCoverageRowKind;
 use super::scenario::{
-    layout_scenario, S8LayoutScenarioDefinition, S8LayoutScenarioKind, S8LayoutTransitionState,
+    layout_scenario, LayoutScenarioDefinition, LayoutScenarioKind, LayoutTransitionState,
 };
-use super::shortcut_denials::S8LayoutShortcutDenialKind;
-use forge_store_layout_indexes::access_execution::S8ExecutedAccessReceipt;
+use super::shortcut_denials::LayoutShortcutDenialKind;
+use forge_store_layout_indexes::ExecutedLayoutOperation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum S8LayoutTranscriptKind {
+pub enum LayoutTranscriptKind {
     ScenarioTranscript,
     ReplayBundle,
     ShortcutDenialTrace,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8LayoutExecutionAdmissionDenial {
+pub enum LayoutExecutionAdmissionDenial {
     UnsupportedScenario,
     ScenarioExecutionDeferred,
     MissingProductionApiCoverage,
@@ -25,65 +25,65 @@ pub enum S8LayoutExecutionAdmissionDenial {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct S8LayoutExecutedScenarioWitness {
-    kind: S8LayoutScenarioKind,
-    transcript: S8LayoutTranscriptKind,
-    coverage: &'static [S8LayoutCoverageRowKind],
-    shortcut_denials: &'static [S8LayoutShortcutDenialKind],
-    closeout: S8LayoutCloseoutEvidenceLane,
-    executed_access: S8ExecutedAccessReceipt,
+pub struct LayoutExecutedScenarioWitness {
+    kind: LayoutScenarioKind,
+    transcript: LayoutTranscriptKind,
+    coverage: &'static [LayoutCoverageRowKind],
+    shortcut_denials: &'static [LayoutShortcutDenialKind],
+    closeout: LayoutCloseoutEvidenceLane,
+    executed_access: ExecutedLayoutOperation,
 }
 
 pub fn admit_layout_index_layout_exact_counter_execution(
-    executed_access: S8ExecutedAccessReceipt,
-) -> Result<S8LayoutExecutedScenarioWitness, S8LayoutExecutionAdmissionDenial> {
+    executed_access: ExecutedLayoutOperation,
+) -> Result<LayoutExecutedScenarioWitness, LayoutExecutionAdmissionDenial> {
     admit_layout_index_layout_executed_scenario(
-        layout_scenario(S8LayoutScenarioKind::ExactCounter),
+        layout_scenario(LayoutScenarioKind::ExactCounter),
         executed_access,
     )
 }
 
-impl S8LayoutExecutedScenarioWitness {
-    pub const fn kind(&self) -> S8LayoutScenarioKind {
+impl LayoutExecutedScenarioWitness {
+    pub const fn kind(&self) -> LayoutScenarioKind {
         self.kind
     }
-    pub const fn transcript(&self) -> S8LayoutTranscriptKind {
+    pub const fn transcript(&self) -> LayoutTranscriptKind {
         self.transcript
     }
-    pub const fn coverage(&self) -> &'static [S8LayoutCoverageRowKind] {
+    pub const fn coverage(&self) -> &'static [LayoutCoverageRowKind] {
         self.coverage
     }
-    pub const fn shortcut_denials(&self) -> &'static [S8LayoutShortcutDenialKind] {
+    pub const fn shortcut_denials(&self) -> &'static [LayoutShortcutDenialKind] {
         self.shortcut_denials
     }
-    pub const fn closeout(&self) -> S8LayoutCloseoutEvidenceLane {
+    pub const fn closeout(&self) -> LayoutCloseoutEvidenceLane {
         self.closeout
     }
-    pub const fn executed_access(&self) -> &S8ExecutedAccessReceipt {
+    pub const fn executed_access(&self) -> &ExecutedLayoutOperation {
         &self.executed_access
     }
 }
 
 fn admit_layout_index_layout_executed_scenario(
-    definition: S8LayoutScenarioDefinition,
-    executed_access: S8ExecutedAccessReceipt,
-) -> Result<S8LayoutExecutedScenarioWitness, S8LayoutExecutionAdmissionDenial> {
-    if definition.kind() != S8LayoutScenarioKind::ExactCounter {
-        return Err(S8LayoutExecutionAdmissionDenial::ScenarioExecutionDeferred);
+    definition: LayoutScenarioDefinition,
+    executed_access: ExecutedLayoutOperation,
+) -> Result<LayoutExecutedScenarioWitness, LayoutExecutionAdmissionDenial> {
+    if definition.kind() != LayoutScenarioKind::ExactCounter {
+        return Err(LayoutExecutionAdmissionDenial::ScenarioExecutionDeferred);
     }
     if !definition
         .transitions()
-        .contains(&S8LayoutTransitionState::Executed)
+        .contains(&LayoutTransitionState::Executed)
     {
-        return Err(S8LayoutExecutionAdmissionDenial::ScenarioDoesNotReachExecutedEvidence);
+        return Err(LayoutExecutionAdmissionDenial::ScenarioDoesNotReachExecutedEvidence);
     }
     if definition.coverage().is_empty() {
-        return Err(S8LayoutExecutionAdmissionDenial::MissingCoverageRows);
+        return Err(LayoutExecutionAdmissionDenial::MissingCoverageRows);
     }
     if definition.shortcut_denials().is_empty() {
-        return Err(S8LayoutExecutionAdmissionDenial::MissingShortcutDenials);
+        return Err(LayoutExecutionAdmissionDenial::MissingShortcutDenials);
     }
-    Ok(S8LayoutExecutedScenarioWitness {
+    Ok(LayoutExecutedScenarioWitness {
         kind: definition.kind(),
         transcript: definition.transcript(),
         coverage: definition.coverage(),

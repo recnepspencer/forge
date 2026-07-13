@@ -22,7 +22,8 @@ pub(crate) fn with_checked_frame(
     run: impl FnOnce(IntegrityCheckedFrame<'_>),
 ) {
     with_entry_seed(payload, |seed| {
-        let declaration = checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
+        let declaration =
+            checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
         let admission = seed.with_checksum_declaration(declaration).unwrap();
         let checked = admission
             .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
@@ -42,7 +43,8 @@ pub(crate) fn with_checked_page(
     run: impl FnOnce(IntegrityCheckedPage<'_>),
 ) {
     with_entry_seed(payload, |seed| {
-        let declaration = checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
+        let declaration =
+            checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
         let admission = seed.with_checksum_declaration(declaration).unwrap();
         let checked = admission
             .admit_page(PhysicalIntegrityAdmissionRequest::page(
@@ -184,7 +186,8 @@ pub(crate) fn root_with_extent(segment: u64, extent: u64, generation: u64) -> Ph
 }
 
 pub(crate) fn root_admission(root: &PhysicalRootManifest) -> PhysicalReferenceAdmissionWitness {
-    PhysicalReferenceAuthority::for_canonical_physical_format().admit_root_publication(root.root_publication())
+    PhysicalReferenceAuthority::for_canonical_physical_format()
+        .admit_root_publication(root.root_publication())
 }
 
 pub(crate) fn page_slot_admission(
@@ -193,7 +196,8 @@ pub(crate) fn page_slot_admission(
     slot: u64,
     generation: u64,
 ) -> PhysicalReferenceAdmissionWitness {
-    PhysicalReferenceAuthority::for_canonical_physical_format().admit_page_slot(slot_cell(segment, page, slot, generation))
+    PhysicalReferenceAuthority::for_canonical_physical_format()
+        .admit_page_slot(slot_cell(segment, page, slot, generation))
 }
 
 pub(crate) fn extent_admission(
@@ -201,7 +205,8 @@ pub(crate) fn extent_admission(
     extent: u64,
     generation: u64,
 ) -> PhysicalReferenceAdmissionWitness {
-    PhysicalReferenceAuthority::for_canonical_physical_format().admit_extent(extent_cell(segment, extent, generation))
+    PhysicalReferenceAuthority::for_canonical_physical_format()
+        .admit_extent(extent_cell(segment, extent, generation))
 }
 
 pub(crate) fn free_space_slot_admission(
@@ -248,7 +253,9 @@ fn page_witness(payload: &[u8], cell: PageGenerationCell) -> PhysicalHeaderDecod
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+    )
 }
 
 fn frame_bytes(generation: u64, payload: &[u8]) -> Vec<u8> {

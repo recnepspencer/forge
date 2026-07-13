@@ -1,34 +1,74 @@
-use super::selection_decision::S8PlanSelectionDecision;
-use super::{S8PlanSelectionDenied, S8SelectedAccessPlan};
-
+use super::decision::PlanSelectionDecision;
+use super::{
+    AccessPlanSelectionDenied, SelectedBTreeLookup, SelectedBTreeReplayRecovery,
+    SelectedDegradedExactScan, SelectedLsmCompaction, SelectedLsmLookup, SelectedLsmReplayRecovery,
+    SelectedLsmRunPublication,
+};
 #[derive(Debug, PartialEq, Eq)]
-pub(super) enum S8SelectionIssuedPayload {
-    Selected(S8SelectedAccessPlan),
-    Denied(S8PlanSelectionDenied),
+pub(super) enum SelectionIssuedPayload {
+    BTreeLookup(SelectedBTreeLookup),
+    BTreeReplayRecovery(SelectedBTreeReplayRecovery),
+    LsmLookup(SelectedLsmLookup),
+    LsmRunPublication(SelectedLsmRunPublication),
+    LsmReplayRecovery(SelectedLsmReplayRecovery),
+    LsmCompaction(SelectedLsmCompaction),
+    Degraded(SelectedDegradedExactScan),
+    Denied(AccessPlanSelectionDenied),
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(super) struct S8IssuedSelection {
-    payload: S8SelectionIssuedPayload,
+pub(super) struct IssuedSelection {
+    payload: SelectionIssuedPayload,
 }
 
-impl S8IssuedSelection {
-    pub(super) const fn payload(&self) -> &S8SelectionIssuedPayload {
+impl IssuedSelection {
+    pub(super) const fn payload(&self) -> &SelectionIssuedPayload {
         &self.payload
     }
 
-    pub(super) fn into_payload(self) -> S8SelectionIssuedPayload {
+    pub(super) fn into_payload(self) -> SelectionIssuedPayload {
         self.payload
     }
 }
 
 pub(super) fn issue_selection_outcome(
-    decision: S8PlanSelectionDecision,
-) -> super::S8AccessPlanSelectionOutcome {
-    let (_, result) = decision.into_parts();
-    let payload = match result {
-        Ok(plan) => S8SelectionIssuedPayload::Selected(plan),
-        Err(denial) => S8SelectionIssuedPayload::Denied(denial),
+    decision: PlanSelectionDecision,
+) -> super::AccessPlanSelectionOutcome {
+    let payload = match decision {
+        PlanSelectionDecision::BTreePointLookup(plan, grant) => {
+            SelectionIssuedPayload::BTreeLookup(SelectedBTreeLookup::from_decision(plan, grant))
+        }
+        PlanSelectionDecision::BTreeRangeLookup(plan, grant) => {
+            SelectionIssuedPayload::BTreeLookup(SelectedBTreeLookup::from_decision(plan, grant))
+        }
+        PlanSelectionDecision::BTreePrefixLookup(plan, grant) => {
+            SelectionIssuedPayload::BTreeLookup(SelectedBTreeLookup::from_decision(plan, grant))
+        }
+        PlanSelectionDecision::BTreeReplayRecovery(plan, grant) => {
+            SelectionIssuedPayload::BTreeReplayRecovery(SelectedBTreeReplayRecovery::from_decision(
+                plan, grant,
+            ))
+        }
+        PlanSelectionDecision::LsmLookup(plan, grant) => {
+            SelectionIssuedPayload::LsmLookup(SelectedLsmLookup::from_decision(plan, grant))
+        }
+        PlanSelectionDecision::LsmRunPublication(plan, grant) => {
+            SelectionIssuedPayload::LsmRunPublication(SelectedLsmRunPublication::from_decision(
+                plan, grant,
+            ))
+        }
+        PlanSelectionDecision::LsmReplayRecovery(plan, grant) => {
+            SelectionIssuedPayload::LsmReplayRecovery(SelectedLsmReplayRecovery::from_decision(
+                plan, grant,
+            ))
+        }
+        PlanSelectionDecision::LsmCompaction(plan, grant) => {
+            SelectionIssuedPayload::LsmCompaction(SelectedLsmCompaction::from_decision(plan, grant))
+        }
+        PlanSelectionDecision::Degraded(plan, grant) => {
+            SelectionIssuedPayload::Degraded(SelectedDegradedExactScan::from_decision(plan, grant))
+        }
+        PlanSelectionDecision::Denied(denial) => SelectionIssuedPayload::Denied(denial),
     };
-    super::S8AccessPlanSelectionOutcome::from_issued(S8IssuedSelection { payload })
+    super::AccessPlanSelectionOutcome::from_issued(IssuedSelection { payload })
 }

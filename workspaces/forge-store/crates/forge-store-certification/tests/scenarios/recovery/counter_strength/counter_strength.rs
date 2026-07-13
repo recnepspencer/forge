@@ -7,14 +7,13 @@ use forge_store_physical_certification::{
     PhysicalExecutedCounterEvidence, PhysicalInterleavingSchedule, ReplaySeed, StateSpaceBudget,
 };
 
-#[path = "../../../support/recovery/counter_strength/support.rs"]
-mod support;
+use forge_store_test_support::harness::recovery::counter_evidence as support;
 
 use support::{
     assert_counter, executed_counter_evidence, execution_sources_for_plan,
     execution_sources_with_schedule, hostile_resource_observation_within_envelope,
-    hostile_satisfied_rows, lower_physical_isolation_plan, lower_physical_isolation_shortcut_plan, lower_shortcut_plan,
-    observed_trace, replace_row, shortcut_trace,
+    hostile_satisfied_rows, lower_physical_isolation_plan, lower_physical_isolation_shortcut_plan,
+    lower_shortcut_plan, observed_trace, replace_row, shortcut_trace,
 };
 
 #[test]

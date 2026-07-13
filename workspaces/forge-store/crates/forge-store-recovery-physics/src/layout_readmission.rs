@@ -31,6 +31,7 @@ pub struct RecoveryLayoutReadmissionWitness {
     family_id: DurableArtifactFamilyId,
     class: RecoveryLayoutReadmissionClass,
     identity: RecoveryLayoutReadmissionIdentity,
+    replay_frontier: Option<crate::LogSequenceNumber>,
 }
 
 impl RecoveryLayoutReadmissionWitness {
@@ -42,6 +43,9 @@ impl RecoveryLayoutReadmissionWitness {
     }
     pub const fn identity(&self) -> &RecoveryLayoutReadmissionIdentity {
         &self.identity
+    }
+    pub const fn replay_frontier(&self) -> Option<crate::LogSequenceNumber> {
+        self.replay_frontier
     }
 }
 
@@ -78,6 +82,7 @@ pub fn admit_record_backed_layout_readmission(
         identity: RecoveryLayoutReadmissionIdentity::QuarantineReceipt(
             record.receipt().foundational_basis().digest().clone(),
         ),
+        replay_frontier: None,
     })
 }
 
@@ -85,12 +90,19 @@ pub fn admit_offline_layout_readmission(
     family_id: DurableArtifactFamilyId,
     admission: &ReopenedRecoveryArtifactAdmission,
 ) -> RecoveryLayoutReadmissionWitness {
+    let replay_frontier = admission
+        .replay_cursor()
+        .pages()
+        .iter()
+        .map(|page| page.eligibility().redo_frontier().lsn())
+        .max();
     RecoveryLayoutReadmissionWitness {
         family_id,
         class: RecoveryLayoutReadmissionClass::OfflineVerifiedArtifact,
         identity: RecoveryLayoutReadmissionIdentity::OfflineArtifactDigest(
             admission.artifact_digest().clone(),
         ),
+        replay_frontier,
     }
 }
 

@@ -1,9 +1,10 @@
-use forge_foundational::FoundationalMaterializedPerformanceReport;
-use forge_store_layout_indexes::S8ExecutionReadmissionWitness;
+use forge_store_layout_indexes::integrity::LayoutReadmissionWitness;
 
-fn require_readmission(_: S8ExecutionReadmissionWitness) {}
+struct FoundationalMaterializedPerformanceReport<T>(T);
+
+fn require_readmission(_: LayoutReadmissionWitness) {}
 
 fn main() {
-    let report: FoundationalMaterializedPerformanceReport<()> = todo!();
+    let report = FoundationalMaterializedPerformanceReport(());
     require_readmission(report);
 }

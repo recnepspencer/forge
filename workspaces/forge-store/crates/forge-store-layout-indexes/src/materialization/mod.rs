@@ -1,20 +1,33 @@
-mod absence;
-mod absence_outcome;
-mod completeness;
+mod admission;
 mod coverage;
+mod coverage_basis;
 mod denial;
+mod freshness;
+#[cfg(test)]
+mod runtime_tests;
+mod source;
+#[cfg(test)]
+mod source_binding_tests;
 mod state;
+#[cfg(test)]
+pub(crate) mod test_support;
 #[cfg(test)]
 pub(crate) mod tests;
 mod watermark;
 
-pub use absence::{S8AbsenceAuthorityClass, S8PhysicalAbsenceProof};
-pub(super) use absence_outcome::issue_physical_absence;
-pub use absence_outcome::{S8PhysicalAbsenceOutcome, S8PhysicalAbsenceOutcomeView};
-pub use completeness::{
-    S8MaterializationCompleteness, S8PrefixCompletenessWitness, S8RangeCompletenessWitness,
+pub use admission::AdmittedLayoutMaterialization;
+pub(crate) use coverage::LayoutCoverageWitness;
+pub use coverage_basis::AdmittedCoverageBasis;
+#[cfg(test)]
+pub use denial::CoverageGapWitness;
+pub use denial::MaterializationDenial;
+pub use freshness::{
+    CurrentLayoutMaterialization, CurrentMaterializationFrontier, MaterializationFreshness,
+    StaleLayoutMaterialization,
 };
-pub use coverage::S8LayoutCoverageWitness;
-pub use denial::{S8CoverageGapClass, S8CoverageGapWitness, S8MaterializationDenial};
-pub use state::{S8LayoutMaterializationState, S8MaterializationStateClass};
-pub use watermark::{S8CoverageBasisKind, S8LayoutWatermark, S8PhysicalCoverageBasis};
+pub use source::{
+    ImportedBlobMaterializationSourceIdentity, LayoutMaterializationSourceIdentity,
+    LayoutMaterializationSourceKind, RestoredArtifactMaterializationSourceIdentity,
+};
+pub(crate) use state::{LayoutMaterializationState, MaterializationStateClass};
+pub(crate) use watermark::{CoverageBasisKind, LayoutWatermark, PhysicalCoverageBasis};

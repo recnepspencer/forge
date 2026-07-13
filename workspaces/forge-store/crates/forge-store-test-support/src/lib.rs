@@ -23,9 +23,3 @@ pub mod harness;
 
 pub use harness::production_facade::*;
 pub use harness::{production_facade, test_authority};
-
-#[deprecated(
-    since = "0.0.0",
-    note = "use harness_physical_reference — test support must not imply production authority"
-)]
-pub use harness::physical_reference::test_physical_reference;

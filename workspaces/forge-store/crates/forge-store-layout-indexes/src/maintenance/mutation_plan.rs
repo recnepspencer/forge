@@ -3,81 +3,116 @@ use crate::catalog::{
     PhysicalArtifactFamily,
 };
 use crate::keyspace::PhysicalKeyDomainWitness;
-use crate::materialization::S8LayoutCoverageWitness;
-use crate::strategy::{S8AdmittedLayoutStrategy, S8LayoutStrategyFamily};
+use crate::materialization::LayoutCoverageWitness;
+use crate::strategy::{AdmittedLayoutStrategy, LayoutStrategyFamily};
 use forge_store_physical_format::RootPublicationValidationWitness;
+use forge_store_wal::{BlobWalRecordIdentity, DurablePublicationScope};
 
-use super::lag::S8IndexLagWitness;
-use super::maintenance_mode::S8IndexMaintenanceMode;
-use super::publication_protocol::S8IndexPublicationProtocol;
+use super::lag::IndexLagWitness;
+use super::maintenance_mode::IndexMaintenanceMode;
+use super::publication_protocol::IndexPublicationProtocol;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8PhysicalMutationShape {
+pub enum PhysicalMutationShape {
     ObservationOnly,
     PointRewrite,
     LogStructuredAppend,
     CompactionRewrite,
 }
 
-impl S8PhysicalMutationShape {
+impl PhysicalMutationShape {
     pub const fn requires_write_ordering_proof(self) -> bool {
         !matches!(self, Self::ObservationOnly)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8ExactPublicationAuthoritySource {
+pub enum ExactPublicationAuthoritySource {
     CurrentRootPublication(RootPublicationValidationWitness),
+    InstalledLsmManifest(LsmManifestPublicationBinding),
 }
 
-impl S8ExactPublicationAuthoritySource {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LsmManifestPublicationBinding {
+    replacement: BlobWalRecordIdentity,
+    covered_lsn_end: u64,
+}
+
+impl ExactPublicationAuthoritySource {
     pub const fn current_root_publication(validation: RootPublicationValidationWitness) -> Self {
         Self::CurrentRootPublication(validation)
     }
 
-    pub const fn publication_protocol(self) -> S8IndexPublicationProtocol {
+    pub fn installed_lsm_manifest(
+        execution: &crate::strategy::BaselineLsmManifestPublicationExecution,
+    ) -> Self {
+        let covered_lsn_end = match execution.manifest_publication().scope() {
+            DurablePublicationScope::Manifest(scope) => scope.covered_lsn_end(),
+            _ => unreachable!("LSM publication execution retains manifest-scoped publication"),
+        };
+        Self::InstalledLsmManifest(LsmManifestPublicationBinding {
+            replacement: execution.wal_publication().identity(),
+            covered_lsn_end,
+        })
+    }
+
+    pub const fn publication_protocol(self) -> IndexPublicationProtocol {
         match self {
-            Self::CurrentRootPublication(_) => S8IndexPublicationProtocol::StableRootSwap,
+            Self::CurrentRootPublication(_) => IndexPublicationProtocol::StableRootSwap,
+            Self::InstalledLsmManifest(_) => IndexPublicationProtocol::StableManifestInstall,
         }
     }
 
-    pub const fn supports_exact_coverage(self, _coverage: S8LayoutCoverageWitness) -> bool {
+    pub fn supports_exact_coverage(&self, coverage: &LayoutCoverageWitness) -> bool {
         match self {
-            // Root-publication freshness alone does not prove the exact root-epoch
-            // identity consumed by the layout layer.
-            Self::CurrentRootPublication(_) => false,
+            Self::CurrentRootPublication(validation) => {
+                let source = coverage.source();
+                coverage.is_exact()
+                    && source.root_owner() == validation.owner()
+                    && source.kind()
+                        == crate::LayoutMaterializationSourceKind::BTreeRoot(validation.reference())
+                    && source.matches_btree_publication(*validation)
+            }
+            Self::InstalledLsmManifest(binding) => {
+                coverage.is_exact()
+                    && coverage.source().kind()
+                        == crate::LayoutMaterializationSourceKind::LsmReplacement(
+                            binding.replacement,
+                        )
+                    && coverage.upper_bound().value() <= binding.covered_lsn_end
+            }
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LiveMaintenanceRequest {
-    lifecycle: ArtifactFamilyLifecycleAdmission,
-    key_domain: PhysicalKeyDomainWitness,
-    family: S8LayoutStrategyFamily,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LiveMaintenanceRequest {
+    admitted_family: crate::AdmittedPhysicalArtifactFamily,
+    admitted_key_domain: crate::AdmittedPhysicalKeyDomain,
+    family: LayoutStrategyFamily,
     requested_lane: ArtifactFamilyAccessLane,
-    maintenance_mode: S8IndexMaintenanceMode,
-    mutation_shape: S8PhysicalMutationShape,
-    publication_protocol: S8IndexPublicationProtocol,
-    exact_publication_authority: Option<S8ExactPublicationAuthoritySource>,
-    exact_coverage: Option<S8LayoutCoverageWitness>,
-    lag_witness: Option<S8IndexLagWitness>,
+    maintenance_mode: IndexMaintenanceMode,
+    mutation_shape: PhysicalMutationShape,
+    publication_protocol: IndexPublicationProtocol,
+    exact_publication_authority: Option<ExactPublicationAuthoritySource>,
+    exact_coverage: Option<LayoutCoverageWitness>,
+    lag_witness: Option<IndexLagWitness>,
     required_migration_posture: Option<DurableArtifactMigrationPosture>,
 }
 
-impl S8LiveMaintenanceRequest {
+impl LiveMaintenanceRequest {
     pub const fn new(
-        lifecycle: ArtifactFamilyLifecycleAdmission,
-        key_domain: PhysicalKeyDomainWitness,
-        family: S8LayoutStrategyFamily,
+        admitted_family: crate::AdmittedPhysicalArtifactFamily,
+        admitted_key_domain: crate::AdmittedPhysicalKeyDomain,
+        family: LayoutStrategyFamily,
         requested_lane: ArtifactFamilyAccessLane,
-        maintenance_mode: S8IndexMaintenanceMode,
-        mutation_shape: S8PhysicalMutationShape,
-        publication_protocol: S8IndexPublicationProtocol,
+        maintenance_mode: IndexMaintenanceMode,
+        mutation_shape: PhysicalMutationShape,
+        publication_protocol: IndexPublicationProtocol,
     ) -> Self {
         Self {
-            lifecycle,
-            key_domain,
+            admitted_family,
+            admitted_key_domain,
             family,
             requested_lane,
             maintenance_mode,
@@ -92,18 +127,18 @@ impl S8LiveMaintenanceRequest {
 
     pub const fn with_exact_publication_authority(
         mut self,
-        authority: S8ExactPublicationAuthoritySource,
+        authority: ExactPublicationAuthoritySource,
     ) -> Self {
         self.exact_publication_authority = Some(authority);
         self
     }
 
-    pub const fn with_exact_coverage(mut self, coverage: S8LayoutCoverageWitness) -> Self {
+    pub fn with_exact_coverage(mut self, coverage: LayoutCoverageWitness) -> Self {
         self.exact_coverage = Some(coverage);
         self
     }
 
-    pub const fn with_lag_witness(mut self, witness: S8IndexLagWitness) -> Self {
+    pub fn with_lag_witness(mut self, witness: IndexLagWitness) -> Self {
         self.lag_witness = Some(witness);
         self
     }
@@ -116,61 +151,69 @@ impl S8LiveMaintenanceRequest {
         self
     }
 
-    pub const fn lifecycle(self) -> ArtifactFamilyLifecycleAdmission {
-        self.lifecycle
+    pub const fn lifecycle(&self) -> ArtifactFamilyLifecycleAdmission {
+        self.admitted_family.lifecycle()
     }
 
-    pub const fn key_domain(self) -> PhysicalKeyDomainWitness {
-        self.key_domain
+    pub const fn key_domain(&self) -> PhysicalKeyDomainWitness {
+        self.admitted_key_domain.witness()
     }
 
-    pub const fn family(self) -> S8LayoutStrategyFamily {
+    pub const fn admitted_family(&self) -> crate::AdmittedPhysicalArtifactFamily {
+        self.admitted_family
+    }
+
+    pub const fn admitted_key_domain(&self) -> crate::AdmittedPhysicalKeyDomain {
+        self.admitted_key_domain
+    }
+
+    pub const fn family(&self) -> LayoutStrategyFamily {
         self.family
     }
 
-    pub const fn requested_lane(self) -> ArtifactFamilyAccessLane {
+    pub const fn requested_lane(&self) -> ArtifactFamilyAccessLane {
         self.requested_lane
     }
 
-    pub const fn maintenance_mode(self) -> S8IndexMaintenanceMode {
+    pub const fn maintenance_mode(&self) -> IndexMaintenanceMode {
         self.maintenance_mode
     }
 
-    pub const fn mutation_shape(self) -> S8PhysicalMutationShape {
+    pub const fn mutation_shape(&self) -> PhysicalMutationShape {
         self.mutation_shape
     }
 
-    pub const fn publication_protocol(self) -> S8IndexPublicationProtocol {
+    pub const fn publication_protocol(&self) -> IndexPublicationProtocol {
         self.publication_protocol
     }
 
-    pub const fn exact_publication_authority(self) -> Option<S8ExactPublicationAuthoritySource> {
+    pub const fn exact_publication_authority(&self) -> Option<ExactPublicationAuthoritySource> {
         self.exact_publication_authority
     }
 
-    pub const fn exact_coverage(self) -> Option<S8LayoutCoverageWitness> {
-        self.exact_coverage
+    pub const fn exact_coverage(&self) -> Option<&LayoutCoverageWitness> {
+        self.exact_coverage.as_ref()
     }
 
-    pub const fn lag_witness(self) -> Option<S8IndexLagWitness> {
-        self.lag_witness
+    pub const fn lag_witness(&self) -> Option<&IndexLagWitness> {
+        self.lag_witness.as_ref()
     }
 
-    pub const fn required_migration_posture(self) -> Option<DurableArtifactMigrationPosture> {
+    pub const fn required_migration_posture(&self) -> Option<DurableArtifactMigrationPosture> {
         self.required_migration_posture
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutMutationPlan {
-    admitted_strategy: S8AdmittedLayoutStrategy,
-    request: S8LiveMaintenanceRequest,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LayoutMutationPlan {
+    admitted_strategy: AdmittedLayoutStrategy,
+    request: LiveMaintenanceRequest,
 }
 
-impl S8LayoutMutationPlan {
+impl LayoutMutationPlan {
     pub(crate) const fn new(
-        admitted_strategy: S8AdmittedLayoutStrategy,
-        request: S8LiveMaintenanceRequest,
+        admitted_strategy: AdmittedLayoutStrategy,
+        request: LiveMaintenanceRequest,
     ) -> Self {
         Self {
             admitted_strategy,
@@ -178,53 +221,53 @@ impl S8LayoutMutationPlan {
         }
     }
 
-    pub const fn admitted_strategy(self) -> S8AdmittedLayoutStrategy {
+    pub const fn admitted_strategy(&self) -> AdmittedLayoutStrategy {
         self.admitted_strategy
     }
 
-    pub const fn request(self) -> S8LiveMaintenanceRequest {
-        self.request
+    pub const fn request(&self) -> &LiveMaintenanceRequest {
+        &self.request
     }
 
-    pub const fn maintenance_mode(self) -> S8IndexMaintenanceMode {
+    pub const fn maintenance_mode(&self) -> IndexMaintenanceMode {
         self.request.maintenance_mode()
     }
 
-    pub const fn mutation_shape(self) -> S8PhysicalMutationShape {
+    pub const fn mutation_shape(&self) -> PhysicalMutationShape {
         self.request.mutation_shape()
     }
 
-    pub const fn publication_protocol(self) -> S8IndexPublicationProtocol {
+    pub const fn publication_protocol(&self) -> IndexPublicationProtocol {
         self.request.publication_protocol()
     }
 
-    pub const fn exact_coverage(self) -> Option<S8LayoutCoverageWitness> {
+    pub const fn exact_coverage(&self) -> Option<&LayoutCoverageWitness> {
         self.request.exact_coverage()
     }
 
-    pub const fn exact_publication_authority(self) -> Option<S8ExactPublicationAuthoritySource> {
+    pub const fn exact_publication_authority(&self) -> Option<ExactPublicationAuthoritySource> {
         self.request.exact_publication_authority()
     }
 
-    pub const fn lag_witness(self) -> Option<S8IndexLagWitness> {
+    pub const fn lag_witness(&self) -> Option<&IndexLagWitness> {
         self.request.lag_witness()
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LiveExactMaintenanceWitness {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LiveExactMaintenanceWitness {
     family: PhysicalArtifactFamily,
-    exact_coverage: S8LayoutCoverageWitness,
-    maintenance_mode: S8IndexMaintenanceMode,
-    publication_authority: S8ExactPublicationAuthoritySource,
+    exact_coverage: LayoutCoverageWitness,
+    maintenance_mode: IndexMaintenanceMode,
+    publication_authority: ExactPublicationAuthoritySource,
 }
 
-impl S8LiveExactMaintenanceWitness {
+impl LiveExactMaintenanceWitness {
     pub(crate) const fn new(
         family: PhysicalArtifactFamily,
-        exact_coverage: S8LayoutCoverageWitness,
-        maintenance_mode: S8IndexMaintenanceMode,
-        publication_authority: S8ExactPublicationAuthoritySource,
+        exact_coverage: LayoutCoverageWitness,
+        maintenance_mode: IndexMaintenanceMode,
+        publication_authority: ExactPublicationAuthoritySource,
     ) -> Self {
         Self {
             family,
@@ -234,23 +277,23 @@ impl S8LiveExactMaintenanceWitness {
         }
     }
 
-    pub const fn family(self) -> PhysicalArtifactFamily {
+    pub const fn family(&self) -> PhysicalArtifactFamily {
         self.family
     }
 
-    pub const fn exact_coverage(self) -> S8LayoutCoverageWitness {
-        self.exact_coverage
+    pub const fn exact_coverage(&self) -> &LayoutCoverageWitness {
+        &self.exact_coverage
     }
 
-    pub const fn maintenance_mode(self) -> S8IndexMaintenanceMode {
+    pub const fn maintenance_mode(&self) -> IndexMaintenanceMode {
         self.maintenance_mode
     }
 
-    pub const fn publication_protocol(self) -> S8IndexPublicationProtocol {
+    pub const fn publication_protocol(&self) -> IndexPublicationProtocol {
         self.publication_authority.publication_protocol()
     }
 
-    pub const fn publication_authority(self) -> S8ExactPublicationAuthoritySource {
+    pub const fn publication_authority(&self) -> ExactPublicationAuthoritySource {
         self.publication_authority
     }
 }

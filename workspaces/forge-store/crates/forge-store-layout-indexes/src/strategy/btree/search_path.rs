@@ -1,13 +1,13 @@
 use crate::keyspace::CanonicalKeyBytes;
-use crate::strategy::{S8BTreeLookupBranch, S8BTreeSeparatorLaw, S8StrategyDenial};
+use crate::strategy::{BTreeLookupBranch, BTreeSeparatorLaw, StrategyDenial};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8BTreeSearchPathLaw {
-    separator: S8BTreeSeparatorLaw,
+pub struct BTreeSearchPathLaw {
+    separator: BTreeSeparatorLaw,
 }
 
-impl S8BTreeSearchPathLaw {
-    pub(crate) const fn new(separator: S8BTreeSeparatorLaw) -> Self {
+impl BTreeSearchPathLaw {
+    pub(crate) const fn new(separator: BTreeSeparatorLaw) -> Self {
         Self { separator }
     }
 
@@ -17,8 +17,8 @@ impl S8BTreeSearchPathLaw {
         left_max: &CanonicalKeyBytes,
         separator: &CanonicalKeyBytes,
         right_min: &CanonicalKeyBytes,
-        chosen_branch: S8BTreeLookupBranch,
-    ) -> super::S8BTreeSearchOutcome<()> {
+        chosen_branch: BTreeLookupBranch,
+    ) -> super::BTreeSearchOutcome<()> {
         let result = self.verify_search_and_insertion_path_result(
             probe,
             left_max,
@@ -26,7 +26,7 @@ impl S8BTreeSearchPathLaw {
             right_min,
             chosen_branch,
         );
-        super::S8BTreeSearchOutcome::issue(result)
+        super::BTreeSearchOutcome::issue(result)
     }
 
     fn verify_search_and_insertion_path_result(
@@ -35,14 +35,14 @@ impl S8BTreeSearchPathLaw {
         left_max: &CanonicalKeyBytes,
         separator: &CanonicalKeyBytes,
         right_min: &CanonicalKeyBytes,
-        chosen_branch: S8BTreeLookupBranch,
-    ) -> Result<(), S8StrategyDenial> {
+        chosen_branch: BTreeLookupBranch,
+    ) -> Result<(), StrategyDenial> {
         self.separator
             .verify_separator_partition(left_max, separator, right_min)?;
         if self.separator.route_lookup(probe, separator)? == chosen_branch {
             Ok(())
         } else {
-            Err(S8StrategyDenial::SearchPathViolation)
+            Err(StrategyDenial::SearchPathViolation)
         }
     }
 
@@ -51,20 +51,20 @@ impl S8BTreeSearchPathLaw {
         probe_precedes_separator: bool,
         left_max_precedes_separator: bool,
         separator_precedes_right_min: bool,
-        observed_branch: S8BTreeLookupBranch,
-    ) -> Result<(), S8StrategyDenial> {
+        observed_branch: BTreeLookupBranch,
+    ) -> Result<(), StrategyDenial> {
         if !left_max_precedes_separator || !separator_precedes_right_min {
-            return Err(S8StrategyDenial::ComparatorOrderViolation);
+            return Err(StrategyDenial::ComparatorOrderViolation);
         }
 
         let expected_branch = if probe_precedes_separator {
-            S8BTreeLookupBranch::Left
+            BTreeLookupBranch::Left
         } else {
-            S8BTreeLookupBranch::RightOrEqual
+            BTreeLookupBranch::RightOrEqual
         };
         if observed_branch == expected_branch {
             return Ok(());
         }
-        Err(S8StrategyDenial::SearchPathViolation)
+        Err(StrategyDenial::SearchPathViolation)
     }
 }

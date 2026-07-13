@@ -3,7 +3,7 @@ use super::composite::{declare_composite_key_ordering, CompositeKeyOrderingLaw};
 use super::declaration::{PhysicalKeyDomain, PhysicalKeyDomainWitness};
 use super::value::ConcretePhysicalKeyWitness;
 use crate::catalog::ArtifactFamilyDenial;
-use crate::S8BlobIdentityKeyBasis;
+use crate::BlobIdentityKeyBasis;
 use forge_store_contracts::WalRecordFamily;
 use forge_store_physical_format::PhysicalReferenceKind;
 use forge_store_security::{StoreKeyScope, StoreTenantScope};
@@ -202,7 +202,7 @@ pub(crate) fn encode_scope_prefix(
 
 pub(crate) fn encode_blob_identity_prefix(
     encoding: CanonicalKeyEncoding,
-    identity: &S8BlobIdentityKeyBasis,
+    identity: &BlobIdentityKeyBasis,
 ) -> CanonicalKeyBytes {
     let mut bytes = vec![encoding.version_byte()];
     push_tenant_scope(

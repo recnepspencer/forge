@@ -1,11 +1,5 @@
-#[path = "../../../support/recovery/checkpoint_publication_oracle/support.rs"]
-#[allow(dead_code)]
-mod checkpoint_oracle_support;
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
-#[path = "../../../support/recovery/counter_strength/support.rs"]
-#[allow(dead_code)]
-mod support;
+use forge_store_test_support::harness::recovery::checkpoint_publication as checkpoint_oracle_support;
+use forge_store_test_support::harness::recovery::counter_evidence as support;
 
 use checkpoint_oracle_support::{
     checkpoint_crash_replay_trace, checkpoint_crash_replay_trace_without_crash_lane,

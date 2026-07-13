@@ -11,8 +11,7 @@ use forge_store_physical_certification::{
     SyntheticHarnessShortcutRejectionReport,
 };
 
-#[path = "../../../support/recovery/coverage_support/coverage_support.rs"]
-mod coverage_support;
+use forge_store_test_support::harness::recovery::coverage as coverage_support;
 
 pub(crate) fn complete_shortcut_report() -> SyntheticHarnessShortcutRejectionReport {
     SyntheticHarnessShortcutRejectionReport::from_denied_shortcuts(

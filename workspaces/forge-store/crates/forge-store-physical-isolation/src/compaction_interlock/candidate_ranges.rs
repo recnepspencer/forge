@@ -71,12 +71,20 @@ impl CompactionCandidateRangeSet {
     }
 
     #[cfg(any(test, feature = "certification-authority"))]
+    pub(super) fn first_owner(&self) -> Option<PhysicalGenerationOwner> {
+        self.owners.first().copied()
+    }
+
+    #[cfg(any(test, feature = "certification-authority"))]
     pub(crate) fn from_protected_set_for_certification_test(
         protected: &CompactionProtectedReferenceSet,
     ) -> Self {
+        let owner = protected
+            .first_owner()
+            .expect("certification protected set should have an owner");
         Self {
             ranges: protected.ranges().clone(),
-            owners: Vec::new(),
+            owners: vec![owner],
             candidate_references: protected.ranges().ranges().len() as u64,
         }
     }

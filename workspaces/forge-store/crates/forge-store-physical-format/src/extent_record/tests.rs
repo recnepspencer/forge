@@ -248,9 +248,11 @@ fn moved_slot_misuse_denies_before_extent_membership_check() {
 }
 
 fn extent_record_authority() -> PhysicalExtentRecordAuthority {
-    PhysicalExtentRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
-        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
-    ))
+    PhysicalExtentRecordAuthority::for_canonical_physical_format(
+        PhysicalHeaderAuthority::for_canonical_physical_format(
+            PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+        ),
+    )
 }
 
 const fn extent_frame_len(payload: &[u8]) -> usize {

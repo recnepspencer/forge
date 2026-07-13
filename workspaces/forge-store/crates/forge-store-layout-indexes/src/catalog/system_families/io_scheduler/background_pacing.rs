@@ -1,4 +1,4 @@
-use crate::access_planning::S8AccessShape;
+use crate::access_planning::AccessShape;
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 
 use forge_store_io_scheduler::{
@@ -21,7 +21,7 @@ pub enum BackgroundPacingInterferencePosture {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BackgroundPacingLayoutReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: AccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     pressure_class: BackgroundIoPressureClass,
     requested_budget: BackgroundResourceBudget,
@@ -34,7 +34,7 @@ pub fn project_background_pacing(outcome: BackgroundPacingOutcome) -> Background
     let (interference_posture, admitted_budget, counters) = pacing_basis(outcome);
     BackgroundPacingLayoutReport {
         family_id: DurableArtifactFamilyId::BackgroundPacingRecord,
-        access_shape: S8AccessShape::BoundedScan,
+        access_shape: AccessShape::BoundedScan,
         rebuild_posture: DurableArtifactRebuildPosture::NoRebuild,
         pressure_class: outcome.class(),
         requested_budget: counters.requested(),
@@ -49,7 +49,7 @@ impl BackgroundPacingLayoutReport {
         self.family_id
     }
 
-    pub const fn access_shape(&self) -> S8AccessShape {
+    pub const fn access_shape(&self) -> AccessShape {
         self.access_shape
     }
 

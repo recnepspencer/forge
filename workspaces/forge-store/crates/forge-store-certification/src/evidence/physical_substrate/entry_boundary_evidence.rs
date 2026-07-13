@@ -115,7 +115,8 @@ mod tests {
     }
 
     #[test]
-    fn physical_substrate_entry_boundary_reports_every_forbidden_shortcut_with_buffer_pool_denial() {
+    fn physical_substrate_entry_boundary_reports_every_forbidden_shortcut_with_buffer_pool_denial()
+    {
         let expected_denials = [
             BufferPoolEntryDenialKind::RawPageIdRejected,
             BufferPoolEntryDenialKind::RawPayloadViewRejected,

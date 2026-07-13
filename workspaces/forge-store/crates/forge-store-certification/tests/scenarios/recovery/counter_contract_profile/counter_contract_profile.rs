@@ -228,7 +228,9 @@ fn complete_context_for_profile(profile: PhysicalSimulationProfile) -> Simulatio
         .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
-fn physical_isolation_scenario(name: &str) -> forge_store_physical_certification::CertifiedPhysicalScenario {
+fn physical_isolation_scenario(
+    name: &str,
+) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario(name)
         .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)

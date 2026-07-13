@@ -89,7 +89,7 @@ fn run_compile_fail_case(repo_root: &std::path::Path, fixture_name: &str) -> std
     let source = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests")
         .join("compile_fail")
-            .join("security")
+        .join("security")
         .join("certification_closeout")
         .join(fixture_name);
     let deps = repo_root

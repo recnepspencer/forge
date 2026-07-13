@@ -13,8 +13,7 @@ use forge_proof::TransitionOutcome;
 use forge_store_readiness::PhysicalFoundationEvidenceField;
 
 use super::{
-    S51CertificationCloseoutDenial, S51CertificationCloseoutInput, S51CloseoutCounterMatrix,
-    S51CloseoutPerformanceReceipts,
+    S51CertificationCloseoutDenial, S51CloseoutCounterMatrix, S51CloseoutPerformanceReceipts,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,8 +44,7 @@ pub struct S51CloseoutBoundaryEvidencePublication {
 }
 
 impl S51CloseoutBoundaryEvidencePublication {
-    pub(crate) fn from_input_and_counter_matrix(
-        input: &S51CertificationCloseoutInput,
+    pub(crate) fn from_counter_matrix(
         counter_matrix: &S51CloseoutCounterMatrix,
         performance_receipts: &S51CloseoutPerformanceReceipts,
     ) -> Result<Self, S51CertificationCloseoutDenial> {

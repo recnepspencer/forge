@@ -1,6 +1,6 @@
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_offline_verifier::{
-    OfflineCustodyCapsuleObservation, OfflineExportBundleObservation, OfflineLayoutReport,
+    OfflineCustodyCapsuleObservation, OfflineExportBundleObservation,
     OfflineRepairBlastRadiusObservation,
 };
 
@@ -19,7 +19,6 @@ pub enum OfflineVerifierEvidenceKind {
     ExportBundle,
     CustodyCapsule,
     RepairBlastRadius,
-    LayoutReport,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -59,15 +58,6 @@ pub fn project_offline_repair_blast_radius(
         observation.evidence_kind(),
     );
     projection(OfflineVerifierEvidenceKind::RepairBlastRadius, 3)
-}
-
-pub fn project_offline_layout_report(
-    report: &OfflineLayoutReport,
-) -> OfflineVerifierLayoutProjection {
-    projection(
-        OfflineVerifierEvidenceKind::LayoutReport,
-        report.discovered_records().len() as u64,
-    )
 }
 
 impl OfflineVerifierLayoutProjection {

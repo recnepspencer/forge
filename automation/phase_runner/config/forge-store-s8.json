@@ -73,7 +73,7 @@
     "boundary_review_start_phase": 0,
     "idle_timeout_seconds": 900,
     "turn_timeout_seconds": 7200,
-    "fresh_session_after_qa_repair_cycles": 4
+    "fresh_session_after_qa_repair_cycles": 6
   },
   "phases": [
     {
@@ -569,80 +569,86 @@
     },
     {
       "id": 34,
-      "title": "Transition Fact Authority",
-      "owner": "`forge-store-layout-indexes` owner outcome families and lower owner transition emitters",
+      "title": "Complete Layout Runtime Authority",
+      "owner": "layout-index runtime owners, budget owners, and the physical-format owners they consume",
       "scope": [
         "workspaces/forge-store/crates/forge-store-layout-indexes",
-        "workspaces/forge-store/crates/forge-store-physical-isolation",
-        "workspaces/forge-store/crates/forge-store-wal"
+        "workspaces/forge-store/crates/forge-store-budgets",
+        "workspaces/forge-store/crates/forge-store-physical-format"
       ],
       "acceptance": [
-        "Production layout outcomes, not S.9 handoff tables, are the source of sealed S.8 transition facts, and S.9 inventory is aggregation-only."
+        "Every declaration, admission, selection, lowering, readiness, execution, stale-rebind, and degraded-scan operation is an owner-local typed transition whose issued outcome alone enables the next valid operation; exact counters and permanent domain vocabulary cover every semantic case."
       ],
-      "instructions": "Implement S.8 Phase 34 from the spec: Transition Fact Authority. Do not restart the milestone or revisit earlier phases. Continue from the current dirty S.8 workspace and narrow the existing Phase 34 repair to transition-fact authority only.",
-      "qa_focus": "Check for parallel static S.9 contract tables, hand-authored transition arrays acting as authority, owner outcomes that do not expose sealed transition facts, compaction projection tables, and tests that prove table consistency instead of production equivalence."
+      "instructions": "Implement S.8 Phase 34 from the current spec: Complete Layout Runtime Authority. Treat this as the rewritten implementation slice, review its full phase text and milestone context, and make a fresh plan from the current production state rather than continuing the superseded transition-catalog repair. Preserve completed Phase 0-33 capabilities while replacing missing runtime boundaries honestly.",
+      "qa_focus": "Check for sibling constructors, payload-derived owner selection, broad outcomes spanning unrelated operations, compatibility facades preserving displaced authority lanes, copied facts, static catalogs acting as law, and roadmap or milestone vocabulary in production modules and types."
     },
     {
       "id": 35,
-      "title": "WAL And Manifest Membership Authority",
-      "owner": "`forge-store-wal` with certification consuming owner evidence only",
+      "title": "Complete Layout Mutation And Recovery Authority",
+      "owner": "layout-index mutation owners with physical-integrity, recovery-physics, compatibility, and physical-format evidence owners",
       "scope": [
-        "workspaces/forge-store/crates/forge-store-wal",
-        "workspaces/forge-store/crates/forge-store-certification",
-        "workspaces/forge-store/crates/forge-store-test-support"
+        "workspaces/forge-store/crates/forge-store-layout-indexes",
+        "workspaces/forge-store/crates/forge-store-physical-integrity",
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-compatibility",
+        "workspaces/forge-store/crates/forge-store-physical-format"
       ],
       "acceptance": [
-        "Baseline LSM membership, freshness, retirement, and compaction publication derive from WAL/manifest authority; journals are derived caches and cannot forge membership."
+        "Materialization, rebuild, parity, maintenance, migration, rollback, corruption, quarantine, readmission, bootstrap, verification, and legacy-disposition operations each expose owner-issued typed outcomes with exhaustive denial and replay semantics."
       ],
-      "instructions": "Implement S.8 Phase 35 from the spec: WAL And Manifest Membership Authority. Consume the Phase 34 transition-fact authority; do not widen back into S.9 handoff or closeout work.",
-      "qa_focus": "Check for caller-authored WAL membership, arbitrary manifest paths, digest-only retirement, certification-authored membership, journal rows promoted to authority, missing store/scope/checkpoint/coverage binding, and missing valid-forgery hostile tests."
+      "instructions": "Implement S.8 Phase 35 from the current spec: Complete Layout Mutation And Recovery Authority. Build on Phase 34's owner-issued runtime grammar and complete the mutation and recovery operation families end to end.",
+      "qa_focus": "Check for broad maintenance outcomes, facade-issued authority, payload-derived decisions, merged denial cases, incomplete crash/replay progression, readmission that bypasses current authority, and recovery projections promoted into source authority."
     },
     {
       "id": 36,
-      "title": "Layout Hazard Inventory And S.9 Handoff Assembly",
-      "owner": "`forge-store-layout-indexes`, `forge-store-readiness`, lower owner evidence producers",
+      "title": "Complete Physical Compaction And Durable Membership Authority",
+      "owner": "physical-isolation and WAL/manifest owners, with layout-indexes performing bijective vocabulary projection",
       "scope": [
         "workspaces/forge-store/crates/forge-store-layout-indexes",
-        "workspaces/forge-store/crates/forge-store-readiness",
         "workspaces/forge-store/crates/forge-store-wal",
-        "workspaces/forge-store/crates/forge-store-physical-isolation"
+        "workspaces/forge-store/crates/forge-store-physical-isolation",
+        "workspaces/forge-store/crates/forge-store-recovery-physics"
       ],
       "acceptance": [
-        "S.8 hazards map to real compile-fail, runtime, simulation, or formal-model sources, and S.9 receives explicit layout/access state machines from owner evidence rather than generic summaries."
+        "Physical compaction outcomes and WAL/manifest membership, freshness, retirement, publication, recovery visibility, and reclaim authority originate in their real operation owners; layout projection is bijective and reopen preserves the same authority graph."
       ],
-      "instructions": "Implement S.8 Phase 36 from the spec: Layout Hazard Inventory And S.9 Handoff Assembly. This phase assembles the handoff after Phases 34 and 35 supply real owner sources.",
-      "qa_focus": "Check for generic S.9 summaries, copied counters, copied receipts, certification fixture outputs, table-only state-machine rows, vague residual risk, and hazard rows without owner-source coverage."
+      "instructions": "Implement S.8 Phase 36 from the current spec: Complete Physical Compaction And Durable Membership Authority. Consume the completed runtime and mutation boundaries; do not recreate authority in projection or certification crates.",
+      "qa_focus": "Check for static all-transition tables, caller-authored membership, copied manifest or retirement facts, digest-only identity, collapsed physical denial cases, active-reader reclaim races, publication ordering gaps, and reopen paths that reconstruct authority from declarations."
     },
     {
       "id": 37,
-      "title": "Hostile Certification Boundary Proof",
-      "owner": "`forge-store-certification`, `forge-store-physical-certification`, compile-fail and runtime harnesses",
+      "title": "Exhaustive Runtime And Hostile Coverage",
+      "owner": "production owners observed through physical-certification, certification, and test-support courtroom surfaces",
       "scope": [
         "workspaces/forge-store/crates/forge-store-certification",
         "workspaces/forge-store/crates/forge-store-physical-certification",
         "workspaces/forge-store/crates/forge-store-layout-indexes",
-        "workspaces/forge-store/crates/forge-store-wal"
+        "workspaces/forge-store/crates/forge-store-wal",
+        "workspaces/forge-store/crates/forge-store-test-support"
       ],
       "acceptance": [
-        "Certification consumes owner evidence as courtroom material and cannot mint transition facts, WAL membership, retirement authority, or S.9 readiness."
+        "Generated exact-set coverage observes every declared owner case through ordinary production facades, hostile scenarios exercise every denial and crash boundary, and test support can prepare inputs but cannot mint production outcomes."
       ],
-      "instructions": "Implement S.8 Phase 37 from the spec: Hostile Certification Boundary Proof. Prove the shortcuts found during the old overloaded Phase 34 loop are mechanically denied.",
-      "qa_focus": "Check for certification overreach, private-constructor test shortcuts, transition substitution, static contract substitution, forged WAL rows, equal-digest cross-scope retirement, same-root cross-store redirection, manifest disagreement, duplicate replay, ordering disagreement, and weak compile-fail coverage."
+      "instructions": "Implement S.8 Phase 37 from the current spec: Exhaustive Runtime And Hostile Coverage. Prove the completed owner architecture by exercising production operations, not parallel catalogs or synthetic outcome construction.",
+      "qa_focus": "Check for representative-only tests, synthetic execution, same-implementation oracles, test-authored outcomes, missing denial cases, weak mutation operators, environmental compile-fail errors such as E0463, and counters that do not identify the exact transition outcome."
     },
     {
       "id": 38,
-      "title": "Workspace-Wide Closeout And S.9 Handoff",
-      "owner": "`forge-store-certification`, `forge-store-layout-indexes`, all touched family crates",
+      "title": "Certification Courtroom, Formal-Model Input, And S.8 Closeout",
+      "owner": "certification and formal-model observation surfaces consuming sealed evidence from all production owners",
       "scope": [
         "workspaces/forge-store/crates/forge-store-layout-indexes",
         "workspaces/forge-store/crates/forge-store-certification",
-        "workspaces/forge-store/crates/forge-store-physical-certification"
+        "workspaces/forge-store/crates/forge-store-physical-certification",
+        "workspaces/forge-store/crates/forge-store-formal-models",
+        "workspaces/forge-store/crates/forge-store-wal",
+        "workspaces/forge-store/crates/forge-store-physical-isolation"
       ],
       "acceptance": [
-        "S.8 closeout proves every admitted durable artifact family has declared strategy, key-domain law, access shape, authority posture, counters, corruption/rebuild behavior, trust-boundary behavior, legacy disposition, and S.9 handoff evidence."
+        "Certification remains a courtroom over owner-issued evidence, formal models consume observations without becoming production handoffs, the hazard inventory maps to executable proof, permanent vocabulary replaces milestone naming, and the full S.8 contract closes without warnings."
       ],
-      "instructions": "Implement S.8 Phase 38 from the spec: Workspace-Wide Closeout And S.9 Handoff. Close only after Phases 34-37 are complete.",
-      "qa_focus": "Check for hidden generic layout fallback, missing family closeout, weak counter evidence, unverified B-tree/LSM claims, skeleton drift, and closeout that omits runtime or compile-fail proof."
+      "instructions": "Implement S.8 Phase 38 from the current spec: Certification Courtroom, Formal-Model Input, And S.8 Closeout. Close only after Phases 34-37 establish the production authority graph and exhaustive evidence.",
+      "qa_focus": "Check for certification-authored law, formal-model outputs used as runtime authority, milestone handoff types in production, roadmap vocabulary residue, hidden generic fallbacks, missing hazard evidence, skeleton drift, warnings, and any advertised owner case absent from executable proof."
     }
   ]
 }

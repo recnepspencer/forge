@@ -36,10 +36,12 @@ impl BlobExportChunkManifestRow {
         &self.stored_digest
     }
 
+    #[cfg(any(test, feature = "certification-test-authority"))]
     pub(crate) const fn ordinal(&self) -> BlobChunkOrdinal {
         self.ordinal
     }
 
+    #[cfg(any(test, feature = "certification-test-authority"))]
     pub(crate) const fn range(&self) -> BlobChunkByteRange {
         self.range
     }

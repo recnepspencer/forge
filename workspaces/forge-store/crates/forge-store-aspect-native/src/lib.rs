@@ -44,8 +44,8 @@ mod denial;
 mod equivalence_basis;
 mod handoff;
 mod json_ingress_readmission;
-mod receipts;
 mod physical_witness;
+mod receipts;
 mod terminal_json_projection;
 mod terminal_projection;
 mod value_admission;
@@ -63,10 +63,9 @@ pub use canonical_basis::{
     canonical_basis_source_owner_for_family, certify_canonical_basis_field_role,
     certify_canonical_basis_source, StoreCanonicalBasisConstruction,
     StoreCanonicalBasisConstructionDenial, StoreCanonicalBasisConstructionOutcome,
-    StoreCanonicalBasisDomainMismatch,
-    StoreCanonicalBasisFamily, StoreCanonicalBasisFieldRole, StoreCanonicalBasisLane,
-    StoreCanonicalBasisSourceDenial, StoreCanonicalBasisSourceKind, StoreCanonicalBasisSourceOwner,
-    STORE_CANONICAL_BASIS_SOURCE_OWNERS,
+    StoreCanonicalBasisDomainMismatch, StoreCanonicalBasisFamily, StoreCanonicalBasisFieldRole,
+    StoreCanonicalBasisLane, StoreCanonicalBasisSourceDenial, StoreCanonicalBasisSourceKind,
+    StoreCanonicalBasisSourceOwner, STORE_CANONICAL_BASIS_SOURCE_OWNERS,
 };
 pub use contract_admission::StoreAspectContractAdmission;
 pub use denial::StoreAspectNativeDenial;
@@ -76,18 +75,18 @@ pub use equivalence_basis::{
     StoreDigestEquivalenceDenial, StoreDigestEquivalenceOperation, StoreDigestEquivalenceOutcome,
     StoreEquivalenceBasisIdentity,
 };
-pub use receipts::{
-    StoreCompletedBoundaryReceiptEvidence, StoreDiagnosticExplanationBundleEvidence,
-    StoreDiagnosticSupportReportEvidence, StoreExecutedBoundaryReceiptEvidence,
-    StorePerformanceReceiptEvidence,
-};
+pub use handoff::{StoreReadinessHandoffArtifact, StoreReadinessHandoffDenial};
 pub use json_ingress_readmission::{
     readmit_external_terminal_projection_document_as_store_aspect_state,
     readmit_terminal_json_projection_as_store_aspect_state, StoreTerminalJsonReadmission,
     StoreTerminalJsonReadmissionOutcome,
 };
 pub use physical_witness::StorePhysicalBoundaryWitness;
-pub use handoff::{StoreReadinessHandoffArtifact, StoreReadinessHandoffDenial};
+pub use receipts::{
+    StoreCompletedBoundaryReceiptEvidence, StoreDiagnosticExplanationBundleEvidence,
+    StoreDiagnosticSupportReportEvidence, StoreExecutedBoundaryReceiptEvidence,
+    StorePerformanceReceiptEvidence,
+};
 pub use terminal_json_projection::{
     project_store_boundary_fact_to_terminal_json, StoreTerminalJsonProjection,
 };

@@ -11,6 +11,14 @@ pub use super::fixtures::{
     StoreTerminalProjectionJsonFixture, StoreTerminalProjectionJsonFixtureBoundaryOutcome,
     StoreTerminalProjectionJsonFixtureBoundaryWitness,
 };
+pub use super::layout::*;
+pub use super::lsm_execution_fixture::{
+    execute_baseline_lsm_persisted_fixture, execute_lsm_compaction_reader_cutover_fixture,
+    execute_lsm_replay_hostile_matrix, execute_repeated_lsm_membership_fixture,
+    lsm_membership_replacement_crash_fixture, substituted_lsm_base_is_rejected_before_compaction,
+    ExecutedLsmCompactionFixture, LsmMembershipReplacementCrashFixture, LsmReplayHostileMatrix,
+    RepeatedLsmMembershipFixture,
+};
 pub use super::physical_isolation::*;
 pub use super::physical_simulation::{
     admitted_ci_certification_driver_contracts, admitted_developer_smoke_driver_contracts,

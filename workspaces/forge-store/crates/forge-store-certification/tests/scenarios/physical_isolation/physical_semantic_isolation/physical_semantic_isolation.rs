@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
+use forge_store_test_support::harness::recovery::closeout as closeout_fixture;
 
 use forge_foundational::{FoundationalBoundaryArtifactCategory, FoundationalBoundaryArtifactRole};
 use forge_proof::TransitionOutcome;
@@ -233,9 +232,9 @@ fn physical_authority_from_complete_closeout() -> PhysicalReadStabilityAuthority
 fn physical_authority_from_operation_digest_closeout(
     operation_digest: &str,
 ) -> PhysicalReadStabilityAuthority {
-    physical_authority_from_completion(
-        closeout_fixture::recovery_completion_with_operation_digest(operation_digest),
-    )
+    physical_authority_from_completion(closeout_fixture::recovery_completion_with_operation_digest(
+        operation_digest,
+    ))
 }
 
 fn physical_authority_from_completion(

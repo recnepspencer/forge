@@ -1,3 +1,5 @@
+#![cfg_attr(not(test), allow(dead_code, unused_imports))]
+
 use crate::{
     BlobChunkIntegrityProof, BlobChunkSecurityScope, BlobChunkSequenceAdmission, BlobChunkSize,
     BlobChunkingRuleAdmission,

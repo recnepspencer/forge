@@ -76,7 +76,9 @@ fn physical_isolation_verdict(
         .unwrap()
 }
 
-fn physical_isolation_fault_events(expected_fault: crate::PhysicalScenarioFaultKind) -> Vec<PhysicalFaultEvent> {
+fn physical_isolation_fault_events(
+    expected_fault: crate::PhysicalScenarioFaultKind,
+) -> Vec<PhysicalFaultEvent> {
     crate::physical_isolation_stable_read_plan_fault_event(expected_fault)
         .unwrap()
         .into_iter()

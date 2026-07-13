@@ -19,11 +19,16 @@ struct CompileFailFixture {
     extern_crates: &'static [&'static str],
 }
 
-fn compile_fail_fixtures() -> [CompileFailFixture; 5] {
+fn compile_fail_fixtures() -> [CompileFailFixture; 6] {
     [
         fixture(
             "root_access_shape_is_not_public.rs",
-            &["S8AccessShape"],
+            &["private", "BTreeLookupReady"],
+            &[],
+        ),
+        fixture(
+            "root_access_shape_projection_is_removed.rs",
+            &["no `AccessShape` in the root"],
             &[],
         ),
         fixture(
@@ -38,12 +43,12 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 5] {
         ),
         fixture(
             "root_layout_readmission_witness_is_not_public.rs",
-            &["S8LayoutReadmissionWitness"],
+            &["LayoutReadmissionWitness"],
             &[],
         ),
         fixture(
             "root_layout_customization_request_is_not_public.rs",
-            &["S8FutureLayoutCustomizationRequest"],
+            &["FutureLayoutCustomizationRequest"],
             &[],
         ),
     ]

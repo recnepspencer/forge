@@ -1,5 +1,6 @@
 use super::declaration::{PhysicalKeyDomain, PhysicalKeyDomainWitness};
-use crate::blob_basis::S8BlobIdentityKeyBasis;
+use super::AdmittedPhysicalKeyDomain;
+use crate::blob_basis::BlobIdentityKeyBasis;
 use crate::catalog::ArtifactFamilyDenial;
 use forge_store_contracts::WalRecordFamily;
 use forge_store_physical_format::{
@@ -33,7 +34,7 @@ enum ConcretePhysicalKey {
         sequence: StoreWalRecordIdentity,
     },
     BlobIdentity {
-        identity: S8BlobIdentityKeyBasis,
+        identity: BlobIdentityKeyBasis,
     },
 }
 
@@ -41,6 +42,26 @@ enum ConcretePhysicalKey {
 pub struct ConcretePhysicalKeyWitness {
     domain: PhysicalKeyDomainWitness,
     key: ConcretePhysicalKey,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AdmittedConcretePhysicalKey {
+    domain: AdmittedPhysicalKeyDomain,
+    key: ConcretePhysicalKeyWitness,
+}
+
+impl AdmittedConcretePhysicalKey {
+    fn new(domain: AdmittedPhysicalKeyDomain, key: ConcretePhysicalKeyWitness) -> Self {
+        Self { domain, key }
+    }
+
+    pub const fn domain(&self) -> AdmittedPhysicalKeyDomain {
+        self.domain
+    }
+
+    pub(crate) fn into_raw(self) -> ConcretePhysicalKeyWitness {
+        self.key
+    }
 }
 
 impl ConcretePhysicalKeyWitness {
@@ -110,7 +131,7 @@ impl ConcretePhysicalKeyWitness {
         }
     }
 
-    pub fn blob_identity(&self) -> Option<&S8BlobIdentityKeyBasis> {
+    pub fn blob_identity(&self) -> Option<&BlobIdentityKeyBasis> {
         match &self.key {
             ConcretePhysicalKey::BlobIdentity { identity } => Some(identity),
             _ => None,
@@ -207,7 +228,7 @@ pub(crate) fn admit_wal_record_key(
 
 pub(crate) fn admit_blob_identity_key(
     domain: PhysicalKeyDomainWitness,
-    identity: S8BlobIdentityKeyBasis,
+    identity: BlobIdentityKeyBasis,
 ) -> Result<ConcretePhysicalKeyWitness, ArtifactFamilyDenial> {
     match domain.domain() {
         PhysicalKeyDomain::BlobIdentityKey => Ok(ConcretePhysicalKeyWitness::new(
@@ -216,4 +237,48 @@ pub(crate) fn admit_blob_identity_key(
         )),
         _ => Err(ArtifactFamilyDenial::ConcreteKeyKindDoesNotMatchPhysicalKeyDomain),
     }
+}
+
+pub(crate) fn admit_page_key(
+    domain: AdmittedPhysicalKeyDomain,
+    segment_id: PhysicalSegmentId,
+    page_id: PhysicalPageId,
+) -> Result<AdmittedConcretePhysicalKey, ArtifactFamilyDenial> {
+    admit_page_address_key(domain.witness(), segment_id, page_id)
+        .map(|key| AdmittedConcretePhysicalKey::new(domain, key))
+}
+
+#[cfg(test)]
+pub(crate) fn admit_root_key(
+    domain: AdmittedPhysicalKeyDomain,
+    root_reference: PhysicalRootReference,
+) -> Result<AdmittedConcretePhysicalKey, ArtifactFamilyDenial> {
+    admit_root_manifest_key(domain.witness(), root_reference)
+        .map(|key| AdmittedConcretePhysicalKey::new(domain, key))
+}
+
+#[cfg(test)]
+pub(crate) fn admit_segment_key(
+    domain: AdmittedPhysicalKeyDomain,
+    segment_id: PhysicalSegmentId,
+) -> Result<AdmittedConcretePhysicalKey, ArtifactFamilyDenial> {
+    admit_segment_address_key(domain.witness(), segment_id)
+        .map(|key| AdmittedConcretePhysicalKey::new(domain, key))
+}
+
+pub(crate) fn admit_wal_key(
+    domain: AdmittedPhysicalKeyDomain,
+    family: WalRecordFamily,
+    sequence: StoreWalRecordIdentity,
+) -> Result<AdmittedConcretePhysicalKey, ArtifactFamilyDenial> {
+    admit_wal_record_key(domain.witness(), family, sequence)
+        .map(|key| AdmittedConcretePhysicalKey::new(domain, key))
+}
+
+pub(crate) fn admit_blob_key(
+    domain: AdmittedPhysicalKeyDomain,
+    identity: BlobIdentityKeyBasis,
+) -> Result<AdmittedConcretePhysicalKey, ArtifactFamilyDenial> {
+    admit_blob_identity_key(domain.witness(), identity)
+        .map(|key| AdmittedConcretePhysicalKey::new(domain, key))
 }

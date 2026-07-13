@@ -17,5 +17,4 @@ pub(crate) mod runtime_verifier_diagnostics;
 pub(crate) mod runtime_verifier_support;
 pub(crate) mod scale_property;
 pub(crate) mod store_certification_program;
-pub(crate) mod synthetic_closeout_exports;
 pub(crate) mod synthetic_closeout_rejection;

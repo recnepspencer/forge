@@ -1,11 +1,11 @@
-use crate::strategy::S8StrategyDenial;
+use crate::strategy::StrategyDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8BTreeStableReadLaw {
+pub struct BTreeStableReadLaw {
     requires_published_root_generation: bool,
 }
 
-impl S8BTreeStableReadLaw {
+impl BTreeStableReadLaw {
     pub(crate) const fn baseline() -> Self {
         Self {
             requires_published_root_generation: true,
@@ -17,7 +17,7 @@ impl S8BTreeStableReadLaw {
         observed_root_generation: u64,
         published_root_generation: u64,
         replay_generation: u64,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         if !self.requires_published_root_generation {
             return Ok(());
         }
@@ -26,6 +26,6 @@ impl S8BTreeStableReadLaw {
         {
             return Ok(());
         }
-        Err(S8StrategyDenial::StableReadViolation)
+        Err(StrategyDenial::StableReadViolation)
     }
 }

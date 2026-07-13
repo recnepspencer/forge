@@ -1,62 +1,62 @@
 type CatalogReadSuccess = (
-    super::S8BootstrapLayoutCatalog,
-    super::S8BootstrapCatalogReadAdmission,
+    super::BootstrapLayoutCatalog,
+    super::BootstrapCatalogReadAdmission,
 );
 
 #[derive(Debug, PartialEq, Eq)]
-enum S8BootstrapCatalogReadCase {
+enum BootstrapCatalogReadCase {
     Success(CatalogReadSuccess),
-    Denied(super::S8BootstrapOnlyAccessDenied),
+    Denied(super::BootstrapOnlyAccessDenied),
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct S8BootstrapCatalogReadOutcome {
-    case: S8BootstrapCatalogReadCase,
+pub struct BootstrapCatalogReadOutcome {
+    case: BootstrapCatalogReadCase,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8BootstrapCatalogReadOutcomeView<'a> {
+pub enum BootstrapCatalogReadOutcomeView<'a> {
     Success(&'a CatalogReadSuccess),
-    Denied(&'a super::S8BootstrapOnlyAccessDenied),
+    Denied(&'a super::BootstrapOnlyAccessDenied),
 }
 
-impl S8BootstrapCatalogReadOutcome {
+impl BootstrapCatalogReadOutcome {
     pub(crate) fn root_admitted(value: CatalogReadSuccess) -> Self {
-        Self::from_owner_payload(S8BootstrapCatalogReadCase::Success(value))
+        Self::from_owner_payload(BootstrapCatalogReadCase::Success(value))
     }
 
-    pub(crate) fn denied(value: super::S8BootstrapOnlyAccessDenied) -> Self {
-        Self::from_owner_payload(S8BootstrapCatalogReadCase::Denied(value))
+    pub(crate) fn denied(value: super::BootstrapOnlyAccessDenied) -> Self {
+        Self::from_owner_payload(BootstrapCatalogReadCase::Denied(value))
     }
 
-    fn from_owner_payload(case: S8BootstrapCatalogReadCase) -> Self {
+    fn from_owner_payload(case: BootstrapCatalogReadCase) -> Self {
         Self { case }
     }
 
-    pub fn view(&self) -> S8BootstrapCatalogReadOutcomeView<'_> {
+    pub fn view(&self) -> BootstrapCatalogReadOutcomeView<'_> {
         match &self.case {
-            S8BootstrapCatalogReadCase::Success(value) => {
-                S8BootstrapCatalogReadOutcomeView::Success(value)
+            BootstrapCatalogReadCase::Success(value) => {
+                BootstrapCatalogReadOutcomeView::Success(value)
             }
-            S8BootstrapCatalogReadCase::Denied(value) => {
-                S8BootstrapCatalogReadOutcomeView::Denied(value)
+            BootstrapCatalogReadCase::Denied(value) => {
+                BootstrapCatalogReadOutcomeView::Denied(value)
             }
         }
     }
 
-    fn into_owner_payload(self) -> S8BootstrapCatalogReadCase {
+    fn into_owner_payload(self) -> BootstrapCatalogReadCase {
         self.case
     }
 }
 
-impl S8BootstrapCatalogReadOutcome {
+impl BootstrapCatalogReadOutcome {
     pub fn is_err(&self) -> bool {
-        matches!(self.view(), S8BootstrapCatalogReadOutcomeView::Denied(_))
+        matches!(self.view(), BootstrapCatalogReadOutcomeView::Denied(_))
     }
-    pub fn into_result(self) -> Result<CatalogReadSuccess, super::S8BootstrapOnlyAccessDenied> {
+    pub fn into_result(self) -> Result<CatalogReadSuccess, super::BootstrapOnlyAccessDenied> {
         match self.into_owner_payload() {
-            S8BootstrapCatalogReadCase::Success(value) => Ok(value),
-            S8BootstrapCatalogReadCase::Denied(denial) => Err(denial),
+            BootstrapCatalogReadCase::Success(value) => Ok(value),
+            BootstrapCatalogReadCase::Denied(denial) => Err(denial),
         }
     }
 
@@ -66,19 +66,19 @@ impl S8BootstrapCatalogReadOutcome {
     pub fn expect(self, message: &str) -> CatalogReadSuccess {
         self.into_result().expect(message)
     }
-    pub fn unwrap_err(self) -> super::S8BootstrapOnlyAccessDenied {
+    pub fn unwrap_err(self) -> super::BootstrapOnlyAccessDenied {
         self.into_result().unwrap_err()
     }
-    pub fn expect_err(self, message: &str) -> super::S8BootstrapOnlyAccessDenied {
+    pub fn expect_err(self, message: &str) -> super::BootstrapOnlyAccessDenied {
         self.into_result().expect_err(message)
     }
 }
 
 pub(crate) fn issue_catalog_read(
-    result: Result<CatalogReadSuccess, super::S8BootstrapOnlyAccessDenied>,
-) -> S8BootstrapCatalogReadOutcome {
+    result: Result<CatalogReadSuccess, super::BootstrapOnlyAccessDenied>,
+) -> BootstrapCatalogReadOutcome {
     match result {
-        Ok(catalog) => S8BootstrapCatalogReadOutcome::root_admitted(catalog),
-        Err(denial) => S8BootstrapCatalogReadOutcome::denied(denial),
+        Ok(catalog) => BootstrapCatalogReadOutcome::root_admitted(catalog),
+        Err(denial) => BootstrapCatalogReadOutcome::denied(denial),
     }
 }

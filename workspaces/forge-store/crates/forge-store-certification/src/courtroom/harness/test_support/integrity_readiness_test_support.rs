@@ -1,8 +1,8 @@
 use super::bounded_memory_closeout_test_support::physical_substrate_readiness;
 use forge_store_contracts::{
-    BufferPoolAuthorityRecap, IntegrityInspectionLifetimeLaw, PhysicalAuthorityRecap,
-    ProtectedIntegrityViewCapability, BoundedCounterRecap, DenialBehaviorRecap,
-    DeniedBoundaryKind, NoMaterializationWitness, PhysicalIntegrityReadinessPayload,
+    BoundedCounterRecap, BufferPoolAuthorityRecap, DenialBehaviorRecap, DeniedBoundaryKind,
+    IntegrityInspectionLifetimeLaw, NoMaterializationWitness, PhysicalAuthorityRecap,
+    PhysicalIntegrityReadinessPayload, ProtectedIntegrityViewCapability,
     ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
 use forge_store_readiness::PhysicalIntegrityReadiness;
@@ -26,5 +26,6 @@ pub(crate) fn physical_integrity_readiness() -> PhysicalIntegrityReadiness {
         .unwrap(),
         BufferPoolAuthorityRecap::physical_substrate_authority(true, true, true, true).unwrap(),
     );
-    PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(s2, payload).unwrap()
+    PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(s2, payload)
+        .unwrap()
 }

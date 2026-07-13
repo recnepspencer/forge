@@ -1,28 +1,28 @@
-use super::state::S8MaterializationStateClass;
-use super::watermark::S8CoverageBasisKind;
+use super::state::MaterializationStateClass;
+use super::watermark::CoverageBasisKind;
 use crate::catalog::PhysicalArtifactFamily;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8CoverageGapClass {
+pub enum CoverageGapClass {
     PhysicalRange,
     PrefixScope,
     BasisFrontier,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8CoverageGapWitness {
+pub struct CoverageGapWitness {
     family: PhysicalArtifactFamily,
-    basis_kind: S8CoverageBasisKind,
-    class: S8CoverageGapClass,
+    basis_kind: CoverageBasisKind,
+    class: CoverageGapClass,
     start_inclusive: u64,
     end_exclusive: u64,
 }
 
-impl S8CoverageGapWitness {
+impl CoverageGapWitness {
     pub(crate) const fn new(
         family: PhysicalArtifactFamily,
-        basis_kind: S8CoverageBasisKind,
-        class: S8CoverageGapClass,
+        basis_kind: CoverageBasisKind,
+        class: CoverageGapClass,
         start_inclusive: u64,
         end_exclusive: u64,
     ) -> Self {
@@ -37,29 +37,14 @@ impl S8CoverageGapWitness {
 
     pub(crate) const fn physical_range(
         family: PhysicalArtifactFamily,
-        basis_kind: S8CoverageBasisKind,
+        basis_kind: CoverageBasisKind,
         start_inclusive: u64,
         end_exclusive: u64,
     ) -> Self {
         Self::new(
             family,
             basis_kind,
-            S8CoverageGapClass::PhysicalRange,
-            start_inclusive,
-            end_exclusive,
-        )
-    }
-
-    pub(crate) const fn prefix_scope(
-        family: PhysicalArtifactFamily,
-        basis_kind: S8CoverageBasisKind,
-        start_inclusive: u64,
-        end_exclusive: u64,
-    ) -> Self {
-        Self::new(
-            family,
-            basis_kind,
-            S8CoverageGapClass::PrefixScope,
+            CoverageGapClass::PhysicalRange,
             start_inclusive,
             end_exclusive,
         )
@@ -69,11 +54,11 @@ impl S8CoverageGapWitness {
         self.family
     }
 
-    pub const fn basis_kind(self) -> S8CoverageBasisKind {
+    pub const fn basis_kind(self) -> CoverageBasisKind {
         self.basis_kind
     }
 
-    pub const fn class(self) -> S8CoverageGapClass {
+    pub const fn class(self) -> CoverageGapClass {
         self.class
     }
 
@@ -87,49 +72,53 @@ impl S8CoverageGapWitness {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8MaterializationDenial {
+pub enum MaterializationDenial {
+    MaterializationFamilyMismatch,
+    ImportedBlobFamilyRequired,
+    ImportedBlobSecurityScopeMismatch,
+    ImportedBlobStoreAuthorityMismatch,
+    BTreeSourceStoreAuthorityMismatch,
+    LsmSourceSecurityScopeMismatch,
+    LsmSourceStoreAuthorityMismatch,
+    RestoreOfflineReadmissionRequired,
+    RestoreReplayFrontierRequired,
+    RestoreCustodyReadmissionRequired,
+    RestoreCurrentStoreAuthorityRequired,
+    CoverageSourceMismatch,
+    MaterializationFrontierMismatch,
     MaterializationStateDoesNotSupportExactAccess {
         family: PhysicalArtifactFamily,
-        state: S8MaterializationStateClass,
+        state: MaterializationStateClass,
     },
     CoverageBasisDoesNotMatchMaterializationState {
         family: PhysicalArtifactFamily,
-        state: S8MaterializationStateClass,
-        basis_kind: S8CoverageBasisKind,
+        state: MaterializationStateClass,
+        basis_kind: CoverageBasisKind,
     },
     CoverageIntervalIsReversed {
         family: PhysicalArtifactFamily,
-        basis_kind: S8CoverageBasisKind,
+        basis_kind: CoverageBasisKind,
         lower_bound: u64,
         upper_bound: u64,
     },
     LayoutCoverageIsPartial {
-        gap: S8CoverageGapWitness,
+        gap: CoverageGapWitness,
     },
     LayoutCoverageIsStale {
         family: PhysicalArtifactFamily,
-        basis_kind: S8CoverageBasisKind,
+        basis_kind: CoverageBasisKind,
     },
     LayoutCoverageIsLagged {
         family: PhysicalArtifactFamily,
-        basis_kind: S8CoverageBasisKind,
+        basis_kind: CoverageBasisKind,
     },
     LayoutRangeIsQuarantined {
-        gap: S8CoverageGapWitness,
+        gap: CoverageGapWitness,
     },
     LayoutRequiresRebuild {
         family: PhysicalArtifactFamily,
     },
     LayoutIsMigrating {
-        family: PhysicalArtifactFamily,
-    },
-    NonExactAbsenceProofRequested {
-        family: PhysicalArtifactFamily,
-    },
-    RangeCompletenessDenied {
-        family: PhysicalArtifactFamily,
-    },
-    PrefixCompletenessDenied {
         family: PhysicalArtifactFamily,
     },
 }

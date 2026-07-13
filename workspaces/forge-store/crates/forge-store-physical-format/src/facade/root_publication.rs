@@ -8,10 +8,7 @@ use crate::{
 
 use super::denials::{PlatformPhysicalFacadeDenial, PlatformPhysicalFacadeDenialKind};
 use super::storage::PlatformPhysicalFacadeStorage;
-use super::{
-    PlatformPhysicalFacade, PlatformPhysicalFacadeCounterSnapshot,
-    PlatformPhysicalRootPublicationReport,
-};
+use super::{PlatformPhysicalFacade, PlatformPhysicalRootPublicationReport};
 
 impl PlatformPhysicalFacade {
     pub fn publish_physical_root(
@@ -39,6 +36,7 @@ impl PlatformPhysicalFacade {
             self.headers.clone(),
             self.storage.persisted_layout(),
             self.counters,
+            self.store_identity.clone(),
         ))
     }
 

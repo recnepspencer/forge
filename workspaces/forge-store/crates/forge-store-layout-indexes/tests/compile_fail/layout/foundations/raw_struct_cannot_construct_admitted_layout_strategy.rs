@@ -1,5 +1,5 @@
-use forge_store_layout_indexes::S8AdmittedLayoutStrategy;
+use forge_store_layout_indexes::AdmittedLayoutStrategy;
 
 fn main() {
-    let _ = S8AdmittedLayoutStrategy::new();
+    let _ = AdmittedLayoutStrategy::new();
 }

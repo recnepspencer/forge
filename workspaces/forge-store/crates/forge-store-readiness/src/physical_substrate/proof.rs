@@ -50,7 +50,10 @@ pub fn prove_physical_substrate_readiness(
         ));
     }
     let scope = closeout.scope();
-    PhysicalSubstrateReadiness::from_physical_format_handoff_evidence(scope, closeout.into_handoff_evidence())
+    PhysicalSubstrateReadiness::from_physical_format_handoff_evidence(
+        scope,
+        closeout.into_handoff_evidence(),
+    )
 }
 
 fn prove_physical_format_physical_handoff_evidence(
@@ -112,8 +115,11 @@ fn prove_physical_format_physical_handoff_evidence(
 fn open_facade(
     readiness: AcceptedHandoffReadiness,
 ) -> Result<PlatformPhysicalFacade, PhysicalSubstrateReadinessDenial> {
-    PlatformPhysicalFacade::open_physical_format(readiness, PlatformPhysicalOpenRequest::physical_format_canonical())
-        .map_err(|_| proof_rejected())
+    PlatformPhysicalFacade::open_physical_format(
+        readiness,
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
+    )
+    .map_err(|_| proof_rejected())
 }
 
 fn rejected_shortcut_counters(

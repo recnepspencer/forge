@@ -1,9 +1,10 @@
 use forge_store_contracts::{
-    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
+    AcceptedHandoffReadiness, DurableArtifactFamilyId, HandoffEvidenceDigestSet, StableDigest,
+    ROADMAP_2_S1_SCOPE,
 };
 use forge_store_layout_indexes::{
-    bootstrap_catalog, layout_families::layout_declarations, S8BootstrapOnlyAccessDenied,
-    S8BootstrapOnlyAccessPath,
+    bootstrap_catalog, declarations::layout_declarations, BootstrapOnlyAccessDenied,
+    BootstrapOnlyAccessPath,
 };
 use forge_store_physical_certification::{
     FixtureCapabilityDeclaration, FixtureMutationBoundary, LargeStoreFixtureProfile,
@@ -27,7 +28,7 @@ fn bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access() {
 
     let (catalog, admission) = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
+            BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             physical_catalog.clone(),
             physical_catalog.current_root(),
         )
@@ -66,12 +67,17 @@ fn bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access() {
 #[test]
 fn bootstrap_only_lane_denies_ordinary_family_access() {
     let denial = bootstrap_catalog()
-        .deny_ordinary_family_access(layout_declarations().seed_family().family())
+        .deny_ordinary_family_access(
+            layout_declarations()
+                .declaration(DurableArtifactFamilyId::PhysicalPage)
+                .expect("physical page family must remain declared")
+                .family(),
+        )
         .expect_err("bootstrap lane must not answer ordinary family access");
 
     assert!(matches!(
         denial,
-        S8BootstrapOnlyAccessDenied::OrdinaryFamilyAccessForbidden { .. }
+        BootstrapOnlyAccessDenied::OrdinaryFamilyAccessForbidden { .. }
     ));
 }
 
@@ -94,7 +100,7 @@ fn mismatched_current_root_readmission_is_rejected() {
 
     let denial = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
+            BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             physical_catalog,
             other_catalog.current_root(),
         )
@@ -102,7 +108,7 @@ fn mismatched_current_root_readmission_is_rejected() {
 
     assert!(matches!(
         denial,
-        S8BootstrapOnlyAccessDenied::CurrentRootReadmissionRequired { .. }
+        BootstrapOnlyAccessDenied::CurrentRootReadmissionRequired { .. }
     ));
 }
 
@@ -117,7 +123,7 @@ fn bootstrap_admission_cannot_unlock_a_different_same_version_catalog() {
         .expect("first physical bootstrap catalog should derive");
     let (_, first_admission) = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
+            BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             first_catalog,
             physical_bootstrap_catalog()
                 .discover_catalog(&open)
@@ -135,7 +141,7 @@ fn bootstrap_admission_cannot_unlock_a_different_same_version_catalog() {
         .expect("second physical bootstrap catalog should derive");
     let (_, other_admission) = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
+            BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             other_catalog,
             physical_bootstrap_catalog()
                 .discover_catalog(&other_open)
@@ -158,7 +164,7 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
         .expect("physical bootstrap catalog should derive");
     let (published_catalog, published_admission) = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
+            BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             published_physical_catalog.clone(),
             published_physical_catalog.current_root(),
         )
@@ -196,7 +202,7 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
         .expect("certification replay should derive canonical bootstrap catalog");
     let (certification_catalog, certification_admission) = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
+            BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             certification_physical_catalog.clone(),
             certification_physical_catalog.current_root(),
         )
@@ -216,9 +222,11 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
 }
 
 fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
-    let mut facade =
-        PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
-            .expect("open S.1 facade");
+    let mut facade = PlatformPhysicalFacade::open_physical_format(
+        readiness(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
+    )
+    .expect("open S.1 facade");
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -242,9 +250,11 @@ fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublic
 }
 
 fn republished_layout() -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
-    let mut facade =
-        PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
-            .expect("open S.1 facade");
+    let mut facade = PlatformPhysicalFacade::open_physical_format(
+        readiness(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
+    )
+    .expect("open S.1 facade");
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(

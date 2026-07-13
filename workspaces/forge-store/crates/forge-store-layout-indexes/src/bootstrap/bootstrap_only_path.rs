@@ -1,12 +1,12 @@
 use forge_store_physical_format::{PhysicalFormatMagic, PhysicalFormatVersion};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8BootstrapOnlyAccessPath {
+pub struct BootstrapOnlyAccessPath {
     magic: PhysicalFormatMagic,
     version: PhysicalFormatVersion,
 }
 
-impl S8BootstrapOnlyAccessPath {
+impl BootstrapOnlyAccessPath {
     pub const fn fixed_bootstrap_access_path() -> Self {
         Self {
             magic: PhysicalFormatMagic::store_format_magic(),

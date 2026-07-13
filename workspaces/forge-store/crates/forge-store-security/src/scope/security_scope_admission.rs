@@ -89,7 +89,10 @@ pub fn evaluate_store_security_scope_admission(
         request.basis().proof_progression_identity(),
         snapshot,
     );
-    let witnesses = StoreCurrentSecurityScopeWitnessSet::new(identity);
+    let witnesses = StoreCurrentSecurityScopeWitnessSet::new(
+        identity,
+        request.current_authority().authority_identity(),
+    );
 
     StoreSecurityScopeAdmissionEvaluation::new(
         TransitionOutcome::success(StoreAdmittedSecurityScope::new(witnesses, receipt)),

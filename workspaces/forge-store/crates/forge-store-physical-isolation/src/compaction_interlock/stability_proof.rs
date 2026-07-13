@@ -11,12 +11,18 @@ pub struct CompactionCutoverStabilityProof {
 }
 
 impl CompactionCutoverStabilityProof {
+    const OWNER_CASE: super::CompactionOwnerCase = super::CompactionOwnerCase::issued_by_owner(
+        super::CompactionOwnerCaseId::owned("physical.compaction.admit_recovery_visibility"),
+        super::CompactionCutoverState::PublicationCommitted,
+        super::CompactionCutoverState::RecoveryVisibilityAdmitted,
+    );
+
     pub const fn cutover_state(&self) -> super::CompactionCutoverState {
         super::CompactionCutoverState::RecoveryVisibilityAdmitted
     }
 
-    pub const fn cutover_transition(&self) -> super::CompactionCutoverTransition {
-        super::CompactionCutoverTransitionKind::AdmitRecoveryVisibility.transition()
+    pub const fn owner_case(&self) -> super::CompactionOwnerCase {
+        Self::OWNER_CASE
     }
 
     pub fn admit(
@@ -49,4 +55,8 @@ impl CompactionCutoverStabilityProof {
     pub const fn recovery_posture(&self) -> &CompactionCutoverRecoveryPosture {
         &self.recovery_posture
     }
+}
+
+pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCase> {
+    std::iter::once(CompactionCutoverStabilityProof::OWNER_CASE)
 }

@@ -1,2 +1,8 @@
-pub(crate) mod compatibility;
-pub(crate) mod migration;
+pub mod migration;
+
+#[cfg(test)]
+pub(crate) use migration::{
+    LayoutBindingWitness, LayoutCompatibilityWindow, LayoutEvolutionDeclaration,
+    LayoutInterruptionPolicy, LayoutReadCompatibilityPosture, LayoutVersion,
+    LayoutWriteCompatibilityPosture,
+};

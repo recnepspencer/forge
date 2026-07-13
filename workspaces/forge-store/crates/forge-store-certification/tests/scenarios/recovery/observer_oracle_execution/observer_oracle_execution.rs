@@ -15,8 +15,7 @@ use forge_store_test_support::{
     admitted_developer_smoke_driver_contracts, NativeStoreAspectFixture,
 };
 
-#[path = "../counter_strength/compaction_interlock_trace.rs"]
-mod compaction_interlock_trace;
+use forge_store_test_support::harness::recovery::compaction_observation as compaction_interlock_trace;
 
 #[test]
 fn executed_observation_receipt_feeds_convergent_oracle_verdicts() {
@@ -198,7 +197,9 @@ fn complete_context() -> SimulationPlanningContext {
         .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
-fn physical_isolation_scenario(name: &str) -> forge_store_physical_certification::CertifiedPhysicalScenario {
+fn physical_isolation_scenario(
+    name: &str,
+) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario(name)
         .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)

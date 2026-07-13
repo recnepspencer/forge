@@ -127,7 +127,8 @@ fn mixed_access_requires_positive_coherence_basis() {
                 .for_physical_reference(reference)
                 .with_security_scope(scope)
                 .with_buffer_lifecycle(
-                    AccessPolicyBufferLifecycle::for_certification_pinned_physical_substrate_lease(),
+                    AccessPolicyBufferLifecycle::for_certification_pinned_physical_substrate_lease(
+                    ),
                 )
                 .with_page_cache_policy(page_cache_policy(&backend))
                 .with_alignment_requirement(
@@ -162,7 +163,8 @@ fn mixed_access_denies_when_coherence_basis_belongs_to_other_region() {
                 .for_physical_reference(reference)
                 .with_security_scope(scope)
                 .with_buffer_lifecycle(
-                    AccessPolicyBufferLifecycle::for_certification_pinned_physical_substrate_lease(),
+                    AccessPolicyBufferLifecycle::for_certification_pinned_physical_substrate_lease(
+                    ),
                 )
                 .with_page_cache_policy(page_cache_policy(&backend))
                 .with_alignment_requirement(

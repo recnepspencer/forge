@@ -4,9 +4,9 @@ mod receipt;
 mod request;
 
 pub use admission::{
-    pre_execution_budget_admission, S8PreExecutionBudgetAdmission,
-    S8PreExecutionBudgetAdmissionOutcome, S8PreExecutionBudgetEnvelope, S8PreExecutionBudgetScope,
+    pre_execution_budget_admission, PreExecutionBudgetAdmission,
+    PreExecutionBudgetAdmissionOutcome, PreExecutionBudgetEnvelope, PreExecutionBudgetScope,
 };
-pub use denial::S8PreExecutionBudgetDenial;
-pub use receipt::S8PreExecutionBudgetAdmissionReceipt;
-pub use request::{S8PreExecutionBudgetRequest, S8PreExecutionPlanBinding};
+pub use denial::PreExecutionBudgetDenial;
+pub use receipt::PreExecutionBudgetAdmissionReceipt;
+pub use request::PreExecutionBudgetRequest;

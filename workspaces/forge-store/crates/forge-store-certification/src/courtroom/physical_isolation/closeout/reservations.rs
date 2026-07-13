@@ -2,7 +2,7 @@
 pub enum S5CloseoutReservedScope {
     S6IoQosIsolation,
     BlobLifecycle,
-    S8Layout,
+    LayoutIndexes,
     S10Repair,
     S11Security,
     S12Certification,
@@ -19,7 +19,7 @@ impl S5CloseoutReservationSet {
             scopes: [
                 S5CloseoutReservedScope::S6IoQosIsolation,
                 S5CloseoutReservedScope::BlobLifecycle,
-                S5CloseoutReservedScope::S8Layout,
+                S5CloseoutReservedScope::LayoutIndexes,
                 S5CloseoutReservedScope::S10Repair,
                 S5CloseoutReservedScope::S11Security,
                 S5CloseoutReservedScope::S12Certification,
@@ -39,7 +39,7 @@ impl S5CloseoutReservationSet {
         self.scopes.len() == 6
             && self.contains(S5CloseoutReservedScope::S6IoQosIsolation)
             && self.contains(S5CloseoutReservedScope::BlobLifecycle)
-            && self.contains(S5CloseoutReservedScope::S8Layout)
+            && self.contains(S5CloseoutReservedScope::LayoutIndexes)
             && self.contains(S5CloseoutReservedScope::S10Repair)
             && self.contains(S5CloseoutReservedScope::S11Security)
             && self.contains(S5CloseoutReservedScope::S12Certification)

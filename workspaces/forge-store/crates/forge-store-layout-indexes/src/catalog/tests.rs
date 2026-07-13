@@ -1,6 +1,6 @@
 use super::{
     ArtifactFamilyAccessLane, ArtifactFamilyAuthorityClass, ArtifactFamilyDenial,
-    S8ArtifactFamilyInventory,
+    ArtifactFamilyInventory,
 };
 use crate::layout_declarations;
 use forge_store_contracts::{
@@ -91,7 +91,7 @@ const EXPECTED_FAMILIES: &[DurableArtifactFamilyId] = &[
 
 #[test]
 fn every_expected_family_is_declared() {
-    let inventory = S8ArtifactFamilyInventory::current();
+    let inventory = ArtifactFamilyInventory::current();
     for family in EXPECTED_FAMILIES {
         assert!(
             inventory.declaration(*family).is_ok(),
@@ -104,7 +104,7 @@ fn every_expected_family_is_declared() {
 
 #[test]
 fn every_declaration_carries_complete_classification() {
-    for row in S8ArtifactFamilyInventory::current().rows() {
+    for row in ArtifactFamilyInventory::current().rows() {
         let declaration = row.declaration();
         assert_ne!(
             declaration.owning_boundary().crate_name(),
@@ -127,7 +127,7 @@ fn every_declaration_carries_complete_classification() {
 
 #[test]
 fn named_existing_inputs_map_to_real_family_boundaries() {
-    let inventory = S8ArtifactFamilyInventory::current();
+    let inventory = ArtifactFamilyInventory::current();
     assert_eq!(
         inventory
             .declaration(DurableArtifactFamilyId::WalDurableMutationIntent)
@@ -188,7 +188,7 @@ fn named_existing_inputs_map_to_real_family_boundaries() {
 
 #[test]
 fn non_authority_families_remain_non_authority() {
-    let inventory = S8ArtifactFamilyInventory::current();
+    let inventory = ArtifactFamilyInventory::current();
     for family in [
         DurableArtifactFamilyId::OfflineVerificationRecord,
         DurableArtifactFamilyId::CorruptionRecord,
@@ -232,7 +232,7 @@ fn facade_exposes_family_inventory_through_the_public_lane() {
 
 #[test]
 fn every_real_existing_family_variant_is_individually_addressable() {
-    let inventory = S8ArtifactFamilyInventory::current();
+    let inventory = ArtifactFamilyInventory::current();
     for family in [
         DurableArtifactFamilyId::WalDurableMutationIntent,
         DurableArtifactFamilyId::WalHostedRuntimeCommitResult,
@@ -323,7 +323,7 @@ fn existing_family_inputs_lower_directly_to_canonical_declarations() {
 
 #[test]
 fn missing_declared_family_is_denied_before_lowering() {
-    let rows = S8ArtifactFamilyInventory::current().rows();
+    let rows = ArtifactFamilyInventory::current().rows();
     let denial = super::inventory::declaration_in_rows(
         &rows[..rows.len() - 1],
         DurableArtifactFamilyId::BranchDeltaArtifact,

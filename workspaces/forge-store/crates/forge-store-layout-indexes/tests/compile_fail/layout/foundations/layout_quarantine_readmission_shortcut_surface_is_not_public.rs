@@ -1,7 +1,7 @@
-use forge_store_layout_indexes::layout_readmission::S8LayoutReadmissionWitness;
+use forge_store_layout_indexes::integrity::LayoutReadmissionWitness;
 
 fn main() {
-    let _ = S8LayoutReadmissionWitness {
+    let _ = LayoutReadmissionWitness {
         family: todo!(),
         source: todo!(),
     };

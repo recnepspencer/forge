@@ -1,10 +1,8 @@
-use forge_proof::TransitionOutcome;
 use forge_store_authority::StoreCurrentAuthorityWitness;
 use forge_store_offline_verifier::OfflineCustodyCapsuleObservation;
 use forge_store_security::{
-    admit_store_security_scope, readmit_trust_boundary_security_scope_declaration,
-    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
-    StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
+    admit_readmitted_trust_boundary_security_scope, StoreCustodyPosture, StoreKeyScope,
+    StoreKeyVersionPosture, StoreSecurityScopeAdmissionExpectation, StoreTenantScope,
 };
 
 use crate::{
@@ -38,7 +36,7 @@ impl BackupImportCustodyReadmission {
             backup_capsule_authenticity(),
             StoreCustodyPosture::Readmitted,
         );
-        let readmitted = readmit_trust_boundary_security_scope_declaration(
+        let admitted = admit_readmitted_trust_boundary_security_scope(
             current_authority,
             self.observation.raw_declaration(),
             StoreKeyVersionPosture::Current,
@@ -51,33 +49,6 @@ impl BackupImportCustodyReadmission {
                 counters: map_trust_boundary_readmission_denial_counters(source, counters),
             },
         )?;
-        let request = StoreSecurityScopeAdmissionRequest::from_raw_declaration(
-            current_authority,
-            readmitted,
-            expectation,
-        );
-        let admitted = match admit_store_security_scope(request) {
-            TransitionOutcome::Success(admitted) => admitted,
-            TransitionOutcome::Denied(source) => {
-                return Err(BackupExportCustodyDenial::SecurityScopeAdmissionDenied {
-                    source,
-                    counters: map_security_scope_denial_counters(source, counters),
-                })
-            }
-            TransitionOutcome::Stale(_) | TransitionOutcome::RebindRequired(_) => {
-                return Err(BackupExportCustodyDenial::ReadmissionNonCurrentKeyVersion {
-                    posture: StoreKeyVersionPosture::Stale,
-                    counters: counters.record_stale_key_version().denied(),
-                })
-            }
-            TransitionOutcome::Deferred(_) | TransitionOutcome::Failed(_) => {
-                return Err(BackupExportCustodyDenial::SecurityScopeAdmissionDenied {
-                    source:
-                        forge_store_security::StoreSecurityScopeAdmissionDenial::DeniedKeyVersionPosture,
-                    counters: counters.denied(),
-                })
-            }
-        };
         Ok(
             BackupExportCustodyAdmission::from_trust_boundary_readmission(
                 admitted,
@@ -112,11 +83,4 @@ fn map_trust_boundary_readmission_denial_counters(
         }
         _ => counters.denied(),
     }
-}
-
-fn map_security_scope_denial_counters(
-    source: forge_store_security::StoreSecurityScopeAdmissionDenial,
-    counters: BackupExportCustodyCounterSnapshot,
-) -> BackupExportCustodyCounterSnapshot {
-    map_trust_boundary_readmission_denial_counters(source, counters)
 }

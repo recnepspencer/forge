@@ -84,7 +84,8 @@ pub(super) fn root_manifest_with_all_entry_kinds() -> PhysicalRootManifest {
 
 fn header_authority() -> PhysicalHeaderAuthority {
     PhysicalHeaderAuthority::for_canonical_physical_format(
-        PhysicalBinaryEncodingWitness::physical_format_canonical().expect("canonical encoding witness"),
+        PhysicalBinaryEncodingWitness::physical_format_canonical()
+            .expect("canonical encoding witness"),
     )
 }
 

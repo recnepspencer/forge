@@ -113,12 +113,14 @@ fn point_counters_do_not_scale_with_storage_cardinality() {
             ))
             .expect("extent append");
     }
-    let page_reference = forge_store_physical_format::PhysicalReferenceAuthority::for_canonical_physical_format()
-        .admit_page_slot(slot_cell_for(page(8), slot(8)))
-        .reference();
-    let extent_reference = forge_store_physical_format::PhysicalReferenceAuthority::for_canonical_physical_format()
-        .admit_extent(extent_cell_for(extent(8)))
-        .reference();
+    let page_reference =
+        forge_store_physical_format::PhysicalReferenceAuthority::for_canonical_physical_format()
+            .admit_page_slot(slot_cell_for(page(8), slot(8)))
+            .reference();
+    let extent_reference =
+        forge_store_physical_format::PhysicalReferenceAuthority::for_canonical_physical_format()
+            .admit_extent(extent_cell_for(extent(8)))
+            .reference();
 
     let page_counters = {
         let mut page_layout = facade.page_access();
@@ -146,8 +148,11 @@ fn point_counters_do_not_scale_with_storage_cardinality() {
 }
 
 fn open_facade() -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
-        .expect("open S.1 facade")
+    PlatformPhysicalFacade::open_physical_format(
+        readiness(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
+    )
+    .expect("open S.1 facade")
 }
 
 fn readiness() -> AcceptedHandoffReadiness {

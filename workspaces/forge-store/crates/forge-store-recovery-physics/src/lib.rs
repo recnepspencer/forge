@@ -4,6 +4,7 @@
 pub mod layout_projection;
 
 mod blob_replay;
+mod btree_replay;
 mod checkpoint_cutover;
 mod corruption_readmission;
 mod durable_publication;
@@ -43,6 +44,11 @@ pub use blob_replay::{
     BlobReplayAdmissionDenial, BlobReplayAdmissionDenialKind, BlobReplaySourceAdmission,
     BlobReplaySourceKind, BlobReplaySourceOutcome, BlobReplaySourceOutcomeKind,
     BlobResumeReplayReadmission,
+};
+pub use btree_replay::{
+    AdmittedBTreeReplayPhysicalSource, AdmittedBTreeReplaySource, BTreeReplayPhysicalSourceIdentity,
+    BTreeReplayRootAgreement,
+    BTreeReplaySourceDenial,
 };
 pub use checkpoint_cutover::{
     CheckpointArtifactDurabilityCommitment, CheckpointCandidate,
@@ -129,13 +135,11 @@ pub use page_lsn_publication::{
     StalePageRecoveryClassificationKind, UnadmittedDirtyPagePublicationDenial,
     UnadmittedDirtyPagePublicationDenialKind, WalBeforeDataOrderingProof,
 };
-#[cfg(feature = "certification-test-authority")]
-pub use partial_publication::PartialPublicationClassification;
 pub use partial_publication::{
     AmbiguousPublicationReport, NoUndoPartialPublicationClassification,
     NonAuthoritativePublicationDenial, NonAuthoritativePublicationSource,
-    PartialPublicationBeforeWalReplayRead, PartialPublicationCounterSnapshot,
-    PartialPublicationCrashEdge, PartialPublicationEvidence,
+    PartialPublicationBeforeWalReplayRead, PartialPublicationClassification,
+    PartialPublicationCounterSnapshot, PartialPublicationCrashEdge, PartialPublicationEvidence,
     PartialPublicationObservationAdmission, PartialPublicationObservationSet,
     PartialPublicationObservedSource, PartialPublicationPersistedBytes,
     PartialPublicationReplayReadArtifact, PartialPublicationReplayReadDenial,

@@ -4,12 +4,12 @@ use crate::{
 };
 use forge_store_buffer_pool::BackgroundWorkClass;
 use forge_store_contracts::{
-    BufferPoolAuthorityRecap, IntegrityInspectionLifetimeLaw, PhysicalAuthorityRecap,
-    ProtectedIntegrityViewCapability, BoundedCounterRecap, DenialBehaviorRecap,
-    DeniedBoundaryKind, NoMaterializationWitness, PhysicalIntegrityReadinessPayload,
-    PhysicalIntegrityReadinessDenial, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
+    BoundedCounterRecap, BufferPoolAuthorityRecap, DenialBehaviorRecap, DeniedBoundaryKind,
+    IntegrityInspectionLifetimeLaw, NoMaterializationWitness, PhysicalAuthorityRecap,
+    PhysicalIntegrityReadinessDenial, PhysicalIntegrityReadinessPayload,
+    ProtectedIntegrityViewCapability, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
-use forge_store_readiness::{PhysicalSubstrateReadiness, PhysicalIntegrityReadiness};
+use forge_store_readiness::{PhysicalIntegrityReadiness, PhysicalSubstrateReadiness};
 
 impl BoundedMemoryCloseoutReport {
     pub fn publish_physical_integrity_readiness(
@@ -17,7 +17,10 @@ impl BoundedMemoryCloseoutReport {
         physical_substrate_readiness: PhysicalSubstrateReadiness,
     ) -> Result<PhysicalIntegrityReadiness, PhysicalIntegrityReadinessDenial> {
         let payload = payload_from_closeout(self.bundle(), physical_substrate_readiness)?;
-        PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(physical_substrate_readiness, payload)
+        PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(
+            physical_substrate_readiness,
+            payload,
+        )
     }
 }
 
@@ -137,9 +140,7 @@ fn readiness_denials(denials: &[S2BoundaryDenialKind]) -> Vec<DeniedBoundaryKind
             S2BoundaryDenialKind::WholeStoreMaterialization => {
                 DeniedBoundaryKind::WholeStoreMaterialization
             }
-            S2BoundaryDenialKind::WholeObjectStreaming => {
-                DeniedBoundaryKind::WholeObjectStreaming
-            }
+            S2BoundaryDenialKind::WholeObjectStreaming => DeniedBoundaryKind::WholeObjectStreaming,
             S2BoundaryDenialKind::ForgedViewAccess => DeniedBoundaryKind::ForgedViewAccess,
         })
         .collect()

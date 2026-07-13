@@ -1,16 +1,17 @@
 use super::counters::BaselineBTreeExactCounterValues;
 use super::{
-    decode_leaf_record, decode_root_record, encode_root_record, BaselineBTreeCorruptionMarker,
-    BaselineBTreeExactCounterWitness, BaselineBTreeExecutionDenial, BaselineBTreeLookupBranch,
-    BaselineBTreeLookupExecution, BaselineBTreeReadShape, BaselineBTreeReplayRecoveryExecution,
-    BaselineBTreeRootPublicationExecution,
+    decode_leaf_record, decode_root_record, BaselineBTreeExactCounterWitness,
+    BaselineBTreeExecutionDenial, BaselineBTreeLookupAdmission, BaselineBTreeLookupBranch,
+    BaselineBTreeLookupExecution, BaselineBTreeReadShape,
 };
-use forge_store_budgets::S8PreExecutionPlanBinding;
 use forge_store_contracts::AcceptedHandoffReadiness;
 use forge_store_physical_format::{
-    PersistedPhysicalLayout, PhysicalRecordSlot, PhysicalReference, PhysicalReferenceAuthority,
-    PlatformPhysicalAppendRequest, PlatformPhysicalFacade, PlatformPhysicalOpenRequest,
+    PersistedPhysicalLayout, PhysicalGenerationAuthority, PhysicalRecordSlot, PhysicalReference,
+    PhysicalReferenceAuthority, PlatformPhysicalFacade, PlatformPhysicalOpenRequest,
     PlatformPhysicalReplayArtifact, SlotGenerationCell,
+};
+use forge_store_physical_isolation::{
+    CurrentGenerationPhysicalReference, GenerationCountedPhysicalReference,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,48 +39,18 @@ impl BaselineBTreeExecutionWitness {
         })
     }
 
-    pub fn execute_separator_directed_lookup(
-        &self,
-        plan_binding: S8PreExecutionPlanBinding,
-        probe_slot: PhysicalRecordSlot,
-    ) -> Result<BaselineBTreeLookupExecution, BaselineBTreeExecutionDenial> {
-        self.execute_separator_directed_read(
-            plan_binding,
-            probe_slot,
-            BaselineBTreeReadShape::PointLookup,
-        )
+    pub fn preflight_stable_read(
+        self,
+    ) -> Result<super::BaselineBTreeReadPreflight, BaselineBTreeExecutionDenial> {
+        super::BaselineBTreeReadPreflight::from_published_layout(self)
     }
 
-    pub fn execute_separator_directed_range_lookup(
+    pub(crate) fn execute_separator_directed_read(
         &self,
-        plan_binding: S8PreExecutionPlanBinding,
-        probe_slot: PhysicalRecordSlot,
-    ) -> Result<BaselineBTreeLookupExecution, BaselineBTreeExecutionDenial> {
-        self.execute_separator_directed_read(
-            plan_binding,
-            probe_slot,
-            BaselineBTreeReadShape::RangeLookup,
-        )
-    }
-
-    pub fn execute_separator_directed_prefix_lookup(
-        &self,
-        plan_binding: S8PreExecutionPlanBinding,
-        probe_slot: PhysicalRecordSlot,
-    ) -> Result<BaselineBTreeLookupExecution, BaselineBTreeExecutionDenial> {
-        self.execute_separator_directed_read(
-            plan_binding,
-            probe_slot,
-            BaselineBTreeReadShape::PrefixLookup,
-        )
-    }
-
-    fn execute_separator_directed_read(
-        &self,
-        plan_binding: S8PreExecutionPlanBinding,
+        admission: &BaselineBTreeLookupAdmission,
         probe_slot: PhysicalRecordSlot,
         shape: BaselineBTreeReadShape,
-    ) -> Result<BaselineBTreeLookupExecution, BaselineBTreeExecutionDenial> {
+    ) -> Result<super::BaselineBTreeLookupObservation, BaselineBTreeExecutionDenial> {
         let mut facade = reopen_facade(self.readiness.clone(), &self.replay_artifact)?;
         let mut root_access = facade.page_access();
         let root = root_access.read_record(self.root_reference)?;
@@ -100,109 +71,75 @@ impl BaselineBTreeExecutionWitness {
         let leaf = decode_leaf_record(selected_leaf.record_view().payload().as_bytes())
             .ok_or(BaselineBTreeExecutionDenial::InvalidLeafNode)?;
         if !leaf.slots().contains(&probe_slot) {
-            return Err(BaselineBTreeExecutionDenial::ProbeMissingFromSelectedLeaf);
+            return Ok(super::BaselineBTreeLookupObservation::Absent(
+                super::BaselineBTreeLookupAbsence::issue(admission, probe_slot, selected_reference),
+            ));
         }
         let counters = lookup_counters(shape);
-        Ok(BaselineBTreeLookupExecution::new(
-            plan_binding,
-            shape,
-            probe_slot,
-            node.separator_slot(),
-            branch,
-            selected_reference,
-            counters,
-        ))
-    }
-
-    pub fn execute_root_publication(
-        plan_binding: S8PreExecutionPlanBinding,
-        facade: &mut PlatformPhysicalFacade,
-        root_cell: SlotGenerationCell,
-        separator_slot: PhysicalRecordSlot,
-        left_child: SlotGenerationCell,
-        right_child: SlotGenerationCell,
-    ) -> Result<BaselineBTreeRootPublicationExecution, BaselineBTreeExecutionDenial> {
-        let root_payload = encode_root_record(
-            BaselineBTreeCorruptionMarker::Header,
-            separator_slot,
-            left_child,
-            right_child,
-        );
-        let root = facade.append_physical_record(PlatformPhysicalAppendRequest::page_slot(
-            root_cell,
-            &root_payload,
-        ))?;
-        let published = facade.publish_physical_root()?;
-        let exact_counters =
-            BaselineBTreeExactCounterWitness::new(BaselineBTreeExactCounterValues {
-                publications: 1,
-                page_touches: 1,
-                manifest_reads: 1,
-                bytes_read: 4_096,
-                bytes_written: 4_096,
-                write_fanout: 1,
-                read_amplification: 1,
-                write_amplification: 1,
-                ..BaselineBTreeExactCounterValues::default()
-            });
-        Ok(BaselineBTreeRootPublicationExecution::new(
-            plan_binding,
-            published,
-            root.reference(),
-            root_payload,
-            left_child,
-            right_child,
-            exact_counters,
-        ))
-    }
-
-    pub fn execute_replay_recovery(
-        &self,
-        plan_binding: S8PreExecutionPlanBinding,
-    ) -> Result<BaselineBTreeReplayRecoveryExecution, BaselineBTreeExecutionDenial> {
-        let mut facade = reopen_facade(self.readiness.clone(), &self.replay_artifact)?;
-        let mut root_access = facade.page_access();
-        let root = root_access.read_record(self.root_reference)?;
-        let node = decode_root_record(root.record_view().payload().as_bytes())
-            .ok_or(BaselineBTreeExecutionDenial::InvalidRootNode)?;
-        drop(root_access);
-        let left = read_leaf(&mut facade, node.left_child())?;
-        let right = read_leaf(&mut facade, node.right_child())?;
-        let authority_records = left.slots().len().saturating_add(right.slots().len()) as u16;
-        let exact_counters =
-            BaselineBTreeExactCounterWitness::new(BaselineBTreeExactCounterValues {
-                maintenance_reads: 1,
-                page_touches: 1,
-                manifest_reads: 1,
-                bytes_read: 4_096,
-                read_amplification: 1,
-                ..BaselineBTreeExactCounterValues::default()
-            });
-        Ok(BaselineBTreeReplayRecoveryExecution::new(
-            plan_binding,
-            self.replay_artifact.persisted_layout().clone(),
-            self.root_reference,
-            self.replay_artifact
-                .persisted_layout()
-                .root_manifest_candidates()[0]
-                .clone(),
-            authority_records,
-            authority_records,
-            self.replay_artifact
-                .persisted_layout()
-                .root_manifest_candidates()
-                .len()
-                == 1,
-            exact_counters,
+        Ok(super::BaselineBTreeLookupObservation::Found(
+            BaselineBTreeLookupExecution::new(
+                admission.plan_binding().clone(),
+                admission.request_identity(),
+                shape,
+                probe_slot,
+                node.separator_slot(),
+                branch,
+                selected_reference,
+                counters,
+            ),
         ))
     }
 
     pub const fn root_reference(&self) -> PhysicalReference {
         self.root_reference
     }
+    pub fn store_authority_identity(&self) -> forge_store_authority::StoreCurrentAuthorityIdentity {
+        self.replay_artifact.store_identity().authority_identity()
+    }
     pub fn published_layout(&self) -> &PersistedPhysicalLayout {
         self.replay_artifact.persisted_layout()
     }
+
+    pub(super) fn stable_read_references(
+        &self,
+    ) -> Result<[CurrentGenerationPhysicalReference; 3], BaselineBTreeExecutionDenial> {
+        let mut facade = reopen_facade(self.readiness.clone(), &self.replay_artifact)?;
+        let mut root_access = facade.page_access();
+        let root = root_access.read_record(self.root_reference)?;
+        let node = decode_root_record(root.record_view().payload().as_bytes())
+            .ok_or(BaselineBTreeExecutionDenial::InvalidRootNode)?;
+        Ok([
+            current_reference(self.root_reference)?,
+            current_cell_reference(node.left_child()),
+            current_cell_reference(node.right_child()),
+        ])
+    }
+}
+
+fn current_reference(
+    reference: PhysicalReference,
+) -> Result<CurrentGenerationPhysicalReference, BaselineBTreeExecutionDenial> {
+    let segment = reference
+        .segment_id()
+        .ok_or(BaselineBTreeExecutionDenial::InvalidPhysicalReferenceForBTree)?;
+    let page = reference
+        .page_id()
+        .ok_or(BaselineBTreeExecutionDenial::InvalidPhysicalReferenceForBTree)?;
+    let slot = reference
+        .slot()
+        .ok_or(BaselineBTreeExecutionDenial::InvalidPhysicalReferenceForBTree)?;
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
+        .slot_cell(segment, page, slot)
+        .with_slot_generation(reference.generation());
+    Ok(current_cell_reference(cell))
+}
+
+fn current_cell_reference(cell: SlotGenerationCell) -> CurrentGenerationPhysicalReference {
+    GenerationCountedPhysicalReference::from_admitted_reference(
+        PhysicalReferenceAuthority::for_canonical_physical_format().admit_page_slot(cell),
+    )
+    .require_current_generation(cell.generation())
+    .expect("the admitted cell and observed generation are identical")
 }
 
 fn lookup_counters(shape: BaselineBTreeReadShape) -> BaselineBTreeExactCounterWitness {
@@ -225,23 +162,12 @@ fn lookup_counters(shape: BaselineBTreeReadShape) -> BaselineBTreeExactCounterWi
     })
 }
 
-fn read_leaf(
-    facade: &mut PlatformPhysicalFacade,
-    cell: SlotGenerationCell,
-) -> Result<super::BaselineBTreeLeafRecord, BaselineBTreeExecutionDenial> {
-    let reference = PhysicalReferenceAuthority::for_canonical_physical_format()
-        .admit_page_slot(cell)
-        .reference();
-    let mut page_access = facade.page_access();
-    let leaf = page_access.read_record(reference)?;
-    decode_leaf_record(leaf.record_view().payload().as_bytes())
-        .ok_or(BaselineBTreeExecutionDenial::InvalidLeafNode)
-}
-
 fn reopen_facade(
     readiness: AcceptedHandoffReadiness,
     replay_artifact: &PlatformPhysicalReplayArtifact,
 ) -> Result<PlatformPhysicalFacade, BaselineBTreeExecutionDenial> {
-    let request = PlatformPhysicalOpenRequest::physical_format_canonical();
+    let request = PlatformPhysicalOpenRequest::physical_format_for_store(
+        replay_artifact.store_identity().clone(),
+    );
     Ok(replay_artifact.reopen_physical_format(readiness, request)?)
 }

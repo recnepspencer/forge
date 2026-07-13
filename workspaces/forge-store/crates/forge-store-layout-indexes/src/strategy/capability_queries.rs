@@ -1,9 +1,9 @@
-use super::S8AdmittedLayoutStrategy;
+use super::AdmittedLayoutStrategy;
 use crate::catalog::{
     ArtifactFamilyAccessLane, ArtifactFamilyAuthorityClass, DurableArtifactProjectionClass,
 };
 
-impl S8AdmittedLayoutStrategy {
+impl AdmittedLayoutStrategy {
     pub const fn supports_point_access(&self) -> bool {
         self.declaration.capability().supports_point()
     }

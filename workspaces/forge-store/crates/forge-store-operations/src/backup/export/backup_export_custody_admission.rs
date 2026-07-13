@@ -1,12 +1,20 @@
-use forge_store_security::{StoreAdmittedSecurityScope, StoreSecurityScopeIdentity};
+use forge_store_security::{
+    StoreAdmittedSecurityScope, StoreReadmittedSecurityScope, StoreSecurityScopeIdentity,
+};
 
 use crate::{BackupExportCustodyCounterSnapshot, BackupExportCustodyMode};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct BackupExportCustodyAdmission {
     mode: Option<BackupExportCustodyMode>,
-    security_scope: StoreAdmittedSecurityScope,
+    security_scope: BackupCustodySecurityScope,
     counters: BackupExportCustodyCounterSnapshot,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum BackupCustodySecurityScope {
+    Outbound(StoreAdmittedSecurityScope),
+    Readmitted(StoreReadmittedSecurityScope),
 }
 
 impl BackupExportCustodyAdmission {
@@ -17,18 +25,18 @@ impl BackupExportCustodyAdmission {
     ) -> Self {
         Self {
             mode: Some(mode),
-            security_scope,
+            security_scope: BackupCustodySecurityScope::Outbound(security_scope),
             counters,
         }
     }
 
     pub(crate) const fn from_trust_boundary_readmission(
-        security_scope: StoreAdmittedSecurityScope,
+        security_scope: StoreReadmittedSecurityScope,
         counters: BackupExportCustodyCounterSnapshot,
     ) -> Self {
         Self {
             mode: None,
-            security_scope,
+            security_scope: BackupCustodySecurityScope::Readmitted(security_scope),
             counters,
         }
     }
@@ -38,11 +46,31 @@ impl BackupExportCustodyAdmission {
     }
 
     pub const fn identity(&self) -> StoreSecurityScopeIdentity {
-        self.security_scope.identity()
+        match &self.security_scope {
+            BackupCustodySecurityScope::Outbound(scope) => scope.identity(),
+            BackupCustodySecurityScope::Readmitted(scope) => scope.admitted().identity(),
+        }
     }
 
     pub const fn security_scope(&self) -> &StoreAdmittedSecurityScope {
-        &self.security_scope
+        match &self.security_scope {
+            BackupCustodySecurityScope::Outbound(scope) => scope,
+            BackupCustodySecurityScope::Readmitted(scope) => scope.admitted(),
+        }
+    }
+
+    pub const fn readmitted_security_scope(&self) -> Option<&StoreReadmittedSecurityScope> {
+        match &self.security_scope {
+            BackupCustodySecurityScope::Outbound(_) => None,
+            BackupCustodySecurityScope::Readmitted(scope) => Some(scope),
+        }
+    }
+
+    pub fn into_readmitted_security_scope(self) -> Option<StoreReadmittedSecurityScope> {
+        match self.security_scope {
+            BackupCustodySecurityScope::Outbound(_) => None,
+            BackupCustodySecurityScope::Readmitted(scope) => Some(scope),
+        }
     }
 
     pub const fn counters(&self) -> BackupExportCustodyCounterSnapshot {
@@ -50,6 +78,9 @@ impl BackupExportCustodyAdmission {
     }
 
     pub fn into_security_scope(self) -> StoreAdmittedSecurityScope {
-        self.security_scope
+        match self.security_scope {
+            BackupCustodySecurityScope::Outbound(scope) => scope,
+            BackupCustodySecurityScope::Readmitted(scope) => scope.into_admitted(),
+        }
     }
 }

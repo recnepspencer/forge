@@ -16,7 +16,6 @@ certification-test-authority = [
 [dependencies]
 forge-store-contracts.workspace = true
 forge-store-io-scheduler.workspace = true
-forge-store-layout-indexes.workspace = true
 forge-store-physical-backend.workspace = true
 forge-store-physical-format.workspace = true
 forge-store-physical-isolation.workspace = true

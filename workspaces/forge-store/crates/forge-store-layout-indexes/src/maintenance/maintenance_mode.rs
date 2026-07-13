@@ -1,7 +1,7 @@
 use crate::catalog::ArtifactFamilyAccessLane;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8IndexMaintenanceMode {
+pub enum IndexMaintenanceMode {
     SynchronousExact,
     AsynchronousLagged,
     RebuildOnly,
@@ -11,7 +11,7 @@ pub enum S8IndexMaintenanceMode {
     MigrationOnly,
 }
 
-impl S8IndexMaintenanceMode {
+impl IndexMaintenanceMode {
     pub const fn synchronous_exact() -> Self {
         Self::SynchronousExact
     }

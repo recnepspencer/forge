@@ -237,6 +237,7 @@ dependencies = [
  "forge-proof",
  "forge-store-aspect-native",
  "forge-store-contracts",
+ "sha2",
 ]
 
 [[package]]
@@ -251,7 +252,6 @@ dependencies = [
  "forge-store-buffer-pool",
  "forge-store-contracts",
  "forge-store-io-scheduler",
- "forge-store-layout-indexes",
  "forge-store-offline-verifier",
  "forge-store-operations-vocabulary",
  "forge-store-physical-backend",
@@ -324,6 +324,7 @@ dependencies = [
  "forge-store-contracts",
  "forge-store-io-scheduler",
  "forge-store-layout-indexes",
+ "forge-store-lsm-authority",
  "forge-store-maintenance",
  "forge-store-offline-verifier",
  "forge-store-operations",
@@ -425,6 +426,7 @@ dependencies = [
  "forge-store-compatibility",
  "forge-store-contracts",
  "forge-store-io-scheduler",
+ "forge-store-lsm-authority",
  "forge-store-offline-verifier",
  "forge-store-operations",
  "forge-store-physical-certification",
@@ -435,6 +437,7 @@ dependencies = [
  "forge-store-security",
  "forge-store-test-support",
  "forge-store-wal",
+ "sha2",
 ]
 
 [[package]]
@@ -443,6 +446,17 @@ version = "0.1.0"
 dependencies = [
  "forge-store-contracts",
  "forge-store-schema-lineage",
+]
+
+[[package]]
+name = "forge-store-lsm-authority"
+version = "0.1.0"
+dependencies = [
+ "forge-store-authority",
+ "forge-store-physical-isolation",
+ "forge-store-recovery-physics",
+ "forge-store-security",
+ "forge-store-wal",
 ]
 
 [[package]]
@@ -496,6 +510,7 @@ dependencies = [
  "forge-store-readiness",
  "forge-store-recovery-physics",
  "forge-store-security",
+ "forge-store-test-support",
  "forge-store-tiering",
 ]
 
@@ -730,6 +745,7 @@ dependencies = [
  "forge-store-contracts",
  "forge-store-io-scheduler",
  "forge-store-layout-indexes",
+ "forge-store-lsm-authority",
  "forge-store-physical-backend",
  "forge-store-physical-certification",
  "forge-store-physical-format",
@@ -747,7 +763,6 @@ version = "0.1.0"
 dependencies = [
  "forge-store-contracts",
  "forge-store-io-scheduler",
- "forge-store-layout-indexes",
  "forge-store-physical-backend",
  "forge-store-physical-format",
  "forge-store-physical-isolation",

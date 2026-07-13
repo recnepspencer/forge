@@ -1,6 +1,6 @@
-use super::{
-    ArtifactAuthorityRoleWitness, ArtifactFamilyAuthorityDisposition, ArtifactFamilyDenial,
-};
+#[cfg(test)]
+use super::ArtifactFamilyDenial;
+use super::{ArtifactAuthorityRoleWitness, ArtifactFamilyAuthorityDisposition};
 use forge_store_contracts::DurableArtifactFamilyId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,6 +96,7 @@ pub(crate) fn declare_derived_accuracy_class(
     ArtifactDerivedAccuracyWitness::new(role, accuracy)
 }
 
+#[cfg(test)]
 pub(crate) fn require_exact_accuracy_claim(
     accuracy: ArtifactDerivedAccuracyWitness,
 ) -> Result<ArtifactDerivedAccuracyWitness, ArtifactFamilyDenial> {

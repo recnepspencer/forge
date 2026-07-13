@@ -236,9 +236,11 @@ fn assert_counter_row(rows: &[FoundationalPerformanceCounterRow], name: &str, co
 }
 
 fn extent_record_authority() -> PhysicalExtentRecordAuthority {
-    PhysicalExtentRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
-        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
-    ))
+    PhysicalExtentRecordAuthority::for_canonical_physical_format(
+        PhysicalHeaderAuthority::for_canonical_physical_format(
+            PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+        ),
+    )
 }
 
 const fn extent_frame_len(payload: &[u8]) -> usize {

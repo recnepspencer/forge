@@ -18,16 +18,16 @@ struct CompileFailFixture {
     extern_crates: &'static [&'static str],
 }
 
-fn compile_fail_fixtures() -> [CompileFailFixture; 40] {
+fn compile_fail_fixtures() -> [CompileFailFixture; 42] {
     [
         fixture(
             "raw_struct_cannot_construct_admitted_layout_strategy.rs",
-            &["S8AdmittedLayoutStrategy"],
+            &["AdmittedLayoutStrategy"],
             &[],
         ),
         fixture(
             "raw_struct_cannot_construct_phase_obligation.rs",
-            &["private field", "S8BootstrapLayoutCatalog"],
+            &["private field", "BootstrapLayoutCatalog"],
             &[],
         ),
         fixture(
@@ -40,7 +40,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 40] {
         ),
         fixture(
             "access_planning_surface_is_not_public.rs",
-            &["expected function", "access_planning"],
+            &["no `access_lowering`", "forge_store_layout_indexes"],
             &[],
         ),
         fixture(
@@ -60,29 +60,32 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 40] {
         ),
         fixture(
             "offline_report_cannot_satisfy_readmission_witness.rs",
-            &["S8ExecutionReadmissionWitness", "OfflineLayoutReport"],
-            &["forge_store_offline_verifier"],
+            &[
+                "LayoutReadmissionWitness",
+                "OfflineVerifierLayoutProjection",
+            ],
+            &[],
         ),
         fixture(
             "foundational_materialized_report_cannot_satisfy_readmission_witness.rs",
             &[
-                "S8ExecutionReadmissionWitness",
+                "LayoutReadmissionWitness",
                 "FoundationalMaterializedPerformanceReport",
             ],
-            &["forge_foundational"],
+            &[],
         ),
         fixture(
             "copied_counter_rows_cannot_satisfy_planned_vs_observed.rs",
             &[
-                "S8PlannedVsObservedCounterReceipt",
-                "FoundationalPerformanceCounterRow",
+                "BaselineBTreeExactCounterWitness",
+                "Vec<FoundationalPerformanceCounterRow>",
             ],
-            &["forge_foundational"],
+            &[],
         ),
         fixture(
             "terminal_projection_fixture_cannot_satisfy_readmission_witness.rs",
             &[
-                "S8ExecutionReadmissionWitness",
+                "LayoutReadmissionWitness",
                 "StoreTerminalProjectionJsonFixture",
             ],
             &["forge_store_test_support"],
@@ -104,12 +107,12 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 40] {
         ),
         fixture(
             "policy_receipt_cannot_satisfy_layout_registry_snapshot.rs",
-            &["S8LayoutStrategyRegistrySnapshot"],
+            &["LayoutStrategyRegistrySnapshot"],
             &["forge_foundational"],
         ),
         fixture(
             "materialized_report_cannot_satisfy_layout_registry_snapshot.rs",
-            &["S8LayoutStrategyRegistrySnapshot"],
+            &["LayoutStrategyRegistrySnapshot"],
             &["forge_foundational"],
         ),
         fixture(
@@ -125,30 +128,24 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 40] {
         fixture(
             "materialization_raw_constructor_surface_is_not_public.rs",
             &[
-                "private associated function",
-                "exact",
-                "root_epoch",
-                "physical_range",
-                "partially_covered",
+                "module `access_planning` is private",
+                "LayoutMaterializationState",
             ],
             &[],
         ),
         fixture(
             "raw_strategy_family_cannot_satisfy_future_customization_request.rs",
-            &[
-                "S8FutureLayoutCustomizationRequest",
-                "S8LayoutStrategyFamily",
-            ],
+            &["FutureLayoutCustomizationRequest", "LayoutStrategyFamily"],
             &[],
         ),
         fixture(
             "callback_cannot_satisfy_future_customization_request.rs",
-            &["S8FutureLayoutCustomizationRequest", "fn()"],
+            &["FutureLayoutCustomizationRequest", "fn()"],
             &[],
         ),
         fixture(
             "layout_registry_surface_is_not_public.rs",
-            &["layout_admission_registry", "S8LayoutAdmissionRequest"],
+            &["layout_admission_registry", "LayoutAdmissionRequest"],
             &[],
         ),
         fixture(
@@ -164,7 +161,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 40] {
         fixture(
             "legacy_access_shape_wrappers_are_not_public.rs",
             &[
-                "S8AccessShapeDeclaration",
+                "AccessShapeDeclaration",
                 "S8PointAccessShape",
                 "S8RangeAccessShape",
                 "S8PrefixAccessShape",
@@ -178,63 +175,57 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 40] {
         ),
         fixture(
             "plan_fingerprint_raw_constructor_is_not_public.rs",
-            &["private associated function", "S8PlanFingerprint"],
+            &["no `AccessPlanIdentity`"],
             &[],
         ),
         fixture(
             "layout_readmission_legacy_for_stale_surface_is_not_public.rs",
-            &["no `layout_readmission` in `layout_readmission`"],
+            &["layout_readmission", "could not find"],
             &[],
         ),
         fixture(
             "layout_readmission_witness_raw_constructor_is_not_public.rs",
-            &["private associated function", "S8LayoutReadmissionWitness"],
+            &["LayoutReadmissionWitness", "terminal_import"],
             &[],
         ),
         fixture(
             "execution_readmission_witness_raw_constructor_is_not_public.rs",
-            &[
-                "private associated function",
-                "S8ExecutionReadmissionWitness",
-            ],
+            &["private field", "DegradedScanReadmission"],
             &[],
         ),
         fixture(
             "execution_rebind_witness_raw_constructor_is_not_public.rs",
-            &["private associated function", "S8ExecutionRebindWitness"],
+            &["no `DegradedScanRebindAdmission`"],
             &[],
         ),
         fixture(
             "derived_index_rebuild_plan_raw_constructor_is_not_public.rs",
-            &["private field", "S8DerivedIndexRebuildPlan"],
+            &["private field", "DerivedIndexRebuildPlan"],
             &[],
         ),
         fixture(
             "derived_index_parity_witness_raw_constructor_is_not_public.rs",
-            &["private field", "S8DerivedIndexParityWitness"],
+            &["private field", "DerivedIndexParityWitness"],
             &[],
         ),
         fixture(
             "derived_projection_cannot_satisfy_exact_access_admission.rs",
-            &["S8LayoutCoverageWitness", "S8DerivedIndexParityWitness"],
+            &["no `access_planning`"],
             &[],
         ),
         fixture(
             "derived_projection_cannot_bind_rollback_authority.rs",
-            &[
-                "StoreCurrentAuthorityWitness",
-                "S8DerivedIndexParityWitness",
-            ],
+            &["StoreCurrentAuthorityWitness", "DerivedIndexParityWitness"],
             &[],
         ),
         fixture(
             "cache_hit_cannot_satisfy_execution_readiness.rs",
-            &["S8LoweredAccessReceipt", "ResidentFrameAdmission"],
-            &["forge_store_buffer_pool"],
+            &["could not find `access_lowering`"],
+            &[],
         ),
         fixture(
             "layout_mutation_plan_raw_constructor_is_not_public.rs",
-            &["private field", "S8LayoutMutationPlan"],
+            &["private field", "LayoutMutationPlan"],
             &[],
         ),
         fixture(
@@ -244,7 +235,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 40] {
         ),
         fixture(
             "live_exact_maintenance_witness_raw_constructor_is_not_public.rs",
-            &["private field", "S8LiveExactMaintenanceWitness"],
+            &["private field", "LiveExactMaintenanceWitness"],
             &[],
         ),
         fixture(
@@ -256,6 +247,19 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 40] {
             "blob_wal_replay_rebuild_witness_raw_constructor_is_not_public.rs",
             &["private field", "BlobWalReplayRebuildWitness"],
             &["forge_store_wal"],
+        ),
+        fixture(
+            "raw_blob_identity_cannot_construct_materialization_source.rs",
+            &["private field", "ImportedBlobMaterializationSourceIdentity"],
+            &[],
+        ),
+        fixture(
+            "raw_physical_reference_cannot_admit_btree_materialization.rs",
+            &[
+                "expected `RootPublicationValidationWitness`",
+                "found `PhysicalReference`",
+            ],
+            &["forge_store_physical_format"],
         ),
     ]
 }

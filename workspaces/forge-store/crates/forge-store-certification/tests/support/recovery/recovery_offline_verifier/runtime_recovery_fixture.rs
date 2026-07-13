@@ -1,11 +1,6 @@
-#[path = "../bounded_recovery_budget/memory_budget_fixture.rs"]
-mod memory_budget_fixture;
-#[allow(dead_code, unused_imports)]
-#[path = "../idempotent_redo_replay/redo_replay_fixture.rs"]
-mod redo_replay_fixture;
-#[allow(dead_code, unused_imports)]
-#[path = "../recovery_source_precedence/source_precedence_fixture.rs"]
-mod source_precedence_fixture;
+use forge_store_test_support::harness::recovery::memory_budget as memory_budget_fixture;
+use forge_store_test_support::harness::recovery::redo_replay as redo_replay_fixture;
+use forge_store_test_support::harness::recovery::source_precedence as source_precedence_fixture;
 
 use forge_store_recovery_physics::{
     AdmittedRedoFrame, BoundedRecoveryReceipt, CheckpointIntervalContract,

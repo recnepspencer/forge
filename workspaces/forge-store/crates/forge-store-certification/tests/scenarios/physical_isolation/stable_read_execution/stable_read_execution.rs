@@ -1,14 +1,9 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
 #[path = "../../security/stable_read_execution/security_scope.rs"]
 mod execution_security_scope;
 #[path = "../../../support/physical_isolation/stable_read_execution/support.rs"]
 mod execution_support;
-#[path = "plan_admission.rs"]
-mod plan_admission;
-#[path = "../../../support/physical_isolation/epoch_scope_and_root_kind/support.rs"]
-#[allow(dead_code)]
-mod support;
+use forge_store_test_support::harness::physical_isolation::epoch_scope as support;
+use forge_store_test_support::harness::physical_isolation::read_plan as plan_admission;
 
 use execution_security_scope::logical_decode_entry_for_handle;
 use execution_support::{

@@ -1,11 +1,10 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
-use forge_store_layout_indexes::access_planning::S8AccessShape;
 
 use super::behavior::{
     corruption_behavior_for, declared_rebuild_posture, BlobLayoutCorruptionBehavior,
     BlobLayoutScopeSafeAbsenceBehavior,
 };
-use super::{BlobLayoutAccessDenial, BlobLayoutAccessPathEvidence};
+use super::{BlobLayoutAccessDenial, BlobLayoutAccessPathEvidence, BlobLayoutAccessShape};
 use crate::{
     BlobChunkOrdinal, BlobChunkQuarantine, BlobCorruptionDetectionSource,
     BlobCorruptionPlacementClass, BlobGeneration, BlobObjectId, BlobQuarantineLifecycleState,
@@ -15,7 +14,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QuarantineLayoutReport {
     family_id: DurableArtifactFamilyId,
-    access_shape: S8AccessShape,
+    access_shape: BlobLayoutAccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     absence_behavior: BlobLayoutScopeSafeAbsenceBehavior,
     corruption_behavior: BlobLayoutCorruptionBehavior,
@@ -32,7 +31,7 @@ pub struct QuarantineLayoutReport {
 }
 
 impl QuarantineLayoutReport {
-    fn admit_quarantine(
+    fn project_quarantine(
         quarantine: &BlobChunkQuarantine,
     ) -> Result<QuarantineLayoutReport, BlobLayoutAccessDenial> {
         Ok(QuarantineLayoutReport::from_quarantine(quarantine))
@@ -46,7 +45,7 @@ impl QuarantineLayoutReport {
         let localized = quarantine.localization();
         Self {
             family_id,
-            access_shape: S8AccessShape::QuarantineRead,
+            access_shape: BlobLayoutAccessShape::QuarantineRead,
             rebuild_posture,
             absence_behavior: BlobLayoutScopeSafeAbsenceBehavior::ScopedVerifierScan,
             corruption_behavior: corruption_behavior_for(rebuild_posture),
@@ -70,7 +69,7 @@ impl QuarantineLayoutReport {
         self.family_id
     }
 
-    pub const fn access_shape(&self) -> S8AccessShape {
+    pub const fn access_shape(&self) -> BlobLayoutAccessShape {
         self.access_shape
     }
 
@@ -135,9 +134,9 @@ impl QuarantineLayoutReport {
 }
 
 impl BlobChunkQuarantine {
-    pub fn admit_quarantine_layout(
+    pub fn project_quarantine_layout(
         &self,
     ) -> Result<QuarantineLayoutReport, BlobLayoutAccessDenial> {
-        QuarantineLayoutReport::admit_quarantine(self)
+        QuarantineLayoutReport::project_quarantine(self)
     }
 }

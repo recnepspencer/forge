@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/idempotent_redo_replay/redo_replay_fixture.rs"]
-mod redo_replay_fixture;
+use forge_store_test_support::harness::recovery::redo_replay as redo_replay_fixture;
 
 use forge_store_physical_format::PhysicalPageId;
 use forge_store_recovery_physics::{

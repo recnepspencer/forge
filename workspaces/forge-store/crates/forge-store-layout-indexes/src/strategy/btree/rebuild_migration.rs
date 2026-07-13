@@ -1,9 +1,9 @@
-use crate::strategy::S8StrategyDenial;
+use crate::strategy::StrategyDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8BTreeRebuildMigrationLaw;
+pub struct BTreeRebuildMigrationLaw;
 
-impl S8BTreeRebuildMigrationLaw {
+impl BTreeRebuildMigrationLaw {
     pub(crate) const fn baseline() -> Self {
         Self
     }
@@ -13,10 +13,10 @@ impl S8BTreeRebuildMigrationLaw {
         rebuilt_node_count: u16,
         authoritative_page_count: u16,
         ordering_preserved: bool,
-    ) -> Result<(), S8StrategyDenial> {
+    ) -> Result<(), StrategyDenial> {
         if rebuilt_node_count == authoritative_page_count && ordering_preserved {
             return Ok(());
         }
-        Err(S8StrategyDenial::RebuildMigrationViolation)
+        Err(StrategyDenial::RebuildMigrationViolation)
     }
 }

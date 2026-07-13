@@ -1,10 +1,10 @@
-use super::scenario::{all_layout_index_layout_scenarios, S8LayoutScenarioKind};
-use super::transcripts::S8LayoutTranscriptKind;
+use super::scenario::{all_layout_index_layout_scenarios, LayoutScenarioKind};
+use super::transcripts::LayoutTranscriptKind;
 
 const EXPECTED_S8_LAYOUT_SCENARIOS: usize = 8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8LayoutScenarioInventoryDenial {
+pub enum LayoutScenarioInventoryDenial {
     MissingScenario,
     DuplicateScenario,
     MissingProductionApis,
@@ -18,7 +18,7 @@ pub enum S8LayoutScenarioInventoryDenial {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutScenarioInventoryReceipt {
+pub struct LayoutScenarioInventoryReceipt {
     scenario_count: usize,
     production_api_bindings: usize,
     actor_bindings: usize,
@@ -33,14 +33,14 @@ pub struct S8LayoutScenarioInventoryReceipt {
 }
 
 pub fn verify_canonical_layout_index_layout_scenario_inventory(
-) -> Result<S8LayoutScenarioInventoryReceipt, S8LayoutScenarioInventoryDenial> {
+) -> Result<LayoutScenarioInventoryReceipt, LayoutScenarioInventoryDenial> {
     let scenarios = all_layout_index_layout_scenarios();
     if scenarios.len() != EXPECTED_S8_LAYOUT_SCENARIOS {
-        return Err(S8LayoutScenarioInventoryDenial::MissingScenario);
+        return Err(LayoutScenarioInventoryDenial::MissingScenario);
     }
 
     let mut seen = Vec::with_capacity(EXPECTED_S8_LAYOUT_SCENARIOS);
-    let mut receipt = S8LayoutScenarioInventoryReceipt {
+    let mut receipt = LayoutScenarioInventoryReceipt {
         scenario_count: 0,
         production_api_bindings: 0,
         actor_bindings: 0,
@@ -56,40 +56,40 @@ pub fn verify_canonical_layout_index_layout_scenario_inventory(
 
     for scenario in scenarios {
         if seen.contains(&scenario.kind()) {
-            return Err(S8LayoutScenarioInventoryDenial::DuplicateScenario);
+            return Err(LayoutScenarioInventoryDenial::DuplicateScenario);
         }
         seen.push(scenario.kind());
         require_non_empty(
             scenario.production_apis(),
-            S8LayoutScenarioInventoryDenial::MissingProductionApis,
+            LayoutScenarioInventoryDenial::MissingProductionApis,
         )?;
         require_non_empty(
             scenario.actors(),
-            S8LayoutScenarioInventoryDenial::MissingActors,
+            LayoutScenarioInventoryDenial::MissingActors,
         )?;
         require_non_empty(
             scenario.faults(),
-            S8LayoutScenarioInventoryDenial::MissingFaults,
+            LayoutScenarioInventoryDenial::MissingFaults,
         )?;
         require_non_empty(
             scenario.observers(),
-            S8LayoutScenarioInventoryDenial::MissingObservers,
+            LayoutScenarioInventoryDenial::MissingObservers,
         )?;
         require_non_empty(
             scenario.oracles(),
-            S8LayoutScenarioInventoryDenial::MissingOracles,
+            LayoutScenarioInventoryDenial::MissingOracles,
         )?;
         require_non_empty(
             scenario.coverage(),
-            S8LayoutScenarioInventoryDenial::MissingCoverageRows,
+            LayoutScenarioInventoryDenial::MissingCoverageRows,
         )?;
         require_non_empty(
             scenario.shortcut_denials(),
-            S8LayoutScenarioInventoryDenial::MissingShortcutDenials,
+            LayoutScenarioInventoryDenial::MissingShortcutDenials,
         )?;
         require_non_empty(
             scenario.transitions(),
-            S8LayoutScenarioInventoryDenial::MissingTransitions,
+            LayoutScenarioInventoryDenial::MissingTransitions,
         )?;
 
         receipt.scenario_count += 1;
@@ -101,10 +101,10 @@ pub fn verify_canonical_layout_index_layout_scenario_inventory(
         receipt.coverage_rows += scenario.coverage().len();
         receipt.shortcut_denials += scenario.shortcut_denials().len();
         receipt.transition_bindings += scenario.transitions().len();
-        if scenario.transcript() == S8LayoutTranscriptKind::ReplayBundle {
+        if scenario.transcript() == LayoutTranscriptKind::ReplayBundle {
             receipt.replay_bundle_scenarios += 1;
         }
-        if scenario.transcript() == S8LayoutTranscriptKind::ShortcutDenialTrace {
+        if scenario.transcript() == LayoutTranscriptKind::ShortcutDenialTrace {
             receipt.shortcut_trace_scenarios += 1;
         }
     }
@@ -113,7 +113,7 @@ pub fn verify_canonical_layout_index_layout_scenario_inventory(
     Ok(receipt)
 }
 
-impl S8LayoutScenarioInventoryReceipt {
+impl LayoutScenarioInventoryReceipt {
     pub const fn scenario_count(&self) -> usize {
         self.scenario_count
     }
@@ -151,8 +151,8 @@ impl S8LayoutScenarioInventoryReceipt {
 
 fn require_non_empty<T>(
     values: &[T],
-    denial: S8LayoutScenarioInventoryDenial,
-) -> Result<(), S8LayoutScenarioInventoryDenial> {
+    denial: LayoutScenarioInventoryDenial,
+) -> Result<(), LayoutScenarioInventoryDenial> {
     if values.is_empty() {
         return Err(denial);
     }
@@ -160,20 +160,20 @@ fn require_non_empty<T>(
 }
 
 fn require_known_scenario_set(
-    seen: &[S8LayoutScenarioKind],
-) -> Result<(), S8LayoutScenarioInventoryDenial> {
+    seen: &[LayoutScenarioKind],
+) -> Result<(), LayoutScenarioInventoryDenial> {
     for required in [
-        S8LayoutScenarioKind::LayoutDeclarationInventory,
-        S8LayoutScenarioKind::AccessShapeDenial,
-        S8LayoutScenarioKind::BroadScanRejection,
-        S8LayoutScenarioKind::ExactCounter,
-        S8LayoutScenarioKind::CorruptionRebuildParity,
-        S8LayoutScenarioKind::MigrationRollbackInterruption,
-        S8LayoutScenarioKind::TrustBoundaryReadmission,
-        S8LayoutScenarioKind::MultiArtifactIntegration,
+        LayoutScenarioKind::LayoutDeclarationInventory,
+        LayoutScenarioKind::AccessShapeDenial,
+        LayoutScenarioKind::BroadScanRejection,
+        LayoutScenarioKind::ExactCounter,
+        LayoutScenarioKind::CorruptionRebuildParity,
+        LayoutScenarioKind::MigrationRollbackInterruption,
+        LayoutScenarioKind::TrustBoundaryReadmission,
+        LayoutScenarioKind::MultiArtifactIntegration,
     ] {
         if !seen.contains(&required) {
-            return Err(S8LayoutScenarioInventoryDenial::MissingScenario);
+            return Err(LayoutScenarioInventoryDenial::MissingScenario);
         }
     }
     Ok(())

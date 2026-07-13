@@ -1,40 +1,40 @@
-use crate::strategy::S8LayoutStrategyFamily;
+use crate::strategy::LayoutStrategyFamily;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8DerivedIndexIdentityParity {
+pub enum DerivedIndexIdentityParity {
     Exact,
     SourceArtifactDoesNotProveIdentity,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8DerivedIndexOrderingParity {
+pub enum DerivedIndexOrderingParity {
     Exact,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8DerivedIndexCoverageParity {
+pub enum DerivedIndexCoverageParity {
     Exact,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8DerivedIndexCostEnvelopeParity {
+pub enum DerivedIndexCostEnvelopeParity {
     DeclaredEnvelopeMatched,
     SourceArtifactDoesNotProveDeclaredEnvelope,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S8DerivedIndexCounterShapeParity {
+pub enum DerivedIndexCounterShapeParity {
     ExactDeterministicPhysicalShape,
     StrategyDoesNotClaimDeterministicPhysicalShape,
 }
 
 pub(crate) const fn declared_counter_shape_parity(
-    family: S8LayoutStrategyFamily,
-) -> S8DerivedIndexCounterShapeParity {
+    family: LayoutStrategyFamily,
+) -> DerivedIndexCounterShapeParity {
     match family {
-        S8LayoutStrategyFamily::BaselineBTreeRange => {
-            S8DerivedIndexCounterShapeParity::ExactDeterministicPhysicalShape
+        LayoutStrategyFamily::BaselineBTreeRange => {
+            DerivedIndexCounterShapeParity::ExactDeterministicPhysicalShape
         }
-        _ => S8DerivedIndexCounterShapeParity::StrategyDoesNotClaimDeterministicPhysicalShape,
+        _ => DerivedIndexCounterShapeParity::StrategyDoesNotClaimDeterministicPhysicalShape,
     }
 }

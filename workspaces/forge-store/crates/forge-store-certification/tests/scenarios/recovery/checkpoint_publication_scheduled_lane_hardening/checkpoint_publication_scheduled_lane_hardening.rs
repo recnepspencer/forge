@@ -1,9 +1,4 @@
-#[path = "../../../support/recovery/checkpoint_publication_oracle/support.rs"]
-#[allow(dead_code)]
-mod checkpoint_oracle_support;
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-#[allow(dead_code)]
-mod closeout_fixture;
+use forge_store_test_support::harness::recovery::checkpoint_publication as checkpoint_oracle_support;
 
 use checkpoint_oracle_support::{
     actor_step_index, checkpoint_evidence, checkpoint_origin, checkpoint_shortcut_trace,

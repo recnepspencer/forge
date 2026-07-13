@@ -139,7 +139,8 @@ fn publisher_rejects_non_flush_unsupported_rows_without_debt() {
     );
 }
 
-fn backend_qualification_capabilities() -> [(BackendCapabilityKind, QualificationHarnessProofClaim); 8] {
+fn backend_qualification_capabilities(
+) -> [(BackendCapabilityKind, QualificationHarnessProofClaim); 8] {
     [
         (
             BackendCapabilityKind::BufferedFile,

@@ -20,7 +20,10 @@ impl PhysicalIntegrityReadiness {
                 PhysicalIntegrityReadinessDenialKind::S2ReadinessNotSealed,
             ));
         }
-        require_physical_recap_matches_physical_substrate_facts(physical_substrate_readiness, payload)?;
+        require_physical_recap_matches_physical_substrate_facts(
+            physical_substrate_readiness,
+            payload,
+        )?;
         Ok(Self {
             physical_substrate_readiness,
             payload: payload.require_complete()?,
@@ -72,11 +75,12 @@ mod tests {
     #[test]
     fn readiness_denies_physical_authority_recap_mismatch() {
         let readiness = physical_substrate_readiness_fixture();
-        let denial = PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(
-            readiness,
-            mismatched_payload(readiness),
-        )
-        .unwrap_err();
+        let denial =
+            PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(
+                readiness,
+                mismatched_payload(readiness),
+            )
+            .unwrap_err();
 
         assert_eq!(
             denial.kind(),

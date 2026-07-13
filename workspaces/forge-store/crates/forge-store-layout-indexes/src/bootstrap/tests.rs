@@ -1,6 +1,6 @@
 #[test]
 fn bootstrap_path_is_fixed_to_store_magic_and_version() {
-    let fixed = super::S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path();
+    let fixed = super::BootstrapOnlyAccessPath::fixed_bootstrap_access_path();
 
     assert_eq!(
         fixed.magic(),

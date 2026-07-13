@@ -71,8 +71,10 @@ impl PhysicalHeaderDecodeEvidenceReport {
         Ok(Self {
             row,
             lane: row.physical_substrate_lane(),
-            artifact_id: StableArtifactId::new("forge_store.header_decode.for_canonical_physical_format")
-                .expect("static artifact id"),
+            artifact_id: StableArtifactId::new(
+                "forge_store.header_decode.for_canonical_physical_format",
+            )
+            .expect("static artifact id"),
             foundational_basis: StableArtifactId::new("forge_foundational.canonical_bytes")
                 .expect("static artifact id"),
             canonical_digest,
@@ -225,7 +227,8 @@ mod tests {
 
         assert_eq!(
             evidence.artifact_id(),
-            &StableArtifactId::new("forge_store.header_decode.for_canonical_physical_format").unwrap()
+            &StableArtifactId::new("forge_store.header_decode.for_canonical_physical_format")
+                .unwrap()
         );
         assert_eq!(
             evidence.foundational_basis(),
@@ -236,8 +239,9 @@ mod tests {
     }
 
     fn decoded_frame_header_report() -> forge_store_physical_format::PhysicalHeaderDecodeReport {
-        let authority =
-            PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap());
+        let authority = PhysicalHeaderAuthority::for_canonical_physical_format(
+            PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
+        );
         authority
             .decode_frame_header(
                 validated_slot_reference(),

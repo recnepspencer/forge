@@ -11,4 +11,3 @@ pub const fn offline_verification_pressure_background_pressure_shape(
 ) -> BackgroundPressureDeclaration {
     BackgroundPressureDeclaration::verification_pressure(read_ahead_pages)
 }
-

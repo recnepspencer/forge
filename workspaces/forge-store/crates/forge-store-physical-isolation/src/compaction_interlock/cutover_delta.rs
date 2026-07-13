@@ -8,12 +8,18 @@ pub struct CompactionCutoverDelta {
 }
 
 impl CompactionCutoverDelta {
+    const OWNER_CASE: super::CompactionOwnerCase = super::CompactionOwnerCase::issued_by_owner(
+        super::CompactionOwnerCaseId::owned("physical.compaction.lower_rewrite"),
+        super::CompactionCutoverState::PlanAdmitted,
+        super::CompactionCutoverState::RewriteLowered,
+    );
+
     pub const fn cutover_state(&self) -> super::CompactionCutoverState {
         super::CompactionCutoverState::RewriteLowered
     }
 
-    pub const fn cutover_transition(&self) -> super::CompactionCutoverTransition {
-        super::CompactionCutoverTransitionKind::LowerRewrite.transition()
+    pub const fn owner_case(&self) -> super::CompactionOwnerCase {
+        Self::OWNER_CASE
     }
 
     pub fn lower(
@@ -64,4 +70,8 @@ impl CompactionCutoverDelta {
     pub const fn rewritten_root(&self) -> CurrentPhysicalRoot {
         self.rewritten_root
     }
+}
+
+pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCase> {
+    std::iter::once(CompactionCutoverDelta::OWNER_CASE)
 }

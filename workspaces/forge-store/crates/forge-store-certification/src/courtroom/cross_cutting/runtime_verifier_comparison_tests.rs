@@ -23,9 +23,10 @@ fn runtime_and_offline_verifier_reports_compare_through_structured_parity() {
     append_slot(&mut facade, 1);
     let published = facade.publish_physical_root().expect("publish root");
     let runtime_scan = facade.scan_physical_layout().expect("runtime scan");
-    let offline_report = OfflinePhysicalVerifier::for_canonical_physical_format(open_request.headers().clone())
-        .verify(published.persisted_layout())
-        .expect("offline verifier");
+    let offline_report =
+        OfflinePhysicalVerifier::for_canonical_physical_format(open_request.headers().clone())
+            .verify(published.persisted_layout())
+            .expect("offline verifier");
 
     let runtime = RuntimeLayoutObservation::from_facade_scan(&runtime_scan);
     let offline = OfflineVerifierLayoutObservation::from_verifier_report(&offline_report);
@@ -181,9 +182,10 @@ fn observed_offline_layout_with_slot(slot_number: u16) -> OfflineVerifierLayoutO
     let mut facade = open_facade(open_request.clone());
     append_slot(&mut facade, slot_number);
     let published = facade.publish_physical_root().expect("publish root");
-    let report = OfflinePhysicalVerifier::for_canonical_physical_format(open_request.headers().clone())
-        .verify(published.persisted_layout())
-        .expect("offline verifier");
+    let report =
+        OfflinePhysicalVerifier::for_canonical_physical_format(open_request.headers().clone())
+            .verify(published.persisted_layout())
+            .expect("offline verifier");
     OfflineVerifierLayoutObservation::from_verifier_report(&report)
 }
 
@@ -197,7 +199,8 @@ fn append_slot(facade: &mut PlatformPhysicalFacade, slot_number: u16) {
 }
 
 fn open_facade(open_request: PlatformPhysicalOpenRequest) -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_physical_format(readiness(), open_request).expect("open S.1 facade")
+    PlatformPhysicalFacade::open_physical_format(readiness(), open_request)
+        .expect("open S.1 facade")
 }
 
 fn readiness() -> AcceptedHandoffReadiness {

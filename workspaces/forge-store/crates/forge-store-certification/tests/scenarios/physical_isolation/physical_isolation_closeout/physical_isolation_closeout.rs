@@ -1,24 +1,17 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
 #[path = "../../../support/physical_isolation/executed_closeout_fixture/executed_closeout_fixture.rs"]
 mod executed_closeout_fixture;
 #[path = "../../../support/physical_isolation/interleaving_harness_support/interleaving_harness_support.rs"]
 mod harness_support;
-#[path = "../stable_read_execution/plan_admission.rs"]
-mod plan_admission;
-#[path = "../../../support/physical_isolation/copy_on_write_publication/support.rs"]
-mod publication_support;
-#[path = "../../../support/physical_isolation/reclaim_reachability_hazard_barriers/support.rs"]
-mod reclaim_support;
-#[path = "../../../support/recovery/recovery_source_precedence/source_precedence_fixture.rs"]
-mod source_precedence_fixture;
-#[path = "../../../support/physical_isolation/epoch_scope_and_root_kind/support.rs"]
-mod support;
+use forge_store_test_support::harness::physical_isolation::epoch_scope as support;
+use forge_store_test_support::harness::physical_isolation::publication as publication_support;
+use forge_store_test_support::harness::physical_isolation::read_plan as plan_admission;
+use forge_store_test_support::harness::physical_isolation::reclaim as reclaim_support;
+use forge_store_test_support::harness::recovery::source_precedence as source_precedence_fixture;
 
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use forge_store_certification::{
-    materialize_physical_isolation_executed_isolation_evidence, physical_isolation_lanes,
-    physical_isolation_coverage_matrix, ExecutedPhysicalIsolationEvidenceSource,
+    materialize_physical_isolation_executed_isolation_evidence, physical_isolation_coverage_matrix,
+    physical_isolation_lanes, ExecutedPhysicalIsolationEvidenceSource,
     PhysicalIsolationCloseoutLaneEvidence, PhysicalIsolationCloseoutSuite,
     PhysicalIsolationMutationEvidence, S5CloseoutReservedScope,
 };
@@ -45,7 +38,7 @@ fn closeout_aggregates_all_physical_isolation_hostile_lanes_with_machine_evidenc
         .contains(S5CloseoutReservedScope::BlobLifecycle));
     assert!(suite
         .reservations()
-        .contains(S5CloseoutReservedScope::S8Layout));
+        .contains(S5CloseoutReservedScope::LayoutIndexes));
     assert!(suite
         .reservations()
         .contains(S5CloseoutReservedScope::S10Repair));
@@ -97,12 +90,7 @@ fn closeout_denies_smoke_profile_lane_evidence() {
     .unwrap();
     let replay = harness_support::replay_bundle(&plan, lane.expected_fault());
     let mutation = PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
-    let coverage = physical_isolation_coverage_matrix(
-        lane.scenario(),
-        &plan,
-        &replay,
-        &mutation,
-    );
+    let coverage = physical_isolation_coverage_matrix(lane.scenario(), &plan, &replay, &mutation);
     let certification =
         PhysicalCertificationEvidenceBundle::from_replay_bundle(replay.clone()).unwrap();
     let source = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
@@ -133,8 +121,11 @@ fn closeout_denies_smoke_profile_lane_evidence() {
 fn closeout_denies_missing_or_duplicate_hostile_lanes() {
     let mut rows = closeout_rows();
     rows.pop();
-    let denial = PhysicalIsolationCloseoutSuite::from_simulation_harness_readiness(simulation_harness_readiness(), rows)
-        .expect_err("missing required hostile lane cannot close S5");
+    let denial = PhysicalIsolationCloseoutSuite::from_simulation_harness_readiness(
+        simulation_harness_readiness(),
+        rows,
+    )
+    .expect_err("missing required hostile lane cannot close S5");
     assert!(matches!(
         denial,
         forge_store_certification::PhysicalIsolationCloseoutDenial::MissingLane(_)
@@ -142,8 +133,11 @@ fn closeout_denies_missing_or_duplicate_hostile_lanes() {
 
     let mut rows = closeout_rows();
     rows.push(rows[0].clone());
-    let denial = PhysicalIsolationCloseoutSuite::from_simulation_harness_readiness(simulation_harness_readiness(), rows)
-        .expect_err("duplicate hostile lane cannot close S5");
+    let denial = PhysicalIsolationCloseoutSuite::from_simulation_harness_readiness(
+        simulation_harness_readiness(),
+        rows,
+    )
+    .expect_err("duplicate hostile lane cannot close S5");
     assert!(matches!(
         denial,
         forge_store_certification::PhysicalIsolationCloseoutDenial::DuplicateLane(_)
@@ -226,11 +220,15 @@ fn closeout_seals_handoff_evidence_without_minting_production_readiness() {
 }
 
 fn closeout_suite() -> PhysicalIsolationCloseoutSuite {
-    PhysicalIsolationCloseoutSuite::from_simulation_harness_readiness(simulation_harness_readiness(), closeout_rows())
-        .expect("complete S5 physical isolation closeout suite admits")
+    PhysicalIsolationCloseoutSuite::from_simulation_harness_readiness(
+        simulation_harness_readiness(),
+        closeout_rows(),
+    )
+    .expect("complete S5 physical isolation closeout suite admits")
 }
 
-fn simulation_harness_readiness() -> forge_store_physical_certification::PhysicalIsolationHarnessReadinessReceipt {
+fn simulation_harness_readiness(
+) -> forge_store_physical_certification::PhysicalIsolationHarnessReadinessReceipt {
     harness_support::simulation_harness_readiness_receipt()
 }
 
@@ -242,12 +240,8 @@ fn closeout_rows() -> Vec<PhysicalIsolationCloseoutLaneEvidence> {
             let replay = harness_support::replay_bundle(&plan, lane.expected_fault());
             let mutation =
                 PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
-            let coverage = physical_isolation_coverage_matrix(
-                lane.scenario(),
-                &plan,
-                &replay,
-                &mutation,
-            );
+            let coverage =
+                physical_isolation_coverage_matrix(lane.scenario(), &plan, &replay, &mutation);
             let certification =
                 PhysicalCertificationEvidenceBundle::from_replay_bundle(replay.clone()).unwrap();
             let source = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
@@ -257,7 +251,8 @@ fn closeout_rows() -> Vec<PhysicalIsolationCloseoutLaneEvidence> {
                 PhysicalIsolationEvidenceProfile::minimal_required(),
             )
             .unwrap();
-            let executed = materialize_physical_isolation_executed_isolation_evidence(source).unwrap();
+            let executed =
+                materialize_physical_isolation_executed_isolation_evidence(source).unwrap();
             PhysicalIsolationCloseoutLaneEvidence::from_executed_lane(
                 lane.scenario().clone(),
                 plan,

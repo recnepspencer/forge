@@ -204,8 +204,8 @@ fn deterministic_chunk_bytes(
     match pattern {
         DeterministicBytePatternProfile::CanonicalMixed => (0..len)
             .map(|index| {
-                let pattern = DeterministicBytePatternProfile::canonical_heavy_blob_patterns()
-                    [index % DeterministicBytePatternProfile::canonical_heavy_blob_patterns().len()];
+                let pattern = DeterministicBytePatternProfile::canonical_heavy_blob_patterns()[index
+                    % DeterministicBytePatternProfile::canonical_heavy_blob_patterns().len()];
                 patterned_byte(pattern, seed, index, len)
             })
             .collect(),

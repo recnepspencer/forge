@@ -202,8 +202,11 @@ fn allocation_free_space_and_fragmentation_require_published_root_truth() {
 }
 
 fn open_facade() -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
-        .expect("open S.1 facade")
+    PlatformPhysicalFacade::open_physical_format(
+        readiness(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
+    )
+    .expect("open S.1 facade")
 }
 
 fn readiness() -> AcceptedHandoffReadiness {

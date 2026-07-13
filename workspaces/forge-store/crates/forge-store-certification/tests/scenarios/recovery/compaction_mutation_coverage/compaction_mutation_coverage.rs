@@ -1,5 +1,4 @@
-#[path = "../../../support/recovery/coverage_support/coverage_support.rs"]
-mod coverage_support;
+use forge_store_test_support::harness::recovery::coverage as coverage_support;
 
 use forge_store_physical_certification::{
     CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind, HarnessCoverageStage,
@@ -12,7 +11,10 @@ fn compaction_mutation_coverage_requires_all_physical_isolation_interleaving_mut
     let replay = coverage_support::replay_bundle(&plan);
     let evidence = coverage_support::compaction_mutation_evidence(&replay).unwrap();
 
-    assert_eq!(evidence.sequence(), HarnessCoverageStage::SimulationAdmission);
+    assert_eq!(
+        evidence.sequence(),
+        HarnessCoverageStage::SimulationAdmission
+    );
     assert_eq!(evidence.plan_identity(), plan.identity().digest_bytes());
     let observed = evidence
         .compaction_mutations()

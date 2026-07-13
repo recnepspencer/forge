@@ -1,15 +1,7 @@
-#[path = "../../../support/recovery/checkpoint_cutover/checkpoint_basis_fixture.rs"]
-#[allow(dead_code)]
-mod checkpoint_basis_fixture;
-#[path = "../../../support/recovery/checkpoint_cutover/checkpoint_durability_fixture.rs"]
-mod checkpoint_durability_fixture;
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
-#[path = "../stable_read_execution/plan_admission.rs"]
-mod plan_admission;
-#[path = "../../../support/physical_isolation/epoch_scope_and_root_kind/support.rs"]
-#[allow(dead_code)]
-mod support;
+use forge_store_test_support::harness::physical_isolation::epoch_scope as support;
+use forge_store_test_support::harness::physical_isolation::read_plan as plan_admission;
+use forge_store_test_support::harness::recovery::checkpoint_basis as checkpoint_basis_fixture;
+use forge_store_test_support::harness::recovery::checkpoint_durability as checkpoint_durability_fixture;
 
 use forge_store_physical_backend::SimulatedStrictDurableProfile;
 use forge_store_physical_isolation::{
@@ -252,7 +244,7 @@ fn checkpoint_inputs_with_manifest(manifest: CheckpointManifest) -> CheckpointIn
 
 fn frontier_outside_cutover_manifest() -> CheckpointManifest {
     CheckpointManifest::sharp(
-        CheckpointRootPosture::root_present(checkpoint_basis_fixture::root_reference()),
+        CheckpointRootPosture::root_present(checkpoint_basis_fixture::root_record_reference()),
         checkpoint_basis_fixture::frontier(21),
         checkpoint_basis_fixture::covered_range(10, 20),
         checkpoint_basis_fixture::redo_boundary(12),

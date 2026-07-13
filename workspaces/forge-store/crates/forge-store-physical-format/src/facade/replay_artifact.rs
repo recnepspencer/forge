@@ -1,6 +1,6 @@
 use crate::{
     PersistedPhysicalLayout, PhysicalBootstrapCatalogDenial, PhysicalBootstrapCatalogOpenWitness,
-    PhysicalHeaderAuthority,
+    PhysicalHeaderAuthority, PhysicalStoreIdentity,
 };
 use forge_store_contracts::AcceptedHandoffReadiness;
 
@@ -12,14 +12,20 @@ use super::{
 pub struct PlatformPhysicalReplayArtifact {
     headers: PhysicalHeaderAuthority,
     layout: PersistedPhysicalLayout,
+    store_identity: PhysicalStoreIdentity,
 }
 
 impl PlatformPhysicalReplayArtifact {
     pub(crate) fn from_persisted_layout(
         headers: PhysicalHeaderAuthority,
         layout: PersistedPhysicalLayout,
+        store_identity: PhysicalStoreIdentity,
     ) -> Self {
-        Self { headers, layout }
+        Self {
+            headers,
+            layout,
+            store_identity,
+        }
     }
 
     pub fn reopen_physical_format(
@@ -32,6 +38,7 @@ impl PlatformPhysicalReplayArtifact {
             request,
             self.headers.clone(),
             self.layout.clone(),
+            self.store_identity.clone(),
         )
     }
 
@@ -43,5 +50,9 @@ impl PlatformPhysicalReplayArtifact {
 
     pub const fn persisted_layout(&self) -> &PersistedPhysicalLayout {
         &self.layout
+    }
+
+    pub const fn store_identity(&self) -> &PhysicalStoreIdentity {
+        &self.store_identity
     }
 }

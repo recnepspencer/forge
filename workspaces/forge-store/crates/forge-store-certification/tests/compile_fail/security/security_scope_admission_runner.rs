@@ -184,7 +184,6 @@ fn build_compile_fail_dependencies(repo_root: &std::path::Path) {
         .status()
         .unwrap();
     assert!(store_status.success(), "failed to build Store fixture deps");
-
 }
 
 fn prepare_compile_fail_case(fixture_name: &str) -> std::path::PathBuf {

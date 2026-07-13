@@ -15,8 +15,7 @@ use forge_store_recovery_physics::{
 
 #[path = "assertions.rs"]
 mod assertions;
-#[path = "../../../support/recovery/recovery_source_precedence/source_precedence_fixture.rs"]
-mod source_precedence_fixture;
+use forge_store_test_support::harness::recovery::source_precedence as source_precedence_fixture;
 
 use assertions::{
     assert_checkpoint_plus_tail, count_outcome, count_role, decision_rows, residue_kinds,

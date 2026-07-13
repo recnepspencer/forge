@@ -1,5 +1,5 @@
 use super::tests_support::{admit_key_domain_scope, admitted_scope, page_id, segment_id};
-use crate::layout_families::layout_declarations;
+use crate::declarations::layout_declarations;
 use crate::ArtifactFamilyDenial;
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_security::{

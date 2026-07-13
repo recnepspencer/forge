@@ -1,5 +1,5 @@
-use crate::blob_basis::S8BlobIdentityKeyBasis;
+use crate::blob_basis::BlobIdentityKeyBasis;
 
-pub(crate) fn blob_identity_digest_bytes(identity: &S8BlobIdentityKeyBasis) -> &[u8] {
+pub(crate) fn blob_identity_digest_bytes(identity: &BlobIdentityKeyBasis) -> &[u8] {
     identity.object_digest().as_str().as_bytes()
 }

@@ -1,11 +1,67 @@
 use forge_store_authority::StoreCurrentAuthorityWitness;
 
 use crate::{
-    StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
-    StoreRawSecurityScopeDeclaration, StoreSecurityScopeAdmissionDenial,
+    admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
+    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreRawSecurityScopeDeclaration,
+    StoreSecurityScopeAdmissionDenial, StoreSecurityScopeAdmissionRequest,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeDeclarationProvenance,
     StoreTenantScope, StoreTrustBoundaryReadmissionTrigger,
 };
+use forge_proof::TransitionOutcome;
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct StoreReadmittedSecurityScope {
+    admitted: StoreAdmittedSecurityScope,
+    current_authority: StoreCurrentAuthorityWitness,
+}
+
+impl StoreReadmittedSecurityScope {
+    pub const fn admitted(&self) -> &StoreAdmittedSecurityScope {
+        &self.admitted
+    }
+
+    pub const fn current_authority(&self) -> &StoreCurrentAuthorityWitness {
+        &self.current_authority
+    }
+
+    pub fn into_admitted(self) -> StoreAdmittedSecurityScope {
+        self.admitted
+    }
+}
+
+pub fn admit_readmitted_trust_boundary_security_scope(
+    current_authority: &StoreCurrentAuthorityWitness,
+    declaration: StoreRawSecurityScopeDeclaration,
+    expected_key_version_posture: StoreKeyVersionPosture,
+    expectation: StoreSecurityScopeAdmissionExpectation,
+    trigger: StoreTrustBoundaryReadmissionTrigger,
+) -> Result<StoreReadmittedSecurityScope, StoreSecurityScopeAdmissionDenial> {
+    let declaration = readmit_trust_boundary_security_scope_declaration(
+        current_authority,
+        declaration,
+        expected_key_version_posture,
+        expectation,
+        trigger,
+    )?;
+    let request = StoreSecurityScopeAdmissionRequest::from_raw_declaration(
+        current_authority,
+        declaration,
+        expectation,
+    );
+    match admit_store_security_scope(request) {
+        TransitionOutcome::Success(admitted) => Ok(StoreReadmittedSecurityScope {
+            admitted,
+            current_authority: current_authority.clone(),
+        }),
+        TransitionOutcome::Denied(denial) => Err(denial),
+        TransitionOutcome::Stale(_) | TransitionOutcome::RebindRequired(_) => {
+            Err(StoreSecurityScopeAdmissionDenial::DeniedKeyVersionPosture)
+        }
+        TransitionOutcome::Deferred(_) | TransitionOutcome::Failed(_) => {
+            Err(StoreSecurityScopeAdmissionDenial::DeniedCustodyPosture)
+        }
+    }
+}
 
 pub fn readmit_trust_boundary_security_scope_declaration(
     current_authority: &StoreCurrentAuthorityWitness,

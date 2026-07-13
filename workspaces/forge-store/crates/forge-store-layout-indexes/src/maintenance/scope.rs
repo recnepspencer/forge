@@ -1,14 +1,14 @@
-use crate::materialization::{S8CoverageBasisKind, S8LayoutCoverageWitness};
+use crate::materialization::{CoverageBasisKind, LayoutCoverageWitness};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8DerivedIndexPartialKeySpace {
-    basis_kind: S8CoverageBasisKind,
+pub struct DerivedIndexPartialKeySpace {
+    basis_kind: CoverageBasisKind,
     lower_bound: u64,
     upper_bound: u64,
 }
 
-impl S8DerivedIndexPartialKeySpace {
-    pub(crate) const fn from_coverage(coverage: S8LayoutCoverageWitness) -> Self {
+impl DerivedIndexPartialKeySpace {
+    pub(crate) fn from_coverage(coverage: &LayoutCoverageWitness) -> Self {
         Self {
             basis_kind: coverage.lower_bound().basis_kind(),
             lower_bound: coverage.lower_bound().start_inclusive(),
@@ -16,7 +16,7 @@ impl S8DerivedIndexPartialKeySpace {
         }
     }
 
-    pub const fn basis_kind(self) -> S8CoverageBasisKind {
+    pub const fn basis_kind(self) -> CoverageBasisKind {
         self.basis_kind
     }
 
@@ -29,25 +29,25 @@ impl S8DerivedIndexPartialKeySpace {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8DerivedIndexRebuildScope {
-    authority_coverage: S8LayoutCoverageWitness,
-    partial_key_space: S8DerivedIndexPartialKeySpace,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DerivedIndexRebuildScope {
+    authority_coverage: LayoutCoverageWitness,
+    partial_key_space: DerivedIndexPartialKeySpace,
 }
 
-impl S8DerivedIndexRebuildScope {
-    pub(crate) const fn from_coverage(coverage: S8LayoutCoverageWitness) -> Self {
+impl DerivedIndexRebuildScope {
+    pub(crate) fn from_coverage(coverage: LayoutCoverageWitness) -> Self {
         Self {
+            partial_key_space: DerivedIndexPartialKeySpace::from_coverage(&coverage),
             authority_coverage: coverage,
-            partial_key_space: S8DerivedIndexPartialKeySpace::from_coverage(coverage),
         }
     }
 
-    pub const fn authority_coverage(self) -> S8LayoutCoverageWitness {
-        self.authority_coverage
+    pub const fn authority_coverage(&self) -> &LayoutCoverageWitness {
+        &self.authority_coverage
     }
 
-    pub const fn partial_key_space(self) -> S8DerivedIndexPartialKeySpace {
+    pub const fn partial_key_space(&self) -> DerivedIndexPartialKeySpace {
         self.partial_key_space
     }
 }

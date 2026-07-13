@@ -57,7 +57,10 @@ impl PhysicalIsolationEntryAdmission {
         request: PhysicalIsolationEntryRequest<'_>,
     ) -> Result<Self, PhysicalIsolationEntryDenial> {
         let recovery_completion = request.recovery_completion().clone();
-        let identity = derive_entry_identity_from_completion(&recovery_completion);
+        let identity = derive_entry_identity_from_completion(
+            &recovery_completion,
+            request.store_authority_identity(),
+        );
         let root_epoch_basis = identity.root_epoch_basis();
         let evidence = seal_physical_isolation_entry_evidence(&identity);
         Ok(Self {
@@ -107,6 +110,7 @@ impl PhysicalIsolationEntryAdmission {
 
 fn derive_entry_identity_from_completion(
     completion: &RecoveryCompletion,
+    store_authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity,
 ) -> PhysicalIsolationEntryIdentity {
     PhysicalIsolationEntryIdentity::new(
         completion.recovered_root(),
@@ -114,6 +118,7 @@ fn derive_entry_identity_from_completion(
         completion.source_decision_digest(),
         completion.replayed_frames(),
         completion.source_candidate_count(),
+        store_authority_identity,
     )
 }
 

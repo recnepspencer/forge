@@ -19,6 +19,7 @@ members = [
     "crates/forge-store-io-scheduler",
     "crates/forge-store-layout-indexes",
     "crates/forge-store-live-query",
+    "crates/forge-store-lsm-authority",
     "crates/forge-store-maintenance",
     "crates/forge-store-modes",
     "crates/forge-store-offline-verifier",
@@ -68,6 +69,7 @@ forge-store-formal-models = { path = "crates/forge-store-formal-models" }
 forge-store-io-scheduler = { path = "crates/forge-store-io-scheduler" }
 forge-store-layout-indexes = { path = "crates/forge-store-layout-indexes" }
 forge-store-live-query = { path = "crates/forge-store-live-query" }
+forge-store-lsm-authority = { path = "crates/forge-store-lsm-authority" }
 forge-store-maintenance = { path = "crates/forge-store-maintenance" }
 forge-store-modes = { path = "crates/forge-store-modes" }
 forge-store-offline-verifier = { path = "crates/forge-store-offline-verifier" }

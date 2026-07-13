@@ -13,7 +13,7 @@ use forge_store_physical_integrity::CompactionSourceIntegrityClearance;
 use forge_store_physical_isolation::{
     compare_physical_epoch_vectors_with_evidence, lower_latch_acquisition_plan,
     CompactionCandidateRangeSet, CompactionCutoverDelta, CompactionCutoverStabilityProof,
-    CompactionProtectedReferenceSet, CompactionReadInterlockPlan, CompactionRewritePublication,
+    CompactionProtectedReferenceSet, CompactionReadInterlockPlan,
     CompactionSourceIntegrityEvidence, EpochComparisonScope, ExecutedIsolationEvidence,
     ExecutedIsolationReceipts, HazardLeaseTable, HazardLeaseTableCapacity, LatchAcquisitionRequest,
     LatchAcquisitionStep, PhysicalEpochVector, PhysicalIsolationCounterSnapshot, PhysicalLatchKey,

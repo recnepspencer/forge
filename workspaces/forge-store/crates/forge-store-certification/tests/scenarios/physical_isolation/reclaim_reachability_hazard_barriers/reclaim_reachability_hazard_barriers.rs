@@ -1,10 +1,5 @@
-#[path = "../../../support/recovery/closeout/fixture.rs"]
-mod closeout_fixture;
-#[path = "../../../support/physical_isolation/reclaim_reachability_hazard_barriers/support.rs"]
-mod reclaim_support;
-#[allow(dead_code)]
-#[path = "../../../support/physical_isolation/epoch_scope_and_root_kind/support.rs"]
-mod support;
+use forge_store_test_support::harness::physical_isolation::epoch_scope as support;
+use forge_store_test_support::harness::physical_isolation::reclaim as reclaim_support;
 
 use forge_store_physical_isolation::{
     reject_backend_residue_as_reclaim_authority,

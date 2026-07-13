@@ -1,20 +1,15 @@
-use core::convert::Infallible;
-
-use forge_proof::TransitionOutcome;
-
 use super::{
-    LayoutEvolutionDenial, LayoutMigrationPlan, LayoutRollbackPlan, S8LayoutRebindRequired,
-    S8LayoutStaleBinding,
+    LayoutEvolutionDenial, LayoutMigrationPlan, LayoutRebindRequired, LayoutRollbackPlan,
+    LayoutStaleBinding,
 };
 macro_rules! define_planning_outcome {
-    ($outcome:ident, $view:ident, $case:ident, $plan:ty) => {
+    ($outcome:ident, $view:ident, $case:ident, $case_id:ident, $cases_fn:ident, $prefix:literal, $plan:ty) => {
         #[derive(Debug, PartialEq, Eq)]
         enum $case {
             Ready($plan),
             DeclarationDenied(LayoutEvolutionDenial),
-            LoweringRebindRequired(S8LayoutRebindRequired),
-            Stale(S8LayoutStaleBinding),
-            ReadinessRebindRequired(S8LayoutRebindRequired),
+            LoweringRebindRequired(LayoutRebindRequired),
+            Stale(LayoutStaleBinding),
         }
 
         #[derive(Debug, PartialEq, Eq)]
@@ -26,9 +21,27 @@ macro_rules! define_planning_outcome {
         pub enum $view<'a> {
             Ready(&'a $plan),
             DeclarationDenied(&'a LayoutEvolutionDenial),
-            LoweringRebindRequired(&'a S8LayoutRebindRequired),
-            Stale(&'a S8LayoutStaleBinding),
-            ReadinessRebindRequired(&'a S8LayoutRebindRequired),
+            LoweringRebindRequired(&'a LayoutRebindRequired),
+            Stale(&'a LayoutStaleBinding),
+        }
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub struct $case_id(&'static str);
+
+        impl $case_id {
+            pub const fn as_str(self) -> &'static str {
+                self.0
+            }
+        }
+
+        pub fn $cases_fn() -> impl Iterator<Item = $case_id> {
+            [
+                $case_id(concat!($prefix, ".ready")),
+                $case_id(concat!($prefix, ".declaration_denied")),
+                $case_id(concat!($prefix, ".lowering_rebind_required")),
+                $case_id(concat!($prefix, ".stale")),
+            ]
+            .into_iter()
         }
 
         impl $outcome {
@@ -40,16 +53,12 @@ macro_rules! define_planning_outcome {
                 Self::from_owner_case($case::DeclarationDenied(denial))
             }
 
-            pub(crate) fn lowering_rebind_required(rebind: S8LayoutRebindRequired) -> Self {
+            pub(crate) fn lowering_rebind_required(rebind: LayoutRebindRequired) -> Self {
                 Self::from_owner_case($case::LoweringRebindRequired(rebind))
             }
 
-            pub(crate) fn stale(stale: S8LayoutStaleBinding) -> Self {
+            pub(crate) fn stale(stale: LayoutStaleBinding) -> Self {
                 Self::from_owner_case($case::Stale(stale))
-            }
-
-            pub(crate) fn readiness_rebind_required(rebind: S8LayoutRebindRequired) -> Self {
-                Self::from_owner_case($case::ReadinessRebindRequired(rebind))
             }
 
             fn from_owner_case(case: $case) -> Self {
@@ -62,27 +71,26 @@ macro_rules! define_planning_outcome {
                     $case::DeclarationDenied(value) => $view::DeclarationDenied(value),
                     $case::LoweringRebindRequired(value) => $view::LoweringRebindRequired(value),
                     $case::Stale(value) => $view::Stale(value),
-                    $case::ReadinessRebindRequired(value) => $view::ReadinessRebindRequired(value),
                 }
             }
 
-            pub fn into_transition_outcome(
-                self,
-            ) -> TransitionOutcome<
-                $plan,
-                LayoutEvolutionDenial,
-                Infallible,
-                S8LayoutStaleBinding,
-                S8LayoutRebindRequired,
-            > {
-                match self.case {
-                    $case::Ready(value) => TransitionOutcome::success(value),
-                    $case::DeclarationDenied(denial) => TransitionOutcome::denied(denial),
-                    $case::LoweringRebindRequired(rebind)
-                    | $case::ReadinessRebindRequired(rebind) => {
-                        TransitionOutcome::rebind_required(rebind)
+            pub fn case_id(&self) -> $case_id {
+                match &self.case {
+                    $case::Ready(_) => $case_id(concat!($prefix, ".ready")),
+                    $case::DeclarationDenied(_) => {
+                        $case_id(concat!($prefix, ".declaration_denied"))
                     }
-                    $case::Stale(stale) => TransitionOutcome::stale(stale),
+                    $case::LoweringRebindRequired(_) => {
+                        $case_id(concat!($prefix, ".lowering_rebind_required"))
+                    }
+                    $case::Stale(_) => $case_id(concat!($prefix, ".stale")),
+                }
+            }
+
+            pub fn into_ready(self) -> Result<$plan, Self> {
+                match self.case {
+                    $case::Ready(value) => Ok(value),
+                    case => Err(Self { case }),
                 }
             }
         }
@@ -90,15 +98,21 @@ macro_rules! define_planning_outcome {
 }
 
 define_planning_outcome!(
-    S8MigrationPlanningOutcome,
-    S8MigrationPlanningView,
-    S8MigrationPlanningCase,
+    MigrationPlanningOutcome,
+    MigrationPlanningView,
+    MigrationPlanningCase,
+    MigrationPlanningCaseId,
+    migration_planning_cases,
+    "layout.migration.planning",
     LayoutMigrationPlan
 );
 
 define_planning_outcome!(
-    S8RollbackPlanningOutcome,
-    S8RollbackPlanningView,
-    S8RollbackPlanningCase,
+    RollbackPlanningOutcome,
+    RollbackPlanningView,
+    RollbackPlanningCase,
+    RollbackPlanningCaseId,
+    rollback_planning_cases,
+    "layout.rollback.planning",
     LayoutRollbackPlan
 );

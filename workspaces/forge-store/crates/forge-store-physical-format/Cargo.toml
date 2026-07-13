@@ -12,11 +12,11 @@ certification-test-authority = []
 forge-foundational = { path = "../../../../crates/forge-foundational" }
 forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-aspect-native.workspace = true
+forge-store-authority.workspace = true
 forge-store-contracts.workspace = true
 forge-store-budgets.workspace = true
 
 [dev-dependencies]
-forge-store-authority = { path = "../forge-store-authority" }
 forge-store-security.workspace = true
 
 [lints]

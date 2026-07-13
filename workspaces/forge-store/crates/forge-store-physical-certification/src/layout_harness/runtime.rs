@@ -1,4 +1,4 @@
-use forge_store_layout_indexes::layout_strategy_admission::S8LayoutStrategyFamily;
+use forge_store_layout_indexes::strategy_declarations::LayoutStrategyFamily;
 use forge_store_physical_format::{
     PlatformPhysicalRuntimeOperation, PlatformPhysicalRuntimeReceipt,
     PlatformPhysicalRuntimeStrategy,
@@ -61,11 +61,11 @@ impl LayoutRuntimeEvidence {
         }
     }
 
-    pub const fn strategy(&self) -> S8LayoutStrategyFamily {
+    pub const fn strategy(&self) -> LayoutStrategyFamily {
         match self {
             Self::PlatformPhysical(receipt) => match receipt.strategy() {
                 PlatformPhysicalRuntimeStrategy::BaselineBTreeRange => {
-                    S8LayoutStrategyFamily::BaselineBTreeRange
+                    LayoutStrategyFamily::BaselineBTreeRange
                 }
             },
         }
@@ -126,7 +126,7 @@ impl LayoutRuntimeCoverageMatrix {
 
     pub fn is_strategy_executed(
         &self,
-        strategy: S8LayoutStrategyFamily,
+        strategy: LayoutStrategyFamily,
         obligation: LayoutRuntimeObligation,
     ) -> bool {
         self.rows

@@ -15,7 +15,8 @@ use forge_store_physical_integrity::{
 
 #[test]
 fn equivalent_checksum_declarations_share_basis_and_foundational_identity() {
-    let first = declared_crc32c_with(ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap());
+    let first =
+        declared_crc32c_with(ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap());
     let second = declared_crc32c_with(explicit_physical_format_coverage().unwrap());
 
     assert_eq!(first.coverage_basis(), second.coverage_basis());
@@ -240,7 +241,8 @@ fn coverage_changes_require_explicit_readmission_instead_of_silent_reuse() {
 
 #[test]
 fn foundational_identity_changes_with_algorithm_or_coverage_basis() {
-    let crc32c = declared_crc32c_with(ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap());
+    let crc32c =
+        declared_crc32c_with(ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap());
     let crc64 = declared_algorithm_with(
         ChecksumAlgorithmId::crc64_nvme(),
         ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap(),

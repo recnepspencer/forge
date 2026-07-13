@@ -18,7 +18,7 @@ pub fn reject_full_blob_buffer_as_streaming_layout_authority(
 }
 
 impl StreamingLayoutReport {
-    fn admit_streaming(
+    fn project_streaming(
         chunk_tree: &ChunkTreeLayoutReport,
         request: &BlobStreamingReadRequest,
         read: &BlobStreamingVerifiedRead,
@@ -77,7 +77,7 @@ impl StreamingLayoutReport {
         })
     }
 
-    pub fn admit_resume_index_layout(&self) -> StreamingResumeLayoutReport {
+    pub fn project_resume_index_layout(&self) -> StreamingResumeLayoutReport {
         StreamingResumeLayoutReport {
             family_id: DurableArtifactFamilyId::SupportCursor,
             bytes_read: self.bytes_read,
@@ -135,11 +135,11 @@ impl StreamingResumeLayoutReport {
 }
 
 impl ChunkTreeLayoutReport {
-    pub fn admit_streaming_layout(
+    pub fn project_streaming_layout(
         &self,
         request: &BlobStreamingReadRequest,
         read: &BlobStreamingVerifiedRead,
     ) -> Result<StreamingLayoutReport, BlobLayoutAccessDenial> {
-        StreamingLayoutReport::admit_streaming(self, request, read)
+        StreamingLayoutReport::project_streaming(self, request, read)
     }
 }

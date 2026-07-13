@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum S8LayoutCloseoutEvidenceLane {
+pub enum LayoutCloseoutEvidenceLane {
     ScenarioDefinition,
     PerformanceEvidence,
     CertificationCloseout,

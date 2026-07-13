@@ -245,14 +245,17 @@ impl<S> StoreDurabilityExecutionRequest<S> {
         }
     }
 
+    #[cfg(test)]
     pub const fn scope(&self) -> &S {
         &self.binding.scope
     }
 
+    #[cfg(test)]
     pub const fn profile(&self) -> BackendTargetProfile {
         self.binding.profile
     }
 
+    #[cfg(test)]
     pub const fn evidence_class(&self) -> CapabilityEvidenceClass {
         self.binding.evidence_class
     }
@@ -292,16 +295,6 @@ impl StoreDurabilityExecutionObservation {
 
     pub(crate) const fn with_ordering_barrier_completed(mut self) -> Self {
         self.ordering_barrier_completed = true;
-        self
-    }
-
-    pub(crate) const fn with_delayed_syncs(mut self, delayed_syncs: u64) -> Self {
-        self.delayed_syncs = delayed_syncs;
-        self
-    }
-
-    pub(crate) const fn with_failed_syncs(mut self, failed_syncs: u64) -> Self {
-        self.failed_syncs = failed_syncs;
         self
     }
 

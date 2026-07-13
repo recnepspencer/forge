@@ -20,7 +20,8 @@ pub(crate) fn verify_all_pages(
     counters: OfflineVerifierCounterSnapshot,
     discovered: &mut Vec<PhysicalReference>,
 ) -> Result<OfflineVerifierCounterSnapshot, OfflineVerifierDenial> {
-    let page_records = PhysicalPageRecordAuthority::for_canonical_physical_format(ctx.headers.clone());
+    let page_records =
+        PhysicalPageRecordAuthority::for_canonical_physical_format(ctx.headers.clone());
     let mut counters = counters;
     for entry in &decoded.page_slots {
         let cell = entry.page_slot();

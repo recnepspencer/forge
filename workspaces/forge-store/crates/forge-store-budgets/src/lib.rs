@@ -5,6 +5,7 @@ mod allocation_denial;
 mod allocation_envelope;
 mod blob_harness_envelope;
 mod counter_strength;
+mod layout_plan;
 mod pre_execution;
 
 #[cfg(test)]
@@ -24,13 +25,17 @@ pub use allocation_envelope::{
 };
 pub use blob_harness_envelope::{BlobHarnessEnvelopeDeclaration, BlobHarnessEnvelopeProfile};
 pub use counter_strength::CounterEvidenceStrength;
-pub use pre_execution::{
-    pre_execution_budget_admission, S8PreExecutionBudgetAdmission,
-    S8PreExecutionBudgetAdmissionOutcome, S8PreExecutionBudgetAdmissionReceipt,
-    S8PreExecutionBudgetDenial, S8PreExecutionBudgetEnvelope, S8PreExecutionBudgetRequest,
-    S8PreExecutionBudgetScope, S8PreExecutionPlanBinding,
+pub use layout_plan::{
+    layout_plan_budget_admission, AdmittedLayoutPlanBudget, LayoutPlanBudget,
+    LayoutPlanBudgetAdmission, LayoutPlanBudgetDenial, LayoutPlanBudgetOutcome,
+    LayoutPlanBudgetScope, LayoutPlanWork,
 };
-
+pub use pre_execution::{
+    pre_execution_budget_admission, PreExecutionBudgetAdmission,
+    PreExecutionBudgetAdmissionOutcome, PreExecutionBudgetAdmissionReceipt,
+    PreExecutionBudgetDenial, PreExecutionBudgetEnvelope, PreExecutionBudgetRequest,
+    PreExecutionBudgetScope,
+};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BudgetAdmissionDecision {
     Admit,

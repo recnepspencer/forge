@@ -4,7 +4,7 @@ use forge_store_physical_format::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum S8BootstrapOnlyAccessDenied {
+pub enum BootstrapOnlyAccessDenied {
     OrdinaryFamilyAccessForbidden {
         family: PhysicalArtifactFamily,
     },

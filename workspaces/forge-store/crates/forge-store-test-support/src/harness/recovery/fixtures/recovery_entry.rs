@@ -4,7 +4,7 @@ use forge_store_recovery_physics::{
 
 use super::s4_recovery_handoff_fixture::intact_payload;
 use super::s4_recovery_readiness_fixture::{
-    physical_authority, recovery_memory_envelope, physical_integrity_readiness,
+    physical_authority, physical_integrity_readiness, recovery_memory_envelope,
 };
 
 pub fn admitted_recovery_entry(label: &str) -> RecoveryEntryAdmission {
