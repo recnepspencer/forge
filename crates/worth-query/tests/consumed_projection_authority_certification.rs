@@ -1,8 +1,9 @@
 use worth_query::facade::{
     certify_consumed_projection_authority, certify_projection_consumption_closeout_core,
     consumed_projection_authority_support_matrix, ConsumedProjectionAuthorityCertificationLane,
-    ConsumedProjectionAuthorityDenialKind, ConsumedProjectionAuthoritySupportStatus,
-    ProjectionAuthorityRequirement, ProjectionConsumptionCertifiedSourceSurface,
+    ConsumedProjectionAuthorityComplexityAxis, ConsumedProjectionAuthorityDenialKind,
+    ConsumedProjectionAuthoritySupportStatus, ProjectionAuthorityRequirement,
+    ProjectionConsumptionCertifiedSourceSurface,
 };
 
 #[test]
@@ -66,6 +67,29 @@ fn authority_complexity_is_constant_except_for_consumed_fact_width() {
     assert_eq!(evidence.consumed_fact_visits(), [2, 4, 6]);
     assert_eq!(evidence.authority_constructions(), [1, 1, 1]);
     assert!(!evidence.evidence_digest().is_empty());
+    assert!(evidence.satisfied());
+    assert_eq!(evidence.rows().len(), 5);
+
+    let requirements = evidence.row(ConsumedProjectionAuthorityComplexityAxis::RequirementWidth);
+    assert_eq!(requirements.scale(), [1, 2, 3]);
+    assert_eq!(
+        requirements
+            .counters()
+            .iter()
+            .map(|counter| counter.requirement_checks())
+            .collect::<Vec<_>>(),
+        [1, 2, 3]
+    );
+    for axis in [
+        ConsumedProjectionAuthorityComplexityAxis::UnrelatedWorkspaceGrowth,
+        ConsumedProjectionAuthorityComplexityAxis::HistoricalBasisGrowth,
+        ConsumedProjectionAuthorityComplexityAxis::ConsumerGraphGrowth,
+    ] {
+        let row = evidence.row(axis);
+        assert!(row.satisfied(), "growth axis must be independent: {axis:?}");
+        assert!(row.counters().windows(2).all(|pair| pair[0] == pair[1]));
+        assert!(!row.row_digest().is_empty());
+    }
 }
 
 #[test]

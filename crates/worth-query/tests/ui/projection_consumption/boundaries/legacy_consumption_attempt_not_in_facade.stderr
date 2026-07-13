@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_query::facade::ProjectionFactConsumptionAttempt`
+ --> tests/ui/projection_consumption/boundaries/legacy_consumption_attempt_not_in_facade.rs:1:5
+  |
+1 | use worth_query::facade::ProjectionFactConsumptionAttempt;
+  |     ^^^^^^^^^^^^^^^^^^^^^--------------------------------
+  |     |                    |
+  |     |                    help: a similar name exists in the module: `ProjectionConsumptionReceipt`
+  |     no `ProjectionFactConsumptionAttempt` in `facade`

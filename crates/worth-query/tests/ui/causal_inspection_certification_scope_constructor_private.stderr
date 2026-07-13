@@ -1,11 +1,3 @@
-warning: function `worth_scope` should have a snake case name
- --> tests/ui/causal_inspection_certification_scope_constructor_private.rs:5:4
-  |
-5 | fn worth_scope(performance_certification: CausalInspectionPerformanceCertificationBundle) {
-  |    ^^^^^^^^^^^ help: convert the identifier to snake case: `worth_scope`
-  |
-  = note: `#[warn(non_snake_case)]` (part of `#[warn(nonstandard_style)]`) on by default
-
 error[E0451]: fields `boundary_audit_digest`, `representative_matrix_digest`, `performance_certification`, `bridge_readmission_proof_digest`, `scale_slope_digest`, `anchor_derivation_slope_digest`, `reference_resolution_slope_digest`, `admission_slope_digest`, `bridge_envelope_slope_digest`, `materialization_slope_digest`, `artifact_serialization_slope_digest`, `proof_shape_digest`, `phase_progression_digest`, `witness_authority_digest`, `certification_row_count`, `hostile_row_count`, `representative_row_count`, `scale_fixture_row_count` and `scope_digest` of struct `CausalInspectionCertificationScope` are private
   --> tests/ui/causal_inspection_certification_scope_constructor_private.rs:7:9
    |

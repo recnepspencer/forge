@@ -8,11 +8,43 @@ use crate::WorthQueryEvidenceIdentity;
 
 const DOWNSTREAM_AUTHORITY_CLASSES: &[WorthQueryConsumerResidueClass] = &[
     WorthQueryConsumerResidueClass::DecomposedProjectionConsumptionAttempt,
+    WorthQueryConsumerResidueClass::IndependentlyPairableProjectionConsumptionParts,
     WorthQueryConsumerResidueClass::LocalQueryMeasurementConsumptionIdentity,
     WorthQueryConsumerResidueClass::LocalProjectionContractBinding,
     WorthQueryConsumerResidueClass::LocalQueryBasisDigestCompatibility,
     WorthQueryConsumerResidueClass::LegacyProjectionPrerequisiteAssembly,
     WorthQueryConsumerResidueClass::DirectInternalQueryImport,
+];
+
+const DELETION_OBLIGATIONS: &[(&str, &[WorthQueryConsumerResidueClass])] = &[
+    (
+        "independently_pairable_completed_parts",
+        &[
+            WorthQueryConsumerResidueClass::DecomposedProjectionConsumptionAttempt,
+            WorthQueryConsumerResidueClass::IndependentlyPairableProjectionConsumptionParts,
+        ],
+    ),
+    (
+        "consumer_basis_compatibility_scan",
+        &[
+            WorthQueryConsumerResidueClass::LocalProjectionContractBinding,
+            WorthQueryConsumerResidueClass::LocalQueryBasisDigestCompatibility,
+        ],
+    ),
+    (
+        "digest_to_authority_promotion",
+        &[
+            WorthQueryConsumerResidueClass::LocalQueryMeasurementConsumptionIdentity,
+            WorthQueryConsumerResidueClass::LocalQueryBasisDigestCompatibility,
+        ],
+    ),
+    (
+        "raw_source_identity_reentry",
+        &[
+            WorthQueryConsumerResidueClass::LegacyProjectionPrerequisiteAssembly,
+            WorthQueryConsumerResidueClass::DirectInternalQueryImport,
+        ],
+    ),
 ];
 
 /// Query-owned audit request for adoption of sealed downstream authority.
@@ -47,7 +79,12 @@ impl WorthQueryDownstreamAuthorityAdoption {
         }
         let report = audit.evaluate()?;
         let manifest = WorthQueryDownstreamAuthorityAdoptionManifest::seal(&report);
-        Ok(WorthQueryDownstreamAuthorityAdoptionProof { manifest, report })
+        let deletion_receipt = WorthQueryDownstreamAuthorityDeletionReceipt::seal(&report);
+        Ok(WorthQueryDownstreamAuthorityAdoptionProof {
+            manifest,
+            report,
+            deletion_receipt,
+        })
     }
 }
 
@@ -108,6 +145,7 @@ impl WorthQueryDownstreamAuthorityAdoptionManifest {
 pub struct WorthQueryDownstreamAuthorityAdoptionProof {
     manifest: WorthQueryDownstreamAuthorityAdoptionManifest,
     report: WorthQueryConsumerResidueReport,
+    deletion_receipt: Option<WorthQueryDownstreamAuthorityDeletionReceipt>,
 }
 
 impl WorthQueryDownstreamAuthorityAdoptionProof {
@@ -119,11 +157,82 @@ impl WorthQueryDownstreamAuthorityAdoptionProof {
         &self.report
     }
 
+    pub fn deletion_receipt(&self) -> Option<&WorthQueryDownstreamAuthorityDeletionReceipt> {
+        self.deletion_receipt.as_ref()
+    }
+
     pub fn assert_adopted(&self) {
         assert!(
             self.manifest.adopted(),
             "downstream authority adoption has residue: {:?}",
             self.report.findings()
         );
+    }
+}
+
+/// Sealed receipt proving every closure-contract deletion obligation has zero
+/// authority-capable consumer residue in the audited source inventory.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryDownstreamAuthorityDeletionReceipt {
+    rows: Vec<WorthQueryDownstreamAuthorityDeletionRow>,
+    source_inventory_digest: String,
+    report_identity: WorthQueryEvidenceIdentity,
+}
+
+impl WorthQueryDownstreamAuthorityDeletionReceipt {
+    fn seal(report: &WorthQueryConsumerResidueReport) -> Option<Self> {
+        let rows = DELETION_OBLIGATIONS
+            .iter()
+            .map(|(obligation, classes)| {
+                let finding_count = report
+                    .findings()
+                    .iter()
+                    .filter(|finding| classes.contains(&finding.residue_class()))
+                    .count();
+                WorthQueryDownstreamAuthorityDeletionRow {
+                    obligation,
+                    residue_classes: classes,
+                    finding_count,
+                }
+            })
+            .collect::<Vec<_>>();
+        rows.iter().all(|row| row.finding_count == 0).then(|| Self {
+            rows,
+            source_inventory_digest: report.source_inventory_digest().to_string(),
+            report_identity: report.report_identity().clone(),
+        })
+    }
+
+    pub fn rows(&self) -> &[WorthQueryDownstreamAuthorityDeletionRow] {
+        &self.rows
+    }
+
+    pub fn source_inventory_digest(&self) -> &str {
+        &self.source_inventory_digest
+    }
+
+    pub fn report_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.report_identity
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryDownstreamAuthorityDeletionRow {
+    obligation: &'static str,
+    residue_classes: &'static [WorthQueryConsumerResidueClass],
+    finding_count: usize,
+}
+
+impl WorthQueryDownstreamAuthorityDeletionRow {
+    pub fn obligation(&self) -> &'static str {
+        self.obligation
+    }
+
+    pub fn residue_classes(&self) -> &'static [WorthQueryConsumerResidueClass] {
+        self.residue_classes
+    }
+
+    pub fn finding_count(&self) -> usize {
+        self.finding_count
     }
 }

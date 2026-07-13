@@ -134,12 +134,12 @@ pub fn denied_display_field_projection_consumption(
 ) -> (UiGraphWorldProfile, ProjectionAuthorityOutcome) {
     let (mut workspace, family, _) =
         measurement_projection_workspace_with_graph(lane_label, identity_only_family_graph);
-    let (world, attempt) = projection_consumption_attempt(
+    let (world, outcome) = projection_consumption_attempt(
         &mut workspace,
         &family,
         ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
     );
-    (world, attempt.into_authority())
+    (world, outcome)
 }
 
 pub fn view_local_only_projection_consumption(
@@ -206,12 +206,12 @@ pub fn display_projection_consumptions_across_basis_generations(
 }
 
 fn query_authority(
-    (world, attempt): (
+    (world, outcome): (
         UiGraphWorldProfile,
-        worth_query::facade::ProjectionFactConsumptionAttempt,
+        worth_query::facade::ProjectionAuthorityOutcome,
     ),
 ) -> (UiGraphWorldProfile, WorthUiQueryAuthorityHandle) {
-    let (authority, _) = WorthUiQueryAuthorityHandle::from_outcome(attempt.into_authority())
+    let (authority, _) = WorthUiQueryAuthorityHandle::from_outcome(outcome)
         .expect("certification fixture must mint authority through Query");
     (world, authority)
 }

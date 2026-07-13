@@ -74,11 +74,8 @@ fn planning_scenario(
     crate::obligations::selection::UiSelectedObligationSet,
 ) {
     let generation = UiEvidenceAuthorityGeneration::new(17);
-    let world_profile = crate::facade::WorthUi::app()
-        .freeze()
-        .graph_snapshot()
-        .world_profile()
-        .clone();
+    let (_, _, world_profile) = crate::evidence::measurement::projection::query_context_test_support::
+        display_field_projection_context(operator_token);
     let (app, nodes, bounded) = match shape {
         CertificationScenarioShape::Control { nodes, bounded } => (
             control_app(world_profile, operator_token, nodes, bounded),

@@ -23,7 +23,8 @@ pub use certification::{
     projection_consumption_phase_progression_digest, projection_consumption_proof_shape_audit,
     projection_consumption_public_boundary_audit, projection_consumption_support_matrix,
     ConsumedProjectionAuthorityCertificationBundle, ConsumedProjectionAuthorityCertificationLane,
-    ConsumedProjectionAuthorityCertificationRow, ConsumedProjectionAuthorityComplexityEvidence,
+    ConsumedProjectionAuthorityCertificationRow, ConsumedProjectionAuthorityComplexityAxis,
+    ConsumedProjectionAuthorityComplexityEvidence, ConsumedProjectionAuthorityComplexityRow,
     ConsumedProjectionAuthoritySupportMatrix, ConsumedProjectionAuthoritySupportRow,
     ConsumedProjectionAuthoritySupportStatus, ProjectionConsumptionCertificationBundle,
     ProjectionConsumptionCertificationCounterSnapshot, ProjectionConsumptionCertificationLane,
@@ -61,10 +62,13 @@ pub use declaration_authoring::{
     ProjectionConsumptionAuthoringSurface, ProjectionConsumptionDeclarationBuilder,
 };
 pub use downstream_authority::{
-    downstream_authority_closure_contract, ConsumedProjectionAuthorityCounters,
-    ConsumedProjectionAuthorityDenial, ConsumedProjectionAuthorityDenialKind,
-    ConsumedProjectionAuthorityEvidence, DownstreamAuthorityClosureContract,
-    DownstreamAuthorityClosureRole, DownstreamAuthorityClosureRow, ProjectionAuthorityContract,
+    downstream_authority_closure_contract, load_projection_authority_contract_document,
+    ConsumedProjectionAuthorityCounters, ConsumedProjectionAuthorityDenial,
+    ConsumedProjectionAuthorityDenialKind, ConsumedProjectionAuthorityEvidence,
+    DownstreamAuthorityClosureContract, DownstreamAuthorityClosureRole,
+    DownstreamAuthorityClosureRow, ExternalProjectionAuthorityContractDocument,
+    ProjectionAuthorityContract, ProjectionAuthorityContractDocument,
+    ProjectionAuthorityContractDocumentError, ProjectionAuthorityContractDocumentErrorKind,
     ProjectionAuthorityOutcome, ProjectionAuthorityRequirement,
     WorthQueryConsumedProjectionAuthority,
 };

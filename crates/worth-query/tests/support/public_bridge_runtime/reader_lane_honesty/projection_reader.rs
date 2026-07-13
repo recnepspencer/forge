@@ -5,8 +5,8 @@ use std::sync::{
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use worth_query::facade::{
     public_bridge_hostile_title_projection_artifacts, ProjectMaterializedFacts,
-    ProjectionFactConsumptionAttempt, ProjectionFactFieldPath,
-    WorthQueryPublishedDerivedArtifactHandle, WorthQueryPublishedProjectionConsumption,
+    ProjectionFactFieldPath, WorthQueryPublishedDerivedArtifactHandle,
+    WorthQueryPublishedProjectionConsumption,
 };
 use worth_query::{
     WorthQueryPublicBridgeProjectionConsumptionEvidence,
@@ -59,34 +59,31 @@ fn title_value_field_path() -> ProjectionFactFieldPath {
 fn read_evidence_from_attempt(
     attempt: WorthQueryPublishedProjectionConsumption,
 ) -> WorthQueryPublicBridgeProjectionConsumptionEvidence {
-    match attempt {
-        WorthQueryPublishedProjectionConsumption::Current(
-            ProjectionFactConsumptionAttempt::Admitted(completed),
-        ) => {
-            let facts = completed.facts();
-            let receipt = facts.issue_receipt();
-            WorthQueryPublicBridgeProjectionConsumptionEvidence::new(
-                facts
-                    .display_fields()
-                    .first()
-                    .and_then(|fact| match fact.value() {
-                        AspectValue::String(value) => match value {
-                            worth_foundational::facade::InternedString::Raw(value) => {
-                                Some(value.as_str())
-                            }
-                            worth_foundational::facade::InternedString::Symbol(_) => None,
-                        },
-                        _ => None,
-                    })
-                    .expect("projection reader lane should expose title.value")
-                    .to_string(),
-                receipt.receipt_digest(),
-                receipt.fact_set_digest(),
-                receipt.source_identity(),
-                completed.extracted_fact_count(),
-                "title.value",
-            )
-        }
-        other => panic!("unexpected public bridge projection consumption posture: {other:?}"),
+    if let Some(completed) = attempt.completed() {
+        let facts = completed.facts();
+        let receipt = facts.issue_receipt();
+        WorthQueryPublicBridgeProjectionConsumptionEvidence::new(
+            facts
+                .display_fields()
+                .first()
+                .and_then(|fact| match fact.value() {
+                    AspectValue::String(value) => match value {
+                        worth_foundational::facade::InternedString::Raw(value) => {
+                            Some(value.as_str())
+                        }
+                        worth_foundational::facade::InternedString::Symbol(_) => None,
+                    },
+                    _ => None,
+                })
+                .expect("projection reader lane should expose title.value")
+                .to_string(),
+            receipt.receipt_digest(),
+            receipt.fact_set_digest(),
+            receipt.source_identity(),
+            completed.extracted_fact_count(),
+            "title.value",
+        )
+    } else {
+        panic!("unexpected public bridge projection consumption posture: {attempt:?}")
     }
 }

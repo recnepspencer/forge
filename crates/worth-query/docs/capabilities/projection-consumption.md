@@ -1,431 +1,235 @@
-# Projection Consumption
+# Projection Consumption And Downstream Authority
 
 ## What This Feature Is
 
-Projection consumption turns a materialized Query artifact into typed facts you
-can trust without reopening source authority yourself.
-
-It is also one of the admitted families that uses the shared intent admission
-vocabulary without crossing a runtime execution seam.
-
-Use it when you already have one of these:
-
-- a `WorthQueryReadResult`
-- a `WorthQueryWriteReceipt`
-- a `QueryContextExecutionArtifact`
-
-and you want stable, named facts such as:
-
-- entity identities
-- display fields
-- grouped memberships
-- source references
-- write-target identities
-- continuity aftermath
-
-instead of re-parsing rows, indexing into payload bags, or reconstructing
-meaning from lower-runtime artifacts in caller code.
+Projection consumption lets application code carry facts produced by Query
+without rebuilding their authority from IDs, digests, or rows. When another
+runtime needs those facts, Query returns one sealed authority object that keeps
+the basis, source lineage, consumed facts, receipt, and consumer requirements
+together.
 
 ## Why You Use It
 
-- you want typed facts instead of raw payload walking
-- you want the runtime to prove whether a fact family is admitted, denied,
-  deferred, or only admitted with warnings
-- you want a receipt and envelope for consumed facts, not just a row vector
-- you want to keep Query-owned declaration and eligibility rules at the right
-  boundary instead of rebuilding them in product code
-- you need temporal, async, mixed-cause, or remasked materialized facts to
-  stay basis-bound and receipt-bound instead of disappearing into plain row
-  folklore
+- Carry Query-derived identities, labels, memberships, or source references
+  into another runtime.
+- Reject stale, mismatched, partial, or unsupported consumption before it can
+  become downstream authority.
+- Inspect typed facts without parsing raw result payloads.
+- Keep compatibility and lineage checks in Query instead of duplicating them
+  in each consumer.
 
 ## Stable Entry Points
 
-### Downstream authority path
+### Ordinary fluent path
 
-When another runtime needs to retain Query authority rather than inspect facts
-immediately, declare one `ProjectionAuthorityContract` and call
-`consume_projection_authority(...)` on the result or retained binding. Query
-returns one non-cloneable `WorthQueryConsumedProjectionAuthority` or one typed
-non-admitted outcome. The authority binds the declaration, materialized
-contract, source lineage, consumed facts, receipt, consumer requirements, and
-operation counters; callers must not retain those pieces as an independently
-pairable authority tuple.
+The ordinary path is result-attached:
 
-```rust
-let outcome = write_receipt.consume_projection_authority(
-    result_shape_digest,
-    &authorized_projection,
-    ProjectionAuthorityContract::declare()
-        .require_settled_consumption()
-        .require_source_authority()
-        .require_target_identity()
-        .require_source_references(),
-)?;
+- `WorthQueryReadResult::consume_projection_authority(...)`
+- `WorthQueryWriteReceipt::consume_projection_authority(...)`
+- `QueryContextExecutionArtifact::consume_projection_authority(...)`
+- `WorthQueryDerivedArtifactBinding::consume_projection_authority(...)`
+- `WorthQueryLiveArtifactBinding::consume_projection_authority(...)`
+- `ProjectionAuthorityContract::declare()`
+- `ProjectionAuthorityOutcome`
+- `WorthQueryConsumedProjectionAuthority`
 
-let authority = outcome.authority().expect("admitted authority");
-```
+### Contract reference
 
-Use `consume_projection_facts(...)` when the caller only needs immediate typed
-fact inspection. Do not turn its completed parts into a downstream authority;
-that decomposed compatibility surface is a Milestone 9.11 deletion obligation.
+Build a `ProjectionAuthorityContract` with only the guarantees the consumer
+actually requires: settled consumption, source authority, target identity, and
+source references. Query checks those requirements during the one canonical
+transition. For a durable handoff, serialize the declaration with
+`to_terminal_json_document()` and reload it with
+`load_projection_authority_contract_document(...)`; replay still enters the
+same transition and unknown schemas fail closed.
 
-Common path:
+### Denial and inspection
 
-- `WorthQueryReadResult::consume_projection_facts(...)`
-- `WorthQueryWriteReceipt::consume_projection_facts(...)`
-- `QueryContextExecutionArtifact::consume_projection_facts(...)`
-- `ProjectMaterializedFacts::declare()`
-- `ProjectionFactConsumptionAttempt`
-- `CompletedProjectionFactConsumption`
+`ProjectionAuthorityOutcome` distinguishes admitted authority, admitted
+authority with warnings, authority denial, consumption denial, deferral, and
+source mismatch. Inspect the typed outcome; never recover by assembling raw
+parts.
 
-Support discovery:
+### Advanced lifecycle
 
-- `WorthQueryReadReceipt::discover_projection_fact_consumption_support(...)`
-- `WorthQueryWriteReceipt::discover_projection_fact_consumption_support()`
-- `QueryContextExecutionArtifact::discover_projection_fact_consumption_support()`
-- `WorthQueryDerivedArtifactBinding::discover_projection_fact_consumption_support()`
-- `WorthQueryLiveArtifactBinding::discover_projection_fact_consumption_support()`
-- `discover_projection_consumption_support(...)`
+Use `consume_projection_facts(...)` only for immediate typed inspection. Its
+completion type is deliberately absent from the curated facade: decomposed
+facts, receipts, and digests are not a second downstream-authority API.
 
-Advanced path:
+The explicit lifecycle remains available for framework code that needs to
+observe declaration, eligibility, contract binding, extraction, and receipt
+issuance separately. Start with
+`declare_projection_fact_consumption(...)` and
+`evaluate_projection_consumption_eligibility(...)`.
 
-- `WorthQueryReadReceipt::declare_projection_fact_consumption(...)`
-- `WorthQueryWriteReceipt::declare_projection_fact_consumption(...)`
-- `QueryContextExecutionArtifact::declare_projection_fact_consumption(...)`
-- `WorthQueryDerivedArtifactBinding::declare_projection_fact_consumption(...)`
-- `WorthQueryLiveArtifactBinding::declare_projection_fact_consumption(...)`
-- `evaluate_projection_consumption_eligibility(...)`
-- `AdmittedProjectionConsumption::bind_contract()`
-- `MaterializedProjectionContract`
-- `ConsumedProjectionFactSet`
-- `ProjectionConsumptionReceipt`
-- `worth_query_projection_consumption_intent(...)`
+Support discovery is available through source-local
+`discover_projection_fact_consumption_support(...)` methods and
+`consumed_projection_authority_support_matrix()`.
 
-Expert lower-source path:
+### Migration history
 
-- `ProjectionConsumptionSource`
-- `ProjectionConsumptionAuthoringSurface`
-- `declare_projection_consumption(...)`
-- `MaterializedProjectionContract::extract_from_read_result(...)`
-- `MaterializedProjectionContract::extract_from_write_receipt(...)`
-- `MaterializedProjectionContract::extract_from_query_context_execution(...)`
-- `MaterializedProjectionContract::extract_from_relational_row_set(...)`
-- `MaterializedProjectionContract::extract_from_relational_grouped_projection(...)`
-
-Good to know:
-
-- the common path is the right default for app code
-- the advanced path is for code that needs to inspect or persist each stage
-- the lower-source path is an expert seam, not the first thing product code
-  should reach for
-- the shared intent-admission path exists so projection consumption uses the
-  same admitted vocabulary as the runtime-backed families
-- retained derived artifact bindings and live artifact bindings are now
-  first-class projection-consumption source families for declaration, support
-  discovery, and ordinary typed fact extraction through
-  `consume_projection_facts(...)`
-- older retained/live helper seams still exist as narrower expert utilities,
-  but they are no longer the ordinary typed projection-consumption path
+Older consumers retained completed consumption parts or compared basis and
+receipt digests locally. Those patterns are no longer curated facade APIs.
+Retain the sealed authority object and use its getters only for observation or
+indexing.
 
 ## Core Mental Model
 
-Projection consumption is not "give me rows and I'll figure it out."
+A **basis** is the admitted world of truth used by the Query operation. A
+projection authority is Query's sealed proof that requested facts were
+consumed from one source in that world and satisfy one declared downstream
+contract.
 
-It is a typed lifecycle:
-
-1. declare which fact families you want
-2. ask Query whether that request is admitted, denied, deferred, or mismatched
-3. bind an admitted request into one contract
-4. extract one typed fact set from one source artifact
-5. issue a receipt and envelope over that consumed fact set
-
-The important boundary is this:
-
-- `worth-relational` and `worth-runtime-bridge` still own source truth and
-  source artifacts
-- `worth-query` owns declaration, eligibility, contract binding, typed fact
-  extraction, receipts, and envelopes
-
-So if a caller needs "the identity facts from this read result" or "the source
-references from this write receipt," the caller should ask Query to consume
-those facts, not reopen the underlying materialization and reinterpret it by
-hand.
-
-Projection consumption still terminates in a bound contract and typed fact
-extraction, not in route or evaluate execution.
+Source runtimes still own their underlying truth. Query does not promote a
+rendered source ID or receipt digest into that truth. It binds the source
+runtime's evidence to the Query basis and consumption receipt, then exposes one
+non-cloneable authority product. Getters are for indexing and inspection; they
+cannot recreate the product.
 
 ## How It Executes
 
-The common path is:
+1. Declare the facts and guarantees the consumer requires.
+2. Call `consume_projection_authority(...)` on the source result or binding.
+3. Query performs source extraction and the canonical authority transition.
+4. Receive one `ProjectionAuthorityOutcome`.
+5. Continue only with its admitted authority; otherwise handle its typed
+   warning, denial, deferral, or source mismatch.
 
-1. declare requested fact families with `ProjectMaterializedFacts::declare()`
-2. call `consume_projection_facts(...)` on the source artifact
-3. receive one `ProjectionFactConsumptionAttempt`
-4. if admitted, use `CompletedProjectionFactConsumption`
-5. inspect the typed fact set, receipt, or envelope
-
-The advanced path is the same lifecycle, but explicit:
-
-1. declare with `declare_projection_fact_consumption(...)`
-2. evaluate with `evaluate_projection_consumption_eligibility(...)`
-3. bind admitted meaning with `bind_contract()`
-4. extract typed facts from the contract
-5. issue a `ProjectionConsumptionReceipt`
-6. derive a `SelfDescribingProjectionConsumptionEnvelope`
-
-There is also a shared admitted-family entry point when you want projection
-consumption to read like the rest of the covered lattice:
-
-1. author `worth_query_projection_consumption_intent(...)`
-2. `review()?` or `admit()?`
-3. `bind_contract()`
-4. extract typed facts from that bound contract
-
-Typed postures matter:
-
-- `Admitted`
-- `AdmittedWithWarnings`
-- `Denied`
-- `Deferred`
-- `SourceMismatch`
-
-Warnings only decorate admitted meaning. If the caller cannot honestly proceed
-to contract binding and extraction, the result is not "advisory"; it is denied,
-deferred, or mismatched.
+The fluent and explicit paths use the same transition. Adapters may extract
+from different source artifacts, but they do not own separate authority logic.
 
 ## Small Example
 
 ```rust
 use worth_query::facade::{
-    AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, WorthQueryReadResult,
-    ProjectMaterializedFacts, ProjectionFactConsumptionAttempt,
+    AuthorizedProjectionArtifact, ProjectionAuthorityContract,
+    ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError,
+    WorthQueryWriteReceipt,
 };
 
-fn consume_identity_and_label(
-    read_result: &WorthQueryReadResult,
-    result_shape: &CanonicalResultShapeArtifact,
-    authorized_projection: &AuthorizedProjectionArtifact,
-) -> String {
-    let attempt = read_result
-        .consume_projection_facts(
-            result_shape,
-            authorized_projection,
-            ProjectMaterializedFacts::declare()
-                .entity_identities()
-                .display_field("profile.display_name"),
-        )
-        .expect("declaration or extraction should stay typed");
-
-    match attempt {
-        ProjectionFactConsumptionAttempt::Admitted(completed)
-        | ProjectionFactConsumptionAttempt::AdmittedWithWarnings(completed, _) => {
-            let facts = completed.facts();
-            let entity = &facts.entity_identities()[0];
-            let label = &facts.display_fields()[0];
-            format!("{}:{}", entity.entity_identity(), label.value())
-        }
-        ProjectionFactConsumptionAttempt::Denied(denied) => {
-            format!("denied:{:?}", denied.reason())
-        }
-        ProjectionFactConsumptionAttempt::Deferred(deferred) => {
-            format!("deferred:{:?}", deferred.reason())
-        }
-        ProjectionFactConsumptionAttempt::SourceMismatch(mismatch) => {
-            format!("mismatch:{:?}", mismatch.source_family())
-        }
-    }
+fn consume_write_authority(
+    receipt: &WorthQueryWriteReceipt,
+    projection: &AuthorizedProjectionArtifact,
+) -> Result<ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError> {
+    receipt.consume_projection_authority(
+        "result-shape:profile",
+        projection,
+        ProjectionAuthorityContract::declare()
+            .require_settled_consumption()
+            .require_source_authority()
+            .require_target_identity()
+            .require_source_references(),
+    )
 }
 ```
 
-This is the smallest honest example because it shows the common path, typed
-fact access, and typed non-admitted handling without exposing raw rows.
-
-The shared admitted-family path is intentionally smaller because this family
-does not cross a runtime execution seam:
-
-```rust
-let contract = worth_query_projection_consumption_intent(declaration)?
-    .review()?
-    .admit()?
-    .bind_contract();
-```
+This is the smallest honest path because the consumer states its requirements
+and receives the indivisible authority product directly.
 
 ## Real Example
 
 ```rust
 use worth_query::facade::{
-    evaluate_projection_consumption_eligibility, AuthorizedProjectionArtifact,
-    CanonicalResultShapeArtifact, WorthQueryReadReceipt, WorthQueryReadResult,
-    ProjectMaterializedFacts, ProjectionConsumptionEligibility,
+    AuthorizedProjectionArtifact, ProjectionAuthorityContract,
+    ProjectionAuthorityOutcome, WorthQueryConsumedProjectionAuthority,
+    WorthQueryWriteReceipt,
 };
 
-fn certify_read_fact_consumption(
-    read_receipt: &WorthQueryReadReceipt,
-    read_result: &WorthQueryReadResult,
-    result_shape: &CanonicalResultShapeArtifact,
-    authorized_projection: &AuthorizedProjectionArtifact,
-) -> String {
-    let declaration = read_receipt
-        .declare_projection_fact_consumption(
-            result_shape,
-            authorized_projection,
-            ProjectMaterializedFacts::declare()
-                .entity_identities()
-                .display_field("profile.display_name"),
+fn admitted_authority(
+    receipt: &WorthQueryWriteReceipt,
+    projection: &AuthorizedProjectionArtifact,
+) -> Result<WorthQueryConsumedProjectionAuthority, String> {
+    let outcome = receipt
+        .consume_projection_authority(
+            "result-shape:profile",
+            projection,
+            ProjectionAuthorityContract::declare()
+                .require_settled_consumption()
+                .require_source_authority()
+                .require_target_identity()
+                .require_source_references(),
         )
-        .expect("declaration should stay typed");
+        .map_err(|error| error.to_string())?;
 
-    match evaluate_projection_consumption_eligibility(&declaration) {
-        ProjectionConsumptionEligibility::Admitted(admitted) => {
-            let contract = admitted.bind_contract();
-            let facts = contract
-                .extract_from_read_result(read_result)
-                .expect("extraction should stay typed");
-            let receipt = facts.issue_receipt();
-            let envelope = receipt.projection_consumption_envelope();
-
-            format!(
-                "{}:{}:{}",
-                contract.contract_digest(),
-                receipt.receipt_digest(),
-                envelope.envelope_digest()
-            )
+    match outcome {
+        ProjectionAuthorityOutcome::Admitted(authority)
+        | ProjectionAuthorityOutcome::AdmittedWithWarnings(authority, _) => Ok(authority),
+        ProjectionAuthorityOutcome::AuthorityDenied(denial) => {
+            Err(format!("authority denied: {:?}", denial.kind()))
         }
-        ProjectionConsumptionEligibility::AdmittedWithWarnings(admitted, warnings) => {
-            let contract = admitted.bind_contract();
-            let facts = contract
-                .extract_from_read_result(read_result)
-                .expect("extraction should stay typed");
-
-            format!("{}:{}", facts.fact_set_digest(), warnings.warning_kinds().len())
+        ProjectionAuthorityOutcome::ConsumptionDenied(denial) => {
+            Err(format!("consumption denied: {:?}", denial.reason()))
         }
-        ProjectionConsumptionEligibility::Denied(denied) => {
-            format!("denied:{:?}", denied.reason())
+        ProjectionAuthorityOutcome::Deferred(deferred) => {
+            Err(format!("deferred: {:?}", deferred.reason()))
         }
-        ProjectionConsumptionEligibility::Deferred(deferred) => {
-            format!("deferred:{:?}", deferred.reason())
-        }
-        ProjectionConsumptionEligibility::SourceMismatch(mismatch) => {
-            format!("mismatch:{:?}", mismatch.source_family())
+        ProjectionAuthorityOutcome::SourceMismatch(mismatch) => {
+            Err(format!("source mismatch: {:?}", mismatch.source_family()))
         }
     }
 }
 ```
 
-Use the advanced path when:
-
-- you need the declaration digest
-- you need to keep eligibility and extraction separate
-- you need the bound contract as its own artifact
-- you are writing framework code, certification code, or integration code at a
-  sharper boundary than normal app code
+The returned object retains the authoritative relationship. A downstream
+runtime may inspect its basis, receipt, facts, source identity, requirements,
+and counters, but should store or pass the authority object itself whenever a
+later operation depends on that relationship.
 
 ## How It Relates To Other Features
 
-- Pair this with [Read Composition](../authoring/read-composition.md) when you need typed
-  consumed facts from a `WorthQueryReadResult` rather than only its payload.
-- Pair it with [Intent Admission](../execution/intent-admission.md) when you
-  want the shared admitted-family story for projection consumption itself.
-- Pair it with [Reads, Observation, and Materialization](../runtime-surfaces/reads-observe-materialize.md)
-  when you need to decide whether rows are enough or whether a caller really
-  needs typed fact consumption.
-- Pair it with [Writes And Intents](../execution/writes-and-intents.md) when a write
-  receipt needs typed target, provenance, or continuity aftermath facts.
-- Pair it with [Inspection](inspection.md) when you need explanation surfaces
-  around the same read/write/query-context flow. Projection consumption uses
-  receipt-first inspection rather than `workspace.inspect(...)`.
-- Pair it with [Async Resources And Result State](async-resources-and-result-state.md)
-  when the materialized source is async-backed and you want the broader
-  declaration/runtime/result-state model around the retained posture.
-- Pair it with [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
-  when you need to explain why a family is deferred or unsupported at the
-  runtime-facade level. Projection consumption also has its own source-local
-  support discovery helpers.
+- Use [Read Composition](../authoring/read-composition.md) to produce the read
+  result whose facts are consumed.
+- Use [Basis Capability Lifecycle](basis-capability-lifecycle.md) when you need
+  to author or inspect the operation's truth-world capability itself.
+- Use [Inspection](inspection.md) when explanation is the goal rather than
+  carrying operational authority.
+- Use [Async Resources And Result State](async-resources-and-result-state.md)
+  for the surrounding retained or async state model.
+- Use [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
+  to distinguish admitted, deferred, and unsupported source families.
 
 ## Inspection And Debugging
 
-The first debugging surface here is the receipt, not `workspace.inspect(...)`.
+On an admitted authority, inspect:
 
-Important things to inspect on `CompletedProjectionFactConsumption` or
-`ProjectionConsumptionReceipt`:
+- `basis()` and `source_identity()` for lineage
+- `contract()` for consumer requirements
+- `facts()` and `receipt()` for what was consumed
+- `evidence()` for a derived diagnostic projection
+- `counters()` for bounded-work evidence
 
-- `source_family()`
-- `source_identity()`
-- `materialized_fact_posture()`
-- `support_posture()`
-- `warning_kinds()`
-- `admitted_fact_family_count()`
-- `extracted_fact_count()`
-- `authority_reopen_count()`
-- `deferred_neighbors()`
-- `transition_rules()`
-- `projection_consumption_envelope()`
-
-Use source-local support discovery before consumption when you are unsure what a
-source can prove:
-
-- read receipts require a `CanonicalResultShapeArtifact`
-- write receipts expose support from carried mutation evidence
-- query-context executions expose support from their execution posture and
-  carried metadata
-
-Framework or certification code can also inspect:
-
-- `projection_consumption_support_matrix()`
-- `projection_consumption_public_boundary_audit()`
-- `projection_consumption_proof_shape_audit()`
-- `certify_projection_consumption_closeout_core()`
-
-Those are framework-level artifacts, not the normal app entry point.
+Before consumption, inspect
+`consumed_projection_authority_support_matrix()` when source support is
+unclear. A denial, deferral, or mismatch is a terminal typed outcome; do not
+fall back to raw facts.
 
 ## Anti-Patterns
 
-- Treating projection consumption as a prettier row iterator.
-- Reopening raw rows, payload maps, or lower-runtime artifacts in caller code
-  when Query already exposes the fact family you need.
-- Assuming a warning-bearing admission is the same as a denied or deferred
-  posture.
-- Using projection consumption when you only need plain live rows or computed
-  rows and no typed fact contract.
-- Treating `workspace.inspect(...)` as the projection-consumption inspection
-  path. This feature uses receipts and envelopes directly.
-- Reaching for the lower-source expert path in ordinary app code when the
-  common path already fits.
+- Passing a basis digest, receipt digest, source label, and fact list as an
+  authority tuple.
+- Comparing consumer-local digests to decide whether Query authority is valid.
+- Reconstructing a projection contract or source identity in downstream code.
+- Importing Query's internal `projection_consumption` module.
+- Treating evidence getters as constructors or promotion inputs.
+- Falling back to raw rows after a typed denial or unsupported posture.
 
 ## Current Limits
 
-- The common path is currently centered on `WorthQueryReadResult`,
-  `WorthQueryWriteReceipt`, and `QueryContextExecutionArtifact`.
-- The shared admitted-family path is real, but this family still ends in a
-  bound contract and typed extraction rather than runtime execution.
-- Query-context field facts may be admitted with warnings because they can be
-  payload-bound instead of receipt-perfect.
-- When a materialized source carries temporal or async posture, that posture is
-  now retained on the bound contract, consumed fact set, and issued receipt so
-  callers do not need to reopen lower runtime artifacts just to keep basis,
-  policy, or support qualifiers attached.
-- Write-receipt fact families are limited to evidence actually carried by the
-  receipt. Missing provenance or continuity evidence stays typed as deferred or
-  mismatched instead of being guessed.
-- Lower-source relational and bridge extraction seams exist, but they are still
-  expert boundaries rather than the primary app-facing path.
-- Retained derived artifact bindings and live artifact bindings now participate
-  in the ordinary typed projection-consumption lane through
-  `consume_projection_facts(...)`, but older retained/live helper seams still
-  exist as narrower expert utilities and should not be treated as the primary
-  typed-fact path.
-- This feature does not replace `workspace.read(...)`, `workspace.observe(...)`,
-  or `workspace.materialize_result(...)`. Use those when rows are the real product
-  surface.
+- Read results, write receipts, Query-context executions, derived bindings,
+  and live bindings are the supported ordinary source families; exact posture
+  depends on the requested facts and source evidence.
+- Store-backed and durable neighbors remain deferred or unsupported where the
+  support matrix says so. Query does not guess missing lineage.
+- Immediate typed-fact inspection remains supported through opaque
+  `consume_projection_facts(...)` results, but those decomposed parts cannot be
+  named through the curated facade as downstream authority.
+- Projection authority does not replace `read`, `observe`, or `materialize`.
+  Use those when rows are the actual product.
 
 ## Related Docs
 
-- [Workspace Overview](../foundations/workspace-overview.md)
-- [Read Composition](../authoring/read-composition.md)
-- [Reads, Observation, and Materialization](../runtime-surfaces/reads-observe-materialize.md)
-- [Writes And Intents](../execution/writes-and-intents.md)
-- [Inspection](inspection.md)
-- [Async Resources And Result State](async-resources-and-result-state.md)
+- [Downstream Runtime Integration](../foundations/downstream-runtime-integration.md)
+- [Consumer Kit](../foundations/consumer-kit.md)
+- [Basis Capability Lifecycle](basis-capability-lifecycle.md)
+- [Projection Consumption Vs Inspection](../domain-capabilities/choosing/projection-consumption-vs-inspection.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
-
-

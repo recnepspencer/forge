@@ -12,7 +12,7 @@ error: cannot construct `WorthUiDurableStateReconciliationPlan` with struct lite
 10 |         counters: WorthUiDurableStateReconciliationCounters::default(),
    |         -------------------------------------------------------------- private field
    |
-   = note: ...and other private field `durable_resize_inputs` that was not provided
+   = note: ...and other private fields `durable_resize_dispositions`, `admitted_durable_resize_inputs` and `authority_generation` that were not provided
 help: you might have meant to use the `new_with_durable_resize_inputs` associated function
    |
  6 -     let _ = WorthUiDurableStateReconciliationPlan {

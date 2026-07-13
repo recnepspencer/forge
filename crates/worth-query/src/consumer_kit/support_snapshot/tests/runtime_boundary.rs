@@ -24,6 +24,7 @@ fn production_serde_json_is_confined_to_support_terminal_codecs() {
         vec![
             "src/consumer_kit/support_pinning/document/terminal_json_codec.rs".to_string(),
             "src/consumer_kit/support_snapshot/document/terminal_json_codec.rs".to_string(),
+            "src/projection_consumption/downstream_authority/contract_document/terminal_json_codec.rs".to_string(),
         ],
         "production serde_json must stay confined to the named external terminal codecs"
     );
@@ -76,6 +77,7 @@ fn rust_source_serde_json_residue_stays_terminal_or_compile_fail_only() {
             "src/consumer_kit/support_pinning/document/terminal_json_codec.rs".to_string(),
             "src/consumer_kit/support_snapshot/document/terminal_json_codec.rs".to_string(),
             "src/consumer_kit/support_snapshot/tests/runtime_boundary.rs".to_string(),
+            "src/projection_consumption/downstream_authority/contract_document/terminal_json_codec.rs".to_string(),
             "tests/ui/aspect_native_query/derived_patch_payload_rejects_raw_json.rs".to_string(),
             "tests/ui/aspect_native_query/program_operation_input_rejects_raw_json.rs".to_string(),
             "tests/ui/aspect_native_query/retained_row_terminal_ingress_not_public.rs".to_string(),

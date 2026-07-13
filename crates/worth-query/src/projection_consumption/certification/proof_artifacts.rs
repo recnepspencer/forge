@@ -8,6 +8,7 @@ pub enum ProjectionConsumptionGoldenTranscript {
     CommonWrite,
     CommonQueryContext,
     AdvancedPath,
+    SerializedAuthorityContract,
 }
 
 impl ProjectionConsumptionGoldenTranscript {
@@ -19,6 +20,9 @@ impl ProjectionConsumptionGoldenTranscript {
                 "projection_consumption_common_query_context_golden_path_compiles"
             }
             Self::AdvancedPath => "projection_consumption_advanced_path_golden_transcript_compiles",
+            Self::SerializedAuthorityContract => {
+                "projection_authority_serialized_contract_compiles"
+            }
         }
     }
 
@@ -35,6 +39,9 @@ impl ProjectionConsumptionGoldenTranscript {
             ),
             Self::AdvancedPath => include_str!(
                 "../../../tests/ui/projection_consumption/golden/projection_consumption_advanced_path_golden_transcript_compiles.rs"
+            ),
+            Self::SerializedAuthorityContract => include_str!(
+                "../../../tests/ui/projection_consumption/golden/projection_authority_serialized_contract_compiles.rs"
             ),
         }
     }
@@ -57,6 +64,8 @@ pub enum ProjectionConsumptionCompileFailProof {
     ConsumedAuthorityConstructorPrivate,
     ConsumedAuthorityNotCloneable,
     ConsumedAuthorityCertificationBundleConstructorPrivate,
+    LegacyCompletedConsumptionNotInFacade,
+    LegacyConsumptionAttemptNotInFacade,
 }
 
 impl ProjectionConsumptionCompileFailProof {
@@ -103,6 +112,10 @@ impl ProjectionConsumptionCompileFailProof {
             Self::ConsumedAuthorityCertificationBundleConstructorPrivate => {
                 "consumed_projection_authority_certification_bundle_constructor_private"
             }
+            Self::LegacyCompletedConsumptionNotInFacade => {
+                "legacy_completed_consumption_not_in_facade"
+            }
+            Self::LegacyConsumptionAttemptNotInFacade => "legacy_consumption_attempt_not_in_facade",
         }
     }
 
@@ -152,6 +165,12 @@ impl ProjectionConsumptionCompileFailProof {
             ),
             Self::ConsumedAuthorityCertificationBundleConstructorPrivate => include_str!(
                 "../../../tests/ui/projection_consumption/construction/consumed_projection_authority_certification_bundle_constructor_private.rs"
+            ),
+            Self::LegacyCompletedConsumptionNotInFacade => include_str!(
+                "../../../tests/ui/projection_consumption/boundaries/legacy_completed_consumption_not_in_facade.rs"
+            ),
+            Self::LegacyConsumptionAttemptNotInFacade => include_str!(
+                "../../../tests/ui/projection_consumption/boundaries/legacy_consumption_attempt_not_in_facade.rs"
             ),
         }
     }
@@ -203,6 +222,12 @@ impl ProjectionConsumptionCompileFailProof {
             Self::ConsumedAuthorityCertificationBundleConstructorPrivate => include_str!(
                 "../../../tests/ui/projection_consumption/construction/consumed_projection_authority_certification_bundle_constructor_private.stderr"
             ),
+            Self::LegacyCompletedConsumptionNotInFacade => include_str!(
+                "../../../tests/ui/projection_consumption/boundaries/legacy_completed_consumption_not_in_facade.stderr"
+            ),
+            Self::LegacyConsumptionAttemptNotInFacade => include_str!(
+                "../../../tests/ui/projection_consumption/boundaries/legacy_consumption_attempt_not_in_facade.stderr"
+            ),
         }
     }
 }
@@ -214,6 +239,7 @@ pub fn projection_consumption_golden_transcripts(
         ProjectionConsumptionGoldenTranscript::CommonWrite,
         ProjectionConsumptionGoldenTranscript::CommonQueryContext,
         ProjectionConsumptionGoldenTranscript::AdvancedPath,
+        ProjectionConsumptionGoldenTranscript::SerializedAuthorityContract,
     ]
 }
 
@@ -235,6 +261,8 @@ pub fn projection_consumption_compile_fail_proofs(
         ProjectionConsumptionCompileFailProof::ConsumedAuthorityConstructorPrivate,
         ProjectionConsumptionCompileFailProof::ConsumedAuthorityNotCloneable,
         ProjectionConsumptionCompileFailProof::ConsumedAuthorityCertificationBundleConstructorPrivate,
+        ProjectionConsumptionCompileFailProof::LegacyCompletedConsumptionNotInFacade,
+        ProjectionConsumptionCompileFailProof::LegacyConsumptionAttemptNotInFacade,
     ]
 }
 
@@ -272,8 +300,8 @@ mod tests {
 
     #[test]
     fn proof_artifact_digests_bind_to_real_fixture_contents() {
-        assert_eq!(projection_consumption_golden_transcripts().len(), 4);
-        assert_eq!(projection_consumption_compile_fail_proofs().len(), 15);
+        assert_eq!(projection_consumption_golden_transcripts().len(), 5);
+        assert_eq!(projection_consumption_compile_fail_proofs().len(), 17);
         assert!(!golden_transcript_bundle_digest().is_empty());
         assert!(!compile_fail_boundary_bundle_digest().is_empty());
     }

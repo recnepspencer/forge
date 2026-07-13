@@ -7,7 +7,7 @@ use worth_query::facade::runtime::{
 use worth_query::facade::{
     public_bridge_projection_artifacts_for_read_graph, resolve_runtime_current_snapshot_basis,
     snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ScalarPredicateValue,
+    ProjectMaterializedFacts, ProjectionAuthorityOutcome, ScalarPredicateValue,
     WorthQueryAspectTouch, WorthQueryAuthoredAspectValue, WorthQueryEntityIdentity,
 };
 use worth_ui::facade::graph::UiGraphWorldProfile;
@@ -68,7 +68,7 @@ pub(super) fn projection_consumption_attempt(
     workspace: &mut WorthQueryWorkspace,
     family: &WorthQueryReadFamily,
     requested: ProjectMaterializedFacts,
-) -> (UiGraphWorldProfile, ProjectionFactConsumptionAttempt) {
+) -> (UiGraphWorldProfile, ProjectionAuthorityOutcome) {
     let read_result = workspace
         .execute_read_family(family)
         .expect("query read family should execute");
@@ -87,7 +87,7 @@ pub(super) fn projection_consumption_attempt(
     let attempt = read_result
         .consume_projection_facts(&result_shape, &authorized_projection, requested)
         .expect("real query read should consume projection facts");
-    (world_profile, attempt)
+    (world_profile, attempt.into_authority())
 }
 
 pub(super) fn identity_only_family_graph(

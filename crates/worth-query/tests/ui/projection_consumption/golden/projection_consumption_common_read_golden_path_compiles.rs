@@ -1,8 +1,7 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
 use worth_query::facade::{
-    AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, WorthQueryReadResult,
-    ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError,
-    ProjectionFactFieldPath,
+    AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ProjectMaterializedFacts,
+    ProjectionFactConsumptionPathError, ProjectionFactFieldPath, WorthQueryReadResult,
 };
 
 fn common_read_path(
@@ -29,17 +28,16 @@ fn common_read_path(
         ));
     }
 
-    match attempt {
-        ProjectionFactConsumptionAttempt::Denied(denied) => Ok(format!("{:?}", denied.reason())),
-        ProjectionFactConsumptionAttempt::Deferred(deferred) => {
-            Ok(format!("{:?}", deferred.reason()))
-        }
-        ProjectionFactConsumptionAttempt::SourceMismatch(mismatch) => {
-            Ok(format!("{:?}", mismatch.source_family()))
-        }
-        ProjectionFactConsumptionAttempt::Admitted(_)
-        | ProjectionFactConsumptionAttempt::AdmittedWithWarnings(_, _) => unreachable!(),
+    if let Some(denied) = attempt.denied() {
+        return Ok(format!("{:?}", denied.reason()));
     }
+    if let Some(deferred) = attempt.deferred() {
+        return Ok(format!("{:?}", deferred.reason()));
+    }
+    if let Some(mismatch) = attempt.source_mismatch() {
+        return Ok(format!("{:?}", mismatch.source_family()));
+    }
+    unreachable!()
 }
 
 fn profile_display_name_field_path() -> ProjectionFactFieldPath {

@@ -1,6 +1,7 @@
 mod authority;
 mod closure;
 mod contract;
+mod contract_document;
 mod counters;
 mod denial;
 mod dx;
@@ -13,6 +14,11 @@ pub use closure::{
     DownstreamAuthorityClosureRole, DownstreamAuthorityClosureRow,
 };
 pub use contract::{ProjectionAuthorityContract, ProjectionAuthorityRequirement};
+pub use contract_document::{
+    load_projection_authority_contract_document, ExternalProjectionAuthorityContractDocument,
+    ProjectionAuthorityContractDocument, ProjectionAuthorityContractDocumentError,
+    ProjectionAuthorityContractDocumentErrorKind,
+};
 pub use counters::ConsumedProjectionAuthorityCounters;
 pub use denial::{ConsumedProjectionAuthorityDenial, ConsumedProjectionAuthorityDenialKind};
 pub use evidence::ConsumedProjectionAuthorityEvidence;

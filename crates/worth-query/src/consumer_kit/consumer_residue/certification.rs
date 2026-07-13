@@ -229,6 +229,10 @@ const HOSTILE_CERTIFICATION_SOURCES: &[(WorthQueryConsumerResidueClass, &str)] =
         "fn residue(value: ProjectionFactConsumptionAttempt) { let _ = value; }",
     ),
     (
+        WorthQueryConsumerResidueClass::IndependentlyPairableProjectionConsumptionParts,
+        "fn residue(value: CompletedProjectionFactConsumption) { let _ = value; }",
+    ),
+    (
         WorthQueryConsumerResidueClass::LocalQueryMeasurementConsumptionIdentity,
         "struct WorthUiQueryMeasurementConsumptionIdentity;",
     ),

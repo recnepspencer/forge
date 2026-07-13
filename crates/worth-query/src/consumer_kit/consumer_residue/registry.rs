@@ -20,6 +20,7 @@ pub enum WorthQueryConsumerResidueClass {
     DelimiterJoinedQueryProof,
     DelimiterFormattedQueryProof,
     DecomposedProjectionConsumptionAttempt,
+    IndependentlyPairableProjectionConsumptionParts,
     LocalQueryMeasurementConsumptionIdentity,
     LocalProjectionContractBinding,
     LocalQueryBasisDigestCompatibility,
@@ -51,6 +52,9 @@ impl WorthQueryConsumerResidueClass {
             Self::DelimiterFormattedQueryProof => "delimiter-formatted-query-proof",
             Self::DecomposedProjectionConsumptionAttempt => {
                 "decomposed-projection-consumption-attempt"
+            }
+            Self::IndependentlyPairableProjectionConsumptionParts => {
+                "independently-pairable-projection-consumption-parts"
             }
             Self::LocalQueryMeasurementConsumptionIdentity => {
                 "local-query-measurement-consumption-identity"
@@ -303,6 +307,13 @@ const CONSUMER_RESIDUE_REGISTRY: &[WorthQueryConsumerResidueRegistryRow] = &[
         WorthQueryConsumerResidueDetection::ExactText,
         "ProjectionFactConsumptionAttempt",
         "consumer accepts a decomposed attempt instead of Query's sealed authority outcome",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::IndependentlyPairableProjectionConsumptionParts,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "CompletedProjectionFactConsumption",
+        "consumer retains completed consumption parts that can be paired outside Query authority",
         "downstream-authority-adoption",
     ),
     registry_row(

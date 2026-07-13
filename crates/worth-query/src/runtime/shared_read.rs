@@ -25,6 +25,24 @@ pub enum WorthQueryPublishedProjectionConsumption {
     ResultState(WorthQueryRuntimeAsyncResultState),
 }
 
+impl WorthQueryPublishedProjectionConsumption {
+    pub fn completed(
+        &self,
+    ) -> Option<&crate::projection_consumption::CompletedProjectionFactConsumption> {
+        match self {
+            Self::Current(attempt) => attempt.completed(),
+            Self::ResultState(_) => None,
+        }
+    }
+
+    pub fn result_state(&self) -> Option<&WorthQueryRuntimeAsyncResultState> {
+        match self {
+            Self::Current(_) => None,
+            Self::ResultState(state) => Some(state),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryPublishedProjectionInspection {
     published: bool,

@@ -2,6 +2,7 @@ mod audits;
 mod bundle;
 mod bundle_outputs;
 mod downstream_authority_bundle;
+mod downstream_authority_complexity;
 mod downstream_authority_support;
 mod fixtures;
 mod grouped_projection_contract;
@@ -31,7 +32,10 @@ pub use bundle::{
 pub use downstream_authority_bundle::{
     certify_consumed_projection_authority, ConsumedProjectionAuthorityCertificationBundle,
     ConsumedProjectionAuthorityCertificationLane, ConsumedProjectionAuthorityCertificationRow,
-    ConsumedProjectionAuthorityComplexityEvidence,
+};
+pub use downstream_authority_complexity::{
+    ConsumedProjectionAuthorityComplexityAxis, ConsumedProjectionAuthorityComplexityEvidence,
+    ConsumedProjectionAuthorityComplexityRow,
 };
 pub use downstream_authority_support::{
     consumed_projection_authority_support_matrix, ConsumedProjectionAuthoritySupportMatrix,

@@ -1,6 +1,8 @@
 use super::super::super::{
-    downstream_authority_closure_contract, DownstreamAuthorityClosureRole,
-    ProjectMaterializedFacts, ProjectionAuthorityContract, ProjectionAuthorityOutcome,
+    downstream_authority_closure_contract, load_projection_authority_contract_document,
+    DownstreamAuthorityClosureRole, ExternalProjectionAuthorityContractDocument,
+    ProjectMaterializedFacts, ProjectionAuthorityContract,
+    ProjectionAuthorityContractDocumentErrorKind, ProjectionAuthorityOutcome,
 };
 use super::super::phase_four::support::{
     authorized_projection, read_result, read_result_shape, write_receipt,
@@ -101,6 +103,48 @@ fn fluent_and_explicit_paths_share_one_transition() {
     assert_eq!(fluent.consumer_contract().requirement_count(), 3);
     assert_eq!(fluent.consumer_contract().requested_fact_count(), 2);
     assert_eq!(fluent.counters().requirement_checks(), 3);
+}
+
+#[test]
+fn serialized_contract_replays_through_the_same_authority_transition() {
+    let receipt = write_receipt();
+    let projection = authorized_projection("query:test", "result-shape:test", &["identity.id"]);
+    let contract = ProjectionAuthorityContract::declare()
+        .require_settled_consumption()
+        .require_source_authority()
+        .require_target_identity()
+        .require_source_references();
+    let document = contract
+        .to_terminal_json_document()
+        .expect("contract must serialize canonically");
+    let replayed = load_projection_authority_contract_document(&document.to_external())
+        .expect("canonical contract must load");
+    assert_eq!(contract, replayed);
+
+    let direct = receipt
+        .consume_projection_authority("result-shape:test", &projection, contract)
+        .unwrap();
+    let replay = receipt
+        .consume_projection_authority("result-shape:test", &projection, replayed)
+        .unwrap();
+    assert!(direct
+        .authority()
+        .expect("direct authority")
+        .structurally_equivalent(replay.authority().expect("replayed authority")));
+}
+
+#[test]
+fn external_contract_document_fails_closed_on_unknown_schema() {
+    let error = load_projection_authority_contract_document(
+        &ExternalProjectionAuthorityContractDocument::new(
+            r#"{"schema":"foreign","requirements":[],"facts":[]}"#,
+        ),
+    )
+    .expect_err("foreign schema must not become authority input");
+    assert_eq!(
+        error.kind(),
+        ProjectionAuthorityContractDocumentErrorKind::SchemaMismatch
+    );
 }
 
 #[test]

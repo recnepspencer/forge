@@ -90,6 +90,8 @@ artifact, orchestration, grouping, and recovery model.
 
 ## Execution (feature docs)
 
+- [Projection consumption and downstream authority](./capabilities/projection-consumption.md)
+
 - [Authority-scoped effect execution](./execution/authority-scoped-effect-execution.md)
 
 ## Runtime surfaces (feature docs)

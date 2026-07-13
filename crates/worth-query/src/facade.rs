@@ -46,6 +46,7 @@ pub mod consumer_kit {
         WorthQueryConsumerResidueReport, WorthQueryConsumerResidueSourceInventory,
         WorthQueryConsumerResidueSourceSite, WorthQueryDownstreamAuthorityAdoption,
         WorthQueryDownstreamAuthorityAdoptionManifest, WorthQueryDownstreamAuthorityAdoptionProof,
+        WorthQueryDownstreamAuthorityDeletionReceipt, WorthQueryDownstreamAuthorityDeletionRow,
         WorthQueryEvidenceReportAdoptionAudit, WorthQueryEvidenceReportAdoptionError,
         WorthQueryEvidenceReportAdoptionErrorKind, WorthQueryEvidenceReportAdoptionEvaluation,
         WorthQueryEvidenceReportAdoptionFinding, WorthQueryEvidenceReportAdoptionFindingKind,

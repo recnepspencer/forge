@@ -36,6 +36,7 @@ pub use consumer_residue::{
 pub use downstream_authority_adoption::{
     downstream_authority_adoption, WorthQueryDownstreamAuthorityAdoption,
     WorthQueryDownstreamAuthorityAdoptionManifest, WorthQueryDownstreamAuthorityAdoptionProof,
+    WorthQueryDownstreamAuthorityDeletionReceipt, WorthQueryDownstreamAuthorityDeletionRow,
 };
 pub use evidence_report::{
     EvidenceReport, EvidenceReportDeclaration, EvidenceReportError, EvidenceReportErrorKind,

@@ -170,6 +170,7 @@ compress; they do not replace admission, basis, or recovery semantics.
 Read next:
 
 - [Recipes](./domain-capabilities/recipes/README.md)
+- [Carry Query Facts Into A Downstream Runtime](./domain-capabilities/recipes/carry-query-facts-into-a-downstream-runtime.md)
 - [Prepare Preview From Active Face Selection](./domain-capabilities/recipes/prepare-preview-from-active-face-selection.md)
 - [Attach Material With Declaration-Scoped Contributions](./domain-capabilities/recipes/attach-material-with-declaration-scoped-contributions.md)
 - [Author A Grouped Neighborhood With Contributions](./domain-capabilities/recipes/author-a-grouped-neighborhood-with-contributions.md)
@@ -1534,28 +1535,30 @@ Read next:
 - [Inspection Vs Cross-Runtime Explanation](./domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md)
 - [Lower-Runtime Explanation Contributions](./domain-capabilities/explanation/lower-runtime-explanation-contributions.md)
 
-## Projection Consumption And Typed Facts
+## Projection Consumption And Downstream Authority
 
-Projection consumption is the declared, receipt-backed lane for using
-materialized query facts without reopening source authority.
+Projection consumption is the declared lane for carrying materialized Query
+facts without reopening source authority. When another runtime depends on the
+relationship, the ordinary path is a `ProjectionAuthorityContract` plus the
+result-attached `consume_projection_authority(...)` method.
 
-Consumers declare which identities, memberships, labels, topology facts,
-workflow facts, or view-local facts they consume; Query returns typed fact
-receipts bound to the materialization digest, basis, policy, and view shape that
-produced them.
+Query returns one sealed `WorthQueryConsumedProjectionAuthority` or one typed
+non-admitted outcome. The authority keeps basis, source lineage, consumed
+facts, receipt, and downstream requirements together; its getters are
+inspection surfaces, not ingredients for reconstructing authority.
 
-Use this category when retained rows or payload bags are too weak and you need
-typed facts Query already materialized.
+Use `consume_projection_facts(...)` only when facts are inspected immediately
+and no downstream operation will treat them as authority. Its decomposed
+completion types are intentionally not part of the curated facade.
 
-The mistake to avoid is fishing in relational truth, bridge internals, or domain
-caches for IDs and memberships that should have been declared as consumed
-projection facts.
+The mistakes to avoid are fishing in lower-runtime truth for IDs or passing a
+basis digest, receipt digest, source label, and fact list as a replacement
+authority tuple.
 
 Retained derived-artifact bindings and live-artifact bindings now participate as
-first-class projection-consumption declaration, support-discovery, and typed
-fact-consumption sources. Ordinary callers should use
-`consume_projection_facts(...)` on those bindings instead of falling back to
-older runtime-owned retained/live helper seams.
+first-class projection-consumption declaration, support-discovery, and
+authority sources. Ordinary downstream callers should use their
+`consume_projection_authority(...)` methods.
 
 Read next:
 

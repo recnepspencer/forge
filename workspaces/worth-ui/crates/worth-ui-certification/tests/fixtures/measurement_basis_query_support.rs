@@ -97,12 +97,12 @@ pub fn display_projection_consumptions_across_basis_generations(
 }
 
 fn query_authority(
-    (world, attempt): (
+    (world, outcome): (
         UiGraphWorldProfile,
-        worth_query::facade::ProjectionFactConsumptionAttempt,
+        worth_query::facade::ProjectionAuthorityOutcome,
     ),
 ) -> (UiGraphWorldProfile, WorthUiQueryAuthorityHandle) {
-    let (authority, _) = WorthUiQueryAuthorityHandle::from_outcome(attempt.into_authority())
+    let (authority, _) = WorthUiQueryAuthorityHandle::from_outcome(outcome)
         .expect("certification fixture must mint authority through Query");
     (world, authority)
 }

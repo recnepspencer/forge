@@ -9,6 +9,9 @@ use crate::projection_consumption::{
     ProjectionAuthorityContract, ProjectionAuthorityRequirement,
 };
 
+use super::downstream_authority_complexity::{
+    complexity_evidence, ConsumedProjectionAuthorityComplexityEvidence,
+};
 use super::downstream_authority_support::{
     consumed_projection_authority_support_matrix, ConsumedProjectionAuthoritySupportMatrix,
 };
@@ -58,37 +61,6 @@ impl ConsumedProjectionAuthorityCertificationRow {
 
     pub fn row_digest(&self) -> &str {
         &self.row_digest
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ConsumedProjectionAuthorityComplexityEvidence {
-    relationship_checks: Vec<usize>,
-    requirement_checks: Vec<usize>,
-    consumed_fact_visits: Vec<usize>,
-    authority_constructions: Vec<usize>,
-    evidence_digest: String,
-}
-
-impl ConsumedProjectionAuthorityComplexityEvidence {
-    pub fn relationship_checks(&self) -> &[usize] {
-        &self.relationship_checks
-    }
-
-    pub fn requirement_checks(&self) -> &[usize] {
-        &self.requirement_checks
-    }
-
-    pub fn consumed_fact_visits(&self) -> &[usize] {
-        &self.consumed_fact_visits
-    }
-
-    pub fn authority_constructions(&self) -> &[usize] {
-        &self.authority_constructions
-    }
-
-    pub fn evidence_digest(&self) -> &str {
-        &self.evidence_digest
     }
 }
 
@@ -173,14 +145,7 @@ pub fn certify_consumed_projection_authority() -> ConsumedProjectionAuthorityCer
         ),
         row(
             ConsumedProjectionAuthorityCertificationLane::ExactComplexity,
-            complexity
-                .relationship_checks
-                .iter()
-                .all(|count| *count == 10)
-                && complexity
-                    .authority_constructions
-                    .iter()
-                    .all(|count| *count == 1),
+            complexity.satisfied(),
             format!("slopes={}", complexity.evidence_digest()),
         ),
     ];
@@ -199,50 +164,11 @@ pub fn certify_consumed_projection_authority() -> ConsumedProjectionAuthorityCer
     }
 }
 
-fn complexity_evidence() -> ConsumedProjectionAuthorityComplexityEvidence {
-    let counters = (1..=3)
-        .map(|row_count| {
-            seal_completed_consumption(control_row_set_lifecycle(row_count).into_completed())
-                .expect("scaled control authority must seal")
-                .counters()
-                .clone()
-        })
-        .collect::<Vec<_>>();
-    let relationship_checks = counters
-        .iter()
-        .map(|row| row.relationship_checks())
-        .collect();
-    let requirement_checks = counters
-        .iter()
-        .map(|row| row.requirement_checks())
-        .collect();
-    let consumed_fact_visits = counters
-        .iter()
-        .map(|row| row.consumed_fact_visits())
-        .collect();
-    let authority_constructions = counters
-        .iter()
-        .map(|row| row.authority_constructions())
-        .collect();
-    let evidence_digest = compose_certification_row_digest(
-        "consumed_projection_authority_complexity_v1",
-        &[
-            ("relationship", format!("{relationship_checks:?}").as_str()),
-            ("requirement", format!("{requirement_checks:?}").as_str()),
-            ("facts", format!("{consumed_fact_visits:?}").as_str()),
-            (
-                "construction",
-                format!("{authority_constructions:?}").as_str(),
-            ),
-        ],
-    );
-    ConsumedProjectionAuthorityComplexityEvidence {
-        relationship_checks,
-        requirement_checks,
-        consumed_fact_visits,
-        authority_constructions,
-        evidence_digest,
-    }
+pub(super) fn seal_control(
+    row_count: usize,
+) -> crate::projection_consumption::WorthQueryConsumedProjectionAuthority {
+    seal_completed_consumption(control_row_set_lifecycle(row_count).into_completed())
+        .expect("scaled control authority must seal")
 }
 
 fn row(
