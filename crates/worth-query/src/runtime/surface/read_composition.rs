@@ -262,6 +262,7 @@ impl WorthQueryReadGraph {
 pub struct WorthQueryReadReceipt {
     pub(super) read_graph_digest: String,
     pub(super) graph_family: WorthQueryReadGraphFamily,
+    pub(super) execution_plan_digest: String,
     pub(super) query_digest: String,
     pub(super) basis_digest: String,
     pub(super) result_digest: String,

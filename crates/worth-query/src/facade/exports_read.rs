@@ -17,7 +17,7 @@ pub use crate::ordinary::read::{
 };
 pub use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
 pub use crate::runtime::{
-    WorthQueryReadBreadth, WorthQueryReadBuilder, WorthQueryReadDenial, WorthQueryReadDenialKind,
+    WorthQueryReadBreadth, WorthQueryReadDenial, WorthQueryReadDenialKind,
     WorthQueryReadGraphFamily, WorthQueryReadOperatorFamily, WorthQueryReadReceipt,
     WorthQueryReadResult, WorthQueryReadScopeClass,
 };

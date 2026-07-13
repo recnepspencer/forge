@@ -1,5 +1,7 @@
 use super::super::super::support::*;
-use crate::authoring::{AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName};
+use crate::authoring::{
+    AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName, TraversalSelector,
+};
 use crate::authorized_projection::PolicyAspectMask;
 use crate::ordinary::read::{
     current, declare, WorthQueryReadRelationshipProof, WorthQueryReadRelationshipProofs,
@@ -19,6 +21,53 @@ pub(super) fn local_identity_read<Output>(
                 AspectFieldSelector::new("identity", "id")
                     .expect("identity projection should build"),
             )
+        },
+        |shape| {
+            shape.field(
+                AuthoredResultShapeField::new("identity", "id", "id")
+                    .expect("identity result field should build"),
+            )
+        },
+    )
+}
+
+pub(super) fn local_identity_collection_read<Output>(
+    read: crate::runtime::WorthQueryReadBuilder<Output>,
+) -> Result<Output, crate::runtime::WorthQueryReadDenial> {
+    read.local_collection(
+        "user",
+        manager_schema(),
+        |query| {
+            query.project(
+                AspectFieldSelector::new("identity", "id")
+                    .expect("identity projection should build"),
+            )
+        },
+        |shape| {
+            shape.field(
+                AuthoredResultShapeField::new("identity", "id", "id")
+                    .expect("identity result field should build"),
+            )
+        },
+    )
+}
+
+pub(super) fn anchored_manager_graph_read<Output>(
+    read: crate::runtime::WorthQueryReadBuilder<Output>,
+) -> Result<Output, crate::runtime::WorthQueryReadDenial> {
+    read.anchored_collection(
+        "user",
+        expanded_manager_schema(),
+        |query| {
+            query
+                .traverse(
+                    TraversalSelector::bounded("manager", 2)
+                        .expect("manager traversal should build"),
+                )
+                .project(
+                    AspectFieldSelector::new("identity", "id")
+                        .expect("identity projection should build"),
+                )
         },
         |shape| {
             shape.field(
@@ -125,6 +174,50 @@ pub(super) fn admitted_policy_tenant_inputs(epoch: u64, admits_query: bool) -> P
         branch,
         schema,
     }
+}
+
+pub(super) fn current_manager_relationship_context(
+) -> crate::ordinary::read::WorthQueryCurrentRelationshipReadContext {
+    let policy_tenant = admitted_policy_tenant_inputs(1, true);
+    let relationships = WorthQueryReadRelationshipProofs::bounded(
+        [WorthQueryReadRelationshipProof::direct_edge(
+            manager_relation_name(),
+        )],
+        1,
+        1,
+    )
+    .expect("manager relationship proof should be bounded");
+    current()
+        .under_policy_tenant(
+            policy_tenant.policy,
+            policy_tenant.tenant,
+            policy_tenant.branch,
+            policy_tenant.schema,
+        )
+        .with_relationship_proofs(relationships)
+}
+
+pub(super) fn current_bounded_manager_relationship_context(
+) -> crate::ordinary::read::WorthQueryCurrentRelationshipReadContext {
+    let policy_tenant = admitted_policy_tenant_inputs(1, true);
+    let relationships = WorthQueryReadRelationshipProofs::bounded(
+        [WorthQueryReadRelationshipProof::bounded_ancestor(
+            manager_relation_name(),
+            crate::ordinary::read::WorthQueryReadRelationshipDepth::new(2)
+                .expect("bounded manager depth should author"),
+        )],
+        1,
+        2,
+    )
+    .expect("bounded manager relationship proof should be bounded");
+    current()
+        .under_policy_tenant(
+            policy_tenant.policy,
+            policy_tenant.tenant,
+            policy_tenant.branch,
+            policy_tenant.schema,
+        )
+        .with_relationship_proofs(relationships)
 }
 
 pub(super) fn narrowing_policy_tenant_inputs(

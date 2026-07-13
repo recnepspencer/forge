@@ -25,6 +25,14 @@ impl WorthQueryReadReceipt {
         &self.graph_family
     }
 
+    /// Canonical identity of the admitted execution plan consumed by Query.
+    ///
+    /// This is derived evidence. It does not expose planner construction or
+    /// route-selection authority to the caller.
+    pub fn execution_plan_digest(&self) -> &str {
+        &self.execution_plan_digest
+    }
+
     pub fn query_digest(&self) -> &str {
         &self.query_digest
     }
@@ -238,6 +246,7 @@ impl WorthQueryReadReceipt {
         Self {
             read_graph_digest: read_graph_digest.into(),
             graph_family: WorthQueryReadGraphFamily::Collection,
+            execution_plan_digest: "test-execution-plan".to_string(),
             query_digest: query_digest.into(),
             basis_digest: basis_digest.into(),
             result_digest: result_digest.into(),

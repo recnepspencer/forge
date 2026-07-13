@@ -132,6 +132,12 @@ impl WorthQueryReadReceipt {
         Self {
             read_graph_digest: read_graph.digest().to_string(),
             graph_family: read_graph.family().clone(),
+            execution_plan_digest: read_graph
+                .execution_plan()
+                .query()
+                .plan_digest()
+                .as_str()
+                .to_string(),
             query_digest: query_digest.to_string(),
             basis_digest: basis_digest.to_string(),
             result_digest: materialized_result_digest(query_digest, basis_digest, rows)
