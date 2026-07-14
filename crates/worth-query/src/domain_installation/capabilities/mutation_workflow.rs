@@ -16,8 +16,8 @@ use crate::session_label::WorthQuerySessionLabel;
 
 use super::super::{
     WorthQueryInstalledDomainAuthorityWitness, WorthQueryInstalledDomainCapabilityKind,
-    WorthQueryInstalledDomainExecutionDrift, WorthQueryInstalledDomainExecutionReceipt,
-    WorthQueryInstalledDomainHandle,
+    WorthQueryInstalledDomainCapabilityStop, WorthQueryInstalledDomainExecutionDrift,
+    WorthQueryInstalledDomainExecutionReceipt, WorthQueryInstalledDomainHandle,
 };
 
 pub struct WorthQueryInstalledDomainMutationDeclaration<D> {
@@ -69,9 +69,20 @@ impl<D: 'static> WorthQueryInstalledDomainMutationRequest<D> {
     pub fn run(
         self,
         workspace: &mut WorthQueryWorkspace,
-    ) -> Result<WorthQueryInstalledDomainMutationOutcome, WorthQueryInstalledDomainExecutionDrift>
-    {
-        WorthQueryInstalledDomainExecutionDrift::validate::<D>(&self.witness, workspace)?;
+    ) -> Result<
+        WorthQueryInstalledDomainMutationOutcome,
+        WorthQueryInstalledDomainCapabilityStop<WorthQueryInstalledDomainExecutionDrift>,
+    > {
+        WorthQueryInstalledDomainExecutionDrift::validate::<D>(&self.witness, workspace).map_err(
+            |drift| {
+                WorthQueryInstalledDomainCapabilityStop::new(
+                    self.witness.clone(),
+                    WorthQueryInstalledDomainCapabilityKind::Mutation,
+                    self.declaration_identity.clone(),
+                    drift,
+                )
+            },
+        )?;
         Ok(match self.request.run(workspace) {
             WorthQueryMutationOutcome::Completed(completion) => {
                 let receipt = WorthQueryInstalledDomainExecutionReceipt::new(
@@ -89,7 +100,14 @@ impl<D: 'static> WorthQueryInstalledDomainMutationRequest<D> {
                 )
             }
             WorthQueryMutationOutcome::Stopped(stop) => {
-                WorthQueryInstalledDomainMutationOutcome::Stopped(stop)
+                WorthQueryInstalledDomainMutationOutcome::Stopped(
+                    WorthQueryInstalledDomainCapabilityStop::new(
+                        self.witness,
+                        WorthQueryInstalledDomainCapabilityKind::Mutation,
+                        self.declaration_identity,
+                        stop,
+                    ),
+                )
             }
         })
     }
@@ -97,7 +115,7 @@ impl<D: 'static> WorthQueryInstalledDomainMutationRequest<D> {
 
 pub enum WorthQueryInstalledDomainMutationOutcome {
     Completed(WorthQueryInstalledDomainMutationCompletion),
-    Stopped(WorthQueryMutationStop),
+    Stopped(WorthQueryInstalledDomainCapabilityStop<WorthQueryMutationStop>),
 }
 
 impl WorthQueryInstalledDomainMutationOutcome {
@@ -108,7 +126,7 @@ impl WorthQueryInstalledDomainMutationOutcome {
         }
     }
 
-    pub fn stop(&self) -> Option<&WorthQueryMutationStop> {
+    pub fn stop(&self) -> Option<&WorthQueryInstalledDomainCapabilityStop<WorthQueryMutationStop>> {
         match self {
             Self::Completed(_) => None,
             Self::Stopped(stop) => Some(stop),
@@ -167,9 +185,20 @@ impl<D: 'static> WorthQueryInstalledDomainWorkflowRequest<D> {
     pub fn run(
         self,
         workspace: &mut WorthQueryWorkspace,
-    ) -> Result<WorthQueryInstalledDomainWorkflowOutcome, WorthQueryInstalledDomainExecutionDrift>
-    {
-        WorthQueryInstalledDomainExecutionDrift::validate::<D>(&self.witness, workspace)?;
+    ) -> Result<
+        WorthQueryInstalledDomainWorkflowOutcome,
+        WorthQueryInstalledDomainCapabilityStop<WorthQueryInstalledDomainExecutionDrift>,
+    > {
+        WorthQueryInstalledDomainExecutionDrift::validate::<D>(&self.witness, workspace).map_err(
+            |drift| {
+                WorthQueryInstalledDomainCapabilityStop::new(
+                    self.witness.clone(),
+                    WorthQueryInstalledDomainCapabilityKind::Workflow,
+                    self.declaration_identity.clone(),
+                    drift,
+                )
+            },
+        )?;
         Ok(match self.request.run(workspace) {
             WorthQueryWorkflowOutcome::Completed(completion) => {
                 let receipt = WorthQueryInstalledDomainExecutionReceipt::new(
@@ -190,7 +219,14 @@ impl<D: 'static> WorthQueryInstalledDomainWorkflowRequest<D> {
                 )
             }
             WorthQueryWorkflowOutcome::Stopped(stop) => {
-                WorthQueryInstalledDomainWorkflowOutcome::Stopped(stop)
+                WorthQueryInstalledDomainWorkflowOutcome::Stopped(
+                    WorthQueryInstalledDomainCapabilityStop::new(
+                        self.witness,
+                        WorthQueryInstalledDomainCapabilityKind::Workflow,
+                        self.declaration_identity,
+                        stop,
+                    ),
+                )
             }
         })
     }
@@ -198,7 +234,7 @@ impl<D: 'static> WorthQueryInstalledDomainWorkflowRequest<D> {
 
 pub enum WorthQueryInstalledDomainWorkflowOutcome {
     Completed(WorthQueryInstalledDomainWorkflowCompletion),
-    Stopped(WorthQueryWorkflowStop),
+    Stopped(WorthQueryInstalledDomainCapabilityStop<WorthQueryWorkflowStop>),
 }
 
 impl WorthQueryInstalledDomainWorkflowOutcome {
@@ -209,7 +245,7 @@ impl WorthQueryInstalledDomainWorkflowOutcome {
         }
     }
 
-    pub fn stop(&self) -> Option<&WorthQueryWorkflowStop> {
+    pub fn stop(&self) -> Option<&WorthQueryInstalledDomainCapabilityStop<WorthQueryWorkflowStop>> {
         match self {
             Self::Completed(_) => None,
             Self::Stopped(stop) => Some(stop),

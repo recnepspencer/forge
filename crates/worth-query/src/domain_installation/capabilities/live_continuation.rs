@@ -30,6 +30,10 @@ pub struct WorthQueryInstalledDomainLiveCheckpointStop<D> {
 }
 
 impl<D> WorthQueryInstalledDomainLiveCheckpointStop<D> {
+    pub fn installation_receipt(&self) -> &WorthQueryInstalledDomainExecutionReceipt {
+        &self.receipt
+    }
+
     pub fn error(&self) -> &crate::runtime::WorthQueryRuntimeError {
         self.stop.error()
     }
@@ -135,6 +139,10 @@ pub struct WorthQueryInstalledDomainLiveResumeStop<D> {
 }
 
 impl<D> WorthQueryInstalledDomainLiveResumeStop<D> {
+    pub fn installation_receipt(&self) -> &WorthQueryInstalledDomainExecutionReceipt {
+        &self.receipt
+    }
+
     pub fn stop(&self) -> &WorthQueryManagedLiveResumeStop {
         &self.stop
     }
@@ -177,6 +185,10 @@ pub struct WorthQueryInstalledDomainLiveCloseStop<D> {
 }
 
 impl<D> WorthQueryInstalledDomainLiveCloseStop<D> {
+    pub fn installation_receipt(&self) -> &WorthQueryInstalledDomainExecutionReceipt {
+        &self.receipt
+    }
+
     pub fn error(&self) -> &crate::runtime::WorthQueryRuntimeError {
         self.stop.error()
     }

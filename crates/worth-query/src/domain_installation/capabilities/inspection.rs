@@ -7,8 +7,8 @@ use crate::ordinary::inspection::{
 use crate::runtime::WorthQueryWorkspace;
 
 use super::super::{
-    WorthQueryInstalledDomainCapabilityKind, WorthQueryInstalledDomainExecutionDrift,
-    WorthQueryInstalledDomainExecutionReceipt,
+    WorthQueryInstalledDomainCapabilityKind, WorthQueryInstalledDomainCapabilityStop,
+    WorthQueryInstalledDomainExecutionDrift, WorthQueryInstalledDomainExecutionReceipt,
 };
 use super::WorthQueryInstalledDomainReadCompletion;
 
@@ -55,9 +55,17 @@ impl<D: 'static> WorthQueryInstalledDomainInspectionRequest<D> {
         workspace: &WorthQueryWorkspace,
     ) -> Result<
         WorthQueryInstalledDomainInspectionOutcome<D>,
-        WorthQueryInstalledDomainExecutionDrift,
+        WorthQueryInstalledDomainCapabilityStop<WorthQueryInstalledDomainExecutionDrift>,
     > {
-        WorthQueryInstalledDomainExecutionDrift::validate::<D>(self.source.witness(), workspace)?;
+        WorthQueryInstalledDomainExecutionDrift::validate::<D>(self.source.witness(), workspace)
+            .map_err(|drift| {
+                WorthQueryInstalledDomainCapabilityStop::new(
+                    self.source.witness().clone(),
+                    WorthQueryInstalledDomainCapabilityKind::Inspection,
+                    self.source.declaration_identity().clone(),
+                    drift,
+                )
+            })?;
         let outcome = self.request.run(workspace);
         let operational_identity = outcome
             .settled()
