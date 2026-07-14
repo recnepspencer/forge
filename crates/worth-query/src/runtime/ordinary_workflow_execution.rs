@@ -1,3 +1,10 @@
+mod merge;
+
+pub(crate) use merge::{
+    WorthQueryLowerRuntimeMergeExecution, WorthQueryOrdinaryMergeExecutionError,
+    WorthQueryOrdinaryMergeFailureStage,
+};
+
 use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };

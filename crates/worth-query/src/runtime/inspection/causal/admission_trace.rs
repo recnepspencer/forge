@@ -272,6 +272,10 @@ impl CausalInspectionAdmissionReceipt {
         self.receipt_identity.as_str()
     }
 
+    pub(crate) fn evidence_identity(&self) -> &crate::WorthQueryEvidenceIdentity {
+        self.receipt_identity.evidence_identity()
+    }
+
     pub fn subject_for_reporting(&self) -> &str {
         self.subject_identity.as_str()
     }

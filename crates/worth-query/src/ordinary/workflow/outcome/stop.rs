@@ -6,7 +6,6 @@ pub enum WorthQueryWorkflowStopSource {
     CrossSession,
     ForeignAuthority,
     StalePreview,
-    UnsupportedWriteback,
     InspectionUnavailable,
     LowerRuntime,
 }
@@ -16,7 +15,6 @@ pub enum WorthQueryWorkflowViolationKind {
     CrossSession,
     ForeignAuthority,
     StalePreview,
-    UnsupportedWriteback,
     InspectionUnavailable,
     LowerRuntime,
 }
@@ -56,7 +54,6 @@ pub enum WorthQueryWorkflowNextAction {
     ProvideAuthority,
     RefreshPreview,
     UseMatchingSession,
-    RebindAuthoritativeWriteback,
     UseOperationalReceipt,
     InspectRuntimeDenial,
 }
@@ -94,9 +91,6 @@ impl WorthQueryWorkflowStop {
             }
             WorthQueryWorkflowStopSource::StalePreview => {
                 WorthQueryWorkflowNextAction::RefreshPreview
-            }
-            WorthQueryWorkflowStopSource::UnsupportedWriteback => {
-                WorthQueryWorkflowNextAction::RebindAuthoritativeWriteback
             }
             WorthQueryWorkflowStopSource::InspectionUnavailable => {
                 WorthQueryWorkflowNextAction::UseOperationalReceipt
@@ -151,9 +145,6 @@ fn violation_kind(source: WorthQueryWorkflowStopSource) -> WorthQueryWorkflowVio
             WorthQueryWorkflowViolationKind::ForeignAuthority
         }
         WorthQueryWorkflowStopSource::StalePreview => WorthQueryWorkflowViolationKind::StalePreview,
-        WorthQueryWorkflowStopSource::UnsupportedWriteback => {
-            WorthQueryWorkflowViolationKind::UnsupportedWriteback
-        }
         WorthQueryWorkflowStopSource::InspectionUnavailable => {
             WorthQueryWorkflowViolationKind::InspectionUnavailable
         }

@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
+use worth_relational::facade::runtime::RelationalRuntime;
 use worth_runtime_bridge::facade::RuntimeBridge;
 
 use crate::memory_workspace::WorthQueryEntityIdentity;
@@ -21,6 +22,7 @@ pub(super) struct StatefulBridgeState {
     pub(super) next_commit_identity: usize,
     pub(super) next_snapshot_token: usize,
     pub(super) bridge: RuntimeBridge,
+    pub(super) relational_runtime: Option<RelationalRuntime>,
 }
 
 impl StatefulBridgeState {
@@ -47,6 +49,12 @@ impl StatefulBridgeState {
             next_commit_identity: 0,
             next_snapshot_token: 0,
             bridge,
+            relational_runtime: None,
         }
+    }
+
+    pub(super) fn with_relational_runtime(mut self, runtime: RelationalRuntime) -> Self {
+        self.relational_runtime = Some(runtime);
+        self
     }
 }

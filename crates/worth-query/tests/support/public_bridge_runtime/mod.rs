@@ -8,6 +8,7 @@ mod external_row;
 mod hostile_certification;
 mod profiles;
 mod reader_lane_honesty;
+mod relational_merge;
 mod state;
 
 use std::cell::RefCell;
@@ -30,6 +31,8 @@ use self::state::{PublicBridgeRuntimeState, PublicExistingTruthKey};
 type SharedRuntimeState = Rc<RefCell<PublicBridgeRuntimeState>>;
 
 pub use self::profiles::public_graph_support_profile;
+#[allow(unused_imports)]
+pub use self::relational_merge::public_relational_merge_runtime;
 #[allow(unused_imports)]
 pub use common_bootstrap::{
     public_bridge_runtime_bootstrap_invocation_count,

@@ -9,6 +9,7 @@ mod exports_comparison;
 mod exports_domain;
 mod exports_foundation;
 mod exports_history;
+mod exports_inspection;
 mod exports_live_capability;
 mod exports_mutation;
 mod exports_policy;
@@ -182,6 +183,11 @@ pub mod workflow {
 /// Domain contribution contracts and their ordinary workflow journey.
 pub mod domain {
     pub use super::exports_domain::*;
+}
+
+/// Common outcome navigation and declarative inspection capability.
+pub mod inspection {
+    pub use super::exports_inspection::*;
 }
 
 pub mod runtime {

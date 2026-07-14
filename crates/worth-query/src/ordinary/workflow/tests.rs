@@ -215,3 +215,6 @@ fn foreign_authority_and_stale_preview_deny_before_session_open() {
 
 #[path = "tests/writeback.rs"]
 mod writeback;
+
+#[path = "tests/branch_merge.rs"]
+mod branch_merge;

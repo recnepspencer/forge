@@ -1,5 +1,5 @@
 pub use crate::runtime::{
-    WorthQueryGraphReadAccessRequirementDerivationError,
+    WorthQueryBackendMergeAuthority, WorthQueryGraphReadAccessRequirementDerivationError,
     WorthQueryGraphReadAccessRequirementExplanationOutcome,
     WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadAccessRequirementRow,
     WorthQueryGraphReadAccessRequirementSet, WorthQueryGraphReadAccessRequirementSetDigest,

@@ -5,11 +5,12 @@ use crate::evidence_identity::{
 };
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::session_label::WorthQuerySessionLabel;
+use worth_relational::facade::history::BranchId;
 
 use super::{
-    WorthQueryEffectPolicy, WorthQueryInspection, WorthQueryPreviewBasisAdmission,
-    WorthQueryRuntime, WorthQueryRuntimeError, WorthQueryRuntimeFacadeFamily,
-    WorthQueryWriteCommand, WorthQueryWriteReceipt,
+    WorthQueryBackendMergeAuthority, WorthQueryEffectPolicy, WorthQueryInspection,
+    WorthQueryPreviewBasisAdmission, WorthQueryRuntime, WorthQueryRuntimeError,
+    WorthQueryRuntimeFacadeFamily, WorthQueryWriteCommand, WorthQueryWriteReceipt,
 };
 
 static NEXT_RUNTIME_AUTHORITY_IDENTITY: AtomicU64 = AtomicU64::new(1);
@@ -38,11 +39,18 @@ pub(crate) enum WorthQueryOrdinaryAuthorityFamily {
     ReadOnlyPreview,
     PromotionPreview,
     Writeback,
+    BranchMerge,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum WorthQueryOrdinaryAuthorityDrift {
     Current,
+    ForeignOwner,
+    StaleSnapshot,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WorthQueryMergeAuthorityValidationError {
     ForeignOwner,
     StaleSnapshot,
 }
@@ -54,6 +62,7 @@ impl WorthQueryOrdinaryAuthorityFamily {
             Self::ReadOnlyPreview => "read-only-preview",
             Self::PromotionPreview => "promotion-preview",
             Self::Writeback => "writeback",
+            Self::BranchMerge => "branch-merge",
         }
     }
 }
@@ -65,7 +74,23 @@ pub(crate) struct WorthQueryOrdinaryAuthorityAdmission {
     snapshot_identity: WorthQuerySnapshotIdentity,
     session_label: Option<WorthQuerySessionLabel>,
     preview_basis: Option<WorthQueryPreviewBasisAdmission>,
+    merge_authority: Option<WorthQueryBackendMergeAuthority>,
     admission_identity: WorthQueryEvidenceIdentity,
+}
+
+pub(crate) struct WorthQueryValidatedMergeAuthority {
+    backend_authority: WorthQueryBackendMergeAuthority,
+    snapshot_identity: WorthQuerySnapshotIdentity,
+}
+
+impl WorthQueryValidatedMergeAuthority {
+    pub(crate) fn backend_authority(&self) -> &WorthQueryBackendMergeAuthority {
+        &self.backend_authority
+    }
+
+    pub(crate) fn snapshot_identity(&self) -> &WorthQuerySnapshotIdentity {
+        &self.snapshot_identity
+    }
 }
 
 pub(crate) struct WorthQueryLowerRuntimeMutationExecution {
@@ -133,6 +158,7 @@ impl WorthQueryRuntime {
             WorthQueryOrdinaryAuthorityFamily::Mutation,
             None,
             None,
+            None,
         ))
     }
 
@@ -149,6 +175,24 @@ impl WorthQueryRuntime {
             WorthQueryOrdinaryAuthorityFamily::Writeback,
             None,
             None,
+            None,
+        ))
+    }
+
+    pub(crate) fn capture_ordinary_merge_authority(
+        &self,
+        target_branch: BranchId,
+        source_branch: BranchId,
+    ) -> Result<WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
+        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Effect)?;
+        let merge_authority = self
+            .backend
+            .capture_query_merge_authority(target_branch, source_branch)?;
+        Ok(self.ordinary_authority_admission(
+            WorthQueryOrdinaryAuthorityFamily::BranchMerge,
+            None,
+            None,
+            Some(merge_authority),
         ))
     }
 
@@ -178,7 +222,7 @@ impl WorthQueryRuntime {
                 ));
             }
         };
-        Ok(self.ordinary_authority_admission(family, Some(label), Some(preview_basis)))
+        Ok(self.ordinary_authority_admission(family, Some(label), Some(preview_basis), None))
     }
 
     pub(crate) fn ordinary_authority_drift(
@@ -192,6 +236,27 @@ impl WorthQueryRuntime {
         } else {
             WorthQueryOrdinaryAuthorityDrift::Current
         }
+    }
+
+    pub(crate) fn validate_ordinary_merge_authority(
+        &self,
+        admission: WorthQueryOrdinaryAuthorityAdmission,
+    ) -> Result<WorthQueryValidatedMergeAuthority, WorthQueryMergeAuthorityValidationError> {
+        if admission.family != WorthQueryOrdinaryAuthorityFamily::BranchMerge
+            || admission.runtime_identity != self.authority_identity
+        {
+            return Err(WorthQueryMergeAuthorityValidationError::ForeignOwner);
+        }
+        let backend_authority = admission
+            .merge_authority
+            .ok_or(WorthQueryMergeAuthorityValidationError::StaleSnapshot)?;
+        self.backend
+            .validate_query_merge_authority(&backend_authority)
+            .map_err(|_| WorthQueryMergeAuthorityValidationError::StaleSnapshot)?;
+        Ok(WorthQueryValidatedMergeAuthority {
+            backend_authority,
+            snapshot_identity: admission.snapshot_identity,
+        })
     }
 
     pub(crate) fn execute_ordinary_authoritative_mutation(
@@ -229,8 +294,12 @@ impl WorthQueryRuntime {
         family: WorthQueryOrdinaryAuthorityFamily,
         session_label: Option<WorthQuerySessionLabel>,
         preview_basis: Option<WorthQueryPreviewBasisAdmission>,
+        merge_authority: Option<WorthQueryBackendMergeAuthority>,
     ) -> WorthQueryOrdinaryAuthorityAdmission {
-        let snapshot_identity = self.current_snapshot_identity();
+        let snapshot_identity = merge_authority
+            .as_ref()
+            .map(|authority| authority.target_snapshot_identity().clone())
+            .unwrap_or_else(|| self.current_snapshot_identity());
         let mut identity =
             WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::WorkflowContextBinding)
                 .field_shape(
@@ -258,12 +327,19 @@ impl WorthQueryRuntime {
                 basis.admission_digest().as_str(),
             );
         }
+        if let Some(authority) = merge_authority.as_ref() {
+            identity = identity.field_evidence_identity(
+                WorthQueryEvidenceTag::new("merge_authority"),
+                authority.authority_identity(),
+            );
+        }
         WorthQueryOrdinaryAuthorityAdmission {
             family,
             runtime_identity: self.authority_identity,
             snapshot_identity,
             session_label,
             preview_basis,
+            merge_authority,
             admission_identity: identity.seal(),
         }
     }

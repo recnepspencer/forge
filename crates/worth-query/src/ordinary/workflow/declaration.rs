@@ -9,6 +9,7 @@ use crate::session_label::WorthQuerySessionLabel;
 pub enum WorthQueryWorkflowFamily {
     PreviewPromotion,
     ProjectedStateWriteback,
+    BranchMerge,
 }
 
 impl WorthQueryWorkflowFamily {
@@ -16,6 +17,7 @@ impl WorthQueryWorkflowFamily {
         match self {
             Self::PreviewPromotion => "preview-promotion",
             Self::ProjectedStateWriteback => "projected-state-writeback",
+            Self::BranchMerge => "branch-merge",
         }
     }
 }

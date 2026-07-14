@@ -1,5 +1,6 @@
 mod support;
 
+use support::public_bridge_runtime::public_relational_merge_runtime;
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
 #[test]
@@ -147,6 +148,26 @@ fn writeback_journey_uses_only_workflow_capability_vocabulary() {
         .aftermath()
         .execution_receipt_identity_for_reporting()
         .is_empty());
+}
+
+#[test]
+fn branch_merge_journey_uses_only_workflow_capability_vocabulary() {
+    use worth_query::facade::workflow::{branch_merge, declare_branch_merge};
+
+    let declaration = declare_branch_merge("main", "candidate")
+        .expect("branch merge should declare")
+        .with_rich_inspection();
+    let mut workspace = PublicBridgeRuntimeHarness::new()
+        .bridge_backed_runtime_with_relational(public_relational_merge_runtime())
+        .workspace("public-branch-merge-dx")
+        .expect("workspace should open");
+    let context = branch_merge(&workspace, &declaration).expect("merge authority should admit");
+    let outcome = declaration.using(context).run(&mut workspace);
+    let completion = outcome.completed().expect("branch merge should complete");
+
+    assert_eq!(completion.receipt().write_count(), 1);
+    assert!(completion.aftermath().commit_id() > 0);
+    assert!(completion.diagnostics().is_some());
 }
 
 #[test]

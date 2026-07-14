@@ -16,9 +16,27 @@ impl PublicBridgeRuntimeHarness {
         &self,
         profile: WorthQueryRuntimeSupportProfile,
     ) -> WorthQueryRuntime {
+        self.bridge_backed_runtime_with_support_and_relational(profile, None)
+    }
+
+    pub fn bridge_backed_runtime_with_relational(
+        &self,
+        relational_runtime: worth_relational::facade::runtime::RelationalRuntime,
+    ) -> WorthQueryRuntime {
+        self.bridge_backed_runtime_with_support_and_relational(
+            public_graph_support_profile(),
+            Some(relational_runtime),
+        )
+    }
+
+    fn bridge_backed_runtime_with_support_and_relational(
+        &self,
+        profile: WorthQueryRuntimeSupportProfile,
+        relational_runtime: Option<worth_relational::facade::runtime::RelationalRuntime>,
+    ) -> WorthQueryRuntime {
         record_public_bridge_runtime_bootstrap_invocation(PublicBridgeRuntimeBootstrapPath::Common);
 
-        WorthQueryRuntime::builder()
+        let mut builder = WorthQueryRuntime::builder()
             .runtime_bridge(bridge::public_bridge())
             .schema_adapter(PublicSchemaAdapter)
             .source_adapter(PublicSourceAdapter::new(self.state.clone()))
@@ -31,7 +49,11 @@ impl PublicBridgeRuntimeHarness {
             .subscription_activation(PublicSubscriptionActivationAdapter)
             .preview_basis(PublicPreviewBasisAdapter)
             .inspector_evidence(PublicInspectorEvidenceAdapter)
-            .support_profile(profile)
+            .support_profile(profile);
+        if let Some(relational_runtime) = relational_runtime {
+            builder = builder.relational_runtime(relational_runtime);
+        }
+        builder
             .build_backend_from_parts()
             .build()
             .expect("public bridge-backed runtime should build")

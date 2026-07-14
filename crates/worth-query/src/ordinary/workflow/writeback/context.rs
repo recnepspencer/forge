@@ -25,8 +25,8 @@ impl WorthQueryWritebackContextStop {
         &self.counters
     }
 
-    pub fn next_action(&self) -> crate::ordinary::workflow::WorthQueryWorkflowNextAction {
-        crate::ordinary::workflow::WorthQueryWorkflowNextAction::RebindAuthoritativeWriteback
+    pub fn next_action(&self) -> super::WorthQueryWritebackNextAction {
+        super::WorthQueryWritebackNextAction::RebindCurrentAuthority
     }
 }
 

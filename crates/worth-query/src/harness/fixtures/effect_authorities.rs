@@ -159,12 +159,17 @@ pub(crate) fn branch_snapshot_identity(
     runtime: &RelationalRuntime,
     branch: &str,
 ) -> WorthQuerySnapshotIdentity {
-    WorthQuerySnapshotIdentity::from_relational_snapshot(
-        RelationalBridgeSnapshotIdentityParts::new(
-            crate::effect_lifecycle::stable_branch_snapshot_id(&BranchId(branch.to_string())),
-            branch_runtime_version(runtime, branch),
+    let history = runtime.history();
+    let head = history
+        .branch_head(&BranchId(branch.to_string()))
+        .expect("branch snapshot fixture requires a current branch head");
+    WorthQuerySnapshotIdentity::from_bridge_snapshot_identity(
+        worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
+            head.commit_id,
+            head.version_id,
         ),
     )
+    .expect("relational commit must yield a relational snapshot identity")
 }
 
 fn test_schema_registry() -> RelationalSchemaRegistry {
@@ -229,14 +234,6 @@ impl CommittedPatchSource for TestBridgeSource {
         )
         .expect("native bridge patch envelope fixture must construct"))
     }
-}
-
-fn branch_runtime_version(runtime: &RelationalRuntime, branch: &str) -> u64 {
-    runtime
-        .history()
-        .branch_head(&BranchId(branch.to_string()))
-        .map(|commit| commit.version_id.0)
-        .unwrap_or(0)
 }
 
 fn stable_fixture_position(namespace: &str, evidence: &str) -> u64 {

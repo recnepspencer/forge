@@ -235,6 +235,7 @@ mod mixed_cause_delivery;
 mod mixed_cause_emission;
 mod mutation;
 mod mutation_surface;
+mod ordinary_inspection_execution;
 mod ordinary_runtime_posture;
 mod ordinary_workflow_authority;
 mod ordinary_workflow_execution;
@@ -345,8 +346,10 @@ pub use backend::{
     runtime_subscription_support_evidence_identity, LiveViewDeclarationAdmissionBoundaryReceipt,
     LiveViewDeclarationAdmissionReceipt, SignalInvalidationBoundaryReceipt,
     SignalInvalidationRoutingReceipt, SubscriptionActivationBoundaryReceipt,
-    SubscriptionActivationReceipt, WorthQueryBridgeBackedRuntimeBackend,
-    WorthQueryIntentAuthorityAdapter, WorthQueryRuntimeBackend, WorthQueryRuntimeBackendParts,
+    SubscriptionActivationReceipt, WorthQueryBackendInspectionError,
+    WorthQueryBackendInspectionErrorKind, WorthQueryBackendMergeAuthority,
+    WorthQueryBridgeBackedRuntimeBackend, WorthQueryIntentAuthorityAdapter,
+    WorthQueryRuntimeBackend, WorthQueryRuntimeBackendParts,
     WorthQueryRuntimeDeclarationInitializationAdapter,
     WorthQueryRuntimeExistingTruthVerificationAdapter, WorthQueryRuntimeInspectorEvidenceAdapter,
     WorthQueryRuntimeIntentAuthorityAdapter, WorthQueryRuntimePreviewBasisAdapter,
@@ -733,13 +736,16 @@ pub use mutation_surface::{
     WorthQueryMutationSurfacePosture, WorthQueryMutationSurfaceReport, WorthQueryMutationSurfaceRow,
 };
 pub(crate) use ordinary_workflow_authority::{
-    WorthQueryLowerRuntimeMutationExecution, WorthQueryOrdinaryAuthorityAdmission,
-    WorthQueryOrdinaryAuthorityDrift, WorthQueryOrdinaryAuthorityFamily,
-    WorthQueryRuntimeAuthorityIdentity,
+    WorthQueryLowerRuntimeMutationExecution, WorthQueryMergeAuthorityValidationError,
+    WorthQueryOrdinaryAuthorityAdmission, WorthQueryOrdinaryAuthorityDrift,
+    WorthQueryOrdinaryAuthorityFamily, WorthQueryRuntimeAuthorityIdentity,
+    WorthQueryValidatedMergeAuthority,
 };
 pub(crate) use ordinary_workflow_execution::{
-    WorthQueryLowerRuntimePreviewExecution, WorthQueryLowerRuntimeWritebackExecution,
-    WorthQueryOrdinaryWritebackExecutionError, WorthQueryOrdinaryWritebackFailureStage,
+    WorthQueryLowerRuntimeMergeExecution, WorthQueryLowerRuntimePreviewExecution,
+    WorthQueryLowerRuntimeWritebackExecution, WorthQueryOrdinaryMergeExecutionError,
+    WorthQueryOrdinaryMergeFailureStage, WorthQueryOrdinaryWritebackExecutionError,
+    WorthQueryOrdinaryWritebackFailureStage,
 };
 pub use preview::{
     WorthQueryPreviewCloseoutEvidence, WorthQueryPreviewCloseoutKind, WorthQueryPreviewDiff,

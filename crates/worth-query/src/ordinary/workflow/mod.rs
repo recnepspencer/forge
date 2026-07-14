@@ -1,3 +1,4 @@
+mod branch_merge;
 mod context;
 mod declaration;
 mod execution;
@@ -5,6 +6,15 @@ mod outcome;
 mod request;
 mod writeback;
 
+pub use branch_merge::{
+    branch_merge, declare_branch_merge, WorthQueryBranchMergeAftermath,
+    WorthQueryBranchMergeCompletion, WorthQueryBranchMergeContext,
+    WorthQueryBranchMergeContextStop, WorthQueryBranchMergeDeclaration,
+    WorthQueryBranchMergeDeclarationDenialKind, WorthQueryBranchMergeDeclarationIdentity,
+    WorthQueryBranchMergeDeclarationStop, WorthQueryBranchMergeNextAction,
+    WorthQueryBranchMergeOutcome, WorthQueryBranchMergeRequest, WorthQueryBranchMergeStop,
+    WorthQueryBranchMergeStopSource,
+};
 pub use context::{preview, WorthQueryWorkflowContext, WorthQueryWorkflowContextStop};
 pub use declaration::{
     declare, WorthQueryWorkflowDeclaration, WorthQueryWorkflowDeclarationIdentity,

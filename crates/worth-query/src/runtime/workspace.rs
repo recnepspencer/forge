@@ -90,6 +90,15 @@ impl WorthQueryWorkspace {
         self.runtime.capture_ordinary_writeback_authority()
     }
 
+    pub(crate) fn capture_ordinary_merge_authority(
+        &self,
+        target_branch: worth_relational::facade::history::BranchId,
+        source_branch: worth_relational::facade::history::BranchId,
+    ) -> Result<super::WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
+        self.runtime
+            .capture_ordinary_merge_authority(target_branch, source_branch)
+    }
+
     pub(crate) fn ordinary_authority_drift(
         &self,
         admission: &super::WorthQueryOrdinaryAuthorityAdmission,
@@ -97,8 +106,25 @@ impl WorthQueryWorkspace {
         self.runtime.ordinary_authority_drift(admission)
     }
 
+    pub(crate) fn validate_ordinary_merge_authority(
+        &self,
+        admission: super::WorthQueryOrdinaryAuthorityAdmission,
+    ) -> Result<
+        super::WorthQueryValidatedMergeAuthority,
+        super::WorthQueryMergeAuthorityValidationError,
+    > {
+        self.runtime.validate_ordinary_merge_authority(admission)
+    }
+
     pub(crate) fn admit_ordinary_rich_inspection(&self) -> Result<(), WorthQueryRuntimeError> {
         self.runtime.admit_ordinary_rich_inspection()
+    }
+
+    pub(crate) fn materialize_ordinary_inspection(
+        &self,
+        plan: &super::CausalInspectionPlan,
+    ) -> Result<super::QueryCausalInspectionArtifact, super::WorthQueryBackendInspectionError> {
+        self.runtime.materialize_ordinary_inspection(plan)
     }
 
     pub(crate) fn execute_ordinary_authoritative_mutation(
@@ -150,6 +176,26 @@ impl WorthQueryWorkspace {
         self.runtime.execute_ordinary_writeback(
             authority,
             declaration_identity,
+            materialize_inspection,
+        )
+    }
+
+    pub(crate) fn execute_ordinary_merge(
+        &mut self,
+        authority: super::WorthQueryValidatedMergeAuthority,
+        declaration_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
+        target_branch: worth_relational::facade::history::BranchId,
+        source_branch: worth_relational::facade::history::BranchId,
+        materialize_inspection: bool,
+    ) -> Result<
+        super::WorthQueryLowerRuntimeMergeExecution,
+        super::WorthQueryOrdinaryMergeExecutionError,
+    > {
+        self.runtime.execute_ordinary_merge(
+            authority,
+            declaration_identity,
+            target_branch,
+            source_branch,
             materialize_inspection,
         )
     }
