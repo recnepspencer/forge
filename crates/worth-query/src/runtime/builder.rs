@@ -5,6 +5,7 @@ use worth_relational::facade::runtime::{
     CustomInvariantRegistration, CustomInvariantRule, InvariantCatalog, RelationalRuntimeBuilder,
 };
 
+mod domain_packages;
 mod queued_graph_obligation_registrations;
 use queued_graph_obligation_registrations::QueuedGraphObligationRegistrations;
 
@@ -53,6 +54,7 @@ pub struct WorthQueryRuntimeBuilder {
     queued_graph_obligation_registrations: QueuedGraphObligationRegistrations,
     graph_obligation_registration_catalog:
         Option<Result<WorthQueryGraphObligationRegistrationCatalog, WorthQueryRuntimeError>>,
+    pending_domain_installations: crate::domain_installation::WorthQueryPendingDomainInstallations,
 }
 
 impl WorthQueryRuntimeBuilder {
@@ -289,10 +291,17 @@ impl WorthQueryRuntimeBuilder {
         };
         let graph_obligation_index =
             WorthQueryGraphObligationIndex::from_catalog(&graph_obligation_registration_catalog);
+        let authority_identity = super::WorthQueryRuntimeAuthorityIdentity::mint();
+        let domain_installation_registry =
+            crate::domain_installation::WorthQueryDomainInstallationRegistry::from_artifacts(
+                self.pending_domain_installations.into_artifacts(),
+                authority_identity,
+            );
         Ok(WorthQueryRuntime {
             backend,
             evidence_authority: WorthQueryRuntimeEvidenceAuthority::new(),
-            authority_identity: super::WorthQueryRuntimeAuthorityIdentity::mint(),
+            authority_identity,
+            domain_installation_registry,
             preview_session_labels: BTreeSet::new(),
             branch_session_labels: BTreeSet::new(),
             active_subscriptions: ActiveSubscriptionRuntime::new(),

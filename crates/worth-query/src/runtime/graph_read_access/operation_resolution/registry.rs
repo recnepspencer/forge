@@ -8,12 +8,40 @@ use crate::authoring::{
     WorthQueryGraphReadDomainOperationDeclaration, WorthQueryGraphReadOperationKey,
 };
 
+pub(crate) trait WorthQueryGraphReadOperationLookup {
+    fn matching_declared_operation(
+        &self,
+        declaration: &WorthQueryGraphReadDomainOperationDeclaration,
+    ) -> Option<&WorthQueryGraphReadOperationRegistration>;
+
+    fn matching_unsupported_declared_operation(
+        &self,
+        declaration: &WorthQueryGraphReadDomainOperationDeclaration,
+    ) -> Option<&WorthQueryGraphReadOperationUnsupportedShapeDeclaration>;
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryGraphReadOperationRegistry {
     registrations: Vec<WorthQueryGraphReadOperationRegistration>,
     required_capabilities: Vec<RequiredCapabilityRule>,
     unsupported_shapes: Vec<UnsupportedShapeRule>,
     unsupported_operations: Vec<UnsupportedOperationRule>,
+}
+
+impl WorthQueryGraphReadOperationLookup for WorthQueryGraphReadOperationRegistry {
+    fn matching_declared_operation(
+        &self,
+        declaration: &WorthQueryGraphReadDomainOperationDeclaration,
+    ) -> Option<&WorthQueryGraphReadOperationRegistration> {
+        self.matching_declared_operation(declaration)
+    }
+
+    fn matching_unsupported_declared_operation(
+        &self,
+        declaration: &WorthQueryGraphReadDomainOperationDeclaration,
+    ) -> Option<&WorthQueryGraphReadOperationUnsupportedShapeDeclaration> {
+        self.matching_unsupported_declared_operation(declaration)
+    }
 }
 
 impl WorthQueryGraphReadOperationRegistry {

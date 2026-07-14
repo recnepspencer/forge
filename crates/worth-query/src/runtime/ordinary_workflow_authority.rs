@@ -28,7 +28,7 @@ impl WorthQueryRuntimeAuthorityIdentity {
         Self(NEXT_RUNTIME_AUTHORITY_IDENTITY.fetch_add(1, Ordering::Relaxed))
     }
 
-    fn as_u64(self) -> u64 {
+    pub(crate) fn as_u64(self) -> u64 {
         self.0
     }
 }

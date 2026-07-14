@@ -208,6 +208,7 @@ mod builder;
 mod computed;
 mod concurrent_hostile_matrix;
 mod delivery;
+mod domain_installation_api;
 mod downstream_delivery_contract;
 mod downstream_delivery_resume;
 mod effect;
@@ -221,6 +222,7 @@ pub(crate) use evidence_identities::{
 mod fallback_seam_counters;
 mod graph_obligation_registration;
 mod graph_read_access;
+pub(crate) use graph_read_access::WorthQueryGraphReadOperationLookup;
 mod handle_contract;
 mod inspection;
 mod intent;
@@ -551,6 +553,12 @@ pub use graph_read_access::{
 pub(crate) use graph_read_access::{
     admit_graph_read_access_for_family_in_authority_with_inventory,
     admit_graph_read_access_for_family_with_inventory,
+};
+pub(crate) use graph_read_access::{
+    admit_graph_read_access_for_family_in_authority_with_inventory_and_lookup,
+    explain_boolean_selectivity_shape_for_family_in_authority_with_lookup,
+    explain_graph_read_access_requirements_for_family_in_authority_with_lookup,
+    explain_graph_read_access_shape_for_family_in_authority_with_lookup,
 };
 pub use handle_contract::{
     WorthQueryHandleContract, WorthQueryHandleContractFamily, WorthQueryHandleContractRow,
@@ -897,6 +905,7 @@ pub struct WorthQueryRuntime {
     backend: Box<dyn WorthQueryRuntimeBackend>,
     evidence_authority: WorthQueryRuntimeEvidenceAuthority,
     authority_identity: WorthQueryRuntimeAuthorityIdentity,
+    domain_installation_registry: crate::domain_installation::WorthQueryDomainInstallationRegistry,
     preview_session_labels: BTreeSet<WorthQuerySessionLabel>,
     branch_session_labels: BTreeSet<WorthQuerySessionLabel>,
     active_subscriptions: ActiveSubscriptionRuntime,

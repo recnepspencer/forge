@@ -1,5 +1,5 @@
 use super::{
-    WorthQueryGraphReadOperationOutcome, WorthQueryGraphReadOperationRegistry,
+    registry::WorthQueryGraphReadOperationLookup, WorthQueryGraphReadOperationOutcome,
     WorthQueryGraphReadOperationResolution, WorthQueryGraphReadResolvedOperation,
 };
 use crate::runtime::{
@@ -12,7 +12,7 @@ pub(crate) fn resolve_graph_read_operations_for_read_graph(
     references: WorthQueryAdmittedQuerySchemaReferences,
     basis_binding: WorthQueryGraphReadBasisBinding,
     policy_tenant_proof_binding: WorthQueryGraphReadPolicyTenantProofBinding,
-    registry: &WorthQueryGraphReadOperationRegistry,
+    registry: &impl WorthQueryGraphReadOperationLookup,
 ) -> WorthQueryGraphReadOperationOutcome {
     if let Some(declaration) = read_graph.domain_graph_operations().first() {
         let declared_relation_names = declared_operation_relation_names(declaration);

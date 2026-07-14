@@ -227,7 +227,13 @@ impl WorthQueryWorkspace {
         super::WorthQueryGraphReadAccessShapeExplanation,
         super::WorthQueryGraphReadAccessShapeExplanationError,
     > {
-        super::explain_graph_read_access_shape_for_family(family)
+        let authority =
+            super::WorthQueryGraphReadAccessAuthorityContext::runtime_current_compatibility();
+        super::explain_graph_read_access_shape_for_family_in_authority_with_lookup(
+            family,
+            &authority,
+            self.runtime.installed_domain_execution_index(),
+        )
     }
 
     pub(crate) fn admit_graph_read_access_authority(
@@ -258,7 +264,11 @@ impl WorthQueryWorkspace {
         super::WorthQueryGraphReadAccessShapeExplanation,
         super::WorthQueryGraphReadAccessShapeExplanationError,
     > {
-        super::explain_graph_read_access_shape_for_family_in_authority(family, authority)
+        super::explain_graph_read_access_shape_for_family_in_authority_with_lookup(
+            family,
+            authority,
+            self.runtime.installed_domain_execution_index(),
+        )
     }
 
     pub(crate) fn admit_graph_read_access_in_authority(
@@ -280,7 +290,10 @@ impl WorthQueryWorkspace {
         Option<super::WorthQueryAdmittedGraphReadAccessPlan>,
         super::WorthQueryGraphReadAccessShapeExplanationError,
     > {
-        super::plan_admitted_graph_read_access_for_family_in_authority(family, authority)
+        let admission = self
+            .runtime
+            .admit_graph_read_access_for_family_in_authority(family, authority)?;
+        Ok(super::WorthQueryAdmittedGraphReadAccessPlan::from_admission(admission))
     }
 
     pub fn explain_boolean_selectivity_shape(
@@ -290,7 +303,13 @@ impl WorthQueryWorkspace {
         super::WorthQueryBooleanSelectivityShape,
         super::WorthQueryGraphReadAccessShapeExplanationError,
     > {
-        super::explain_boolean_selectivity_shape_for_family(family)
+        let authority =
+            super::WorthQueryGraphReadAccessAuthorityContext::runtime_current_compatibility();
+        super::explain_boolean_selectivity_shape_for_family_in_authority_with_lookup(
+            family,
+            &authority,
+            self.runtime.installed_domain_execution_index(),
+        )
     }
 
     pub(crate) fn plan_live_graph_read_access(
@@ -299,15 +318,9 @@ impl WorthQueryWorkspace {
         budget: super::WorthQueryLiveGraphReadMaintenanceBudget,
     ) -> Result<super::WorthQueryLiveGraphReadAccessPlan, super::WorthQueryLiveGraphReadAccessDenial>
     {
-        let one_shot = match super::plan_admitted_graph_read_access_for_family(family) {
-            Ok(Some(one_shot)) => one_shot,
-            Ok(None) => {
-                return Err(super::WorthQueryLiveGraphReadAccessDenial::new(
-                    super::WorthQueryLiveGraphReadAccessPosture::DeniedLiveMaintenanceSupport,
-                    family.family_digest(),
-                    &budget,
-                    "live graph read access planning requires an admitted one-shot access plan",
-                ));
+        let one_shot = match self.runtime.admit_graph_read_access_for_family(family) {
+            Ok(admission) => {
+                super::WorthQueryAdmittedGraphReadAccessPlan::from_admission(admission)
             }
             Err(error) => {
                 return Err(super::WorthQueryLiveGraphReadAccessDenial::new(
@@ -317,6 +330,17 @@ impl WorthQueryWorkspace {
                     format!("live graph read access planning could not derive one-shot access: {error:?}"),
                 ));
             }
+        };
+        let one_shot = match one_shot {
+            None => {
+                return Err(super::WorthQueryLiveGraphReadAccessDenial::new(
+                    super::WorthQueryLiveGraphReadAccessPosture::DeniedLiveMaintenanceSupport,
+                    family.family_digest(),
+                    &budget,
+                    "live graph read access planning requires an admitted one-shot access plan",
+                ));
+            }
+            Some(one_shot) => one_shot,
         };
         super::WorthQueryLiveGraphReadAccessPlan::from_one_shot_access_plan(&one_shot, budget)
     }

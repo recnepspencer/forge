@@ -10,8 +10,8 @@ use super::{
     WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadAccessRequirementRow,
     WorthQueryGraphReadAccessRequirementSet, WorthQueryGraphReadAccessShape,
     WorthQueryGraphReadAccessShapeExplanation, WorthQueryGraphReadOperationCapabilityRequirement,
-    WorthQueryGraphReadOperationOutcome, WorthQueryGraphReadOperationRegistry,
-    WorthQueryGraphReadOperationUnsupportedDenial,
+    WorthQueryGraphReadOperationLookup, WorthQueryGraphReadOperationOutcome,
+    WorthQueryGraphReadOperationRegistry, WorthQueryGraphReadOperationUnsupportedDenial,
     WorthQueryGraphReadSchemaReferenceAdmissionError,
 };
 use crate::identity::hash_parts;
@@ -196,10 +196,10 @@ pub fn explain_graph_read_access_requirement_outcome_for_family_in_authority(
     )
 }
 
-fn explain_graph_read_access_requirement_outcome_for_family_in_authority_with_operation_registry(
+pub(super) fn explain_graph_read_access_requirement_outcome_for_family_in_authority_with_operation_registry(
     family: &WorthQueryReadFamily,
     authority: &WorthQueryGraphReadAccessAuthorityContext,
-    registry: &WorthQueryGraphReadOperationRegistry,
+    registry: &impl WorthQueryGraphReadOperationLookup,
 ) -> Result<
     WorthQueryGraphReadAccessRequirementExplanationOutcome,
     WorthQueryGraphReadAccessShapeExplanationError,
@@ -298,7 +298,7 @@ pub fn explain_graph_read_access_requirements_for_family_with_operation_registry
     }
 }
 
-fn domain_operation_capability_requirement_set(
+pub(super) fn domain_operation_capability_requirement_set(
     requirement: WorthQueryGraphReadOperationCapabilityRequirement,
 ) -> WorthQueryGraphReadAccessRequirementSet {
     let read_graph_digest = requirement.read_graph_digest().to_string();
@@ -326,7 +326,7 @@ fn domain_operation_capability_requirement_set(
     )
 }
 
-fn explain_boolean_selectivity_shape_for_access_shape(
+pub(super) fn explain_boolean_selectivity_shape_for_access_shape(
     read_graph: &WorthQueryReadGraph,
     access_shape: WorthQueryGraphReadAccessShape,
 ) -> Result<WorthQueryBooleanSelectivityShape, WorthQueryGraphReadAccessShapeExplanationError> {
@@ -341,11 +341,11 @@ fn explain_boolean_selectivity_shape_for_access_shape(
     ))
 }
 
-fn explain_graph_read_access_shape_for_graph(
+pub(super) fn explain_graph_read_access_shape_for_graph(
     family_digest: &str,
     read_graph: &WorthQueryReadGraph,
     authority: &WorthQueryGraphReadAccessAuthorityContext,
-    registry: &WorthQueryGraphReadOperationRegistry,
+    registry: &impl WorthQueryGraphReadOperationLookup,
 ) -> Result<WorthQueryGraphReadAccessShapeExplanation, WorthQueryGraphReadAccessShapeExplanationError>
 {
     let operation_resolution = match resolve_graph_read_operations_for_graph(read_graph, authority, registry)? {
@@ -373,7 +373,7 @@ fn explain_graph_read_access_shape_for_graph(
 fn resolve_graph_read_operations_for_graph(
     read_graph: &WorthQueryReadGraph,
     authority: &WorthQueryGraphReadAccessAuthorityContext,
-    registry: &WorthQueryGraphReadOperationRegistry,
+    registry: &impl WorthQueryGraphReadOperationLookup,
 ) -> Result<WorthQueryGraphReadOperationOutcome, WorthQueryGraphReadAccessShapeExplanationError> {
     let references = admit_query_schema_references_for_read_graph(read_graph)
         .map_err(WorthQueryGraphReadAccessShapeExplanationError::SchemaReferenceAdmission)?;

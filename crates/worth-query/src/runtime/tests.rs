@@ -7,6 +7,7 @@ mod causal_inspection;
 #[allow(deprecated)]
 mod computed;
 mod concurrent_hostile_matrix;
+mod domain_installation;
 #[allow(deprecated)]
 mod effect;
 mod evidence_identity;
