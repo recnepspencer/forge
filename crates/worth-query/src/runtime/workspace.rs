@@ -62,6 +62,13 @@ impl WorthQueryWorkspace {
         self.runtime.current_snapshot_identity()
     }
 
+    pub(crate) fn capture_branch_comparison_basis(
+        &self,
+        label: WorthQuerySessionLabel,
+    ) -> Result<super::WorthQueryRuntimeBranchComparisonBasis, WorthQueryRuntimeError> {
+        self.runtime.capture_branch_comparison_basis(label)
+    }
+
     pub fn into_runtime(self) -> WorthQueryRuntime {
         self.runtime
     }

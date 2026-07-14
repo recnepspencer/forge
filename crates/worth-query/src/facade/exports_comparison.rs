@@ -16,13 +16,16 @@ pub use crate::correspondence::{
     StructuralCandidateBudget, StructuralCandidateDiscoveryPlan,
 };
 pub use crate::ordinary::comparison::{
-    current_and_retained, declare, WorthQueryComparisonChange, WorthQueryComparisonCompletion,
-    WorthQueryComparisonContext, WorthQueryComparisonCorrespondence,
-    WorthQueryComparisonCorrespondencePosture, WorthQueryComparisonDeclaration,
-    WorthQueryComparisonDeclarationStop, WorthQueryComparisonIntent,
-    WorthQueryComparisonJourneyCounters, WorthQueryComparisonNextAction,
-    WorthQueryComparisonOutcome, WorthQueryComparisonRefinement, WorthQueryComparisonRequest,
-    WorthQueryComparisonStop, WorthQueryComparisonStopSource,
+    between, current_and_retained, declare, WorthQueryComparisonBasisEvidence,
+    WorthQueryComparisonBasisFamily, WorthQueryComparisonBasisPairEvidence,
+    WorthQueryComparisonChange, WorthQueryComparisonCompletion, WorthQueryComparisonContext,
+    WorthQueryComparisonCorrespondence, WorthQueryComparisonCorrespondencePosture,
+    WorthQueryComparisonCostClass, WorthQueryComparisonDeclaration,
+    WorthQueryComparisonDeclarationStop, WorthQueryComparisonExecution, WorthQueryComparisonIntent,
+    WorthQueryComparisonJourneyCounters, WorthQueryComparisonMaterialization,
+    WorthQueryComparisonNextAction, WorthQueryComparisonOutcome, WorthQueryComparisonRefinement,
+    WorthQueryComparisonRequest, WorthQueryComparisonRowChange,
+    WorthQueryComparisonRowChangeFamily, WorthQueryComparisonStop, WorthQueryComparisonStopSource,
 };
 pub use crate::runtime::{
     WorthQueryReadBreadth, WorthQueryReadDenial, WorthQueryReadDenialKind,
@@ -31,4 +34,8 @@ pub use crate::runtime::{
 };
 pub use crate::schema_view::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
+};
+pub use crate::session_label::{
+    WorthQuerySessionLabel, WorthQuerySessionLabelError, WorthQuerySessionLabelSegment,
+    WorthQuerySessionNamespace,
 };

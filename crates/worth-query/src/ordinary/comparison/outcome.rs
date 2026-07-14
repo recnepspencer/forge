@@ -1,6 +1,11 @@
 use crate::correspondence::CorrespondenceEvidenceResolved;
-use crate::historical::HistoricalMaterializationPathMetadata;
+use crate::memory_workspace::WorthQueryEntityIdentity;
 use crate::runtime::WorthQueryReadResult;
+
+use super::{
+    WorthQueryComparisonBasisFamily, WorthQueryComparisonBasisPairEvidence,
+    WorthQueryComparisonCostClass, WorthQueryComparisonRowChange,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryComparisonChange {
@@ -11,23 +16,39 @@ pub enum WorthQueryComparisonChange {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryComparisonJourneyCounters {
     basis_pair_validation_count: usize,
-    current_execution_attempt_count: usize,
-    historical_execution_attempt_count: usize,
+    left_execution_attempt_count: usize,
+    right_execution_attempt_count: usize,
+    historical_materialization_attempt_count: usize,
     correspondence_resolution_attempt_count: usize,
+    left_row_scan_count: usize,
+    right_row_scan_count: usize,
+    emitted_row_change_count: usize,
 }
 
 impl WorthQueryComparisonJourneyCounters {
     pub fn basis_pair_validation_count(&self) -> usize {
         self.basis_pair_validation_count
     }
-    pub fn current_execution_attempt_count(&self) -> usize {
-        self.current_execution_attempt_count
+    pub fn left_execution_attempt_count(&self) -> usize {
+        self.left_execution_attempt_count
     }
-    pub fn historical_execution_attempt_count(&self) -> usize {
-        self.historical_execution_attempt_count
+    pub fn right_execution_attempt_count(&self) -> usize {
+        self.right_execution_attempt_count
+    }
+    pub fn historical_materialization_attempt_count(&self) -> usize {
+        self.historical_materialization_attempt_count
     }
     pub fn correspondence_resolution_attempt_count(&self) -> usize {
         self.correspondence_resolution_attempt_count
+    }
+    pub fn left_row_scan_count(&self) -> usize {
+        self.left_row_scan_count
+    }
+    pub fn right_row_scan_count(&self) -> usize {
+        self.right_row_scan_count
+    }
+    pub fn emitted_row_change_count(&self) -> usize {
+        self.emitted_row_change_count
     }
     pub(crate) fn validate_pair() -> Self {
         Self {
@@ -35,16 +56,31 @@ impl WorthQueryComparisonJourneyCounters {
             ..Self::default()
         }
     }
-    pub(crate) fn execute_current(mut self) -> Self {
-        self.current_execution_attempt_count = 1;
+    pub(crate) fn execute_left(mut self) -> Self {
+        self.left_execution_attempt_count = 1;
         self
     }
-    pub(crate) fn execute_historical(mut self) -> Self {
-        self.historical_execution_attempt_count = 1;
+    pub(crate) fn execute_right(mut self) -> Self {
+        self.right_execution_attempt_count = 1;
+        self
+    }
+    pub(crate) fn materialize_historical(mut self) -> Self {
+        self.historical_materialization_attempt_count = 1;
         self
     }
     pub(crate) fn resolve_correspondence(mut self) -> Self {
         self.correspondence_resolution_attempt_count = 1;
+        self
+    }
+    pub(crate) fn record_diff_breadth(
+        mut self,
+        left_rows: usize,
+        right_rows: usize,
+        emitted_changes: usize,
+    ) -> Self {
+        self.left_row_scan_count = left_rows;
+        self.right_row_scan_count = right_rows;
+        self.emitted_row_change_count = emitted_changes;
         self
     }
 }
@@ -60,9 +96,13 @@ pub enum WorthQueryComparisonNextAction {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryComparisonStopSource {
+    LeftBasisAdmission,
+    RightBasisAdmission,
+    InvalidBasisPair,
     StaleBasisPair,
-    CurrentExecution,
-    HistoricalExecution,
+    LeftExecution,
+    RightExecution,
+    ComparisonAssembly,
     CorrespondenceDenied,
 }
 
@@ -106,7 +146,8 @@ impl WorthQueryComparisonStop {
 pub struct WorthQueryComparisonCompletion {
     left: WorthQueryReadResult,
     right: WorthQueryReadResult,
-    right_materialization: HistoricalMaterializationPathMetadata,
+    basis_pair: WorthQueryComparisonBasisPairEvidence,
+    row_changes: Vec<WorthQueryComparisonRowChange>,
     change: WorthQueryComparisonChange,
     counters: WorthQueryComparisonJourneyCounters,
 }
@@ -118,11 +159,24 @@ impl WorthQueryComparisonCompletion {
     pub fn right(&self) -> &WorthQueryReadResult {
         &self.right
     }
-    pub fn right_materialization(&self) -> &HistoricalMaterializationPathMetadata {
-        &self.right_materialization
+    pub fn basis_pair(&self) -> &WorthQueryComparisonBasisPairEvidence {
+        &self.basis_pair
+    }
+    pub fn row_changes(&self) -> &[WorthQueryComparisonRowChange] {
+        &self.row_changes
     }
     pub fn change(&self) -> WorthQueryComparisonChange {
         self.change
+    }
+    pub fn cost_class(&self) -> WorthQueryComparisonCostClass {
+        match self.basis_pair.family() {
+            WorthQueryComparisonBasisFamily::CurrentToHistorical => {
+                WorthQueryComparisonCostClass::CurrentAndRetainedMaterialization
+            }
+            WorthQueryComparisonBasisFamily::BranchToBranch => {
+                WorthQueryComparisonCostClass::DeterministicIdentityIndexBuildAndMerge
+            }
+        }
     }
     pub fn journey_counters(&self) -> &WorthQueryComparisonJourneyCounters {
         &self.counters
@@ -130,14 +184,16 @@ impl WorthQueryComparisonCompletion {
     pub(crate) fn new(
         left: WorthQueryReadResult,
         right: WorthQueryReadResult,
-        right_materialization: HistoricalMaterializationPathMetadata,
+        basis_pair: WorthQueryComparisonBasisPairEvidence,
+        row_changes: Vec<WorthQueryComparisonRowChange>,
         change: WorthQueryComparisonChange,
         counters: WorthQueryComparisonJourneyCounters,
     ) -> Self {
         Self {
             left,
             right,
-            right_materialization,
+            basis_pair,
+            row_changes,
             change,
             counters,
         }
@@ -152,29 +208,41 @@ pub enum WorthQueryComparisonCorrespondencePosture {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryComparisonCorrespondence {
+    subject: WorthQueryEntityIdentity,
     correspondence: CorrespondenceEvidenceResolved,
     posture: WorthQueryComparisonCorrespondencePosture,
+    basis_pair: WorthQueryComparisonBasisPairEvidence,
     counters: WorthQueryComparisonJourneyCounters,
 }
 
 impl WorthQueryComparisonCorrespondence {
+    pub fn subject(&self) -> &WorthQueryEntityIdentity {
+        &self.subject
+    }
     pub fn correspondence(&self) -> &CorrespondenceEvidenceResolved {
         &self.correspondence
     }
     pub fn posture(&self) -> WorthQueryComparisonCorrespondencePosture {
         self.posture
     }
+    pub fn basis_pair(&self) -> &WorthQueryComparisonBasisPairEvidence {
+        &self.basis_pair
+    }
     pub fn journey_counters(&self) -> &WorthQueryComparisonJourneyCounters {
         &self.counters
     }
     pub(crate) fn new(
+        subject: WorthQueryEntityIdentity,
         correspondence: CorrespondenceEvidenceResolved,
         posture: WorthQueryComparisonCorrespondencePosture,
+        basis_pair: WorthQueryComparisonBasisPairEvidence,
         counters: WorthQueryComparisonJourneyCounters,
     ) -> Self {
         Self {
+            subject,
             correspondence,
             posture,
+            basis_pair,
             counters,
         }
     }

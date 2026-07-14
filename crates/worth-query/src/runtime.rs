@@ -354,6 +354,7 @@ pub use backend::{
     WriteAuthorityExecutionReceipt,
 };
 pub use branch::WorthQueryBranchSession;
+pub(crate) use branch::WorthQueryRuntimeBranchComparisonBasis;
 use bridge_mutation_lowering::{bridge_continuity_mutation_bundle, bridge_naming_mutation_bundle};
 pub use builder::WorthQueryRuntimeBuilder;
 use computed::{

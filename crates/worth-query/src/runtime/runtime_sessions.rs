@@ -43,27 +43,10 @@ impl WorthQueryRuntime {
     ) -> Result<WorthQueryBranchSession<'a>, WorthQueryRuntimeError> {
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::BranchPreview)?;
         self.admit_branch_session_label(&label)?;
-        let branch_support_evidence = self
-            .backend
-            .support_profile()
-            .support_for(WorthQueryRuntimeFacadeFamily::BranchPreview)
-            .map(|support| support.evidence().to_vec())
-            .unwrap_or_default();
-        let evidence_rows = std::iter::once(WorthQueryBasisAdmissionEvidenceRow::tagged(
-            "runtime-branch-basis-admission",
-            "runtime-branch-basis-admission",
-        ))
-        .chain(
-            branch_support_evidence
-                .into_iter()
-                .map(WorthQueryBasisAdmissionEvidenceRow::support_profile_token),
-        )
-        .collect::<Vec<_>>();
-        let basis_admission = WorthQueryBranchBasisAdmission::new(
-            &self.evidence_authority,
+        let basis_admission = self.branch_basis_admission(
             label.clone(),
             options.effect_policy(),
-            evidence_rows,
+            "runtime-branch-basis-admission",
         );
         Ok(WorthQueryBranchSession::new(
             label,
@@ -71,6 +54,52 @@ impl WorthQueryRuntime {
             options,
             basis_admission,
         ))
+    }
+
+    pub(crate) fn capture_branch_comparison_basis(
+        &self,
+        label: WorthQuerySessionLabel,
+    ) -> Result<WorthQueryRuntimeBranchComparisonBasis, WorthQueryRuntimeError> {
+        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::BranchPreview)?;
+        let admission = self.branch_basis_admission(
+            label,
+            WorthQueryEffectPolicy::DeriveOnly,
+            "runtime-branch-comparison-basis-admission",
+        );
+        Ok(WorthQueryRuntimeBranchComparisonBasis::new(
+            admission,
+            self.current_snapshot_identity(),
+        ))
+    }
+
+    fn branch_basis_admission(
+        &self,
+        label: WorthQuerySessionLabel,
+        effect_policy: WorthQueryEffectPolicy,
+        evidence_tag: &'static str,
+    ) -> WorthQueryBranchBasisAdmission {
+        let branch_support_evidence = self
+            .backend
+            .support_profile()
+            .support_for(WorthQueryRuntimeFacadeFamily::BranchPreview)
+            .map(|support| support.evidence().to_vec())
+            .unwrap_or_default();
+        let evidence_rows = std::iter::once(WorthQueryBasisAdmissionEvidenceRow::tagged(
+            evidence_tag,
+            evidence_tag,
+        ))
+        .chain(
+            branch_support_evidence
+                .into_iter()
+                .map(WorthQueryBasisAdmissionEvidenceRow::support_profile_token),
+        )
+        .collect::<Vec<_>>();
+        WorthQueryBranchBasisAdmission::new(
+            &self.evidence_authority,
+            label,
+            effect_policy,
+            evidence_rows,
+        )
     }
 
     pub fn preview_with_options<'a>(

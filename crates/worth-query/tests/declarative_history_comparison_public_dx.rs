@@ -50,8 +50,9 @@ fn history_transcript_executes_using_only_history_capability_vocabulary() {
 #[test]
 fn comparison_transcript_executes_using_only_comparison_capability_vocabulary() {
     use worth_query::facade::comparison::{
-        current_and_retained, declare, AspectFieldSelector, AspectName, AuthoredResultShapeField,
-        FieldName, QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryComparisonChange,
+        between, declare, AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName,
+        QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryComparisonBasisFamily,
+        WorthQueryComparisonChange, WorthQuerySessionLabel,
     };
 
     let declaration = declare(|read| {
@@ -81,15 +82,29 @@ fn comparison_transcript_executes_using_only_comparison_capability_vocabulary() 
     })
     .expect("comparison should declare")
     .diff();
-    let runtime = PublicBridgeRuntimeHarness::new().bridge_backed_runtime();
-    let mut workspace = runtime
-        .workspace("public-comparison-dx")
-        .expect("workspace should open");
-    let context = current_and_retained(&workspace);
-    let outcome = declaration.using(context).run(&mut workspace);
+    let mut left = PublicBridgeRuntimeHarness::new()
+        .bridge_backed_runtime()
+        .workspace("public-comparison-left")
+        .expect("left workspace should open");
+    let mut right = PublicBridgeRuntimeHarness::new()
+        .bridge_backed_runtime()
+        .workspace("public-comparison-right")
+        .expect("right workspace should open");
+    let context = between(
+        &left,
+        WorthQuerySessionLabel::scoped_strs("public-comparison", ["left"])
+            .expect("left branch label should build"),
+        &right,
+        WorthQuerySessionLabel::scoped_strs("public-comparison", ["right"])
+            .expect("right branch label should build"),
+    )
+    .expect("branch bases should admit");
+    let outcome = declaration.using(context).run((&mut left, &mut right));
 
+    let completion = outcome.completed().expect("diff should complete");
+    assert_eq!(completion.change(), WorthQueryComparisonChange::Unchanged);
     assert_eq!(
-        outcome.completed().expect("diff should complete").change(),
-        WorthQueryComparisonChange::Unchanged
+        completion.basis_pair().family(),
+        WorthQueryComparisonBasisFamily::BranchToBranch
     );
 }
