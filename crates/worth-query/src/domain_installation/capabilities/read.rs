@@ -10,8 +10,8 @@ use crate::runtime::{WorthQueryReadBuilder, WorthQueryReadDenial, WorthQueryWork
 
 use super::super::{
     WorthQueryInstalledDomainAuthorityWitness, WorthQueryInstalledDomainCapabilityKind,
-    WorthQueryInstalledDomainExecutionDrift, WorthQueryInstalledDomainExecutionReceipt,
-    WorthQueryInstalledDomainHandle,
+    WorthQueryInstalledDomainCapabilityStop, WorthQueryInstalledDomainExecutionDrift,
+    WorthQueryInstalledDomainExecutionReceipt, WorthQueryInstalledDomainHandle,
 };
 
 #[derive(Debug, Eq, PartialEq)]
@@ -45,13 +45,24 @@ impl<D: 'static> WorthQueryInstalledDomainReadRequest<D> {
     pub fn run(
         self,
         workspace: &mut WorthQueryWorkspace,
-    ) -> Result<WorthQueryInstalledDomainReadOutcome<D>, WorthQueryInstalledDomainExecutionDrift>
-    {
-        WorthQueryInstalledDomainExecutionDrift::validate::<D>(&self.witness, workspace)?;
+    ) -> Result<
+        WorthQueryInstalledDomainReadOutcome<D>,
+        WorthQueryInstalledDomainCapabilityStop<WorthQueryInstalledDomainExecutionDrift>,
+    > {
         let declaration_identity = WorthQueryInstalledDomainExecutionReceipt::label_identity(
             "read-declaration",
             self.request.declaration_identity().as_str(),
         );
+        WorthQueryInstalledDomainExecutionDrift::validate::<D>(&self.witness, workspace).map_err(
+            |drift| {
+                WorthQueryInstalledDomainCapabilityStop::new(
+                    self.witness.clone(),
+                    WorthQueryInstalledDomainCapabilityKind::Read,
+                    declaration_identity.clone(),
+                    drift,
+                )
+            },
+        )?;
         let outcome = self.request.run(workspace);
         Ok(WorthQueryInstalledDomainReadOutcome {
             witness: self.witness,
@@ -71,6 +82,10 @@ pub struct WorthQueryInstalledDomainReadOutcome<D> {
 }
 
 impl<D> WorthQueryInstalledDomainReadOutcome<D> {
+    pub fn installed_authority(&self) -> &WorthQueryInstalledDomainAuthorityWitness {
+        &self.witness
+    }
+
     pub fn completed(&self) -> Option<&WorthQueryReadCompletion> {
         self.outcome.completed()
     }
@@ -81,13 +96,29 @@ impl<D> WorthQueryInstalledDomainReadOutcome<D> {
 
     pub fn into_result(
         self,
-    ) -> Result<WorthQueryInstalledDomainReadCompletion<D>, WorthQueryReadStop> {
-        let completion = self.outcome.into_result()?;
+    ) -> Result<
+        WorthQueryInstalledDomainReadCompletion<D>,
+        WorthQueryInstalledDomainCapabilityStop<WorthQueryReadStop>,
+    > {
+        let Self {
+            witness,
+            declaration_identity,
+            outcome,
+            marker: _,
+        } = self;
+        let completion = outcome.into_result().map_err(|stop| {
+            WorthQueryInstalledDomainCapabilityStop::new(
+                witness.clone(),
+                WorthQueryInstalledDomainCapabilityKind::Read,
+                declaration_identity.clone(),
+                stop,
+            )
+        })?;
         let lower_receipt = completion.result().receipt();
         let receipt = WorthQueryInstalledDomainExecutionReceipt::new(
-            self.witness,
+            witness,
             WorthQueryInstalledDomainCapabilityKind::Read,
-            self.declaration_identity,
+            declaration_identity,
             lower_receipt.snapshot_evidence_identity(),
             WorthQueryInstalledDomainExecutionReceipt::label_identity(
                 "read-result",

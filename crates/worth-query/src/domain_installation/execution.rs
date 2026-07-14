@@ -17,6 +17,7 @@ pub enum WorthQueryInstalledDomainCapabilityKind {
     LiveOpen,
     LiveRead,
     LiveDelivery,
+    LiveObservation,
     LiveCheckpoint,
     LiveResume,
     LiveClose,
@@ -33,6 +34,7 @@ impl WorthQueryInstalledDomainCapabilityKind {
             Self::LiveOpen => "live-open",
             Self::LiveRead => "live-read",
             Self::LiveDelivery => "live-delivery",
+            Self::LiveObservation => "live-observation",
             Self::LiveCheckpoint => "live-checkpoint",
             Self::LiveResume => "live-resume",
             Self::LiveClose => "live-close",
@@ -48,20 +50,12 @@ pub enum WorthQueryInstalledDomainExecutionDriftKind {
     ForeignRuntime,
     StaleInstallation,
     PackageMeaningChanged,
-    BasisChanged,
-    PolicyChanged,
-    LowerBindingChanged,
-    ResourceClosed,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryInstalledDomainExecutionNextAction {
     InstallDomainPackage,
     RebindInstalledDomain,
-    ReadmitBasis,
-    ReadmitPolicy,
-    ReadmitLowerBinding,
-    ReopenResource,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -108,6 +102,50 @@ impl WorthQueryInstalledDomainExecutionDrift {
 
     pub fn next_action(&self) -> WorthQueryInstalledDomainExecutionNextAction {
         self.next_action
+    }
+}
+
+#[derive(Debug)]
+pub struct WorthQueryInstalledDomainCapabilityStop<S> {
+    installed_authority: WorthQueryInstalledDomainAuthorityWitness,
+    capability: WorthQueryInstalledDomainCapabilityKind,
+    declaration_identity: WorthQueryEvidenceIdentity,
+    stop: S,
+}
+
+impl<S> WorthQueryInstalledDomainCapabilityStop<S> {
+    pub(crate) fn new(
+        installed_authority: WorthQueryInstalledDomainAuthorityWitness,
+        capability: WorthQueryInstalledDomainCapabilityKind,
+        declaration_identity: WorthQueryEvidenceIdentity,
+        stop: S,
+    ) -> Self {
+        Self {
+            installed_authority,
+            capability,
+            declaration_identity,
+            stop,
+        }
+    }
+
+    pub fn installed_authority(&self) -> &WorthQueryInstalledDomainAuthorityWitness {
+        &self.installed_authority
+    }
+
+    pub fn capability(&self) -> WorthQueryInstalledDomainCapabilityKind {
+        self.capability
+    }
+
+    pub fn declaration_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.declaration_identity
+    }
+
+    pub fn stop(&self) -> &S {
+        &self.stop
+    }
+
+    pub fn into_stop(self) -> S {
+        self.stop
     }
 }
 

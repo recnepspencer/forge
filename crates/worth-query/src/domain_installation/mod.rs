@@ -27,9 +27,9 @@ pub use denial::{
     WorthQueryDomainPackageValidationDenialKind,
 };
 pub use execution::{
-    WorthQueryInstalledDomainCapabilityKind, WorthQueryInstalledDomainExecutionDrift,
-    WorthQueryInstalledDomainExecutionDriftKind, WorthQueryInstalledDomainExecutionNextAction,
-    WorthQueryInstalledDomainExecutionReceipt,
+    WorthQueryInstalledDomainCapabilityKind, WorthQueryInstalledDomainCapabilityStop,
+    WorthQueryInstalledDomainExecutionDrift, WorthQueryInstalledDomainExecutionDriftKind,
+    WorthQueryInstalledDomainExecutionNextAction, WorthQueryInstalledDomainExecutionReceipt,
 };
 pub use identity::{
     WorthQueryDomainIdentityDeclaration, WorthQueryDomainIdentityName,

@@ -14,8 +14,8 @@ use crate::runtime::{
 
 use super::super::{
     WorthQueryInstalledDomainAuthorityWitness, WorthQueryInstalledDomainCapabilityKind,
-    WorthQueryInstalledDomainExecutionDrift, WorthQueryInstalledDomainExecutionReceipt,
-    WorthQueryInstalledDomainHandle,
+    WorthQueryInstalledDomainCapabilityStop, WorthQueryInstalledDomainExecutionDrift,
+    WorthQueryInstalledDomainExecutionReceipt, WorthQueryInstalledDomainHandle,
 };
 use super::{
     close_outcome, WorthQueryInstalledDomainLiveCheckpointOutcome,
@@ -52,14 +52,25 @@ impl<D: 'static> WorthQueryInstalledDomainLiveRequest<D> {
     pub fn open(
         self,
         workspace: &mut WorthQueryWorkspace,
-    ) -> Result<WorthQueryInstalledDomainLiveOpenOutcome<D>, WorthQueryInstalledDomainExecutionDrift>
-    {
-        WorthQueryInstalledDomainExecutionDrift::validate::<D>(&self.witness, workspace)?;
-        let basis_identity = workspace.snapshot_identity().evidence_identity();
+    ) -> Result<
+        WorthQueryInstalledDomainLiveOpenOutcome<D>,
+        WorthQueryInstalledDomainCapabilityStop<WorthQueryInstalledDomainExecutionDrift>,
+    > {
         let declaration_identity = WorthQueryInstalledDomainExecutionReceipt::label_identity(
             "live-declaration",
             self.request.declaration_identity().as_str(),
         );
+        WorthQueryInstalledDomainExecutionDrift::validate::<D>(&self.witness, workspace).map_err(
+            |drift| {
+                WorthQueryInstalledDomainCapabilityStop::new(
+                    self.witness.clone(),
+                    WorthQueryInstalledDomainCapabilityKind::LiveOpen,
+                    declaration_identity.clone(),
+                    drift,
+                )
+            },
+        )?;
+        let basis_identity = workspace.snapshot_identity().evidence_identity();
         Ok(match self.request.open(workspace) {
             WorthQueryLiveOpenOutcome::Opened(completion) => {
                 let receipt = WorthQueryInstalledDomainExecutionReceipt::new(
@@ -81,7 +92,14 @@ impl<D: 'static> WorthQueryInstalledDomainLiveRequest<D> {
                 )
             }
             WorthQueryLiveOpenOutcome::Stopped(stop) => {
-                WorthQueryInstalledDomainLiveOpenOutcome::Stopped(stop)
+                WorthQueryInstalledDomainLiveOpenOutcome::Stopped(
+                    WorthQueryInstalledDomainCapabilityStop::new(
+                        self.witness,
+                        WorthQueryInstalledDomainCapabilityKind::LiveOpen,
+                        declaration_identity,
+                        stop,
+                    ),
+                )
             }
         })
     }
@@ -89,7 +107,7 @@ impl<D: 'static> WorthQueryInstalledDomainLiveRequest<D> {
 
 pub enum WorthQueryInstalledDomainLiveOpenOutcome<D> {
     Opened(WorthQueryInstalledDomainLiveHandle<D>),
-    Stopped(WorthQueryLiveOpenStop),
+    Stopped(WorthQueryInstalledDomainCapabilityStop<WorthQueryLiveOpenStop>),
 }
 
 #[must_use = "installed live handles own a Query resource until closed"]
@@ -113,11 +131,10 @@ impl<D: 'static> WorthQueryInstalledDomainLiveHandle<D> {
         workspace: &mut WorthQueryWorkspace,
     ) -> Result<WorthQueryInstalledDomainLiveRead, WorthQueryInstalledDomainLiveOperationError>
     {
-        self.validate(workspace)?;
-        let result = self
-            .handle
-            .read(workspace)
-            .map_err(WorthQueryInstalledDomainLiveOperationError::Runtime)?;
+        self.validate(workspace, WorthQueryInstalledDomainCapabilityKind::LiveRead)?;
+        let result = self.handle.read(workspace).map_err(|error| {
+            self.runtime_stop(WorthQueryInstalledDomainCapabilityKind::LiveRead, error)
+        })?;
         let receipt = self.receipt.derive(
             WorthQueryInstalledDomainCapabilityKind::LiveRead,
             WorthQueryInstalledDomainExecutionReceipt::label_identity(
@@ -133,11 +150,13 @@ impl<D: 'static> WorthQueryInstalledDomainLiveHandle<D> {
         workspace: &mut WorthQueryWorkspace,
     ) -> Result<WorthQueryInstalledDomainLiveDelivery, WorthQueryInstalledDomainLiveOperationError>
     {
-        self.validate(workspace)?;
-        let delivery = self
-            .handle
-            .drain(workspace)
-            .map_err(WorthQueryInstalledDomainLiveOperationError::Runtime)?;
+        self.validate(
+            workspace,
+            WorthQueryInstalledDomainCapabilityKind::LiveDelivery,
+        )?;
+        let delivery = self.handle.drain(workspace).map_err(|error| {
+            self.runtime_stop(WorthQueryInstalledDomainCapabilityKind::LiveDelivery, error)
+        })?;
         let operational = delivery
             .batches()
             .last()
@@ -159,10 +178,16 @@ impl<D: 'static> WorthQueryInstalledDomainLiveHandle<D> {
         WorthQueryManagedLiveLifecycleObservation,
         WorthQueryInstalledDomainLiveOperationError,
     > {
-        self.validate(workspace)?;
-        self.handle
-            .observe(workspace)
-            .map_err(WorthQueryInstalledDomainLiveOperationError::Runtime)
+        self.validate(
+            workspace,
+            WorthQueryInstalledDomainCapabilityKind::LiveObservation,
+        )?;
+        self.handle.observe(workspace).map_err(|error| {
+            self.runtime_stop(
+                WorthQueryInstalledDomainCapabilityKind::LiveObservation,
+                error,
+            )
+        })
     }
 
     pub fn checkpoint(
@@ -218,18 +243,43 @@ impl<D: 'static> WorthQueryInstalledDomainLiveHandle<D> {
     fn validate(
         &self,
         workspace: &WorthQueryWorkspace,
+        capability: WorthQueryInstalledDomainCapabilityKind,
     ) -> Result<(), WorthQueryInstalledDomainLiveOperationError> {
         WorthQueryInstalledDomainExecutionDrift::validate::<D>(
             self.receipt.installed_authority(),
             workspace,
         )
-        .map_err(WorthQueryInstalledDomainLiveOperationError::Authority)
+        .map_err(|drift| {
+            WorthQueryInstalledDomainLiveOperationError::Authority(
+                WorthQueryInstalledDomainCapabilityStop::new(
+                    self.receipt.installed_authority().clone(),
+                    capability,
+                    self.receipt.declaration_identity().clone(),
+                    drift,
+                ),
+            )
+        })
+    }
+
+    fn runtime_stop(
+        &self,
+        capability: WorthQueryInstalledDomainCapabilityKind,
+        error: WorthQueryRuntimeError,
+    ) -> WorthQueryInstalledDomainLiveOperationError {
+        WorthQueryInstalledDomainLiveOperationError::Runtime(
+            WorthQueryInstalledDomainCapabilityStop::new(
+                self.receipt.installed_authority().clone(),
+                capability,
+                self.receipt.declaration_identity().clone(),
+                error,
+            ),
+        )
     }
 }
 
 pub enum WorthQueryInstalledDomainLiveOperationError {
-    Authority(WorthQueryInstalledDomainExecutionDrift),
-    Runtime(WorthQueryRuntimeError),
+    Authority(WorthQueryInstalledDomainCapabilityStop<WorthQueryInstalledDomainExecutionDrift>),
+    Runtime(WorthQueryInstalledDomainCapabilityStop<WorthQueryRuntimeError>),
 }
 
 pub struct WorthQueryInstalledDomainLiveRead {
