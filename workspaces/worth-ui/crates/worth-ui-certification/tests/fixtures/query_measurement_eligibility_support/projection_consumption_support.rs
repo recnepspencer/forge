@@ -1,40 +1,33 @@
-use forge_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use forge_query::facade::consumer_kit::{in_memory_test_runtime, ForgeQueryTestBackendSchema};
-use forge_query::facade::runtime::{
-    ForgeQueryReadBuilder, ForgeQueryReadDenial, ForgeQueryReadFamily, ForgeQueryReadGraph,
-    ForgeQueryWorkspace, QuerySchemaView, SchemaFieldKind, SchemaFieldView,
-};
-use forge_query::facade::{
-    public_bridge_projection_artifacts_for_read_graph, resolve_runtime_current_snapshot_basis,
+use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
+use worth_query::facade::certification::resolve_runtime_current_snapshot_basis_for_certification;
+use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
+use worth_query::facade::foundation::{
     snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    ForgeQueryAspectTouch, ForgeQueryAuthoredAspectValue, ForgeQueryEntityIdentity,
-    ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ScalarPredicateValue,
+    ScalarPredicateValue, WorthQueryEntityIdentity,
+};
+use worth_query::facade::read::{
+    current, declare, WorthQueryProjectionDeclaration, WorthQueryProjectionOutcome,
+    WorthQueryReadCompletion,
+};
+use worth_query::facade::runtime::{
+    QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryAspectTouch,
+    WorthQueryAuthoredAspectValue, WorthQueryReadBuilder, WorthQueryReadDenial,
+    WorthQueryWorkspace,
 };
 use worth_ui::facade::graph::UiGraphWorldProfile;
 
 pub(super) fn measurement_projection_workspace(
     lane_label: &str,
 ) -> (
-    ForgeQueryWorkspace,
-    ForgeQueryReadFamily,
-    ForgeQueryEntityIdentity,
+    WorthQueryWorkspace,
+    worth_query::facade::foundation::QuerySchemaBasisAuthority,
+    WorthQueryEntityIdentity,
 ) {
-    measurement_projection_workspace_with_graph(lane_label, title_family_graph)
-}
-
-pub(super) fn measurement_projection_workspace_with_graph(
-    lane_label: &str,
-    graph: fn(ForgeQueryReadBuilder) -> Result<ForgeQueryReadGraph, ForgeQueryReadDenial>,
-) -> (
-    ForgeQueryWorkspace,
-    ForgeQueryReadFamily,
-    ForgeQueryEntityIdentity,
-) {
-    let schema = ForgeQueryTestBackendSchema::single_collection("task")
+    let schema = WorthQueryTestBackendSchema::single_collection("task")
         .aspect("identity.id", "identity.id")
         .expect("identity aspect should admit")
-        .aspect("title.value", "title.value")
-        .expect("title aspect should admit");
+        .aspect("size.value", "size.value")
+        .expect("size aspect should admit");
     let mut workspace = in_memory_test_runtime()
         .with_schema(schema)
         .workspace(&format!("worth-ui.phase5.query-measurement.{lane_label}"))
@@ -43,11 +36,11 @@ pub(super) fn measurement_projection_workspace_with_graph(
         .insert("task", |task| {
             task.set_aspect(
                 aspect_touch("identity.id"),
-                ForgeQueryAuthoredAspectValue::string("task"),
+                WorthQueryAuthoredAspectValue::string("task"),
             )
             .set_aspect(
-                aspect_touch("title.value"),
-                ForgeQueryAuthoredAspectValue::string(format!("title-{lane_label}")),
+                aspect_touch("size.value"),
+                WorthQueryAuthoredAspectValue::string("240"),
             )
         })
         .expect("test workspace should admit the query row");
@@ -55,92 +48,106 @@ pub(super) fn measurement_projection_workspace_with_graph(
         .target_entity_identity()
         .cloned()
         .expect("fixture insert should resolve one target entity identity");
-    let family = workspace
-        .define_read_family(
-            &format!("worth-ui.phase5.query-measurement.{lane_label}"),
-            graph,
-        )
-        .expect("query read family should admit");
-    (workspace, family, entity_identity)
+    (
+        workspace,
+        task_query_schema().basis_authority(),
+        entity_identity,
+    )
 }
 
 pub(super) fn projection_consumption_attempt(
-    workspace: &mut ForgeQueryWorkspace,
-    family: &ForgeQueryReadFamily,
-    requested: ProjectMaterializedFacts,
-) -> (UiGraphWorldProfile, ProjectionFactConsumptionAttempt) {
-    let read_result = workspace
-        .execute_read_family(family)
-        .expect("query read family should execute");
-    let basis = resolve_runtime_current_snapshot_basis(
-        workspace.snapshot_identity().evidence_identity(),
-        family.read_graph().schema_basis().clone(),
+    workspace: &mut WorthQueryWorkspace,
+    schema_basis_authority: worth_query::facade::foundation::QuerySchemaBasisAuthority,
+    projection: WorthQueryProjectionDeclaration,
+) -> (UiGraphWorldProfile, WorthQueryProjectionOutcome) {
+    let completion = declare(title_family_graph)
+        .expect("ordinary query declaration should admit")
+        .using(current())
+        .run(workspace)
+        .into_result()
+        .expect("ordinary query read should execute");
+    consume_completion(workspace, schema_basis_authority, completion, projection)
+}
+
+pub(super) fn identity_only_projection_consumption_attempt(
+    workspace: &mut WorthQueryWorkspace,
+    schema_basis_authority: worth_query::facade::foundation::QuerySchemaBasisAuthority,
+    projection: WorthQueryProjectionDeclaration,
+) -> (UiGraphWorldProfile, WorthQueryProjectionOutcome) {
+    let completion = declare(identity_only_family_graph)
+        .expect("ordinary query declaration should admit")
+        .using(current())
+        .run(workspace)
+        .into_result()
+        .expect("ordinary query read should execute");
+    consume_completion(workspace, schema_basis_authority, completion, projection)
+}
+
+fn consume_completion(
+    workspace: &WorthQueryWorkspace,
+    schema_basis_authority: worth_query::facade::foundation::QuerySchemaBasisAuthority,
+    completion: WorthQueryReadCompletion,
+    projection: WorthQueryProjectionDeclaration,
+) -> (UiGraphWorldProfile, WorthQueryProjectionOutcome) {
+    let basis = resolve_runtime_current_snapshot_basis_for_certification(
+        &workspace.snapshot_identity().evidence_identity(),
+        schema_basis_authority,
     )
-    .expect("runtime current snapshot basis should resolve from the real read family");
+    .expect("runtime current snapshot basis should resolve from the ordinary read");
     let world_profile = UiGraphWorldProfile::query_snapshot_basis(
         basis.clone(),
         snapshot_resolution_report(&basis),
     )
     .expect("query snapshot basis world should admit");
-    let (result_shape, authorized_projection) =
-        public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let attempt = read_result
-        .consume_projection_facts(&result_shape, &authorized_projection, requested)
-        .expect("real query read should consume projection facts");
-    (world_profile, attempt)
+    (world_profile, completion.consume_projection(projection))
 }
 
-pub(super) fn identity_only_family_graph(
-    read: ForgeQueryReadBuilder,
-) -> Result<ForgeQueryReadGraph, ForgeQueryReadDenial> {
+fn identity_only_family_graph<Output>(
+    read: WorthQueryReadBuilder<Output>,
+) -> Result<Output, WorthQueryReadDenial> {
     read.local_detail(
         "task",
         task_query_schema(),
         |query| {
             query
-                .where_equal(
-                    EqualityPredicate::new(
-                        "identity",
-                        "id",
-                        ScalarPredicateValue::String("task".to_string()),
-                    )
-                    .expect("identity anchor predicate should build"),
-                )
+                .where_equal(identity_predicate())
                 .project(field("identity", "id"))
         },
         |shape| shape.field(result_field("identity", "id", "identity.id")),
     )
 }
 
-pub(super) fn title_value_field_path() -> forge_query::facade::ProjectionFactFieldPath {
-    forge_query::facade::ProjectionFactFieldPath::from_canonical_field_path(
-        CanonicalFieldPath::new(vec![
-            FieldKey::new("title").expect("field key should admit"),
-            FieldKey::new("value").expect("field key should admit"),
-        ])
-        .expect("canonical title.value field path should admit"),
-    )
-}
-
-fn title_family_graph(
-    read: ForgeQueryReadBuilder,
-) -> Result<ForgeQueryReadGraph, ForgeQueryReadDenial> {
+fn title_family_graph<Output>(
+    read: WorthQueryReadBuilder<Output>,
+) -> Result<Output, WorthQueryReadDenial> {
     read.local_detail(
         "task",
         task_query_schema(),
         |query| {
             query
-                .where_equal(
-                    EqualityPredicate::new(
-                        "identity",
-                        "id",
-                        ScalarPredicateValue::String("task".to_string()),
-                    )
-                    .expect("identity anchor predicate should build"),
-                )
-                .project(field("title", "value"))
+                .where_equal(identity_predicate())
+                .project(field("size", "value"))
         },
-        |shape| shape.field(result_field("title", "value", "title.value")),
+        |shape| shape.field(result_field("size", "value", "size.value")),
+    )
+}
+
+fn identity_predicate() -> EqualityPredicate {
+    EqualityPredicate::new(
+        "identity",
+        "id",
+        ScalarPredicateValue::String("task".to_string()),
+    )
+    .expect("identity anchor predicate should build")
+}
+
+pub(super) fn title_value_field_path() -> worth_query::facade::read::ProjectionFactFieldPath {
+    worth_query::facade::read::ProjectionFactFieldPath::from_canonical_field_path(
+        CanonicalFieldPath::new(vec![
+            FieldKey::new("size").expect("field key should admit"),
+            FieldKey::new("value").expect("field key should admit"),
+        ])
+        .expect("canonical size.value field path should admit"),
     )
 }
 
@@ -149,14 +156,13 @@ fn task_query_schema() -> QuerySchemaView {
         "task",
         [
             SchemaFieldView::new(
-                forge_query::facade::AspectName::new("identity")
-                    .expect("schema aspect should admit"),
-                forge_query::facade::FieldName::new("id").expect("schema field should admit"),
+                worth_query::facade::read::AspectName::new("identity").expect("schema aspect"),
+                worth_query::facade::read::FieldName::new("id").expect("schema field"),
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                forge_query::facade::AspectName::new("title").expect("schema aspect should admit"),
-                forge_query::facade::FieldName::new("value").expect("schema field should admit"),
+                worth_query::facade::read::AspectName::new("size").expect("schema aspect"),
+                worth_query::facade::read::FieldName::new("value").expect("schema field"),
                 SchemaFieldKind::String,
             ),
         ],
@@ -173,21 +179,7 @@ fn result_field(aspect: &str, field: &str, delivered: &str) -> AuthoredResultSha
         .expect("result-shape field should build")
 }
 
-pub(super) fn aspect_touch(authored_touch_text: &str) -> ForgeQueryAspectTouch {
-    let mut segments = authored_touch_text.split('.');
-    let aspect = segments
-        .next()
-        .and_then(AspectKey::new)
-        .expect("fixture authored touch aspect should admit");
-    let fields = segments
-        .map(|segment| FieldKey::new(segment).expect("fixture authored touch field should admit"))
-        .collect::<Vec<_>>();
-    if fields.is_empty() {
-        ForgeQueryAspectTouch::whole_aspect(aspect)
-    } else {
-        ForgeQueryAspectTouch::aspect_field_path(
-            aspect,
-            CanonicalFieldPath::new(fields).expect("fixture authored touch should have fields"),
-        )
-    }
+pub(super) fn aspect_touch(authored_touch_text: &str) -> WorthQueryAspectTouch {
+    WorthQueryAspectTouch::from_authoring_ingress_text(authored_touch_text)
+        .expect("fixture authored touch should admit")
 }

@@ -1,4 +1,4 @@
-use forge_query::facade::QuerySubscriptionFamily;
+use worth_query::facade::runtime::QuerySubscriptionFamily;
 use worth_ui::facade::{
     QueryLiveCompatibility, QueryResultShapeReference, VisibleStateBindingDeclaration, WorthUi,
 };
@@ -63,7 +63,7 @@ fn result_shape_participates_in_view_binding_key_equivalence() {
     let left = table_view_binding("workspace.view_binding.tasks");
     let right = table_view_binding("workspace.view_binding.tasks").with_result_shape(
         QueryResultShapeReference::from_result_shape_family(
-            forge_query::facade::ResultShapeFamily::Detail,
+            worth_query::facade::foundation::ResultShapeFamily::Detail,
         ),
     );
 

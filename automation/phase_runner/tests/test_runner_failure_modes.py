@@ -30,7 +30,7 @@ from runtime_paths import clear_stop_requested, mark_stop_requested, stop_reques
 
 class DurableRunnerTests(unittest.TestCase):
     def test_real_config_validates(self) -> None:
-        config_path = RUNNER_DIR / "config" / "forge-store-s8.json"
+        config_path = RUNNER_DIR / "config" / "worth-ui-milestone-3.8.json"
         config = load_config(config_path)
         self.assertEqual(validate_config(config, config_path), [])
 
@@ -171,6 +171,24 @@ class DurableRunnerTests(unittest.TestCase):
         self.assertEqual(projection["current"], {"phase": 2, "turn": "plan"})
         self.assertIsNone(projection["current_turn_instance_id"])
 
+    def test_run_resumed_can_clear_persisted_session_thread(self) -> None:
+        config = minimal_config()
+        events = [
+            {
+                **event("run_started", 1),
+                "thread_id": "thread-old",
+            },
+            {
+                **event(
+                    "run_resumed",
+                    2,
+                    payload={"reason": "operator resume", "reset_session_thread": True},
+                ),
+                "thread_id": None,
+            },
+        ]
+        projection = project_run(config, events, "run123")
+        self.assertIsNone(projection["session"]["thread_id"])
     def test_code_quality_review_failure_reopens_repair_gate(self) -> None:
         config = minimal_config()
         events = [
@@ -269,7 +287,6 @@ class DurableRunnerTests(unittest.TestCase):
                 )
             finally:
                 runtime_paths.RUNTIME_ROOT = original_root
-
     def test_projection_keeps_prompt_instance_after_cursor_repairs_to_next_phase(self) -> None:
         config = minimal_config()
         events = [
@@ -557,6 +574,7 @@ def minimal_config_public(phase_count: int = 2) -> dict:
             "plan": "templates/plan.md",
             "implement": "templates/implement.md",
             "review": "templates/review_test_hardening.md",
+            "repair_plan": "templates/plan.md",
             "repair": "templates/repair.md",
             "test_review": "templates/test_review.md",
             "test_repair_plan": "templates/test_repair_plan.md",

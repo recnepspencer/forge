@@ -34,8 +34,8 @@ pub fn audit_phase5_graph_lookup_lane_does_not_reopen_declaration_source(
     workspace_root: &Path,
 ) -> Vec<String> {
     let files = [
-        "crates/worth-ui-runtime/src/facade/app.rs",
-        "crates/worth-ui-runtime/src/facade/obligation_inspection.rs",
+        "crates/worth-ui-runtime/src/facade/entry/app.rs",
+        "crates/worth-ui-runtime/src/facade/inspection_bridge/obligation_routes.rs",
         "crates/worth-ui-runtime/src/graph/inspection/graph_lookup_boundary.rs",
         "crates/worth-ui-runtime/src/graph/inspection/graph_node_evidence_index.rs",
     ]
@@ -75,15 +75,15 @@ pub fn audit_phase5_graph_lookup_lane_does_not_reopen_declaration_source(
 pub fn audit_phase5_graph_lookup_lane_is_indexed_not_scan_first(
     workspace_root: &Path,
 ) -> Vec<String> {
-    let app = workspace_root.join("crates/worth-ui-runtime/src/facade/app.rs");
-    let app_inspection_support =
-        workspace_root.join("crates/worth-ui-runtime/src/facade/app_inspection_support.rs");
+    let app = workspace_root.join("crates/worth-ui-runtime/src/facade/entry/app.rs");
+    let app_inspection_support = workspace_root
+        .join("crates/worth-ui-runtime/src/facade/inspection_bridge/support_routing.rs");
     let graph_lookup_boundary = workspace_root
         .join("crates/worth-ui-runtime/src/graph/inspection/graph_lookup_boundary.rs");
     let graph_node_evidence_index = workspace_root
         .join("crates/worth-ui-runtime/src/graph/inspection/graph_node_evidence_index.rs");
-    let obligation_inspection =
-        workspace_root.join("crates/worth-ui-runtime/src/facade/obligation_inspection.rs");
+    let obligation_inspection = workspace_root
+        .join("crates/worth-ui-runtime/src/facade/inspection_bridge/obligation_routes.rs");
     let app_inspection_support_source =
         fs::read_to_string(&app_inspection_support).expect("source should decode");
     let boundary_source = fs::read_to_string(&graph_lookup_boundary).expect("source should decode");
@@ -178,8 +178,8 @@ pub fn audit_phase6_aspect_lookup_lane_does_not_reopen_declaration_source(
     workspace_root: &Path,
 ) -> Vec<String> {
     let files = [
-        "crates/worth-ui-runtime/src/facade/app.rs",
-        "crates/worth-ui-runtime/src/facade/app_inspection_support.rs",
+        "crates/worth-ui-runtime/src/facade/entry/app.rs",
+        "crates/worth-ui-runtime/src/facade/inspection_bridge/support_routing.rs",
         "crates/worth-ui-runtime/src/graph/inspection/aspect/aspect_lookup_boundary.rs",
         "crates/worth-ui-runtime/src/graph/inspection/aspect/published_aspect_evidence_index.rs",
         "crates/worth-ui-runtime/src/graph/inspection/aspect/consumed_aspect_evidence_index.rs",
@@ -220,7 +220,7 @@ pub fn audit_phase6_aspect_lookup_lane_does_not_reopen_declaration_source(
 pub fn audit_phase6_aspect_lookup_lane_is_indexed_not_scan_first(
     workspace_root: &Path,
 ) -> Vec<String> {
-    let app = workspace_root.join("crates/worth-ui-runtime/src/facade/app.rs");
+    let app = workspace_root.join("crates/worth-ui-runtime/src/facade/entry/app.rs");
     let aspect_lookup_boundary = workspace_root
         .join("crates/worth-ui-runtime/src/graph/inspection/aspect/aspect_lookup_boundary.rs");
     let published_aspect_evidence_index = workspace_root.join(

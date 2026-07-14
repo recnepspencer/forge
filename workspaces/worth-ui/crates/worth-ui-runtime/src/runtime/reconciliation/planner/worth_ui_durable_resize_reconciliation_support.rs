@@ -1,6 +1,6 @@
 use crate::capability::MosaicResizePermission;
 use crate::runtime::{
-    WorthUiAdmittedDurableResizeInput, WorthUiDurableResizeInputPosture,
+    WorthUiDurableResizeInputDisposition, WorthUiDurableResizeInputPosture,
     WorthUiDurableStateFamily, WorthUiDurableStateFamilyId,
     WorthUiDurableStateReconciliationReceipt, WorthUiIdentityMatchNodeKind,
     WorthUiNodeLifecycleTransition, WorthUiNodeReplacementClassification,
@@ -10,7 +10,9 @@ pub(super) fn classification_targets_splitter_surface(
     classification: &WorthUiNodeReplacementClassification,
 ) -> bool {
     matches!(
-        classification.active_kind().or(classification.candidate_kind()),
+        classification
+            .active_kind()
+            .or(classification.candidate_kind()),
         Some(WorthUiIdentityMatchNodeKind::Surface)
     )
 }
@@ -18,15 +20,17 @@ pub(super) fn classification_targets_splitter_surface(
 pub(super) fn splitter_resize_input_for_carry(
     classification: &WorthUiNodeReplacementClassification,
     family: &WorthUiDurableStateFamily,
-) -> Option<WorthUiAdmittedDurableResizeInput> {
-    if !is_splitter_surface_family(classification, family) || !splitter_resize_shapes_match(classification) {
+) -> Option<WorthUiDurableResizeInputDisposition> {
+    if !is_splitter_surface_family(classification, family)
+        || !splitter_resize_shapes_match(classification)
+    {
         return None;
     }
     let resize_permission = classification
         .candidate_resize_permission()
         .filter(|permission| **permission == MosaicResizePermission::UserResizable)?
         .clone();
-    Some(WorthUiAdmittedDurableResizeInput::new(
+    Some(WorthUiDurableResizeInputDisposition::new(
         classification.identity_basis().to_owned(),
         classification.authored_provenance_digest(),
         family.id().clone(),
@@ -41,7 +45,7 @@ pub(super) fn splitter_resize_input_for_replacement(
     classification: &WorthUiNodeReplacementClassification,
     family: &WorthUiDurableStateFamily,
     receipt: &WorthUiDurableStateReconciliationReceipt,
-) -> Option<WorthUiAdmittedDurableResizeInput> {
+) -> Option<WorthUiDurableResizeInputDisposition> {
     if !is_splitter_surface_family(classification, family) {
         return None;
     }
@@ -70,7 +74,7 @@ pub(super) fn splitter_resize_input_for_replacement(
         .or_else(|| classification.active_resize_permission())
         .cloned()
         .unwrap_or_else(MosaicResizePermission::missing_for_diagnostics);
-    Some(WorthUiAdmittedDurableResizeInput::new(
+    Some(WorthUiDurableResizeInputDisposition::new(
         receipt.identity_basis().to_owned(),
         classification.authored_provenance_digest(),
         receipt.family_id().clone(),
@@ -92,5 +96,6 @@ fn is_splitter_surface_family(
 fn splitter_resize_shapes_match(classification: &WorthUiNodeReplacementClassification) -> bool {
     classification.active_resize_contract_id() == classification.candidate_resize_contract_id()
         && classification.active_resize_permission() == classification.candidate_resize_permission()
-        && classification.active_resize_shape_digest() == classification.candidate_resize_shape_digest()
+        && classification.active_resize_shape_digest()
+            == classification.candidate_resize_shape_digest()
 }

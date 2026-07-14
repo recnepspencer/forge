@@ -1,8 +1,8 @@
-use forge_query::facade::{
-    ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalEntryKind,
-    ForgeQueryDeclarationCanonicalValue, ForgeQueryDeclarationInput,
-};
 use hadwiger_research::facade::*;
+use worth_query::facade::foundation::{
+    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationCanonicalEntryKind,
+    WorthQueryDeclarationCanonicalValue, WorthQueryDeclarationInput,
+};
 
 #[test]
 fn all_declaration_inputs_publish_exact_canonical_entry_sequences() {
@@ -108,22 +108,22 @@ fn request_shape_validation_has_typed_fallible_constructors() {
 }
 
 fn assert_entries(
-    actual: Vec<ForgeQueryDeclarationCanonicalEntry>,
-    expected: &[ForgeQueryDeclarationCanonicalEntry],
+    actual: Vec<WorthQueryDeclarationCanonicalEntry>,
+    expected: &[WorthQueryDeclarationCanonicalEntry],
 ) {
     assert_eq!(actual, expected);
     assert_eq!(actual[0].locus(), "declaration_kind");
     assert!(actual.iter().all(|entry| !entry.locus().is_empty()));
 }
 
-fn text(locus: &str, value: &str) -> ForgeQueryDeclarationCanonicalEntry {
-    ForgeQueryDeclarationCanonicalEntry::text(locus, value)
+fn text(locus: &str, value: &str) -> WorthQueryDeclarationCanonicalEntry {
+    WorthQueryDeclarationCanonicalEntry::text(locus, value)
 }
 
-fn unsigned(locus: &str, value: u128) -> ForgeQueryDeclarationCanonicalEntry {
-    ForgeQueryDeclarationCanonicalEntry::new(
+fn unsigned(locus: &str, value: u128) -> WorthQueryDeclarationCanonicalEntry {
+    WorthQueryDeclarationCanonicalEntry::new(
         locus,
-        ForgeQueryDeclarationCanonicalEntryKind::Field,
-        ForgeQueryDeclarationCanonicalValue::UnsignedInteger(value),
+        WorthQueryDeclarationCanonicalEntryKind::Field,
+        WorthQueryDeclarationCanonicalValue::UnsignedInteger(value),
     )
 }

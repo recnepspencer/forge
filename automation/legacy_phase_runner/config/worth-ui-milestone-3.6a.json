@@ -1,0 +1,253 @@
+﻿{
+  "schema_version": 1,
+  "project": {
+    "name": "Worth UI Milestone 3.6a",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui",
+    "spec_file": "_docs\\worth-ui\\milestone-3.6a.md",
+    "context_files": [
+      "_docs\\coding_guidelines\\MENTALITY.md",
+      "_docs\\coding_guidelines\\arch_laws.md",
+      "_docs\\coding_guidelines\\composition_laws.md",
+      "_docs\\coding_guidelines\\domain_structure_laws.md",
+      "_docs\\coding_guidelines\\perf_laws.md",
+      "crates\\worth-foundational\\docs\\FOUNDATIONAL_README.md",
+      "crates\\worth-query\\docs\\AI_README.md",
+      "workspaces\\worth-ui\\docs\\WORTH_UI_README.md",
+      "_docs\\worth-ui\\worth-ui-vision.md",
+      "_docs\\worth-ui\\worth-ui-dsl-vision.md",
+      "_docs\\worth-ui\\ai-diagnostics.md",
+      "_docs\\worth-ui\\worth_ui_roadmap.md",
+      "_docs\\worth-ui\\milestone-3.5.md",
+      "_docs\\worth-ui\\milestone-3.6a.md"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md",
+    "code_quality_repair": "templates/code_quality_repair.md"
+  },
+  "contract_template": "templates/_contract_test_hardening.md",
+  "session_defaults": {
+    "command": "C:\\nvm4w\\nodejs\\codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    }
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Freeze Measurement As A Declaration-Owned Semantic Lane",
+      "owner": "worth-ui declaration measurement authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-dsl",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration",
+        "workspaces\\worth-ui\\crates\\worth-ui\\src\\facade"
+      ],
+      "acceptance": [
+        "declaration-time measurement meaning is explicit, machine-checkable, and does not hide in widget kind or renderer-local helpers",
+        "NamedMeasurementDefinition, MeasurementValue, MeasurementConstraint, and measurement authority descriptors remain declaration artifacts rather than allocation or host artifacts",
+        "unsupported or malformed declaration measurement posture denies through typed support/admission posture instead of host-local fallback"
+      ],
+      "instructions": "Freeze declaration-owned measurement meaning first. Keep the seed tokens as the starting lane, but broaden only through typed declaration posture and support rows rather than parallel parsing or renderer-local interpretation.",
+      "qa_focus": "No widget-local meaning, no raw numeric authority, and no declaration syntax outrunning admitted runtime modes."
+    },
+    {
+      "id": 2,
+      "title": "Define The Admitted Measurement Vocabulary And Its Semantic Axes",
+      "owner": "worth-ui measurement vocabulary authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\capability",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence"
+      ],
+      "acceptance": [
+        "measurement vocabulary is classified into explicit axes for mode, constraint modifier, basis source, ownership or lifecycle posture, and evidence requirement",
+        "roadmap labels like scroll-owned and portal-anchored lower into narrower planning-time posture names rather than broad behavior buckets",
+        "contradictory or impossible vocabulary combinations deny before host evidence or allocation planning begins"
+      ],
+      "instructions": "Make the taxonomy load-bearing. Treat measurement mode, constraint modifiers, basis sources, ownership posture, and evidence requirements as separate lanes so future scroll and portal behavior cannot sneak in as one overloaded token family.",
+      "qa_focus": "No flat vocabulary bag, no DOM overflow analogy, and no broad scroll or portal semantics admitted early."
+    },
+    {
+      "id": 3,
+      "title": "Consume The 3.4 Measurement-Requirement Entry Path",
+      "owner": "worth-ui measurement obligation handoff authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\obligations",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\admission",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "UiGraphTouchDescriptor flows through selected measurement-requirement obligations into measurement support and admission posture rather than a parallel trigger path",
+        "measurement entry remains downstream of 3.4 obligation authority and does not reopen obligation selection semantics locally",
+        "hostile callers cannot bypass measurement-requirement obligation selection with inspection-local or host-local shortcuts"
+      ],
+      "instructions": "Make 3.4 the explicit entry point. Wire graph touch to selected measurement-requirement obligations first so the measurement lane starts from retained runtime authority rather than an ad hoc local admission trigger.",
+      "qa_focus": "No second admission system, no bypass around 3.4, and no obligation archaeology from unrelated runtime posture."
+    },
+    {
+      "id": 4,
+      "title": "Admit Measurement By World And Host Capability",
+      "owner": "worth-ui measurement world and capability admission authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\admission",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\capability",
+        "workspaces\\worth-ui\\crates\\worth-ui-host-contract"
+      ],
+      "acceptance": [
+        "world-aware and host-capability-aware admission posture exists for measurement without renderer-local degradation",
+        "unsupported, wrong-world, stale-support-posture, and capability-gated outcomes remain distinct typed denial classes",
+        "admission outputs carry enough identity and generation posture for later basis assembly to reject stale support or capability mixing deterministically"
+      ],
+      "instructions": "Close the non-Query admission boundary here. The same declaration in the same world and capability profile should admit identically, and unsupported worlds or missing host capability should deny structurally instead of falling through to layout folklore.",
+      "qa_focus": "No renderer-local fallback, no wrong-world blur, and no stale support or capability posture reused as current."
+    },
+    {
+      "id": 5,
+      "title": "Admit Query Measurement Posture And Fact Eligibility",
+      "owner": "worth-ui query-backed measurement eligibility authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-query-binding",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\admission",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence"
+      ],
+      "acceptance": [
+        "Query-backed measurement dependency admission stays distinct from actual Query fact consumption for a declaration generation",
+        "unsupported Query posture, stale basis generation, and unavailable projected fact families deny before basis assembly rather than widening into best-effort content sizing",
+        "declared measurement dependency sets bound what Query fact families are eligible so unrelated Query changes stay local"
+      ],
+      "instructions": "Keep this phase about Query eligibility in principle. Admit the basis posture and fact-family availability here, but do not collapse that with actual fact receipt consumption for a concrete generation.",
+      "qa_focus": "No duplicate implementation of fact consumption, no raw Query branch or snapshot strings as authority, and no retained inspection masquerading as the ordinary path."
+    },
+    {
+      "id": 6,
+      "title": "Define Host Measurement Request Contracts",
+      "owner": "worth-ui host measurement request authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-host-contract",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\host",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence"
+      ],
+      "acceptance": [
+        "UiMeasurementRequest families are closed for 3.6a and cover text, font, viewport, dpi, portal-anchor, and scroll-container evidence asks only",
+        "forbidden host-authority asks like final layout size, overflow decision, scroll extent authority, portal position decision, and allocation box are explicitly denied",
+        "request identity, capability posture, and evidence family remain explicit before any host adapter call executes"
+      ],
+      "instructions": "Freeze the allowed host asks before normalizing any returned evidence. Keep the request taxonomy narrow and host-neutral so adapters can supply evidence without smuggling layout strategy or final authority back into the runtime.",
+      "qa_focus": "No final layout requests, no hidden capability requirements in payload folklore, and no adapter-shaped public request semantics."
+    },
+    {
+      "id": 7,
+      "title": "Normalize Host Measurement Evidence And Invalidation",
+      "owner": "worth-ui host measurement evidence authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\host",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence",
+        "workspaces\\worth-ui\\crates\\worth-ui-host-egui"
+      ],
+      "acceptance": [
+        "UiMeasurementResult and normalized host evidence preserve request identity, evidence category, evidence generation, unit posture, coordinate space, and rounding posture",
+        "host-returned viewport, text, native sizing, and portal-anchor observations stay evidence only and cannot decide final constraints or region strategy",
+        "stale host evidence is invalidated when capability, viewport, dpi, font, or adapter-profile assumptions no longer match the request or generation posture"
+      ],
+      "instructions": "Separate request issuance from evidence normalization. Normalize the host observations into typed runtime evidence with explicit unit, coordinate-space, and rounding posture so later basis assembly can audit equivalence and staleness honestly.",
+      "qa_focus": "No host-local authority, no stale evidence reuse, and no hidden unit or rounding drift."
+    },
+    {
+      "id": 8,
+      "title": "Consume Query Projection Facts For Measurement",
+      "owner": "worth-ui query measurement fact consumption authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-query-binding",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration"
+      ],
+      "acceptance": [
+        "ordinary measurement inputs consume Query projection facts through consume_projection_facts(...) rather than local caches or raw Query internals",
+        "UiProjectionFactReceipt preserves dependency identity needed for basis assembly and later neighborhood narrowing",
+        "changes outside a declaration's admitted measurement dependency set do not widen measurement invalidation unnecessarily"
+      ],
+      "instructions": "This is the actual Query fact receipt phase. Consume the admitted projection fact families for the active declaration generation and preserve dependency identity all the way through to basis assembly.",
+      "qa_focus": "No UI-local Query result state, no cross-runtime causal inspection as the ordinary path, and no dependency set rediscovery later."
+    },
+    {
+      "id": 9,
+      "title": "Assemble A Deterministic Measurement Basis Artifact",
+      "owner": "worth-ui measurement basis authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\declaration",
+        "workspaces\\worth-ui\\crates\\worth-ui-query-binding",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\host"
+      ],
+      "acceptance": [
+        "UiMeasurementBasis is explicit and preserves identity, generation, declaration identity, graph node identity, basis posture, typed evidence inputs, generation compatibility, dependency lineage, neighborhood-class hint, and denial posture",
+        "MeasurementEvidenceInput and UiMeasurementGenerationCompatibility remain first-class typed contracts rather than generic stale or helper branches",
+        "equivalent declaration, world, support, Query, and host evidence inputs converge to the same basis while contradictory or partial inputs deny structurally"
+      ],
+      "instructions": "Build the basis as a real runtime artifact, not a helper struct. It must be generation-aware, reproducible from authority plus evidence, and incapable of masquerading as committed allocation truth.",
+      "qa_focus": "No anonymous tuples, no partial basis with hidden holes, and no collapsing compatibility posture into one stale bucket."
+    },
+    {
+      "id": 10,
+      "title": "Preserve Dependency Lineage And Neighborhood Class Hints",
+      "owner": "worth-ui measurement lineage authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\obligations"
+      ],
+      "acceptance": [
+        "basis artifacts preserve typed dependency lineage for viewport, content, portal-anchor, scroll-container, and intrinsic-text evidence",
+        "neighborhood output stays lineage-derived basis metadata only in 3.6a rather than turning into full 3.6b allocation planning",
+        "local measurement-input changes classify to narrow neighborhood-class hints instead of broad whole-graph recomputation posture"
+      ],
+      "instructions": "Freeze the lineage and hint payload now so later resize, scroll, portal, and drag work consumes one narrow basis-derived dependency map instead of re-deriving neighborhoods from scratch.",
+      "qa_focus": "No full 3.6b planning sneaking into 3.6a, no one-size invalidation radius, and no lineage collapse into a generic measurement changed flag."
+    },
+    {
+      "id": 11,
+      "title": "Make Measurement Inspection And Diagnostics First-Class",
+      "owner": "worth-ui measurement inspection authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence",
+        "workspaces\\worth-ui\\crates\\worth-ui\\src\\facade"
+      ],
+      "acceptance": [
+        "UiInspectionScope::Measurement exposes support posture, denial posture, basis inputs, dependency lineage, and generation mismatch through the shared inspection substrate",
+        "measurement inspection for one declaration or graph node remains narrow and does not widen into whole-frame explanation by default",
+        "operators can tell whether failure came from declaration posture, Query facts, host evidence, or compatibility mismatch without mounted receipts"
+      ],
+      "instructions": "Route measurement explanation through the existing evidence substrate, not a layout debugger side path. Keep the inspection surface refs-first, typed, and narrow enough to support both AI and human operators.",
+      "qa_focus": "No typed evidence bypass, no flattened failure bucket, and no renderer-local explanation lane."
+    },
+    {
+      "id": 12,
+      "title": "Certify Host Purity Basis Determinism And Future-Growth Posture",
+      "owner": "worth-ui measurement closeout authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-certification",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-host-contract",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection"
+      ],
+      "acceptance": [
+        "certification proves hosts cannot mint layout authority, Query authority, or committed allocation truth through local helpers or test-only bypasses",
+        "basis determinism, compatibility posture, lineage narrowness, and public-boundary purity are mechanically certified rather than documented hopes",
+        "future 3.6b and 3.7 work have one obvious consumer path from the shipped basis, lineage, and inspection artifacts without widening them into a god object"
+      ],
+      "instructions": "Close 3.6a with proof, not optimism. The exit bar is that allocation planning, resize churn, scroll behavior, and portal behavior can extend one real measurement kernel instead of reopening vocabulary or authority ownership.",
+      "qa_focus": "No public bypass, no hidden host authority, no generic future-family bucket, and no unstable ordinary-path equivalence."
+    }
+  ]
+}

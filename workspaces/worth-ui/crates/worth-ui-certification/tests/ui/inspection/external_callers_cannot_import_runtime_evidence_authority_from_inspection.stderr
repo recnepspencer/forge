@@ -9,4 +9,4 @@ error[E0432]: unresolved import `worth_ui_inspection::UiEvidenceIdentity`
   |
   = help: consider importing one of these structs instead:
           worth_ui::facade::UiEvidenceIdentity
-          worth_ui_runtime::facade::UiEvidenceIdentity
+          worth_ui_runtime::facade::evidence::UiEvidenceIdentity

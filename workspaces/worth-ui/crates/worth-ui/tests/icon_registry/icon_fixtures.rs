@@ -1,6 +1,7 @@
-use forge_query::facade::{
-    worth_ui_query_binding_evidence_identity, ForgeQueryRuntimeAsyncResultState,
-    ForgeQueryRuntimeAsyncResultStateKind,
+use worth_query::facade::foundation::worth_ui_query_binding_evidence_identity;
+use worth_query::facade::runtime::{
+    WorthQueryRuntimeAsyncResultState,
+    WorthQueryRuntimeAsyncResultStateKind,
 };
 use worth_ui::facade::{
     CommandDescriptor, CommandId, ComponentChildPolicy, ComponentDescriptor, ComponentId,
@@ -102,9 +103,9 @@ pub(crate) fn denied_projection_with_icon(
     .with_denial_posture(RuntimeOutcomeDenialPosture::structured_status())
 }
 
-fn async_result_state() -> ForgeQueryRuntimeAsyncResultState {
-    ForgeQueryRuntimeAsyncResultState::new(
-        ForgeQueryRuntimeAsyncResultStateKind::Denied,
+fn async_result_state() -> WorthQueryRuntimeAsyncResultState {
+    WorthQueryRuntimeAsyncResultState::new(
+        WorthQueryRuntimeAsyncResultStateKind::Denied,
         &worth_ui_query_binding_evidence_identity(
             "runtime-outcome-fixture",
             &["causality.digest".to_string()],

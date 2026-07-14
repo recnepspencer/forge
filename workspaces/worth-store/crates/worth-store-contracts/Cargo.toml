@@ -1,0 +1,12 @@
+[package]
+name = "worth-store-contracts"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Shared Worth Store ids, classifications, errors, and contract vocabulary."
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }

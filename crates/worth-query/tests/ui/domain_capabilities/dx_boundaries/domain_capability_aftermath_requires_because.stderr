@@ -1,0 +1,56 @@
+warning: the type `WorthQueryAdmittedPlanBoundContributionTarget` does not permit zero-initialization
+ --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_aftermath_requires_because.rs:7:26
+  |
+7 |         target: unsafe { std::mem::zeroed::<WorthQueryAdmittedPlanBoundContributionTarget>() },
+  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                          |
+  |                          this code causes undefined behavior when executed
+  |                          help: use `MaybeUninit<T>` instead, and only call `assume_init` after initialization is done
+  |
+  = note: `std::ptr::Unique<u8>` must be non-null
+  = note: because `std::ptr::NonNull<u8>` must be non-null
+  = note: `#[warn(invalid_value)]` on by default
+
+warning: the type `ProjectionConsumptionSource` does not permit zero-initialization
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_aftermath_requires_because.rs:10:26
+   |
+10 |         source: unsafe { std::mem::zeroed::<ProjectionConsumptionSource>() },
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |                          |
+   |                          this code causes undefined behavior when executed
+   |                          help: use `MaybeUninit<T>` instead, and only call `assume_init` after initialization is done
+   |
+   = note: `std::ptr::Unique<u8>` must be non-null
+   = note: because `std::ptr::NonNull<u8>` must be non-null
+
+warning: the type `ProjectionConsumptionBindingContext` does not permit zero-initialization
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_aftermath_requires_because.rs:11:27
+   |
+11 |         binding: unsafe { std::mem::zeroed::<ProjectionConsumptionBindingContext>() },
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |                           |
+   |                           this code causes undefined behavior when executed
+   |                           help: use `MaybeUninit<T>` instead, and only call `assume_init` after initialization is done
+   |
+   = note: `std::ptr::Unique<u8>` must be non-null
+   = note: because `std::ptr::NonNull<u8>` must be non-null
+
+error[E0451]: fields `domain`, `target`, `posture`, `semantic_code`, `source`, `binding` and `requested_facts` of struct `WorthQueryAdmittedPlanAftermathDraft` are private
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_aftermath_requires_because.rs:6:9
+   |
+ 5 |     let _ = WorthQueryAdmittedPlanAftermathDraft {
+   |             ------------------------------------ in this type
+ 6 |         domain: "worth.spatial".to_string(),
+   |         ^^^^^^ private field
+ 7 |         target: unsafe { std::mem::zeroed::<WorthQueryAdmittedPlanBoundContributionTarget>() },
+   |         ^^^^^^ private field
+ 8 |         posture: unsafe { std::mem::zeroed() },
+   |         ^^^^^^^ private field
+ 9 |         semantic_code: "projection.contract".to_string(),
+   |         ^^^^^^^^^^^^^ private field
+10 |         source: unsafe { std::mem::zeroed::<ProjectionConsumptionSource>() },
+   |         ^^^^^^ private field
+11 |         binding: unsafe { std::mem::zeroed::<ProjectionConsumptionBindingContext>() },
+   |         ^^^^^^^ private field
+12 |         requested_facts: unsafe { std::mem::zeroed::<ProjectMaterializedFacts>() },
+   |         ^^^^^^^^^^^^^^^ private field

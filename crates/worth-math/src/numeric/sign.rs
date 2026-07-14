@@ -112,7 +112,7 @@ impl std::fmt::Display for TriSign {
 /// `CertifiedTriSign` enforces the topology-geometry firewall:
 /// - **Construction**: Only possible inside `worth-math` via `pub(crate) fn new()`
 /// - **Reading**: Any crate can read the sign via `.sign()`
-/// - **Effect**: Topology functions in `forge-topo` accept `CertifiedTriSign`,
+/// - **Effect**: Topology functions in `WORTH-topo` accept `CertifiedTriSign`,
 ///   making it a compile error to pass a raw float comparison
 ///
 /// This ensures every topological decision is backed by a mathematically

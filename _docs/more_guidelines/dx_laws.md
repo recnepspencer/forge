@@ -417,7 +417,7 @@ tx.committed;
 tx.rollback();
 ```
 
-31. Streams and subscriptions must expose partial materialization, backpressure, overflow, and lifecycle. Any API that produces work faster than another system can consume it must let the caller declare buffering, overflow behavior, concurrency policy, cancellation, and disposal. Fire-and-forget event APIs are production incident generators.
+31. Streams and subscriptions must expose partial materialization, backpressure, overflow, and lifecycle. Any API that produces work faster than another system can consume it must let the caller declare buffering, overflow behavior, concurrency policy, cancellation, and disposal. Fire-and-WORTHt event APIs are production incident generators.
 
 ```ts
 events.subscribe(UserRenamed, {

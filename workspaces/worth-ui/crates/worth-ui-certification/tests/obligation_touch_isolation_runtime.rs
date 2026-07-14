@@ -5,14 +5,16 @@ use worth_ui::facade::inspection::{
 };
 
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 #[test]
 fn touch_queries_do_not_leak_same_node_admission_rows_across_distinct_touches() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let query_touch = obligation_dispatch_prerequisite_support::query_touch(&app);
-    let structural_touch = obligation_dispatch_prerequisite_support::structural_touch(&app);
-    let target = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&query_touch);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let query_touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let structural_touch =
+        obligation_dispatch_prerequisite_support::touches::structural_touch(&app);
+    let target =
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&query_touch);
     let report = app.admission().admit_selected_obligations(
         &app.admission()
             .select_obligations_for_target(&query_touch, target),

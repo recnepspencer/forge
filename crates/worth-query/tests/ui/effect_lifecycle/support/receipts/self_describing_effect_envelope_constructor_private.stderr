@@ -1,0 +1,47 @@
+error[E0560]: struct `worth_query::facade::foundation::SelfDescribingEffectEnvelope` has no field named `trace_digest`
+ --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:9:9
+  |
+9 |         trace_digest: String::new(),
+  |         ^^^^^^^^^^^^ `worth_query::facade::foundation::SelfDescribingEffectEnvelope` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `worth_query::facade::foundation::SelfDescribingEffectEnvelope` has no field named `structural_deltas`
+  --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:10:9
+   |
+10 |         structural_deltas: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^ `worth_query::facade::foundation::SelfDescribingEffectEnvelope` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `worth_query::facade::foundation::SelfDescribingEffectEnvelope` has no field named `integrity_digest`
+  --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:11:9
+   |
+11 |         integrity_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^ `worth_query::facade::foundation::SelfDescribingEffectEnvelope` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `worth_query::facade::foundation::SelfDescribingEffectEnvelope` has no field named `performance_digest`
+  --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:12:9
+   |
+12 |         performance_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ `worth_query::facade::foundation::SelfDescribingEffectEnvelope` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `worth_query::facade::foundation::SelfDescribingEffectEnvelope` has no field named `boundary_digest`
+  --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:13:9
+   |
+13 |         boundary_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ `worth_query::facade::foundation::SelfDescribingEffectEnvelope` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `worth_query::facade::foundation::SelfDescribingEffectEnvelope` has no field named `envelope_digest`
+  --> tests/ui/effect_lifecycle/support/receipts/self_describing_effect_envelope_constructor_private.rs:14:9
+   |
+14 |         envelope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ `worth_query::facade::foundation::SelfDescribingEffectEnvelope` does not have this field
+   |
+   = note: all struct fields are already assigned

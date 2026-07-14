@@ -1,8 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/forge-ui-theme",
-    "crates/forge-ui-components",
+    "crates/worth-ui-theme",
+    "crates/worth-ui-components",
     "crates/worth-ui-dsl",
     "crates/worth-ui-runtime",
     "crates/worth-ui-inspection",
@@ -10,6 +10,7 @@ members = [
     "crates/worth-ui-host-contract",
     "crates/worth-ui-host-egui",
     "crates/worth-ui-certification",
+    "crates/worth-ui-test-support",
     "crates/worth-ui",
 ]
 
@@ -19,13 +20,13 @@ version = "0.1.0"
 license = "UNLICENSED"
 
 [workspace.dependencies]
-forge-foundational = { path = "../../crates/forge-foundational" }
-forge-proof = { path = "../../crates/forge-proof" }
-forge-query = { path = "../../crates/forge-query" }
-forge-signal = { path = "../../crates/forge-signal" }
+worth-foundational = { path = "../../crates/worth-foundational" }
+worth-proof = { path = "../../crates/worth-proof" }
+worth-query = { path = "../../crates/worth-query" }
+worth-signal = { path = "../../crates/worth-signal" }
 
-forge-ui-theme = { path = "crates/forge-ui-theme" }
-forge-ui-components = { path = "crates/forge-ui-components" }
+worth-ui-theme = { path = "crates/worth-ui-theme" }
+worth-ui-components = { path = "crates/worth-ui-components" }
 worth-ui-dsl = { path = "crates/worth-ui-dsl" }
 worth-ui-runtime = { path = "crates/worth-ui-runtime" }
 worth-ui-inspection = { path = "crates/worth-ui-inspection" }
@@ -33,6 +34,7 @@ worth-ui-query-binding = { path = "crates/worth-ui-query-binding" }
 worth-ui-host-contract = { path = "crates/worth-ui-host-contract" }
 worth-ui-host-egui = { path = "crates/worth-ui-host-egui" }
 worth-ui-certification = { path = "crates/worth-ui-certification" }
+worth-ui-test-support = { path = "crates/worth-ui-test-support" }
 worth-ui = { path = "crates/worth-ui" }
 
 serde = { version = "1", features = ["derive", "rc"] }

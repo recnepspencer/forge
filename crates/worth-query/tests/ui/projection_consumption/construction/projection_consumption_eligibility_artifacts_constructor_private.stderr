@@ -1,0 +1,36 @@
+error[E0432]: unresolved imports `worth_query::facade::foundation::AdmittedProjectionConsumption`, `worth_query::facade::foundation::ProjectionConsumptionEligibilityCounters`, `worth_query::facade::foundation::ProjectionConsumptionEligibilityTrace`
+ --> tests/ui/projection_consumption/construction/projection_consumption_eligibility_artifacts_constructor_private.rs:1:39
+  |
+1 | ...::{AdmittedProjectionConsumption, DeferredProjectionConsumption, DeniedProjectionConsumption, ProjectionConsumptionEligibilityCounters, ProjectionConsumptionEligibilityTrace, P...
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ProjectionConsumptionEligibilityTrace` in `facade::foundation`
+  |       |                                                                                          |
+  |       no `AdmittedProjectionConsumption` in `facade::foundation`                                 no `ProjectionConsumptionEligibilityCounters` in `facade::foundation`
+  |
+help: a similar name exists in the module
+  |
+1 - use worth_query::facade::foundation::{AdmittedProjectionConsumption, DeferredProjectionConsumption, DeniedProjectionConsumption, ProjectionConsumptionEligibilityCounters, ProjectionConsumptionEligibilityTrace, ProjectionConsumptionWarningKind, ProjectionConsumptionWarnings, SourceMismatchedProjectionConsumption};
+1 + use worth_query::facade::foundation::{DeniedProjectionConsumption, DeferredProjectionConsumption, DeniedProjectionConsumption, ProjectionConsumptionEligibilityCounters, ProjectionConsumptionEligibilityTrace, ProjectionConsumptionWarningKind, ProjectionConsumptionWarnings, SourceMismatchedProjectionConsumption};
+  |
+help: a similar name exists in the module
+  |
+1 - use worth_query::facade::foundation::{AdmittedProjectionConsumption, DeferredProjectionConsumption, DeniedProjectionConsumption, ProjectionConsumptionEligibilityCounters, ProjectionConsumptionEligibilityTrace, ProjectionConsumptionWarningKind, ProjectionConsumptionWarnings, SourceMismatchedProjectionConsumption};
+1 + use worth_query::facade::foundation::{AdmittedProjectionConsumption, DeferredProjectionConsumption, DeniedProjectionConsumption, ProjectionConsumptionBindingContext, ProjectionConsumptionEligibilityTrace, ProjectionConsumptionWarningKind, ProjectionConsumptionWarnings, SourceMismatchedProjectionConsumption};
+  |
+
+error: cannot construct `DeferredProjectionConsumption` with struct literal syntax due to private fields
+  --> tests/ui/projection_consumption/construction/projection_consumption_eligibility_artifacts_constructor_private.rs:31:13
+   |
+31 |     let _ = DeferredProjectionConsumption {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+32 |         declaration_digest: String::new(),
+   |         --------------------------------- private field
+33 |         reason: impossible(),
+   |         -------------------- private field
+34 |         counters: counters.clone(),
+   |         -------------------------- private field
+35 |         trace: trace.clone(),
+   |         -------------------- private field
+36 |         failure_digest: String::new(),
+   |         ----------------------------- private field
+   |
+   = note: ...and other private field `source_family` that was not provided

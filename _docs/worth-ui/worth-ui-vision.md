@@ -1380,10 +1380,10 @@ work.
 
 ## Companion Documents
 
-- [_docs/forge-query/forge_query_vision.md](../forge-query/forge_query_vision.md)
-- [_docs/forge-runtime-bridge/forge_runtime_bridge_vision.md](../forge-runtime-bridge/forge_runtime_bridge_vision.md)
-- [_docs/forge-relational/forge_relational_vision.md](../forge-relational/forge_relational_vision.md)
-- [_docs/forge_signal/forge_signal_vision.md](../forge_signal/forge_signal_vision.md)
+- [_docs/worth-query/worth_query_vision.md](../worth-query/worth_query_vision.md)
+- [_docs/worth-runtime-bridge/worth_runtime_bridge_vision.md](../worth-runtime-bridge/worth_runtime_bridge_vision.md)
+- [_docs/worth-relational/worth_relational_vision.md](../worth-relational/worth_relational_vision.md)
+- [_docs/worth_signal/worth_signal_vision.md](../worth_signal/worth_signal_vision.md)
 
 Worth UI is where the stack becomes a product people can touch. If the UI
 platform is shallow, the runtime's truth, query, branch, preview, inspection,

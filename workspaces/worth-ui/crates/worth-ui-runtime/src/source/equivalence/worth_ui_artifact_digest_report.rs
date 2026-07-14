@@ -14,10 +14,12 @@ impl WorthUiArtifactDigestReport {
         Self { basis, metrics }
     }
 
+    #[cfg(test)]
     pub(crate) fn basis(&self) -> WorthUiArtifactEquivalenceBasis {
         self.basis
     }
 
+    #[cfg(test)]
     pub(crate) fn metrics(&self) -> WorthUiArtifactEquivalenceMetrics {
         self.metrics
     }

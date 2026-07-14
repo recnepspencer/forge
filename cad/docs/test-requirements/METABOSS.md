@@ -1,4 +1,4 @@
-# Forge MetaBoss Tier 4: "No Kernel Survives" Suite
+# WORTH MetaBoss Tier 4: "No Kernel Survives" Suite
 ### The Final 0.0001% — Companion to `PROOF_SYSTEM.md`
 
 ---
@@ -749,4 +749,4 @@ Each Tier 4 test depends on proof infrastructure from the parent spec:
 
 # Part 5: The Thesis
 
-> When all three final boss tests (MB-T4-8, MB-CT4-8, MB-FT4-8) go green — or cleanly fail with structured traces pointing to the exact trigger — the Forge kernel has surpassed every commercial B-rep engine in provable robustness. Not by a margin. By a category.
+> When all three final boss tests (MB-T4-8, MB-CT4-8, MB-FT4-8) go green — or cleanly fail with structured traces pointing to the exact trigger — the WORTH kernel has surpassed every commercial B-rep engine in provable robustness. Not by a margin. By a category.

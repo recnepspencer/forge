@@ -1,0 +1,7 @@
+error: cannot construct `WorthQueryConsumedProjectionAuthority` with struct literal syntax due to private fields
+ --> tests/ui/projection_consumption/construction/consumed_projection_authority_constructor_private.rs:4:13
+  |
+4 |     let _ = WorthQueryConsumedProjectionAuthority {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields `completed`, `counters` and `consumer_contract` that were not provided

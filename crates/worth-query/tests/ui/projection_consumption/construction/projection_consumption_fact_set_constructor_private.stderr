@@ -1,0 +1,61 @@
+error: cannot construct `ConsumedProjectionFactSet` with struct literal syntax due to private fields
+  --> tests/ui/projection_consumption/construction/projection_consumption_fact_set_constructor_private.rs:4:13
+   |
+ 4 |     let _ = ConsumedProjectionFactSet {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         declaration_digest: "declaration:test".to_string(),
+   |         -------------------------------------------------- private field
+ 6 |         contract_digest: "contract:test".to_string(),
+   |         -------------------------------------------- private field
+ 7 |         source_family: ProjectionSourceFamily::QueryWriteReceipt,
+   |         -------------------------------------------------------- private field
+ 8 |         source_identity: "commit:test".to_string().into(),
+   |         ------------------------------------------------- private field
+ 9 |         support_posture: ProjectionContractSupportPosture::Admitted,
+   |         ----------------------------------------------------------- private field
+10 |         counters: ProjectionFactExtractionCounters::default(),
+   |         ----------------------------------------------------- private field
+11 |         fact_set_digest: "fact-set:test".to_string(),
+   |         -------------------------------------------- private field
+12 |         entity_identities: Vec::new(),
+   |         ----------------------------- private field
+13 |         view_local_identities: Vec::new(),
+   |         --------------------------------- private field
+14 |         memberships: Vec::new(),
+   |         ----------------------- private field
+15 |         display_fields: Vec::new(),
+   |         -------------------------- private field
+16 |         derived_scalar_fields: Vec::new(),
+   |         --------------------------------- private field
+17 |         target_identities: Vec::new(),
+   |         ----------------------------- private field
+18 |         source_references: Vec::new(),
+   |         ----------------------------- private field
+19 |         effect_continuity_facts: Vec::new(),
+   |         ----------------------------------- private field
+20 |         relation_endpoints: Vec::new(),
+   |         ------------------------------ private field
+   |
+   = note: ...and other private field `materialized_fact_posture` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+ 4 -     let _ = ConsumedProjectionFactSet {
+ 5 -         declaration_digest: "declaration:test".to_string(),
+ 6 -         contract_digest: "contract:test".to_string(),
+ 7 -         source_family: ProjectionSourceFamily::QueryWriteReceipt,
+ 8 -         source_identity: "commit:test".to_string().into(),
+ 9 -         support_posture: ProjectionContractSupportPosture::Admitted,
+10 -         counters: ProjectionFactExtractionCounters::default(),
+11 -         fact_set_digest: "fact-set:test".to_string(),
+12 -         entity_identities: Vec::new(),
+13 -         view_local_identities: Vec::new(),
+14 -         memberships: Vec::new(),
+15 -         display_fields: Vec::new(),
+16 -         derived_scalar_fields: Vec::new(),
+17 -         target_identities: Vec::new(),
+18 -         source_references: Vec::new(),
+19 -         effect_continuity_facts: Vec::new(),
+20 -         relation_endpoints: Vec::new(),
+21 -     };
+ 4 +     let _ = ConsumedProjectionFactSet::new(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _);
+   |

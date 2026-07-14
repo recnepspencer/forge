@@ -1,4 +1,4 @@
-use forge_foundational::FoundationalPerformanceWorkClass;
+use worth_foundational::FoundationalPerformanceWorkClass;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum WorthUiCounterValueKind {

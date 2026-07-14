@@ -1,0 +1,30 @@
+//! Compatibility module paths for in-crate imports during lane topology migration.
+
+pub use super::activation::activation_staging;
+pub use super::activation::frame_activation_gate;
+pub use super::execution::canvas_spatial_lane;
+pub use super::execution::handle_allocation;
+pub use super::execution::lane_admission;
+pub use super::execution::lane_meaning_parity;
+pub use super::execution::ordinary_lane;
+pub use super::execution::realtime_overlay_lane;
+pub use super::execution::virtualized_data_lane;
+pub use super::host_observation::diagnostics;
+pub use super::host_observation::diagnostics_projection;
+pub use super::host_observation::identity_state_query_certification;
+pub use super::host_observation::reload_failure;
+pub use super::planning::allocation_planning;
+pub use super::planning::execution_plan_input;
+pub use super::planning::plan_equivalence;
+pub use super::planning::plan_inspection;
+pub use super::planning::plan_topology;
+pub use super::replacement::admission;
+pub use super::replacement::candidate;
+pub use super::replacement::equivalence;
+pub use super::replacement::impact;
+pub use super::replacement::matching;
+pub use super::replacement::narrowing;
+pub use super::replacement::query_binding;
+pub use super::replacement::query_live_rebind;
+pub use super::replacement::reconciliation;
+pub use super::replacement::state_inventory;

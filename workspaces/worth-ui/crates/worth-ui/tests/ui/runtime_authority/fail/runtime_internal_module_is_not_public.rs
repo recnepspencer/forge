@@ -1,5 +1,5 @@
-use worth_ui::runtime::WorthUiRuntimeHost;
+use worth_ui::runtime::WorthUiRuntime;
 
 fn main() {
-    let _ = std::mem::size_of::<WorthUiRuntimeHost>();
+    let _ = std::mem::size_of::<WorthUiRuntime>();
 }

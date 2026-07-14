@@ -216,7 +216,7 @@ impl GeneratedPatternReplaySuiteBuilder {
             vec![
                 HadwigerArtifactPayloadEntry::text(
                     "schema",
-                    "forge.hadwiger.generated_pattern_replay_suite.v1",
+                    "WORTH.hadwiger.generated_pattern_replay_suite.v1",
                 ),
                 HadwigerArtifactPayloadEntry::text("suite", stable_token),
             ],

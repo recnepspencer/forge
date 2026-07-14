@@ -1,0 +1,31 @@
+error[E0560]: struct `NormalizedEffectIntent` has no field named `capability_digest`
+  --> tests/ui/effect_lifecycle/proof/construction/effect_lifecycle_normalized_intent_constructor_private.rs:27:9
+   |
+27 |         capability_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ `NormalizedEffectIntent` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `NormalizedEffectIntent` has no field named `scoped_basis_digest`
+  --> tests/ui/effect_lifecycle/proof/construction/effect_lifecycle_normalized_intent_constructor_private.rs:28:9
+   |
+28 |         scoped_basis_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ `NormalizedEffectIntent` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `NormalizedEffectIntent` has no field named `expected_lower_runtime_binding_digest`
+  --> tests/ui/effect_lifecycle/proof/construction/effect_lifecycle_normalized_intent_constructor_private.rs:29:9
+   |
+29 |         expected_lower_runtime_binding_digest: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `NormalizedEffectIntent` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `NormalizedEffectIntent` has no field named `normalized_digest`
+  --> tests/ui/effect_lifecycle/proof/construction/effect_lifecycle_normalized_intent_constructor_private.rs:34:9
+   |
+34 |         normalized_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ `NormalizedEffectIntent` does not have this field
+   |
+   = note: all struct fields are already assigned

@@ -1,113 +1,136 @@
 ---
 name: implementation-batch
-description: Continue a Forge milestone by deriving the next unfinished implementation slice from the milestone document, planning it, building it, and verifying it in one turn.
+description: Continue a milestone by reviewing the next unfinished slice's real authority and integration boundaries, planning from that boundary review, implementing a coherent vertical slice, and verifying the milestone evidence. Use when Codex is asked to implement the next phase, batch, or unfinished milestone work rather than only review or plan it.
 ---
 
 # Implementation Batch
 
-Start from the milestone document.
+Complete one honest milestone batch through four ordered stages:
 
-Find the next unfinished slice by comparing:
-- milestone phase order
-- acceptance evidence
-- current code
-- current tests
+1. select the next unfinished slice
+2. review its boundaries
+3. plan from the review
+4. implement and verify the plan
 
-## Batch Size Standard
+Do not edit code before the boundary review and implementation plan are both
+complete. Perform all four stages in the same turn unless the user asks to stop
+at a checkpoint.
 
-An implementation batch must be a meaningful milestone advance, not the
-smallest technically defensible patch.
+## Select the Slice
 
-Default expectation:
+Start from the governing milestone or specification. Read the repository's
+local instructions and the architecture, performance, composition, domain
+structure, and DX guidance relevant to the slice when those documents exist.
 
-- choose work that advances a complete proof-bearing capability, not an amount
-  of elapsed time
-- cover one coherent phase subsection or one complete proof-bearing capability
-  across model, lowering/admission/execution, facade, evidence, and tests where
-  those layers apply
-- include at least one production behavior change and at least one certification,
-  regression, or compile-fail proof update
-- advance multiple milestone obligations together when they are structurally
-  coupled
+Determine the next unfinished slice by comparing:
 
-Structural minimum:
+- declared phase order and dependencies
+- required behavior and acceptance evidence
+- current production code and public APIs
+- current tests, fixtures, and machine-checkable evidence
 
-- touch at least three meaningful surfaces when the milestone has them, such as
-  type/model, admission/lowering/execution, facade/API, counters/evidence,
-  persistence/replay, diagnostics, certification, unit tests, and compile-fail
-  tests
-- close or materially advance at least two milestone obligations or one named
-  acceptance/proof lane
-- include hostile or denial coverage for the new behavior unless the work is
-  purely internal refactoring with no new admitted behavior
-- update the machine-checkable evidence surface when the milestone claims one
-- leave the next agent with a stronger completed boundary, not merely a longer
-  TODO list
+Do not infer completion from names, stubs, checked boxes, or passing tests alone.
+Do not skip earlier unfinished work merely because a later slice is easier.
 
-Do not take micro-slices such as:
+Choose a coherent, proof-bearing vertical slice. Include adjacent work when it
+is required to make the claimed behavior and authority boundary honest. Avoid
+both cosmetic micro-patches and unrelated cleanup. If the milestone is nearly
+closed and no meaningful implementation batch remains, perform a closeout-
+readiness pass and report that fact instead of inventing work.
 
-- adding only names, enums, counters, or placeholder structs with no behavior
-- adding only facade exports for already-existing internals
-- adding one happy-path test while leaving the denial, replay, counter, or
-  boundary surface untouched
-- documenting debt without implementing the next honest proof surface
-- stopping after a patch that changes only one surface when adjacent coupled
-  surfaces are still required for the milestone claim
-- using speed of completion as evidence that the batch was acceptable; elapsed
-  time is irrelevant
+## Stage 1: Boundary Review
 
-If the next obvious task is too small, expand it to include the nearest coupled
-obligation. Examples:
+Review before planning. Inspect the spec, scoped source, public entry points,
+tests, and the upstream substrate and downstream consumers that participate in
+the behavior. Follow the real data, control, identity, evidence, and authority
+paths rather than trusting directory names or intended architecture.
 
-- vocabulary plus constructors plus denial tests plus compile-fail privacy
-- admission logic plus counters plus facade exposure plus hostile rejection
-- execution path plus replay evidence plus certification row plus diagnostics
-- persistence shape plus reopen/load validation plus corruption rejection
+Produce a concise boundary brief that identifies:
 
-If you cannot form a substantial coherent batch because the milestone is nearly
-closed, say so explicitly and perform a closeout-readiness pass instead of
-pretending a tiny patch is an implementation batch.
+- the semantic truth entering the slice and its authoritative sources
+- what this slice may own, create, validate, preserve, or deny
+- what adjacent components continue to own
+- weaker or proxy representations that must become insufficient
+- existing paths, fallbacks, wrappers, or competing authorities that must be
+  cut over or removed
+- the downstream handoff that must consume the result
+- failure modes at dirty edges, including mixed cutovers, copied truth,
+  identity inferred from proxies, mutable-field leakage, synthetic proof, and
+  tests that bypass production derivation
+- unresolved facts that must be verified before implementation
 
-Write the implementation plan first. Make it specific enough that the next QA loop can judge it literally.
+Treat required substrate or consumer changes as part of the boundary problem;
+do not dismiss them as outside the current directory. Include them when they
+are necessary for the milestone claim, but do not absorb unrelated ownership.
 
-The plan must include:
-- slice name
-- milestone obligations covered
-- concrete artifacts to add or change
-- facade/API changes
-- tests and compile-fail fixtures
-- verification commands
-- explicit out-of-scope items
-- why the slice is large enough to count as a real implementation batch
-- what adjacent tiny tasks were intentionally bundled so the batch is not a
-  cosmetic micro-slice
+Do not write the implementation plan until this brief is complete.
 
-Then implement the plan immediately.
+## Stage 2: Implementation Plan
 
-During implementation:
-- follow existing local patterns
-- preserve sealed proof construction
-- expose milestone protocol through the facade when required
-- add counters where the milestone names observable work
-- add compile-fail tests where invalid phase transitions should be uncallable
-- update tests that certify the changed behavior
-- keep expanding within the chosen coherent scope if implementation reveals an
-  unhandled denial, replay, counter, persistence, or facade boundary that is
-  necessary for the claim to be honest
+Plan from the boundary brief and verified source evidence. Do not assume facts
+that the review did not establish. Resolve material unknowns before editing.
 
-After implementation:
-- run formatting
-- run focused milestone-area tests
-- run compile-fail tests when type boundaries changed
-- run the package test suite when shared facade, identity, counter, replay, or protocol surfaces changed
-- self-check that the result would not look embarrassing as a standalone
-  implementation batch in the milestone history
+Write a specific plan that includes:
 
-Final response:
-- built slice
-- changed files or artifacts
-- verification results
-- remaining milestone work
-- best next QA target
-- confirmation that the batch was substantial, or an explicit explanation if it
-  was a final-cleanup exception
+- slice name and milestone obligations covered
+- boundary findings that constrain the implementation
+- the intended user-facing or developer-facing result, with a concrete code
+  example when an API or DX surface changes
+- directory and module shape, including each artifact's responsibility
+- ordered implementation steps, each stating the change and what proves it
+- cutover and deletion work needed to leave one ordinary authority path
+- tests, compile-time fences, diagnostics, or other acceptance evidence
+- focused and broader verification commands appropriate to the risk
+- explicit out-of-scope work and blockers
+
+Order the plan by dependency and authority: repair dirty boundaries and
+competing authority before building behavior that would depend on them. Keep
+the plan proportional to the slice; use judgment instead of forcing a fixed
+number of files, layers, or tests.
+
+## Stage 3: Implement
+
+Implement the plan immediately.
+
+- Follow local patterns and repository rules.
+- Prefer the principled production path over adapters, compatibility shims,
+  duplicated truth, or fixture-only proof.
+- Make invalid states unrepresentable when the codebase supports a reasonable
+  type or construction boundary.
+- Complete the mechanical cutover before broad polishing or certification.
+- Remove displaced ordinary paths when the plan requires a single authority.
+- Update production behavior and its acceptance evidence together.
+- Keep files within local size limits and split touched oversized files unless
+  an explicit exemption applies.
+
+If implementation reveals a boundary fact that invalidates the plan, pause
+editing, revise the boundary brief and plan, then continue. Expand only to work
+required for the slice's claim to be honest.
+
+## Stage 4: Verify and Close
+
+Run formatting and the narrowest checks that prove the changed behavior. Add
+broader package or workspace checks when shared APIs, authority, persistence,
+identity, replay, protocol, or other cross-cutting surfaces changed. Run
+compile-fail or equivalent negative checks when construction or type boundaries
+changed.
+
+Compare the result directly with every covered milestone obligation and the
+boundary brief. Confirm that:
+
+- the production path, not only a fixture, derives the claimed result
+- old and new authority paths do not coexist accidentally
+- upstream and downstream handoffs are integrated
+- denial and failure behavior is covered where meaningful
+- evidence is strong enough to expose a false implementation
+
+Report:
+
+- the boundary reviewed and slice built
+- material files or artifacts changed
+- cutover or competing-authority paths removed
+- verification results and any unrun checks
+- remaining milestone work and the best next QA target
+
+Do not call the slice complete when required evidence is missing or a competing
+ordinary authority remains.

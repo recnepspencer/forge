@@ -1,5 +1,6 @@
-use worth_ui_runtime::evidence::projection_fact_test_support::display_field_projection_context;
+// layout_admission is private support machinery, not a public fixture export.
+use worth_ui_runtime::certification_support::layout_admission::snapshot_after_layout_admission_support;
 
 fn main() {
-    let _ = display_field_projection_context;
+    let _ = snapshot_after_layout_admission_support;
 }

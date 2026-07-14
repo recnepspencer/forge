@@ -59,7 +59,7 @@ def replace_contract(filepath):
         print(f"Updated: {filepath}")
 
 def main():
-    topo_dir = "/Users/spenstar/Documents/programming/forge workspace/Forge/crates/forge-topo/src"
+    topo_dir = "/Users/spenstar/Documents/programming/WORTH workspace/WORTH/crates/WORTH-topo/src"
     for root, _, files in os.walk(topo_dir):
         for file in files:
             if file.endswith(".rs"):

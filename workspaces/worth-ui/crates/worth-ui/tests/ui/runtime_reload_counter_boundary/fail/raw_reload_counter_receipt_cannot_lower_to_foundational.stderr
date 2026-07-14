@@ -9,7 +9,7 @@ error[E0308]: mismatched types
    = note: expected reference `&WorthUiCertifiedReloadLoweringCounterReceipt`
               found reference `&WorthUiReloadLoweringCounterReceipt`
 note: associated function defined here
-  --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/reload_counter_boundary/foundational_bridge.rs
+  --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/execution/../reload_counter_boundary/foundational_bridge.rs
    |
    |     pub fn lower(
    |            ^^^^^

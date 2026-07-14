@@ -54,7 +54,7 @@ impl TilingReactivationChecked {
             vec![
                 HadwigerArtifactPayloadEntry::text(
                     "schema",
-                    "forge.hadwiger.tiling_reactivation.v1",
+                    "WORTH.hadwiger.tiling_reactivation.v1",
                 ),
                 HadwigerArtifactPayloadEntry::text("reactivation_id", request.reactivation_id()),
                 HadwigerArtifactPayloadEntry::text("posture", posture.as_str()),

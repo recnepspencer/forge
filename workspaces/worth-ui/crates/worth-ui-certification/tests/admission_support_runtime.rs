@@ -5,7 +5,7 @@ use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
     UiDeclarationArtifact, UiDeclarationSupportMilestoneExpectation,
 };
-use worth_ui::facade::graph::{ForgeQuerySessionLabel, UiGraphWorldProfile};
+use worth_ui::facade::graph::{UiGraphWorldProfile, WorthQuerySessionLabel};
 use worth_ui::facade::inspection::UiInspectionSupportPosture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
@@ -51,7 +51,7 @@ fn support_snapshot_keeps_supported_unsupported_deferred_and_wrong_world_separat
     let wrong_world_snapshot = boundary.support_snapshot(&UiAdmissionTarget::graph_node(
         graph_node_identity(&app, supported_control),
         UiAdmissionWorld::from_graph_world_profile(UiGraphWorldProfile::preview_session_label(
-            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["preview", "support"])
+            WorthQuerySessionLabel::scoped_strs("worth-ui", ["preview", "support"])
                 .expect("preview label should admit"),
         )),
     ));
@@ -117,7 +117,7 @@ fn support_snapshot_keeps_supported_unsupported_deferred_and_wrong_world_separat
             expected: UiAdmissionWorld::authoritative(),
             observed: UiAdmissionWorld::from_graph_world_profile(
                 UiGraphWorldProfile::preview_session_label(
-                    ForgeQuerySessionLabel::scoped_strs("worth-ui", ["preview", "support"])
+                    WorthQuerySessionLabel::scoped_strs("worth-ui", ["preview", "support"])
                         .expect("preview label should admit"),
                 ),
             ),

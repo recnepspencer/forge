@@ -1,6 +1,8 @@
-use forge_query::facade::{
-    ForgeQueryDeclarationEntryReadinessReport, ForgeQueryDeclarationEntryReadinessStatus,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+use worth_query::facade::foundation::{
+    WorthQueryDeclarationEntryReadinessReport,
+    WorthQueryDeclarationEntryReadinessStatus,
+    WorthQueryDeclarationInput,
+    WorthQueryDomainEntryMarker,
 };
 
 /// Structured command readiness metadata for later runtime projection.
@@ -13,22 +15,22 @@ impl CommandReadinessBinding {
     pub fn always_admitted() -> Self {
         Self {
             source: CommandReadinessSource::StaticStatus(
-                ForgeQueryDeclarationEntryReadinessStatus::Admitted,
+                WorthQueryDeclarationEntryReadinessStatus::Admitted,
             ),
         }
     }
 
-    pub fn from_query_readiness_status(status: ForgeQueryDeclarationEntryReadinessStatus) -> Self {
+    pub fn from_query_readiness_status(status: WorthQueryDeclarationEntryReadinessStatus) -> Self {
         Self {
             source: CommandReadinessSource::StaticStatus(status),
         }
     }
 
     pub fn from_query_readiness_report<
-        D: ForgeQueryDomainEntryMarker,
-        I: ForgeQueryDeclarationInput<D>,
+        D: WorthQueryDomainEntryMarker,
+        I: WorthQueryDeclarationInput<D>,
     >(
-        report: &ForgeQueryDeclarationEntryReadinessReport<D, I>,
+        report: &WorthQueryDeclarationEntryReadinessReport<D, I>,
     ) -> Self {
         Self {
             source: CommandReadinessSource::QueryReport {
@@ -39,7 +41,7 @@ impl CommandReadinessBinding {
         }
     }
 
-    pub fn strongest_status(&self) -> ForgeQueryDeclarationEntryReadinessStatus {
+    pub fn strongest_status(&self) -> WorthQueryDeclarationEntryReadinessStatus {
         match &self.source {
             CommandReadinessSource::StaticStatus(status) => *status,
             CommandReadinessSource::QueryReport {
@@ -76,30 +78,30 @@ impl CommandReadinessBinding {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum CommandReadinessSource {
-    StaticStatus(ForgeQueryDeclarationEntryReadinessStatus),
+    StaticStatus(WorthQueryDeclarationEntryReadinessStatus),
     QueryReport {
         declaration_family_key: &'static str,
         readiness_digest: String,
-        strongest_status: ForgeQueryDeclarationEntryReadinessStatus,
+        strongest_status: WorthQueryDeclarationEntryReadinessStatus,
     },
 }
 
-fn strongest_readiness_status<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-    report: &ForgeQueryDeclarationEntryReadinessReport<D, I>,
-) -> ForgeQueryDeclarationEntryReadinessStatus {
+fn strongest_readiness_status<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>(
+    report: &WorthQueryDeclarationEntryReadinessReport<D, I>,
+) -> WorthQueryDeclarationEntryReadinessStatus {
     report
         .rows()
         .iter()
         .map(|row| row.status())
         .max_by_key(|status| readiness_status_rank(*status))
-        .unwrap_or(ForgeQueryDeclarationEntryReadinessStatus::InvalidBasis)
+        .unwrap_or(WorthQueryDeclarationEntryReadinessStatus::InvalidBasis)
 }
 
-fn readiness_status_rank(status: ForgeQueryDeclarationEntryReadinessStatus) -> u8 {
+fn readiness_status_rank(status: WorthQueryDeclarationEntryReadinessStatus) -> u8 {
     match status {
-        ForgeQueryDeclarationEntryReadinessStatus::Admitted => 0,
-        ForgeQueryDeclarationEntryReadinessStatus::Deferred => 1,
-        ForgeQueryDeclarationEntryReadinessStatus::Unsupported => 2,
-        ForgeQueryDeclarationEntryReadinessStatus::InvalidBasis => 3,
+        WorthQueryDeclarationEntryReadinessStatus::Admitted => 0,
+        WorthQueryDeclarationEntryReadinessStatus::Deferred => 1,
+        WorthQueryDeclarationEntryReadinessStatus::Unsupported => 2,
+        WorthQueryDeclarationEntryReadinessStatus::InvalidBasis => 3,
     }
 }

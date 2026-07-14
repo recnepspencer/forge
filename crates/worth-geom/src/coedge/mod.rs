@@ -99,7 +99,7 @@ impl ParametricCurve2D {
 /// A directed trim curve in a face's (u, v) parameter space.
 ///
 /// This is the geometry-layer mirror of the `HalfEdgeData.coedge` handle
-/// in `forge-topo`. Each halfedge bordering a curved face has a `Coedge`
+/// in `WORTH-topo`. Each halfedge bordering a curved face has a `Coedge`
 /// that defines its boundary path in the face's surface parameter space.
 ///
 /// The key anti-drift property: `surface.point_at(coedge.uv_at(t))` is

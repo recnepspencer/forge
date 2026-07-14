@@ -1,0 +1,57 @@
+error[E0308]: mismatched types
+ --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:6:26
+  |
+6 |         commit_identity: String::new(),
+  |                          ^^^^^^^^^^^^^ expected `WorthQueryCommitIdentity`, found `String`
+
+error[E0560]: struct `WorthQueryWriteReceiptInspection` has no field named `snapshot_token`
+ --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:7:9
+  |
+7 |         snapshot_token: String::new(),
+  |         ^^^^^^^^^^^^^^ `WorthQueryWriteReceiptInspection` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:10:23
+   |
+10 |             identity: String::new(),
+   |                       ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:11:20
+   |
+11 |             basis: String::new(),
+   |                    ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:15:23
+   |
+15 |             identity: String::new(),
+   |                       ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:16:20
+   |
+16 |             basis: String::new(),
+   |                    ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:20:23
+   |
+20 |             identity: String::new(),
+   |                       ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:21:20
+   |
+21 |             basis: String::new(),
+   |                    ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
+
+error[E0560]: struct `WorthQueryWriteReceiptInspection` has no field named `inspection_digest`
+  --> tests/ui/runtime_write_receipt_inspection_constructor_private.rs:29:9
+   |
+29 |         inspection_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ `WorthQueryWriteReceiptInspection` does not have this field
+   |
+   = note: all struct fields are already assigned

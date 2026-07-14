@@ -19,10 +19,20 @@ use crate::capability::{
     ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
     ViewBindingDescriptor, ViewBindingId,
 };
-use crate::facade::{WorthUi, WorthUiApp};
-use forge_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, ForgeQueryApplicationFacade,
-    ForgeQueryCapabilityFamily, QuerySubscriptionFamily, ResultShapeFamily, ViewShapeDescriptor,
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
+use worth_query::facade::foundation::{
+    discover_basis_lifecycle_support,
+    BasisFamily,
+    ResultShapeFamily,
+    WorthQueryApplicationFacade,
+    WorthQueryCapabilityFamily,
+};
+use worth_query::facade::runtime::{
+    QuerySubscriptionFamily,
+    ViewShapeDescriptor,
 };
 
 pub(crate) fn identity_test_app() -> WorthUiApp {
@@ -34,7 +44,7 @@ pub(crate) fn identity_test_app() -> WorthUiApp {
             )
             .with_icon(IconId::new("workspace.icon.inspect").unwrap())
             .with_readiness(CommandReadinessBinding::from_query_readiness_status(
-                forge_query::facade::ForgeQueryDeclarationEntryReadinessStatus::Deferred,
+                worth_query::facade::foundation::WorthQueryDeclarationEntryReadinessStatus::Deferred,
             ))
             .with_runtime_intent_binding(CommandRuntimeIntentBinding::named(
                 "workspace.runtime.inspect",
@@ -110,10 +120,10 @@ pub(crate) fn identity_test_app() -> WorthUiApp {
 }
 
 fn query_owned_view_binding_descriptor() -> ViewBindingDescriptor {
-    let query_support = ForgeQueryApplicationFacade::runtime_backed_default().support_report();
+    let query_support = WorthQueryApplicationFacade::runtime_backed_default().support_report();
     let query_capability = query_support
         .support_matrix()
-        .descriptor(ForgeQueryCapabilityFamily::QueryComposition)
+        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
         .expect("query composition support posture");
     let query_composition = query_support
         .query_composition_support_profile()

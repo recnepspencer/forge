@@ -3,12 +3,12 @@
 version = 4
 
 [[package]]
-name = "forge-query"
+name = "worth-query"
 version = "0.1.0"
 
 [[package]]
 name = "worth-schema-core"
 version = "0.1.0"
 dependencies = [
- "forge-query",
+ "worth-query",
 ]

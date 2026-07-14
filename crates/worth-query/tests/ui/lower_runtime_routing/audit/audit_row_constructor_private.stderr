@@ -1,0 +1,15 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/audit/audit_row_constructor_private.rs:5:57
+  |
+5 |       let _ = WorthQueryLowerRuntimeDirectImportAuditRow::new(
+  |                                                           ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/inventory/audit_types.rs
+  |
+  | /     pub(crate) const fn new(
+  | |         seam_key: WorthQueryLowerRuntimeSeamKey,
+  | |         module_path: &'static str,
+  | |         posture: WorthQueryLowerRuntimeDirectImportPosture,
+  | |         rationale: &'static str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

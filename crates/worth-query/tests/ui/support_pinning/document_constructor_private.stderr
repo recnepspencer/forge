@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_query::facade::consumer_kit::WorthQuerySupportPinContractDocument`
+ --> tests/ui/support_pinning/document_constructor_private.rs:1:5
+  |
+1 | use worth_query::facade::consumer_kit::WorthQuerySupportPinContractDocument;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------------------------------
+  |     |                                  |
+  |     |                                  help: a similar name exists in the module: `WorthQuerySupportPinContractBuilder`
+  |     no `WorthQuerySupportPinContractDocument` in `facade::consumer_kit`

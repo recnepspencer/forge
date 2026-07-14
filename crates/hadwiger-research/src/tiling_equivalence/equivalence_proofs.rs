@@ -170,7 +170,7 @@ impl TilingCandidateEquivalenceProof {
             vec![
                 HadwigerArtifactPayloadEntry::text(
                     "schema",
-                    "forge.hadwiger.tiling_equivalence.v1",
+                    "WORTH.hadwiger.tiling_equivalence.v1",
                 ),
                 HadwigerArtifactPayloadEntry::text("equivalence_id", request.equivalence_id()),
                 HadwigerArtifactPayloadEntry::text("scope", request.scope().as_str()),

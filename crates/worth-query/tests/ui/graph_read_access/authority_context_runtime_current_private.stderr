@@ -1,0 +1,10 @@
+error[E0624]: associated function `runtime_current_compatibility` is private
+ --> tests/ui/graph_read_access/authority_context_runtime_current_private.rs:4:56
+  |
+4 |     let _ = WorthQueryGraphReadAccessAuthorityContext::runtime_current_compatibility();
+  |                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private associated function
+  |
+ ::: src/runtime/graph_read_access/access_authority_context/context.rs
+  |
+  |     pub(crate) fn runtime_current_compatibility() -> Self {
+  |     ----------------------------------------------------- private associated function defined here

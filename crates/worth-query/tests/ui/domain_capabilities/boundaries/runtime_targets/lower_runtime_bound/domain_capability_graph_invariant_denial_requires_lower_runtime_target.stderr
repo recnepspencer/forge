@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/domain_capabilities/boundaries/runtime_targets/lower_runtime_bound/domain_capability_graph_invariant_denial_requires_lower_runtime_target.rs:41:67
+   |
+41 |     let _ = materialize_graph_composition_domain_invariant_denial(ready);
+   |             ----------------------------------------------------- ^^^^^ expected `WorthQueryLowerRuntimeBoundaryBoundContributionTarget`, found `WorthQueryDeclarationBoundContributionTarget`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected struct `WorthQueryMaterializationReadyDomainCapabilityContribution<WorthQueryInvariantCapabilityContributionPayload, WorthQueryLowerRuntimeBoundaryBoundContributionTarget>`
+              found struct `WorthQueryMaterializationReadyDomainCapabilityContribution<WorthQueryInvariantCapabilityContributionPayload, WorthQueryDeclarationBoundContributionTarget>`
+note: function defined here
+  --> src/domain_capabilities/canonical_runtime/invariant_capability.rs
+   |
+   | pub fn materialize_graph_composition_domain_invariant_denial(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,0 +1,32 @@
+error[E0599]: no method named `aspect_values` found for reference `&WorthQueryBackendAdmissibleMutation` in the current scope
+ --> tests/ui/aspect_native_query/backend_admissible_native_bag_aliases_removed.rs:6:22
+  |
+6 |     let _ = mutation.aspect_values();
+  |                      ^^^^^^^^^^^^^
+  |
+help: there is a method `admitted_aspect_values` with a similar name
+  |
+6 |     let _ = mutation.admitted_aspect_values();
+  |                      +++++++++
+
+error[E0599]: no method named `asserted_aspect_values` found for reference `&WorthQueryBackendAdmissibleMutation` in the current scope
+ --> tests/ui/aspect_native_query/backend_admissible_native_bag_aliases_removed.rs:7:22
+  |
+7 |     let _ = mutation.asserted_aspect_values();
+  |                      ^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `asserted_admitted_aspect_values` with a similar name
+  |
+7 |     let _ = mutation.asserted_admitted_aspect_values();
+  |                                +++++++++
+
+error[E0599]: no method named `touched_aspects` found for reference `&WorthQueryBackendAdmissibleMutation` in the current scope
+ --> tests/ui/aspect_native_query/backend_admissible_native_bag_aliases_removed.rs:8:22
+  |
+8 |     let _ = mutation.touched_aspects();
+  |                      ^^^^^^^^^^^^^^^
+  |
+help: there is a method `admitted_touched_aspects` with a similar name
+  |
+8 |     let _ = mutation.admitted_touched_aspects();
+  |                      +++++++++

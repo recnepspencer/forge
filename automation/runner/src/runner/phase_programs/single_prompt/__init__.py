@@ -1,0 +1,1 @@
+from runner.phase_programs.single_prompt.definition import PROGRAM_DEFINITION

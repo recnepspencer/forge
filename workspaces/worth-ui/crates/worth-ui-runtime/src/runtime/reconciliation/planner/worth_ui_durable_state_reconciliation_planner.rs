@@ -1,20 +1,21 @@
+use super::worth_ui_durable_resize_reconciliation_support::{
+    classification_targets_splitter_surface, splitter_resize_input_for_carry,
+    splitter_resize_input_for_replacement,
+};
 use crate::runtime::{
-    WorthUiAdmittedDurableResizeInput, WorthUiDurableStateCarryForward, WorthUiDurableStateFamily, WorthUiDurableStateFamilyId,
-    WorthUiDurableStateInventory, WorthUiDurableStateReconciliationCounters,
-    WorthUiDurableStateReconciliationDenial, WorthUiDurableStateReconciliationOutcome,
-    WorthUiDurableStateReconciliationPlan, WorthUiDurableStateReconciliationReceipt,
-    WorthUiDurableStateReplacement, WorthUiDurableStateReplacementPolicy,
-    WorthUiNodeLifecycleTransition, WorthUiNodeReplacementClassification, WorthUiNodeReplacementPlan,
+    WorthUiDurableResizeInputDisposition, WorthUiDurableStateCarryForward,
+    WorthUiDurableStateFamily, WorthUiDurableStateFamilyId, WorthUiDurableStateInventory,
+    WorthUiDurableStateReconciliationCounters, WorthUiDurableStateReconciliationDenial,
+    WorthUiDurableStateReconciliationOutcome, WorthUiDurableStateReconciliationPlan,
+    WorthUiDurableStateReconciliationReceipt, WorthUiDurableStateReplacement,
+    WorthUiDurableStateReplacementPolicy, WorthUiNodeLifecycleTransition,
+    WorthUiNodeReplacementClassification, WorthUiNodeReplacementPlan,
 };
 use crate::runtime::{
     WorthUiFocusChainReconciliation, WorthUiPanelVisibilityReconciliation,
     WorthUiScrollAnchorReconciliation, WorthUiSelectionRangeReconciliation,
     WorthUiSplitterPositionReconciliation, WorthUiTabStateReconciliation,
     WorthUiTextEditStateReconciliation,
-};
-use super::worth_ui_durable_resize_reconciliation_support::{
-    classification_targets_splitter_surface, splitter_resize_input_for_carry,
-    splitter_resize_input_for_replacement,
 };
 
 pub(crate) struct WorthUiDurableStateReconciliationPlanner;
@@ -46,13 +47,15 @@ impl WorthUiDurableStateReconciliationPlanner {
             }
         }
 
-        Ok(WorthUiDurableStateReconciliationPlan::new_with_durable_resize_inputs(
-            node_plan.active_artifact_digest(),
-            node_plan.candidate_artifact_digest(),
-            receipts,
-            durable_resize_inputs,
-            counters,
-        ))
+        Ok(
+            WorthUiDurableStateReconciliationPlan::new_with_durable_resize_inputs(
+                node_plan.active_artifact_digest(),
+                node_plan.candidate_artifact_digest(),
+                receipts,
+                durable_resize_inputs,
+                counters,
+            ),
+        )
     }
 }
 
@@ -115,13 +118,16 @@ fn reconcile_classification_family(
     counters: &mut WorthUiDurableStateReconciliationCounters,
 ) -> (
     WorthUiDurableStateReconciliationReceipt,
-    Option<WorthUiAdmittedDurableResizeInput>,
+    Option<WorthUiDurableResizeInputDisposition>,
 ) {
     if classification.unrestored_durable_state_carry_permitted()
         && family_allows_carry_for_transition(family, classification.transition())
     {
         let receipt = carry_receipt(classification, family);
-        return (receipt, splitter_resize_input_for_carry(classification, family));
+        return (
+            receipt,
+            splitter_resize_input_for_carry(classification, family),
+        );
     }
 
     let receipt = replacement_receipt(classification, family, counters);
@@ -245,9 +251,9 @@ fn replacement_outcome(
                 platform_replacement_outcome(classification, family)
             }
         }
-        WorthUiDurableStateFamilyId::SplitterPosition if classification_targets_splitter_surface(
-            classification,
-        ) => {
+        WorthUiDurableStateFamilyId::SplitterPosition
+            if classification_targets_splitter_surface(classification) =>
+        {
             if let Some(outcome) = WorthUiSplitterPositionReconciliation::replacement_outcome(
                 classification.transition(),
                 counters,

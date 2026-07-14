@@ -10,7 +10,7 @@ use worth_ui::facade::obligations::{
     UiObligationCheckKind, UiObligationFamily, UiObligationSelectionReason,
     UiObligationSupportBasis, UiObligationSupportSelectionPosture, UiObligationWorldProfileClass,
 };
-use worth_ui_runtime::facade::{runtime_origin_fixture, WorthUiTouchOriginFixtureVariant};
+use worth_ui_test_support::{runtime_origin_fixture, WorthUiTouchOriginFixtureVariant};
 
 #[test]
 fn host_observation_selection_is_stable_and_keeps_measurement_and_host_requirement_separate() {

@@ -1,0 +1,5 @@
+error[E0599]: no method named `clone` found for struct `ActiveSubscriptionLaneHandle` in the current scope
+  --> tests/ui/active_subscription_lane_handle_clone_forbidden.rs:17:25
+   |
+17 |     let _clone = handle.clone();
+   |                         ^^^^^ method not found in `ActiveSubscriptionLaneHandle`

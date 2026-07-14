@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": {
     "name": "Worth Milestone 7.6 Fragment Classification",
-    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "cwd": "C:/Users/Esther/Documents/Programming/WORTH_workspace/worktree_2",
     "spec_file": "_docs/worth/milestone-7.6.md",
     "context_files": [
       "_docs/coding_guidelines/MENTALITY.md",
@@ -19,10 +19,10 @@
       "_docs/worth/touched-graph-milestone-16-cross-family-parity-proof-residue-collapse-and-7.5-readiness.md",
       "_docs/worth_topo/operators-list.md",
       "_docs/worth_topo/validators.md",
-      "crates/forge-query/docs/AI_README.md",
-      "crates/forge-query/docs/foundations/consumer-kit.md",
-      "crates/forge-query/docs/foundations/support-matrix-and-admission.md",
-      "crates/forge-query/docs/foundations/downstream-runtime-integration.md"
+      "crates/worth-query/docs/AI_README.md",
+      "crates/worth-query/docs/foundations/consumer-kit.md",
+      "crates/worth-query/docs/foundations/support-matrix-and-admission.md",
+      "crates/worth-query/docs/foundations/downstream-runtime-integration.md"
     ]
   },
   "turn_templates": {
@@ -57,7 +57,7 @@
     {
       "id": 1,
       "title": "Fragment Classification Request Boundary",
-      "owner": "worth-kernel, worth-spatial, Forge Query",
+      "owner": "worth-kernel, worth-spatial, WORTH Query",
       "scope": [
         "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification",
         "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification",
@@ -68,7 +68,7 @@
         "PlanarBooleanFragmentClassificationRequest carries operation profile identity and semantic-graph carry-forward proof",
         "raw fragments, raw loops, copied overlap rows, untyped operation strings, and unproven carry-forward fail before subject recovery"
       ],
-      "instructions": "Implement Phase 1 from the 7.6 spec as the request-boundary lane. Start by rereading the spec, the 7.5 overlap ledger surfaces, the touched-graph roadmap, operators-list.md, validators.md, and Forge Query AI_README.",
+      "instructions": "Implement Phase 1 from the 7.6 spec as the request-boundary lane. Start by rereading the spec, the 7.5 overlap ledger surfaces, the touched-graph roadmap, operators-list.md, validators.md, and WORTH Query AI_README.",
       "qa_focus": "No raw-geometry request construction, no copied route summaries, no list-order subtraction direction, and no classification-local semantic graph proof."
     },
     {
@@ -91,7 +91,7 @@
     {
       "id": 3,
       "title": "Classification Registered Family And Validator Routing",
-      "owner": "worth-spatial, worth-topo, worth-kernel, Forge Query",
+      "owner": "worth-spatial, worth-topo, worth-kernel, WORTH Query",
       "scope": [
         "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/registered_family",
         "crates/worth-topo/src/topology_operators",
@@ -125,11 +125,11 @@
     {
       "id": 5,
       "title": "Classification Support Field Construction",
-      "owner": "worth-spatial, Forge Query",
+      "owner": "worth-spatial, WORTH Query",
       "scope": [
         "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/support_field",
         "crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction",
-        "crates/forge-query"
+        "crates/worth-query"
       ],
       "acceptance": [
         "support field and predicate authority are rebuildable from overlap-ledger and projection-consumption proof",
@@ -158,7 +158,7 @@
     {
       "id": 7,
       "title": "Operand Membership Classification",
-      "owner": "worth-spatial, Forge Query",
+      "owner": "worth-spatial, WORTH Query",
       "scope": [
         "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/operand_membership",
         "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification"
@@ -190,7 +190,7 @@
     {
       "id": 9,
       "title": "Boolean Operation Rule Lowering",
-      "owner": "worth-spatial, Forge Query",
+      "owner": "worth-spatial, WORTH Query",
       "scope": [
         "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/rule_lowering",
         "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/operator_surface"
@@ -286,7 +286,7 @@
     {
       "id": 15,
       "title": "Classified Fragment Identity",
-      "owner": "worth-spatial, worth-topo, Forge Query",
+      "owner": "worth-spatial, worth-topo, WORTH Query",
       "scope": [
         "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/identity",
         "crates/worth-topo/src/topology_operators"
@@ -318,7 +318,7 @@
     {
       "id": 17,
       "title": "Classification Decision Log And Ledger Assembly",
-      "owner": "worth-spatial, worth-kernel, Forge Query",
+      "owner": "worth-spatial, worth-kernel, WORTH Query",
       "scope": [
         "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/ledger",
         "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification"
@@ -375,10 +375,10 @@
       ],
       "acceptance": [
         "public contracts expose receipts and proof status without public authority constructors",
-        "anti-theatre proof admits the real workload-backed classification receipt chain and rejects forged products",
+        "anti-theatre proof admits the real workload-backed classification receipt chain and rejects WORTHd products",
         "synthetic ledgers, raw fragment keep/discard rows, raw overlap rows, copied selected-route digests, local support summaries, and pseudo-Query proof fail compile-fail/source-firewall proof"
       ],
-      "instructions": "Fence the classification lane against forged products, bypassed ledgers, and local pseudo-Query proof before closeout.",
+      "instructions": "Fence the classification lane against WORTHd products, bypassed ledgers, and local pseudo-Query proof before closeout.",
       "qa_focus": "No optional source-firewall proof and no public bypass constructor."
     },
     {

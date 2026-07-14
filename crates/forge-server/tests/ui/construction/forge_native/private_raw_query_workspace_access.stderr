@@ -1,5 +1,0 @@
-error[E0599]: no function or associated item named `workspace` found for struct `ForgeServerForgeNativeDirectFacade` in the current scope
- --> tests/ui/construction/forge_native/private_raw_query_workspace_access.rs:2:69
-  |
-2 |     let _method = forge_server::ForgeServerForgeNativeDirectFacade::workspace;
-  |                                                                     ^^^^^^^^^ function or associated item not found in `ForgeServerForgeNativeDirectFacade`

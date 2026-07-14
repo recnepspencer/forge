@@ -1,0 +1,17 @@
+error[E0308]: mismatched types
+  --> tests/ui/domain_handle/boundaries/unvalidated_draft_cannot_masquerade_as_admitted_handle.rs:47:22
+   |
+47 |     require_admitted(draft);
+   |     ---------------- ^^^^^ expected `WorthQueryAdmittedConfiguredDomainHandle<..., ...>`, found `WorthQueryConfiguredDomainHandleDraft<..., ...>`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected struct `WorthQueryAdmittedConfiguredDomainHandle<GeometryDomainEntry, GeometryOperatingContext>`
+              found struct `WorthQueryConfiguredDomainHandleDraft<GeometryDomainEntry, GeometryOperatingContext>`
+note: function defined here
+  --> tests/ui/domain_handle/boundaries/unvalidated_draft_cannot_masquerade_as_admitted_handle.rs:37:4
+   |
+37 | fn require_admitted(
+   |    ^^^^^^^^^^^^^^^^
+38 |     _handle: WorthQueryAdmittedConfiguredDomainHandle<GeometryDomainEntry, GeometryOperatingContext>,
+   |     ------------------------------------------------------------------------------------------------

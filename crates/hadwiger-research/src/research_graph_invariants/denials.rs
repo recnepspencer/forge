@@ -1,4 +1,4 @@
-use forge_query::facade::runtime::ForgeQueryGraphCompositionDomainInvariantDenial;
+use worth_query::facade::runtime::WorthQueryGraphCompositionDomainInvariantDenial;
 
 use crate::domain_artifacts::core_artifact::{
     impl_hadwiger_artifact, HadwigerArtifactAuthorityOwner, HadwigerArtifactCore,
@@ -18,7 +18,7 @@ pub struct ResearchGraphInvariantDenial {
     lower_runtime_source_kind: &'static str,
     lower_runtime_source_digest: String,
     lower_runtime_envelope_digest: String,
-    query_denial: ForgeQueryGraphCompositionDomainInvariantDenial,
+    query_denial: WorthQueryGraphCompositionDomainInvariantDenial,
     counters: ResearchGraphInvariantCounters,
 }
 
@@ -27,7 +27,7 @@ impl ResearchGraphInvariantDenial {
         catalog: &HadwigerResearchInvariantCatalog,
         violation: &ResearchGraphInvariantViolation,
         boundary_source: &ResearchGraphInvariantBoundarySource,
-        query_denial: ForgeQueryGraphCompositionDomainInvariantDenial,
+        query_denial: WorthQueryGraphCompositionDomainInvariantDenial,
     ) -> Result<Self, HadwigerArtifactShapeError> {
         let counters = ResearchGraphInvariantCounters::new(
             catalog.rules().len(),
@@ -47,7 +47,7 @@ impl ResearchGraphInvariantDenial {
             },
             vec![catalog.reference(), violation.reference()],
             vec![
-                HadwigerArtifactPayloadEntry::text("schema", "forge.hadwiger.denial.v1"),
+                HadwigerArtifactPayloadEntry::text("schema", "WORTH.hadwiger.denial.v1"),
                 HadwigerArtifactPayloadEntry::text(
                     "catalog",
                     catalog.artifact_digest().stable_token(),
@@ -92,7 +92,7 @@ impl ResearchGraphInvariantDenial {
         &self.invariant_family
     }
 
-    pub fn query_denial(&self) -> Option<&ForgeQueryGraphCompositionDomainInvariantDenial> {
+    pub fn query_denial(&self) -> Option<&WorthQueryGraphCompositionDomainInvariantDenial> {
         Some(&self.query_denial)
     }
 

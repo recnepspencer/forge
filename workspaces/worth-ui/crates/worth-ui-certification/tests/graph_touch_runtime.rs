@@ -1,17 +1,15 @@
-use std::sync::Arc;
-
-use worth_ui::facade::app::WorthUi;
-use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, ForgeQuerySessionLabel,
-    QueryExternalIdentityToken, SchemaBasisDigest, UiGraphAxisParticipation,
-    UiGraphParticipationAxis, UiGraphParticipationStatus, UiGraphTouchAspectPosture,
-    UiGraphTouchAspects, UiGraphTouchDenial, UiGraphTouchOriginClass, UiGraphTouchRuntimeLane,
-    UiGraphTouchTargetClass, UiGraphTouchTiming, UiGraphWorldProfile,
+    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDenial, UiGraphTouchOriginClass,
+    UiGraphTouchRuntimeLane, UiGraphTouchTargetClass, UiGraphTouchTiming, UiGraphWorldProfile,
+    WorthQuerySessionLabel,
 };
-use worth_ui_dsl::{
-    UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+
+#[path = "fixtures/graph_touch_support.rs"]
+mod graph_touch_support;
+
+use graph_touch_support::{
+    control_artifact, graph_node_identity, mosaic_artifact, mounted_receipt_transition,
+    query_snapshot_world_profile, region_artifact, touch_app,
 };
 
 #[test]
@@ -281,23 +279,23 @@ fn unavailable_target_classes_deny_instead_of_broadening_touch_authority() {
 fn touch_world_preserves_specialized_operating_world_families() {
     let worlds = [
         UiGraphWorldProfile::branch_session_label(
-            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["branch", "touch"])
+            WorthQuerySessionLabel::scoped_strs("worth-ui", ["branch", "touch"])
                 .expect("branch session label should admit"),
         ),
         UiGraphWorldProfile::hot_reload_candidate(
-            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["hot-reload", "touch"])
+            WorthQuerySessionLabel::scoped_strs("worth-ui", ["hot-reload", "touch"])
                 .expect("hot-reload session label should admit"),
         ),
         UiGraphWorldProfile::diagnostic(
-            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["diagnostic", "touch"])
+            WorthQuerySessionLabel::scoped_strs("worth-ui", ["diagnostic", "touch"])
                 .expect("diagnostic session label should admit"),
         ),
         UiGraphWorldProfile::host_observation(
-            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["host-observation", "touch"])
+            WorthQuerySessionLabel::scoped_strs("worth-ui", ["host-observation", "touch"])
                 .expect("host-observation session label should admit"),
         ),
         UiGraphWorldProfile::test_certification(
-            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["test-certification", "touch"])
+            WorthQuerySessionLabel::scoped_strs("worth-ui", ["test-certification", "touch"])
                 .expect("test-certification session label should admit"),
         ),
     ];
@@ -320,134 +318,4 @@ fn touch_world_preserves_specialized_operating_world_families() {
 
         assert_eq!(touch.world().world_profile(), &world);
     }
-}
-
-fn touch_app(world_profile: UiGraphWorldProfile) -> worth_ui::facade::app::WorthUiApp {
-    WorthUi::app()
-        .with_graph_world_profile(world_profile)
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-touch")
-                .with_semantic_artifact_spec(control_spec())
-                .with_semantic_artifact_spec(region_spec())
-                .with_semantic_artifact_spec(mosaic_spec()),
-        )
-        .freeze()
-}
-
-fn control_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.inspector.save"),
-        UiDslSemanticFamily::Control,
-        UiDslSourceProvenance::file_authored("app/graph_touch_runtime.wui", 0),
-    )
-    .with_structural_token(UiDslStructuralToken::new("control:save"))
-    .with_structural_token(UiDslStructuralToken::new("slot:footer"))
-    .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
-    .with_posture_token(UiDslPostureToken::new("service:portal"))
-}
-
-fn region_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.region.sidebar"),
-        UiDslSemanticFamily::Region,
-        UiDslSourceProvenance::file_authored("app/graph_touch_runtime.wui", 1),
-    )
-    .with_structural_token(UiDslStructuralToken::new("region:sidebar"))
-}
-
-fn mosaic_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.mosaic.workspace"),
-        UiDslSemanticFamily::Mosaic,
-        UiDslSourceProvenance::file_authored("app/graph_touch_runtime.wui", 2),
-    )
-    .with_structural_token(UiDslStructuralToken::new("mosaic:workspace"))
-}
-
-fn control_artifact(app: &worth_ui::facade::app::WorthUiApp) -> &UiDeclarationArtifact {
-    artifact_from_file_provenance(app, "app/graph_touch_runtime.wui", 0)
-}
-
-fn region_artifact(app: &worth_ui::facade::app::WorthUiApp) -> &UiDeclarationArtifact {
-    artifact_from_file_provenance(app, "app/graph_touch_runtime.wui", 1)
-}
-
-fn mosaic_artifact(app: &worth_ui::facade::app::WorthUiApp) -> &UiDeclarationArtifact {
-    artifact_from_file_provenance(app, "app/graph_touch_runtime.wui", 2)
-}
-
-fn artifact_from_file_provenance<'a>(
-    app: &'a worth_ui::facade::app::WorthUiApp,
-    module_path: &str,
-    declaration_index: usize,
-) -> &'a UiDeclarationArtifact {
-    app.declaration_artifacts()
-        .iter()
-        .find(|artifact| {
-            let provenance = artifact.provenance().source_provenance();
-            provenance.module_path() == module_path
-                && provenance.declaration_index() == declaration_index
-        })
-        .unwrap_or_else(|| {
-            panic!("expected declaration artifact for {module_path}#{declaration_index} on freeze path")
-        })
-}
-
-fn graph_node_identity(
-    graph: worth_ui::facade::graph::UiGraphAuthority<'_>,
-    artifact: &UiDeclarationArtifact,
-) -> worth_ui::facade::graph::UiGraphNodeIdentity {
-    graph
-        .lookup()
-        .declaration_instances(artifact.identity())
-        .value()
-        .first()
-        .copied()
-        .expect("declaration should admit one graph node")
-}
-
-fn mounted_receipt_transition(
-    app: &worth_ui::facade::app::WorthUiApp,
-    artifact: &UiDeclarationArtifact,
-) -> worth_ui::facade::graph::UiGraphMountedReceiptTransition {
-    let graph = app.graph();
-    let graph_node_identity = graph_node_identity(graph, artifact);
-    let control_node = graph
-        .lookup()
-        .graph_node(graph_node_identity)
-        .expect("graph should resolve control node")
-        .value();
-
-    graph
-        .mounted_receipt_transition_for_node(
-            graph_node_identity,
-            control_node
-                .participation_posture()
-                .axis(UiGraphParticipationAxis::Mounted),
-            UiGraphAxisParticipation::runtime_mutation(UiGraphParticipationStatus::Admitted),
-        )
-        .expect("mounted admission should yield one graph-owned transition")
-}
-
-fn query_snapshot_world_profile(
-    snapshot_label: &str,
-    schema_basis_parts: [&str; 3],
-) -> UiGraphWorldProfile {
-    let snapshot_identity =
-        worth_ui::facade::graph::ForgeQuerySnapshotIdentity::admit_external_token(
-            QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
-        );
-    let basis = resolve_runtime_current_snapshot_basis(
-        snapshot_identity.evidence_identity(),
-        SchemaBasisDigest::from_domain_parts(
-            &schema_basis_parts
-                .into_iter()
-                .map(str::to_owned)
-                .collect::<Vec<_>>(),
-        ),
-    )
-    .expect("runtime current snapshot basis should resolve");
-
-    UiGraphWorldProfile::query_snapshot_basis(basis.clone(), snapshot_resolution_report(&basis))
-        .expect("query snapshot basis world profile should admit matching report")
 }

@@ -1,9 +1,9 @@
-use forge_query::facade::{
-    ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDeclarationEntryCrossingSurface, ForgeQueryDeclaredFamilyChecked,
-    ForgeQueryDomainOperatingContext, ForgeQueryOrdinaryOutcome,
-};
 use hadwiger_research::facade::*;
+use worth_query::facade::foundation::{
+    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
+    WorthQueryDeclarationEntryCrossingSurface, WorthQueryDeclaredFamilyChecked,
+    WorthQueryDomainOperatingContext,
+};
 
 fn handle() -> HadwigerResearchHandle {
     admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
@@ -15,7 +15,7 @@ fn handle_admission_helper_matches_direct_query_path() {
     let context = HadwigerResearchOperatingContext::finite_lower_bound_real();
     let helper = admit_hadwiger_research_handle(context)
         .expect("helper admission should use the runtime-backed Query path");
-    let direct = ForgeQueryApplicationFacade::runtime_backed_default()
+    let direct = WorthQueryApplicationFacade::runtime_backed_default()
         .domain(HadwigerResearchDomainEntry)
         .with_operating_context(context)
         .validate()
@@ -37,16 +37,16 @@ fn handle_admission_helper_matches_direct_query_path() {
     assert_eq!(
         helper.required_capability_families(),
         &[
-            ForgeQueryCapabilityFamily::QueryComposition,
-            ForgeQueryCapabilityFamily::WorkflowOrchestration,
-            ForgeQueryCapabilityFamily::HistoricalEvaluation,
+            WorthQueryCapabilityFamily::QueryComposition,
+            WorthQueryCapabilityFamily::WorkflowOrchestration,
+            WorthQueryCapabilityFamily::HistoricalEvaluation,
         ]
     );
     assert_eq!(
         helper.required_config_sections(),
         &[
-            ForgeQueryConfigSectionFamily::Query,
-            ForgeQueryConfigSectionFamily::Relational
+            WorthQueryConfigSectionFamily::Query,
+            WorthQueryConfigSectionFamily::Relational
         ]
     );
     assert_eq!(
@@ -85,7 +85,7 @@ fn helper_declaration_path_is_thin_over_direct_query_declaration() {
     let request = CandidateGraphDeclaration::new("candidate-a").with_graph_version("v1");
     let helper = declare_research_request_checked(&handle, request.clone());
     let direct = match handle.declare_checked(request) {
-        ForgeQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
+        WorthQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
         _ => panic!("direct Query declaration should admit"),
     };
 
@@ -95,22 +95,17 @@ fn helper_declaration_path_is_thin_over_direct_query_declaration() {
 }
 
 #[test]
-fn orchestration_helper_returns_query_ordinary_outcome() {
+fn declaration_helper_returns_query_owned_declaration() {
     let handle = handle();
-    let outcome = orchestrate_research_request_entry(
+    let declaration = admitted_declaration(declare_research_request_checked(
         &handle,
         CandidateGraphDeclaration::new("candidate-a").with_graph_version("v1"),
-    );
+    ));
 
-    match outcome {
-        ForgeQueryOrdinaryOutcome::Bound(envelope) => {
-            assert_eq!(
-                envelope.declaration_family_key(),
-                "hadwiger.candidate_graph"
-            );
-        }
-        _ => panic!("expected bound Query ordinary outcome"),
-    }
+    assert_eq!(
+        declaration.declaration_family_key(),
+        "hadwiger.candidate_graph"
+    );
 }
 
 #[test]
@@ -131,11 +126,11 @@ fn inventory_and_readiness_are_query_seam_projections() {
     assert!(!advisory_inventory.rows().is_empty());
     assert!(!partial_readiness.rows().is_empty());
     assert!(candidate_inventory.rows().iter().any(|row| {
-        row.surface() == ForgeQueryDeclarationEntryCrossingSurface::RelationalTruthRouting
+        row.surface() == WorthQueryDeclarationEntryCrossingSurface::RelationalTruthRouting
             && row.relational_truth_claim().is_some()
     }));
     assert!(advisory_inventory.rows().iter().any(|row| {
-        row.surface() == ForgeQueryDeclarationEntryCrossingSurface::Envelope
+        row.surface() == WorthQueryDeclarationEntryCrossingSurface::Envelope
             && row.envelope_class().is_some()
     }));
 }
@@ -151,13 +146,16 @@ fn operating_context_digest_includes_all_stable_regimes() {
 }
 
 fn admitted_declaration<I>(
-    checked: ForgeQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>,
-) -> forge_query::facade::ForgeQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>
+    checked: WorthQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>,
+) -> worth_query::facade::foundation::WorthQueryCanonicalDeclarationArtifact<
+    HadwigerResearchDomainEntry,
+    I,
+>
 where
     I: HadwigerResearchDeclarationInput,
 {
     match checked {
-        ForgeQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
+        WorthQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
         _ => panic!("Hadwiger declaration should admit"),
     }
 }

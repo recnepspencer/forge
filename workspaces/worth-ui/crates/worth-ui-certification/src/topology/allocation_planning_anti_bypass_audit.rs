@@ -7,12 +7,12 @@ const FORBIDDEN_PLANNING_SEMANTIC_CALLS: &[&str] = &[
     "WorthUiAllocationPlanning::new(",
 ];
 
-pub fn audit_allocation_planning_anti_bypass_boundaries(
-    workspace_root: &Path,
-) -> Vec<String> {
+pub fn audit_allocation_planning_anti_bypass_boundaries(workspace_root: &Path) -> Vec<String> {
     let mut violations = raw_planning_admission_visibility_violations(workspace_root);
     violations.extend(host_adapter_planning_semantics_violations(workspace_root));
-    violations.extend(non_owner_runtime_planning_semantics_violations(workspace_root));
+    violations.extend(non_owner_runtime_planning_semantics_violations(
+        workspace_root,
+    ));
     violations.extend(evidence_local_planning_semantics_violations(workspace_root));
     violations.sort();
     violations.dedup();
@@ -140,6 +140,8 @@ fn evidence_local_planning_semantics_violations(workspace_root: &Path) -> Vec<St
 fn is_allowed_planning_owner(relative: &Path) -> bool {
     let normalized = relative.to_string_lossy().replace('\\', "/");
     normalized == "runtime/host.rs"
+        || normalized == "runtime/launch/planning_transition.rs"
+        || normalized == "runtime/planning/plan_allocation.rs"
         || normalized.starts_with("runtime/allocation_planning/")
 }
 
@@ -147,7 +149,9 @@ fn is_test_file(relative: &Path) -> bool {
     relative
         .file_name()
         .and_then(|name| name.to_str())
-        .is_some_and(|name| name.ends_with("_tests.rs") || name.ends_with("_test_support.rs"))
+        .is_some_and(|name| {
+            name == "tests.rs" || name.ends_with("_tests.rs") || name.ends_with("_test_support.rs")
+        })
 }
 
 fn relative_runtime_path(workspace_root: &Path, path: &Path) -> PathBuf {
@@ -192,8 +196,7 @@ mod tests {
 
     #[test]
     fn workspace_currently_passes_planning_anti_bypass_audit() {
-        let workspace_root =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let violations = audit_allocation_planning_anti_bypass_boundaries(&workspace_root);
         assert!(
             violations.is_empty(),

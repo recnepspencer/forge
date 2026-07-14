@@ -1,4 +1,7 @@
-use forge_query::facade::{ResolvedSnapshotBasis, SnapshotResolutionReport};
+use worth_query::facade::foundation::{
+    ResolvedSnapshotBasis,
+    SnapshotResolutionReport,
+};
 
 use super::{
     WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
@@ -31,9 +34,7 @@ impl WorthUiQueryPrerequisiteEvidence {
         causal_explanation_lane: WorthUiQueryCausalExplanationLane,
         projection_contract_digest: Option<Box<str>>,
     ) -> Result<Self, WorthUiQueryPrerequisiteEvidenceError> {
-        if resolution_report.basis_digest() != basis.proof().digest()
-            || resolution_report.resolution_mode() != basis.resolution_mode()
-        {
+        if !resolution_report.certifies(&basis) {
             return Err(WorthUiQueryPrerequisiteEvidenceError::ResolutionReportMismatch);
         }
 

@@ -1,0 +1,27 @@
+error[E0451]: fields `effect_name`, `trigger_commit_identity`, `trigger_source_kind`, `pending_intent_target`, `source_lane`, `target_lane`, `effect_policy`, `phase_digest`, `intent_receipt_digest`, `receipt_digest` and `inspection_digest` of struct `WorthQueryEffectIntentReceiptInspection` are private
+  --> tests/ui/runtime_effect_intent_receipt_inspection_constructor_private.rs:8:9
+   |
+ 7 |     let _ = WorthQueryEffectIntentReceiptInspection {
+   |             --------------------------------------- in this type
+ 8 |         effect_name: String::new(),
+   |         ^^^^^^^^^^^ private field
+ 9 |         trigger_commit_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         trigger_source_kind: worth_query::facade::WorthQueryEffectTriggerSourceKind::LiveView,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+11 |         pending_intent_target: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         source_lane: WorthQueryIntentSourceLane::EffectTriggered,
+   |         ^^^^^^^^^^^ private field
+13 |         target_lane: WorthQueryAuthorityLane::AuthoritativeTruth,
+   |         ^^^^^^^^^^^ private field
+14 |         effect_policy: WorthQueryEffectPolicy::AuthoritativeAllowed,
+   |         ^^^^^^^^^^^^^ private field
+15 |         phase_digest: String::new(),
+   |         ^^^^^^^^^^^^ private field
+16 |         intent_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+18 |         inspection_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field

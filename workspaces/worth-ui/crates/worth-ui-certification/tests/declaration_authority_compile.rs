@@ -2,7 +2,7 @@
 mod trybuild_support;
 
 #[test]
-fn declaration_authority_compile_failures_prevent_forged_artifacts_and_receipts() {
+fn declaration_authority_compile_failures_prevent_worthd_artifacts_and_receipts() {
     let tests = trybuild_support::new_test_cases();
     tests.compile_fail("tests/ui/declaration/external_callers_cannot_mint_declaration_artifact.rs");
     tests.compile_fail("tests/ui/declaration/external_callers_cannot_mint_declaration_identity.rs");

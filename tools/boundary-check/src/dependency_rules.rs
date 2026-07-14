@@ -1,12 +1,16 @@
-use crate::config::{BandRuleConfig, ReplaySurfaceConfig, RuleContracts};
+use crate::config::{
+    BandRuleConfig, LawSubstrateConfig, QueryAudienceContract, ReplaySurfaceConfig, RuleContracts,
+};
 use crate::diagnostics::{Diagnostic, DiagnosticCode};
 use crate::manifest_types::Road1Package;
 use crate::naming::parse_crate_name;
+use crate::source_rules::{illegal_law_substrate_edge, is_legal_law_substrate_edge};
 use std::collections::BTreeMap;
 
 pub(crate) fn validate_dependency_rules(
     packages: &[Road1Package],
     contracts: &RuleContracts,
+    law_substrates: &[LawSubstrateConfig],
 ) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
     let band_rules = band_rule_map(&contracts.band_rules);
@@ -17,19 +21,6 @@ pub(crate) fn validate_dependency_rules(
         };
 
         for dependency in &package.dependencies {
-            if dependency == "forge-query"
-                && !contracts
-                    .query_host_bands
-                    .iter()
-                    .any(|band| band == &source_name.band)
-            {
-                diagnostics.push(Diagnostic::new(
-                    DiagnosticCode::Bc3001QueryImportOutsideEntry,
-                    &package.name,
-                    "only entry crates may depend on forge-query",
-                ));
-            }
-
             if let Some(surface_label) = replay_surface_label(dependency, contracts) {
                 if source_name.band != "cert" {
                     diagnostics.push(Diagnostic::new(
@@ -40,6 +31,38 @@ pub(crate) fn validate_dependency_rules(
                         ),
                     ));
                 }
+            }
+
+            // Query engine/audience package edges are owned by query_audience::rules.
+            // They are framework packages, not in-tree band members.
+            if is_query_framework_package(dependency, &contracts.query_audience) {
+                continue;
+            }
+
+            // Configured law substrates (worth-proof) are legal only for listed tiers/bands.
+            // Known substrate packages that miss admission fail closed — they must not fall
+            // through the out-of-grammar `parse_crate_name` skip (worth-proof is outside the
+            // {tier}-{band}-{domain} birth grammar).
+            if is_legal_law_substrate_edge(
+                dependency,
+                &source_name.tier,
+                &source_name.band,
+                law_substrates,
+            ) {
+                continue;
+            }
+            if let Some(message) = illegal_law_substrate_edge(
+                dependency,
+                &source_name.tier,
+                &source_name.band,
+                law_substrates,
+            ) {
+                diagnostics.push(Diagnostic::new(
+                    DiagnosticCode::Bc7002LawSubstrateConfig,
+                    &package.name,
+                    format!("dependency {dependency}: {message}"),
+                ));
+                continue;
             }
 
             let Ok(target_name) = parse_crate_name(dependency) else {
@@ -85,6 +108,14 @@ pub(crate) fn validate_dependency_rules(
     }
 
     diagnostics
+}
+
+fn is_query_framework_package(dependency: &str, contract: &QueryAudienceContract) -> bool {
+    dependency == contract.engine_package
+        || contract
+            .audiences
+            .iter()
+            .any(|audience| audience.package == dependency)
 }
 
 fn replay_surface_label(dependency: &str, contracts: &RuleContracts) -> Option<String> {

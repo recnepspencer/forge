@@ -2,10 +2,9 @@ use crate::runtime::{
     WorthUiActivationGateDenial, WorthUiActivationStagingDenial,
     WorthUiActivationStagingDenialReason, WorthUiDurableStateFamilyId,
     WorthUiDurableStateReconciliationDenial, WorthUiNodeLifecycleTransition,
-    WorthUiPlanLoweringDenial, WorthUiPlanSwapRollback, WorthUiQueryBindingDriftDenial,
-    WorthUiQueryBindingDriftDenialKind, WorthUiQueryBindingPosture,
-    WorthUiQueryBindingPostureDriftFamily, WorthUiQueryLiveRebindPlanDenial,
-    WorthUiReplacementCandidateDenial,
+    WorthUiPlanLoweringDenial, WorthUiQueryBindingDriftDenial, WorthUiQueryBindingDriftDenialKind,
+    WorthUiQueryBindingPosture, WorthUiQueryBindingPostureDriftFamily,
+    WorthUiQueryLiveRebindPlanDenial, WorthUiReplacementCandidateDenial,
 };
 
 pub(crate) fn invalid_candidate_denial_digest(denial: WorthUiReplacementCandidateDenial) -> u64 {
@@ -83,15 +82,6 @@ pub(crate) fn activation_gate_denial_digest(denial: &WorthUiActivationGateDenial
         ^ denial.candidate_artifact_digest().rotate_left(13)
         ^ denial.ready_frame_epoch().as_u64().rotate_left(29)
         ^ denial.boundary_frame_epoch().as_u64().rotate_left(41)
-}
-
-pub(crate) fn plan_swap_rollback_digest(rollback: WorthUiPlanSwapRollback) -> u64 {
-    let attempted_artifact = rollback.attempted_next_artifact_digest().unwrap_or(0);
-    let attempted_plan = rollback.attempted_next_plan_digest().unwrap_or(0);
-    rollback.restored_active_artifact_digest()
-        ^ rollback.restored_active_plan_digest().rotate_left(17)
-        ^ attempted_artifact.rotate_left(31)
-        ^ attempted_plan.rotate_left(43)
 }
 
 pub(crate) fn query_live_rebind_denial_digest(denial: &WorthUiQueryLiveRebindPlanDenial) -> u64 {

@@ -17,13 +17,14 @@ help: a similar name exists in the module
 2 +     WorthUiRuntimeSupportInventory, WorthUiRuntimeSupportInventoryFields, WorthUiLaneSupportRow,
   |
 
-error[E0624]: associated function `new` is private
+error[E0599]: no function or associated item named `new` found for struct `WorthUiRuntimeSupportInventory` in the current scope
   --> tests/ui/lifecycle/external_runtime_support_inventory_construction_is_private.rs:13:45
    |
 13 |     let _ = WorthUiRuntimeSupportInventory::new(fields);
-   |                                             ^^^ private associated function
+   |                                             ^^^ function or associated item not found in `WorthUiRuntimeSupportInventory`
    |
-  ::: $WORKSPACE/crates/worth-ui-runtime/src/lifecycle/support_inventory.rs
+help: there is a method `ne` with a similar name
    |
-   |     pub(crate) fn new(fields: WorthUiRuntimeSupportInventoryFields) -> Self {
-   |     ----------------------------------------------------------------------- private associated function defined here
+13 -     let _ = WorthUiRuntimeSupportInventory::new(fields);
+13 +     let _ = WorthUiRuntimeSupportInventory::ne(fields);
+   |

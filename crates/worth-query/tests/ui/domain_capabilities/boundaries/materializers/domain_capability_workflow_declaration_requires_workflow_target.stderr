@@ -1,0 +1,25 @@
+error[E0277]: the trait bound `WorthQueryLowerRuntimeBoundaryBoundContributionTarget: worth_query::domain_capabilities::canonical_runtime::workflow::WorthQueryWorkflowDeclarationMaterializationTarget` is not satisfied
+ --> tests/ui/domain_capabilities/boundaries/materializers/domain_capability_workflow_declaration_requires_workflow_target.rs:9:9
+  |
+9 |         materialize_query_workflow_declaration;
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+  |
+  = help: the trait `worth_query::domain_capabilities::canonical_runtime::workflow::WorthQueryWorkflowDeclarationMaterializationTarget` is not implemented for `WorthQueryLowerRuntimeBoundaryBoundContributionTarget`
+help: the following other types implement trait `worth_query::domain_capabilities::canonical_runtime::workflow::WorthQueryWorkflowDeclarationMaterializationTarget`
+ --> src/domain_capabilities/canonical_runtime/workflow/mod.rs
+  |
+  | / impl WorthQueryWorkflowDeclarationMaterializationTarget
+  | |     for WorthQueryDeclarationBoundContributionTarget
+  | |____________________________________________________^ `WorthQueryDeclarationBoundContributionTarget`
+...
+  | / impl WorthQueryWorkflowDeclarationMaterializationTarget
+  | |     for WorthQueryAdmittedPlanBoundContributionTarget
+  | |_____________________________________________________^ `WorthQueryAdmittedPlanBoundContributionTarget`
+note: required by a bound in `materialize_query_workflow_declaration`
+ --> src/domain_capabilities/canonical_runtime/workflow/mod.rs
+  |
+  | pub fn materialize_query_workflow_declaration<T>(
+  |        -------------------------------------- required by a bound in this function
+...
+  |     T: WorthQueryWorkflowDeclarationMaterializationTarget,
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `materialize_query_workflow_declaration`

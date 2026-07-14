@@ -55,12 +55,12 @@ fn dependency_metadata_preserves_runtime_graph_hooks() {
     );
     assert_eq!(
         hook.view_shape().family(),
-        forge_query::facade::ViewShapeFamily::Table
+        worth_query::facade::runtime::ViewShapeFamily::Table
     );
     assert!(hook
         .result_shape()
         .family()
-        .eq(&forge_query::facade::ResultShapeFamily::Collection));
+        .eq(&worth_query::facade::foundation::ResultShapeFamily::Collection));
 }
 
 #[test]

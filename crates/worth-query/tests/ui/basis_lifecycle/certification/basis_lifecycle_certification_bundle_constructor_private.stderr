@@ -1,0 +1,13 @@
+error[E0451]: fields `rows`, `output_digests`, `certification_bundle_digest` and `counters` of struct `BasisLifecycleCertificationBundle` are private
+ --> tests/ui/basis_lifecycle/certification/basis_lifecycle_certification_bundle_constructor_private.rs:6:9
+  |
+5 |     let _ = BasisLifecycleCertificationBundle {
+  |             --------------------------------- in this type
+6 |         rows: Vec::new(),
+  |         ^^^^ private field
+7 |         output_digests: Vec::new(),
+  |         ^^^^^^^^^^^^^^ private field
+8 |         certification_bundle_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+9 |         counters: BasisEligibilityCounters::default(),
+  |         ^^^^^^^^ private field

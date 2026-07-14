@@ -5,7 +5,6 @@ mod claim_validation;
 mod counters;
 mod denial;
 mod family_widths;
-mod fingerprint;
 mod handle;
 mod plan_generation;
 mod receipt;

@@ -1,0 +1,15 @@
+error[E0560]: struct `WorthQueryRuntimePublicApiNamingRow` has no field named `naming_digest`
+ --> tests/ui/runtime_public_api_naming_contract_constructor_private.rs:9:9
+  |
+9 |         naming_digest: "unchecked".to_string(),
+  |         ^^^^^^^^^^^^^ `WorthQueryRuntimePublicApiNamingRow` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimePublicApiNamingContract` has no field named `contract_digest`
+  --> tests/ui/runtime_public_api_naming_contract_constructor_private.rs:17:9
+   |
+17 |         contract_digest: "unchecked".to_string(),
+   |         ^^^^^^^^^^^^^^^ `WorthQueryRuntimePublicApiNamingContract` does not have this field
+   |
+   = note: all struct fields are already assigned

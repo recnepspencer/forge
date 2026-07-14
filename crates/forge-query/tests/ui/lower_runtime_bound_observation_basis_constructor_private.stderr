@@ -1,7 +1,0 @@
-error[E0560]: struct `forge_query::facade::LowerRuntimeBoundObservationBasis` has no field named `binding_digest`
-  --> tests/ui/lower_runtime_bound_observation_basis_constructor_private.rs:10:9
-   |
-10 |         binding_digest: String::new(),
-   |         ^^^^^^^^^^^^^^ `forge_query::facade::LowerRuntimeBoundObservationBasis` does not have this field
-   |
-   = note: all struct fields are already assigned

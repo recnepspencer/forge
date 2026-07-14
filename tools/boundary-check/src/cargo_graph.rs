@@ -1,3 +1,4 @@
+use crate::config::QueryAudienceContract;
 use crate::config::SubworkspaceConfig;
 use crate::manifest_types::{CargoMetadata, CargoMetadataPackage, Road1Package, WorkspaceManifest};
 use std::collections::BTreeMap;
@@ -56,6 +57,7 @@ pub(crate) fn parse_package_manifest(path: &Path) -> Result<Road1Package, String
     Ok(Road1Package {
         name,
         dependencies: Vec::new(),
+        manifest_path: normalize_path(path),
     })
 }
 
@@ -79,18 +81,13 @@ pub(crate) fn discover_road1_packages(
             continue;
         }
         let metadata = cargo_metadata(root, &manifest_path)?;
-        let package_by_id = metadata_package_map(&metadata.packages);
-        let dependency_map = metadata_dependency_map(metadata.resolve.as_ref());
-
         for package in &metadata.packages {
             if !is_workspace_package(&workspace_root, package) {
                 continue;
             }
-            let dependencies = dependency_map
-                .get(&package.id)
-                .into_iter()
-                .flat_map(|ids| ids.iter())
-                .filter_map(|id| package_by_id.get(id))
+            let dependencies = package
+                .dependencies
+                .iter()
                 .map(|dependency| dependency.name.clone())
                 .collect::<Vec<_>>();
 
@@ -99,6 +96,7 @@ pub(crate) fn discover_road1_packages(
                 Road1Package {
                     name: package.name.clone(),
                     dependencies,
+                    manifest_path: package.manifest_path.clone(),
                 },
             );
         }
@@ -107,23 +105,41 @@ pub(crate) fn discover_road1_packages(
     Ok(packages.into_values().collect())
 }
 
-fn metadata_package_map(
-    packages: &[CargoMetadataPackage],
-) -> BTreeMap<String, CargoMetadataPackage> {
-    packages
+pub(crate) fn discover_query_audience_packages(
+    root: &Path,
+    contract: &QueryAudienceContract,
+) -> Result<Vec<Road1Package>, String> {
+    contract
+        .audiences
         .iter()
-        .map(|package| (package.id.clone(), package.clone()))
+        .map(|audience| {
+            let manifest_path = root
+                .join("crates")
+                .join(&audience.package)
+                .join("Cargo.toml");
+            let metadata = cargo_metadata(root, &manifest_path)?;
+            let package = metadata
+                .packages
+                .iter()
+                .find(|package| PathBuf::from(&package.manifest_path) == manifest_path)
+                .ok_or_else(|| {
+                    format!(
+                        "cargo metadata omitted configured audience {}",
+                        audience.package
+                    )
+                })?;
+            let dependencies = package
+                .dependencies
+                .iter()
+                .map(|dependency| dependency.name.clone())
+                .collect();
+            Ok(Road1Package {
+                name: package.name.clone(),
+                dependencies,
+                manifest_path: package.manifest_path.clone(),
+            })
+        })
         .collect()
-}
-
-fn metadata_dependency_map(
-    resolve: Option<&crate::manifest_types::CargoMetadataResolve>,
-) -> BTreeMap<String, Vec<String>> {
-    let mut map = BTreeMap::new();
-    for node in resolve.map(|resolve| &resolve.nodes).into_iter().flatten() {
-        map.insert(node.id.clone(), node.dependencies.clone());
-    }
-    map
 }
 
 fn is_workspace_package(workspace_root: &Path, package: &CargoMetadataPackage) -> bool {

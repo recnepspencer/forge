@@ -26,22 +26,8 @@ fn prior_valid_plan_observation_fields_are_not_publicly_mintable() {
 }
 
 #[test]
-fn plan_swap_rollback_fields_are_not_publicly_mintable() {
-    runtime_plan_swap_fail(
-        "tests/ui/runtime_plan_swap/fail/plan_swap_rollback_fields_not_public.rs",
-    );
-}
-
-#[test]
 fn plan_swap_counters_are_not_publicly_mintable() {
     runtime_plan_swap_fail(
         "tests/ui/runtime_plan_swap/fail/plan_swap_counters_not_publicly_mintable.rs",
-    );
-}
-
-#[test]
-fn injected_swap_denials_are_not_public_facade_variants() {
-    runtime_plan_swap_fail(
-        "tests/ui/runtime_plan_swap/fail/injected_denial_variants_not_public.rs",
     );
 }

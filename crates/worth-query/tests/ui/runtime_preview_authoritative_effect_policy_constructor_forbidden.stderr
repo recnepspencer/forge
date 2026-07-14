@@ -1,0 +1,24 @@
+error[E0599]: no function or associated item named `authoritative_allowed` found for struct `WorthQueryPreviewOptions` in the current scope
+ --> tests/ui/runtime_preview_authoritative_effect_policy_constructor_forbidden.rs:4:39
+  |
+4 |     let _ = WorthQueryPreviewOptions::authoritative_allowed();
+  |                                       ^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthQueryPreviewOptions`
+  |
+note: if you're trying to build a new `WorthQueryPreviewOptions` consider using one of the following associated functions:
+      WorthQueryPreviewOptions::derive_only
+      WorthQueryPreviewOptions::muted
+      WorthQueryPreviewOptions::redirected_delivery
+      WorthQueryPreviewOptions::sandboxed_write_intent
+ --> src/runtime/authority.rs
+  |
+  |     pub fn derive_only() -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn muted() -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn redirected_delivery() -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn sandboxed_write_intent() -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,0 +1,232 @@
+﻿{
+  "schema_version": 1,
+  "project": {
+    "name": "Worth UI Milestone 3.5",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui",
+    "spec_file": "_docs\\worth-ui\\milestone-3.5.md",
+    "context_files": [
+      "_docs\\coding_guidelines\\MENTALITY.md",
+      "_docs\\coding_guidelines\\arch_laws.md",
+      "_docs\\coding_guidelines\\composition_laws.md",
+      "_docs\\coding_guidelines\\domain_structure_laws.md",
+      "_docs\\coding_guidelines\\perf_laws.md",
+      "crates\\worth-foundational\\docs\\FOUNDATIONAL_README.md",
+      "crates\\worth-query\\docs\\AI_README.md",
+      "workspaces\\worth-ui\\docs\\WORTH_UI_README.md",
+      "_docs\\worth-ui\\worth-ui-vision.md",
+      "_docs\\worth-ui\\worth-ui-dsl-vision.md",
+      "_docs\\worth-ui\\ai-diagnostics.md",
+      "_docs\\worth-ui\\worth_ui_roadmap.md",
+      "_docs\\worth-ui\\milestone-3.4.md",
+      "_docs\\worth-ui\\milestone-3.5.md"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md",
+    "code_quality_repair": "templates/code_quality_repair.md"
+  },
+  "contract_template": "templates/_contract_test_hardening.md",
+  "session_defaults": {
+    "command": "C:\\nvm4w\\nodejs\\codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    }
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Freeze Evidence Authority And Family Boundaries",
+      "owner": "worth-ui inspection evidence authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "evidence-family ownership is explicit for declaration, admission, graph, aspect, and obligation truth with no generic debug blob fallback",
+        "UiEvidenceIdentity, UiEvidenceRef, UiEvidenceHandle, and UiEvidenceSlice are semantically distinct and non-forgeable where required",
+        "family-local evidence records carry provenance to the owning authority artifact rather than inspector-local reinterpretation",
+        "public inspection surfaces remain facade-oriented and do not export family-local storage topology"
+      ],
+      "instructions": "Freeze evidence authority first. Make the family vocabulary, ownership, provenance, and non-forgeable handle split explicit before relevance, indexing, or slice assembly broadens the substrate.",
+      "qa_focus": "No second truth graph, no generic evidence map, no public family internals, and no identity/ref/handle collapse."
+    },
+    {
+      "id": 2,
+      "title": "Define Relevance Routing As Typed Inspection Admission",
+      "owner": "worth-ui inspection relevance authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\query",
+        "workspaces\\worth-ui\\crates\\worth-ui\\src\\facade\\inspection.rs",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "UiInspectionQuery, UiInspectionRelevance, and UiRelevanceFilter have one explicit layering relationship and one ordinary narrowing model",
+        "relevance outcomes distinguish matched, empty_local, unsupported_scope, contradictory_request, budget_exceeded, and not_applicable_to_target posture",
+        "cross-family expansion requires named families or link kinds instead of silently widening to inspect-everything behavior",
+        "typed target, scope, richness, and budget posture remain machine-checkable on the ordinary path"
+      ],
+      "instructions": "Turn relevance into an admitted narrowing boundary. Make contradictory, unsupported, empty, and budget-limited requests structurally distinct before any family-local evidence broadens.",
+      "qa_focus": "No fuzzy search semantics, no one-size-fits-all empty result, no dual relevance models, and no implicit cross-family widening."
+    },
+    {
+      "id": 3,
+      "title": "Materialize Stable Evidence References Before Rich Detail",
+      "owner": "worth-ui evidence reference lifecycle authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\query",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\receipt",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "UiEvidenceRef is generation-bound and carries or binds evidence family, evidence identity, owning authority artifact identity, authority generation, world posture where relevant, and materialization posture",
+        "equivalent inspection queries over the same authority generation converge on equivalent refs, while later-generation correspondence is explicit rather than assumed",
+        "typed retention and expansion posture distinguish retained, discarded, wrong-generation, not-materialized, and unsupported expansion outcomes",
+        "UiInspectionReceipt preserves the original query, selected relevance, richness posture, and evidence-slice reference so later expansion stays auditable"
+      ],
+      "instructions": "Make ref stability precise. This phase is about stable handles over a specific authority generation, plus retention and expansion semantics, not about broad family detail yet.",
+      "qa_focus": "No process-ephemeral refs, no vague stability claims, no stale-ref ambiguity, and no implicit generation correspondence."
+    },
+    {
+      "id": 4,
+      "title": "Index Declaration Identity And Source-Provenance Evidence",
+      "owner": "worth-ui authored evidence index authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "ordinary lookup exists for UiDeclarationIdentity to evidence refs without scans",
+        "source-span lookup binds to typed source artifact identity plus source generation rather than fuzzy text ranges",
+        "declaration/source indexes are rebuildable from authority and reproduce the same lookup answers after rebuild",
+        "authored lookup does not reopen source parsing or declaration lowering on the ordinary inspection path"
+      ],
+      "instructions": "Build the authored-side index lanes first. Keep declaration identity and typed authored provenance explicit and narrow before runtime graph lookup broadens the substrate.",
+      "qa_focus": "No fuzzy source matching, no source reopening, no scan-first authored lookup, and no declaration/source lane collapse."
+    },
+    {
+      "id": 5,
+      "title": "Index Graph Identity Evidence Neighborhoods",
+      "owner": "worth-ui graph evidence index authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "ordinary lookup exists for UiGraphNodeIdentity to declaration, admission, and obligation evidence neighborhoods without broad scans",
+        "graph-identity lookup remains distinct from authored lookup because it answers runtime-truth questions rather than declaration-truth questions",
+        "graph-local evidence indexes rebuild from UiGraphSnapshot-backed authority without renderer-local repair",
+        "family-local evidence that depends on graph lookup is not admitted on the ordinary path until its indexed lookup path exists or is explicitly unsupported"
+      ],
+      "instructions": "Make graph identity the runtime-side entry key for local evidence neighborhoods. Do not let graph-local inspection fall back to tree walks or declaration-shaped folklore.",
+      "qa_focus": "No hidden graph scans, no declaration-shaped runtime lookup, no index lag behind authority publication, and no ship-now-scan-later ordinary path."
+    },
+    {
+      "id": 6,
+      "title": "Add Aspect Evidence Families And Aspect Local Indexes",
+      "owner": "worth-ui aspect evidence authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "published and consumed aspect evidence are admitted as their own family-local projections over declaration and graph authority",
+        "producer-side and consumer-side aspect indexes remain distinct and support local aspect inspection without widening into unrelated families",
+        "aspect-local requests may include direct provenance refs but do not widen into obligation, measurement, or mounted explanation by default",
+        "evidence index updates align transactionally with the owning authority artifact publication that introduced the aspect neighborhood"
+      ],
+      "instructions": "Add aspect evidence as its own family. Keep publication and consumption neighborhoods explainable without reinterpreting aspect semantics outside the owning runtime lanes.",
+      "qa_focus": "No vague related-evidence rows, no aspect recomputation, no cross-family creep, and no unindexed aspect-local ordinary path."
+    },
+    {
+      "id": 7,
+      "title": "Add Obligation Evidence Families On 3.4 Authority",
+      "owner": "worth-ui obligation evidence authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\obligations",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "obligation evidence consumes UiGraphTouchDescriptor, UiSelectedObligationSet, UiObligationDispatchPlan, UiObligationVerdict, and UiAdmissionReport directly rather than reverse-engineering obligation meaning",
+        "selection reason, dispatch posture, verdict posture, denial posture, and retained obligation evidence handles remain structurally distinct",
+        "obligation-local queries converge through touch-derived and graph-node-derived routes when they target the same admitted work",
+        "hostile callers cannot synthesize inspection-local obligation explanations disconnected from 3.4 authority artifacts"
+      ],
+      "instructions": "Ground obligation evidence directly on 3.4 authority. This is about retained legality evidence, not about reopening selection or verdict semantics in the inspection layer.",
+      "qa_focus": "No obligation archaeology from graph posture, no verdict/denial collapse, no synthetic selection reasons, and no public bypass around 3.4 authority."
+    },
+    {
+      "id": 8,
+      "title": "Define Evidence Slice Assembly As A Derived Projection",
+      "owner": "worth-ui evidence slice projection authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "UiInspectionReceipt and UiEvidenceSlice expose one clear ordinary return shape including query identity, authority generation, outcome, evidence slice reference, family summaries, refs, detail, and omitted-by-budget or omitted-by-scope posture",
+        "inspection cost receipts expose index lookups, evidence refs considered, refs returned, materialized records, omitted-by-budget, traversals denied, and broad_scan_used posture",
+        "equivalent evidence slices return refs in canonical deterministic order rather than incidental storage order",
+        "slice assembly remains a derived projection pipeline and does not mutate runtime authority or index state directly"
+      ],
+      "instructions": "Assemble the public projection shape after the family-local and index seams are real. Keep refs, summaries, detail, outcome, and cost visible and structurally separate.",
+      "qa_focus": "No giant inspect-everything assembler, no hidden cost, no nondeterministic ref ordering, and no slice-as-authority confusion."
+    },
+    {
+      "id": 9,
+      "title": "Ship The First AI Inspection Harness On Real Runtime Evidence",
+      "owner": "worth-ui AI inspection facade authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui\\src\\facade",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "AI-targeted inspection uses the same ordinary inspection facade surfaces as other callers",
+        "Worth UI can cite Query-owned evidence through a typed foreign-evidence ref rather than copying Query explanation into UI-owned truth",
+        "the AI path can inspect declaration identity, source provenance, graph identity, aspect neighborhoods, and obligation neighborhoods through refs-first expansion",
+        "existing support-bearing lanes such as UiInspectionSupportReport and UiInspectionClosureReport remain compatible around the richer evidence substrate"
+      ],
+      "instructions": "Make the AI path real on the ordinary inspection surface. The harness should cite Query when needed, expand refs iteratively, and never fall back to screenshots, logs, or renderer-local explanation for 3.5-covered truth.",
+      "qa_focus": "No parallel AI-only protocol, no Query truth copying, no whole-graph dumps as the default AI path, and no facade bypass."
+    },
+    {
+      "id": 10,
+      "title": "Certify Boundary Purity Narrowness And Growth Posture",
+      "owner": "worth-ui inspection closeout authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-certification",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui\\src"
+      ],
+      "acceptance": [
+        "compile-fail, residue, topology, and runtime proof block evidence-authority minting, renderer-local explanation bypass, deep-import public bypass, and broad-scan ordinary paths",
+        "the closeout enumerates the exact evidence family, relevance, ref lifecycle, retention, Query-citation, index, slice, cost, and AI-harness lanes 3.5 closes",
+        "adding a dummy future evidence family has one obvious structural home and does not require widening generic blobs or creating a second substrate",
+        "equivalent inspection queries over the same authority generation converge on equivalent refs, slice shape, and cost posture"
+      ],
+      "instructions": "Close the milestone with proof and an exact handoff. Make it mechanically obvious that future measurement, mounted receipt, visual snapshot, replay, and inspector work extend one substrate rather than rebuild it.",
+      "qa_focus": "No public bypass, no generic evidence bucket, no untracked cost sink, no fuzzy future-family handoff, and no generation-unstable ordinary path."
+    }
+  ]
+}

@@ -57,9 +57,8 @@ pub use proof_claim_request_types::{
     PlaneUpperBoundClaimDeclaration,
 };
 pub use query_operations::{
-    declare_research_request_checked, orchestrate_research_request_entry,
-    research_declaration_entry_inventory, research_declaration_entry_readiness,
-    HadwigerResearchDeclarationInput,
+    declare_research_request_checked, research_declaration_entry_inventory,
+    research_declaration_entry_readiness, HadwigerResearchDeclarationInput,
 };
 pub use request_types::{
     AdvisoryNoteDeclaration, CandidateGraphDeclaration, ColorabilityDeclaration,

@@ -32,28 +32,22 @@ pub(crate) struct WorthTopologyMetadata {
 pub(crate) struct Road1Package {
     pub(crate) name: String,
     pub(crate) dependencies: Vec<String>,
+    pub(crate) manifest_path: String,
 }
 
 #[derive(Deserialize)]
 pub(crate) struct CargoMetadata {
     pub(crate) packages: Vec<CargoMetadataPackage>,
-    pub(crate) resolve: Option<CargoMetadataResolve>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 pub(crate) struct CargoMetadataPackage {
-    pub(crate) id: String,
     pub(crate) name: String,
     pub(crate) manifest_path: String,
+    pub(crate) dependencies: Vec<CargoMetadataDependency>,
 }
 
 #[derive(Deserialize)]
-pub(crate) struct CargoMetadataResolve {
-    pub(crate) nodes: Vec<CargoMetadataNode>,
-}
-
-#[derive(Deserialize)]
-pub(crate) struct CargoMetadataNode {
-    pub(crate) id: String,
-    pub(crate) dependencies: Vec<String>,
+pub(crate) struct CargoMetadataDependency {
+    pub(crate) name: String,
 }

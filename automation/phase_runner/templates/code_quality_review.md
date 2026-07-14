@@ -26,7 +26,7 @@ Warn yourself gravely before reviewing: working behavior and semantic authority
 checks do not redeem bad topology. A phase that leaves proof flows in bags is
 not complete. A phase that hides transition grammar behind authoritative nouns
 is not aerospace-grade. A phase that makes the next correct edit harder than
-the convenient edit has failed the Forge standard.
+the convenient edit has failed the WORTH standard.
 
 Look aggressively for:
 
@@ -65,7 +65,7 @@ finish with:
 
 `RUNNER_EVENT: {"event_type":"code_quality_review_failed","payload":{"notes":{"findings":["..."]}}}`
 
-Only pass when the phase's touched structure satisfies the Forge composition
+Only pass when the phase's touched structure satisfies the WORTH composition
 and domain-structure laws and no concrete structural-law findings remain.
 
 Re-run the acceptance checks and record concise command evidence in

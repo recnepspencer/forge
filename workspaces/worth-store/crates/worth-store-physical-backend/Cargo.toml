@@ -1,0 +1,27 @@
+[package]
+name = "worth-store-physical-backend"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.1 platform-grade physical backend facade."
+
+[dependencies]
+fs4 = "0.8"
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store-buffer-pool.workspace = true
+worth-store-contracts.workspace = true
+worth-store-authority.workspace = true
+worth-store-physical-format.workspace = true
+worth-store-security.workspace = true
+
+[dev-dependencies]
+worth-store-aspect-native.workspace = true
+worth-store-buffer-pool = { workspace = true, features = ["certification-test-authority"] }
+worth-store-readiness.workspace = true
+worth-store-security = { workspace = true, features = ["certification-test-authority"] }
+
+[features]
+certification-test-authority = ["worth-store-buffer-pool/certification-test-authority"]
+
+[lints]
+workspace = true

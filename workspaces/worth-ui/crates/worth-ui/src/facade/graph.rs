@@ -1,9 +1,11 @@
 pub use worth_ui_runtime::facade::graph::{
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, BasisAuthorityFamily,
-    BridgePreviewSessionIdentity, ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity,
-    QueryExternalIdentityToken, ResolvedSnapshotBasis, SchemaBasisDigest, SnapshotLineageClass,
-    SnapshotResolutionReport, UiGraphAspectConsumer, UiGraphAspectConsumerKind,
-    UiGraphAspectPublisher, UiGraphAspectPublisherKind, UiGraphAttachmentPosture, UiGraphAuthority,
+    project_aspect_evidence_ref, project_aspect_evidence_refs, snapshot_resolution_report,
+    BasisAuthorityFamily, BridgePreviewSessionIdentity,
+    QueryExternalIdentityToken, QueryExternalSchemaBasisToken, QuerySchemaBasisAuthority,
+    ResolvedSnapshotBasis, SchemaBasisDigest, SnapshotLineageClass, SnapshotResolutionReport,
+    UiAspectEvidenceLane, UiAspectEvidenceRefProjection, UiAspectEvidenceSubjectKind,
+    UiGraphAspectConsumer, UiGraphAspectConsumerKind, UiGraphAspectPublisher,
+    UiGraphAspectPublisherKind, UiGraphAttachmentPosture, UiGraphAuthority,
     UiGraphAxisParticipation, UiGraphClosedSemanticLane, UiGraphCloseoutGuarantee,
     UiGraphCloseoutNonGoal, UiGraphCloseoutReport, UiGraphContainmentClaim,
     UiGraphCoreIndexContributionSeed, UiGraphEvidenceRef, UiGraphEvidenceRefKind,
@@ -31,5 +33,5 @@ pub use worth_ui_runtime::facade::graph::{
     UiGraphWorldDifferenceKind, UiGraphWorldProfile, UiGraphWorldProfileError,
     UiMountedReceiptIdentity, UiRepeatedInstanceBasis, UiRepeatedInstanceBasisDenial,
     UiRepeatedInstanceBasisKind, UiRuntimeDataInstanceKeyKind, UiRuntimeDataInstanceKeyToken,
-    UiRuntimeInstanceBasisAdmission,
+    UiRuntimeInstanceBasisAdmission, WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
 };

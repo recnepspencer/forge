@@ -5,7 +5,7 @@ Hadwiger-Nelson proof search.
 
 The crate owns Hadwiger-Nelson domain meaning: candidate graphs, embeddings,
 checker artifacts, aspect postures, invalidation rules, and theorem-like proof
-claims. Forge Query remains the entry point for declaration, progression,
+claims. WORTH Query remains the entry point for declaration, progression,
 support/readiness, contribution posture, recovery, and later runtime
 continuation.
 

@@ -88,6 +88,13 @@ def import_phase_events(
             paths, "review_failed", phase_id=phase_id, turn="review", payload=phase_payload(notes)
         )
         if current_turn == "repair":
+            append_runtime_event(
+                paths,
+                "repair_plan_posted",
+                phase_id=phase_id,
+                turn="repair_plan",
+                payload=phase_payload(notes),
+            )
             return
         if current_turn is not None:
             raise ValueError(f"legacy current turn {current_turn!r} is incompatible with failed phase {phase_id}")

@@ -1,0 +1,34 @@
+error: cannot construct `WorthQueryLiveGraphReadAccessPlan` with struct literal syntax due to private fields
+  --> tests/ui/graph_read_access_admission/live_access_plan_constructor_private.rs:4:19
+   |
+ 4 |     let _worthd = WorthQueryLiveGraphReadAccessPlan {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         digest: String::new(),
+   |         --------------------- private field
+ 6 |         one_shot_access_plan_digest: String::new(),
+   |         ------------------------------------------ private field
+ 7 |         one_shot_access_shape_digest: String::new(),
+   |         ------------------------------------------- private field
+ 8 |         required_index_digest: String::new(),
+   |         ------------------------------------ private field
+ 9 |         posture: WorthQueryLiveGraphReadAccessPosture::AdmittedLiveIncrementalMaintenance,
+   |         --------------------------------------------------------------------------------- private field
+10 |         maintenance_budget: WorthQueryLiveGraphReadMaintenanceBudget::bounded(),
+   |         ----------------------------------------------------------------------- private field
+11 |         maintenance_equivalence_digest: String::new(),
+   |         --------------------------------------------- private field
+   |
+   = note: ...and other private field `mutation_delta_scope` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+ 4 -     let _worthd = WorthQueryLiveGraphReadAccessPlan {
+ 5 -         digest: String::new(),
+ 6 -         one_shot_access_plan_digest: String::new(),
+ 7 -         one_shot_access_shape_digest: String::new(),
+ 8 -         required_index_digest: String::new(),
+ 9 -         posture: WorthQueryLiveGraphReadAccessPosture::AdmittedLiveIncrementalMaintenance,
+10 -         maintenance_budget: WorthQueryLiveGraphReadMaintenanceBudget::bounded(),
+11 -         maintenance_equivalence_digest: String::new(),
+12 -     };
+ 4 +     let _worthd = WorthQueryLiveGraphReadAccessPlan::new(_, _, _, _, _, _);
+   |

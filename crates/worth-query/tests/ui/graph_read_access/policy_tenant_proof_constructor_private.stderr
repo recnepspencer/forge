@@ -1,0 +1,25 @@
+error: cannot construct `WorthQueryGraphReadPolicyTenantProofBinding` with struct literal syntax due to private fields
+ --> tests/ui/graph_read_access/policy_tenant_proof_constructor_private.rs:4:13
+  |
+4 |     let _ = WorthQueryGraphReadPolicyTenantProofBinding {
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         read_graph_digest: String::new(),
+  |         -------------------------------- private field
+6 |         policy_tenant_posture: WorthQueryGraphReadPolicyTenantPosture::SyntheticRuntimeCurrentRead,
+  |         ------------------------------------------------------------------------------------------ private field
+7 |         relationship_proof_posture: WorthQueryGraphReadRelationshipProofBindingPosture::NotRequired,
+  |         ------------------------------------------------------------------------------------------- private field
+8 |         relationship_proof_admission_digest: None,
+  |         ----------------------------------------- private field
+  |
+  = note: ...and other private fields `policy_tenant_admission_digest` and `authority_receipt_digest` that were not provided
+help: you might have meant to use the `new` associated function
+  |
+4 -     let _ = WorthQueryGraphReadPolicyTenantProofBinding {
+5 -         read_graph_digest: String::new(),
+6 -         policy_tenant_posture: WorthQueryGraphReadPolicyTenantPosture::SyntheticRuntimeCurrentRead,
+7 -         relationship_proof_posture: WorthQueryGraphReadRelationshipProofBindingPosture::NotRequired,
+8 -         relationship_proof_admission_digest: None,
+9 -     };
+4 +     let _ = WorthQueryGraphReadPolicyTenantProofBinding::new(_, _, _, _, _, _);
+  |

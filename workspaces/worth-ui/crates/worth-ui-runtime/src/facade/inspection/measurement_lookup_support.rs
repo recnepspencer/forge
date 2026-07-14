@@ -131,12 +131,11 @@ pub(super) fn admission_target_for_touch(
     {
         target = target.with_host_capability_report(report.clone());
     }
-    if let Some(consumption) =
-        bundle.and_then(UiMeasurementInspectionEvidenceBundle::query_projection_consumption)
+    if let Some(authority) = bundle.and_then(UiMeasurementInspectionEvidenceBundle::query_authority)
     {
         if let Ok(bound_target) = target
             .clone()
-            .with_query_prerequisites_from_projection_consumption(consumption)
+            .with_query_prerequisites_from_query_authority(authority.authority())
         {
             target = bound_target;
         }
@@ -224,14 +223,10 @@ fn query_measurement_eligibility_for_bundle(
     measurement_admission: Option<&crate::admission::UiMeasurementAdmission>,
     bundle: Option<&UiMeasurementInspectionEvidenceBundle>,
 ) -> Option<UiQueryMeasurementEligibility> {
-    let consumption = bundle?.query_projection_consumption()?;
+    let authority = bundle?.query_authority()?.clone();
     let admission = measurement_admission?;
     app.admission()
-        .admit_query_measurement_eligibility_from_projection_consumption(
-            selected,
-            admission,
-            consumption,
-        )
+        .admit_query_measurement_eligibility_from_query_authority(selected, admission, authority)
 }
 
 pub(super) enum QueryMeasurementInspectionOutcome {

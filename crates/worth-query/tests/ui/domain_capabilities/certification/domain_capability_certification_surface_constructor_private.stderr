@@ -1,0 +1,21 @@
+error[E0451]: fields `public_surface_digest`, `target_dx_digest`, `golden_transcript_digest`, `compile_fail_boundary_digest`, `certification_surface_digest`, `category_count`, `golden_transcript_count` and `compile_fail_boundary_count` of struct `WorthQueryDomainCapabilityCertificationSurface` are private
+  --> tests/ui/domain_capabilities/certification/domain_capability_certification_surface_constructor_private.rs:5:9
+   |
+ 4 |     let _ = WorthQueryDomainCapabilityCertificationSurface {
+   |             ---------------------------------------------- in this type
+ 5 |         public_surface_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 6 |         target_dx_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 7 |         golden_transcript_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         compile_fail_boundary_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         certification_surface_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         category_count: 0,
+   |         ^^^^^^^^^^^^^^ private field
+11 |         golden_transcript_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         compile_fail_boundary_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

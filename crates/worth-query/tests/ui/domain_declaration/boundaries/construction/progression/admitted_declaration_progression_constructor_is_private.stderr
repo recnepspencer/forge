@@ -1,0 +1,9 @@
+error[E0451]: fields `recipe` and `progression_digest` of struct `WorthQueryAdmittedDeclarationProgression` are private
+  --> tests/ui/domain_declaration/boundaries/construction/progression/admitted_declaration_progression_constructor_is_private.rs:56:9
+   |
+55 |     let _ = WorthQueryAdmittedDeclarationProgression::<GeometryDomain, SplitEdgeDeclaration> {
+   |             -------------------------------------------------------------------------------- in this type
+56 |         recipe: fake(),
+   |         ^^^^^^ private field
+57 |         progression_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field

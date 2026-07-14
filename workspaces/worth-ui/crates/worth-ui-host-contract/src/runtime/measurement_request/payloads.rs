@@ -40,8 +40,11 @@ pub struct UiViewportExtentRequest;
 pub struct UiDpiScaleFactorRequest;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UiPortalAnchorTargetIdentity(u64);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiPortalAnchorRectRequest {
-    anchor_identity: u64,
+    anchor_identity: UiPortalAnchorTargetIdentity,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -124,11 +127,27 @@ impl UiNativeControlIntrinsicSizeRequest {
 
 impl UiPortalAnchorRectRequest {
     pub const fn new(anchor_identity: u64) -> Self {
-        Self { anchor_identity }
+        Self {
+            anchor_identity: UiPortalAnchorTargetIdentity(anchor_identity),
+        }
     }
 
     pub const fn anchor_identity(&self) -> u64 {
+        self.anchor_identity.raw()
+    }
+
+    pub const fn target_identity(&self) -> UiPortalAnchorTargetIdentity {
         self.anchor_identity
+    }
+}
+
+impl UiPortalAnchorTargetIdentity {
+    pub const fn new(raw: u64) -> Self {
+        Self(raw)
+    }
+
+    pub const fn raw(self) -> u64 {
+        self.0
     }
 }
 

@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 mod worth_ui_parse_diagnostic;
 mod worth_ui_parse_report;
 mod worth_ui_parsed_source_module;

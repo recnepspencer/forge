@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/domain_declaration/boundaries/contracts/receipt_cannot_satisfy_bridge_routing_api.rs:75:46
+   |
+75 |     let _ = handle.route_bridge_continuation(receipt);
+   |                    ------------------------- ^^^^^^^ expected `WorthQueryDeclarationBridgeRoutingInput<..., _>`, found `WorthQueryDeclarationReceipt<..., ...>`
+   |                    |
+   |                    arguments to this method are incorrect
+   |
+   = note: expected enum `WorthQueryDeclarationBridgeRoutingInput<GeometryDomain, _>`
+            found struct `WorthQueryDeclarationReceipt<GeometryDomain, SplitEdgeDeclaration>`
+note: method defined here
+  --> src/application/domain_handle/admitted_handle/bridge_routing.rs
+   |
+   |     pub fn route_bridge_continuation<I: WorthQueryDeclarationInput<D>>(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^

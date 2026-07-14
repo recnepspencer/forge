@@ -1,0 +1,1593 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "Road 1 Milestone 1B: Query Constitution Enforcement",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worktree_2",
+    "spec_file": "cad/docs/road-1/road-1_milestone-1b.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "cad/docs/worthy-foundations/ROAD.md",
+      "cad/docs/worthy-foundations/ARCHITECTURE.md",
+      "cad/docs/worthy-foundations/GLOSSARY.md",
+      "cad/docs/worthy-foundations/BOUNDARIES.md",
+      "cad/docs/worthy-foundations/NAMING.md",
+      "cad/docs/road-1/road-1.md",
+      "cad/docs/road-1/road-1_milestone-1b.md",
+      "crates/worth-query/docs/AI_README.md",
+      "crates/worth-proof/README.md"
+    ]
+  },
+  "prompt_library_policy": {
+    "runner_asset_roots": [
+      "automation/runner/prompts/assets"
+    ],
+    "runner_assembly_roots": [
+      "automation/runner/prompts/assemblies"
+    ],
+    "consumer_asset_roots": [
+      "automation/consumer_prompts/assets"
+    ],
+    "consumer_assembly_roots": [
+      "automation/consumer_prompts/assemblies"
+    ],
+    "allow_consumer_prompts": true,
+    "allow_direct_file_binding": false
+  },
+  "turn_templates": {
+    "boundary_review": {
+      "assembly_id": "turns/boundary_review_m1b"
+    },
+    "plan": {
+      "assembly_id": "turns/plan_m1b"
+    },
+    "implement": {
+      "assembly_id": "turns/implement_m1b"
+    },
+    "review": {
+      "assembly_id": "turns/review_m1b"
+    },
+    "repair": {
+      "assembly_id": "turns/repair_m1b"
+    },
+    "test_review": {
+      "assembly_id": "turns/test_review_m1b"
+    },
+    "test_repair_implement": {
+      "assembly_id": "turns/test_repair_implement_m1b"
+    },
+    "code_quality_review": {
+      "assembly_id": "turns/code_quality_review_m1b"
+    },
+    "code_quality_repair": {
+      "assembly_id": "turns/code_quality_repair_m1b"
+    }
+  },
+  "contract_template": {
+    "asset_id": "contracts/default"
+  },
+  "session_defaults": {
+    "provider": "codex",
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "high",
+    "config": {}
+  },
+  "runner_control": {
+    "boundary_review_start_phase": 1
+  },
+  "loop_escalation": {
+    "families": {
+      "review_loop": {
+        "turns": [
+          "review",
+          "test_review",
+          "code_quality_review"
+        ],
+        "threshold": 6,
+        "action": "start_fresh_session"
+      }
+    }
+  },
+  "escalation_policy": {
+    "same_phase_loop_exceeded": {
+      "stages": [
+        {
+          "action": "start_fresh_session"
+        },
+        {
+          "action": "override_model",
+          "turns": [
+            "repair",
+            "test_repair_implement",
+            "code_quality_repair"
+          ],
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high",
+            "goal_mode": false
+          },
+          "scope": "phase"
+        }
+      ],
+      "on_exhausted": {
+        "action": "notify_and_pause"
+      }
+    },
+    "provider_crash": {
+      "stages": [
+        {
+          "action": "start_fresh_session"
+        }
+      ],
+      "on_exhausted": "notify_and_pause"
+    },
+    "invalid_outcome": {
+      "stages": [
+        {
+          "action": "start_fresh_session"
+        }
+      ],
+      "on_exhausted": "notify"
+    },
+    "no_edit_stall": {
+      "stages": [
+        {
+          "action": "start_fresh_session"
+        }
+      ],
+      "on_exhausted": "notify"
+    }
+  },
+  "outcome_repair_policy": {
+    "missing_runner_event": {
+      "max_attempts": 1,
+      "first_attempt": "same_agent_event_repair_prompt",
+      "on_exhausted": "route_to_recovery"
+    },
+    "malformed_runner_event": {
+      "max_attempts": 1,
+      "first_attempt": "same_agent_event_repair_prompt",
+      "on_exhausted": "route_to_recovery"
+    }
+  },
+  "operator_intervention_policy": {
+    "allow_live_injection": true,
+    "allow_immediate_interrupt": false,
+    "record_as_authority_event": true,
+    "default_injection_mode": "next_turn_preface",
+    "default_post_injection_route": "continue_current_phase"
+  },
+  "phases": [
+    {
+      "id": 1,
+      "phase_key": "residue-and-rename-ratchet",
+      "title": "Milestone 1 Residue And Rename Ratchet",
+      "owner": "implementer",
+      "scope": [
+        "cad/workspaces/worth-contracts/",
+        "cad/workspaces/worth-packs/",
+        "tools/boundary-check/"
+      ],
+      "acceptance": [
+        "worth-schema-core has no top-level tests/ tree; the deep-import proof is relocated and the seed skeleton allowlist shrinks to match",
+        "PackRegistration composes ContributionDescriptor instead of duplicating its fields",
+        "a committed legacy-references snapshot rejects any new forge_/forge- reference under governed surfaces and may only shrink",
+        "boundary-check and agent-context are green"
+      ],
+      "instructions": "Implement Milestone 1B phase 'Milestone 1 Residue And Rename Ratchet' exactly as specified in cad/docs/road-1/road-1_milestone-1b.md. Follow the phase's Warnings and Engineering decisions. Do not reach into another phase's scope or into Milestone 3/4 semantics. Prove the phase's adversarial tests and leave the constitution green.",
+      "qa_focus": "No redesign beyond the named cleanups; the rename ratchet governs only constitutional surfaces, not _docs history or non-governed legacy code.",
+      "program_id": "standard_loop",
+      "contract_template": {
+        "asset_id": "contracts/m1b_simple"
+      },
+      "role_bindings": {
+        "boundary_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/boundary_review_m1b"
+          }
+        },
+        "plan": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/plan_m1b"
+          }
+        },
+        "implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/implement_m1b"
+          }
+        },
+        "review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/review_m1b"
+          }
+        },
+        "repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/repair_m1b"
+          }
+        },
+        "test_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_review_m1b"
+          }
+        },
+        "test_repair_implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_repair_implement_m1b"
+          }
+        },
+        "code_quality_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_review_m1b"
+          }
+        },
+        "code_quality_repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_repair_m1b"
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "phase_key": "query-audience-facade-topology",
+      "title": "Query Audience Facade Topology",
+      "owner": "implementer",
+      "scope": [
+        "crates/worth-query/",
+        "crates/worth-query-decl/",
+        "crates/worth-query-host/",
+        "crates/worth-query-replay/",
+        "cad/docs/worthy-foundations/NAMING.md"
+      ],
+      "acceptance": [
+        "worth-query-decl, worth-query-host, worth-query-replay exist as re-export-only facades over worth-query with doctest-bearing surfaces",
+        "an entry-band consumer sees types identical to the engine facade through decl/host (no wrapper drift)",
+        "a governed crate taking a direct worth-query dependency is denied with the audience facade named",
+        "the audience matrix is recorded in NAMING.md as a framework-family amendment in this change",
+        "boundary-check and agent-context are green"
+      ],
+      "instructions": "Implement Milestone 1B phase 'Query Audience Facade Topology' exactly as specified in cad/docs/road-1/road-1_milestone-1b.md. Follow the phase's Warnings and Engineering decisions. Do not reach into another phase's scope or into Milestone 3/4 semantics. Prove the phase's adversarial tests and leave the constitution green.",
+      "qa_focus": "Facades re-export only; no engine-internal split; no facade re-exports another facade; no speculative bridge nouns.",
+      "program_id": "standard_loop",
+      "contract_template": {
+        "asset_id": "contracts/m1b_simple"
+      },
+      "role_bindings": {
+        "boundary_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/boundary_review_m1b"
+          }
+        },
+        "plan": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/plan_m1b"
+          }
+        },
+        "implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/implement_m1b"
+          }
+        },
+        "review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/review_m1b"
+          }
+        },
+        "repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/repair_m1b"
+          }
+        },
+        "test_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_review_m1b"
+          }
+        },
+        "test_repair_implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_repair_implement_m1b"
+          }
+        },
+        "code_quality_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_review_m1b"
+          }
+        },
+        "code_quality_repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_repair_m1b"
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "phase_key": "authority-sealing-law",
+      "title": "Authority Sealing Law",
+      "owner": "implementer",
+      "scope": [
+        "tools/boundary-check/",
+        "crates/worth-proof/"
+      ],
+      "acceptance": [
+        "a governed public item generic over AuthorityMarker/CapabilityMarker/AuthorityProves is rejected with the sealing law quoted and the concrete pattern shown",
+        "worth-proof is recorded in machine config as a law substrate legal in every band and tier",
+        "a forged local authority satisfies worth-proof generics but fails every governed ceremony signature",
+        "boundary-check and agent-context are green"
+      ],
+      "instructions": "Implement Milestone 1B phase 'Authority Sealing Law' exactly as specified in cad/docs/road-1/road-1_milestone-1b.md. Follow the phase's Warnings and Engineering decisions. Do not reach into another phase's scope or into Milestone 3/4 semantics. Prove the phase's adversarial tests and leave the constitution green.",
+      "qa_focus": "worth-proof stays open; only the platform's vocabulary is sealed; no temporary generic authority bounds on governed surfaces.",
+      "program_id": "standard_loop",
+      "contract_template": {
+        "asset_id": "contracts/m1b_simple"
+      },
+      "role_bindings": {
+        "boundary_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/boundary_review_m1b"
+          }
+        },
+        "plan": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/plan_m1b"
+          }
+        },
+        "implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/implement_m1b"
+          }
+        },
+        "review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/review_m1b"
+          }
+        },
+        "repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/repair_m1b"
+          }
+        },
+        "test_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_review_m1b"
+          }
+        },
+        "test_repair_implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_repair_implement_m1b"
+          }
+        },
+        "code_quality_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_review_m1b"
+          }
+        },
+        "code_quality_repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_repair_m1b"
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "phase_key": "band-guard-macro",
+      "title": "Band Guard Macro",
+      "owner": "implementer",
+      "scope": [
+        "crates/worth-proof/"
+      ],
+      "acceptance": [
+        "worth_proof::band_guard! exists as a dependency-free const assertion over env!(CARGO_PKG_NAME) and is zero-cost",
+        "expanding a guarded macro in a wrong-band fixture fails with the legal band list in the error text",
+        "the adoption law (every public Query-facade macro embeds a band guard) is recorded",
+        "boundary-check and agent-context are green"
+      ],
+      "instructions": "Implement Milestone 1B phase 'Band Guard Macro' exactly as specified in cad/docs/road-1/road-1_milestone-1b.md. Follow the phase's Warnings and Engineering decisions. Do not reach into another phase's scope or into Milestone 3/4 semantics. Prove the phase's adversarial tests and leave the constitution green.",
+      "qa_focus": "The band list is passed as macro arguments, not encoded in worth-proof; the guard backstops macro-carried surfaces, it does not replace DAG rules.",
+      "program_id": "standard_loop",
+      "contract_template": {
+        "asset_id": "contracts/m1b_simple"
+      },
+      "role_bindings": {
+        "boundary_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/boundary_review_m1b"
+          }
+        },
+        "plan": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/plan_m1b"
+          }
+        },
+        "implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/implement_m1b"
+          }
+        },
+        "review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/review_m1b"
+          }
+        },
+        "repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/repair_m1b"
+          }
+        },
+        "test_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_review_m1b"
+          }
+        },
+        "test_repair_implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_repair_implement_m1b"
+          }
+        },
+        "code_quality_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_review_m1b"
+          }
+        },
+        "code_quality_repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_repair_m1b"
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "phase_key": "source-level-import-law",
+      "title": "Source-Level Import Law",
+      "owner": "implementer",
+      "scope": [
+        "tools/boundary-check/"
+      ],
+      "acceptance": [
+        "the AST pass denies worth_query-rooted source paths in governed crates outside the audience matrix",
+        "Query types in governed public signatures and pub use of Query items are denied with distinct diagnostic codes",
+        "a renamed-dependency engine import is still caught by the metadata pass (the two passes overlap, not gap)",
+        "boundary-check and agent-context are green"
+      ],
+      "instructions": "Implement Milestone 1B phase 'Source-Level Import Law' exactly as specified in cad/docs/road-1/road-1_milestone-1b.md. Follow the phase's Warnings and Engineering decisions. Do not reach into another phase's scope or into Milestone 3/4 semantics. Prove the phase's adversarial tests and leave the constitution green.",
+      "qa_focus": "No full type resolution; the pass states what it cannot see; it runs only over governed crates and stays edit-loop fast.",
+      "program_id": "standard_loop",
+      "contract_template": {
+        "asset_id": "contracts/m1b_simple"
+      },
+      "role_bindings": {
+        "boundary_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/boundary_review_m1b"
+          }
+        },
+        "plan": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/plan_m1b"
+          }
+        },
+        "implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/implement_m1b"
+          }
+        },
+        "review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/review_m1b"
+          }
+        },
+        "repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/repair_m1b"
+          }
+        },
+        "test_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_review_m1b"
+          }
+        },
+        "test_repair_implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_repair_implement_m1b"
+          }
+        },
+        "code_quality_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_review_m1b"
+          }
+        },
+        "code_quality_repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_repair_m1b"
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "phase_key": "surface-and-dag-ratchets",
+      "title": "Surface And DAG Ratchets",
+      "owner": "implementer",
+      "scope": [
+        "tools/boundary-check/",
+        "tools/agent-context/"
+      ],
+      "acceptance": [
+        "crate-dag and facade manifest snapshots exist as exact sets; additions and removals both require an in-change snapshot update",
+        "a new governed dependency edge or a new pub use in a governed facade fails until its snapshot is regenerated, showing the widening as a reviewable diff",
+        "agent-context renders its Facade exports lines from the facade snapshot rather than re-deriving them",
+        "boundary-check and agent-context are green"
+      ],
+      "instructions": "Implement Milestone 1B phase 'Surface And DAG Ratchets' exactly as specified in cad/docs/road-1/road-1_milestone-1b.md. Follow the phase's Warnings and Engineering decisions. Do not reach into another phase's scope or into Milestone 3/4 semantics. Prove the phase's adversarial tests and leave the constitution green.",
+      "qa_focus": "Exact-set equality, not subset; snapshots are writer-flag-gated and never hand-edited; only governed crates are snapshotted.",
+      "program_id": "standard_loop",
+      "contract_template": {
+        "asset_id": "contracts/m1b_simple"
+      },
+      "role_bindings": {
+        "boundary_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/boundary_review_m1b"
+          }
+        },
+        "plan": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/plan_m1b"
+          }
+        },
+        "implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/implement_m1b"
+          }
+        },
+        "review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/review_m1b"
+          }
+        },
+        "repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/repair_m1b"
+          }
+        },
+        "test_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_review_m1b"
+          }
+        },
+        "test_repair_implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_repair_implement_m1b"
+          }
+        },
+        "code_quality_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_review_m1b"
+          }
+        },
+        "code_quality_repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_repair_m1b"
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "phase_key": "edit-time-enforcement",
+      "title": "Edit-Time Enforcement And Prescriptive Diagnostics",
+      "owner": "implementer",
+      "scope": [
+        "scripts/",
+        ".github/workflows/ci.yml",
+        "tools/boundary-check/"
+      ],
+      "acceptance": [
+        "a single check-constitution entrypoint (boundary-check + agent-context check) is invoked identically by an edit-time hook, CI, and the terminal",
+        "every Diagnostic carries a non-empty legal_home pointer, proven by a unit test over every diagnostic constructor",
+        "a PostToolUse hook runs the entrypoint on governed edits and surfaces JSON diagnostics naming the legal home",
+        "boundary-check and agent-context are green"
+      ],
+      "instructions": "Implement Milestone 1B phase 'Edit-Time Enforcement And Prescriptive Diagnostics' exactly as specified in cad/docs/road-1/road-1_milestone-1b.md. Follow the phase's Warnings and Engineering decisions. Do not reach into another phase's scope or into Milestone 3/4 semantics. Prove the phase's adversarial tests and leave the constitution green.",
+      "qa_focus": "Hook, CI, and terminal share one entrypoint and one config; the hook stays within a stated time budget; pointers name a machine artifact first.",
+      "program_id": "standard_loop",
+      "contract_template": {
+        "asset_id": "contracts/m1b_simple"
+      },
+      "role_bindings": {
+        "boundary_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/boundary_review_m1b"
+          }
+        },
+        "plan": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/plan_m1b"
+          }
+        },
+        "implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/implement_m1b"
+          }
+        },
+        "review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/review_m1b"
+          }
+        },
+        "repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/repair_m1b"
+          }
+        },
+        "test_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_review_m1b"
+          }
+        },
+        "test_repair_implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_repair_implement_m1b"
+          }
+        },
+        "code_quality_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_review_m1b"
+          }
+        },
+        "code_quality_repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_repair_m1b"
+          }
+        }
+      }
+    },
+    {
+      "id": 8,
+      "phase_key": "cert-corpus-birth",
+      "title": "Cert Corpus Birth",
+      "owner": "implementer",
+      "scope": [
+        "cad/workspaces/worth-certification/",
+        "cad/docs/worthy-foundations/NAMING.md"
+      ],
+      "acceptance": [
+        "worth-cert-adoption is born at its reserved name with a trybuild compile-fail corpus",
+        "forged-authority, deep-import, replay-in-ordinary-band, band-guard-wrong-band, and generic-authority-bound specimens each fail as designed against stable diagnostic fragments",
+        "a facade-pairing check rejects deletion of any specimen, proving the corpus is load-bearing",
+        "boundary-check and agent-context are green"
+      ],
+      "instructions": "Implement Milestone 1B phase 'Cert Corpus Birth' exactly as specified in cad/docs/road-1/road-1_milestone-1b.md. Follow the phase's Warnings and Engineering decisions. Do not reach into another phase's scope or into Milestone 3/4 semantics. Prove the phase's adversarial tests and leave the constitution green.",
+      "qa_focus": "The corpus proves denial, not features; no parity/scale/regression tree here (Milestone 5 owns those); nothing ordinary depends back on cert.",
+      "program_id": "standard_loop",
+      "contract_template": {
+        "asset_id": "contracts/m1b_simple"
+      },
+      "role_bindings": {
+        "boundary_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/boundary_review_m1b"
+          }
+        },
+        "plan": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/plan_m1b"
+          }
+        },
+        "implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/implement_m1b"
+          }
+        },
+        "review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/review_m1b"
+          }
+        },
+        "repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/repair_m1b"
+          }
+        },
+        "test_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_review_m1b"
+          }
+        },
+        "test_repair_implement": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/test_repair_implement_m1b"
+          }
+        },
+        "code_quality_review": {
+          "role_id": "reviewer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "high"
+          },
+          "session_policy": {
+            "continuity_family": "oversight",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_review_m1b"
+          }
+        },
+        "code_quality_repair": {
+          "role_id": "implementer",
+          "model_policy": {
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
+          },
+          "session_policy": {
+            "continuity_family": "implementer",
+            "reuse_session": true
+          },
+          "prompt_template": {
+            "assembly_id": "turns/code_quality_repair_m1b"
+          }
+        }
+      }
+    }
+  ],
+  "notification_policy": {
+    "command_hook": [
+      "python",
+      "-m",
+      "runner.telegram_bridge",
+      "send"
+    ],
+    "signals": {
+      "blocker": {
+        "enabled": true,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      },
+      "crash": {
+        "enabled": false,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      },
+      "invalid_outcome": {
+        "enabled": false,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      },
+      "wall_timeout": {
+        "enabled": true,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      },
+      "idle_timeout": {
+        "enabled": true,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      },
+      "no_edit_stall": {
+        "enabled": true,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      },
+      "same_phase_loop_exceeded": {
+        "enabled": false,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      }
+    }
+  },
+  "operator_custom_turn": {
+    "aliases": {
+      "codex": {
+        "provider": "codex",
+        "command": "C:/nvm4w/nodejs/codex.cmd",
+        "model": "gpt-5.6-sol",
+        "reasoning_effort": "medium"
+      },
+      "grok": {
+        "provider": "grok",
+        "command": "C:/Users/Esther/.grok/bin/grok.exe",
+        "model": "grok-4.5"
+      }
+    },
+    "default_alias": "codex",
+    "max_ladders_per_phase": 2
+  }
+}

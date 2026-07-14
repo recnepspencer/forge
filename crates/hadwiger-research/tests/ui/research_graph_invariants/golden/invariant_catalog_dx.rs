@@ -1,4 +1,4 @@
-use forge_query::facade::runtime::ForgeQueryLowerRuntimeBoundaryEnvelopeSource;
+use worth_query::facade::runtime::WORTHQueryLowerRuntimeBoundaryEnvelopeSource;
 use hadwiger_research::facade::{
     certify_research_graph_invariant_violation, draft_research_graph_invariant_catalog,
     materialize_research_graph_invariant_denial, plan_research_graph_invariant_registration,
@@ -14,7 +14,7 @@ fn invariant_catalog_dx(
     corpus: &ResearchEvidenceCorpus,
     frontier: &DiscoveryFrontier,
     plans: ExperimentBatch,
-    lower_runtime_source: &impl ForgeQueryLowerRuntimeBoundaryEnvelopeSource,
+    lower_runtime_source: &impl WORTHQueryLowerRuntimeBoundaryEnvelopeSource,
 ) -> Result<(), ResearchGraphInvariantError> {
     let catalog = draft_research_graph_invariant_catalog(handle, corpus, frontier)?;
     assert!(catalog.has_rule_family(ResearchGraphInvariantFamily::FailureResidency));
@@ -39,7 +39,7 @@ fn invariant_catalog_dx(
     );
     assert!(plan
         .compatible_query_surfaces()
-        .contains("ForgeQueryRuntime::builder().custom_invariant(...)"));
+        .contains("WORTHQueryRuntime::builder().custom_invariant(...)"));
     assert!(plan.registers_runtime_invariants());
 
     let projection =

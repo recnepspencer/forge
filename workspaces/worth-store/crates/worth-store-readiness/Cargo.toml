@@ -1,0 +1,24 @@
+[package]
+name = "worth-store-readiness"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Worth Store foundational adoption and physical substrate readiness gates."
+
+[dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store-authority.workspace = true
+worth-store-aspect-native.workspace = true
+worth-store-contracts.workspace = true
+worth-store-blob-chunks.workspace = true
+worth-store-layout-indexes.workspace = true
+worth-store-physical-format.workspace = true
+worth-store-security.workspace = true
+
+[features]
+certification-authority = []
+certification-test-support = []
+
+[lints]
+workspace = true

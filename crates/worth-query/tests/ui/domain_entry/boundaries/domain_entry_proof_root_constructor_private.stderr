@@ -1,0 +1,24 @@
+error[E0560]: struct `WorthQueryDomainEntryProofRoot<LocalDomain>` has no field named `domain_key`
+  --> tests/ui/domain_entry/boundaries/domain_entry_proof_root_constructor_private.rs:24:9
+   |
+24 |         domain_key: "example.local",
+   |         ^^^^^^^^^^ `WorthQueryDomainEntryProofRoot<LocalDomain>` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryDomainEntryProofRoot<LocalDomain>` has no field named `display_name`
+  --> tests/ui/domain_entry/boundaries/domain_entry_proof_root_constructor_private.rs:25:9
+   |
+25 |         display_name: "LocalDomain",
+   |         ^^^^^^^^^^^^ `WorthQueryDomainEntryProofRoot<LocalDomain>` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0308]: mismatched types
+  --> tests/ui/domain_entry/boundaries/domain_entry_proof_root_constructor_private.rs:27:17
+   |
+27 |         marker: PhantomData,
+   |                 ^^^^^^^^^^^ expected `LocalDomain`, found `PhantomData<_>`
+   |
+   = note: expected struct `LocalDomain`
+              found struct `PhantomData<_>`

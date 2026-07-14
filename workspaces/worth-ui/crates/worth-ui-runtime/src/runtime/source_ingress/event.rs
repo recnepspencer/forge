@@ -18,6 +18,12 @@ enum WorthUiWatcherEventKind {
 }
 
 impl WorthUiWatcherEvent {
+    pub fn allocation_truth_category(
+        &self,
+    ) -> crate::evidence::allocation::UiAllocationTruthCategory {
+        crate::evidence::allocation::UiAllocationTruthCategory::EphemeralStreamEvent
+    }
+
     pub fn modified(path: impl Into<PathBuf>) -> Self {
         Self {
             kind: WorthUiWatcherEventKind::Modified { path: path.into() },

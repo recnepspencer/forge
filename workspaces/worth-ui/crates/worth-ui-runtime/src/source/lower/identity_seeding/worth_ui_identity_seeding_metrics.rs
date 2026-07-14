@@ -19,15 +19,19 @@ impl WorthUiIdentitySeedingMetrics {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn node_count_seeded(&self) -> usize {
         self.node_count_seeded
     }
+    #[cfg(test)]
     pub(crate) fn authored_seed_count(&self) -> usize {
         self.authored_seed_count
     }
+    #[cfg(test)]
     pub(crate) fn structural_fallback_count(&self) -> usize {
         self.structural_fallback_count
     }
+    #[cfg(test)]
     pub(crate) fn durable_state_eligible_count(&self) -> usize {
         self.durable_state_eligible_count
     }

@@ -1,0 +1,9 @@
+error[E0451]: fields `outputs` and `report_digest` of struct `WorthQueryIntentAdmissionRepresentativeOutputReport` are private
+ --> tests/ui/intent_admission/certification/reports/artifacts/intent_admission_representative_output_report_constructor_private.rs:5:9
+  |
+4 |     let _ = WorthQueryIntentAdmissionRepresentativeOutputReport {
+  |             --------------------------------------------------- in this type
+5 |         outputs: Vec::new(),
+  |         ^^^^^^^ private field
+6 |         report_digest: String::new(),
+  |         ^^^^^^^^^^^^^ private field

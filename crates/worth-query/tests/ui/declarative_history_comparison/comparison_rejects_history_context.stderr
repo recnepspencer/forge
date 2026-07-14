@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/declarative_history_comparison/comparison_rejects_history_context.rs:5:38
+  |
+5 |     let _request = declaration.using(context);
+  |                                ----- ^^^^^^^ expected `WorthQueryComparisonContext`, found `WorthQueryHistoricalContext`
+  |                                |
+  |                                arguments to this method are incorrect
+  |
+note: method defined here
+ --> src/ordinary/comparison/declaration.rs
+  |
+  |     pub fn using(
+  |            ^^^^^

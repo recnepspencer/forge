@@ -1,9 +1,7 @@
 mod worth_ui_file_authored_candidate_ingress;
 mod worth_ui_rust_authored_candidate_ingress;
 
-#[allow(unused_imports)]
 pub(crate) use worth_ui_file_authored_candidate_ingress::file_authored_replacement_candidate;
-#[allow(unused_imports)]
 pub(crate) use worth_ui_rust_authored_candidate_ingress::rust_authored_replacement_candidate;
 
 use crate::capability::CapabilitySnapshotDigest;

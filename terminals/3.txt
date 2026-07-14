@@ -1,7 +1,7 @@
 ---
 pid: 50596
-cwd: "C:\Users\Esther\Documents\Programming\forge_workspace\forge"
-command: "Set-Location \"C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\forge\\workspaces\\forge-store\"; cargo test -p forge-store-blob-chunks --lib -q 2>&1 | Select-String \"test result\""
+cwd: "C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH"
+command: "Set-Location \"C:\\Users\\Esther\\Documents\\Programming\\WORTH_workspace\\WORTH\\workspaces\\worth-store\"; cargo test -p worth-store-blob-chunks --lib -q 2>&1 | Select-String \"test result\""
 started_at: 2026-07-06T21:31:00.125Z
 running_for_ms: 179998   
 ---

@@ -2,24 +2,17 @@ use crate::runtime::diagnostics::{
     WorthUiDiagnosticSource, WorthUiRuntimeDiagnostic, WorthUiRuntimeDiagnosticCode,
     WorthUiRuntimeDiagnosticFamily,
 };
-use crate::runtime::WorthUiPlanSwapRollback;
+use crate::runtime::UiCommittedAllocationActivationDenial;
 
-pub(crate) fn diagnostic_for_plan_swap(
-    rollback: WorthUiPlanSwapRollback,
+pub(crate) fn diagnostic_for_committed_allocation_denial(
+    denial: &UiCommittedAllocationActivationDenial,
 ) -> WorthUiRuntimeDiagnostic {
-    let evidence_digest = rollback.restored_active_artifact_digest()
-        ^ rollback.restored_active_plan_digest().rotate_left(17)
-        ^ rollback
-            .attempted_next_artifact_digest()
-            .unwrap_or(0)
-            .rotate_left(31)
-        ^ rollback
-            .attempted_next_plan_digest()
-            .unwrap_or(0)
-            .rotate_left(43);
+    let evidence_digest = denial.attempt_identity_digest()
+        ^ (denial.evidence().committed_row_count() as u64).rotate_left(17)
+        ^ u64::from(denial.evidence().counters().denial_count()).rotate_left(31);
     WorthUiRuntimeDiagnostic::new(
-        WorthUiRuntimeDiagnosticFamily::AtomicPlanSwap,
-        WorthUiRuntimeDiagnosticCode::AtomicPlanSwapRolledBack,
+        WorthUiRuntimeDiagnosticFamily::CommittedAllocationActivation,
+        WorthUiRuntimeDiagnosticCode::CommittedAllocationActivationDenied,
         WorthUiDiagnosticSource::PhaseDenial { evidence_digest },
         Some(evidence_digest),
     )

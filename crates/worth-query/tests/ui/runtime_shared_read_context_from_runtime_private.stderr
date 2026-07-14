@@ -1,0 +1,20 @@
+error[E0624]: associated function `from_runtime` is private
+ --> tests/ui/runtime_shared_read_context_from_runtime_private.rs:4:45
+  |
+4 |     let _ctx = WorthQuerySharedReadContext::from_runtime(todo!());
+  |                                             ^^^^^^^^^^^^ private associated function
+  |
+ ::: src/runtime/shared_read.rs
+  |
+  |     pub(in crate::runtime) fn from_runtime(runtime: &WorthQueryRuntime) -> Self {
+  |     --------------------------------------------------------------------------- private associated function defined here
+
+warning: unreachable call
+ --> tests/ui/runtime_shared_read_context_from_runtime_private.rs:4:16
+  |
+4 |     let _ctx = WorthQuerySharedReadContext::from_runtime(todo!());
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ------- any code following this expression is unreachable
+  |                |
+  |                unreachable call
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

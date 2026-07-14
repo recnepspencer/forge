@@ -21,6 +21,7 @@ use super::worth_ui_subtree_digest_basis::subtree_digest;
 pub(crate) struct WorthUiArtifactDependencyDeriver;
 
 impl WorthUiArtifactDependencyDeriver {
+    #[cfg(test)]
     pub(crate) fn derive(artifact: &WorthUiArtifact) -> WorthUiIncrementalInvalidationBasis {
         Self::derive_with_report(artifact).basis().clone()
     }

@@ -1,0 +1,40 @@
+warning: the type `QueryContextExecutionArtifact` does not permit zero-initialization
+ --> tests/ui/query_basis_result_bundle_constructor_private.rs:6:29
+  |
+6 |         execution: unsafe { std::mem::zeroed() },
+  |                             ^^^^^^^^^^^^^^^^^^
+  |                             |
+  |                             this code causes undefined behavior when executed
+  |                             help: use `MaybeUninit<T>` instead, and only call `assume_init` after initialization is done
+  |
+  = note: `std::ptr::Unique<u8>` must be non-null
+  = note: because `std::ptr::NonNull<u8>` must be non-null
+  = note: `#[warn(invalid_value)]` on by default
+
+warning: the type `QueryBasisMetadata` does not permit zero-initialization
+ --> tests/ui/query_basis_result_bundle_constructor_private.rs:7:28
+  |
+7 |         metadata: unsafe { std::mem::zeroed() },
+  |                            ^^^^^^^^^^^^^^^^^^
+  |                            |
+  |                            this code causes undefined behavior when executed
+  |                            help: use `MaybeUninit<T>` instead, and only call `assume_init` after initialization is done
+  |
+  = note: `std::ptr::Unique<u8>` must be non-null
+  = note: because `std::ptr::NonNull<u8>` must be non-null
+
+error[E0451]: fields `context`, `execution`, `metadata`, `replay_digest` and `counter_snapshot_digest` of struct `QueryBasisResultBundle` are private
+ --> tests/ui/query_basis_result_bundle_constructor_private.rs:5:9
+  |
+4 |     let _ = QueryBasisResultBundle {
+  |             ---------------------- in this type
+5 |         context: unsafe { std::mem::zeroed() },
+  |         ^^^^^^^ private field
+6 |         execution: unsafe { std::mem::zeroed() },
+  |         ^^^^^^^^^ private field
+7 |         metadata: unsafe { std::mem::zeroed() },
+  |         ^^^^^^^^ private field
+8 |         replay_digest: String::new(),
+  |         ^^^^^^^^^^^^^ private field
+9 |         counter_snapshot_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^ private field

@@ -37,6 +37,7 @@ impl WorthUiSourceModuleRecord {
         &self.source_text
     }
 
+    #[cfg(test)]
     pub(crate) fn imports(&self) -> &[WorthUiSourceImport] {
         &self.imports
     }

@@ -10,11 +10,8 @@ impl WorthUiParseReport {
         Self { diagnostics }
     }
 
+    #[cfg(test)]
     pub(crate) fn diagnostics(&self) -> &[WorthUiParseDiagnostic] {
         &self.diagnostics
-    }
-
-    pub(crate) fn is_empty(&self) -> bool {
-        self.diagnostics.is_empty()
     }
 }

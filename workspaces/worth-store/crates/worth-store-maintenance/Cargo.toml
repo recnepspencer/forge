@@ -1,0 +1,17 @@
+[package]
+name = "worth-store-maintenance"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 1 maintenance isolation and scheduling contracts."
+
+[dependencies]
+worth-store-buffer-pool.workspace = true
+worth-store-contracts.workspace = true
+worth-store-io-scheduler.workspace = true
+worth-store-layout-indexes.workspace = true
+worth-store-physical-integrity.workspace = true
+worth-store-retention.workspace = true
+
+[lints]
+workspace = true

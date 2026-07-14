@@ -9,7 +9,7 @@ use super::aspect_evidence_test_support::{
     SHARED_ASPECT,
 };
 use super::UiGraphAspectEvidenceIndexes;
-use crate::facade::UiInspectionReceipt;
+use crate::facade::inspection_bridge::UiInspectionReceipt;
 use crate::graph::{UiAspectEvidenceLane, UiGraphNodeEvidenceIndex};
 use worth_ui_inspection::{
     UiEvidenceLinkKind, UiEvidenceRichness, UiInspectionAspectRelevanceDetail, UiInspectionQuery,
@@ -305,7 +305,7 @@ fn rebuilding_graph_node_index_preserves_aspect_lookup_answers_and_records_aspec
     let consumed_before = app.inspect(consumed_aspect_with_provenance_query(SHARED_ASPECT));
     let observation_before = app.inspection_observation();
 
-    app.rebuild_graph_node_evidence_index_from_authority();
+    app.rebuild_graph_evidence_indexes_from_authority();
 
     let observation_after = app.inspection_observation();
     let published_after = app.inspect(published_aspect_query(SHARED_ASPECT));

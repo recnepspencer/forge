@@ -1,7 +1,0 @@
-error[E0560]: struct `EffectExecutionReceipt` has no field named `receipt_digest`
-  --> tests/ui/effect_lifecycle/support/receipts/effect_execution_receipt_constructor_private.rs:14:9
-   |
-14 |         receipt_digest: String::new(),
-   |         ^^^^^^^^^^^^^^ `EffectExecutionReceipt` does not have this field
-   |
-   = note: all struct fields are already assigned

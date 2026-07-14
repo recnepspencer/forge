@@ -4,7 +4,7 @@
   "current": null,
   "project": {
     "name": "Worth UI Milestone 3.2",
-    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\WORTH_workspace\\worth-ui",
     "spec_file": "_docs\\worth-ui\\milestone-3.2.md",
     "context_files": [
       "_docs\\coding_guidelines\\MENTALITY.md",
@@ -12,8 +12,8 @@
       "_docs\\coding_guidelines\\composition_laws.md",
       "_docs\\coding_guidelines\\domain_structure_laws.md",
       "_docs\\coding_guidelines\\perf_laws.md",
-      "crates\\forge-foundational\\docs\\FOUNDATIONAL_README.md",
-      "crates\\forge-query\\docs\\AI_README.md",
+      "crates\\worth-foundational\\docs\\FOUNDATIONAL_README.md",
+      "crates\\worth-query\\docs\\AI_README.md",
       "workspaces\\worth-ui\\docs\\WORTH_UI_README.md",
       "_docs\\worth-ui\\worth-ui-dsl-vision.md",
       "_docs\\worth-ui\\ai-diagnostics.md",
@@ -134,7 +134,7 @@
         "done": [
           "family-admission-repair-complete",
           "caller-authored-freeze-proof-hardened",
-          "family-wrapper-forgery-coverage-expanded",
+          "family-wrapper-WORTHry-coverage-expanded",
           "phase-2-code-quality-reviewed"
         ],
         "remaining": [
@@ -204,7 +204,7 @@
         ],
         "findings": [
           "aspect-contract-still-modeled-as-string-bags",
-          "aspect-coverage-report-is-forgeable-from-raw-strings",
+          "aspect-coverage-report-is-WORTHable-from-raw-strings",
           "aspect-contract-still-path-string-driven",
           "unsupported-aspect-admission-still-panics",
           "unsupported-aspect-coverage-denial-not-proved",
@@ -389,7 +389,7 @@
         "residue scans prove runtime, host, renderer, and graph code do not reinterpret declaration meaning from raw source text or renderer-local tables after lowering",
         "certification ownership is explicit for identity, family, aspect, structural, posture, support, facade-boundary, source-reopening, and 3.3 handoff proof families"
       ],
-      "instructions": "Turn the declaration architecture into mechanical enforcement. Do not leave anti-forgery, source-reopening rejection, or deep-import boundaries as convention or prose.",
+      "instructions": "Turn the declaration architecture into mechanical enforcement. Do not leave anti-WORTHry, source-reopening rejection, or deep-import boundaries as convention or prose.",
       "qa_focus": "Compiler-enforced construction, real residue rejection, curated facade ownership, and no decorative topology boundaries.",
       "status": "complete",
       "qa_status": "passed",
@@ -415,7 +415,7 @@
           "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_topology_audit | exit 0 | tail: 6 passed including use-based deep-import fixture",
           "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_residue_audit | exit 0 | tail: 3 passed including bad source reopening fixture",
           "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_authority_compile | exit 0 | tail: authority compile fixtures passed",
-          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_family_admission_compile | exit 0 | tail: family wrapper forgery fixture passed",
+          "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_family_admission_compile | exit 0 | tail: family wrapper WORTHry fixture passed",
           "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_aspect_contract_compile | exit 0 | tail: aspect contract compile fixture passed",
           "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_structural_semantics_compile | exit 0 | tail: structural handoff compile fixture passed",
           "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test declaration_declared_posture_compile | exit 0 | tail: posture compile fixtures passed",

@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/certification/public_surface/public_surface_row_constructor_private.rs:4:53
+  |
+4 |       let _ = WorthQueryLowerRuntimePublicSurfaceRow::new(
+  |                                                       ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/certification/boundary_certification/public_surface/mod.rs
+  |
+  | /     pub(crate) const fn new(
+  | |         seam_key: WorthQueryLowerRuntimeSeamKey,
+  | |         surface_label: &'static str,
+  | |         implementation_path: &'static str,
+  | |         surface_kind: WorthQueryLowerRuntimePublicSurfaceKind,
+  | |         delegated_lane: &'static str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

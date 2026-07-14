@@ -15,13 +15,14 @@ use worth_ui_dsl::{
 };
 
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 #[test]
 fn refs_only_receipts_preserve_selected_relevance_and_slice_reference() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
-    let target = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let target =
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
     let selected = app
         .admission()
         .select_obligations_for_target(&touch, target);
@@ -59,9 +60,10 @@ fn refs_only_receipts_preserve_selected_relevance_and_slice_reference() {
 
 #[test]
 fn equivalent_queries_over_one_generation_converge_on_equivalent_refs() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
-    let target = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let target =
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
     let selected = app
         .admission()
         .select_obligations_for_target(&touch, target);
@@ -84,8 +86,8 @@ fn equivalent_queries_over_one_generation_converge_on_equivalent_refs() {
 
 #[test]
 fn expanding_a_same_generation_ref_keeps_identity_and_returns_typed_availability() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
     let refs_only_receipt = app.inspect(
         obligation_query(
             touch.target().graph_node_identity().digest(),
@@ -231,8 +233,8 @@ fn stale_generation_refs_expand_as_wrong_generation_after_real_graph_successor_c
 
 #[test]
 fn public_refs_only_inspection_stays_cheap_until_explicit_expansion() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
     let observation_before = app.inspection_observation();
     let receipt = app.inspect(
         obligation_query(
@@ -270,8 +272,8 @@ fn public_refs_only_inspection_stays_cheap_until_explicit_expansion() {
 
 #[test]
 fn discarded_slice_closeout_makes_public_ref_expansion_return_tombstone_discarded() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
     let receipt = app.inspect(
         obligation_query(
             touch.target().graph_node_identity().digest(),

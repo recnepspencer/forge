@@ -1,0 +1,5 @@
+error[E0599]: no method named `promote_to_lineage` found for struct `AdvisoryStructuralAmbiguous` in the current scope
+ --> tests/ui/declarative_history_comparison/ambiguity_cannot_be_promoted.rs:4:33
+  |
+4 |     let _continuity = ambiguity.promote_to_lineage();
+  |                                 ^^^^^^^^^^^^^^^^^^ method not found in `AdvisoryStructuralAmbiguous`

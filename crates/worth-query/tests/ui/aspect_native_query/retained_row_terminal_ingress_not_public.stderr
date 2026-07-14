@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `from_terminal_json_row` found for struct `WorthQueryRetainedMaterializedRow` in the current scope
+ --> tests/ui/aspect_native_query/retained_row_terminal_ingress_not_public.rs:4:48
+  |
+4 |     let _ = WorthQueryRetainedMaterializedRow::from_terminal_json_row(serde_json::json!({
+  |                                                ^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthQueryRetainedMaterializedRow`

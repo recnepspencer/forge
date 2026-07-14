@@ -1,6 +1,6 @@
 ---
 name: qa-tests
-description: Run a Forge-quality hostile review of tests and test harnesses. Use when deciding whether tests are as clean as production code, are real end-to-end or integration proof, and are strong enough to expose weaknesses in production code rather than just passing.
+description: Run a WORTH-quality hostile review of tests and test harnesses. Use when deciding whether tests are as clean as production code, are real end-to-end or integration proof, and are strong enough to expose weaknesses in production code rather than just passing.
 ---
 
 # QA Tests
@@ -29,11 +29,11 @@ Keep the bar simple and hard:
 
 Read these before reviewing tests:
 
-1. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\MENTALITY.md`
-2. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\arch_laws.md`
-3. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\composition_laws.md` if it is populated
-4. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\domain_structure_laws.md`
-5. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\perf_laws.md`
+1. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\MENTALITY.md`
+2. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\arch_laws.md`
+3. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\composition_laws.md` if it is populated
+4. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\domain_structure_laws.md`
+5. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\perf_laws.md`
 6. the governing spec or milestone
 7. the milestone test requirements, if they exist
 8. the relevant test files and test-support files

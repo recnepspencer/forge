@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/runtime_graph_composition_rejects_raw_symbolic_reference.rs:10:52
+   |
+10 |         .symbolic_entity_identity(source_identity, &reference);
+   |          ------------------------                  ^^^^^^^^^^ expected `&WorthQueryGraphEntitySymbol`, found `&WorthQuerySymbolicTargetReference`
+   |          |
+   |          arguments to this method are incorrect
+   |
+   = note: expected reference `&WorthQueryGraphEntitySymbol`
+              found reference `&WorthQuerySymbolicTargetReference`
+note: method defined here
+  --> src/runtime/mutation/graph_composition/relation_builder.rs
+   |
+   |     pub fn symbolic_entity_identity(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^

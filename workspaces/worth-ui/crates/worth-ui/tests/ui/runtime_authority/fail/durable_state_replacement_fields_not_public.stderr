@@ -11,5 +11,5 @@ error[E0451]: fields `identity_basis`, `family_id`, `transition`, `outcome` and 
    |         ^^^^^^^^^^ private field
 11 |         outcome: WorthUiDurableStateReconciliationOutcome::Drop,
    |         ^^^^^^^ private field
-12 |         reason: "forged",
+12 |         reason: "Worthd",
    |         ^^^^^^ private field

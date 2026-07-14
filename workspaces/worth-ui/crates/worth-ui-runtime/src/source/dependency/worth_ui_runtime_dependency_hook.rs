@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use forge_query::facade::ViewShapeDescriptor;
+use worth_query::facade::runtime::ViewShapeDescriptor;
 
 use crate::capability::{
     QueryBasisPostureReference, QueryDenialPresentation, QueryLiveCompatibility,
@@ -15,6 +15,7 @@ pub(crate) enum WorthUiRuntimeDependencyHookKind {
     QueryAsyncResultState,
 }
 
+#[cfg(test)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum WorthUiRuntimeQuerySurface {
     LiveView,
@@ -78,6 +79,7 @@ impl WorthUiRuntimeDependencyHook {
         &self.query_composition_profile_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn view_shape(&self) -> &ViewShapeDescriptor {
         &self.view_shape
     }
@@ -113,6 +115,7 @@ impl WorthUiRuntimeDependencyHook {
         .join("|")
     }
 
+    #[cfg(test)]
     pub(crate) fn uses_query_surface(&self, surface: WorthUiRuntimeQuerySurface) -> bool {
         matches!(
             (self.kind, surface),

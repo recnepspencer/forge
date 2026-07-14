@@ -23,18 +23,22 @@ impl WorthUiArtifactDependencyMetrics {
         self.runtime_hooks_recorded += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn nodes_indexed(self) -> usize {
         self.nodes_indexed
     }
 
+    #[cfg(test)]
     pub(crate) fn dependency_edges_recorded(self) -> usize {
         self.dependency_edges_recorded
     }
 
+    #[cfg(test)]
     pub(crate) fn subtree_digests_recorded(self) -> usize {
         self.subtree_digests_recorded
     }
 
+    #[cfg(test)]
     pub(crate) fn runtime_hooks_recorded(self) -> usize {
         self.runtime_hooks_recorded
     }

@@ -1,6 +1,6 @@
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
-use crate::evidence::projection_fact_test_support::{
+use crate::evidence::measurement::projection::fact_test_support::{
     capability_report, display_field_projection_context, host_result_font_metrics,
     host_result_viewport_extent, host_result_viewport_extent_with_value, scroll_viewport_policy,
     synthetic_declaration_identity,

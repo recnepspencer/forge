@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `default` found for struct `WorthQueryGraphReadMemoryByteEstimate` in the current scope
+ --> tests/ui/graph_read_access_cost/memory_estimate_default_forbidden.rs:4:52
+  |
+4 |     let _ = WorthQueryGraphReadMemoryByteEstimate::default();
+  |                                                    ^^^^^^^ function or associated item not found in `WorthQueryGraphReadMemoryByteEstimate`

@@ -1,0 +1,15 @@
+error[E0603]: struct `WorthQueryTestBackendSchema` is private
+ --> tests/ui/aspect_native_query/test_backend_schema_external_projection_path_not_string.rs:1:18
+  |
+1 | use worth_query::WorthQueryTestBackendSchema;
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private struct
+  |
+note: the struct `WorthQueryTestBackendSchema` is defined here
+ --> src/lib.rs
+  |
+  |     WorthQueryTestBackendSchema,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: import `WorthQueryTestBackendSchema` directly
+  |
+1 | use worth_query::consumer_kit::test_backend::schema::WorthQueryTestBackendSchema;
+  |                  ++++++++++++++++++++++++++++++++++++

@@ -78,7 +78,7 @@ mechanical enforcement.
     separation between ordinary and reconstructive cost.
   - Strongest implication here: replay fence and generated context belong in
     Milestone 1, not after ordinary lanes already exist.
-- `platform-constitution-roadmap.md`
+- `cad/docs/road-1/road-1.md`
   - Protects: Road 1 as a short sequence of real constitutional closures.
   - Strongest implication here: this milestone closes stratification and
     enforcement only; it must not sprawl into graph constitution or real Query
@@ -90,7 +90,7 @@ An agent implementing the next milestone must be structurally unable to answer
 the following questions by guessing:
 
 - "where should this new constitutional crate live?"
-- "is this surface allowed to import `forge-query`?"
+- "is this surface allowed to import `worth-query`?"
 - "is replay available here because no fence exists yet?"
 - "can I just put this in a broad contracts crate until the bridge exists?"
 
@@ -135,9 +135,9 @@ reserved for later milestones.
 
 | Class | Band | Tier | M1 status | Legal crate in M1 | Owning later milestone if deferred | Allowed imports | Forbidden imports |
 |---|---|---|---|---|---|---|---|
-| Pure meaning | `schema` | `worth` | legal M1 birth set | `worth-schema-core` | Milestone 2 widens with `worth-schema-graph` | none in-tree | `forge-query`, replay, product-tier crates |
-| Query-native declaration/adoption | `entry` | `worth` | deferred and reserved-only | none born in M1 | Milestone 3 | `schema`, `forge-query` | product-tier crates, replay |
-| Derived/publication posture | `derived` | `worth` | deferred and reserved-only | none born in M1 | Milestone 4 | `schema`, math-only solver surfaces when later justified | `forge-query` as source authority, replay on ordinary path |
+| Pure meaning | `schema` | `worth` | legal M1 birth set | `worth-schema-core` | Milestone 2 widens with `worth-schema-graph` | none in-tree | `worth-query`, replay, product-tier crates |
+| Query-native declaration/adoption | `entry` | `worth` | deferred and reserved-only | none born in M1 | Milestone 3 | `schema`, `worth-query` | product-tier crates, replay |
+| Derived/publication posture | `derived` | `worth` | deferred and reserved-only | none born in M1 | Milestone 4 | `schema`, math-only solver surfaces when later justified | `worth-query` as source authority, replay on ordinary path |
 | Pack seam | `pack` | `worth` | legal M1 birth set | `worth-pack-registry` | widened in Milestone 5 | public seam contracts only | Query imports, runtime adapters, source-authority minting |
 | Cert-only replay/proof | `cert` | `worth` | deferred crate birth; enforcement starts now through tools | none born in M1 | Milestone 5 for first cert crate birth | broad by later design | ordinary crates must not depend back |
 
@@ -161,9 +161,9 @@ It answers:
 - constitutional class inventory
 
 **Relevant APIs**
-- `_docs/worthy/NAMING.md`
-- `_docs/worthy/ROAD.md`
-- `_docs/worthy/platform-constitution-roadmap.md`
+- `cad/docs/worthy-foundations/NAMING.md`
+- `cad/docs/worthy-foundations/ROAD.md`
+- `cad/docs/worthy-foundations/ARCHITECTURE.md`
 - Road 1 naming amendment entries for any new legal births
 
 **Directory skeleton**

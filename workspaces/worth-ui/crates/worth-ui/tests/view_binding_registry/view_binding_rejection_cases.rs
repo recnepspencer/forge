@@ -1,4 +1,4 @@
-use forge_query::facade::ViewShapeDescriptor;
+use worth_query::facade::runtime::ViewShapeDescriptor;
 use worth_ui::facade::{
     CapabilityDiagnosticCode, QueryDenialPresentation, QueryResultShapeReference,
     ViewBindingDescriptor, ViewBindingFamily, WorthUi,
@@ -21,7 +21,7 @@ fn view_binding_without_query_support_posture_rejected() {
             )
             .with_view_shape(ViewShapeDescriptor::table())
             .with_result_shape(QueryResultShapeReference::from_result_shape_family(
-                forge_query::facade::ResultShapeFamily::Collection,
+                worth_query::facade::foundation::ResultShapeFamily::Collection,
             ))
             .with_live_compatibility(query_live_compatibility())
             .with_denial_presentation(QueryDenialPresentation::structured_status()),
@@ -69,7 +69,7 @@ fn view_binding_without_basis_posture_rejected() {
             )
             .with_view_shape(ViewShapeDescriptor::table())
             .with_result_shape(QueryResultShapeReference::from_result_shape_family(
-                forge_query::facade::ResultShapeFamily::Collection,
+                worth_query::facade::foundation::ResultShapeFamily::Collection,
             ))
             .with_live_compatibility(query_live_compatibility())
             .with_denial_presentation(QueryDenialPresentation::structured_status()),
@@ -131,7 +131,7 @@ fn view_binding_without_live_compatibility_rejected() {
                 )
                 .with_view_shape(ViewShapeDescriptor::table())
                 .with_result_shape(QueryResultShapeReference::from_result_shape_family(
-                    forge_query::facade::ResultShapeFamily::Collection,
+                    worth_query::facade::foundation::ResultShapeFamily::Collection,
                 ))
                 .with_basis_posture(admitted_basis_posture()),
             )

@@ -1,0 +1,11 @@
+error[E0599]: no method named `terminal_condition_outputs_projection` found for reference `&WorthQueryEffectInspectionEvidence` in the current scope
+ --> tests/ui/aspect_native_query/effect_inspection_terminal_condition_outputs_projection_removed.rs:4:22
+  |
+4 |     let _ = evidence.terminal_condition_outputs_projection();
+  |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `condition_output_touches` with a similar name
+  |
+4 -     let _ = evidence.terminal_condition_outputs_projection();
+4 +     let _ = evidence.condition_output_touches();
+  |

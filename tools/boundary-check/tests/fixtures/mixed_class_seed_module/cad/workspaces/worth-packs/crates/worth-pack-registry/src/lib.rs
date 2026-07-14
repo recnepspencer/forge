@@ -1,4 +1,4 @@
 pub mod facade;
 
-mod contribution_kinds;
+mod contribution_kind;
 mod registration;

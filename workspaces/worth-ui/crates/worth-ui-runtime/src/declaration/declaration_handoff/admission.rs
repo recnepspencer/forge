@@ -1,8 +1,8 @@
 use crate::declaration::{
-    stable_text_digest, UiAspectContract, UiDeclarationFamily, UiDeclarationGraphHandoff,
-    UiDeclarationIdentity, UiDeclarationProvenance, UiDeclarationStructuralDigest,
-    UiDeclarationStructuralSemantics, UiDeclaredAspectPayload, UiDeclaredPostureContract,
-    UiDeclaredPosturePayload, UiStructuralDeclarationPayload,
+    authored_source_provenance_digest, UiAspectContract, UiDeclarationFamily,
+    UiDeclarationGraphHandoff, UiDeclarationIdentity, UiDeclarationProvenance,
+    UiDeclarationStructuralDigest, UiDeclarationStructuralSemantics, UiDeclaredAspectPayload,
+    UiDeclaredPostureContract, UiDeclaredPosturePayload, UiStructuralDeclarationPayload,
 };
 
 pub(crate) fn derive_declaration_graph_handoff(
@@ -16,8 +16,10 @@ pub(crate) fn derive_declaration_graph_handoff(
 ) -> UiDeclarationGraphHandoff {
     UiDeclarationGraphHandoff::new(
         identity.clone(),
-        stable_text_digest(provenance.source_provenance().module_path())
-            ^ identity.digest().raw().rotate_left(13),
+        authored_source_provenance_digest(
+            provenance.source_provenance().module_path(),
+            provenance.source_provenance().declaration_index(),
+        ),
         UiStructuralDeclarationPayload::new(
             family.clone(),
             structural_digest,

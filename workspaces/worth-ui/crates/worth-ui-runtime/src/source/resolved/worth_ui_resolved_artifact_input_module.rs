@@ -1,7 +1,6 @@
-use crate::source::{
-    WorthUiResolvedArtifactInputComponentNode, WorthUiResolvedArtifactInputNode,
-    WorthUiSourceModuleId,
-};
+#[cfg(test)]
+use crate::source::WorthUiResolvedArtifactInputComponentNode;
+use crate::source::{WorthUiResolvedArtifactInputNode, WorthUiSourceModuleId};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiResolvedArtifactInputModule {
@@ -17,6 +16,7 @@ impl WorthUiResolvedArtifactInputModule {
         Self { module_id, nodes }
     }
 
+    #[cfg(test)]
     pub(crate) fn module_id(&self) -> &WorthUiSourceModuleId {
         &self.module_id
     }
@@ -25,6 +25,7 @@ impl WorthUiResolvedArtifactInputModule {
         &self.nodes
     }
 
+    #[cfg(test)]
     pub(crate) fn components(&self) -> Vec<&WorthUiResolvedArtifactInputComponentNode> {
         self.nodes
             .iter()

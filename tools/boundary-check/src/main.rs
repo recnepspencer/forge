@@ -2,17 +2,27 @@ mod cargo_graph;
 mod config;
 mod dependency_rules;
 mod diagnostics;
+mod hook_authority;
+mod legacy_references;
 mod manifest_types;
 mod naming;
+mod query_audience;
 mod seed_contracts;
+mod snapshots;
+mod source_rules;
 mod subworkspace_rules;
 
 use crate::cargo_graph::discover_road1_packages;
 use crate::config::Road1Config;
 use crate::dependency_rules::validate_dependency_rules;
 use crate::diagnostics::{render_human, render_json, Diagnostic};
+use crate::hook_authority::validate_hook_authority;
+use crate::legacy_references::validate_legacy_references;
 use crate::naming::validate_package_names;
+use crate::query_audience::{validate_query_audience_facades, validate_query_audience_rules};
 use crate::seed_contracts::validate_seed_crate_contracts;
+use crate::snapshots::{SnapshotMode, SnapshotSession};
+use crate::source_rules::validate_source_rules;
 use crate::subworkspace_rules::validate_root_and_subworkspaces;
 use std::env;
 use std::fs;
@@ -24,7 +34,7 @@ enum OutputFormat {
 }
 
 fn main() {
-    let (root, config_path, format) = match parse_args() {
+    let (root, config_path, format, snapshot_mode) = match parse_args() {
         Ok(args) => args,
         Err(error) => {
             eprintln!("{error}");
@@ -32,7 +42,7 @@ fn main() {
         }
     };
 
-    match run(root, config_path) {
+    match run(root, config_path, snapshot_mode) {
         Ok(()) => println!("boundary-check: Road 1 Cargo topology is valid"),
         Err(diagnostics) => {
             let output = match format {
@@ -45,10 +55,11 @@ fn main() {
     }
 }
 
-fn parse_args() -> Result<(PathBuf, PathBuf, OutputFormat), String> {
+fn parse_args() -> Result<(PathBuf, PathBuf, OutputFormat, SnapshotMode), String> {
     let mut root = PathBuf::from(".");
     let mut config = PathBuf::from("tools/boundary-check/config/road1.toml");
     let mut format = OutputFormat::Human;
+    let mut snapshot_mode = SnapshotMode::Check;
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -62,40 +73,46 @@ fn parse_args() -> Result<(PathBuf, PathBuf, OutputFormat), String> {
                     other => return Err(format!("unknown --format value: {other}")),
                 };
             }
+            "--update-snapshots" => snapshot_mode = SnapshotMode::Update,
             other => return Err(format!("unknown argument: {other}")),
         }
     }
-    Ok((root, config, format))
+    Ok((root, config, format, snapshot_mode))
 }
 
-fn run(root: PathBuf, config_path: PathBuf) -> Result<(), Vec<Diagnostic>> {
+fn run(
+    root: PathBuf,
+    config_path: PathBuf,
+    snapshot_mode: SnapshotMode,
+) -> Result<(), Vec<Diagnostic>> {
     let root = fs::canonicalize(root).map_err(|error| {
-        vec![Diagnostic {
-            code: crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
-            subject: ".".to_owned(),
-            message: format!("canonicalize root failed: {error}"),
-        }]
+        vec![Diagnostic::new(
+            crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
+            ".",
+            format!("canonicalize root failed: {error}"),
+        )]
     })?;
     let resolved_config_path = resolve_config_path(&root, &config_path);
     let config_text = match fs::read_to_string(&resolved_config_path) {
         Ok(text) => text,
         Err(error) => {
-            return Err(vec![Diagnostic {
-                code: crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
-                subject: resolved_config_path.display().to_string(),
-                message: format!("read config failed: {error}"),
-            }])
+            return Err(vec![Diagnostic::new(
+                crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
+                resolved_config_path.display().to_string(),
+                format!("read config failed: {error}"),
+            )])
         }
     };
     let config: Road1Config = toml::from_str(&config_text).map_err(|error| {
-        vec![Diagnostic {
-            code: crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
-            subject: resolved_config_path.display().to_string(),
-            message: format!("parse config failed: {error}"),
-        }]
+        vec![Diagnostic::new(
+            crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
+            resolved_config_path.display().to_string(),
+            format!("parse config failed: {error}"),
+        )]
     })?;
 
     let mut diagnostics = Vec::<Diagnostic>::new();
+    diagnostics.extend(validate_hook_authority(&root));
     diagnostics.extend(validate_machine_authority(
         &root,
         &resolved_config_path,
@@ -103,34 +120,98 @@ fn run(root: PathBuf, config_path: PathBuf) -> Result<(), Vec<Diagnostic>> {
     ));
     diagnostics.extend(
         validate_root_and_subworkspaces(&root, &config).map_err(|error| {
-            vec![Diagnostic {
-                code: crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
-                subject: "root".to_owned(),
-                message: error,
-            }]
+            vec![Diagnostic::new(
+                crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
+                "root",
+                error,
+            )]
         })?,
     );
 
     let packages = discover_road1_packages(&root, &config.subworkspaces).map_err(|error| {
-        vec![Diagnostic {
-            code: crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
-            subject: "cad/workspaces".to_owned(),
-            message: error,
-        }]
+        vec![Diagnostic::new(
+            crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
+            "cad/workspaces",
+            error,
+        )]
     })?;
     diagnostics.extend(validate_package_names(&packages, &config.naming));
-    diagnostics.extend(validate_dependency_rules(&packages, &config.rule_contracts));
+    diagnostics.extend(validate_dependency_rules(
+        &packages,
+        &config.rule_contracts,
+        &config.law_substrates,
+    ));
+    diagnostics.extend(validate_query_audience_rules(
+        &packages,
+        &config.rule_contracts.query_audience,
+    ));
     diagnostics.extend(
-        validate_seed_crate_contracts(&root, &config.born_crates, &config.seed_skeletons).map_err(
+        validate_query_audience_facades(&root, &config.rule_contracts.query_audience).map_err(
             |error| {
-                vec![Diagnostic {
-                    code: crate::diagnostics::DiagnosticCode::Bc5003SeedContractViolation,
-                    subject: "seed-contracts".to_owned(),
-                    message: error,
-                }]
+                vec![Diagnostic::new(
+                    crate::diagnostics::DiagnosticCode::Bc3003QueryAudienceFacadeContract,
+                    "query-audience-facades",
+                    error,
+                )]
             },
         )?,
     );
+
+    diagnostics.extend(
+        validate_seed_crate_contracts(&root, &config.born_crates, &config.seed_skeletons).map_err(
+            |error| {
+                vec![Diagnostic::new(
+                    crate::diagnostics::DiagnosticCode::Bc5003SeedContractViolation,
+                    "seed-contracts",
+                    error,
+                )]
+            },
+        )?,
+    );
+    let snapshot_session = SnapshotSession::prepare(
+        &root,
+        snapshot_mode,
+        &packages,
+        &config.rule_contracts.query_audience,
+    );
+    diagnostics.extend(snapshot_session.preparation_diagnostics().iter().cloned());
+    if let Some(facade_authority) = snapshot_session.facade_vocabulary_authority() {
+        diagnostics.extend(
+            validate_source_rules(
+                &root,
+                &config.subworkspaces,
+                &config.naming,
+                &config.law_substrates,
+                &config.rule_contracts.query_audience,
+                &facade_authority,
+            )
+            .map_err(|error| {
+                vec![Diagnostic::new(
+                    crate::diagnostics::DiagnosticCode::Bc7001AuthoritySealing,
+                    "source-rules",
+                    error,
+                )]
+            })?,
+        );
+    }
+    diagnostics.extend(
+        validate_legacy_references(&root, &config.legacy_reference_ratchet).map_err(|error| {
+            vec![Diagnostic::new(
+                crate::diagnostics::DiagnosticCode::Bc6002LegacyReferenceBaseline,
+                config.legacy_reference_ratchet.snapshot.clone(),
+                error,
+            )]
+        })?,
+    );
+
+    let constitutional_laws_are_green = diagnostics.is_empty();
+    let finalization = snapshot_session
+        .finalize(&root, constitutional_laws_are_green)
+        .map_err(|diagnostic| vec![diagnostic])?;
+    diagnostics.extend(finalization.diagnostics);
+    for path in finalization.updated_paths {
+        println!("boundary-check: updated {}", path.display());
+    }
 
     if diagnostics.is_empty() {
         return Ok(());
@@ -154,22 +235,25 @@ fn validate_machine_authority(
     let mut diagnostics = Vec::new();
     let canonical_path = root.join(&machine_authority.canonical_config);
     if canonical_path != resolved_config_path {
-        diagnostics.push(Diagnostic {
-            code: crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
-            subject: resolved_config_path.display().to_string(),
-            message: format!(
+        diagnostics.push(Diagnostic::new(
+            crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
+            resolved_config_path.display().to_string(),
+            format!(
                 "loaded config path does not match machine_authority.canonical_config {}",
                 machine_authority.canonical_config
             ),
-        });
+        ));
     }
     for doc_path in &machine_authority.mirrored_docs {
         if !root.join(doc_path).is_file() {
-            diagnostics.push(Diagnostic {
-                code: crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
-                subject: doc_path.clone(),
-                message: "machine_authority mirrored doc is missing".to_owned(),
-            });
+            diagnostics.push(Diagnostic::with_legal_home(
+                crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
+                doc_path,
+                "machine_authority mirrored doc is missing",
+                format!(
+                    "tools/boundary-check/config/road1.toml [machine_authority.mirrored_docs]; restore `{doc_path}` or remove the stale configured entry"
+                ),
+            ));
         }
     }
     diagnostics

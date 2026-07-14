@@ -1,0 +1,12 @@
+error[E0599]: no method named `pre_rendered_digest_part` found for struct `EvidenceReportDeclaration` in the current scope
+ --> tests/ui/evidence_report/pre_rendered_digest_contribution_unavailable.rs:9:6
+  |
+4 |       let _ = EvidenceReportDeclaration::new(
+  |  _____________-
+5 | |         EvidenceReportScope::new("worth-query.rendered-digest").unwrap(),
+6 | |         "RenderedDigest",
+... |
+9 | |     .pre_rendered_digest_part("status:supported")
+  | |     -^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `EvidenceReportDeclaration`
+  | |_____|
+  |

@@ -1,0 +1,23 @@
+error[E0560]: struct `QuerySubscriptionDiagnosticEvidence` has no field named `source_digest`
+ --> tests/ui/subscription_diagnostic_evidence_constructor_private.rs:8:9
+  |
+8 |         source_digest: String::new(),
+  |         ^^^^^^^^^^^^^ `QuerySubscriptionDiagnosticEvidence` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionDiagnosticEvidence` has no field named `counter_digest`
+ --> tests/ui/subscription_diagnostic_evidence_constructor_private.rs:9:9
+  |
+9 |         counter_digest: String::new(),
+  |         ^^^^^^^^^^^^^^ `QuerySubscriptionDiagnosticEvidence` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionDiagnosticEvidence` has no field named `digest`
+  --> tests/ui/subscription_diagnostic_evidence_constructor_private.rs:10:9
+   |
+10 |         digest: String::new(),
+   |         ^^^^^^ `QuerySubscriptionDiagnosticEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned

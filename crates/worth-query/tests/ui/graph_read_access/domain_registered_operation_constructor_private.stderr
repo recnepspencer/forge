@@ -1,0 +1,17 @@
+error[E0451]: fields `operation_name`, `operation_version`, `domain_owner`, `accepted_relations`, `traversal_operator` and `capability_requirements` of struct `WorthQueryDomainRegisteredGraphReadOperation` are private
+  --> tests/ui/graph_read_access/domain_registered_operation_constructor_private.rs:5:9
+   |
+ 4 |     let _ = WorthQueryDomainRegisteredGraphReadOperation {
+   |             -------------------------------------------- in this type
+ 5 |         operation_name: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+ 6 |         operation_version: 1,
+   |         ^^^^^^^^^^^^^^^^^ private field
+ 7 |         domain_owner: String::new(),
+   |         ^^^^^^^^^^^^ private field
+ 8 |         accepted_relations: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+ 9 |         traversal_operator: worth_query::facade::runtime::WorthQueryGraphReadTraversalOperator::DeclarationTraversal,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+10 |         capability_requirements: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field

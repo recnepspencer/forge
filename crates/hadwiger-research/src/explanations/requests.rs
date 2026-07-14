@@ -1,4 +1,4 @@
-use forge_query::facade::ForgeQueryRecoveryBrief;
+use worth_query::facade::foundation::WorthQueryRecoveryBrief;
 
 use crate::aspect_authority::UnitDistanceAspectRecord;
 use crate::domain_artifacts::{
@@ -130,11 +130,11 @@ impl ExplainPartialAdmissionRequest {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HadwigerQueryRecoveryExplanationRequest {
     explanation_id: String,
-    recovery_brief: ForgeQueryRecoveryBrief,
+    recovery_brief: WorthQueryRecoveryBrief,
 }
 
 impl HadwigerQueryRecoveryExplanationRequest {
-    pub fn new(explanation_id: impl Into<String>, recovery_brief: ForgeQueryRecoveryBrief) -> Self {
+    pub fn new(explanation_id: impl Into<String>, recovery_brief: WorthQueryRecoveryBrief) -> Self {
         Self {
             explanation_id: explanation_id.into(),
             recovery_brief,
@@ -145,7 +145,7 @@ impl HadwigerQueryRecoveryExplanationRequest {
         &self.explanation_id
     }
 
-    pub(crate) fn recovery_brief(&self) -> &ForgeQueryRecoveryBrief {
+    pub(crate) fn recovery_brief(&self) -> &WorthQueryRecoveryBrief {
         &self.recovery_brief
     }
 }

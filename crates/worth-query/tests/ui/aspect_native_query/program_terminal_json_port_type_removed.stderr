@@ -1,0 +1,5 @@
+error[E0599]: no variant or associated item named `TerminalJson` found for enum `WorthQueryPortType` in the current scope
+ --> tests/ui/aspect_native_query/program_terminal_json_port_type_removed.rs:4:69
+  |
+4 |     let _ = WorthQueryTypedPort::new("payload", WorthQueryPortType::TerminalJson);
+  |                                                                     ^^^^^^^^^^^^ variant or associated item not found in `WorthQueryPortType`

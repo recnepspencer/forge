@@ -1,0 +1,22 @@
+error: cannot construct `WorthQueryDeclarationEntryOrchestrationProof<GeometryDomain, FakeInput>` with struct literal syntax due to private fields
+  --> tests/ui/domain_declaration/boundaries/construction/orchestration/artifacts/orchestration_proof_private.rs:44:13
+   |
+44 |     let _ = WorthQueryDeclarationEntryOrchestrationProof::<GeometryDomain, FakeInput> {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+45 |         outcome: fake_outcome(),
+   |         ----------------------- private field
+46 |         stage_records: Vec::<WorthQueryDeclarationEntryOrchestrationStageRecord>::new(),
+   |         ------------------------------------------------------------------------------- private field
+47 |         orchestration_digest: String::new(),
+   |         ----------------------------------- private field
+   |
+   = note: ...and other private field `plan` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+44 -     let _ = WorthQueryDeclarationEntryOrchestrationProof::<GeometryDomain, FakeInput> {
+45 -         outcome: fake_outcome(),
+46 -         stage_records: Vec::<WorthQueryDeclarationEntryOrchestrationStageRecord>::new(),
+47 -         orchestration_digest: String::new(),
+48 -     };
+44 +     let _ = WorthQueryDeclarationEntryOrchestrationProof::<GeometryDomain, FakeInput>::new(_, _, _);
+   |

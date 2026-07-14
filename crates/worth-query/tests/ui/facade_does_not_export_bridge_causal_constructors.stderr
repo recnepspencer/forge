@@ -1,0 +1,16 @@
+error[E0432]: unresolved imports `worth_query::facade::BridgeCausalEnvelopeAssemblyRequest`, `worth_query::facade::BridgeCausalEvidenceBinding`, `worth_query::facade::BridgeCausalExplanationEnvelope`, `worth_query::facade::BridgeCausalReceipt`
+ --> tests/ui/facade_does_not_export_bridge_causal_constructors.rs:1:27
+  |
+1 | ...de::{BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceBinding, BridgeCausalExplanationEnvelope, BridgeCausalReceipt};
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^ no `BridgeCausalReceipt` in `facade`
+  |         |                                    |                            |
+  |         |                                    |                            no `BridgeCausalExplanationEnvelope` in `facade`
+  |         |                                    no `BridgeCausalEvidenceBinding` in `facade`
+  |         no `BridgeCausalEnvelopeAssemblyRequest` in `facade`
+  |
+  = help: consider importing this struct instead:
+          worth_runtime_bridge::facade::BridgeCausalEnvelopeAssemblyRequest
+  = help: consider importing this struct instead:
+          worth_runtime_bridge::facade::BridgeCausalEvidenceBinding
+  = help: consider importing this struct instead:
+          worth_runtime_bridge::facade::BridgeCausalExplanationEnvelope

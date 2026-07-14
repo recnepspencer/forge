@@ -157,15 +157,6 @@ impl WorthUiPlanNodeInput {
     }
 
     #[cfg(test)]
-    pub(crate) fn with_authored_provenance_digest_for_test(
-        mut self,
-        authored_provenance_digest: Option<u64>,
-    ) -> Self {
-        self.authored_provenance_digest = authored_provenance_digest;
-        self
-    }
-
-    #[cfg(test)]
     pub(crate) fn with_identity_basis_for_test(
         mut self,
         identity_basis: impl Into<String>,

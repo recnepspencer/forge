@@ -1,8 +1,7 @@
 mod projection_consumption_support;
 
-use forge_query::facade::{
-    ForgeQueryAuthoredAspectValue, ProjectMaterializedFacts, ProjectionFactConsumptionAttempt,
-};
+use worth_query::facade::read::{project_facts, WorthQueryProjectionOutcome};
+use worth_query::facade::runtime::WorthQueryAuthoredAspectValue;
 use worth_ui::facade::admission::{UiAdmissionQueryBasis, UiAdmissionTarget, UiAdmissionWorld};
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
 use worth_ui::facade::declaration::UiDeclarationArtifact;
@@ -16,15 +15,14 @@ use worth_ui_dsl::{
 };
 use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
 use worth_ui_query_binding::{
-    WorthUiQueryBasisPosture, WorthUiQueryBindingSubsystem, WorthUiQueryCausalExplanationLane,
-    WorthUiQueryInspectionLane, WorthUiQueryPrerequisiteEvidence,
-    WorthUiQueryProjectionConsumptionLane,
+    WorthUiQueryAuthorityHandle, WorthUiQueryBasisPosture, WorthUiQueryBindingSubsystem,
+    WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
+    WorthUiQueryPrerequisiteEvidence, WorthUiQueryProjectionConsumptionLane,
 };
 
 use self::projection_consumption_support::{
-    aspect_touch, identity_only_family_graph, measurement_projection_workspace,
-    measurement_projection_workspace_with_graph, projection_consumption_attempt,
-    title_value_field_path,
+    aspect_touch, identity_only_projection_consumption_attempt, measurement_projection_workspace,
+    projection_consumption_attempt, title_value_field_path,
 };
 
 pub fn query_measurement_app(world_profile: UiGraphWorldProfile) -> WorthUiApp {
@@ -76,10 +74,10 @@ pub fn available_measurement_target(touch: &UiGraphTouchDescriptor) -> UiAdmissi
 
 pub fn target_bound_to_projection_consumption(
     touch: &UiGraphTouchDescriptor,
-    consumption: &ProjectionFactConsumptionAttempt,
+    authority: &WorthUiQueryAuthorityHandle,
 ) -> UiAdmissionTarget {
     available_measurement_target(touch)
-        .with_query_prerequisites_from_projection_consumption(consumption)
+        .with_query_prerequisites_from_query_authority(authority.authority())
         .expect("query-backed measurement target should bind real projection consumption authority")
 }
 
@@ -120,85 +118,97 @@ pub fn synthetic_query_prerequisites_for_world(
 
 pub fn display_field_projection_consumption(
     lane_label: &str,
-) -> (UiGraphWorldProfile, ProjectionFactConsumptionAttempt) {
-    let (mut workspace, family, _) = measurement_projection_workspace(lane_label);
-    projection_consumption_attempt(
+) -> (UiGraphWorldProfile, WorthUiQueryAuthorityHandle) {
+    let (mut workspace, schema_basis_authority, _) = measurement_projection_workspace(lane_label);
+    query_authority(projection_consumption_attempt(
         &mut workspace,
-        &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
-    )
+        schema_basis_authority,
+        project_facts().display_field(title_value_field_path()),
+    ))
 }
 
 pub fn denied_display_field_projection_consumption(
     lane_label: &str,
-) -> (UiGraphWorldProfile, ProjectionFactConsumptionAttempt) {
-    let (mut workspace, family, _) =
-        measurement_projection_workspace_with_graph(lane_label, identity_only_family_graph);
-    projection_consumption_attempt(
+) -> (UiGraphWorldProfile, WorthQueryProjectionOutcome) {
+    let (mut workspace, schema_basis_authority, _) = measurement_projection_workspace(lane_label);
+    let (world, outcome) = identity_only_projection_consumption_attempt(
         &mut workspace,
-        &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
-    )
+        schema_basis_authority,
+        project_facts().display_field(title_value_field_path()),
+    );
+    (world, outcome)
 }
 
 pub fn view_local_only_projection_consumption(
     lane_label: &str,
-) -> (UiGraphWorldProfile, ProjectionFactConsumptionAttempt) {
-    let (mut workspace, family, _) = measurement_projection_workspace(lane_label);
-    projection_consumption_attempt(
+) -> (UiGraphWorldProfile, WorthUiQueryAuthorityHandle) {
+    let (mut workspace, schema_basis_authority, _) = measurement_projection_workspace(lane_label);
+    query_authority(projection_consumption_attempt(
         &mut workspace,
-        &family,
-        ProjectMaterializedFacts::declare().entity_identities(),
-    )
+        schema_basis_authority,
+        project_facts().entity_identities(),
+    ))
 }
 
 pub fn display_and_view_local_projection_consumptions(
     lane_label: &str,
 ) -> (
     UiGraphWorldProfile,
-    ProjectionFactConsumptionAttempt,
-    ProjectionFactConsumptionAttempt,
+    WorthUiQueryAuthorityHandle,
+    WorthUiQueryAuthorityHandle,
 ) {
-    let (mut workspace, family, _) = measurement_projection_workspace(lane_label);
+    let (mut workspace, schema_basis_authority, _) = measurement_projection_workspace(lane_label);
     let (world_profile, display_consumption) = projection_consumption_attempt(
         &mut workspace,
-        &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+        schema_basis_authority.clone(),
+        project_facts().display_field(title_value_field_path()),
     );
     let (_, view_local_consumption) = projection_consumption_attempt(
         &mut workspace,
-        &family,
-        ProjectMaterializedFacts::declare().entity_identities(),
+        schema_basis_authority,
+        project_facts().entity_identities(),
     );
-    (world_profile, display_consumption, view_local_consumption)
+    let (_, display_authority) = query_authority((world_profile.clone(), display_consumption));
+    let (_, view_local_authority) =
+        query_authority((world_profile.clone(), view_local_consumption));
+    (world_profile, display_authority, view_local_authority)
 }
 
 pub fn display_projection_consumptions_across_basis_generations(
     lane_label: &str,
 ) -> (
-    (UiGraphWorldProfile, ProjectionFactConsumptionAttempt),
-    (UiGraphWorldProfile, ProjectionFactConsumptionAttempt),
+    (UiGraphWorldProfile, WorthUiQueryAuthorityHandle),
+    (UiGraphWorldProfile, WorthUiQueryAuthorityHandle),
 ) {
-    let (mut workspace, family, entity_identity) = measurement_projection_workspace(lane_label);
+    let (mut workspace, schema_basis_authority, entity_identity) =
+        measurement_projection_workspace(lane_label);
     let current = projection_consumption_attempt(
         &mut workspace,
-        &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+        schema_basis_authority.clone(),
+        project_facts().display_field(title_value_field_path()),
     );
     workspace
         .update(entity_identity, |task| {
             task.set_aspect(
-                aspect_touch("title.value"),
-                ForgeQueryAuthoredAspectValue::string(format!("title-{lane_label}-updated")),
+                aspect_touch("size.value"),
+                WorthQueryAuthoredAspectValue::string(format!("24{lane_label}")),
             )
         })
-        .expect("fixture workspace should admit the follow-up title update");
+        .expect("fixture workspace should admit the follow-up size update");
     let next = projection_consumption_attempt(
         &mut workspace,
-        &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+        schema_basis_authority,
+        project_facts().display_field(title_value_field_path()),
     );
-    (current, next)
+    (query_authority(current), query_authority(next))
+}
+
+fn query_authority(
+    (world, outcome): (UiGraphWorldProfile, WorthQueryProjectionOutcome),
+) -> (UiGraphWorldProfile, WorthUiQueryAuthorityHandle) {
+    let (authority, _) = WorthUiQueryAuthorityHandle::from_outcome(outcome)
+        .expect("certification fixture must mint authority through Query");
+    (world, authority)
 }
 
 fn query_measurement_spec() -> UiDslSemanticArtifactSpec {

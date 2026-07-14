@@ -1,3 +1,4 @@
+#[cfg(test)]
 use crate::runtime::execution_plan_input::component_hook::WorthUiComponentLoweringHookAdmission;
 use crate::runtime::execution_plan_input::WorthUiPlanNodeTopologyInputIndex;
 use crate::runtime::{
@@ -32,6 +33,7 @@ impl WorthUiExecutionPlanInputPreparer {
         )?;
 
         reject_mismatched_pending_input(staged, pending_frame_epoch, active_frame_epoch, counters)?;
+        #[cfg(test)]
         reject_unregistered_component_hooks(
             staged,
             pending_frame_epoch,
@@ -116,6 +118,7 @@ fn reject_mismatched_pending_input(
     ))
 }
 
+#[cfg(test)]
 fn reject_unregistered_component_hooks(
     staged: &crate::runtime::WorthUiStagedReplacement,
     pending_frame_epoch: WorthUiRuntimeFrameEpoch,
@@ -126,7 +129,7 @@ fn reject_unregistered_component_hooks(
     for hook in component_hooks {
         if matches!(
             hook.admission(),
-            WorthUiComponentLoweringHookAdmission::Unregistered(_)
+            WorthUiComponentLoweringHookAdmission::Unregistered
         ) {
             counters.record_rejected_component_hook();
             return Err(denial(

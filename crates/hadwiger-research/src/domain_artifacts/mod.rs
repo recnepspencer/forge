@@ -32,4 +32,4 @@ pub use proof_and_advisory_artifacts::{
     AIAdvisoryArtifact, HadwigerProofClaimKind, HadwigerProofClaimPosture,
     LowerBoundWitnessArtifact, ProofClaim, RetainedBackgroundTheorem,
 };
-pub use query_references::{HadwigerQueryDeclarationReference, HadwigerQueryEnvelopeReference};
+pub use query_references::HadwigerQueryDeclarationReference;

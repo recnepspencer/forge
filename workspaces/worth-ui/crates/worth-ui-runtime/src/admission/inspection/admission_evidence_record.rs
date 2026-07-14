@@ -6,7 +6,6 @@ use crate::evidence::{
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[allow(dead_code)]
 pub(crate) struct UiAdmissionEvidenceRecord {
     identity: UiEvidenceIdentity,
     identity_digest: u64,

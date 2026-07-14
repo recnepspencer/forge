@@ -4,15 +4,103 @@ use worth_ui_host_contract::{
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
-use crate::evidence::{UiCurrentMeasurementResult, UiMeasurementResult};
+use crate::evidence::UiMeasurementResult;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use super::{
-    invalidate_stale_host_measurement_evidence, normalize_host_measurement_evidence,
-    request_host_measurement, UiHostMeasurementAssumptionProfile, UiHostMeasurementEvidenceDenial,
+    admit_fresh_host_evidence, construct_freshness_witness, normalize_host_observation,
+    observe_host_measurement, UiHostMeasurementEvidenceDenial, UiHostMeasurementFreshnessWitness,
     UiHostMeasurementNeed, UiHostMeasurementNormalizationContext,
 };
 
-pub fn collect_host_measurement_evidence<A: WorthUiMeasurementHostAdapter>(
+#[derive(Debug, Default)]
+pub(crate) struct UiHostMeasurementSourceAuthority {
+    next_source_order: u64,
+}
+
+impl UiHostMeasurementSourceAuthority {
+    fn seal(
+        &mut self,
+        result: &mut UiMeasurementResult,
+    ) -> Result<(), UiHostMeasurementEvidenceDenial> {
+        let source_order = self
+            .next_source_order
+            .checked_add(1)
+            .ok_or(UiHostMeasurementEvidenceDenial::SourceOrderExhausted)?;
+        self.next_source_order = source_order;
+        result.seal_host_source_position(
+            source_order,
+            result.evidence_generation().as_u64(),
+            source_order,
+        );
+        Ok(())
+    }
+}
+
+/// Persistent capability for host observation and source-coordinate admission.
+#[derive(Clone, Debug)]
+pub struct WorthUiHostMeasurementCollector {
+    authority: Rc<RefCell<UiHostMeasurementSourceAuthority>>,
+}
+
+impl WorthUiHostMeasurementCollector {
+    pub(crate) fn new(authority: Rc<RefCell<UiHostMeasurementSourceAuthority>>) -> Self {
+        Self { authority }
+    }
+
+    pub(crate) fn for_internal_proof() -> Self {
+        Self::new(Rc::new(RefCell::new(Default::default())))
+    }
+
+    pub fn collect<A: WorthUiMeasurementHostAdapter>(
+        &self,
+        adapter: &A,
+        identity: UiMeasurementRequestIdentity,
+        evidence_family: UiMeasurementEvidenceFamily,
+        need: UiHostMeasurementNeed,
+        capability_report: &WorthUiHostCapabilityReport,
+        evidence_generation: UiEvidenceAuthorityGeneration,
+        normalization_context: UiHostMeasurementNormalizationContext,
+    ) -> Result<UiMeasurementResult, UiHostMeasurementEvidenceDenial> {
+        collect_host_measurement_evidence(
+            &mut self.authority.borrow_mut(),
+            adapter,
+            identity,
+            evidence_family,
+            need,
+            capability_report,
+            evidence_generation,
+            normalization_context,
+        )
+    }
+
+    /// Collect, normalize, freshness-admit, and source-position one host fact.
+    pub fn collect_admitted<A: WorthUiMeasurementHostAdapter>(
+        &self,
+        adapter: &A,
+        identity: UiMeasurementRequestIdentity,
+        evidence_family: UiMeasurementEvidenceFamily,
+        need: UiHostMeasurementNeed,
+        capability_report: &WorthUiHostCapabilityReport,
+        evidence_generation: UiEvidenceAuthorityGeneration,
+        normalization_context: UiHostMeasurementNormalizationContext,
+    ) -> Result<crate::host::UiAdmittedHostMeasurement, UiHostMeasurementEvidenceDenial> {
+        self.collect(
+            adapter,
+            identity,
+            evidence_family,
+            need,
+            capability_report,
+            evidence_generation,
+            normalization_context,
+        )
+        .map(crate::host::UiAdmittedHostMeasurement::from_collected)
+    }
+}
+
+pub(crate) fn collect_host_measurement_evidence<A: WorthUiMeasurementHostAdapter>(
+    source: &mut UiHostMeasurementSourceAuthority,
     adapter: &A,
     identity: UiMeasurementRequestIdentity,
     evidence_family: UiMeasurementEvidenceFamily,
@@ -22,62 +110,21 @@ pub fn collect_host_measurement_evidence<A: WorthUiMeasurementHostAdapter>(
     normalization_context: UiHostMeasurementNormalizationContext,
 ) -> Result<UiMeasurementResult, UiHostMeasurementEvidenceDenial> {
     let observation =
-        request_host_measurement(adapter, identity, evidence_family, need, capability_report)
-            .map_err(UiHostMeasurementEvidenceDenial::Execution)?;
-    let normalized = normalize_host_measurement_evidence(
-        observation,
-        evidence_generation,
-        normalization_context,
-    )
-    .map_err(UiHostMeasurementEvidenceDenial::Normalization)?;
-
-    let freshness_witness = UiHostMeasurementFreshnessWitness::new(
+        observe_host_measurement(adapter, identity, evidence_family, need, capability_report)?;
+    let mut normalized =
+        normalize_host_observation(observation, evidence_generation, normalization_context)?;
+    let freshness_witness = construct_freshness_witness(
         evidence_generation,
         normalization_context.assumption_profile(),
     );
-    admit_current_host_measurement_evidence(&normalized, freshness_witness).map_err(|denial| {
-        match denial {
-            UiHostMeasurementEvidenceDenial::Stale(stale) => {
-                UiHostMeasurementEvidenceDenial::Stale(stale)
-            }
-            UiHostMeasurementEvidenceDenial::Execution(execution) => {
-                UiHostMeasurementEvidenceDenial::Execution(execution)
-            }
-            UiHostMeasurementEvidenceDenial::Normalization(normalization) => {
-                UiHostMeasurementEvidenceDenial::Normalization(normalization)
-            }
-        }
-    })?;
+    admit_fresh_host_evidence(&normalized, freshness_witness)?;
+    source.seal(&mut normalized)?;
     Ok(normalized)
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct UiHostMeasurementFreshnessWitness {
-    current_generation: UiEvidenceAuthorityGeneration,
-    current_profile: UiHostMeasurementAssumptionProfile,
-}
-
-impl UiHostMeasurementFreshnessWitness {
-    pub fn new(
-        current_generation: UiEvidenceAuthorityGeneration,
-        current_profile: UiHostMeasurementAssumptionProfile,
-    ) -> Self {
-        Self {
-            current_generation,
-            current_profile,
-        }
-    }
 }
 
 pub fn admit_current_host_measurement_evidence<'a>(
     result: &'a UiMeasurementResult,
     freshness_witness: UiHostMeasurementFreshnessWitness,
-) -> Result<UiCurrentMeasurementResult<'a>, UiHostMeasurementEvidenceDenial> {
-    invalidate_stale_host_measurement_evidence(
-        result,
-        freshness_witness.current_generation,
-        freshness_witness.current_profile,
-    )
-    .map_err(UiHostMeasurementEvidenceDenial::Stale)?;
-    Ok(UiCurrentMeasurementResult::new(result))
+) -> Result<crate::evidence::UiCurrentMeasurementResult<'a>, UiHostMeasurementEvidenceDenial> {
+    admit_fresh_host_evidence(result, freshness_witness)
 }

@@ -1,0 +1,24 @@
+error[E0277]: `WorthQueryDeclarationAdmissionOrLegalityError<GeometryDomain, SplitEdgeDeclaration>` doesn't implement `Debug`
+  --> tests/ui/domain_declaration/boundaries/contracts/legality_evidence_cannot_satisfy_envelope_api.rs:64:65
+   |
+64 |     let legal = handle.declare_and_review(SplitEdgeDeclaration).unwrap();
+   |                                                                 ^^^^^^ the trait `Debug` is not implemented for `WorthQueryDeclarationAdmissionOrLegalityError<GeometryDomain, SplitEdgeDeclaration>`
+   |
+note: required by a bound in `std::result::Result::<T, E>::unwrap`
+  --> $RUST/core/src/result.rs
+
+error[E0308]: mismatched types
+  --> tests/ui/domain_declaration/boundaries/contracts/legality_evidence_cannot_satisfy_envelope_api.rs:66:88
+   |
+66 |     let _ = handle.envelope_routes(WorthQueryDeclarationEnvelopeInput::receipt_checked(legal));
+   |                                    --------------------------------------------------- ^^^^^ expected `WorthQueryDeclarationReceiptChecked<..., _>`, found `WorthQueryDeclarationLegalityEvidence<..., ...>`
+   |                                    |
+   |                                    arguments to this function are incorrect
+   |
+   = note: expected enum `WorthQueryDeclarationReceiptChecked<GeometryDomain, _>`
+            found struct `WorthQueryDeclarationLegalityEvidence<GeometryDomain, SplitEdgeDeclaration>`
+note: associated function defined here
+  --> src/application/declaration_envelope/input.rs
+   |
+   |     pub fn receipt_checked(checked: WorthQueryDeclarationReceiptChecked<D, I>) -> Self {
+   |            ^^^^^^^^^^^^^^^

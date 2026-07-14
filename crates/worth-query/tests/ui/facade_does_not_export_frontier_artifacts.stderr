@@ -1,0 +1,17 @@
+error[E0432]: unresolved import `worth_query::facade::foundation::FrontierAwarePlan`
+ --> tests/ui/facade_does_not_export_frontier_artifacts.rs:1:5
+  |
+1 | use worth_query::facade::foundation::FrontierAwarePlan;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `FrontierAwarePlan` in `facade::foundation`
+
+error[E0432]: unresolved imports `worth_query::facade::BundleResolvedBasisDigest`, `worth_query::facade::ParallelAdmissionEvidence`, `worth_query::facade::PlannedWorkPacket`, `worth_query::facade::SerialFallbackBundleEvidence`, `worth_query::facade::SerialFallbackEvidence`, `worth_query::facade::SignalFrontierBundleEvidence`
+ --> tests/ui/facade_does_not_export_frontier_artifacts.rs:2:27
+  |
+2 | ...::{BundleResolvedBasisDigest, ParallelAdmissionEvidence, PlannedWorkPacket, SerialFallbackBundleEvidence, SerialFallbackEvidence, SignalFrontierBundleEvidence};
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `SignalFrontierBundleEvidence` in `facade`
+  |       |                          |                          |                  |                             |
+  |       |                          |                          |                  |                             no `SerialFallbackEvidence` in `facade`
+  |       |                          |                          |                  no `SerialFallbackBundleEvidence` in `facade`
+  |       |                          |                          no `PlannedWorkPacket` in `facade`
+  |       |                          no `ParallelAdmissionEvidence` in `facade`
+  |       no `BundleResolvedBasisDigest` in `facade`

@@ -1,0 +1,423 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "Worth Store Roadmap 2 S.8 Index, Layout, And Access-Path Discipline",
+    "cwd": "C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH",
+    "spec_file": "_docs/worth-store/storage-foundation-s8.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/worth-store/worth_store_roadmap_2.md",
+      "_docs/worth-store/test-requirements.md",
+      "_docs/worth-store/test-requirements-2.md",
+      "_docs/worth-store/storage-foundation-s4-5.md",
+      "_docs/worth-store/storage-foundation-s5.md",
+      "_docs/worth-store/storage-foundation-s5-1.md",
+      "_docs/worth-store/storage-foundation-s6.md",
+      "_docs/worth-store/storage-foundation-s7.md",
+      "_docs/worth-store/storage-foundation-s7-1.md",
+      "_docs/worth-store/storage-foundation-s8.md",
+      "crates/worth-foundational/docs/FOUNDATIONAL_README.md",
+      "crates/worth-proof/README.md",
+      "_docs/worth-proof/worth_proof_roadmap.md",
+      "workspaces/worth-store/README.md",
+      "workspaces/worth-store/Cargo.toml",
+      "workspaces/worth-store/crates/worth-store-layout-indexes/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-format/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-wal/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-recovery-physics/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-buffer-pool/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-integrity/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-isolation/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-io-scheduler/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-blob-chunks/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-security/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-operations/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-offline-verifier/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-readiness/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-certification/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-certification/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-test-support/src/lib.rs",
+      "crates/worth-foundational/src/lib.rs",
+      "crates/worth-proof/src/lib.rs"
+    ]
+  },
+  "turn_templates": {
+    "boundary_review": "templates/boundary_review.md",
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md",
+    "code_quality_repair": "templates/code_quality_repair.md"
+  },
+  "contract_template": "templates/_contract_store_s8.md",
+  "session_defaults": {
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    }
+  },
+  "runner_control": {
+    "phase_id_start": 0,
+    "boundary_review_start_phase": 0,
+    "idle_timeout_seconds": 900,
+    "turn_timeout_seconds": 7200,
+    "fresh_session_after_qa_repair_cycles": 4
+  },
+  "phases": [
+    {
+      "id": 0,
+      "title": "Domain Skeleton And Subsystem Boundary Contract",
+      "owner": "`worth-store-layout-indexes`, family crates, certification/test-support crates",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-layout-indexes",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-wal",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-buffer-pool",
+        "workspaces/worth-store/crates/worth-store-physical-integrity",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-operations",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-test-support"
+      ],
+      "acceptance": [
+        "The selected S.8 architectural homes physically exist, compile, and are wired through facade-only public surfaces where appropriate.",
+        "The responsibility map classifies every relevant Store crate by primary role, minted authority, consumed authority, projection outputs, facade home, and S.8 phase obligations.",
+        "Certification, physical-certification, test-support, offline verifier, Foundational reports, copied counters, and terminal projections cannot become production S.8 authority."
+      ],
+      "instructions": "Implement S.8 Phase 0 from the spec: Domain Skeleton And Subsystem Boundary Contract. Build the target topology as architectural homes, not as a report. Keep file-vs-directory shape flexible where the domain earns it, but do not soften ownership, lifecycle order, facade position, or authority direction.",
+      "qa_focus": "Check for meta-planning instead of skeleton implementation, vague crate ownership, broad lib.rs/mod.rs business logic, layout-indexes owning family execution, family crates depending on certification law, missing facade homes, missing responsibility-map tests, and fake compile-fail boundaries."
+    },
+    {
+      "id": 1,
+      "title": "Durable Artifact Family Inventory",
+      "owner": "`worth-store-layout-indexes`, `worth-store-contracts`, family crates",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes", "workspaces/worth-store/crates/worth-store-contracts"],
+      "acceptance": ["Every durable artifact family is declared with authority posture, lifecycle class, access lane, owning lower-crate boundary, rebuild/migration posture, and explicit non-authority projection classes."],
+      "instructions": "Implement S.8 Phase 1 from the spec: Durable Artifact Family Inventory. Use the Phase 0 skeleton and place vocabulary in the selected artifact-family homes.",
+      "qa_focus": "Check for generic artifact bags, missing family owner, derived projection promoted to authority, broad scan loopholes, and inventory entries that cannot drive later admission."
+    },
+    {
+      "id": 2,
+      "title": "Artifact Authority And Lifecycle Classification",
+      "owner": "`worth-store-layout-indexes`, family crates",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Artifact authority and lifecycle classes are typed, denial-backed, and sufficient to distinguish authoritative, derived, diagnostic, terminal, certification, hot-path, maintenance, verifier, and readmission families."],
+      "instructions": "Implement S.8 Phase 2 from the spec: Artifact Authority And Lifecycle Classification.",
+      "qa_focus": "Check for overloaded nouns, implicit authority, lifecycle states hidden in predicates, and certification/test labels acting as production classification."
+    },
+    {
+      "id": 3,
+      "title": "Authority Roles, Accuracy Classes, And Scope Partitioning",
+      "owner": "`worth-store-layout-indexes`, `worth-store-security`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes", "workspaces/worth-store/crates/worth-store-security"],
+      "acceptance": ["Authority roles, derived accuracy classes, tenant/key-scope partitions, and non-claim security boundaries are typed and cannot be satisfied by identity-provider strings or copied metadata."],
+      "instructions": "Implement S.8 Phase 3 from the spec: Authority Roles, Accuracy Classes, And Scope Partitioning.",
+      "qa_focus": "Check for tenant/key scope laundering, identity-provider claims as Store authority, projection/authority confusion, and missing cross-scope denial cases."
+    },
+    {
+      "id": 4,
+      "title": "Physical Key-Domain Law",
+      "owner": "`worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Physical key domains declare canonical encodings, comparators, prefix/range bounds, composite ordering, hash-collision behavior, and tenant/key partitioning with adversarial denials."],
+      "instructions": "Implement S.8 Phase 4 from the spec: Physical Key-Domain Law.",
+      "qa_focus": "Check for string keys, implicit comparators, prefix/range ambiguity, tenant partition leaks, and hash collision denial gaps."
+    },
+    {
+      "id": 5,
+      "title": "Strategy Invariant Suites And Baseline B-Tree/LSM Algorithms",
+      "owner": "`worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Baseline B-tree and LSM strategy families have mechanically testable invariant suites for lookup, publication, mutation, integrity, recovery, separators, tombstones, and compaction ordering."],
+      "instructions": "Implement S.8 Phase 5 from the spec: Strategy Invariant Suites And Baseline B-Tree/LSM Algorithms.",
+      "qa_focus": "Check for generic index vocabulary, fake B-tree/LSM claims, untested invariants, separator/tombstone/compaction gaps, and algorithms that cannot support later cost evidence."
+    },
+    {
+      "id": 6,
+      "title": "Materialization, Coverage, Freshness, And Absence Proofs",
+      "owner": "`worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Materialization state, coverage basis, freshness watermarks, coverage gaps, physical absence proofs, and range/prefix completeness witnesses are typed and deny stale or partial-index false absence."],
+      "instructions": "Implement S.8 Phase 6 from the spec: Materialization, Coverage, Freshness, And Absence Proofs.",
+      "qa_focus": "Check for stale indexes accepted as exact, partial coverage as absence, hidden broad scans, weak freshness semantics, and copied coverage rows."
+    },
+    {
+      "id": 7,
+      "title": "Layout Strategy Vocabulary",
+      "owner": "`worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Layout strategy vocabulary is explicit per artifact family and preserves authority, derivation, materialization, rebuild, version, and access-shape posture."],
+      "instructions": "Implement S.8 Phase 7 from the spec: Layout Strategy Vocabulary.",
+      "qa_focus": "Check for layout names without invariants, strategy as enum-only theater, and vocabulary that hides cost or ownership."
+    },
+    {
+      "id": 8,
+      "title": "Layout Strategy Admission Registry",
+      "owner": "`worth-store-layout-indexes`, family crates",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Strategies are admitted through typed requests, authority checks, invariant suites, capability outputs, and denial cases; no raw strategy fields can construct admitted layout."],
+      "instructions": "Implement S.8 Phase 8 from the spec: Layout Strategy Admission Registry.",
+      "qa_focus": "Check for raw constructors, registry as mutable bag, family/strategy mismatch, missing invariant admission, and certification-owned registry law."
+    },
+    {
+      "id": 9,
+      "title": "Customization Boundary For Future Higher Layers",
+      "owner": "`worth-store-layout-indexes`, `worth-store-extensions`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes", "workspaces/worth-store/crates/worth-store-extensions"],
+      "acceptance": ["Future customization has typed declaration/admission hooks without allowing app/user callbacks, industry guesses, or unproven plugins to become index authority."],
+      "instructions": "Implement S.8 Phase 9 from the spec: Customization Boundary For Future Higher Layers.",
+      "qa_focus": "Check for callback authority, app-level semantic leakage, generic plugin bypasses, and guessed industry-specific index policy."
+    },
+    {
+      "id": 10,
+      "title": "Access Shape Contracts",
+      "owner": "`worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Point, range, prefix, scan, streaming, append, compaction, rebuild, verifier, repair, quarantine, and degraded exact scan access shapes have explicit contracts and denial cases."],
+      "instructions": "Implement S.8 Phase 10 from the spec: Access Shape Contracts.",
+      "qa_focus": "Check for broad scans masquerading as bounded access, missing streaming/repair/verifier distinctions, and access-shape claims without counters."
+    },
+    {
+      "id": 11,
+      "title": "Deterministic Plan Selection And Pre-Execution Budget Admission",
+      "owner": "`worth-store-layout-indexes`, `worth-store-budgets`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes", "workspaces/worth-store/crates/worth-store-budgets"],
+      "acceptance": ["Access alternatives lower through deterministic selection, plan fingerprints, cost estimates, admitted budgets, and planned counter envelopes before execution."],
+      "instructions": "Implement S.8 Phase 11 from the spec: Deterministic Plan Selection And Pre-Execution Budget Admission.",
+      "qa_focus": "Check for nondeterministic selection, after-the-fact budgets, hidden fallbacks, missing plan fingerprint, and planned counters detached from execution."
+    },
+    {
+      "id": 12,
+      "title": "Access Lowering And Proof Progression",
+      "owner": "`worth-store-layout-indexes`, family crates",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Access lowering follows worth-proof progression from declaration/admission into lowered, ready, executed, denied, deferred, stale, rebind, or readmission outcomes without collapsing non-success cases."],
+      "instructions": "Implement S.8 Phase 12 from the spec: Access Lowering And Proof Progression.",
+      "qa_focus": "Check for boolean success/failure collapse, stale as success, raw ready-plan constructors, and missing next-capability types."
+    },
+    {
+      "id": 13,
+      "title": "Rebuild Source And Derived Index Consistency",
+      "owner": "`worth-store-layout-indexes`, family crates",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Derived index rebuilds declare source authority, rebuild plan, parity witness, corruption behavior, and denial when derived data is treated as source truth."],
+      "instructions": "Implement S.8 Phase 13 from the spec: Rebuild Source And Derived Index Consistency.",
+      "qa_focus": "Check for derived projection authority, self-comparison rebuild proof, missing parity source, and corrupted derived state masking authority corruption."
+    },
+    {
+      "id": 14,
+      "title": "Live Index Maintenance And Publication Protocols",
+      "owner": "`worth-store-layout-indexes`, family crates",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Live maintenance modes, mutation plans, publication protocols, lag witnesses, and maintenance failure outcomes are explicit for maintained derived layouts."],
+      "instructions": "Implement S.8 Phase 14 from the spec: Live Index Maintenance And Publication Protocols.",
+      "qa_focus": "Check for mutation side effects without publication, lag hidden as current, missing cutover protocol, and maintenance failures converted into ordinary reads."
+    },
+    {
+      "id": 15,
+      "title": "Corruption, Quarantine, And Readmission Semantics",
+      "owner": "`worth-store-layout-indexes`, `worth-store-physical-integrity`, `worth-store-recovery-physics`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes", "workspaces/worth-store/crates/worth-store-physical-integrity", "workspaces/worth-store/crates/worth-store-recovery-physics"],
+      "acceptance": ["Layout corruption, quarantine, readmission, authoritative-vs-derived corruption, terminal imports, and offline evidence have distinct outcomes and cannot become foreground authority without Store readmission."],
+      "instructions": "Implement S.8 Phase 15 from the spec: Corruption, Quarantine, And Readmission Semantics.",
+      "qa_focus": "Check for corruption converted into empty result, offline verifier authority leakage, terminal serde authority, and missing readmission transitions."
+    },
+    {
+      "id": 16,
+      "title": "Versioning, Migration, And Rollback",
+      "owner": "`worth-store-layout-indexes`, `worth-store-compatibility`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes", "workspaces/worth-store/crates/worth-store-compatibility"],
+      "acceptance": ["Layout versions, compatibility windows, migration plans, rollback plans, stale/rebind outcomes, and interruption behavior are typed and tested."],
+      "instructions": "Implement S.8 Phase 16 from the spec: Versioning, Migration, And Rollback.",
+      "qa_focus": "Check for mixed-version ambiguity, rollback trusting derived state, migration without interruption proof, and stale layout accepted as exact."
+    },
+    {
+      "id": 17,
+      "title": "Amplification And Exact Counter Evidence",
+      "owner": "`worth-store-layout-indexes`, `worth-store-budgets`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes", "workspaces/worth-store/crates/worth-store-budgets"],
+      "acceptance": ["Executed access produces exact access-path, read-amplification, write-amplification, page-touch, probe, and planned-versus-observed counter receipts."],
+      "instructions": "Implement S.8 Phase 17 from the spec: Amplification And Exact Counter Evidence.",
+      "qa_focus": "Check for copied counters, weak counter strength, planned counters detached from execution, and Foundational reports used before Store execution."
+    },
+    {
+      "id": 18,
+      "title": "Bootstrap Catalog And Minimal Root Discovery",
+      "owner": "`worth-store-layout-indexes`, `worth-store-physical-format`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes", "workspaces/worth-store/crates/worth-store-physical-format"],
+      "acceptance": ["Bootstrap catalog and minimal root discovery are tiny, fixed, versioned, checksummed, and incapable of answering ordinary access except through bootstrap-only admission."],
+      "instructions": "Implement S.8 Phase 18 from the spec: Bootstrap Catalog And Minimal Root Discovery.",
+      "qa_focus": "Check for bootstrap catalog as general index, unchecked root discovery, missing version/checksum, and ordinary access through bootstrap-only paths."
+    },
+    {
+      "id": 19,
+      "title": "Page, Frame, Segment, And Extent Layout Families",
+      "owner": "`worth-store-physical-format`, `worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-physical-format", "workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Page, frame, segment, and extent families consume S.8 grammar through their local layout_access homes and preserve physical-format byte authority."],
+      "instructions": "Implement S.8 Phase 19 from the spec: Page, Frame, Segment, And Extent Layout Families.",
+      "qa_focus": "Check for layout law duplicated in physical-format, physical bytes delegated to layout-indexes, root/extent broad scans, and missing family counters."
+    },
+    {
+      "id": 20,
+      "title": "Root Manifest, Allocation, Free-Space, And Placement Layout Families",
+      "owner": "`worth-store-physical-format`, `worth-store-physical-isolation`, `worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-physical-format", "workspaces/worth-store/crates/worth-store-physical-isolation", "workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Root manifest, allocation, free-space, and placement families have declared strategies, access shapes, counters, corruption behavior, and no implicit whole-store scan fallback."],
+      "instructions": "Implement S.8 Phase 20 from the spec: Root Manifest, Allocation, Free-Space, And Placement Layout Families.",
+      "qa_focus": "Check for allocation/free-space scans hidden as lookup, stale root publication, placement residue as authority, and missing absence proof."
+    },
+    {
+      "id": 21,
+      "title": "WAL And Checkpoint Layout Families",
+      "owner": "`worth-store-wal`, `worth-store-recovery-physics`, `worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-wal", "workspaces/worth-store/crates/worth-store-recovery-physics", "workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["WAL and checkpoint families declare append, tail, checkpoint, replay, and recovery access paths while keeping WAL authority local."],
+      "instructions": "Implement S.8 Phase 21 from the spec: WAL And Checkpoint Layout Families.",
+      "qa_focus": "Check for backend residue authority, checkpoint/WAL mixed truth, unbounded tail scans, and layout-indexes owning WAL semantics."
+    },
+    {
+      "id": 22,
+      "title": "Recovery, Replay, And Crash-Boundary Index Families",
+      "owner": "`worth-store-recovery-physics`, `worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-recovery-physics", "workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Recovery, replay, crash-boundary, checkpoint-cutover, and readmission layout families preserve recovery physics and deny ambiguous residue or derived rollback authority."],
+      "instructions": "Implement S.8 Phase 22 from the spec: Recovery, Replay, And Crash-Boundary Index Families.",
+      "qa_focus": "Check for crash-state collapse, residue guessing, replay self-comparison, and missing rebind/readmission states."
+    },
+    {
+      "id": 23,
+      "title": "Snapshot, Branch, And Continuation Layout Families",
+      "owner": "`worth-store-snapshots`, `worth-store-branch-deltas`, `worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-snapshots", "workspaces/worth-store/crates/worth-store-branch-deltas", "workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Snapshot, branch, continuation, and stable-basis families declare access paths without stealing semantic MVCC/branch truth from higher layers."],
+      "instructions": "Implement S.8 Phase 23 from the spec: Snapshot, Branch, And Continuation Layout Families.",
+      "qa_focus": "Check for semantic truth leakage, branch identity as physical authority, snapshot broad scans, and stale continuation access."
+    },
+    {
+      "id": 24,
+      "title": "Blob Object, Chunk-Tree, And Streaming Layout Families",
+      "owner": "`worth-store-blob-chunks`, `worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-blob-chunks", "workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Blob object, chunk-tree, and streaming families consume S.8 grammar while preserving S.7 blob lifecycle authority, constant-memory access, and chunk-tree invariants."],
+      "instructions": "Implement S.8 Phase 24 from the spec: Blob Object, Chunk-Tree, And Streaming Layout Families.",
+      "qa_focus": "Check for whole-blob materialization, chunk-tree root as generic index, streaming hidden buffers, and blob authority moved into layout-indexes."
+    },
+    {
+      "id": 25,
+      "title": "Blob Dedupe, Reachability, Retention, Reclaim, And Compaction Layout Families",
+      "owner": "`worth-store-blob-chunks`, `worth-store-reclaim-policy`, `worth-store-retention`, `worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-blob-chunks", "workspaces/worth-store/crates/worth-store-reclaim-policy", "workspaces/worth-store/crates/worth-store-retention", "workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Blob dedupe, reachability, retention, reclaim, and compaction families declare access strategies, rebuild/parity, corruption, and scope-safe absence behavior."],
+      "instructions": "Implement S.8 Phase 25 from the spec: Blob Dedupe, Reachability, Retention, Reclaim, And Compaction Layout Families.",
+      "qa_focus": "Check for digest-only dedupe, false reclaim absence, retention hold bypass, compaction identity drift, and cross-scope leaks."
+    },
+    {
+      "id": 26,
+      "title": "Maintenance, Tiering, And I/O Scheduler Layout Families",
+      "owner": "`worth-store-maintenance`, `worth-store-tiering`, `worth-store-io-scheduler`, `worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-maintenance", "workspaces/worth-store/crates/worth-store-tiering", "workspaces/worth-store/crates/worth-store-io-scheduler", "workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Maintenance, tiering, recall, foreground/background pacing, and I/O scheduler layout families declare access budgets, interference posture, and exact counters."],
+      "instructions": "Implement S.8 Phase 26 from the spec: Maintenance, Tiering, And I/O Scheduler Layout Families.",
+      "qa_focus": "Check for scheduler as layout authority, maintenance scans as cheap access, tier recall stale handles, and missing foreground-interference evidence."
+    },
+    {
+      "id": 27,
+      "title": "Security And Custody Lookup Layout Families",
+      "owner": "`worth-store-security`, `worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-security", "workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Security, custody, key-scope, tenant-scope, authenticity, and repair blast-radius lookup families use S.5.1 posture and deny identity-provider strings as Store authority."],
+      "instructions": "Implement S.8 Phase 27 from the spec: Security And Custody Lookup Layout Families.",
+      "qa_focus": "Check for JWT/org/KMS/IAM/operator identity laundering, custody as deployment folklore, and scope partitions missing from key domains."
+    },
+    {
+      "id": 28,
+      "title": "Export, Import, Capsule, And Offline Verifier Layout Families",
+      "owner": "`worth-store-operations`, `worth-store-offline-verifier`, `worth-store-blob-chunks`, `worth-store-layout-indexes`",
+      "scope": ["workspaces/worth-store/crates/worth-store-operations", "workspaces/worth-store/crates/worth-store-offline-verifier", "workspaces/worth-store/crates/worth-store-blob-chunks", "workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Export, import, capsule, backup/restore, and offline verifier layout evidence remains terminal until readmitted and cannot become foreground authority directly."],
+      "instructions": "Implement S.8 Phase 28 from the spec: Export, Import, Capsule, And Offline Verifier Layout Families.",
+      "qa_focus": "Check for terminal projection re-entry, offline verifier as authority, backup after key rotation without readmission, and imported JSON/serde authority."
+    },
+    {
+      "id": 29,
+      "title": "Legacy Surface Disposition And Dedicated Workspace Boundary",
+      "owner": "`worth-store-layout-indexes`, public facade crates",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes", "workspaces/worth-store/crates/worth-store"],
+      "acceptance": ["Every old access-path surface receives explicit disposition and cannot bypass declaration, admission, selection, budget, lowering, readiness, execution, or readmission."],
+      "instructions": "Implement S.8 Phase 29 from the spec: Legacy Surface Disposition And Dedicated Workspace Boundary.",
+      "qa_focus": "Check for ambiguous legacy helpers, fallback classes as production paths, old topology precedent, and deep imports bypassing S.8 facades."
+    },
+    {
+      "id": 30,
+      "title": "Public Facades And Directory Shape",
+      "owner": "`worth-store-layout-indexes`, family crates",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes"],
+      "acceptance": ["Public imports reveal lifecycle order and authority posture rather than a flat ontology; code-quality QA clears concrete topology findings."],
+      "instructions": "Implement S.8 Phase 30 from the spec: Public Facades And Directory Shape.",
+      "qa_focus": "Check for broad lib.rs dumps, mod.rs business logic, helper bins, god functions, public raw constructors, and facades that hide lifecycle order."
+    },
+    {
+      "id": 31,
+      "title": "Certification Harness Vocabulary And Scenario Skeleton",
+      "owner": "`worth-store-physical-certification`, `worth-store-certification`, `worth-store-test-support`",
+      "scope": ["workspaces/worth-store/crates/worth-store-physical-certification", "workspaces/worth-store/crates/worth-store-certification", "workspaces/worth-store/crates/worth-store-test-support"],
+      "acceptance": ["The harness can describe layout law through scenarios, actors, faults, observers, oracles, transcripts, coverage, shortcut denials, and closeout evidence without becoming production law."],
+      "instructions": "Implement S.8 Phase 31 from the spec: Certification Harness Vocabulary And Scenario Skeleton.",
+      "qa_focus": "Check for harness constructors minting authority, scenario-only success, certification-owned law, weak oracles, and missing shortcut denial taxonomy."
+    },
+    {
+      "id": 32,
+      "title": "Compile-Fail Authority And Facade Proofs",
+      "owner": "`worth-store-layout-indexes`, certification/test-support crates",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes", "workspaces/worth-store/crates/worth-store-certification", "workspaces/worth-store/crates/worth-store-test-support"],
+      "acceptance": ["Compile-fail proofs show external crates cannot raw-construct admitted layouts, ready access, executed counter receipts, readmitted witnesses, or certification/test fixture authority."],
+      "instructions": "Implement S.8 Phase 32 from the spec: Compile-Fail Authority And Facade Proofs.",
+      "qa_focus": "Check for runtime-only denial wrappers, public fields, deep-import bypass, copied receipt construction, and missing facade misuse proofs."
+    },
+    {
+      "id": 33,
+      "title": "Runtime Simulation And Integration Certification",
+      "owner": "`worth-store-physical-certification`, `worth-store-certification`, family crates",
+      "scope": ["workspaces/worth-store/crates/worth-store-physical-certification", "workspaces/worth-store/crates/worth-store-certification"],
+      "acceptance": ["Runtime simulations cover core physical, recovery, blob, maintenance/I/O, security/custody/export families with adversarial success, denial, corruption, rebuild, readmission, and cost evidence."],
+      "instructions": "Implement S.8 Phase 33 from the spec: Runtime Simulation And Integration Certification.",
+      "qa_focus": "Check for representative-only happy paths, missing production actors, same-run self-comparison, weak counters, and simulations that bypass production facades."
+    },
+    {
+      "id": 34,
+      "title": "Layout Hazard Inventory And S.9 State-Machine Handoff",
+      "owner": "`worth-store-layout-indexes`, `worth-store-readiness`, `worth-store-certification`",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes", "workspaces/worth-store/crates/worth-store-readiness", "workspaces/worth-store/crates/worth-store-certification"],
+      "acceptance": ["S.8 hazards map to compile-fail, runtime, simulation, or formal-model handoff lanes, and S.9 receives explicit layout/access state machines rather than a generic summary."],
+      "instructions": "Implement S.8 Phase 34 from the spec: Layout Hazard Inventory And S.9 State-Machine Handoff.",
+      "qa_focus": "Check for missing hazard lanes, vague residual risk, generic S.9 handoff, hidden broad-scan hazards, and state machines not named for formal modeling."
+    },
+    {
+      "id": 35,
+      "title": "Workspace-Wide Closeout And S.9 Handoff",
+      "owner": "`worth-store-certification`, `worth-store-layout-indexes`, all touched family crates",
+      "scope": ["workspaces/worth-store/crates/worth-store-layout-indexes", "workspaces/worth-store/crates/worth-store-certification", "workspaces/worth-store/crates/worth-store-physical-certification"],
+      "acceptance": ["S.8 closeout proves every admitted durable artifact family has declared strategy, key-domain law, access shape, authority posture, counters, corruption/rebuild behavior, trust-boundary behavior, legacy disposition, and S.9 handoff evidence."],
+      "instructions": "Implement S.8 Phase 35 from the spec: Workspace-Wide Closeout And S.9 Handoff.",
+      "qa_focus": "Check for hidden generic layout fallback, missing family closeout, weak counter evidence, unverified B-tree/LSM claims, skeleton drift, and closeout that omits runtime or compile-fail proof."
+    }
+  ]
+}

@@ -2,8 +2,8 @@
 
 ## Goal
 
-Build the first Hadwiger-Nelson research pipeline as one downstream Forge
-domain crate that enters through `forge-query` from the first operation.
+Build the first Hadwiger-Nelson research pipeline as one downstream WORTH
+domain crate that enters through `worth-query` from the first operation.
 
 The milestone must produce a durable, queryable, replayable, aspect-aware, and
 invalidation-aware artifact pipeline for finite graph lower-bound search. It
@@ -24,7 +24,7 @@ The first slice prioritizes lower-bound witness search:
 
 ## Why This Milestone Exists
 
-The Hadwiger-Nelson problem is a perfect stress case for Forge because useful
+The Hadwiger-Nelson problem is a perfect stress case for WORTH because useful
 research artifacts are rarely globally valid or globally invalid. A candidate
 graph can be admitted as an abstract obstruction, rejected as an exact
 unit-distance witness, retained as a gadget source, and preserved as negative
@@ -35,31 +35,31 @@ value of failed attempts. A worse implementation would let a plausible AI
 explanation, sampled geometry, or unchecked SAT result leak into theorem
 authority.
 
-Forge Query already provides the platform-entry substrate this domain needs:
+WORTH Query already provides the platform-entry substrate this domain needs:
 
-- typed domain entry through `ForgeQueryApplicationFacade::domain(...)`,
+- typed domain entry through `WORTHQueryApplicationFacade::domain(...)`,
   `domain_checked(...)`, and `domain_proof_root(...)`
 - configured domain handles through
-  `ForgeQueryDomainEntryRoot::with_operating_context(...)`,
-  `ForgeQueryConfiguredDomainHandleDraft::validate(...)`, and
-  `ForgeQueryValidatedConfiguredDomainHandle::admit(...)`
+  `WORTHQueryDomainEntryRoot::with_operating_context(...)`,
+  `WORTHQueryConfiguredDomainHandleDraft::validate(...)`, and
+  `WORTHQueryValidatedConfiguredDomainHandle::admit(...)`
 - pre-runtime declaration entry
-- canonical declarations through `ForgeQueryAdmittedConfiguredDomainHandle::declare(...)`
+- canonical declarations through `WORTHQueryAdmittedConfiguredDomainHandle::declare(...)`
   and `declare_checked(...)`
 - declaration-entry orchestration through
   `orchestrate_declaration_entry(...)`,
   `orchestrate_declaration_entry_outcome(...)`,
   `orchestrate_declaration_entry_checked(...)`, and
   `orchestrate_declaration_entry_proof(...)`
-- aspect contracts through `ForgeQueryDeclarationAspectContract`,
-  `ForgeQueryDeclarationAspectCoverage`, and retained declaration artifact
+- aspect contracts through `WORTHQueryDeclarationAspectContract`,
+  `WORTHQueryDeclarationAspectCoverage`, and retained declaration artifact
   aspect accessors
-- retained binding through `ForgeQueryBindingOutcome<T>`,
-  `ForgeQueryBindingChecked<T>`, and `ForgeQueryBindingTranscript<T>`
-- ordinary outcomes through `ForgeQueryOrdinaryOutcome<T>`
+- retained binding through `WORTHQueryBindingOutcome<T>`,
+  `WORTHQueryBindingChecked<T>`, and `WORTHQueryBindingTranscript<T>`
+- ordinary outcomes through `WORTHQueryOrdinaryOutcome<T>`
 - domain capability contributions for admission, support, workflow,
   continuity, aftermath, and explanation through
-  `ForgeQueryContributionIntent::{admission,support,explanation,workflow,continuity}`
+  `WORTHQueryContributionIntent::{admission,support,explanation,workflow,continuity}`
 - contribution-composed orchestration through
   `orchestrate_declaration_with_contributions(...)`,
   `orchestrate_declaration_with_contributions_outcome(...)`,
@@ -110,29 +110,29 @@ then this milestone has failed.
   physically distinct.
 - `perf_laws.md`: invalidation breadth must be bounded by semantic dependency
   scope, and conservative escalation must expose counters.
-- `forge_query_vision.md`: Query is the typed, aspect-aware public entry for
+- `worth_query_vision.md`: Query is the typed, aspect-aware public entry for
   asking for and shaping truth; Hadwiger domain meaning stays downstream.
-- `forge_query_roadmap.md`: Query-owned platform entry, retained binding,
+- `worth_query_roadmap.md`: Query-owned platform entry, retained binding,
   contribution-composed orchestration, ordinary outcomes, and recovery are the
   intended substrate for serious downstream domains.
-- `forge-query` Milestone 9.3.7: domain-authored support, admission,
+- `worth-query` Milestone 9.3.7: domain-authored support, admission,
   workflow, continuity, aftermath, and explanation posture must enter through
   Query-owned contribution surfaces.
-- `forge-query` Milestone 9.3.8: serious downstream domains must enter through
+- `worth-query` Milestone 9.3.8: serious downstream domains must enter through
   Query declaration entry and progress through Query-owned declaration,
   legality, proof, route, envelope, binding, readiness, orchestration, and
   certification seams.
-- `forge-runtime-bridge` roadmap: external solvers and checkers are controlled
+- `worth-runtime-bridge` roadmap: external solvers and checkers are controlled
   external engines with routed, receipt-backed, replayable boundary artifacts;
   the bridge sits underneath Query as the causal protocol layer between
   authoritative truth and derived computation, and must not own Hadwiger math
   semantics.
-- `forge-relational` architecture: relation integrity and domain-specific
+- `worth-relational` architecture: relation integrity and domain-specific
   invariants are phase-typed, cataloged, lowered, and executed at authority
   boundaries; Hadwiger may use that lower layer to make illegal research-graph
   states uncommittable, but not to promote mathematical conjectures to theorem
   authority.
-- `forge-signal` temporal/async roadmap: later async checker execution and
+- `worth-signal` temporal/async roadmap: later async checker execution and
   reactive invalidation should consume Signal-owned derived execution
   semantics instead of inventing a Hadwiger-local async lifecycle.
 
@@ -145,19 +145,19 @@ different Query surface, the spec must be updated first.
 
 Docs:
 
-- `crates/forge-query/docs/domain-capabilities/platform-entry.md`
+- `crates/worth-query/docs/domain-capabilities/platform-entry.md`
 
 Exported APIs:
 
-- `ForgeQueryApplicationFacade`
-- `ForgeQueryApplicationFacade::domain_entry_support_snapshot()`
-- `ForgeQueryApplicationFacade::domain(marker)`
-- `ForgeQueryApplicationFacade::domain_checked(marker)`
-- `ForgeQueryApplicationFacade::domain_proof_root(marker)`
-- `ForgeQueryDomainEntryMarker`
-- `ForgeQueryDomainEntryChecked`
-- `ForgeQueryDomainEntryRoot`
-- `ForgeQueryDomainEntryProofRoot`
+- `WORTHQueryApplicationFacade`
+- `WORTHQueryApplicationFacade::domain_entry_support_snapshot()`
+- `WORTHQueryApplicationFacade::domain(marker)`
+- `WORTHQueryApplicationFacade::domain_checked(marker)`
+- `WORTHQueryApplicationFacade::domain_proof_root(marker)`
+- `WORTHQueryDomainEntryMarker`
+- `WORTHQueryDomainEntryChecked`
+- `WORTHQueryDomainEntryRoot`
+- `WORTHQueryDomainEntryProofRoot`
 
 Hadwiger use:
 
@@ -170,20 +170,20 @@ Hadwiger use:
 
 Docs:
 
-- `crates/forge-query/docs/domain-capabilities/configured-domain-handles.md`
+- `crates/worth-query/docs/domain-capabilities/configured-domain-handles.md`
 
 Exported APIs:
 
-- `ForgeQueryDomainOperatingContext`
-- `ForgeQueryDomainEntryRoot::with_operating_context(...)`
-- `ForgeQueryDomainEntryProofRoot::with_operating_context(...)`
-- `ForgeQueryDomainEntryChecked::with_operating_context(...)`
-- `ForgeQueryConfiguredDomainHandleDraft`
-- `ForgeQueryConfiguredDomainHandleDraft::validate()`
-- `ForgeQueryValidatedConfiguredDomainHandle`
-- `ForgeQueryValidatedConfiguredDomainHandle::admit()`
-- `ForgeQueryAdmittedConfiguredDomainHandle`
-- `ForgeQueryConfiguredDomainHandleChecked`
+- `WORTHQueryDomainOperatingContext`
+- `WORTHQueryDomainEntryRoot::with_operating_context(...)`
+- `WORTHQueryDomainEntryProofRoot::with_operating_context(...)`
+- `WORTHQueryDomainEntryChecked::with_operating_context(...)`
+- `WORTHQueryConfiguredDomainHandleDraft`
+- `WORTHQueryConfiguredDomainHandleDraft::validate()`
+- `WORTHQueryValidatedConfiguredDomainHandle`
+- `WORTHQueryValidatedConfiguredDomainHandle::admit()`
+- `WORTHQueryAdmittedConfiguredDomainHandle`
+- `WORTHQueryConfiguredDomainHandleChecked`
 
 Hadwiger use:
 
@@ -196,19 +196,19 @@ Hadwiger use:
 
 Docs:
 
-- `crates/forge-query/docs/domain-capabilities/canonical-domain-declarations.md`
+- `crates/worth-query/docs/domain-capabilities/canonical-domain-declarations.md`
 
 Exported APIs:
 
-- `ForgeQueryDeclarationInput`
-- `ForgeQueryDeclarationFamilyMarker`
-- `ForgeQueryDeclarationCanonicalEntry`
-- `ForgeQueryDeclarationCanonicalValue`
-- `ForgeQueryAdmittedConfiguredDomainHandle::declare(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::declare_checked(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::declare_with_version(...)`
-- `ForgeQueryCanonicalDeclarationArtifact`
-- `ForgeQueryDeclaredFamilyChecked`
+- `WORTHQueryDeclarationInput`
+- `WORTHQueryDeclarationFamilyMarker`
+- `WORTHQueryDeclarationCanonicalEntry`
+- `WORTHQueryDeclarationCanonicalValue`
+- `WORTHQueryAdmittedConfiguredDomainHandle::declare(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::declare_checked(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::declare_with_version(...)`
+- `WORTHQueryCanonicalDeclarationArtifact`
+- `WORTHQueryDeclaredFamilyChecked`
 
 Hadwiger use:
 
@@ -222,8 +222,8 @@ Hadwiger use:
 
 Docs:
 
-- `crates/forge-query/docs/domain-capabilities/declaration-legality.md`
-- `crates/forge-query/docs/domain-capabilities/declaration-progression.md`
+- `crates/worth-query/docs/domain-capabilities/declaration-legality.md`
+- `crates/worth-query/docs/domain-capabilities/declaration-progression.md`
 
 Exported APIs:
 
@@ -235,10 +235,10 @@ Exported APIs:
 - `progress_declaration_recipe(...)`
 - `progress_declaration_recipe_checked(...)`
 - `declare_review_and_progress(...)`
-- `ForgeQueryDeclarationLegalityContract`
-- `ForgeQueryDeclarationLegalityChecked`
-- `ForgeQueryDeclarationProgressionChecked`
-- `ForgeQueryAdmittedDeclarationProgression`
+- `WORTHQueryDeclarationLegalityContract`
+- `WORTHQueryDeclarationLegalityChecked`
+- `WORTHQueryDeclarationProgressionChecked`
+- `WORTHQueryAdmittedDeclarationProgression`
 
 Hadwiger use:
 
@@ -251,10 +251,10 @@ Hadwiger use:
 
 Docs:
 
-- `crates/forge-query/docs/domain-capabilities/declaration-entry-orchestration.md`
-- `crates/forge-query/docs/domain-capabilities/declaration-entry-inspection.md`
-- `crates/forge-query/docs/domain-capabilities/declaration-entry-readiness.md`
-- `crates/forge-query/docs/domain-capabilities/workflow/single-declaration-to-envelope.md`
+- `crates/worth-query/docs/domain-capabilities/declaration-entry-orchestration.md`
+- `crates/worth-query/docs/domain-capabilities/declaration-entry-inspection.md`
+- `crates/worth-query/docs/domain-capabilities/declaration-entry-readiness.md`
+- `crates/worth-query/docs/domain-capabilities/workflow/single-declaration-to-envelope.md`
 
 Exported APIs:
 
@@ -268,9 +268,9 @@ Exported APIs:
 - `orchestrate_routes_from_progressed(...)`
 - `orchestrate_receipt_from_progressed(...)`
 - `orchestrate_envelope_from_progressed(...)`
-- `ForgeQueryDeclarationEntryOrchestrationInput`
-- `ForgeQueryDeclarationEntryOrchestrationOutcome`
-- `ForgeQueryDeclarationEntryOrchestrationTranscript`
+- `WORTHQueryDeclarationEntryOrchestrationInput`
+- `WORTHQueryDeclarationEntryOrchestrationOutcome`
+- `WORTHQueryDeclarationEntryOrchestrationTranscript`
 
 Hadwiger use:
 
@@ -283,35 +283,35 @@ Hadwiger use:
 
 Docs:
 
-- `crates/forge-query/docs/domain-capabilities/declaration-foundational-evidence.md`
-- `crates/forge-query/docs/domain-capabilities/declaration-route-plan.md`
-- `crates/forge-query/docs/domain-capabilities/declaration-boundary-receipts.md`
-- `crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md`
-- `crates/forge-query/docs/domain-capabilities/workflow/retained-artifact-to-next-step.md`
+- `crates/worth-query/docs/domain-capabilities/declaration-foundational-evidence.md`
+- `crates/worth-query/docs/domain-capabilities/declaration-route-plan.md`
+- `crates/worth-query/docs/domain-capabilities/declaration-boundary-receipts.md`
+- `crates/worth-query/docs/domain-capabilities/declaration-boundary-envelopes.md`
+- `crates/worth-query/docs/domain-capabilities/workflow/retained-artifact-to-next-step.md`
 
 Exported APIs:
 
-- `ForgeQueryDeclarationFoundationalEvidenceInput`
-- `ForgeQueryDeclarationFoundationalEvidenceChecked`
-- `ForgeQueryDeclarationFoundationalEvidence`
-- `ForgeQueryAdmittedConfiguredDomainHandle::describe_foundational(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::describe_foundational_checked(...)`
-- `ForgeQueryDeclarationRouteIntent`
-- `ForgeQueryDeclarationRoutePlanInput`
-- `ForgeQueryDeclarationRoutePlanChecked`
-- `ForgeQueryAdmittedConfiguredDomainHandle::plan_routes(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::plan_routes_checked(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::plan_routes_from_progressed(...)`
-- `ForgeQueryDeclarationReceiptInput`
-- `ForgeQueryDeclarationReceiptChecked`
-- `ForgeQueryAdmittedConfiguredDomainHandle::receipt_routes(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::receipt_routes_checked(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::receipt_routes_from_progressed(...)`
-- `ForgeQueryDeclarationEnvelopeInput`
-- `ForgeQueryDeclarationEnvelopeChecked`
-- `ForgeQueryAdmittedConfiguredDomainHandle::envelope_routes(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::envelope_routes_checked(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::envelope_routes_from_progressed(...)`
+- `WORTHQueryDeclarationFoundationalEvidenceInput`
+- `WORTHQueryDeclarationFoundationalEvidenceChecked`
+- `WORTHQueryDeclarationFoundationalEvidence`
+- `WORTHQueryAdmittedConfiguredDomainHandle::describe_foundational(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::describe_foundational_checked(...)`
+- `WORTHQueryDeclarationRouteIntent`
+- `WORTHQueryDeclarationRoutePlanInput`
+- `WORTHQueryDeclarationRoutePlanChecked`
+- `WORTHQueryAdmittedConfiguredDomainHandle::plan_routes(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::plan_routes_checked(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::plan_routes_from_progressed(...)`
+- `WORTHQueryDeclarationReceiptInput`
+- `WORTHQueryDeclarationReceiptChecked`
+- `WORTHQueryAdmittedConfiguredDomainHandle::receipt_routes(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::receipt_routes_checked(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::receipt_routes_from_progressed(...)`
+- `WORTHQueryDeclarationEnvelopeInput`
+- `WORTHQueryDeclarationEnvelopeChecked`
+- `WORTHQueryAdmittedConfiguredDomainHandle::envelope_routes(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::envelope_routes_checked(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::envelope_routes_from_progressed(...)`
 - `bind_receipt_from_target(...)`
 - `bind_envelope_from_target(...)`
 - `bind_continuation_request_from_context(...)`
@@ -332,28 +332,28 @@ Hadwiger use:
 
 Docs:
 
-- `crates/forge-query/docs/modeling/aspects-and-authority-lanes.md`
-- `crates/forge-query/docs/domain-capabilities/typed-binding-pipeline.md`
+- `crates/worth-query/docs/modeling/aspects-and-authority-lanes.md`
+- `crates/worth-query/docs/domain-capabilities/typed-binding-pipeline.md`
 
 Exported APIs:
 
-- `ForgeQueryDeclarationAspectContract`
-- `ForgeQueryDeclarationAspectCoverage`
-- `ForgeQueryDeclarationAspectFit`
-- `ForgeQueryDeclarationAspectPublication`
-- `ForgeQueryBindingOutcome<T>`
-- `ForgeQueryBindingChecked<T>`
-- `ForgeQueryBindingTranscript<T>`
-- `ForgeQueryBindingSourceKind`
-- `ForgeQueryBindingSpecificity`
-- `ForgeQueryBindingWrongWorld`
-- `ForgeQueryBindingWrongHandle`
-- `ForgeQueryBindingStale`
-- `ForgeQueryBindingRebindRequired`
-- `ForgeQueryBindingMissingRequiredAspect`
-- `ForgeQueryBindingAspectConflict`
-- `ForgeQueryBindingAuthorityMismatch`
-- `ForgeQueryBindingBasisMismatch`
+- `WORTHQueryDeclarationAspectContract`
+- `WORTHQueryDeclarationAspectCoverage`
+- `WORTHQueryDeclarationAspectFit`
+- `WORTHQueryDeclarationAspectPublication`
+- `WORTHQueryBindingOutcome<T>`
+- `WORTHQueryBindingChecked<T>`
+- `WORTHQueryBindingTranscript<T>`
+- `WORTHQueryBindingSourceKind`
+- `WORTHQueryBindingSpecificity`
+- `WORTHQueryBindingWrongWorld`
+- `WORTHQueryBindingWrongHandle`
+- `WORTHQueryBindingStale`
+- `WORTHQueryBindingRebindRequired`
+- `WORTHQueryBindingMissingRequiredAspect`
+- `WORTHQueryBindingAspectConflict`
+- `WORTHQueryBindingAuthorityMismatch`
+- `WORTHQueryBindingBasisMismatch`
 
 Hadwiger use:
 
@@ -366,17 +366,17 @@ Hadwiger use:
 
 Docs:
 
-- `crates/forge-query/docs/domain-capabilities/ordinary-outcomes.md`
-- `crates/forge-query/docs/domain-capabilities/recovery-boundary.md`
-- `crates/forge-query/docs/domain-capabilities/workflow/stop-to-recovery.md`
+- `crates/worth-query/docs/domain-capabilities/ordinary-outcomes.md`
+- `crates/worth-query/docs/domain-capabilities/recovery-boundary.md`
+- `crates/worth-query/docs/domain-capabilities/workflow/stop-to-recovery.md`
 
 Exported APIs:
 
-- `ForgeQueryOrdinaryOutcome<T>`
-- `ForgeQueryOrdinaryPosture`
-- `ForgeQueryOrdinaryPostureKind`
-- `ForgeQueryOrdinaryNextStep`
-- `ForgeQueryAdmittedConfiguredDomainHandle::recover_from_outcome(...)`
+- `WORTHQueryOrdinaryOutcome<T>`
+- `WORTHQueryOrdinaryPosture`
+- `WORTHQueryOrdinaryPostureKind`
+- `WORTHQueryOrdinaryNextStep`
+- `WORTHQueryAdmittedConfiguredDomainHandle::recover_from_outcome(...)`
 - `recover_from_declaration_entry_checked(...)`
 - `recover_from_declaration_entry_proof(...)`
 - `recover_from_contribution_composed_checked(...)`
@@ -393,31 +393,31 @@ Hadwiger use:
 
 Docs:
 
-- `crates/forge-query/docs/domain-capabilities/contribution-composed-orchestration.md`
-- `crates/forge-query/docs/domain-capabilities/admission/advisory-and-violation-contributions.md`
-- `crates/forge-query/docs/domain-capabilities/support/declaration-scoped-support-and-traceability.md`
-- `crates/forge-query/docs/domain-capabilities/explanation/lower-runtime-explanation-contributions.md`
-- `crates/forge-query/docs/domain-capabilities/aftermath/aftermath-review-support-eligibility-and-materialization.md`
+- `crates/worth-query/docs/domain-capabilities/contribution-composed-orchestration.md`
+- `crates/worth-query/docs/domain-capabilities/admission/advisory-and-violation-contributions.md`
+- `crates/worth-query/docs/domain-capabilities/support/declaration-scoped-support-and-traceability.md`
+- `crates/worth-query/docs/domain-capabilities/explanation/lower-runtime-explanation-contributions.md`
+- `crates/worth-query/docs/domain-capabilities/aftermath/aftermath-review-support-eligibility-and-materialization.md`
 
 Exported APIs:
 
-- `ForgeQueryContributionComposedOrchestrationInput<D, I>`
-- `ForgeQueryContributionIntent`
-- `ForgeQueryContributionIntent::admission(...)`
-- `ForgeQueryContributionIntent::support(...)`
-- `ForgeQueryContributionIntent::explanation(...)`
-- `ForgeQueryContributionIntent::workflow(...)`
-- `ForgeQueryContributionIntent::continuity(...)`
+- `WORTHQueryContributionComposedOrchestrationInput<D, I>`
+- `WORTHQueryContributionIntent`
+- `WORTHQueryContributionIntent::admission(...)`
+- `WORTHQueryContributionIntent::support(...)`
+- `WORTHQueryContributionIntent::explanation(...)`
+- `WORTHQueryContributionIntent::workflow(...)`
+- `WORTHQueryContributionIntent::continuity(...)`
 - `orchestrate_declaration_with_contributions(...)`
 - `orchestrate_declaration_with_contributions_outcome(...)`
 - `orchestrate_declaration_with_contributions_checked(...)`
 - `orchestrate_declaration_with_contributions_proof(...)`
-- `ForgeQueryAdmissionContributionAuthoring`
-- `ForgeQuerySupportContributionAuthoring`
-- `ForgeQueryExplanationContributionAuthoring`
-- `ForgeQueryAftermathContributionAuthoring`
-- `ForgeQueryWorkflowContributionAuthoring`
-- `ForgeQueryContinuityContributionAuthoring`
+- `WORTHQueryAdmissionContributionAuthoring`
+- `WORTHQuerySupportContributionAuthoring`
+- `WORTHQueryExplanationContributionAuthoring`
+- `WORTHQueryAftermathContributionAuthoring`
+- `WORTHQueryWorkflowContributionAuthoring`
+- `WORTHQueryContinuityContributionAuthoring`
 
 Hadwiger use:
 
@@ -432,25 +432,25 @@ Hadwiger use:
 
 Docs:
 
-- `crates/forge-query/docs/domain-capabilities/grouped-authoring.md`
-- `crates/forge-query/docs/domain-capabilities/grouped-products.md`
-- `crates/forge-query/docs/domain-capabilities/grouped-contributions.md`
-- `crates/forge-query/docs/domain-capabilities/grouped-support-readiness.md`
-- `crates/forge-query/docs/domain-capabilities/family-helpers.md`
-- `crates/forge-query/docs/domain-capabilities/choosing/grouped-authoring-vs-grouped-products-vs-grouped-contributions.md`
+- `crates/worth-query/docs/domain-capabilities/grouped-authoring.md`
+- `crates/worth-query/docs/domain-capabilities/grouped-products.md`
+- `crates/worth-query/docs/domain-capabilities/grouped-contributions.md`
+- `crates/worth-query/docs/domain-capabilities/grouped-support-readiness.md`
+- `crates/worth-query/docs/domain-capabilities/family-helpers.md`
+- `crates/worth-query/docs/domain-capabilities/choosing/grouped-authoring-vs-grouped-products-vs-grouped-contributions.md`
 
 Exported APIs:
 
-- `ForgeQueryGroupedDeclarationInput::local_neighborhood(...)`
+- `WORTHQueryGroupedDeclarationInput::local_neighborhood(...)`
 - `with_atomicity(...)`
 - `with_grouping_intent(...)`
 - `with_continuity_assumption(...)`
 - `with_shared_posture_claim(...)`
 - `with_shared_rationale(...)`
-- `ForgeQueryGroupedAtomicity`
-- `ForgeQueryGroupedIntent`
-- `ForgeQueryGroupedContinuityAssumption`
-- `ForgeQueryGroupedSharedPostureClaim`
+- `WORTHQueryGroupedAtomicity`
+- `WORTHQueryGroupedIntent`
+- `WORTHQueryGroupedContinuityAssumption`
+- `WORTHQueryGroupedSharedPostureClaim`
 - `declare_grouped(...)`
 - `orchestrate_grouped_outcome(...)`
 - `grouped_route_checked(...)`
@@ -485,26 +485,26 @@ Hadwiger use:
 
 Docs:
 
-- `crates/forge-query/docs/domain-capabilities/declaration-relational-truth-routing.md`
-- `crates/forge-query/docs/domain-capabilities/declaration-bridge-continuation-routing.md`
-- `crates/forge-query/docs/domain-capabilities/declaration-signal-compatibility.md`
-- `crates/forge-query/docs/domain-capabilities/choosing/signal-compatibility-vs-continuation-pipeline.md`
+- `crates/worth-query/docs/domain-capabilities/declaration-relational-truth-routing.md`
+- `crates/worth-query/docs/domain-capabilities/declaration-bridge-continuation-routing.md`
+- `crates/worth-query/docs/domain-capabilities/declaration-signal-compatibility.md`
+- `crates/worth-query/docs/domain-capabilities/choosing/signal-compatibility-vs-continuation-pipeline.md`
 
 Exported APIs:
 
-- `ForgeQueryDeclarationRelationalRoutingInput`
-- `ForgeQueryDeclarationRelationalRoutingChecked`
-- `ForgeQueryAdmittedConfiguredDomainHandle::route_relational_truth_checked(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::relational_truth_support::<I>()`
-- `ForgeQueryDeclarationBridgeRoutingInput`
-- `ForgeQueryDeclarationBridgeRoutingChecked`
-- `ForgeQueryAdmittedConfiguredDomainHandle::route_bridge_continuation_checked(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::bridge_continuation_support::<I>()`
-- `ForgeQueryDeclarationSignalCompatibilityInput`
-- `ForgeQueryDeclarationSignalCompatibilityChecked`
-- `ForgeQueryAdmittedConfiguredDomainHandle::signal_compatibility_checked(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::signal_compatibility_from_progressed(...)`
-- `ForgeQueryAdmittedConfiguredDomainHandle::signal_compatibility_support::<I>()`
+- `WORTHQueryDeclarationRelationalRoutingInput`
+- `WORTHQueryDeclarationRelationalRoutingChecked`
+- `WORTHQueryAdmittedConfiguredDomainHandle::route_relational_truth_checked(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::relational_truth_support::<I>()`
+- `WORTHQueryDeclarationBridgeRoutingInput`
+- `WORTHQueryDeclarationBridgeRoutingChecked`
+- `WORTHQueryAdmittedConfiguredDomainHandle::route_bridge_continuation_checked(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::bridge_continuation_support::<I>()`
+- `WORTHQueryDeclarationSignalCompatibilityInput`
+- `WORTHQueryDeclarationSignalCompatibilityChecked`
+- `WORTHQueryAdmittedConfiguredDomainHandle::signal_compatibility_checked(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::signal_compatibility_from_progressed(...)`
+- `WORTHQueryAdmittedConfiguredDomainHandle::signal_compatibility_support::<I>()`
 
 Hadwiger use:
 
@@ -513,15 +513,15 @@ Hadwiger use:
 - future checker-backed Hadwiger claims should enter relational/bridge/signal
   lanes from envelope-backed truth, not from raw Hadwiger artifacts
 - signal compatibility is eligibility posture only; it must not be treated as
-  live `forge-signal` execution or recomputation authority
+  live `worth-signal` execution or recomputation authority
 
 ### Continuation And Signal Compatibility For Later Milestones
 
 Docs:
 
-- `crates/forge-query/docs/domain-capabilities/continuation-pipeline.md`
-- `crates/forge-query/docs/domain-capabilities/signal-compatibility-orchestration.md`
-- `crates/forge-query/docs/domain-capabilities/workflow/envelope-to-signal-or-continuation.md`
+- `crates/worth-query/docs/domain-capabilities/continuation-pipeline.md`
+- `crates/worth-query/docs/domain-capabilities/signal-compatibility-orchestration.md`
+- `crates/worth-query/docs/domain-capabilities/workflow/envelope-to-signal-or-continuation.md`
 
 Exported APIs:
 
@@ -548,33 +548,33 @@ Hadwiger use:
 
 Docs:
 
-- `crates/forge-query/docs/AI_README.md`
-- `crates/forge-query/docs/foundations/support-matrix-and-admission.md`
-- `crates/forge-query/docs/domain-capabilities/orchestration-inventory.md`
-- `crates/forge-query/docs/domain-capabilities/public-doc-coverage.md`
-- `crates/forge-query/docs/domain-capabilities/platform-entry-closeout.md`
-- `crates/forge-query/docs/domain-capabilities/certification/certification-surface-and-closeout-bundle.md`
-- `crates/forge-query/docs/domain-capabilities/certification/goldens-boundaries-and-hostile-certification.md`
-- `crates/forge-query/docs/domain-capabilities/workflow/retained-artifact-to-next-step.md`
-- `crates/forge-query/docs/domain-capabilities/choosing/binding-vs-orchestration-vs-helpers.md`
-- `crates/forge-query/docs/domain-capabilities/recovery/README.md`
-- `crates/forge-query/docs/domain-capabilities/grouped-authoring.md`
-- `crates/forge-query/docs/domain-capabilities/grouped-products.md`
-- `crates/forge-query/docs/domain-capabilities/grouped-contributions.md`
-- `crates/forge-query/docs/capabilities/projection-consumption.md`
+- `crates/worth-query/docs/AI_README.md`
+- `crates/worth-query/docs/foundations/support-matrix-and-admission.md`
+- `crates/worth-query/docs/domain-capabilities/orchestration-inventory.md`
+- `crates/worth-query/docs/domain-capabilities/public-doc-coverage.md`
+- `crates/worth-query/docs/domain-capabilities/platform-entry-closeout.md`
+- `crates/worth-query/docs/domain-capabilities/certification/certification-surface-and-closeout-bundle.md`
+- `crates/worth-query/docs/domain-capabilities/certification/goldens-boundaries-and-hostile-certification.md`
+- `crates/worth-query/docs/domain-capabilities/workflow/retained-artifact-to-next-step.md`
+- `crates/worth-query/docs/domain-capabilities/choosing/binding-vs-orchestration-vs-helpers.md`
+- `crates/worth-query/docs/domain-capabilities/recovery/README.md`
+- `crates/worth-query/docs/domain-capabilities/grouped-authoring.md`
+- `crates/worth-query/docs/domain-capabilities/grouped-products.md`
+- `crates/worth-query/docs/domain-capabilities/grouped-contributions.md`
+- `crates/worth-query/docs/capabilities/projection-consumption.md`
 
 Exported APIs:
 
-- `ForgeQueryRuntimeFacadeFamily`
-- `ForgeQueryRuntimeFamilySupportStatus`
-- `ForgeQueryOrchestrationSurfaceInventory::current()`
-- `ForgeQueryOrchestrationInventoryAudit::current()`
-- `ForgeQueryPublicDocCoverageInventory::current()`
-- `ForgeQueryPublicDocCoverageAudit::current()`
-- `ForgeQueryPlatformEntryCloseoutBundle`
-- `ForgeQueryPlatformEntryAlignmentAudit`
-- `ForgeQueryPlatformEntryParityAudit`
-- `ForgeQueryPlatformEntryHostileAudit`
+- `WORTHQueryRuntimeFacadeFamily`
+- `WORTHQueryRuntimeFamilySupportStatus`
+- `WORTHQueryOrchestrationSurfaceInventory::current()`
+- `WORTHQueryOrchestrationInventoryAudit::current()`
+- `WORTHQueryPublicDocCoverageInventory::current()`
+- `WORTHQueryPublicDocCoverageAudit::current()`
+- `WORTHQueryPlatformEntryCloseoutBundle`
+- `WORTHQueryPlatformEntryAlignmentAudit`
+- `WORTHQueryPlatformEntryParityAudit`
+- `WORTHQueryPlatformEntryHostileAudit`
 
 Hadwiger use:
 
@@ -604,18 +604,18 @@ Hadwiger use:
 
 Docs:
 
-- `crates/forge-query/docs/domain-capabilities/invariants/registering-domain-invariants-through-query.md`
-- `crates/forge-query/docs/domain-capabilities/invariants/capability-gaps-and-invariant-denials.md`
+- `crates/worth-query/docs/domain-capabilities/invariants/registering-domain-invariants-through-query.md`
+- `crates/worth-query/docs/domain-capabilities/invariants/capability-gaps-and-invariant-denials.md`
 
 Exported APIs:
 
-- `forge_query_domain(...).for_intent(...).register_invariant_catalog(...).because(...).materialize()`
-- `ForgeQueryRuntime::builder().invariant_catalog(...)`
-- `ForgeQueryRuntime::builder().custom_invariant(...)`
-- `ForgeQueryRuntime::builder().register_invariant(...)`
-- `ForgeQueryRuntime::builder().invariant_registration_artifact(...)`
-- `ForgeQueryInvariantCapabilityContributionAuthoring::graph_capability_gap(...)`
-- `ForgeQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(...)`
+- `worth_query_domain(...).for_intent(...).register_invariant_catalog(...).because(...).materialize()`
+- `WORTHQueryRuntime::builder().invariant_catalog(...)`
+- `WORTHQueryRuntime::builder().custom_invariant(...)`
+- `WORTHQueryRuntime::builder().register_invariant(...)`
+- `WORTHQueryRuntime::builder().invariant_registration_artifact(...)`
+- `WORTHQueryInvariantCapabilityContributionAuthoring::graph_capability_gap(...)`
+- `WORTHQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(...)`
 - `materialize_graph_composition_capability_support_row(...)`
 - `materialize_graph_composition_domain_invariant_denial(...)`
 
@@ -644,14 +644,14 @@ or long-running lifecycle support.
 
 Bridge source docs reviewed:
 
-- `_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md`
-- `crates/forge-runtime-bridge/API_OVERVIEW.md`
-- `crates/forge-runtime-bridge/CAUSAL_BUNDLES_AND_GUARANTEES.md`
-- `crates/forge-runtime-bridge/CERTIFICATION_AND_HARNESS.md`
+- `_docs/worth-runtime-bridge/worth_runtime_bridge_roadmap.md`
+- `crates/worth-runtime-bridge/API_OVERVIEW.md`
+- `crates/worth-runtime-bridge/CAUSAL_BUNDLES_AND_GUARANTEES.md`
+- `crates/worth-runtime-bridge/CERTIFICATION_AND_HARNESS.md`
 
 Actual bridge public surface concepts to preserve compatibility with:
 
-- `forge_runtime_bridge::facade`
+- `worth_runtime_bridge::facade`
 - `RuntimeBridge::builder()`
 - `RuntimeBridgeBuilder::with_truth_source(...)`
 - `RuntimeBridgeBuilder::with_compute_sink(...)`
@@ -729,13 +729,13 @@ Relational invariant use:
 - invariant catalog work must stay below graph truth: it governs whether a
   research graph state may be committed, not whether a Hadwiger theorem is true
 - invariant registration must use Query-owned registration surfaces such as
-  `ForgeQueryRuntime::builder().invariant_catalog(...)`,
-  `ForgeQueryRuntime::builder().custom_invariant(...)`,
-  `ForgeQueryRuntime::builder().register_invariant(...)`, or
-  `ForgeQueryRuntime::builder().invariant_registration_artifact(...)`
+  `WORTHQueryRuntime::builder().invariant_catalog(...)`,
+  `WORTHQueryRuntime::builder().custom_invariant(...)`,
+  `WORTHQueryRuntime::builder().register_invariant(...)`, or
+  `WORTHQueryRuntime::builder().invariant_registration_artifact(...)`
 - invariant denials for graph operations must use Query-owned denial surfaces
   such as
-  `ForgeQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(...)`
+  `WORTHQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(...)`
   and
   `materialize_graph_composition_domain_invariant_denial(...)`
 - Milestone 1 defines the Hadwiger research-graph invariant catalog and proves
@@ -768,13 +768,13 @@ Query-routed lower-runtime rule:
   contribution posture, recovery posture, and future continuation posture
 - relational-shaped records and signal-shaped derived records are consumed or
   exposed through those Query surfaces
-- no public Hadwiger API may require callers to import `forge-relational`,
-  `forge-signal`, or `forge-runtime-bridge` directly for ordinary research work
+- no public Hadwiger API may require callers to import `worth-relational`,
+  `worth-signal`, or `worth-runtime-bridge` directly for ordinary research work
 
 ## Product Decision Locks
 
 - This milestone creates one crate: `hadwiger-research`.
-- `forge-query` is the entry point, including pre-runtime artifact authoring.
+- `worth-query` is the entry point, including pre-runtime artifact authoring.
 - The crate may define Hadwiger-specific domain declarations and helper APIs,
   but those helpers must compile onto Query declaration entry handles.
 - Hadwiger owns mathematical domain meaning; Query owns declaration identity,
@@ -807,7 +807,7 @@ Query-routed lower-runtime rule:
 - Hadwiger public APIs must not expose `RuntimeBridge` as a second entry point;
   bridge-compatible data appears as retained causal evidence underneath Query
   declaration and envelope posture.
-- Hadwiger public APIs must not expose `forge-relational` or `forge-signal` as
+- Hadwiger public APIs must not expose `worth-relational` or `worth-signal` as
   second entry points; relational-shaped graph truth and signal-shaped derived
   frontier state must be reached through Query-shaped operations.
 - Checked failures with structural recurrence potential must live on the
@@ -841,19 +841,19 @@ Required public concepts:
 
 Required Query API alignment:
 
-- domain entry must implement `ForgeQueryDomainEntryMarker`
-- stable research context must implement `ForgeQueryDomainOperatingContext`
+- domain entry must implement `WORTHQueryDomainEntryMarker`
+- stable research context must implement `WORTHQueryDomainOperatingContext`
 - every research operation that introduces domain-local meaning must implement
-  `ForgeQueryDeclarationInput`
-- each operation family must implement `ForgeQueryDeclarationFamilyMarker`
+  `WORTHQueryDeclarationInput`
+- each operation family must implement `WORTHQueryDeclarationFamilyMarker`
 - the ordinary declaration path must be reachable through
-  `ForgeQueryAdmittedConfiguredDomainHandle::declare(...)` and
+  `WORTHQueryAdmittedConfiguredDomainHandle::declare(...)` and
   `orchestrate_declaration_entry_outcome(...)`
 - envelope-producing paths must preserve `describe_foundational(...)`,
   `plan_routes_checked(...)`, `receipt_routes_checked(...)`, and
   `envelope_routes_checked(...)` truth when the operation crosses that seam
 - advisory/support/explanation/workflow/continuity posture must use
-  `ForgeQueryContributionIntent` and
+  `WORTHQueryContributionIntent` and
   `orchestrate_declaration_with_contributions_outcome(...)`
 - retained-artifact-to-next-step flows must use Query binding/resolver
   surfaces where the next operation consumes a retained declaration, envelope,
@@ -871,7 +871,7 @@ Required Query API alignment:
   seams
 - aftermath posture must use the standalone aftermath contribution authoring
   and materialization APIs until a composed aftermath intent exists
-- recoverable stops must expose or project to `ForgeQueryRecoveryBrief`
+- recoverable stops must expose or project to `WORTHQueryRecoveryBrief`
   through existing `recover_from_...` methods when the stop is Query-owned
 
 Forbidden public shape:
@@ -1753,7 +1753,7 @@ Rules:
   automatic execution
 - an invariant denial may not become evidence for a Hadwiger theorem claim
 - denial materialization should use
-  `ForgeQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(...)`
+  `WORTHQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(...)`
   and
   `materialize_graph_composition_domain_invariant_denial(...)` when the
   operation maps to Query's supported runtime-facing target family
@@ -1877,7 +1877,7 @@ needed Hadwiger-specific surface, this crate must define a local geometry or
 solver subsystem rather than weakening the checker requirement.
 
 External-process and long-running forms should route through
-`forge-runtime-bridge` style boundary artifacts rather than changing Hadwiger
+`worth-runtime-bridge` style boundary artifacts rather than changing Hadwiger
 domain semantics. The public Hadwiger entry remains Query.
 
 ## Phases
@@ -1894,16 +1894,16 @@ Must ship:
 - declaration family markers for candidate graph, embedding, colorability,
   lower-bound witness, advisory note, rejection explanation, and partial
   admission explanation
-- `ForgeQueryDomainEntryMarker` implementation for
+- `WORTHQueryDomainEntryMarker` implementation for
   `HadwigerResearchDomainEntry`
-- `ForgeQueryDomainOperatingContext<HadwigerResearchDomainEntry>`
+- `WORTHQueryDomainOperatingContext<HadwigerResearchDomainEntry>`
   implementation for `HadwigerResearchOperatingContext`
-- `ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>` implementations
+- `WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>` implementations
   for the first declaration request types
-- `ForgeQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry>`
+- `WORTHQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry>`
   implementations for the first declaration family markers
 - tests or examples proving the ordinary path starts from
-  `ForgeQueryApplicationFacade::domain(...).with_operating_context(...).validate().admit()`
+  `WORTHQueryApplicationFacade::domain(...).with_operating_context(...).validate().admit()`
 - Query-facing helper API that lowers to `declare_checked(...)`,
   `orchestrate_declaration_entry_outcome(...)`, or
   `orchestrate_declaration_with_contributions_outcome(...)`
@@ -1925,7 +1925,7 @@ Must ship:
 - parent/source references
 - authority owner fields
 - retained Query declaration digest/reference fields where an artifact comes
-  from `ForgeQueryCanonicalDeclarationArtifact`
+  from `WORTHQueryCanonicalDeclarationArtifact`
 - retained Query foundational evidence, route plan, receipt, and envelope
   digest/reference fields where an artifact crosses those Query seams
 - bridge-compatible causal evidence fields for real checker artifacts:
@@ -1948,9 +1948,9 @@ Must ship:
 - mapping from Hadwiger aspect kinds to Query declaration aspect contracts where
   an aspect participates in declaration entry, binding, contribution
   composition, or recovery
-- explicit use of `ForgeQueryBindingStale`,
-  `ForgeQueryBindingRebindRequired`, `ForgeQueryBindingMissingRequiredAspect`,
-  `ForgeQueryBindingAspectConflict`, or equivalent local posture only when the
+- explicit use of `WORTHQueryBindingStale`,
+  `WORTHQueryBindingRebindRequired`, `WORTHQueryBindingMissingRequiredAspect`,
+  `WORTHQueryBindingAspectConflict`, or equivalent local posture only when the
   stop is outside Query-owned binding
 - grouped-aspect participation rules for gadget, reduction, or composition
   neighborhoods whose group-level posture changes the claim meaning
@@ -1969,7 +1969,7 @@ Must ship:
 - floating geometry deferment
 - unsupported checker gap posture
 - public ordinary/checkable operation paths that return or project through
-  `ForgeQueryOrdinaryOutcome<T>` where the stop is Query-owned
+  `WORTHQueryOrdinaryOutcome<T>` where the stop is Query-owned
 - checker result artifacts that retain the Query declaration/progression
   identity that authorized the request
 - real checker boundary outputs that can be wrapped by Query foundational
@@ -2035,7 +2035,7 @@ Must ship:
 - repair obligations
 - reusable negative evidence
 - conservative escalation explanation
-- projection into `ForgeQueryRecoveryBrief` when the rejection was reached
+- projection into `WORTHQueryRecoveryBrief` when the rejection was reached
   through declaration entry, contribution composition, binding, or continuation
   posture that Query already owns
 - grouped recovery projection through `recover_from_grouped_orchestration_checked(...)`
@@ -2130,12 +2130,12 @@ Must ship:
   hypothesis lifecycle legality, branch-promotion legality, and executable
   experiment-admission legality
 - compatibility fields for Query invariant registration surfaces:
-  `ForgeQueryRuntime::builder().invariant_catalog(...)`,
-  `ForgeQueryRuntime::builder().custom_invariant(...)`,
-  `ForgeQueryRuntime::builder().register_invariant(...)`, and
-  `ForgeQueryRuntime::builder().invariant_registration_artifact(...)`
+  `WORTHQueryRuntime::builder().invariant_catalog(...)`,
+  `WORTHQueryRuntime::builder().custom_invariant(...)`,
+  `WORTHQueryRuntime::builder().register_invariant(...)`, and
+  `WORTHQueryRuntime::builder().invariant_registration_artifact(...)`
 - compatibility fields for Query invariant-denial surfaces:
-  `ForgeQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(...)`
+  `WORTHQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(...)`
   and `materialize_graph_composition_domain_invariant_denial(...)`
 - certification cases proving each rule blocks the illegal graph-memory
   shape it claims to govern
@@ -2168,12 +2168,12 @@ Must ship:
   advisory/proposal artifacts
 - advisory-to-checked-artifact promotion path descriptors that name the future
   checker/proof/Query lane required for promotion but do not perform promotion
-- `ForgeQueryContributionIntent::explanation(...)` or
-  `ForgeQueryContributionIntent::support(...)` usage for advisory notes that
+- `WORTHQueryContributionIntent::explanation(...)` or
+  `WORTHQueryContributionIntent::support(...)` usage for advisory notes that
   annotate declaration-scoped research artifacts
-- `ForgeQueryContributionIntent::admission(...)` only for advisory/violation
+- `WORTHQueryContributionIntent::admission(...)` only for advisory/violation
   posture about declaration admission, never for theorem authority
-- `ForgeQueryContributionIntent::aftermath(...)` is not currently exported;
+- `WORTHQueryContributionIntent::aftermath(...)` is not currently exported;
   aftermath-specific use must go through the standalone aftermath contribution
   authoring/materialization APIs named in the domain-capabilities facade, or
   the spec must be revised when a composed aftermath intent exists
@@ -2336,8 +2336,8 @@ Required assertion classes:
 - Query remains the public entry point.
 - Hadwiger math semantics remain in this crate.
 - External checkers own checked mathematical authority.
-- Forge Runtime Bridge owns later controlled external engine routing.
-- Forge Signal owns later derived invalidation/recompute execution.
+- WORTH Runtime Bridge owns later controlled external engine routing.
+- WORTH Signal owns later derived invalidation/recompute execution.
 - Relational-shaped graph memory and Signal-shaped derived frontier state are
   consumed through Query-shaped Hadwiger surfaces.
 - Relational invariant authority remains below graph truth and is reached

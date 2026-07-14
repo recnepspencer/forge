@@ -14,7 +14,7 @@ Use this skill:
 
 [$qa-tests](C:\Users\Esther\.codex\skills\qa-tests\SKILL.md)
 
-Review this phase's tests with a hostile Forge-quality posture. Find everything
+Review this phase's tests with a hostile WORTH-quality posture. Find everything
 weak, synthetic, too self-referential, fixture-theater-shaped, or insufficiently
 bound to real production behavior. Then tell which production surfaces are
 missing to support those tests honestly.

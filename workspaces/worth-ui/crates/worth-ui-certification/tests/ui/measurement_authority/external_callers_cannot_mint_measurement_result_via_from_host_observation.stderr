@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `from_host_observation` found for struct `UiMeasurementResult` in the current scope
+ --> tests/ui/measurement_authority/external_callers_cannot_mint_measurement_result_via_from_host_observation.rs:4:38
+  |
+4 |     let _mint = UiMeasurementResult::from_host_observation;
+  |                                      ^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `UiMeasurementResult`

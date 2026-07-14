@@ -1,0 +1,229 @@
+use crate::runtime::allocation_receipt::{
+    UiAllocationLedgerPreparation, UiAllocationReceiptLedger, UiPreparedAllocationLedgerTransition,
+};
+
+#[derive(Debug)]
+pub(in crate::runtime) struct UiAllocationTransactionAuthority {
+    graph_basis: crate::graph::UiGraphReplanTransactionBasis,
+    transaction: Option<crate::runtime::UiAllocationReplanTransaction>,
+}
+
+#[derive(Debug)]
+pub(super) struct UiPendingAllocationTransaction {
+    authority: UiAllocationTransactionAuthority,
+    preparation: UiAllocationLedgerPreparation,
+}
+
+impl UiAllocationTransactionAuthority {
+    fn for_selection(selection: &crate::graph::UiAdmittedReplanNeighborhoodSet) -> Self {
+        Self {
+            graph_basis: selection.transaction_basis().clone(),
+            transaction: None,
+        }
+    }
+
+    pub(in crate::runtime) fn certifies_selection(
+        &self,
+        selection: &crate::graph::UiAdmittedReplanNeighborhoodSet,
+    ) -> bool {
+        self.graph_basis == *selection.transaction_basis()
+    }
+
+    fn bind_transition(&mut self, transition: &UiPreparedAllocationLedgerTransition) {
+        self.transaction = Some(transition.committed().transaction().clone());
+    }
+
+    pub(in crate::runtime) fn certifies_committed(
+        &self,
+        committed: &crate::runtime::UiCommittedAllocationReplan,
+    ) -> bool {
+        self.transaction.as_ref().is_some_and(|expected| {
+            expected.same_idempotency_basis(committed.transaction())
+                && expected == committed.transaction()
+        })
+    }
+}
+
+pub(super) fn commit_selected(
+    ledger: &UiAllocationReceiptLedger,
+    authority: &mut crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
+    selection: &crate::graph::UiAdmittedReplanNeighborhoodSet,
+) -> crate::runtime::UiAllocationReplanTransactionOutcome {
+    if !authority.certifies_selection(selection) {
+        return denied_generation();
+    }
+    let mut transaction_authority = UiAllocationTransactionAuthority::for_selection(selection);
+    let preparation = ledger.prepare_selected(&transaction_authority, selection);
+    publish_prepared(ledger, authority, &mut transaction_authority, preparation)
+}
+
+pub(super) fn commit_viewport(
+    ledger: &UiAllocationReceiptLedger,
+    authority: &mut crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
+    basis: crate::runtime::UiViewportResizeCommitBasis<'_>,
+) -> crate::runtime::UiAllocationReplanTransactionOutcome {
+    if !authority.certifies_selection(basis.selection()) {
+        return denied_generation();
+    }
+    let mut transaction_authority =
+        UiAllocationTransactionAuthority::for_selection(basis.selection());
+    let preparation = ledger.prepare_viewport(&transaction_authority, basis);
+    publish_prepared(ledger, authority, &mut transaction_authority, preparation)
+}
+
+pub(super) fn commit_durable_resize(
+    ledger: &UiAllocationReceiptLedger,
+    authority: &mut crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
+    selection: &crate::graph::UiAdmittedReplanNeighborhoodSet,
+    identity: u64,
+    extent: crate::runtime::UiResizeLogicalExtent,
+) -> (
+    crate::runtime::UiAllocationReplanTransactionOutcome,
+    Option<crate::runtime::UiAllocationDurableSemanticState>,
+    bool,
+) {
+    if !authority.certifies_selection(selection) {
+        return (denied_generation(), ledger.durable_semantic_state(), false);
+    }
+    let previous = ledger
+        .durable_semantic_state()
+        .and_then(|state| state.committed_resize(identity).map(|basis| basis.extent()));
+    let mut transaction_authority = UiAllocationTransactionAuthority::for_selection(selection);
+    let (preparation, _, requested_mutation) =
+        ledger.prepare_durable_resize(&transaction_authority, selection, identity, extent);
+    let outcome = publish_prepared(ledger, authority, &mut transaction_authority, preparation);
+    let mutated = matches!(
+        outcome,
+        crate::runtime::UiAllocationReplanTransactionOutcome::Committed(_)
+    ) && requested_mutation
+        && previous != Some(extent);
+    (outcome, ledger.durable_semantic_state(), mutated)
+}
+
+pub(super) fn prepare_pending_durable_resize(
+    ledger: &UiAllocationReceiptLedger,
+    authority: &crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
+    selection: &crate::graph::UiAdmittedReplanNeighborhoodSet,
+    identity: u64,
+    extent: crate::runtime::UiResizeLogicalExtent,
+) -> UiPendingAllocationTransaction {
+    let transaction_authority = UiAllocationTransactionAuthority::for_selection(selection);
+    let preparation = if authority.certifies_selection(selection) {
+        ledger
+            .prepare_durable_resize(&transaction_authority, selection, identity, extent)
+            .0
+    } else {
+        denied_generation().into()
+    };
+    UiPendingAllocationTransaction {
+        authority: transaction_authority,
+        preparation,
+    }
+}
+
+pub(super) fn publish_pending(
+    ledger: &UiAllocationReceiptLedger,
+    authority: &mut crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
+    mut pending: UiPendingAllocationTransaction,
+) -> crate::runtime::UiAllocationReplanTransactionOutcome {
+    publish_prepared(
+        ledger,
+        authority,
+        &mut pending.authority,
+        pending.preparation,
+    )
+}
+
+pub(super) fn publish_prepared(
+    ledger: &UiAllocationReceiptLedger,
+    authority: &mut crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
+    transaction_authority: &mut UiAllocationTransactionAuthority,
+    preparation: UiAllocationLedgerPreparation,
+) -> crate::runtime::UiAllocationReplanTransactionOutcome {
+    let UiAllocationLedgerPreparation::Prepared(mut transition) = preparation else {
+        let UiAllocationLedgerPreparation::Resolved(outcome) = preparation else {
+            unreachable!()
+        };
+        return outcome;
+    };
+    transaction_authority.bind_transition(&transition);
+    let portal = !transition
+        .committed()
+        .transaction()
+        .consequences()
+        .portal_anchors()
+        .is_empty();
+    let succession = if portal {
+        match authority
+            .prepare_portal_binding_succession(transaction_authority, transition.committed())
+        {
+            Ok(prepared) => {
+                let receipt = prepared.receipt();
+                let committed = transition
+                    .committed()
+                    .clone()
+                    .with_portal_binding_succession(receipt);
+                transition = transition.with_committed(committed);
+                Some(prepared)
+            }
+            Err(denial) => return ledger.retain_prepared_denial(
+                &transition,
+                crate::runtime::UiAllocationReplanTransactionCommitDenial::PortalBindingSuccession(
+                    denial,
+                ),
+            ),
+        }
+    } else {
+        None
+    };
+    bind_and_publish(
+        ledger,
+        authority,
+        transition,
+        succession,
+        transaction_authority,
+    )
+}
+
+fn bind_and_publish(
+    ledger: &UiAllocationReceiptLedger,
+    authority: &mut crate::runtime::invalidation_narrowing::UiAllocationInvalidationAuthority,
+    transition: UiPreparedAllocationLedgerTransition,
+    succession: Option<crate::runtime::invalidation_narrowing::UiPreparedPortalBindingSuccession>,
+    transaction_authority: &mut UiAllocationTransactionAuthority,
+) -> crate::runtime::UiAllocationReplanTransactionOutcome {
+    if let Some(prepared) = succession.as_ref() {
+        let expected = prepared.predecessor_identity_digest();
+        let observed = authority.portal_binding_identity_digest();
+        if expected != observed {
+            return crate::runtime::UiAllocationReplanTransactionOutcome::Denied(
+                crate::runtime::UiAllocationReplanTransactionCommitDenial::PortalCommitBind(
+                    crate::runtime::UiPortalAllocationCommitBindDenial::BindingPredecessorChanged {
+                        expected_identity_digest: expected,
+                        observed_identity_digest: observed,
+                    },
+                ),
+            );
+        }
+    }
+    let outcome = transition.committed().clone();
+    let ledger_commit = match ledger.bind_replan_transition(transaction_authority, &transition) {
+        Ok(prepared) => prepared,
+        Err(denial) => {
+            return crate::runtime::UiAllocationReplanTransactionOutcome::Denied(
+                crate::runtime::UiAllocationReplanTransactionCommitDenial::PortalCommitBind(denial),
+            )
+        }
+    };
+    let transaction_authority = ledger_commit.commit_once();
+    if let Some(prepared) = succession {
+        authority.commit_portal_binding_succession(transaction_authority, prepared);
+    }
+    crate::runtime::UiAllocationReplanTransactionOutcome::Committed(outcome)
+}
+
+fn denied_generation() -> crate::runtime::UiAllocationReplanTransactionOutcome {
+    crate::runtime::UiAllocationReplanTransactionOutcome::Denied(
+        crate::runtime::UiAllocationReplanTransactionCommitDenial::AdmittedGenerationSetChanged,
+    )
+}

@@ -31,7 +31,7 @@ not define the law or mint runtime authority.
 
 When review failures repeat in the same phase, treat that as a root-cause
 signal, not a request for another wrapper. Identify the bad ownership boundary,
-forgeable authority path, copied-counter path, projection-owned law path,
+WORTHable authority path, copied-counter path, projection-owned law path,
 fixture-owned proof path, or mixed ordinary lane, then repair the law surface
 directly. It is acceptable to move/create a lower Worth vocabulary/contract
 surface, seal constructors, replace public data bags with private-field

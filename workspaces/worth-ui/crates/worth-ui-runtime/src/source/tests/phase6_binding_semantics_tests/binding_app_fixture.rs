@@ -7,7 +7,10 @@ use crate::capability::{
     SurfaceStateClass, ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily,
     ThemeTokenId, ThemeTokenSource, ThemeTokenValue, ViewBindingDescriptor, ViewBindingId,
 };
-use crate::facade::{WorthUi, WorthUiApp};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
 use crate::source::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 
 use super::binding_query_fixture::standard_query_owned_view_binding_descriptor;
@@ -41,7 +44,7 @@ pub(super) fn app_with_view_binding_descriptor(
             )
             .with_icon(IconId::new("workspace.icon.inspect").unwrap())
             .with_readiness(CommandReadinessBinding::from_query_readiness_status(
-                forge_query::facade::ForgeQueryDeclarationEntryReadinessStatus::Deferred,
+                worth_query::facade::foundation::WorthQueryDeclarationEntryReadinessStatus::Deferred,
             ))
             .with_runtime_intent_binding(CommandRuntimeIntentBinding::named(
                 "workspace.runtime.inspect",

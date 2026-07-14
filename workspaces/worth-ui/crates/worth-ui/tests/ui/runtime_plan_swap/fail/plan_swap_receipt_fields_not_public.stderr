@@ -5,8 +5,3 @@ error: cannot construct `WorthUiPlanSwapReceipt` with struct literal syntax due 
   |             ^^^^^^^^^^^^^^^^^^^^^^
   |
   = note: private fields that were not provided
-help: you might have meant to use the `new` associated function
-  |
-4 -     let _ = WorthUiPlanSwapReceipt {};
-4 +     let _ = WorthUiPlanSwapReceipt::new(_);
-  |

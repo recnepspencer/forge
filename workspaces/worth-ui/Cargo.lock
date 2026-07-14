@@ -309,103 +309,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 
 [[package]]
-name = "forge-foundational"
-version = "0.1.0"
-dependencies = [
- "forge-proof",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "forge-harness"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "tracing",
-]
-
-[[package]]
-name = "forge-proof"
-version = "0.1.0"
-
-[[package]]
-name = "forge-query"
-version = "0.1.0"
-dependencies = [
- "arc-swap",
- "forge-foundational",
- "forge-proof",
- "forge-relational",
- "forge-runtime-bridge",
- "forge-signal",
- "proc-macro2",
- "serde",
- "serde_json",
- "sha2",
- "syn",
-]
-
-[[package]]
-name = "forge-relational"
-version = "0.1.0"
-dependencies = [
- "forge-foundational",
- "forge-proof",
- "forge-runtime-bridge",
- "rayon",
- "rmp-serde",
- "serde",
- "sha2",
- "smallvec",
-]
-
-[[package]]
-name = "forge-runtime-bridge"
-version = "0.1.0"
-dependencies = [
- "forge-foundational",
- "forge-harness",
- "forge-proof",
- "forge-signal",
- "serde_json",
- "sha2",
-]
-
-[[package]]
-name = "forge-signal"
-version = "0.1.0"
-dependencies = [
- "forge-foundational",
- "forge-proof",
- "js-sys",
- "rayon",
- "serde",
- "serde_json",
- "sha2",
- "smallvec",
- "tracing",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "forge-ui-components"
-version = "0.1.0"
-dependencies = [
- "egui",
- "egui_extras",
- "forge-ui-theme",
-]
-
-[[package]]
-name = "forge-ui-theme"
-version = "0.1.0"
-dependencies = [
- "egui",
-]
-
-[[package]]
 name = "futures-core"
 version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1302,16 +1205,98 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0592e1c9d151f854e6fd382574c3a0855250e1d9b2f99d9281c6e6391af352f1"
 
 [[package]]
+name = "worth-foundational"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "worth-proof",
+]
+
+[[package]]
+name = "worth-harness"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "worth-proof"
+version = "0.1.0"
+
+[[package]]
+name = "worth-query"
+version = "0.1.0"
+dependencies = [
+ "arc-swap",
+ "proc-macro2",
+ "serde",
+ "serde_json",
+ "sha2",
+ "syn",
+ "worth-foundational",
+ "worth-proof",
+ "worth-relational",
+ "worth-runtime-bridge",
+ "worth-signal",
+]
+
+[[package]]
+name = "worth-relational"
+version = "0.1.0"
+dependencies = [
+ "rayon",
+ "rmp-serde",
+ "serde",
+ "sha2",
+ "smallvec",
+ "worth-foundational",
+ "worth-proof",
+ "worth-runtime-bridge",
+]
+
+[[package]]
+name = "worth-runtime-bridge"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "sha2",
+ "worth-foundational",
+ "worth-harness",
+ "worth-proof",
+ "worth-signal",
+]
+
+[[package]]
+name = "worth-signal"
+version = "0.1.0"
+dependencies = [
+ "js-sys",
+ "rayon",
+ "serde",
+ "serde_json",
+ "sha2",
+ "smallvec",
+ "tracing",
+ "wasm-bindgen",
+ "worth-foundational",
+ "worth-proof",
+]
+
+[[package]]
 name = "worth-ui"
 version = "0.1.0"
 dependencies = [
- "forge-foundational",
- "forge-query",
- "forge-relational",
- "forge-runtime-bridge",
- "forge-signal",
  "trybuild",
+ "worth-foundational",
+ "worth-query",
+ "worth-relational",
+ "worth-runtime-bridge",
+ "worth-signal",
  "worth-ui-dsl",
+ "worth-ui-inspection",
  "worth-ui-runtime",
 ]
 
@@ -1319,17 +1304,27 @@ dependencies = [
 name = "worth-ui-certification"
 version = "0.1.0"
 dependencies = [
- "forge-foundational",
- "forge-query",
  "syn",
  "toml 0.8.23",
  "trybuild",
+ "worth-foundational",
+ "worth-query",
  "worth-ui",
  "worth-ui-dsl",
  "worth-ui-host-contract",
  "worth-ui-inspection",
  "worth-ui-query-binding",
  "worth-ui-runtime",
+ "worth-ui-test-support",
+]
+
+[[package]]
+name = "worth-ui-components"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "egui_extras",
+ "worth-ui-theme",
 ]
 
 [[package]]
@@ -1346,7 +1341,6 @@ version = "0.1.0"
 dependencies = [
  "egui",
  "worth-ui-host-contract",
- "worth-ui-runtime",
 ]
 
 [[package]]
@@ -1360,21 +1354,35 @@ dependencies = [
 name = "worth-ui-query-binding"
 version = "0.1.0"
 dependencies = [
- "forge-foundational",
- "forge-query",
+ "worth-foundational",
+ "worth-query",
 ]
 
 [[package]]
 name = "worth-ui-runtime"
 version = "0.1.0"
 dependencies = [
- "forge-foundational",
- "forge-proof",
- "forge-query",
+ "worth-foundational",
+ "worth-proof",
+ "worth-query",
  "worth-ui-dsl",
  "worth-ui-host-contract",
  "worth-ui-inspection",
  "worth-ui-query-binding",
+]
+
+[[package]]
+name = "worth-ui-test-support"
+version = "0.1.0"
+dependencies = [
+ "worth-ui-runtime",
+]
+
+[[package]]
+name = "worth-ui-theme"
+version = "0.1.0"
+dependencies = [
+ "egui",
 ]
 
 [[package]]

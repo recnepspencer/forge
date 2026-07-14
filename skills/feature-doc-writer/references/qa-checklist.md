@@ -31,7 +31,7 @@ Do not ship the doc until these questions all have a good answer.
 - Does the doc name the correct public entry points precisely?
 - Does it explain what not to do, not just what to do?
 
-## Forge Quality Bar
+## WORTH Quality Bar
 
 - Does this read like product documentation rather than an engineering spec?
 - Does it avoid giant option dumps and milestone archaeology?

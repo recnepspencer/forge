@@ -1,0 +1,56 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/envelopes/boundary_envelope_constructor_private.rs:5:53
+  |
+5 |       let _ = WorthQueryLowerRuntimeBoundaryEnvelope::new(
+  |                                                       ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/envelopes.rs
+  |
+  | /     fn new(
+  | |         row: crate::lower_runtime_routing::WorthQueryLowerRuntimeCrossingRow,
+  | |         request_identity: &WorthQueryEvidenceIdentity,
+  | |         eligibility_identity: &WorthQueryEvidenceIdentity,
+... |
+  | |         retained_evidence_identity: &WorthQueryLowerRuntimeRetainedEvidenceIdentity,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0308]: arguments to this function are incorrect
+  --> tests/ui/lower_runtime_routing/envelopes/boundary_envelope_constructor_private.rs:5:13
+   |
+ 5 |     let _ = WorthQueryLowerRuntimeBoundaryEnvelope::new(
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 6 |         row,
+ 7 |         "request",
+   |         --------- expected `&WorthQueryEvidenceIdentity`, found `&str`
+ 8 |         "eligibility",
+   |         ------------- expected `&WorthQueryEvidenceIdentity`, found `&str`
+ 9 |         "route",
+   |         ------- expected `&WorthQueryEvidenceIdentity`, found `&str`
+10 |         "boundary",
+   |         ---------- expected `&WorthQueryEvidenceIdentity`, found `&str`
+   |
+   = note: expected reference `&WorthQueryEvidenceIdentity`
+              found reference `&'static str`
+   = note: expected reference `&WorthQueryEvidenceIdentity`
+              found reference `&'static str`
+   = note: expected reference `&WorthQueryEvidenceIdentity`
+              found reference `&'static str`
+   = note: expected reference `&WorthQueryEvidenceIdentity`
+              found reference `&'static str`
+note: associated function defined here
+  --> src/lower_runtime_routing/envelopes.rs
+   |
+   |     fn new(
+   |        ^^^
+
+warning: unreachable call
+  --> tests/ui/lower_runtime_routing/envelopes/boundary_envelope_constructor_private.rs:5:13
+   |
+ 5 |     let _ = WorthQueryLowerRuntimeBoundaryEnvelope::new(
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable call
+...
+11 |         todo!(),
+   |         ------- any code following this expression is unreachable
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

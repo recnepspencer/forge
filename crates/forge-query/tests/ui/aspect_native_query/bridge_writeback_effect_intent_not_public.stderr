@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `forge_query::facade::ForgeQueryBridgeWritebackEffectIntent`
- --> tests/ui/aspect_native_query/bridge_writeback_effect_intent_not_public.rs:1:5
-  |
-1 | use forge_query::facade::ForgeQueryBridgeWritebackEffectIntent;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ForgeQueryBridgeWritebackEffectIntent` in `facade`

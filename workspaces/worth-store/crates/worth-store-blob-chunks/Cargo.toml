@@ -1,0 +1,45 @@
+[package]
+name = "worth-store-blob-chunks"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.7 native content-addressed blob and object chunk store."
+
+[features]
+certification-test-authority = []
+
+[dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store-aspect-native.workspace = true
+worth-store-budgets.workspace = true
+worth-store-buffer-pool.workspace = true
+worth-store-contracts.workspace = true
+worth-store-authority.workspace = true
+worth-store-io-scheduler = { workspace = true, features = ["certification-test-authority"] }
+worth-store-operations-vocabulary.workspace = true
+worth-store-physical-backend.workspace = true
+worth-store-physical-format.workspace = true
+worth-store-physical-integrity.workspace = true
+worth-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
+worth-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
+worth-store-recovery-physics.workspace = true
+worth-store-retention.workspace = true
+worth-store-security = { workspace = true, features = ["certification-test-authority"] }
+worth-store-tiering = { workspace = true, features = ["certification-test-authority"] }
+worth-store-wal.workspace = true
+
+[dev-dependencies]
+worth-store-physical-integrity = { workspace = true, features = ["test-support"] }
+worth-store-aspect-native.workspace = true
+worth-store-offline-verifier.workspace = true
+worth-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
+worth-store-io-scheduler = { workspace = true, features = ["certification-test-authority"] }
+worth-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
+worth-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
+worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
+worth-store-tiering = { workspace = true, features = ["certification-test-authority"] }
+worth-store-test-support.workspace = true
+
+[lints]
+workspace = true

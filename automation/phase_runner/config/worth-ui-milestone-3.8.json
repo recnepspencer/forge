@@ -1,0 +1,299 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "Worth UI Milestone 3.8",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui",
+    "spec_file": "_docs\\worth-ui\\milestone-3.8.md",
+    "context_files": [
+      "_docs\\coding_guidelines\\MENTALITY.md",
+      "_docs\\coding_guidelines\\arch_laws.md",
+      "_docs\\coding_guidelines\\composition_laws.md",
+      "_docs\\coding_guidelines\\domain_structure_laws.md",
+      "_docs\\coding_guidelines\\perf_laws.md",
+      "_docs\\more_guidelines\\dx_laws.md",
+      "crates\\worth-foundational\\docs\\FOUNDATIONAL_README.md",
+      "crates\\worth-query\\docs\\AI_README.md",
+      "_docs\\worth-ui\\worth-ui-vision.md",
+      "_docs\\worth-ui\\worth-ui-dsl-vision.md",
+      "_docs\\worth-ui\\ai-diagnostics.md",
+      "_docs\\worth-ui\\worth_ui_roadmap.md",
+      "_docs\\worth-ui\\milestone-3.7.md",
+      "_docs\\worth-ui\\milestone-3.8.md",
+      "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\lib.rs",
+      "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime\\mod.rs",
+      "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\mod.rs",
+      "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence\\mod.rs",
+      "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\host\\mod.rs",
+      "workspaces\\worth-ui\\crates\\worth-ui-inspection\\src\\lib.rs",
+      "workspaces\\worth-ui\\crates\\worth-ui-query-binding\\src\\lib.rs",
+      "workspaces\\worth-ui\\crates\\worth-ui-certification\\src\\lib.rs",
+      "workspaces\\worth-ui\\crates\\worth-ui-test-support\\src\\lib.rs"
+    ]
+  },
+  "turn_templates": {
+    "boundary_review": "templates/boundary_review.md",
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/worth_ui_38_review.md",
+    "repair_plan": "templates/worth_ui_38_repair_plan.md",
+    "repair": "templates/worth_ui_38_repair.md",
+    "test_review": "templates/worth_ui_38_test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/worth_ui_38_code_quality_review.md",
+    "code_quality_repair": "templates/code_quality_repair.md"
+  },
+  "contract_template": "templates/_contract_worth_ui_38.md",
+  "session_defaults": {
+    "provider": "codex",
+    "command": "C:\\nvm4w\\nodejs\\codex.cmd",
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    }
+  },
+  "runner_control": {
+    "phase_id_start": 3,
+    "boundary_review_start_phase": 3,
+    "fresh_session_after_qa_repair_cycles": 5,
+    "repair_plan_start_sequence": 1634,
+    "idle_timeout_seconds": 1800,
+    "turn_timeout_seconds": 7200
+  },
+  "phases": [
+    {
+      "id": 3,
+      "title": "Runtime Frame Dispatch Ownership",
+      "owner": "worth-ui allocation frame-dispatch authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\host",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence"
+      ],
+      "acceptance": [
+        "the runtime-owned dispatcher has explicit paused, open, closing, sealed, and dispatched states with one named linearization authority and deterministic internal close transition",
+        "submission, duplicate/retry, late-ingress, transport backpressure, replacement pause, shutdown, and epoch-exhaustion outcomes are typed before planning",
+        "the same already-admitted ingress set replays to the same ordered sealed frame, epoch/sequence assignment, and dispatcher counters through the dispatcher support seam",
+        "the phase exposes only a move-only sealed-frame handoff; production source gateways, concrete framework-loop ownership, and downstream consumption remain explicit Phase 4/5 work rather than fabricated Phase 3 callers"
+      ],
+      "instructions": "Implement 3.8 Phase 3. Establish the runtime-owned dispatcher state machine and bounded transport lifecycle before source gateways, concrete framework-loop scheduling, or stream policy cause allocation work. Do not create proxy production callers or self-consuming handoffs for later phases.",
+      "qa_focus": "No mutable sealed frame, duplicate dispatch, unrelated frame epoch authority, raw public constructor, proxy framework loop, or self-acknowledged downstream handoff. Do not fail this phase merely because its Phase 4/5 production integrations are not yet present."
+    },
+    {
+      "id": 4,
+      "title": "Source-To-Frame Admission Gateways",
+      "owner": "worth-ui allocation source-to-frame admission authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\host",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-query-binding",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence"
+      ],
+      "acceptance": [
+        "host measurement, Query projection, interaction, and durable resize submit only already admitted source truth through narrow runtime gateways, and a concrete non-test framework-turn owner exclusively drives close/pump",
+        "gateways preserve source generation and ordering posture but cannot select policy, invalidation, reuse, or commit",
+        "raw collector mutation, policy resolution, downstream acknowledgment, and receipt commit remain unreachable from adapters, callbacks, and fixtures; partial Query settlement enters only as typed source fact for later policy resolution"
+      ],
+      "instructions": "Implement 3.8 Phase 4. Connect admitted source lanes and the concrete framework turn to the dispatcher through capability-shaped gateways with sealed entry identity/order. The framework owner may hand a sealed frame forward but cannot classify policy or self-acknowledge consumption.",
+      "qa_focus": "No raw host geometry ingress, Query payload cache, caller-owned frame id, callback-owned close/pump, adapter that can classify or commit, self-acknowledged handoff, or semantic family capacity policy in transport admission."
+    },
+    {
+      "id": 5,
+      "title": "Stream Classification And Typed Invalidation Plan",
+      "owner": "worth-ui allocation stream policy authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\host",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence"
+      ],
+      "acceptance": [
+        "sealed entries classify through distinct closed source-lane, stream-family, and invalidation-family types with frozen identity, ordering, duplicate, and gap law",
+        "the mandatory Phase 4 sealed-frame consumer accepts and acknowledges each exact move-only handoff only after policy acceptance, and total policy composition with exact numeric budgets resolves it into one immutable resolved frame plan containing typed invalidation artifacts and cadence/evidence verdict",
+        "this phase does not select neighborhoods, plan allocation, or commit receipts; same-frame pressure cannot bypass later locality proof"
+      ],
+      "instructions": "Implement 3.8 Phase 5. Install the mandatory consumer of the Phase 4 sealed-frame handoff, then lower each accepted frame through explicit ordering, numeric budgets, policy composition, typed invalidation artifacts, and exact acknowledgment rather than generic debounce behavior.",
+      "qa_focus": "No pull-only policy helper, partial merge table, count-only ingress identity, raw-ingress evidence explosion, self-issued acknowledgment, or premature receipt commitment."
+    },
+    {
+      "id": 6,
+      "title": "Invalidation Family Closure And Graph Narrowing",
+      "owner": "worth-ui allocation invalidation authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\host",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-query-binding",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence"
+      ],
+      "acceptance": [
+        "the resolved frame plan maps through closed invalidation families and admitted graph/Query narrowing before incremental replan lands",
+        "Query-backed layout facts enter only through admitted projection-consumption settlement and mapping law",
+        "host observations can target existing runtime neighborhoods and receipts but cannot mint new semantic dependency lanes"
+      ],
+      "instructions": "Implement 3.8 Phase 6. Close invalidation family narrowing as a first-class runtime boundary that consumes graph and Query truth rather than re-deriving dependency meaning locally.",
+      "qa_focus": "No generic something-changed bucket, no host-owned dependency edges, and no local Query payload cache becoming allocation authority."
+    },
+    {
+      "id": 7,
+      "title": "Affected-Neighborhood Replan Selection",
+      "owner": "worth-ui allocation locality authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence"
+      ],
+      "acceptance": [
+        "replan work is expressed as an ordered transaction set over admitted neighborhoods with deterministic ordering and widen reasons",
+        "root primary, counted root widen, and forbidden root fallback are mechanically distinct",
+        "locality proof consumes authority-graph indexes, touched-graph consequences, and admitted replacement impact rather than recursive scans",
+        "complete selected neighborhood sets preflight and publish receipt/report/transaction/counter/evidence effects atomically, with idempotent replay and deterministic overlap handling"
+      ],
+      "instructions": "Implement 3.8 Phase 7. Turn locality into a transaction-shaped proof artifact and the first ordinary atomic allocation transition so later resize, scroll, and portal churn cannot collapse into hidden broad replans.",
+      "qa_focus": "No root fallback disguised as shell work, no helper-owned dependency maps, no set-order folklore, and no partial multi-neighborhood publication."
+    },
+    {
+      "id": 8,
+      "title": "Continuous Viewport Resize Semantics",
+      "owner": "worth-ui viewport invalidation and cadence authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\host",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence"
+      ],
+      "acceptance": [
+        "viewport extent observations classify through a distinct invalidation family and policy lane",
+        "viewport churn stays neighborhood-bounded with explicit receipt-count ceilings per policy",
+        "viewport observations cannot author durable semantic-state mutation or graph ownership"
+      ],
+      "instructions": "Implement 3.8 Phase 8. Close viewport resize as host extent observation plus derived invalidation and commit policy, not as a hidden sibling of drag-driven resize state.",
+      "qa_focus": "No splitter-policy inheritance, no silent root collapse under shell churn, and no host observation becoming durable runtime meaning."
+    },
+    {
+      "id": 9,
+      "title": "Drag Preview And Durable Resize Commit",
+      "owner": "worth-ui drag preview and durable resize authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\host",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence"
+      ],
+      "acceptance": [
+        "preview candidate paint and durable resize mutation are distinct lanes with separate cadences and explicit policy law",
+        "pointer-rate preview does not mutate committed receipt truth or durable semantic state unless admitted policy says so",
+        "durable resize mutation counts and committed receipt counts are bounded and inspectable"
+      ],
+      "instructions": "Implement 3.8 Phase 9. Close drag preview and durable resize as separate runtime acts so continuous interaction never becomes implicit layout authority.",
+      "qa_focus": "No preview-through-report mutation, no gesture-local durable-state writes, and no hidden side effects during preview rendering."
+    },
+    {
+      "id": 10,
+      "title": "Scroll-Owned Allocation Semantics",
+      "owner": "worth-ui scroll allocation authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\host",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence"
+      ],
+      "acceptance": [
+        "scroll-owned extent changes invalidate allocation through runtime-owned family semantics while pure offset remains projected interaction only",
+        "unsupported or contradictory scroll ownership denies with typed evidence rather than host fallback",
+        "3.8 does not smuggle virtualization or offset-sensitive allocation into ordinary scroll semantics"
+      ],
+      "instructions": "Implement 3.8 Phase 10. Keep scroll ownership narrow, explicit, and runtime-owned, and freeze the non-virtualized default rather than leaving offset semantics mushy.",
+      "qa_focus": "No host-owned scroll dependency lane, no hidden virtualization assumptions, and no offset-triggered invalidation unless explicitly admitted."
+    },
+    {
+      "id": 11,
+      "title": "Portal-Anchored Allocation Semantics",
+      "owner": "worth-ui portal allocation authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\host",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\services",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence"
+      ],
+      "acceptance": [
+        "portal anchor identity, coordinate-space posture, and invalidation rules are explicit and typed",
+        "equivalent anchor rect movement preserves or replaces identity only according to the frozen portal identity rule",
+        "portal anchor churn widens only through graph-owned locality proof and typed transaction evidence"
+      ],
+      "instructions": "Implement 3.8 Phase 11. Close portal anchoring as an allocation lane with explicit identity and locality law rather than floating host glue.",
+      "qa_focus": "No host-owned portal membership graph, no phantom anchor identity rule, and no layer-spanning bypass of neighborhood proof."
+    },
+    {
+      "id": 12,
+      "title": "Allocation Inspection Surface",
+      "owner": "worth-ui allocation inspection authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime"
+      ],
+      "acceptance": [
+        "ordinary inspection can explain receipt existence, invalidation family, locality choice, reuse or denial, and geometry evidence without causal escalation",
+        "allocation inspection returns exact evidence refs and geometry-floor schema required by the spec",
+        "AI critique-readiness consumes receipt-backed geometry truth rather than screenshots or logs as primary authority"
+      ],
+      "instructions": "Implement 3.8 Phase 12. Extend the shared inspection substrate so allocation truth is inspectable and critique-ready without minting a second debugger runtime.",
+      "qa_focus": "No logs-as-evidence, no causal-inspection dependency for local why, and no screenshot archaeology replacing receipt-backed geometry."
+    },
+    {
+      "id": 13,
+      "title": "Allocation Freshness And Lag Posture",
+      "owner": "worth-ui allocation freshness authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection"
+      ],
+      "acceptance": [
+        "freshness and lag postures live on append-only receipt-report lineage rather than silent mutation of committed truth",
+        "posture transitions are explicit, typed, and consumer-legality constrained",
+        "host paint and later execution consumers obey different admitted freshness-consumption rules where the appendix says so"
+      ],
+      "instructions": "Implement 3.8 Phase 13. Close freshness as a real state-transition contract over report lineage instead of a bag of adjectives attached after the fact.",
+      "qa_focus": "No committed-equals-current folklore, no denied-without-artifact home, and no preview sneaking back in as a committed-report posture."
+    },
+    {
+      "id": 14,
+      "title": "Allocation Counters And Denial Taxonomy",
+      "owner": "worth-ui allocation boundedness and denial authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\evidence",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection"
+      ],
+      "acceptance": [
+        "counter names, denial families, and evidence cadence are explicit runtime surfaces rather than test-only commentary",
+        "mandatory denial families and widen reasons are closed and inspectable",
+        "boundedness proof can assert concrete maxima for receipt count, durable mutation count, neighborhood-set cardinality, and root-widen behavior"
+      ],
+      "instructions": "Implement 3.8 Phase 14. Freeze the counters and denial vocabulary as production authority so performance and failure shape stay mechanically auditable.",
+      "qa_focus": "No generic fallback denials, no counter logic hiding only in certification, and no unbounded evidence churn at ingress rate."
+    },
+    {
+      "id": 15,
+      "title": "Runtime Integration And Certification Closeout",
+      "owner": "worth-ui allocation runtime closeout authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification",
+        "workspaces\\worth-ui\\crates\\worth-ui-test-support",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection"
+      ],
+      "acceptance": [
+        "the full hostile scenario runs through admitted graph, Query, measurement, invalidation, transaction, receipt, inspection, and certification lanes without bypass",
+        "deterministic replay, anti-bypass fences, and concrete oracle ceilings are proven on the real ordinary lane",
+        "3.9 can consume committed allocation truth without reopening preview semantics, receipt granularity, locality proof, freshness law, or denial vocabulary"
+      ],
+      "instructions": "Implement 3.8 Phase 15. Close the milestone by proving the hostile ordinary lane, not by leaning on test-only shortcuts or certification-owned semantics.",
+      "qa_focus": "No production behavior hiding behind fixture seams, no remaining parallel dependency graph, and no closeout that still leaves 3.9 to answer 3.8's law questions."
+    }
+  ]
+}

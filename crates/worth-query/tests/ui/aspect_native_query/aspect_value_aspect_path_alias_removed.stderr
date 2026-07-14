@@ -1,0 +1,5 @@
+error[E0599]: no method named `aspect_path` found for reference `&WorthQueryAdmittedAspectValue` in the current scope
+  --> tests/ui/aspect_native_query/aspect_value_aspect_path_alias_removed.rs:12:20
+   |
+12 |     let _ = aspect.aspect_path();
+   |                    ^^^^^^^^^^^ method not found in `&WorthQueryAdmittedAspectValue`

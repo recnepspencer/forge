@@ -1,0 +1,13 @@
+error[E0451]: field `shape` of struct `WorthQueryBackendAdmissibleMutation` is private
+ --> tests/ui/aspect_native_query/backend_admissible_mutation_struct_literal_private.rs:6:9
+  |
+5 |     let _ = WorthQueryBackendAdmissibleMutation {
+  |             ----------------------------------- in this type
+6 |         shape: shape_fixture(),
+  |         ^^^^^ private field
+
+error: type `worth_query::runtime::mutation::backend_admissible::shape::WorthQueryBackendAdmissibleMutationShape` is private
+ --> tests/ui/aspect_native_query/backend_admissible_mutation_struct_literal_private.rs:6:16
+  |
+6 |         shape: shape_fixture(),
+  |                ^^^^^^^^^^^^^^^ private type

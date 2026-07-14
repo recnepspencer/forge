@@ -4,13 +4,12 @@ use crate::declaration::{
     UiAspectContract, UiAspectContractAdmission, UiAspectContractAdmissionDenial,
     UiAspectCoverageReport, UiDeclarationArtifactDigest, UiDeclarationContainmentIntent,
     UiDeclarationDigestProjection, UiDeclarationFamily, UiDeclarationFamilyAdmission,
-    UiDeclarationFamilyAdmissionDenial, UiDeclarationGraphHandoff,
-    UiDeclarationGraphHandoffDenial, UiDeclarationIdentity, UiDeclarationProvenance,
-    UiDeclarationStructuralSemantics,
+    UiDeclarationFamilyAdmissionDenial, UiDeclarationGraphHandoff, UiDeclarationGraphHandoffDenial,
+    UiDeclarationIdentity, UiDeclarationProvenance, UiDeclarationStructuralSemantics,
     UiDeclarationStructuralSemanticsAdmission, UiDeclarationStructuralSemanticsAdmissionDenial,
     UiDeclarationSupportSnapshot, UiDeclarationSupportSnapshotAdmission,
-    UiDeclarationSupportSnapshotAdmissionDenial, UiDeclaredPostureAdmission,
-    UiDeclaredMeasurementConstraintModifier, UiDeclaredMeasurementPolicyPosture,
+    UiDeclarationSupportSnapshotAdmissionDenial, UiDeclaredMeasurementConstraintModifier,
+    UiDeclaredMeasurementPolicyPosture, UiDeclaredPostureAdmission,
     UiDeclaredPostureAdmissionDenial, UiDeclaredPostureContract, UiDeclaredPostureLane,
 };
 
@@ -269,9 +268,11 @@ impl UiDeclarationArtifact {
         let containment_intent = self
             .source_backed_mosaic_membership_name
             .clone()
-            .map(|mosaic_name| UiDeclarationContainmentIntent::DeclaredMosaicMembership {
-                mosaic_name,
-            })
+            .map(
+                |mosaic_name| UiDeclarationContainmentIntent::DeclaredMosaicMembership {
+                    mosaic_name,
+                },
+            )
             .unwrap_or_else(|| admitted.containment_intent().clone());
 
         UiDeclarationStructuralSemantics::new(
@@ -295,13 +296,7 @@ impl UiDeclarationArtifact {
         };
         let measurement_lane = admitted.measurement_policy();
         let measurement_policy = measurement_lane.admitted().cloned().or_else(|| {
-            UiDeclaredMeasurementPolicyPosture::new(
-                None,
-                Some(modifier),
-                None,
-                None,
-                vec![],
-            )
+            UiDeclaredMeasurementPolicyPosture::new(None, Some(modifier), None, None, vec![])
         });
         let measurement_policy = measurement_policy.map(|policy| {
             if policy.constraint_modifier().is_some() {
@@ -322,10 +317,7 @@ impl UiDeclarationArtifact {
             admitted.query_binding().clone(),
             admitted.service_usage().clone(),
             admitted.touch_meaning().clone(),
-            UiDeclaredPostureLane::new(
-                measurement_lane.applicability(),
-                measurement_policy,
-            ),
+            UiDeclaredPostureLane::new(measurement_lane.applicability(), measurement_policy),
             admitted.host_capability().clone(),
         )
     }

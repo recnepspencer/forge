@@ -1,0 +1,30 @@
+warning: unreachable expression
+ --> tests/ui/subscription_continuation_raw_identity_forbidden.rs:6:9
+  |
+5 |         todo!(),
+  |         ------- any code following this expression is unreachable
+6 |         SubscriptionContinuationClass::IdentityRemap,
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: arguments to this function are incorrect
+  --> tests/ui/subscription_continuation_raw_identity_forbidden.rs:4:21
+   |
+ 4 |     let _evidence = admit_subscription_continuation_evidence(
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+ 7 |         "employee:old",
+   |         -------------- expected `WorthQueryEvidenceIdentity`, found `&str`
+ 8 |         "employee:new",
+   |         -------------- expected `WorthQueryEvidenceIdentity`, found `&str`
+ 9 |         "basis:current",
+   |         --------------- expected `WorthQueryEvidenceIdentity`, found `&str`
+10 |         "identity-evolution-authority",
+   |         ------------------------------ expected `WorthQueryEvidenceIdentity`, found `&str`
+   |
+note: function defined here
+  --> src/subscription/continuation.rs
+   |
+   | pub fn admit_subscription_continuation_evidence(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

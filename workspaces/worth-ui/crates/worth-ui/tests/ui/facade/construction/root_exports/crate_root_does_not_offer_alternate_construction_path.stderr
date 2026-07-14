@@ -8,7 +8,5 @@ help: consider importing one of these structs instead
   |
 1 | use worth_ui::facade::WorthUi;
   |               ++++++++
-1 | use worth_ui::facade::app::WorthUi;
-  |               +++++++++++++
 1 | use worth_ui_runtime::facade::WorthUi;
   |             ++++++++++++++++

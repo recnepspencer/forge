@@ -1,0 +1,21 @@
+error[E0277]: the trait bound `NonGeometryFamily: WorthQueryGeometryActiveFaceSelectionHelperFamily<ExampleDomain>` is not satisfied
+  --> tests/ui/domain_handle/boundaries/family_helper_rejects_non_geometry_family.rs:75:41
+   |
+75 |         .progress_active_face_selection(NonGeometryInput);
+   |          ------------------------------ ^^^^^^^^^^^^^^^^ unsatisfied trait bound
+   |          |
+   |          required by a bound introduced by this call
+   |
+help: the trait `WorthQueryGeometryActiveFaceSelectionHelperFamily<ExampleDomain>` is not implemented for `NonGeometryFamily`
+  --> tests/ui/domain_handle/boundaries/family_helper_rejects_non_geometry_family.rs:38:1
+   |
+38 | struct NonGeometryFamily;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^
+note: required by a bound in `WorthQueryGeometryFamilyHelpers::<'a, D, C>::progress_active_face_selection`
+  --> src/family_helpers/geometry/mod.rs
+   |
+   |     pub fn progress_active_face_selection<I>(
+   |            ------------------------------ required by a bound in this associated function
+...
+   |         I::Family: WorthQueryGeometryActiveFaceSelectionHelperFamily<D>,
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `WorthQueryGeometryFamilyHelpers::<'a, D, C>::progress_active_face_selection`

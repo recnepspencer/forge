@@ -1,0 +1,21 @@
+warning: unreachable statement
+  --> tests/ui/facade_preview_capability_cannot_admit_workflow.rs:8:5
+   |
+ 7 |       let binding: worth_query::facade::runtime::WorkflowContextBinding = todo!();
+   |                                                                           ------- any code following this expression is unreachable
+ 8 | /     let request = WorkflowDeclarationRequest::new(
+ 9 | |         WorkflowDeclarationFamily::ConflictInspectionNarrow,
+10 | |         WorkflowAuthorityTargetFamily::QueryInspection,
+11 | |         WorkflowCostClass::InspectionNarrow,
+12 | |         WorkflowBudgetClass::InspectionBounded,
+13 | |         WorkflowFreshnessPolicy::ExactBasis,
+14 | |     );
+   | |______^ unreachable statement
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `admit_declaration` found for reference `&PreviewSessionCapability` in the current scope
+  --> tests/ui/facade_preview_capability_cannot_admit_workflow.rs:16:34
+   |
+16 |     let _ = preview.capability().admit_declaration(&binding, request);
+   |                                  ^^^^^^^^^^^^^^^^^ method not found in `&PreviewSessionCapability`

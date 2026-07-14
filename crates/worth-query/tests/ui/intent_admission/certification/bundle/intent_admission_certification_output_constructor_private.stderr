@@ -1,0 +1,9 @@
+error[E0451]: fields `name` and `digest` of struct `WorthQueryIntentAdmissionCertificationOutput` are private
+ --> tests/ui/intent_admission/certification/bundle/intent_admission_certification_output_constructor_private.rs:5:9
+  |
+4 |     let _ = WorthQueryIntentAdmissionCertificationOutput {
+  |             -------------------------------------------- in this type
+5 |         name: "Worthd",
+  |         ^^^^ private field
+6 |         digest: String::new(),
+  |         ^^^^^^ private field

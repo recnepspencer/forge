@@ -1,0 +1,44 @@
+error[E0624]: associated function `admitted` is private
+ --> tests/ui/subscription_lifecycle_certification_context_admitted_private.rs:4:56
+  |
+4 |       let _ = SubscriptionLifecycleCertificationContext::admitted(
+  |                                                          ^^^^^^^^ private associated function
+  |
+ ::: src/subscription/certification.rs
+  |
+  | /     pub(crate) fn admitted(
+  | |         query_scope_identity: WorthQueryEvidenceIdentity,
+  | |         subscription_family_identity: WorthQueryEvidenceIdentity,
+  | |         subscription_equivalence_identity: WorthQueryEvidenceIdentity,
+... |
+  | |         basis_posture_identity: WorthQueryEvidenceIdentity,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0308]: arguments to this function are incorrect
+  --> tests/ui/subscription_lifecycle_certification_context_admitted_private.rs:4:13
+   |
+ 4 |     let _ = SubscriptionLifecycleCertificationContext::admitted(
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         "query",
+   |         ------- expected `WorthQueryEvidenceIdentity`, found `&str`
+ 6 |         "family",
+   |         -------- expected `WorthQueryEvidenceIdentity`, found `&str`
+ 7 |         "equivalence",
+   |         ------------- expected `WorthQueryEvidenceIdentity`, found `&str`
+ 8 |         "policy",
+   |         -------- expected `WorthQueryEvidenceIdentity`, found `&str`
+ 9 |         "tenant",
+   |         -------- expected `WorthQueryEvidenceIdentity`, found `&str`
+10 |         "relationship",
+   |         -------------- expected `WorthQueryEvidenceIdentity`, found `&str`
+11 |         "view",
+   |         ------ expected `WorthQueryEvidenceIdentity`, found `&str`
+12 |         "basis",
+   |         ------- expected `WorthQueryEvidenceIdentity`, found `&str`
+   |
+note: associated function defined here
+  --> src/subscription/certification.rs
+   |
+   |     pub(crate) fn admitted(
+   |                   ^^^^^^^^

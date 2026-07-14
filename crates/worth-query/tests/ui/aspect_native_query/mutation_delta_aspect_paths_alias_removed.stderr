@@ -1,0 +1,5 @@
+error[E0599]: no method named `aspect_paths` found for struct `WorthQueryMutationDelta` in the current scope
+  --> tests/ui/aspect_native_query/mutation_delta_aspect_paths_alias_removed.rs:16:19
+   |
+16 |     let _ = delta.aspect_paths();
+   |                   ^^^^^^^^^^^^ method not found in `WorthQueryMutationDelta`

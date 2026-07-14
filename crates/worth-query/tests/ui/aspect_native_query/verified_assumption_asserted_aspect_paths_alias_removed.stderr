@@ -1,0 +1,11 @@
+error[E0599]: no method named `asserted_aspect_paths` found for reference `&WorthQueryVerifiedAssumptionSet` in the current scope
+ --> tests/ui/aspect_native_query/verified_assumption_asserted_aspect_paths_alias_removed.rs:4:25
+  |
+4 |     let _ = assumptions.asserted_aspect_paths();
+  |                         ^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `asserted_aspects` with a similar name
+  |
+4 -     let _ = assumptions.asserted_aspect_paths();
+4 +     let _ = assumptions.asserted_aspects();
+  |

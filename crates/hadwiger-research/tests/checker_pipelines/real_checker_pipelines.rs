@@ -48,7 +48,7 @@ fn exact_unit_edge_admits_unit_distance_verification_and_aspect() {
             .verification()
             .query_declaration_reference()
             .domain_key(),
-        "forge.hadwiger.research"
+        "WORTH.hadwiger.research"
     );
     assert_eq!(
         checked

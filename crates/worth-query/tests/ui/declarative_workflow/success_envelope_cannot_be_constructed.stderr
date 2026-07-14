@@ -1,0 +1,28 @@
+warning: unreachable expression
+ --> tests/ui/declarative_workflow/success_envelope_cannot_be_constructed.rs:6:22
+  |
+5 |         advisories: todo!(),
+  |                     ------- any code following this expression is unreachable
+6 |         eligibility: todo!(),
+  |                      ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `advisories`, `eligibility`, `execution`, `aftermath`, `preview_outcome` and `counters` of struct `WorthQueryWorkflowCompletion` are private
+  --> tests/ui/declarative_workflow/success_envelope_cannot_be_constructed.rs:5:9
+   |
+ 4 |     let _completion = WorthQueryWorkflowCompletion {
+   |                       ---------------------------- in this type
+ 5 |         advisories: todo!(),
+   |         ^^^^^^^^^^ private field
+ 6 |         eligibility: todo!(),
+   |         ^^^^^^^^^^^ private field
+ 7 |         execution: todo!(),
+   |         ^^^^^^^^^ private field
+ 8 |         aftermath: todo!(),
+   |         ^^^^^^^^^ private field
+ 9 |         preview_outcome: todo!(),
+   |         ^^^^^^^^^^^^^^^ private field
+10 |         counters: todo!(),
+   |         ^^^^^^^^ private field

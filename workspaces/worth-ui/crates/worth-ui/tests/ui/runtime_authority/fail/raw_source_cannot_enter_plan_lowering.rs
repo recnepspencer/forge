@@ -1,6 +1,6 @@
-use worth_ui::facade::WorthUiRuntimeHost;
+use worth_ui::facade::WorthUiRuntime;
 
-fn attempt(host: WorthUiRuntimeHost) {
+fn attempt(host: WorthUiRuntime) {
     let _ = host.prepare_execution_plan_input("component Button {}");
 }
 

@@ -1,0 +1,12 @@
+error[E0308]: mismatched types
+ --> tests/ui/aspect_native_query/grouped_baseline_tuple_members_removed.rs:4:48
+  |
+4 |       accepts_grouped_baseline_members(Some(vec![(
+  |  ________________________________________________^
+5 | |         "member-1".to_string(),
+6 | |         "lane-a".to_string(),
+7 | |     )]));
+  | |_____^ expected `WorthQueryGroupedBaselineMember`, found `(String, String)`
+  |
+  = note: expected struct `WorthQueryGroupedBaselineMember`
+              found tuple `(std::string::String, std::string::String)`

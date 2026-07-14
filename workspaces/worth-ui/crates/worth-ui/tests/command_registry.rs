@@ -1,4 +1,4 @@
-use forge_query::facade::ForgeQueryDeclarationEntryReadinessStatus;
+use worth_query::facade::foundation::WorthQueryDeclarationEntryReadinessStatus;
 use worth_ui::facade::{
     CapabilityDiagnosticCode, CommandCategory, CommandDescriptor, CommandId, CommandProjectionId,
     CommandReadinessBinding, CommandRuntimeIntentBinding, WorthUi,
@@ -120,7 +120,7 @@ fn command_with_missing_projection_does_not_poison_valid_command() {
 #[test]
 fn command_readiness_binding_preserves_structured_query_status() {
     let readiness = CommandReadinessBinding::from_query_readiness_status(
-        ForgeQueryDeclarationEntryReadinessStatus::Deferred,
+        WorthQueryDeclarationEntryReadinessStatus::Deferred,
     );
     let app = WorthUi::app()
         .register_command(
@@ -135,7 +135,7 @@ fn command_readiness_binding_preserves_structured_query_status() {
         .expect("registered command");
     assert_eq!(
         descriptor.readiness().strongest_status(),
-        ForgeQueryDeclarationEntryReadinessStatus::Deferred
+        WorthQueryDeclarationEntryReadinessStatus::Deferred
     );
 }
 

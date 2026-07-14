@@ -1,4 +1,3 @@
-use forge_query::facade::ForgeQueryOrdinaryOutcome;
 use hadwiger_research::facade::*;
 
 fn query_source(graph_id: &str, graph_version: &str) -> HadwigerQueryDeclarationReference {
@@ -47,7 +46,7 @@ fn graph_identity_and_version_keep_query_source_and_parent_links() {
     match graph.source_reference() {
         HadwigerArtifactSourceReference::QueryDeclaration(reference) => {
             assert_eq!(reference, &source);
-            assert_eq!(reference.domain_key(), "forge.hadwiger.research");
+            assert_eq!(reference.domain_key(), "WORTH.hadwiger.research");
             assert_eq!(
                 reference.declaration_family_key(),
                 "hadwiger.candidate_graph"
@@ -56,7 +55,7 @@ fn graph_identity_and_version_keep_query_source_and_parent_links() {
             assert!(!reference.declaration_digest().is_empty());
             assert_eq!(
                 reference.canonicalization_version(),
-                "forge.query.declaration.v1"
+                "worth.query.declaration.v1"
             );
         }
         other => panic!("expected query declaration source, got {other:?}"),
@@ -166,29 +165,27 @@ fn graph_version_builder_rejects_shape_errors_without_math_claims() {
 }
 
 #[test]
-fn query_envelope_references_are_self_describing() {
+fn query_declaration_references_are_self_describing() {
     let handle =
         admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
             .expect("default Hadwiger research handle should admit");
-    let envelope = match orchestrate_research_request_entry(
+    let declaration = declare_research_request_checked(
         &handle,
         CandidateGraphDeclaration::new("candidate-a").with_graph_version("v1"),
-    ) {
-        ForgeQueryOrdinaryOutcome::Bound(envelope) => envelope,
-        _ => panic!("expected bound declaration envelope"),
-    };
-    let reference: HadwigerQueryEnvelopeReference = envelope.into();
+    )
+    .admitted()
+    .expect("candidate declaration should admit");
+    let reference: HadwigerQueryDeclarationReference = declaration.into();
 
-    assert_eq!(reference.domain_key(), "forge.hadwiger.research");
+    assert_eq!(reference.domain_key(), "WORTH.hadwiger.research");
     assert_eq!(
         reference.declaration_family_key(),
         "hadwiger.candidate_graph"
     );
     assert!(!reference.handle_identity_digest().is_empty());
-    assert!(!reference.operating_context_identity_digest().is_empty());
     assert!(!reference.declaration_digest().is_empty());
-    assert!(reference.progression_digest().is_some());
-    assert!(reference.route_plan_digest().is_some());
-    assert!(!reference.receipt_digest().is_empty());
-    assert!(!reference.envelope_digest().is_empty());
+    assert_eq!(
+        reference.canonicalization_version(),
+        "worth.query.declaration.v1"
+    );
 }

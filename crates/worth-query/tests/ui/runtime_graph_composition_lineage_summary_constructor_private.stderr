@@ -1,0 +1,35 @@
+error[E0308]: mismatched types
+ --> tests/ui/runtime_graph_composition_lineage_summary_constructor_private.rs:9:43
+  |
+9 |             prior_authoritative_identity: String::new(),
+  |                                           ^^^^^^^^^^^^^ expected `WorthQueryMutationAuthorityIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_graph_composition_lineage_summary_constructor_private.rs:12:29
+   |
+12 |             lineage_digest: String::new(),
+   |                             ^^^^^^^^^^^^^ expected `WorthQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_graph_composition_lineage_summary_constructor_private.rs:13:43
+   |
+13 |             continuity_resolution_digest: String::new(),
+   |                                           ^^^^^^^^^^^^^ expected `WorthQueryMutationEvidenceDigest`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_graph_composition_lineage_summary_constructor_private.rs:16:35
+   |
+16 |         aggregate_lineage_digest: String::new(),
+   |                                   ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_graph_composition_lineage_summary_constructor_private.rs:17:49
+   |
+17 |         aggregate_continuity_resolution_digest: String::new(),
+   |                                                 ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_graph_composition_lineage_summary_constructor_private.rs:18:33
+   |
+18 |         lineage_summary_digest: String::new(),
+   |                                 ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`

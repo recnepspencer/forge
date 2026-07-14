@@ -1,0 +1,34 @@
+[package]
+name = "worth-store-recovery-physics"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.4 WAL, checkpoint, LSN, and physical recovery rules."
+
+[dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store-aspect-native.workspace = true
+worth-store-authority.workspace = true
+worth-store-budgets.workspace = true
+worth-store-buffer-pool.workspace = true
+worth-store-contracts.workspace = true
+worth-store-physical-backend.workspace = true
+worth-store-physical-format.workspace = true
+worth-store-physical-integrity.workspace = true
+worth-store-security.workspace = true
+worth-store-wal.workspace = true
+
+[features]
+default = []
+certification-test-authority = ["worth-store-physical-backend/certification-test-authority"]
+phase21-layout-rule-construction = []
+phase22-layout-rule-construction = []
+
+[dev-dependencies]
+worth-store-authority.workspace = true
+worth-store-layout-indexes = { path = "../worth-store-layout-indexes" }
+worth-store-readiness.workspace = true
+
+[lints]
+workspace = true

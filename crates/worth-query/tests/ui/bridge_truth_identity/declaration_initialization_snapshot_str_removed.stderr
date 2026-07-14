@@ -1,0 +1,9 @@
+error[E0050]: method `declaration_initialization_metadata` has 3 parameters but the declaration in trait `worth_query::facade::runtime::WorthQueryRuntimeDeclarationInitializationAdapter::declaration_initialization_metadata` has 2
+  --> tests/ui/bridge_truth_identity/declaration_initialization_snapshot_str_removed.rs:9:9
+   |
+ 9 | /         &self,
+10 | |         _view: &WorthQueryDerivedView,
+11 | |         _snapshot_token: &str,
+   | |_____________________________^ expected 2 parameters, found 3
+   |
+   = note: `declaration_initialization_metadata` from trait: `fn(&Self, &WorthQueryDerivedView) -> std::result::Result<WorthQueryMutationMetadata, WorthQueryWorkspaceError>`

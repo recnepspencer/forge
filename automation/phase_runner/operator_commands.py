@@ -35,6 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     resume.add_argument("--loop", action="store_true")
     resume.add_argument("--sleep-seconds", type=int, default=30)
     resume.add_argument("--log", type=Path)
+    resume.add_argument("--reset-thread", action="store_true")
 
     status = subcommands.add_parser("status")
     status.add_argument("run_id")
@@ -66,7 +67,7 @@ def dispatch(args: argparse.Namespace) -> int:
         return start_run(args.config, args.run_id, args.loop, args.sleep_seconds, args.log)
 
     if args.command == "resume":
-        return resume_run(args.run_id, args.loop, args.sleep_seconds, args.log)
+        return resume_run(args.run_id, args.loop, args.sleep_seconds, args.log, args.reset_thread)
 
     if args.command == "status":
         projection = refresh_projection(config_path_for_run(args.run_id), args.run_id)

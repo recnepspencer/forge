@@ -1,0 +1,21 @@
+warning: unreachable statement
+ --> tests/ui/aspect_native_query/graph_read_schema_reference_error_terminal_key_projections_removed.rs:5:5
+  |
+4 |     let error: WorthQueryGraphReadSchemaReferenceAdmissionError = unreachable!();
+  |                                                                   -------------- any code following this expression is unreachable
+5 |     let _ = error.terminal_aspect_projection();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `terminal_aspect_projection` found for struct `WorthQueryGraphReadSchemaReferenceAdmissionError` in the current scope
+ --> tests/ui/aspect_native_query/graph_read_schema_reference_error_terminal_key_projections_removed.rs:5:19
+  |
+5 |     let _ = error.terminal_aspect_projection();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryGraphReadSchemaReferenceAdmissionError`
+
+error[E0599]: no method named `terminal_field_projection` found for struct `WorthQueryGraphReadSchemaReferenceAdmissionError` in the current scope
+ --> tests/ui/aspect_native_query/graph_read_schema_reference_error_terminal_key_projections_removed.rs:6:19
+  |
+6 |     let _ = error.terminal_field_projection();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryGraphReadSchemaReferenceAdmissionError`

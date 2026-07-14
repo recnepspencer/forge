@@ -1,0 +1,19 @@
+error[E0451]: fields `source_family`, `fact_kind`, `posture` and `support_digest` of struct `ProjectionConsumptionSupportRow` are private
+  --> tests/ui/projection_consumption/construction/projection_consumption_support_artifacts_constructor_private.rs:9:9
+   |
+ 8 |     let row = ProjectionConsumptionSupportRow {
+   |               ------------------------------- in this type
+ 9 |         source_family: impossible(),
+   |         ^^^^^^^^^^^^^ private field
+10 |         fact_kind: impossible(),
+   |         ^^^^^^^^^ private field
+11 |         posture: impossible(),
+   |         ^^^^^^^ private field
+12 |         support_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+
+error[E0451]: field `rows` of struct `ProjectionConsumptionSupportReport` is private
+  --> tests/ui/projection_consumption/construction/projection_consumption_support_artifacts_constructor_private.rs:14:50
+   |
+14 |     let _ = ProjectionConsumptionSupportReport { rows: vec![row] };
+   |                                                  ^^^^ private field

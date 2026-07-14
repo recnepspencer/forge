@@ -3,9 +3,9 @@ error[E0451]: fields `family`, `status` and `reason` of struct `QueryViewCapabil
   |
 5 |     let _witness = QueryViewCapabilityReference {
   |                    ---------------------------- in this type
-6 |         family: ForgeQueryCapabilityFamily::QueryComposition,
+6 |         family: WorthQueryCapabilityFamily::QueryComposition,
   |         ^^^^^^ private field
-7 |         status: ForgeQueryCapabilityStatus::Admitted,
+7 |         status: WorthQueryCapabilityStatus::Admitted,
   |         ^^^^^^ private field
 8 |         reason: "local admission claim",
   |         ^^^^^^ private field

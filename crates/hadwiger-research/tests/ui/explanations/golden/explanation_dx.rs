@@ -1,9 +1,7 @@
 use hadwiger_research::facade::{
-    explain_partial_admission, explain_query_recovery_brief, explain_rejection,
-    ExplainPartialAdmissionRequest, ExplainRejectionRequest, GraphVersion,
-    HadwigerCanonicalArtifact, HadwigerExplanationError, HadwigerProofClaimAdmissionError,
-    HadwigerQueryRecoveryExplanationRequest, HadwigerResearchHandle,
-    UnitDistanceVerificationChecked,
+    explain_partial_admission, explain_rejection, ExplainPartialAdmissionRequest,
+    ExplainRejectionRequest, GraphVersion, HadwigerCanonicalArtifact, HadwigerExplanationError,
+    HadwigerProofClaimAdmissionError, HadwigerResearchHandle, UnitDistanceVerificationChecked,
 };
 
 fn explanation_dx(
@@ -38,19 +36,6 @@ fn explanation_dx(
         assert!(!partial.admits_theorem_authority());
     }
 
-    let outcome = hadwiger_research::facade::orchestrate_research_request_entry(
-        handle,
-        hadwiger_research::facade::RejectionExplanationDeclaration::new("candidate-a", "bad"),
-    );
-    if let Some(recovery) =
-        hadwiger_research::facade::recover_research_stop_from_outcome(handle, &outcome)
-    {
-        let query_explanation = explain_query_recovery_brief(
-            handle,
-            HadwigerQueryRecoveryExplanationRequest::new("query", recovery),
-        )?;
-        assert!(query_explanation.is_query_owned());
-    }
     Ok(())
 }
 

@@ -1,0 +1,15 @@
+error[E0560]: struct `WorthQueryPreviewCloseoutEvidence` has no field named `label`
+ --> tests/ui/runtime_preview_closeout_evidence_constructor_private.rs:5:9
+  |
+5 |         label: "preview".to_string(),
+  |         ^^^^^ `WorthQueryPreviewCloseoutEvidence` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryPreviewCloseoutEvidence` has no field named `closeout_digest`
+  --> tests/ui/runtime_preview_closeout_evidence_constructor_private.rs:20:9
+   |
+20 |         closeout_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ `WorthQueryPreviewCloseoutEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned

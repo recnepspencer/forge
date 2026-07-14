@@ -1,0 +1,31 @@
+error[E0308]: mismatched types
+  --> tests/ui/runtime_verified_assumption_set_constructor_private.rs:12:25
+   |
+12 |         binding_digest: String::new(),
+   |                         ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
+
+error[E0560]: struct `WorthQueryVerifiedAssumptionSet` has no field named `assumption_snapshot_token`
+  --> tests/ui/runtime_verified_assumption_set_constructor_private.rs:14:9
+   |
+14 |         assumption_snapshot_token: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryVerifiedAssumptionSet` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_verified_assumption_set_constructor_private.rs:15:37
+   |
+15 |         assumption_snapshot_digest: String::new(),
+   |                                     ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_verified_assumption_set_constructor_private.rs:16:39
+   |
+16 |         verified_precondition_digest: String::new(),
+   |                                       ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_verified_assumption_set_constructor_private.rs:18:37
+   |
+18 |         verified_assumption_digest: String::new(),
+   |                                     ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`

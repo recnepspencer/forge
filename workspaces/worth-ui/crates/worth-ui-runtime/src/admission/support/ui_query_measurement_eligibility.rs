@@ -5,7 +5,10 @@ use crate::evidence::{
     UiProjectionFactReceipt,
 };
 use crate::graph::UiGraphNodeIdentity;
-use forge_query::facade::{BasisDigest, BasisResolutionMode};
+use worth_query::facade::foundation::{
+    BasisDigest,
+    BasisResolutionMode,
+};
 use worth_ui_query_binding::WorthUiQueryMeasurementFactFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

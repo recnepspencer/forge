@@ -76,19 +76,11 @@ impl UiGraphTouchMeasurementNeighborhoodHint {
         self.world_identity_digest
     }
 
-    pub fn basis_identity_digest(&self) -> u64 {
-        self.basis_identity_digest
-    }
-
     pub fn dependency_map(&self) -> &UiMeasurementDependencyMap {
         &self.dependency_map
     }
 
     pub fn neighborhood_class_hint(&self) -> UiMeasurementNeighborhoodClassHint {
         self.neighborhood_class_hint
-    }
-
-    pub fn identity_digest(&self) -> u64 {
-        self.identity_digest
     }
 }

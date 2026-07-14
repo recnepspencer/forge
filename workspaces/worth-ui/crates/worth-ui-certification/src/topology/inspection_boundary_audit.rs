@@ -6,11 +6,12 @@ use super::dependency_audit::{
     manifests_dependencies, normalize_manifest_alias_path, path_starts_with,
 };
 
-const INSPECTION_OWNER_CRATES: [&str; 4] = [
+const INSPECTION_OWNER_CRATES: [&str; 5] = [
     "worth-ui",
     "worth-ui-runtime",
     "worth-ui-inspection",
     "worth-ui-certification",
+    "worth-ui-test-support",
 ];
 
 const FORBIDDEN_INSPECTION_BYPASS_DEPS: [&str; 2] = ["worth-ui-runtime", "worth-ui-inspection"];

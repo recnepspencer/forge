@@ -1,13 +1,42 @@
-mod worth_ui_ambiguous_replacement_denial;
-mod worth_ui_node_lifecycle_transition;
-mod worth_ui_node_replacement_classification;
-mod worth_ui_node_replacement_classifier;
-mod worth_ui_node_replacement_counters;
-mod worth_ui_node_replacement_plan;
+//! Replacement lane — admit → compare → classify → narrow → match → reconcile → rebind → lowering input.
 
-pub use worth_ui_ambiguous_replacement_denial::WorthUiAmbiguousReplacementDenial;
-pub use worth_ui_node_lifecycle_transition::WorthUiNodeLifecycleTransition;
-pub use worth_ui_node_replacement_classification::WorthUiNodeReplacementClassification;
-pub(crate) use worth_ui_node_replacement_classifier::WorthUiNodeReplacementClassifier;
-pub use worth_ui_node_replacement_counters::WorthUiNodeReplacementCounters;
-pub use worth_ui_node_replacement_plan::WorthUiNodeReplacementPlan;
+#[path = "../admission/mod.rs"]
+pub mod admission;
+#[path = "../candidate/mod.rs"]
+pub mod candidate;
+#[path = "../equivalence/mod.rs"]
+pub mod equivalence;
+#[path = "../file_rust_replacement_parity/mod.rs"]
+pub mod file_rust_replacement_parity;
+#[path = "../impact/mod.rs"]
+pub mod impact;
+#[path = "../matching/mod.rs"]
+pub mod matching;
+#[path = "../narrowing/mod.rs"]
+pub mod narrowing;
+#[path = "../query_binding/mod.rs"]
+pub mod query_binding;
+#[path = "../query_live_rebind/mod.rs"]
+pub mod query_live_rebind;
+#[path = "../reconciliation/mod.rs"]
+pub mod reconciliation;
+#[path = "../state_inventory/mod.rs"]
+pub mod state_inventory;
+
+pub mod node_classification;
+mod orchestrator;
+mod transitions;
+
+pub use node_classification::{
+    WorthUiAmbiguousReplacementDenial, WorthUiNodeLifecycleTransition,
+    WorthUiNodeReplacementClassification, WorthUiNodeReplacementCounters,
+    WorthUiNodeReplacementPlan,
+};
+pub use orchestrator::WorthUiReplacementLoweringDenial;
+pub use transitions::{
+    WorthUiReplacementAdmissionBasis, WorthUiReplacementComparisonReady,
+    WorthUiReplacementIdentityReady, WorthUiReplacementImpactReady,
+    WorthUiReplacementLoweringReady, WorthUiReplacementNarrowingReady,
+    WorthUiReplacementNodePlanReady, WorthUiReplacementQueryComparisonReady,
+    WorthUiReplacementReconciliationReady,
+};

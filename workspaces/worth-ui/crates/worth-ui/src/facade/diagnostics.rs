@@ -1,4 +1,4 @@
-pub use worth_ui_runtime::facade::{
+pub use worth_ui_runtime::facade::registry::{
     CapabilityDiagnosticCode, CapabilityDiagnosticRichness, CapabilityDiagnosticSeverity,
     CapabilityRegistrationDiagnostic, CapabilityRegistrationReport, CapabilitySnapshot,
     CapabilitySnapshotDigest, CapabilitySnapshotIndex, RegisteredCapabilitySet,

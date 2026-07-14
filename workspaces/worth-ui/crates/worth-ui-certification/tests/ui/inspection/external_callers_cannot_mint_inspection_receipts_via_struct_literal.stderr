@@ -35,6 +35,7 @@ help: you might have meant to use an associated function to build this type
 14 -     };
 11 +     let _ = UiInspectionReceipt::from_assembled_slice(_, _, _, _);
    |
+   = and 1 other candidate
 
 error[E0308]: mismatched types
   --> tests/ui/inspection/external_callers_cannot_mint_inspection_receipts_via_struct_literal.rs:13:18

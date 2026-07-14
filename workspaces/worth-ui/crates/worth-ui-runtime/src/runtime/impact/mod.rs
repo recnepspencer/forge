@@ -1,5 +1,3 @@
-#![cfg_attr(not(test), allow(dead_code))]
-
 mod worth_ui_accessibility_impact;
 mod worth_ui_command_impact;
 mod worth_ui_durable_state_impact_receipts;

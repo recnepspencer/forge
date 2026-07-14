@@ -1,0 +1,5 @@
+error[E0308]: mismatched types
+ --> tests/ui/runtime_preview_handle_binding_evidence_constructor_private.rs:5:16
+  |
+5 |         label: "preview".to_string(),
+  |                ^^^^^^^^^^^^^^^^^^^^^ expected `WorthQuerySessionLabel`, found `String`

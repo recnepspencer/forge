@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_query::facade::materialize_authoritative_grouped_baseline`
+ --> tests/ui/facade_grouped_baseline_shortcut_not_exported.rs:1:5
+  |
+1 | use worth_query::facade::materialize_authoritative_grouped_baseline;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `materialize_authoritative_grouped_baseline` in `facade`

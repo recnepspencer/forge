@@ -1,0 +1,13 @@
+error[E0451]: fields `family`, `raw_authoring_constructor`, `common_path_front_door` and `advanced_path_front_door` of struct `WorthQueryIntentAdmissionFamilyInventoryRow` are private
+ --> tests/ui/intent_admission/inventory/family/family_inventory_row_constructor_private.rs:5:9
+  |
+4 |     let _ = WorthQueryIntentAdmissionFamilyInventoryRow {
+  |             ------------------------------------------- in this type
+5 |         family: WorthQueryIntentAdmissionFamily::AuthoritativeUserIntent,
+  |         ^^^^^^ private field
+6 |         raw_authoring_constructor: WorthQueryIntentAdmissionSurfaceDescriptor::Available("Worthd"),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+7 |         common_path_front_door: WorthQueryIntentAdmissionSurfaceDescriptor::Available("Worthd"),
+  |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+8 |         advanced_path_front_door: WorthQueryIntentAdmissionSurfaceDescriptor::Available("Worthd"),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field

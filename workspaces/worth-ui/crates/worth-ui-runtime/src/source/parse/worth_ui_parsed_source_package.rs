@@ -30,6 +30,7 @@ impl WorthUiParsedSourcePackage {
         &self.canonical_module_order
     }
 
+    #[cfg(test)]
     pub(crate) fn equivalent_shape(&self, other: &Self) -> bool {
         self.canonical_module_order == other.canonical_module_order
             && self.modules.len() == other.modules.len()

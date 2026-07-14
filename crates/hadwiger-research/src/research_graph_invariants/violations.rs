@@ -72,7 +72,7 @@ impl ResearchGraphInvariantViolation {
             },
             parent_artifacts,
             vec![
-                HadwigerArtifactPayloadEntry::text("schema", "forge.hadwiger.violation.v1"),
+                HadwigerArtifactPayloadEntry::text("schema", "WORTH.hadwiger.violation.v1"),
                 HadwigerArtifactPayloadEntry::text("kind", violation_kind.as_str()),
                 HadwigerArtifactPayloadEntry::text("family", rule_family.as_str()),
                 HadwigerArtifactPayloadEntry::text("scope", scope.as_str()),

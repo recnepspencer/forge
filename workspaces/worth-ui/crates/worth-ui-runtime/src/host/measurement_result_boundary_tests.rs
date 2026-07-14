@@ -8,17 +8,18 @@ use worth_ui_host_contract::{
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use super::{
-    collect_host_measurement_evidence, normalize_host_measurement_evidence,
-    request_host_measurement, UiHostMeasurementAssumptionProfile, UiHostMeasurementEvidenceDenial,
+    normalize_host_measurement_evidence, request_host_measurement,
+    UiHostMeasurementAssumptionProfile, UiHostMeasurementEvidenceDenial,
     UiHostMeasurementFreshnessWitness, UiHostMeasurementNeed,
     UiHostMeasurementNormalizationContext, UiHostMeasurementNormalizationDenial,
+    WorthUiHostMeasurementCollector,
 };
 use crate::evidence::{
     measurement_result_identity_digest, UiMeasurementCoordinateSpace,
     UiMeasurementEvidenceCategory, UiMeasurementRoundingPosture, UiMeasurementUnitPosture,
 };
 
-use super::measurement_result_test_support::{
+use super::tests::measurement_result_test_support::{
     collected_text_result_for_request, measurement_evidence_family_for, normalization_context_for,
     CountingAdapter,
 };
@@ -113,16 +114,17 @@ fn normalized_host_measurement_results_preserve_identity_generation_and_posture(
         let profile =
             UiHostMeasurementAssumptionProfile::from_capability_report(&report, 100, 200, 300, 400);
         let context = normalization_context_for(category, profile);
-        let result = collect_host_measurement_evidence(
-            &CountingAdapter::new(),
-            request_identity,
-            measurement_evidence_family_for(category),
-            need,
-            &report,
-            UiEvidenceAuthorityGeneration::new(77),
-            context,
-        )
-        .unwrap();
+        let result = WorthUiHostMeasurementCollector::for_internal_proof()
+            .collect(
+                &CountingAdapter::new(),
+                request_identity,
+                measurement_evidence_family_for(category),
+                need,
+                &report,
+                UiEvidenceAuthorityGeneration::new(77),
+                context,
+            )
+            .unwrap();
 
         assert_eq!(result.request_identity(), request_identity);
         assert_eq!(result.evidence_category(), category);
@@ -185,7 +187,10 @@ fn normalization_context_cannot_reclassify_observed_measurement_evidence() {
     let denial = normalize_host_measurement_evidence(
         observation,
         UiEvidenceAuthorityGeneration::new(1),
-        UiHostMeasurementNormalizationContext::portal_anchor_logical_exact(hostile_profile),
+        UiHostMeasurementNormalizationContext::portal_anchor_logical_exact_in(
+            crate::host::UiPortalAnchorCoordinateSpacePosture::PortalLayer,
+            hostile_profile,
+        ),
     )
     .unwrap_err();
 
@@ -204,16 +209,17 @@ fn stale_measurement_results_must_be_readmitted_before_reuse() {
         WorthUiHostCapabilityReport::available(vec![WorthUiHostCapability::ViewportObservation])
             .with_observation_generation(WorthUiHostCapabilityObservationGeneration::new(1));
     let profile = UiHostMeasurementAssumptionProfile::from_capability_report(&report, 1, 2, 3, 4);
-    let result = collect_host_measurement_evidence(
-        &CountingAdapter::new(),
-        UiMeasurementRequestIdentity::new(77),
-        worth_ui_host_contract::UiMeasurementEvidenceFamily::ViewportExtent,
-        UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
-        &report,
-        UiEvidenceAuthorityGeneration::new(9),
-        UiHostMeasurementNormalizationContext::viewport_logical_exact(profile),
-    )
-    .unwrap();
+    let result = WorthUiHostMeasurementCollector::for_internal_proof()
+        .collect(
+            &CountingAdapter::new(),
+            UiMeasurementRequestIdentity::new(77),
+            worth_ui_host_contract::UiMeasurementEvidenceFamily::ViewportExtent,
+            UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
+            &report,
+            UiEvidenceAuthorityGeneration::new(9),
+            UiHostMeasurementNormalizationContext::viewport_logical_exact(profile),
+        )
+        .unwrap();
 
     let denial = super::admit_current_host_measurement_evidence(
         &result,

@@ -1,0 +1,13 @@
+error[E0624]: method `write` is private
+ --> tests/ui/prohibition_registry/workspace_direct_write_forbidden.rs:4:23
+  |
+4 |       let _ = workspace.write(command);
+  |                         ^^^^^ private method
+  |
+ ::: src/runtime/workspace_mutations.rs
+  |
+  | /     pub(crate) fn write(
+  | |         &mut self,
+  | |         command: WorthQueryWriteCommand,
+  | |     ) -> Result<WorthQueryWriteReceipt, WorthQueryRuntimeError> {
+  | |_______________________________________________________________- private method defined here

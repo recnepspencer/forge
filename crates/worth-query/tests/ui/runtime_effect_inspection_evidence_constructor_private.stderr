@@ -1,0 +1,94 @@
+error: cannot construct `WorthQueryEffectInspectionEvidence` with struct literal syntax due to private fields
+  --> tests/ui/runtime_effect_inspection_evidence_constructor_private.rs:4:19
+   |
+ 4 |     let _worthd = WorthQueryEffectInspectionEvidence {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         name: "ui.Worthd".to_string(),
+   |         ----------------------------- private field
+ 6 |         trigger_source: "tasks.table".to_string(),
+   |         ----------------------------------------- private field
+ 7 |         trigger_source_kind: WorthQueryEffectTriggerSourceKind::LiveView,
+   |         ---------------------------------------------------------------- private field
+ 8 |         trigger_aspects: Vec::new(),
+   |         --------------------------- private field
+ 9 |         condition_descriptor: "always".to_string(),
+   |         ------------------------------------------ private field
+10 |         condition_inputs: Vec::new(),
+   |         ---------------------------- private field
+11 |         condition_outputs: Vec::new(),
+   |         ----------------------------- private field
+12 |         condition_failure_posture: None,
+   |         ------------------------------- private field
+13 |         action: WorthQueryEffectAction::Deliver,
+   |         --------------------------------------- private field
+14 |         target_lane: WorthQueryAuthorityLane::EffectDeliveryState,
+   |         --------------------------------------------------------- private field
+15 |         target: "ui.badges".to_string(),
+   |         ------------------------------- private field
+16 |         effect_policy: WorthQueryEffectPolicy::AuthoritativeAllowed,
+   |         ----------------------------------------------------------- private field
+17 |         suppression_policy: WorthQueryEffectSuppressionPolicy::None,
+   |         ----------------------------------------------------------- private field
+18 |         counters: WorthQueryEffectCounters::default(),
+   |         --------------------------------------------- private field
+19 |         pending_delivery_count: 0,
+   |         ------------------------- private field
+20 |         pending_delivered_count: 0,
+   |         -------------------------- private field
+21 |         pending_suppressed_count: 0,
+   |         --------------------------- private field
+22 |         pending_expression_failure_count: 0,
+   |         ----------------------------------- private field
+23 |         pending_write_intent_count: 0,
+   |         ----------------------------- private field
+24 |         latest_delivery_family: None,
+   |         ---------------------------- private field
+25 |         latest_phase_evidence: None,
+   |         --------------------------- private field
+26 |         trigger_digest: String::new(),
+   |         ----------------------------- private field
+27 |         condition_digest: String::new(),
+   |         ------------------------------- private field
+28 |         declaration_digest: String::new(),
+   |         --------------------------------- private field
+29 |         pending_delivery_digest: String::new(),
+   |         -------------------------------------- private field
+30 |         latest_phase_digest: None,
+   |         ------------------------- private field
+31 |         inspection_digest: String::new(),
+   |         -------------------------------- private field
+   |
+   = note: ...and other private fields `write_adjacent_trigger` and `feedback_graph` that were not provided
+help: you might have meant to use the `from_runtime` associated function
+   |
+ 4 -     let _worthd = WorthQueryEffectInspectionEvidence {
+ 5 -         name: "ui.Worthd".to_string(),
+ 6 -         trigger_source: "tasks.table".to_string(),
+ 7 -         trigger_source_kind: WorthQueryEffectTriggerSourceKind::LiveView,
+ 8 -         trigger_aspects: Vec::new(),
+ 9 -         condition_descriptor: "always".to_string(),
+10 -         condition_inputs: Vec::new(),
+11 -         condition_outputs: Vec::new(),
+12 -         condition_failure_posture: None,
+13 -         action: WorthQueryEffectAction::Deliver,
+14 -         target_lane: WorthQueryAuthorityLane::EffectDeliveryState,
+15 -         target: "ui.badges".to_string(),
+16 -         effect_policy: WorthQueryEffectPolicy::AuthoritativeAllowed,
+17 -         suppression_policy: WorthQueryEffectSuppressionPolicy::None,
+18 -         counters: WorthQueryEffectCounters::default(),
+19 -         pending_delivery_count: 0,
+20 -         pending_delivered_count: 0,
+21 -         pending_suppressed_count: 0,
+22 -         pending_expression_failure_count: 0,
+23 -         pending_write_intent_count: 0,
+24 -         latest_delivery_family: None,
+25 -         latest_phase_evidence: None,
+26 -         trigger_digest: String::new(),
+27 -         condition_digest: String::new(),
+28 -         declaration_digest: String::new(),
+29 -         pending_delivery_digest: String::new(),
+30 -         latest_phase_digest: None,
+31 -         inspection_digest: String::new(),
+32 -     };
+ 4 +     let _worthd = WorthQueryEffectInspectionEvidence::from_runtime(_);
+   |

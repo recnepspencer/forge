@@ -1,5 +1,0 @@
-error[E0599]: no method named `terminal_touched_aspect_paths_projection` found for reference `&ForgeQueryBatchWriteReceiptInspection` in the current scope
- --> tests/ui/aspect_native_query/batch_write_inspection_terminal_touched_aspect_paths_projection_removed.rs:6:24
-  |
-6 |     let _ = inspection.terminal_touched_aspect_paths_projection();
-  |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryBatchWriteReceiptInspection`

@@ -1,4 +1,6 @@
-use forge_query::facade::{ForgeQueryRecoveryAuthoritySurface, ForgeQueryRecoveryStopFamily};
+use worth_query::facade::foundation::{
+    WorthQueryRecoveryAuthoritySurface, WorthQueryRecoveryStopFamily,
+};
 
 use crate::aspect_authority::HadwigerAspectPosture;
 use crate::domain_artifacts::{
@@ -213,56 +215,56 @@ fn conservative_escalation_basis(
 }
 
 fn explanation_stop_family(
-    stop_family: ForgeQueryRecoveryStopFamily,
+    stop_family: WorthQueryRecoveryStopFamily,
 ) -> HadwigerExplanationStopFamily {
     match stop_family {
-        ForgeQueryRecoveryStopFamily::Binding => HadwigerExplanationStopFamily::QueryBinding,
-        ForgeQueryRecoveryStopFamily::Continuation => {
+        WorthQueryRecoveryStopFamily::Binding => HadwigerExplanationStopFamily::QueryBinding,
+        WorthQueryRecoveryStopFamily::Continuation => {
             HadwigerExplanationStopFamily::QueryContinuation
         }
-        ForgeQueryRecoveryStopFamily::ContributionComposedOrchestration => {
+        WorthQueryRecoveryStopFamily::ContributionComposedOrchestration => {
             HadwigerExplanationStopFamily::QueryContributionComposition
         }
-        ForgeQueryRecoveryStopFamily::DeclarationEntry => {
+        WorthQueryRecoveryStopFamily::DeclarationEntry => {
             HadwigerExplanationStopFamily::QueryDeclarationEntry
         }
-        ForgeQueryRecoveryStopFamily::DeclarationReceipt
-        | ForgeQueryRecoveryStopFamily::DeclarationRoutePlan => {
+        WorthQueryRecoveryStopFamily::DeclarationReceipt
+        | WorthQueryRecoveryStopFamily::DeclarationRoutePlan => {
             HadwigerExplanationStopFamily::QueryRouteOrReceipt
         }
-        ForgeQueryRecoveryStopFamily::GroupedNeighborhoodOrchestration => {
+        WorthQueryRecoveryStopFamily::GroupedNeighborhoodOrchestration => {
             HadwigerExplanationStopFamily::QueryGroupedNeighborhood
         }
-        ForgeQueryRecoveryStopFamily::SignalCompatibilityOrchestration => {
+        WorthQueryRecoveryStopFamily::SignalCompatibilityOrchestration => {
             HadwigerExplanationStopFamily::QuerySignalCompatibility
         }
     }
 }
 
 fn explanation_authority_surface(
-    authority_surface: ForgeQueryRecoveryAuthoritySurface,
+    authority_surface: WorthQueryRecoveryAuthoritySurface,
 ) -> HadwigerExplanationAuthoritySurface {
     match authority_surface {
-        ForgeQueryRecoveryAuthoritySurface::ContributionComposition => {
+        WorthQueryRecoveryAuthoritySurface::ContributionComposition => {
             HadwigerExplanationAuthoritySurface::QueryContributionComposition
         }
-        ForgeQueryRecoveryAuthoritySurface::DeclarationMeaning
-        | ForgeQueryRecoveryAuthoritySurface::HandleIdentity
-        | ForgeQueryRecoveryAuthoritySurface::InputNarrowing
-        | ForgeQueryRecoveryAuthoritySurface::SupportReadiness => {
+        WorthQueryRecoveryAuthoritySurface::DeclarationMeaning
+        | WorthQueryRecoveryAuthoritySurface::HandleIdentity
+        | WorthQueryRecoveryAuthoritySurface::InputNarrowing
+        | WorthQueryRecoveryAuthoritySurface::SupportReadiness => {
             HadwigerExplanationAuthoritySurface::QueryDeclarationProgression
         }
-        ForgeQueryRecoveryAuthoritySurface::TruthContinuationContext => {
+        WorthQueryRecoveryAuthoritySurface::TruthContinuationContext => {
             HadwigerExplanationAuthoritySurface::ProjectionConsumption
         }
-        ForgeQueryRecoveryAuthoritySurface::SignalCompatibility => {
+        WorthQueryRecoveryAuthoritySurface::SignalCompatibility => {
             HadwigerExplanationAuthoritySurface::LowerRuntimeCompatibility
         }
-        ForgeQueryRecoveryAuthoritySurface::AdmittedOperatingWorld
-        | ForgeQueryRecoveryAuthoritySurface::AutomationBoundary
-        | ForgeQueryRecoveryAuthoritySurface::AvailabilityDiscovery
-        | ForgeQueryRecoveryAuthoritySurface::BoundInputContext
-        | ForgeQueryRecoveryAuthoritySurface::FailureEscalation => {
+        WorthQueryRecoveryAuthoritySurface::AdmittedOperatingWorld
+        | WorthQueryRecoveryAuthoritySurface::AutomationBoundary
+        | WorthQueryRecoveryAuthoritySurface::AvailabilityDiscovery
+        | WorthQueryRecoveryAuthoritySurface::BoundInputContext
+        | WorthQueryRecoveryAuthoritySurface::FailureEscalation => {
             HadwigerExplanationAuthoritySurface::QueryRecovery
         }
     }

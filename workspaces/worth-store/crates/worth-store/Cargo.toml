@@ -1,0 +1,49 @@
+[package]
+name = "worth-store"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Thin public facade for the rebuilt Worth Store crate family."
+
+[dependencies]
+worth-store-analysis.workspace = true
+worth-store-aspect-native.workspace = true
+worth-store-authority.workspace = true
+worth-store-blob-chunks.workspace = true
+worth-store-branch-deltas.workspace = true
+worth-store-budgets.workspace = true
+worth-store-buffer-pool.workspace = true
+worth-store-certification.workspace = true
+worth-store-claim-boundaries.workspace = true
+worth-store-compatibility.workspace = true
+worth-store-contracts.workspace = true
+worth-store-extensions.workspace = true
+worth-store-formal-models.workspace = true
+worth-store-io-scheduler.workspace = true
+worth-store-layout-indexes.workspace = true
+worth-store-live-query.workspace = true
+worth-store-maintenance.workspace = true
+worth-store-modes.workspace = true
+worth-store-offline-verifier.workspace = true
+worth-store-operations.workspace = true
+worth-store-physical-backend.workspace = true
+worth-store-physical-certification.workspace = true
+worth-store-physical-format.workspace = true
+worth-store-physical-integrity.workspace = true
+worth-store-physical-isolation.workspace = true
+worth-store-recovery-physics.workspace = true
+worth-store-replication.workspace = true
+worth-store-retention.workspace = true
+worth-store-schema-lineage.workspace = true
+worth-store-security.workspace = true
+worth-store-snapshots.workspace = true
+worth-store-subscription-support.workspace = true
+worth-store-tiering.workspace = true
+worth-store-wal.workspace = true
+
+[dev-dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-proof = { path = "../../../../crates/worth-proof" }
+
+[lints]
+workspace = true

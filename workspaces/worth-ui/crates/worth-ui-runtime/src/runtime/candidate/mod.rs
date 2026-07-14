@@ -1,5 +1,3 @@
-#![cfg_attr(not(test), allow(dead_code))]
-
 mod ingress;
 mod worth_ui_candidate_artifact_bundle;
 mod worth_ui_candidate_authoring_lane;
@@ -12,7 +10,6 @@ mod worth_ui_replacement_candidate_basis;
 mod worth_ui_replacement_candidate_denial;
 mod worth_ui_replacement_cause;
 
-#[allow(unused_imports)]
 pub(crate) use ingress::{
     file_authored_replacement_candidate, rust_authored_replacement_candidate,
 };

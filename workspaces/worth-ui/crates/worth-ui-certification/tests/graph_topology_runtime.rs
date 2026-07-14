@@ -1,5 +1,6 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
+#[path = "fixtures/graph_topology_test_support.rs"]
 mod graph_topology_test_support;
 
 use graph_topology_test_support::{
@@ -9,6 +10,7 @@ use graph_topology_test_support::{
 };
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::graph::{UiGraphContainmentClaim, UiGraphParentResolutionClaim};
+use worth_ui::facade::registry::MosaicSizingContractId;
 use worth_ui_dsl::WorthUiDslPackage;
 
 #[test]
@@ -133,6 +135,10 @@ fn public_freeze_exposes_explicit_region_and_mosaic_membership_indexes() {
         mosaic_topology.containment_claim(),
         &UiGraphContainmentClaim::Mosaic {
             mosaic_name: "workspace".into(),
+            sizing_contract_id: Some(
+                MosaicSizingContractId::new("workspace.sizing.main")
+                    .expect("expected sizing contract id should be valid"),
+            ),
         }
     );
     assert_eq!(

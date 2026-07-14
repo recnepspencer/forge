@@ -7,7 +7,7 @@
 # ALLOWLIST:
 #   - Test code: *_tests.rs, *_test.rs, */tests/*, */tests.rs, #[cfg(test)]
 #   - Deprecated code: */_deprecated/*
-#   - Tolerance definitions: forge-core/src/tolerance.rs
+#   - Tolerance definitions: WORTH-core/src/tolerance.rs
 #   - Doc comments: lines starting with ///  or //!
 #   - worth-math (pure math library, no tolerance concerns)
 #
@@ -43,12 +43,12 @@ if [ -z "$violations" ]; then
 else
   echo "❌ Hardcoded tolerance literals found in production code!"
   echo ""
-  echo "These should use forge_core::ToleranceProvider methods instead:"
+  echo "These should use WORTH_core::ToleranceProvider methods instead:"
   echo "  - geometry_epsilon()  for geometric identity checks"
   echo "  - vertex_tolerance()  for per-vertex thresholds"
   echo "  - global_default()    for conservative fallback"
   echo ""
-  echo "Or use forge_core comparison predicates:"
+  echo "Or use WORTH_core comparison predicates:"
   echo "  - approximately_equal(a, b, &tol)"
   echo "  - positions_coincident(&a, &b, &tol)"
   echo "  - is_effectively_zero(val, &tol)"

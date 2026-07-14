@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/intent_admission/inventory/support/support_matrix_constructor_private.rs:4:53
+  |
+4 |     let _ = WorthQueryIntentAdmissionSupportMatrix::new(&[]);
+  |                                                     ^^^ private associated function
+  |
+ ::: src/intent_admission/support/mod.rs
+  |
+  |     pub(crate) const fn new(rows: &'static [WorthQueryIntentAdmissionSupportRow]) -> Self {
+  |     ------------------------------------------------------------------------------------- private associated function defined here

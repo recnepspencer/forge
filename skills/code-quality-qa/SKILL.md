@@ -1,6 +1,6 @@
 ---
 name: code-quality-qa
-description: Run a hostile Forge-quality structural review of production code. Use when the question is whether code truly lives up to `composition_laws.md` and `domain_structure_laws.md`, especially directory topology, file names, function decomposition, naming, helper placement, and module boundaries.
+description: Run a hostile WORTH-quality structural review of production code. Use when the question is whether code truly lives up to `composition_laws.md` and `domain_structure_laws.md`, especially directory topology, file names, function decomposition, naming, helper placement, and module boundaries.
 ---
 
 # Code Quality QA
@@ -35,7 +35,7 @@ Review as a hostile engineer who assumes code can be technically correct while
 still being structurally bad.
 
 The bar is stricter than ordinary "clean code", stricter than Google-style
-readability, and biased toward Forge's opinionated architecture standards.
+readability, and biased toward WORTH's opinionated architecture standards.
 
 Assume the structure is guilty until it proves itself:
 - a directory must truly earn its boundary, not merely group related files
@@ -51,7 +51,7 @@ Assume the structure is guilty until it proves itself:
 
 Do not grade on an industry curve. A structure that would pass ordinary code
 review can still fail this skill if it is less explicit, less navigable, or
-less predictive than Forge's laws demand.
+less predictive than WORTH's laws demand.
 
 Assume the surrounding codebase may not yet meet this bar. Existing local
 patterns are evidence to inspect, not precedent to copy. When reviewing new or
@@ -162,7 +162,7 @@ Evaluate the code against:
 - `composition_laws.md`
 - `domain_structure_laws.md`
 
-Assume the bar is stricter than ordinary production code, stricter than Google readability, and biased toward Forge's most opinionated standards.
+Assume the bar is stricter than ordinary production code, stricter than Google readability, and biased toward WORTH's most opinionated standards.
 
 Start from skepticism. Ask whether each directory truly earns its boundary, whether each filename truly predicts its contents before opening it, and whether each function is truly decomposed into named semantic steps rather than merely being short, tidy, or locally understandable.
 

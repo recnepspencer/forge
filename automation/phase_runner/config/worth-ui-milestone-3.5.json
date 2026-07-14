@@ -1,8 +1,8 @@
-﻿{
+{
   "schema_version": 1,
   "project": {
     "name": "Worth UI Milestone 3.5",
-    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\WORTH_workspace\\worth-ui",
     "spec_file": "_docs\\worth-ui\\milestone-3.5.md",
     "context_files": [
       "_docs\\coding_guidelines\\MENTALITY.md",
@@ -10,8 +10,8 @@
       "_docs\\coding_guidelines\\composition_laws.md",
       "_docs\\coding_guidelines\\domain_structure_laws.md",
       "_docs\\coding_guidelines\\perf_laws.md",
-      "crates\\forge-foundational\\docs\\FOUNDATIONAL_README.md",
-      "crates\\forge-query\\docs\\AI_README.md",
+      "crates\\worth-foundational\\docs\\FOUNDATIONAL_README.md",
+      "crates\\worth-query\\docs\\AI_README.md",
       "workspaces\\worth-ui\\docs\\WORTH_UI_README.md",
       "_docs\\worth-ui\\worth-ui-vision.md",
       "_docs\\worth-ui\\worth-ui-dsl-vision.md",
@@ -55,11 +55,11 @@
       ],
       "acceptance": [
         "evidence-family ownership is explicit for declaration, admission, graph, aspect, and obligation truth with no generic debug blob fallback",
-        "UiEvidenceIdentity, UiEvidenceRef, UiEvidenceHandle, and UiEvidenceSlice are semantically distinct and non-forgeable where required",
+        "UiEvidenceIdentity, UiEvidenceRef, UiEvidenceHandle, and UiEvidenceSlice are semantically distinct and non-WORTHable where required",
         "family-local evidence records carry provenance to the owning authority artifact rather than inspector-local reinterpretation",
         "public inspection surfaces remain facade-oriented and do not export family-local storage topology"
       ],
-      "instructions": "Freeze evidence authority first. Make the family vocabulary, ownership, provenance, and non-forgeable handle split explicit before relevance, indexing, or slice assembly broadens the substrate.",
+      "instructions": "Freeze evidence authority first. Make the family vocabulary, ownership, provenance, and non-WORTHable handle split explicit before relevance, indexing, or slice assembly broadens the substrate.",
       "qa_focus": "No second truth graph, no generic evidence map, no public family internals, and no identity/ref/handle collapse."
     },
     {

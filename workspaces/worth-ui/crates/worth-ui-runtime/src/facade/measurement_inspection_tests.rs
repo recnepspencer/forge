@@ -7,17 +7,17 @@ use worth_ui_inspection::{
     UiInspectionMeasurementQueryUnsupportedReason, UiInspectionSupportStatus, UiInspectionTarget,
 };
 
-use crate::evidence::projection_fact_test_support::{
+use crate::evidence::measurement::projection::fact_test_support::{
     capability_report, display_field_projection_context, host_result_font_metrics,
     host_result_scroll_container_viewport, host_result_viewport_extent,
 };
 
+use super::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 use super::measurement_inspection_test_support::{
     direct_measurement_view_for_graph_node, graph_node_identity, host_measurement_app,
     measurement_app_in_world, measurement_detail, measurement_query,
     query_measurement_app_in_world, query_measurement_package, repeated_instance_app,
 };
-use super::UiMeasurementInspectionEvidenceBundle;
 
 #[test]
 fn declared_surface_measurement_inspection_materializes_typed_detail() {
@@ -115,7 +115,7 @@ fn graph_node_measurement_inspection_success_matches_direct_runtime_projection()
         "app/measurement_inspection.wui",
         0,
     )
-    .with_query_projection_consumption(consumption)
+    .with_query_authority(consumption)
     .with_host_capability_report(host_report)
     .with_host_measurement_results([host_result, scroll_container_viewport, viewport_extent]);
     let app = query_measurement_app_in_world(world_profile, Some(bundle.clone()));
@@ -163,7 +163,7 @@ fn graph_node_measurement_inspection_reports_compatibility_on_public_lane() {
                 "app/measurement_inspection.wui",
                 0,
             )
-            .with_query_projection_consumption(consumption)
+            .with_query_authority(consumption)
             .with_host_capability_report(host_report)
             .with_host_measurement_results([stale_host_result]),
         ),
@@ -207,7 +207,7 @@ fn graph_node_measurement_inspection_reports_unsupported_query_posture_on_public
                 "app/measurement_inspection.wui",
                 0,
             )
-            .with_query_projection_consumption(consumption)
+            .with_query_authority(consumption)
             .with_host_capability_report(host_report)
             .with_host_measurement_results([host_result]),
         ),

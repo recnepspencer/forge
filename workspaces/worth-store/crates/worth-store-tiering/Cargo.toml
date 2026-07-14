@@ -1,0 +1,26 @@
+[package]
+name = "worth-store-tiering"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 1 tiering and durable working-set intelligence."
+
+[features]
+certification-test-authority = [
+    "worth-store-io-scheduler/certification-test-authority",
+    "worth-store-physical-backend/certification-test-authority",
+    "worth-store-reclaim-policy/certification-test-authority",
+    "worth-store-security/certification-test-authority",
+]
+
+[dependencies]
+worth-store-contracts.workspace = true
+worth-store-io-scheduler.workspace = true
+worth-store-physical-backend.workspace = true
+worth-store-physical-format.workspace = true
+worth-store-physical-isolation.workspace = true
+worth-store-reclaim-policy.workspace = true
+worth-store-security.workspace = true
+
+[lints]
+workspace = true

@@ -51,8 +51,14 @@ pub(super) fn admit_bound_reconciliation(
     }
 
     let special_only = has_unsupported_special_input(summary);
-    let Some(axis_scope) = bounded_axis_scope(summary.bounded_min_max_requirements())
-        .or_else(|| special_only.then(|| summary.incoming_available_space().unwrap_or(UiConstraintAxisScope::Both)))
+    let Some(axis_scope) =
+        bounded_axis_scope(summary.bounded_min_max_requirements()).or_else(|| {
+            special_only.then(|| {
+                summary
+                    .incoming_available_space()
+                    .unwrap_or(UiConstraintAxisScope::Both)
+            })
+        })
     else {
         return UiAdmittedBoundReconciliation::empty();
     };
@@ -220,7 +226,8 @@ fn bounded_axis_scope(
 }
 
 fn has_unsupported_special_input(summary: UiAllocationConstraintSummary) -> bool {
-    summary.portal_anchor_requirement() == crate::evidence::UiConstraintSpecialInputPosture::Required
+    summary.portal_anchor_requirement()
+        == crate::evidence::UiConstraintSpecialInputPosture::Required
         || ((summary.viewport_requirement()
             == crate::evidence::UiConstraintSpecialInputPosture::Required
             || summary.scroll_owner_requirement()

@@ -1,0 +1,63 @@
+error[E0423]: cannot initialize a tuple struct which contains private fields
+ --> tests/ui/active_subscription_lane_constructor_private.rs:5:22
+  |
+5 |         lane_digest: ActiveSubscriptionLaneDigest(String::new()),
+  |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+note: constructor is not visible here due to private fields
+ --> src/subscription/active_digest.rs
+  |
+  | pub struct ActiveSubscriptionLaneDigest(WorthQueryEvidenceIdentity);
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+help: you might have meant to use the `new` associated function
+  |
+5 |         lane_digest: ActiveSubscriptionLaneDigest::new(String::new()),
+  |                                                  +++++
+
+error[E0560]: struct `ActiveSubscriptionLane` has no field named `activation_digest`
+ --> tests/ui/active_subscription_lane_constructor_private.rs:6:9
+  |
+6 |         activation_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^ `ActiveSubscriptionLane` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `ActiveSubscriptionLane` has no field named `admission_digest`
+ --> tests/ui/active_subscription_lane_constructor_private.rs:7:9
+  |
+7 |         admission_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^ `ActiveSubscriptionLane` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `ActiveSubscriptionLane` has no field named `query_declaration_digest`
+ --> tests/ui/active_subscription_lane_constructor_private.rs:8:9
+  |
+8 |         query_declaration_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^ `ActiveSubscriptionLane` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `ActiveSubscriptionLane` has no field named `bridge_declaration_digest`
+ --> tests/ui/active_subscription_lane_constructor_private.rs:9:9
+  |
+9 |         bridge_declaration_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^ `ActiveSubscriptionLane` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `ActiveSubscriptionLane` has no field named `basis_binding_digest`
+  --> tests/ui/active_subscription_lane_constructor_private.rs:10:9
+   |
+10 |         basis_binding_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ `ActiveSubscriptionLane` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `ActiveSubscriptionLane` has no field named `signal_strategy_digest`
+  --> tests/ui/active_subscription_lane_constructor_private.rs:11:9
+   |
+11 |         signal_strategy_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ `ActiveSubscriptionLane` does not have this field
+   |
+   = note: all struct fields are already assigned

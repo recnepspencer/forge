@@ -1,0 +1,40 @@
+[package]
+name = "worth-store-operations"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.10 operational safety, backup, PITR, repair, and forensics."
+
+[features]
+default = []
+certification-test-authority = [
+    "dep:worth-foundational",
+    "dep:worth-store-aspect-native",
+    "worth-store-security/certification-test-authority",
+]
+
+[dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational", optional = true }
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store-aspect-native = { workspace = true, optional = true }
+worth-store-authority.workspace = true
+worth-store-blob-chunks.workspace = true
+worth-store-contracts.workspace = true
+worth-store-io-scheduler.workspace = true
+worth-store-layout-indexes.workspace = true
+worth-store-offline-verifier.workspace = true
+worth-store-operations-vocabulary.workspace = true
+worth-store-physical-integrity.workspace = true
+worth-store-recovery-physics.workspace = true
+worth-store-security.workspace = true
+worth-store-tiering.workspace = true
+
+[dev-dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-store-aspect-native.workspace = true
+worth-store-blob-chunks = { workspace = true, features = ["certification-test-authority"] }
+worth-store-readiness.workspace = true
+worth-store-test-support.workspace = true
+
+[lints]
+workspace = true

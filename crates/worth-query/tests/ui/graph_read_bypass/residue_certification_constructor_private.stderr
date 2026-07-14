@@ -1,0 +1,13 @@
+error[E0451]: fields `previous_manifest_digest`, `candidate_manifest_digest`, `certified_row_count` and `certification_digest` of struct `WorthQueryGraphReadBypassResidueCertification` are private
+ --> tests/ui/graph_read_bypass/residue_certification_constructor_private.rs:5:9
+  |
+4 |     let _ = WorthQueryGraphReadBypassResidueCertification {
+  |             --------------------------------------------- in this type
+5 |         previous_manifest_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+6 |         candidate_manifest_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+7 |         certified_row_count: 0,
+  |         ^^^^^^^^^^^^^^^^^^^ private field
+8 |         certification_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^ private field

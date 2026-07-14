@@ -1,0 +1,12 @@
+error: cannot construct `WorthQueryGraphObligationSelection` with struct literal syntax due to private fields
+ --> tests/ui/graph_obligation/index/selection_constructor_private.rs:4:19
+  |
+4 |     let _worthd = WorthQueryGraphObligationSelection {};
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields `index_digest`, `touch_descriptor_digest`, `operating_world_digest`, `matched_registrations`, `counters` and `selection_digest` that were not provided
+help: you might have meant to use the `new` associated function
+  |
+4 -     let _worthd = WorthQueryGraphObligationSelection {};
+4 +     let _worthd = WorthQueryGraphObligationSelection::new(_, _, _, _, _);
+  |

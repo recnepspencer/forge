@@ -1,0 +1,62 @@
+error[E0624]: associated function `from_parts` is private
+ --> tests/ui/inspector_identity_artifact_constructor_private.rs:5:42
+  |
+5 |         digest: InspectorIdentityDigest::from_parts(&["identity".to_string()]),
+  |                                          ^^^^^^^^^^ private associated function
+  |
+ ::: src/identity/digest.rs
+  |
+  |     pub(crate) fn from_parts(parts: &[String]) -> Self {
+  |     -------------------------------------------------- private associated function defined here
+
+error: cannot construct `InspectorIdentityArtifact` with struct literal syntax due to private fields
+  --> tests/ui/inspector_identity_artifact_constructor_private.rs:4:13
+   |
+ 4 |     let _ = InspectorIdentityArtifact {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         digest: InspectorIdentityDigest::from_parts(&["identity".to_string()]),
+   |         ---------------------------------------------------------------------- private field
+ 6 |         classification: InspectorIdentityClassification::IdentityBreak,
+   |         -------------------------------------------------------------- private field
+ 7 |         branch_locality_class: BranchLocalityClass::CrossBranchAuthoritative,
+   |         -------------------------------------------------------------------- private field
+ 8 |         authoritative: false,
+   |         -------------------- private field
+ 9 |         identity_break: true,
+   |         -------------------- private field
+10 |         replay_stable_digest: "identity-break".to_string(),
+   |         -------------------------------------------------- private field
+   |
+   = note: ...and other private fields `query_authority` and `basis` that were not provided
+help: you might have meant to use an associated function to build this type
+   |
+ 4 -     let _ = InspectorIdentityArtifact {
+ 5 -         digest: InspectorIdentityDigest::from_parts(&["identity".to_string()]),
+ 6 -         classification: InspectorIdentityClassification::IdentityBreak,
+ 7 -         branch_locality_class: BranchLocalityClass::CrossBranchAuthoritative,
+ 8 -         authoritative: false,
+ 9 -         identity_break: true,
+10 -         replay_stable_digest: "identity-break".to_string(),
+11 -     };
+ 4 +     let _ = InspectorIdentityArtifact::from_parts(_, _, _, _, _, _);
+   |
+ 4 -     let _ = InspectorIdentityArtifact {
+ 5 -         digest: InspectorIdentityDigest::from_parts(&["identity".to_string()]),
+ 6 -         classification: InspectorIdentityClassification::IdentityBreak,
+ 7 -         branch_locality_class: BranchLocalityClass::CrossBranchAuthoritative,
+ 8 -         authoritative: false,
+ 9 -         identity_break: true,
+10 -         replay_stable_digest: "identity-break".to_string(),
+11 -     };
+ 4 +     let _ = InspectorIdentityArtifact::from_result_bundle(_);
+   |
+ 4 -     let _ = InspectorIdentityArtifact {
+ 5 -         digest: InspectorIdentityDigest::from_parts(&["identity".to_string()]),
+ 6 -         classification: InspectorIdentityClassification::IdentityBreak,
+ 7 -         branch_locality_class: BranchLocalityClass::CrossBranchAuthoritative,
+ 8 -         authoritative: false,
+ 9 -         identity_break: true,
+10 -         replay_stable_digest: "identity-break".to_string(),
+11 -     };
+ 4 +     let _ = InspectorIdentityArtifact::from_result_evidence(_);
+   |

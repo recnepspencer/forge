@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
+use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
 use worth_ui::facade::admission::UiAdmissionQueryBasis;
 use worth_ui::facade::graph::{
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, ForgeQuerySnapshotIdentity,
-    QueryExternalIdentityToken, SchemaBasisDigest, UiGraphTouchDescriptor, UiGraphWorldProfile,
+    snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
+    UiGraphTouchDescriptor, UiGraphWorldProfile, WorthQuerySnapshotIdentity,
 };
 use worth_ui_query_binding::{
     WorthUiQueryBasisPosture, WorthUiQueryBindingSubsystem, WorthUiQueryCausalExplanationLane,
@@ -15,12 +16,12 @@ pub fn query_snapshot_world_profile(
     snapshot_label: &str,
     schema_basis_parts: [&str; 3],
 ) -> UiGraphWorldProfile {
-    let snapshot_identity = ForgeQuerySnapshotIdentity::admit_external_token(
+    let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
         QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
     );
-    let basis = resolve_runtime_current_snapshot_basis(
+    let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
-        SchemaBasisDigest::from_domain_parts(
+        QueryExternalSchemaBasisToken::from_domain_parts(
             &schema_basis_parts
                 .into_iter()
                 .map(str::to_owned)
@@ -45,25 +46,43 @@ pub fn query_prerequisites(
         panic!("query prerequisite tests require query snapshot worlds");
     };
 
+    let basis_posture = match query_basis {
+        UiAdmissionQueryBasis::GraphAligned => WorthUiQueryBasisPosture::GraphAligned,
+        UiAdmissionQueryBasis::WrongWorldProjection => {
+            WorthUiQueryBasisPosture::WrongWorldProjection
+        }
+        UiAdmissionQueryBasis::RebindRequired => WorthUiQueryBasisPosture::RebindRequired,
+        UiAdmissionQueryBasis::StaleReceipt => WorthUiQueryBasisPosture::StaleReceipt,
+        UiAdmissionQueryBasis::AmbiguousSources => WorthUiQueryBasisPosture::AmbiguousSources,
+    };
+    let inspection_lane = match query_basis {
+        UiAdmissionQueryBasis::GraphAligned => WorthUiQueryInspectionLane::WorkspaceInspect,
+        UiAdmissionQueryBasis::WrongWorldProjection
+        | UiAdmissionQueryBasis::RebindRequired
+        | UiAdmissionQueryBasis::StaleReceipt
+        | UiAdmissionQueryBasis::AmbiguousSources => WorthUiQueryInspectionLane::NotRequested,
+    };
+    let causal_explanation_lane = match query_basis {
+        UiAdmissionQueryBasis::GraphAligned => {
+            WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection
+        }
+        UiAdmissionQueryBasis::WrongWorldProjection
+        | UiAdmissionQueryBasis::RebindRequired
+        | UiAdmissionQueryBasis::StaleReceipt
+        | UiAdmissionQueryBasis::AmbiguousSources => {
+            WorthUiQueryCausalExplanationLane::NotRequested
+        }
+    };
+
     WorthUiQueryBindingSubsystem::bootstrap()
         .prerequisites()
         .assemble(
             basis.clone(),
             resolution_report.clone(),
-            match query_basis {
-                UiAdmissionQueryBasis::GraphAligned => WorthUiQueryBasisPosture::GraphAligned,
-                UiAdmissionQueryBasis::WrongWorldProjection => {
-                    WorthUiQueryBasisPosture::WrongWorldProjection
-                }
-                UiAdmissionQueryBasis::RebindRequired => WorthUiQueryBasisPosture::RebindRequired,
-                UiAdmissionQueryBasis::StaleReceipt => WorthUiQueryBasisPosture::StaleReceipt,
-                UiAdmissionQueryBasis::AmbiguousSources => {
-                    WorthUiQueryBasisPosture::AmbiguousSources
-                }
-            },
+            basis_posture,
             WorthUiQueryProjectionConsumptionLane::ConsumeProjectionFacts,
-            WorthUiQueryInspectionLane::NotRequested,
-            WorthUiQueryCausalExplanationLane::NotRequested,
+            inspection_lane,
+            causal_explanation_lane,
         )
         .expect("query prerequisite assembly should admit")
 }

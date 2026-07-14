@@ -37,7 +37,7 @@ will lower against.
   requiring platform-owned capability registration, canonical artifacts,
   hot-lowered composition, mosaic layout structure, Query/runtime boundaries,
   and performance certification.
-- `crates/forge-query/docs/AI_README.md`: protects the Query boundary by
+- `crates/worth-query/docs/AI_README.md`: protects the Query boundary by
   requiring domain work to start from Query's public facade, preserving Query
   artifacts and support posture instead of inventing local pseudo-Query layers
   in UI.
@@ -329,7 +329,7 @@ support by accident.
 - `unsupported_entry_reference_rejected_without_fallback`: unsupported entries
   never silently downgrade to deferred or admitted posture.
 - `admitted_posture_witness_is_not_publicly_mintable`: compile-fail coverage
-  proves admitted posture cannot be forged by downstream callers.
+  proves admitted posture cannot be WORTHd by downstream callers.
 
 **Engineering decisions**
 
@@ -407,8 +407,8 @@ Register domain-agnostic application actions as typed command capabilities.
 - `FrozenCommandCapabilities`
 - `CommandCategory`
 - `CommandReadinessBinding`
-- `forge_query::facade::ForgeQueryDeclarationEntryReadinessReport`
-- `forge_query::facade::ForgeQueryDeclarationEntryReadinessStatus`
+- `worth_query::facade::WORTHQueryDeclarationEntryReadinessReport`
+- `worth_query::facade::WORTHQueryDeclarationEntryReadinessStatus`
 
 **Warnings**
 
@@ -792,42 +792,42 @@ UI-owned query layer.
 - `ViewBindingRegistry`
 - `FrozenViewBindingCapabilities`
 - `ViewBindingFamily`
-- `forge_query::facade::ForgeQueryWorkspace`
-- `forge_query::facade::ForgeQueryRuntimePublicSupportMatrix`
-- `forge_query::facade::ForgeQueryRuntimeFacadeFamily`
-- `forge_query::facade::ForgeQueryRuntimePublicApiFamilyContract`
-- `forge_query::facade::ForgeQuerySupportReport`
-- `forge_query::facade::ForgeQuerySupportMatrix`
-- `forge_query::facade::ForgeQueryCapabilityDescriptor`
-- `forge_query::facade::ForgeQueryCapabilityRegistry`
-- `forge_query::facade::ForgeQueryCapabilityStatus`
-- `forge_query::facade::QueryCompositionSupportProfile`
-- `forge_query::facade::runtime_backed_query_composition_support_profile`
-- `forge_query::facade::QueryFamily`
-- `forge_query::facade::ResultShapeFamily`
-- `forge_query::facade::AuthoredQueryBundleRequest`
-- `forge_query::facade::CanonicalQueryBundle`
-- `forge_query::facade::CanonicalQueryArtifact`
-- `forge_query::facade::CanonicalResultShapeArtifact`
-- `forge_query::facade::ValidatedQueryBundle`
-- `forge_query::facade::ValidatedResultShapeArtifact`
-- `forge_query::facade::ViewShapeDescriptor`
-- `forge_query::facade::ViewShapeFamily`
-- `forge_query::facade::ViewShapeDigest`
-- `forge_query::facade::AdmittedViewShape`
-- `forge_query::facade::runtime_backed_view_shape_support_profile`
-- `forge_query::facade::BasisLifecycleSupportMatrix`
-- `forge_query::facade::BasisLifecycleSupportRow`
-- `forge_query::facade::BasisFamily`
-- `forge_query::facade::BasisSupportPosture`
-- `forge_query::facade::BasisOperationLane`
-- `forge_query::facade::RawBasisIntent`
-- `forge_query::facade::NormalizedBasisIntent`
-- `forge_query::facade::AdmittedBasisCapability`
-- `forge_query::facade::DeniedBasisCapability`
-- `forge_query::facade::QuerySubscriptionSupportMatrix`
-- `forge_query::facade::QuerySubscriptionSupportPosture`
-- `forge_query::facade::QuerySubscriptionFamily`
+- `worth_query::facade::WORTHQueryWorkspace`
+- `worth_query::facade::WORTHQueryRuntimePublicSupportMatrix`
+- `worth_query::facade::WORTHQueryRuntimeFacadeFamily`
+- `worth_query::facade::WORTHQueryRuntimePublicApiFamilyContract`
+- `worth_query::facade::WORTHQuerySupportReport`
+- `worth_query::facade::WORTHQuerySupportMatrix`
+- `worth_query::facade::WORTHQueryCapabilityDescriptor`
+- `worth_query::facade::WORTHQueryCapabilityRegistry`
+- `worth_query::facade::WORTHQueryCapabilityStatus`
+- `worth_query::facade::QueryCompositionSupportProfile`
+- `worth_query::facade::runtime_backed_query_composition_support_profile`
+- `worth_query::facade::QueryFamily`
+- `worth_query::facade::ResultShapeFamily`
+- `worth_query::facade::AuthoredQueryBundleRequest`
+- `worth_query::facade::CanonicalQueryBundle`
+- `worth_query::facade::CanonicalQueryArtifact`
+- `worth_query::facade::CanonicalResultShapeArtifact`
+- `worth_query::facade::ValidatedQueryBundle`
+- `worth_query::facade::ValidatedResultShapeArtifact`
+- `worth_query::facade::ViewShapeDescriptor`
+- `worth_query::facade::ViewShapeFamily`
+- `worth_query::facade::ViewShapeDigest`
+- `worth_query::facade::AdmittedViewShape`
+- `worth_query::facade::runtime_backed_view_shape_support_profile`
+- `worth_query::facade::BasisLifecycleSupportMatrix`
+- `worth_query::facade::BasisLifecycleSupportRow`
+- `worth_query::facade::BasisFamily`
+- `worth_query::facade::BasisSupportPosture`
+- `worth_query::facade::BasisOperationLane`
+- `worth_query::facade::RawBasisIntent`
+- `worth_query::facade::NormalizedBasisIntent`
+- `worth_query::facade::AdmittedBasisCapability`
+- `worth_query::facade::DeniedBasisCapability`
+- `worth_query::facade::QuerySubscriptionSupportMatrix`
+- `worth_query::facade::QuerySubscriptionSupportPosture`
+- `worth_query::facade::QuerySubscriptionFamily`
 
 **Warnings**
 
@@ -850,7 +850,7 @@ UI-owned query layer.
 - `view_binding_without_result_shape_rejected`: result shape metadata is
   required for later surface validation.
 - `admitted_query_view_binding_witness_is_not_publicly_mintable`: compile-fail
-  coverage proves UI cannot forge admitted Query support.
+  coverage proves UI cannot WORTH admitted Query support.
 - `local_pseudo_query_binding_rejected`: UI-owned query/cache descriptors are
   rejected instead of admitted as Query view bindings.
 
@@ -894,13 +894,13 @@ inventing local UI status enums.
 - `RuntimeOutcomeProjectionRegistry`
 - `FrozenRuntimeOutcomeProjectionCapabilities`
 - `RuntimeOutcomeFamily`
-- `forge_query::facade::ForgeQueryOrdinaryOutcome`
-- `forge_query::facade::ForgeQueryOrdinaryPosture`
-- `forge_query::facade::ForgeQueryOrdinaryPostureKind`
-- `forge_query::facade::ForgeQueryOrdinaryRuntimePosture`
-- `forge_query::facade::ForgeQueryOrdinaryRuntimePostureKind`
-- `forge_query::facade::ForgeQueryRuntimeAsyncResultState`
-- `forge_query::facade::ForgeQueryRuntimeAsyncResultStateKind`
+- `worth_query::facade::WORTHQueryOrdinaryOutcome`
+- `worth_query::facade::WORTHQueryOrdinaryPosture`
+- `worth_query::facade::WORTHQueryOrdinaryPostureKind`
+- `worth_query::facade::WORTHQueryOrdinaryRuntimePosture`
+- `worth_query::facade::WORTHQueryOrdinaryRuntimePostureKind`
+- `worth_query::facade::WORTHQueryRuntimeAsyncResultState`
+- `worth_query::facade::WORTHQueryRuntimeAsyncResultStateKind`
 
 **Warnings**
 

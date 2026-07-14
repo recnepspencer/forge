@@ -13,7 +13,7 @@ use crate::evidence::{
     MeasurementEvidenceInput, UiEvidenceMaterializedDetail, UiEvidenceSliceAssembly,
     UiEvidenceSliceAssemblyInput, UiInspectionCostMetrics,
 };
-use crate::facade::UiInspectionReceipt;
+use crate::facade::inspection_bridge::UiInspectionReceipt;
 use crate::graph::{UiGraphNodeEvidenceIndex, UiGraphSnapshot};
 
 use super::measurement_lookup_support::{

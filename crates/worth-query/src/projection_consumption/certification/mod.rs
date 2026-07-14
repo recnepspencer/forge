@@ -1,0 +1,55 @@
+mod audits;
+mod bundle;
+mod bundle_outputs;
+mod downstream_authority_bundle;
+mod downstream_authority_complexity;
+mod downstream_authority_support;
+mod fixtures;
+mod grouped_projection_contract;
+mod intent_admission_fixtures;
+mod oracle;
+mod proof_artifacts;
+mod seeded;
+mod slopes;
+
+pub use audits::{
+    projection_consumption_family_inventory, projection_consumption_forbidden_fallback_audit,
+    projection_consumption_phase_progression_digest, projection_consumption_proof_shape_audit,
+    projection_consumption_public_boundary_audit, projection_consumption_support_matrix,
+    ProjectionConsumptionCertifiedSourceSurface, ProjectionConsumptionFamilyInventory,
+    ProjectionConsumptionFamilyInventoryRow, ProjectionConsumptionForbiddenFallbackAudit,
+    ProjectionConsumptionForbiddenFallbackAuditRow, ProjectionConsumptionForbiddenFallbackSeam,
+    ProjectionConsumptionOrdinaryPathSurface, ProjectionConsumptionProofShapeAudit,
+    ProjectionConsumptionProofShapeAuditRow, ProjectionConsumptionProofShapeEnforcement,
+    ProjectionConsumptionProofShapeViolation, ProjectionConsumptionPublicBoundaryAudit,
+    ProjectionConsumptionPublicBoundaryAuditRow, ProjectionConsumptionPublicBoundarySurface,
+    ProjectionConsumptionSupportMatrix, ProjectionConsumptionSupportMatrixRow,
+};
+pub use bundle::{
+    certify_projection_consumption_closeout_core, ProjectionConsumptionCertificationBundle,
+    ProjectionConsumptionCertificationLane, ProjectionConsumptionCertificationRow,
+};
+pub use downstream_authority_bundle::{
+    certify_consumed_projection_authority, ConsumedProjectionAuthorityCertificationBundle,
+    ConsumedProjectionAuthorityCertificationLane, ConsumedProjectionAuthorityCertificationRow,
+};
+pub use downstream_authority_complexity::{
+    ConsumedProjectionAuthorityComplexityAxis, ConsumedProjectionAuthorityComplexityEvidence,
+    ConsumedProjectionAuthorityComplexityRow,
+};
+pub use downstream_authority_support::{
+    consumed_projection_authority_support_matrix, ConsumedProjectionAuthoritySupportMatrix,
+    ConsumedProjectionAuthoritySupportRow, ConsumedProjectionAuthoritySupportStatus,
+};
+pub(crate) use intent_admission_fixtures::{
+    intent_admission_admitted_projection_declaration,
+    intent_admission_warning_projection_declaration,
+};
+#[allow(unused_imports)]
+pub use oracle::{projection_consumption_oracle_report, ProjectionConsumptionOracleReport};
+#[cfg(test)]
+pub(crate) use proof_artifacts::{
+    compile_fail_boundary_bundle_digest, golden_transcript_bundle_digest,
+    projection_consumption_compile_fail_proofs, projection_consumption_golden_transcripts,
+};
+pub use slopes::ProjectionConsumptionCertificationCounterSnapshot;

@@ -1,9 +1,9 @@
 use crate::evidence::{
     MeasurementEvidenceInput, UiAllocationNeighborhood, UiConstraintPropagationDenial,
     UiConstraintPropagationDenialReason, UiConstraintPropagationEdgeFamily,
-    UiConstraintViewportPlanningInputResult,
-    UiMeasurementBasis, UiMeasurementCoordinateSpace, UiMeasurementRoundingPosture,
-    UiMeasurementUnitPosture, UiViewportPlanningInputPosture, UiViewportPlanningInputSolveOrder,
+    UiConstraintViewportPlanningInputResult, UiMeasurementBasis, UiMeasurementCoordinateSpace,
+    UiMeasurementRoundingPosture, UiMeasurementUnitPosture, UiViewportPlanningInputPosture,
+    UiViewportPlanningInputSolveOrder,
 };
 
 pub(super) fn admit_viewport_planning_input(
@@ -95,17 +95,20 @@ fn viewport_source(
         .find(|entry| {
             entry.kind() == crate::evidence::UiMeasurementDependencyLineageKind::HostViewportExtent
         })?;
-    let result = measurement_basis.evidence_inputs().iter().find_map(|input| match input {
-        MeasurementEvidenceInput::HostMeasurementResult(result)
-            if matches!(
-                result.value(),
-                crate::evidence::UiMeasurementValue::ViewportExtent(_)
-            ) =>
-        {
-            Some(result)
-        }
-        _ => None,
-    })?;
+    let result = measurement_basis
+        .evidence_inputs()
+        .iter()
+        .find_map(|input| match input {
+            MeasurementEvidenceInput::HostMeasurementResult(result)
+                if matches!(
+                    result.value(),
+                    crate::evidence::UiMeasurementValue::ViewportExtent(_)
+                ) =>
+            {
+                Some(result)
+            }
+            _ => None,
+        })?;
     Some((
         source.identity_digest(),
         source.generation_digest(),

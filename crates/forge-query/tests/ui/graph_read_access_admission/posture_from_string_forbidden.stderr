@@ -1,7 +1,0 @@
-error[E0277]: the trait bound `ForgeQueryGraphReadAccessAdmissionPosture: From<&str>` is not satisfied
- --> tests/ui/graph_read_access_admission/posture_from_string_forbidden.rs:4:73
-  |
-4 |     let _: ForgeQueryGraphReadAccessAdmissionPosture = "inline_indexed".into();
-  |                                                                         ^^^^ the trait `From<&str>` is not implemented for `ForgeQueryGraphReadAccessAdmissionPosture`
-  |
-  = note: required for `&str` to implement `Into<ForgeQueryGraphReadAccessAdmissionPosture>`

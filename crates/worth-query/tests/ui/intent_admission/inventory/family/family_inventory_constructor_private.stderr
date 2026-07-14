@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/intent_admission/inventory/family/family_inventory_constructor_private.rs:4:55
+  |
+4 |     let _ = WorthQueryIntentAdmissionFamilyInventory::new(&[]);
+  |                                                       ^^^ private associated function
+  |
+ ::: src/intent_admission/families/mod.rs
+  |
+  |     pub(crate) const fn new(rows: &'static [WorthQueryIntentAdmissionFamilyInventoryRow]) -> Self {
+  |     --------------------------------------------------------------------------------------------- private associated function defined here

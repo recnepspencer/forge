@@ -1,5 +1,5 @@
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 use worth_ui::facade::admission::{
     UiAdmissionAggregation, UiAdmissionHostCapability, UiAdmissionQueryBasis, UiAdmissionWorld,
@@ -18,7 +18,9 @@ use worth_ui_runtime::facade::obligations::{
 };
 
 use self::obligation_dispatch_prerequisite_support::{
-    available_host_capability_target, execute_for_target, service_touch, service_touch_app,
+    apps::service_touch_app,
+    targets::{available_host_capability_target, execute_for_target},
+    touches::service_touch,
 };
 
 #[derive(Debug, Eq, PartialEq)]

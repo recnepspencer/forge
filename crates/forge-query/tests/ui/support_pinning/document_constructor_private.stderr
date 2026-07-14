@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `forge_query::facade::consumer_kit::ForgeQuerySupportPinContractDocument`
- --> tests/ui/support_pinning/document_constructor_private.rs:1:5
-  |
-1 | use forge_query::facade::consumer_kit::ForgeQuerySupportPinContractDocument;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------------------------------
-  |     |                                  |
-  |     |                                  help: a similar name exists in the module: `ForgeQuerySupportPinContractBuilder`
-  |     no `ForgeQuerySupportPinContractDocument` in `facade::consumer_kit`

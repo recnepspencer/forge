@@ -1,29 +1,29 @@
-error[E0277]: the trait bound `FakeBoundarySource: forge_query::lower_runtime_routing::sources::sealed::Sealed` is not satisfied
+error[E0277]: the trait bound `FakeBoundarySource: worth_query::lower_runtime_routing::sources::sealed::Sealed` is not satisfied
  --> tests/ui/research_graph_invariants/boundaries/boundary_source/external_boundary_source_impl_forbidden.rs:7:55
   |
-7 | impl ForgeQueryLowerRuntimeBoundaryEnvelopeSource for FakeBoundarySource {
+7 | impl WORTHQueryLowerRuntimeBoundaryEnvelopeSource for FakeBoundarySource {
   |                                                       ^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
   |
-help: the trait `forge_query::lower_runtime_routing::sources::sealed::Sealed` is not implemented for `FakeBoundarySource`
+help: the trait `worth_query::lower_runtime_routing::sources::sealed::Sealed` is not implemented for `FakeBoundarySource`
  --> tests/ui/research_graph_invariants/boundaries/boundary_source/external_boundary_source_impl_forbidden.rs:5:1
   |
 5 | struct FakeBoundarySource;
   | ^^^^^^^^^^^^^^^^^^^^^^^^^
-  = help: the following other types implement trait `forge_query::lower_runtime_routing::sources::sealed::Sealed`:
-            ForgeQueryLowerRuntimeBoundaryEnvelope
+  = help: the following other types implement trait `worth_query::lower_runtime_routing::sources::sealed::Sealed`:
+            WORTHQueryLowerRuntimeBoundaryEnvelope
             LiveViewDeclarationAdmissionBoundaryReceipt
             SignalInvalidationBoundaryReceipt
             SubscriptionActivationBoundaryReceipt
             WriteAuthorityExecutionReceipt
-note: required by a bound in `ForgeQueryLowerRuntimeBoundaryEnvelopeSource`
- --> $WORKSPACE/crates/forge-query/src/lower_runtime_routing/sources.rs
+note: required by a bound in `WORTHQueryLowerRuntimeBoundaryEnvelopeSource`
+ --> $WORKSPACE/crates/worth-query/src/lower_runtime_routing/sources.rs
   |
-  | pub trait ForgeQueryLowerRuntimeBoundaryEnvelopeSource: sealed::Sealed {
-  |                                                         ^^^^^^^^^^^^^^ required by this bound in `ForgeQueryLowerRuntimeBoundaryEnvelopeSource`
-  = note: `ForgeQueryLowerRuntimeBoundaryEnvelopeSource` is a "sealed trait", because to implement it you also need to implement `forge_query::lower_runtime_routing::sources::sealed::Sealed`, which is not accessible; this is usually done to force you to use one of the provided types that already implement it
+  | pub trait WORTHQueryLowerRuntimeBoundaryEnvelopeSource: sealed::Sealed {
+  |                                                         ^^^^^^^^^^^^^^ required by this bound in `WORTHQueryLowerRuntimeBoundaryEnvelopeSource`
+  = note: `WORTHQueryLowerRuntimeBoundaryEnvelopeSource` is a "sealed trait", because to implement it you also need to implement `worth_query::lower_runtime_routing::sources::sealed::Sealed`, which is not accessible; this is usually done to force you to use one of the provided types that already implement it
   = help: the following types implement the trait:
-            forge_query::facade::ForgeQueryLowerRuntimeBoundaryEnvelope
-            forge_query::facade::LiveViewDeclarationAdmissionBoundaryReceipt
-            forge_query::facade::WriteAuthorityExecutionReceipt
-            forge_query::facade::SignalInvalidationBoundaryReceipt
-            forge_query::facade::SubscriptionActivationBoundaryReceipt
+            worth_query::facade::WORTHQueryLowerRuntimeBoundaryEnvelope
+            worth_query::facade::LiveViewDeclarationAdmissionBoundaryReceipt
+            worth_query::facade::WriteAuthorityExecutionReceipt
+            worth_query::facade::SignalInvalidationBoundaryReceipt
+            worth_query::facade::SubscriptionActivationBoundaryReceipt

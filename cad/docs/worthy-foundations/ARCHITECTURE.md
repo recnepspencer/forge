@@ -44,8 +44,8 @@ Everything below exists to keep that sentence true.
 ### The three-tier stack
 
 ```text
-forge-*     runtime substrate     (forge-query, forge-runtime-bridge,
-                                   forge-relational, forge-signal)
+WORTH-*     runtime substrate     (worth-query, worth-runtime-bridge,
+                                   worth-relational, worth-signal)
 worth-*     engineering platform  (shared truth grammar, graph constitution,
                                    pack seams, entry patterns, proof harnesses -
                                    everything that survives a pivot from
@@ -54,7 +54,7 @@ worthy-*    CAD/BIM product tier  (topology, geometry, BREP, BIM resolvers,
                                    jurisdiction packs, the app)
 ```
 
-**Plain English:** Forge is the runtime. Worth is the engineering platform
+**Plain English:** WORTH is the runtime. Worth is the engineering platform
 built on it. Worthy is the first product built on the platform.
 
 The tier test for any crate: *would aerospace need this crate unchanged?*
@@ -105,7 +105,7 @@ isolation; the grammar is what carries the laws.
 Two renames from v1, both to kill permanent confusion:
 
 - Runtime crates are `*-entry-*`, **not** `*-query-*`. A `worthy-query-*`
-  crate that is not forge-query would be misread forever. "Entry" also
+  crate that is not worth-query would be misread forever. "Entry" also
   teaches the correct mental model: this is where declared work enters Query.
 - Derived-artifact crates are `*-derived-*`, **not** `*-products-*`.
   "Product" stays reserved for the thing we sell.
@@ -234,7 +234,7 @@ frozen; domains are discovered.
 These are unchanged in substance and restated in plain English. The runtime
 orientation doc (`AI_README`) owns the details.
 
-1. **Ordinary domain work starts at Query.** Lower Forge layers are for
+1. **Ordinary domain work starts at Query.** Lower WORTH layers are for
    understanding semantics, never for bypassing lanes.
 2. **Declare once, lower once, execute through canonical artifacts.** No
    local wrappers, status enums, recovery folklore, or pseudo-Query layers.
@@ -256,7 +256,7 @@ orientation doc (`AI_README`) owns the details.
 Constitutional split, made explicit:
 
 - `schema` crates stay Query agnostic. They define meaning, graph axes, touch
-  vocabulary, and domain nouns; they do not import `forge-query`.
+  vocabulary, and domain nouns; they do not import `worth-query`.
 - `entry` crates are the last pre-runtime home for Query imports. Admission,
   declaration lowering, graph-touch obligation adoption, and contribution
   orchestration live here.
@@ -451,10 +451,10 @@ advice; everything listed here is law.
 ```text
 schema-*     -> nothing in the tree
 dsl-*        -> schema-*
-solver-*     -> schema-*                          # NEVER forge-query
+solver-*     -> schema-*                          # NEVER worth-query
 resolver-*   -> schema-*, solver-*
 derived-*    -> schema-*, solver-* (math only)
-entry-*      -> schema-*, resolver-*, derived-*, forge-query
+entry-*      -> schema-*, resolver-*, derived-*, worth-query
 pack-*       -> public seams only
 app-*/ui-*   -> entry-*, derived-*, dsl-*
 cert-*       -> anything (proof depends broadly)
@@ -512,7 +512,7 @@ Alongside the fences, two standing contracts:
 
 ## Part VI - The Agent Contract (Why Correctness Is the Default)
 
-forge-query is not in any model's training prior. Every agent arrives
+worth-query is not in any model's training prior. Every agent arrives
 pre-trained on conventional Rust - HashMaps, local status enums, string IDs,
 hand-rolled validation - and regresses to that mean the moment attention
 drifts. The architecture must make Query-nativeness survive the transition
@@ -529,7 +529,7 @@ Compile errors are the one feedback signal that reliably reaches an agent
 that has forgotten everything else. Fence failures therefore say *what to do
 instead*:
 
-> `worthy-solver-* may not depend on forge-query. Solvers take extracted
+> `worthy-solver-* may not depend on worth-query. Solvers take extracted
 > inputs; the resolver that calls you owns graph contact. See
 > worthy-resolver-structure for the shape.`
 
@@ -651,7 +651,7 @@ Code:
   migration reference; reused concepts are rehomed, not copied.
 - No `common` / `utils` / `helpers` / `logic` / `core` overflow crates
   (single size-fenced exception: `worth-schema-core`).
-- No solver crate touching forge-query or any entry surface.
+- No solver crate touching worth-query or any entry surface.
 - No resolver minting operating-world, publication, or projection folklore
   Query owns.
 - No derived crate minting source authority.

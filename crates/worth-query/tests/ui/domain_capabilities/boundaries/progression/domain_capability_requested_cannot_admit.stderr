@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/domain_capabilities/boundaries/progression/domain_capability_requested_cannot_admit.rs:16:59
+   |
+16 |     let _ = admit_eligible_domain_capability_contribution(requested);
+   |             --------------------------------------------- ^^^^^^^^^ expected `WorthQueryEligibleDomainCapabilityContribution<_, _>`, found `WorthQueryRequestedDomainCapabilityContribution<..., ...>`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected struct `WorthQueryEligibleDomainCapabilityContribution<_, _>`
+              found struct `WorthQueryRequestedDomainCapabilityContribution<WorthQueryAdmissionContributionPayload, WorthQueryDeclarationBoundContributionTarget>`
+note: function defined here
+  --> src/domain_capabilities/eligibility/transitions.rs
+   |
+   | pub fn admit_eligible_domain_capability_contribution<P, T>(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

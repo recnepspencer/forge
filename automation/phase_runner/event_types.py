@@ -19,6 +19,7 @@ EVENT_TYPES = {
     "single_prompt_completed",
     "review_failed",
     "review_passed",
+    "repair_plan_posted",
     "repair_completed",
     "test_review_failed",
     "test_review_passed",
@@ -33,7 +34,6 @@ EVENT_TYPES = {
     "session_reset",
     "operator_override",
     "legacy_imported",
-    "boundary_review_completed",
 }
 
 PHASE_PROGRESS_EVENTS = {
@@ -43,6 +43,7 @@ PHASE_PROGRESS_EVENTS = {
     "single_prompt_completed",
     "review_failed",
     "review_passed",
+    "repair_plan_posted",
     "repair_completed",
     "test_review_failed",
     "test_review_passed",

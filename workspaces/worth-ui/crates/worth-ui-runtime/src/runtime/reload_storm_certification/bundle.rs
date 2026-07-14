@@ -2,11 +2,11 @@ use crate::runtime::{
     WorthUiFoundationalCounterEvidence, WorthUiReloadLatencyCounters,
     WorthUiReloadStormIterationOutcome,
 };
-use forge_foundational::performance_api::lower_lane::basis::{
+use worth_foundational::performance_api::lower_lane::basis::{
     compare_performance_bundles, FoundationalPerformanceComparison,
 };
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct WorthUiReloadCertificationBundle {
     iteration_outcomes: Vec<WorthUiReloadStormIterationOutcome>,
     foundational_evidence: Vec<WorthUiFoundationalCounterEvidence>,

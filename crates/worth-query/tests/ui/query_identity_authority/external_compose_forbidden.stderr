@@ -1,0 +1,10 @@
+error[E0624]: associated function `compose` is private
+ --> tests/ui/query_identity_authority/external_compose_forbidden.rs:4:49
+  |
+4 |     let _identity = WorthQueryEvidenceIdentity::compose(
+  |                                                 ^^^^^^^ private associated function
+  |
+ ::: src/evidence_identity/artifact.rs
+  |
+  |     pub(crate) fn compose(scope: WorthQueryEvidenceScope) -> WorthQueryEvidenceIdentityEncoder {
+  |     ------------------------------------------------------------------------------------------ private associated function defined here

@@ -1,0 +1,31 @@
+error[E0560]: struct `QuerySubscriptionScaleCounterSnapshot` has no field named `activation_digest`
+ --> tests/ui/subscription_scale_counter_snapshot_constructor_private.rs:7:9
+  |
+7 |         activation_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^ `QuerySubscriptionScaleCounterSnapshot` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionScaleCounterSnapshot` has no field named `admission_digest`
+ --> tests/ui/subscription_scale_counter_snapshot_constructor_private.rs:8:9
+  |
+8 |         admission_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^ `QuerySubscriptionScaleCounterSnapshot` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionScaleCounterSnapshot` has no field named `counter_digest`
+ --> tests/ui/subscription_scale_counter_snapshot_constructor_private.rs:9:9
+  |
+9 |         counter_digest: String::new(),
+  |         ^^^^^^^^^^^^^^ `QuerySubscriptionScaleCounterSnapshot` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `QuerySubscriptionScaleCounterSnapshot` has no field named `snapshot_digest`
+  --> tests/ui/subscription_scale_counter_snapshot_constructor_private.rs:11:9
+   |
+11 |         snapshot_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ `QuerySubscriptionScaleCounterSnapshot` does not have this field
+   |
+   = note: all struct fields are already assigned

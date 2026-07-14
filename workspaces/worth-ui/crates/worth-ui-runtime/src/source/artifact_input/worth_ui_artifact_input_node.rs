@@ -66,6 +66,7 @@ impl WorthUiArtifactInputNode {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
         match self {
             Self::Import(node) => node.provenance(),

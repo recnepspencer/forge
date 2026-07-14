@@ -1,0 +1,10 @@
+error[E0599]: no method named `relation` found for struct `WorthQueryAdmittedGraphReadRelation` in the current scope
+ --> tests/ui/aspect_native_query/graph_read_admitted_relation_string_alias_removed.rs:5:28
+  |
+5 |     let _: &str = relation.relation();
+  |                            ^^^^^^^^ private field, not a method
+  |
+help: there is a method `relation_name` with a similar name
+  |
+5 |     let _: &str = relation.relation_name();
+  |                                    +++++

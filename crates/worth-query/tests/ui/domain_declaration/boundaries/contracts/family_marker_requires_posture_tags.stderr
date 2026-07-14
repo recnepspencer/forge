@@ -1,0 +1,10 @@
+error[E0046]: not all trait items implemented, missing: `PrimaryAuthority`, `SignalCompatibility`, `GroupedPosture`, `legality_contract`
+  --> tests/ui/domain_declaration/boundaries/contracts/family_marker_requires_posture_tags.rs:14:1
+   |
+14 | impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `PrimaryAuthority`, `SignalCompatibility`, `GroupedPosture`, `legality_contract` in implementation
+   |
+   = help: implement the missing item: `type PrimaryAuthority = /* Type */;`
+   = help: implement the missing item: `type SignalCompatibility = /* Type */;`
+   = help: implement the missing item: `type GroupedPosture = /* Type */;`
+   = help: implement the missing item: `fn legality_contract() -> WorthQueryDeclarationLegalityContract { todo!() }`

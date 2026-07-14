@@ -1,0 +1,7 @@
+{
+  "kind": "assembly",
+  "parts": [
+    { "asset_id": "turns/m1b_repair" },
+    { "asset_id": "handoff/read_findings" }
+  ]
+}

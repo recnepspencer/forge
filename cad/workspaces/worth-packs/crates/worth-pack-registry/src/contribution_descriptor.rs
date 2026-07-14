@@ -1,4 +1,4 @@
-use crate::contribution_kinds::ContributionKind;
+use crate::contribution_kind::ContributionKind;
 use crate::pack_name::PackName;
 
 #[derive(Clone, Debug, Eq, PartialEq)]

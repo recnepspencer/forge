@@ -1,4 +1,0 @@
-use forge_store_layout_indexes::access_lowering::access_lowering;
-fn main() {
-    let _ = access_lowering();
-}

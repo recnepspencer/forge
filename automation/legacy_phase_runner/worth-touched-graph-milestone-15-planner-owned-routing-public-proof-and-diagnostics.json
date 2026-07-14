@@ -1,0 +1,1568 @@
+{
+  "schema_version": 1,
+  "state_revision": 566,
+  "current": {
+    "phase": 13,
+    "turn": "implement"
+  },
+  "project": {
+    "name": "Worth Touched Graph Milestone 15 Planner Owned Routing Public Proof And Diagnostics",
+    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "spec_file": "_docs/worth/touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/worth/touched-graph-roadmap.md",
+      "_docs/worth/touched-graph-milestone-12-canonical-semantic-graph-contract-for-replay-and-undo.md",
+      "_docs/worth/touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md",
+      "_docs/worth/touched-graph-milestone-14-unified-compiled-product-cache-and-equivalence-contracts.md",
+      "_docs/worth/touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.md",
+      "crates/worth-query/docs/AI_README.md",
+      "crates/worth-query/docs/foundations/consumer-kit.md",
+      "crates/worth-query/docs/foundations/support-matrix-and-admission.md",
+      "crates/worth-query/docs/foundations/downstream-runtime-integration.md",
+      "crates/worth-query/docs/domain-capabilities/support/lower-runtime-support-and-boundary-traceability.md",
+      "crates/worth-query/docs/domain-capabilities/support/declaration-scoped-support-and-traceability.md",
+      "crates/worth-query/docs/domain-capabilities/declaration-boundary-envelopes.md",
+      "crates/worth-kernel/src/workload_composition/public_closeout/mod.rs",
+      "crates/worth-kernel/src/workload_composition/source_firewall/mod.rs",
+      "crates/worth-topo/src/projection/diagnostic_surfaces/mod.rs",
+      "crates/worth-topo/src/projection/query_backed_consumer_cutover/closeout.rs",
+      "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout/mod.rs"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md"
+  },
+  "contract_template": "templates/_contract_test_hardening.md",
+  "session": {
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    },
+    "thread_id": "019f1e3b-5074-7ec0-818c-b9389bc33d65",
+    "thread_started_at": "2026-07-01T15:10:31.860748+00:00"
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Public Proof, Diagnostic, And Explainer Inventory Cut Line",
+      "owner": "worth-kernel, worth-topo, worth-spatial, worth-query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform",
+        "crates/worth-query/docs",
+        "_docs/worth/touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.md"
+      ],
+      "acceptance": [
+        "every covered public proof, explainer, and diagnostic surface has an exact inventory row with migrate, delete, cap, or Query-gap posture",
+        "inventory rows classify each surface as prior-proof consumer, family-route product, selected-route consumer, public-proof projection, derived-diagnostic projection, or forbidden legacy explainer",
+        "inventory rows name the exact new parallel folder lane that will replace the displaced surface"
+      ],
+      "instructions": "Freeze every current receipt-backed status, public closeout, diagnostic, explainer, and route-localization surface before introducing replacement lanes.",
+      "qa_focus": "No grep-only theater, no vague grouped rows, and no unnamed current public-proof lane hidden behind polished existing helpers.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "add exact per-surface posture/role/replacement-lane assertions for representative high-risk inventory rows"
+        ],
+        "done": [
+          "inventory audit widened to crate-visible lane surfaces",
+          "missing topo diagnostic rows added",
+          "hardened tests pin exact semantics for high-risk inventory rows",
+          "test QA passed: live source audit plus exact high-risk row semantics are honest enough",
+          "code quality review complete; phase 1 closed with non-blocking structural residue"
+        ],
+        "remaining": [
+          "consider catalog/ subdivision and single-source required-surface ownership"
+        ],
+        "findings": [
+          "flat 17-file inventory directory and duplicated required-surface authority remain structural debt"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel --lib planner_owned_routing_inventory | exit 0 | tail: 6 passed; 0 failed; finished in 0.01s",
+          "cargo check -p worth-kernel --lib | exit 0 | tail: worth-kernel (lib) generated 12 warnings; finished dev profile in 0.36s"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Shared Planner-Owned Explanation Vocabulary",
+      "owner": "worth-schema, worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-schema",
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "shared contracts distinguish selected route identity, selected product identity, witness identity, decision-trace identity, public-proof identity, and diagnostic contract identity",
+        "rendered strings and lower-authority report rows cannot mint planner-owned explanation artifacts",
+        "the shared vocabulary preserves authority versus derivation semantics for planner packets, public proof, and diagnostics"
+      ],
+      "instructions": "Land one shared contract lane for route explanation identity before any family tries to explain itself locally.",
+      "qa_focus": "Shared ownership only, no crate-local sameness ontologies, and no collapsing of route, product, and public-proof identities.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "replace retained helper test with real query-runtime refresh proof through TopologyDiagnosticsMaintainer; add only minimal read-only support if refresh/upstream artifacts cannot be observed directly; keep kernel/spatial route-packet proof explicit residue"
+        ],
+        "done": [
+          "test lane is honest enough: schema compile-fail fences, direct topo derived-path proof, and retained refresh fail-closed residue are all explicit",
+          "code quality review complete; phase 2 closed with non-blocking retained-boundary residue"
+        ],
+        "remaining": [
+          "retained_artifacts and read_basis_query_runtime should converge on one honest derived-snapshot boundary"
+        ],
+        "findings": [
+          "historical query runtime still routes around retained-artifacts success seam"
+        ],
+        "verification": [
+          "cargo test -p worth-schema --test planner_owned_routing_semantic_graph_compile_fail | exit 0 | tail: 5 compile-fail fixtures ok; 0 failed",
+          "cargo test -p worth-schema --test public_api_contract | exit 0 | tail: schema_public_surface_stays_vocabulary_first ok; 1 passed",
+          "cargo test -p worth-topo derived_diagnostics_reports_are_explicit_and_deterministic --lib | exit 0 | tail: derived_diagnostics_reports_are_explicit_and_deterministic ok; 1 passed",
+          "cargo test -p worth-topo retained_diagnostics_surface_fails_closed_through_real_retained_refresh_boundary --lib | exit 0 | tail: retained_diagnostics_surface_fails_closed_through_real_retained_refresh_boundary ok; 1 passed",
+          "cargo check -p worth-topo --lib | exit 0 | tail: worth-topo (lib) generated 54 warnings; finished dev profile",
+          "cargo check -p worth-kernel --lib | exit 0 | tail: worth-kernel (lib) generated 12 warnings; finished dev profile",
+          "cargo check -p worth-spatial --lib | exit 0 | tail: worth-spatial (lib) generated 54 warnings; finished dev profile"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Planner Route Trace And Public-Proof Input Packet",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-kernel/src/workload_composition/source_firewall",
+        "crates/worth-kernel/src/workload_composition/public_closeout"
+      ],
+      "acceptance": [
+        "a sealed selected-route packet carries prior-proof identities, selected route identity, selected family and product identity, witness identity, Query posture where applicable, and residue or firewall references",
+        "public proof can assemble from the selected-route packet without reopening topology, evidence, or reuse internals",
+        "later phases consume the same packet rather than rebuilding a second packet from the same facts"
+      ],
+      "instructions": "Create the planner-owned route packet that later execution, public proof, and diagnostics all consume unchanged.",
+      "qa_focus": "No executor-side reconstruction, no projection formatting mixed into selection logic, and no second packet minted downstream.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "add one hostile packet-driven production seam for public closeout and milestone-15 seed; replace circular live-global assertions with real-boundary denial proof"
+        ],
+        "done": [
+          "public closeout now consumes one planner-owned packet and admitted proof input without downstream re-derivation",
+          "test lane hardened onto real publish_from_parts and from_selected_route_packet denial seams",
+          "test QA passed: hostile packet mismatch now exercises real public closeout and seed boundaries",
+          "code quality review complete; phase 3 closed with explicit structural residue"
+        ],
+        "remaining": [
+          "test_review",
+          "move proof_chain/seed ownership into planner_owned_routing public-proof lane",
+          "subdivide source_firewall registry/reporting ownership"
+        ],
+        "findings": [
+          "phase 3 tests still rely on circular live-global expectations and a test-only seed seam instead of hostile packet-driven proof",
+          "legacy public_closeout folder still owns planner packet-lowering artifacts; source_firewall remains a flat mixed-responsibility directory"
+        ],
+        "verification": [
+          "phase 3 review passed; focused worth-kernel --lib proof tests passed",
+          "cargo check -p worth-kernel --lib | exit 0",
+          "cargo test -p worth-kernel --lib selected_route_packet_carries_route_and_support_identity_once | exit 0",
+          "cargo test -p worth-kernel --lib admitted_public_proof_input_lowers_from_selected_route_packet | exit 0",
+          "cargo test -p worth-kernel --lib public_closeout_rejects_foreign_admitted_public_proof_input | exit 0",
+          "cargo test -p worth-kernel --lib milestone_fifteen_seed_rejects_foreign_topology_planner_support_before_seed_construction | exit 0",
+          "cargo test -p worth-kernel --lib closeout_binds_full_conflict_authority_chain | exit 0",
+          "cargo check -p worth-kernel --lib | exit 0 | tail: warning: worth-kernel (lib) generated 17 warnings; Finished dev profile in 0.57s",
+          "cargo test -p worth-kernel --lib selected_route_packet_carries_route_and_support_identity_once | exit 0 | tail: 1 passed; 0 failed; finished in 64.19s",
+          "cargo test -p worth-kernel --lib admitted_public_proof_input_lowers_from_selected_route_packet | exit 0 | tail: 1 passed; 0 failed; finished in 63.84s",
+          "cargo test -p worth-kernel --lib public_closeout_rejects_foreign_admitted_public_proof_input | exit 0 | tail: 1 passed; 0 failed; finished in 167.79s",
+          "cargo test -p worth-kernel --lib milestone_fifteen_seed_rejects_foreign_topology_planner_support_before_seed_construction | exit 0 | tail: 1 passed; 0 failed; finished in 215.84s"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "Query-Backed Read Routing Explanation Lane",
+      "owner": "worth-topo, worth-query",
+      "scope": [
+        "crates/worth-topo/src/projection/query_backed_consumer_cutover",
+        "crates/worth-topo/src/projection",
+        "crates/worth-query/docs"
+      ],
+      "acceptance": [
+        "query-backed route explanation consumes admitted Query support posture and boundary evidence rather than Worth-local support folklore",
+        "foreign or mismatched Query posture cannot satisfy the selected route packet",
+        "ordinary route logic lives under a new planner-owned routing lane rather than continuing in query_backed_consumer_cutover"
+      ],
+      "instructions": "Move query-backed read-family explanation out of local closeout and read-model helpers into a dedicated planner-consumable route lane.",
+      "qa_focus": "Real Query artifacts only, no Worth-local summary enums, and no in-place continuation inside legacy closeout folders.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "replace raw topo-admission semantics tests with packet-driven row-level proofs and add one explicit wrapper-only ownership fence for legacy query_backed_consumer_cutover"
+        ],
+        "done": [
+          "test lane is honest enough: packet seam proves row semantics and legacy cutover is pinned as wrapper-only re-export ownership",
+          "code quality review complete; phase 4 closed with explicit structural residue"
+        ],
+        "remaining": [
+          "split current route assembly from hostile/test-only contract reconstruction",
+          "subdivide query_backed_read_family output ownership into more predictive substructure"
+        ],
+        "findings": [
+          "current_route still mixes current-world assembly, hostile override construction, and equivalence-contract rebuilding",
+          "query_backed_read_family remains a flat 11-file lane and selected_route under-predicts output ownership"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel --lib selected_route_packet_is_the_authority_for_topology_query_backed_route_admission | exit 0 | tail: 1 passed; 0 failed; finished in 99.71s",
+          "cargo test -p worth-kernel --lib packet_driven_topology_route_admission_rejects_foreign_query_posture | exit 0 | tail: 1 passed; 0 failed; finished in 97.46s",
+          "cargo test -p worth-kernel --lib packet_driven_topology_route_admission_rejects_mismatched_selected_reuse_basis | exit 0 | tail: 1 passed; 0 failed; finished in 98.87s",
+          "cargo test -p worth-topo --lib query_backed_read_route_explanation_uses_real_query_artifacts | exit 0 | tail: 1 passed; 0 failed; finished in 6.07s",
+          "cargo test -p worth-topo --lib foreign_query_posture_cannot_explain_read_route | exit 0 | tail: 1 passed; 0 failed; finished in 6.47s",
+          "cargo test -p worth-topo --lib legacy_current_cutover_entrypoint_is_a_direct_planner_reexport | exit 0 | tail: 1 passed; 0 failed; finished in 0.00s",
+          "cargo test -p worth-topo --lib legacy_hostile_basis_override_entrypoint_is_a_direct_planner_reexport | exit 0 | tail: 1 passed; 0 failed; finished in 0.00s",
+          "cargo test -p worth-kernel --lib source_firewall_scans_kernel_topo_and_spatial_regions | exit 0 | tail: 1 passed; 0 failed; finished in 1.15s"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "title": "Invalidation Route Input Lane",
+      "owner": "worth-topo, worth-kernel",
+      "scope": [
+        "crates/worth-topo/src/derived_topology/invalidation_plan",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "planner input preserves exact touched fact identity, aspect scope, and selected invalidation family",
+        "report rows alone cannot mint invalidation route input",
+        "invalidation explanation becomes a typed planner input rather than a local report reconstruction"
+      ],
+      "instructions": "Make invalidation explanation consumable as typed planner inputs instead of local report reconstruction.",
+      "qa_focus": "Exact touched scope retention, no broad summary collapse, and no projection rows promoted to authority.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "build planner-owned invalidation_route input from selected plan plus touched closure; forbid report-row reconstruction"
+        ],
+        "done": [
+          "split current invalidation proof seam and added compile-fail route-input fences",
+          "phase 5 review passed after proof-seam split and authority fences",
+          "replaced circular helper-vs-helper proof with explicit admitted route-input parity and mismatched selected-plan denial",
+          "phase 5 test lane passed after explicit route-input parity and mismatched selected-plan denial",
+          "phase 5 code-quality review closed with planner-owned invalidation route lane intact"
+        ],
+        "remaining": [],
+        "findings": [],
+        "verification": [
+          "cargo test -p worth-topo --lib invalidation_route_input_carries_exact_touched_fact_identity_aspect_scope_and_selected_family | exit 0 | tail: 1 passed, 0 failed",
+          "cargo test -p worth-topo --lib mismatched_selected_plan_cannot_mint_invalidation_route_input | exit 0 | tail: 1 passed, 0 failed",
+          "cargo test -p worth-topo --lib public_api_cannot_mint_invalidation_route_input_from_projection_or_summary_rows | exit 0 | tail: 1 passed, 0 failed; 2 compile-fail fences ok",
+          "cargo check -p worth-topo --lib | exit 0 | tail: Finished dev profile target(s)"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "title": "Derived-Read Diagnostic Input Lane",
+      "owner": "worth-topo, worth-kernel",
+      "scope": [
+        "crates/worth-topo/src/projection/diagnostic_surfaces",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "diagnostic inputs preserve touched fact identity, aspect scope, selected route identity, and selected family",
+        "diagnostic inputs require real invalidation and selected-route products",
+        "route-input construction stays separate from human-facing projection formatting"
+      ],
+      "instructions": "Build the derived-read diagnostic input lane as a separate consumer of prior planner and invalidation products instead of mixing it with invalidation-route authority.",
+      "qa_focus": "No authority drift into diagnostics and no merged route-localization formatter lane.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "planner-owned derived-read diagnostic input lane planned",
+          "replace local selected-route witness reconstruction tests with packet-to-diagnostic parity proof through the real kernel current seam",
+          "restore positive phase 6 proof by asserting current diagnostic-input invalidation-route parity on the real kernel seam"
+        ],
+        "done": [
+          "phase 6 closed with honest structural residue recorded"
+        ],
+        "remaining": [
+          "split diagnostic source helpers into more predictive files",
+          "split selected-route packet payload, digest derivation, and lowering responsibilities"
+        ],
+        "findings": [
+          "diagnostic_projection_input/source.rs is still a broad bucket file",
+          "selected_route/packet.rs remains oversized and mixed-responsibility"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel --lib current_derived_read_diagnostic_input_requires_real_selected_route_packet | exit 0 | tail: 1 passed; 0 failed; finished in 211.75s",
+          "cargo test -p worth-topo --lib mismatched_selected_route_authority_cannot_mint_derived_read_diagnostic_input | exit 0 | tail: 1 passed; 0 failed; finished in 3.08s",
+          "cargo test -p worth-topo --lib public_api_cannot_forge_compiled_product_or_reuse_products | exit 0 | tail: 1 passed; 0 failed; compile-fail fixtures ok",
+          "cargo check -p worth-topo --lib | exit 0 | tail: worth-topo (lib) generated 76 warnings; Finished dev profile",
+          "cargo check -p worth-kernel --lib | exit 0 | tail: worth-kernel (lib) generated 17 warnings; Finished dev profile"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Evidence Lookup Route Lane",
+      "owner": "worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/evidence_lookup_family_catalog",
+        "crates/worth-spatial/src/workload_platform/evidence_lookup_index_product",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "evidence lookup route explanation consumes milestone 14 products without rescanning evidence rows",
+        "denial localizes exact route mismatch rather than broad lookup failure",
+        "the evidence lookup route-authority lane closes before public closeout projection"
+      ],
+      "instructions": "Move evidence lookup explanation onto the planner-owned route vocabulary instead of crate-local closeout assembly.",
+      "qa_focus": "No retained-product folklore, no evidence rows as explanation authority, and no merged counter semantics.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "replace circular left-boundary parity with full-route current-seam proof and explicit no-rescan route lowering evidence"
+        ],
+        "done": [
+          "Hardened phase 7 no-rescan proof onto route-source lowering evidence instead of packet-builder constants",
+          "Hardened route no-rescan proof onto consumed boundary counters",
+          "Phase 7 test lane reviewed clean after runtime-derived route lowering proof cutover",
+          "Phase 7 closed with passed QA; route lane stays planner-owned and acceptance checks reran clean"
+        ],
+        "findings": [
+          "Phase 7 no-rescan proof remains synthetic: tests now read route-source lowering evidence, but that evidence is still minted as constant zero state in the source seam.",
+          "Code-quality residue: evidence_lookup_route/support.rs is still a bucket-named owner for the current route source seam"
+        ],
+        "verification": [
+          "cargo test -p worth-spatial --lib evidence_lookup_route_explanation_consumes_milestone_fourteen_seed => exit 0; tail: Finished test profile, running worth_spatial lib test",
+          "cargo test -p worth-spatial --lib evidence_lookup_route_denial_localizes_family_or_support_mismatch => exit 0; tail: Finished test profile, running worth_spatial lib test",
+          "cargo test -p worth-kernel --lib selected_route_packet_carries_route_and_support_identity_once => exit 0; tail: Finished test profile, running worth_kernel lib test",
+          "cargo test -p worth-kernel --lib closeout_binds_full_conflict_authority_chain => exit 0; tail: Finished test profile, running worth_kernel lib test",
+          "cargo test -p worth-kernel --lib source_firewall_scans_kernel_topo_and_spatial_regions -- --nocapture => exit 0; tail: Finished test profile, running worth_kernel lib test",
+          "cargo check -p worth-spatial --lib => exit 0; tail: worth-spatial warnings only, finished dev profile",
+          "cargo check -p worth-kernel --lib => exit 0; tail: worth-kernel warnings only, finished dev profile"
+        ],
+        "remaining": [
+          "Future structural cleanup: rename support.rs to a predictive route-source file boundary"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "title": "Spatial Public-Closeout Route Lane",
+      "owner": "worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "spatial public closeout proves selected family, selected product, and reuse posture from planner route products without rescanning evidence rows",
+        "denial localizes exact family or support mismatch rather than broad lookup failure",
+        "ordinary-path explanation moves into a new planner-owned routing lane instead of current-source assembly"
+      ],
+      "instructions": "Move spatial public-closeout explanation onto the planner-owned route vocabulary instead of crate-local current-source assembly.",
+      "qa_focus": "No current-source linger, no local retained semantics reopening, and no ordinary-path logic added under displaced assembler folders.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "publish route proof on final closeout and test denial via real current seam"
+        ],
+        "done": [
+          "phase-8 closed with planner-owned spatial public-closeout lane live"
+        ],
+        "remaining": [
+          "split current.rs into named lowering substeps when phase-9 touches adjacent routing surfaces"
+        ],
+        "findings": [
+          "planner_owned_routing/public_closeout_route/current.rs still mixes facade, hostile seam, and route-input lowering"
+        ],
+        "verification": [
+          "cargo test -p worth-spatial --lib spatial_public_closeout_route_explanation_consumes_planner_route_products_without_evidence_rescan => 0 (2 passed)",
+          "cargo test -p worth-spatial --lib spatial_closeout_denial_localizes_family_or_support_mismatch => 0 (1 passed)",
+          "cargo test -p worth-kernel --lib closeout_binds_full_conflict_authority_chain => 0 (1 passed)",
+          "cargo test -p worth-kernel --lib source_firewall_scans_kernel_topo_and_spatial_regions -- --nocapture => 0 (1 passed)",
+          "cargo check -p worth-spatial --lib => 0 (Finished dev profile)",
+          "cargo check -p worth-kernel --lib => 0 (Finished dev profile)"
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "title": "Replay, Undo, And Transaction Explanation Route Lane",
+      "owner": "worth-kernel, worth-schema",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-schema/src/data/authority/replay_undo_semantic_graph"
+      ],
+      "acceptance": [
+        "execution and public proof both consume the same replay or undo route product",
+        "foreign or stale replay-scope packets deny before public proof assembly",
+        "transaction and undo explanation remain distinct planner route families"
+      ],
+      "instructions": "Lower replay, undo, and transaction-scope explanation into planner-consumable route products so no caller or executor reclassifies scope semantics locally.",
+      "qa_focus": "No same-scope folklore, no helper-summary reconstruction, and no folding of transaction meaning into generic diagnostic text.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "add one execution/public-proof parity surface and move hostile replay-scope pressure onto the real execution boundary"
+        ],
+        "done": [
+          "phase 9 tests now prove execution/public-proof route parity through the real boundary and hostile replay-scope denial on the execution path",
+          "code quality review complete; phase 9 closed with explicit current-lane structural residue"
+        ],
+        "remaining": [
+          "split current route entry from packet-scope and inventory-row guards"
+        ],
+        "findings": [
+          "replay_undo_route/current.rs remains a broad current-entry plus route-policy file"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel --lib selected_route_and_public_proof_consume_the_same_replay_undo_route_product | exit 0 | tail: 1 passed; 0 failed; finished in 125.34s",
+          "cargo test -p worth-kernel --lib foreign_replay_scope_packets_deny_before_public_proof_assembly | exit 0 | tail: 1 passed; 0 failed; finished in 55.73s",
+          "cargo test -p worth-kernel --lib transaction_and_undo_explanation_remain_distinct_planner_route_families | exit 0 | tail: 1 passed; 0 failed; finished in 17.31s",
+          "cargo check -p worth-kernel --lib | exit 0 | tail: Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.18s",
+          "cargo check -p worth-schema --lib | exit 0 | tail: Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.42s"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "title": "Conflict And Independence Route Lane",
+      "owner": "worth-kernel, worth-schema",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-schema/src/data/authority/touched_graph_conflict"
+      ],
+      "acceptance": [
+        "conflict and independence explanation share the same selected route chain",
+        "diagnostics distinguish conflict-route denial from independence denial with typed witness identity",
+        "public proof does not reinvent grouped conflict meaning from operator shape or row overlap"
+      ],
+      "instructions": "Lower conflict and independence meaning into planner-consumable route products without letting public proof or diagnostics rebuild grouped-routing semantics locally.",
+      "qa_focus": "No generic blocked posture collapse and no second local grouped-routing ontology.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "make denial-localization proof symmetric through exported diagnostics for both ConflictRouteDenial and IndependenceDenial"
+        ],
+        "done": [
+          "phase 10 closed; focused acceptance reruns green and test/code-quality passes complete"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel --lib conflict_and_independence_explanation_share_selected_route_chain | exit 0 | tail: ok; 1 passed; finished in 180.27s",
+          "cargo test -p worth-kernel --lib denial_witness_localizes_conflict_vs_independence_failure | exit 0 | tail: ok; 1 passed; finished in 159.60s",
+          "cargo test -p worth-kernel --lib selected_route_denies_stale_conflict_independence_overlap_and_locality_basis | exit 0 | tail: ok; 1 passed; finished in 75.14s",
+          "cargo test -p worth-kernel --lib current_derived_read_diagnostic_input_requires_real_selected_route_packet | exit 0 | tail: ok; 1 passed; finished in 159.36s",
+          "cargo test -p worth-topo --lib mismatched_selected_route_authority_cannot_mint_derived_read_diagnostic_input | exit 0 | tail: ok; 1 passed; finished in 3.27s",
+          "cargo check -p worth-kernel --lib | exit 0 | tail: worth-kernel (lib) generated 28 warnings; Finished dev profile in 0.87s"
+        ],
+        "remaining": [
+          "split selected_route packet ownership into narrower route-identity/support-proof/residue surfaces and clear the line-cap debt"
+        ],
+        "findings": [
+          "selected_route/packet.rs remains a 554-line packet sink that mixes route identity, query/spatial support, residue, and diagnostics ownership"
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "title": "Batch-Admission Route Lane",
+      "owner": "worth-kernel, worth-schema",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-schema/src/data/authority/touched_graph_conflict"
+      ],
+      "acceptance": [
+        "batch explanation binds selected route identity and batch-admission identity together",
+        "diagnostics distinguish batch denial from conflict or independence denial with separate witness identity",
+        "batch-admission explanation remains a separate family-route lane"
+      ],
+      "instructions": "Lower batch-admission meaning into its own planner-consumable route products instead of treating it as a side-effect of conflict explanation.",
+      "qa_focus": "No batch piggybacking on conflict wording and no reconstruction from executor-local bookkeeping.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "phase 11 plan: add a dedicated planner-owned batch-admission route lane with typed batch denial witness and selected-route/public-proof/diagnostic propagation",
+          "phase 11 test hardening plan: extend batch denial proof through independence denial and advance to test_repair_implement"
+        ],
+        "done": [
+          "batch route now owns selected-route batch proof-chain identity and denial meaning",
+          "phase 11 test hardening: batch denial proof now distinguishes both conflict and independence denial on exported diagnostics",
+          "phase 11 test QA passed: batch denial proof now distinguishes conflict and independence denial through the real exported diagnostics chain",
+          "phase 11 code quality review complete; closed to phase 12 with explicit selected-route structural residue"
+        ],
+        "remaining": [
+          "split selected_route/current.rs into narrower current-load, support-match, and packet-assembly owners before more planner route families land there"
+        ],
+        "findings": [
+          "phase 11 test QA: batch denial proof only distinguishes against conflict denial, not independence denial",
+          "selected_route/current.rs remains an over-cap mixed support-loading and packet-assembly owner; phase 11 added another family route dependency into that sink"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel --lib batch_admission_explanation_binds_selected_route_and_batch_identity (0)",
+          "cargo test -p worth-kernel --lib batch_denial_witness_remains_distinct_from_conflict_denial (0)",
+          "cargo test -p worth-kernel --lib batch_admission_explanation_binds_selected_route_and_batch_identity | exit 0 | tail: ok; 1 passed; finished in 227.74s",
+          "cargo test -p worth-kernel --lib batch_denial_witness_remains_distinct | exit 0 | tail: ok; 1 passed; finished in 156.65s",
+          "cargo test -p worth-kernel --lib batch_admission_explanation_binds_selected_route_and_batch_identity | exit 0 | tail: ok; 1 passed; finished in 227.51s",
+          "cargo test -p worth-kernel --lib batch_denial_witness_remains_distinct | exit 0 | tail: ok; 1 passed; finished in 156.60s",
+          "cargo check -p worth-kernel --lib | exit 0 | tail: worth-kernel (lib) generated 22 warnings; Finished dev profile in 0.88s"
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "title": "Compiled-Product Reuse Explanation Route Lane",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "public proof and diagnostics explain reuse, rebuild, or denial from typed milestone 14 products only",
+        "compatibility-without-reuse stays distinct from successful reuse",
+        "public proof does not compare rendered outputs or helper summaries to explain reuse"
+      ],
+      "instructions": "Lower compiled-product reuse, rebuild-required, compatibility-without-reuse, and denial posture into planner-consumable route meaning instead of reopening milestone 14 cache or equivalence logic locally.",
+      "qa_focus": "No local cache folklore and no silent promotion of compatibility-without-reuse into reuse.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "replace kernel packet-mutation tests with real topo/spatial authority-driven posture fixtures and rerun focused proof lane"
+        ],
+        "done": [
+          "seed gate now certifies reuse route packet identity and spatial route tuple"
+        ],
+        "remaining": [],
+        "findings": [
+          "kernel phase tests still mutate assembled reuse route packets instead of driving real topo/spatial authority surfaces"
+        ],
+        "verification": [
+          "worth_kernel test binary: reuse_explanation_consumes_milestone_fourteen_products_only",
+          "worth_kernel test binary: compatibility_without_reuse_remains_distinct_from_reuse",
+          "worth_kernel test binary: milestone_fifteen_seed_rejects_foreign_spatial_route_tuple_before_seed_construction"
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "title": "Planner-Owned Public Proof Assembly Lane",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/public_closeout",
+        "crates/worth-kernel/src/workload_composition/source_firewall"
+      ],
+      "acceptance": [
+        "public proof assembly fails if covered meaning is provided as local report data instead of a planner-owned route product",
+        "foreign route, firewall, or residue identities cannot be combined into a plausible public proof",
+        "public proof remains a derived artifact-policy consumer rather than a new planning lane"
+      ],
+      "instructions": "Build the public proof lane as a dedicated derived assembly boundary that consumes selected route packets and family route products only.",
+      "qa_focus": "No raw constructor input, no route-policy decisions inside public proof, and no mixing of proof assembly with facade export or diagnostics formatting.",
+      "status": "in_progress",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [
+          "create planner-owned public_proof assembly lane and cut legacy public_closeout to wrapper-only export"
+        ],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 14,
+      "title": "Derived Diagnostic Projection Lane",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "diagnostics localize exact selected family, selected product, touched or aspect scope, witness identity, and denial posture",
+        "artifact policy can suppress rich diagnostics without losing minimal operational truth",
+        "diagnostics remain derived projections rather than the sole carrier of machine denial truth"
+      ],
+      "instructions": "Build a separate planner-owned derived diagnostics lane that localizes exact route meaning without becoming the authority for that meaning.",
+      "qa_focus": "No diagnostic authority drift, no merged human-facing formatting with machine identity, and no broad labels where exact mismatch data exists.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 15,
+      "title": "Public Read-Only Facade Boundary",
+      "owner": "worth-kernel, worth-query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-query/docs"
+      ],
+      "acceptance": [
+        "callers can inspect proof and diagnostics but cannot construct planner route or proof products",
+        "public callers cannot satisfy the facade through support wrappers, raw rows, or local explainer helpers",
+        "public facade files aggregate but do not implement route policy"
+      ],
+      "instructions": "Expose planner-owned proof and diagnostics through a narrow public facade that allows inspection but not fabrication, mutation, or route-local rediscovery.",
+      "qa_focus": "No raw planner constructors, no test-only shortcut exports, and no mirror of internal directory topology on the public facade.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 16,
+      "title": "Kernel Public-Closeout Cutover",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/public_closeout",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "covered public-closeout entry points fail if planner-owned route products are absent and cannot silently reopen legacy helper logic",
+        "no covered ordinary kernel public-closeout helper lane remains outside the planner-owned cutover or explicit residue ledger",
+        "ordinary callers cut imports to new planner-owned lanes instead of continuing to author behavior under legacy public_closeout modules"
+      ],
+      "instructions": "Cut kernel public-closeout callers from mixed local closeout helpers onto the planner-owned proof and diagnostics lanes.",
+      "qa_focus": "No wrapper-based pseudo-cutover, no current-source continuation, and no legacy public-closeout helper left as the real ordinary authority path.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 17,
+      "title": "Workload-Composition Explainer Cutover",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "workload-composition explanation surfaces import planner-owned proof or diagnostic lanes directly",
+        "no ordinary workload-composition explainer surface remains outside the new lane or explicit residue ledger",
+        "kernel workload-composition explainer debt is counted independently from public-closeout debt"
+      ],
+      "instructions": "Cut workload-composition explainers and route-local status surfaces off legacy kernel helper lanes and onto planner-owned proof or diagnostic imports.",
+      "qa_focus": "No second local explanation language after cutover and no route-local status helpers kept as harmless convenience.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 18,
+      "title": "Topology Explainer Cutover",
+      "owner": "worth-topo",
+      "scope": [
+        "crates/worth-topo/src/projection",
+        "crates/worth-topo/src/derived_topology"
+      ],
+      "acceptance": [
+        "ordinary topology callers resolve through the new planner-owned route lanes instead of displaced legacy modules",
+        "compile-fail or source firewall proof rejects imports of displaced topology explainer and closeout helper lanes",
+        "topology cutover happens through real parallel folders and named new imports"
+      ],
+      "instructions": "Cut topology callers off displaced local explainers, report builders, and closeout-local route logic, then delete or cap the old topo lanes.",
+      "qa_focus": "No in-place reshaping of legacy modules and no broad mixed topo lanes hidden as residue.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 19,
+      "title": "Spatial Explainer Cutover And Hard Deletion",
+      "owner": "worth-spatial",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "ordinary spatial callers resolve through the new planner-owned route lanes instead of displaced legacy modules",
+        "compile-fail or source firewall proof rejects imports of displaced spatial explainer and closeout helper lanes",
+        "displaced spatial folders stop being the normal authoring home for route meaning"
+      ],
+      "instructions": "Cut spatial callers off displaced local explainers and closeout-local route logic, then delete or cap the old spatial lanes.",
+      "qa_focus": "No current-source linger, no broad mixed spatial residue, and no pseudo-cutover that keeps old folders as ordinary path owners.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 20,
+      "title": "Source Firewalls, Constructor Denials, And Compile-Fail Fences",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/source_firewall",
+        "crates/worth-topo/src/certification",
+        "crates/worth-spatial/src/certification"
+      ],
+      "acceptance": [
+        "callers cannot fabricate planner route, public proof, or diagnostic authority from raw collections, strings, or copied digests",
+        "compile-fail fixtures reject imports of forbidden helper lanes, support wrappers, and route-local construction seams",
+        "constructor visibility forces covered callers through planner-owned admission or derived public facade lanes"
+      ],
+      "instructions": "Seal the planner-owned route, proof, and diagnostics boundaries so local explanation ceremony cannot come back.",
+      "qa_focus": "No comments-as-firewalls, no test-only raw constructors left public, and no import firewall without a real replacement lane.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 21,
+      "title": "Residue Ledger, Query-Gap Ledger, And Honest Public Debt",
+      "owner": "worth-kernel, worth-topo, worth-spatial, worth-query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform",
+        "crates/worth-query/docs"
+      ],
+      "acceptance": [
+        "every remaining unmigrated public or diagnostic surface is counted exactly with owner, blocker, and removal trigger",
+        "Query-backed support gaps are not mixed with Worth-local architecture residue",
+        "the ledger remains mechanically derivable from live surfaces rather than hand-edited prose"
+      ],
+      "instructions": "Any public or diagnostic path not fully migrated must be explicit residue, explicit Query-gap, or deleted.",
+      "qa_focus": "No future-cleanup euphemisms, no hidden ordinary-path debt, and no false claims of Query support admission.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    },
+    {
+      "id": 22,
+      "title": "Milestone 15 Closeout And Milestone 16 Handoff",
+      "owner": "worth-kernel, worth-topo, worth-spatial, worth-query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform",
+        "crates/worth-query/docs",
+        "_docs/worth/touched-graph-roadmap.md"
+      ],
+      "acceptance": [
+        "execution, public proof, and diagnostics consume the same planner-owned selected-route chain on at least one representative path",
+        "milestone 16 handoff products carry route identity, family identity, witness identity, residue posture, and Query posture without local rediscovery",
+        "final closeout proves the migration law was honored: new lanes created beside old ones, ordinary callers cut over, displaced lanes deleted or capped, and no ordinary path depends on local route rediscovery"
+      ],
+      "instructions": "Close the milestone only when public proof and diagnostics are visibly derived from the same planner-owned route authority execution consumed, and emit the handoff products milestone 16 needs for cross-family parity.",
+      "qa_focus": "No closeout by polished diagnostics alone and no milestone 16 handoff that still requires rediscovery from helpers, rows, or strings.",
+      "status": "not_started",
+      "qa_status": "not_started",
+      "notes": {
+        "plan": [],
+        "done": [],
+        "remaining": [],
+        "findings": [],
+        "verification": []
+      }
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-07-02T06:29:13.916982+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T06:41:03.300314+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T06:41:33.311948+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T06:52:57.634200+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T06:53:27.646340+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T06:58:51.082589+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T06:59:21.092723+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T07:07:47.177104+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T07:08:17.187865+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T07:10:24.070233+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T07:10:54.081651+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T07:11:35.895652+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T07:12:05.907088+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T07:23:57.338136+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T07:24:27.347976+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T07:25:55.938702+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T07:26:25.948514+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 10 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T07:32:01.949394+00:00",
+      "phase": 10,
+      "turn": "code_quality_review",
+      "note": "Closed phase 10 to phase 11 plan; recorded selected_route packet structural residue and acceptance rerun verification."
+    },
+    {
+      "at": "2026-07-02T07:32:29.291782+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 10 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T07:32:59.303495+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T01:36:46.203543-06:00",
+      "phase": 11,
+      "turn": "plan",
+      "note": "Planned dedicated batch-admission route lane and advanced to implement."
+    },
+    {
+      "at": "2026-07-02T07:38:08.771677+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T07:38:38.782381+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T02:19:52.380898-06:00",
+      "phase": 11,
+      "turn": "implement",
+      "note": "Implemented batch-admission route lane, verified focused proofs, and advanced to review."
+    },
+    {
+      "at": "2026-07-02T08:20:20.912907+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T08:20:50.922529+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T02:27:04.531214-06:00",
+      "phase": 11,
+      "turn": "review",
+      "note": "QA regressed phase 11: selected-route still piggybacks batch proof-chain facts on the conflict route lane."
+    },
+    {
+      "at": "2026-07-02T08:27:35.213774+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T08:28:05.224594+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T00:00:00Z",
+      "phase": 11,
+      "turn": "repair",
+      "note": "repaired selected-route batch proof-chain ownership to source batch plan and receipt from batch-admission route lane"
+    },
+    {
+      "at": "2026-07-02T08:45:52.632920+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T08:46:22.643462+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T00:00:00Z",
+      "phase": 11,
+      "turn": "review",
+      "note": "phase 11 done-check passed after batch proof-chain ownership moved fully onto batch-admission route lane"
+    },
+    {
+      "at": "2026-07-02T08:52:08.898074+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T08:52:38.909248+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T00:00:00Z",
+      "phase": 11,
+      "turn": "test_review",
+      "note": "test QA reopened phase 11 hardening because batch denial proof does not also distinguish from independence denial"
+    },
+    {
+      "at": "2026-07-02T08:54:01.683057+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T08:54:31.694092+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T08:54:58.907579+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T08:54:58.915579+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "RunnerFailure: codex turn left the runner on the same cursor 11 test_repair_plan: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T08:56:47.682909+00:00",
+      "phase": 11,
+      "turn": "recovery",
+      "note": "Recovered stalled phase 11 test_repair_plan turn by persisting the completed hardening plan marker and advancing current to test_repair_implement."
+    },
+    {
+      "at": "2026-07-02T08:57:04.460219+00:00",
+      "phase": 11,
+      "turn": "recovery",
+      "note": "Validation passed: python automation\\phase_runner\\runner.py automation\\phase_runner\\worth-touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.json --validate -> state file is valid"
+    },
+    {
+      "at": "2026-07-02T08:57:12.330343+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T08:57:42.342198+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T09:03:03.895642+00:00",
+      "phase": 11,
+      "turn": "test_repair_implement",
+      "note": "Hardened phase 11 batch denial proof to distinguish independence denial through the exported diagnostics chain; advanced to test_review."
+    },
+    {
+      "at": "2026-07-02T09:03:22.001775+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T09:03:52.012245+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T09:04:25.726372+00:00",
+      "phase": 11,
+      "turn": "test_review",
+      "note": "Certified phase-11 test lane and advanced to code_quality_review."
+    },
+    {
+      "at": "2026-07-02T09:04:43.449116+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T09:05:13.460611+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 11 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T09:10:53.559619+00:00",
+      "phase": 11,
+      "turn": "code_quality_review",
+      "note": "Closed phase 11 to phase 12 plan; recorded selected_route/current.rs structural residue and acceptance rerun verification."
+    },
+    {
+      "at": "2026-07-02T09:11:19.625663+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 11 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T09:11:49.637274+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T09:17:45.186907+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T09:17:45.197411+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "RunnerFailure: codex turn left the runner on the same cursor 12 plan: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T09:18:07.552164+00:00",
+      "kind": "recovery",
+      "phase": 12,
+      "from_turn": "plan",
+      "to_turn": "implement",
+      "note": "Recovered stalled phase 12 plan turn by persisting the completed plan marker, marking phase 12 in_progress, and advancing current to implement."
+    },
+    {
+      "at": "2026-07-02T09:18:29.507974+00:00",
+      "kind": "recovery_validation",
+      "phase": 12,
+      "note": "Validation passed: python automation\\phase_runner\\runner.py automation\\phase_runner\\worth-touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.json --validate -> state file is valid"
+    },
+    {
+      "at": "2026-07-02T09:18:39.756428+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T09:19:09.768167+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T04:20:22",
+      "phase": 12,
+      "turn": "implement",
+      "note": "phase12 implement: route-owned kernel reuse witness cutover; spatial typed-decision gap remains"
+    },
+    {
+      "at": "2026-07-02T10:20:37.147964+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T10:20:37.157070+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "RunnerFailure: codex turn left the runner on the same cursor 12 implement: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T04:21:04",
+      "phase": 12,
+      "turn": "implement",
+      "note": "recovery: normalized phase-12 notes and preserved implement cursor after stalled progress failure"
+    },
+    {
+      "at": "2026-07-02T04:21:04",
+      "phase": 12,
+      "turn": "implement",
+      "note": "recovery validation: exit 0 - state file is valid"
+    },
+    {
+      "at": "2026-07-02T10:21:11.993515+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T10:21:42.005908+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T04:32:17-06:00",
+      "phase": 12,
+      "turn": "implement",
+      "note": "Implemented typed compiled-product reuse route lowering and advanced to review."
+    },
+    {
+      "at": "2026-07-02T10:32:34.528843+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T10:33:04.540042+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T04:40:36-06:00",
+      "phase": 12,
+      "turn": "review",
+      "note": "QA reopened phase 12: topology reuse route still reconstructs reuse posture locally."
+    },
+    {
+      "at": "2026-07-02T10:41:05.546162+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T10:41:35.556109+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T11:12:11.240324+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T11:12:11.250460+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "RunnerFailure: codex turn left the runner on the same cursor 12 repair: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T11:13:08.751278+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T11:13:38.763520+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T11:27:40.724866+00:00",
+      "phase": 12,
+      "turn": "repair",
+      "note": "Repaired phase 12 by cutting topology reuse-route authority over to the loop-cycle cutover row and advanced back to review."
+    },
+    {
+      "at": "2026-07-02T11:28:02.940386+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T11:28:32.951258+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T11:30:02.816641+00:00",
+      "phase": 12,
+      "turn": "review",
+      "note": "QA regressed phase 12: spatial reuse route still recomputes local reuse authority and public proof loses spatial denial witness identity."
+    },
+    {
+      "at": "2026-07-02T11:30:36.532910+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T11:31:06.543706+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T12:07:22.269398+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T12:07:52.279021+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T12:09:24.767274+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T12:09:54.779549+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T12:19:40.630640+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T12:20:10.641964+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T12:35:00.775112+00:00",
+      "phase": 12,
+      "turn": "review",
+      "note": "QA regressed phase 12: milestone-15 seed proof still omits spatial reuse and denial witness authority from the certified closeout chain."
+    },
+    {
+      "at": "2026-07-02T12:35:22.062967+00:00",
+      "phase": 12,
+      "turn": "review",
+      "note": "Validation passed after phase-12 regression update: runner.py --validate -> state file is valid"
+    },
+    {
+      "at": "2026-07-02T12:35:39.419897+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T12:36:09.430485+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T13:07:54.828059+00:00",
+      "kind": "phase_turn",
+      "phase": 12,
+      "turn": "repair",
+      "summary": "Certified milestone-15 seed spatial reuse and denial witness authority and returned phase 12 to review."
+    },
+    {
+      "at": "2026-07-02T13:08:12.551727+00:00",
+      "kind": "validation",
+      "phase": 12,
+      "turn": "repair",
+      "summary": "runner.py --validate passed: state file is valid"
+    },
+    {
+      "at": "2026-07-02T13:08:37.943854+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T13:09:07.954246+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T13:11:07.449462+00:00",
+      "kind": "phase_turn",
+      "phase": 12,
+      "turn": "review",
+      "summary": "QA found milestone-15 seed admission still omits compiled-product reuse route identity and spatial route-owned identity tuple checks."
+    },
+    {
+      "at": "2026-07-02T13:11:33.796090+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T13:12:03.805713+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T13:52:56.125931+00:00",
+      "kind": "phase_turn",
+      "phase": 12,
+      "turn": "repair",
+      "summary": "Closed Milestone-15 seed reuse authority gap by certifying reuse route packet identity and spatial route-owned identity tuple."
+    },
+    {
+      "at": "2026-07-02T13:53:18.067313+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T13:53:48.093563+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:00:56.780564+00:00",
+      "kind": "phase_turn",
+      "phase": 12,
+      "turn": "review",
+      "summary": "QA passed: phase 12 reuse route lane and milestone-15 seed authority boundary are complete."
+    },
+    {
+      "at": "2026-07-02T14:01:10.571743+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:01:40.588560+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:02:54.588580+00:00",
+      "kind": "phase_turn",
+      "phase": 12,
+      "turn": "test_review",
+      "summary": "Test QA found phase-facing kernel tests still rely on post-admission reuse route packet mutation instead of real lower-authority topology/spatial proof surfaces."
+    },
+    {
+      "at": "2026-07-02T14:03:20.607630+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:03:50.625746+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:04:08.937027+00:00",
+      "kind": "phase_turn",
+      "phase": 12,
+      "turn": "test_repair_plan",
+      "summary": "Planned test hardening: drive phase-12 proof from real topology/spatial authority fixtures instead of mutating assembled reuse route packets."
+    },
+    {
+      "at": "2026-07-02T14:04:33.263268+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:05:03.282067+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:13:46.212697+00:00",
+      "kind": "cursor_repair",
+      "phase": 12,
+      "turn": "test_repair_implement",
+      "summary": "Repaired stale complete/passed phase 12 cursor to phase 13 plan before runner restart."
+    },
+    {
+      "at": "2026-07-02T14:14:01.042740+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:16:57.0604245Z",
+      "kind": "phase_turn",
+      "phase": 13,
+      "turn": "plan",
+      "summary": "Planned planner-owned public proof assembly lane and advanced to implement."
+    },
+    {
+      "at": "2026-07-02T14:17:55.327944+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:18:25.338518+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T15:01:09.424154+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T15:01:09.437157+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "RunnerFailure: codex turn left the runner on the same cursor 13 implement: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T15:02:11.112449+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T15:02:41.123728+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 implement",
+      "exit_code": null
+    }
+  ],
+  "completed_at": null
+}

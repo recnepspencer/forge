@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use forge_query::facade::runtime::{
+use worth_query::facade::runtime::{
     CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
     CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
     CustomInvariantRegistration, CustomInvariantRegistrationError, CustomInvariantRule,
@@ -8,7 +8,7 @@ use forge_query::facade::runtime::{
     CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCostClass,
     InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup, InvariantGroupSet,
 };
-use forge_relational::facade::identity::EntityId;
+use worth_relational::facade::identity::EntityId;
 
 use crate::domain_artifacts::core_artifact::{
     impl_hadwiger_artifact, HadwigerArtifactAuthorityOwner, HadwigerArtifactCore,

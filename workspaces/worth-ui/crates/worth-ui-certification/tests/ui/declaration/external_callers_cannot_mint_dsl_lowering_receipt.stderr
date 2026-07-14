@@ -20,7 +20,7 @@ error[E0061]: this function takes 4 arguments but 3 arguments were supplied
 4 |     let _ = UiDslLoweringReceipt::new(
   |             ^^^^^^^^^^^^^^^^^^^^^^^^^
 ...
-7 |         UiDslSourceProvenance::file_authored("app/forged.wui", 0),
+7 |         UiDslSourceProvenance::file_authored("app/Worthd.wui", 0),
   |         --------------------------------------------------------- argument #3 of type `u64` is missing
   |
 note: associated function defined here
@@ -34,5 +34,5 @@ help: provide the argument
 5 |         unsafe { std::mem::MaybeUninit::<UiDslSemanticArtifact>::zeroed().assume_init() },
 6 |         17,
 7 ~         /* u64 */,
-8 ~         UiDslSourceProvenance::file_authored("app/forged.wui", 0),
+8 ~         UiDslSourceProvenance::file_authored("app/Worthd.wui", 0),
   |

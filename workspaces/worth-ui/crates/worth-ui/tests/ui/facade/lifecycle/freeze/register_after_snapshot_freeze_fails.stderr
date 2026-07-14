@@ -10,7 +10,7 @@ error[E0382]: use of moved value: `builder`
   |                       ^^^^^^^ value used here after move
   |
 note: `WorthUiBuilder::freeze` takes ownership of the receiver `self`, which moves `builder`
- --> $WORKSPACE/crates/worth-ui-runtime/src/facade/app_builder.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/facade/entry/app_builder.rs
   |
   |     pub fn freeze(self) -> WorthUiApp {
   |                   ^^^^

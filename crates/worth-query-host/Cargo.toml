@@ -1,0 +1,13 @@
+[package]
+name = "worth-query-host"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Query host audience facade over worth-query."
+publish = false
+
+[dependencies]
+worth-query = { workspace = true }
+
+[lints]
+workspace = true

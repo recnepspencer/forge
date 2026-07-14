@@ -9,6 +9,7 @@ pub struct FrozenMosaicPlacementCapabilities {
 }
 
 impl FrozenMosaicPlacementCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             descriptors: Vec::new(),

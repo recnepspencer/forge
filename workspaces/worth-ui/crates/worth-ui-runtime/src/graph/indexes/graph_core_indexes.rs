@@ -52,7 +52,7 @@ impl UiGraphCoreIndexes {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn build_without_aspects(
         nodes: &[UiGraphNode],
         declaration_correspondence: UiGraphDeclarationCorrespondence,

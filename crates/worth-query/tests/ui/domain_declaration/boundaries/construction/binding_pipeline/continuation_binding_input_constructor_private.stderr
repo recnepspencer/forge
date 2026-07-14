@@ -1,0 +1,9 @@
+error[E0451]: fields `bridge_request` and `subject` of struct `WorthQueryContinuationBindingInput` are private
+  --> tests/ui/domain_declaration/boundaries/construction/binding_pipeline/continuation_binding_input_constructor_private.rs:58:9
+   |
+57 |     let _ = WorthQueryContinuationBindingInput::<ExampleDomain, ExampleInput> {
+   |             ----------------------------------------------------------------- in this type
+58 |         bridge_request: unsafe { std::mem::zeroed() },
+   |         ^^^^^^^^^^^^^^ private field
+59 |         subject: unsafe { std::mem::zeroed() },
+   |         ^^^^^^^ private field

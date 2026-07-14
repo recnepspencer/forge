@@ -1,0 +1,5 @@
+error[E0599]: no method named `execute` found for struct `BasisLifecycleIntentDraft` in the current scope
+ --> tests/ui/basis_lifecycle/dx/declaration_draft_cannot_execute.rs:4:46
+  |
+4 |     let _ = basis_lifecycle().current_head().execute();
+  |                                              ^^^^^^^ method not found in `BasisLifecycleIntentDraft`

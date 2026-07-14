@@ -1,0 +1,14 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/graph_read_access/admitted_relation_new_private.rs:4:50
+  |
+4 |       let _ = WorthQueryAdmittedGraphReadRelation::new;
+  |                                                    ^^^ private associated function
+  |
+ ::: src/runtime/graph_read_access/schema_reference_evidence/admitted_reference_rows.rs
+  |
+  | /     pub(crate) fn new(
+  | |         relation: RelationName,
+  | |         direction: WorthQueryAdmittedGraphReadRelationDirection,
+  | |         depth: usize,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

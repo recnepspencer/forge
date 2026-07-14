@@ -6,6 +6,11 @@ use crate::graph::{
     UiGraphGeneration, UiGraphInstantiationPlan, UiGraphMountedReceiptAuthoritySeedStore,
     UiGraphNode, UiGraphNodeIdentity, UiGraphSnapshot, UiGraphTopology, UiGraphWorldProfile,
 };
+#[cfg(any(test, feature = "certification-support"))]
+use crate::graph::{
+    UiGraphAxisParticipation, UiGraphParticipationAxis, UiGraphParticipationMutation,
+    UiGraphParticipationStatus,
+};
 
 pub(crate) struct UiGraphMutationStage {
     generation: UiGraphGeneration,
@@ -97,6 +102,71 @@ impl UiGraphMutationStage {
         let mut stage = Self::from_initial_plan(plan, prior_snapshot.world_profile().clone());
         stage.generation = UiGraphGeneration::successor_of(prior_snapshot.generation());
         stage
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn layout_admitted_successor(
+        prior_snapshot: &UiGraphSnapshot,
+        admitted_nodes: &[UiGraphNodeIdentity],
+    ) -> Self {
+        let nodes = prior_snapshot
+            .nodes()
+            .iter()
+            .map(|node| {
+                let posture = if admitted_nodes.contains(&node.graph_node_identity()) {
+                    let page = prior_snapshot
+                        .lookup()
+                        .topology_node(node.graph_node_identity())
+                        .and_then(|row| row.value().page_membership())
+                        .map(|membership| membership.page_node_identity())
+                        .unwrap_or_else(|| node.graph_node_identity());
+                    UiGraphParticipationMutation::axis_transition(
+                        node.graph_node_identity(),
+                        page,
+                        node.participation_posture(),
+                        UiGraphParticipationAxis::Layout,
+                        UiGraphAxisParticipation::runtime_mutation(
+                            UiGraphParticipationStatus::Admitted,
+                        ),
+                    )
+                    .updated_posture()
+                } else {
+                    node.participation_posture()
+                };
+                UiGraphNode::new(
+                    node.graph_node_identity(),
+                    node.declaration_identity().clone(),
+                    node.structural_digest(),
+                    node.structural_role(),
+                    node.operator_kind(),
+                    node.repetition_posture(),
+                    node.measurement_constraint_modifier(),
+                    node.authored_provenance_digest(),
+                    node.repeated_instance_basis().clone(),
+                    node.attachment_posture(),
+                    posture,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let core_indexes = UiGraphCoreIndexes::build_without_aspects(
+            &nodes,
+            prior_snapshot
+                .core_indexes()
+                .declaration_correspondence()
+                .clone(),
+            prior_snapshot.topology(),
+            prior_snapshot.mounted_receipts(),
+        );
+
+        Self {
+            generation: UiGraphGeneration::successor_of(prior_snapshot.generation()),
+            world_profile: prior_snapshot.world_profile().clone(),
+            nodes,
+            topology: prior_snapshot.topology().clone(),
+            mounted_receipts: prior_snapshot.mounted_receipts().clone(),
+            core_indexes,
+        }
     }
 
     pub(crate) fn commit(self) -> UiGraphSnapshot {

@@ -1,8 +1,8 @@
 use crate::primitives::plane::Plane;
 use crate::spatial::coordinate::local_space::ScaleAnalysis;
-use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use super::geometry_identity::geometry_identity_bundle;
+use super::private_support::{truth_digest_parts, PrimitiveDigestScope};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveRealizationStrategy {
@@ -348,5 +348,5 @@ pub fn build_direct_realization_report(
 }
 
 fn digest_parts(parts: &[String]) -> String {
-    truth_digest_parts(TruthDigestScope::ArtifactIdentity, parts)
+    truth_digest_parts(PrimitiveDigestScope::ArtifactIdentity, parts)
 }

@@ -194,6 +194,11 @@ fn validate_subworkspace(
     }
 
     let manifest = parse_workspace_manifest(&manifest_path)?;
+    let workspace_members = manifest
+        .workspace
+        .as_ref()
+        .and_then(|workspace| workspace.members.as_deref())
+        .unwrap_or_default();
     let worth_topology = manifest
         .workspace
         .as_ref()
@@ -245,6 +250,9 @@ fn validate_subworkspace(
     {
         let entry = entry.map_err(|e| format!("read crates lane entry: {e}"))?;
         let path = entry.path();
+        if entry.file_name() == ".gitkeep" && path.is_file() {
+            continue;
+        }
         if !path.is_dir() {
             diagnostics.push(Diagnostic::new(
                 DiagnosticCode::Bc5002SubworkspaceContractViolation,
@@ -263,6 +271,17 @@ fn validate_subworkspace(
             continue;
         }
         let crate_name = package_name_from_manifest(&manifest_path)?;
+        let relative_member = format!("crates/{crate_name}");
+        if !workspace_members
+            .iter()
+            .any(|member| workspace_member_matches(member, &relative_member))
+        {
+            diagnostics.push(Diagnostic::new(
+                DiagnosticCode::Bc5002SubworkspaceContractViolation,
+                manifest_path.display().to_string(),
+                "crate-lane package must be admitted by workspace.members",
+            ));
+        }
         if !config
             .allowed_crate_prefixes
             .iter()
@@ -277,4 +296,12 @@ fn validate_subworkspace(
     }
 
     Ok(())
+}
+
+fn workspace_member_matches(pattern: &str, candidate: &str) -> bool {
+    let pattern = pattern.replace('\\', "/");
+    pattern == candidate
+        || pattern
+            .strip_suffix('*')
+            .is_some_and(|prefix| candidate.starts_with(prefix))
 }

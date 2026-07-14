@@ -1,0 +1,29 @@
+schema_version = 1
+
+[[packages]]
+package = "worth-cert-adoption"
+dependencies = [
+    "toml",
+    "worth-proof",
+    "worth-schema-core",
+]
+
+[[packages]]
+package = "worth-pack-registry"
+dependencies = ["worth-schema-core"]
+
+[[packages]]
+package = "worth-query-decl"
+dependencies = ["worth-query"]
+
+[[packages]]
+package = "worth-query-host"
+dependencies = ["worth-query"]
+
+[[packages]]
+package = "worth-query-replay"
+dependencies = ["worth-query"]
+
+[[packages]]
+package = "worth-schema-core"
+dependencies = []

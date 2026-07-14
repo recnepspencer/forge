@@ -1,7 +1,10 @@
+#[cfg(test)]
 use crate::source::{
-    WorthUiArtifact, WorthUiArtifactDependencyDeriver, WorthUiArtifactDependencyReport,
-    WorthUiArtifactDigest, WorthUiArtifactDigestor, WorthUiArtifactEquivalenceBasis,
-    WorthUiIncrementalInvalidationBasis,
+    WorthUiArtifact, WorthUiArtifactDependencyDeriver, WorthUiArtifactDigestor,
+    WorthUiArtifactEquivalenceBasis,
+};
+use crate::source::{
+    WorthUiArtifactDependencyReport, WorthUiArtifactDigest, WorthUiIncrementalInvalidationBasis,
 };
 
 use super::worth_ui_candidate_dependency_metadata_digest::digest_dependency_report;
@@ -14,6 +17,7 @@ pub struct WorthUiCandidateDependencyMetadata {
 }
 
 impl WorthUiCandidateDependencyMetadata {
+    #[cfg(test)]
     pub(crate) fn derive_for_artifact(artifact: &WorthUiArtifact) -> Self {
         let artifact_digest =
             WorthUiArtifactDigestor::digest(artifact, WorthUiArtifactEquivalenceBasis::semantic());
@@ -33,6 +37,7 @@ impl WorthUiCandidateDependencyMetadata {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn artifact_digest(&self) -> WorthUiArtifactDigest {
         self.artifact_digest
     }

@@ -125,7 +125,6 @@ const fn unsupported_scope_rows(scope: UiInspectionScope) -> [UiInspectionScopeS
     ]
 }
 
-#[allow(dead_code)]
 const fn supported_scope_rows(scope: UiInspectionScope) -> [UiInspectionScopeSupportRow; 4] {
     [
         UiInspectionScopeSupportRow::supported(

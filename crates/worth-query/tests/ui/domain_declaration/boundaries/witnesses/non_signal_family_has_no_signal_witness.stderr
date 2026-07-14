@@ -1,0 +1,12 @@
+error[E0599]: the method `signal_compatible` exists for struct `WorthQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>`, but its trait bounds were not satisfied
+  --> tests/ui/domain_declaration/boundaries/witnesses/non_signal_family_has_no_signal_witness.rs:65:25
+   |
+30 | struct SplitEdgeFamily;
+   | ---------------------- doesn't satisfy `<_ as WorthQueryDeclarationFamilyMarker<GeometryDomain>>::SignalCompatibility = WorthQuerySignalCompatiblePosture` or `_: WorthQueryDeclarationSupportsSignalCompatibility<GeometryDomain>`
+...
+65 |     let _ = declaration.signal_compatible();
+   |                         ^^^^^^^^^^^^^^^^^ method cannot be called due to unsatisfied trait bounds
+   |
+   = note: the following trait bounds were not satisfied:
+           `<SplitEdgeFamily as WorthQueryDeclarationFamilyMarker<GeometryDomain>>::SignalCompatibility = WorthQuerySignalCompatiblePosture`
+           which is required by `SplitEdgeFamily: WorthQueryDeclarationSupportsSignalCompatibility<GeometryDomain>`

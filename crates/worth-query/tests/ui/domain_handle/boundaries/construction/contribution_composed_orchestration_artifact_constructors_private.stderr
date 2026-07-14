@@ -1,0 +1,37 @@
+error[E0560]: struct `WorthQueryContributionComposedOrchestration<GeometryDomainEntry, GeometryInput>` has no field named `composed_digest`
+  --> tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs:72:9
+   |
+72 |         composed_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ `WorthQueryContributionComposedOrchestration<GeometryDomainEntry, GeometryInput>` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error: cannot construct `WorthQueryContributionComposedOrchestrationTranscript<GeometryDomainEntry, GeometryInput>` with struct literal syntax due to private fields
+  --> tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs:74:13
+   |
+74 |       let _ = WorthQueryContributionComposedOrchestrationTranscript::<
+   |  _____________^
+75 | |         GeometryDomainEntry,
+76 | |         GeometryInput,
+77 | |     > {
+   | |_____^
+78 |           request_digest: String::new(),
+   |           ----------------------------- private field
+79 |           outcome: unsafe { std::mem::zeroed() },
+   |           -------------------------------------- private field
+80 |           linked_artifacts: unsafe { std::mem::zeroed() },
+   |           ----------------------------------------------- private field
+81 |           contribution_digest: None,
+   |           ------------------------- private field
+   |
+   = note: ...and other private fields `request_descriptor`, `materialization_policy`, `declaration`, `composition_classification`, `graph_obligation_dispatch` and `intent_results` that were not provided
+help: you might have meant to use the `new` associated function
+   |
+77 -     > {
+78 -         request_digest: String::new(),
+79 -         outcome: unsafe { std::mem::zeroed() },
+80 -         linked_artifacts: unsafe { std::mem::zeroed() },
+81 -         contribution_digest: None,
+82 -     };
+77 +     >::new(_, _, _, _, _, _, _, _, _, _);
+   |

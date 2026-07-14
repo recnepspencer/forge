@@ -5,6 +5,6 @@ fn main() {
         name: "frame.fake",
         value: 1,
         value_kind: WorthUiCounterValueKind::CountedWork,
-        work_class: forge_foundational::FoundationalPerformanceWorkClass::ValidationPlanning,
+        work_class: worth_foundational::FoundationalPerformanceWorkClass::ValidationPlanning,
     };
 }

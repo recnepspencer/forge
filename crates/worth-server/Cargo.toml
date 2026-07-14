@@ -1,0 +1,31 @@
+[package]
+name = "worth-server"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Typed server facade and transport boundary for WORTH."
+repository = "https://github.com/recnepspencer/WORTH"
+keywords = ["server", "facade", "axum", "typed"]
+categories = ["network-programming", "web-programming"]
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["net"] }
+worth-foundational.workspace = true
+worth-proof.workspace = true
+worth-query.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2 = "0.10"
+flate2 = "1"
+tracing.workspace = true
+
+[dev-dependencies]
+worth-runtime-bridge.workspace = true
+sha2 = "0.10"
+tower = { version = "0.5", features = ["util"] }
+trybuild.workspace = true
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

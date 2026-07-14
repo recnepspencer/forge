@@ -1,0 +1,14 @@
+error[E0432]: unresolved import `worth_query::facade::QueryBasisContextRequest`
+ --> tests/ui/query_basis_context_request_bool_shortcut_forbidden.rs:1:5
+  |
+1 | use worth_query::facade::QueryBasisContextRequest;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `QueryBasisContextRequest` in `facade`
+  |
+note: found an item that was configured out
+ --> src/facade.rs
+  |
+  | #[cfg(test)]
+  |       ---- the item is gated here
+...
+  |     QueryBasisContextRequest,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^

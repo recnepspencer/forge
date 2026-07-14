@@ -30,6 +30,7 @@ impl WorthUiReplacementCandidateBasis {
         self.artifact_equivalence_basis
     }
 
+    #[cfg(test)]
     pub(crate) fn dependency_metadata_digest(self) -> u64 {
         self.dependency_metadata_digest
     }

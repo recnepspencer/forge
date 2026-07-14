@@ -1,0 +1,21 @@
+[package]
+name = "worth-store-buffer-pool"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.2 bounded buffer pool and resident-memory contracts."
+
+[dependencies]
+worth-store-budgets.workspace = true
+worth-store-contracts.workspace = true
+worth-store-physical-format.workspace = true
+worth-store-security.workspace = true
+
+[dev-dependencies]
+worth-store-readiness.workspace = true
+
+[features]
+certification-test-authority = []
+
+[lints]
+workspace = true

@@ -1,0 +1,12 @@
+error: cannot construct `WorthQueryGraphScopedCustomInvariantRegistration` with struct literal syntax due to private fields
+ --> tests/ui/graph_obligation/registration/graph_scoped_custom_invariant_registration_constructor_private.rs:4:13
+  |
+4 |     let _ = WorthQueryGraphScopedCustomInvariantRegistration {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields `custom_invariant`, `touch_selector`, `operating_world_selector` and `support_posture` that were not provided
+help: you might have meant to use the `new` associated function
+  |
+4 -     let _ = WorthQueryGraphScopedCustomInvariantRegistration {};
+4 +     let _ = WorthQueryGraphScopedCustomInvariantRegistration::new(_, _, _);
+  |

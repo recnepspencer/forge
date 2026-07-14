@@ -4,7 +4,7 @@
   "current": null,
   "project": {
     "name": "Worth UI Milestone 3.3",
-    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\WORTH_workspace\\worth-ui",
     "spec_file": "_docs\\worth-ui\\milestone-3.3.md",
     "context_files": [
       "_docs\\coding_guidelines\\MENTALITY.md",
@@ -12,8 +12,8 @@
       "_docs\\coding_guidelines\\composition_laws.md",
       "_docs\\coding_guidelines\\domain_structure_laws.md",
       "_docs\\coding_guidelines\\perf_laws.md",
-      "crates\\forge-foundational\\docs\\FOUNDATIONAL_README.md",
-      "crates\\forge-query\\docs\\AI_README.md",
+      "crates\\worth-foundational\\docs\\FOUNDATIONAL_README.md",
+      "crates\\worth-query\\docs\\AI_README.md",
       "workspaces\\worth-ui\\docs\\WORTH_UI_README.md",
       "_docs\\worth-ui\\worth-ui-dsl-vision.md",
       "_docs\\worth-ui\\ai-diagnostics.md",
@@ -84,7 +84,7 @@
           "cargo check -p worth-ui-runtime --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: Finished dev profile [unoptimized + debuginfo] target(s) in 0.74s",
           "cargo check -p worth-ui --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: Finished dev profile [unoptimized + debuginfo] target(s) in 0.39s",
           "cargo test -p worth-ui-certification --test graph_authority_runtime --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: 7 passed; 0 failed",
-          "cargo test -p worth-ui-certification --test graph_authority_compile --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: external_callers_cannot_forge_graph_identity_or_snapshot.rs ... ok"
+          "cargo test -p worth-ui-certification --test graph_authority_compile --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: external_callers_cannot_WORTH_graph_identity_or_snapshot.rs ... ok"
         ]
       }
     },
@@ -376,7 +376,7 @@
           "cargo test -p worth-ui-certification graph closeout+authority+lookup+inspection+participation+topology+mounted+mutation runtime => 0",
           "cargo test -p worth-ui-certification --test graph_authority_compile --manifest-path workspaces/worth-ui/Cargo.toml => 0",
           "cargo test -p worth-ui-certification --test graph_closeout_runtime --test graph_authority_runtime --test graph_lookup_runtime --test graph_inspection_runtime --test graph_participation_runtime --test graph_topology_runtime --test graph_topology_authority_runtime --test graph_aspect_index_runtime --test mounted_receipt_runtime --test graph_mutation_runtime --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: graph_closeout 2 passed; graph_inspection 1 passed; graph_lookup 2 passed; graph_mutation 3 passed; graph_participation 3 passed; graph_topology 5 passed; graph_topology_authority 3 passed; mounted_receipt 3 passed",
-          "cargo test -p worth-ui-certification --test graph_authority_compile --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: external_callers_cannot_forge_graph_identity_or_snapshot.rs ok; external_callers_cannot_mint_graph_successor_from_snapshot.rs ok; external_callers_cannot_import_raw_graph_runtime_internals_from_runtime_facade.rs ok"
+          "cargo test -p worth-ui-certification --test graph_authority_compile --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: external_callers_cannot_WORTH_graph_identity_or_snapshot.rs ok; external_callers_cannot_mint_graph_successor_from_snapshot.rs ok; external_callers_cannot_import_raw_graph_runtime_internals_from_runtime_facade.rs ok"
         ]
       }
     }

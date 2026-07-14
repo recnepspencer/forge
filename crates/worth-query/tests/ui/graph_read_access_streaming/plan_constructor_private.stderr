@@ -1,0 +1,25 @@
+error: cannot construct `WorthQueryGraphReadStreamingPlan` with struct literal syntax due to private fields
+  --> tests/ui/graph_read_access_streaming/plan_constructor_private.rs:4:13
+   |
+ 4 |       let _ = WorthQueryGraphReadStreamingPlan {
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |           digest: String::new(),
+   |           --------------------- private field
+ 6 |           admission_digest: String::new(),
+   |           ------------------------------- private field
+ 7 |           requirement_set_digest: String::new(),
+   |           ------------------------------------- private field
+ 8 | /         page_budget: WorthQueryGraphReadStreamingPageBudget {
+ 9 | |             digest: String::new(),
+10 | |             max_page_width: 1,
+11 | |             max_resident_frontier: 1,
+12 | |             max_resident_visited: 1,
+13 | |             max_page_result_bytes: 1,
+14 | |         },
+   | |_________- private field
+15 |           canonical_result_basis_digest: String::new(),
+   |           -------------------------------------------- private field
+16 |           replay_basis_digest: String::new(),
+   |           ---------------------------------- private field
+   |
+   = note: ...and other private field `planned_frontier_page_count_floor` that was not provided

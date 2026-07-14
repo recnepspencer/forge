@@ -1,0 +1,31 @@
+[package]
+name = "worth-store-physical-isolation"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.5 latches, epochs, stable read plans, and reclaim barriers."
+
+[dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store-authority.workspace = true
+worth-store-budgets.workspace = true
+worth-store-buffer-pool.workspace = true
+worth-store-contracts.workspace = true
+worth-store-physical-format.workspace = true
+worth-store-physical-integrity.workspace = true
+worth-store-recovery-physics.workspace = true
+worth-store-security.workspace = true
+worth-store-wal.workspace = true
+
+[features]
+certification-authority = ["worth-store-recovery-physics/certification-test-authority", "worth-store-wal/certification-authority"]
+phase20-layout-rule-construction = []
+
+[dev-dependencies]
+worth-store-layout-indexes = { path = "../worth-store-layout-indexes" }
+worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
+worth-store-wal = { workspace = true, features = ["certification-authority"] }
+
+[lints]
+workspace = true

@@ -1,26 +1,26 @@
 ---
 pid: 46696
-cwd: "C:\Users\Esther\Documents\Programming\forge_workspace\forge"
-command: "Set-Location \"C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\forge\\workspaces\\forge-store\"; cargo test -p forge-store-blob-chunks retention_reclaim -- --test-threads=1 2>&1 | Select-Object -Last 30"
+cwd: "C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH"
+command: "Set-Location \"C:\\Users\\Esther\\Documents\\Programming\\WORTH_workspace\\WORTH\\workspaces\\worth-store\"; cargo test -p worth-store-blob-chunks retention_reclaim -- --test-threads=1 2>&1 | Select-Object -Last 30"
 started_at: 2026-07-06T23:05:04.325Z
 running_for_ms: 654999   
 ---
 
    |                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-warning: unused import: `forge_store_security::StoreTenantScope`
-  --> crates\forge-store-blob-chunks\src\corruption\tests.rs:17:5
+warning: unused import: `worth_store_security::StoreTenantScope`
+  --> crates\worth-store-blob-chunks\src\corruption\tests.rs:17:5
    |
-17 | use forge_store_security::StoreTenantScope;
+17 | use worth_store_security::StoreTenantScope;
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `recovery_entry`
-  --> crates\forge-store-blob-chunks\src\publication\test_support\mod.rs:10:5
+  --> crates\worth-store-blob-chunks\src\publication\test_support\mod.rs:10:5
    |
 10 |     recovery_entry, recovery_replay_entry, replayable_wal_classification,
    |     ^^^^^^^^^^^^^^
-warning: `forge-store-blob-chunks` (lib test) generated 14 warnings (9 duplicates) (run `cargo fix --lib -p 
-forge-store-blob-chunks --tests` to apply 5 suggestions)
+warning: `worth-store-blob-chunks` (lib test) generated 14 warnings (9 duplicates) (run `cargo fix --lib -p 
+worth-store-blob-chunks --tests` to apply 5 suggestions)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 16.42s
-     Running unittests src\lib.rs (target\debug\deps\forge_store_blob_chunks-085508f9a87601b9.exe)
+     Running unittests src\lib.rs (target\debug\deps\worth_store_blob_chunks-085508f9a87601b9.exe)
 running 8 tests
 test retention_reclaim::tests::every_retention_hold_kind_independently_blocks_reclaim ... ok
 test retention_reclaim::tests::live_read_plan_hold_blocks_admission_before_planning ... ok

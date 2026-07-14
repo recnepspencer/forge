@@ -6,7 +6,7 @@ use crate::runtime::{
     WorthUiQueryRebindRequiredSurface, WorthUiQuerySupportStatus,
 };
 
-pub(super) fn query_rebind_basis_digest(plan: &WorthUiQueryLiveRebindPlan) -> u64 {
+pub(in crate::runtime) fn query_rebind_basis_digest(plan: &WorthUiQueryLiveRebindPlan) -> u64 {
     let mut fold = WorthUiActivationGateDigestFold::new(0x7175_6572_795f_0025);
     fold.fold_u64(plan.active_artifact_digest());
     fold.fold_u64(plan.candidate_artifact_digest());

@@ -10,7 +10,7 @@ use worth_ui_dsl::{
 };
 
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 const AI_ARTIFACT_MODULE: &str = "app/ai_inspection_runtime.wui";
 
@@ -158,8 +158,8 @@ fn ai_harness_uses_refs_first_followup_queries_for_declaration_source_graph_and_
 
 #[test]
 fn ai_harness_matches_ordinary_receipts_and_expansion_for_obligation_neighborhoods() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
     let ai = UiInspectionAiHarness::new(&app);
     let query = UiInspectionQuery::new(
         UiInspectionTarget::obligation_touch(

@@ -1,0 +1,21 @@
+error[E0603]: function `execute_scoped_preview_live_session_plan` is private
+ --> tests/ui/public_authority_surface/legacy_preview_binding_cannot_execute.rs:1:35
+  |
+1 | use worth_query::facade::policy::{execute_scoped_preview_live_session_plan, PreviewSessionPlanBinding};
+  |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private function
+  |
+note: the function `execute_scoped_preview_live_session_plan` is defined here
+ --> src/facade.rs
+  |
+  |     pub use super::exports_policy::*;
+  |             ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unreachable statement
+ --> tests/ui/public_authority_surface/legacy_preview_binding_cannot_execute.rs:5:5
+  |
+4 |     let binding: PreviewSessionPlanBinding = todo!();
+  |                                              ------- any code following this expression is unreachable
+5 |     let _ = execute_scoped_preview_live_session_plan(&binding);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

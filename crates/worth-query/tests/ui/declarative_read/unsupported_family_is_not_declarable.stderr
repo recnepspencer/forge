@@ -1,0 +1,5 @@
+error[E0599]: no method named `unbounded_stream` found for struct `WorthQueryReadBuilder<Output>` in the current scope
+ --> tests/ui/declarative_read/unsupported_family_is_not_declarable.rs:4:33
+  |
+4 |     let _ = declare(|read| read.unbounded_stream("user"));
+  |                                 ^^^^^^^^^^^^^^^^ method not found in `WorthQueryReadBuilder<worth_query::ordinary::read::intent::WorthQueryDeclaredReadIntent>`

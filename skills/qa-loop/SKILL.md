@@ -1,6 +1,6 @@
 ---
 name: qa-loop
-description: Run a Forge-quality QA and correction loop on completed work. Use when reviewing a just-finished phase or implementation batch against the milestone spec and Forge coding-guideline docs, producing findings-first feedback, fixing the findings, and repeating until no meaningful findings remain.
+description: Run a WORTH-quality QA and correction loop on completed work. Use when reviewing a just-finished phase or implementation batch against the milestone spec and WORTH coding-guideline docs, producing findings-first feedback, fixing the findings, and repeating until no meaningful findings remain.
 ---
 
 # QA Loop

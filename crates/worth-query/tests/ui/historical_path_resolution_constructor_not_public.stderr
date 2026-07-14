@@ -1,0 +1,22 @@
+error: cannot construct `HistoricalPathResolved` with struct literal syntax due to private fields
+ --> tests/ui/historical_path_resolution_constructor_not_public.rs:4:13
+  |
+4 |     let _ = HistoricalPathResolved {
+  |             ^^^^^^^^^^^^^^^^^^^^^^
+5 |         requested_path_class: RequestedHistoricalPathClass::RequestedRetainedSnapshotPath,
+  |         --------------------------------------------------------------------------------- private field
+6 |         admitted_path_class: AdmittedHistoricalPathClass::AdmittedRetainedSnapshotPath,
+  |         ------------------------------------------------------------------------------ private field
+7 |         resolved_path_class: ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath,
+  |         ------------------------------------------------------------------------------ private field
+  |
+  = note: ...and other private fields `cost_posture`, `complexity_contract` and `counters` that were not provided
+help: you might have meant to use the `new` associated function
+  |
+4 -     let _ = HistoricalPathResolved {
+5 -         requested_path_class: RequestedHistoricalPathClass::RequestedRetainedSnapshotPath,
+6 -         admitted_path_class: AdmittedHistoricalPathClass::AdmittedRetainedSnapshotPath,
+7 -         resolved_path_class: ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath,
+8 -     };
+4 +     let _ = HistoricalPathResolved::new(_, _, _, _, _, _);
+  |

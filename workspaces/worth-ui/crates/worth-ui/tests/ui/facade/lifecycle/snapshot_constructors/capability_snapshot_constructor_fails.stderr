@@ -1,12 +1,11 @@
-error[E0624]: associated function `from_registered_capabilities` is private
+error[E0599]: no function or associated item named `from_registered_capabilities` found for struct `CapabilitySnapshot` in the current scope
  --> tests/ui/facade/lifecycle/snapshot_constructors/capability_snapshot_constructor_fails.rs:4:33
   |
-4 |       let _ = CapabilitySnapshot::from_registered_capabilities(registered_capabilities());
-  |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private associated function
+4 |     let _ = CapabilitySnapshot::from_registered_capabilities(registered_capabilities());
+  |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `CapabilitySnapshot`
   |
- ::: $WORKSPACE/crates/worth-ui-runtime/src/capability/snapshot/capability_snapshot_constructors.rs
+help: there is a method `registered_capabilities` with a similar name, but with different arguments
+ --> $WORKSPACE/crates/worth-ui-runtime/src/capability/snapshot/capability_snapshot.rs
   |
-  | /     pub(crate) fn from_registered_capabilities(
-  | |         registered_capabilities: RegisteredCapabilitySet,
-  | |     ) -> Self {
-  | |_____________- private associated function defined here
+  |     pub fn registered_capabilities(&self) -> &RegisteredCapabilitySet {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

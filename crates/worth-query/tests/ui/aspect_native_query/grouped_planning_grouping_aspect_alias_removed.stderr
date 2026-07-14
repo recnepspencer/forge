@@ -1,0 +1,23 @@
+error[E0599]: no method named `grouping_aspect` found for struct `GroupedBaselineMaterializationContract` in the current scope
+ --> tests/ui/aspect_native_query/grouped_planning_grouping_aspect_alias_removed.rs:5:22
+  |
+5 |     let _ = baseline.grouping_aspect();
+  |                      ^^^^^^^^^^^^^^^ private field, not a method
+  |
+help: there is a method `native_grouping_aspect_key` with a similar name
+  |
+5 -     let _ = baseline.grouping_aspect();
+5 +     let _ = baseline.native_grouping_aspect_key();
+  |
+
+error[E0599]: no method named `grouping_aspect` found for struct `GroupedViewPlanningArtifact` in the current scope
+ --> tests/ui/aspect_native_query/grouped_planning_grouping_aspect_alias_removed.rs:8:22
+  |
+8 |     let _ = planning.grouping_aspect();
+  |                      ^^^^^^^^^^^^^^^ private field, not a method
+  |
+help: there is a method `native_grouping_aspect_key` with a similar name
+  |
+8 -     let _ = planning.grouping_aspect();
+8 +     let _ = planning.native_grouping_aspect_key();
+  |

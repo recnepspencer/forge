@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/gaps/gap_registry_row_constructor_private.rs:4:51
+  |
+4 |       let _ = WorthQueryLowerRuntimeGapRegistryRow::new(
+  |                                                     ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/inventory/gap_types.rs
+  |
+  | /     pub(crate) const fn new(
+  | |         seam_key: WorthQueryLowerRuntimeSeamKey,
+  | |         concrete_seam: &'static str,
+  | |         current_shape: &'static str,
+... |
+  | |         required_closeout: &'static str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

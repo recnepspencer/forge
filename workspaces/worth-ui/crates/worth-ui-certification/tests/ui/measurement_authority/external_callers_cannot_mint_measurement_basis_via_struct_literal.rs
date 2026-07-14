@@ -1,4 +1,4 @@
-use worth_ui_runtime::facade::{
+use worth_ui_runtime::facade::evidence::{
     UiMeasurementBasis, UiMeasurementBasisGeneration, UiMeasurementBasisPosture,
     UiMeasurementGenerationCompatibility, UiMeasurementNeighborhoodClassHint,
 };

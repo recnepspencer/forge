@@ -1,10 +1,12 @@
 mod worth_ui_bound_artifact_input;
+#[cfg(test)]
 mod worth_ui_bound_artifact_input_equivalence;
 mod worth_ui_bound_artifact_input_module;
 mod worth_ui_bound_artifact_input_node;
 mod worth_ui_bound_binding_semantics;
 
 pub(crate) use worth_ui_bound_artifact_input::WorthUiBoundArtifactInput;
+#[cfg(test)]
 pub(crate) use worth_ui_bound_artifact_input_equivalence::WorthUiBoundArtifactInputEquivalentShape;
 pub(crate) use worth_ui_bound_artifact_input_module::WorthUiBoundArtifactInputModule;
 pub(crate) use worth_ui_bound_artifact_input_node::{

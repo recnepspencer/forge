@@ -1,13 +1,14 @@
 use crate::declaration::{stable_text_digest, UiDeclaredMeasurementConstraintModifier};
 use crate::evidence::{
     UiAllocationConstraintSummary, UiAllocationNeighborhood, UiAllocationNeighborhoodMemberRole,
-    UiConstraintAvailableSpacePosture, UiConstraintAxisScope, UiMeasurementBasis, UiMeasurementValue,
+    UiConstraintAvailableSpacePosture, UiConstraintAxisScope,
     UiConstraintEqualShareDistributionPolicy, UiConstraintEqualShareDistributionResult,
     UiConstraintEqualShareGroup, UiConstraintEqualShareMember, UiConstraintEqualSharePosture,
     UiConstraintEqualShareSolveOrder, UiConstraintPropagationDenial,
     UiConstraintPropagationDenialReason, UiConstraintPropagationEdge,
     UiConstraintPropagationEdgeFamily, UiConstraintPropagationEdgePayload,
     UiConstraintSiblingNegotiationFixedPointPolicy, UiConstraintSiblingNegotiationResult,
+    UiMeasurementBasis, UiMeasurementValue,
 };
 
 pub(super) struct UiAdmittedEqualShareDistribution {
@@ -55,7 +56,11 @@ pub(super) fn admit_equal_share_distribution(
                 && member.layout_participates()
         })
         .collect::<Vec<_>>();
-    let policy = resolved_equal_share_policy(summary.equal_share_group(), peers.as_slice(), sibling_negotiation);
+    let policy = resolved_equal_share_policy(
+        summary.equal_share_group(),
+        peers.as_slice(),
+        sibling_negotiation,
+    );
     let posture = posture_for_equal_share(summary, axis_scope, peers.len());
     if denies_non_integral_distribution(
         measurement_basis,
@@ -174,8 +179,12 @@ fn posture_for_equal_share(
         return UiConstraintEqualSharePosture::ZeroAvailableSpace;
     }
     match summary.equal_share_group() {
-        UiConstraintEqualShareGroup::StablePeerPrimaryAxis => UiConstraintEqualSharePosture::ExactFractional,
-        UiConstraintEqualShareGroup::StablePeerTwoDimensional => UiConstraintEqualSharePosture::DeterministicRemainderApplied,
+        UiConstraintEqualShareGroup::StablePeerPrimaryAxis => {
+            UiConstraintEqualSharePosture::ExactFractional
+        }
+        UiConstraintEqualShareGroup::StablePeerTwoDimensional => {
+            UiConstraintEqualSharePosture::DeterministicRemainderApplied
+        }
         UiConstraintEqualShareGroup::None => UiConstraintEqualSharePosture::ZeroShare,
     }
 }
@@ -187,8 +196,14 @@ fn available_space_covers(
     matches!(
         (admitted_scope, required_scope),
         (Some(UiConstraintAxisScope::Both), _)
-            | (Some(UiConstraintAxisScope::Primary), UiConstraintAxisScope::Primary)
-            | (Some(UiConstraintAxisScope::Cross), UiConstraintAxisScope::Cross)
+            | (
+                Some(UiConstraintAxisScope::Primary),
+                UiConstraintAxisScope::Primary
+            )
+            | (
+                Some(UiConstraintAxisScope::Cross),
+                UiConstraintAxisScope::Cross
+            )
     )
 }
 

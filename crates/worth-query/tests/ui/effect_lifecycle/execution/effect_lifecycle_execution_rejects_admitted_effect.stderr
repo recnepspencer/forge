@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+  --> tests/ui/effect_lifecycle/execution/effect_lifecycle_execution_rejects_admitted_effect.rs:11:9
+   |
+10 |     let _ = execute_lowered_effect_plan(
+   |             --------------------------- arguments to this function are incorrect
+11 |         admitted_effect(),
+   |         ^^^^^^^^^^^^^^^^^ expected `LoweredEffectExecutionPlan`, found `AdmittedEffectIntent`
+   |
+note: function defined here
+  --> src/effect_lifecycle/execution.rs
+   |
+   | pub fn execute_lowered_effect_plan(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^

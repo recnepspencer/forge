@@ -1,3 +1,4 @@
+#[cfg(test)]
 use crate::capability::{
     CapabilitySnapshotBuilder, CapabilitySnapshotFreezeInput, CapabilitySupportCatalog,
     FrozenCommandCapabilities, FrozenCommandProjectionCapabilities, FrozenComponentCapabilities,
@@ -11,7 +12,7 @@ use crate::capability::{
 use super::CapabilitySnapshot;
 
 impl CapabilitySnapshot {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn from_registered_capabilities(
         registered_capabilities: RegisteredCapabilitySet,
     ) -> Self {
@@ -21,6 +22,7 @@ impl CapabilitySnapshot {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_registered_capabilities_and_commands(
         registered_capabilities: RegisteredCapabilitySet,
         commands: FrozenCommandCapabilities,
@@ -32,6 +34,7 @@ impl CapabilitySnapshot {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_registered_capabilities_commands_and_components(
         registered_capabilities: RegisteredCapabilitySet,
         commands: FrozenCommandCapabilities,
@@ -45,6 +48,7 @@ impl CapabilitySnapshot {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_registered_capabilities_commands_command_projections_and_components(
         registered_capabilities: RegisteredCapabilitySet,
         commands: FrozenCommandCapabilities,
@@ -61,6 +65,7 @@ impl CapabilitySnapshot {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_registered_capabilities_commands_components_icons_and_surfaces(
         registered_capabilities: RegisteredCapabilitySet,
         commands: FrozenCommandCapabilities,
@@ -80,6 +85,7 @@ impl CapabilitySnapshot {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_registered_capabilities_commands_components_icons_surfaces_and_mosaic_regions(
         registered_capabilities: RegisteredCapabilitySet,
         commands: FrozenCommandCapabilities,
@@ -101,6 +107,7 @@ impl CapabilitySnapshot {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_registered_capabilities_commands_components_icons_surfaces_mosaic_regions_and_mosaic_placements(
         registered_capabilities: RegisteredCapabilitySet,
         commands: FrozenCommandCapabilities,
@@ -124,6 +131,7 @@ impl CapabilitySnapshot {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_registered_capabilities_commands_components_icons_surfaces_mosaic_regions_mosaic_placements_and_mosaic_sizing(
         registered_capabilities: RegisteredCapabilitySet,
         commands: FrozenCommandCapabilities,
@@ -149,6 +157,7 @@ impl CapabilitySnapshot {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_registered_capabilities_commands_components_icons_surfaces_mosaic_regions_mosaic_placements_mosaic_sizing_and_mosaic_state(
         registered_capabilities: RegisteredCapabilitySet,
         commands: FrozenCommandCapabilities,
@@ -176,6 +185,7 @@ impl CapabilitySnapshot {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_registered_capabilities_commands_components_icons_surfaces_mosaic_regions_mosaic_placements_mosaic_sizing_mosaic_state_and_view_bindings(
         registered_capabilities: RegisteredCapabilitySet,
         commands: FrozenCommandCapabilities,
@@ -211,6 +221,7 @@ impl CapabilitySnapshot {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_registered_capabilities_commands_command_projections_components_icons_surfaces_mosaic_regions_mosaic_placements_mosaic_sizing_mosaic_state_native_capabilities_plugin_slots_view_bindings_runtime_outcome_projections_settings_task_presentations_and_theme_tokens(
         registered_capabilities: RegisteredCapabilitySet,
         commands: FrozenCommandCapabilities,

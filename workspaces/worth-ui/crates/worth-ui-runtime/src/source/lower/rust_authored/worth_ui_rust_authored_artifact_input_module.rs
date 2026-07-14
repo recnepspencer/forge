@@ -8,14 +8,15 @@ pub struct WorthUiRustAuthoredArtifactInputModule {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum WorthUiRustAuthoredDeclaration {
-    Import {
-        target_module_path: String,
-    },
+    #[cfg(test)]
+    Import { target_module_path: String },
+    #[cfg(test)]
     Component {
         name_text: String,
         authored_identity: Option<String>,
         body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
     },
+    #[cfg(test)]
     Surface {
         name_text: String,
         authored_identity: Option<String>,
@@ -26,6 +27,7 @@ pub(crate) enum WorthUiRustAuthoredDeclaration {
         authored_identity: Option<String>,
         body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
     },
+    #[cfg(test)]
     Token {
         name_text: String,
         authored_identity: Option<String>,
@@ -41,6 +43,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         }
     }
 
+    #[cfg(test)]
     pub fn with_import(mut self, target_module_path: impl Into<String>) -> Self {
         self.declarations
             .push(WorthUiRustAuthoredDeclaration::Import {
@@ -49,6 +52,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
+    #[cfg(test)]
     pub fn with_component(mut self, name_text: impl Into<String>) -> Self {
         self.declarations
             .push(WorthUiRustAuthoredDeclaration::Component {
@@ -59,6 +63,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
+    #[cfg(test)]
     pub fn with_component_authored_identity(
         mut self,
         name_text: impl Into<String>,
@@ -73,6 +78,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
+    #[cfg(test)]
     pub fn with_component_body_atoms(
         mut self,
         name_text: impl Into<String>,
@@ -87,6 +93,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
+    #[cfg(test)]
     pub fn with_component_body_atoms_and_authored_identity(
         mut self,
         name_text: impl Into<String>,
@@ -102,6 +109,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
+    #[cfg(test)]
     pub fn with_surface(mut self, name_text: impl Into<String>) -> Self {
         self.declarations
             .push(WorthUiRustAuthoredDeclaration::Surface {
@@ -112,6 +120,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
+    #[cfg(test)]
     pub fn with_surface_body_atoms(
         mut self,
         name_text: impl Into<String>,
@@ -136,6 +145,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
+    #[cfg(test)]
     pub fn with_binding_authored_identity(
         mut self,
         name_text: impl Into<String>,
@@ -150,6 +160,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
+    #[cfg(test)]
     pub fn with_binding_body_atoms(
         mut self,
         name_text: impl Into<String>,
@@ -164,6 +175,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
+    #[cfg(test)]
     pub fn with_token(
         mut self,
         name_text: impl Into<String>,
@@ -178,6 +190,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
+    #[cfg(test)]
     pub fn with_surface_authored_identity(
         mut self,
         name_text: impl Into<String>,
@@ -192,6 +205,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
+    #[cfg(test)]
     pub fn with_token_authored_identity(
         mut self,
         name_text: impl Into<String>,

@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_query::facade::ProjectionConsumptionAuthoringSurface`
+ --> tests/ui/consumer_residue/legacy_projection_authoring_surface_not_in_facade.rs:1:5
+  |
+1 | use worth_query::facade::ProjectionConsumptionAuthoringSurface;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ProjectionConsumptionAuthoringSurface` in `facade`

@@ -1,0 +1,11 @@
+error[E0599]: no method named `aspect_paths` found for reference `&WorthQueryPreviewExecutionEvidence` in the current scope
+ --> tests/ui/aspect_native_query/preview_execution_aspect_paths_alias_removed.rs:4:22
+  |
+4 |     let _ = evidence.aspect_paths();
+  |                      ^^^^^^^^^^^^
+  |
+help: there is a method `aspect_touches` with a similar name
+  |
+4 -     let _ = evidence.aspect_paths();
+4 +     let _ = evidence.aspect_touches();
+  |

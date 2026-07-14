@@ -56,3 +56,13 @@ pub(crate) fn stable_text_digest(text: &str) -> u64 {
             digest.wrapping_mul(0x0000_0100_0000_01B3) ^ u64::from(*byte)
         })
 }
+
+/// Authored provenance is source-location identity: module path + declaration index.
+/// Graph handoff and artifact assembly must share this formula so runtime-origin
+/// touch receipts can authorize graph nodes without parallel authority lanes.
+pub(crate) fn authored_source_provenance_digest(
+    module_path: &str,
+    declaration_index: usize,
+) -> u64 {
+    stable_text_digest(module_path) ^ (declaration_index as u64).rotate_left(13)
+}

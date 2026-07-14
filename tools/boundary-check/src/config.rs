@@ -10,6 +10,27 @@ pub(crate) struct Road1Config {
     pub(crate) born_crates: Vec<BornCrateConfig>,
     pub(crate) seed_skeletons: Vec<SeedSkeletonConfig>,
     pub(crate) subworkspaces: Vec<SubworkspaceConfig>,
+    pub(crate) legacy_reference_ratchet: LegacyReferenceRatchetConfig,
+    /// Compile-time law substrates legal outside the band grammar (e.g. worth-proof).
+    #[serde(default)]
+    pub(crate) law_substrates: Vec<LawSubstrateConfig>,
+}
+
+/// One machine-owned law substrate: package identity plus legal tier/band sets.
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct LawSubstrateConfig {
+    pub(crate) package: String,
+    pub(crate) tiers: Vec<String>,
+    pub(crate) bands: Vec<String>,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct LegacyReferenceRatchetConfig {
+    pub(crate) governed_roots: Vec<String>,
+    pub(crate) forbidden_fragments: Vec<String>,
+    pub(crate) snapshot: String,
+    pub(crate) exclude_paths: Vec<String>,
+    pub(crate) replacement_guidance: String,
 }
 
 #[derive(Deserialize)]
@@ -33,9 +54,25 @@ pub(crate) struct ReservedDomainConfig {
 
 #[derive(Deserialize)]
 pub(crate) struct RuleContracts {
-    pub(crate) query_host_bands: Vec<String>,
+    pub(crate) query_audience: QueryAudienceContract,
     pub(crate) replay_surfaces: Vec<ReplaySurfaceConfig>,
     pub(crate) band_rules: Vec<BandRuleConfig>,
+}
+
+/// Machine-owned Query audience matrix: one engine package plus leaf facade rows.
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct QueryAudienceContract {
+    pub(crate) engine_package: String,
+    pub(crate) audiences: Vec<QueryAudienceFacadeConfig>,
+}
+
+/// One audience facade row: package identity, legal bands, and repair guidance.
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct QueryAudienceFacadeConfig {
+    pub(crate) package: String,
+    pub(crate) label: String,
+    pub(crate) allowed_bands: Vec<String>,
+    pub(crate) guidance: String,
 }
 
 #[derive(Deserialize)]

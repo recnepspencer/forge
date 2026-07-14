@@ -1,6 +1,6 @@
 // Shared traits for geometry primitives
 
-use forge_core::KernelError;
+use crate::support::KernelError;
 
 pub trait Eval {
     // TBD

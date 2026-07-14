@@ -1,5 +1,3 @@
-#![cfg_attr(not(test), allow(dead_code))]
-
 mod worth_ui_active_replacement_basis;
 mod worth_ui_admitted_replacement_candidate;
 mod worth_ui_candidate_admission;

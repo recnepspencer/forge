@@ -2,7 +2,7 @@
 //!
 //! DOMAIN: Convert between BSP tree representation and convex cell
 //! boundary representation. Initial solids (cubes) go BSP → merge →
-//! boundary extraction. Halfedge conversion happens in `forge-kernel`.
+//! boundary extraction. Halfedge conversion happens in `WORTH-kernel`.
 //!
 //! INVARIANTS:
 //! - `convex_to_bsp` produces a BSP tree whose single solid leaf

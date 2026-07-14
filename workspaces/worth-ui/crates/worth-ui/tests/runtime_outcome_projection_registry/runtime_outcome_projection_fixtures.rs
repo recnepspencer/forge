@@ -1,6 +1,8 @@
-use forge_query::facade::{
-    worth_ui_query_binding_evidence_identity, ForgeQueryEvidenceIdentity,
-    ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeAsyncResultStateKind,
+use worth_query::facade::foundation::worth_ui_query_binding_evidence_identity;
+use worth_query::facade::runtime::{
+    WorthQueryEvidenceIdentity,
+    WorthQueryRuntimeAsyncResultState,
+    WorthQueryRuntimeAsyncResultStateKind,
 };
 use worth_ui::facade::{
     RuntimeOutcomeAffordance, RuntimeOutcomeDenialPosture, RuntimeOutcomeFamily,
@@ -33,7 +35,7 @@ pub(crate) fn ready_projection(id: &str) -> RuntimeOutcomeProjectionDescriptor {
         projection_id(id),
         RuntimeOutcomeFamily::ready(),
         RuntimeOutcomeSourceReference::from_query_async_result_state(&async_result_state(
-            ForgeQueryRuntimeAsyncResultStateKind::Current,
+            WorthQueryRuntimeAsyncResultStateKind::Current,
             "ready-causality",
         )),
     )
@@ -47,14 +49,14 @@ pub(crate) fn ready_projection(id: &str) -> RuntimeOutcomeProjectionDescriptor {
 
 pub(crate) fn denied_source_reference() -> RuntimeOutcomeSourceReference {
     RuntimeOutcomeSourceReference::from_query_async_result_state(&async_result_state(
-        ForgeQueryRuntimeAsyncResultStateKind::Denied,
+        WorthQueryRuntimeAsyncResultStateKind::Denied,
         "denied-causality",
     ))
 }
 
 pub(crate) fn failed_source_reference() -> RuntimeOutcomeSourceReference {
     RuntimeOutcomeSourceReference::from_query_async_result_state(&async_result_state(
-        ForgeQueryRuntimeAsyncResultStateKind::Failed,
+        WorthQueryRuntimeAsyncResultStateKind::Failed,
         "failed-causality",
     ))
 }
@@ -71,10 +73,10 @@ pub(crate) fn projection_id(raw_text: &str) -> RuntimeOutcomeProjectionId {
 }
 
 fn async_result_state(
-    kind: ForgeQueryRuntimeAsyncResultStateKind,
+    kind: WorthQueryRuntimeAsyncResultStateKind,
     causality_digest: &str,
-) -> ForgeQueryRuntimeAsyncResultState {
-    ForgeQueryRuntimeAsyncResultState::new(
+) -> WorthQueryRuntimeAsyncResultState {
+    WorthQueryRuntimeAsyncResultState::new(
         kind,
         &fixture_async_evidence_identity(causality_digest),
         &fixture_async_evidence_identity("basis.digest"),
@@ -82,6 +84,6 @@ fn async_result_state(
     )
 }
 
-fn fixture_async_evidence_identity(label: &str) -> ForgeQueryEvidenceIdentity {
+fn fixture_async_evidence_identity(label: &str) -> WorthQueryEvidenceIdentity {
     worth_ui_query_binding_evidence_identity("runtime-outcome-fixture", &[label.to_string()])
 }

@@ -17,6 +17,7 @@ pub(crate) struct CapabilitySupportCatalog {
 }
 
 impl CapabilitySupportCatalog {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self::default()
     }

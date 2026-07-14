@@ -1,0 +1,38 @@
+[package]
+name = "worth-store-physical-certification"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.12 physical database certification and performance evidence."
+
+[dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store-aspect-native.workspace = true
+worth-store-authority.workspace = true
+worth-store-blob-chunks = { workspace = true, features = ["certification-test-authority"] }
+worth-store-budgets.workspace = true
+worth-store-buffer-pool.workspace = true
+worth-store-contracts.workspace = true
+worth-store-io-scheduler = { workspace = true, features = ["certification-test-authority"] }
+worth-store-layout-indexes.workspace = true
+worth-store-offline-verifier.workspace = true
+worth-store-operations = { workspace = true, features = ["certification-test-authority"] }
+worth-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
+worth-store-physical-format = { workspace = true, features = ["certification-test-authority"] }
+worth-store-physical-integrity.workspace = true
+worth-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
+worth-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
+worth-store-readiness.workspace = true
+worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
+worth-store-security = { workspace = true, features = ["certification-test-authority"] }
+worth-store-tiering = { workspace = true, features = ["certification-test-authority"] }
+
+[dev-dependencies]
+worth-store-test-support.workspace = true
+
+[features]
+certification-test-support = []
+
+[lints]
+workspace = true

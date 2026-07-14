@@ -30,13 +30,35 @@ There is no fourth segment. If a crate feels like it needs one
 (`worthy-solver-curve-nurbs`), that is the signal to either stay in the
 parent crate or propose a new domain noun - not to invent sub-grammar.
 
+### Framework-family exception: Query audience facades
+
+The Query engine and its audience facades are **platform framework crates** in
+the root workspace. They are a reviewed exception to the ordinary
+`{tier}-{band}-{domain}` birth grammar and are **not** a precedent for other
+ungrammatical names:
+
+| Package | Kind | Legal consumers | Everyone else |
+|---|---|---|---|
+| `worth-query` | framework engine | audience facades only | denied |
+| `worth-query-decl` | audience facade | `entry` band (`worth` + `worthy`), `cert` | denied |
+| `worth-query-host` | audience facade | `entry` band (`worth` + `worthy`), `cert` | denied |
+| `worth-query-replay` | audience facade | `cert` band only | denied |
+
+Machine authority for this matrix is
+`tools/boundary-check/config/road1.toml` under
+`[rule_contracts.query_audience]`. Ordinary crates must not depend on the
+engine; they consume Query only through the legal audience facade for their
+work. Derived has **no** Query audience in this milestone — any derived
+consumption path requires a visible amendment to this matrix and the machine
+constitution. Do not treat other `worth-query-*` names as reserved by analogy.
+
 ---
 
 ## Tiers
 
 | Tier | Meaning | Test |
 |---|---|---|
-| `forge` | runtime substrate (not in this repo's grammar; listed for orientation) | owned by the Forge workspaces |
+| `WORTH` | runtime substrate (not in this repo's grammar; listed for orientation) | owned by the WORTH workspaces |
 | `worth` | engineering platform | *would aerospace need this crate unchanged?* -> yes |
 | `worthy` | CAD/BIM product tier | *would aerospace need this crate unchanged?* -> no |
 
@@ -60,9 +82,9 @@ Rules:
 |---|---|---|---|
 | `schema` | shared truth grammar, contract nouns | nothing in the tree | executing anything |
 | `dsl` | language: syntax, AST, binding, lowering | `schema-*` | runtime execution |
-| `entry` | Query-native runtime entry & orchestration | `schema-*`, `resolver-*`, `derived-*`, `forge-query` | replay surfaces (Fence 2) |
+| `entry` | Query-native runtime entry & orchestration | `schema-*`, `resolver-*`, `derived-*`, `worth-query-decl`, `worth-query-host` | direct `worth-query`, replay surfaces (Fence 2) |
 | `resolver` | domain semantic decisions | `schema-*`, `solver-*` | Query entry, publication folklore |
-| `solver` | pure computation kernels | `schema-*` | `forge-query`, any entry surface |
+| `solver` | pure computation kernels | `schema-*` | `worth-query`, any entry surface |
 | `derived` | published derived artifacts | `schema-*`, `solver-*` (math only) | minting source authority |
 | `pack` | distributable knowledge bundles | public seams only | runtime internals |
 | `app` / `ui` | human- and AI-facing surfaces | `entry-*`, `derived-*`, `dsl-*` | reaching around facades |
@@ -77,18 +99,18 @@ Adding a band requires amending `ARCHITECTURE.md`. Expected never.
 A reserved name is a guarantee about what a crate *will* be called, not a
 crate. **A crate is born only when real code needs it.**
 
-Legend: ○ reserved name only · ◐ reserved, presumed pack content
+Legend: â—‹ reserved name only Â· â— reserved, presumed pack content
 (Open Decision 4)
 
 ### `worth` tier (platform)
 
 | Domain | schema | entry | derived | pack | cert | Notes |
 |---|---|---|---|---|---|---|
-| `core` | ○ | | | | | identity, naming, units, tolerance, measure vocabulary. **Size-fenced** - the sole sanctioned "core" |
-| `graph` | ○ | | | | | the graph constitution: layers, edge classes, spine grammar, aspect rules, promotion grammar. Reserved until the first graph crate is actually born in code. |
-| `registry` | | | | ○ | | the pack seam itself |
-| `adoption` | | ○ | | | ○ | entry home for declaration handles, lowering, and obligation/contribution adoption when those surfaces are born later; cert home for Query adoption proof harness (Consumer Kit backed). Both are reserved until later milestones actually birth code. |
-| `publication` | | | ○ | | | retained/publication grammar and projection-consumption-facing posture for the platform tier. Reserved until Milestone 4 proves the real `worth-derived-*` surface. |
+| `core` | â—‹ | | | | | identity, naming, units, tolerance, measure vocabulary. **Size-fenced** - the sole sanctioned "core" |
+| `graph` | â—‹ | | | | | the graph constitution: layers, edge classes, spine grammar, aspect rules, promotion grammar. Reserved until the first graph crate is actually born in code. |
+| `registry` | | | | â—‹ | | the pack seam itself |
+| `adoption` | | â—‹ | | | **born: `worth-cert-adoption`** | entry home for declaration handles, lowering, and obligation/contribution adoption when those surfaces are born later; cert home for the Query adoption proof harness. The entry tenant remains reserved; the platform cert tenant is born in Milestone 1b Phase 8. |
+| `publication` | | | â—‹ | | | retained/publication grammar and projection-consumption-facing posture for the platform tier. Reserved until Milestone 4 proves the real `worth-derived-*` surface. |
 
 This table records naming legality and reservation posture only. It does not
 act as current-tree inventory authority or milestone progress authority.
@@ -105,49 +127,49 @@ Road 1 public routing uses these reserved follow-on names without birthing them:
 ### `worthy` tier (CAD/BIM)
 
 **schema** - `worthy-schema-*`
-○ `topology` · ○ `geometry` · ○ `material` · ○ `structure` · ○ `service` ·
-○ `policy` · ○ `assumption` · ○ `physics` · ○ `jurisdiction` · ○ `economics` ·
-○ `approval` · ○ `component` · ○ `measure`
+â—‹ `topology` Â· â—‹ `geometry` Â· â—‹ `material` Â· â—‹ `structure` Â· â—‹ `service` Â·
+â—‹ `policy` Â· â—‹ `assumption` Â· â—‹ `physics` Â· â—‹ `jurisdiction` Â· â—‹ `economics` Â·
+â—‹ `approval` Â· â—‹ `component` Â· â—‹ `measure`
 
 **dsl** - `worthy-dsl-*`
-○ `syntax` · ○ `ast` · ○ `binding` · ○ `lowering` · ○ `format` · ○ `lint` ·
-○ `analysis` · ○ `lsp`
+â—‹ `syntax` Â· â—‹ `ast` Â· â—‹ `binding` Â· â—‹ `lowering` Â· â—‹ `format` Â· â—‹ `lint` Â·
+â—‹ `analysis` Â· â—‹ `lsp`
 
 **entry** - `worthy-entry-*` (operation families, matching how requests enter)
-○ `construct` · ○ `boolean` · ○ `transform` · ○ `component` · ○ `route` ·
-○ `structure` · ○ `analysis` · ○ `assumption` · ○ `measure` · ○ `policy` ·
-○ `jurisdiction` · ○ `cost` · ○ `approval` · ○ `recovery`
+â—‹ `construct` Â· â—‹ `boolean` Â· â—‹ `transform` Â· â—‹ `component` Â· â—‹ `route` Â·
+â—‹ `structure` Â· â—‹ `analysis` Â· â—‹ `assumption` Â· â—‹ `measure` Â· â—‹ `policy` Â·
+â—‹ `jurisdiction` Â· â—‹ `cost` Â· â—‹ `approval` Â· â—‹ `recovery`
 
 **resolver** - `worthy-resolver-*`
-○ `component` · ○ `placement` · ○ `assembly` · ○ `structure` · ◐ `envelope` ·
-◐ `interiors` · ◐ `mep` · ○ `policy` · ○ `assumption` · ○ `tolerance` ·
-○ `jurisdiction` · ○ `physics-scenario` · ○ `routing-policy` · ○ `approval`
+â—‹ `component` Â· â—‹ `placement` Â· â—‹ `assembly` Â· â—‹ `structure` Â· â— `envelope` Â·
+â— `interiors` Â· â— `mep` Â· â—‹ `policy` Â· â—‹ `assumption` Â· â—‹ `tolerance` Â·
+â—‹ `jurisdiction` Â· â—‹ `physics-scenario` Â· â—‹ `routing-policy` Â· â—‹ `approval`
 
 **solver** - `worthy-solver-*`
-○ `curve` · ○ `intersection` · ○ `surface`† · ○ `boolean`† · ○ `blend`† ·
-○ `route` · ○ `clearance` · ○ `structure` · ○ `physics` · ○ `tolerance` ·
-○ `optimization` · ○ `sdf`
-† *the curve/surface/boolean/blend cut is unproven; the first blend operation
+â—‹ `curve` Â· â—‹ `intersection` Â· â—‹ `surface`â€  Â· â—‹ `boolean`â€  Â· â—‹ `blend`â€  Â·
+â—‹ `route` Â· â—‹ `clearance` Â· â—‹ `structure` Â· â—‹ `physics` Â· â—‹ `tolerance` Â·
+â—‹ `optimization` Â· â—‹ `sdf`
+â€  *the curve/surface/boolean/blend cut is unproven; the first blend operation
 decides (Open Decision 2). Do not seed these on speculation.*
 
 **derived** - `worthy-derived-*`
-○ `brep` · ○ `cost` · ○ `approval` · ○ `compliance` · ○ `fabrication` ·
-○ `conflict` · ○ `assumption-impact` · ○ `measure-audit` · ○ `physics-report` ·
-○ `structural-analysis` · ○ `downstream-impact` · ○ `scene`
+â—‹ `brep` Â· â—‹ `cost` Â· â—‹ `approval` Â· â—‹ `compliance` Â· â—‹ `fabrication` Â·
+â—‹ `conflict` Â· â—‹ `assumption-impact` Â· â—‹ `measure-audit` Â· â—‹ `physics-report` Â·
+â—‹ `structural-analysis` Â· â—‹ `downstream-impact` Â· â—‹ `scene`
 
 **pack** - `worthy-pack-*`
-○ `policy` · ○ `assumption` · ○ `jurisdiction` · ○ `physics` · ○ `measure` ·
-○ `component` - plus named content packs as they ship
+â—‹ `policy` Â· â—‹ `assumption` Â· â—‹ `jurisdiction` Â· â—‹ `physics` Â· â—‹ `measure` Â·
+â—‹ `component` - plus named content packs as they ship
 (`worthy-pack-wall-corrugated-steel` style names are legal: the domain
 segment for content packs is the component family noun)
 
 **app / ui** - `worthy-app-*`, `worthy-ui-*`
-○ `workbench` (app) · ○ `scene` · ○ `inspector` · ○ `review` · ○ `approval` ·
-○ `ai-collaboration`
+â—‹ `workbench` (app) Â· â—‹ `scene` Â· â—‹ `inspector` Â· â—‹ `review` Â· â—‹ `approval` Â·
+â—‹ `ai-collaboration`
 
 **cert** - `worthy-cert-*`
-○ `replay` (home of Fence 2 proofs) · ○ `scale` (home of Fence 4, the scale
-ladder) · ○ `approval` · ○ `perf` · ○ `workflows`
+â—‹ `replay` (home of Fence 2 proofs) Â· â—‹ `scale` (home of Fence 4, the scale
+ladder) Â· â—‹ `approval` Â· â—‹ `perf` Â· â—‹ `workflows`
 
 Product-tier names in this file are reserved vocabulary unless and until a
 reviewed PR births the corresponding crate in code. This naming document does
@@ -209,7 +231,7 @@ The following are rejected by Fence 3 outright, with routing errors:
 - milestone-shaped names (`*-m8-*`, `*-phase2-*`) and provenance-shaped names
   (`*-legacy-*`, `*-from-worth-*`) - compatibility code is named by the
   constraint it serves, inside a grammatical crate
-- `worthy-query-*` - permanently confusable with `forge-query`; the band is
+- `worthy-query-*` - permanently confusable with `worth-query`; the band is
   `entry`
 - `*-products-*` - the band is `derived`; "product" is reserved for the thing
   we sell

@@ -1,4 +1,4 @@
-use worth_ui::facade::{WorthUiReplacementCandidate, WorthUiRuntimeHost};
+use worth_ui::facade::{WorthUiReplacementCandidate, WorthUiRuntime};
 
 fn main() {
     let host = runtime_host();
@@ -7,7 +7,7 @@ fn main() {
     let _ = host.compare_admitted_replacement(&candidate);
 }
 
-fn runtime_host() -> WorthUiRuntimeHost {
+fn runtime_host() -> WorthUiRuntime {
     unimplemented!()
 }
 

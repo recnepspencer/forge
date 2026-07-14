@@ -1,0 +1,23 @@
+error[E0599]: no function or associated item named `from_scalar_value` found for struct `WorthQueryDerivedPatchPayload` in the current scope
+ --> tests/ui/aspect_native_query/derived_patch_payload_scalar_constructor_removed.rs:5:44
+  |
+5 |     let _ = WorthQueryDerivedPatchPayload::from_scalar_value(AspectValue::Null);
+  |                                            ^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthQueryDerivedPatchPayload`
+  |
+note: if you're trying to build a new `WorthQueryDerivedPatchPayload` consider using one of the following associated functions:
+      WorthQueryDerivedPatchPayload::empty
+      WorthQueryDerivedPatchPayload::from_retained_scalar_values
+ --> src/runtime/computed/surface.rs
+  |
+  |       pub fn empty() -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^
+...
+  | /     pub fn from_retained_scalar_values(
+  | |         scalar_values: impl IntoIterator<Item = (WorthQueryRetainedFieldPath, AspectValue)>,
+  | |     ) -> Result<Self, String> {
+  | |_____________________________^
+help: there is an associated function `from_retained_scalar_values` with a similar name
+  |
+5 -     let _ = WorthQueryDerivedPatchPayload::from_scalar_value(AspectValue::Null);
+5 +     let _ = WorthQueryDerivedPatchPayload::from_retained_scalar_values(AspectValue::Null);
+  |

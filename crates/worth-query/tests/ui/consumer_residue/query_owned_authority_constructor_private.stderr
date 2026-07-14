@@ -1,0 +1,5 @@
+error[E0451]: field `_private` of struct `WorthQueryConsumerResidueQueryOwnedRootAuthority` is private
+ --> tests/ui/consumer_residue/query_owned_authority_constructor_private.rs:4:73
+  |
+4 |     let _authority = WorthQueryConsumerResidueQueryOwnedRootAuthority { _private: () };
+  |                                                                         ^^^^^^^^ private field

@@ -1,0 +1,5 @@
+error[E0308]: mismatched types
+  --> tests/ui/runtime_graph_composition_lifecycle_outcomes_constructor_private.rs:11:27
+   |
+11 |         lifecycle_digest: String::new(),
+   |                           ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`

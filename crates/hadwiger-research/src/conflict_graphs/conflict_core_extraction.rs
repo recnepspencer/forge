@@ -343,7 +343,7 @@ fn core_payload(
     verification: &ColorabilityVerification,
 ) -> Vec<HadwigerArtifactPayloadEntry> {
     let mut payload = vec![
-        HadwigerArtifactPayloadEntry::text("schema", "forge.hadwiger.conflict_core.v1"),
+        HadwigerArtifactPayloadEntry::text("schema", "WORTH.hadwiger.conflict_core.v1"),
         HadwigerArtifactPayloadEntry::text(
             "core_extraction_id",
             request.core_extraction_id.clone(),

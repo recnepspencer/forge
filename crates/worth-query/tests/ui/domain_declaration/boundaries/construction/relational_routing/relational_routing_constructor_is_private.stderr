@@ -1,0 +1,46 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_declaration/boundaries/construction/relational_routing/relational_routing_constructor_is_private.rs:46:53
+   |
+46 |       let _ = WorthQueryDeclarationRelationalRouting::new(
+   |                                                       ^^^ private associated function
+   |
+  ::: src/application/declaration_relational_routing/artifact.rs
+   |
+   | /     pub(crate) fn new(
+   | |         class: WorthQueryDeclarationRelationalRoutingClass,
+   | |         truth_claim: WorthQueryDeclarationRelationalTruthClaim,
+   | |         authority_family: WorthQueryDeclarationRelationalAuthorityFamily,
+...  |
+   | |         explanation: WorthQueryDeclarationRelationalRoutingExplanation,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0061]: this function takes 11 arguments but 7 arguments were supplied
+  --> tests/ui/domain_declaration/boundaries/construction/relational_routing/relational_routing_constructor_is_private.rs:46:13
+   |
+46 |       let _ = WorthQueryDeclarationRelationalRouting::new(
+   |  _____________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-
+47 | |         WorthQueryDeclarationRelationalRoutingClass::ExclusiveRelationalTruth,
+48 | |         WorthQueryDeclarationRelationalTruthClaim::AuthoritativeCurrentTruth,
+49 | |         WorthQueryDeclarationRelationalAuthorityFamily::Runtime,
+...  |
+53 | |         explanation,
+54 | |     );
+   | |_____- multiple arguments are missing
+   |
+note: associated function defined here
+  --> src/application/declaration_relational_routing/artifact.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+help: provide the arguments
+   |
+46 |     let _ = WorthQueryDeclarationRelationalRouting::new(
+...
+50 |         WorthQueryDeclarationRelationalBinding::Runtime("worth_relational::facade::runtime"),
+51 ~         /* WorthQueryDeclarationAspectContract */,
+52 +         /* WorthQueryDeclarationAspectCoverage */,
+53 +         /* WorthQueryDeclarationAspectCoverageBasis */,
+54 +         /* WorthQueryDeclarationAspectFit */,
+55 ~         envelope,
+   |

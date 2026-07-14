@@ -1,0 +1,10 @@
+error[E0599]: no method named `with_helper_residue_for_test` found for struct `worth_query::authoring::request::bundle_request::AuthoredQueryBundleRequest` in the current scope
+  --> tests/ui/helper_residue_not_public.rs:15:10
+   |
+13 |       let _ = GuidedAuthoringPath::pair_detail(query, shape)
+   |  _____________-
+14 | |         .unwrap()
+15 | |         .with_helper_residue_for_test("builder_history");
+   | |         -^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `worth_query::authoring::request::bundle_request::AuthoredQueryBundleRequest`
+   | |_________|
+   |

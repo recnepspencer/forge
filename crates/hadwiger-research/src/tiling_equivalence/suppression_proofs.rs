@@ -64,7 +64,7 @@ impl TilingCandidateSuppressionProof {
             vec![
                 HadwigerArtifactPayloadEntry::text(
                     "schema",
-                    "forge.hadwiger.tiling_suppression.v1",
+                    "WORTH.hadwiger.tiling_suppression.v1",
                 ),
                 HadwigerArtifactPayloadEntry::text("suppression_id", request.suppression_id()),
                 HadwigerArtifactPayloadEntry::text(

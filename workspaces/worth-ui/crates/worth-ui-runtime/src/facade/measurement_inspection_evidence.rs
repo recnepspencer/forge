@@ -1,5 +1,5 @@
-use forge_query::facade::ProjectionFactConsumptionAttempt;
 use worth_ui_host_contract::WorthUiHostCapabilityReport;
+use worth_ui_query_binding::WorthUiQueryAuthorityHandle;
 
 use crate::declaration::UiDeclarationArtifact;
 use crate::evidence::UiMeasurementResult;
@@ -8,7 +8,7 @@ use crate::evidence::UiMeasurementResult;
 pub struct UiMeasurementInspectionEvidenceBundle {
     module_path: String,
     declaration_index: usize,
-    query_projection_consumption: Option<ProjectionFactConsumptionAttempt>,
+    query_authority: Option<WorthUiQueryAuthorityHandle>,
     host_capability_report: Option<WorthUiHostCapabilityReport>,
     host_measurement_results: Box<[UiMeasurementResult]>,
 }
@@ -23,17 +23,14 @@ impl UiMeasurementInspectionEvidenceBundle {
         Self {
             module_path: module_path.into(),
             declaration_index,
-            query_projection_consumption: None,
+            query_authority: None,
             host_capability_report: None,
             host_measurement_results: Box::new([]),
         }
     }
 
-    pub fn with_query_projection_consumption(
-        mut self,
-        query_projection_consumption: ProjectionFactConsumptionAttempt,
-    ) -> Self {
-        self.query_projection_consumption = Some(query_projection_consumption);
+    pub fn with_query_authority(mut self, authority: WorthUiQueryAuthorityHandle) -> Self {
+        self.query_authority = Some(authority);
         self
     }
 
@@ -53,8 +50,8 @@ impl UiMeasurementInspectionEvidenceBundle {
         self
     }
 
-    pub(crate) fn query_projection_consumption(&self) -> Option<&ProjectionFactConsumptionAttempt> {
-        self.query_projection_consumption.as_ref()
+    pub(crate) fn query_authority(&self) -> Option<&WorthUiQueryAuthorityHandle> {
+        self.query_authority.as_ref()
     }
 
     pub(crate) fn host_capability_report(&self) -> Option<&WorthUiHostCapabilityReport> {

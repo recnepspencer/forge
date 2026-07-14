@@ -1,0 +1,53 @@
+error[E0599]: no function or associated item named `aspect` found for struct `WorthQueryAspectTouch` in the current scope
+ --> tests/ui/aspect_native_query/aspect_touch_neutral_constructors_removed.rs:5:36
+  |
+5 |     let _ = WorthQueryAspectTouch::aspect(AspectKey::new("title").unwrap());
+  |                                    ^^^^^^ function or associated item not found in `WorthQueryAspectTouch`
+  |
+note: if you're trying to build a new `WorthQueryAspectTouch` consider using one of the following associated functions:
+      WorthQueryAspectTouch::from_authoring_ingress_text
+      WorthQueryAspectTouch::whole_aspect
+      WorthQueryAspectTouch::aspect_field_path
+ --> src/runtime/mutation/touch.rs
+  |
+  | /     pub fn from_authoring_ingress_text(
+  | |         authored_touch_text: impl Into<String>,
+  | |     ) -> Result<Self, WorthQueryWorkspaceError> {
+  | |_______________________________________________^
+...
+  |       pub fn whole_aspect(aspect_key: AspectKey) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |       pub fn aspect_field_path(aspect_key: AspectKey, field_path: CanonicalFieldPath) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: there is an associated function `whole_aspect` with a similar name
+  |
+5 |     let _ = WorthQueryAspectTouch::whole_aspect(AspectKey::new("title").unwrap());
+  |                                    ++++++
+
+error[E0599]: no function or associated item named `field_path` found for struct `WorthQueryAspectTouch` in the current scope
+ --> tests/ui/aspect_native_query/aspect_touch_neutral_constructors_removed.rs:6:36
+  |
+6 |     let _ = WorthQueryAspectTouch::field_path(
+  |                                    ^^^^^^^^^^ function or associated item not found in `WorthQueryAspectTouch`
+  |
+note: if you're trying to build a new `WorthQueryAspectTouch` consider using one of the following associated functions:
+      WorthQueryAspectTouch::from_authoring_ingress_text
+      WorthQueryAspectTouch::whole_aspect
+      WorthQueryAspectTouch::aspect_field_path
+ --> src/runtime/mutation/touch.rs
+  |
+  | /     pub fn from_authoring_ingress_text(
+  | |         authored_touch_text: impl Into<String>,
+  | |     ) -> Result<Self, WorthQueryWorkspaceError> {
+  | |_______________________________________________^
+...
+  |       pub fn whole_aspect(aspect_key: AspectKey) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |       pub fn aspect_field_path(aspect_key: AspectKey, field_path: CanonicalFieldPath) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: there is an associated function `aspect_field_path` with a similar name
+  |
+6 |     let _ = WorthQueryAspectTouch::aspect_field_path(
+  |                                    +++++++

@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/runtime_preview_basis_admission_constructor_private.rs:5:16
+  |
+5 |         label: String::new(),
+  |                ^^^^^^^^^^^^^ expected `WorthQuerySessionLabel`, found `String`
+
+error[E0560]: struct `WorthQueryPreviewBasisAdmission` has no field named `evidence`
+ --> tests/ui/runtime_preview_basis_admission_constructor_private.rs:8:9
+  |
+8 |         evidence: Vec::new(),
+  |         ^^^^^^^^ `WorthQueryPreviewBasisAdmission` does not have this field
+  |
+  = note: all struct fields are already assigned

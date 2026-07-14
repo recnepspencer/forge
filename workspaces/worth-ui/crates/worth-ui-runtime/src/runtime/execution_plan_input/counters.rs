@@ -28,6 +28,7 @@ impl WorthUiPlanLoweringCounters {
         self.component_hook_input_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_rejected_component_hook(&mut self) {
         self.rejected_component_hook_count += 1;
     }

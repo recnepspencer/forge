@@ -6,7 +6,7 @@
 //! DEPENDENCIES: `worth-math` (sign types, error)
 //!
 //! INVARIANTS:
-//! - All floating-point geometry computations live here, not in `forge-topo`
+//! - All floating-point geometry computations live here, not in `WORTH-topo`
 //! - Degeneracy thresholds are explicit parameters, never hardcoded
 
 pub use eval::{

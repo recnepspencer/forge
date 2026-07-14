@@ -1,0 +1,10 @@
+error[E0599]: no method named `touched_aspects` found for struct `WorthQueryMutationDelta` in the current scope
+  --> tests/ui/aspect_native_query/mutation_delta_touched_aspects_alias_removed.rs:20:19
+   |
+20 |     let _ = delta.touched_aspects();
+   |                   ^^^^^^^^^^^^^^^ private field, not a method
+   |
+help: there is a method `admitted_touched_aspects` with a similar name
+   |
+20 |     let _ = delta.admitted_touched_aspects();
+   |                   +++++++++

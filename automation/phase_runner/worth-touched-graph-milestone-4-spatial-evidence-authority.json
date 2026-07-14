@@ -4,7 +4,7 @@
   "current": null,
   "project": {
     "name": "Worth Touched Graph Milestone 4 Spatial Geometry Evidence Touch Authority",
-    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "cwd": "C:/Users/Esther/Documents/Programming/WORTH_workspace/worktree_2",
     "spec_file": "_docs/worth/touched-graph-milestone-4-spatial-geometry-evidence-touch-authority.md",
     "context_files": [
       "_docs/coding_guidelines/MENTALITY.md",
@@ -12,8 +12,8 @@
       "_docs/coding_guidelines/composition_laws.md",
       "_docs/coding_guidelines/domain_structure_laws.md",
       "_docs/coding_guidelines/perf_laws.md",
-      "crates/forge-query/docs/AI_README.md",
-      "crates/forge-query/docs/authoring/graph-obligation-consumer-kit.md",
+      "crates/worth-query/docs/AI_README.md",
+      "crates/worth-query/docs/authoring/graph-obligation-consumer-kit.md",
       "_docs/worth/touched-graph-roadmap.md",
       "_docs/worth/milestone-7.4.md",
       "crates/worth-spatial/src/facade/workload_vocabulary/mod.rs",
@@ -115,7 +115,7 @@
               "crates/worth-spatial/src/query_adoption/*",
               "crates/worth-spatial/src/facade/query_adoption.rs",
               "crates/worth-kernel/src/query_adoption/registry.rs",
-              "crates/forge-query/docs/authoring/graph-obligation-consumer-kit.md"
+              "crates/worth-query/docs/authoring/graph-obligation-consumer-kit.md"
             ],
             "boundary_to_establish": "Existing spatial_query_adoption_inventory rows are Query adoption/residue facts only. They cannot be treated as spatial receipt authority, lookup authority, or execution-backed Consumer Kit proof.",
             "first_hard_break": "Extend or replace WorthSpatialQueryAdoptionInventoryRow for this phase with deletion-ledger fields: exported facade path, current caller, deletion action, owner, cap, removal trigger. Break tests if the old 7-field row shape is the only inventory for a production row.",
@@ -445,11 +445,11 @@
             "content": [
               "_docs/worth/touched-graph-milestone-4-spatial-geometry-evidence-touch-authority.md:148 and :528 constrain the exact admission contract, diagnostic-only receipt preview, and Phase 2 test requirements.",
               "_docs/coding_guidelines/MENTALITY.md constrains adversarial-constraint-first planning and mechanical enforcement.",
-              "_docs/coding_guidelines/arch_laws.md constrains rejection-before-construction, sealed proof-bearing products, unforgeable identity, and unrepresentable invalid states.",
+              "_docs/coding_guidelines/arch_laws.md constrains rejection-before-construction, sealed proof-bearing products, unWORTHable identity, and unrepresentable invalid states.",
               "_docs/coding_guidelines/perf_laws.md constrains bounded stage-index lookup and visible counters instead of broad rediscovery.",
               "_docs/more_guidelines/dx_laws.md constrains typestate-like caller progression and typed failure topology.",
               "_docs/coding_guidelines/composition_laws.md and domain_structure_laws.md constrain file responsibility, facade-only public surface, no broad buckets, and 400-line discipline.",
-              "crates/forge-query/docs/AI_README.md and authoring/graph-obligation-consumer-kit.md constrain Query ownership and prohibit local pseudo-Query proof.",
+              "crates/worth-query/docs/AI_README.md and authoring/graph-obligation-consumer-kit.md constrain Query ownership and prohibit local pseudo-Query proof.",
               "_docs/worth/touched-graph-roadmap.md and _docs/worth/milestone-7.4.md constrain the Milestone 4 spatial branch and later consumers to proof products, not raw rows.",
               "crates/worth-spatial/src/facade/workload_vocabulary/mod.rs exports the current raw ledger vocabulary, receipt traits, lookup/stage-link products, Phase 1 denials, and deletion ledger rows; Phase 2 must add proof/status exports without putting admission logic in the facade.",
               "crates/worth-spatial/src/workload_platform/evidence_ledger/boolean_receipt.rs:6 shows BooleanEvidenceReceipt is sealed and BooleanEvidenceRowAuthority is a row-authority marker only.",
@@ -484,7 +484,7 @@
               "crates/worth-spatial/src/facade/workload_vocabulary/mod.rs: aggregate public request/authority/status/denial/counters without admission logic.",
               "crates/worth-kernel/src/workload_composition/worth_workload/spatial_touch_authority.rs: kernel consumption through the spatial facade proof; direct lookup wrappers become support-only residue if still needed.",
               "crates/worth-spatial/src/certification/public_facade_contracts/contracts/workload_vocabulary/spatial_touch_admission.rs: public-boundary contract, rejection, precedence, diagnostic posture tests.",
-              "crates/worth-spatial/src/certification/public_facade_contracts/compile_fail/workload_vocabulary/spatial_touch_authority_*.rs: compile-fail fences for forged receipts, public fields, row/lookup/query/topology/schema substitution.",
+              "crates/worth-spatial/src/certification/public_facade_contracts/compile_fail/workload_vocabulary/spatial_touch_authority_*.rs: compile-fail fences for WORTHd receipts, public fields, row/lookup/query/topology/schema substitution.",
               "Line-cap rule: split immediately; no touched Rust file should exceed 400 lines or become a broad admission bucket."
             ]
           },
@@ -765,7 +765,7 @@
               "cargo check -p worth-kernel",
               "$files = @(...) ; $files | ForEach-Object { $n=(Get-Content -LiteralPath $_ | Measure-Object -Line).Lines; [PSCustomObject]@{Lines=$n; Path=$_} } | Format-Table -AutoSize",
               "Get-ChildItem -Path crates\\worth-spatial\\src\\facade\\workload_vocabulary,crates\\worth-spatial\\src\\workload_platform\\evidence_ledger,crates\\worth-kernel\\src\\workload_composition -Recurse -Include *.rs | ForEach-Object { $lines = (Get-Content -LiteralPath $_.FullName | Measure-Object -Line).Lines; if ($lines -gt 400) { [PSCustomObject]@{Lines=$lines; Path=$_.FullName} } } | Format-Table -AutoSize",
-              "rg -n \"SpatialGeometryEvidenceTouchAuthorityParts|from_parts|admit_spatial_geometry_evidence_touch_authority|SpatialTouchAuthority\\(String\\)|WorkloadCompositionError::SpatialTouchAuthority\\([^)]*human_reason|compat|shim|bridge|wrapper|temporary|until later|until-later|TopologyTouchedGraphBasis|TopologyDeclaredTouchedGraphBasisProof|ForgeQueryGraphTouchDescriptor|WorkloadEvidenceRow::new\" crates\\worth-spatial\\src\\workload_platform\\evidence_ledger\\spatial_touch_admission crates\\worth-spatial\\src\\facade\\workload_vocabulary crates\\worth-kernel\\src\\workload_composition crates\\worth-spatial\\src\\certification\\public_facade_contracts\\contracts\\workload_vocabulary\\spatial_touch_admission.rs",
+              "rg -n \"SpatialGeometryEvidenceTouchAuthorityParts|from_parts|admit_spatial_geometry_evidence_touch_authority|SpatialTouchAuthority\\(String\\)|WorkloadCompositionError::SpatialTouchAuthority\\([^)]*human_reason|compat|shim|bridge|wrapper|temporary|until later|until-later|TopologyTouchedGraphBasis|TopologyDeclaredTouchedGraphBasisProof|WORTHQueryGraphTouchDescriptor|WorkloadEvidenceRow::new\" crates\\worth-spatial\\src\\workload_platform\\evidence_ledger\\spatial_touch_admission crates\\worth-spatial\\src\\facade\\workload_vocabulary crates\\worth-kernel\\src\\workload_composition crates\\worth-spatial\\src\\certification\\public_facade_contracts\\contracts\\workload_vocabulary\\spatial_touch_admission.rs",
               "rg -n \"SpatialGeometryEvidenceTouchAuthorityParts|from_parts|admit_spatial_geometry_evidence_touch_authority\" crates\\worth-spatial\\src\\facade\\workload_vocabulary crates\\worth-spatial\\src\\workload_platform\\evidence_ledger\\mod.rs",
               "rg -n \"spatial_touch_facade_and_kernel_entrypoint_use_canonical_admission|spatial_touch_facade_and_kernel_denials_preserve_typed_blocking_contract|spatial_touch_public_denials_name_non_authority_source_families|admission_contract_requires_sealed_receipt_complete_ledger_and_stage_lookup|partial_products_are_denied_before_authority_construction|denial_precedence_prefers_source_then_support_then_counter_before_query_gap|receipt_only_preview_reports_status_but_cannot_act_as_authority|admission_denials_keep_ledger_counter_and_stage_link_classes_distinct|SpatialGeometryEvidenceTouchRequest::from_boolean_receipt|with_complete_ledger|spatial_touch_denial_kind|SpatialTouchAuthority\\(SpatialGeometryEvidenceTouchDenial\\)\" crates\\worth-spatial\\src crates\\worth-kernel\\src\\workload_composition",
               "git status --short -- crates/worth-spatial/src/facade/workload_vocabulary crates/worth-spatial/src/workload_platform/evidence_ledger crates/worth-kernel/src/workload_composition crates/worth-spatial/src/certification/public_facade_contracts/contracts/workload_vocabulary/spatial_touch_admission.rs automation/phase_runner/worth-touched-graph-milestone-4-spatial-evidence-authority.json",
@@ -1185,7 +1185,7 @@
             "proves": "No scoped Rust file exceeds the 400-line cap."
           },
           {
-            "command": "rg -n \"SpatialGeometryEvidenceTouchAuthorityParts|from_parts|admit_spatial_geometry_evidence_touch_authority|SpatialTouchAuthority\\(String\\)|WorkloadCompositionError::SpatialTouchAuthority\\([^)]*human_reason|compat|shim|bridge|wrapper|temporary|until later|until-later|TopologyTouchedGraphBasis|TopologyDeclaredTouchedGraphBasisProof|ForgeQueryGraphTouchDescriptor|WorkloadEvidenceRow::new\" crates\\worth-spatial\\src\\workload_platform\\evidence_ledger\\spatial_touch_admission crates\\worth-spatial\\src\\facade\\workload_vocabulary crates\\worth-kernel\\src\\workload_composition crates\\worth-spatial\\src\\certification\\public_facade_contracts\\contracts\\workload_vocabulary\\spatial_touch_admission.rs",
+            "command": "rg -n \"SpatialGeometryEvidenceTouchAuthorityParts|from_parts|admit_spatial_geometry_evidence_touch_authority|SpatialTouchAuthority\\(String\\)|WorkloadCompositionError::SpatialTouchAuthority\\([^)]*human_reason|compat|shim|bridge|wrapper|temporary|until later|until-later|TopologyTouchedGraphBasis|TopologyDeclaredTouchedGraphBasisProof|WORTHQueryGraphTouchDescriptor|WorkloadEvidenceRow::new\" crates\\worth-spatial\\src\\workload_platform\\evidence_ledger\\spatial_touch_admission crates\\worth-spatial\\src\\facade\\workload_vocabulary crates\\worth-kernel\\src\\workload_composition crates\\worth-spatial\\src\\certification\\public_facade_contracts\\contracts\\workload_vocabulary\\spatial_touch_admission.rs",
             "exit_code": 0,
             "output_tail": "Matches are limited to hostile public tests for Query/topology/manual-row substitution, private admission internals authority.rs:22/33/43/56, request.rs import/call of the pub(super) admission function, and unrelated boolean_common_plane_reduction receipt from_parts constructors. No SpatialTouchAuthority(String), human_reason erasure, compatibility shim, bridge, or public facade bypass match was found.",
             "proves": "Raw authority parts and copied-field construction are private to spatial_touch_admission; substitution terms appear as denial fixtures, not authority paths."
@@ -1249,7 +1249,7 @@
           {
             "checkpoint": "1. Adversarial constraint",
             "content": [
-              "Production-scale failure mode: under long boolean/spatial chains, the same admitted receipt/stage/link/counter truth can arrive in different CompleteWorkloadEvidenceLedger row order, caller construction order, or adjacent topology/schema/Query vocabulary context. A naive authority product breaks if digest identity depends on benign row order, if missing/zeroed counters are hidden after a source receipt reported work, or if raw ids, raw strings, copied receipt fields, schema vocabulary rows, TopologyTouchedGraphBasis/TopologyDeclaredTouchedGraphBasisProof, or Forge Query descriptors can promote into spatial touch authority.",
+              "Production-scale failure mode: under long boolean/spatial chains, the same admitted receipt/stage/link/counter truth can arrive in different CompleteWorkloadEvidenceLedger row order, caller construction order, or adjacent topology/schema/Query vocabulary context. A naive authority product breaks if digest identity depends on benign row order, if missing/zeroed counters are hidden after a source receipt reported work, or if raw ids, raw strings, copied receipt fields, schema vocabulary rows, TopologyTouchedGraphBasis/TopologyDeclaredTouchedGraphBasisProof, or WORTH Query descriptors can promote into spatial touch authority.",
               "Quantitative boundary: every current BooleanEvidenceStageKind maps exhaustively to one WorkloadEvidenceStage; equivalent receipt/stage/link/counter inputs produce one stable SpatialGeometryEvidenceTouchDigest across row/caller order; zero/missing receipt-backed work counters deny or expose a typed violation row; non-spatial proof families cannot construct SpatialGeometryEvidenceTouchAuthority from the public facade."
             ]
           },
@@ -1261,7 +1261,7 @@
               "MENTALITY.md: adversarial-first design, mechanical enforcement, architecture tests, visible counters, authority/derived separation, one canonical artifact, facade-only surface, and named debt threshold.",
               "arch_laws.md laws 9, 12, 24, 26, 32, 37, 41, 42: sealed construction, typed errors, rejection before construction, equivalence/digest basis, counters, unrepresentable invalid states, proof-bearing types, and identity preservation.",
               "composition_laws.md, domain_structure_laws.md, perf_laws.md, dx_laws.md: narrow files, facade aggregation, no buckets, semantic-delta bounded work, visible counters, valid autocomplete, no stringly authority, and replay-ready proof progression.",
-              "Forge Query AI_README and graph-obligation consumer kit: Query descriptors/adoption are Query-owned downstream proof, not spatial authority or local pseudo-Query layers.",
+              "WORTH Query AI_README and graph-obligation consumer kit: Query descriptors/adoption are Query-owned downstream proof, not spatial authority or local pseudo-Query layers.",
               "touched-graph-roadmap.md and milestone-7.4.md: worth-spatial owns spatial authority; schema only names shared vocabulary; topology is adjacent/non-substitutable; later boolean stages consume exact workload receipts.",
               "crates/worth-spatial/src/facade/workload_vocabulary/mod.rs and evidence_ledger/mod.rs: public aggregation of Phase 2 admission and evidence products; no authority-parts export.",
               "crates/worth-spatial/src/workload_platform/evidence_ledger/stage.rs: BooleanEvidenceStageKind::evidence_stage maps 18 current boolean kinds to WorkloadEvidenceStage and needs coverage proof.",
@@ -1456,7 +1456,7 @@
             "severity": "high",
             "file": "crates/worth-spatial/src/workload_platform/evidence_ledger/stage_index/receipt_match.rs:19",
             "finding": "Spatial touch receipt lookup accepts any nonzero stage counter vector instead of proving the ledger row counters equal the sealed receipt counters.",
-            "evidence": "match_boolean_receipt_lookup only checks row.counters().has_receipt_backed_counter_for_stage(stage) at receipt_match.rs:19-21, then checks identity/type/support at lines 22-39 and returns row.counters() into the lookup product at lines 40-47. SpatialGeometryEvidenceTouchCounterHonesty only treats total_receipt_backed_counters == 0 as a violation at counter_honesty.rs:21-30. The stage-index identity also records only counter-total at stage_index/identity.rs:29-36, so a receipt-backed row with copied receipt identity/type/support and a different nonzero counter shape can admit as Honest and produce an authority digest over forged product counters.",
+            "evidence": "match_boolean_receipt_lookup only checks row.counters().has_receipt_backed_counter_for_stage(stage) at receipt_match.rs:19-21, then checks identity/type/support at lines 22-39 and returns row.counters() into the lookup product at lines 40-47. SpatialGeometryEvidenceTouchCounterHonesty only treats total_receipt_backed_counters == 0 as a violation at counter_honesty.rs:21-30. The stage-index identity also records only counter-total at stage_index/identity.rs:29-36, so a receipt-backed row with copied receipt identity/type/support and a different nonzero counter shape can admit as Honest and produce an authority digest over WORTHd product counters.",
             "contradiction": "Phase 3 requires honest digest/counter identity and counter honesty for a sealed receipt-backed spatial authority vocabulary. A nonzero-but-wrong counter vector is not the sealed receipt counter identity; accepting it lets copied receipt fields plus altered counters become the authority product?s counter basis inside worth-spatial.",
             "required_repair": "Move counter honesty up into receipt lookup/admission by comparing row.counters() to receipt.evidence_counters() and denying mismatches as CounterHonesty or a typed mismatched-counter denial before lookup product construction. Include the typed counter vector, not only total, in stage-index identity or otherwise prove the lookup product cannot carry a different typed counter shape. Add a hostile test that builds a receipt-backed row with matching receipt identity/type/support but WorkloadEvidenceStageCounters::boolean_classify() or another nonzero wrong counter vector for a Split receipt and proves facade and kernel admission deny before authority construction.",
             "status": "closed",
@@ -1483,7 +1483,7 @@
         ],
         "verification": [
           {
-            "command": "Read required Phase 3 sources: spec Phase 3, MENTALITY.md, arch_laws.md, composition_laws.md, domain_structure_laws.md, perf_laws.md, dx_laws.md, Forge Query docs, touched graph roadmap, milestone-7.4, worth-spatial workload facades/query adoption/evidence ledger/spatial_touch_admission, worth-schema facade, worth-topo facade, worth-kernel workload_composition.",
+            "command": "Read required Phase 3 sources: spec Phase 3, MENTALITY.md, arch_laws.md, composition_laws.md, domain_structure_laws.md, perf_laws.md, dx_laws.md, WORTH Query docs, touched graph roadmap, milestone-7.4, worth-spatial workload facades/query adoption/evidence ledger/spatial_touch_admission, worth-schema facade, worth-topo facade, worth-kernel workload_composition.",
             "exit_code": 0,
             "output_tail": "Planning-only turn; no acceptance tests run. Context read recorded in notes.plan checkpoint 2 with concrete files and API constraints."
           },
@@ -1526,7 +1526,7 @@
           {
             "command": "Read required Phase 3 review context and source surfaces",
             "exit_code": 0,
-            "output_tail": "Read spec, MENTALITY.md, arch_laws.md, composition_laws.md, domain_structure_laws.md, perf_laws.md, Forge Query AI_README, graph-obligation consumer kit, touched graph roadmap, milestone-7.4, worth-spatial workload facades/query adoption/evidence ledger/spatial_touch_admission, worth-schema facade, worth-topo facade, worth-kernel workload_composition.",
+            "output_tail": "Read spec, MENTALITY.md, arch_laws.md, composition_laws.md, domain_structure_laws.md, perf_laws.md, WORTH Query AI_README, graph-obligation consumer kit, touched graph roadmap, milestone-7.4, worth-spatial workload facades/query adoption/evidence ledger/spatial_touch_admission, worth-schema facade, worth-topo facade, worth-kernel workload_composition.",
             "proves": "Review was grounded in the required laws, Query proof posture, Phase 3 scope, and public facade/source boundaries."
           },
           {
@@ -1586,7 +1586,7 @@
           {
             "command": "Read required Phase 3 review context and source surfaces",
             "exit_code": 0,
-            "output_tail": "Read SOUL.md, USER.md; memory/2026-06-22.md and memory/2026-06-21.md were absent. Read spec, MENTALITY.md, arch_laws.md, composition_laws.md, domain_structure_laws.md, perf_laws.md, Forge Query AI_README, graph-obligation consumer kit, touched graph roadmap, milestone-7.4, worth-spatial workload facades/query adoption/evidence ledger/spatial_touch_admission/stage_index, worth-schema facade, worth-topo facade, worth-kernel workload_composition.",
+            "output_tail": "Read SOUL.md, USER.md; memory/2026-06-22.md and memory/2026-06-21.md were absent. Read spec, MENTALITY.md, arch_laws.md, composition_laws.md, domain_structure_laws.md, perf_laws.md, WORTH Query AI_README, graph-obligation consumer kit, touched graph roadmap, milestone-7.4, worth-spatial workload facades/query adoption/evidence ledger/spatial_touch_admission/stage_index, worth-schema facade, worth-topo facade, worth-kernel workload_composition.",
             "proves": "Review was grounded in the required laws, Query proof posture, Phase 3 scope, and public facade/source boundaries."
           },
           {
@@ -1605,7 +1605,7 @@
             "command": "cargo test -p worth-spatial --test ui -- --nocapture",
             "exit_code": 0,
             "output_tail": "spatial_public_boundary_rejects_internal_constructor_bypass passed. Workload vocabulary compile-fail fixtures passed, including external_boolean_receipt_authority_not_implementable, evidence_ledger_complete_not_hand_filled, evidence_stage_index_product_not_hand_filled, boolean_receipt_lookup_product_not_hand_filled, raw_evidence_rows_are_not_boolean_receipt_lookup_product, raw_ledger_accessors_not_public, and spatial_touch_authority_parts_not_public.",
-            "proves": "Public boundary compile-fail proof rejects forged receipts, hand-filled complete ledger/index/lookup products, raw-row lookup substitution, raw ledger accessors, and authority parts."
+            "proves": "Public boundary compile-fail proof rejects WORTHd receipts, hand-filled complete ledger/index/lookup products, raw-row lookup substitution, raw ledger accessors, and authority parts."
           },
           {
             "command": "Explicit Phase 3 scoped line counts via Get-Content .Count",
@@ -1763,7 +1763,7 @@
                 "constraint": "New work must land in single-responsibility modules, avoid broad helper buckets, keep public facades aggregating only, and keep touched files under the 400-line cap unless explicitly exempt."
               },
               {
-                "source": "crates/forge-query/docs/AI_README.md and crates/forge-query/docs/authoring/graph-obligation-consumer-kit.md",
+                "source": "crates/worth-query/docs/AI_README.md and crates/worth-query/docs/authoring/graph-obligation-consumer-kit.md",
                 "constraint": "Query is downstream of admitted spatial touch proof; this phase must deny before Query descriptor construction and must not invent a local pseudo-Query proof lane."
               },
               {
@@ -2971,7 +2971,7 @@
         "lookup equivalence test proves equivalent ledger, stage-index, and receipt inputs produce the same lookup key and product digest with unrelated rows present",
         "boundary denial test rejects wrong boolean stage, wrong evidence identity, wrong stage-index identity, unsupported support posture, and Query descriptor digest substitution",
         "locality counter test proves lookup touched the expected stage-index slots and did not scan unrelated boolean stages",
-        "separation test proves lookup products cannot satisfy ForgeQueryGraphTouchDescriptor APIs and Query descriptors cannot satisfy spatial lookup authority APIs"
+        "separation test proves lookup products cannot satisfy WORTHQueryGraphTouchDescriptor APIs and Query descriptors cannot satisfy spatial lookup authority APIs"
       ],
       "instructions": "Read the Phase 5 section of the spec before planning. Separate spatial lookup identity from Query descriptor identity. Derive any new lookup key from admitted spatial authority and stage-index product, never caller strings or raw vectors.",
       "qa_focus": "Lookup identity/digest stability, stage-index locality, no broad scans, no Query descriptor substitution, and immutable read-only facade products.",
@@ -2982,7 +2982,7 @@
         "plan": [
           {
             "checkpoint": "1. Adversarial constraint",
-            "constraint": "At production scale, spatial evidence lookup must remain stable and bounded by the single required stage-index slot even when the complete ledger contains many unrelated boolean stages and Query descriptor-shaped digests. A naive implementation that derives lookup from caller strings, raw row vectors, broad receipt scans, or ForgeQueryGraphTouchDescriptor digests can silently admit the wrong evidence or make lookup cost O(total ledger rows/stages) instead of O(required stage slots).",
+            "constraint": "At production scale, spatial evidence lookup must remain stable and bounded by the single required stage-index slot even when the complete ledger contains many unrelated boolean stages and Query descriptor-shaped digests. A naive implementation that derives lookup from caller strings, raw row vectors, broad receipt scans, or WORTHQueryGraphTouchDescriptor digests can silently admit the wrong evidence or make lookup cost O(total ledger rows/stages) instead of O(required stage slots).",
             "proof_pressure": "The implementation must carry typed lookup identity from an admitted spatial touch authority plus the stage-index lookup product, expose counters proving indexed access, and deny every substitution before a lookup product/key is constructed."
           },
           {
@@ -3017,7 +3017,7 @@
                 "constrains": "The caller experience must make authority and cost visible; invalid stringly/digest shortcuts should be unrepresentable."
               },
               {
-                "source": "crates/forge-query/docs/AI_README.md and graph-obligation-consumer-kit.md",
+                "source": "crates/worth-query/docs/AI_README.md and graph-obligation-consumer-kit.md",
                 "constrains": "Query owns graph touch descriptors and obligation proof; Worth spatial lookup is a separate consumer-side spatial evidence product, not a pseudo-Query descriptor or local Query substitute."
               },
               {
@@ -3092,7 +3092,7 @@
             "requirements": [
               "Authority/proof-bearing types: constructors for lookup key/product stay private or pub(crate); public consumers receive them only through admitted spatial touch authority plus complete ledger/stage-index proof.",
               "Operator/request intent lowering: no new pseudo-Query lane; WorthWorkload completed boolean handoffs remain the ordinary workload-composition proof route when integration coverage is needed.",
-              "Query/runtime separation: ForgeQueryGraphTouchDescriptor digest identity must be impossible to pass as spatial lookup authority; separation should be compile-fail where possible and typed denial where runtime hostile input exists.",
+              "Query/runtime separation: WORTHQueryGraphTouchDescriptor digest identity must be impossible to pass as spatial lookup authority; separation should be compile-fail where possible and typed denial where runtime hostile input exists.",
               "Validators and denial posture: wrong boolean stage, wrong evidence identity, wrong stage-index identity, unsupported support posture, and Query descriptor digest substitution deny before lookup product construction.",
               "Replay/determinism: equivalent ledgers and replayed receipts with unrelated rows must produce the same lookup key and product digest; benign row-order variation must not affect key identity beyond the existing canonical stage-index digest.",
               "Evidence lookup/indexing: lookup must use WorkloadEvidenceStageIndexProduct::row_for_stage/require_boolean_receipt_lookup and carry WorkloadEvidenceStageLookupCounters showing indexed_lookup_count == 1 and raw_row_scan_count == 0 for one required stage.",
@@ -3123,9 +3123,9 @@
               },
               {
                 "category": "Query or runtime selection/admission",
-                "requires": "Use Forge Query only as the forbidden substitution boundary; do not redesign Query descriptor APIs.",
-                "changes": "Add separation tests that show lookup products do not implement/fit ForgeQueryGraphTouchDescriptor APIs and Query descriptors do not fit spatial lookup authority APIs.",
-                "first_hard_break": "No From/TryFrom between ForgeQueryGraphTouchDescriptor or its digest and spatial lookup key/product.",
+                "requires": "Use WORTH Query only as the forbidden substitution boundary; do not redesign Query descriptor APIs.",
+                "changes": "Add separation tests that show lookup products do not implement/fit WORTHQueryGraphTouchDescriptor APIs and Query descriptors do not fit spatial lookup authority APIs.",
+                "first_hard_break": "No From/TryFrom between WORTHQueryGraphTouchDescriptor or its digest and spatial lookup key/product.",
                 "adapter_purge": "Any descriptor-to-lookup bridge is a regression unless it is a compile-fail fixture proving absence.",
                 "proof": "trybuild fixtures under spatial_evidence_lookup plus a public contract asserting facade exports are read-only proof types."
               },
@@ -3186,7 +3186,7 @@
                 "proof": "Planned commands: cargo test -p worth-spatial --lib lookup_equivalence -- --nocapture; cargo test -p worth-spatial --lib lookup_boundary_denial -- --nocapture; cargo test -p worth-spatial --lib lookup_locality -- --nocapture; cargo test -p worth-spatial --test compile_fail_contracts -- spatial_public_boundary_rejects_internal_constructor_bypass --nocapture; cargo check -p worth-spatial -p worth-kernel."
               }
             ],
-            "blockers": "No blocker identified during planning. If existing ForgeQueryGraphTouchDescriptor APIs are not importable in spatial compile-fail fixtures, the implement turn must record that exact Query boundary as a capped Query gap and still prove no spatial lookup API accepts descriptor digests."
+            "blockers": "No blocker identified during planning. If existing WORTHQueryGraphTouchDescriptor APIs are not importable in spatial compile-fail fixtures, the implement turn must record that exact Query boundary as a capped Query gap and still prove no spatial lookup API accepts descriptor digests."
           }
         ],
         "done": [
@@ -3271,7 +3271,7 @@
           },
           {
             "structural_proof": "MENTALITY and arch-law closeout for implement turn",
-            "evidence": "Adversarial constraint satisfied by deriving lookup key/product from admitted spatial authority plus complete ledger stage-index identity, not caller strings/raw vectors/Query descriptor digests. Arch law 24 is satisfied because substitution denial occurs before SpatialEvidenceLookupProduct::from_authority; laws 41 and 42 are satisfied by sealed private fields and compile-fail separation from ForgeQueryGraphTouchDescriptor."
+            "evidence": "Adversarial constraint satisfied by deriving lookup key/product from admitted spatial authority plus complete ledger stage-index identity, not caller strings/raw vectors/Query descriptor digests. Arch law 24 is satisfied because substitution denial occurs before SpatialEvidenceLookupProduct::from_authority; laws 41 and 42 are satisfied by sealed private fields and compile-fail separation from WORTHQueryGraphTouchDescriptor."
           },
           {
             "command": "cargo test -p worth-spatial --lib lookup_equivalence -- --nocapture",
@@ -3341,7 +3341,7 @@
                 "command": "cargo test -p worth-spatial --test ui -- spatial_public_boundary_rejects_internal_constructor_bypass --nocapture",
                 "exit_code": 0,
                 "tail": "trybuild compile-fail fixtures including spatial_evidence_lookup and workload_vocabulary fences ... ok; spatial_public_boundary_rejects_internal_constructor_bypass ... ok; test result: ok. 1 passed; 0 failed; finished in 4.67s",
-                "proves": "Public-boundary compile-fail fixtures prove SpatialEvidenceLookupProduct cannot satisfy ForgeQueryGraphTouchDescriptor APIs and ForgeQueryGraphTouchDescriptor cannot satisfy spatial lookup product APIs; internal constructors remain inaccessible."
+                "proves": "Public-boundary compile-fail fixtures prove SpatialEvidenceLookupProduct cannot satisfy WORTHQueryGraphTouchDescriptor APIs and WORTHQueryGraphTouchDescriptor cannot satisfy spatial lookup product APIs; internal constructors remain inaccessible."
               },
               {
                 "command": "cargo check -p worth-spatial -p worth-kernel",
@@ -3398,7 +3398,7 @@
               "crates/worth-spatial/src/workload_platform/evidence_ledger/stage_index/product.rs:55-62 implements row_for_stage through the stage_offsets table, so lookup does not scan unrelated ledger rows.",
               "crates/worth-spatial/src/workload_platform/evidence_ledger/stage_index/identity.rs:13-43 includes row count, indexed stage count, backing, support, counters, evidence identity, and upstream binding in the stage-index identity, so unrelated row or support substitution changes the identity.",
               "crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/lookup.rs:107-158 keeps SpatialEvidenceLookupProduct fields private and exposes only read-only accessors.",
-              "crates/worth-spatial/src/certification/public_facade_contracts/compile_fail/spatial_evidence_lookup/lookup_product_is_not_query_touch_descriptor.rs and query_touch_descriptor_is_not_spatial_lookup_product.rs prove type separation from ForgeQueryGraphTouchDescriptor."
+              "crates/worth-spatial/src/certification/public_facade_contracts/compile_fail/spatial_evidence_lookup/lookup_product_is_not_query_touch_descriptor.rs and query_touch_descriptor_is_not_spatial_lookup_product.rs prove type separation from WORTHQueryGraphTouchDescriptor."
             ],
             "test_quality": "Runtime tests cover lookup equivalence with unrelated rows, boundary denial cases, locality counters, and Query digest denial. Compile-fail UI tests cover the stronger public type-separation claim. The request-boundary fixture is acceptable here because Phase 5 is proving lookup identity over admitted spatial authority plus complete ledger/stage-index identity rather than re-proving production workload composition from Phase 4.",
             "line_cap": "Touched Phase 5 Rust files inspected: lookup.rs 335, lookup_equivalence_tests.rs 61, lookup_boundary_denial_tests.rs 98, lookup_locality_tests.rs 40, lookup_separation_tests.rs 19, spatial_touch_admission/mod.rs 61, evidence_ledger/mod.rs 54, facade/workload_vocabulary/mod.rs 38, compile-fail fixtures 9 each; all are below 400 lines.",
@@ -3487,7 +3487,7 @@
               "_docs/coding_guidelines/perf_laws.md: requires lookup cost to be visible at the named boundary and forbids cheap-looking broad scans or repeated rediscovery.",
               "_docs/more_guidelines/dx_laws.md: requires public DX to expose proof phase progression, typed failure topology, and boundary cost rather than hiding authority transitions.",
               "_docs/coding_guidelines/composition_laws.md and domain_structure_laws.md: require responsibility-named files/tests, no broad buckets, no milestone/provenance modules, facade aggregation only, and import graph proof for dependency direction.",
-              "crates/forge-query/docs/AI_README.md and authoring/graph-obligation-consumer-kit.md: Query descriptors are not local authority; downstream proof should use public proof lanes and must not hand-roll local reports/adapters.",
+              "crates/worth-query/docs/AI_README.md and authoring/graph-obligation-consumer-kit.md: Query descriptors are not local authority; downstream proof should use public proof lanes and must not hand-roll local reports/adapters.",
               "_docs/worth/touched-graph-roadmap.md: Milestone 4 spatial branch requires sealed boolean/spatial receipts -> spatial touch authority -> lookup products, with raw rows and broad stage scans forbidden substitutes.",
               "_docs/worth/milestone-7.4.md: loop/split downstream consumers must consume receipt-backed ledgers and may not reopen raw fragment, continuation, or stage folklore.",
               "crates/worth-spatial/src/facade/workload_vocabulary/mod.rs: public aggregation re-exports SpatialGeometryEvidenceTouchAuthority, SpatialEvidenceLookupProduct, denial helpers, CompleteWorkloadEvidenceLedger, and lower evidence vocabulary; implementation must keep facade as aggregation.",
@@ -3548,7 +3548,7 @@
               },
               {
                 "category": "Query or runtime selection/admission",
-                "plan": "Do not lower to ForgeQueryGraphTouchDescriptor in Phase 6. Add explicit hostile tests showing Query descriptors and Query descriptor digests can only produce substitution denials and cannot satisfy the migrated split consumer. Adapter purge: no Query-to-spatial lookup bridge, no descriptor digest accepted as lookup key. Proof: rejection test calls existing deny_query_descriptor_digest_as_spatial_evidence_lookup_authority / SpatialGeometryEvidenceTouchRejectedInput::query_descriptor and asserts migrated consumer denial locality."
+                "plan": "Do not lower to WORTHQueryGraphTouchDescriptor in Phase 6. Add explicit hostile tests showing Query descriptors and Query descriptor digests can only produce substitution denials and cannot satisfy the migrated split consumer. Adapter purge: no Query-to-spatial lookup bridge, no descriptor digest accepted as lookup key. Proof: rejection test calls existing deny_query_descriptor_digest_as_spatial_evidence_lookup_authority / SpatialGeometryEvidenceTouchRejectedInput::query_descriptor and asserts migrated consumer denial locality."
               },
               {
                 "category": "validators, invariants, and denial posture",
@@ -3624,7 +3624,7 @@
           "Line-cap review: scoped/touched Rust files are under 400 lines. Largest audited files: surface_inventory/rows.rs 398, public_api_planar_boolean_edge_splitting_public_contract_support/mod.rs 390, spatial_touch_admission/lookup.rs 380.",
           "MENTALITY.md adversarial constraint satisfied: the review demanded production-bound proof rather than helper-local behavior; the public contract runs a real workload-composed split handoff and asserts visible lookup counters.",
           "arch_laws.md authority/proof boundary satisfied: law 24 rejection precedes construction through typed denials, law 30 and law 41 keep proof-bearing phase outputs as the downstream input, and law 42 preserves lookup identity instead of reconstructing it from raw stage-index representation.",
-          "Phase 6 closeout context read: spec Phase 6 lines 801-853, MENTALITY.md, arch_laws.md, composition_laws.md, domain_structure_laws.md, perf_laws.md, Forge Query AI_README and graph obligation Consumer Kit, touched-graph roadmap, milestone-7.4, spatial workload/query facades, spatial evidence ledger facade, kernel workload composition facade, and topology facade.",
+          "Phase 6 closeout context read: spec Phase 6 lines 801-853, MENTALITY.md, arch_laws.md, composition_laws.md, domain_structure_laws.md, perf_laws.md, WORTH Query AI_README and graph obligation Consumer Kit, touched-graph roadmap, milestone-7.4, spatial workload/query facades, spatial evidence ledger facade, kernel workload composition facade, and topology facade.",
           "cargo check -p worth-spatial -p worth-kernel exited 0. Tail: worth-kernel generated warnings only; Finished dev profile target(s) in 0.41s.",
           "cargo test -p worth-kernel --test public_api_contract phase6_spatial_touch -- --nocapture exited 0. Tail: running 1 test; phase6_spatial_touch_migrated_split_consumer_uses_facade_lookup_authority ... ok; test result: ok. 1 passed; 0 failed; 237 filtered out; finished in 223.55s.",
           "Closeout structural checkpoint: implemented directory skeleton matches Phase 6 plan. Kernel migration lives in worth_workload/boolean_split_handoff.rs and spatial_touch_authority.rs; spatial authority input/validation/product/counters/denial live under downstream_split_consumption; residue accounting lives in evidence_ledger/surface_inventory/rows.rs; public proof lives in responsibility-named public contract support.",
@@ -3636,7 +3636,7 @@
           "Closeout real-boundary checkpoint: public_api_spatial_touch_receipt_admission.rs:106-110 runs the real public-boundary Phase 6 test; public_api_planar_boolean_edge_splitting_public_contract_support/mod.rs:61-87 exercises CompletedBooleanSplitHandoff rather than helper-local synthetic rows.",
           "MENTALITY.md adversarial constraint satisfied: authority-first derivation, mechanical enforcement, architecture test, and visible cost counters are recorded through a real workload-composed split handoff rather than helper-local behavior.",
           "arch_laws.md proof-boundary satisfied: law 24 rejection structurally precedes construction, law 30/law 41 pass proof-bearing spatial authority and lookup products to the migrated consumer, and law 42 preserves spatial lookup identity rather than reconstructing authority from raw stage-index representation.",
-          "Phase 6 closeout context read: spec Phase 6 lines 801-853; MENTALITY.md; arch_laws.md; composition_laws.md; domain_structure_laws.md; perf_laws.md; forge-query AI_README and graph-obligation Consumer Kit; touched-graph roadmap; milestone-7.4; spatial workload/query facades; evidence ledger facade; kernel workload_composition facade; topology facade.",
+          "Phase 6 closeout context read: spec Phase 6 lines 801-853; MENTALITY.md; arch_laws.md; composition_laws.md; domain_structure_laws.md; perf_laws.md; worth-query AI_README and graph-obligation Consumer Kit; touched-graph roadmap; milestone-7.4; spatial workload/query facades; evidence ledger facade; kernel workload_composition facade; topology facade.",
           "cargo check -p worth-spatial -p worth-kernel exited 0. Tail: warnings only; Finished dev profile [unoptimized + debuginfo] target(s) in 0.41s.",
           "cargo test -p worth-kernel --test public_api_contract phase6_spatial_touch -- --nocapture exited 0. Tail: running 1 test; phase6_spatial_touch_migrated_split_consumer_uses_facade_lookup_authority ... ok; test result: ok. 1 passed; 0 failed; 237 filtered out; finished in 223.55s.",
           "Closeout structural proof: public_api_spatial_touch_receipt_admission.rs:106 runs the focused Phase 6 public-boundary test; public_api_planar_boolean_edge_splitting_public_contract_support/mod.rs:61-87 executes production migration parity plus rejection, dependency-direction, and residue assertions; mod.rs:144-150 admits real downstream split consumption.",
@@ -3657,10 +3657,10 @@
     {
       "id": 7,
       "title": "Query Descriptor Lowering",
-      "owner": "worth-spatial, forge-query",
+      "owner": "worth-spatial, worth-query",
       "scope": [
-        "crates/forge-query/src/runtime/mutation/graph_composition/touch_descriptor",
-        "crates/forge-query/src/runtime/mutation/graph_composition/obligation",
+        "crates/worth-query/src/runtime/mutation/graph_composition/touch_descriptor",
+        "crates/worth-query/src/runtime/mutation/graph_composition/obligation",
         "crates/worth-spatial/src/query_adoption.rs",
         "crates/worth-spatial/src/facade/query_adoption.rs"
       ],
@@ -3679,29 +3679,29 @@
       "notes": {
         "plan": [
           "1. Adversarial constraint. Phase 7 breaks at production scale if a narrow spatial receipt inside a complete ledger with unrelated evidence can be lowered into Query by copying digest strings, raw ledger rows, topology touched-basis proof, or a previously lowered Query descriptor. The implementation must keep lowering breadth bounded to one admitted SpatialGeometryEvidenceTouchAuthority and its derived lookup/operating-world facts: zero broad ledger scans, zero Worth-local selector dialects, and zero descriptor-to-authority promotion paths. Descriptors are derived Query artifacts only; they can be destroyed and rebuilt from spatial authority, but they cannot rebuild spatial authority.",
-          "2. Relevant context read. Inspected spec Phase 7 lines 855-926: lower admitted spatial touch authority into Query graph touch vocabulary, create typed Query gap rows, do not perform Milestone 5 selection. Inspected MENTALITY.md rules 1, 3, 6, 7, 9, and 10: adversarial constraint first, mechanical enforcement, architecture tests, visible counters, authority before derivation, one canonical artifact. Inspected arch_laws.md laws 12, 24, 30, 33, 41, and 42: typed denials, rejection before construction, proof-bearing phase outputs, derived state separation, sealed proof types, identity authority preservation. Inspected perf_laws.md: descriptor lowering must preserve semantic-delta bounded work and expose cost/counter posture. Inspected composition_laws.md and domain_structure_laws.md: query lowering must be a narrow responsibility, not a phase bucket or facade implementation. Inspected _docs/more_guidelines/dx_laws.md: the caller surface must expose the authority-to-derived boundary and make invalid actions unrepresentable. Inspected Forge Query docs AI_README.md and graph-obligation-consumer-kit.md: use Query public facade/Consumer Kit surfaces, do not invent local pseudo-Query proof. Inspected forge-query descriptor/selector APIs: facade::exports_runtime.rs exports ForgeQueryGraphTouchDescriptor, ForgeQueryGraphTouchReadVerb, ForgeQueryGraphReadTouchShape, ForgeQueryGraphTouchSelector, and ForgeQueryGraphObligationOperatingWorldDescriptor; descriptor.rs exposes read_family, read_family_shape, live_read, live_read_shape, declared_mutation_collection; touch_selector.rs exposes collection, relation_kind, aspect_path, read_verb, declared_mutation_collection matching. Inspected worth-spatial facade/query_adoption.rs and workload_vocabulary/mod.rs: current facade aggregates evidence authority and Query adoption inventory but must not implement lowering logic. Inspected spatial_touch_admission authority.rs, lookup.rs, operating_world.rs, and mod.rs: admitted authority and lookup products already carry digest, stage, support, counters, stage-index identity, and current-head operating-world posture that lowering must consume.",
-          "3. DX target. Ordinary callers should lower only from admitted spatial authority and read the derived Query products; forbidden routes fail because they lack the spatial authority type.\n\n```rust\nuse forge_query::facade::runtime::{\n    ForgeQueryGraphObligationOperatingWorldDescriptor,\n    ForgeQueryGraphTouchDescriptor,\n    ForgeQueryGraphTouchReadVerb,\n    ForgeQueryGraphTouchSelector,\n};\nuse worth_spatial::facade::workload_vocabulary::SpatialGeometryEvidenceTouchRequest;\nuse worth_spatial::facade::query_adoption::lower_spatial_touch_authority_to_query_descriptor;\n\nlet spatial_touch = SpatialGeometryEvidenceTouchRequest::from_boolean_receipt(&receipt)\n    .with_complete_ledger(workload.complete_evidence_ledger())\n    .admit()?;\nlet lookup = spatial_touch.spatial_evidence_lookup(workload.complete_evidence_ledger())?;\nlet lowered = lower_spatial_touch_authority_to_query_descriptor(&spatial_touch, &lookup)?;\n\nlet descriptor: &ForgeQueryGraphTouchDescriptor = lowered.touch_descriptor();\nlet world: &ForgeQueryGraphObligationOperatingWorldDescriptor = lowered.operating_world();\nassert_eq!(lowered.spatial_touch_digest(), spatial_touch.digest().as_str());\n\nlet selector = ForgeQueryGraphTouchSelector::collection(lowered.collection())?;\nassert!(selector.matches_descriptor(descriptor));\n\n// Forbidden: these do not type-check or must return typed denials.\n// lower_spatial_touch_authority_to_query_descriptor(&raw_workload_row, &lookup)?;\n// lower_spatial_touch_authority_to_query_descriptor(&topology_touched_basis, &lookup)?;\n// lower_spatial_touch_authority_to_query_descriptor(descriptor, &lookup)?;\n```",
-          "4. Directory skeleton. Add `crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_lowering.rs` for the derived `SpatialEvidenceQueryTouchDescriptor` product, digest, counters, and constructor from `SpatialGeometryEvidenceTouchAuthority` plus `SpatialEvidenceLookupProduct`. Add `query_lowering_denial.rs` only if denials would push the product file toward mixed responsibilities; otherwise keep a small typed denial in `query_lowering.rs`. Add `query_gap.rs` for `SpatialEvidenceQueryGapRow` with owner, cap, blocker, and removal trigger. Add responsibility-named tests under the same module: `query_descriptor_parity_tests.rs`, `query_descriptor_denial_tests.rs`, `query_selector_precision_tests.rs`, `query_gap_tests.rs`, and `query_milestone_boundary_tests.rs`. Update `spatial_touch_admission/mod.rs` and `evidence_ledger/mod.rs` only as aggregation surfaces. Update `crates/worth-spatial/src/facade/query_adoption.rs` only to re-export the ordinary public lowering function/types; do not put lowering logic in the facade. Touch forge-query files only if public exports are missing or descriptor expressiveness has a real Query-owned gap; otherwise consume existing Query facade exports.",
+          "2. Relevant context read. Inspected spec Phase 7 lines 855-926: lower admitted spatial touch authority into Query graph touch vocabulary, create typed Query gap rows, do not perform Milestone 5 selection. Inspected MENTALITY.md rules 1, 3, 6, 7, 9, and 10: adversarial constraint first, mechanical enforcement, architecture tests, visible counters, authority before derivation, one canonical artifact. Inspected arch_laws.md laws 12, 24, 30, 33, 41, and 42: typed denials, rejection before construction, proof-bearing phase outputs, derived state separation, sealed proof types, identity authority preservation. Inspected perf_laws.md: descriptor lowering must preserve semantic-delta bounded work and expose cost/counter posture. Inspected composition_laws.md and domain_structure_laws.md: query lowering must be a narrow responsibility, not a phase bucket or facade implementation. Inspected _docs/more_guidelines/dx_laws.md: the caller surface must expose the authority-to-derived boundary and make invalid actions unrepresentable. Inspected WORTH Query docs AI_README.md and graph-obligation-consumer-kit.md: use Query public facade/Consumer Kit surfaces, do not invent local pseudo-Query proof. Inspected worth-query descriptor/selector APIs: facade::exports_runtime.rs exports WORTHQueryGraphTouchDescriptor, WORTHQueryGraphTouchReadVerb, WORTHQueryGraphReadTouchShape, WORTHQueryGraphTouchSelector, and WORTHQueryGraphObligationOperatingWorldDescriptor; descriptor.rs exposes read_family, read_family_shape, live_read, live_read_shape, declared_mutation_collection; touch_selector.rs exposes collection, relation_kind, aspect_path, read_verb, declared_mutation_collection matching. Inspected worth-spatial facade/query_adoption.rs and workload_vocabulary/mod.rs: current facade aggregates evidence authority and Query adoption inventory but must not implement lowering logic. Inspected spatial_touch_admission authority.rs, lookup.rs, operating_world.rs, and mod.rs: admitted authority and lookup products already carry digest, stage, support, counters, stage-index identity, and current-head operating-world posture that lowering must consume.",
+          "3. DX target. Ordinary callers should lower only from admitted spatial authority and read the derived Query products; forbidden routes fail because they lack the spatial authority type.\n\n```rust\nuse worth_query::facade::runtime::{\n    WORTHQueryGraphObligationOperatingWorldDescriptor,\n    WORTHQueryGraphTouchDescriptor,\n    WORTHQueryGraphTouchReadVerb,\n    WORTHQueryGraphTouchSelector,\n};\nuse worth_spatial::facade::workload_vocabulary::SpatialGeometryEvidenceTouchRequest;\nuse worth_spatial::facade::query_adoption::lower_spatial_touch_authority_to_query_descriptor;\n\nlet spatial_touch = SpatialGeometryEvidenceTouchRequest::from_boolean_receipt(&receipt)\n    .with_complete_ledger(workload.complete_evidence_ledger())\n    .admit()?;\nlet lookup = spatial_touch.spatial_evidence_lookup(workload.complete_evidence_ledger())?;\nlet lowered = lower_spatial_touch_authority_to_query_descriptor(&spatial_touch, &lookup)?;\n\nlet descriptor: &WORTHQueryGraphTouchDescriptor = lowered.touch_descriptor();\nlet world: &WORTHQueryGraphObligationOperatingWorldDescriptor = lowered.operating_world();\nassert_eq!(lowered.spatial_touch_digest(), spatial_touch.digest().as_str());\n\nlet selector = WORTHQueryGraphTouchSelector::collection(lowered.collection())?;\nassert!(selector.matches_descriptor(descriptor));\n\n// Forbidden: these do not type-check or must return typed denials.\n// lower_spatial_touch_authority_to_query_descriptor(&raw_workload_row, &lookup)?;\n// lower_spatial_touch_authority_to_query_descriptor(&topology_touched_basis, &lookup)?;\n// lower_spatial_touch_authority_to_query_descriptor(descriptor, &lookup)?;\n```",
+          "4. Directory skeleton. Add `crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_lowering.rs` for the derived `SpatialEvidenceQueryTouchDescriptor` product, digest, counters, and constructor from `SpatialGeometryEvidenceTouchAuthority` plus `SpatialEvidenceLookupProduct`. Add `query_lowering_denial.rs` only if denials would push the product file toward mixed responsibilities; otherwise keep a small typed denial in `query_lowering.rs`. Add `query_gap.rs` for `SpatialEvidenceQueryGapRow` with owner, cap, blocker, and removal trigger. Add responsibility-named tests under the same module: `query_descriptor_parity_tests.rs`, `query_descriptor_denial_tests.rs`, `query_selector_precision_tests.rs`, `query_gap_tests.rs`, and `query_milestone_boundary_tests.rs`. Update `spatial_touch_admission/mod.rs` and `evidence_ledger/mod.rs` only as aggregation surfaces. Update `crates/worth-spatial/src/facade/query_adoption.rs` only to re-export the ordinary public lowering function/types; do not put lowering logic in the facade. Touch worth-query files only if public exports are missing or descriptor expressiveness has a real Query-owned gap; otherwise consume existing Query facade exports.",
           "5. Implicit requirements made explicit. Authority boundary: lowering consumes `SpatialGeometryEvidenceTouchAuthority` and, where lookup identity is needed, `SpatialEvidenceLookupProduct`; raw rows, copied receipts, topology touched-basis proofs, Query descriptors, lookup keys alone, digest strings, and schema vocabulary cannot call the constructor. Denial posture: classify substitution before Query expressiveness gaps, and preserve typed denial/gap rows rather than strings. Performance locality: descriptor lowering must derive from the already admitted authority and lookup product, not scan the ledger or stage index; any counters should report descriptors emitted and gaps emitted, not broad evidence scans. Public facade behavior: expose read-only derived products and gap rows through `worth_spatial::facade::query_adoption`; do not expose constructors that can mint authority or accept lower-authority substitutes. Replay/determinism: same admitted authority across replay/public facade paths must yield identical Query descriptor digest, operating-world descriptor digest, selector rows, and gap digest ordering. Selector precision: collection, relation-kind, aspect-path, read-verb, and declared-mutation selectors must match only descriptors the spatial product declares; if spatial evidence cannot honestly express a selector through Query, emit a gap. Milestone boundary: Phase 7 may produce descriptor lowering and gap posture only; it must not register, select, execute, or close Milestone 5 obligations. Test honesty: include public-boundary or integration paths from real admitted spatial authority; helper-only descriptor construction is insufficient.",
-          "6. Phase-local implementation sequence. First hard proof: create the query lowering product with private fields and constructor reachable only from admitted spatial authority plus lookup product; derive Query descriptor with `ForgeQueryGraphTouchDescriptor::read_family_shape` for read-family spatial evidence and map `SpatialGeometryEvidenceTouchOperatingWorld::CurrentHead` to `ForgeQueryGraphObligationOperatingWorldDescriptor::any_committed_authority`. First hard break/deletion attempt: search for any Worth-local descriptor/selector helper or raw digest lowering path under `worth-spatial/src/query_adoption*`; delete or collapse it into the new product, or classify it as a typed Query gap if Query cannot express it. Then implement typed `SpatialEvidenceQueryGapRow` for unexpressed facts with owner=`WorthSpatial`, cap, blocker, and removal trigger. Then add selector precision tests that construct selectors from Query public APIs and assert exact positive/negative matches against the lowered descriptor. Then add denial tests that prove raw rows, copied receipt-shaped structs, topology touched-basis proofs, and existing Query descriptors cannot enter the lowering path; use compile-fail where possible and typed substitution denials where runtime examples are required. Then add descriptor parity tests over replay/public facade admission paths and compare spatial touch digest, lookup product digest, descriptor digest, and operating-world digest. Then add milestone-boundary tests that assert no Consumer Kit adoption proof, selected obligation set, or execution-backed proof is claimed by the Phase 7 product. Finally run `cargo check -p worth-spatial -p forge-query`, targeted worth-spatial Phase 7 tests, targeted forge-query selector tests if touched, and line-cap checks for touched Rust files.",
+          "6. Phase-local implementation sequence. First hard proof: create the query lowering product with private fields and constructor reachable only from admitted spatial authority plus lookup product; derive Query descriptor with `WORTHQueryGraphTouchDescriptor::read_family_shape` for read-family spatial evidence and map `SpatialGeometryEvidenceTouchOperatingWorld::CurrentHead` to `WORTHQueryGraphObligationOperatingWorldDescriptor::any_committed_authority`. First hard break/deletion attempt: search for any Worth-local descriptor/selector helper or raw digest lowering path under `worth-spatial/src/query_adoption*`; delete or collapse it into the new product, or classify it as a typed Query gap if Query cannot express it. Then implement typed `SpatialEvidenceQueryGapRow` for unexpressed facts with owner=`WorthSpatial`, cap, blocker, and removal trigger. Then add selector precision tests that construct selectors from Query public APIs and assert exact positive/negative matches against the lowered descriptor. Then add denial tests that prove raw rows, copied receipt-shaped structs, topology touched-basis proofs, and existing Query descriptors cannot enter the lowering path; use compile-fail where possible and typed substitution denials where runtime examples are required. Then add descriptor parity tests over replay/public facade admission paths and compare spatial touch digest, lookup product digest, descriptor digest, and operating-world digest. Then add milestone-boundary tests that assert no Consumer Kit adoption proof, selected obligation set, or execution-backed proof is claimed by the Phase 7 product. Finally run `cargo check -p worth-spatial -p worth-query`, targeted worth-spatial Phase 7 tests, targeted worth-query selector tests if touched, and line-cap checks for touched Rust files.",
           "Category mini-plan: authority/proof-bearing types and sealed constructors. Edit `spatial_touch_admission/query_lowering.rs` to introduce `SpatialEvidenceQueryTouchDescriptor`, `SpatialEvidenceQueryTouchDescriptorDigest`, and possibly `SpatialEvidenceQueryLoweringDenial` with private fields and a constructor requiring `&SpatialGeometryEvidenceTouchAuthority` and `&SpatialEvidenceLookupProduct`. Proof boundary: descriptor digest must include spatial touch digest, lookup product digest, Query descriptor digest, operating-world digest, boolean stage, evidence identity, and gap digest sequence if any. Adapter purge: do not add `from_digest`, `from_row`, `from_descriptor`, `from_topology`, or `from_receipt_fields`; if any exists, delete it or make it certification-only with compile-fail proof. Done when constructor visibility and tests make lower-authority inputs uncallable or denied.",
-          "Category mini-plan: operator/request intent lowering. Edit only the spatial touch admission child module, not boolean stage modules, to lower from admitted authority into Query read-family meaning. Use existing authority accessors and lookup product accessors to choose collection/aspect/read verbs. Proof boundary: the spatial product states which Query descriptor it can honestly produce; `declared_mutation_collection` is allowed only for real mutation semantics, not as a selector-coverage trick. Adapter purge: no Worth-local selector enum or string dialect; every selector-facing fact must be Query `ForgeQueryGraphTouchSelector` vocabulary or a typed Query gap. Done when selector precision tests prove positive and negative matches.",
-          "Category mini-plan: Query or runtime selection/admission. Consume `forge_query::facade::runtime` exports for `ForgeQueryGraphTouchDescriptor`, `ForgeQueryGraphReadTouchShape`, `ForgeQueryGraphTouchReadVerb`, `ForgeQueryGraphTouchSelector`, and `ForgeQueryGraphObligationOperatingWorldDescriptor`. Do not call Query obligation selection or Consumer Kit execution in this phase. Proof boundary: Phase 7 product can be handed to Milestone 5 later, but carries a `does_not_claim_obligation_selection_closeout` or equivalent boundary status. Adapter purge: if implement work feels like registering obligations to make a test pass, stop and record a milestone boundary gap instead. Done when milestone-boundary test proves no full obligation selection/adoption proof is produced.",
-          "Category mini-plan: validators, invariants, and denial posture. Add denial helpers near the lowering product for source substitution and Query expressiveness gaps. Denials must be typed and deterministic: raw row/copied receipt/topology/Query descriptor substitution before unsupported descriptor expressiveness. Proof boundary: rejected inputs fail before `ForgeQueryGraphTouchDescriptor` construction. Adapter purge: no string parsing of digest prefixes or type names; use existing substitution denial surfaces where possible and new typed Query-lowering denials only where the boundary is new. Done when denial tests cover all acceptance cases.",
+          "Category mini-plan: operator/request intent lowering. Edit only the spatial touch admission child module, not boolean stage modules, to lower from admitted authority into Query read-family meaning. Use existing authority accessors and lookup product accessors to choose collection/aspect/read verbs. Proof boundary: the spatial product states which Query descriptor it can honestly produce; `declared_mutation_collection` is allowed only for real mutation semantics, not as a selector-coverage trick. Adapter purge: no Worth-local selector enum or string dialect; every selector-facing fact must be Query `WORTHQueryGraphTouchSelector` vocabulary or a typed Query gap. Done when selector precision tests prove positive and negative matches.",
+          "Category mini-plan: Query or runtime selection/admission. Consume `worth_query::facade::runtime` exports for `WORTHQueryGraphTouchDescriptor`, `WORTHQueryGraphReadTouchShape`, `WORTHQueryGraphTouchReadVerb`, `WORTHQueryGraphTouchSelector`, and `WORTHQueryGraphObligationOperatingWorldDescriptor`. Do not call Query obligation selection or Consumer Kit execution in this phase. Proof boundary: Phase 7 product can be handed to Milestone 5 later, but carries a `does_not_claim_obligation_selection_closeout` or equivalent boundary status. Adapter purge: if implement work feels like registering obligations to make a test pass, stop and record a milestone boundary gap instead. Done when milestone-boundary test proves no full obligation selection/adoption proof is produced.",
+          "Category mini-plan: validators, invariants, and denial posture. Add denial helpers near the lowering product for source substitution and Query expressiveness gaps. Denials must be typed and deterministic: raw row/copied receipt/topology/Query descriptor substitution before unsupported descriptor expressiveness. Proof boundary: rejected inputs fail before `WORTHQueryGraphTouchDescriptor` construction. Adapter purge: no string parsing of digest prefixes or type names; use existing substitution denial surfaces where possible and new typed Query-lowering denials only where the boundary is new. Done when denial tests cover all acceptance cases.",
           "Category mini-plan: evidence lookup, indexing, receipts, and ledger identity. Lowering must use `SpatialEvidenceLookupProduct` as the lookup identity witness and must not accept `SpatialEvidenceLookupKey` alone. It must not call `CompleteWorkloadEvidenceLedger::stage_index()` or scan rows. Proof boundary: descriptor digest and product digest derive from admitted authority plus lookup product identity, preserving separation from admission and lookup. Adapter purge: delete/collapse any direct ledger-to-descriptor or stage-index-to-descriptor route if found. Done when parity tests run with unrelated rows present and no ledger scan counter is required by lowering.",
           "Category mini-plan: conflict, independence, cache, equivalence, and reuse. Define equivalence by spatial touch digest + lookup product digest + Query descriptor digest + operating-world digest + ordered gap digests. Do not cache descriptors by collection string or evidence identity alone. Proof boundary: replay and public facade paths produce identical descriptor identities from equivalent authority. Adapter purge: no memoization keyed by raw strings or filenames. Done when descriptor parity test compares replay/public facade outputs with unrelated evidence present.",
           "Category mini-plan: public facade, diagnostics, counters, and closeout proof. Re-export the lowering product and public lowering function from `worth_spatial::facade::query_adoption` or `workload_vocabulary` according to existing facade ownership; facade remains aggregation only. Expose read-only accessors for descriptor, operating world, digests, gaps, and counters. Proof boundary: callers can inspect status without constructors. Adapter purge: do not add a facade wrapper that accepts raw rows for convenience. Done when public facade test lowers through the ordinary facade and no facade file implements admission/lowering logic.",
           "Category mini-plan: hard deletion/collapse of replaced surfaces. Search for local query report, selector, digest, bridge, wrapper, compatibility, and adapter language under `worth-spatial/src/query_adoption*` and `spatial_touch_admission*`. The default action is delete or collapse into canonical Query descriptor lowering. Any retained row must be a typed Query gap with owner, cap, blocker, removal trigger, and test proving it cannot satisfy ordinary lowering. Done when the Query-gap test names every retained expressiveness gap and no old production path remains beside the new product.",
-          "Category mini-plan: compile-fail, hostile tests, line-cap, and composition QA. Add responsibility-named tests; avoid phase/provenance names and keep every touched Rust file under 400 lines. Prefer compile-fail for impossible calls when public APIs expose the wrong type boundary; use runtime hostile tests only for public substitution-denial functions. Run exact commands before implementation closeout: `cargo test -p worth-spatial --lib query_descriptor_parity -- --nocapture`, `cargo test -p worth-spatial --lib query_descriptor_denial -- --nocapture`, `cargo test -p worth-spatial --lib query_selector_precision -- --nocapture`, `cargo test -p worth-spatial --lib query_gap -- --nocapture`, `cargo test -p worth-spatial --lib query_milestone_boundary -- --nocapture`, `cargo check -p worth-spatial -p forge-query`, and the workspace Rust line-cap script if touched files approach the cap. Adapter purge: any test helper that constructs descriptors without admitted spatial authority must be narrow certification-only fixture code and cannot be the success proof."
+          "Category mini-plan: compile-fail, hostile tests, line-cap, and composition QA. Add responsibility-named tests; avoid phase/provenance names and keep every touched Rust file under 400 lines. Prefer compile-fail for impossible calls when public APIs expose the wrong type boundary; use runtime hostile tests only for public substitution-denial functions. Run exact commands before implementation closeout: `cargo test -p worth-spatial --lib query_descriptor_parity -- --nocapture`, `cargo test -p worth-spatial --lib query_descriptor_denial -- --nocapture`, `cargo test -p worth-spatial --lib query_selector_precision -- --nocapture`, `cargo test -p worth-spatial --lib query_gap -- --nocapture`, `cargo test -p worth-spatial --lib query_milestone_boundary -- --nocapture`, `cargo check -p worth-spatial -p worth-query`, and the workspace Rust line-cap script if touched files approach the cap. Adapter purge: any test helper that constructs descriptors without admitted spatial authority must be narrow certification-only fixture code and cannot be the success proof."
         ],
         "done": [
           "Phase 7 authority/proof-bearing lowering implemented: SpatialGeometryEvidenceTouchAuthority::query_touch_descriptor now derives a SpatialEvidenceQueryTouchDescriptor only from admitted spatial touch authority plus SpatialEvidenceLookupProduct, rejecting lookup-product digest mismatch before Query descriptor construction. Proof surface: crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_lowering.rs:54 and :198.",
-          "Query public vocabulary is used directly rather than a Worth-local selector dialect: forge-query facade exports ForgeQueryGraphReadTouchShape at crates/forge-query/src/facade/exports_runtime.rs:470, and lowering builds ForgeQueryGraphTouchDescriptor::read_family_shape with Query read verbs and Query operating-world descriptor at crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_lowering.rs:76.",
+          "Query public vocabulary is used directly rather than a Worth-local selector dialect: worth-query facade exports WORTHQueryGraphReadTouchShape at crates/worth-query/src/facade/exports_runtime.rs:470, and lowering builds WORTHQueryGraphTouchDescriptor::read_family_shape with Query read verbs and Query operating-world descriptor at crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_lowering.rs:76.",
           "Typed denial posture added for forbidden substitution surfaces: raw rows, copied receipt fields, topology touched-basis proofs, previously lowered Query descriptors, and lookup-product mismatch are represented as SpatialEvidenceQueryLoweringDenialKind variants and helper constructors in crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_lowering/denial.rs:4-100.",
           "Structured owned/capped Query gap accounting added for declared mutation collection expressiveness not present in this phase. The gap is owned by WorthSpatial with cap, blocker, removal trigger, and stable digest in crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_lowering/gap.rs:5-100.",
           "Milestone boundary and locality counters are explicit: lowering counters report one Query descriptor, one operating-world descriptor, gap count, and broad_ledger_scan_count 0 in crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_lowering/counters.rs:4-36; product explicitly returns claims_milestone_five_selection_closeout false at query_lowering.rs:154.",
           "Public facade aggregation exposes the read-only lowering product without implementing authority: crates/worth-spatial/src/facade/query_adoption.rs re-exports the canonical evidence-ledger lowering product and denial types; crates/worth-spatial/src/facade/workload_vocabulary/mod.rs and evidence_ledger/mod.rs aggregate the same canonical exports.",
-          "Composition QA repair completed during implementation: the initial 499-line lowering file was split into focused query_lowering.rs, query_lowering/counters.rs, query_lowering/denial.rs, query_lowering/gap.rs, and query_lowering/selectors.rs; all new/touched worth-spatial Phase 7 files are below 400 lines. The pre-existing over-cap Forge Query facade export file is already listed in scripts/ci/workspace_rust_line_cap_allowlist.txt:45."
+          "Composition QA repair completed during implementation: the initial 499-line lowering file was split into focused query_lowering.rs, query_lowering/counters.rs, query_lowering/denial.rs, query_lowering/gap.rs, and query_lowering/selectors.rs; all new/touched worth-spatial Phase 7 files are below 400 lines. The pre-existing over-cap WORTH Query facade export file is already listed in scripts/ci/workspace_rust_line_cap_allowlist.txt:45."
         ],
         "remaining": [
           {
@@ -3715,27 +3715,27 @@
             "id": "phase7-review-clean-2026-06-22",
             "status": "no_findings",
             "evidence": [
-              "Reviewed Phase 7 spec lines 855-925 against query_lowering.rs and its denial/gap/counter/selector children; lowering is derived from SpatialGeometryEvidenceTouchAuthority plus SpatialEvidenceLookupProduct and cannot be called with raw rows, copied receipts, topology basis proof, or a ForgeQueryGraphTouchDescriptor by signature.",
+              "Reviewed Phase 7 spec lines 855-925 against query_lowering.rs and its denial/gap/counter/selector children; lowering is derived from SpatialGeometryEvidenceTouchAuthority plus SpatialEvidenceLookupProduct and cannot be called with raw rows, copied receipts, topology basis proof, or a WORTHQueryGraphTouchDescriptor by signature.",
               "Reviewed public facade exports in facade/query_adoption.rs and facade/workload_vocabulary/mod.rs; both aggregate the canonical evidence-ledger lowering surface and do not implement admission authority.",
               "Reviewed test quality. The tests use admission_test_support to obtain admitted spatial authority, but Phase 7 starts at admitted spatial authority and tests the lowering/public facade boundary; the helper does not construct the Query lowering product or bypass the authority+lookup signature.",
-              "Reviewed line counts and structure. New Phase 7 query lowering files are split by responsibility and all touched worth-spatial code/test files are below 400 lines. The touched forge-query facade export remains over 400 but is pre-existing and allowlisted at scripts/ci/workspace_rust_line_cap_allowlist.txt:45."
+              "Reviewed line counts and structure. New Phase 7 query lowering files are split by responsibility and all touched worth-spatial code/test files are below 400 lines. The touched worth-query facade export remains over 400 but is pre-existing and allowlisted at scripts/ci/workspace_rust_line_cap_allowlist.txt:45."
             ]
           }
         ],
         "verification": [
-          "Context read before implementation: Phase 7 spec section, MENTALITY.md, arch_laws.md, composition_laws.md, domain_structure_laws.md, perf_laws.md, crates/forge-query/docs/AI_README.md, crates/forge-query/docs/authoring/graph-obligation-consumer-kit.md, _docs/more_guidelines/dx_laws.md, crates/forge-query/src/runtime/mutation/graph_composition/touch_descriptor, crates/forge-query/src/runtime/mutation/graph_composition/obligation, crates/worth-spatial/src/query_adoption.rs, crates/worth-spatial/src/facade/query_adoption.rs, crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission. Adversarial constraint from MENTALITY.md satisfied: authority is proven before derivation and every substitute surface is denied by type. Arch law proof-boundary satisfied: law 24 rejection structurally precedes construction, law 30 phase transition produces a proof-bearing artifact, and laws 41/42 keep spatial authority identity sealed rather than reconstructed from descriptor strings.",
-          "cargo fmt exited 1 when run workspace-wide before the focused format because rustfmt hit Windows path-length error 206. Targeted command `cargo fmt -p worth-spatial -p forge-query` exited 0 after the split and is the formatting evidence for touched crates.",
-          "Command `cargo check -p worth-spatial -p forge-query; cargo test -p worth-spatial --lib query_descriptor_parity -- --nocapture; cargo test -p worth-spatial --lib query_descriptor_denial -- --nocapture; cargo test -p worth-spatial --lib query_selector_precision -- --nocapture; cargo test -p worth-spatial --lib query_gap -- --nocapture; cargo test -p worth-spatial --lib query_milestone_boundary -- --nocapture` exited 0. Tail: query_descriptor_parity 1 passed; query_descriptor_denial 1 passed; query_selector_precision 1 passed; query_gap 2 passed including existing query-gap-precedence filter; query_milestone_boundary 1 passed. cargo check finished dev/test targets with existing warning noise only.",
+          "Context read before implementation: Phase 7 spec section, MENTALITY.md, arch_laws.md, composition_laws.md, domain_structure_laws.md, perf_laws.md, crates/worth-query/docs/AI_README.md, crates/worth-query/docs/authoring/graph-obligation-consumer-kit.md, _docs/more_guidelines/dx_laws.md, crates/worth-query/src/runtime/mutation/graph_composition/touch_descriptor, crates/worth-query/src/runtime/mutation/graph_composition/obligation, crates/worth-spatial/src/query_adoption.rs, crates/worth-spatial/src/facade/query_adoption.rs, crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission. Adversarial constraint from MENTALITY.md satisfied: authority is proven before derivation and every substitute surface is denied by type. Arch law proof-boundary satisfied: law 24 rejection structurally precedes construction, law 30 phase transition produces a proof-bearing artifact, and laws 41/42 keep spatial authority identity sealed rather than reconstructed from descriptor strings.",
+          "cargo fmt exited 1 when run workspace-wide before the focused format because rustfmt hit Windows path-length error 206. Targeted command `cargo fmt -p worth-spatial -p worth-query` exited 0 after the split and is the formatting evidence for touched crates.",
+          "Command `cargo check -p worth-spatial -p worth-query; cargo test -p worth-spatial --lib query_descriptor_parity -- --nocapture; cargo test -p worth-spatial --lib query_descriptor_denial -- --nocapture; cargo test -p worth-spatial --lib query_selector_precision -- --nocapture; cargo test -p worth-spatial --lib query_gap -- --nocapture; cargo test -p worth-spatial --lib query_milestone_boundary -- --nocapture` exited 0. Tail: query_descriptor_parity 1 passed; query_descriptor_denial 1 passed; query_selector_precision 1 passed; query_gap 2 passed including existing query-gap-precedence filter; query_milestone_boundary 1 passed. cargo check finished dev/test targets with existing warning noise only.",
           "Descriptor parity acceptance proof: crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_descriptor_parity_tests.rs:13 admits canonical and replay split subjects with unrelated evidence, derives lookup products, lowers one through the product and one through public facade aggregation, and compares Query descriptor digest, operating-world digest, product digest, counters, gaps, spatial touch digest, and lookup digest.",
           "Denial acceptance proof: crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_descriptor_denial_tests.rs:12 asserts typed denials for raw rows, copied receipts, topology touched-basis proof, and previously lowered Query descriptors before lowering can construct a product.",
           "Selector precision acceptance proof: crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_selector_precision_tests.rs:10 proves collection, relation kind, aspect path, and read-verb selectors match the lowered Query descriptor while unrelated selectors and declared mutation collection selection do not.",
           "Query-gap acceptance proof: crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_gap_tests.rs:7 verifies the owned/capped Query gap row with blocker, removal trigger, owner WorthSpatial, and stable digest. Milestone-boundary proof: query_milestone_boundary_tests.rs:6 verifies lowering does not claim Milestone 5 obligation selection closeout and reports broad_ledger_scan_count 0.",
-          "Line-count audit after decomposition: crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_lowering.rs 216; query_lowering/counters.rs 36; query_lowering/denial.rs 100; query_lowering/gap.rs 100; query_lowering/selectors.rs 84; query_descriptor_parity_tests.rs 73; query_descriptor_denial_tests.rs 48; query_selector_precision_tests.rs 69; query_gap_tests.rs 32; query_milestone_boundary_tests.rs 26. crates/forge-query/src/facade/exports_runtime.rs remains 869 lines and is explicitly allowlisted at scripts/ci/workspace_rust_line_cap_allowlist.txt:45.",
+          "Line-count audit after decomposition: crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/query_lowering.rs 216; query_lowering/counters.rs 36; query_lowering/denial.rs 100; query_lowering/gap.rs 100; query_lowering/selectors.rs 84; query_descriptor_parity_tests.rs 73; query_descriptor_denial_tests.rs 48; query_selector_precision_tests.rs 69; query_gap_tests.rs 32; query_milestone_boundary_tests.rs 26. crates/worth-query/src/facade/exports_runtime.rs remains 869 lines and is explicitly allowlisted at scripts/ci/workspace_rust_line_cap_allowlist.txt:45.",
           "Runner validation command `python automation\\phase_runner\\runner.py automation\\phase_runner\\worth-touched-graph-milestone-4-spatial-evidence-authority.json --validate` exited 0 with output: state file is valid.",
-          "Review context read: Phase 7 spec section 855-925; MENTALITY.md adversarial constraint, mechanical enforcement, authority-first, and canonical artifact rules; arch_laws.md laws 12, 24, 30, 33, 41, and 42; composition_laws.md and domain_structure_laws.md for file/facade structure; perf_laws.md for bounded derived work and counters; Forge Query AI_README and graph-obligation-consumer-kit for Query-owned vocabulary and no local pseudo-Query proof; roadmap and milestone-7.4 context; phase scope files and public facades.",
-          "Acceptance command re-run in review: `cargo check -p worth-spatial -p forge-query; cargo test -p worth-spatial --lib query_descriptor_parity -- --nocapture; cargo test -p worth-spatial --lib query_descriptor_denial -- --nocapture; cargo test -p worth-spatial --lib query_selector_precision -- --nocapture; cargo test -p worth-spatial --lib query_gap -- --nocapture; cargo test -p worth-spatial --lib query_milestone_boundary -- --nocapture` exited 0. Output tail: query_descriptor_parity 1 passed; query_descriptor_denial 1 passed; query_selector_precision 1 passed; query_gap 2 passed including existing query-gap-precedence filter; query_milestone_boundary 1 passed; cargo check/test builds completed with existing warning noise only.",
+          "Review context read: Phase 7 spec section 855-925; MENTALITY.md adversarial constraint, mechanical enforcement, authority-first, and canonical artifact rules; arch_laws.md laws 12, 24, 30, 33, 41, and 42; composition_laws.md and domain_structure_laws.md for file/facade structure; perf_laws.md for bounded derived work and counters; WORTH Query AI_README and graph-obligation-consumer-kit for Query-owned vocabulary and no local pseudo-Query proof; roadmap and milestone-7.4 context; phase scope files and public facades.",
+          "Acceptance command re-run in review: `cargo check -p worth-spatial -p worth-query; cargo test -p worth-spatial --lib query_descriptor_parity -- --nocapture; cargo test -p worth-spatial --lib query_descriptor_denial -- --nocapture; cargo test -p worth-spatial --lib query_selector_precision -- --nocapture; cargo test -p worth-spatial --lib query_gap -- --nocapture; cargo test -p worth-spatial --lib query_milestone_boundary -- --nocapture` exited 0. Output tail: query_descriptor_parity 1 passed; query_descriptor_denial 1 passed; query_selector_precision 1 passed; query_gap 2 passed including existing query-gap-precedence filter; query_milestone_boundary 1 passed; cargo check/test builds completed with existing warning noise only.",
           "Structural acceptance proof: query_lowering.rs:54 exposes lowering only as SpatialGeometryEvidenceTouchAuthority::query_touch_descriptor(&SpatialEvidenceLookupProduct), query_lowering.rs:198 exposes the facade function with the same authority+lookup inputs, lookup.rs keeps SpatialEvidenceLookupProduct construction private, and query_lowering/denial.rs:4-100 preserves typed denial classes for documented forbidden substitutes.",
-          "Selector and Query-gap structural proof: query_lowering/selectors.rs maps spatial authority facts into Query read-family collection/aspect/read-verb inputs; Forge Query descriptor/selector APIs are consumed through forge_query::facade::runtime exports; query_lowering/gap.rs:5-100 records the owned/capped Milestone 5 declared-mutation expressiveness gap instead of adding a Worth-local selector dialect; query_lowering/counters.rs:4-36 reports broad_ledger_scan_count 0.",
+          "Selector and Query-gap structural proof: query_lowering/selectors.rs maps spatial authority facts into Query read-family collection/aspect/read-verb inputs; WORTH Query descriptor/selector APIs are consumed through worth_query::facade::runtime exports; query_lowering/gap.rs:5-100 records the owned/capped Milestone 5 declared-mutation expressiveness gap instead of adding a Worth-local selector dialect; query_lowering/counters.rs:4-36 reports broad_ledger_scan_count 0.",
           "Line-count review: query_lowering.rs 216; query_lowering/counters.rs 36; query_lowering/denial.rs 100; query_lowering/gap.rs 100; query_lowering/selectors.rs 84; query_descriptor_parity_tests.rs 73; query_descriptor_denial_tests.rs 48; query_selector_precision_tests.rs 69; query_gap_tests.rs 32; query_milestone_boundary_tests.rs 26. exports_runtime.rs is 869 and pre-existing allowlisted.",
           {
             "turn": "close",
@@ -3748,8 +3748,8 @@
               "_docs/coding_guidelines/composition_laws.md facade aggregation and file responsibility constraints",
               "_docs/coding_guidelines/domain_structure_laws.md visible authority boundaries and import-surface constraints",
               "_docs/coding_guidelines/perf_laws.md lowering-before-hot-path and visible counter constraints",
-              "crates/forge-query/docs/AI_README.md canonical Query runtime vocabulary rule",
-              "crates/forge-query/docs/authoring/graph-obligation-consumer-kit.md downstream Query proof authority boundary",
+              "crates/worth-query/docs/AI_README.md canonical Query runtime vocabulary rule",
+              "crates/worth-query/docs/authoring/graph-obligation-consumer-kit.md downstream Query proof authority boundary",
               "_docs/worth/touched-graph-roadmap.md spatial evidence branch and Query descriptor ownership",
               "_docs/worth/milestone-7.4.md workload and Query authority context",
               "crates/worth-spatial/src/facade/workload_vocabulary/mod.rs",
@@ -3763,14 +3763,14 @@
             "architecture_law_satisfied": "arch_laws.md law 42: identity authority is preserved instead of reconstructed from representation; law 41: proof-carrying values expose read-only accessors and sealed/private construction where the proof is established; law 24: lower-authority substitutes are rejected before descriptor construction.",
             "commands": [
               {
-                "command": "cargo check -p worth-spatial -p forge-query; cargo test -p worth-spatial --lib query_descriptor_parity -- --nocapture; cargo test -p worth-spatial --lib query_descriptor_denial -- --nocapture; cargo test -p worth-spatial --lib query_selector_precision -- --nocapture; cargo test -p worth-spatial --lib query_gap -- --nocapture; cargo test -p worth-spatial --lib query_milestone_boundary -- --nocapture",
+                "command": "cargo check -p worth-spatial -p worth-query; cargo test -p worth-spatial --lib query_descriptor_parity -- --nocapture; cargo test -p worth-spatial --lib query_descriptor_denial -- --nocapture; cargo test -p worth-spatial --lib query_selector_precision -- --nocapture; cargo test -p worth-spatial --lib query_gap -- --nocapture; cargo test -p worth-spatial --lib query_milestone_boundary -- --nocapture",
                 "exit_code": 0,
                 "output_tail": "query_descriptor_parity_preserves_digest_across_replay_and_public_facade_paths ... ok; query_descriptor_denial_rejects_lower_authority_substitutions_before_lowering ... ok; query_selector_precision_matches_only_spatial_product_declared_descriptor_surface ... ok; denial_precedence_prefers_source_then_support_then_counter_before_query_gap ... ok; query_gap_records_owned_capped_gap_when_query_lacks_declared_mutation_expressiveness ... ok; query_milestone_boundary_does_not_claim_full_obligation_selection_closeout ... ok; test result: ok for all Phase 7 filtered tests. Existing workspace warning noise was present; command exited 0."
               },
               {
-                "command": "rg -n \"pub fn query_touch_descriptor|pub fn lower_spatial_touch_authority_to_query_descriptor|pub struct SpatialEvidenceQueryTouchDescriptor|claims_milestone_five_selection_closeout|broad_ledger_scan_count|DeclaredMutationCollectionNotExpressed|ForgeQueryGraphReadTouchShape\" crates\\worth-spatial\\src\\workload_platform\\evidence_ledger crates\\worth-spatial\\src\\facade crates\\forge-query\\src\\facade\\exports_runtime.rs",
+                "command": "rg -n \"pub fn query_touch_descriptor|pub fn lower_spatial_touch_authority_to_query_descriptor|pub struct SpatialEvidenceQueryTouchDescriptor|claims_milestone_five_selection_closeout|broad_ledger_scan_count|DeclaredMutationCollectionNotExpressed|WORTHQueryGraphReadTouchShape\" crates\\worth-spatial\\src\\workload_platform\\evidence_ledger crates\\worth-spatial\\src\\facade crates\\worth-query\\src\\facade\\exports_runtime.rs",
                 "exit_code": 0,
-                "output_tail": "query_lowering.rs defines SpatialEvidenceQueryTouchDescriptor and query_touch_descriptor; lower_spatial_touch_authority_to_query_descriptor is exported from the canonical evidence ledger; counters.rs keeps broad_ledger_scan_count at 0; gap.rs declares DeclaredMutationCollectionNotExpressed; forge-query facade exports ForgeQueryGraphReadTouchShape."
+                "output_tail": "query_lowering.rs defines SpatialEvidenceQueryTouchDescriptor and query_touch_descriptor; lower_spatial_touch_authority_to_query_descriptor is exported from the canonical evidence ledger; counters.rs keeps broad_ledger_scan_count at 0; gap.rs declares DeclaredMutationCollectionNotExpressed; worth-query facade exports WORTHQueryGraphReadTouchShape."
               },
               {
                 "command": "line-count audit for Phase 7 touched files",
@@ -3787,7 +3787,7 @@
             ],
             "structural_closeout": [
               "Directory skeleton matches the plan: Query lowering orchestration lives in query_lowering.rs; counters, denial, gap, and selectors are child responsibilities; facade files only re-export canonical evidence-ledger surfaces.",
-              "No touched Phase 7 Rust file exceeds 400 lines except crates/forge-query/src/facade/exports_runtime.rs, a pre-existing public aggregation facade explicitly allowlisted in scripts/ci/workspace_rust_line_cap_allowlist.txt:45.",
+              "No touched Phase 7 Rust file exceeds 400 lines except crates/worth-query/src/facade/exports_runtime.rs, a pre-existing public aggregation facade explicitly allowlisted in scripts/ci/workspace_rust_line_cap_allowlist.txt:45.",
               "Public facades aggregate read-only proof/status surfaces and do not implement admission authority: crates/worth-spatial/src/facade/query_adoption.rs and facade/workload_vocabulary/mod.rs only pub use canonical evidence-ledger exports.",
               "No adapter, shim, bridge, local selector dialect, raw row, copied field set, broad scan, topology proof, or Query descriptor substitution path can satisfy the lowering contract because the callable lowering path requires SpatialGeometryEvidenceTouchAuthority and SpatialEvidenceLookupProduct.",
               "Tests are public-boundary/integration-style for this phase: parity uses the public facade lowering route, denial exercises forbidden substitute APIs, selector precision uses Query selector matching, and milestone-boundary/gap tests assert the typed product surface."
@@ -3809,10 +3809,10 @@
     {
       "id": 8,
       "title": "Consumer Kit Adoption And Residue Proof",
-      "owner": "forge-query, worth-spatial",
+      "owner": "worth-query, worth-spatial",
       "scope": [
-        "crates/forge-query/src/consumer_kit/graph_obligation_adoption",
-        "crates/forge-query/docs/authoring/graph-obligation-consumer-kit.md",
+        "crates/worth-query/src/consumer_kit/graph_obligation_adoption",
+        "crates/worth-query/docs/authoring/graph-obligation-consumer-kit.md",
         "crates/worth-spatial/src/query_adoption.rs",
         "crates/worth-spatial/src/facade/query_adoption.rs"
       ],
@@ -3841,40 +3841,40 @@
                 "constraint": "Consumer Kit adoption is mandatory, in-memory selection proof is not execution proof, and residue rows must decrease or stay capped."
               },
               {
-                "file": "crates/forge-query/docs/authoring/graph-obligation-consumer-kit.md",
+                "file": "crates/worth-query/docs/authoring/graph-obligation-consumer-kit.md",
                 "apis": "graph_obligation_consumer_kit, register_obligations, declare_selector_coverage, pin_support, audit_local_ceremony, account_for_residue, prove_execution_with, prove_adoption_with_execution",
                 "constraint": "Query owns graph obligation consumption proof; downstream crates must not invent local reports, greps, fake receipts, or selection-only closeout."
               },
               {
-                "file": "crates/forge-query/src/consumer_kit/graph_obligation_adoption/mod.rs",
+                "file": "crates/worth-query/src/consumer_kit/graph_obligation_adoption/mod.rs",
                 "constraint": "Public kit exports the exact proof-bearing types Phase 8 must use."
               },
               {
-                "file": "crates/forge-query/src/consumer_kit/graph_obligation_adoption/kit.rs",
+                "file": "crates/worth-query/src/consumer_kit/graph_obligation_adoption/kit.rs",
                 "constraint": "Builder progression currently allows prove_adoption but execution-backed closeout must call prove_execution_with then prove_adoption_with_execution; rejection kinds are already present for missing components and unevaluated audit."
               },
               {
-                "file": "crates/forge-query/src/consumer_kit/graph_obligation_adoption/adoption_manifest.rs",
+                "file": "crates/worth-query/src/consumer_kit/graph_obligation_adoption/adoption_manifest.rs",
                 "constraint": "Execution-backed proof carries manifest plus execution_proof with read-only accessors and execution proof digest participation."
               },
               {
-                "file": "crates/forge-query/src/consumer_kit/graph_obligation_adoption/in_memory_proof/execution.rs",
+                "file": "crates/worth-query/src/consumer_kit/graph_obligation_adoption/in_memory_proof/execution.rs",
                 "constraint": "Execution proof requires materialized dispatch rows and has_real_executor_rows, so it is the authority boundary for execution-backed claims."
               },
               {
-                "file": "crates/forge-query/src/consumer_kit/graph_obligation_adoption/selector_coverage.rs",
+                "file": "crates/worth-query/src/consumer_kit/graph_obligation_adoption/selector_coverage.rs",
                 "constraint": "Selector coverage must cover every registration selector by Query selector digest, not local labels."
               },
               {
-                "file": "crates/forge-query/src/consumer_kit/graph_obligation_adoption/support_pin.rs",
+                "file": "crates/worth-query/src/consumer_kit/graph_obligation_adoption/support_pin.rs",
                 "constraint": "Support pin evaluation must compare expected Query obligation kind/lane/status/budget against Query support matrix and registrations."
               },
               {
-                "file": "crates/forge-query/src/consumer_kit/graph_obligation_adoption/residue_manifest.rs",
+                "file": "crates/worth-query/src/consumer_kit/graph_obligation_adoption/residue_manifest.rs",
                 "constraint": "Residue must be explicit, owned, capped, non-growing, and contract-stable."
               },
               {
-                "file": "crates/forge-query/src/consumer_kit/graph_obligation_adoption/local_ceremony_audit/mod.rs",
+                "file": "crates/worth-query/src/consumer_kit/graph_obligation_adoption/local_ceremony_audit/mod.rs",
                 "constraint": "Audit must evaluate real source text; clean synthetic audit is not evaluated and must not satisfy adoption."
               },
               {
@@ -3942,22 +3942,22 @@
                 "constraint": "The ordinary caller path should show proof progression explicitly; low-level or weakened routes must be visibly lower-authority."
               },
               {
-                "file": "crates/forge-query/docs/AI_README.md, _docs/worth/touched-graph-roadmap.md, _docs/worth/milestone-7.4.md",
+                "file": "crates/worth-query/docs/AI_README.md, _docs/worth/touched-graph-roadmap.md, _docs/worth/milestone-7.4.md",
                 "constraint": "Query owns runtime proof; worth-spatial owns spatial evidence facts; this phase must not invent pseudo-Query lanes or reopen loop/evidence authority."
               }
             ],
-            "dx_target": "```rust\nuse forge_query::facade::consumer_kit::{\n    graph_obligation_consumer_kit,\n    ForgeQueryGraphObligationConsumerRegistrationDeclaration,\n    ForgeQueryGraphObligationSelectorCoverageDeclaration,\n    ForgeQueryGraphObligationSupportPin,\n    ForgeQueryGraphObligationResidueManifest,\n    ForgeQueryGraphObligationLocalCeremonyAudit,\n};\nuse worth_spatial::facade::query_adoption::{\n    spatial_query_graph_obligation_adoption_proof,\n    current_spatial_query_consumer_kit_adoption_status,\n};\n\n// Ordinary route after Phase 8: worth-spatial exposes a read-only projection of\n// Query's execution-backed Consumer Kit product.\nlet proof = spatial_query_graph_obligation_adoption_proof()?;\nassert!(proof.execution_proof().has_real_executor_rows());\nassert!(proof.manifest().execution_proof_digest().is_some());\nassert_eq!(proof.in_memory_proof().selection_counters().full_scan_count(), 0);\n\nlet status = current_spatial_query_consumer_kit_adoption_status()?;\nassert_eq!(status.uncapped_residue_count(), 0);\nassert_eq!(status.full_scan_count(), 0);\n\n// Forbidden route: selection-only or local report products must not close adoption.\nlet selection_only = graph_obligation_consumer_kit(\"worth-spatial\")\n    .register_obligations(registration)\n    .declare_selector_coverage(selector_coverage)\n    .pin_support(support_pin)\n    .audit_local_ceremony(audit)\n    .account_for_residue(residue)\n    .prove_in_memory_selection(&touch_descriptor, &operating_world)?;\nassert!(selection_only.prove_adoption_with_execution().is_err());\n```",
+            "dx_target": "```rust\nuse worth_query::facade::consumer_kit::{\n    graph_obligation_consumer_kit,\n    WORTHQueryGraphObligationConsumerRegistrationDeclaration,\n    WORTHQueryGraphObligationSelectorCoverageDeclaration,\n    WORTHQueryGraphObligationSupportPin,\n    WORTHQueryGraphObligationResidueManifest,\n    WORTHQueryGraphObligationLocalCeremonyAudit,\n};\nuse worth_spatial::facade::query_adoption::{\n    spatial_query_graph_obligation_adoption_proof,\n    current_spatial_query_consumer_kit_adoption_status,\n};\n\n// Ordinary route after Phase 8: worth-spatial exposes a read-only projection of\n// Query's execution-backed Consumer Kit product.\nlet proof = spatial_query_graph_obligation_adoption_proof()?;\nassert!(proof.execution_proof().has_real_executor_rows());\nassert!(proof.manifest().execution_proof_digest().is_some());\nassert_eq!(proof.in_memory_proof().selection_counters().full_scan_count(), 0);\n\nlet status = current_spatial_query_consumer_kit_adoption_status()?;\nassert_eq!(status.uncapped_residue_count(), 0);\nassert_eq!(status.full_scan_count(), 0);\n\n// Forbidden route: selection-only or local report products must not close adoption.\nlet selection_only = graph_obligation_consumer_kit(\"worth-spatial\")\n    .register_obligations(registration)\n    .declare_selector_coverage(selector_coverage)\n    .pin_support(support_pin)\n    .audit_local_ceremony(audit)\n    .account_for_residue(residue)\n    .prove_in_memory_selection(&touch_descriptor, &operating_world)?;\nassert!(selection_only.prove_adoption_with_execution().is_err());\n```",
             "directory_skeleton": [
               {
-                "path": "crates/forge-query/src/consumer_kit/graph_obligation_adoption",
+                "path": "crates/worth-query/src/consumer_kit/graph_obligation_adoption",
                 "responsibility": "Canonical Query Consumer Kit proof pipeline. Keep or extend narrowly only if worth-spatial exposes a missing required counter or rejection reason through Query-owned proof types."
               },
               {
-                "path": "crates/forge-query/src/consumer_kit/graph_obligation_adoption/kit.rs",
+                "path": "crates/worth-query/src/consumer_kit/graph_obligation_adoption/kit.rs",
                 "responsibility": "Builder progression from registration/coverage/support/audit/residue to execution-backed adoption. Any new rejection for in-memory substitution belongs here, not in worth-spatial."
               },
               {
-                "path": "crates/forge-query/src/consumer_kit/graph_obligation_adoption/in_memory_proof",
+                "path": "crates/worth-query/src/consumer_kit/graph_obligation_adoption/in_memory_proof",
                 "responsibility": "Selection and execution proof rows/counters. Add read-only counter accessors here if Phase 8 precision evidence needs them."
               },
               {
@@ -3978,7 +3978,7 @@
               },
               {
                 "path": "crates/worth-spatial/src/query_adoption/residue_manifest.rs",
-                "responsibility": "New narrow module replacing residue.rs constant with Query ForgeQueryGraphObligationResidueManifest rows and certification."
+                "responsibility": "New narrow module replacing residue.rs constant with Query WORTHQueryGraphObligationResidueManifest rows and certification."
               },
               {
                 "path": "crates/worth-spatial/src/query_adoption/local_ceremony_audit.rs",
@@ -4000,7 +4000,7 @@
             "implicit_requirements": [
               "Authority boundary: Query owns graph obligation registration, selector coverage, support matrix/pins, selection, materialized dispatch, execution proof, adoption manifest, local ceremony audit, and residue manifest. worth-spatial may provide spatial facts/descriptors and expose read-only projections, but it must not reconstruct authority from local strings, report identities, source greps, or evidence rows.",
               "Denial cases: missing registration, uncovered selector, unsupported support pin, unevaluated local ceremony audit, non-empty uncapped/over-cap residue, empty selection, registration mismatch, and prove_adoption_with_execution without execution_proof must fail before any public adoption status claims success.",
-              "Deletion/collapse: first try deleting evidence_reports.rs local EvidenceReport, support row list authority, boundary_audit.rs hard-prohibition-only source grep, residue.rs path constant, and phase-six local naming. If a surface remains, it must be represented as a ForgeQueryGraphObligationResidueRow with owner, cap, blocker, removal trigger, and a test proving it cannot satisfy ordinary adoption proof.",
+              "Deletion/collapse: first try deleting evidence_reports.rs local EvidenceReport, support row list authority, boundary_audit.rs hard-prohibition-only source grep, residue.rs path constant, and phase-six local naming. If a surface remains, it must be represented as a WORTHQueryGraphObligationResidueRow with owner, cap, blocker, removal trigger, and a test proving it cannot satisfy ordinary adoption proof.",
               "Performance locality: adoption status must expose selected obligation count, attempted bucket lookup count, candidate registration count, denied row count, residue row/count, and full scan count from Query selection/execution proof. Precision tests must assert exact values for spatial descriptors and require full_scan_count == 0.",
               "Public facade: facade/query_adoption.rs must remain only pub use/read-only proof aggregation. No facade function may build local support reports, scan source text, fabricate receipts, or convert strings into authority.",
               "Replay/determinism: registration declaration digest, selector coverage digest, support pin digest, residue manifest digest, local ceremony audit digest, execution proof digest, and adoption manifest digest must remain stable for the same spatial descriptor and operating world.",
@@ -4009,24 +4009,24 @@
             ],
             "phase_local_sequence": [
               "1. Build the hard proof first in worth-spatial: create a function such as spatial_query_graph_obligation_adoption_proof that obtains a Phase 7 spatial Query descriptor, declares Query registrations, selector coverage, support pins, support matrix, evaluated local ceremony audit, and residue manifest, then calls prove_execution_with and prove_adoption_with_execution. Proof: adoption proof test asserts manifest.execution_proof_digest is Some and execution_proof.has_real_executor_rows.",
-              "2. Add or expose any missing Query-owned counters on ForgeQueryGraphObligationInMemoryProof or execution proof rather than recomputing them in worth-spatial. Proof: precision test asserts selected obligation count, attempted bucket lookup count, candidate registration count, denied row count, residue count, and full scan count from Query proof/status objects.",
+              "2. Add or expose any missing Query-owned counters on WORTHQueryGraphObligationInMemoryProof or execution proof rather than recomputing them in worth-spatial. Proof: precision test asserts selected obligation count, attempted bucket lookup count, candidate registration count, denied row count, residue count, and full scan count from Query proof/status objects.",
               "3. Replace current_spatial_query_consumer_kit_adoption_status internals so status derives from the execution-backed Consumer Kit proof. Remove local EvidenceReport digest fields if they duplicate manifest digest. Proof: status test compares status fields to proof.manifest and proof.execution_proof, not support_projection/evidence_reports outputs.",
-              "4. Hard-break old local report paths: attempt to delete evidence_reports.rs, boundary_audit.rs, residue.rs path constant, and local support row list surfaces. Clean up callers. If deletion is blocked, add explicit ForgeQueryGraphObligationResidueRow entries with owner WorthSpatial, cap, blocker, and removal trigger. Proof: hard-break test enumerates deleted files/symbols or residue manifest rows and fails on uncapped residue.",
-              "5. Implement rejection tests through Query Consumer Kit public API: missing registration, selector mismatch, unsupported pin via support matrix drift, unevaluated audit via ForgeQueryGraphObligationLocalCeremonyAudit::clean, over-cap residue via ForgeQueryGraphObligationResidueManifest::capped, and in-memory-only proof via prove_in_memory_selection then prove_adoption_with_execution. Proof: each expected ForgeQueryGraphObligationConsumerKitErrorKind is asserted.",
+              "4. Hard-break old local report paths: attempt to delete evidence_reports.rs, boundary_audit.rs, residue.rs path constant, and local support row list surfaces. Clean up callers. If deletion is blocked, add explicit WORTHQueryGraphObligationResidueRow entries with owner WorthSpatial, cap, blocker, and removal trigger. Proof: hard-break test enumerates deleted files/symbols or residue manifest rows and fails on uncapped residue.",
+              "5. Implement rejection tests through Query Consumer Kit public API: missing registration, selector mismatch, unsupported pin via support matrix drift, unevaluated audit via WORTHQueryGraphObligationLocalCeremonyAudit::clean, over-cap residue via WORTHQueryGraphObligationResidueManifest::capped, and in-memory-only proof via prove_in_memory_selection then prove_adoption_with_execution. Proof: each expected WORTHQueryGraphObligationConsumerKitErrorKind is asserted.",
               "6. Run composition QA before review: line-count every touched Rust file, split anything over 400 unless already allowlisted, keep facade aggregation-only, and ensure no broad bucket module appears. Proof: notes.verification records line counts and exact cargo commands."
             ],
             "category_plans": [
               {
                 "category": "authority/proof-bearing types and sealed constructors",
-                "plan": "Use ForgeQueryGraphObligationExecutionBackedAdoptionProof as the only success product for spatial Query adoption. If worth-spatial needs a status wrapper, make it read-only and derived from the Query proof. Adapter purge: delete local EvidenceReport-derived authority; keep only capped residue if the public status needs transitional display fields."
+                "plan": "Use WORTHQueryGraphObligationExecutionBackedAdoptionProof as the only success product for spatial Query adoption. If worth-spatial needs a status wrapper, make it read-only and derived from the Query proof. Adapter purge: delete local EvidenceReport-derived authority; keep only capped residue if the public status needs transitional display fields."
               },
               {
                 "category": "Query or runtime selection/admission",
-                "plan": "Register spatial descriptor obligations through ForgeQueryGraphObligationConsumerRegistrationDeclaration::for_runtime_family and select/execute through prove_execution_with. Do not use ForgeQueryGraphObligationInMemoryTestWorkspace directly in worth-spatial except through Consumer Kit builder. Adapter purge: no local selector matching or support matrix mirrors outside Query types."
+                "plan": "Register spatial descriptor obligations through WORTHQueryGraphObligationConsumerRegistrationDeclaration::for_runtime_family and select/execute through prove_execution_with. Do not use WORTHQueryGraphObligationInMemoryTestWorkspace directly in worth-spatial except through Consumer Kit builder. Adapter purge: no local selector matching or support matrix mirrors outside Query types."
               },
               {
                 "category": "validators, invariants, and denial posture",
-                "plan": "Drive denials from ForgeQueryGraphObligationConsumerKitErrorKind. Add missing Query-side error kinds only if the public kit cannot distinguish in-memory substitution or uncapped residue. Adapter purge: no worth-spatial-specific denial enum that shadows Query kit errors unless it wraps them transparently for facade ergonomics."
+                "plan": "Drive denials from WORTHQueryGraphObligationConsumerKitErrorKind. Add missing Query-side error kinds only if the public kit cannot distinguish in-memory substitution or uncapped residue. Adapter purge: no worth-spatial-specific denial enum that shadows Query kit errors unless it wraps them transparently for facade ergonomics."
               },
               {
                 "category": "evidence lookup, indexing, receipts, and ledger identity",
@@ -4042,19 +4042,19 @@
               },
               {
                 "category": "hard deletion/collapse of replaced surfaces",
-                "plan": "First attempt deletion of evidence_reports.rs, support_projection local support row lists, boundary_audit hard-prohibition-only scanner, residue path constant, and phase-six names. If a surface remains because other phases still consume it, classify it with ForgeQueryGraphObligationResidueRow including owner, cap, blocker, removal trigger, and a hard-break test. Adapter purge: any retained local report must be mechanically unable to produce ForgeQueryGraphObligationExecutionBackedAdoptionProof."
+                "plan": "First attempt deletion of evidence_reports.rs, support_projection local support row lists, boundary_audit hard-prohibition-only scanner, residue path constant, and phase-six names. If a surface remains because other phases still consume it, classify it with WORTHQueryGraphObligationResidueRow including owner, cap, blocker, removal trigger, and a hard-break test. Adapter purge: any retained local report must be mechanically unable to produce WORTHQueryGraphObligationExecutionBackedAdoptionProof."
               },
               {
                 "category": "compile-fail, hostile tests, line-cap, and composition QA",
-                "plan": "Add focused tests: adoption proof, rejection matrix, precision counters, hard-break residue accounting. Run cargo fmt, cargo check -p worth-spatial -p forge-query, and filtered tests. Line-count all touched Rust files and split over-cap files. Adapter purge: tests must fail if in-memory proof or local report substitutes for execution-backed proof."
+                "plan": "Add focused tests: adoption proof, rejection matrix, precision counters, hard-break residue accounting. Run cargo fmt, cargo check -p worth-spatial -p worth-query, and filtered tests. Line-count all touched Rust files and split over-cap files. Adapter purge: tests must fail if in-memory proof or local report substitutes for execution-backed proof."
               }
             ],
             "blockers": [
-              "If ForgeQueryGraphObligationSelectionCounters lacks attempted bucket lookup, candidate registration, denied row, or full scan accessors, implement the missing Query-owned read-only accessors in forge-query rather than reconstructing counters in worth-spatial.",
+              "If WORTHQueryGraphObligationSelectionCounters lacks attempted bucket lookup, candidate registration, denied row, or full scan accessors, implement the missing Query-owned read-only accessors in worth-query rather than reconstructing counters in worth-spatial.",
               "If spatial descriptors cannot yet map to a supported Query obligation lane honestly, record a Query-owned capped residue/gap row with owner, cap, blocker, removal trigger, and a rejection test. Do not invent a spatial-only support lane."
             ],
             "line_count_snapshot": [
-              "forge-query graph_obligation_adoption/mod.rs 55; kit.rs 261; adoption_manifest.rs 183; execution.rs 96; residue_manifest.rs 242; local_ceremony_audit/mod.rs 127.",
+              "worth-query graph_obligation_adoption/mod.rs 55; kit.rs 261; adoption_manifest.rs 183; execution.rs 96; residue_manifest.rs 242; local_ceremony_audit/mod.rs 127.",
               "worth-spatial query_adoption.rs 243; consumer_kit.rs 137; performance_counters.rs 128; support_projection.rs 223; boundary_audit.rs 45; residue.rs 13; evidence_reports.rs 108; facade/query_adoption.rs 23."
             ]
           },
@@ -4063,11 +4063,11 @@
             "checkpoint": "phase8-local-ceremony-lifetime-mask",
             "finding_id": "phase8-local-ceremony-lifetime-mask",
             "root_cause": "Query local ceremony source masking treated every apostrophe as a char literal, so Rust lifetimes could mask later real source code; the Worth test seeded the forbidden ceremony before the real source and missed that production risk.",
-            "production_surface_needed": "Forge Query Consumer Kit local ceremony audit over real worth-spatial query_adoption and facade source files.",
+            "production_surface_needed": "WORTH Query Consumer Kit local ceremony audit over real worth-spatial query_adoption and facade source files.",
             "implementation_change": "Teach the Query source text mask to distinguish Rust lifetimes and labels from char literals; add a Query scanner regression and a Worth post-real-source seeded bypass test.",
             "deletion_collapse_or_residue": "No adapter or new residue; preserve Query Consumer Kit as owner, with only existing capped support_projection residue.",
             "verification": [
-              "cargo test -p forge-query --lib local_ceremony_audit",
+              "cargo test -p worth-query --lib local_ceremony_audit",
               "cargo test -p worth-spatial local_ceremony_audit_detects_seeded_bypass_in_real_source_scope --lib",
               "cargo test -p worth-spatial query_adoption --lib",
               "cargo check -p worth-spatial"
@@ -4112,15 +4112,15 @@
             "turn": "implement",
             "summary": "Fixed a Consumer Kit documentation projection test to normalize CRLF before comparison and split worth-kernel query_adoption closeout tests out of an over-cap production file.",
             "files": [
-              "crates/forge-query/src/consumer_kit/prohibition_registry/tests.rs",
+              "crates/worth-query/src/consumer_kit/prohibition_registry/tests.rs",
               "crates/worth-kernel/src/query_adoption/closeout.rs",
               "crates/worth-kernel/src/query_adoption/closeout/tests.rs"
             ],
-            "proof": "cargo test -p forge-query --lib consumer_kit now passes; line-count scan shows all touched Rust files at or below 400 lines."
+            "proof": "cargo test -p worth-query --lib consumer_kit now passes; line-count scan shows all touched Rust files at or below 400 lines."
           },
           {
             "repair": "phase8-local-ceremony-audit-real-source-coverage",
-            "changed": "Replaced synthetic worth-spatial local ceremony audit source with real include_str!-backed ForgeQueryBoundaryAuditSourceSet entries for query_adoption.rs, facade/query_adoption.rs, performance_counters.rs, residue.rs, and support_projection.rs. Strengthened consumer_kit tests to assert exact real labels, non-empty source text, clean evaluated audit, and seeded forbidden Query index construction detection under the audited source label/path.",
+            "changed": "Replaced synthetic worth-spatial local ceremony audit source with real include_str!-backed WORTHQueryBoundaryAuditSourceSet entries for query_adoption.rs, facade/query_adoption.rs, performance_counters.rs, residue.rs, and support_projection.rs. Strengthened consumer_kit tests to assert exact real labels, non-empty source text, clean evaluated audit, and seeded forbidden Query index construction detection under the audited source label/path.",
             "proves": "Consumer Kit adoption proof now receives an evaluated local ceremony audit over real worth-spatial source surfaces instead of a one-line fixture; the seeded test would fail if a forbidden local Query ceremony in the audited real-source scope were invisible."
           },
           {
@@ -4133,7 +4133,7 @@
             ],
             "proof": [
               "source_text_mask.rs:63 and source_text_mask.rs:194 enforce lifetime/label distinction in the scanner.",
-              "audit.rs:38 proves Query scanner detects ForgeQueryGraphObligationIndex::from_catalog after lifetime syntax.",
+              "audit.rs:38 proves Query scanner detects WORTHQueryGraphObligationIndex::from_catalog after lifetime syntax.",
               "consumer_kit/tests.rs:209 proves Worth audit detects the forbidden pattern after real source text under the real source label/path."
             ],
             "residue": "No new adapter, shim, bridge, or residue introduced; existing capped support_projection residue remains unchanged."
@@ -4150,23 +4150,23 @@
             "severity": "blocking",
             "file": "crates/worth-spatial/src/query_adoption/consumer_kit.rs:298",
             "summary": "spatial_local_ceremony_audit certifies a synthetic one-line source string instead of the real worth-spatial local ceremony surfaces.",
-            "details": "Phase 8 requires Consumer Kit adoption proof from a local ceremony audit and hard-break proof that local report structs, local digest strings, support row lists, source greps, and fabricated Query receipts are deleted or capped. The implementation builds ForgeQueryBoundaryAuditSourceSet::new(\"worth-spatial\").source(\"worth-spatial-query-adoption\", \"pub fn worth_spatial_uses_query_consumer_kit_execution_authority() {}\") at lines 298-303. That audit can never detect a reintroduced local report, source grep, support list, or fabricated receipt in crates/worth-spatial/src/query_adoption.rs or its child modules. The test at crates/worth-spatial/src/query_adoption/consumer_kit/tests.rs:25 only asserts evaluated_source_count() == 1, so it proves the synthetic fixture was audited rather than the public/source boundary.",
+            "details": "Phase 8 requires Consumer Kit adoption proof from a local ceremony audit and hard-break proof that local report structs, local digest strings, support row lists, source greps, and fabricated Query receipts are deleted or capped. The implementation builds WORTHQueryBoundaryAuditSourceSet::new(\"worth-spatial\").source(\"worth-spatial-query-adoption\", \"pub fn worth_spatial_uses_query_consumer_kit_execution_authority() {}\") at lines 298-303. That audit can never detect a reintroduced local report, source grep, support list, or fabricated receipt in crates/worth-spatial/src/query_adoption.rs or its child modules. The test at crates/worth-spatial/src/query_adoption/consumer_kit/tests.rs:25 only asserts evaluated_source_count() == 1, so it proves the synthetic fixture was audited rather than the public/source boundary.",
             "contradicted_claim": "Consumer Kit ownership and local ceremony audit are mechanically proven for worth-spatial production sources.",
             "required_repair": "Build the local ceremony audit from the real scoped source files that could contain local Query ceremony, or classify any source not auditable as capped residue with owner/cap/removal trigger. Strengthen the test to fail if the audit source labels do not cover the real worth-spatial query_adoption/facade surfaces or if seeded local ceremony in those real sources would be invisible.",
             "status": "closed",
             "closed_by": "phase8-repair-real-source-local-ceremony-audit",
-            "repair_evidence": "crates/worth-spatial/src/query_adoption/consumer_kit.rs:315 builds the audit from real include_str! source_file entries; crates/worth-spatial/src/query_adoption/consumer_kit/tests.rs:188 asserts exact real source labels and non-empty source text; tests.rs:209 seeds ForgeQueryGraphObligationIndex::from_catalog into the audited source label/path and observes a finding."
+            "repair_evidence": "crates/worth-spatial/src/query_adoption/consumer_kit.rs:315 builds the audit from real include_str! source_file entries; crates/worth-spatial/src/query_adoption/consumer_kit/tests.rs:188 asserts exact real source labels and non-empty source text; tests.rs:209 seeds WORTHQueryGraphObligationIndex::from_catalog into the audited source label/path and observes a finding."
           },
           {
             "severity": "blocking",
             "file": "crates/worth-spatial/src/query_adoption/consumer_kit/tests.rs:209",
             "summary": "local ceremony audit repair still proves only a prepended seed, not detection inside real Rust source text.",
-            "details": "Phase 8 requires the Consumer Kit local ceremony audit to mechanically catch reintroduced local Query ceremony in the real worth-spatial query_adoption/facade surfaces. The repaired test local_ceremony_audit_detects_seeded_bypass_in_real_source_scope builds seeded_source with the forbidden ForgeQueryGraphObligationIndex::from_catalog call before QUERY_ADOPTION_RS at lines 210-212. That avoids the actual scanner risk in crates/forge-query/src/consumer_kit/graph_obligation_adoption/local_ceremony_audit/source_text_mask.rs:62, where every apostrophe enters CharLiteral state, including Rust lifetimes such as query_adoption.rs:60 `&'static str`. A forbidden pattern inserted after ordinary lifetime-heavy declarations in the real source can be masked, so the test does not prove seeded local ceremony in those real sources would be visible.",
+            "details": "Phase 8 requires the Consumer Kit local ceremony audit to mechanically catch reintroduced local Query ceremony in the real worth-spatial query_adoption/facade surfaces. The repaired test local_ceremony_audit_detects_seeded_bypass_in_real_source_scope builds seeded_source with the forbidden WORTHQueryGraphObligationIndex::from_catalog call before QUERY_ADOPTION_RS at lines 210-212. That avoids the actual scanner risk in crates/worth-query/src/consumer_kit/graph_obligation_adoption/local_ceremony_audit/source_text_mask.rs:62, where every apostrophe enters CharLiteral state, including Rust lifetimes such as query_adoption.rs:60 `&'static str`. A forbidden pattern inserted after ordinary lifetime-heavy declarations in the real source can be masked, so the test does not prove seeded local ceremony in those real sources would be visible.",
             "contradicted_claim": "Consumer Kit local ceremony audit is mechanically proven against worth-spatial production sources after the repair.",
             "required_repair": "Fix Query local ceremony source masking so Rust lifetimes do not enter char-literal masking, or otherwise use a Rust-aware source audit that preserves code after lifetimes. Add a Query scanner regression and a worth-spatial test that places the forbidden Query ceremony after/in the real audited source text, not before it, and proves the finding is detected with the real source label/path.",
             "status": "closed",
             "closed_by": "phase8-repair-query-lifetime-aware-local-ceremony-mask",
-            "repair_evidence": "crates/forge-query/src/consumer_kit/graph_obligation_adoption/local_ceremony_audit/source_text_mask.rs:63 keeps Rust lifetimes/labels in code instead of entering CharLiteral; source_text_mask.rs:194 defines the lifetime/label discriminator; crates/forge-query/src/consumer_kit/graph_obligation_adoption/tests/audit.rs:38 adds a Query scanner regression with a forbidden bypass after Rust lifetime syntax; crates/worth-spatial/src/query_adoption/consumer_kit/tests.rs:209 now appends the seeded bypass after real QUERY_ADOPTION_RS source text and behind a Rust lifetime."
+            "repair_evidence": "crates/worth-query/src/consumer_kit/graph_obligation_adoption/local_ceremony_audit/source_text_mask.rs:63 keeps Rust lifetimes/labels in code instead of entering CharLiteral; source_text_mask.rs:194 defines the lifetime/label discriminator; crates/worth-query/src/consumer_kit/graph_obligation_adoption/tests/audit.rs:38 adds a Query scanner regression with a forbidden bypass after Rust lifetime syntax; crates/worth-spatial/src/query_adoption/consumer_kit/tests.rs:209 now appends the seeded bypass after real QUERY_ADOPTION_RS source text and behind a Rust lifetime."
           },
           {
             "turn": "review",
@@ -4174,8 +4174,8 @@
             "status": "clean",
             "summary": "No open findings after hostile Phase 8 review. The repaired Query source mask preserves code after Rust lifetimes, worth-spatial audits real query_adoption/facade source text, Consumer Kit adoption requires execution-backed proof, and deleted/capped local Query ceremony surfaces are structurally accounted for.",
             "evidence": [
-              "crates/forge-query/src/consumer_kit/graph_obligation_adoption/local_ceremony_audit/source_text_mask.rs keeps Rust lifetimes/labels out of CharLiteral masking before local ceremony scanning.",
-              "crates/forge-query/src/consumer_kit/graph_obligation_adoption/tests/audit.rs includes local_ceremony_audit_preserves_code_after_rust_lifetimes.",
+              "crates/worth-query/src/consumer_kit/graph_obligation_adoption/local_ceremony_audit/source_text_mask.rs keeps Rust lifetimes/labels out of CharLiteral masking before local ceremony scanning.",
+              "crates/worth-query/src/consumer_kit/graph_obligation_adoption/tests/audit.rs includes local_ceremony_audit_preserves_code_after_rust_lifetimes.",
               "crates/worth-spatial/src/query_adoption/consumer_kit.rs builds spatial_local_ceremony_audit from real include_str! source_file entries for query_adoption, facade/query_adoption, performance_counters, residue, and support_projection.",
               "crates/worth-spatial/src/query_adoption/consumer_kit/tests.rs appends forbidden Query ceremony after real QUERY_ADOPTION_RS source and verifies detection under the real source label/path.",
               "rg audit found no ordinary production path for deleted evidence_reports/boundary_audit local reports, local digest strings, local support row lists, source greps, or fabricated Query receipts; remaining hits are Query internals, tests, status/deletion assertions, or capped support_projection residue."
@@ -4205,7 +4205,7 @@
                 "output_tail": "test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 386 filtered out; finished in 73.83s"
               },
               {
-                "command": "cargo test -p forge-query --lib consumer_kit",
+                "command": "cargo test -p worth-query --lib consumer_kit",
                 "exit_code": 0,
                 "output_tail": "test result: ok. 96 passed; 0 failed; 0 ignored; 0 measured; 2502 filtered out; finished in 46.89s"
               },
@@ -4215,7 +4215,7 @@
                 "output_tail": "Finished `dev` profile [unoptimized + debuginfo] target(s) in 39.01s; pre-existing worth-topo warnings were emitted."
               },
               {
-                "command": "cargo fmt -p forge-query -p worth-kernel -p worth-spatial",
+                "command": "cargo fmt -p worth-query -p worth-kernel -p worth-spatial",
                 "exit_code": 0,
                 "output_tail": "completed without output"
               }
@@ -4232,7 +4232,7 @@
                 "crates/worth-kernel/src/query_adoption/composition_honesty/tests.rs": 170,
                 "crates/worth-kernel/src/query_adoption/closeout.rs": 338,
                 "crates/worth-kernel/src/query_adoption/closeout/tests.rs": 71,
-                "crates/forge-query/src/consumer_kit/prohibition_registry/tests.rs": 127
+                "crates/worth-query/src/consumer_kit/prohibition_registry/tests.rs": 127
               },
               "deleted_surfaces": [
                 "crates/worth-spatial/src/query_adoption/evidence_reports.rs",
@@ -4261,7 +4261,7 @@
                 "output_tail": "test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 386 filtered out; finished in 68.59s"
               },
               {
-                "command": "cargo test -p forge-query --lib consumer_kit",
+                "command": "cargo test -p worth-query --lib consumer_kit",
                 "exit_code": 0,
                 "output_tail": "test result: ok. 96 passed; 0 failed; 0 ignored; 0 measured; 2502 filtered out; finished in 38.43s"
               },
@@ -4273,7 +4273,7 @@
             ],
             "structural_review": {
               "finding_count": 1,
-              "line_cap": "Touched Rust files checked: consumer_kit.rs 308, consumer_kit/tests.rs 209, performance_counters.rs 90, support_projection.rs 253, query_adoption.rs 265, facade/query_adoption.rs 24, kernel performance_counters.rs 305, kernel composition_honesty/tests.rs 170, kernel closeout.rs 338, kernel closeout/tests.rs 71, forge-query prohibition_registry/tests.rs 127.",
+              "line_cap": "Touched Rust files checked: consumer_kit.rs 308, consumer_kit/tests.rs 209, performance_counters.rs 90, support_projection.rs 253, query_adoption.rs 265, facade/query_adoption.rs 24, kernel performance_counters.rs 305, kernel composition_honesty/tests.rs 170, kernel closeout.rs 338, kernel closeout/tests.rs 71, worth-query prohibition_registry/tests.rs 127.",
               "test_quality": "Current adoption test is weak for local ceremony because it asserts evaluated_source_count == 1 for a synthetic source string rather than proving real production source coverage.",
               "MENTALITY.md adversarial constraint": "Mechanical enforcement must catch the tired-engineer reintroduction of local reports/source greps/support lists; the current synthetic audit is convention-level evidence, not enforcement.",
               "arch_laws.md authority boundary": "Proof-bearing boundary law is not satisfied because the local ceremony proof can be constructed without observing the sources whose absence it claims."
@@ -4293,7 +4293,7 @@
                 "tail": "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 370 filtered out; finished in 0.01s"
               },
               {
-                "cmd": "cargo test -p forge-query --lib consumer_kit",
+                "cmd": "cargo test -p worth-query --lib consumer_kit",
                 "exit_code": 0,
                 "tail": "test result: ok. 96 passed; 0 failed; 0 ignored; 0 measured; 2502 filtered out; finished in 33.63s"
               },
@@ -4320,7 +4320,7 @@
                 "output_tail": "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 370 filtered out; finished in 0.01s"
               },
               {
-                "command": "cargo test -p forge-query --lib consumer_kit",
+                "command": "cargo test -p worth-query --lib consumer_kit",
                 "exit_code": 0,
                 "output_tail": "test result: ok. 96 passed; 0 failed; 0 ignored; 0 measured; 2502 filtered out; finished in 38.21s"
               },
@@ -4333,7 +4333,7 @@
             "structural_review": {
               "finding_count": 1,
               "acceptance_result": "Runnable acceptance checks exited 0, but QA failed on structural proof quality.",
-              "line_cap": "Scoped/touched files checked: worth-spatial query_adoption/consumer_kit.rs 303, consumer_kit/tests.rs 247, support_projection.rs 224, performance_counters.rs 76, residue.rs 13; forge-query graph_obligation_adoption files all under 400 with largest support_pin.rs 268 and kit.rs 261.",
+              "line_cap": "Scoped/touched files checked: worth-spatial query_adoption/consumer_kit.rs 303, consumer_kit/tests.rs 247, support_projection.rs 224, performance_counters.rs 76, residue.rs 13; worth-query graph_obligation_adoption files all under 400 with largest support_pin.rs 268 and kit.rs 261.",
               "test_quality": "The local ceremony repair test uses a prepended forbidden seed, so it does not prove the real source audit can detect local ceremony placed after Rust lifetime syntax in production files.",
               "facade_boundary": "worth-spatial facade/query_adoption.rs remains aggregation-only and exposes read-only proof/status/residue products; no facade-local admission constructor was found in review.",
               "residue": "evidence_reports.rs and boundary_audit.rs are deleted; support_projection.rs remains capped residue with owner/cap/removal trigger, but this cannot compensate for the scanner proof gap.",
@@ -4348,12 +4348,12 @@
             "authority_proof_boundary_from_arch_laws": "Arch laws 41 and 42 require proof-bearing boundaries and preserved authority: Worth consumes Query Consumer Kit audit proof, and Query owns the local ceremony scanner rather than Worth reconstructing a lower-authority local grep.",
             "commands": [
               {
-                "command": "cargo fmt -p forge-query -p worth-spatial",
+                "command": "cargo fmt -p worth-query -p worth-spatial",
                 "exit_code": 0,
                 "output_tail": "completed without output"
               },
               {
-                "command": "cargo test -p forge-query --lib local_ceremony_audit",
+                "command": "cargo test -p worth-query --lib local_ceremony_audit",
                 "exit_code": 0,
                 "output_tail": "running 2 tests; local_ceremony_audit_preserves_code_after_rust_lifetimes ... ok; local_ceremony_audit_finds_real_bypass_and_ignores_comments_and_literals ... ok; test result: ok. 2 passed; 0 failed; 2597 filtered out"
               },
@@ -4384,7 +4384,7 @@
             "id": "phase8-review-clean-after-real-source-mask-repair",
             "status": "passed",
             "mentality_adversarial_constraint": "Deletion pressure: local ceremony and residue cannot be retained because it is easier or test-convenient; any old Query authority path must be deleted, collapsed, or capped with production-unreachability proof.",
-            "arch_laws_authority_boundary": "Authority must live at the proof boundary, not in copied rows, local reports, or forgeable descriptors; worth-spatial may consume Query authority only through the Query Consumer Kit execution-backed proof surface.",
+            "arch_laws_authority_boundary": "Authority must live at the proof boundary, not in copied rows, local reports, or WORTHable descriptors; worth-spatial may consume Query authority only through the Query Consumer Kit execution-backed proof surface.",
             "commands": [
               {
                 "command": "cargo test -p worth-spatial --lib query_adoption",
@@ -4392,7 +4392,7 @@
                 "output_tail": "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.00s"
               },
               {
-                "command": "cargo test -p forge-query --lib local_ceremony_audit",
+                "command": "cargo test -p worth-query --lib local_ceremony_audit",
                 "exit_code": 0,
                 "output_tail": "test graph_obligation_adoption::tests::audit::local_ceremony_audit_finds_real_bypass_and_ignores_comments_and_literals ... ok; test graph_obligation_adoption::tests::audit::local_ceremony_audit_preserves_code_after_rust_lifetimes ... ok; test result: ok. 2 passed; 0 failed"
               },
@@ -4402,7 +4402,7 @@
                 "output_tail": "warning: `worth-topo` (lib) generated 39 warnings (run `cargo fix --lib -p worth-topo` to apply 1 suggestion); Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s"
               },
               {
-                "command": "rg -n \"evidence_reports|boundary_audit|SyntheticReceipt|fabricated|fake receipt|local report|local digest|support row list|source grep|source_grep|ForgeQueryGraphObligationIndex::from_catalog|ForgeQueryGraphObligationRegistrationCatalog::from_registrations|select_graph_obligations_for_touch\" crates/worth-spatial/src/query_adoption.rs crates/worth-spatial/src/query_adoption crates/worth-spatial/src/facade/query_adoption.rs crates/forge-query/src/consumer_kit/graph_obligation_adoption",
+                "command": "rg -n \"evidence_reports|boundary_audit|SyntheticReceipt|fabricated|fake receipt|local report|local digest|support row list|source grep|source_grep|WORTHQueryGraphObligationIndex::from_catalog|WORTHQueryGraphObligationRegistrationCatalog::from_registrations|select_graph_obligations_for_touch\" crates/worth-spatial/src/query_adoption.rs crates/worth-spatial/src/query_adoption crates/worth-spatial/src/facade/query_adoption.rs crates/worth-query/src/consumer_kit/graph_obligation_adoption",
                 "exit_code": 0,
                 "output_tail": "Matches are Query Consumer Kit internals/tests/pattern registry or worth-spatial status/test/deletion/inventory references; no ordinary production old-authority path found."
               },
@@ -4434,7 +4434,7 @@
                 "output_tail": "running 11 tests; adoption_proof_uses_query_consumer_kit_execution_authority ... ok; consumer_kit_rejects_incomplete_or_substituted_adoption_inputs ... ok; phase_eight_counters_report_query_adoption_precision_without_full_scan ... ok; hard_break_deletes_local_reports_and_caps_remaining_support_projection_residue ... ok; test result: ok. 11 passed; 0 failed; 370 filtered out; finished in 0.02s"
               },
               {
-                "command": "cargo test -p forge-query --lib local_ceremony_audit",
+                "command": "cargo test -p worth-query --lib local_ceremony_audit",
                 "exit_code": 0,
                 "output_tail": "local_ceremony_audit_finds_real_bypass_and_ignores_comments_and_literals ... ok; local_ceremony_audit_preserves_code_after_rust_lifetimes ... ok; test result: ok. 2 passed; 0 failed; 2597 filtered out; finished in 0.00s"
               },
@@ -4444,7 +4444,7 @@
                 "output_tail": "warning: `worth-topo` (lib) generated 39 warnings (run `cargo fix --lib -p worth-topo` to apply 1 suggestion); Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.35s"
               },
               {
-                "command": "rg -n \"evidence_reports|boundary_audit|SyntheticReceipt|fabricated|fake receipt|local report|local digest|support row list|source grep|source_grep|ForgeQueryGraphObligationIndex::from_catalog|ForgeQueryGraphObligationRegistrationCatalog::from_registrations|select_graph_obligations_for_touch|adapter|shim|bridge|compatibility|transitional|pass-through\" crates/worth-spatial/src/query_adoption.rs crates/worth-spatial/src/query_adoption crates/worth-spatial/src/facade/query_adoption.rs crates/forge-query/src/consumer_kit/graph_obligation_adoption",
+                "command": "rg -n \"evidence_reports|boundary_audit|SyntheticReceipt|fabricated|fake receipt|local report|local digest|support row list|source grep|source_grep|WORTHQueryGraphObligationIndex::from_catalog|WORTHQueryGraphObligationRegistrationCatalog::from_registrations|select_graph_obligations_for_touch|adapter|shim|bridge|compatibility|transitional|pass-through\" crates/worth-spatial/src/query_adoption.rs crates/worth-spatial/src/query_adoption crates/worth-spatial/src/facade/query_adoption.rs crates/worth-query/src/consumer_kit/graph_obligation_adoption",
                 "exit_code": 0,
                 "output_tail": "Matches are status fields, deletion assertions, Query internal consumer-kit implementation/tests/pattern registry, SyntheticReceipt inventory enum, or capped/support-projection residue references; no ordinary old local Query authority facade or fabricated receipt path remains."
               },
@@ -4461,7 +4461,7 @@
               "Hard break: hard_break_deletes_local_reports_and_caps_remaining_support_projection_residue proves evidence_reports.rs and boundary_audit.rs are deleted and support_projection residue is capped/owned."
             ],
             "structural_closeout": [
-              "Directory skeleton matches plan: forge-query Consumer Kit owns graph_obligation_adoption proof/admission/residue/audit; worth-spatial query_adoption owns consumer_kit, performance_counters, residue, and support_projection; facade/query_adoption.rs aggregates read-only exports only.",
+              "Directory skeleton matches plan: worth-query Consumer Kit owns graph_obligation_adoption proof/admission/residue/audit; worth-spatial query_adoption owns consumer_kit, performance_counters, residue, and support_projection; facade/query_adoption.rs aggregates read-only exports only.",
               "Public facade aggregation does not implement admission authority; ordinary proof is produced by Query Consumer Kit execution-backed proof and exposed as status/proof.",
               "No adapter, shim, compatibility facade, local report, raw row, copied field set, broad scan, topology substitution, or Query descriptor substitution path can satisfy the phase authority contract through the ordinary facade.",
               "Tests include real public-boundary and integration proof, including real worth-spatial source labels and seeded local ceremony after real source text."
@@ -4525,7 +4525,7 @@
                 "constrains": "Rejection must happen before expensive construction, API shape must expose cost and authority, and caller DX must show valid next actions while making invalid actions unrepresentable."
               },
               {
-                "source": "crates/forge-query/docs/AI_README.md and crates/forge-query/docs/authoring/graph-obligation-consumer-kit.md",
+                "source": "crates/worth-query/docs/AI_README.md and crates/worth-query/docs/authoring/graph-obligation-consumer-kit.md",
                 "constrains": "Worth must not build pseudo-Query layers, local digest helpers, source-grep proof, or fabricated Query receipts; execution-backed adoption uses Query Consumer Kit public proof."
               },
               {
@@ -4565,7 +4565,7 @@
                 "constrains": "Kernel facade consumption must remain through worth-spatial, while topology touched-basis public exports remain reference/substitution-denial inputs, not spatial touch authority."
               }
             ],
-            "dx_target": "```rust\nuse worth_spatial::facade::query_adoption::current_spatial_query_consumer_kit_adoption_status;\nuse worth_spatial::facade::workload_vocabulary::{\n    lower_spatial_touch_authority_to_query_descriptor, SpatialGeometryEvidenceTouchRequest,\n};\n\nlet authority = SpatialGeometryEvidenceTouchRequest::from_boolean_receipt(&receipt)\n    .with_complete_ledger(workload.evidence_ledger())\n    .admit()?;\nlet lookup = workload.evidence_ledger().require_boolean_receipt_lookup(&receipt)?;\nlet descriptor = lower_spatial_touch_authority_to_query_descriptor(&authority, &lookup)?;\nlet adoption = current_spatial_query_consumer_kit_adoption_status()?;\nassert_eq!(descriptor.spatial_touch_digest(), authority.digest());\nassert!(adoption.hard_prohibition_audit_clean());\n\n// Forbidden routes must be compile-fail or typed denials, not runtime convention:\n// impl BooleanEvidenceReceipt for ExternalReceipt { ... }\n// let forged = SpatialGeometryEvidenceTouchAuthority { /* copied fields */ };\n// lower_spatial_touch_authority_to_query_descriptor(&query_descriptor, &lookup);\n// SpatialGeometryEvidenceTouchRequest::from_topology_touched_basis(&topology_proof);\n```",
+            "dx_target": "```rust\nuse worth_spatial::facade::query_adoption::current_spatial_query_consumer_kit_adoption_status;\nuse worth_spatial::facade::workload_vocabulary::{\n    lower_spatial_touch_authority_to_query_descriptor, SpatialGeometryEvidenceTouchRequest,\n};\n\nlet authority = SpatialGeometryEvidenceTouchRequest::from_boolean_receipt(&receipt)\n    .with_complete_ledger(workload.evidence_ledger())\n    .admit()?;\nlet lookup = workload.evidence_ledger().require_boolean_receipt_lookup(&receipt)?;\nlet descriptor = lower_spatial_touch_authority_to_query_descriptor(&authority, &lookup)?;\nlet adoption = current_spatial_query_consumer_kit_adoption_status()?;\nassert_eq!(descriptor.spatial_touch_digest(), authority.digest());\nassert!(adoption.hard_prohibition_audit_clean());\n\n// Forbidden routes must be compile-fail or typed denials, not runtime convention:\n// impl BooleanEvidenceReceipt for ExternalReceipt { ... }\n// let WORTHd = SpatialGeometryEvidenceTouchAuthority { /* copied fields */ };\n// lower_spatial_touch_authority_to_query_descriptor(&query_descriptor, &lookup);\n// SpatialGeometryEvidenceTouchRequest::from_topology_touched_basis(&topology_proof);\n```",
             "directory_skeleton": [
               {
                 "path": "crates/worth-spatial/src/facade/mod.rs",
@@ -4573,7 +4573,7 @@
               },
               {
                 "path": "crates/worth-spatial/src/facade/workload_vocabulary/mod.rs",
-                "responsibility": "Aggregate read-only spatial receipt, touch authority, lookup, lowering, denial, and status vocabulary; trim or demote any constructor/export that compile-fail tests prove forgeable."
+                "responsibility": "Aggregate read-only spatial receipt, touch authority, lookup, lowering, denial, and status vocabulary; trim or demote any constructor/export that compile-fail tests prove WORTHable."
               },
               {
                 "path": "crates/worth-spatial/src/facade/query_adoption.rs",
@@ -4915,7 +4915,7 @@
             "structural_review": [
               "crates/worth-spatial/src/query_adoption/consumer_kit.rs:40-147 exposes read-only WorthSpatialQueryConsumerKitAdoptionStatus accessors; crates/worth-spatial/src/query_adoption/consumer_kit.rs:204-232 populates them from Consumer Kit proof/support/audit/execution/residue products.",
               "crates/worth-spatial/src/certification/public_facade_contracts/contracts/workload_vocabulary/public_facade_parity.rs:77-174 compares every public adoption status accessor against canonical internal proof, support pin/matrix, audit, execution counters, and residue manifest.",
-              "crates/worth-spatial/src/workload_platform/evidence_ledger/mod.rs keeps BooleanEvidenceReceiptSealed pub(crate); crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/authority.rs keeps SpatialGeometryEvidenceTouchAuthorityParts and from_parts private, so external crates cannot forge authority.",
+              "crates/worth-spatial/src/workload_platform/evidence_ledger/mod.rs keeps BooleanEvidenceReceiptSealed pub(crate); crates/worth-spatial/src/workload_platform/evidence_ledger/spatial_touch_admission/authority.rs keeps SpatialGeometryEvidenceTouchAuthorityParts and from_parts private, so external crates cannot WORTH authority.",
               "rg adapter/shim/wrapper/manager/bridge/helper over phase facade/query_adoption surfaces found only the naming_honesty denial test itself; no production public adapter language hit.",
               "rg cfg(test)/doc(hidden)/test-support-lowering/from_parts/certification constructors over crates/worth-spatial/docs and public facade files returned no matches; no examples directory exists under crates/worth-spatial.",
               "Line counts: facade/mod.rs 68, facade/workload_vocabulary/mod.rs 45, facade/query_adoption.rs 24, query_adoption.rs 265, query_adoption/consumer_kit.rs 341, consumer_kit/tests.rs 270, public_facade_parity.rs 176, feature_gate_leakage.rs 59, naming_honesty.rs 134, workload_vocabulary/mod.rs contract 234, public_api.rs 82; all touched Phase 9 code/test files are under 400 lines."
@@ -4937,7 +4937,7 @@
             "authority_proof_boundary_from_arch_laws": "arch_laws.md laws 11, 41, and 42: the facade is the only surface; proof-bearing types must have sealed constructors and read-only accessors; identity authority must be preserved rather than reconstructed from representation.",
             "acceptance_commands": [
               {
-                "item": "compile-fail denial test proves external crates cannot forge receipt authority, spatial touch authority, raw-row authority, or Query/topology substitution",
+                "item": "compile-fail denial test proves external crates cannot WORTH receipt authority, spatial touch authority, raw-row authority, or Query/topology substitution",
                 "command": "cargo test -p worth-spatial --test ui -- --nocapture",
                 "exit_code": 0,
                 "output_tail": "running 1 test; test spatial_public_boundary_rejects_internal_constructor_bypass ... ok; test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.70s. Relevant trybuild fixtures include public_spatial_test_support_not_exported.rs, query_adoption/spatial_adoption_status_is_not_query_graph_authority.rs, workload_vocabulary/external_boolean_receipt_authority_not_implementable.rs, query_descriptor_cannot_lower_without_spatial_touch_authority.rs, raw_row_cannot_admit_spatial_touch_authority.rs, spatial_touch_authority_not_from_copied_fields.rs, spatial_touch_authority_parts_not_public.rs, topology_basis_cannot_lower_without_spatial_touch_authority.rs, and spatial_evidence_lookup/query_touch_descriptor_is_not_spatial_lookup_product.rs all ok. Existing worth-topo/worth-kernel unused warnings were emitted but did not fail the contract."
@@ -5001,7 +5001,7 @@
           {
             "finding_id": "phase9-public-query-adoption-status-parity-incomplete",
             "root_cause": "The public facade parity contract stopped after descriptor digest, residue count, execution proof digest, and hard-prohibition cleanliness, so most public WorthSpatialQueryConsumerKitAdoptionStatus accessors were enforced only by convention.",
-            "production_surface_needed_for_honest_fix": "worth_spatial::facade::query_adoption::current_spatial_query_consumer_kit_adoption_status compared against spatial_query_graph_obligation_adoption_proof, ForgeQueryGraphObligationSupportMatrix::assembly_selection_foundation, the Consumer Kit local ceremony audit, residue manifest, execution proof, and selection counters.",
+            "production_surface_needed_for_honest_fix": "worth_spatial::facade::query_adoption::current_spatial_query_consumer_kit_adoption_status compared against spatial_query_graph_obligation_adoption_proof, WORTHQueryGraphObligationSupportMatrix::assembly_selection_foundation, the Consumer Kit local ceremony audit, residue manifest, execution proof, and selection counters.",
             "implementation_change": "Extend crates/worth-spatial/src/certification/public_facade_contracts/contracts/workload_vocabulary/public_facade_parity.rs so every public adoption-status accessor is asserted against the canonical internal Query Consumer Kit proof products.",
             "deletion_or_residue_outcome": "No adapter, wrapper, or local report is introduced. Existing capped support_projection residue remains unchanged; the repair only strengthens certification of the read-only facade.",
             "verification": "Run the public_facade_accessors_match_internal_spatial_touch_query_and_residue_products test, then rerun Phase 9 acceptance checks and validate the state. Structural proof is the expanded assertion list in public_facade_parity.rs."
@@ -5083,12 +5083,12 @@
                 "constraint": "The ordinary caller route should read as intent -> admitted spatial authority -> lookup/Query descriptor/adoption proof, while forbidden raw/substitute paths are visibly unavailable or denied."
               },
               {
-                "source": "crates/forge-query/docs/AI_README.md",
+                "source": "crates/worth-query/docs/AI_README.md",
                 "sections_or_apis": "Consumer Kit, support/admission, decision rules, hard prohibitions",
                 "constraint": "Downstream proof must use Query Consumer Kit rather than local report structs, local support rows, greps, or fabricated receipts; ordinary domain work starts from Query public facades where Query owns the lane."
               },
               {
-                "source": "crates/forge-query/docs/authoring/graph-obligation-consumer-kit.md",
+                "source": "crates/worth-query/docs/authoring/graph-obligation-consumer-kit.md",
                 "sections_or_apis": "Required Proof Jobs, Adoption Workflow, Anti-Patterns",
                 "constraint": "Execution-backed adoption must use prove_execution_with(...) and prove_adoption_with_execution(); selection-only/in-memory-only proof is not closeout proof."
               },
@@ -5386,7 +5386,7 @@
           {
             "kind": "structural_proof",
             "evidence": [
-              "crates/forge-query/src/runtime/mutation/graph_composition/obligation/index/selection/selection.rs:36 builds selection_digest from index, touch_descriptor evidence identity, operating_world evidence identity, counters, and matched registrations.",
+              "crates/worth-query/src/runtime/mutation/graph_composition/obligation/index/selection/selection.rs:36 builds selection_digest from index, touch_descriptor evidence identity, operating_world evidence identity, counters, and matched registrations.",
               "crates/worth-spatial/src/query_adoption/consumer_kit.rs:174 exposes descriptor-bound spatial_query_graph_obligation_adoption_proof_for_descriptor without adding an admission adapter.",
               "crates/worth-kernel/src/certification/public_facade_contracts/contracts/public_api_spatial_touch_receipt_admission_support.rs:163 derives original and replayed adoption proofs from original/replayed Query descriptors and compares manifest, execution proof, selection digest, lookup, and descriptor identities.",
               "crates/worth-kernel/src/certification/public_facade_contracts/contracts/public_api_spatial_touch_cross_crate_closeout.rs:195 checks broad-stage scan reintroduction in ordinary authority sources; :229 checks the one capped local Query support residue row; :254 checks the type-name rejected-input helper is absent from the ordinary public facade.",

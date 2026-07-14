@@ -1,5 +1,5 @@
 use crate::primitives::plane::Plane;
-use worth_primitives::{
+use super::private_support::{
     PrimitiveGeometryIdentityBundle, PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity,
 };
 

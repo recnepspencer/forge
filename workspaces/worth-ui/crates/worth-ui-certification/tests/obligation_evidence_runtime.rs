@@ -8,13 +8,14 @@ use worth_ui::facade::obligations::UiObligationEvidenceDecision;
 use worth_ui_runtime::facade::obligations::UiSelectedObligationEvidenceProjection;
 
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 #[test]
 fn selected_verdict_and_admission_paths_retain_typed_evidence_handles() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
-    let target = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let target =
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
     let selected = app
         .admission()
         .select_obligations_for_target(&touch, target.clone());
@@ -142,9 +143,9 @@ fn selected_verdict_and_admission_paths_retain_typed_evidence_handles() {
             && record.touch_identity_digest() == Some(touch.identity_digest())
     }));
 
-    let denied_report = app
-        .admission()
-        .report(obligation_dispatch_prerequisite_support::wrong_query_basis_target(&touch));
+    let denied_report = app.admission().report(
+        obligation_dispatch_prerequisite_support::targets::wrong_query_basis_target(&touch),
+    );
     let denial_receipt = denied_report.inspect(
         UiInspectionQuery::new(
             UiInspectionTarget::obligation_graph_node(
@@ -219,9 +220,10 @@ fn selected_verdict_and_admission_paths_retain_typed_evidence_handles() {
 
 #[test]
 fn evidence_provenance_uses_owner_artifact_identity_instead_of_surrogate_target_digests() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
-    let target = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let target =
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
     let selected = app
         .admission()
         .select_obligations_for_target(&touch, target.clone());
@@ -270,15 +272,26 @@ fn evidence_provenance_uses_owner_artifact_identity_instead_of_surrogate_target_
     let report_slice = report_receipt
         .evidence_slice()
         .expect("admission report inspection should expose an evidence slice");
+    let report_projections = report_slice
+        .materialized_detail()
+        .and_then(|detail| match detail {
+            UiEvidenceMaterializedDetail::Obligation(receipt) => Some(receipt.projections()),
+            _ => None,
+        })
+        .expect("report inspection should materialize obligation detail");
+    let verdict_row = report_projections
+        .iter()
+        .find(|projection| {
+            projection.decision()
+                == worth_ui::facade::inspection::UiInspectionObligationDecision::Verdict
+        })
+        .expect("report inspection should retain a verdict row");
     let verdict_ref = report_slice
         .refs()
         .iter()
         .copied()
-        .find(|reference| {
-            reference.authority_binding().artifact_identity().kind()
-                == UiEvidenceAuthorityKind::ObligationAuthority
-        })
-        .expect("report inspection should retain verdict-owned evidence refs");
+        .find(|reference| reference.handle().handle_digest() == verdict_row.handle_digest())
+        .expect("verdict row should match a public evidence ref");
 
     assert_ne!(
         verdict_ref.authority_binding().artifact_identity().digest(),
@@ -286,13 +299,7 @@ fn evidence_provenance_uses_owner_artifact_identity_instead_of_surrogate_target_
         "verdict evidence provenance must bind to the verdict artifact, not the touch digest"
     );
 
-    let dispatch_row = report_slice
-        .materialized_detail()
-        .and_then(|detail| match detail {
-            UiEvidenceMaterializedDetail::Obligation(receipt) => Some(receipt.projections()),
-            _ => None,
-        })
-        .expect("report inspection should materialize obligation detail")
+    let dispatch_row = report_projections
         .iter()
         .find(|projection| {
             projection.decision()

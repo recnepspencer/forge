@@ -1,5 +1,9 @@
-use forge_query::facade::{
-    BridgePreviewSessionIdentity, ForgeQuerySessionLabel, ResolvedSnapshotBasis,
+use worth_query::facade::runtime::{
+    BridgePreviewSessionIdentity,
+    WorthQuerySessionLabel,
+};
+use worth_query::facade::foundation::{
+    ResolvedSnapshotBasis,
     SnapshotResolutionReport,
 };
 
@@ -9,25 +13,25 @@ use crate::declaration::stable_text_digest;
 pub enum UiGraphWorldProfile {
     Authoritative,
     PreviewSessionLabel {
-        session_label: ForgeQuerySessionLabel,
+        session_label: WorthQuerySessionLabel,
     },
     PreviewSessionIdentity {
         preview_session_identity: BridgePreviewSessionIdentity,
     },
     BranchSessionLabel {
-        session_label: ForgeQuerySessionLabel,
+        session_label: WorthQuerySessionLabel,
     },
     HotReloadCandidate {
-        session_label: ForgeQuerySessionLabel,
+        session_label: WorthQuerySessionLabel,
     },
     Diagnostic {
-        session_label: ForgeQuerySessionLabel,
+        session_label: WorthQuerySessionLabel,
     },
     HostObservation {
-        session_label: ForgeQuerySessionLabel,
+        session_label: WorthQuerySessionLabel,
     },
     TestCertification {
-        session_label: ForgeQuerySessionLabel,
+        session_label: WorthQuerySessionLabel,
     },
     QuerySnapshotBasis {
         basis: ResolvedSnapshotBasis,
@@ -45,7 +49,7 @@ impl UiGraphWorldProfile {
         Self::Authoritative
     }
 
-    pub fn preview_session_label(session_label: ForgeQuerySessionLabel) -> Self {
+    pub fn preview_session_label(session_label: WorthQuerySessionLabel) -> Self {
         Self::PreviewSessionLabel { session_label }
     }
 
@@ -57,23 +61,23 @@ impl UiGraphWorldProfile {
         }
     }
 
-    pub fn branch_session_label(session_label: ForgeQuerySessionLabel) -> Self {
+    pub fn branch_session_label(session_label: WorthQuerySessionLabel) -> Self {
         Self::BranchSessionLabel { session_label }
     }
 
-    pub fn hot_reload_candidate(session_label: ForgeQuerySessionLabel) -> Self {
+    pub fn hot_reload_candidate(session_label: WorthQuerySessionLabel) -> Self {
         Self::HotReloadCandidate { session_label }
     }
 
-    pub fn diagnostic(session_label: ForgeQuerySessionLabel) -> Self {
+    pub fn diagnostic(session_label: WorthQuerySessionLabel) -> Self {
         Self::Diagnostic { session_label }
     }
 
-    pub fn host_observation(session_label: ForgeQuerySessionLabel) -> Self {
+    pub fn host_observation(session_label: WorthQuerySessionLabel) -> Self {
         Self::HostObservation { session_label }
     }
 
-    pub fn test_certification(session_label: ForgeQuerySessionLabel) -> Self {
+    pub fn test_certification(session_label: WorthQuerySessionLabel) -> Self {
         Self::TestCertification { session_label }
     }
 
@@ -167,8 +171,8 @@ impl UiGraphWorldProfile {
             Self::QuerySnapshotBasis { basis, .. } => {
                 stable_text_digest("graph-world-family:query")
                     ^ stable_text_digest(match basis.identity().authority_family() {
-                        forge_query::facade::BasisAuthorityFamily::Runtime => "runtime",
-                        forge_query::facade::BasisAuthorityFamily::Store => "store",
+                        worth_query::facade::foundation::BasisAuthorityFamily::Runtime => "runtime",
+                        worth_query::facade::foundation::BasisAuthorityFamily::Store => "store",
                     })
                     .rotate_left(11)
             }

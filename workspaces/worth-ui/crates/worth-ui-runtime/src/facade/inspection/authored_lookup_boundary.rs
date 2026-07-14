@@ -1,7 +1,7 @@
 use crate::declaration::{UiDeclarationArtifact, UiDeclarationAuthoredEvidenceIndex};
 use crate::evidence::UiInspectionCostMetrics;
 use crate::evidence::{UiEvidenceRef, UiEvidenceSliceAssembly, UiEvidenceSliceAssemblyInput};
-use crate::facade::UiInspectionReceipt;
+use crate::facade::inspection_bridge::UiInspectionReceipt;
 use worth_ui_inspection::{
     UiEvidenceAuthorityGeneration, UiEvidenceFamily, UiInspectionQuery, UiInspectionScope,
     UiInspectionScopeSupportRow, UiInspectionSupportReason, UiInspectionSupportReport,

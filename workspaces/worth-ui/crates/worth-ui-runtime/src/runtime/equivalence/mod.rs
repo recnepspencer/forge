@@ -1,5 +1,3 @@
-#![cfg_attr(not(test), allow(dead_code))]
-
 mod worth_ui_runtime_artifact_comparator;
 mod worth_ui_runtime_artifact_comparison;
 mod worth_ui_runtime_artifact_comparison_counters;

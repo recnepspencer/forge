@@ -29,18 +29,22 @@ impl WorthUiArtifactAssemblyDiagnostic {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn code(&self) -> WorthUiArtifactAssemblyDiagnosticCode {
         self.code
     }
 
+    #[cfg(test)]
     pub(crate) fn module_id(&self) -> &WorthUiSourceModuleId {
         &self.module_id
     }
 
+    #[cfg(test)]
     pub(crate) fn semantic_locus(&self) -> &str {
         &self.semantic_locus
     }
 
+    #[cfg(test)]
     pub(crate) fn key_text(&self) -> &str {
         &self.key_text
     }

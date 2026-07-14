@@ -14,12 +14,12 @@ use worth_ui_query_binding::{
 };
 
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 #[test]
 fn ai_harness_cites_query_owned_foreign_evidence_without_copying_it_into_ui_truth() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
     let ai = UiInspectionAiHarness::new(&app);
     let receipt = ai.inspect(
         UiInspectionQuery::new(
@@ -45,7 +45,7 @@ fn ai_harness_cites_query_owned_foreign_evidence_without_copying_it_into_ui_trut
     let expansion = ai.expand_evidence_ref(evidence_ref, UiEvidenceRichness::materialized_detail());
     let foreign_refs = expansion.foreign_evidence_refs();
     let expected_prerequisite =
-        obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch)
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch)
             .query_prerequisites()
             .expect(
                 "graph-aligned query target should retain one Query-owned prerequisite artifact",

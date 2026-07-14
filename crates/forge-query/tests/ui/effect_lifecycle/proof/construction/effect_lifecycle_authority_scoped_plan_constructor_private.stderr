@@ -1,7 +1,0 @@
-error[E0560]: struct `AuthorityScopedEffectPlan` has no field named `plan_digest`
-  --> tests/ui/effect_lifecycle/proof/construction/effect_lifecycle_authority_scoped_plan_constructor_private.rs:20:9
-   |
-20 |         plan_digest: String::new(),
-   |         ^^^^^^^^^^^ `AuthorityScopedEffectPlan` does not have this field
-   |
-   = note: all struct fields are already assigned

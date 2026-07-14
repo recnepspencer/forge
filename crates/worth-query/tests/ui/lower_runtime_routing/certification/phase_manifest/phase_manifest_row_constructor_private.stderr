@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/certification/phase_manifest/phase_manifest_row_constructor_private.rs:5:53
+  |
+5 |       let _ = WorthQueryLowerRuntimePhaseManifestRow::new(
+  |                                                       ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/certification/phase_manifest/mod.rs
+  |
+  | /     fn new(
+  | |         artifact: WorthQueryLowerRuntimePhaseArtifact,
+  | |         producer: &'static str,
+  | |         required_input: &'static str,
+  | |         next_consumer: &'static str,
+  | |         enforcement_proof: &'static str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

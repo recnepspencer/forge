@@ -1,0 +1,30 @@
+warning: unreachable statement
+  --> tests/ui/subscription_phase_seven/subscription_source_digest_cannot_feed_authority.rs:17:5
+   |
+16 |     let profile: QuerySubscriptionSupportProfile = todo!();
+   |                                                    ------- any code following this expression is unreachable
+17 |     require_subscription_authority(profile.source_projection().label());
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+  --> tests/ui/subscription_phase_seven/subscription_source_digest_cannot_feed_authority.rs:17:36
+   |
+17 |     require_subscription_authority(profile.source_projection().label());
+   |     ------------------------------ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `&String`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected struct `worth_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<WorthQueryEvidenceIdentity, QuerySubscriptionAuthority, QuerySubscriptionIdentityKind>`
+           found reference `&std::string::String`
+note: function defined here
+  --> tests/ui/subscription_phase_seven/subscription_source_digest_cannot_feed_authority.rs:7:4
+   |
+ 7 |   fn require_subscription_authority(
+   |      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 8 | /     _identity: QuerySubscriptionAuthorityIdentity<
+ 9 | |         WorthQueryEvidenceIdentity,
+10 | |         QuerySubscriptionIdentityKind,
+11 | |     >,
+   | |_____-

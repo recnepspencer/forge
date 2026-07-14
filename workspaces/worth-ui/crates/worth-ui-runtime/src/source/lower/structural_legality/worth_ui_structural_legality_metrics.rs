@@ -15,10 +15,12 @@ impl WorthUiStructuralLegalityMetrics {
         self.families_scanned += counters.families_scanned();
     }
 
+    #[cfg(test)]
     pub(crate) fn families_scanned(&self) -> usize {
         self.families_scanned
     }
 
+    #[cfg(test)]
     pub(crate) fn renderer_dependent_checks(&self) -> usize {
         self.renderer_dependent_checks
     }

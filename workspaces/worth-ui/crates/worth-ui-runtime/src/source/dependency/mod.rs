@@ -10,11 +10,11 @@ pub(crate) use worth_ui_artifact_dependency_edge::{
     WorthUiArtifactDependencyTarget,
 };
 pub(crate) use worth_ui_artifact_dependency_graph::WorthUiArtifactDependencyGraph;
-pub(crate) use worth_ui_artifact_impact_metadata::{
-    WorthUiArtifactImpact, WorthUiArtifactImpactMetadata,
-};
+pub(crate) use worth_ui_artifact_impact_metadata::WorthUiArtifactImpactMetadata;
 pub use worth_ui_artifact_subtree_digest::WorthUiArtifactSubtreeDigest;
 pub(crate) use worth_ui_incremental_invalidation_basis::WorthUiIncrementalInvalidationBasis;
+#[cfg(test)]
+pub(crate) use worth_ui_runtime_dependency_hook::WorthUiRuntimeQuerySurface;
 pub(crate) use worth_ui_runtime_dependency_hook::{
-    WorthUiRuntimeDependencyHook, WorthUiRuntimeDependencyHookKind, WorthUiRuntimeQuerySurface,
+    WorthUiRuntimeDependencyHook, WorthUiRuntimeDependencyHookKind,
 };

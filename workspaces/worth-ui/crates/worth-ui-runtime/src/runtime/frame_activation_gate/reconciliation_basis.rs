@@ -4,7 +4,9 @@ use crate::runtime::{
     WorthUiDurableStateReconciliationPlan, WorthUiNodeLifecycleTransition,
 };
 
-pub(super) fn reconciliation_basis_digest(plan: &WorthUiDurableStateReconciliationPlan) -> u64 {
+pub(in crate::runtime) fn reconciliation_basis_digest(
+    plan: &WorthUiDurableStateReconciliationPlan,
+) -> u64 {
     let mut fold = WorthUiActivationGateDigestFold::new(0x7265_636f_6e5f_0011);
     fold.fold_u64(plan.active_artifact_digest());
     fold.fold_u64(plan.candidate_artifact_digest());

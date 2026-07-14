@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::evidence::{with_retention_posture, UiEvidenceRef, UiEvidenceSliceRef};
-use crate::facade::UiInspectionReceipt;
+use crate::facade::inspection_bridge::UiInspectionReceipt;
 use crate::obligations::selection::UiSelectedObligationSet;
 use worth_ui_inspection::UiEvidenceRetentionPosture;
 

@@ -1,7 +1,5 @@
 use std::collections::BTreeSet;
 
-use crate::capability::RuntimeOutcomeProjectionId;
-
 use super::super::RuntimeOutcomeProjectionDescriptor;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -19,10 +17,5 @@ impl RuntimeOutcomeProjectionAcceptedRegistrationProof {
     pub(crate) fn admits(&self, descriptor: &RuntimeOutcomeProjectionDescriptor) -> bool {
         self.accepted_identity_texts
             .contains(descriptor.id().as_str())
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn admits_id(&self, id: &RuntimeOutcomeProjectionId) -> bool {
-        self.accepted_identity_texts.contains(id.as_str())
     }
 }

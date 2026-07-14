@@ -30,6 +30,7 @@ impl WorthUiSourcePackageDigest {
         Self(digest)
     }
 
+    #[cfg(test)]
     pub(crate) fn raw(self) -> u64 {
         self.0
     }

@@ -61,6 +61,7 @@ pub enum UiInspectionMeasurementQueryFactFamily {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiInspectionMeasurementBasisSource {
+    ViewportExtent,
     ScrollViewport,
     PortalAnchor,
 }

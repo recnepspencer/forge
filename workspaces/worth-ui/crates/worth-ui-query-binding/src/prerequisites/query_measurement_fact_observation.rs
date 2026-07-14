@@ -1,5 +1,5 @@
-use forge_foundational::facade::{AspectValue, InternedString};
-use forge_query::facade::{CompletedProjectionFactConsumption, ProjectionFactConsumptionAttempt};
+use worth_foundational::facade::{AspectValue, InternedString};
+use worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority;
 
 use super::{WorthUiQueryMeasurementFactFamily, WorthUiQueryPrerequisiteEvidence};
 
@@ -18,29 +18,19 @@ pub struct WorthUiQueryMeasurementFactObservation {
 }
 
 impl WorthUiQueryMeasurementFactObservation {
-    pub(crate) fn from_projection_consumption_attempt(
+    pub(crate) fn from_query_authority(
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        consumption: &ProjectionFactConsumptionAttempt,
-    ) -> Result<Box<[Self]>, WorthUiQueryMeasurementFactObservationError> {
-        let completed = consumption
-            .completed()
-            .ok_or(WorthUiQueryMeasurementFactObservationError::ProjectionConsumptionNotAdmitted)?;
-        Self::from_completed_projection_consumption(prerequisites, completed)
-    }
-
-    pub(crate) fn from_completed_projection_consumption(
-        prerequisites: WorthUiQueryPrerequisiteEvidence,
-        completed: &CompletedProjectionFactConsumption,
+        authority: &WorthQueryConsumedProjectionAuthority,
     ) -> Result<Box<[Self]>, WorthUiQueryMeasurementFactObservationError> {
         let _ = prerequisites;
         let mut observations = Vec::new();
 
-        if completed.contract().fact_families().iter().any(|family| {
+        if authority.contract().fact_families().iter().any(|family| {
             family.kind().as_str() == "display_field"
                 || family.kind().as_str() == "derived_scalar_field"
         }) {
             let family = WorthUiQueryMeasurementFactFamily::ScrollContentExtent;
-            let extent_bits = extract_single_extent_bits(completed, family)?;
+            let extent_bits = extract_single_extent_bits(authority, family)?;
             observations.push(Self {
                 family,
                 extent_bits,
@@ -60,15 +50,15 @@ impl WorthUiQueryMeasurementFactObservation {
 }
 
 fn extract_single_extent_bits(
-    completed: &CompletedProjectionFactConsumption,
+    authority: &WorthQueryConsumedProjectionAuthority,
     family: WorthUiQueryMeasurementFactFamily,
 ) -> Result<u32, WorthUiQueryMeasurementFactObservationError> {
     let mut observed_bits = None;
-    for fact in completed
+    for fact in authority
         .facts()
         .display_fields()
         .iter()
-        .chain(completed.facts().derived_scalar_fields().iter())
+        .chain(authority.facts().derived_scalar_fields().iter())
     {
         let bits = scalar_extent_bits(fact.value())
             .ok_or(WorthUiQueryMeasurementFactObservationError::UnsupportedObservedValue(family))?;

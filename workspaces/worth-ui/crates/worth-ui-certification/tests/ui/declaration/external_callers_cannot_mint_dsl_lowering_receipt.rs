@@ -4,6 +4,6 @@ fn main() {
     let _ = UiDslLoweringReceipt::new(
         unsafe { std::mem::MaybeUninit::<UiDslSemanticArtifact>::zeroed().assume_init() },
         17,
-        UiDslSourceProvenance::file_authored("app/forged.wui", 0),
+        UiDslSourceProvenance::file_authored("app/Worthd.wui", 0),
     );
 }

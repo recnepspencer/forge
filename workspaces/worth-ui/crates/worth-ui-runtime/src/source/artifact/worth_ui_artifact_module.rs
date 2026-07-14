@@ -15,6 +15,7 @@ impl WorthUiArtifactModule {
         &self.nodes
     }
 
+    #[cfg(test)]
     pub(crate) fn node(&self, node_index: usize) -> Option<&WorthUiArtifactNode> {
         self.nodes.get(node_index)
     }

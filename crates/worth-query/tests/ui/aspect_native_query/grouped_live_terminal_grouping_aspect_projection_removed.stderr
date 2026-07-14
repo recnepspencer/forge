@@ -1,0 +1,23 @@
+error[E0599]: no method named `terminal_grouping_aspect_projection` found for reference `&GroupedLaneIdentity` in the current scope
+ --> tests/ui/aspect_native_query/grouped_live_terminal_grouping_aspect_projection_removed.rs:9:18
+  |
+9 |     let _ = lane.terminal_grouping_aspect_projection();
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&GroupedLaneIdentity`
+
+error[E0599]: no method named `terminal_grouping_aspect_projection` found for reference `&GroupedViewResultArtifact` in the current scope
+  --> tests/ui/aspect_native_query/grouped_live_terminal_grouping_aspect_projection_removed.rs:10:20
+   |
+10 |     let _ = result.terminal_grouping_aspect_projection();
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&GroupedViewResultArtifact`
+
+error[E0599]: no method named `terminal_grouping_aspect_projection` found for reference `&GroupedDesiredStateArtifact` in the current scope
+  --> tests/ui/aspect_native_query/grouped_live_terminal_grouping_aspect_projection_removed.rs:11:21
+   |
+11 |     let _ = desired.terminal_grouping_aspect_projection();
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&GroupedDesiredStateArtifact`
+
+error[E0599]: no method named `terminal_grouping_aspect_projection` found for reference `&GroupedExecutionLaneValue` in the current scope
+  --> tests/ui/aspect_native_query/grouped_live_terminal_grouping_aspect_projection_removed.rs:12:28
+   |
+12 |     let _ = execution_lane.terminal_grouping_aspect_projection();
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&GroupedExecutionLaneValue`

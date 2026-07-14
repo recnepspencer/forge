@@ -5,6 +5,9 @@ use worth_ui_inspection::{
 };
 
 use crate::evidence::{preflight_evidence_expansion, UiEvidenceExpansion, UiEvidenceRef};
+use crate::facade::evidence::{
+    expand_retained_allocation_planning_ref, expand_retained_obligation_ref,
+};
 use crate::facade::WorthUiApp;
 
 pub(crate) fn expand_evidence_ref(
@@ -17,9 +20,9 @@ pub(crate) fn expand_evidence_ref(
             .retained_allocation_planning_registry()
             .current_generation_for(evidence_ref.handle().handle_digest())
             .unwrap_or_else(|| evidence_ref.authority_generation()),
-        _ => {
-            worth_ui_inspection::UiEvidenceAuthorityGeneration::new(app.graph().generation().as_u64())
-        }
+        _ => worth_ui_inspection::UiEvidenceAuthorityGeneration::new(
+            app.graph().generation().as_u64(),
+        ),
     };
     let evidence_ref = app
         .retained_allocation_planning_registry()
@@ -50,10 +53,10 @@ pub(crate) fn expand_evidence_ref(
 
     match evidence_ref.family() {
         UiEvidenceFamily::Planning => {
-            app.expand_retained_allocation_planning_ref(evidence_ref, requested_richness)
+            expand_retained_allocation_planning_ref(app, evidence_ref, requested_richness)
         }
         UiEvidenceFamily::Obligation => {
-            app.expand_retained_obligation_ref(evidence_ref, requested_richness)
+            expand_retained_obligation_ref(app, evidence_ref, requested_richness)
         }
         _ => UiEvidenceExpansion::new(
             evidence_ref,

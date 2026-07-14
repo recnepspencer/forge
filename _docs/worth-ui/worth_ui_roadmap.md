@@ -17,7 +17,7 @@ The governing rules remain:
 - compiled Rust defines capabilities; hot-reloadable UI source composes them
 - file-authored UI and Rust-authored composition must converge on the same
   canonical artifact and execution-plan pipeline
-- if `forge-query` already owns a stronger runtime-backed public lane for
+- if `worth-query` already owns a stronger runtime-backed public lane for
   support or admission, typed bindings, projection consumption, async or result
   posture, recovery, inspection, explanation, or grouped/read/query products,
   Worth UI must consume that lane rather than rebuild a UI-local pseudo runtime
@@ -69,7 +69,7 @@ Rules for every remaining Worth UI item:
 - each milestone must preserve explicit accessibility, keyboard, focus, and diagnostics posture rather than treating them as polish
 - each milestone must preserve frame-cost honesty through named counters and execution-plan boundaries
 - frame-cost claims that cross diagnostic, report, or certification boundaries
-  should lower Worth UI evidence into Forge Foundational performance claims,
+  should lower Worth UI evidence into WORTH Foundational performance claims,
   canonical bundles, counter-backed receipts, planned reports, and readiness
   envelopes instead of inventing local performance folklore
 - each runtime milestone must ship the evidence, inspection, replay, and
@@ -248,8 +248,10 @@ meaning
 -> obligations
 -> inspection evidence
 -> measurement
--> execution plans
--> receipts
+-> allocation frame dispatch
+-> stream/invalidation resolution
+-> allocation receipts
+-> lowered execution plans
 -> visual snapshots
 -> observations
 -> rebind
@@ -563,15 +565,76 @@ the runtime.
 - local plan changes can identify a typed affected neighborhood instead of
   widening immediately to whole-page planning
 
-### Milestone 3.7: Allocation Receipts, Incremental Replanning, Scroll, Portal, And Continuous Interaction Measurement
+### Milestone 3.7: Runtime Topology And Proof-Flow Cleanup Gate â€” **Closed**
+
+This slice is a structural cleanup gate, not a product-capability expansion
+milestone. It hardened the shipped 3.1 through 3.6b runtime surfaces before
+allocation receipts, execution-plan lowering, and churn-heavy interaction
+measurement could stack on broad facades, helper swamps, and topology ambiguity.
+
+**Spec:** [`milestone-3.7.md`](./milestone-3.7.md) (Status: Closed; includes
+structural closeout bundle and 3.8 start-here capabilities).
+
+**Shipped (structural)**
+
+- cleanup inventory covering runtime, inspection, query binding, and
+  certification structural residue (critical findings cleared)
+- public-surface cleanup so lifecycle and authority order are visible at the
+  facade rather than hidden behind alphabet soup re-exports
+- runtime tree cleanup that makes planning, activation, reconciliation, handle
+  allocation, and host observation intake visible lanes
+- evidence and proof-flow cleanup so planning, allocation, diagnostics, and
+  certification consume named transition families rather than vocabulary
+  warehouses
+- function decomposition for identity match, measurement inspection projection,
+  and constraint admission pipeline
+- compile-fail and structural-scan enforcement for sealed construction
+  boundaries, narrowed facades, and anti-bypass expectations
+- certification/test cleanup: production authority remains distinct from
+  SUPPORT AUTHORITY (`worth-ui-test-support` + feature-gated fixtures)
+
+**Acceptance evidence**
+
+- public callers can follow one stable lifecycle path without deep imports into
+  internal runtime topology
+- later milestones consume the refactored surfaces without reopening facade or
+  topology shape (see 3.8 consumption rules below)
+- structural scans and compile-fail coverage catch broad-facade, helper, and
+  authority-bypass regressions
+
+### Milestone 3.8: Allocation Receipts, Incremental Replanning, Scroll, Portal, And Continuous Interaction Measurement
+
+Detailed spec: [milestone-3.8.md](./milestone-3.8.md)
 
 This slice closes committed allocation truth and churn-heavy measurement
-behavior after 3.6a and 3.6b planning semantics already exist.
+behavior after 3.6a and 3.6b planning semantics already exist **and after 3.7
+cleaned the runtime topology**. It also owns the runtime frame-dispatch
+boundary that turns admitted continuous-source facts into ordinary allocation
+transitions; stream policy without that dispatcher is incomplete.
+
+**Prerequisite consumption (non-reopen)**
+
+3.8 must start from cleaned 3.7 capabilities, not raw internals:
+
+- planning: `plan_allocation` after admitted measurement basis + neighborhood +
+  constraint pipeline
+- replacement continuity: identity match report after impact narrow
+- measurement: host observation â†’ admit measurement basis â†’ inspection projectors
+- public facade lifecycle order; no deep-import pressure into private runtime
+  modules
+- fixtures only via SUPPORT AUTHORITY (`worth-ui-test-support`); not production
+  test mint paths
+
+3.8 must **not** reintroduce broad root facades, same-level dumping-ground
+trees, helper-only authority, host-owned UI semantics, or certification-as-law.
 
 **Must ship**
 
 - `UiAllocationReceipt`
 - allocation equivalence and reuse basis
+- runtime-owned frame epochs, sealed admitted stream frames, and one ordinary
+  dispatcher from source-to-frame gateways through policy resolution and typed
+  allocation transition outcome
 - invalidation and affected-neighborhood replanning rules for:
   - viewport resize
   - local resize and splitter drag
@@ -587,15 +650,20 @@ behavior after 3.6a and 3.6b planning semantics already exist.
 
 **Acceptance evidence**
 
-- viewport resize enters as host observation and replans only the affected
-  allocation neighborhood
+- viewport resize enters as host observation, is admitted into a runtime-owned
+  stream frame, and replans only the affected allocation neighborhood
 - mosaic resize and local composition allocation use the same measurement lane
 - scroll-owned and portal-anchored measurement remain runtime-owned rather than
   adapter-owned
 - continuous resize and drag pressure stay bounded without broad unrelated
   replanning
+- replay of the same admitted source facts produces the same sealed frame and
+  policy/transition outcome; late ingress, duplicate dispatch, and overflow
+  deny through typed dispatcher evidence
+- new receipts attach to verified planning/measurement transitions, not host
+  folklore or reconstructed booleans
 
-### Milestone 3.8: Execution-Plan Lowering, Equivalence, and Frame-Cost Surfaces
+### Milestone 3.9: Execution-Plan Lowering, Equivalence, and Frame-Cost Surfaces
 
 This slice ensures execution consumes lowered plans instead of reconstructing
 strategy from graph or declaration artifacts every frame.
@@ -608,7 +676,7 @@ strategy from graph or declaration artifacts every frame.
 - compact runtime handles for commands, components, children, tokens, and view
   bindings
 - named counters for reload/lowering work and steady-frame execution work
-- Forge Foundational performance-envelope integration for shared claim
+- WORTH Foundational performance-envelope integration for shared claim
   vocabulary and certified claim bundles
 
 **Acceptance evidence**
@@ -619,7 +687,7 @@ strategy from graph or declaration artifacts every frame.
 - steady-state frame execution proves source parsing, artifact validation,
   registry string lookup, and broad artifact scans remain absent
 
-### Milestone 3.9: Mounted Receipts and Host Contract
+### Milestone 3.10: Mounted Receipts and Host Contract
 
 This slice closes the host boundary: host code may render and observe, but may
 not own visible UI meaning.
@@ -641,7 +709,7 @@ not own visible UI meaning.
 - host cannot receive authored declarations directly
 - host cannot decide visible/disabled/valid/layout meaning
 
-### Milestone 3.10: Visual Snapshot Receipts and Hit-Test Identity Bridge
+### Milestone 3.11: Visual Snapshot Receipts and Hit-Test Identity Bridge
 
 This slice makes screenshots, hit testing, and visible-region targeting
 identity-backed runtime evidence instead of loose image bytes.
@@ -667,7 +735,7 @@ identity-backed runtime evidence instead of loose image bytes.
   declaration, and evidence
 - screenshot support is tied to frame identity rather than loose PNG bytes
 
-### Milestone 3.11: Observation Intake and Hot Rebind Planner
+### Milestone 3.12: Observation Intake and Hot Rebind Planner
 
 This slice makes hot reload real as bounded rebind rather than renderer
 refresh.
@@ -699,7 +767,7 @@ refresh.
 - resize invalidates allocation without broad graph rebind
 - invalid hot edits preserve the last admitted mounted truth
 
-### Milestone 3.12: Query Binding and Projection Consumption Substrate
+### Milestone 3.13: Query Binding and Projection Consumption Substrate
 
 This slice broadens Milestone 2's declared binding references into a minimal
 runtime binding substrate, but not yet the full product surface richness of
@@ -733,7 +801,7 @@ Milestone 6.
 - no local loading/error enum replaces Query posture
 - no renderer-side query builder exists
 
-### Milestone 3.13: Intent, Operability, and Interaction Substrate
+### Milestone 3.14: Intent, Operability, and Interaction Substrate
 
 This slice turns host observations into runtime-routed intents instead of
 widget callbacks.
@@ -773,7 +841,7 @@ widget callbacks.
 - click success is not treated as mutation success
 - invalid submits emit typed intent denials
 
-### Milestone 3.14: Runtime Services Foundation
+### Milestone 3.15: Runtime Services Foundation
 
 This slice closes the cross-cutting service lanes that the certification
 vertical slice depends on.
@@ -799,7 +867,7 @@ vertical slice depends on.
 - motion projections derive from previous receipt + next receipt + motion
   declaration rather than host-local animation meaning
 
-### Milestone 3.15: Appearance, Theme, and Visual State Projection
+### Milestone 3.16: Appearance, Theme, and Visual State Projection
 
 This slice closes runtime-owned visual semantics before Milestone 9 broadens
 into a professional component set. Theme and style meaning already belong to
@@ -843,7 +911,7 @@ rebind-safe rather than renderer-local or component-folklore.
 - Milestone 9 can consume appearance and theme runtime lanes without reopening
   their authority as design-system folklore
 
-### Milestone 3.16: DSL Expressions, Conditions, and Semantic Evaluation
+### Milestone 3.17: DSL Expressions, Conditions, and Semantic Evaluation
 
 This slice makes authored conditions and computed semantic values part of the
 real language rather than helper sugar or renderer-side convenience.
@@ -876,7 +944,7 @@ real language rather than helper sugar or renderer-side convenience.
 - no authored expression requires arbitrary code execution, hidden closures, or
   ambient environment fog
 
-### Milestone 3.17: DSL Composition, Modules, and Lowering Equivalence
+### Milestone 3.18: DSL Composition, Modules, and Lowering Equivalence
 
 This slice makes the DSL feel like a real language with reusable composition,
 module-scale structure, and honest sugar that lowers into the same runtime
@@ -903,7 +971,7 @@ truth rather than creating a second semantic path.
 - the language can broaden in ergonomics without creating a second authority
   lane beside canonical lowering
 
-### Milestone 3.18: Diagnostics, Inspection, and Evidence Closure
+### Milestone 3.19: Diagnostics, Inspection, and Evidence Closure
 
 This slice makes denials, support gaps, and rebind decisions typed, mountable,
 and inspectable instead of spooky.
@@ -926,7 +994,7 @@ and inspectable instead of spooky.
   distinct
 - inspection explains why a node rebound, preserved, remounted, or denied
 
-### Milestone 3.19: Visual Geometry, Design Invariants, and Perceptual Inspection
+### Milestone 3.20: Visual Geometry, Design Invariants, and Perceptual Inspection
 
 This slice lets the runtime answer alignment, spacing, symmetry, and visual
 consistency questions from receipt-backed geometry first and screenshot pixels
@@ -959,7 +1027,7 @@ second.
 - screenshot-confirmed visual inspection remains secondary to receipt-backed
   geometry rather than replacing it
 
-### Milestone 3.20: AI Agent Inspection Tools and Replay Protocol
+### Milestone 3.21: AI Agent Inspection Tools and Replay Protocol
 
 This slice turns the evidence substrate into a real agent-facing repair and
 inspection interface.
@@ -986,7 +1054,7 @@ inspection interface.
 - an agent can replay the last edit to the first denial point
 - an agent can compare before/after frames or receipts by aspect scope
 
-### Milestone 3.21: Worth Inspector Surface
+### Milestone 3.22: Worth Inspector Surface
 
 This slice adds the human-facing runtime inspector as a projection over the
 same evidence substrate the AI harness already uses.
@@ -1012,7 +1080,7 @@ same evidence substrate the AI harness already uses.
 - the inspector can be authored through Worth UI where feasible
 - the inspector does not become the source of diagnostic truth
 
-### Milestone 3.22: Hot Composition Certification Vertical Slice
+### Milestone 3.23: Hot Composition Certification Vertical Slice
 
 This slice is certification, not product scope broadening. It proves the
 runtime architecture through one hostile, realistic workflow.
@@ -1172,7 +1240,7 @@ semantics instead of widget-local conventions.
 ### Goal
 
 Broaden the minimal Query binding and projection-consumption substrate from
-Milestone 3.12 into serious data surfaces that bind to declared Query meaning
+Milestone 3.13 into serious data surfaces that bind to declared Query meaning
 instead of app-local caches, host-shaped events, or widget-owned live-update
 folklore.
 
@@ -1691,7 +1759,7 @@ Worth UI is roadmap-complete only when:
 ## Companion Documents
 
 - [worth-ui-vision.md](./worth-ui-vision.md)
-- [_docs/forge-query/forge_query_vision.md](../forge-query/forge_query_vision.md)
-- [_docs/forge-runtime-bridge/forge_runtime_bridge_vision.md](../forge-runtime-bridge/forge_runtime_bridge_vision.md)
-- [_docs/forge-relational/forge_relational_vision.md](../forge-relational/forge_relational_vision.md)
-- [_docs/forge_signal/forge_signal_vision.md](../forge_signal/forge_signal_vision.md)
+- [_docs/worth-query/worth_query_vision.md](../worth-query/worth_query_vision.md)
+- [_docs/worth-runtime-bridge/worth_runtime_bridge_vision.md](../worth-runtime-bridge/worth_runtime_bridge_vision.md)
+- [_docs/worth-relational/worth_relational_vision.md](../worth-relational/worth_relational_vision.md)
+- [_docs/worth_signal/worth_signal_vision.md](../worth_signal/worth_signal_vision.md)

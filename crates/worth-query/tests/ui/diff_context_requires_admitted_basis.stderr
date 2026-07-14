@@ -1,0 +1,16 @@
+error[E0432]: unresolved imports `worth_query::facade::QueryBasisContextBinding`, `worth_query::facade::QueryBasisContextRequest`
+ --> tests/ui/diff_context_requires_admitted_basis.rs:2:27
+  |
+2 | use worth_query::facade::{QueryBasisContextBinding, QueryBasisContextRequest};
+  |                           ^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^ no `QueryBasisContextRequest` in `facade`
+  |                           |
+  |                           no `QueryBasisContextBinding` in `facade`
+  |
+note: found an item that was configured out
+ --> src/facade.rs
+  |
+  | #[cfg(test)]
+  |       ---- the item is gated here
+...
+  |     QueryBasisContextRequest,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^

@@ -4,6 +4,7 @@ mod evidence_ref_expansion;
 mod foreign_evidence_citation;
 mod measurement_lookup_boundary;
 mod measurement_lookup_support;
+mod planning_detail_admission;
 mod planning_lookup_boundary;
 
 pub use ai_harness::UiInspectionAiHarness;

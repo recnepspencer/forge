@@ -1,0 +1,33 @@
+warning: unreachable expression
+  --> tests/ui/graph_read_access_admission/plan_consumption_constructor_private.rs:4:13
+   |
+ 4 |       let _ = WorthQueryGraphReadAccessPlanConsumption {
+   |  _____________^
+ 5 | |         digest: String::new(),
+ 6 | |         admitted_plan_digest: String::new(),
+ 7 | |         admission_digest: String::new(),
+...  |
+10 | |         execution_counters: todo!(),
+   | |                             ------- any code following this expression is unreachable
+11 | |     };
+   | |_____^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `digest`, `admitted_plan_digest`, `admission_digest`, `execution_binding_digest`, `execution_strategy` and `execution_counters` of struct `WorthQueryGraphReadAccessPlanConsumption` are private
+  --> tests/ui/graph_read_access_admission/plan_consumption_constructor_private.rs:5:9
+   |
+ 4 |     let _ = WorthQueryGraphReadAccessPlanConsumption {
+   |             ---------------------------------------- in this type
+ 5 |         digest: String::new(),
+   |         ^^^^^^ private field
+ 6 |         admitted_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         admission_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 8 |         execution_binding_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         execution_strategy: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+10 |         execution_counters: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^ private field

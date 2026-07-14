@@ -3,37 +3,24 @@ resolver = "2"
 # Road 1 sub-workspaces under cad/workspaces own their own package membership.
 # Keep them out of the root workspace so whole-world orchestration must route
 # through explicit --manifest-path calls rather than silent root ownership.
-exclude = ["cad/workspaces/*"]
+exclude = ["cad/workspaces/*", "crates/worth-geom"]
 members = [
-    "crates/forge-harness",
-    "crates/worth-primitives",
+    "crates/worth-harness",
     "crates/worth-math",
-    "crates/worth-retained-authority",
-    "crates/worth-schema",
-    "crates/worth-topo",
-    "crates/worth-spatial",
-    "crates/forge-core",
-    "crates/forge-topo",
-    "crates/worth-geom",
-    "crates/worth-kernel",
-    "crates/forge-kernel",
-    "crates/forge-io",
     "crates/hadwiger-research",
 
 
-    "crates/forge-repr",
-    "crates/forge-schema",
-    "crates/forge-spec",
-    "crates/forge-runtime-bridge",
-    "crates/forge-server",
-    "crates/forge-query",
-    "crates/forge-foundational",
-    "crates/forge-proof",
-    "crates/forge-store",
-    "crates/forge-signal",
-    "crates/forge-signal-wasm",
-    "crates/forge-spatial",
-    "crates/forge-relational",
+    "crates/worth-runtime-bridge",
+    "crates/worth-server",
+    "crates/worth-query",
+    "crates/worth-query-decl",
+    "crates/worth-query-host",
+    "crates/worth-query-replay",
+    "crates/worth-foundational",
+    "crates/worth-proof",
+    "crates/worth-signal",
+    "crates/worth-signal-wasm",
+    "crates/worth-relational",
 ]
 
 [workspace.metadata.worth_topology]
@@ -55,36 +42,23 @@ version = "0.1.0"
 license = "UNLICENSED"
 
 [workspace.dependencies]
-forge-harness = { path = "crates/forge-harness", version = "0.1.0" }
-# Internal crates — kernel
-worth-primitives = { path = "crates/worth-primitives" }
+worth-harness = { path = "crates/worth-harness", version = "0.1.0" }
+# Internal crates - kernel
 worth-math = { path = "crates/worth-math" }
-worth-retained-authority = { path = "crates/worth-retained-authority" }
-worth-schema = { path = "crates/worth-schema" }
-worth-topo = { path = "crates/worth-topo" }
-worth-spatial = { path = "crates/worth-spatial" }
-forge-core = { path = "crates/forge-core" }
-forge-topo = { path = "crates/forge-topo" }
-worth-geom = { path = "crates/worth-geom" }
-worth-kernel = { path = "crates/worth-kernel" }
-forge-kernel = { path = "crates/forge-kernel" }
-forge-io = { path = "crates/forge-io" }
 hadwiger-research = { path = "crates/hadwiger-research" }
 
 
-forge-repr = { path = "crates/forge-repr" }
-forge-schema = { path = "crates/forge-schema" }
-forge-spec = { path = "crates/forge-spec" }
-forge-runtime-bridge = { path = "crates/forge-runtime-bridge" }
-forge-server = { path = "crates/forge-server" }
-forge-query = { path = "crates/forge-query" }
-forge-foundational = { path = "crates/forge-foundational" }
-forge-proof = { path = "crates/forge-proof" }
-forge-store = { path = "crates/forge-store" }
-forge-signal = { path = "crates/forge-signal" }
-forge-signal-wasm = { path = "crates/forge-signal-wasm" }
-forge-spatial = { path = "crates/forge-spatial" }
-forge-relational = { path = "crates/forge-relational" }
+worth-runtime-bridge = { path = "crates/worth-runtime-bridge" }
+worth-server = { path = "crates/worth-server" }
+worth-query = { path = "crates/worth-query" }
+worth-query-decl = { path = "crates/worth-query-decl" }
+worth-query-host = { path = "crates/worth-query-host" }
+worth-query-replay = { path = "crates/worth-query-replay" }
+worth-foundational = { path = "crates/worth-foundational" }
+worth-proof = { path = "crates/worth-proof" }
+worth-signal = { path = "crates/worth-signal" }
+worth-signal-wasm = { path = "crates/worth-signal-wasm" }
+worth-relational = { path = "crates/worth-relational" }
 
 # Benchmarking
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -118,7 +92,7 @@ rayon = "1"
 
 # ---- Workspace-wide lint policy ----
 # These apply to every crate that declares `lints.workspace = true`.
-# Warnings fail the build automatically — no need to remember `-D warnings`.
+# Warnings fail the build automatically - no need to remember `-D warnings`.
 [workspace.lints.rust]
 unsafe_code = "forbid"
 

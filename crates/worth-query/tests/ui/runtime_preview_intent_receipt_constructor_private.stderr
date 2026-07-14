@@ -1,0 +1,15 @@
+error[E0560]: struct `WorthQueryPreviewIntentReceipt` has no field named `admission_digest`
+  --> tests/ui/runtime_preview_intent_receipt_constructor_private.rs:13:9
+   |
+13 |         admission_digest: "admission".to_string(),
+   |         ^^^^^^^^^^^^^^^^ `WorthQueryPreviewIntentReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryPreviewIntentReceipt` has no field named `receipt_digest`
+  --> tests/ui/runtime_preview_intent_receipt_constructor_private.rs:14:9
+   |
+14 |         receipt_digest: "receipt".to_string(),
+   |         ^^^^^^^^^^^^^^ `WorthQueryPreviewIntentReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned

@@ -1,0 +1,24 @@
+warning: unreachable statement
+ --> tests/ui/subscription_phase_seven/subscription_posture_cannot_author_admission.rs:6:5
+  |
+5 |     let descriptor: LivePromotionDescriptor = todo!();
+  |                                               ------- any code following this expression is unreachable
+6 |     let dimensions: QuerySubscriptionAdmissionDimensions = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+ --> tests/ui/subscription_phase_seven/subscription_posture_cannot_author_admission.rs:9:9
+  |
+7 |     let _ = LiveQueryAdmissionArtifact::from_live_promotion(
+  |             ----------------------------------------------- arguments to this function are incorrect
+8 |         &descriptor,
+9 |         QuerySubscriptionBasisPosture::CurrentHead,
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `ScopedSubscriptionDeclarationBasis`, found `QuerySubscriptionBasisPosture`
+  |
+note: associated function defined here
+ --> src/subscription/input.rs
+  |
+  |     pub fn from_live_promotion(
+  |            ^^^^^^^^^^^^^^^^^^^

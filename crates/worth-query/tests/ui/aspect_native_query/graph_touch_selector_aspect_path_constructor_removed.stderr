@@ -1,0 +1,29 @@
+error[E0599]: no function or associated item named `aspect_path` found for struct `WorthQueryGraphTouchSelector` in the current scope
+ --> tests/ui/aspect_native_query/graph_touch_selector_aspect_path_constructor_removed.rs:6:43
+  |
+6 |     let _ = WorthQueryGraphTouchSelector::aspect_path(touch);
+  |                                           ^^^^^^^^^^^ function or associated item not found in `WorthQueryGraphTouchSelector`
+  |
+note: if you're trying to build a new `WorthQueryGraphTouchSelector` consider using one of the following associated functions:
+      WorthQueryGraphTouchSelector::any_graph_touch
+      WorthQueryGraphTouchSelector::collection
+      WorthQueryGraphTouchSelector::relation_kind
+      WorthQueryGraphTouchSelector::relation_kind_id
+      and $N others
+ --> src/runtime/mutation/graph_composition/obligation/registration/touch_selector.rs
+  |
+  |       pub fn any_graph_touch() -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  | /     pub fn collection(
+  | |         collection: impl Into<String>,
+  | |     ) -> Result<Self, WorthQueryGraphObligationRegistrationDenial> {
+  | |__________________________________________________________________^
+...
+  | /     pub fn relation_kind(
+  | |         relation_kind: impl Into<String>,
+  | |     ) -> Result<Self, WorthQueryGraphObligationRegistrationDenial> {
+  | |__________________________________________________________________^
+...
+  |       pub fn relation_kind_id(relation_kind_id: u32) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,0 +1,11 @@
+error[E0603]: module `subscription` is private
+ --> tests/ui/subscription_bridge_parity_mismatched_declaration_forbidden.rs:1:18
+  |
+1 | use worth_query::subscription::{
+  |                  ^^^^^^^^^^^^ private module
+  |
+note: the module `subscription` is defined here
+ --> src/lib.rs
+  |
+  | mod subscription;
+  | ^^^^^^^^^^^^^^^^

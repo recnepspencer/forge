@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/lower_runtime_routing/certification/closeout/closure_test_constructor_private.rs:21:48
+   |
+21 |       let _ = WorthQueryLowerRuntimeClosureTest::new(
+   |                                                  ^^^ private associated function
+   |
+  ::: src/lower_runtime_routing/certification/closeout_artifacts/closure_test.rs
+   |
+   | /     pub(crate) fn new(
+   | |         certification_bundle: WorthQueryLowerRuntimeCertificationBundle,
+   | |         acceptance_suite: WorthQueryLowerRuntimeAcceptanceSuite,
+   | |         boundary_reconciliation: WorthQueryLowerRuntimeBoundaryReconciliationReport,
+   | |         proof_shape_audit: WorthQueryLowerRuntimeProofShapeAudit,
+   | |         rows: Vec<WorthQueryLowerRuntimeClosureTestRow>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

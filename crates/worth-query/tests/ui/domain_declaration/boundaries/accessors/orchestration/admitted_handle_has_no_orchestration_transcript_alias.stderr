@@ -1,0 +1,11 @@
+error[E0599]: no method named `orchestrate_declaration_entry_transcript` found for struct `WorthQueryAdmittedConfiguredDomainHandle<D, C>` in the current scope
+  --> tests/ui/domain_declaration/boundaries/accessors/orchestration/admitted_handle_has_no_orchestration_transcript_alias.rs:68:20
+   |
+68 |     let _ = handle.orchestrate_declaration_entry_transcript(TrimSegmentAtIntersection);
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `orchestrate_declaration_entry` with a similar name
+   |
+68 -     let _ = handle.orchestrate_declaration_entry_transcript(TrimSegmentAtIntersection);
+68 +     let _ = handle.orchestrate_declaration_entry(TrimSegmentAtIntersection);
+   |

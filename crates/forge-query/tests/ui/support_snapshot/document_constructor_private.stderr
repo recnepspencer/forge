@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `forge_query::facade::consumer_kit::ForgeQuerySupportSnapshotDocument`
- --> tests/ui/support_snapshot/document_constructor_private.rs:1:5
-  |
-1 | use forge_query::facade::consumer_kit::ForgeQuerySupportSnapshotDocument;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^---------------------------------
-  |     |                                  |
-  |     |                                  help: a similar name exists in the module: `ForgeQuerySupportSnapshotRow`
-  |     no `ForgeQuerySupportSnapshotDocument` in `facade::consumer_kit`

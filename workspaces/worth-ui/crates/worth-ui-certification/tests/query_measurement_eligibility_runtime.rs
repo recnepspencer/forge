@@ -1,13 +1,14 @@
 #[path = "fixtures/query_measurement_eligibility_support/mod.rs"]
 mod query_measurement_eligibility_support;
 
-use worth_ui::facade::admission::{
-    UiAdmissionQueryBasis, UiAdmissionWorld, UiMeasurementAdmissionPosture,
-    UiMeasurementUnsupportedReason, UiQueryMeasurementBasisAuthority,
-    UiQueryMeasurementEligibilityPosture, UiQueryMeasurementUnsupportedQueryReason,
-};
+use worth_ui::facade::admission::{UiAdmissionQueryBasis, UiAdmissionWorld};
 use worth_ui::facade::obligations::UiObligationFamily;
 use worth_ui_query_binding::WorthUiQueryMeasurementFactFamily;
+use worth_ui_test_support::{
+    UiMeasurementAdmissionPosture, UiMeasurementUnsupportedReason,
+    UiQueryMeasurementBasisAuthority, UiQueryMeasurementEligibilityPosture,
+    UiQueryMeasurementUnsupportedQueryReason,
+};
 
 use self::query_measurement_eligibility_support::{
     available_measurement_target, denied_display_field_projection_consumption,
@@ -24,9 +25,9 @@ fn query_backed_measurement_eligibility_stays_distinct_and_bounds_required_famil
     let app = query_measurement_app(world_profile);
     let touch = measurement_touch(&app, 0);
     let eligibility = app
-        .admit_query_measurement_eligibility_for_touch_from_projection_consumption(
+        .admit_query_measurement_eligibility_for_touch_from_query_authority(
             &touch,
-            &display_consumption,
+            display_consumption.clone(),
         )
         .expect("query-backed measurement should produce typed query eligibility");
     let selected = app.admission().select_obligations_for_target(
@@ -113,10 +114,10 @@ fn wrong_world_query_measurement_eligibility_remains_explicit_prerequisite_resid
         .expect("phase-4 measurement admission should remain available as an identity carrier");
     let wrong_world = app
         .admission()
-        .admit_query_measurement_eligibility_from_projection_consumption(
+        .admit_query_measurement_eligibility_from_query_authority(
             &wrong_world_selected,
             &wrong_world_measurement,
-            &current_display_consumption,
+            current_display_consumption,
         )
         .expect("query-backed measurement should produce typed query denial");
 
@@ -147,10 +148,10 @@ fn query_measurement_eligibility_from_projection_consumption_rejects_cross_basis
         .expect("query-backed measurement should still lower a phase-4 admission artifact");
     let stale = app
         .admission()
-        .admit_query_measurement_eligibility_from_projection_consumption(
+        .admit_query_measurement_eligibility_from_query_authority(
             &selected,
             &measurement_admission,
-            &next_display_consumption,
+            next_display_consumption,
         )
         .expect("cross-basis projection consumption should produce a typed query denial");
 
@@ -179,13 +180,12 @@ fn query_measurement_eligibility_from_projection_consumption_rejects_cross_basis
                 );
                 assert_eq!(
                     expected_resolution_mode,
-                    &measurement_admission
+                    measurement_admission
                         .target()
                         .query_prerequisites()
                         .expect("current target should retain query prerequisites")
                         .resolution_report()
                         .resolution_mode()
-                        .clone()
                 );
                 assert_ne!(
                     expected_projection_contract_digest.as_deref(),
@@ -207,9 +207,9 @@ fn query_measurement_eligibility_for_touch_reports_unavailable_required_fact_fam
     let app = query_measurement_app(world_profile);
     let touch = measurement_touch(&app, 0);
     let unavailable = app
-        .admit_query_measurement_eligibility_for_touch_from_projection_consumption(
+        .admit_query_measurement_eligibility_for_touch_from_query_authority(
             &touch,
-            &view_local_consumption,
+            view_local_consumption,
         )
         .expect("missing required fact family should produce typed denial");
     assert!(
@@ -235,27 +235,11 @@ fn query_measurement_eligibility_for_touch_rejects_unavailable_projection_consum
 ) {
     let (world_profile, denied_consumption) =
         denied_display_field_projection_consumption("unavailable-consumption");
-    let app = query_measurement_app(world_profile);
-    let touch = measurement_touch(&app, 0);
-    let denial = app
-        .admit_query_measurement_eligibility_for_touch_from_projection_consumption(
-            &touch,
-            &denied_consumption,
-        )
-        .expect("non-admitted projection consumption should produce a typed unsupported posture");
-
+    let _ = world_profile;
     assert!(
-        denial.projection_fact_receipt().is_none(),
-        "projection-consumption denial must not fall back to local Query state or carry a synthetic receipt"
-    );
-    assert_eq!(
-        denial.posture(),
-        &UiQueryMeasurementEligibilityPosture::UnsupportedQueryPosture {
-            world: UiAdmissionWorld::from_graph_world_profile(
-                touch.world().world_profile().clone(),
-            ),
-            reason: UiQueryMeasurementUnsupportedQueryReason::ProjectionConsumptionUnavailable,
-        }
+        worth_ui_query_binding::WorthUiQueryAuthorityHandle::from_outcome(denied_consumption)
+            .is_err(),
+        "denied Query consumption must not produce a downstream authority handle"
     );
 }
 
@@ -266,15 +250,15 @@ fn host_only_measurement_requirements_do_not_widen_public_query_measurement_iden
     let host_and_query_app = query_measurement_app(world_profile.clone());
     let query_only_app = query_only_measurement_app(world_profile);
     let host_and_query = host_and_query_app
-        .admit_query_measurement_eligibility_for_touch_from_projection_consumption(
+        .admit_query_measurement_eligibility_for_touch_from_query_authority(
             &measurement_touch(&host_and_query_app, 0),
-            &display_consumption,
+            display_consumption.clone(),
         )
         .expect("host-plus-query declaration should admit");
     let query_only = query_only_app
-        .admit_query_measurement_eligibility_for_touch_from_projection_consumption(
+        .admit_query_measurement_eligibility_for_touch_from_query_authority(
             &measurement_touch(&query_only_app, 0),
-            &display_consumption,
+            display_consumption,
         )
         .expect("query-only declaration should admit");
     let host_and_query_receipt = host_and_query
@@ -322,9 +306,9 @@ fn portal_anchored_measurement_does_not_widen_into_query_fact_eligibility() {
     let app = query_measurement_app(world_profile);
     let touch = measurement_touch(&app, 1);
     assert!(
-        app.admit_query_measurement_eligibility_for_touch_from_projection_consumption(
+        app.admit_query_measurement_eligibility_for_touch_from_query_authority(
             &touch,
-            &display_consumption,
+            display_consumption,
         )
         .is_none(),
         "portal-anchored measurement should not acquire query fact eligibility from unrelated query families"
@@ -348,10 +332,10 @@ fn query_measurement_eligibility_from_projection_consumption_rejects_same_basis_
         .expect("query-backed measurement should still lower a phase-4 admission artifact");
     let denial = app
         .admission()
-        .admit_query_measurement_eligibility_from_projection_consumption(
+        .admit_query_measurement_eligibility_from_query_authority(
             &selected,
             &measurement_admission,
-            &view_local_consumption,
+            view_local_consumption,
         )
         .expect("scope mismatch should produce a typed query denial");
     assert!(

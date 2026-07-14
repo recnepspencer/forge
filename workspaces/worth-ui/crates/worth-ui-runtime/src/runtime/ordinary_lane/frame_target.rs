@@ -56,7 +56,7 @@ impl WorthUiOrdinaryFrameTarget {
         self.kind
     }
 
-    pub(crate) const fn is_command(self) -> bool {
+    pub const fn is_command(self) -> bool {
         matches!(self.kind, WorthUiOrdinaryFrameTargetKind::Command(_))
     }
 

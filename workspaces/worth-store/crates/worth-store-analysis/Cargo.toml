@@ -1,0 +1,13 @@
+[package]
+name = "worth-store-analysis"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 1 basis-anchored analysis lanes."
+
+[dependencies]
+worth-store-contracts.workspace = true
+worth-store-extensions.workspace = true
+
+[lints]
+workspace = true

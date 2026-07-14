@@ -1,0 +1,15 @@
+error[E0574]: expected struct, variant or union type, found enum `WorthQueryAdmittedIntentExecutionHandoff`
+ --> tests/ui/intent_execution_handoff_constructor_private.rs:4:13
+  |
+4 |     let _ = WorthQueryAdmittedIntentExecutionHandoff {
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a struct, variant or union type
+
+warning: unreachable expression
+ --> tests/ui/intent_execution_handoff_constructor_private.rs:6:25
+  |
+5 |         plan: todo!(),
+  |               ------- any code following this expression is unreachable
+6 |         handoff_digest: String::new(),
+  |                         ^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

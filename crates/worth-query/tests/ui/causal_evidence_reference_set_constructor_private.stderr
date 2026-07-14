@@ -1,0 +1,31 @@
+warning: unreachable statement
+ --> tests/ui/causal_evidence_reference_set_constructor_private.rs:5:5
+  |
+4 |     let anchor: CausalObservationAnchor = todo!();
+  |                                           ------- any code following this expression is unreachable
+5 |     let references: Vec<CausalEvidenceReference> = Vec::new();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `anchor`
+ --> tests/ui/causal_evidence_reference_set_constructor_private.rs:4:9
+  |
+4 |     let anchor: CausalObservationAnchor = todo!();
+  |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_anchor`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `anchor`, `references`, `reference_set_digest` and `receipt` of struct `CausalEvidenceReferenceSet` are private
+  --> tests/ui/causal_evidence_reference_set_constructor_private.rs:10:9
+   |
+ 9 |     let _ = CausalEvidenceReferenceSet {
+   |             -------------------------- in this type
+10 |         anchor,
+   |         ^^^^^^ private field
+11 |         references,
+   |         ^^^^^^^^^^ private field
+12 |         reference_set_digest,
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+13 |         receipt,
+   |         ^^^^^^^ private field

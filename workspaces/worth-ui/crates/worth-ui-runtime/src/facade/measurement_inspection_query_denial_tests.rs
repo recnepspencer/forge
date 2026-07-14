@@ -5,14 +5,14 @@ use worth_ui_inspection::{
     UiInspectionMeasurementQueryFactFamily, UiInspectionTarget,
 };
 
-use crate::evidence::projection_fact_test_support::{
+use crate::evidence::measurement::projection::fact_test_support::{
     capability_report, entity_identity_projection_context, host_result_font_metrics,
 };
 
+use super::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 use super::measurement_inspection_test_support::{
     graph_node_identity, measurement_detail, measurement_query, query_measurement_app_in_world,
 };
-use super::UiMeasurementInspectionEvidenceBundle;
 
 #[test]
 fn graph_node_measurement_inspection_reports_unavailable_fact_families_on_public_lane() {
@@ -31,7 +31,7 @@ fn graph_node_measurement_inspection_reports_unavailable_fact_families_on_public
                 "app/measurement_inspection.wui",
                 0,
             )
-            .with_query_projection_consumption(consumption)
+            .with_query_authority(consumption)
             .with_host_capability_report(host_report)
             .with_host_measurement_results([host_result]),
         ),

@@ -549,7 +549,7 @@ Equivalent pressure: `MB-T4-NMT-3`, `MB-CT4-NMT-3`, `MB-FT4-NMT-3`, stopped
 before boolean, trim, or fillet execution.
 
 M6-specific open-topology proof. Composes `MB-M6-6` posture law with
-`MB-M6-7` nine-lane parity and `MB-M6-4` retained-checkpoint forgery traps.
+`MB-M6-7` nine-lane parity and `MB-M6-4` retained-checkpoint WORTHry traps.
 
 ### Scenario
 
@@ -574,7 +574,7 @@ comparison across nine lanes:
 - diagnostics
 
 Stack movement and rotation pressure with `HostileCancellation` and
-`MovementRotationStack` variants. Inject cross-class forgery by replaying
+`MovementRotationStack` variants. Inject cross-class WORTHry by replaying
 retained checkpoints from one open class onto another and from closed
 `coplanar_overlap_storm` onto each open class.
 
@@ -634,7 +634,7 @@ Additionally branch these cross-class traps:
   must fail before outcome classification.
 - Foreign checkpoint stage substitution at checkpoint 11 must cite workload
   catalog transform evidence receipt identity mismatch.
-- Projection-consumed identity forgery shaped like retained replay must deny at a
+- Projection-consumed identity WORTHry shaped like retained replay must deny at a
   named checkpoint (for example checkpoint 25).
 - Trigger-local replay omission at a predicate-uncertain or policy-required
   checkpoint must deny as missing evidence, not integrity mismatch mislabel.

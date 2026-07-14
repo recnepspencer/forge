@@ -1,0 +1,20 @@
+[package]
+name = "worth-store-lsm-authority"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "LSM durable-membership, compaction-publication, and replay authority."
+
+[dependencies]
+worth-store-authority.workspace = true
+worth-store-physical-isolation.workspace = true
+worth-store-recovery-physics.workspace = true
+worth-store-security.workspace = true
+worth-store-wal.workspace = true
+sha2 = "0.10"
+
+[dev-dependencies]
+worth-store-security = { workspace = true, features = ["certification-test-authority"] }
+
+[lints]
+workspace = true

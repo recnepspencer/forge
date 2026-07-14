@@ -1,14 +1,14 @@
-use forge_foundational::facade::{
+use worth_foundational::facade::{
     derive_canonical_digest, prepare_canonical_basis_sequence, CanonicalBasisDomain,
     CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue,
     CanonicalDigestAlgorithmId, CanonicalDigestFrontDoor, CanonicalizationRuleVersion,
 };
-use forge_proof::TransitionOutcome;
+use worth_proof::TransitionOutcome;
 
 use super::aspect_kinds::{HadwigerAspectKind, HadwigerAspectPosture};
 use super::dependency_edges::{HadwigerAspectDependencyEdge, HadwigerAspectInvalidationScope};
 
-const HADWIGER_ASPECT_CLOSURE_DIGEST_VERSION: &str = "forge.hadwiger.aspect_closure.v1";
+const HADWIGER_ASPECT_CLOSURE_DIGEST_VERSION: &str = "WORTH.hadwiger.aspect_closure.v1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HadwigerConservativeInvalidationPosture {
@@ -214,7 +214,7 @@ fn closure_digest(
     blockers: &[HadwigerDependencyClosureBlocker],
     invalidation_posture: HadwigerConservativeInvalidationPosture,
 ) -> String {
-    let domain = CanonicalBasisDomain::Future("forge.hadwiger.aspect_closure");
+    let domain = CanonicalBasisDomain::Future("WORTH.hadwiger.aspect_closure");
     let mut entries = vec![
         text_entry(
             domain,

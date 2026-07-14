@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/declarative_workflow/read_only_context_cannot_promote.rs:9:38
+  |
+9 |     let _request = declaration.using(context);
+  |                                ----- ^^^^^^^ expected `WorthQueryPromotionPreviewContext`, found `WorthQueryReadOnlyPreviewContext`
+  |                                |
+  |                                arguments to this method are incorrect
+  |
+note: method defined here
+ --> src/ordinary/preview/request.rs
+  |
+  |     pub fn using(
+  |            ^^^^^

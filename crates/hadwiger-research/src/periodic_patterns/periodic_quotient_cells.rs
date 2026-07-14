@@ -137,7 +137,7 @@ impl PeriodicQuotientCellBuilder {
             vec![
                 HadwigerArtifactPayloadEntry::text(
                     "schema",
-                    "forge.hadwiger.periodic_quotient_cell.v1",
+                    "WORTH.hadwiger.periodic_quotient_cell.v1",
                 ),
                 HadwigerArtifactPayloadEntry::text("quotient", stable_token),
             ],

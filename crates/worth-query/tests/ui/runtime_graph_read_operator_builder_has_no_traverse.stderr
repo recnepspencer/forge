@@ -1,0 +1,5 @@
+error[E0599]: no method named `traverse` found for struct `DetailReadOperatorQueryBuilder` in the current scope
+ --> tests/ui/runtime_graph_read_operator_builder_has_no_traverse.rs:5:19
+  |
+5 |     let _ = query.traverse(TraversalSelector::bounded("manager", 1).unwrap());
+  |                   ^^^^^^^^ method not found in `DetailReadOperatorQueryBuilder`

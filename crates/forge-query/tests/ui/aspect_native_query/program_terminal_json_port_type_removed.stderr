@@ -1,5 +1,0 @@
-error[E0599]: no variant or associated item named `TerminalJson` found for enum `ForgeQueryPortType` in the current scope
- --> tests/ui/aspect_native_query/program_terminal_json_port_type_removed.rs:4:69
-  |
-4 |     let _ = ForgeQueryTypedPort::new("payload", ForgeQueryPortType::TerminalJson);
-  |                                                                     ^^^^^^^^^^^^ variant or associated item not found in `ForgeQueryPortType`

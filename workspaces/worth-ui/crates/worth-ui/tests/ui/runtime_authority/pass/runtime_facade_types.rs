@@ -52,7 +52,7 @@ use worth_ui::facade::{
     WorthUiQuerySupportReceipt, WorthUiQuerySupportStatus, WorthUiRendererResourceImpact,
     WorthUiRepeatedTemplateIdentity, WorthUiReplacementCandidate,
     WorthUiReplacementCandidateBasis,
-    WorthUiReadyActivation, WorthUiReplacementCandidateDenial, WorthUiReplacementCause,
+    WorthUiReplacementCandidateDenial, WorthUiReplacementCause,
     WorthUiReplacementImpact, WorthUiReplacementImpactClassification, WorthUiReplacementImpactClassifier,
     WorthUiReplacementImpactCounters, WorthUiReplacementImpactDenial, WorthUiReplacementScope,
     WorthUiRuntimeActivationStatus, WorthUiRuntimeArtifactComparator,
@@ -62,7 +62,7 @@ use worth_ui::facade::{
     WorthUiPanelVisibilityReconciliation, WorthUiRuntimeHandle, WorthUiRuntimeHandleAllocation,
     WorthUiRuntimeHandleAllocationBasis, WorthUiRuntimeHandleAllocationCounters,
     WorthUiRuntimeHandleAllocationDenial, WorthUiRuntimeHandleAllocationDenialReason,
-    WorthUiRuntimeHandleAllocationReceipt, WorthUiRuntimeHandleFamilyWidths, WorthUiRuntimeHost,
+    WorthUiRuntime, WorthUiRuntimeHandleAllocationReceipt, WorthUiRuntimeHandleFamilyWidths,
     WorthUiRuntimeLaunch, WorthUiPlanLoweringBasis, WorthUiPlanLoweringContext,
     WorthUiPlanLoweringCounters, WorthUiPlanLoweringDenial, WorthUiPlanLoweringDenialReason,
     WorthUiPlanNode, WorthUiPlanNodeFamily, WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily,
@@ -80,7 +80,7 @@ use worth_ui::facade::{
 };
 
 fn accepts_runtime_types(
-    _host: Option<WorthUiRuntimeHost>,
+    _host: Option<WorthUiRuntime>,
     _pending_activation: Option<WorthUiPendingActivation>,
     _pending_plan_lowering_input: Option<WorthUiPendingExecutionPlanLoweringInput>,
     _execution_plan_input: Option<WorthUiExecutionPlanInput>,
@@ -117,7 +117,6 @@ fn accepts_runtime_types(
     _activation_gate_receipt: Option<WorthUiActivationGateReceipt>,
     _frame_boundary: Option<WorthUiFrameBoundary>,
     _frame_boundary_posture: Option<WorthUiFrameBoundaryPosture>,
-    _ready_activation: Option<WorthUiReadyActivation>,
     _launch: Option<WorthUiRuntimeLaunch>,
     _launch_denial: Option<WorthUiRuntimeLaunchDenial>,
     _active: Option<WorthUiActiveRuntimeObservation>,
@@ -336,7 +335,7 @@ fn main() {
         None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
         None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
         None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-        None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None, None, None, None, None, None,
     );
     accepts_plan_topology_types(
         None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,

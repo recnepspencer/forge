@@ -4,7 +4,7 @@
   "current": null,
   "project": {
     "name": "Worth Touched Graph Milestone 14 Unified Compiled Product Cache And Equivalence Contracts",
-    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "cwd": "C:/Users/Esther/Documents/Programming/WORTH_workspace/worktree_2",
     "spec_file": "_docs/worth/touched-graph-milestone-14-unified-compiled-product-cache-and-equivalence-contracts.md",
     "context_files": [
       "_docs/coding_guidelines/MENTALITY.md",
@@ -13,13 +13,13 @@
       "_docs/coding_guidelines/domain_structure_laws.md",
       "_docs/coding_guidelines/perf_laws.md",
       "_docs/more_guidelines/dx_laws.md",
-      "crates/forge-query/docs/AI_README.md",
-      "crates/forge-query/docs/foundations/consumer-kit.md",
-      "crates/forge-query/docs/foundations/support-matrix-and-admission.md",
-      "crates/forge-query/docs/foundations/downstream-runtime-integration.md",
-      "crates/forge-query/docs/domain-capabilities/support/lower-runtime-support-and-boundary-traceability.md",
-      "crates/forge-query/docs/domain-capabilities/support/declaration-scoped-support-and-traceability.md",
-      "crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md",
+      "crates/worth-query/docs/AI_README.md",
+      "crates/worth-query/docs/foundations/consumer-kit.md",
+      "crates/worth-query/docs/foundations/support-matrix-and-admission.md",
+      "crates/worth-query/docs/foundations/downstream-runtime-integration.md",
+      "crates/worth-query/docs/domain-capabilities/support/lower-runtime-support-and-boundary-traceability.md",
+      "crates/worth-query/docs/domain-capabilities/support/declaration-scoped-support-and-traceability.md",
+      "crates/worth-query/docs/domain-capabilities/declaration-boundary-envelopes.md",
       "_docs/worth/touched-graph-roadmap.md",
       "_docs/worth/touched-graph-milestone-12-canonical-semantic-graph-contract-for-replay-and-undo.md",
       "_docs/worth/touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md",
@@ -209,7 +209,7 @@
       "qa_status": "passed",
       "notes": {
         "plan": [
-          "replace forged stage/projection/retained-cancellation artifacts with receipt-driven fixtures, add closeout-to-lowering proof parity assertions, and add public-boundary certification for facade::spatial_compiled_product_family re-exports"
+          "replace WORTHd stage/projection/retained-cancellation artifacts with receipt-driven fixtures, add closeout-to-lowering proof parity assertions, and add public-boundary certification for facade::spatial_compiled_product_family re-exports"
         ],
         "done": [
           "phase 4 code-quality review closed"
@@ -265,7 +265,7 @@
         "verification": [
           "cargo test -p worth-kernel compiled_product_consumer_cutover --lib => exit 0; tail: 9 passed, 0 failed",
           "cargo test -p worth-kernel workload_composition::public_closeout::tests --lib => exit 0; tail: 5 passed, 0 failed",
-          "cargo test -p worth-kernel kernel_public_boundary_rejects_compiled_product_consumer_cutover_forgery --lib => exit 0; tail: 1 passed, 0 failed"
+          "cargo test -p worth-kernel kernel_public_boundary_rejects_compiled_product_consumer_cutover_WORTHry --lib => exit 0; tail: 1 passed, 0 failed"
         ]
       }
     },
@@ -345,7 +345,7 @@
           "cargo test -p worth-spatial compiled_product_admission --lib => exit 0; tail: 4 passed, 0 failed",
           "cargo test -p worth-spatial ordinary_index_path_uses_selected_slice_only_even_with_surrounding_broad_scan_residue --lib => exit 0; tail: 1 passed, 0 failed",
           "cargo test -p worth-spatial proof_parity --lib => exit 0; tail: 1 passed, 0 failed",
-          "cargo test -p worth-spatial public_api_cannot_forge_lookup_products --lib => exit 0; tail: compile-fail contract passed"
+          "cargo test -p worth-spatial public_api_cannot_WORTH_lookup_products --lib => exit 0; tail: compile-fail contract passed"
         ]
       }
     },
@@ -383,7 +383,7 @@
         ],
         "verification": [
           "cargo test -p worth-kernel spatial_conflict_input_rejects_selected_family_mismatch_before_selection --lib => exit 0 | tail: 1 passed; downstream selected-family mismatch denied before selection; warnings only",
-          "cargo test -p worth-kernel lookup_consumed_workload_caller_path_rejects_forged_selected_family_downstream --lib => exit 0 | tail: 1 passed; hostile caller path denied downstream after 224s; warnings only",
+          "cargo test -p worth-kernel lookup_consumed_workload_caller_path_rejects_WORTHd_selected_family_downstream --lib => exit 0 | tail: 1 passed; hostile caller path denied downstream after 224s; warnings only",
           "cargo test -p worth-spatial evidence_lookup_workload_cutover --lib => exit 0 | tail: 3 passed; workload cutover contract and no-rescan seed proof hold",
           "cargo test -p worth-topo equivalence_contract --lib => exit 0 | tail: 9 passed; comparator-contract fallback denials still hold"
         ]
@@ -549,19 +549,19 @@
           "cargo test -p worth-kernel lookup_consumed_workload_consumer_ --lib => 0 | 2 passed; finished in 201.64s",
           "cargo test -p worth-kernel denied_reuse_resolution_preserves_localized_kernel_boundary_meaning --lib => 0 | 1 passed; finished in 195.14s",
           "cargo test -p worth-kernel rebuild_required_resolution_stays_a_real_consumer_success_posture --lib => 0 | 1 passed; finished in 192.84s",
-          "cargo test -p worth-spatial public_api_cannot_forge_lookup_products --lib => 0 | 1 compile-fail lane passed"
+          "cargo test -p worth-spatial public_api_cannot_WORTH_lookup_products --lib => 0 | 1 compile-fail lane passed"
         ]
       }
     },
     {
       "id": 13,
       "title": "Query-Backed, Public Closeout, And Read-Model Consumer Cluster Cutover",
-      "owner": "worth-kernel, worth-spatial, worth-topo, forge-query",
+      "owner": "worth-kernel, worth-spatial, worth-topo, worth-query",
       "scope": [
         "crates/worth-kernel/src/workload_composition/public_closeout",
         "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout",
         "crates/worth-topo/src/projection",
-        "crates/forge-query/docs"
+        "crates/worth-query/docs"
       ],
       "acceptance": [
         "query-backed and public-closeout consumers migrate onto the new compiled-product lane without reopening local cache or equivalence folklore",

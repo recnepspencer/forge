@@ -1,0 +1,28 @@
+error: cannot construct `WorthQueryDeclarationEntryOrchestrationInput<GeometryDomain, FakeInput>` with struct literal syntax due to private fields
+  --> tests/ui/domain_declaration/boundaries/construction/orchestration/artifacts/orchestration_input_private.rs:38:13
+   |
+38 |     let _ = WorthQueryDeclarationEntryOrchestrationInput::<GeometryDomain, FakeInput> {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+39 |         declaration_family_key: "fake",
+   |         ------------------------------ private field
+40 |         world_basis: unsafe { std::mem::zeroed::<WorthQueryAdmittedWorldBasis>() },
+   |         -------------------------------------------------------------------------- private field
+41 |         exposure_level: WorthQueryDeclarationEntryOrchestrationExposureLevel::Checked,
+   |         ----------------------------------------------------------------------------- private field
+42 |         artifact_policy: WorthQueryDeclarationEntryOrchestrationArtifactPolicy::CheckedOutcomeOnly,
+   |         ------------------------------------------------------------------------------------------ private field
+43 |         _marker: std::marker::PhantomData,
+   |         --------------------------------- private field
+   |
+   = note: ...and other private fields `aspect_contract`, `aspect_coverage` and `aspect_coverage_basis` that were not provided
+help: you might have meant to use the `new` associated function
+   |
+38 -     let _ = WorthQueryDeclarationEntryOrchestrationInput::<GeometryDomain, FakeInput> {
+39 -         declaration_family_key: "fake",
+40 -         world_basis: unsafe { std::mem::zeroed::<WorthQueryAdmittedWorldBasis>() },
+41 -         exposure_level: WorthQueryDeclarationEntryOrchestrationExposureLevel::Checked,
+42 -         artifact_policy: WorthQueryDeclarationEntryOrchestrationArtifactPolicy::CheckedOutcomeOnly,
+43 -         _marker: std::marker::PhantomData,
+44 -     };
+38 +     let _ = WorthQueryDeclarationEntryOrchestrationInput::<GeometryDomain, FakeInput>::new(_, _, _, _, _, _);
+   |

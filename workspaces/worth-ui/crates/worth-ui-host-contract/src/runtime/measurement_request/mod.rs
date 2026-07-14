@@ -26,6 +26,6 @@ pub use measurement_request_identity::UiMeasurementRequestIdentity;
 pub use payloads::{
     UiDpiScaleFactorRequest, UiFontMeasurementKey, UiFontMetricsRequest,
     UiNativeControlIntrinsicSizeRequest, UiNativeControlKind, UiPortalAnchorRectRequest,
-    UiScrollContainerViewportRequest, UiTextBaselineMetricsRequest, UiTextIntrinsicSizeRequest,
-    UiViewportExtentRequest,
+    UiPortalAnchorTargetIdentity, UiScrollContainerViewportRequest, UiTextBaselineMetricsRequest,
+    UiTextIntrinsicSizeRequest, UiViewportExtentRequest,
 };

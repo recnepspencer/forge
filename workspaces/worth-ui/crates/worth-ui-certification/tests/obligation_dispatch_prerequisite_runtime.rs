@@ -1,5 +1,5 @@
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 use worth_ui::facade::admission::{
     UiAdmissionHostCapability, UiAdmissionQueryBasis, UiAdmissionSelectionBudget,
@@ -11,10 +11,13 @@ use worth_ui::facade::obligations::{
 };
 
 use self::obligation_dispatch_prerequisite_support::{
-    ambiguous_host_capability_target, ambiguous_query_basis_target,
-    available_host_capability_target, budget_exceeded_target, execute_for_target,
-    missing_host_capability_target, query_touch, query_touch_app, service_touch, service_touch_app,
-    stale_query_basis_target, structural_touch, structural_touch_app, wrong_query_basis_target,
+    apps::{query_touch_app, service_touch_app, structural_touch_app},
+    targets::{
+        ambiguous_host_capability_target, ambiguous_query_basis_target,
+        available_host_capability_target, budget_exceeded_target, execute_for_target,
+        missing_host_capability_target, stale_query_basis_target, wrong_query_basis_target,
+    },
+    touches::{query_touch, service_touch, structural_touch},
 };
 
 #[test]

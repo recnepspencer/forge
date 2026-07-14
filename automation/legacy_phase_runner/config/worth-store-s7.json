@@ -1,0 +1,517 @@
+﻿{
+  "schema_version": 1,
+  "project": {
+    "name": "Worth Store Roadmap 2 S.7 Native Blob/Object Chunk Store",
+    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/forge",
+    "spec_file": "_docs/worth-store/storage-foundation-s7.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/worth-store/worth_store_roadmap_2.md",
+      "_docs/worth-store/test-requirements.md",
+      "_docs/worth-store/test-requirements-2.md",
+      "_docs/worth-store/storage-foundation-s4-5.md",
+      "_docs/worth-store/storage-foundation-s5.md",
+      "_docs/worth-store/storage-foundation-s5-1.md",
+      "_docs/worth-store/storage-foundation-s6.md",
+      "_docs/worth-store/storage-foundation-s7.md",
+      "crates/worth-foundational/docs/FOUNDATIONAL_README.md",
+      "crates/worth-proof/README.md",
+      "_docs/worth-proof/worth_proof_roadmap.md",
+      "workspaces/worth-store/README.md",
+      "workspaces/worth-store/Cargo.toml",
+      "workspaces/worth-store/crates/worth-store-authority/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-blob-chunks/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-budgets/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-buffer-pool/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-certification/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-contracts/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-io-scheduler/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-offline-verifier/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-operations/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-backend/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-certification/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-format/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-isolation/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-readiness/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-recovery-physics/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-security/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-test-support/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-tiering/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-wal/src/lib.rs",
+      "crates/worth-foundational/src/lib.rs",
+      "crates/worth-proof/src/lib.rs"
+    ]
+  },
+  "turn_templates": {
+    "boundary_review": "templates/boundary_review.md",
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md",
+    "code_quality_repair": "templates/code_quality_repair.md"
+  },
+  "contract_template": "templates/_contract_store_s7.md",
+  "session_defaults": {
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.5",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    }
+  },
+  "runner_control": {
+    "idle_timeout_seconds": 900,
+    "turn_timeout_seconds": 7200
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Blob Lifecycle Authority Boundary",
+      "owner": "`worth-store-blob-chunks`, `worth-store-readiness`, `worth-store-authority`, `worth-store-claim-boundaries`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-authority"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: the same admitted chunk lifecycle replay produces the same sealed lifecycle boundary artifacts and counters across repeated certification runs.",
+        "Adversarial denial: copied digest strings, copied counters, S.3 integrity reports, terminal projection rows, and imported manifest text cannot construct S.7 lifecycle receipts.",
+        "Compile-fail: external crates cannot construct scoped chunk, lifecycle, reachability, or placement proof types from raw fields."
+      ],
+      "instructions": "Implement S.7 Phase 1 from the spec: Blob Lifecycle Authority Boundary. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 2,
+      "title": "Security-Scope Admission And Chunk Metadata Law",
+      "owner": "`worth-store-blob-chunks`, `worth-store-security`, `worth-store-readiness`, `worth-store-authority`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-authority"
+      ],
+      "acceptance": [
+        "Adversarial preservation: every admitted chunk proof carries key scope, key version, tenant scope, authenticity class, and custody posture through the phase-local witness.",
+        "Adversarial denial: wrong tenant, wrong key scope, stale key version, unsupported custody posture, identity-provider claims, and deserialized metadata declarations fail before chunk witness construction.",
+        "Compile-fail: callers cannot build blob chunk security scope from raw strings, JWT claims, KMS ids, IAM role names, or operator identities."
+      ],
+      "instructions": "Implement S.7 Phase 2 from the spec: Security-Scope Admission And Chunk Metadata Law. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 3,
+      "title": "Chunk Byte Identity, Checksum, And Physical Integrity",
+      "owner": "`worth-store-blob-chunks`, `worth-store-physical-integrity`, `worth-store-aspect-native`, `worth-store-physical-format`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-physical-format"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: chunking the same stream with the same admitted rule produces the same chunk identities, chunk checksums, chunk-tree root, and full-content digest.",
+        "Adversarial denial: reordered chunks, duplicated middle chunks, missing tail chunks, checksum-only evidence, and digest-only evidence fail before blob lifecycle publication.",
+        "Collision lane: a forced digest-equivalence fixture still requires chunk-by-chunk verification and scope admission before dedupe."
+      ],
+      "instructions": "Implement S.7 Phase 3 from the spec: Chunk Byte Identity, Checksum, And Physical Integrity. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 4,
+      "title": "Chunk Tree Root, Content Digest, And Canonical Basis",
+      "owner": "`worth-store-blob-chunks`, `worth-store-aspect-native`, `worth-store-physical-format`, `worth-store-physical-integrity`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-physical-format"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: the same ordered scoped chunks produce the same chunk-tree root, content digest, canonical basis, and comparison outcome.",
+        "Adversarial denial: reordered chunks, duplicated middle chunks, missing tail chunks, checksum-only evidence, digest-only evidence, and empty chunk sets fail before root publication.",
+        "Collision lane: forced digest-equivalence fixtures still require chunk-by-chunk canonical comparison and scope admission before dedupe can be considered."
+      ],
+      "instructions": "Implement S.7 Phase 4 from the spec: Chunk Tree Root, Content Digest, And Canonical Basis. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 5,
+      "title": "Blob Object Identity And Generation Registry",
+      "owner": "`worth-store-blob-chunks`, `worth-store-authority`, `worth-store-readiness`, `worth-store-claim-boundaries`, `worth-store-physical-format`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-authority",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-physical-format"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: two observations of the same published `BlobObjectId`/`BlobGeneration` resolve to the same chunk-tree root, logical digest, authority classification, and lifecycle receipt.",
+        "Adversarial denial: digest equality, chunk-tree equality, copied lifecycle receipts, semantic reference ids, and raw generation numbers cannot construct blob identity.",
+        "Classification lane: derived blob corruption can select rebuild posture only when admitted rebuild authority exists; authoritative blob corruption cannot silently downgrade into derived repair."
+      ],
+      "instructions": "Implement S.7 Phase 5 from the spec: Blob Object Identity And Generation Registry. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 6,
+      "title": "Blob Publication Atomicity And Visibility Commit",
+      "owner": "`worth-store-blob-chunks`, `worth-store-wal`, `worth-store-recovery-physics`, `worth-store-physical-isolation`, `worth-store-readiness`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-wal",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-readiness"
+      ],
+      "acceptance": [
+        "Adversarial atomicity: crashes after chunk write, checksum admission, chunk-tree node durability, root candidate formation, reachability staging, publication record write, and session close each recover to exactly one typed state.",
+        "Adversarial denial: root candidates, staged reachability rows, copied publication records, and semantic references cannot make a blob visible without `BlobGenerationPublished`.",
+        "Visibility lane: semantic handoff consumers see either the previous generation or the newly published generation, never a partial generation."
+      ],
+      "instructions": "Implement S.7 Phase 6 from the spec: Blob Publication Atomicity And Visibility Commit. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 7,
+      "title": "Blob WAL, Checkpoint, Manifest, And Recovery Records",
+      "owner": "`worth-store-blob-chunks`, `worth-store-wal`, `worth-store-recovery-physics`, `worth-store-physical-format`, `worth-store-physical-backend`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-wal",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-physical-backend"
+      ],
+      "acceptance": [
+        "Adversarial replay: WAL/checkpoint replay reconstructs published blob generations, resume sessions, reachability edge staging, and placement observations without scanning backend residue as authority.",
+        "Adversarial denial: chunk bytes without integrity admission, integrity without frontier checkpoint, frontier without root candidate, root candidate without publication, and publication without manifest agreement produce distinct typed recovery outcomes.",
+        "Manifest lane: reachability and placement manifests detect missing external chunks, stale generation rows, and orphaned placement residue."
+      ],
+      "instructions": "Implement S.7 Phase 7 from the spec: Blob WAL, Checkpoint, Manifest, And Recovery Records. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 8,
+      "title": "Blob Harness Skeleton, Profiles, And Shortcut Taxonomy",
+      "owner": "`worth-store-physical-certification`, `worth-store-test-support`, `worth-store-blob-chunks`, `worth-store-budgets`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-budgets"
+      ],
+      "acceptance": [
+        "Adversarial replay: a seed blob scenario lowers into a stable S.4.5 plan shape and replay identity before production blob operations exist.",
+        "Adversarial denial: tiny blobs, whole-object helpers, missing chunk counters, logs-as-proof, synthetic success rows, and private mutation of harness state fail as shortcut lanes.",
+        "Profile lane: local, CI memory-envelope-exceeding, and heavy multi-GB profiles share one profile taxonomy and counter topology."
+      ],
+      "instructions": "Implement S.7 Phase 8 from the spec: Blob Harness Skeleton, Profiles, And Shortcut Taxonomy. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 9,
+      "title": "Constant-Memory Streaming Ingest",
+      "owner": "`worth-store-blob-chunks`, `worth-store-buffer-pool`, `worth-store-budgets`, `worth-store-io-scheduler`, `worth-store-physical-backend`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-buffer-pool",
+        "workspaces/worth-store/crates/worth-store-budgets",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-backend"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: streaming ingest emits the same scoped chunk sequence, chunk counters, residency proof, and content frontier regardless of bounded window size.",
+        "Adversarial denial: any path that materializes the full blob, exceeds the declared resident-byte or allocation envelope, hides chunk counters, or uses a scalar read/write API for certification fails.",
+        "Pressure lane: foreground page/WAL writes remain admitted through S.6 reservation while blob ingest pressure yields, paces, or denies as required."
+      ],
+      "instructions": "Implement S.7 Phase 9 from the spec: Constant-Memory Streaming Ingest. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 10,
+      "title": "Streaming Read And Verification",
+      "owner": "`worth-store-blob-chunks`, `worth-store-buffer-pool`, `worth-store-io-scheduler`, `worth-store-physical-integrity`, `worth-store-physical-isolation`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-buffer-pool",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-isolation"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: streaming read verifies byte equality, chunk order, chunk checksums, full-content digest, and exact read counters without depending on read buffer size.",
+        "Adversarial denial: missing chunk, reordered chunk, corrupted chunk, stale read hold, unavailable cold chunk, or whole-object expected buffer fails before verified read publication.",
+        "Foreground lane: point reads and page/WAL reads remain inside admitted S.6 reservations while blob reads proceed or deny with typed pressure evidence."
+      ],
+      "instructions": "Implement S.7 Phase 10 from the spec: Streaming Read And Verification. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 11,
+      "title": "Chunk Corruption Localization And Quarantine State",
+      "owner": "`worth-store-blob-chunks`, `worth-store-physical-integrity`, `worth-store-physical-isolation`, `worth-store-retention`, `worth-store-offline-verifier`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-offline-verifier"
+      ],
+      "acceptance": [
+        "Adversarial localization: corrupt chunk during read, scrub, cold fetch, import, and partial capsule materialization localizes to the chunk, blob generation, placement class, and affected reference edges.",
+        "Adversarial denial: corrupt chunks cannot satisfy dedupe, export, import readmission, capsule readiness, or verified read publication.",
+        "Classification lane: derived blob corruption may choose rebuild only with an admitted rebuild source; authoritative blob corruption enters quarantine, repair, restore, or degraded-truth reporting."
+      ],
+      "instructions": "Implement S.7 Phase 11 from the spec: Chunk Corruption Localization And Quarantine State. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 12,
+      "title": "Resumable Write Sessions And Interrupted Ingest Recovery",
+      "owner": "`worth-store-blob-chunks`, `worth-store-recovery-physics`, `worth-store-wal`, `worth-store-physical-isolation`, `worth-store-physical-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-wal",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-physical-certification"
+      ],
+      "acceptance": [
+        "Adversarial replay: crash after chunk write, after session checkpoint, after chunk-tree node write, and before root publication; replay either resumes to the same final blob or denies with localized unfinished state.",
+        "Adversarial denial: stale session ids, wrong security scope, copied resume checkpoints, missing chunk tails, and session checkpoints from another Store authority cannot resume or publish a blob.",
+        "Orphan lane: abandoned partial chunks remain unreached and become reclaimable only through the S.7 reclaim proof path.",
+        "State-machine lane: chunk bytes without checksum admission, checksum admission without durable frontier, durable frontier without root node, root node without reachability staging, and closed session with orphan chunks produce distinct recovery outcomes."
+      ],
+      "instructions": "Implement S.7 Phase 12 from the spec: Resumable Write Sessions And Interrupted Ingest Recovery. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 13,
+      "title": "Dedupe Admission, Collision Handling, And Scope Barriers",
+      "owner": "`worth-store-blob-chunks`, `worth-store-security`, `worth-store-budgets`, `worth-store-physical-integrity`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-budgets"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: same-scope chunks with the same canonical chunking rule, verified bytes, admitted security scope, and canonical equivalence produce a dedupe receipt and exact dedupe-hit counters.",
+        "Adversarial denial: cross-tenant, cross-key, stale-key-version, authenticity-mismatch, custody-mismatch, copied equivalence, and digest-only candidates cannot share physical blob claims.",
+        "Collision lane: collision fixtures force byte comparison and produce either verified equivalence or collision denial with localized counters.",
+        "Collision posture lane: forced digest collisions produce one of `VerifiedEquivalent`, `DigestCollisionDenied`, `DigestAlgorithmQuarantined`, `DedupeIndexPartitioned`, or `ChunkRewrittenUnderNewDigestBasis`.",
+        "Reclaim lane: a deduped chunk cannot be reclaimed until every admitted reference edge across all admitted sharing scopes is absent or separately denied."
+      ],
+      "instructions": "Implement S.7 Phase 13 from the spec: Dedupe Admission, Collision Handling, And Scope Barriers. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 14,
+      "title": "Chunk Reachability And Reference Accounting",
+      "owner": "`worth-store-blob-chunks`, `worth-store-retention`, `worth-store-reclaim-policy`, `worth-store-physical-isolation`, `worth-store-operations`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-operations"
+      ],
+      "acceptance": [
+        "Adversarial convergence: equivalent reference churn, replayed after restart, converges to the same reachable chunk set, reference edges, and exact counters.",
+        "Adversarial denial: copied refcount rows, empty reference proofs, wrong blob authority, and stale generation edges cannot mint reachability.",
+        "Protection lane: active read plans, checkpoint holds, quarantine holds, backup/export holds, and unfinished resume sessions remain visible in reachability state.",
+        "Dedupe lane: dedupe receipts create or update admitted reference edges so shared chunks remain reachable until every admitted sharing edge is absent or separately denied."
+      ],
+      "instructions": "Implement S.7 Phase 14 from the spec: Chunk Reachability And Reference Accounting. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 15,
+      "title": "Retention-Safe Orphan Reclaim",
+      "owner": "`worth-store-blob-chunks`, `worth-store-retention`, `worth-store-reclaim-policy`, `worth-store-physical-isolation`, `worth-store-operations`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-operations"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: repeated reclaim planning over the same reachable/orphan set produces the same permits, denials, residue report, and counters.",
+        "Adversarial denial: chunks protected by active read plans, checkpoint holds, quarantine holds, backup/export holds, unfinished resume sessions, or missing S.6 reclaim posture cannot be reclaimed.",
+        "Residue lane: bytes left by abandoned sessions or failed reclaim are reported as localized residue, not promoted into blob content.",
+        "Retention lane: time-window, generation, export, capsule, quarantine, read-plan, tenant/custody, and resume-session holds independently block reclaim and produce distinct denial counters."
+      ],
+      "instructions": "Implement S.7 Phase 15 from the spec: Retention-Safe Orphan Reclaim. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 16,
+      "title": "Placement Admission And Residency Classes",
+      "owner": "`worth-store-blob-chunks`, `worth-store-tiering`, `worth-store-io-scheduler`, `worth-store-physical-backend`, `worth-store-layout-indexes`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-tiering",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-backend"
+      ],
+      "acceptance": [
+        "Adversarial parity: inline, external, and admitted cold placement produce the same blob identity, security scope, reachability, digest, and lifecycle receipts while reporting distinct placement and I/O counters.",
+        "Adversarial denial: unsupported backend placement, stale S.6 readiness, copied placement seeds, unavailable cold chunks, and external sidecar paths without Store authority fail before read/write publication.",
+        "Non-claim lane: placement evidence explicitly cannot satisfy S.10 backup, restore, or archival semantics.",
+        "External recovery lane: external placement manifest evidence, recovery probe, missing-denial, orphan scan, and cleanup receipt are required before external placement can claim Store-owned recoverability."
+      ],
+      "instructions": "Implement S.7 Phase 16 from the spec: Placement Admission And Residency Classes. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 17,
+      "title": "Placement Movement And Read-During-Move Stability",
+      "owner": "`worth-store-blob-chunks`, `worth-store-tiering`, `worth-store-io-scheduler`, `worth-store-physical-isolation`, `worth-store-physical-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-tiering",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-physical-certification"
+      ],
+      "acceptance": [
+        "Adversarial parity: read-before, read-during, and read-after admitted movement preserve blob identity, security scope, reachability, digest, and verified bytes.",
+        "Adversarial denial: stale movement plan, missing S.5 read hold, copied execution receipt, unavailable cold chunk, and foreground reservation violation deny or retry before exposed bytes.",
+        "Crash lane: restart during move either resumes from an admitted movement receipt or localizes residue without publishing a mixed placement state.",
+        "Cold lane: cold unavailable, stale, scope-denied, and rebind-required states produce distinct read/export/capsule/materialization outcomes."
+      ],
+      "instructions": "Implement S.7 Phase 17 from the spec: Placement Movement And Read-During-Move Stability. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 18,
+      "title": "Blob Compaction And Chunk-Tree Rewrite",
+      "owner": "`worth-store-blob-chunks`, `worth-store-maintenance`, `worth-store-physical-isolation`, `worth-store-reclaim-policy`, `worth-store-io-scheduler`, `worth-store-physical-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-certification"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: compacted and uncompacted representations of the same blob generation verify to the same `BlobObjectId`, `BlobGeneration`, logical digest, security scope, reachability, and exported canonical basis.",
+        "Adversarial denial: compaction cannot proceed across active read holds, quarantine holds, stale dedupe references, unavailable cold chunks, unsupported S.6 pacing, or missing reachability proof.",
+        "Crash lane: restart during blob compaction either resumes an admitted rewrite plan, rolls back to the pre-compaction placement, or localizes residue without publishing mixed chunk-tree state."
+      ],
+      "instructions": "Implement S.7 Phase 18 from the spec: Blob Compaction And Chunk-Tree Rewrite. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 19,
+      "title": "Export Bundle Canonicalization",
+      "owner": "`worth-store-blob-chunks`, `worth-store-operations`, `worth-store-aspect-native`, `worth-store-offline-verifier`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-operations",
+        "workspaces/worth-store/crates/worth-store-offline-verifier"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: equivalent current lifecycle evidence produces the same canonical export bundle, manifest shape, digest evidence, and export counters.",
+        "Adversarial denial: stale reachability, missing chunk, terminal projection rows, placement-only evidence, and copied export rows fail before export bundle publication.",
+        "Offline lane: offline verifier can inspect exported chunk bundles and report declarations, checksums, and digest evidence without minting current Store authority."
+      ],
+      "instructions": "Implement S.7 Phase 19 from the spec: Export Bundle Canonicalization. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 20,
+      "title": "Import Readmission After Trust Boundary",
+      "owner": "`worth-store-blob-chunks`, `worth-store-security`, `worth-store-aspect-native`, `worth-store-operations`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-operations"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: export followed by readmitted import reconstructs the same chunk-tree identity, digests, scoped chunk metadata, reachability basis, and counters without trusting terminal projection text.",
+        "Adversarial denial: imported JSON, stale key generation, wrong tenant authority, copied export rows, mismatched custody domain, missing chunk, and placement-only evidence fail before blob witness construction.",
+        "Readmission lane: bridged canonical export evidence must pass explicit Store readmission before becoming current-basis S.7 evidence.",
+        "Placement lane: import readmission produces a placement admission plan before it can produce an imported blob witness."
+      ],
+      "instructions": "Implement S.7 Phase 20 from the spec: Import Readmission After Trust Boundary. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 21,
+      "title": "Partial Replication And Capsule Readiness",
+      "owner": "`worth-store-blob-chunks`, `worth-store-replication`, `worth-store-operations`, `worth-store-readiness`, `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-operations",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: two capsule materializations over the same admitted reachable blob subset produce the same capsule readiness evidence and exact chunk counters.",
+        "Adversarial denial: copied capsule rows, digest-only chunk references, missing chunks, stale security scope, quarantined chunks, and cold placement unavailable for capsule materialization cannot publish readiness.",
+        "Non-claim lane: S.7 capsule readiness explicitly reports that full replication, backup, restore, and product blob API semantics remain later milestones.",
+        "Slice lane: subset cuts through internal chunk-tree nodes, missing parent/root basis, cold chunk unavailable, deduped chunk shared across scopes, and reachability changes during capsule creation all produce distinct denial or retry outcomes."
+      ],
+      "instructions": "Implement S.7 Phase 21 from the spec: Partial Replication And Capsule Readiness. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 22,
+      "title": "Blob Harness Actors, Faults, Oracles, And Coverage",
+      "owner": "`worth-store-physical-certification`, `worth-store-test-support`, `worth-store-blob-chunks`, `worth-store-certification`, `worth-store-budgets`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-budgets"
+      ],
+      "acceptance": [
+        "Adversarial replay: the same blob scenario replayed through S.4.5 yields the same scenario identity, plan shape, transcript, oracle verdict, and executed evidence bundle.",
+        "Adversarial denial: tiny blobs, whole-object helpers, missing chunk counters, logs-as-proof, synthetic success rows, and private mutation of harness state fail as shortcut lanes.",
+        "Coverage lane: generated rows include blob size class, chunk count, chunk size class, security scope, placement class, access mode, failure point, memory envelope, and actor mix."
+      ],
+      "instructions": "Implement S.7 Phase 22 from the spec: Blob Harness Actors, Faults, Oracles, And Coverage. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 23,
+      "title": "Real Multi-GB Blob Qualification Lane",
+      "owner": "`worth-store-test-support`, `worth-store-physical-certification`, `worth-store-blob-chunks`, `worth-store-physical-backend`, `worth-store-budgets`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-physical-backend",
+        "workspaces/worth-store/crates/worth-store-budgets"
+      ],
+      "acceptance": [
+        "Adversarial qualification: stream an actual multi-GB deterministic blob through ingest, forced interruption, resume, verify, export, import, tier move, partial replication readiness, corruption localization, and reclaim while resident memory remains bounded by the declared envelope.",
+        "Adversarial denial: sparse-only proof, logical-size-only proof, whole-object expected buffer, missing disk-space preflight, hidden temporary sidecar file, and missing cleanup fail the qualification lane.",
+        "Scale lane: the same scenario family runs as small deterministic local, CI memory-envelope-exceeding, and heavy multi-GB profiles with the same counter topology.",
+        "Exact evidence lane: heavy qualification records input generator seed, declared byte length, actual bytes streamed, peak resident memory, peak allocation count, temporary file bytes, disk bytes written, chunk count, verification pass basis, cleanup receipt, and backend profile.",
+        "Deception lane: sparse files, hidden staging files, synthetic byte counters, and generated expected-byte artifacts are valid hostile fixtures but cannot satisfy the real multi-GB evidence requirement."
+      ],
+      "instructions": "Implement S.7 Phase 23 from the spec: Real Multi-GB Blob Qualification Lane. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    },
+    {
+      "id": 24,
+      "title": "Certification Closeout And Shortcut Rejection",
+      "owner": "`worth-store-certification`, `worth-store-physical-certification`, `worth-store-blob-chunks`, `worth-store-readiness`, `worth-store-claim-boundaries`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-readiness"
+      ],
+      "acceptance": [
+        "Adversarial materialization: executed S.7 scenarios produce a sealed evidence bundle binding Store authority, security scope, replay identity, chunk-tree identity, digest/checksum evidence, reachability, placement, counters, and Proof progression.",
+        "Adversarial denial: copied receipts, copied chunk rows, copied proof ids, S.6 placement readiness alone, S.5 future chunk placeholders alone, terminal projections, and raw counters cannot mint S.7 closeout.",
+        "Cross-milestone lane: S.8, S.10, S.11, and S.12 handoffs receive typed S.7 readiness plus explicit non-claims for layout discipline, backup/repair, key lifecycle, and full certification."
+      ],
+      "instructions": "Implement S.7 Phase 24 from the spec: Certification Closeout And Shortcut Rejection. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+    }
+  ]
+}

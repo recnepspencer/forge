@@ -1,11 +1,11 @@
-use forge_query::facade::runtime::{
-    ForgeQueryLowerRuntimeBoundaryEnvelope, ForgeQueryLowerRuntimeBoundaryEnvelopeSource,
+use worth_query::facade::runtime::{
+    WORTHQueryLowerRuntimeBoundaryEnvelope, WORTHQueryLowerRuntimeBoundaryEnvelopeSource,
 };
 
 struct FakeBoundarySource;
 
-impl ForgeQueryLowerRuntimeBoundaryEnvelopeSource for FakeBoundarySource {
-    fn lower_runtime_boundary_envelope(&self) -> &ForgeQueryLowerRuntimeBoundaryEnvelope {
+impl WORTHQueryLowerRuntimeBoundaryEnvelopeSource for FakeBoundarySource {
+    fn lower_runtime_boundary_envelope(&self) -> &WORTHQueryLowerRuntimeBoundaryEnvelope {
         panic!("fake source must not compile")
     }
 

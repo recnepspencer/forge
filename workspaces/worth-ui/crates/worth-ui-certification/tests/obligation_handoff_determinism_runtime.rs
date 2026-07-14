@@ -1,5 +1,5 @@
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 use worth_ui::facade::admission::{UiAdmissionQueryBasis, UiAdmissionTarget};
 use worth_ui::facade::app::WorthUiApp;
@@ -9,7 +9,8 @@ use worth_ui_runtime::facade::admission::UiSupportSnapshot;
 use worth_ui_runtime::facade::obligations::UiSelectedObligationSet;
 
 use self::obligation_dispatch_prerequisite_support::{
-    query_prerequisites, query_touch, query_touch_app, selection_target,
+    apps::query_touch_app, query_support::query_prerequisites, targets::selection_target,
+    touches::query_touch,
 };
 
 #[derive(Debug, Eq, PartialEq)]

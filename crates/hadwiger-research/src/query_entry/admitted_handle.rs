@@ -1,16 +1,15 @@
-use forge_query::facade::{
-    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryApplicationFacade,
-    ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryConfiguredDomainHandleAdmissionError, ForgeQueryConfiguredDomainHandleInvalidContext,
-    ForgeQueryContributionComposedOrchestrationChecked,
-    ForgeQueryContributionComposedOrchestrationInput,
-    ForgeQueryContributionComposedOrchestrationTranscript,
-    ForgeQueryDeclarationEntryCrossingInventory, ForgeQueryDeclarationEntryOrchestrationChecked,
-    ForgeQueryDeclarationEntryReadinessReport, ForgeQueryDeclarationEnvelope,
-    ForgeQueryDeclaredFamilyChecked, ForgeQueryGroupedContributionComposition,
-    ForgeQueryGroupedContributionInput, ForgeQueryGroupedContributionStop,
-    ForgeQueryGroupedOrchestrationChecked, ForgeQueryGroupedOrchestrationTranscript,
-    ForgeQueryOrdinaryOutcome, ForgeQueryRecoveryBrief,
+use worth_query::facade::foundation::{
+    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryApplicationFacade,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
+    WorthQueryConfiguredDomainHandleAdmissionError, WorthQueryConfiguredDomainHandleInvalidContext,
+    WorthQueryContributionComposedOrchestrationChecked,
+    WorthQueryContributionComposedOrchestrationInput,
+    WorthQueryContributionComposedOrchestrationTranscript,
+    WorthQueryDeclarationEntryCrossingInventory, WorthQueryDeclarationEntryOrchestrationChecked,
+    WorthQueryDeclarationEntryReadinessReport, WorthQueryDeclaredFamilyChecked,
+    WorthQueryGroupedContributionComposition, WorthQueryGroupedContributionInput,
+    WorthQueryGroupedContributionStop, WorthQueryGroupedOrchestrationChecked,
+    WorthQueryGroupedOrchestrationTranscript, WorthQueryOrdinaryOutcome, WorthQueryRecoveryBrief,
 };
 
 use crate::domain_declarations::HadwigerResearchDeclarationInput;
@@ -19,7 +18,7 @@ use super::{HadwigerResearchDomainEntry, HadwigerResearchOperatingContext};
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct HadwigerResearchHandle {
-    query_handle: ForgeQueryAdmittedConfiguredDomainHandle<
+    query_handle: WorthQueryAdmittedConfiguredDomainHandle<
         HadwigerResearchDomainEntry,
         HadwigerResearchOperatingContext,
     >,
@@ -42,7 +41,7 @@ impl std::fmt::Debug for HadwigerResearchHandle {
 
 impl HadwigerResearchHandle {
     pub(crate) fn new(
-        query_handle: ForgeQueryAdmittedConfiguredDomainHandle<
+        query_handle: WorthQueryAdmittedConfiguredDomainHandle<
             HadwigerResearchDomainEntry,
             HadwigerResearchOperatingContext,
         >,
@@ -66,38 +65,27 @@ impl HadwigerResearchHandle {
         self.query_handle.operating_context_identity_digest()
     }
 
-    pub fn required_capability_families(&self) -> &[ForgeQueryCapabilityFamily] {
+    pub fn required_capability_families(&self) -> &[WorthQueryCapabilityFamily] {
         self.query_handle.required_capability_families()
     }
 
-    pub fn required_config_sections(&self) -> &[ForgeQueryConfigSectionFamily] {
+    pub fn required_config_sections(&self) -> &[WorthQueryConfigSectionFamily] {
         self.query_handle.required_config_sections()
     }
 
     pub fn declare_checked<I>(
         &self,
         input: I,
-    ) -> ForgeQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>
+    ) -> WorthQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>
     where
         I: HadwigerResearchDeclarationInput,
     {
         self.query_handle.declare_checked(input)
     }
 
-    pub fn orchestrate_declaration_entry_outcome<I>(
-        &self,
-        input: I,
-    ) -> ForgeQueryOrdinaryOutcome<ForgeQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>>
-    where
-        I: HadwigerResearchDeclarationInput,
-    {
-        self.query_handle
-            .orchestrate_declaration_entry_outcome(input)
-    }
-
     pub fn declaration_entry_crossing_inventory<I>(
         &self,
-    ) -> ForgeQueryDeclarationEntryCrossingInventory<HadwigerResearchDomainEntry, I>
+    ) -> WorthQueryDeclarationEntryCrossingInventory<HadwigerResearchDomainEntry, I>
     where
         I: HadwigerResearchDeclarationInput,
     {
@@ -107,7 +95,7 @@ impl HadwigerResearchHandle {
 
     pub fn declaration_entry_readiness<I>(
         &self,
-    ) -> ForgeQueryDeclarationEntryReadinessReport<HadwigerResearchDomainEntry, I>
+    ) -> WorthQueryDeclarationEntryReadinessReport<HadwigerResearchDomainEntry, I>
     where
         I: HadwigerResearchDeclarationInput,
     {
@@ -116,15 +104,15 @@ impl HadwigerResearchHandle {
 
     pub fn recover_from_outcome<T>(
         &self,
-        outcome: &ForgeQueryOrdinaryOutcome<T>,
-    ) -> Option<ForgeQueryRecoveryBrief> {
+        outcome: &WorthQueryOrdinaryOutcome<T>,
+    ) -> Option<WorthQueryRecoveryBrief> {
         self.query_handle.recover_from_outcome(outcome)
     }
 
     pub fn recover_from_declaration_entry_checked<I>(
         &self,
-        checked: ForgeQueryDeclarationEntryOrchestrationChecked<HadwigerResearchDomainEntry, I>,
-    ) -> Option<ForgeQueryRecoveryBrief>
+        checked: WorthQueryDeclarationEntryOrchestrationChecked<HadwigerResearchDomainEntry, I>,
+    ) -> Option<WorthQueryRecoveryBrief>
     where
         I: HadwigerResearchDeclarationInput,
     {
@@ -134,8 +122,8 @@ impl HadwigerResearchHandle {
 
     pub fn recover_from_contribution_composed_checked<I>(
         &self,
-        checked: ForgeQueryContributionComposedOrchestrationChecked<HadwigerResearchDomainEntry, I>,
-    ) -> Option<ForgeQueryRecoveryBrief>
+        checked: WorthQueryContributionComposedOrchestrationChecked<HadwigerResearchDomainEntry, I>,
+    ) -> Option<WorthQueryRecoveryBrief>
     where
         I: HadwigerResearchDeclarationInput,
     {
@@ -145,8 +133,8 @@ impl HadwigerResearchHandle {
 
     pub fn orchestrate_declaration_with_contributions_checked<I>(
         &self,
-        input: ForgeQueryContributionComposedOrchestrationInput<HadwigerResearchDomainEntry, I>,
-    ) -> ForgeQueryContributionComposedOrchestrationChecked<HadwigerResearchDomainEntry, I>
+        input: WorthQueryContributionComposedOrchestrationInput<HadwigerResearchDomainEntry, I>,
+    ) -> WorthQueryContributionComposedOrchestrationChecked<HadwigerResearchDomainEntry, I>
     where
         I: HadwigerResearchDeclarationInput,
     {
@@ -156,8 +144,8 @@ impl HadwigerResearchHandle {
 
     pub fn orchestrate_declaration_with_contributions_proof<I>(
         &self,
-        input: ForgeQueryContributionComposedOrchestrationInput<HadwigerResearchDomainEntry, I>,
-    ) -> ForgeQueryContributionComposedOrchestrationTranscript<HadwigerResearchDomainEntry, I>
+        input: WorthQueryContributionComposedOrchestrationInput<HadwigerResearchDomainEntry, I>,
+    ) -> WorthQueryContributionComposedOrchestrationTranscript<HadwigerResearchDomainEntry, I>
     where
         I: HadwigerResearchDeclarationInput,
     {
@@ -167,8 +155,8 @@ impl HadwigerResearchHandle {
 
     pub fn recover_from_grouped_orchestration_checked<I>(
         &self,
-        checked: ForgeQueryGroupedOrchestrationChecked<HadwigerResearchDomainEntry, I>,
-    ) -> Option<ForgeQueryRecoveryBrief>
+        checked: WorthQueryGroupedOrchestrationChecked<HadwigerResearchDomainEntry, I>,
+    ) -> Option<WorthQueryRecoveryBrief>
     where
         I: HadwigerResearchDeclarationInput,
     {
@@ -178,10 +166,10 @@ impl HadwigerResearchHandle {
 
     pub fn grouped_contributions_checked<I>(
         &self,
-        input: ForgeQueryGroupedContributionInput<HadwigerResearchDomainEntry, I>,
+        input: WorthQueryGroupedContributionInput<HadwigerResearchDomainEntry, I>,
     ) -> Result<
-        ForgeQueryGroupedContributionComposition<HadwigerResearchDomainEntry, I>,
-        ForgeQueryGroupedContributionStop<HadwigerResearchDomainEntry, I>,
+        WorthQueryGroupedContributionComposition<HadwigerResearchDomainEntry, I>,
+        WorthQueryGroupedContributionStop<HadwigerResearchDomainEntry, I>,
     >
     where
         I: HadwigerResearchDeclarationInput + Clone,
@@ -191,8 +179,8 @@ impl HadwigerResearchHandle {
 
     pub fn recover_from_grouped_orchestration_proof<I>(
         &self,
-        proof: ForgeQueryGroupedOrchestrationTranscript<HadwigerResearchDomainEntry, I>,
-    ) -> Option<ForgeQueryRecoveryBrief>
+        proof: WorthQueryGroupedOrchestrationTranscript<HadwigerResearchDomainEntry, I>,
+    ) -> Option<WorthQueryRecoveryBrief>
     where
         I: HadwigerResearchDeclarationInput,
     {
@@ -204,13 +192,13 @@ impl HadwigerResearchHandle {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HadwigerResearchAdmissionError {
     InvalidContext(
-        ForgeQueryConfiguredDomainHandleInvalidContext<
+        WorthQueryConfiguredDomainHandleInvalidContext<
             HadwigerResearchDomainEntry,
             HadwigerResearchOperatingContext,
         >,
     ),
     Admission(
-        ForgeQueryConfiguredDomainHandleAdmissionError<
+        WorthQueryConfiguredDomainHandleAdmissionError<
             HadwigerResearchDomainEntry,
             HadwigerResearchOperatingContext,
         >,
@@ -220,7 +208,7 @@ pub enum HadwigerResearchAdmissionError {
 pub fn admit_hadwiger_research_handle(
     context: HadwigerResearchOperatingContext,
 ) -> Result<HadwigerResearchHandle, HadwigerResearchAdmissionError> {
-    let validated = ForgeQueryApplicationFacade::runtime_backed_default()
+    let validated = WorthQueryApplicationFacade::runtime_backed_default()
         .domain(HadwigerResearchDomainEntry)
         .with_operating_context(context)
         .validate()

@@ -46,7 +46,7 @@ Root-cause review rule:
 - Do not only list the next visible defect.
 - First name the shared root defect if findings point to the same bad boundary.
 - Classify each finding as one of: local bug, missing test, wrong ownership
-  boundary, forgeable authority, certification-overreach, projection/counter
+  boundary, WORTHable authority, certification-overreach, projection/counter
   pretending to be proof, fixture-owned proof, mixed ordinary lane, or adoption
   not tied to a production API.
 - If two or more findings share a class, write one root repair direction that

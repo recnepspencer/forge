@@ -1,0 +1,20 @@
+error[E0308]: mismatched types
+  --> tests/ui/query_identity_authority/wrong_kind_cannot_satisfy_query_family.rs:20:36
+   |
+20 |     require_subscription_authority(wrong_kind_identity());
+   |     ------------------------------ ^^^^^^^^^^^^^^^^^^^^^ expected `QuerySubscriptionIdentityKind`, found `QueryFeederIdentityKind`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected struct `worth_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<WorthQueryEvidenceIdentity, QuerySubscriptionAuthority, QuerySubscriptionIdentityKind>`
+              found struct `worth_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<WorthQueryEvidenceIdentity, QuerySubscriptionAuthority, QueryFeederIdentityKind>`
+note: function defined here
+  --> tests/ui/query_identity_authority/wrong_kind_cannot_satisfy_query_family.rs:11:4
+   |
+11 |   fn require_subscription_authority(
+   |      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12 | /     _identity: QuerySubscriptionAuthorityIdentity<
+13 | |         WorthQueryEvidenceIdentity,
+14 | |         QuerySubscriptionIdentityKind,
+15 | |     >,
+   | |_____-

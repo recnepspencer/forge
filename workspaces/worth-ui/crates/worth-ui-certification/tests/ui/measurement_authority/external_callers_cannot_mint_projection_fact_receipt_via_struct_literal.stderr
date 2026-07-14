@@ -1,33 +1,8 @@
-error[E0451]: fields `declaration_identity`, `declaration_support_authority_generation`, `query_basis_digest`, `query_resolution_mode`, `projection_contract_digest`, `projection_consumption_declaration_digest`, `projection_consumption_receipt_digest`, `projection_fact_set_digest`, `projection_source_identity`, `required_measurement_dependencies`, `required_query_fact_families`, `required_query_fact_family_set_digest`, `consumed_fact_families` and `consumed_fact_family_set_digest` of struct `UiProjectionFactReceipt` are private
-  --> tests/ui/measurement_authority/external_callers_cannot_mint_projection_fact_receipt_via_struct_literal.rs:5:9
-   |
- 4 |     let _ = UiProjectionFactReceipt {
-   |             ----------------------- in this type
- 5 |         declaration_identity: unsafe { std::mem::zeroed() },
-   |         ^^^^^^^^^^^^^^^^^^^^ private field
- 6 |         declaration_support_authority_generation: unsafe { std::mem::zeroed() },
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 7 |         query_basis_digest: "basis".into(),
-   |         ^^^^^^^^^^^^^^^^^^ private field
- 8 |         query_resolution_mode: unsafe { std::mem::zeroed() },
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         projection_contract_digest: "contract".into(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         projection_consumption_declaration_digest: "declaration".into(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         projection_consumption_receipt_digest: "receipt".into(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         projection_fact_set_digest: "facts".into(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-13 |         projection_source_identity: "source".into(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-14 |         required_measurement_dependencies: Box::new([]),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-15 |         required_query_fact_families: Box::new([]),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-16 |         required_query_fact_family_set_digest: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-17 |         consumed_fact_families: Box::new([]),
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-18 |         consumed_fact_family_set_digest: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+error[E0432]: unresolved import `worth_ui_runtime::facade::evidence::UiProjectionFactReceipt`
+ --> tests/ui/measurement_authority/external_callers_cannot_mint_projection_fact_receipt_via_struct_literal.rs:1:5
+  |
+1 | use worth_ui_runtime::facade::evidence::UiProjectionFactReceipt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-----------------------
+  |     |                                   |
+  |     |                                   help: a similar name exists in the module: `UiInspectionCostReceipt`
+  |     no `UiProjectionFactReceipt` in `facade::evidence`

@@ -1,0 +1,100 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/worth-store",
+    "crates/worth-store-analysis",
+    "crates/worth-store-aspect-native",
+    "crates/worth-store-authority",
+    "crates/worth-store-blob-chunks",
+    "crates/worth-store-branch-deltas",
+    "crates/worth-store-bulk",
+    "crates/worth-store-budgets",
+    "crates/worth-store-buffer-pool",
+    "crates/worth-store-certification",
+    "crates/worth-store-claim-boundaries",
+    "crates/worth-store-compatibility",
+    "crates/worth-store-contracts",
+    "crates/worth-store-extensions",
+    "crates/worth-store-formal-models",
+    "crates/worth-store-io-scheduler",
+    "crates/worth-store-layout-indexes",
+    "crates/worth-store-live-query",
+    "crates/worth-store-lsm-authority",
+    "crates/worth-store-maintenance",
+    "crates/worth-store-modes",
+    "crates/worth-store-offline-verifier",
+    "crates/worth-store-operations",
+    "crates/worth-store-operations-vocabulary",
+    "crates/worth-store-physical-backend",
+    "crates/worth-store-physical-certification",
+    "crates/worth-store-physical-format",
+    "crates/worth-store-physical-integrity",
+    "crates/worth-store-physical-isolation",
+    "crates/worth-store-readiness",
+    "crates/worth-store-reclaim-policy",
+    "crates/worth-store-recovery-physics",
+    "crates/worth-store-replication",
+    "crates/worth-store-retention",
+    "crates/worth-store-schema-lineage",
+    "crates/worth-store-security",
+    "crates/worth-store-snapshots",
+    "crates/worth-store-subscription-support",
+    "crates/worth-store-test-support",
+    "crates/worth-store-tiering",
+    "crates/worth-store-wal",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "UNLICENSED"
+
+[workspace.dependencies]
+worth-store = { path = "crates/worth-store" }
+worth-store-analysis = { path = "crates/worth-store-analysis" }
+worth-store-aspect-native = { path = "crates/worth-store-aspect-native" }
+worth-store-authority = { path = "crates/worth-store-authority" }
+worth-store-blob-chunks = { path = "crates/worth-store-blob-chunks" }
+worth-store-branch-deltas = { path = "crates/worth-store-branch-deltas" }
+worth-store-bulk = { path = "crates/worth-store-bulk" }
+worth-store-budgets = { path = "crates/worth-store-budgets" }
+worth-store-buffer-pool = { path = "crates/worth-store-buffer-pool" }
+worth-store-certification = { path = "crates/worth-store-certification" }
+worth-store-claim-boundaries = { path = "crates/worth-store-claim-boundaries" }
+worth-store-compatibility = { path = "crates/worth-store-compatibility" }
+worth-store-contracts = { path = "crates/worth-store-contracts" }
+worth-store-extensions = { path = "crates/worth-store-extensions" }
+worth-store-formal-models = { path = "crates/worth-store-formal-models" }
+worth-store-io-scheduler = { path = "crates/worth-store-io-scheduler" }
+worth-store-layout-indexes = { path = "crates/worth-store-layout-indexes" }
+worth-store-live-query = { path = "crates/worth-store-live-query" }
+worth-store-lsm-authority = { path = "crates/worth-store-lsm-authority" }
+worth-store-maintenance = { path = "crates/worth-store-maintenance" }
+worth-store-modes = { path = "crates/worth-store-modes" }
+worth-store-offline-verifier = { path = "crates/worth-store-offline-verifier" }
+worth-store-operations = { path = "crates/worth-store-operations" }
+worth-store-operations-vocabulary = { path = "crates/worth-store-operations-vocabulary" }
+worth-store-physical-backend = { path = "crates/worth-store-physical-backend" }
+worth-store-physical-certification = { path = "crates/worth-store-physical-certification" }
+worth-store-physical-format = { path = "crates/worth-store-physical-format" }
+worth-store-physical-integrity = { path = "crates/worth-store-physical-integrity" }
+worth-store-physical-isolation = { path = "crates/worth-store-physical-isolation" }
+worth-store-readiness = { path = "crates/worth-store-readiness" }
+worth-store-reclaim-policy = { path = "crates/worth-store-reclaim-policy" }
+worth-store-recovery-physics = { path = "crates/worth-store-recovery-physics" }
+worth-store-replication = { path = "crates/worth-store-replication" }
+worth-store-retention = { path = "crates/worth-store-retention" }
+worth-store-schema-lineage = { path = "crates/worth-store-schema-lineage" }
+worth-store-security = { path = "crates/worth-store-security" }
+worth-store-snapshots = { path = "crates/worth-store-snapshots" }
+worth-store-subscription-support = { path = "crates/worth-store-subscription-support" }
+worth-store-test-support = { path = "crates/worth-store-test-support" }
+worth-store-tiering = { path = "crates/worth-store-tiering" }
+worth-store-wal = { path = "crates/worth-store-wal" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+result_large_err = "allow"

@@ -35,7 +35,7 @@ pub struct UiGraphPublishedAspectIndex {
 }
 
 impl UiGraphPublishedAspectIndex {
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn empty() -> Self {
         Self {
             publishers_by_aspect: BTreeMap::new(),

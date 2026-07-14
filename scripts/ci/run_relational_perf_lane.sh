@@ -4,13 +4,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-echo "[relational-perf] Running forge-relational performance lane..."
+echo "[relational-perf] Running worth-relational performance lane..."
 
 PERF_LOG_PATH="${RELATIONAL_PERF_LOG_PATH:-${RUNNER_TEMP:-/tmp}/relational-perf.log}"
 PERF_REPORT_PATH="${RELATIONAL_PERF_REPORT_PATH:-${RUNNER_TEMP:-/tmp}/relational-perf-report.jsonl}"
 PERF_SUMMARY_PATH="${RELATIONAL_PERF_SUMMARY_PATH:-${RUNNER_TEMP:-/tmp}/relational-perf-summary.jsonl}"
 PERF_MARKDOWN_PATH="${RELATIONAL_PERF_MARKDOWN_PATH:-${RUNNER_TEMP:-/tmp}/relational-perf-summary.md}"
-PERF_BASELINE_PATH="${RELATIONAL_PERF_BASELINE_PATH:-$ROOT_DIR/_docs/engineering/forge_relational_performance_baseline.jsonl}"
+PERF_BASELINE_PATH="${RELATIONAL_PERF_BASELINE_PATH:-$ROOT_DIR/_docs/engineering/worth_relational_performance_baseline.jsonl}"
 PERF_COMPARE_PATH="${RELATIONAL_PERF_COMPARE_PATH:-}"
 PERF_ARCHIVE_DIR="${RELATIONAL_PERF_ARCHIVE_DIR:-}"
 
@@ -22,8 +22,8 @@ if [[ -z "$PERF_COMPARE_PATH" && -n "$PERF_ARCHIVE_DIR" && -f "$PERF_ARCHIVE_DIR
   PERF_COMPARE_PATH="$PERF_ARCHIVE_DIR/latest-summary.jsonl"
 fi
 
-FORGE_RELATIONAL_PERF_SAMPLES="${FORGE_RELATIONAL_PERF_SAMPLES:-3}" \
-  cargo test -p forge-relational performance_profiles -- --ignored --nocapture --test-threads=1 \
+WORTH_RELATIONAL_PERF_SAMPLES="${WORTH_RELATIONAL_PERF_SAMPLES:-3}" \
+  cargo test -p worth-relational performance_profiles -- --ignored --nocapture --test-threads=1 \
   | tee "$PERF_LOG_PATH"
 
 grep -E '^\{' "$PERF_LOG_PATH" > "$PERF_REPORT_PATH"

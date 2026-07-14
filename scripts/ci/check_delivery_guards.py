@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Delivery guardrails for Forge.
+Delivery guardrails for WORTH.
 
 Purpose:
 - Make partial implementations harder to merge.

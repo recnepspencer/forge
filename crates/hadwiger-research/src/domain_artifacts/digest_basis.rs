@@ -1,10 +1,10 @@
-use forge_foundational::facade::{
+use worth_foundational::facade::{
     derive_canonical_digest, prepare_canonical_basis_sequence, CanonicalBasisDomain,
     CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue,
     CanonicalDigestAlgorithmId, CanonicalDigestFrontDoor, CanonicalIntegerWidth,
     CanonicalizationRuleVersion,
 };
-use forge_proof::TransitionOutcome;
+use worth_proof::TransitionOutcome;
 
 use super::core_artifact::{
     HadwigerArtifactAuthorityOwner, HadwigerArtifactCore, HadwigerArtifactDigest,
@@ -12,7 +12,7 @@ use super::core_artifact::{
     HadwigerArtifactSourceReference,
 };
 
-const HADWIGER_ARTIFACT_DIGEST_VERSION: &str = "forge.hadwiger.artifact.v1";
+const HADWIGER_ARTIFACT_DIGEST_VERSION: &str = "WORTH.hadwiger.artifact.v1";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum HadwigerArtifactPayloadEntry {
@@ -64,7 +64,7 @@ fn artifact_digest(
     parent_artifacts: &[HadwigerArtifactReference],
     payload_entries: Vec<HadwigerArtifactPayloadEntry>,
 ) -> Result<HadwigerArtifactDigest, HadwigerArtifactShapeError> {
-    let domain = CanonicalBasisDomain::Future("forge.hadwiger.artifact");
+    let domain = CanonicalBasisDomain::Future("WORTH.hadwiger.artifact");
     let mut entries = vec![
         text_entry(
             domain,

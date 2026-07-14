@@ -1,7 +1,0 @@
-error[E0560]: struct `AdmittedEffectIntent` has no field named `admitted_digest`
-  --> tests/ui/effect_lifecycle/proof/construction/effect_lifecycle_admitted_intent_constructor_private.rs:15:9
-   |
-15 |         admitted_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^ `AdmittedEffectIntent` does not have this field
-   |
-   = note: all struct fields are already assigned

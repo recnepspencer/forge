@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_query::facade::WorthQueryMemoryApp`
+ --> tests/ui/runtime_memory_app_missing.rs:1:5
+  |
+1 | use worth_query::facade::WorthQueryMemoryApp;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryMemoryApp` in `facade`

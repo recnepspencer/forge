@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/domain_declaration/boundaries/construction/legality/legality_contract_constructor_is_private.rs:8:52
+  |
+8 |       let _ = WorthQueryDeclarationLegalityContract::new(
+  |                                                      ^^^ private associated function
+  |
+ ::: src/application/declaration_legality/contract.rs
+  |
+  | /     pub(crate) fn new(
+  | |         legality_class: WorthQueryDeclarationLegalityClass,
+  | |         category: FoundationalBoundaryArtifactCategory,
+  | |         role: FoundationalBoundaryArtifactRole,
+  | |         delivery_class: FoundationalBoundaryDeliveryClass,
+  | |         availability: FoundationalBoundaryAvailability,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

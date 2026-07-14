@@ -332,7 +332,10 @@ fn source_backed_measurement_constraint_modifier(
             .sizing_contract()
             .and_then(|(_, descriptor)| descriptor.named_measurement())
             .is_some_and(|measurement| {
-                !matches!(measurement.constraint(), MeasurementConstraint::Unconstrained)
+                !matches!(
+                    measurement.constraint(),
+                    MeasurementConstraint::Unconstrained
+                )
             })
     });
     constrained.then_some(UiDeclaredMeasurementConstraintModifier::Bounded)

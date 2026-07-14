@@ -4,9 +4,9 @@ forbidden_root_prefixes = ["cad/workspaces/"]
 [machine_authority]
 canonical_config = "tools/boundary-check/config/road1.toml"
 mirrored_docs = [
-  "_docs/worthy/NAMING.md",
-  "_docs/worthy/BOUNDARIES.md",
-  "_docs/worthy/ARCHITECTURE.md",
+  "cad/docs/worthy-foundations/NAMING.md",
+  "cad/docs/worthy-foundations/BOUNDARIES.md",
+  "cad/docs/worthy-foundations/ARCHITECTURE.md",
 ]
 
 [naming]
@@ -174,7 +174,27 @@ band = "cert"
 domains = ["replay", "scale", "approval", "perf", "workflows"]
 
 [rule_contracts]
-query_host_bands = ["entry"]
+
+[rule_contracts.query_audience]
+engine_package = "worth-query"
+
+[[rule_contracts.query_audience.audiences]]
+package = "worth-query-decl"
+label = "declaration"
+allowed_bands = ["entry", "cert"]
+guidance = "declaration artifacts and handles"
+
+[[rule_contracts.query_audience.audiences]]
+package = "worth-query-host"
+label = "host"
+allowed_bands = ["entry", "cert"]
+guidance = "admission, lowering, and execution"
+
+[[rule_contracts.query_audience.audiences]]
+package = "worth-query-replay"
+label = "replay"
+allowed_bands = ["cert"]
+guidance = "cert-only reconstruction and replay"
 
 [[rule_contracts.replay_surfaces]]
 label = "certification replay"
@@ -243,6 +263,10 @@ package = "worth-schema-core"
 path = "cad/workspaces/worth-packs/crates/worth-pack-registry"
 package = "worth-pack-registry"
 
+[[born_crates]]
+path = "cad/workspaces/worth-certification/crates/worth-cert-adoption"
+package = "worth-cert-adoption"
+
 [[seed_skeletons]]
 path = "cad/workspaces/worth-contracts/crates/worth-schema-core"
 package = "worth-schema-core"
@@ -259,8 +283,6 @@ allowed_entries = [
   "src/naming.rs",
   "src/tolerance.rs",
   "src/units.rs",
-  "tests",
-  "tests/facade_boundary.rs",
 ]
 
 [[seed_skeletons]]
@@ -273,13 +295,11 @@ allowed_entries = [
   "Cargo.toml",
   "src",
   "src/contribution_descriptor.rs",
-  "src/contribution_kinds",
-  "src/contribution_kinds/mod.rs",
+  "src/contribution_kind.rs",
   "src/facade.rs",
   "src/lib.rs",
   "src/pack_name.rs",
-  "src/registration",
-  "src/registration/mod.rs",
+  "src/registration.rs",
 ]
 
 [[subworkspaces]]
@@ -306,3 +326,35 @@ member_lane = "crates/*"
 path = "cad/workspaces/worth-certification"
 allowed_crate_prefixes = ["worth-cert-"]
 member_lane = "crates/*"
+
+[legacy_reference_ratchet]
+governed_roots = [
+  "cad/workspaces/",
+  "tools/",
+  "crates/worth-proof/",
+]
+forbidden_fragments = ["forge_", "forge-"]
+snapshot = "tools/boundary-check/snapshots/legacy-references.toml"
+exclude_paths = [
+  "tools/boundary-check/config/road1.toml",
+  "tools/boundary-check/snapshots/legacy-references.toml",
+]
+replacement_guidance = "Use the corresponding worth_/worth- spelling instead of the retired forge_/forge- name."
+
+# Law substrates are legal outside the band grammar. worth-proof is the only
+# blessed compile-time law substrate and is legal in every tier and band.
+[[law_substrates]]
+package = "worth-proof"
+tiers = ["worth", "worthy"]
+bands = [
+  "schema",
+  "dsl",
+  "entry",
+  "resolver",
+  "solver",
+  "derived",
+  "pack",
+  "app",
+  "ui",
+  "cert",
+]

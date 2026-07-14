@@ -25,10 +25,12 @@ impl WorthUiIdentitySeedingReport {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn diagnostics(&self) -> &[WorthUiIdentitySeedingDiagnostic] {
         &self.diagnostics
     }
 
+    #[cfg(test)]
     pub(crate) fn metrics(&self) -> WorthUiIdentitySeedingMetrics {
         self.metrics
     }

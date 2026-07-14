@@ -15,6 +15,7 @@ enum WorthUiReplacementCauseKind {
     RustAuthoredInputChanged {
         source_revision_digest: u64,
     },
+    #[cfg(test)]
     ManualRefresh {
         request_digest: u64,
     },
@@ -41,6 +42,7 @@ impl WorthUiReplacementCause {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn manual_refresh(request_digest: u64) -> Self {
         Self {
             kind: WorthUiReplacementCauseKind::ManualRefresh { request_digest },
@@ -53,6 +55,7 @@ impl WorthUiReplacementCause {
             WorthUiReplacementCauseKind::RustAuthoredInputChanged { .. } => {
                 "rust-authored-input-changed"
             }
+            #[cfg(test)]
             WorthUiReplacementCauseKind::ManualRefresh { .. } => "manual-refresh",
         }
     }
@@ -74,6 +77,7 @@ impl WorthUiReplacementCause {
             WorthUiReplacementCauseKind::RustAuthoredInputChanged {
                 source_revision_digest,
             } => format!("rust-authored-input-changed|revision:{source_revision_digest}"),
+            #[cfg(test)]
             WorthUiReplacementCauseKind::ManualRefresh { request_digest } => {
                 format!("manual-refresh|request:{request_digest}")
             }

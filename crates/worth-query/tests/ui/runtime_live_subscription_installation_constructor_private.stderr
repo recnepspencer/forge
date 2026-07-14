@@ -1,0 +1,151 @@
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `query_digest`
+ --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:7:9
+  |
+7 |         query_digest: String::new(),
+  |         ^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `view_shape_digest`
+ --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:8:9
+  |
+8 |         view_shape_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0308]: mismatched types
+ --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:9:30
+  |
+9 |         subscription_family: String::new(),
+  |                              ^^^^^^^^^^^^^ expected `QuerySubscriptionFamily`, found `String`
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `subscription_family_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:10:9
+   |
+10 |         subscription_family_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `subscription_declaration_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:11:9
+   |
+11 |         subscription_declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `bridge_declaration_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:12:9
+   |
+12 |         bridge_declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `admission_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:13:9
+   |
+13 |         admission_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `activation_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:14:9
+   |
+14 |         activation_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `basis_binding_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:15:9
+   |
+15 |         basis_binding_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `signal_strategy_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:16:9
+   |
+16 |         signal_strategy_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `active_lane_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:17:9
+   |
+17 |         active_lane_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `consumer_attachment_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:18:9
+   |
+18 |         consumer_attachment_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `consumer_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:19:9
+   |
+19 |         consumer_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `delivery_cursor_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:20:9
+   |
+20 |         delivery_cursor_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:21:37
+   |
+21 |         subscription_budget_policy: String::new(),
+   |                                     ^^^^^^^^^^^^^ expected `WorthQueryRuntimeLiveSubscriptionBudgetPolicyIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:22:41
+   |
+22 |         active_lifecycle_budget_policy: String::new(),
+   |                                         ^^^^^^^^^^^^^ expected `WorthQueryRuntimeLiveSubscriptionBudgetPolicyIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:23:44
+   |
+23 |         consumer_attachment_budget_policy: String::new(),
+   |                                            ^^^^^^^^^^^^^ expected `WorthQueryRuntimeLiveSubscriptionBudgetPolicyIdentity`, found `String`
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `runtime_budget_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:24:9
+   |
+24 |         runtime_budget_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `support_evidence`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:25:9
+   |
+25 |         support_evidence: String::new(),
+   |         ^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimeLiveSubscriptionInstallation` has no field named `installation_digest`
+  --> tests/ui/runtime_live_subscription_installation_constructor_private.rs:29:9
+   |
+29 |         installation_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ `WorthQueryRuntimeLiveSubscriptionInstallation` does not have this field
+   |
+   = note: all struct fields are already assigned

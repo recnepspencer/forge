@@ -53,31 +53,8 @@ impl WorthUiParsedSourceModule {
         }
     }
 
-    pub(crate) fn module_id(&self) -> &WorthUiSourceModuleId {
-        &self.module_id
-    }
-
     pub(crate) fn declarations(&self) -> &[WorthUiParsedSourceDeclaration] {
         &self.declarations
-    }
-
-    pub(crate) fn spans(&self) -> Vec<&WorthUiSourceSpan> {
-        self.declarations
-            .iter()
-            .map(WorthUiParsedSourceDeclaration::span)
-            .collect()
-    }
-}
-
-impl WorthUiParsedSourceDeclaration {
-    pub(crate) fn span(&self) -> &WorthUiSourceSpan {
-        match self {
-            Self::Import(declaration) => declaration.span(),
-            Self::Component(declaration)
-            | Self::Surface(declaration)
-            | Self::Binding(declaration) => declaration.span(),
-            Self::Token(declaration) => declaration.span(),
-        }
     }
 }
 
@@ -126,10 +103,6 @@ impl WorthUiParsedBlockBody {
         Self { span, tokens }
     }
 
-    pub(crate) fn span(&self) -> &WorthUiSourceSpan {
-        &self.span
-    }
-
     pub(crate) fn tokens(&self) -> &[WorthUiSourceTokenKind] {
         &self.tokens
     }
@@ -168,6 +141,7 @@ impl WorthUiParsedTokenDeclaration {
 }
 
 impl WorthUiParsedSourceModule {
+    #[cfg(test)]
     pub(crate) fn equivalent_shape(&self, other: &Self) -> bool {
         self.module_id == other.module_id
             && self.declarations.len() == other.declarations.len()
@@ -180,6 +154,7 @@ impl WorthUiParsedSourceModule {
 }
 
 impl WorthUiParsedSourceDeclaration {
+    #[cfg(test)]
     pub(crate) fn equivalent_shape(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Import(left), Self::Import(right)) => left.path_text == right.path_text,

@@ -1,0 +1,5 @@
+error[E0599]: no method named `execute_parallel` found for struct `WorthQueryReadRequest` in the current scope
+ --> tests/ui/declarative_read/admitted_request_has_no_route_selection.rs:5:13
+  |
+5 |     request.execute_parallel();
+  |             ^^^^^^^^^^^^^^^^ method not found in `WorthQueryReadRequest`

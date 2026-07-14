@@ -1,0 +1,1670 @@
+{
+  "schema_version": 1,
+  "state_revision": 673,
+  "current": null,
+  "project": {
+    "name": "Worth Store Roadmap 2 S.5 Physical Isolation, Latches, Epochs, And Stable Read Plans",
+    "cwd": "C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH",
+    "spec_file": "_docs/worth-store/storage-foundation-s5.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/worth-store/worth_store_roadmap_2.md",
+      "_docs/worth-store/test-requirements.md",
+      "_docs/worth-store/test-requirements-2.md",
+      "_docs/worth-store/storage-foundation-s3.md",
+      "_docs/worth-store/storage-foundation-s4.md",
+      "_docs/worth-store/storage-foundation-s4-5.md",
+      "_docs/worth-store/storage-foundation-s5.md",
+      "crates/worth-foundational/docs/FOUNDATIONAL_README.md",
+      "crates/worth-proof/README.md",
+      "_docs/worth-proof/worth_proof_roadmap.md",
+      "workspaces/worth-store/README.md",
+      "workspaces/worth-store/Cargo.toml",
+      "workspaces/worth-store/crates/worth-store-physical-isolation/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-certification/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-test-support/src/lib.rs"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md"
+  },
+  "contract_template": "templates/_contract_store_s5.md",
+  "session": {
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.5",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    },
+    "thread_id": "019f1e5e-042c-76e2-83a7-9a20f9448bdf",
+    "thread_started_at": "2026-07-01T15:48:26.228273+00:00"
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Admit S.4 Recovery Readiness Into Physical Isolation Entry",
+      "owner": "`worth-store-physical-isolation`, `worth-store-readiness`, `worth-store-recovery-physics`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "S.5 entry consumes only typed S.4 physical recovery readiness and rejects copied recovery fields, live runtime state, terminal projections, and semantic snapshots.",
+        "S.5 certification lanes cannot register until S.4.5 `S5SimulationHarnessReadiness` and `S5HarnessReadinessReceipt` are admitted.",
+        "Entry evidence lowers through the named Foundational and Proof surfaces without becoming Store physical stability authority."
+      ],
+      "instructions": "Implement S.5 Phase 1 from the S.5 spec. Freeze the S.4 recovery handoff and the S.4.5 harness handoff before any physical isolation lane can run. Preserve Store physical authority and deny copied reports, runtime cache state, semantic visibility tokens, terminal projections, JSON authority, generic runners, and copied S.4.5 readiness rows.",
+      "qa_focus": "Check that S.5 entry cannot reopen S.4 recovery, cannot accept semantic visibility as physical stability, and cannot run certification lanes without the S.4.5 readiness receipt.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "review": [
+          "phase 1 done-check passed"
+        ],
+        "test_review": "test QA found hardening gaps",
+        "plan": [
+          "test hardening plan posted; next implement compile-fail and runtime proof upgrades"
+        ],
+        "findings": [
+          "code quality residual: physical-isolation facade still defines concrete epoch/read-plan types",
+          "code quality residual: s5 entry UI compile-fail fixtures should subdivide by entry vs lane if extended"
+        ],
+        "remaining": [
+          "non-blocking structural cleanup: move facade concrete types to named modules; split compile-fail UI fixture folder if it grows"
+        ],
+        "done": [
+          "phase 1 complete and QA passed; test hardening implemented; code quality reviewed with residual non-blocking structure notes"
+        ],
+        "verification": [
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s5_physical_isolation_entry | exit 0 | tail: test result: ok. 7 passed; 0 failed",
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s5_physical_isolation_entry_compile_fail | exit 0 | tail: test result: ok. 1 passed; 0 failed",
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s4_5_s5_simulation_harness_readiness | exit 0 | tail: test result: ok. 6 passed; 0 failed",
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s4_5_s5_simulation_harness_readiness_compile_fail | exit 0 | tail: test result: ok. 1 passed; 0 failed"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Separate Physical Read Stability From Semantic MVCC Visibility",
+      "owner": "`worth-store-physical-isolation`, `worth-store-authority`, `worth-relational`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-authority",
+        "workspaces/worth-store/crates/worth-store-certification",
+        "crates/worth-relational"
+      ],
+      "acceptance": [
+        "Semantic transaction, branch, snapshot, projection, and current-basis tokens cannot admit or extend a Store physical read plan.",
+        "Cross-layer correlation is typed and diagnostic-only unless Store physical stability authority is present.",
+        "Foundational role claims distinguish authoritative current, derived projection, support-only, receipt evidence, and Store physical authority."
+      ],
+      "instructions": "Implement S.5 Phase 2 from the S.5 spec. Name the physical/semantic seam so Store can correlate semantic reads without duplicating relational MVCC or letting semantic visibility mint physical stability.",
+      "qa_focus": "Check for naming or API leakage where `snapshot`, branch, transaction, projection, or current-basis vocabulary can be mistaken for Store physical stability authority.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 2 test hardening plan posted; next implement physical-basis variance and cargo-backed compile-fail proof"
+        ],
+        "done": [
+          "phase 2 done-check passed; semantic visibility cannot admit physical read plans",
+          "phase 2 test hardening implemented with physical-basis variance and stronger compile-fail proof",
+          "phase 2 test QA passed after hardening review",
+          "phase 2 code-quality closeout complete; phase closed and cursor advanced"
+        ],
+        "remaining": [
+          "Phase 3 should move epoch vocabulary out of physical_read_plan into scoped epoch modules"
+        ],
+        "findings": [
+          "test hardening needed: correlation equivalence does not vary physical basis; compile-fail harness may use stale rlibs and has weak stderr pressure",
+          "code quality residual: provisional PhysicalEpoch lives in physical_read_plan until Phase 3 epoch split"
+        ],
+        "verification": [
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s5_physical_semantic_isolation | exit 0 | tail: 6 passed",
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s5_physical_semantic_isolation_compile_fail | exit 0 | tail: 1 passed",
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s5_physical_isolation_entry_compile_fail | exit 0 | tail: 1 passed",
+          "cargo check --manifest-path workspaces\\worth-store\\crates\\worth-store-physical-isolation\\Cargo.toml | exit 0",
+          "cargo check --manifest-path workspaces\\worth-store\\crates\\worth-store-authority\\Cargo.toml | exit 0",
+          "cargo check -p worth-relational | exit 0",
+          "adversarial SnapshotId to PhysicalEpoch to StableReadPlan compile probe | exit 1",
+          "touched Rust line counts <= 400",
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s5_physical_semantic_isolation | exit 0 | tail: 6 passed",
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s5_physical_semantic_isolation_compile_fail | exit 0 | tail: 1 passed",
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s5_physical_isolation_entry_compile_fail | exit 0 | tail: 1 passed",
+          "cargo check --manifest-path workspaces\\worth-store\\crates\\worth-store-physical-isolation\\Cargo.toml | exit 0",
+          "touched Rust line counts <= 400",
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s5_physical_semantic_isolation | exit 0 | tail: 6 passed",
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s5_physical_semantic_isolation_compile_fail | exit 0 | tail: 1 passed",
+          "cargo check --manifest-path workspaces\\worth-store\\crates\\worth-store-physical-isolation\\Cargo.toml | exit 0",
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s5_physical_semantic_isolation | exit 0 | tail: 6 passed",
+          "cargo test --manifest-path workspaces\\worth-store\\crates\\worth-store-certification\\Cargo.toml --test s5_physical_semantic_isolation_compile_fail | exit 0 | tail: 1 passed",
+          "cargo check --manifest-path workspaces\\worth-store\\crates\\worth-store-physical-isolation\\Cargo.toml | exit 0",
+          "cargo check --manifest-path workspaces\\worth-store\\crates\\worth-store-authority\\Cargo.toml | exit 0",
+          "cargo check -p worth-relational | exit 0",
+          "phase 2 production touched line counts <= 400"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Define Root, Manifest, Segment, Extent, Page, And Chunk Epochs",
+      "owner": "`worth-store-physical-isolation`, `worth-store-physical-format`, `worth-store-readiness`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Root, manifest, segment, extent, page, and future chunk epochs are scoped and cannot be compared outside declared stability scopes.",
+        "Current, checkpoint-publication, recovery, and manifest-locator roots are distinct authority types.",
+        "Generation-counted physical references and memory-ordering contracts prevent ABA and weak-publication authority bugs."
+      ],
+      "instructions": "Implement S.5 Phase 3 from the S.5 spec. Define epoch, generation, root-kind, freshness, readmission, and ordering vocabulary before stable plans or latches depend on it.",
+      "qa_focus": "Check for raw ids or raw epochs accepted in S.5 authority paths, root-kind substitution, stale generation reuse, and weak memory ordering hidden behind ordinary equality.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 3 implementation plan posted; next implement scoped epoch/root/generation/ordering vocabulary",
+          "phase 3 test hardening plan posted; next implement manifest/extent drift, full-vector freshness, ordering proof"
+        ],
+        "done": [
+          "phase 3 code-quality closeout passed"
+        ],
+        "verification": [
+          {
+            "command": "cargo check --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-physical-isolation -p worth-store-certification",
+            "exit_code": 0,
+            "tail": "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s"
+          },
+          {
+            "command": "cargo test --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-certification --test s5_epoch_scope_and_root_kind --test s5_epoch_scope_foundational_lowering --test s5_epoch_scope_and_root_kind_compile_fail",
+            "exit_code": 0,
+            "tail": "9 passed; compile-fail 1 passed; foundational lowering 3 passed"
+          }
+        ],
+        "remaining": [],
+        "findings": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Define Latch Classes, Acquisition Order, And Deadlock Policy",
+      "owner": "`worth-store-physical-isolation`, `worth-store-buffer-pool`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-buffer-pool",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Latch classes, modes, keys, canonical acquisition order, and deadlock prevention or detection policy are typed.",
+        "Cyclic plans, hierarchy inversions, unauthorized upgrades, unordered lock sets, and execution-time latch discovery deny before waiting.",
+        "Latch attempts, waits, denied upgrades, and detected cycles emit exact counter-backed evidence for S.6 handoff."
+      ],
+      "instructions": "Implement S.5 Phase 4 from the S.5 spec. Latch acquisition must be a lowered proof-bearing plan over canonical physical latch keys, not executor discretion or convention.",
+      "qa_focus": "Check that latch ordering is machine enforced, stable across input order/hash seed/platform/restart, and does not hide blocking or I/O cost.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 4 test hardening plan posted; next implement determinism/hash/rebuild lanes, policy coverage, mode/action order, and denial counter evidence"
+        ],
+        "done": [
+          "phase 4 closed complete/passed; code-quality residual recorded"
+        ],
+        "verification": [
+          "cargo test --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-certification --test s5_latch_acquisition_order --test s5_latch_acquisition_order_compile_fail --test s5_latch_algorithm_shape; exit 0; tail: 4 passed in s5_latch_algorithm_shape",
+          "cargo check --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-physical-isolation -p worth-store-buffer-pool -p worth-store-certification; exit 0; tail: Finished dev profile"
+        ],
+        "remaining": [
+          "later cleanup: split wait-graph admission denial from cycle-detection denial vocabulary"
+        ],
+        "findings": [
+          "code-quality residual: wait graph detection denial still contains unreachable bound-exceeded variant after bound handling moved to admission evidence"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "title": "Admit Stable Physical Read Plans",
+      "owner": "`worth-store-physical-isolation`, `worth-store-buffer-pool`, `worth-store-physical-format`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-buffer-pool",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Stable physical read plans carry root epoch, manifest epoch, physical references, generation proofs, latch requirements, reachability barriers, footprint counters, retry posture, and release semantics.",
+        "Protect-before-observe and traversal admission happen before execution-ready handles are issued.",
+        "S.4.5 scenario lanes cover counter contracts, transcript replay, stale generation, missing release, execution-time discovery, and unbounded footprint mutants."
+      ],
+      "instructions": "Implement S.5 Phase 5 from the S.5 spec. Admit proof-bearing read plans and compact protected-reference footprints from native/aspect authority, not JSON or projection rows.",
+      "qa_focus": "Check for root observation before protection, execution-time footprint discovery, unbounded raw vectors, missing release semantics, broad hidden costs, and fixture-only proof.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 5 implementation plan posted; next implement stable read-plan admission chain, compact footprints, counters, release receipts, and harness lanes",
+          "phase 5 test hardening plan posted: executed S4.5 evidence lanes, execution-time discovery attempt surface, native/aspect-derived footprint proof",
+          "phase 5 test hardening plan posted: carry executed fault events and prove native/aspect-derived footprint authority"
+        ],
+        "done": [
+          "phase 5 implementation added proof-bearing stable physical read plan admission and tests",
+          "phase 5 repair implemented: executable plans require protected footprint, post-hazard validation, release semantics, and S4.5 lanes",
+          "phase 5 repair tightened hazard observation, reachability barrier, and bounded footprint admission",
+          "phase 5 repair bound hazard authority, scratch-backed footprint admission, and footprint-basis release evidence",
+          "phase 5 repair implemented: typed post-hazard observation, traversal-owned scratch counters, and no public epoch-only StableReadPlan alias",
+          "phase 5 repair: post-hazard observation is hazard-owned",
+          "phase 5 repair: fresh post-protection observation and typed retry posture",
+          "phase 5 repair: post-protection observation requires published hazard witness",
+          "phase 5 repair removed public epoch-only stable read admission shortcut",
+          "phase 5 done-check passed after public epoch-only admission shortcut removal",
+          "phase 5 test hardening implemented: execution handle footprint checks, executed S4.5 evidence lanes, and native/aspect-derived footprint proof",
+          "phase 5 test hardening implemented: scenario fault events replay and native/aspect-derived footprint proof",
+          "phase 5 test QA passed after hardened replay fault lanes and native/aspect footprint proof review",
+          "phase 5 code-quality closeout completed; no blocking structural issue"
+        ],
+        "remaining": [
+          "phase 5 structural cleanup: split physical_read_plan subfamilies and rename S5 fault lowering file"
+        ],
+        "findings": [
+          "phase 5 gaps: root validation self-compares after protection; compatibility plan issues execution handles without footprint/release; footprint uses raw Vec allocation and hash-like keys; S4.5 scenario lanes absent",
+          "phase 5 gaps: post-hazard observation not provenance-typed; reachability barriers/retry posture absent; footprint scratch/allocation counters still dishonest raw Vec path",
+          "phase 5 gaps: publish authority ignored; scratch/allocation counters are constant-label proof over Vec allocation; release/barrier evidence is count-only",
+          "phase 5 gaps: post-hazard observation accepts raw epoch vectors; traversal scratch proof/counters split from admission scratch; epoch-only StableReadPlan remains public",
+          "phase 5 gap: post-hazard root observation can be minted without hazard publication",
+          "phase 5 gaps: post-publication observation still rebuilds from hazard intent instead of fresh authority state",
+          "phase 5 gaps: stable read plan lacks typed retry posture and retry evidence remains counter-only",
+          "phase 5 gap: post-protection observation can be minted before hazard publication",
+          "phase 5 gap: public epoch-only admit_stable_read_plan remains exported as ordinary stable-read admission authority",
+          "phase 5 test gaps: S4.5 stable-read lanes are lowering-only; execution-time discovery denial is direct-method proof; protected references are fixture-minted rather than native/aspect traversal-derived",
+          "phase 5 test gaps: executed S4.5 mutant lanes drop fault events; native/aspect footprint proof still trusts cached fixture metadata instead of validated aspect-derived authority",
+          "phase 5 code-quality findings: physical_read_plan flat subfamilies; broad scenario_fault lowering filename"
+        ],
+        "verification": [
+          "cargo test focused S5 read-plan/epoch/semantic tests passed; phase-scope cargo check passed",
+          "cargo test focused phase 5 targets passed; cargo check phase-scope crates passed; touched files under 400 lines",
+          "focused phase 5 tests, compile-fail lane, S4.5 scenario lane, cargo check, and line-cap pass succeeded",
+          "focused phase 5 tests, compile-fail lane, S4.5 scenario lane, scoped cargo check, and line-cap pass succeeded",
+          "focused phase 5/related tests passed; scoped phase crates cargo check passed; focused line-count check passed",
+          "fmt; focused s5 tests; scoped cargo check; line caps passed",
+          "focused S5 tests passed; phase-scope cargo check passed; touched files under line cap",
+          "focused S5 tests and phase-scope cargo check pass but QA found pre-publication observation gap",
+          "focused S5 tests passed; phase-scope cargo check passed; touched files under line cap",
+          "focused S5 tests and phase-scope cargo check passed, but static API review found remaining admission shortcut",
+          "focused S5 tests, compile-fail lanes, phase-scope cargo check, fmt, and line-cap scan passed",
+          "focused S5 acceptance tests exited 0; phase-scope cargo check exited 0",
+          "cargo check -p worth-store-physical-isolation -p worth-store-test-support -p worth-store-certification | exit 0",
+          "cargo test -p worth-store-certification --test s5_stable_read_plan_admission --test s5_stable_read_plan_admission_compile_fail --test s5_stable_read_plan_scenarios --test s5_stable_read_plan_native_footprint | exit 0 | 12 tests passed",
+          "touched Rust line counts <= 400",
+          "cargo check focused packages passed; targeted s5 stable-read-plan tests passed; touched files under 400 lines",
+          "qa-tests reran targeted s5 stable-read-plan tests successfully",
+          "cargo check -p physical-certification/test-support/certification; cargo test S5 stable read plan targets; exit 0; tail: 9+1+2+1 tests passed"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "title": "Execute Stable Reads Without Re-Deciding Isolation Strategy",
+      "owner": "`worth-store-physical-isolation`, `worth-store-buffer-pool`, `worth-store-physical-format`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-buffer-pool",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Execution consumes only execution-ready read handles and cannot re-plan root, latch, epoch, footprint, or reachability strategy.",
+        "Physical byte guards are required before dereferencing frames, mmap views, extent windows, or owned read buffers.",
+        "Ordinary reads do not hold high-level structural latches across blocking I/O unless the plan and S.6 handoff expose that cost."
+      ],
+      "instructions": "Implement S.5 Phase 6 from the S.5 spec. Separate reachability leases from byte guards and make execution a consumer of lowered plans, not a second planner.",
+      "qa_focus": "Check for plan/execute conflation, hidden latch-I/O, byte dereference without guards, and retries that secretly reconstruct admission facts.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 6 plan posted: execution consumes handles, byte guards, no-replan counters, and no-hidden-latch-IO proof",
+          "phase 6 test hardening plan posted: retry/outcome/non-redecision/latch-IO lanes with real execution surfaces"
+        ],
+        "remaining": [
+          "phase 6 code-quality remaining: split stable_read_execution foundational evidence lowering if receipt/provenance/diagnostic construction grows"
+        ],
+        "findings": [
+          "phase 6 gaps: raw owned-buffer guard can mint bytes; guard bytes bypass execution; runtime footprint scan/counters dishonest; mmap/extent guard surfaces incomplete",
+          "phase 6 gaps: byte guards do not bind copied/payload bytes to admitted reference; guarded byte read can outlive execution completion/release",
+          "phase 6 gap: resident-frame byte guard can bind an admitted reference to an unrelated resident frame token/lease",
+          "phase 6 test gaps: retry/convergence, proof outcome lowering, mutation non-redecision, and real latch-IO lanes are not yet under hostile integration pressure"
+        ],
+        "done": [
+          "phase 6 repair implemented: byte guard authority sealed, owned buffers require bounded-copy provenance, execution uses compact footprint checks without replanning",
+          "phase 6 repair implemented: copied/payload byte guards validate admitted reference provenance and guarded byte views borrow active execution until byte access ends",
+          "phase 6 repair: resident-frame byte guards now bind lease physical reference provenance to admitted scope",
+          "phase 6 done-check passed: execution consumes ready handles and byte guards bind bytes to admitted references",
+          "phase 6 test hardening implemented: typed retry/outcome lowering, guarded latch-IO, and cross-footprint non-redecision lanes",
+          "phase 6 code-quality closeout complete; structure acceptable with evidence-lowering growth pressure noted"
+        ],
+        "verification": [
+          "cargo check focused packages passed; s5_stable_read_execution and compile-fail tests passed; touched Rust files under 400 lines",
+          "cargo check focused packages passed; s5_stable_read_execution and compile-fail tests passed; touched Rust files under 400 lines; runner state validates",
+          "cargo check scoped phase crates passed; cargo test -p worth-store-certification --test s5_stable_read_execution --test s5_stable_read_execution_compile_fail passed",
+          "cargo check scoped phase crates passed; cargo test -p worth-store-certification --test s5_stable_read_execution --test s5_stable_read_execution_compile_fail passed with 8 runtime tests and compile-fail proof",
+          "cargo check scoped phase crates passed; cargo test -p worth-store-certification --test s5_stable_read_execution --test s5_stable_read_execution_compile_fail passed; touched files under 400 lines",
+          "phase 6 code-quality verification: cargo check --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-physical-isolation -p worth-store-buffer-pool -p worth-store-physical-format -p worth-store-certification exit 0 tail Finished dev profile; cargo test --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-certification --test s5_stable_read_execution --test s5_stable_read_execution_compile_fail exit 0 tail 10 runtime tests passed and 1 compile-fail test passed; touched phase 6 Rust files under 400 lines"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Publish Copy-On-Write Physical Updates",
+      "owner": "`worth-store-physical-isolation`, `worth-store-recovery-physics`, `worth-store-physical-format`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Moved or rewritten reachable structures publish through copy-on-write or equivalent old-root preservation.",
+        "Root and manifest swaps use declared acquire/release or stronger ordering and preserve old reachability until release proof.",
+        "Crash before, during, and after publication recovers old or new stable structure, never a mixed tree."
+      ],
+      "instructions": "Implement S.5 Phase 7 from the S.5 spec. Publication is S.5 online stability, not S.4 checkpoint validity and not reclaim side effect.",
+      "qa_focus": "Check for in-place overwrites of reachable structures, copied checkpoint receipts, missing old-root preservation, weak publication ordering, and identity reuse during publication.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 7 plan posted: COW publication module, RCU root/manifest swaps, old-reachability, ordering, crash matrix, and certification lanes"
+        ],
+        "done": [
+          "phase 7 code-quality closeout complete; no blocking structural issues"
+        ],
+        "remaining": [
+          "publication directory and recovery-physics cutover file should be split if future phases add responsibilities"
+        ],
+        "findings": [
+          "phase 7 gaps: new-root proof not bound to published root; publish is receipt-only with no post-swap authority/read admission; crash matrix is hard-coded not recovery-backed; lineage/free-reuse evidence too shallow",
+          "phase 7 gaps: root validation not bound to root candidate; reclaim lacks release-proof gate; crash proof not recovery-physics-backed; foundational lineage/continuity uses local projection",
+          "phase 7 gap: crash recovery proof is receipt-derived and publicly mintable, not recovery-executed authority",
+          "phase 7 gap: recovery replay execution still copies caller-chosen recovered structure; readiness does not decide recovered root",
+          "phase 7 gap: recovery replay root decision still derives from caller-supplied stage/root facts, not recovery-executed evidence",
+          "phase 7 test gaps: recovery helper hides ignored publication input; during-crash, stronger-ordering, and release-mismatch lanes need hardening"
+        ],
+        "verification": [
+          "cargo check --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-physical-isolation -p worth-store-recovery-physics -p worth-store-physical-format -p worth-store-certification: exit 0; tail: Finished dev profile.",
+          "cargo test --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-certification --test s5_copy_on_write_publication --test s5_copy_on_write_publication_compile_fail: exit 0; tail: 10 passed, 1 compile-fail passed; warnings only in pre-existing shared support unused fns."
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "title": "Interlock Reads With Compaction",
+      "owner": "`worth-store-physical-isolation`, `worth-store-recovery-physics`, `worth-store-physical-integrity`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-physical-integrity",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Readers admitted before compaction cutover retain old protected structure; readers admitted after cutover observe the new epoch.",
+        "Compaction candidate ranges intersect protected-reference ranges through bounded range-set operations.",
+        "S.4.5 harness lanes cover NoMixedRoot, old/new reader oracles, blocked reclaim, in-place overwrite, early reclaim, stale epoch reuse, and backend-residue mutants."
+      ],
+      "instructions": "Implement S.5 Phase 8 from the S.5 spec. Compaction is a maintenance actor constrained by admitted read plans, quarantine posture, cutover deltas, and deferred reclaim queues.",
+      "qa_focus": "Check for directory-residue candidate selection, movement of quarantined bytes, immediate reclaim after cutover, full-store scans, and reader-by-reader folklore.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 8 implementation plan posted: compaction/read interlock, bounded range sets, deferred reclaim, quarantine/residue denials, and S.4.5 lanes",
+          "phase 8 test hardening plan posted: enrich compaction observation, bind oracles/counters to executed product facts, and add hostile harness lanes",
+          "phase 8 test hardening plan posted: make compaction mutation rows replay-bound observations, not caller-attached coverage rows",
+          "phase 8 test hardening plan posted: bind compaction mutation receipts to replay plan/footprint and add near-miss rejection proof",
+          "phase 8 test hardening plan posted: bind compaction mutation receipts to replay plan, full footprint, and cutover/publication origin; add same-footprint wrong-cutover rejection proof",
+          "phase 8 test hardening plan posted: make compaction mutation receipts scheduled S4.5 lane outputs, reject detached receipt attachment, and keep operation receipts plan/cutover-bound"
+        ],
+        "done": [
+          "phase 8 test hardening implemented: compaction mutation receipts now require scheduled S4.5 lane outputs bound to replay plan, schedule, actor step, footprint, and cutover origin",
+          "phase 8 test review passed: compaction/read tests now exercise production interlock, bounded range, S4.5 oracle, transcript, evidence, and mutation-lane paths",
+          "phase 8 code-quality review closed; compaction interlock modules are narrow and phase acceptance remains green"
+        ],
+        "remaining": [
+          "split or exempt the broad certification crate facade outside the phase 8 compaction closeout"
+        ],
+        "findings": [
+          "phase 8 gaps: source integrity clearance is bound to one protected owner, not the full compaction candidate footprint; scrub movement clearance advertises movement without locality proof",
+          "phase 8 test gaps: S4.5 compaction oracles/counters certify reduced observations; need harness-executed old/new reader, blocked reclaim, stale epoch, backend-residue, and bounded range-set proof",
+          "phase 8 test gap: S4.5 mutation coverage remains private-mutation only; in-place overwrite, early reclaim, stale epoch reuse, and backend-residue mutants are direct tests, not harness lanes",
+          "phase 8 test gap: compaction mutation rows remain caller-attached; S4.5 replay trace does not execute or carry the four mutant lanes",
+          "phase 8 test gap: compaction mutation observations are replay-carried but still support-injected, not scheduled S4.5 mutant lane outputs",
+          "phase 8 test gap: scheduled mutation lanes still accept caller-minted compaction denial enums, not operation-derived lane receipts",
+          "phase 8 test gap: operation receipts are not bound to replay plan/compaction footprint, so unrelated lane receipts can certify scheduled coverage",
+          "phase 8 test gap: compaction mutation receipt origin is footprint-bound but not replay-plan/cutover-bound; test support can still pair matching receipts with an unrelated valid S4.5 schedule",
+          "phase 8 test gap: compaction mutation lane receipts are operation-derived and plan-bound, but still support-attached to trace; S4.5 schedule does not execute or emit lane receipts",
+          "code-quality residual: worth-store-certification/src/lib.rs is a 402-line certification facade over the workspace line cap"
+        ],
+        "verification": [
+          "cargo check scoped isolation/physical-certification/certification passed; targeted phase 8 compaction mutation/readiness/read-compaction/range tests passed; touched line counts <= 400",
+          "cargo test focused phase 8 compaction mutation/oracle/readiness/range/read-compaction targets: exit 0; reviewed line caps <= 400",
+          "cargo check --manifest-path .\\workspaces\\worth-store\\Cargo.toml -p worth-store-physical-isolation -p worth-store-physical-certification -p worth-store-certification => exit 0; tail: Finished dev profile in 0.13s",
+          "cargo test --manifest-path .\\workspaces\\worth-store\\Cargo.toml -p worth-store-certification --test s4_5_compaction_mutation_coverage --test s4_5_s5_simulation_harness_readiness --test s5_read_during_compaction --test s5_compaction_range_interlock_bounds --test s4_5_compaction_oracle_hardening => exit 0; tail: 9+2+6+1+4 tests passed",
+          "python automation\\phase_runner\\runner.py automation\\phase_runner\\worth-store-s5.json --validate => exit 0; tail: state file is valid"
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "title": "Interlock Reads With Checkpoint Publication",
+      "owner": "`worth-store-physical-isolation`, `worth-store-recovery-physics`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Checkpoint publication is visible only through admitted root and manifest epoch transitions.",
+        "Foreground, checkpoint-publication, recovery, and manifest-locator roots cannot satisfy each other's APIs without readmission.",
+        "S.4.5 crash/interleaving lanes prove old-or-new never mixed and reject copied checkpoint reports and same-run self-comparison."
+      ],
+      "instructions": "Implement S.5 Phase 9 from the S.5 spec. Do not reopen S.4 checkpoint validity; prove online read stability during checkpoint publication.",
+      "qa_focus": "Check for half-published checkpoint manifests, mixed pageLSN frontiers, checkpoint roots masquerading as current roots, and ambiguous restart roots.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 9 plan posted: checkpoint/read interlock over admitted root and manifest epoch publication",
+          "phase 9 test hardening plan posted: scheduled checkpoint lane receipts, shortcut denial proof, and frontier/range hostile tests",
+          "phase 9 test hardening plan posted: scheduled checkpoint crash receipts and shortcut-denial receipts replace support-minted outcomes",
+          "phase 9 test hardening plan: scheduled recovery and shortcut receipts must replace caller-minted outcomes",
+          "phase 9 test hardening plan: bind recovery, shortcut, and copied-report receipts to checkpoint origin"
+        ],
+        "done": [
+          "phase 9 implementation complete: checkpoint read interlock and S4.5 observation lane wired",
+          "phase 9 repair: checkpoint readmission binds S4 validation/cutover/frontier to root transition",
+          "phase 9 repair: checkpoint root identity/readmission and replay-basis interlock observations bound",
+          "phase 9 done-check passed after checkpoint identity and replay-basis review",
+          "phase 9 test hardening implemented: scheduled checkpoint lane receipts and hostile readmission cases",
+          "phase 9 test hardening: checkpoint lane evidence is origin-bound and crash replay is checkpoint-plan-bound",
+          "phase 9 test hardening: checkpoint crash and shortcut receipts are schedule-bound",
+          "phase 9 test hardening: recovery and shortcut receipts are schedule-emitted",
+          "phase 9 test hardening: checkpoint receipts bind recovery, shortcut, and copied-report proof to origin",
+          "phase 9 test QA passed: checkpoint publication tests now use scheduled origin-bound proof lanes",
+          "phase 9 code-quality closeout complete; structural debt recorded"
+        ],
+        "remaining": [
+          "split checkpoint publication certification lane products before adding more S5 lanes",
+          "keep future observation lane attachment mechanics out of the central builder"
+        ],
+        "findings": [
+          "phase 9 review gaps: checkpoint transition lacks checkpoint identity/readmission binding and S4.5 crash/replay proof is observation-attached",
+          "phase 9 review gaps: checkpoint root identity is not bound to validation/cutover; transcript replay basis omits checkpoint interlock observation",
+          "phase 9 test gaps: checkpoint S4.5 lane is observation-attached, not schedule-emitted; copied/self-comparison denials are helper constants",
+          "phase 9 test gaps: half-published manifest and pageLSN frontier mismatch denials lack direct hostile proof",
+          "phase 9 test gaps: checkpoint lane accepts unbound copied evidence and crash proof remains generic recovery-lane proof",
+          "phase 9 test gaps: crash replay outcome and same-run denial are still support-minted, not schedule-emitted checkpoint lanes",
+          "phase 9 test gaps: crash outcome and same-run denial receipts remain caller-minted despite schedule binding",
+          "phase 9 test gaps: checkpoint crash lane accepts recovery proof from unrelated recovery plan",
+          "phase 9 test gaps: same-run shortcut lane still wraps generic denial receipt, not checkpoint-schedule-emitted receipt",
+          "phase 9 test gaps: copied checkpoint report lane only proves wrong-origin denial, not same-origin copied-report denial",
+          "phase 9 code-quality: checkpoint publication observation lane file owns scheduled/crash/recovery/shortcut products",
+          "phase 9 code-quality: observation builder is accumulating lane-specific attachment methods"
+        ],
+        "verification": [
+          "focused cargo check and phase 9 tests passed",
+          "cargo check touched crates passed; focused checkpoint/root tests passed",
+          "cargo check phase crates; focused checkpoint/root tests passed",
+          "review reran cargo check phase crates and focused phase 9 tests; passed",
+          "cargo check phase crates; focused phase 9 checkpoint tests passed; line counts under 400",
+          "cargo check phase crates; focused phase 9 checkpoint tests passed; touched files under 400 lines",
+          "cargo check physical-certification/certification; phase 9 checkpoint hardening tests; s5_read_during_checkpoint passed",
+          "phase runner state validation passed",
+          "cargo check phase crates; checkpoint scheduled/origin/oracle/s5 tests passed; touched files under 400 lines",
+          "test QA reran phase 9 checkpoint read/scheduled/origin/oracle tests; passed",
+          "cargo check phase crates exit 0 tail: Finished dev profile",
+          "cargo test s5_read_during_checkpoint exit 0 tail: 7 passed",
+          "cargo test checkpoint scheduled/origin/oracle hardening exit 0 tail: 10/3/6 passed"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "title": "Enforce Reclaim Reachability And Hazard Barriers",
+      "owner": "`worth-store-physical-isolation`, `worth-store-buffer-pool`, `worth-store-physical-integrity`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-buffer-pool",
+        "workspaces/worth-store/crates/worth-store-physical-integrity",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Reclaim consumes only executed reachability evidence plus live hazard and lease tables.",
+        "Lease expiry is not reclaim authority without release, revocation, or owned-copy conversion proof.",
+        "Hazard leases are generation-counted and indexed by epoch/protected-reference range; free/reuse generation fences are crash-stable."
+      ],
+      "instructions": "Implement S.5 Phase 10 from the S.5 spec. Reclaim is a proof consumer, not backend residue scavenging or raw reader-handle scanning.",
+      "qa_focus": "Check for reclaim from absence, expiry-as-authority, stale release, unbounded global scans, reference-counted page object folklore, and identity reuse before allocator publication.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "remaining": [
+          "non-blocking cleanup: reconcile publication free/reuse posture with reclaim free/reuse fence ownership in a later structural pass"
+        ],
+        "plan": [
+          "phase 10 plan posted: reclaim consumes executed reachability plus live hazard/lease proofs",
+          "phase 10 test hardening plan: expiry authority variants, stale release counters, candidate mismatch denials, allocator denial",
+          "phase 10 test hardening plan: prove revocation and owned-copy clear live hazard index before reclaim",
+          "phase 10 test hardening plan: distinct expiry-authority leases prove per-slot live-index removal"
+        ],
+        "done": [
+          "phase 10 repaired: sealed reachability admission, epoch-indexed hazard lookup, crash-stable generation advancement",
+          "phase 10 repair implemented: release-bound candidates, maintained hazard index, removal receipt reuse fence",
+          "phase 10 repair implemented: range-bucket hazard index and removal-to-reuse identity binding",
+          "phase 10 repair implemented: range-bucket hazard lookup cost is visible and certified",
+          "phase 10 done-check passed: reclaim, expiry, hazard index, and reuse fence surfaces reviewed",
+          "phase 10 test hardening implemented: expiry authority variants, stale release counters, candidate mismatch denials, allocator denial",
+          "phase 10 test hardening implemented: expiry authority transitions prove live hazard index is clear before reclaim",
+          "phase 10 test hardening implemented: distinct expiry-authority leases prove per-slot live-index removal",
+          "phase 10 test QA passed: reclaim and hazard barrier tests are honest enough",
+          "phase 10 code quality reviewed and closed with residual non-blocking topology note"
+        ],
+        "verification": [
+          "cargo test s5_reclaim_reachability_hazard_barriers passed; scoped phase cargo check passed",
+          "cargo test -p worth-store-certification --test s5_reclaim_reachability_hazard_barriers: exit 0; cargo check -p worth-store-physical-isolation -p worth-store-certification: exit 0",
+          "cargo check -p worth-store-physical-isolation -p worth-store-buffer-pool -p worth-store-physical-integrity -p worth-store-physical-certification -p worth-store-certification: exit 0",
+          "cargo test -p worth-store-certification --test s5_reclaim_reachability_hazard_barriers: exit 0; cargo check phase 10 scoped crates: exit 0",
+          "cargo test -p worth-store-certification --test s5_reclaim_reachability_hazard_barriers: exit 0; cargo check phase 10 scoped crates: exit 0; touched Rust line counts <= 400",
+          "cargo test -p worth-store-certification --test s5_reclaim_reachability_hazard_barriers: exit 0; cargo check phase 10 scoped crates: exit 0",
+          "cargo test -p worth-store-certification --test s5_reclaim_reachability_hazard_barriers: exit 0; cargo check phase 10 scoped crates: exit 0; touched Rust line counts <= 400",
+          "cargo test -p worth-store-certification --test s5_reclaim_reachability_hazard_barriers: exit 0; cargo check phase 10 scoped crates: exit 0; touched Rust line counts <= 400",
+          "cargo test s5_reclaim_reachability_hazard_barriers: exit 0; scoped phase cargo check: exit 0; touched Rust line counts <= 400",
+          "cargo test -p worth-store-certification --test s5_reclaim_reachability_hazard_barriers: exit 0; tail: test result ok, 10 passed",
+          "cargo check -p worth-store-physical-isolation -p worth-store-buffer-pool -p worth-store-physical-integrity -p worth-store-physical-certification -p worth-store-certification: exit 0; tail: Finished dev profile"
+        ],
+        "findings": [
+          "phase 10 review gaps: reclaim root epoch not bound to release evidence; hazard index still rebuilt by slot scan; free/reuse fence lacks reachability-removal receipt",
+          "phase 10 review gaps: hazard index lacks protected-range indexing; free/reuse fence does not bind removed reachability to reused identity",
+          "phase 10 review gap: range bucket lookup still scans same-epoch range buckets without visible counter proof",
+          "phase 10 test gaps: expiry proof omits revocation/owned-copy, stale release counters, candidate mismatch denials, and allocator publication denial",
+          "phase 10 test gap: expiry authority variants do not prove revocation/owned-copy clear live hazard index before reclaim",
+          "phase 10 test gap: expiry live-index proof uses cloned same-range leases and can miss overbroad index removal",
+          "phase 10 code quality residual: free/reuse authority is split between publication posture and reclaim fence topology"
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "title": "Reserve Tier Movement And Blob Migration Stability Without Claiming S.7",
+      "owner": "`worth-store-physical-isolation`, `worth-store-physical-format`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Tier movement and future chunk placeholders carry stability proof only, not S.7 blob lifecycle, retention, dedupe, or resumable-write authority.",
+        "Ordinary page, extent, and segment reads do not carry chunk-only fields.",
+        "Foundational planned/support surfaces and Proof assumption bases deny promotion into blob authority or cold-tier QoS claims."
+      ],
+      "instructions": "Implement S.5 Phase 11 from the S.5 spec. Reserve movable physical reference vocabulary for tier movement and future chunks without implementing S.7 or S.6 behavior.",
+      "qa_focus": "Check for blob lifecycle leakage, chunk-specific hot-path pollution, unsupported tier movement claims, and placeholders accepted as real blob authority.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 11 plan posted: movable stability placeholders without S7 or S6 authority",
+          "phase 11 test hardening plan: compile-fail placeholder boundary, unsupported-claim matrix, full non-claim/equivalence/basis-mismatch proof"
+        ],
+        "done": [
+          "phase 11 implemented: stability-only movable refs and future chunk placeholders",
+          "phase 11 repair implemented: placeholder-only future chunk admission, request-shaped unsupported movement denial, proof-basis QoS denial",
+          "phase 11 repair implemented: unsupported movement rejection is pre-stability kind/claim request",
+          "phase 11 done-check passed after hostile review",
+          "phase 11 test hardening implemented: compile-fail placeholder boundary, unsupported claim matrix, non-claim/equivalence/basis mismatch proof",
+          "phase 11 test QA passed: placeholder boundary, unsupported claim matrix, non-claim/equivalence/basis mismatch proof are honest enough",
+          "phase 11 code-quality closeout passed"
+        ],
+        "remaining": [],
+        "findings": [
+          "phase 11 review gaps: future chunk placeholder bypass, synthetic unsupported movement denial, missing proof-basis cold-tier QoS denial",
+          "phase 11 review gap: unsupported tier movement rejection consumes stability-bearing movable reference",
+          "phase 11 test gaps: missing compile-fail placeholder boundary proof, incomplete unsupported-claim/non-claim matrix, weak equivalence and basis-mismatch pressure"
+        ],
+        "verification": [
+          "cargo check -p worth-store-physical-format -p worth-store-physical-isolation -p worth-store-certification; cargo test -p worth-store-certification --test s5_tier_movement_future_chunk_stability; touched-file line counts under 400; bash line-cap guard unavailable",
+          "cargo check -p worth-store-physical-format -p worth-store-physical-isolation -p worth-store-certification; cargo test -p worth-store-certification --test s5_tier_movement_future_chunk_stability; touched-file line counts under 400",
+          "cargo test --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-certification --test s5_tier_movement_future_chunk_stability | exit 0 | tail: 4 passed",
+          "cargo test --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-certification --test s5_tier_movement_future_chunk_compile_fail | exit 0 | tail: 1 passed",
+          "cargo check --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-physical-isolation -p worth-store-physical-format -p worth-store-certification | exit 0 | tail: Finished dev profile",
+          "touched phase 11 test files <= 400 lines",
+          "cargo test --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-certification --test s5_tier_movement_future_chunk_stability | exit 0 | tail: test result: ok. 4 passed",
+          "cargo test --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-certification --test s5_tier_movement_future_chunk_compile_fail | exit 0 | tail: test result: ok. 1 passed",
+          "phase 11 touched Rust line counts <= 400"
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "title": "Consume And Extend The S.4.5 Harness For S.5 Interleaving Families",
+      "owner": "`worth-store-certification`, `worth-store-test-support`, `worth-store-physical-certification`, `worth-store-physical-isolation`, and `worth-store-readiness`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-readiness"
+      ],
+      "acceptance": [
+        "S.5 physical isolation scenario families extend `PhysicalSimulationScenarioFamily` and lower through S.4.5 builder, plan, schedule, observer, oracle, transcript, replay, coverage, and evidence surfaces.",
+        "`S5ReadinessShapeProbe` remains a non-claim regression lane; real S.5 closeout uses S.5-owned scenario families.",
+        "No local S.5-only runner, test-support verdicts, wall-clock race discovery, JSON authority, logs, fixture labels, or same-run self-comparison can satisfy S.5 proof."
+      ],
+      "instructions": "Implement S.5 Phase 12 from the S.5 spec. This is harness consumption and S.5 scenario-family extension, not a new harness build. Reuse S.4.5 readiness, public authoring, lowering, schedules, drivers, observers, certification-owned oracles, transcripts, generated coverage, mutation evidence, and shortcut rejection.",
+      "qa_focus": "Check for shadow runners, probe lanes used as final S.5 proof, oracle meaning in test support, missing counter contracts, non-replayable schedules, and evidence converted to terminal JSON.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 12 plan posted: S5 scenario families consume S4.5 harness pipeline",
+          "phase 12 test hardening plan: oracle denial matrix, fallible mutation denial, observer omission proof"
+        ],
+        "done": [
+          "phase 12 implemented: S5-owned interleaving families consume S4.5 pipeline",
+          "phase 12 repair: readiness-gated S5 lanes, future chunk family, family-bound oracle and mutation proof",
+          "phase 12 repair: S5 family counters and mutation rows bound to S4.5 replay",
+          "phase 12 repair: S5 harness topology moved to certification-owned surface",
+          "phase 12 repair: observer topology and S5 mutation rows are certification/evidence-owned",
+          "phase 12 done-check passed: S5 families consume S4.5 harness pipeline",
+          "phase 12 test hardening implemented: oracle denial matrix, observer omission proof, mutation denial proof",
+          "phase 12 test QA passed: S5 harness tests exercise production S4.5 pipeline and denial paths",
+          "phase 12 code-quality closeout complete; residual is non-blocking"
+        ],
+        "remaining": [
+          "phase 12 non-blocking cleanup: remove duplicate TraceFixtures::new alias in later polish pass"
+        ],
+        "findings": [
+          "phase 12 gaps: missing readiness-gated S5 lane entry, future chunk family, lane-specific oracle/mutation proof",
+          "phase 12 gaps: missing latch-inversion/mixed-root mutation rows and family-specific counter/mutation topology",
+          "phase 12 gaps: S5 harness topology still test-owned; mutation rows compaction-shaped; future chunk lacks mutation/non-claim row",
+          "phase 12 gaps: observer topology still test-owned; S5 mutation rows not coverage/evidence-bound",
+          "phase 12 test gaps: missing oracle-denial matrix and structured S5 mutation denial proof",
+          "phase 12 code-quality residual: S5PhysicalIsolationTraceFixtures::new duplicates complete constructor"
+        ],
+        "verification": [
+          "passed: s5_interleaving_harness_consumption, s5_stable_read_plan_scenarios, scoped cargo check",
+          "cargo test -p worth-store-certification --test s5_interleaving_harness_consumption; cargo test --test s5_stable_read_plan_scenarios; cargo check scoped crates",
+          "focused S5 harness, mutation coverage, readiness tests, and scoped cargo check passed",
+          "phase 12 repair: s5 harness, compaction mutation, readiness tests and scoped check passed",
+          "passed: s5 harness consumption, S4.5 mutation coverage, S4.5 readiness, scoped cargo check",
+          "passed: s5 harness consumption, S4.5 mutation coverage, S4.5 readiness, scoped cargo check",
+          "passed: s5 consumption/denials, S4.5 mutation coverage/readiness, scoped cargo check, touched files under 400 lines",
+          "code-quality closeout acceptance: s5 consumption exit 0 tail 5 passed; s5 denials exit 0 tail 4 passed; S4.5 mutation coverage exit 0 tail 9 passed; S4.5 readiness exit 0 tail 6 passed; scoped cargo check exit 0 tail Finished dev profile"
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "title": "Materialize Foundational And Proof Evidence From Executed Isolation",
+      "owner": "`worth-store-physical-isolation`, `worth-foundational`, `worth-proof`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-certification",
+        "crates/worth-foundational",
+        "crates/worth-proof"
+      ],
+      "acceptance": [
+        "Executed Store isolation findings materialize into Foundational diagnostics, performance receipts, canonical bases, and Proof progression traces.",
+        "Foundational and Proof projections cannot mint Store stable read plans, latch proofs, epoch scopes, or reclaim eligibility.",
+        "Evidence profiles preserve required outcome, retry, latch, and reclaim counters while policy controls rich forensic material."
+      ],
+      "instructions": "Implement S.5 Phase 13 from the S.5 spec. Export evidence through shared vocabulary without moving Store physical stability authority into Foundational or Proof.",
+      "qa_focus": "Check for evidence built from plans/logs/labels/copied fields instead of executed isolation, and for projection/support/planned artifacts accepted by Store authority APIs.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 13 plan posted: materialize executed Store isolation into Foundational/Proof projections without authority transfer",
+          "phase 13 test hardening plan: authority matrix and exact projection counter proof"
+        ],
+        "done": [
+          "phase 13 implemented: S5 executed isolation materializes Foundational/Proof projections with Store authority denial",
+          "phase 13 repair: sealed executed-source materialization, bound mutation evidence to replay, and routed projection denial through Store authority surfaces",
+          "phase 13 repair: replay-bound mutation evidence and executed S5 profile counters",
+          "phase 13 done-check passed after executed evidence repair",
+          "phase 13 test hardening implemented: authority matrix and exact projection counter proof",
+          "phase 13 test QA passed: authority matrix and exact projection counter proof are honest enough",
+          "phase 13 code-quality closeout complete; phase closed and cursor advanced"
+        ],
+        "remaining": [
+          "later cleanup: retire or rename preserves_required_counters so public API cannot imply names-only evidence is sufficient"
+        ],
+        "findings": [
+          "phase 13 gaps: public executed-evidence constructors mint from copied fields; mutation evidence is not bound to replay; projection denial is voluntary not Store authority-bound",
+          "phase 13 gaps: mutation evidence only plan-bound; outcome/retry profile counters still derived from row count/non-S5 retry rows",
+          "phase 13 test gaps: incomplete projection authority matrix and shallow exact counter projection proof",
+          "code quality residual: S5 performance names-only preservation helper remains beside exact counter matcher"
+        ],
+        "verification": [
+          "cargo check -p worth-store-physical-isolation -p worth-store-certification; cargo test -p worth-store-certification --test s5_evidence_materialization",
+          "cargo check -p worth-store-physical-isolation -p worth-store-certification; cargo test -p worth-store-certification --test s5_evidence_materialization",
+          "cargo check physical-isolation+certification; cargo test s5_evidence_materialization passed",
+          "cargo check physical-isolation+certification; cargo test s5_evidence_materialization passed",
+          "cargo test --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-certification --test s5_evidence_materialization | exit 0 | tail: 5 passed",
+          "cargo check --manifest-path workspaces\\worth-store\\Cargo.toml -p worth-store-certification -p worth-store-physical-isolation | exit 0 | tail: Finished dev profile",
+          "touched Rust line counts <= 400",
+          "phase 13 production Rust line counts <= 400"
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "title": "Publish S.6 I/O And QoS Isolation Readiness",
+      "owner": "`worth-store-physical-isolation`, `worth-store-io-scheduler`, `worth-store-certification`, `worth-foundational`, and `worth-proof`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-certification",
+        "crates/worth-foundational",
+        "crates/worth-proof"
+      ],
+      "acceptance": [
+        "S.6 receives typed physical-stability assumptions, wait/retry counters, blocked-maintenance counters, protected-byte footprints, and unsupported QoS claims.",
+        "S.5 does not claim p99/p999 latency, hardware queue depth, media QoS, or background work pacing.",
+        "Copied closeout reports, logs, synthetic wait labels, and missing latch/reclaim counters cannot satisfy S.6 readiness."
+      ],
+      "instructions": "Implement S.5 Phase 14 from the S.5 spec. Publish the S.6 handoff payload with exact assumptions and non-claims without reopening S.5 isolation or claiming hardware-aware I/O behavior.",
+      "qa_focus": "Check for accidental QoS claims, missing foreground interference surfaces, untyped wait/retry counters, and handoff evidence reconstructed from logs or terminal projections.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "seal S6 readiness publication behind an executed S5 Store handoff authority object rather than copied primitive counters",
+          "remove public raw-count constructors from worth-store-physical-isolation and make compile-fail coverage target the live public surface",
+          "preserve S5 non-claims and typed S6 assumptions/counter surfaces without adding QoS behavior"
+        ],
+        "verification": [
+          "phase 14 authority path is lower-crate closeout law plus certification courtroom adapter",
+          "S6 request/evidence plumbing is not public API"
+        ],
+        "done": [
+          "sealed public S6 certificate path away from from_materialized_s5_closeout copied primitive constructor",
+          "certification now routes executed S5 evidence through typed certified closeout admission before S6 publication",
+          "updated S6 compile-fail fixture to target the live removed constructor instead of stale removed type"
+        ],
+        "remaining": [],
+        "findings": []
+      }
+    },
+    {
+      "id": 15,
+      "title": "Close Physical Isolation, Latches, Epochs, And Stable Read Plans",
+      "owner": "`worth-store-physical-isolation`, `worth-store-certification`, `worth-store-test-support`, `worth-store-recovery-physics`, `worth-store-physical-integrity`, `worth-foundational`, and `worth-proof`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-physical-integrity",
+        "crates/worth-foundational",
+        "crates/worth-proof"
+      ],
+      "acceptance": [
+        "The Roadmap 2 physical isolation, latch, epoch, and stable-read-plan test suite passes with machine-checkable evidence.",
+        "Every S.5 hostile lane consumes S.4.5 readiness, public scenario authoring, lowered plans, replayable schedules, transcripts, evidence bundles, generated coverage, mutation validation, and forbidden-shortcut rejection.",
+        "S.6 receives typed readiness, and S.5 reserves S.6 QoS, S.7 blob lifecycle, S.8 layout, S.10 repair, S.11 security, and S.12 certification."
+      ],
+      "instructions": "Implement S.5 Phase 15 from the S.5 spec. Close only online physical read stability under maintenance with typed evidence, exact counters, shadow-runner denials, Foundational/Proof exports, and S.6 readiness.",
+      "qa_focus": "Check full closeout for single-threaded false confidence, shadow-runner proof, semantic snapshot authority, raw page lists, stale epoch reuse, early reclaim, same-run self-comparison, JSON/log evidence, missing S.6 handoff, and line-cap/composition violations.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "Harden phase 15 tests with CI Certification closeout profile, exact S6/counter assertions, full Roadmap 2 lane-matrix proof, and shared executed-closeout fixture expectations."
+        ],
+        "done": [
+          "Implemented aggregate S5 physical isolation closeout over all hostile lanes, future reservations, projection denials, and S6 publication boundary.",
+          "phase 15 repair binds closeout lane fragments and aggregate readiness receipt",
+          "Hardened phase 15 tests to require CI Certification closeout profile, exact S6 counters/non-claims, full lane matrix, and shared executed-closeout fixture evidence.",
+          "Phase 15 closed complete/passed after code-quality review with structural debt recorded."
+        ],
+        "remaining": [
+          "Later cleanup should split S5 closeout responsibilities and rename shared certification support around S5/Roadmap2 authority rather than DeveloperSmoke delegation."
+        ],
+        "findings": [
+          "phase 15 test gap: closeout harness still certifies DeveloperSmoke bounded replay instead of CI Certification profile evidence",
+          "phase 15 test gap: S6 aggregate publication assertions are shape/nonzero checks instead of exact assumptions, non-claims, and protected-byte/counter evidence",
+          "phase 15 test gap: closeout suite samples coverage surfaces instead of proving the full Roadmap 2 acceptance-lane matrix and exact forbidden-shortcut lanes",
+          "code-quality debt: CI Certification support APIs delegate to DeveloperSmoke-named constructors, obscuring profile authority.",
+          "code-quality debt: S5 closeout suite keeps lane admission, identity checks, projection denials, aggregate closeout, and S6 publication in one broad suite file.",
+          "code-quality debt: shared executed-closeout integration fixture reuses full test modules, producing nested test topology and dead-code warning noise."
+        ],
+        "verification": [
+          "cargo check -p worth-store-certification; cargo test -p worth-store-certification --test s5_physical_isolation_closeout; cargo test -p worth-store-certification --test s6_io_qos_readiness_handoff.",
+          "focused closeout, S6 handoff, and certification check passed",
+          "phase 15 done-check passed focused hostile review",
+          "cargo test --manifest-path workspaces/worth-store/crates/worth-store-certification/Cargo.toml --test s5_physical_isolation_closeout --test s6_io_qos_readiness_handoff --test s5_interleaving_harness_consumption passed.",
+          "Touched Rust files line-counted under 400 lines; runner state validated.",
+          "code_quality_review acceptance rerun: cargo test --manifest-path workspaces/worth-store/crates/worth-store-certification/Cargo.toml --test s5_physical_isolation_closeout --test s6_io_qos_readiness_handoff --test s5_interleaving_harness_consumption; exit=0; tail: 13 closeout tests passed, 14 S6 handoff tests passed, interleaving harness suite passed."
+        ]
+      }
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-07-02T13:28:16.6727759Z",
+      "phase": 14,
+      "turn": "review",
+      "event": "qa_failed",
+      "note": "phase 14 done-check found remaining copied-row publication path"
+    },
+    {
+      "at": "2026-07-02T13:28:32.608621+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T13:29:02.620183+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T13:36:58.6830519Z",
+      "phase": 14,
+      "turn": "repair",
+      "event": "repair_complete",
+      "note": "sealed S6 fragment constructors and moved certification to Store admission boundary"
+    },
+    {
+      "at": "2026-07-02T13:37:12.159449+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T13:37:42.183792+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T13:38:43.8358015Z",
+      "phase": 14,
+      "turn": "review",
+      "event": "qa_failed",
+      "note": "phase 14 done-check found primitive-counter S6 admission minting path"
+    },
+    {
+      "at": "2026-07-02T13:38:56.471565+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T13:39:26.487603+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T13:47:06.7862828Z",
+      "phase": 14,
+      "turn": "repair",
+      "event": "repair_complete",
+      "note": "S6 readiness primitive admission replaced with materialized handoff path"
+    },
+    {
+      "at": "2026-07-02T13:47:24.107721+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T13:47:54.118378+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T13:49:08.7195140Z",
+      "phase": 14,
+      "turn": "review",
+      "event": "qa_failed",
+      "note": "S6 readiness still has public primitive reconstruction paths"
+    },
+    {
+      "at": "2026-07-02T13:49:24.942162+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T13:49:54.951997+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:01:28.2879827Z",
+      "phase": 14,
+      "turn": "repair",
+      "event": "repair_complete",
+      "note": "phase 14 Store/Scheduler S6 handoff authority repair ready for done-check review"
+    },
+    {
+      "at": "2026-07-02T14:02:06.606199+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:02:36.617834+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:04:12.9042614Z",
+      "phase": 14,
+      "turn": "review",
+      "event": "qa_failed",
+      "note": "phase 14 done-check found remaining public S6 readiness minting path"
+    },
+    {
+      "at": "2026-07-02T14:04:32.526812+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:05:02.538163+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 14,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "phase 14 repair complete; ready for done-check review",
+      "at": "2026-07-02T14:15:13.8962104Z"
+    },
+    {
+      "at": "2026-07-02T14:15:54.437867+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:16:24.449485+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "phase": 14,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "phase 14 done-check found missing IO scheduler receive path for Store S6 readiness",
+      "at": "2026-07-02T14:18:53.2352889Z"
+    },
+    {
+      "at": "2026-07-02T14:19:05.577391+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:19:35.589858+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 14,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "phase 14 repair complete; IO scheduler receive path is Store-readiness bound",
+      "at": "2026-07-02T14:25:18.6626528Z"
+    },
+    {
+      "at": "2026-07-02T14:25:35.066828+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:26:05.077892+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "phase": 14,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "phase 14 done-check found public certification-authority primitive handoff materialization",
+      "at": "2026-07-02T14:27:39.5794685Z"
+    },
+    {
+      "at": "2026-07-02T14:27:52.538171+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:28:22.549426+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:35:21.4582767Z",
+      "phase": 14,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "phase 14 repair removed public primitive handoff materialization"
+    },
+    {
+      "at": "2026-07-02T14:35:33.647762+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:36:03.659284+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:37:15.2664665Z",
+      "phase": 14,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "phase 14 done-check found public copied-fragment S6 readiness reconstruction path"
+    },
+    {
+      "at": "2026-07-02T14:37:29.070301+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:37:59.083663+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:39:54.7609297Z",
+      "phase": 14,
+      "turn": "repair",
+      "status": "blocked",
+      "qa_status": "failed",
+      "note": "blocked: missing lower shared executed-S5 authority seam for sealed S6 readiness construction"
+    },
+    {
+      "at": "2026-07-02T14:40:02.205391+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 14 repair did not advance; forced review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:40:02.205391+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:40:32.216651+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:42:59.4034164Z",
+      "phase": 14,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "phase 14 done-check found public copied-fragment S6 readiness reconstruction path"
+    },
+    {
+      "at": "2026-07-02T14:43:22.673361+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:43:52.685704+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:51:59.1495116Z",
+      "phase": 14,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "phase 14 repair removed public S6 fragment-constructor chain and rerouted certification through Store-executed handoff source"
+    },
+    {
+      "at": "2026-07-02T14:52:16.654683+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:52:46.667475+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "RunnerFailure: validation error: phases[13].notes.findings must be a list: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:53:03.8800295Z",
+      "phase": 14,
+      "turn": "recovery",
+      "status": "state_recovered",
+      "note": "normalized phases[13].notes.findings to array after runner validation failure"
+    },
+    {
+      "at": "2026-07-02T14:53:59.943670+00:00",
+      "phase": 14,
+      "turn": "recovery",
+      "status": "state_recovered",
+      "note": "normalized malformed standard note buckets: none found"
+    },
+    {
+      "at": "2026-07-02T14:54:50.594057+00:00",
+      "phase": 14,
+      "turn": "recovery",
+      "status": "state_recovered",
+      "note": "ensured required note buckets exist as arrays: phases[13].notes.findings: missing -> []"
+    },
+    {
+      "at": "2026-07-02T14:55:06.477732+00:00",
+      "phase": 14,
+      "turn": "recovery",
+      "status": "validation_passed",
+      "note": "python automation\\phase_runner\\runner.py automation\\phase_runner\\worth-store-s5.json --validate passed"
+    },
+    {
+      "at": "2026-07-02T14:55:12.407181+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:55:42.417907+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T14:58:16.798426+00:00",
+      "phase": 14,
+      "turn": "review",
+      "status": "qa_failed",
+      "note": "phase 14 done-check found public primitive S6 readiness minting surface; cursor set to repair"
+    },
+    {
+      "at": "2026-07-02T14:58:30.597339+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T14:59:00.610253+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T15:10:18.578188+00:00",
+      "event": "phase_repair_completed",
+      "detail": "phase 14 repair ready for review: S6 Store handoff source requires executed S5 Store authority",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T15:10:34.663672+00:00",
+      "event": "state_validation",
+      "detail": "phase 14 repair state validates after update",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T15:10:59.701692+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T15:11:29.714026+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T15:14:18.442044+00:00",
+      "event": "phase_review_failed",
+      "detail": "phase 14 done-check failed: public S6 Store handoff constructor still accepts primitive materialization fields",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T15:14:43.342695+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T15:15:13.354509+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T15:29:08.412207+00:00",
+      "phase": 14,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "Repaired S6 handoff materialization path and returned phase 14 to review."
+    },
+    {
+      "at": "2026-07-02T15:29:36.019744+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T15:30:06.032477+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T15:44:12.008366+00:00",
+      "event": "manual_repair_applied",
+      "detail": "phase 14 cursor returned to review after sealing S6 readiness handoff behind executed-S5 closeout certificate",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T15:45:18.821958+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T15:47:41.001308+00:00",
+      "phase": 14,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "Phase 14 review found public primitive S6 closeout certificate construction still reachable."
+    },
+    {
+      "at": "2026-07-02T15:47:57.003318+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T15:48:27.014571+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T15:51:25.868953+00:00",
+      "phase": 14,
+      "turn": "repair",
+      "status": "blocked",
+      "qa_status": "failed",
+      "note": "Blocked on missing lower executed-S5 authority seam required to seal S6 closeout certificate construction."
+    },
+    {
+      "at": "2026-07-02T15:51:38.504802+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 14 repair did not advance; forced review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T15:51:38.504802+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T15:52:08.516528+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T15:54:17.241170+00:00",
+      "phase": 14,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "phase-done review found public S6 readiness authority still mintable from copied primitive materialization fields"
+    },
+    {
+      "at": "2026-07-02T15:54:17.347197+00:00",
+      "phase": 14,
+      "turn": "review",
+      "status": "validation_passed",
+      "note": "runner validation passed after phase 14 review state update"
+    },
+    {
+      "at": "2026-07-02T15:54:29.083776+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T15:54:59.097031+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T16:01:13.800358+00:00",
+      "phase": 14,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "repaired S6 handoff authority boundary and stale compile-fail guard; ready for phase review"
+    },
+    {
+      "at": "2026-07-02T16:01:29.093303+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T16:01:59.105607+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T16:03:17.341621+00:00",
+      "phase": 14,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "phase-done review found S6 readiness still mintable from public copied primitive closeout constructor on typed closeout wrapper"
+    },
+    {
+      "at": "2026-07-02T16:03:32.253539+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T16:04:02.266347+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T16:05:33.341186+00:00",
+      "phase": 14,
+      "turn": "repair",
+      "status": "blocked",
+      "qa_status": "failed",
+      "note": "blocked on crate-boundary authority placement: sealed S6 constructor and certification-owned executed evidence need a shared handoff authority type"
+    },
+    {
+      "at": "2026-07-02T16:05:45.078070+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 14 repair did not advance; forced review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T16:05:45.079070+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 14 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T16:06:15.097165+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 14 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T18:01:44.221028+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T18:02:43.319125+00:00",
+      "phase": 15,
+      "turn": "plan",
+      "status": "in_progress",
+      "qa_status": "not_started",
+      "note": "planned phase 15 closeout implementation and advanced cursor to implement"
+    },
+    {
+      "at": "2026-07-02T18:03:11.504675+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T18:03:41.519352+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 implement",
+      "exit_code": null
+    },
+    {
+      "phase": 15,
+      "turn": "implement",
+      "status": "complete",
+      "qa_status": "needed",
+      "at": "2026-07-02T18:10:28.223865+00:00",
+      "note": "Phase 15 implementation ready for done-check review."
+    },
+    {
+      "at": "2026-07-02T18:10:50.551270+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T18:11:20.561395+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 review",
+      "exit_code": null
+    },
+    {
+      "phase": 15,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "at": "2026-07-02T18:12:53.523198+00:00",
+      "note": "Phase 15 review found aggregate closeout authority gaps; returning to repair."
+    },
+    {
+      "at": "2026-07-02T18:13:10.206896+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T18:13:40.219488+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 15,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "repaired phase 15 closeout identity binding and aggregate readiness proof",
+      "at": "2026-07-02T18:21:09.942163Z"
+    },
+    {
+      "at": "2026-07-02T18:21:34.241864+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T18:22:04.253011+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 review",
+      "exit_code": null
+    },
+    {
+      "phase": 15,
+      "turn": "review",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "phase 15 done-check passed",
+      "at": "2026-07-02T18:25:05.394394Z"
+    },
+    {
+      "at": "2026-07-02T18:25:14.495903+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T18:25:44.513151+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T18:28:37.529087+00:00",
+      "phase": 15,
+      "turn": "test_review",
+      "action": "test_qa_failed",
+      "note": "Test QA found closeout proof gaps; advanced to test_repair_plan."
+    },
+    {
+      "at": "2026-07-02T18:28:54.767442+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T18:29:24.778888+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T18:30:53.944647+00:00",
+      "phase": 15,
+      "turn": "test_repair_plan",
+      "action": "planned_test_repair",
+      "note": "Planned phase 15 test hardening; advanced to test_repair_implement."
+    },
+    {
+      "at": "2026-07-02T18:30:59.643778+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T18:31:29.659111+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T18:45:53.404666+00:00",
+      "phase": 15,
+      "turn": "test_repair_implement",
+      "event": "phase 15 test hardening implemented; focused tests passed; advanced to code_quality_review"
+    },
+    {
+      "at": "2026-07-02T18:46:11.873772+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T18:46:41.885284+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 15 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T18:48:33.628127+00:00",
+      "phase": 15,
+      "turn": "code_quality_review",
+      "event": "phase 15 code-quality review complete; structural debt recorded; milestone current cleared"
+    },
+    {
+      "at": "2026-07-02T18:48:49.380580+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 15 code_quality_review did not advance; repaired cursor",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-02T18:48:49.380580+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 15 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-02T18:49:19.392756+00:00",
+      "event": "runner_stop",
+      "detail": "all phases are complete",
+      "exit_code": null
+    }
+  ],
+  "completed_at": "2026-07-02T18:48:49.380580+00:00"
+}

@@ -1,14 +1,15 @@
 use std::sync::Arc;
 
+use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::declaration::UiDeclarationSupportRowSchemaKind;
 use worth_ui::facade::graph::{
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, ForgeQuerySessionLabel,
-    ForgeQuerySnapshotIdentity, QueryExternalIdentityToken, SchemaBasisDigest,
+    snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
     UiGraphAxisParticipation, UiGraphParticipationAxis, UiGraphParticipationStatus,
     UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchOriginClass,
     UiGraphTouchRuntimeLane, UiGraphTouchTargetClass, UiGraphTouchTiming, UiGraphWorldProfile,
+    WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
 };
 use worth_ui::facade::obligations::{
     UiObligationCheckKind, UiObligationFamily, UiObligationSelectionReason,
@@ -23,7 +24,7 @@ use worth_ui_dsl::{
 #[test]
 fn structural_hot_reload_touch_selects_closed_structural_matrix_with_stable_identity() {
     let app = touch_app(UiGraphWorldProfile::hot_reload_candidate(
-        ForgeQuerySessionLabel::scoped_strs("worth-ui", ["phase4", "hot-reload"])
+        WorthQuerySessionLabel::scoped_strs("worth-ui", ["phase4", "hot-reload"])
             .expect("hot-reload label should admit"),
     ));
     let graph = app.graph();
@@ -313,12 +314,12 @@ fn query_snapshot_world_profile(
     snapshot_label: &str,
     schema_basis_parts: [&str; 3],
 ) -> UiGraphWorldProfile {
-    let snapshot_identity = ForgeQuerySnapshotIdentity::admit_external_token(
+    let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
         QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
     );
-    let basis = resolve_runtime_current_snapshot_basis(
+    let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
-        SchemaBasisDigest::from_domain_parts(
+        QueryExternalSchemaBasisToken::from_domain_parts(
             &schema_basis_parts
                 .into_iter()
                 .map(str::to_owned)

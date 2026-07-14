@@ -1,0 +1,85 @@
+error[E0599]: no method named `aspect` found for struct `ValidatedProjectionEntry` in the current scope
+ --> tests/ui/aspect_native_query/validated_entry_string_aliases_removed.rs:5:24
+  |
+5 |     let _ = projection.aspect();
+  |                        ^^^^^^ method not found in `ValidatedProjectionEntry`
+
+error[E0599]: no method named `field` found for struct `ValidatedProjectionEntry` in the current scope
+ --> tests/ui/aspect_native_query/validated_entry_string_aliases_removed.rs:6:24
+  |
+6 |     let _ = projection.field();
+  |                        ^^^^^
+  |
+help: there is a method `field_kind` with a similar name
+  |
+6 |     let _ = projection.field_kind();
+  |                             +++++
+
+error[E0599]: no method named `source_aspect` found for struct `ValidatedResultShapeBinding` in the current scope
+ --> tests/ui/aspect_native_query/validated_entry_string_aliases_removed.rs:9:21
+  |
+9 |     let _ = binding.source_aspect();
+  |                     ^^^^^^^^^^^^^
+  |
+help: there is a method `native_source_aspect_key` with a similar name
+  |
+9 -     let _ = binding.source_aspect();
+9 +     let _ = binding.native_source_aspect_key();
+  |
+
+error[E0599]: no method named `source_field` found for struct `ValidatedResultShapeBinding` in the current scope
+  --> tests/ui/aspect_native_query/validated_entry_string_aliases_removed.rs:10:21
+   |
+10 |     let _ = binding.source_field();
+   |                     ^^^^^^^^^^^^
+   |
+help: there is a method `native_source_field_key` with a similar name
+   |
+10 -     let _ = binding.source_field();
+10 +     let _ = binding.native_source_field_key();
+   |
+
+error[E0599]: no method named `aspect` found for struct `ValidatedPredicateEntry` in the current scope
+  --> tests/ui/aspect_native_query/validated_entry_string_aliases_removed.rs:13:23
+   |
+13 |     let _ = predicate.aspect();
+   |                       ^^^^^^ method not found in `ValidatedPredicateEntry`
+
+error[E0599]: no method named `field` found for struct `ValidatedPredicateEntry` in the current scope
+  --> tests/ui/aspect_native_query/validated_entry_string_aliases_removed.rs:14:23
+   |
+14 |     let _ = predicate.field();
+   |                       ^^^^^
+   |
+help: there is a method `field_kind` with a similar name
+   |
+14 |     let _ = predicate.field_kind();
+   |                            +++++
+
+error[E0599]: no method named `aspect` found for struct `ValidatedOrderingEntry` in the current scope
+  --> tests/ui/aspect_native_query/validated_entry_string_aliases_removed.rs:17:22
+   |
+17 |     let _ = ordering.aspect();
+   |                      ^^^^^^ method not found in `ValidatedOrderingEntry`
+
+error[E0599]: no method named `field` found for struct `ValidatedOrderingEntry` in the current scope
+  --> tests/ui/aspect_native_query/validated_entry_string_aliases_removed.rs:18:22
+   |
+18 |     let _ = ordering.field();
+   |                      ^^^^^
+   |
+help: there is a method `field_kind` with a similar name
+   |
+18 |     let _ = ordering.field_kind();
+   |                           +++++
+
+error[E0599]: no method named `relation` found for struct `ValidatedTraversalEntry` in the current scope
+  --> tests/ui/aspect_native_query/validated_entry_string_aliases_removed.rs:21:23
+   |
+21 |     let _ = traversal.relation();
+   |                       ^^^^^^^^ private field, not a method
+   |
+help: there is a method `relation_name` with a similar name
+   |
+21 |     let _ = traversal.relation_name();
+   |                               +++++

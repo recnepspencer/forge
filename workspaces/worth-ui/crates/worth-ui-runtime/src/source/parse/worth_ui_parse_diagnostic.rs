@@ -33,14 +33,12 @@ impl WorthUiParseDiagnostic {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn code(&self) -> WorthUiParseDiagnosticCode {
         self.code
     }
 
-    pub(crate) fn message(&self) -> &str {
-        &self.message
-    }
-
+    #[cfg(test)]
     pub(crate) fn span(&self) -> &WorthUiSourceSpan {
         &self.span
     }

@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/declarative_workflow/preview_context_cannot_authorize_writeback.rs:9:38
+  |
+9 |     let _request = declaration.using(context);
+  |                                ----- ^^^^^^^ expected `WorthQueryWritebackContext`, found `WorthQueryWorkflowContext`
+  |                                |
+  |                                arguments to this method are incorrect
+  |
+note: method defined here
+ --> src/ordinary/workflow/writeback/declaration.rs
+  |
+  |     pub fn using(self, context: WorthQueryWritebackContext) -> WorthQueryWritebackRequest {
+  |            ^^^^^

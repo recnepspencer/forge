@@ -1,5 +1,0 @@
-error[E0599]: no method named `terminal_aspect_path_projection` found for struct `ForgeQueryExistingTruthProbeField` in the current scope
-  --> tests/ui/aspect_native_query/probe_field_terminal_aspect_path_projection_removed.rs:10:19
-   |
-10 |     let _ = field.terminal_aspect_path_projection();
-   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryExistingTruthProbeField`

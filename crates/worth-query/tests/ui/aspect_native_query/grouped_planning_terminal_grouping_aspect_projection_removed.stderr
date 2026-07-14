@@ -1,0 +1,11 @@
+error[E0599]: no method named `terminal_grouping_aspect_projection` found for reference `&GroupedBaselineMaterializationContract` in the current scope
+ --> tests/ui/aspect_native_query/grouped_planning_terminal_grouping_aspect_projection_removed.rs:7:22
+  |
+7 |     let _ = baseline.terminal_grouping_aspect_projection();
+  |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&GroupedBaselineMaterializationContract`
+
+error[E0599]: no method named `terminal_grouping_aspect_projection` found for reference `&GroupedViewPlanningArtifact` in the current scope
+ --> tests/ui/aspect_native_query/grouped_planning_terminal_grouping_aspect_projection_removed.rs:8:22
+  |
+8 |     let _ = planning.terminal_grouping_aspect_projection();
+  |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&GroupedViewPlanningArtifact`

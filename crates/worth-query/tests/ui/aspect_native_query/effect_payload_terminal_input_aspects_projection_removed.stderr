@@ -1,0 +1,5 @@
+error[E0599]: no method named `terminal_input_aspects_projection` found for reference `&WorthQueryEffectPayload` in the current scope
+ --> tests/ui/aspect_native_query/effect_payload_terminal_input_aspects_projection_removed.rs:4:21
+  |
+4 |     let _ = payload.terminal_input_aspects_projection();
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryEffectPayload`

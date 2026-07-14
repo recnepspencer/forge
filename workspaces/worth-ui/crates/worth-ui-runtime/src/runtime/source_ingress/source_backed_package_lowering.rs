@@ -12,10 +12,9 @@ pub(super) fn source_backed_package(
     structured: &WorthUiLegallyStructuredArtifactInput,
 ) -> WorthUiDslPackage {
     let package_name = source_backed_package_name(structured);
-    structured
-        .module_ids()
-        .iter()
-        .fold(WorthUiDslPackage::named(package_name), |package, module_id| {
+    structured.module_ids().iter().fold(
+        WorthUiDslPackage::named(package_name),
+        |package, module_id| {
             let Some(module) = structured.module(module_id) else {
                 return package;
             };
@@ -24,7 +23,8 @@ pub(super) fn source_backed_package(
                 .iter()
                 .filter_map(source_backed_semantic_spec)
                 .fold(package, WorthUiDslPackage::with_semantic_artifact_spec)
-        })
+        },
+    )
 }
 
 fn source_backed_package_name(structured: &WorthUiLegallyStructuredArtifactInput) -> String {
@@ -40,31 +40,29 @@ fn source_backed_semantic_spec(
     node: &WorthUiLegallyStructuredArtifactInputNode,
 ) -> Option<UiDslSemanticArtifactSpec> {
     match node {
-        WorthUiLegallyStructuredArtifactInputNode::Component(node) => Some(
-            mosaic_semantic_spec(
-                format!("component:{}", node.descriptor().id().as_str()),
-                node.provenance().module_path(),
-                node.provenance().declaration_index(),
-                source_backed_structural_identity(
-                    "component",
-                    node.authored_identity(),
-                    node.descriptor().id().as_str(),
-                ),
+        WorthUiLegallyStructuredArtifactInputNode::Component(node) => Some(mosaic_semantic_spec(
+            format!("component:{}", node.descriptor().id().as_str()),
+            node.provenance().module_path(),
+            node.provenance().declaration_index(),
+            source_backed_structural_identity(
+                "component",
+                node.authored_identity(),
+                node.descriptor().id().as_str(),
             ),
-        ),
-        WorthUiLegallyStructuredArtifactInputNode::Surface(node) => Some(
-            mosaic_semantic_spec(
-                format!("surface:{}", node.descriptor().id().as_str()),
-                node.provenance().module_path(),
-                node.provenance().declaration_index(),
-                source_backed_structural_identity(
-                    "surface",
-                    node.authored_identity(),
-                    node.descriptor().id().as_str(),
-                ),
+        )),
+        WorthUiLegallyStructuredArtifactInputNode::Surface(node) => Some(mosaic_semantic_spec(
+            format!("surface:{}", node.descriptor().id().as_str()),
+            node.provenance().module_path(),
+            node.provenance().declaration_index(),
+            source_backed_structural_identity(
+                "surface",
+                node.authored_identity(),
+                node.descriptor().id().as_str(),
             ),
-        ),
-        WorthUiLegallyStructuredArtifactInputNode::Binding(node) => Some(mosaic_binding_semantic_spec(node)),
+        )),
+        WorthUiLegallyStructuredArtifactInputNode::Binding(node) => {
+            Some(mosaic_binding_semantic_spec(node))
+        }
         WorthUiLegallyStructuredArtifactInputNode::Import(_)
         | WorthUiLegallyStructuredArtifactInputNode::Token(_) => None,
     }
@@ -98,8 +96,7 @@ fn mosaic_semantic_spec(
     )
     .with_structural_token(UiDslStructuralToken::new(format!(
         "mosaic:{}|{}",
-        module_path,
-        structural_identity
+        module_path, structural_identity
     )))
 }
 

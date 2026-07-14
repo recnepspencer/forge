@@ -1,0 +1,15 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/graph_read_access_cost/intrinsic_estimate_constructor_private.rs:4:55
+  |
+4 |       let _ = WorthQueryGraphReadIntrinsicCostEstimate::new;
+  |                                                         ^^^ private associated function
+  |
+ ::: src/runtime/graph_read_access/cost_model/estimate.rs
+  |
+  | /     pub(crate) fn new(
+  | |         frontier_breadth: usize,
+  | |         edge_touches: usize,
+  | |         candidate_roots: usize,
+  | |         intermediate_set_size: usize,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

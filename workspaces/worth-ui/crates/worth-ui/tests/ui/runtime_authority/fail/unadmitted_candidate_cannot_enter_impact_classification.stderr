@@ -9,7 +9,7 @@ error[E0308]: mismatched types
    = note: expected reference `&WorthUiAdmittedReplacementCandidate`
               found reference `&WorthUiReplacementCandidate`
 note: method defined here
-  --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/host.rs
+  --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/replacement/orchestrator.rs
    |
    |     pub fn classify_replacement_impact(
    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^

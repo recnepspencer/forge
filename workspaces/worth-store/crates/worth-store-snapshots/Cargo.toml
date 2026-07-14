@@ -1,0 +1,23 @@
+[package]
+name = "worth-store-snapshots"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 1 immutable snapshots and point-in-time restore contracts."
+
+[dependencies]
+worth-store-contracts.workspace = true
+worth-store-layout-indexes.workspace = true
+worth-store-physical-backend.workspace = true
+
+[features]
+default = []
+phase23-layout-rule-construction = []
+
+[dev-dependencies]
+worth-store-aspect-native.workspace = true
+worth-store-budgets.workspace = true
+worth-store-test-support.workspace = true
+
+[lints]
+workspace = true

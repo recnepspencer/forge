@@ -1,0 +1,108 @@
+/// Runtime lifecycle state owned by Worth UI.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthUiRuntimeLifecycle {
+    Starting,
+    Active,
+    PausedForReplacement,
+    PendingActivation,
+    FailedActivationPreserved,
+    ShuttingDown,
+    Shutdown,
+}
+
+/// Monotonic frame epoch used to reject stale activation work.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct WorthUiRuntimeFrameEpoch {
+    value: u64,
+}
+
+impl WorthUiRuntimeFrameEpoch {
+    pub fn initial() -> Self {
+        Self { value: 0 }
+    }
+
+    pub fn as_u64(self) -> u64 {
+        self.value
+    }
+
+    pub(crate) fn checked_next(self) -> Option<Self> {
+        self.value.checked_add(1).map(|value| Self { value })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn next(self) -> Self {
+        self.checked_next().expect("test epoch must not exhaust")
+    }
+
+    #[cfg(test)]
+    pub(crate) fn for_test(value: u64) -> Self {
+        Self { value }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct WorthUiPendingActivation {
+    frame_epoch: WorthUiRuntimeFrameEpoch,
+    staged_replacement: crate::runtime::WorthUiStagedReplacement,
+    readiness: crate::runtime::WorthUiActivationReadiness,
+    staging_report: crate::runtime::WorthUiActivationStagingReport,
+}
+
+impl WorthUiPendingActivation {
+    pub(crate) fn new(
+        frame_epoch: WorthUiRuntimeFrameEpoch,
+        staged_replacement: crate::runtime::WorthUiStagedReplacement,
+        readiness: crate::runtime::WorthUiActivationReadiness,
+        staging_report: crate::runtime::WorthUiActivationStagingReport,
+    ) -> Self {
+        Self {
+            frame_epoch,
+            staged_replacement,
+            readiness,
+            staging_report,
+        }
+    }
+
+    pub fn frame_epoch(&self) -> WorthUiRuntimeFrameEpoch {
+        self.frame_epoch
+    }
+
+    pub fn staged_replacement(&self) -> &crate::runtime::WorthUiStagedReplacement {
+        &self.staged_replacement
+    }
+
+    pub fn readiness(&self) -> crate::runtime::WorthUiActivationReadiness {
+        self.readiness
+    }
+
+    pub fn staging_report(&self) -> &crate::runtime::WorthUiActivationStagingReport {
+        &self.staging_report
+    }
+}
+
+/// Receipt emitted when the runtime host is consumed during shutdown.
+#[derive(Debug, PartialEq)]
+pub struct WorthUiRuntimeShutdownReceipt {
+    final_frame_epoch: WorthUiRuntimeFrameEpoch,
+    queue_disposition: crate::runtime::UiAllocationFrameQueueDisposition,
+}
+
+impl WorthUiRuntimeShutdownReceipt {
+    pub(crate) fn new(
+        final_frame_epoch: WorthUiRuntimeFrameEpoch,
+        queue_disposition: crate::runtime::UiAllocationFrameQueueDisposition,
+    ) -> Self {
+        Self {
+            final_frame_epoch,
+            queue_disposition,
+        }
+    }
+
+    pub fn final_frame_epoch(&self) -> WorthUiRuntimeFrameEpoch {
+        self.final_frame_epoch
+    }
+
+    pub(crate) fn queue_disposition(&self) -> &crate::runtime::UiAllocationFrameQueueDisposition {
+        &self.queue_disposition
+    }
+}

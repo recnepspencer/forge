@@ -4,10 +4,10 @@
 //! `PolicyResult` when a classification falls within the ambiguity zone
 //! (Doctrine D2). No tolerance decisions, no geometry store access.
 //!
-//! DEPENDENCIES: surface schema types, forge-core (PolicyResult)
+//! DEPENDENCIES: surface schema types and local ambiguity-policy support.
 
 use super::schema::{SurfaceData, SurfaceKind, SurfaceRelation};
-use forge_core::{PolicyKind, PolicyQuery, PolicyResult};
+use crate::support::{PolicyKind, PolicyQuery, PolicyResult};
 
 impl SurfaceData {
     /// Evaluate the surface at parameter (u, v), returning the 3D point.

@@ -1,11 +1,11 @@
-use forge_query::facade::{
-    ForgeQueryDeclarationEntryCrossingSurface, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationLegalityClass, ForgeQueryDeclarationPrimaryAuthorityFamily,
-    ForgeQueryDeclarationRelationalTruthClaim, ForgeQueryDeclaredFamilyChecked,
-    ForgeQueryGroupedDeclarationPosture, ForgeQueryLowerAuthorityRouteFamily,
-    ForgeQueryOrdinaryOutcome, ForgeQuerySignalCompatibilityPosture,
-};
 use hadwiger_research::facade::*;
+use worth_query::facade::foundation::{
+    WorthQueryDeclarationEntryCrossingSurface, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationLegalityClass, WorthQueryDeclarationPrimaryAuthorityFamily,
+    WorthQueryDeclarationRelationalTruthClaim, WorthQueryDeclaredFamilyChecked,
+    WorthQueryGroupedDeclarationPosture, WorthQueryLowerAuthorityRouteFamily,
+    WorthQuerySignalCompatibilityPosture,
+};
 
 fn handle() -> HadwigerResearchHandle {
     admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
@@ -34,24 +34,19 @@ fn tiling_declaration_families_use_distinct_relational_contracts() {
 }
 
 #[test]
-fn tiling_orchestration_helper_returns_query_ordinary_outcome() {
+fn tiling_declaration_helper_returns_query_owned_declaration() {
     let handle = handle();
-    let outcome = orchestrate_research_request_entry(
+    let declaration = admitted_declaration(declare_research_request_checked(
         &handle,
         PeriodicQuotientCellDeclaration::new("cell-a")
             .with_lattice_basis_ref("lattice-a")
             .with_boundary_ownership_ref("boundary-a"),
-    );
+    ));
 
-    match outcome {
-        ForgeQueryOrdinaryOutcome::Bound(envelope) => {
-            assert_eq!(
-                envelope.declaration_family_key(),
-                "hadwiger.tiling.periodic_quotient_cell"
-            );
-        }
-        _ => panic!("expected tiling declaration entry to return a Query ordinary outcome"),
-    }
+    assert_eq!(
+        declaration.declaration_family_key(),
+        "hadwiger.tiling.periodic_quotient_cell"
+    );
 }
 
 #[test]
@@ -150,54 +145,57 @@ where
     assert!(!inventory.rows().is_empty());
     assert!(!readiness.rows().is_empty());
     assert!(inventory.rows().iter().any(|row| {
-        row.surface() == ForgeQueryDeclarationEntryCrossingSurface::RelationalTruthRouting
+        row.surface() == WorthQueryDeclarationEntryCrossingSurface::RelationalTruthRouting
             && row.relational_truth_claim().is_some()
     }));
 }
 
 fn assert_tiling_family<F>(family_key: &'static str)
 where
-    F: ForgeQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry>,
+    F: WorthQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry>,
 {
     let taxonomy = F::taxonomy();
     assert_eq!(F::semantic_family_key(), family_key);
     assert_eq!(
         taxonomy.primary_authority_family(),
-        ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth
+        WorthQueryDeclarationPrimaryAuthorityFamily::RelationalTruth
     );
     assert_eq!(
         taxonomy.signal_compatibility(),
-        ForgeQuerySignalCompatibilityPosture::NotCompatible
+        WorthQuerySignalCompatibilityPosture::NotCompatible
     );
     assert_eq!(
         taxonomy.grouped_posture(),
-        ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable
+        WorthQueryGroupedDeclarationPosture::NeighborhoodCapable
     );
     assert_eq!(
         F::legality_contract().legality_class(),
-        ForgeQueryDeclarationLegalityClass::AuthoritativeHotArtifact
+        WorthQueryDeclarationLegalityClass::AuthoritativeHotArtifact
     );
     assert_eq!(
         F::route_contract().allowed_route_families(),
-        &[ForgeQueryLowerAuthorityRouteFamily::Relational]
+        &[WorthQueryLowerAuthorityRouteFamily::Relational]
     );
     assert!(!F::route_contract().can_defer());
     assert_eq!(
         F::relational_truth_contract()
             .expect("tiling family should declare relational truth contract")
             .truth_claim(),
-        ForgeQueryDeclarationRelationalTruthClaim::AuthoritativeCurrentTruth
+        WorthQueryDeclarationRelationalTruthClaim::AuthoritativeCurrentTruth
     );
 }
 
 fn admitted_declaration<I>(
-    checked: ForgeQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>,
-) -> forge_query::facade::ForgeQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>
+    checked: WorthQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>,
+) -> worth_query::facade::foundation::WorthQueryCanonicalDeclarationArtifact<
+    HadwigerResearchDomainEntry,
+    I,
+>
 where
     I: HadwigerResearchDeclarationInput,
 {
     match checked {
-        ForgeQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
+        WorthQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
         _ => panic!("Hadwiger tiling declaration should admit"),
     }
 }

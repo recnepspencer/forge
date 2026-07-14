@@ -1,73 +1,79 @@
-use forge_query::facade::{
-    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
-    ForgeQueryDeclarationAspectPublication,
+use worth_query::facade::foundation::{
+    AspectFieldKey, WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
+    WorthQueryDeclarationAspectPublication,
 };
 
 use super::aspect_kinds::{HadwigerAspectKind, HadwigerAspectPosture};
 
+fn query_aspect_field(path: &str) -> AspectFieldKey {
+    let (aspect, field) = path
+        .rsplit_once('.')
+        .expect("Hadwiger query aspect paths include an aspect and field");
+    AspectFieldKey::from_authoring_parts(aspect, field)
+        .expect("Hadwiger query aspect paths are valid declaration keys")
+}
+
+fn query_aspect_fields(paths: &[&str]) -> Vec<AspectFieldKey> {
+    paths.iter().map(|path| query_aspect_field(path)).collect()
+}
+
 pub fn query_aspect_contract_for_hadwiger_kind(
     aspect_kind: HadwigerAspectKind,
-) -> ForgeQueryDeclarationAspectContract {
+) -> WorthQueryDeclarationAspectContract {
     let path = aspect_kind.query_aspect_path();
     match aspect_kind {
         HadwigerAspectKind::AIAdvisory | HadwigerAspectKind::FailureEvidence => {
-            ForgeQueryDeclarationAspectContract::from_slices(&[], &[path], &[path], &[], &[])
+            WorthQueryDeclarationAspectContract::new(
+                [],
+                query_aspect_fields(&[path]),
+                query_aspect_fields(&[path]),
+                [],
+                [],
+            )
         }
-        HadwigerAspectKind::LowerBoundWitness => ForgeQueryDeclarationAspectContract::from_slices(
-            &[path],
-            &[
+        HadwigerAspectKind::LowerBoundWitness => WorthQueryDeclarationAspectContract::new(
+            query_aspect_fields(&[path]),
+            query_aspect_fields(&[
                 HadwigerAspectKind::UnitDistanceEmbedding.query_aspect_path(),
                 HadwigerAspectKind::NotKColorable.query_aspect_path(),
-            ],
-            &[],
-            &[],
-            &[HadwigerAspectKind::AIAdvisory.query_aspect_path()],
+            ]),
+            [],
+            [],
+            query_aspect_fields(&[HadwigerAspectKind::AIAdvisory.query_aspect_path()]),
         ),
-        _ => ForgeQueryDeclarationAspectContract::from_slices(&[path], &[], &[], &[], &[]),
+        _ => WorthQueryDeclarationAspectContract::new(query_aspect_fields(&[path]), [], [], [], []),
     }
 }
 
 pub fn query_aspect_coverage_for_hadwiger_posture(
     aspect_kind: HadwigerAspectKind,
     posture: HadwigerAspectPosture,
-) -> ForgeQueryDeclarationAspectCoverage {
+) -> WorthQueryDeclarationAspectCoverage {
     let path = aspect_kind.query_aspect_path();
     match posture {
         HadwigerAspectPosture::Admitted | HadwigerAspectPosture::Advisory => {
-            ForgeQueryDeclarationAspectCoverage::from_slices(&[path], &[], &[])
+            WorthQueryDeclarationAspectCoverage::from_present(query_aspect_fields(&[path]))
         }
         HadwigerAspectPosture::Conflict | HadwigerAspectPosture::Rejected => {
-            ForgeQueryDeclarationAspectCoverage::from_slices(&[], &[], &[path])
+            WorthQueryDeclarationAspectCoverage::new([], [], query_aspect_fields(&[path]))
         }
         HadwigerAspectPosture::Stale => {
-            ForgeQueryDeclarationAspectCoverage::from_slices(&[], &[path], &[])
+            WorthQueryDeclarationAspectCoverage::new([], query_aspect_fields(&[path]), [])
         }
         HadwigerAspectPosture::Missing
         | HadwigerAspectPosture::Unsupported
-        | HadwigerAspectPosture::Deferred => {
-            ForgeQueryDeclarationAspectCoverage::from_slices(&[], &[], &[])
-        }
+        | HadwigerAspectPosture::Deferred => WorthQueryDeclarationAspectCoverage::empty(),
     }
 }
 
 pub fn query_aspect_publication_for_hadwiger_kind(
     aspect_kind: HadwigerAspectKind,
-) -> ForgeQueryDeclarationAspectPublication {
+) -> WorthQueryDeclarationAspectPublication {
     let path = aspect_kind.query_aspect_path();
     match aspect_kind {
         HadwigerAspectKind::AIAdvisory | HadwigerAspectKind::FailureEvidence => {
-            ForgeQueryDeclarationAspectPublication::new(
-                [path],
-                std::iter::empty::<&str>(),
-                std::iter::empty::<&str>(),
-                std::iter::empty::<&str>(),
-            )
+            WorthQueryDeclarationAspectPublication::new(query_aspect_fields(&[path]), [], [], [])
         }
-        _ => ForgeQueryDeclarationAspectPublication::new(
-            [path],
-            std::iter::empty::<&str>(),
-            std::iter::empty::<&str>(),
-            std::iter::empty::<&str>(),
-        ),
+        _ => WorthQueryDeclarationAspectPublication::new(query_aspect_fields(&[path]), [], [], []),
     }
 }

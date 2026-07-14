@@ -1,20 +1,16 @@
 use crate::evidence::{
     evidence_authority_binding, evidence_handle, evidence_identity, evidence_ref,
-    UiEvidenceAuthorityBinding, UiEvidenceAuthorityGeneration, UiEvidenceAuthorityKind,
-    UiEvidenceFamily, UiEvidenceIdentity, UiEvidenceMaterializationPosture, UiEvidenceRef,
-    UiEvidenceRetentionPosture,
+    UiEvidenceAuthorityGeneration, UiEvidenceAuthorityKind, UiEvidenceFamily,
+    UiEvidenceMaterializationPosture, UiEvidenceRef, UiEvidenceRetentionPosture,
 };
 use crate::graph::UiGraphSnapshot;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiGraphEvidenceRecord {
-    identity: UiEvidenceIdentity,
-    authority_binding: UiEvidenceAuthorityBinding,
     reference: UiEvidenceRef,
 }
 
 impl UiGraphEvidenceRecord {
-    #[allow(dead_code)]
     pub(crate) fn for_snapshot(snapshot: &UiGraphSnapshot, graph_node_digest: u64) -> Self {
         let identity = evidence_identity(UiEvidenceFamily::Graph, graph_node_digest);
         let authority_binding = evidence_authority_binding(
@@ -26,8 +22,6 @@ impl UiGraphEvidenceRecord {
         let handle = evidence_handle(UiEvidenceFamily::Graph, identity, graph_node_digest);
 
         Self {
-            identity,
-            authority_binding,
             reference: evidence_ref(
                 UiEvidenceFamily::Graph,
                 identity,
@@ -39,7 +33,6 @@ impl UiGraphEvidenceRecord {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn reference(&self) -> UiEvidenceRef {
         self.reference
     }

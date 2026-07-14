@@ -18,10 +18,12 @@ impl WorthUiResolutionReport {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn diagnostics(&self) -> &[WorthUiResolutionDiagnostic] {
         &self.diagnostics
     }
 
+    #[cfg(test)]
     pub(crate) fn metrics(&self) -> WorthUiResolutionMetrics {
         self.metrics
     }

@@ -1,10 +1,10 @@
-#[path = "measurement_basis_certification_support.rs"]
+#[path = "fixtures/measurement_basis_certification_support.rs"]
 mod measurement_basis_certification_support;
 
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
-use worth_ui_runtime::facade::{
-    certify_measurement_basis_determinism_for_scenarios, UiMeasurementBasisDeterminismPosture,
-    UiMeasurementGenerationCompatibility,
+use worth_ui_runtime::facade::evidence::certify_measurement_basis_determinism_for_scenarios;
+use worth_ui_runtime::facade::evidence::{
+    UiMeasurementBasisDeterminismPosture, UiMeasurementGenerationCompatibility,
 };
 
 use self::measurement_basis_certification_support::{

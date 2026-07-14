@@ -1,0 +1,50 @@
+warning: unreachable expression
+ --> tests/ui/subscription_lifecycle_closeout_constructor_private.rs:7:28
+  |
+6 |         active_lane_digest: todo!() as ActiveSubscriptionLaneDigest,
+  |                             ------- any code following this expression is unreachable
+7 |         attachment_digest: todo!() as SubscriptionConsumerAttachmentDigest,
+  |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error: cannot construct `SubscriptionLifecycleCloseout` with struct literal syntax due to private fields
+  --> tests/ui/subscription_lifecycle_closeout_constructor_private.rs:5:13
+   |
+ 5 |     let _ = SubscriptionLifecycleCloseout {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 6 |         active_lane_digest: todo!() as ActiveSubscriptionLaneDigest,
+   |         ----------------------------------------------------------- private field
+ 7 |         attachment_digest: todo!() as SubscriptionConsumerAttachmentDigest,
+   |         ------------------------------------------------------------------ private field
+ 8 |         closeout_kind: SubscriptionLifecycleCloseoutKind::ConsumerTerminated,
+   |         -------------------------------------------------------------------- private field
+ 9 |         lane_terminal: true,
+   |         ------------------- private field
+10 |         support_profile: todo!() as QuerySubscriptionSupportProfile,
+   |         ----------------------------------------------------------- private field
+11 |         performance_receipt: todo!() as SubscriptionPerformanceReceipt,
+   |         -------------------------------------------------------------- private field
+12 |         counters: ActiveSubscriptionCounters::default(),
+   |         ----------------------------------------------- private field
+13 |         source_identity: todo!(),
+   |         ------------------------ private field
+14 |         closeout_identity: todo!(),
+   |         -------------------------- private field
+   |
+   = note: ...and other private fields `future_selection`, `basis_binding_identity` and `checkpoint_identity` that were not provided
+help: you might have meant to use the `new` associated function
+   |
+ 5 -     let _ = SubscriptionLifecycleCloseout {
+ 6 -         active_lane_digest: todo!() as ActiveSubscriptionLaneDigest,
+ 7 -         attachment_digest: todo!() as SubscriptionConsumerAttachmentDigest,
+ 8 -         closeout_kind: SubscriptionLifecycleCloseoutKind::ConsumerTerminated,
+ 9 -         lane_terminal: true,
+10 -         support_profile: todo!() as QuerySubscriptionSupportProfile,
+11 -         performance_receipt: todo!() as SubscriptionPerformanceReceipt,
+12 -         counters: ActiveSubscriptionCounters::default(),
+13 -         source_identity: todo!(),
+14 -         closeout_identity: todo!(),
+15 -     };
+ 5 +     let _ = SubscriptionLifecycleCloseout::new(_, _);
+   |

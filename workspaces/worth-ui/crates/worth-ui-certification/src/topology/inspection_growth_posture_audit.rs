@@ -12,8 +12,8 @@ const FORBIDDEN_GENERIC_GROWTH_FALLBACKS: [&str; 7] = [
 ];
 
 pub fn audit_inspection_materialized_detail_growth_posture(workspace_root: &Path) -> Vec<String> {
-    let path =
-        workspace_root.join("crates/worth-ui-runtime/src/evidence/evidence_materialized_detail.rs");
+    let path = workspace_root
+        .join("crates/worth-ui-runtime/src/evidence/shared/evidence_materialized_detail.rs");
     let text = fs::read_to_string(&path).expect("materialized detail surface should decode");
     let mut violations = Vec::new();
 
