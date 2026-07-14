@@ -1,8 +1,8 @@
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationCanonicalEntryKind,
-    WorthQueryDeclarationCanonicalValue, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract, WorthQueryDomainEntryMarker,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationCanonicalEntry,
+    WorthQueryDeclarationCanonicalEntryKind, WorthQueryDeclarationCanonicalValue,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
+    WorthQueryDeclarationLegalityContract, WorthQueryDomainEntryMarker,
     WorthQueryDomainOperatingContext, WorthQueryNeighborhoodCapableGrouping,
     WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
     WorthQuerySingleOnlyGrouping, WorthQueryTemporalDeclarationClause,
@@ -365,24 +365,34 @@ pub fn admitted_handle(
     GeometryDomain,
     GeometryOperatingContext,
 > {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(GeometryDomain)
-        .with_operating_context(regime)
-        .validate()
-        .expect("context should validate")
-        .admit()
-        .expect("context should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        regime,
+        [
+            crate::application::domain_test_support::family::<GeometryDomain, SplitEdgeFamily>(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                SplitEdgeSingleOnlyFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, TemporalReadFamily>(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                DeferredTemporalReadFamily,
+            >(),
+        ],
+    )
 }
 
 pub fn admitted_topology_handle() -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     TopologyDomain,
     GeometryOperatingContext,
 > {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(TopologyDomain)
-        .with_operating_context(GeometryOperatingContext::collaborative())
-        .validate()
-        .expect("topology context should validate")
-        .admit()
-        .expect("topology context should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        TopologyDomain,
+        GeometryOperatingContext::collaborative(),
+        [crate::application::domain_test_support::family::<
+            TopologyDomain,
+            SplitEdgeTopologyFamily,
+        >()],
+    )
 }

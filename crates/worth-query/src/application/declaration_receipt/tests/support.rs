@@ -298,13 +298,47 @@ impl_declaration_input!(
 pub(super) fn admitted_handle(
     regime: &'static str,
 ) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld> {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(GeometryDomain)
-        .with_operating_context(GeometryWorld::named(regime))
-        .validate()
-        .expect("receipt world should validate")
-        .admit()
-        .expect("receipt world should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        GeometryWorld::named(regime),
+        [
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                RelationalReceiptFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, MixedReceiptFamily>(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                RequiredIntentReceiptFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, DeferredReceiptFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                ForbiddenIntentReceiptFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, FailedReceiptFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, SignalReceiptFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                AspectRichReceiptFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                AspectDeferredReceiptFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                AspectSignalReceiptFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                AspectFailedReceiptFamily,
+            >(),
+        ],
+    )
 }
 
 pub(super) fn progressed<F>(

@@ -329,11 +329,34 @@ pub(super) fn admitted_handle(
     GeometryDomain,
     CollaborativeWorld,
 > {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(GeometryDomain)
-        .with_operating_context(CollaborativeWorld(regime))
-        .validate()
-        .expect("world should validate")
-        .admit()
-        .expect("world should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        CollaborativeWorld(regime),
+        [
+            crate::application::domain_test_support::family::<GeometryDomain, AdmittedFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, DeferredFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, DeniedFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, StaleFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, FailedFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, ExplicitIntentFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, DeferredRouteFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                UnsupportedReceiptFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                ExpensiveAutomationFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, AspectRichFamily>(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                ConflictingAspectFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, WorldSensitiveFamily>(
+            ),
+        ],
+    )
 }

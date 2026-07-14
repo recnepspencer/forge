@@ -135,13 +135,18 @@ impl WorthQueryDeclarationInput<RecoveryDomain> for RecoveryInput<SignalReceiptF
 pub(super) fn recovery_admitted_handle(
     regime: &'static str,
 ) -> WorthQueryInstalledDomainDeclarationContext<RecoveryDomain, RecoveryWorld> {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(RecoveryDomain)
-        .with_operating_context(RecoveryWorld::named(regime))
-        .validate()
-        .expect("recovery world should validate")
-        .admit()
-        .expect("recovery world should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        RecoveryDomain,
+        RecoveryWorld::named(regime),
+        [
+            crate::application::domain_test_support::family::<
+                RecoveryDomain,
+                RequiredIntentRouteFamily,
+            >(),
+            crate::application::domain_test_support::family::<RecoveryDomain, SignalReceiptFamily>(
+            ),
+        ],
+    )
 }
 
 pub(super) fn standard_aspect_contract() -> WorthQueryDeclarationAspectContract {

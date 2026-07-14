@@ -166,13 +166,15 @@ impl WorthQueryDeclarationInput<BindingDomain> for Input<StrictBridgeFamily> {
 fn admitted_handle(
     world: &'static str,
 ) -> WorthQueryInstalledDomainDeclarationContext<BindingDomain, BindingWorld> {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(BindingDomain)
-        .with_operating_context(BindingWorld(world))
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap()
+    crate::application::domain_test_support::installed_declaration_context(
+        BindingDomain,
+        BindingWorld(world),
+        [
+            crate::application::domain_test_support::family::<BindingDomain, RouteFamily>(),
+            crate::application::domain_test_support::family::<BindingDomain, BridgeFamily>(),
+            crate::application::domain_test_support::family::<BindingDomain, StrictBridgeFamily>(),
+        ],
+    )
 }
 
 fn progressed_route(

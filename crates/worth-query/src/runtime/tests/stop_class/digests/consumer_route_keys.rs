@@ -3,6 +3,9 @@ use super::super::consumer_support::routing::ConsumerStopRoute;
 
 pub(super) fn consumer_stop_route_key(route: &ConsumerStopRoute) -> String {
     match route {
+        ConsumerStopRoute::InstalledDomainAuthorityDenied(kind) => {
+            format!("installed_domain_authority_denied:{kind:?}")
+        }
         ConsumerStopRoute::MissingRuntimeComponent(component) => {
             format!(
                 "missing_runtime_component:{}",

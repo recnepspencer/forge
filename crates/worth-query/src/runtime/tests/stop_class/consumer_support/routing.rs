@@ -2,7 +2,7 @@ use super::super::super::support::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in super::super) enum ConsumerStopRoute<'a> {
-    InstalledDomainAuthorityDenied(WorthQueryDomainHandleDenialKind),
+    InstalledDomainAuthorityDenied(crate::domain_installation::WorthQueryDomainHandleDenialKind),
     MissingRuntimeComponent(WorthQueryRuntimeMissingComponent),
     ExistingTruthAssertionDenied(WorthQueryExistingTruthAssertionDenialKind),
     ExistingTruthProbeDenied(WorthQueryExistingTruthProbeDenialKind),

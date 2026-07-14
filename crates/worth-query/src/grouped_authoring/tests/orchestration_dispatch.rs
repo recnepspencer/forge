@@ -22,7 +22,7 @@ use crate::runtime::{
     WorthQueryGraphTouchDescriptor, WorthQueryGraphTouchReadVerb, WorthQueryGraphTouchSelector,
 };
 
-use super::support::{admitted_handle, GeometryDomain};
+use super::support::{GeometryDomain, GeometryWorld};
 
 static BLOCKED_CANONICALIZATION_COUNT: AtomicUsize = AtomicUsize::new(0);
 
@@ -174,9 +174,26 @@ impl WorthQueryDeclarationInput<GeometryDomain> for MissingTouchGroupedInput {
     }
 }
 
+fn orchestration_handle(
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>
+{
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        GeometryWorld("phase-seven"),
+        [
+            crate::application::domain_test_support::family::<GeometryDomain, BlockingGroupedFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                MissingTouchGroupedFamily,
+            >(),
+        ],
+    )
+}
+
 #[test]
 fn declaration_entry_dispatch_denies_group_before_group_artifact_materializes() {
-    let handle = admitted_handle("phase-seven");
+    let handle = orchestration_handle();
     BLOCKED_CANONICALIZATION_COUNT.store(0, Ordering::SeqCst);
     let result = worth_query_grouped_declaration_checked_on_handle(
         &handle,
@@ -225,7 +242,7 @@ fn declaration_entry_dispatch_denies_group_before_group_artifact_materializes() 
 
 #[test]
 fn declaration_entry_dispatch_failure_keeps_typed_error() {
-    let handle = admitted_handle("phase-seven");
+    let handle = orchestration_handle();
     let result = worth_query_grouped_declaration_checked_on_handle(
         &handle,
         handle
@@ -252,7 +269,7 @@ fn declaration_entry_dispatch_failure_keeps_typed_error() {
 
 #[test]
 fn orchestration_and_execution_dispatch_share_rule_identity_for_same_rule() {
-    let handle = admitted_handle("phase-seven");
+    let handle = orchestration_handle();
     let result = worth_query_grouped_declaration_checked_on_handle(
         &handle,
         handle

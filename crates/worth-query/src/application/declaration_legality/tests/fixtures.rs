@@ -369,11 +369,30 @@ pub(super) fn admitted_handle(
     GeometryDomain,
     CollaborativeWorld,
 > {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(GeometryDomain)
-        .with_operating_context(CollaborativeWorld::named(regime))
-        .validate()
-        .expect("context should validate")
-        .admit()
-        .expect("context should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        CollaborativeWorld::named(regime),
+        [
+            crate::application::domain_test_support::family::<GeometryDomain, LegalFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, IllegalRoleFamily>(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                IllegalDispositionFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, DeferredLegalityFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, DurableAdmissionFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, MaskedCoverageFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, TemporalCurrentFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, TemporalPreviewFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                TemporalHistoricalFamily,
+            >(),
+        ],
+    )
 }

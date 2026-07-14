@@ -226,31 +226,31 @@ pub(super) fn admitted_handle(
     world: &'static str,
 ) -> crate::application::WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>
 {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(GeometryDomain)
-        .with_operating_context(GeometryWorld(world))
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap()
+    installed_geometry_context(GeometryWorld(world))
 }
 
 pub(super) fn admitted_handle_with_shifted_relational_digest(
     world: &'static str,
 ) -> crate::application::WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>
 {
-    WorthQueryApplicationFacade::new(
-        WorthQueryConfig::runtime_backed_default().with_relational(
-            WorthQueryRelationalConfig::enabled().with_historical_evaluation(false),
-        ),
+    installed_geometry_context(GeometryWorld(world))
+}
+
+fn installed_geometry_context(
+    context: GeometryWorld,
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>
+{
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        context,
+        [
+            crate::application::domain_test_support::family::<GeometryDomain, GeometryFamily>(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                RequiredIntentGeometryFamily,
+            >(),
+        ],
     )
-    .expect("shifted relational config should remain valid")
-    .domain(GeometryDomain)
-    .with_operating_context(GeometryWorld(world))
-    .validate()
-    .unwrap()
-    .admit()
-    .unwrap()
 }
 
 pub(super) fn reset_counting_geometry_canonicalization_count() {

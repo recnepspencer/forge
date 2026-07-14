@@ -172,16 +172,25 @@ pub(super) fn admitted_handle(
 
 fn admitted_handle_with_config(
     world: &'static str,
-    config: WorthQueryConfig,
+    _config: WorthQueryConfig,
 ) -> crate::application::WorthQueryInstalledDomainDeclarationContext<SignalDomain, SignalWorld> {
-    WorthQueryApplicationFacade::new(config)
-        .unwrap()
-        .domain(SignalDomain)
-        .with_operating_context(SignalWorld(world))
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap()
+    installed_signal_context(SignalWorld(world))
+}
+
+pub(super) fn installed_signal_context<C>(
+    context: C,
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<SignalDomain, C>
+where
+    C: WorthQueryDomainOperatingContext<SignalDomain>,
+{
+    crate::application::domain_test_support::installed_declaration_context(
+        SignalDomain,
+        context,
+        [crate::application::domain_test_support::family::<
+            SignalDomain,
+            SignalFamily,
+        >()],
+    )
 }
 
 pub(super) fn bridge_request() -> WorthQueryDeclarationBridgeContinuationRequest {

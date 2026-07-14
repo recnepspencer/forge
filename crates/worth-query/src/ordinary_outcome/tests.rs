@@ -242,13 +242,14 @@ fn ordinary_orchestration_projection_preserves_refusal_class() {
 
 #[test]
 fn admitted_handle_exposes_ordinary_binding_and_orchestration_entrypoints() {
-    let handle = WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(OrdinaryDomain)
-        .with_operating_context(OrdinaryWorld)
-        .validate()
-        .expect("validated handle")
-        .admit()
-        .expect("admitted handle");
+    let handle = crate::application::domain_test_support::installed_declaration_context(
+        OrdinaryDomain,
+        OrdinaryWorld,
+        [
+            crate::application::domain_test_support::family::<OrdinaryDomain, OrdinaryFamily>(),
+            crate::application::domain_test_support::family::<OrdinaryDomain, ExpensiveFamily>(),
+        ],
+    );
 
     let bind_outcome =
         handle.bind_declaration_from_context_outcome(WorthQueryDeclarationBindingRequest::<

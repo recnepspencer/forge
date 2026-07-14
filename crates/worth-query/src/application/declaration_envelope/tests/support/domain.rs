@@ -202,11 +202,30 @@ impl_declaration_input!(
 pub(crate) fn admitted_handle(
     regime: &'static str,
 ) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld> {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(GeometryDomain)
-        .with_operating_context(GeometryWorld::named(regime))
-        .validate()
-        .expect("envelope world should validate")
-        .admit()
-        .expect("envelope world should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        GeometryWorld::named(regime),
+        [
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                RelationalEnvelopeFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, MixedEnvelopeFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                RequiredIntentEnvelopeFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, DeferredEnvelopeFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, FailedEnvelopeFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, SignalEnvelopeFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                AspectRichEnvelopeFamily,
+            >(),
+        ],
+    )
 }

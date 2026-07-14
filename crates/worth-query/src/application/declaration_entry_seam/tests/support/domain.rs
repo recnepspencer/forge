@@ -243,13 +243,19 @@ impl_input!(
 pub fn handle(
     regime: &'static str,
 ) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld> {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(GeometryDomain)
-        .with_operating_context(GeometryWorld(regime))
-        .validate()
-        .expect("world should validate")
-        .admit()
-        .expect("world should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        GeometryWorld(regime),
+        [
+            crate::application::domain_test_support::family::<GeometryDomain, RelationalFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, BridgeSignalFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, DeferredSignalFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, MixedFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, AuthorityRichFamily>(
+            ),
+        ],
+    )
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -281,16 +287,19 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for SignallessWorld {
 pub fn signal_disabled_handle(
     regime: &'static str,
 ) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, SignallessWorld> {
-    WorthQueryApplicationFacade::new(
-        WorthQueryConfig::runtime_backed_default().with_signal(WorthQuerySignalConfig::disabled()),
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        SignallessWorld(regime),
+        [
+            crate::application::domain_test_support::family::<GeometryDomain, RelationalFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, BridgeSignalFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, DeferredSignalFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, MixedFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, AuthorityRichFamily>(
+            ),
+        ],
     )
-    .expect("signal-disabled config should validate")
-    .domain(GeometryDomain)
-    .with_operating_context(SignallessWorld(regime))
-    .validate()
-    .expect("world should validate")
-    .admit()
-    .expect("world should admit")
 }
 
 pub fn bridge_signal_envelope<C: WorthQueryDomainOperatingContext<GeometryDomain>>(
