@@ -6,16 +6,20 @@ mod exports_aggregate;
 mod exports_application;
 mod exports_certification;
 mod exports_comparison;
+mod exports_domain;
 mod exports_foundation;
 mod exports_history;
 mod exports_live_capability;
+mod exports_mutation;
 mod exports_policy;
+mod exports_preview;
 mod exports_read;
 mod exports_runtime;
 mod exports_runtime_capabilities;
 mod exports_runtime_core;
 mod exports_runtime_phase_nine;
 mod exports_runtime_products;
+mod exports_workflow;
 
 pub mod identity_authority {
     pub use crate::identity_authority::*;
@@ -158,6 +162,26 @@ pub mod history {
 /// Declarative diff, lineage, and correspondence capability.
 pub mod comparison {
     pub use super::exports_comparison::*;
+}
+
+/// Declarative authoritative mutation capability.
+pub mod mutation {
+    pub use super::exports_mutation::*;
+}
+
+/// Declarative scoped preview capability.
+pub mod preview {
+    pub use super::exports_preview::*;
+}
+
+/// Declarative preview, promotion, and writeback workflow capability.
+pub mod workflow {
+    pub use super::exports_workflow::*;
+}
+
+/// Domain contribution contracts and their ordinary workflow journey.
+pub mod domain {
+    pub use super::exports_domain::*;
 }
 
 pub mod runtime {

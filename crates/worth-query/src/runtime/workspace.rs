@@ -69,6 +69,53 @@ impl WorthQueryWorkspace {
         self.runtime.capture_branch_comparison_basis(label)
     }
 
+    pub(crate) fn capture_ordinary_mutation_authority(
+        &self,
+    ) -> Result<super::WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
+        self.runtime.capture_ordinary_mutation_authority()
+    }
+
+    pub(crate) fn capture_ordinary_preview_authority(
+        &self,
+        label: WorthQuerySessionLabel,
+    ) -> Result<super::WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
+        self.runtime.capture_ordinary_preview_authority(label)
+    }
+
+    pub(crate) fn ordinary_authority_drift(
+        &self,
+        admission: &super::WorthQueryOrdinaryAuthorityAdmission,
+    ) -> super::WorthQueryOrdinaryAuthorityDrift {
+        self.runtime.ordinary_authority_drift(admission)
+    }
+
+    pub(crate) fn execute_ordinary_authoritative_mutation(
+        &mut self,
+        command: super::WorthQueryWriteCommand,
+    ) -> Result<super::WorthQueryLowerRuntimeMutationExecution, WorthQueryRuntimeError> {
+        self.runtime
+            .execute_ordinary_authoritative_mutation(command)
+    }
+
+    pub(crate) fn execute_ordinary_read_only_preview(
+        &mut self,
+        label: WorthQuerySessionLabel,
+        declaration_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
+    ) -> Result<super::WorthQueryLowerRuntimePreviewExecution, WorthQueryRuntimeError> {
+        self.runtime
+            .execute_ordinary_read_only_preview(label, declaration_identity)
+    }
+
+    pub(crate) fn execute_ordinary_preview_promotion(
+        &mut self,
+        label: WorthQuerySessionLabel,
+        declaration_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
+        command: super::WorthQueryWriteCommand,
+    ) -> Result<super::WorthQueryLowerRuntimePreviewExecution, WorthQueryRuntimeError> {
+        self.runtime
+            .execute_ordinary_preview_promotion(label, declaration_identity, command)
+    }
+
     pub fn into_runtime(self) -> WorthQueryRuntime {
         self.runtime
     }

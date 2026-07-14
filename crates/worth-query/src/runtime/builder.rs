@@ -292,6 +292,7 @@ impl WorthQueryRuntimeBuilder {
         Ok(WorthQueryRuntime {
             backend,
             evidence_authority: WorthQueryRuntimeEvidenceAuthority::new(),
+            authority_identity: super::WorthQueryRuntimeAuthorityIdentity::mint(),
             preview_session_labels: BTreeSet::new(),
             branch_session_labels: BTreeSet::new(),
             active_subscriptions: ActiveSubscriptionRuntime::new(),

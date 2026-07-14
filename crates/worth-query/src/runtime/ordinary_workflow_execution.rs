@@ -1,0 +1,118 @@
+use crate::evidence_identity::{
+    WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
+};
+use crate::session_label::WorthQuerySessionLabel;
+
+use super::{
+    WorthQueryInspection, WorthQueryPreviewOptions, WorthQueryPreviewOutcome, WorthQueryRuntime,
+    WorthQueryRuntimeError, WorthQueryWriteCommand,
+};
+
+pub(crate) struct WorthQueryLowerRuntimePreviewExecution {
+    request_identity: WorthQueryEvidenceIdentity,
+    receipt_identity: WorthQueryEvidenceIdentity,
+    aftermath_identity: WorthQueryEvidenceIdentity,
+    inspection_identity: WorthQueryEvidenceIdentity,
+    outcome: WorthQueryPreviewOutcome,
+}
+
+impl WorthQueryLowerRuntimePreviewExecution {
+    pub(crate) fn request_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.request_identity
+    }
+
+    pub(crate) fn receipt_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.receipt_identity
+    }
+
+    pub(crate) fn aftermath_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.aftermath_identity
+    }
+
+    pub(crate) fn inspection_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.inspection_identity
+    }
+
+    pub(crate) fn outcome(&self) -> &WorthQueryPreviewOutcome {
+        &self.outcome
+    }
+
+    pub(crate) fn into_outcome(self) -> WorthQueryPreviewOutcome {
+        self.outcome
+    }
+}
+
+impl WorthQueryRuntime {
+    pub(crate) fn execute_ordinary_read_only_preview(
+        &mut self,
+        label: WorthQuerySessionLabel,
+        declaration_identity: &WorthQueryEvidenceIdentity,
+    ) -> Result<WorthQueryLowerRuntimePreviewExecution, WorthQueryRuntimeError> {
+        let request_identity = preview_request_identity("read-only", &label, declaration_identity);
+        let outcome = {
+            let session =
+                self.preview_with_options(label, WorthQueryPreviewOptions::derive_only())?;
+            session.discard()
+        };
+        let receipt_identity = outcome.closeout_evidence().closeout_identity().clone();
+        self.finish_ordinary_preview_execution(request_identity, receipt_identity, outcome)
+    }
+
+    pub(crate) fn execute_ordinary_preview_promotion(
+        &mut self,
+        label: WorthQuerySessionLabel,
+        declaration_identity: &WorthQueryEvidenceIdentity,
+        command: WorthQueryWriteCommand,
+    ) -> Result<WorthQueryLowerRuntimePreviewExecution, WorthQueryRuntimeError> {
+        let request_identity = preview_request_identity("promotion", &label, declaration_identity);
+        let (receipt_identity, outcome) = {
+            let mut session = self
+                .preview_with_options(label, WorthQueryPreviewOptions::sandboxed_write_intent())?;
+            let preview_receipt = session.write(command)?;
+            let receipt_identity = preview_receipt.commit_evidence_identity().clone();
+            (receipt_identity, session.promote()?)
+        };
+        self.finish_ordinary_preview_execution(request_identity, receipt_identity, outcome)
+    }
+
+    fn finish_ordinary_preview_execution(
+        &self,
+        request_identity: WorthQueryEvidenceIdentity,
+        receipt_identity: WorthQueryEvidenceIdentity,
+        outcome: WorthQueryPreviewOutcome,
+    ) -> Result<WorthQueryLowerRuntimePreviewExecution, WorthQueryRuntimeError> {
+        let inspection = match self.inspect(&outcome)? {
+            WorthQueryInspection::PreviewOutcome(inspection) => inspection,
+            other => panic!("expected preview outcome inspection, got {other:?}"),
+        };
+        Ok(WorthQueryLowerRuntimePreviewExecution {
+            request_identity,
+            receipt_identity,
+            aftermath_identity: outcome.closeout_evidence().closeout_identity().clone(),
+            inspection_identity: inspection.inspection_identity().clone(),
+            outcome,
+        })
+    }
+}
+
+fn preview_request_identity(
+    family: &'static str,
+    label: &WorthQuerySessionLabel,
+    declaration_identity: &WorthQueryEvidenceIdentity,
+) -> WorthQueryEvidenceIdentity {
+    WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::WorkflowMutationLowering)
+        .field_shape(
+            WorthQueryEvidenceTag::new("role"),
+            "ordinary-preview-request",
+        )
+        .field_shape(WorthQueryEvidenceTag::new("family"), family)
+        .field_evidence_identity(
+            WorthQueryEvidenceTag::new("session_label"),
+            label.identity_digest(),
+        )
+        .field_evidence_identity(
+            WorthQueryEvidenceTag::new("declaration"),
+            declaration_identity,
+        )
+        .seal()
+}

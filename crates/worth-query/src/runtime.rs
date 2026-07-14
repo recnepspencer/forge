@@ -236,6 +236,8 @@ mod mixed_cause_emission;
 mod mutation;
 mod mutation_surface;
 mod ordinary_runtime_posture;
+mod ordinary_workflow_authority;
+mod ordinary_workflow_execution;
 mod preview;
 mod public_api;
 mod published_artifacts;
@@ -730,6 +732,12 @@ pub use mutation::{
 pub use mutation_surface::{
     WorthQueryMutationSurfacePosture, WorthQueryMutationSurfaceReport, WorthQueryMutationSurfaceRow,
 };
+pub(crate) use ordinary_workflow_authority::{
+    WorthQueryLowerRuntimeMutationExecution, WorthQueryOrdinaryAuthorityAdmission,
+    WorthQueryOrdinaryAuthorityDrift, WorthQueryOrdinaryAuthorityFamily,
+    WorthQueryRuntimeAuthorityIdentity,
+};
+pub(crate) use ordinary_workflow_execution::WorthQueryLowerRuntimePreviewExecution;
 pub use preview::{
     WorthQueryPreviewCloseoutEvidence, WorthQueryPreviewCloseoutKind, WorthQueryPreviewDiff,
     WorthQueryPreviewEffectBindingDisposition, WorthQueryPreviewExecutionEvidence,
@@ -877,6 +885,7 @@ pub use workspace_submission::WorthQueryWorkspaceSubmissionLane;
 pub struct WorthQueryRuntime {
     backend: Box<dyn WorthQueryRuntimeBackend>,
     evidence_authority: WorthQueryRuntimeEvidenceAuthority,
+    authority_identity: WorthQueryRuntimeAuthorityIdentity,
     preview_session_labels: BTreeSet<WorthQuerySessionLabel>,
     branch_session_labels: BTreeSet<WorthQuerySessionLabel>,
     active_subscriptions: ActiveSubscriptionRuntime,
