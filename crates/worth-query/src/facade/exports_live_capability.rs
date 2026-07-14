@@ -8,9 +8,16 @@ pub use crate::ordinary::live::{
     declare_live as declare, WorthQueryLiveDeclaration, WorthQueryLiveDeclarationIdentity,
     WorthQueryLiveDeclarationStop, WorthQueryLiveDeclarationStopKind, WorthQueryLiveOpenCompletion,
     WorthQueryLiveOpenOutcome, WorthQueryLiveOpenStop, WorthQueryLiveRequest,
+    WorthQueryManagedLiveCheckpointCompletion, WorthQueryManagedLiveCheckpointOutcome,
+    WorthQueryManagedLiveCheckpointReceipt, WorthQueryManagedLiveCheckpointStop,
     WorthQueryManagedLiveCloseOutcome, WorthQueryManagedLiveCloseReceipt,
-    WorthQueryManagedLiveCloseStop, WorthQueryManagedLiveHandle,
+    WorthQueryManagedLiveCloseStop, WorthQueryManagedLiveContinuation,
+    WorthQueryManagedLiveDelivery, WorthQueryManagedLiveDeliveryBatch,
+    WorthQueryManagedLiveDeliveryCauseKind, WorthQueryManagedLiveHandle,
     WorthQueryManagedLiveLifecycleObservation, WorthQueryManagedLiveLifecyclePosture,
+    WorthQueryManagedLiveResumeCompletion, WorthQueryManagedLiveResumeNextAction,
+    WorthQueryManagedLiveResumeOutcome, WorthQueryManagedLiveResumeReceipt,
+    WorthQueryManagedLiveResumeStop, WorthQueryManagedLiveResumeStopKind,
 };
 pub use crate::ordinary::read::{
     current, WorthQueryCurrentPolicyTenantReadContext, WorthQueryCurrentReadContext,
@@ -18,6 +25,11 @@ pub use crate::ordinary::read::{
     WorthQueryReadContextKind, WorthQueryReadNextAction, WorthQueryReadRelationshipDepth,
     WorthQueryReadRelationshipProof, WorthQueryReadRelationshipProofDeclarationError,
     WorthQueryReadRelationshipProofs, WorthQueryReadStop, WorthQueryReadStopSource,
+};
+pub use crate::ordinary_outcome::{
+    WorthQueryOrdinaryRuntimeAsyncPostureKind, WorthQueryOrdinaryRuntimeBasisPostureKind,
+    WorthQueryOrdinaryRuntimeCausePostureKind, WorthQueryOrdinaryRuntimePosture,
+    WorthQueryOrdinaryRuntimePostureKind, WorthQueryOrdinaryRuntimeRemaskPostureKind,
 };
 pub use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
 pub use crate::runtime::{

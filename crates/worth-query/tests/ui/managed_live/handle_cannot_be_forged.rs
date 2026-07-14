@@ -1,4 +1,4 @@
-use worth_query::facade::read::WorthQueryManagedLiveHandle;
+use worth_query::facade::live::WorthQueryManagedLiveHandle;
 
 fn forge() -> WorthQueryManagedLiveHandle {
     WorthQueryManagedLiveHandle {}

@@ -1,0 +1,5 @@
+error[E0599]: no method named `advance_maintenance` found for mutable reference `&mut WorthQueryManagedLiveContinuation` in the current scope
+ --> tests/ui/managed_live/continuation_cannot_author_maintenance.rs:4:18
+  |
+4 |     continuation.advance_maintenance();
+  |                  ^^^^^^^^^^^^^^^^^^^ method not found in `&mut WorthQueryManagedLiveContinuation`

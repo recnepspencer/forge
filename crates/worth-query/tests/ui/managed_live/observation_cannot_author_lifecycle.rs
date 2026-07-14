@@ -1,4 +1,4 @@
-use worth_query::facade::read::WorthQueryManagedLiveLifecycleObservation;
+use worth_query::facade::live::WorthQueryManagedLiveLifecycleObservation;
 
 fn author_lifecycle(observation: &mut WorthQueryManagedLiveLifecycleObservation) {
     observation.advance_maintenance();

@@ -1,4 +1,7 @@
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
+use crate::ordinary_outcome::WorthQueryOrdinaryRuntimePosture;
+
+use super::super::ordinary_runtime_posture::project_live_subscription_ordinary_runtime_posture;
 
 use super::super::*;
 
@@ -11,8 +14,10 @@ pub enum WorthQueryManagedLiveLifecyclePosture {
 pub struct WorthQueryManagedLiveLifecycleObservation {
     resource_name: String,
     posture: WorthQueryManagedLiveLifecyclePosture,
+    authority_lane: WorthQueryAuthorityLane,
     installation_identity: WorthQueryEvidenceIdentity,
     basis_binding_identity: WorthQueryEvidenceIdentity,
+    runtime_posture: WorthQueryOrdinaryRuntimePosture,
     pending_delivery_batch_count: usize,
     last_delivery_sequence: Option<u64>,
 }
@@ -26,12 +31,20 @@ impl WorthQueryManagedLiveLifecycleObservation {
         self.posture
     }
 
+    pub fn authority_lane(&self) -> WorthQueryAuthorityLane {
+        self.authority_lane
+    }
+
     pub fn installation_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.installation_identity
     }
 
     pub fn basis_binding_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.basis_binding_identity
+    }
+
+    pub fn runtime_posture(&self) -> &WorthQueryOrdinaryRuntimePosture {
+        &self.runtime_posture
     }
 
     pub fn pending_delivery_batch_count(&self) -> usize {
@@ -46,8 +59,10 @@ impl WorthQueryManagedLiveLifecycleObservation {
         Self {
             resource_name: state.installation.view_name().to_string(),
             posture: WorthQueryManagedLiveLifecyclePosture::Active,
+            authority_lane: state.installation.authority_lane(),
             installation_identity: state.installation.installation_identity().clone(),
             basis_binding_identity: state.installation.basis_binding_identity().clone(),
+            runtime_posture: project_live_subscription_ordinary_runtime_posture(state),
             pending_delivery_batch_count: state.delivery_batches.len(),
             last_delivery_sequence: state
                 .last_delivery

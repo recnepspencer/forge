@@ -24,13 +24,7 @@ fn managed_live_open_preserves_one_shot_meaning_and_authority_journey() {
             ],
         ))
         .expect("seed write should execute");
-    let one_shot = declare(task_collection_read)
-        .expect("one-shot task read should declare")
-        .using(current())
-        .run(&mut workspace)
-        .into_result()
-        .expect("one-shot task read should execute")
-        .into_result();
+    let one_shot = one_shot_task_result(&mut workspace);
 
     let opened = match declare_live("tasks.managed", task_collection_read)
         .expect("managed task live declaration should build")
@@ -96,9 +90,16 @@ fn managed_live_resource_routes_admitted_deltas_and_suppresses_irrelevant_update
         handle
             .drain(&mut workspace)
             .expect("insert delivery should drain")
-            .query_delivery_batches
+            .batches()
             .len(),
         1
+    );
+    assert_eq!(
+        handle
+            .read(&mut workspace)
+            .expect("live result should remain readable after insert")
+            .rows(),
+        one_shot_task_result(&mut workspace).rows()
     );
 
     workspace
@@ -111,8 +112,14 @@ fn managed_live_resource_routes_admitted_deltas_and_suppresses_irrelevant_update
     assert!(handle
         .drain(&mut workspace)
         .expect("suppressed delivery drain should succeed")
-        .query_delivery_batches
         .is_empty());
+    assert_eq!(
+        handle
+            .read(&mut workspace)
+            .expect("suppressed update must preserve live meaning")
+            .rows(),
+        one_shot_task_result(&mut workspace).rows()
+    );
 
     workspace
         .write(test_update_string_aspect_command(
@@ -124,8 +131,15 @@ fn managed_live_resource_routes_admitted_deltas_and_suppresses_irrelevant_update
     let delivery = handle
         .drain(&mut workspace)
         .expect("projected delivery should drain");
-    assert_eq!(delivery.query_delivery_batches.len(), 1);
-    assert_eq!(delivery.query_delivery_batches[0].sequence(), 2);
+    assert_eq!(delivery.batches().len(), 1);
+    assert_eq!(delivery.batches()[0].sequence(), 2);
+    assert_eq!(
+        handle
+            .read(&mut workspace)
+            .expect("updated live result should remain readable")
+            .rows(),
+        one_shot_task_result(&mut workspace).rows()
+    );
 }
 
 #[test]
@@ -268,6 +282,18 @@ pub(super) fn task_workspace(name: &str) -> WorthQueryWorkspace {
     stateful_bridge_task_runtime()
         .workspace(name)
         .expect("task workspace should open")
+}
+
+pub(super) fn one_shot_task_result(
+    workspace: &mut WorthQueryWorkspace,
+) -> crate::runtime::WorthQueryReadResult {
+    declare(task_collection_read)
+        .expect("one-shot parity read should declare")
+        .using(current())
+        .run(workspace)
+        .into_result()
+        .expect("one-shot parity read should execute")
+        .into_result()
 }
 
 pub(super) fn open_task_resource(

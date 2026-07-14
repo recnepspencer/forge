@@ -1,4 +1,4 @@
-use worth_query::facade::read::WorthQueryManagedLiveHandle;
+use worth_query::facade::live::WorthQueryManagedLiveHandle;
 use worth_query::facade::runtime::WorthQueryWorkspace;
 
 fn close_twice(handle: WorthQueryManagedLiveHandle, workspace: &mut WorthQueryWorkspace) {
