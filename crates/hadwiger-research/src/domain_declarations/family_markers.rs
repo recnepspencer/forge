@@ -127,6 +127,10 @@ relational_family!(
     "hadwiger.screening.fractional_chromatic"
 );
 relational_family!(
+    GeometricFractionalChromaticScreeningDeclarationFamily,
+    "hadwiger.screening.geometric_fractional_chromatic"
+);
+relational_family!(
     LovaszThetaScreeningDeclarationFamily,
     "hadwiger.screening.lovasz_theta"
 );

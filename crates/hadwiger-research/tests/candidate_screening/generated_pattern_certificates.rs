@@ -207,7 +207,7 @@ fn maximum_degree_is_not_an_invariant_catalog_row() {
     let handle = handle();
     let catalog = draft_candidate_screening_invariant_catalog_checked(&handle).unwrap();
 
-    assert_eq!(catalog.nodes().len(), 34);
+    assert_eq!(catalog.nodes().len(), 35);
     assert!(!catalog.has_family(CandidateScreeningInvariantFamily::MaximumDegreeSanityCheck));
 }
 

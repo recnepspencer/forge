@@ -1,0 +1,108 @@
+{
+  "schema": "forge.hadwiger.w607_pair_seeded_second_family.v1",
+  "authority": "diagnostic_pair_seeded_leaf_rank_falsifier",
+  "second_agent_verdict": "run_once_no_rescue_no_export",
+  "partial": true,
+  "leaf_count": 3,
+  "mwis_call_count": 0,
+  "initial_top_six_post_first_max": 593196.89067165,
+  "final_top_six_max": 593196.89067165,
+  "top_six_max_movement": 0.0,
+  "accepted_leaf_count": 0,
+  "accepted_row_count": 0,
+  "failure_classification": "no_genuine_pair_shaped_candidates",
+  "gates": {
+    "leaf_count": 6,
+    "max_mwis_per_leaf": 6,
+    "max_total_mwis": 36,
+    "mwis_time_limit": 3.0,
+    "violation_gate": 500.0,
+    "accept_drop": 500.0,
+    "drop_ratio_gate": 0.25,
+    "prior_jaccard_gate": 0.65,
+    "single_center_jaccard_gate": 0.75,
+    "success_leaves": 3,
+    "success_movement": 3000.0,
+    "success_max": 590200.0,
+    "strong_max": 590000.0
+  },
+  "leaves": [
+    {
+      "leaf_index": 1,
+      "included": [
+        223
+      ],
+      "excluded": [
+        224,
+        303,
+        305,
+        384,
+        385
+      ],
+      "post_first_objective": 593196.89067165,
+      "final_objective": 593196.89067165,
+      "additional_drop": 0.0,
+      "candidate_count": 0,
+      "pre_mwis_rejections": {
+        "duplicate": 0,
+        "jaccard": 0,
+        "single_like": 50,
+        "unbalanced": 10
+      },
+      "tested_rows": [],
+      "accepted_rows": [],
+      "accepted_count": 0
+    },
+    {
+      "leaf_index": 6,
+      "included": [
+        384
+      ],
+      "excluded": [
+        224,
+        303,
+        305,
+        385
+      ],
+      "post_first_objective": 593196.8762182004,
+      "final_objective": 593196.8762182004,
+      "additional_drop": 0.0,
+      "candidate_count": 0,
+      "pre_mwis_rejections": {
+        "duplicate": 0,
+        "jaccard": 0,
+        "single_like": 50,
+        "unbalanced": 10
+      },
+      "tested_rows": [],
+      "accepted_rows": [],
+      "accepted_count": 0
+    },
+    {
+      "leaf_index": 12,
+      "included": [
+        305
+      ],
+      "excluded": [
+        224,
+        303,
+        385
+      ],
+      "post_first_objective": 593196.7945863283,
+      "final_objective": 593196.7945863283,
+      "additional_drop": 0.0,
+      "candidate_count": 0,
+      "pre_mwis_rejections": {
+        "duplicate": 0,
+        "jaccard": 0,
+        "single_like": 50,
+        "unbalanced": 10
+      },
+      "tested_rows": [],
+      "accepted_rows": [],
+      "accepted_count": 0
+    }
+  ],
+  "status": "RetirePairSeededSecondFamily",
+  "shape_gate_retirement_note": "Strict pair-shaped pre-MWIS filters produced zero candidates on completed worst leaves; all generated pairs were single-center-like or unbalanced, so no MWIS calls were funded."
+}

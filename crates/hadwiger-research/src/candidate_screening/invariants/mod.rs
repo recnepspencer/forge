@@ -12,6 +12,7 @@ mod exhaustive_local_neighborhood;
 mod finite_patch_boundary_extension;
 mod forbidden_displacement_set;
 mod fractional_chromatic_number;
+mod geometric_fractional_chromatic_number;
 mod hall_ratio_subpatch_independence_bound;
 mod independence_number_lower_bound;
 mod known_obstruction_containment;
@@ -40,7 +41,7 @@ pub(super) use super::{
     CandidateScreeningInvariantFamily as F,
 };
 
-pub(crate) const ALL_SCREENING_FAMILIES: [F; 34] = [
+pub(crate) const ALL_SCREENING_FAMILIES: [F; 35] = [
     F::ExactUnitDistanceConflict,
     F::TileDiameterSafety,
     F::SameColorSeparationDistanceSet,
@@ -51,6 +52,7 @@ pub(crate) const ALL_SCREENING_FAMILIES: [F; 34] = [
     F::WeightedIndependenceNumberBound,
     F::HallRatioSubpatchIndependenceBound,
     F::FractionalChromaticNumber,
+    F::GeometricFractionalChromaticNumber,
     F::LovaszThetaBound,
     F::SpectralHoffmanBound,
     F::DegeneracyKCoreFilter,
@@ -91,6 +93,9 @@ pub(crate) fn invariant_definition(family: F) -> CandidateScreeningInvariantDefi
             hall_ratio_subpatch_independence_bound::definition()
         }
         F::FractionalChromaticNumber => fractional_chromatic_number::definition(),
+        F::GeometricFractionalChromaticNumber => {
+            geometric_fractional_chromatic_number::definition()
+        }
         F::LovaszThetaBound => lovasz_theta_bound::definition(),
         F::SpectralHoffmanBound => spectral_hoffman_bound::definition(),
         F::DegeneracyKCoreFilter => degeneracy_k_core_filter::definition(),

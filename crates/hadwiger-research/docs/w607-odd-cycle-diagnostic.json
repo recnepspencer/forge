@@ -1,0 +1,49 @@
+{
+  "schema": "forge.hadwiger.w607_odd_cycle_diagnostic.v1",
+  "second_agent_verdict": "one_bounded_parity_surprise_falsification_pass",
+  "base_objective": 594914.351525072,
+  "baseline_reproduced": true,
+  "final_objective": 594914.351525072,
+  "total_drop": 0.0,
+  "cut_count": 0,
+  "round_count": 0,
+  "best_violation": 0.0,
+  "best_round_drop": 0.0,
+  "base_heavy_third_plateau_count": 15,
+  "final_heavy_third_plateau_count": 15,
+  "heavy_third_plateau_drop": 0,
+  "base_near_half": {
+    "count": 0,
+    "top_vertices": []
+  },
+  "final_near_half": {
+    "count": 0,
+    "top_vertices": []
+  },
+  "status": "RetireOddCycleDiagnostic",
+  "gates": {
+    "round_limit": 6,
+    "batch_limit": 64,
+    "total_cut_limit": 256,
+    "length_range": [
+      5,
+      101
+    ],
+    "min_accept_violation": 0.01,
+    "round1_kill_violation": 0.02,
+    "kill_total_drop": 250.0,
+    "fund_best_violation": 0.05,
+    "fund_total_drop": 1000.0,
+    "serious_total_drop": 3000.0,
+    "plateau_drop_gate": 4
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "candidate_count": 0,
+      "accepted_count": 0
+    }
+  ],
+  "top_cuts": [],
+  "seconds": 7.038524389266968
+}

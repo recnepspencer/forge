@@ -1,0 +1,337 @@
+{
+  "schema": "forge.hadwiger.w607_full16_mixed_residual_closure.v1",
+  "authority": "export_shape_diagnostic_not_parent_or_root_proof",
+  "target_gate": 586500.0,
+  "target_weighted_alpha": 512933,
+  "second_opinion": {
+    "agent": "Huygens",
+    "decision": "approve_narrow_scope",
+    "primary_failure_mode": "authority_contamination"
+  },
+  "authority_labels": {
+    "root_rows": "proof_substrate_authority",
+    "parent_lifts": "proof_substrate_authority",
+    "first_family_rows": "per_leaf_enriched_row_system_authority",
+    "fixed_pool_trees": "diagnostic_branch_authority_only",
+    "leaf0_residual_pair_closure": "diagnostic_branch_authority_only"
+  },
+  "digests": {
+    "root_rows_digest": "d064dcb93f0591ec73db1f1697e81997c51629d8ee95b1c9202e19afd84d3ab2",
+    "parent_lifts_digest": "6264b361da6d28be18431525bcecc7eaecd05ca090a60c6760d2e8186f10ab70",
+    "first_family_rows_digest": "354c97a87d89a6ad0b1285b93991e33cae3edd8e1297383e76da05a4fbf3eeb1",
+    "full16_source_digest": "8f7965fda6234c6636327adcc8b3ae564f31ae4eb494350dcd26e7200e314ed4",
+    "leaf0_exception_digest": "df9cf45abe3d0383b85fe35658cef2ff363895991ff9da05fa9caa359a47e0e5"
+  },
+  "source_artifacts": {
+    "full16_fixed_pool_stress": "crates/hadwiger-research/docs/w607-full16-micro-branch-stress.json",
+    "leaf0_residual_pair_closure": "crates/hadwiger-research/docs/w607-leaf0-residual-pair-closure.json"
+  },
+  "setup_invariants": {
+    "new_rows": 0,
+    "new_supports": 0,
+    "new_mwis": 0,
+    "new_variables": 0,
+    "fixed_pool": [
+      152,
+      222,
+      225,
+      383,
+      386,
+      456
+    ],
+    "leaf0_exception_only": true
+  },
+  "reproduction": {
+    "full16_fixed_pool_matches": true,
+    "full16_depth3_post_max_matches": true,
+    "leaf0_depth3_matches_full16": true,
+    "leaf0_depth4_matches": true,
+    "leaf0_closed_bound_matches": true,
+    "leaf_count_is_16": true
+  },
+  "baseline_root_objective": 594914.351525072,
+  "pre_microbranch_full_16_max": 593196.89067165,
+  "old_depth3_full16_max": 589302.6440267732,
+  "mixed_full16_max": 586224.2382592546,
+  "mixed_full16_argmax_leaves": [
+    1
+  ],
+  "margin_to_target_gate": 275.7617407453945,
+  "leaf0_exception": {
+    "reproduced_depth3_bound": 589302.6440267732,
+    "reproduced_depth4_bound": 588378.8642942241,
+    "triggered_residual_nodes": 1,
+    "trigger_assignment": {
+      "152": 0.0,
+      "225": 0.0,
+      "383": 0.0,
+      "386": 0.0
+    },
+    "residual_pair": [
+      222,
+      456
+    ],
+    "children": [
+      {
+        "assignment": {
+          "222": 0.0,
+          "456": 0.0
+        },
+        "feasible": true,
+        "objective": 581480.9999999993,
+        "pool_assignment": {
+          "152": 0.0,
+          "222": 0.0,
+          "225": 0.0,
+          "383": 0.0,
+          "386": 0.0,
+          "456": 0.0
+        }
+      },
+      {
+        "assignment": {
+          "222": 0.0,
+          "456": 1.0
+        },
+        "feasible": true,
+        "objective": 559233.6666666667,
+        "pool_assignment": {
+          "152": 0.0,
+          "222": 0.0,
+          "225": 0.0,
+          "383": 0.0,
+          "386": 0.0,
+          "456": 1.0
+        }
+      },
+      {
+        "assignment": {
+          "222": 1.0,
+          "456": 0.0
+        },
+        "feasible": true,
+        "objective": 559233.6666666666,
+        "pool_assignment": {
+          "152": 0.0,
+          "222": 1.0,
+          "225": 0.0,
+          "383": 0.0,
+          "386": 0.0,
+          "456": 0.0
+        }
+      },
+      {
+        "assignment": {
+          "222": 1.0,
+          "456": 1.0
+        },
+        "feasible": true,
+        "objective": 558844.3246901055,
+        "pool_assignment": {
+          "152": 0.0,
+          "222": 1.0,
+          "225": 0.0,
+          "383": 0.0,
+          "386": 0.0,
+          "456": 1.0
+        }
+      }
+    ],
+    "closed_leaf0_bound": 581480.9999999993,
+    "extra_lp_solves": 4
+  },
+  "resource_usage": {
+    "full16_depth3_total_nodes": 352,
+    "leaf0_exception_extra_lp_solves": 4,
+    "mixed_total_nodes_plus_extra_solves": 356,
+    "any_cap_hit": false,
+    "timeout_hit": false
+  },
+  "leaf_bounds_sorted": [
+    {
+      "leaf_index": 1,
+      "top_six": true,
+      "baseline_after_first_family": 593196.89067165,
+      "depth3_fixed_pool_bound": 586224.2382592546,
+      "mixed_bound": 586224.2382592546,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 6972.652412395342,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 6,
+      "top_six": true,
+      "baseline_after_first_family": 593196.8762182004,
+      "depth3_fixed_pool_bound": 586224.039267464,
+      "mixed_bound": 586224.039267464,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 6972.83695073647,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 12,
+      "top_six": true,
+      "baseline_after_first_family": 593196.7945863283,
+      "depth3_fixed_pool_bound": 586223.690675106,
+      "mixed_bound": 586223.690675106,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 6973.103911222308,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 2,
+      "top_six": true,
+      "baseline_after_first_family": 593196.5211026681,
+      "depth3_fixed_pool_bound": 586223.1967256626,
+      "mixed_bound": 586223.1967256626,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 6973.324377005571,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 4,
+      "top_six": true,
+      "baseline_after_first_family": 593196.5447294225,
+      "depth3_fixed_pool_bound": 586222.998756283,
+      "mixed_bound": 586222.998756283,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 6973.545973139582,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 9,
+      "top_six": true,
+      "baseline_after_first_family": 593196.5437247956,
+      "depth3_fixed_pool_bound": 586222.996110642,
+      "mixed_bound": 586222.996110642,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 6973.547614153591,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 0,
+      "top_six": false,
+      "baseline_after_first_family": 592402.1576826534,
+      "depth3_fixed_pool_bound": 589302.6440267732,
+      "mixed_bound": 581480.9999999993,
+      "bound_source": "leaf0_depth4_residual_pair_closure",
+      "movement_from_baseline": 10921.157682654099,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 3,
+      "top_six": false,
+      "baseline_after_first_family": 592273.8672470658,
+      "depth3_fixed_pool_bound": 579583.5918367348,
+      "mixed_bound": 579583.5918367348,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 12690.27541033097,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 7,
+      "top_six": false,
+      "baseline_after_first_family": 592273.8678666136,
+      "depth3_fixed_pool_bound": 579583.5918367342,
+      "mixed_bound": 579583.5918367342,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 12690.276029879344,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 8,
+      "top_six": false,
+      "baseline_after_first_family": 592273.8673423806,
+      "depth3_fixed_pool_bound": 578864.0765520872,
+      "mixed_bound": 578864.0765520872,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 13409.790790293366,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 14,
+      "top_six": false,
+      "baseline_after_first_family": 592273.8665322039,
+      "depth3_fixed_pool_bound": 578864.0765520871,
+      "mixed_bound": 578864.0765520871,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 13409.789980116766,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 11,
+      "top_six": false,
+      "baseline_after_first_family": 592273.8663892313,
+      "depth3_fixed_pool_bound": 577886.3786800732,
+      "mixed_bound": 577886.3786800732,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 14387.4877091581,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 15,
+      "top_six": false,
+      "baseline_after_first_family": 592273.8680572428,
+      "depth3_fixed_pool_bound": 577886.378680073,
+      "mixed_bound": 577886.378680073,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 14387.48937716987,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 13,
+      "top_six": false,
+      "baseline_after_first_family": 592196.8714540305,
+      "depth3_fixed_pool_bound": 575979.6666666664,
+      "mixed_bound": 575979.6666666664,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 16217.204787364113,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 10,
+      "top_six": false,
+      "baseline_after_first_family": 592196.8707394645,
+      "depth3_fixed_pool_bound": 575904.9999999999,
+      "mixed_bound": 575904.9999999999,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 16291.870739464648,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    },
+    {
+      "leaf_index": 5,
+      "top_six": false,
+      "baseline_after_first_family": 589195.497468974,
+      "depth3_fixed_pool_bound": 575713.3389251716,
+      "mixed_bound": 575713.3389251716,
+      "bound_source": "fixed_pool_depth3",
+      "movement_from_baseline": 13482.158543802332,
+      "nodes_solved_depth3": 22,
+      "hit_cap_depth3": false
+    }
+  ],
+  "gates": {
+    "mixed_max_at_or_below_target_gate": true,
+    "no_cap_hit": true,
+    "no_timeout": true,
+    "all_reproduction_checks_pass": true,
+    "authority_boundary_explicit": true
+  },
+  "failure_reasons": [],
+  "status": "fund_export_lift_design"
+}

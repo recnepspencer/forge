@@ -1,0 +1,152 @@
+{
+  "schema": "forge.hadwiger.w607_post_family_common_d_cglp.v1",
+  "authority": "diagnostic_common_d_disjunctive_row_no_replay_authority",
+  "graph_digest": "5ee6b6ce564e2034a89df8ba5cb0a2103d3fcd3a5aacea72b13445c456f57683",
+  "row_system": "16_root_rank_rows_plus_two_parent_rows_plus_leaf_local_first_family_rows",
+  "root_objective_before": 594914.351525072,
+  "root_x304_before": 0.0,
+  "top_six_leaf_indices": [
+    1,
+    6,
+    12,
+    4,
+    9,
+    2
+  ],
+  "leaf_count": 16,
+  "d_normalization": "sum(d)=1,d>=0",
+  "d_support_size": 6,
+  "top_d_vertices": [
+    {
+      "vertex": 384,
+      "d": 0.16666666666666685,
+      "weight": 17892.0,
+      "root_x": 0.3333333333332849
+    },
+    {
+      "vertex": 385,
+      "d": 0.1666666666666668,
+      "weight": 17892.0,
+      "root_x": 0.3333333333333317
+    },
+    {
+      "vertex": 224,
+      "d": 0.16666666666666674,
+      "weight": 17892.0,
+      "root_x": 0.3333333333333428
+    },
+    {
+      "vertex": 305,
+      "d": 0.1666666666666667,
+      "weight": 17892.0,
+      "root_x": 0.33333333333339504
+    },
+    {
+      "vertex": 303,
+      "d": 0.16666666666666666,
+      "weight": 17892.0,
+      "root_x": 0.3333333333333255
+    },
+    {
+      "vertex": 223,
+      "d": 0.16666666666666663,
+      "weight": 17892.0,
+      "root_x": 0.33333333333332005
+    }
+  ],
+  "cosine_to_w": 0.3563549019218887,
+  "iterations": [
+    {
+      "iteration": 0,
+      "master_b": 0.16666666666666663,
+      "master_violation": 0.16666666666666685,
+      "worst_leaf_index": 6,
+      "worst_leaf_value": 0.16666666666666685,
+      "separation_violation": 2.220446049250313e-16,
+      "sample_count": 6
+    }
+  ],
+  "all_leaf_suprema": [
+    {
+      "leaf_index": 7,
+      "value": 0.33333333333333365
+    },
+    {
+      "leaf_index": 10,
+      "value": 0.3333333333333336
+    },
+    {
+      "leaf_index": 8,
+      "value": 0.3333333333333335
+    },
+    {
+      "leaf_index": 14,
+      "value": 0.3333333333333335
+    },
+    {
+      "leaf_index": 15,
+      "value": 0.3333333333333335
+    },
+    {
+      "leaf_index": 5,
+      "value": 0.3333333333333334
+    },
+    {
+      "leaf_index": 11,
+      "value": 0.33333333333333337
+    },
+    {
+      "leaf_index": 13,
+      "value": 0.33333333333333337
+    },
+    {
+      "leaf_index": 3,
+      "value": 0.33333333333333326
+    },
+    {
+      "leaf_index": 6,
+      "value": 0.16666666666666685
+    },
+    {
+      "leaf_index": 4,
+      "value": 0.1666666666666668
+    },
+    {
+      "leaf_index": 9,
+      "value": 0.16666666666666674
+    },
+    {
+      "leaf_index": 12,
+      "value": 0.1666666666666667
+    },
+    {
+      "leaf_index": 2,
+      "value": 0.16666666666666666
+    },
+    {
+      "leaf_index": 1,
+      "value": 0.16666666666666663
+    },
+    {
+      "leaf_index": 0,
+      "value": -0.0
+    }
+  ],
+  "B_all_leaves": 0.33333333333333365,
+  "root_lhs": 0.3333333333333335,
+  "raw_violation": -1.6653345369377348e-16,
+  "root_objective_after_row": 594914.3515250729,
+  "root_x304_after_row": 0.0,
+  "root_drop": -9.313225746154785e-10,
+  "scalar_max_leaf_bound": 593196.89067165,
+  "scalar_max_leaf_drop": 1717.4608534218278,
+  "gates": {
+    "max_iterations": 12,
+    "drop_kill": 250.0,
+    "fund_drop": 1000.0,
+    "fund_objective": 592000.0,
+    "cosine_repackage": 0.96
+  },
+  "failure_classification": "lp_redundant",
+  "status": "RetirePostFamilyCommonDCglp"
+}

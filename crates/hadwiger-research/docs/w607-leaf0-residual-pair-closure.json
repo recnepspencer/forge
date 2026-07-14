@@ -1,0 +1,2046 @@
+{
+  "schema": "forge.hadwiger.w607_leaf0_residual_pair_closure.v1",
+  "authority": "diagnostic_leaf0_residual_pair_closure_no_parent_authority",
+  "second_opinion": {
+    "agent": "Schrodinger",
+    "decision": "approve_one_bounded_diagnostic",
+    "primary_failure_mode": "non_exportable_leaf_surgery"
+  },
+  "setup_invariants": {
+    "same_enriched_leaf0_row_system": true,
+    "new_rows": 0,
+    "new_supports": 0,
+    "mwis_calls": 0,
+    "augmented_variables": 0,
+    "global_or_all_leaf_rerun": false
+  },
+  "solver_notes": {
+    "lp_backend": "same parent_lift.solve_lp path as prior diagnostics",
+    "timeout_hit": false,
+    "node_cap_hit": false
+  },
+  "baseline_root_objective": 594914.351525072,
+  "leaf_index": 0,
+  "tier_a_assignment": {
+    "included": [],
+    "excluded": [
+      223,
+      224,
+      303,
+      305,
+      384,
+      385
+    ]
+  },
+  "old_pool_one_based": [
+    152,
+    222,
+    225,
+    383,
+    386,
+    456
+  ],
+  "residual_pair_one_based": [
+    222,
+    456
+  ],
+  "first_family_rows_used": [
+    {
+      "template_id": "dense220_top_wx_center_1",
+      "center": 152,
+      "support_digest": "11c64661386aafb00c3d00183cfa0e479cb224aef00aac6f3650baef74ff39c0",
+      "size": 220,
+      "alpha_w": 362026
+    }
+  ],
+  "baseline_after_first_family": 592402.1576826534,
+  "baseline_pool_state": [
+    {
+      "vertex": 152,
+      "weight": 24698.0,
+      "lp_value": 0.48994253529543796,
+      "score": 12100.600736726727,
+      "fractional": true
+    },
+    {
+      "vertex": 222,
+      "weight": 24698.0,
+      "lp_value": 0.3333333333333336,
+      "score": 8232.666666666673,
+      "fractional": true
+    },
+    {
+      "vertex": 225,
+      "weight": 24698.0,
+      "lp_value": 0.41504248218312767,
+      "score": 10250.719224958888,
+      "fractional": true
+    },
+    {
+      "vertex": 383,
+      "weight": 24698.0,
+      "lp_value": 0.3333333333333327,
+      "score": 8232.666666666652,
+      "fractional": true
+    },
+    {
+      "vertex": 386,
+      "weight": 24698.0,
+      "lp_value": 0.48540313813711605,
+      "score": 11988.486705710493,
+      "fractional": true
+    },
+    {
+      "vertex": 456,
+      "weight": 24698.0,
+      "lp_value": 0.3333333333333328,
+      "score": 8232.666666666653,
+      "fractional": true
+    }
+  ],
+  "depth3_bound": 589302.6440267732,
+  "depth4_bound": 588378.8642942241,
+  "depth4_branch_trace_one_based": [
+    152,
+    386,
+    225,
+    383,
+    386,
+    456,
+    383,
+    383,
+    383,
+    456,
+    222
+  ],
+  "depth4_terminals": [
+    {
+      "feasible": true,
+      "upper": 588378.8642942241,
+      "depth": 4,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0
+      },
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333345,
+          "score": 8232.666666666695,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333215,
+          "score": 8232.666666666637,
+          "fractional": true
+        }
+      ],
+      "objective": 588378.8642942241,
+      "pair_state": [
+        {
+          "vertex": 222,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": 0.3333333333333345,
+          "fractional": true,
+          "score": 8232.666666666695
+        },
+        {
+          "vertex": 456,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": 0.33333333333333215,
+          "fractional": true,
+          "score": 8232.666666666637
+        }
+      ]
+    },
+    {
+      "feasible": true,
+      "upper": 575613.6666666665,
+      "depth": 4,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 1.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333344,
+          "score": 8232.666666666693,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.333333333333333,
+          "score": 8232.666666666659,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        }
+      ],
+      "objective": 575613.6666666665,
+      "pair_state": [
+        {
+          "vertex": 222,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": 0.3333333333333344,
+          "fractional": true,
+          "score": 8232.666666666693
+        },
+        {
+          "vertex": 456,
+          "fixed": true,
+          "fixed_value": 0.0,
+          "lp_value": 0.0,
+          "fractional": false,
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "feasible": true,
+      "upper": 569210.4483390413,
+      "depth": 4,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 1.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.5941996234368969,
+          "score": 10022.45770035552,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        }
+      ],
+      "objective": 569210.4483390413,
+      "pair_state": [
+        {
+          "vertex": 222,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": 0.5941996234368969,
+          "fractional": true,
+          "score": 10022.45770035552
+        },
+        {
+          "vertex": 456,
+          "fixed": true,
+          "fixed_value": 1.0,
+          "lp_value": 1.0,
+          "fractional": false,
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "feasible": true,
+      "upper": 568034.577222513,
+      "depth": 3,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        }
+      ],
+      "objective": 568034.577222513,
+      "pair_state": [
+        {
+          "vertex": 222,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": -0.0,
+          "fractional": false,
+          "score": -0.0
+        },
+        {
+          "vertex": 456,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": -0.0,
+          "fractional": false,
+          "score": -0.0
+        }
+      ]
+    },
+    {
+      "feasible": true,
+      "upper": 560438.9999999998,
+      "depth": 3,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 1.0
+      },
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        }
+      ],
+      "objective": 560438.9999999998,
+      "pair_state": [
+        {
+          "vertex": 222,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": -0.0,
+          "fractional": false,
+          "score": -0.0
+        },
+        {
+          "vertex": 456,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": -0.0,
+          "fractional": false,
+          "score": -0.0
+        }
+      ]
+    },
+    {
+      "feasible": true,
+      "upper": 560438.9999999997,
+      "depth": 3,
+      "pool_assignment": {
+        "152": 0.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        }
+      ],
+      "objective": 560438.9999999997,
+      "pair_state": [
+        {
+          "vertex": 222,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": 0.0,
+          "fractional": false,
+          "score": 0.0
+        },
+        {
+          "vertex": 456,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": -0.0,
+          "fractional": false,
+          "score": -0.0
+        }
+      ]
+    },
+    {
+      "feasible": true,
+      "upper": 560402.5411524331,
+      "depth": 3,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        }
+      ],
+      "objective": 560402.5411524331,
+      "pair_state": [
+        {
+          "vertex": 222,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": -0.0,
+          "fractional": false,
+          "score": -0.0
+        },
+        {
+          "vertex": 456,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": -0.0,
+          "fractional": false,
+          "score": -0.0
+        }
+      ]
+    },
+    {
+      "feasible": true,
+      "upper": 559233.6666666667,
+      "depth": 4,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 0.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        }
+      ],
+      "objective": 559233.6666666667,
+      "pair_state": [
+        {
+          "vertex": 222,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": 0.0,
+          "fractional": false,
+          "score": 0.0
+        },
+        {
+          "vertex": 456,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": -0.0,
+          "fractional": false,
+          "score": -0.0
+        }
+      ]
+    },
+    {
+      "feasible": true,
+      "upper": 559233.6666666667,
+      "depth": 4,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 0.0,
+        "386": 1.0
+      },
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        }
+      ],
+      "objective": 559233.6666666667,
+      "pair_state": [
+        {
+          "vertex": 222,
+          "fixed": true,
+          "fixed_value": 0.0,
+          "lp_value": 0.0,
+          "fractional": false,
+          "score": 0.0
+        },
+        {
+          "vertex": 456,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": -0.0,
+          "fractional": false,
+          "score": -0.0
+        }
+      ]
+    },
+    {
+      "feasible": true,
+      "upper": 559233.6666666664,
+      "depth": 4,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        }
+      ],
+      "objective": 559233.6666666664,
+      "pair_state": [
+        {
+          "vertex": 222,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": -0.0,
+          "fractional": false,
+          "score": -0.0
+        },
+        {
+          "vertex": 456,
+          "fixed": true,
+          "fixed_value": 0.0,
+          "lp_value": 0.0,
+          "fractional": false,
+          "score": 0.0
+        }
+      ]
+    },
+    {
+      "feasible": true,
+      "upper": 556348.9154228856,
+      "depth": 4,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "383": 0.0,
+        "386": 1.0
+      },
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        }
+      ],
+      "objective": 556348.9154228856,
+      "pair_state": [
+        {
+          "vertex": 222,
+          "fixed": true,
+          "fixed_value": 1.0,
+          "lp_value": 1.0,
+          "fractional": false,
+          "score": 0.0
+        },
+        {
+          "vertex": 456,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": -0.0,
+          "fractional": false,
+          "score": -0.0
+        }
+      ]
+    },
+    {
+      "feasible": true,
+      "upper": 556348.9154228853,
+      "depth": 4,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": -0.0,
+          "score": -0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.0,
+          "score": 0.0,
+          "fractional": false
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 1.0,
+          "score": 0.0,
+          "fractional": false
+        }
+      ],
+      "objective": 556348.9154228853,
+      "pair_state": [
+        {
+          "vertex": 222,
+          "fixed": false,
+          "fixed_value": null,
+          "lp_value": -0.0,
+          "fractional": false,
+          "score": -0.0
+        },
+        {
+          "vertex": 456,
+          "fixed": true,
+          "fixed_value": 1.0,
+          "lp_value": 1.0,
+          "fractional": false,
+          "score": 0.0
+        }
+      ]
+    }
+  ],
+  "closures": [
+    {
+      "terminal": {
+        "feasible": true,
+        "upper": 588378.8642942241,
+        "depth": 4,
+        "pool_assignment": {
+          "152": 0.0,
+          "225": 0.0,
+          "383": 0.0,
+          "386": 0.0
+        },
+        "pool_state": [
+          {
+            "vertex": 152,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 222,
+            "weight": 24698.0,
+            "lp_value": 0.3333333333333345,
+            "score": 8232.666666666695,
+            "fractional": true
+          },
+          {
+            "vertex": 225,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 383,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 386,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 456,
+            "weight": 24698.0,
+            "lp_value": 0.33333333333333215,
+            "score": 8232.666666666637,
+            "fractional": true
+          }
+        ],
+        "objective": 588378.8642942241,
+        "pair_state": [
+          {
+            "vertex": 222,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": 0.3333333333333345,
+            "fractional": true,
+            "score": 8232.666666666695
+          },
+          {
+            "vertex": 456,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": 0.33333333333333215,
+            "fractional": true,
+            "score": 8232.666666666637
+          }
+        ]
+      },
+      "triggered": true,
+      "reason": "triggered",
+      "children": [
+        {
+          "assignment": {
+            "222": 0.0,
+            "456": 0.0
+          },
+          "feasible": true,
+          "objective": 581480.9999999993,
+          "pool_assignment": {
+            "152": 0.0,
+            "222": 0.0,
+            "225": 0.0,
+            "383": 0.0,
+            "386": 0.0,
+            "456": 0.0
+          }
+        },
+        {
+          "assignment": {
+            "222": 0.0,
+            "456": 1.0
+          },
+          "feasible": true,
+          "objective": 559233.6666666667,
+          "pool_assignment": {
+            "152": 0.0,
+            "222": 0.0,
+            "225": 0.0,
+            "383": 0.0,
+            "386": 0.0,
+            "456": 1.0
+          }
+        },
+        {
+          "assignment": {
+            "222": 1.0,
+            "456": 0.0
+          },
+          "feasible": true,
+          "objective": 559233.6666666666,
+          "pool_assignment": {
+            "152": 0.0,
+            "222": 1.0,
+            "225": 0.0,
+            "383": 0.0,
+            "386": 0.0,
+            "456": 0.0
+          }
+        },
+        {
+          "assignment": {
+            "222": 1.0,
+            "456": 1.0
+          },
+          "feasible": true,
+          "objective": 558844.3246901055,
+          "pool_assignment": {
+            "152": 0.0,
+            "222": 1.0,
+            "225": 0.0,
+            "383": 0.0,
+            "386": 0.0,
+            "456": 1.0
+          }
+        }
+      ],
+      "closed_objective": 581480.9999999993
+    },
+    {
+      "terminal": {
+        "feasible": true,
+        "upper": 575613.6666666665,
+        "depth": 4,
+        "pool_assignment": {
+          "152": 0.0,
+          "225": 1.0,
+          "386": 0.0,
+          "456": 0.0
+        },
+        "pool_state": [
+          {
+            "vertex": 152,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 222,
+            "weight": 24698.0,
+            "lp_value": 0.3333333333333344,
+            "score": 8232.666666666693,
+            "fractional": true
+          },
+          {
+            "vertex": 225,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 383,
+            "weight": 24698.0,
+            "lp_value": 0.333333333333333,
+            "score": 8232.666666666659,
+            "fractional": true
+          },
+          {
+            "vertex": 386,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 456,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          }
+        ],
+        "objective": 575613.6666666665,
+        "pair_state": [
+          {
+            "vertex": 222,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": 0.3333333333333344,
+            "fractional": true,
+            "score": 8232.666666666693
+          },
+          {
+            "vertex": 456,
+            "fixed": true,
+            "fixed_value": 0.0,
+            "lp_value": 0.0,
+            "fractional": false,
+            "score": 0.0
+          }
+        ]
+      },
+      "triggered": false,
+      "reason": "below_export_gate,pair_not_unresolved_fractional",
+      "children": [],
+      "closed_objective": 575613.6666666665
+    },
+    {
+      "terminal": {
+        "feasible": true,
+        "upper": 569210.4483390413,
+        "depth": 4,
+        "pool_assignment": {
+          "152": 0.0,
+          "225": 1.0,
+          "386": 0.0,
+          "456": 1.0
+        },
+        "pool_state": [
+          {
+            "vertex": 152,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 222,
+            "weight": 24698.0,
+            "lp_value": 0.5941996234368969,
+            "score": 10022.45770035552,
+            "fractional": true
+          },
+          {
+            "vertex": 225,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 383,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 386,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 456,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          }
+        ],
+        "objective": 569210.4483390413,
+        "pair_state": [
+          {
+            "vertex": 222,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": 0.5941996234368969,
+            "fractional": true,
+            "score": 10022.45770035552
+          },
+          {
+            "vertex": 456,
+            "fixed": true,
+            "fixed_value": 1.0,
+            "lp_value": 1.0,
+            "fractional": false,
+            "score": 0.0
+          }
+        ]
+      },
+      "triggered": false,
+      "reason": "below_export_gate,pair_not_unresolved_fractional",
+      "children": [],
+      "closed_objective": 569210.4483390413
+    },
+    {
+      "terminal": {
+        "feasible": true,
+        "upper": 568034.577222513,
+        "depth": 3,
+        "pool_assignment": {
+          "152": 1.0,
+          "383": 1.0,
+          "386": 1.0
+        },
+        "pool_state": [
+          {
+            "vertex": 152,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 222,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 225,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 383,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 386,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 456,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          }
+        ],
+        "objective": 568034.577222513,
+        "pair_state": [
+          {
+            "vertex": 222,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": -0.0,
+            "fractional": false,
+            "score": -0.0
+          },
+          {
+            "vertex": 456,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": -0.0,
+            "fractional": false,
+            "score": -0.0
+          }
+        ]
+      },
+      "triggered": false,
+      "reason": "below_export_gate,pair_not_unresolved_fractional",
+      "children": [],
+      "closed_objective": 568034.577222513
+    },
+    {
+      "terminal": {
+        "feasible": true,
+        "upper": 560438.9999999998,
+        "depth": 3,
+        "pool_assignment": {
+          "152": 1.0,
+          "383": 0.0,
+          "386": 1.0
+        },
+        "pool_state": [
+          {
+            "vertex": 152,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 222,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 225,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 383,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 386,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 456,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          }
+        ],
+        "objective": 560438.9999999998,
+        "pair_state": [
+          {
+            "vertex": 222,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": -0.0,
+            "fractional": false,
+            "score": -0.0
+          },
+          {
+            "vertex": 456,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": -0.0,
+            "fractional": false,
+            "score": -0.0
+          }
+        ]
+      },
+      "triggered": false,
+      "reason": "below_export_gate,pair_not_unresolved_fractional",
+      "children": [],
+      "closed_objective": 560438.9999999998
+    },
+    {
+      "terminal": {
+        "feasible": true,
+        "upper": 560438.9999999997,
+        "depth": 3,
+        "pool_assignment": {
+          "152": 0.0,
+          "383": 1.0,
+          "386": 1.0
+        },
+        "pool_state": [
+          {
+            "vertex": 152,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 222,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 225,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 383,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 386,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 456,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          }
+        ],
+        "objective": 560438.9999999997,
+        "pair_state": [
+          {
+            "vertex": 222,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": 0.0,
+            "fractional": false,
+            "score": 0.0
+          },
+          {
+            "vertex": 456,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": -0.0,
+            "fractional": false,
+            "score": -0.0
+          }
+        ]
+      },
+      "triggered": false,
+      "reason": "below_export_gate,pair_not_unresolved_fractional",
+      "children": [],
+      "closed_objective": 560438.9999999997
+    },
+    {
+      "terminal": {
+        "feasible": true,
+        "upper": 560402.5411524331,
+        "depth": 3,
+        "pool_assignment": {
+          "152": 1.0,
+          "383": 1.0,
+          "386": 0.0
+        },
+        "pool_state": [
+          {
+            "vertex": 152,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 222,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 225,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 383,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 386,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 456,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          }
+        ],
+        "objective": 560402.5411524331,
+        "pair_state": [
+          {
+            "vertex": 222,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": -0.0,
+            "fractional": false,
+            "score": -0.0
+          },
+          {
+            "vertex": 456,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": -0.0,
+            "fractional": false,
+            "score": -0.0
+          }
+        ]
+      },
+      "triggered": false,
+      "reason": "below_export_gate,pair_not_unresolved_fractional",
+      "children": [],
+      "closed_objective": 560402.5411524331
+    },
+    {
+      "terminal": {
+        "feasible": true,
+        "upper": 559233.6666666667,
+        "depth": 4,
+        "pool_assignment": {
+          "152": 0.0,
+          "225": 0.0,
+          "383": 1.0,
+          "386": 0.0
+        },
+        "pool_state": [
+          {
+            "vertex": 152,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 222,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 225,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 383,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 386,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 456,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          }
+        ],
+        "objective": 559233.6666666667,
+        "pair_state": [
+          {
+            "vertex": 222,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": 0.0,
+            "fractional": false,
+            "score": 0.0
+          },
+          {
+            "vertex": 456,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": -0.0,
+            "fractional": false,
+            "score": -0.0
+          }
+        ]
+      },
+      "triggered": false,
+      "reason": "below_export_gate,pair_not_unresolved_fractional",
+      "children": [],
+      "closed_objective": 559233.6666666667
+    },
+    {
+      "terminal": {
+        "feasible": true,
+        "upper": 559233.6666666667,
+        "depth": 4,
+        "pool_assignment": {
+          "152": 0.0,
+          "222": 0.0,
+          "383": 0.0,
+          "386": 1.0
+        },
+        "pool_state": [
+          {
+            "vertex": 152,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 222,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 225,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 383,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 386,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 456,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          }
+        ],
+        "objective": 559233.6666666667,
+        "pair_state": [
+          {
+            "vertex": 222,
+            "fixed": true,
+            "fixed_value": 0.0,
+            "lp_value": 0.0,
+            "fractional": false,
+            "score": 0.0
+          },
+          {
+            "vertex": 456,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": -0.0,
+            "fractional": false,
+            "score": -0.0
+          }
+        ]
+      },
+      "triggered": false,
+      "reason": "below_export_gate,pair_not_unresolved_fractional",
+      "children": [],
+      "closed_objective": 559233.6666666667
+    },
+    {
+      "terminal": {
+        "feasible": true,
+        "upper": 559233.6666666664,
+        "depth": 4,
+        "pool_assignment": {
+          "152": 1.0,
+          "383": 0.0,
+          "386": 0.0,
+          "456": 0.0
+        },
+        "pool_state": [
+          {
+            "vertex": 152,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 222,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 225,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 383,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 386,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 456,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          }
+        ],
+        "objective": 559233.6666666664,
+        "pair_state": [
+          {
+            "vertex": 222,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": -0.0,
+            "fractional": false,
+            "score": -0.0
+          },
+          {
+            "vertex": 456,
+            "fixed": true,
+            "fixed_value": 0.0,
+            "lp_value": 0.0,
+            "fractional": false,
+            "score": 0.0
+          }
+        ]
+      },
+      "triggered": false,
+      "reason": "below_export_gate,pair_not_unresolved_fractional",
+      "children": [],
+      "closed_objective": 559233.6666666664
+    },
+    {
+      "terminal": {
+        "feasible": true,
+        "upper": 556348.9154228856,
+        "depth": 4,
+        "pool_assignment": {
+          "152": 0.0,
+          "222": 1.0,
+          "383": 0.0,
+          "386": 1.0
+        },
+        "pool_state": [
+          {
+            "vertex": 152,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 222,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 225,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 383,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 386,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 456,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          }
+        ],
+        "objective": 556348.9154228856,
+        "pair_state": [
+          {
+            "vertex": 222,
+            "fixed": true,
+            "fixed_value": 1.0,
+            "lp_value": 1.0,
+            "fractional": false,
+            "score": 0.0
+          },
+          {
+            "vertex": 456,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": -0.0,
+            "fractional": false,
+            "score": -0.0
+          }
+        ]
+      },
+      "triggered": false,
+      "reason": "below_export_gate,pair_not_unresolved_fractional",
+      "children": [],
+      "closed_objective": 556348.9154228856
+    },
+    {
+      "terminal": {
+        "feasible": true,
+        "upper": 556348.9154228853,
+        "depth": 4,
+        "pool_assignment": {
+          "152": 1.0,
+          "383": 0.0,
+          "386": 0.0,
+          "456": 1.0
+        },
+        "pool_state": [
+          {
+            "vertex": 152,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 222,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 225,
+            "weight": 24698.0,
+            "lp_value": -0.0,
+            "score": -0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 383,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 386,
+            "weight": 24698.0,
+            "lp_value": 0.0,
+            "score": 0.0,
+            "fractional": false
+          },
+          {
+            "vertex": 456,
+            "weight": 24698.0,
+            "lp_value": 1.0,
+            "score": 0.0,
+            "fractional": false
+          }
+        ],
+        "objective": 556348.9154228853,
+        "pair_state": [
+          {
+            "vertex": 222,
+            "fixed": false,
+            "fixed_value": null,
+            "lp_value": -0.0,
+            "fractional": false,
+            "score": -0.0
+          },
+          {
+            "vertex": 456,
+            "fixed": true,
+            "fixed_value": 1.0,
+            "lp_value": 1.0,
+            "fractional": false,
+            "score": 0.0
+          }
+        ]
+      },
+      "triggered": false,
+      "reason": "below_export_gate,pair_not_unresolved_fractional",
+      "children": [],
+      "closed_objective": 556348.9154228853
+    }
+  ],
+  "resource_usage": {
+    "node_cap": 80,
+    "depth3_nodes_solved": 15,
+    "depth4_nodes_solved": 23,
+    "triggered_residual_nodes": 1,
+    "extra_lp_solves": 4,
+    "total_lp_solves_estimate": 42
+  },
+  "final_closed_leaf0_max": 581480.9999999993,
+  "reproduction": {
+    "baseline_ok": true,
+    "depth3_ok": true,
+    "depth4_ok": true
+  },
+  "gates": {
+    "export_max": 586500.0,
+    "strong_max": 586224.0,
+    "node_cap": 80
+  },
+  "failure_reasons": [],
+  "status": "strong_residual_pair_closure"
+}

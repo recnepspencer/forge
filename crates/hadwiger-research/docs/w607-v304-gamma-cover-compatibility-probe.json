@@ -1,0 +1,38 @@
+{
+  "schema": "forge.hadwiger.w607_v304_gamma_cover_compatibility_probe.v1",
+  "branch_vertex": 304,
+  "retire_relative_gap": 0.005,
+  "reports": [
+    {
+      "domain": "x304_exclude",
+      "active_vertices": 606,
+      "target_gamma": 613372392,
+      "edge_rows": 3366,
+      "triangle_rows": 1690,
+      "edge_cover_lp_objective": 1005607939.5,
+      "edge_positive_rows": 601,
+      "edge_triangle_cover_lp_objective": 670405292.9999998,
+      "edge_triangle_positive_rows": 599,
+      "best_flat_cover_objective": 670405292.9999998,
+      "best_flat_cover_kind": "edge_triangle",
+      "relative_gap_to_target": 0.09298250417504896,
+      "passes_compatibility_gate": false
+    },
+    {
+      "domain": "x304_include_residual",
+      "active_vertices": 582,
+      "target_gamma": 546085806,
+      "edge_rows": 3036,
+      "triangle_rows": 1414,
+      "edge_cover_lp_objective": 871195476.5,
+      "edge_positive_rows": 575,
+      "edge_triangle_cover_lp_objective": 581636664.6666664,
+      "edge_triangle_positive_rows": 576,
+      "best_flat_cover_objective": 581636664.6666664,
+      "best_flat_cover_kind": "edge_triangle",
+      "relative_gap_to_target": 0.06510123185048759,
+      "passes_compatibility_gate": false
+    }
+  ],
+  "status": "RetireFlatCoverGammaHardening"
+}

@@ -1,0 +1,190 @@
+{
+  "schema": "forge.hadwiger.w607_branch_slack_plateau_branch_tree.v1",
+  "root_objective": 594914.351525072,
+  "tier_a_vertices": [
+    305,
+    224,
+    385,
+    303,
+    223,
+    384
+  ],
+  "tier_b_vertices": [
+    517,
+    301,
+    88,
+    91,
+    307,
+    520
+  ],
+  "tier_a_report": {
+    "expanded_count": 15,
+    "closed_leaf_count": 16,
+    "open_leaf_count": 0,
+    "finite_leaf_count": 16,
+    "worst_leaf_upper": 594597.0511219536,
+    "best_leaf_upper": 592196.8707394645,
+    "max_depth": 6,
+    "ninety_percent_below_gate": 0.0,
+    "expanded_vertices": [
+      305,
+      224,
+      384,
+      385,
+      303,
+      223,
+      385,
+      303,
+      223,
+      224,
+      385,
+      223,
+      303,
+      223,
+      384
+    ],
+    "worst_leaves": [
+      {
+        "included": [],
+        "excluded": [
+          223,
+          224,
+          303,
+          305,
+          384,
+          385
+        ],
+        "upper": 594597.0511219536,
+        "depth": 6
+      },
+      {
+        "included": [
+          384
+        ],
+        "excluded": [
+          224,
+          303,
+          305,
+          385
+        ],
+        "upper": 594359.4568757536,
+        "depth": 5
+      },
+      {
+        "included": [
+          223
+        ],
+        "excluded": [
+          224,
+          303,
+          305,
+          384,
+          385
+        ],
+        "upper": 594359.4564410276,
+        "depth": 6
+      },
+      {
+        "included": [
+          305
+        ],
+        "excluded": [
+          224,
+          303,
+          385
+        ],
+        "upper": 594359.3562340162,
+        "depth": 4
+      },
+      {
+        "included": [
+          303
+        ],
+        "excluded": [
+          223,
+          224,
+          305,
+          384,
+          385
+        ],
+        "upper": 594357.8992321097,
+        "depth": 6
+      },
+      {
+        "included": [
+          385
+        ],
+        "excluded": [
+          223,
+          224,
+          305,
+          384
+        ],
+        "upper": 594357.7684871177,
+        "depth": 5
+      },
+      {
+        "included": [
+          224
+        ],
+        "excluded": [
+          223,
+          305,
+          384
+        ],
+        "upper": 594357.7643092521,
+        "depth": 4
+      },
+      {
+        "included": [
+          305,
+          385
+        ],
+        "excluded": [],
+        "upper": 592273.8680572428,
+        "depth": 2
+      },
+      {
+        "included": [
+          384,
+          385
+        ],
+        "excluded": [
+          224,
+          303,
+          305
+        ],
+        "upper": 592273.8678666136,
+        "depth": 5
+      },
+      {
+        "included": [
+          303,
+          384
+        ],
+        "excluded": [
+          224,
+          305
+        ],
+        "upper": 592273.8673423806,
+        "depth": 4
+      }
+    ],
+    "open_leaves": []
+  },
+  "tier_ab_report": null,
+  "final_worst_leaf_upper": 594597.0511219536,
+  "final_improvement": 317.3004031183664,
+  "status": "RetirePlateauBranchTree",
+  "gates": {
+    "first_node_cap": 64,
+    "hard_node_cap": 128,
+    "continue_gate": 590000.0,
+    "stall_gate": 592000.0,
+    "export_gate": 586000.0,
+    "replay_drop_gate": 8000.0,
+    "maybe_drop_gate": 5000.0,
+    "ninety_percent_gate": 584000.0
+  },
+  "seconds": 13.319579362869263
+}

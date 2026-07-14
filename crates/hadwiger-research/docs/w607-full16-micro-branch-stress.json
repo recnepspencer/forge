@@ -1,0 +1,3764 @@
+{
+  "schema": "forge.hadwiger.w607_full16_micro_branch_stress.v1",
+  "authority": "diagnostic_fixed_pool_full_partition_stress_no_parent_authority",
+  "baseline_root_objective": 594914.351525072,
+  "tier_a_partition_leaf_count": 16,
+  "fixed_pool": [
+    152,
+    222,
+    225,
+    383,
+    386,
+    456
+  ],
+  "depth": 3,
+  "node_cap": 24,
+  "pre_microbranch_full_16_max": 593196.89067165,
+  "post_microbranch_full_16_max": 589302.6440267732,
+  "full_16_movement": 3894.246644876781,
+  "worst_leaf_before": 1,
+  "worst_leaf_after": 0,
+  "total_nodes": 352,
+  "any_cap_hit": false,
+  "outside_top_six_bottlenecks": [
+    0
+  ],
+  "high_leaf_material_movement_failures": [
+    0
+  ],
+  "branch_pattern_consensus": {
+    "unique_ordered_traces": 16,
+    "all_use_pool_only": true
+  },
+  "decision": "retain_top_six_only",
+  "failure_reasons": [
+    "post_max_above_export_gate",
+    "outside_top_six_bottleneck",
+    "high_leaf_insufficient_movement"
+  ],
+  "gates": {
+    "export_max": 586500.0,
+    "node_cap": 24,
+    "material_movement": 5000.0
+  },
+  "leaves": [
+    {
+      "leaf_index": 0,
+      "top_six": false,
+      "tier_a_assignment": {
+        "included": [],
+        "excluded": [
+          223,
+          224,
+          303,
+          305,
+          384,
+          385
+        ]
+      },
+      "first_family_rows_used": [
+        {
+          "template_id": "dense220_top_wx_center_1",
+          "center": 152,
+          "support_digest": "11c64661386aafb00c3d00183cfa0e479cb224aef00aac6f3650baef74ff39c0",
+          "size": 220,
+          "alpha_w": 362026
+        }
+      ],
+      "baseline_after_first_family": 592402.1576826534,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.48994253529543796,
+          "score": 12100.600736726727,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333336,
+          "score": 8232.666666666673,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.41504248218312767,
+          "score": 10250.719224958888,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333327,
+          "score": 8232.666666666652,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.48540313813711605,
+          "score": 11988.486705710493,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333328,
+          "score": 8232.666666666653,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 589302.6440267732,
+      "movement": 3099.5136558802333,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        152,
+        386,
+        225,
+        386,
+        383,
+        383,
+        383
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 152,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 591270.0992558531
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 589302.6440267732,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 152,
+            "upper": 592402.1576826534
+          },
+          {
+            "depth": 1,
+            "vertex": 386,
+            "upper": 591270.0992558531
+          },
+          {
+            "depth": 2,
+            "vertex": 225,
+            "upper": 590326.4936159085
+          },
+          {
+            "depth": 1,
+            "vertex": 386,
+            "upper": 583760.9999999998
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 575613.6666666667
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 575613.6666666666
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 570549.3333333329
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 591270.0992558531
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 583760.9999999998
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 590326.4936159085
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 575613.6666666667
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 589302.6440267732
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 583760.9999999993
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 575613.6666666666
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 570549.3333333329
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 567466.333333333
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 560438.9999999997
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 567466.3333333335
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 560402.5411524331
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 560438.9999999998
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 568034.577222513
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 1,
+      "top_six": true,
+      "tier_a_assignment": {
+        "included": [
+          223
+        ],
+        "excluded": [
+          224,
+          303,
+          305,
+          384,
+          385
+        ]
+      },
+      "first_family_rows_used": [
+        {
+          "template_id": "dense180_top_wx_center_2",
+          "center": 152,
+          "support_digest": "b3c4c91b3abc782cff3a63ef454cbe4860eae8350210aa5fc7551ce0e121a341",
+          "size": 180,
+          "alpha_w": 258701
+        }
+      ],
+      "baseline_after_first_family": 593196.89067165,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.38801139588369316,
+          "score": 9583.105455535453,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.36182999652373327,
+          "score": 8936.477254143165,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.3308171103031205,
+          "score": 8170.52099026647,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.36365905807648746,
+          "score": 8981.651416373088,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.38141129504064897,
+          "score": 9420.096164913948,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.3672780803011653,
+          "score": 9071.034027278181,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 586224.2382592546,
+      "movement": 6972.652412395342,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        152,
+        222,
+        383,
+        386,
+        456,
+        383,
+        383
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 152,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 591246.1632620196
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 586224.2382592546,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 152,
+            "upper": 593196.89067165
+          },
+          {
+            "depth": 1,
+            "vertex": 222,
+            "upper": 591246.1632620196
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 588822.4654744563
+          },
+          {
+            "depth": 1,
+            "vertex": 386,
+            "upper": 573501.4286729982
+          },
+          {
+            "depth": 2,
+            "vertex": 456,
+            "upper": 573501.4286729982
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 565696.5692279496
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 564148.6296379642
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 591246.1632620196
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 573501.4286729982
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 588822.4654744563
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 573501.4286729982
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 586224.2382592546
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 561177.124384682
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 565696.5692279496
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 564148.6296379642
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 565696.5692279482
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 564148.629637964
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559480.8345357667
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 552705.6041166417
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 555380.2318363506
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 558031.4719164175
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 2,
+      "top_six": true,
+      "tier_a_assignment": {
+        "included": [
+          303
+        ],
+        "excluded": [
+          223,
+          224,
+          305,
+          384,
+          385
+        ]
+      },
+      "first_family_rows_used": [
+        {
+          "template_id": "dense180_top_wx_center_2",
+          "center": 225,
+          "support_digest": "d009a65cd8287975e3c533c8417e07829b7b8b3c355ff9ebaa88827368fb9e9f",
+          "size": 180,
+          "alpha_w": 258701
+        }
+      ],
+      "baseline_after_first_family": 593196.5211026681,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.3636705022192649,
+          "score": 8981.934063811404,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.3617988946195865,
+          "score": 8935.709099314547,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.3672505693744834,
+          "score": 9070.354562410992,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.387990855123375,
+          "score": 9582.598139837115,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.38142675578637714,
+          "score": 9420.478014411943,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.3308492813190032,
+          "score": 8171.315550016741,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 586223.1967256626,
+      "movement": 6973.324377005571,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        383,
+        222,
+        152,
+        225,
+        386,
+        152,
+        152
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 383,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 591245.6403254471
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 586223.1967256626,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 383,
+            "upper": 593196.5211026681
+          },
+          {
+            "depth": 1,
+            "vertex": 222,
+            "upper": 591245.6403254471
+          },
+          {
+            "depth": 2,
+            "vertex": 152,
+            "upper": 588821.5007196229
+          },
+          {
+            "depth": 2,
+            "vertex": 225,
+            "upper": 573501.4286729987
+          },
+          {
+            "depth": 1,
+            "vertex": 386,
+            "upper": 573501.4286729986
+          },
+          {
+            "depth": 2,
+            "vertex": 152,
+            "upper": 565696.5692279488
+          },
+          {
+            "depth": 2,
+            "vertex": 152,
+            "upper": 564148.6296379642
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 591245.6403254471
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 573501.4286729986
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 588821.5007196229
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 573501.4286729987
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 586223.1967256626
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 561177.124384682
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 565696.5692279491
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 564148.6296379645
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 565696.5692279488
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 564148.6296379642
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559480.8345357666
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 552705.6041166415
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 555380.2318363499
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 558031.471916417
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 3,
+      "top_six": false,
+      "tier_a_assignment": {
+        "included": [
+          223,
+          303
+        ],
+        "excluded": [
+          224,
+          305,
+          384,
+          385
+        ]
+      },
+      "first_family_rows_used": [],
+      "baseline_after_first_family": 592273.8672470658,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333366,
+          "score": 8232.666666666748,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333366,
+          "score": 8232.666666666748,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333318,
+          "score": 8232.66666666663,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333332904,
+          "score": 8232.66666666656,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333537,
+          "score": 8232.666666666717,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333351,
+          "score": 8232.66666666671,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 579583.5918367348,
+      "movement": 12690.27541033097,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        152,
+        222,
+        383,
+        386,
+        386,
+        383,
+        383
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 152,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 589164.5733620564
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 579583.5918367348,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 152,
+            "upper": 592273.8672470658
+          },
+          {
+            "depth": 1,
+            "vertex": 222,
+            "upper": 589164.5733620564
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 585659.833333334
+          },
+          {
+            "depth": 2,
+            "vertex": 386,
+            "upper": 572353.333333334
+          },
+          {
+            "depth": 1,
+            "vertex": 386,
+            "upper": 565423.6474384051
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 559063.4484388194
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 555893.0909090913
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 589164.5733620564
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 565423.6474384051
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 585659.833333334
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 572353.333333334
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 579583.5918367348
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 559939.748557707
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 567152.9999999997
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 554365.5174603178
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559063.4484388194
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 555893.0909090913
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 554263.0070417896
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 550036.3333333326
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 548554.7519379845
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 551273.2499999999
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 4,
+      "top_six": true,
+      "tier_a_assignment": {
+        "included": [
+          385
+        ],
+        "excluded": [
+          223,
+          224,
+          305,
+          384
+        ]
+      },
+      "first_family_rows_used": [
+        {
+          "template_id": "dense180_top_wx_center_2",
+          "center": 456,
+          "support_digest": "41c365606b63df80a1793064b76167d6b4d398a114c9f966ba44ec92721460fb",
+          "size": 180,
+          "alpha_w": 258701
+        }
+      ],
+      "baseline_after_first_family": 593196.5447294225,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.38142635110548256,
+          "score": 9420.468019603208,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.3672507360610496,
+          "score": 9070.358679235802,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.33084825435215365,
+          "score": 8171.290185989491,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.3636707212012122,
+          "score": 8981.93947222754,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.3879907647541893,
+          "score": 9582.595907898967,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.36180114699883315,
+          "score": 8935.764728577182,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 586222.998756283,
+      "movement": 6973.545973139582,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        386,
+        456,
+        383,
+        152,
+        222,
+        383,
+        383
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 386,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 591245.5311881059
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 586222.998756283,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 386,
+            "upper": 593196.5447294225
+          },
+          {
+            "depth": 1,
+            "vertex": 456,
+            "upper": 591245.5311881059
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 588821.3557812647
+          },
+          {
+            "depth": 1,
+            "vertex": 152,
+            "upper": 573501.4286729986
+          },
+          {
+            "depth": 2,
+            "vertex": 222,
+            "upper": 573501.4286729984
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 565696.56922795
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 564148.6296379642
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 591245.5311881059
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 573501.4286729986
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 588821.3557812647
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 573501.4286729984
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 586222.998756283
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 561177.1243846819
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 565696.56922795
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 564148.6296379642
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 565696.5692279494
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 564148.6296379645
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559480.8345357669
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 552705.6041166416
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 555380.2318363505
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 558031.4719164178
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 5,
+      "top_six": false,
+      "tier_a_assignment": {
+        "included": [
+          223,
+          385
+        ],
+        "excluded": [
+          224,
+          305,
+          384
+        ]
+      },
+      "first_family_rows_used": [
+        {
+          "template_id": "dense220_top_wx_center_1",
+          "center": 223,
+          "support_digest": "530fbbee2a984f9bbeda5674571a338d7900d9939f963d8c94abb05699d18813",
+          "size": 220,
+          "alpha_w": 432812
+        }
+      ],
+      "baseline_after_first_family": 589195.497468974,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333337,
+          "score": 8232.666666666675,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333387,
+          "score": 8232.66666666668,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333354,
+          "score": 8232.666666666672,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333354,
+          "score": 8232.666666666672,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333335,
+          "score": 8232.66666666667,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333338,
+          "score": 8232.666666666679,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 575713.3389251716,
+      "movement": 13482.158543802332,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        222,
+        225,
+        383,
+        456,
+        386,
+        225,
+        456
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 222,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 586433.2268648113
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 575713.3389251716,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 222,
+            "upper": 589195.497468974
+          },
+          {
+            "depth": 1,
+            "vertex": 225,
+            "upper": 586433.2268648113
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 581527.5473825535
+          },
+          {
+            "depth": 1,
+            "vertex": 456,
+            "upper": 567318.5549676077
+          },
+          {
+            "depth": 2,
+            "vertex": 386,
+            "upper": 559041.607320717
+          },
+          {
+            "depth": 2,
+            "vertex": 225,
+            "upper": 557972.9638095242
+          },
+          {
+            "depth": 2,
+            "vertex": 456,
+            "upper": 556283.37742732
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 586433.2268648113
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 567318.5549676077
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 581527.5473825535
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 556283.37742732
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 575713.3389251716
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 560463.1234294161
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559041.607320717
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 557972.9638095242
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 551517.9684573812
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 548494.7777777775
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 554161.0000000001
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 551008.9166666669
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 547650.2982456138
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 544198.6564389087
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 6,
+      "top_six": true,
+      "tier_a_assignment": {
+        "included": [
+          384
+        ],
+        "excluded": [
+          224,
+          303,
+          305,
+          385
+        ]
+      },
+      "first_family_rows_used": [
+        {
+          "template_id": "dense180_top_wx_center_2",
+          "center": 152,
+          "support_digest": "6789d3c097b43e913a6af278ad867633d1617654760f0f2f4cc1cc0961e8cb3b",
+          "size": 180,
+          "alpha_w": 258701
+        }
+      ],
+      "baseline_after_first_family": 593196.8762182004,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.3814119588870851,
+          "score": 9420.112560593228,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.3308184728979018,
+          "score": 8170.554643632378,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.3672768429319258,
+          "score": 9071.003466732704,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.3880104502301326,
+          "score": 9583.082099783815,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.3636596020409997,
+          "score": 8981.66485120861,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.3618288069338559,
+          "score": 8936.447873652372,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 586224.039267464,
+      "movement": 6972.83695073647,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        383,
+        456,
+        386,
+        152,
+        225,
+        386,
+        386
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 383,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 591246.176911993
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 586224.039267464,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 383,
+            "upper": 593196.8762182004
+          },
+          {
+            "depth": 1,
+            "vertex": 456,
+            "upper": 591246.176911993
+          },
+          {
+            "depth": 2,
+            "vertex": 386,
+            "upper": 588822.4619904372
+          },
+          {
+            "depth": 1,
+            "vertex": 152,
+            "upper": 573501.4286729984
+          },
+          {
+            "depth": 2,
+            "vertex": 225,
+            "upper": 573501.4286729984
+          },
+          {
+            "depth": 2,
+            "vertex": 386,
+            "upper": 565696.5692279501
+          },
+          {
+            "depth": 2,
+            "vertex": 386,
+            "upper": 564148.6296379648
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 591246.176911993
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 573501.4286729984
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 588822.4619904372
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 573501.4286729984
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 586224.039267464
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 561177.1243846823
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 565696.5692279501
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 564148.6296379648
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 565696.5692279495
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 564148.6296379641
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559480.834535767
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 552705.6041166418
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 555380.2318363504
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 558031.471916418
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 7,
+      "top_six": false,
+      "tier_a_assignment": {
+        "included": [
+          384,
+          385
+        ],
+        "excluded": [
+          224,
+          303,
+          305
+        ]
+      },
+      "first_family_rows_used": [],
+      "baseline_after_first_family": 592273.8678666136,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333336,
+          "score": 8232.666666666673,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333326,
+          "score": 8232.666666666664,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333332,
+          "score": 8232.666666666664,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333337,
+          "score": 8232.666666666675,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333337,
+          "score": 8232.666666666668,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333315,
+          "score": 8232.666666666662,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 579583.5918367342,
+      "movement": 12690.276029879344,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        383,
+        456,
+        386,
+        225,
+        152,
+        386,
+        386
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 383,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 589164.5903300653
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 579583.5918367342,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 383,
+            "upper": 592273.8678666136
+          },
+          {
+            "depth": 1,
+            "vertex": 456,
+            "upper": 589164.5903300653
+          },
+          {
+            "depth": 2,
+            "vertex": 386,
+            "upper": 585659.8333333335
+          },
+          {
+            "depth": 2,
+            "vertex": 225,
+            "upper": 572353.333333334
+          },
+          {
+            "depth": 1,
+            "vertex": 152,
+            "upper": 565423.6474384043
+          },
+          {
+            "depth": 2,
+            "vertex": 386,
+            "upper": 559063.4484388186
+          },
+          {
+            "depth": 2,
+            "vertex": 386,
+            "upper": 555893.090909091
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 589164.5903300653
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 565423.6474384043
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 585659.8333333335
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 572353.333333334
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 579583.5918367342
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 559939.7485577068
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 566621.3710591246
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 558297.6694268546
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559063.4484388186
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 555893.090909091
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 554263.0070417895
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 550036.3333333333
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 548554.7519379844
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 551273.2500000001
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 8,
+      "top_six": false,
+      "tier_a_assignment": {
+        "included": [
+          303,
+          384
+        ],
+        "excluded": [
+          224,
+          305
+        ]
+      },
+      "first_family_rows_used": [],
+      "baseline_after_first_family": 592273.8673423806,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333331,
+          "score": 8232.66666666666,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333334,
+          "score": 8232.66666666667,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333387,
+          "score": 8232.66666666668,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333337,
+          "score": 8232.666666666668,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333337,
+          "score": 8232.666666666668,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333365,
+          "score": 8232.666666666675,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 578864.0765520872,
+      "movement": 13409.790790293366,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        225,
+        222,
+        152,
+        222,
+        383,
+        456,
+        456
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 225,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 588924.4469336191
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 578864.0765520872,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 225,
+            "upper": 592273.8673423806
+          },
+          {
+            "depth": 1,
+            "vertex": 222,
+            "upper": 588924.4469336191
+          },
+          {
+            "depth": 2,
+            "vertex": 152,
+            "upper": 586159.7324539504
+          },
+          {
+            "depth": 1,
+            "vertex": 222,
+            "upper": 568541.0500293432
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 562382.8963902023
+          },
+          {
+            "depth": 2,
+            "vertex": 456,
+            "upper": 559063.4484388188
+          },
+          {
+            "depth": 2,
+            "vertex": 456,
+            "upper": 555893.0909090916
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 588924.4469336191
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 568541.0500293432
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 586159.7324539504
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 559063.4484388188
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 578864.0765520872
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 565614.3941120852
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 562382.8963902023
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 555893.0909090916
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 554104.7649118567
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 554365.5174603175
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 554263.0070417882
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 550036.3333333335
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 548554.7519379848
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 551273.2499999999
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 9,
+      "top_six": true,
+      "tier_a_assignment": {
+        "included": [
+          224
+        ],
+        "excluded": [
+          223,
+          305,
+          384
+        ]
+      },
+      "first_family_rows_used": [
+        {
+          "template_id": "dense180_top_wx_center_2",
+          "center": 383,
+          "support_digest": "f026d0fe6ed3bf10ba3f0c75346cad81e365d98d562e2aa1102294d8df87db54",
+          "size": 180,
+          "alpha_w": 258701
+        }
+      ],
+      "baseline_after_first_family": 593196.5437247956,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.36180105122600387,
+          "score": 8935.762363179843,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.36367071188993755,
+          "score": 8981.939242257678,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.387990768596755,
+          "score": 9582.596002802655,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.367250728973415,
+          "score": 9070.358504185404,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.3308482980195424,
+          "score": 8171.291264486658,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.3814263683128125,
+          "score": 9420.468444589844,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 586222.996110642,
+      "movement": 6973.547614153591,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        225,
+        152,
+        222,
+        383,
+        456,
+        222,
+        222
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 225,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 591245.5300334427
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 586222.996110642,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 225,
+            "upper": 593196.5437247956
+          },
+          {
+            "depth": 1,
+            "vertex": 152,
+            "upper": 591245.5300334427
+          },
+          {
+            "depth": 2,
+            "vertex": 222,
+            "upper": 588821.3540947076
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 573501.4286729977
+          },
+          {
+            "depth": 1,
+            "vertex": 456,
+            "upper": 573501.4286729975
+          },
+          {
+            "depth": 2,
+            "vertex": 222,
+            "upper": 565696.5692279483
+          },
+          {
+            "depth": 2,
+            "vertex": 222,
+            "upper": 564148.6296379637
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 591245.5300334427
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 573501.4286729975
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 588821.3540947076
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 573501.4286729977
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 586222.996110642
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 561177.1243846823
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 565696.5692279496
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 564148.6296379642
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 565696.5692279483
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 564148.6296379637
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559480.834535767
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 552705.6041166424
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 555380.2318363506
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 558031.4719164177
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 10,
+      "top_six": false,
+      "tier_a_assignment": {
+        "included": [
+          224,
+          384
+        ],
+        "excluded": [
+          223,
+          305
+        ]
+      },
+      "first_family_rows_used": [],
+      "baseline_after_first_family": 592196.8707394645,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333387,
+          "score": 8232.66666666668,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333304,
+          "score": 8232.666666666659,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333338,
+          "score": 8232.666666666679,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333387,
+          "score": 8232.66666666668,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333333,
+          "score": 8232.666666666666,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333404,
+          "score": 8232.666666666684,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 575904.9999999999,
+      "movement": 16291.870739464648,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        456,
+        383,
+        152,
+        225,
+        152,
+        152,
+        222
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 456,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 588752.9233648821
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 575904.9999999999,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 456,
+            "upper": 592196.8707394645
+          },
+          {
+            "depth": 1,
+            "vertex": 383,
+            "upper": 588752.9233648821
+          },
+          {
+            "depth": 2,
+            "vertex": 152,
+            "upper": 584137.6666666669
+          },
+          {
+            "depth": 1,
+            "vertex": 225,
+            "upper": 567318.9905274583
+          },
+          {
+            "depth": 2,
+            "vertex": 152,
+            "upper": 567318.990527458
+          },
+          {
+            "depth": 2,
+            "vertex": 152,
+            "upper": 559041.6073207174
+          },
+          {
+            "depth": 2,
+            "vertex": 222,
+            "upper": 557972.9638095241
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 588752.9233648821
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 567318.9905274583
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 584137.6666666669
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 567318.990527458
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 575904.9999999999
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 551517.9684573823
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559041.6073207174
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 557972.9638095241
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559041.6073207175
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 557972.9638095238
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 551517.9684573822
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 548494.7777777776
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 554161.0000000001
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 551008.9166666669
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 11,
+      "top_six": false,
+      "tier_a_assignment": {
+        "included": [
+          223,
+          224
+        ],
+        "excluded": [
+          305
+        ]
+      },
+      "first_family_rows_used": [],
+      "baseline_after_first_family": 592273.8663892313,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333015,
+          "score": 8232.666666666588,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333426,
+          "score": 8232.66666666669,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333341,
+          "score": 8232.666666666686,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333326,
+          "score": 8232.666666666648,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333276,
+          "score": 8232.666666666653,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333304,
+          "score": 8232.666666666659,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 577886.3786800732,
+      "movement": 14387.4877091581,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        222,
+        152,
+        383,
+        386,
+        456,
+        225,
+        225
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 222,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 589164.588838149
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 577886.3786800732,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 222,
+            "upper": 592273.8663892313
+          },
+          {
+            "depth": 1,
+            "vertex": 152,
+            "upper": 589164.588838149
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 585659.8333333338
+          },
+          {
+            "depth": 2,
+            "vertex": 386,
+            "upper": 572353.3333333336
+          },
+          {
+            "depth": 1,
+            "vertex": 456,
+            "upper": 565423.6474384045
+          },
+          {
+            "depth": 2,
+            "vertex": 225,
+            "upper": 559063.4484388188
+          },
+          {
+            "depth": 2,
+            "vertex": 225,
+            "upper": 555893.0909090916
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 589164.588838149
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 565423.6474384045
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 585659.8333333338
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 572353.3333333336
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 577886.3786800732
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 556773.2729597234
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 566621.371059124
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 558297.6694268546
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559063.4484388188
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 555893.0909090916
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 554263.0070417892
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 550036.3333333341
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 548554.7519379844
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 551273.2499999998
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 12,
+      "top_six": true,
+      "tier_a_assignment": {
+        "included": [
+          305
+        ],
+        "excluded": [
+          224,
+          303,
+          385
+        ]
+      },
+      "first_family_rows_used": [
+        {
+          "template_id": "dense180_top_wx_center_2",
+          "center": 383,
+          "support_digest": "006af7299e22aaeb1058dd20b2f336372409f0d3aaee29eaeb9b886a10e14a33",
+          "size": 180,
+          "alpha_w": 258701
+        }
+      ],
+      "baseline_after_first_family": 593196.7945863283,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.3308261687192262,
+          "score": 8170.744715027449,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.3814157082361626,
+          "score": 9420.205162016744,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.3880051092578991,
+          "score": 9582.950188451592,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.36726985437395626,
+          "score": 9070.830863327972,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.36182208822978196,
+          "score": 8936.281935099154,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.36366267430711025,
+          "score": 8981.740730037009,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 586223.690675106,
+      "movement": 6973.103911222308,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        225,
+        386,
+        456,
+        222,
+        383,
+        456,
+        456
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 225,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 591245.9142588981
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 586223.690675106,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 225,
+            "upper": 593196.7945863283
+          },
+          {
+            "depth": 1,
+            "vertex": 386,
+            "upper": 591245.9142588981
+          },
+          {
+            "depth": 2,
+            "vertex": 456,
+            "upper": 588821.9144596963
+          },
+          {
+            "depth": 1,
+            "vertex": 222,
+            "upper": 573501.4286729986
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 573501.4286729982
+          },
+          {
+            "depth": 2,
+            "vertex": 456,
+            "upper": 565696.5692279491
+          },
+          {
+            "depth": 2,
+            "vertex": 456,
+            "upper": 564148.6296379644
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 591245.9142588981
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 573501.4286729986
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 588821.9144596963
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 573501.4286729982
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 586223.690675106
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 561177.1243846823
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 565696.5692279491
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 564148.6296379644
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 565696.5692279489
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 564148.6296379642
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559480.8345357667
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 552705.604116642
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 555380.23183635
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 558031.4719164177
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 13,
+      "top_six": false,
+      "tier_a_assignment": {
+        "included": [
+          303,
+          305
+        ],
+        "excluded": [
+          224,
+          385
+        ]
+      },
+      "first_family_rows_used": [],
+      "baseline_after_first_family": 592196.8714540305,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333333,
+          "score": 8232.666666666666,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333332,
+          "score": 8232.666666666664,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333333,
+          "score": 8232.666666666666,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333304,
+          "score": 8232.666666666659,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333315,
+          "score": 8232.666666666662,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333335,
+          "score": 8232.66666666667,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 575979.6666666664,
+      "movement": 16217.204787364113,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        456,
+        222,
+        383,
+        222,
+        225,
+        225,
+        225
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 456,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 588900.212460621
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 575979.6666666664,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 456,
+            "upper": 592196.8714540305
+          },
+          {
+            "depth": 1,
+            "vertex": 222,
+            "upper": 588900.212460621
+          },
+          {
+            "depth": 2,
+            "vertex": 383,
+            "upper": 584137.6666666665
+          },
+          {
+            "depth": 1,
+            "vertex": 222,
+            "upper": 566053.1891891889
+          },
+          {
+            "depth": 2,
+            "vertex": 225,
+            "upper": 562147.8781362008
+          },
+          {
+            "depth": 2,
+            "vertex": 225,
+            "upper": 556283.3774273203
+          },
+          {
+            "depth": 2,
+            "vertex": 225,
+            "upper": 554654.5579942915
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 588900.212460621
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 566053.1891891889
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 584137.6666666665
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 562147.8781362008
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 575979.6666666664
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 567318.9905274581
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 556283.3774273203
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 554654.5579942915
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 554643.8396127523
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 554160.9999999991
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 547650.2982456139
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 544198.6564389082
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 544198.6564389082
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 551008.9166666662
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 14,
+      "top_six": false,
+      "tier_a_assignment": {
+        "included": [
+          224,
+          305
+        ],
+        "excluded": [
+          385
+        ]
+      },
+      "first_family_rows_used": [],
+      "baseline_after_first_family": 592273.8665322039,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333337,
+          "score": 8232.666666666668,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333335,
+          "score": 8232.66666666667,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333328,
+          "score": 8232.666666666653,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333376,
+          "score": 8232.666666666677,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333335,
+          "score": 8232.66666666667,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333304,
+          "score": 8232.666666666659,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 578864.0765520871,
+      "movement": 13409.789980116766,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        383,
+        152,
+        222,
+        152,
+        225,
+        386,
+        386
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 383,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 588924.674114427
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 578864.0765520871,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 383,
+            "upper": 592273.8665322039
+          },
+          {
+            "depth": 1,
+            "vertex": 152,
+            "upper": 588924.674114427
+          },
+          {
+            "depth": 2,
+            "vertex": 222,
+            "upper": 586159.8173175809
+          },
+          {
+            "depth": 1,
+            "vertex": 152,
+            "upper": 568541.050029342
+          },
+          {
+            "depth": 2,
+            "vertex": 225,
+            "upper": 562382.8963902032
+          },
+          {
+            "depth": 2,
+            "vertex": 386,
+            "upper": 559063.4484388193
+          },
+          {
+            "depth": 2,
+            "vertex": 386,
+            "upper": 555893.0909090913
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 383,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 588924.674114427
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 383,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 568541.050029342
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 586159.8173175809
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 559063.4484388193
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 578864.0765520871
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 565614.3941120853
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 562382.8963902032
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 555893.0909090913
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 554104.7649118574
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 554365.5174603176
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 554263.0070417894
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 550036.3333333327
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 548554.7519379843
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 551273.25
+          }
+        ]
+      }
+    },
+    {
+      "leaf_index": 15,
+      "top_six": false,
+      "tier_a_assignment": {
+        "included": [
+          305,
+          385
+        ],
+        "excluded": []
+      },
+      "first_family_rows_used": [],
+      "baseline_after_first_family": 592273.8680572428,
+      "pool_state": [
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333326,
+          "score": 8232.666666666664,
+          "fractional": true
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333318,
+          "score": 8232.66666666663,
+          "fractional": true
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333345,
+          "score": 8232.666666666695,
+          "fractional": true
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333329,
+          "score": 8232.666666666657,
+          "fractional": true
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "lp_value": 0.33333333333333426,
+          "score": 8232.66666666669,
+          "fractional": true
+        },
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "lp_value": 0.3333333333333345,
+          "score": 8232.666666666695,
+          "fractional": true
+        }
+      ],
+      "depth3_worst": 577886.378680073,
+      "movement": 14387.48937716987,
+      "nodes": 22,
+      "closed_leaves": 8,
+      "open_leaves": 0,
+      "hit_cap": false,
+      "branch_variables_ordered": [
+        225,
+        386,
+        152,
+        152,
+        222,
+        456,
+        456
+      ],
+      "worst_terminal_assignment": {
+        "parent_depth": 0,
+        "branch_vertex": 225,
+        "value": 0.0,
+        "feasible": true,
+        "upper": 589164.4725517768
+      },
+      "tree": {
+        "max_depth": 3,
+        "nodes_solved": 22,
+        "expanded_count": 7,
+        "closed_leaves": 8,
+        "open_leaves": 0,
+        "hit_node_cap": false,
+        "worst_leaf_objective": 577886.378680073,
+        "branch_variables_by_depth": [
+          {
+            "depth": 0,
+            "vertex": 225,
+            "upper": 592273.8680572428
+          },
+          {
+            "depth": 1,
+            "vertex": 386,
+            "upper": 589164.4725517768
+          },
+          {
+            "depth": 2,
+            "vertex": 152,
+            "upper": 585659.8333333335
+          },
+          {
+            "depth": 2,
+            "vertex": 152,
+            "upper": 572353.3333333335
+          },
+          {
+            "depth": 1,
+            "vertex": 222,
+            "upper": 565423.6474384043
+          },
+          {
+            "depth": 2,
+            "vertex": 456,
+            "upper": 559063.4484388189
+          },
+          {
+            "depth": 2,
+            "vertex": 456,
+            "upper": 555893.0909090919
+          }
+        ],
+        "child_objectives": [
+          {
+            "parent_depth": 0,
+            "branch_vertex": 225,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 589164.4725517768
+          },
+          {
+            "parent_depth": 0,
+            "branch_vertex": 225,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 565423.6474384043
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 585659.8333333335
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 386,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 572353.3333333335
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 577886.378680073
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 556773.2729597231
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 566621.3710591241
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 152,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 558297.6694268546
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 559063.4484388189
+          },
+          {
+            "parent_depth": 1,
+            "branch_vertex": 222,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 555893.0909090919
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 554263.0070417884
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 550036.3333333335
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 0.0,
+            "feasible": true,
+            "upper": 548554.7519379847
+          },
+          {
+            "parent_depth": 2,
+            "branch_vertex": 456,
+            "value": 1.0,
+            "feasible": true,
+            "upper": 551273.2499999999
+          }
+        ]
+      }
+    }
+  ]
+}

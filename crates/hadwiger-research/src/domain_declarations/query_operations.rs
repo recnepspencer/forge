@@ -28,8 +28,8 @@ use super::request_types::{
 };
 use super::screening_request_types::{
     AutocorrelationZeroScreeningDeclaration, DensityCapScreeningDeclaration,
-    FractionalChromaticScreeningDeclaration, LocalDensityWindowScreeningDeclaration,
-    LovaszThetaScreeningDeclaration,
+    FractionalChromaticScreeningDeclaration, GeometricFractionalChromaticScreeningDeclaration,
+    LocalDensityWindowScreeningDeclaration, LovaszThetaScreeningDeclaration,
 };
 use super::tiling_request_types::{
     ConflictGraphExtractionDeclaration, CoreExtractionDeclaration,
@@ -78,6 +78,7 @@ hadwiger_request_input!(
     LowerBoundTilingIterationDeclaration,
     UpperBoundTilingIterationDeclaration,
     FractionalChromaticScreeningDeclaration,
+    GeometricFractionalChromaticScreeningDeclaration,
     LovaszThetaScreeningDeclaration,
     AutocorrelationZeroScreeningDeclaration,
     DensityCapScreeningDeclaration,

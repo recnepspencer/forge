@@ -1,0 +1,38 @@
+{
+  "schema": "forge.hadwiger.w607_rational_clique_cover_diagnostic.v1",
+  "graph_digest": "sha256:be181cad41b7156208a583235ab6937c51eb2292b7bed952bb98f68e0b1b4dad",
+  "vertex_count": 607,
+  "edge_count": 3390,
+  "maximal_clique_count": 1768,
+  "target_weight": 512933,
+  "integer_cover_objective": 666661,
+  "fractional_lp_objective_float": "666661.0000000003",
+  "positive_fractional_rows": 599,
+  "bounded_denominator_attempts": [
+    {
+      "strategy": "individual_limit_denominator_lcm",
+      "max_denominator": 100,
+      "status": "denominator_exploded"
+    },
+    {
+      "strategy": "individual_limit_denominator_lcm",
+      "max_denominator": 1000000,
+      "status": "denominator_exploded"
+    },
+    {
+      "strategy": "ceil_scaled_float",
+      "denominator": 192,
+      "objective_ceiling": 666662,
+      "exactly_covers_after_rounding": true
+    },
+    {
+      "strategy": "ceil_scaled_float",
+      "denominator": 1000000,
+      "objective_ceiling": 666662,
+      "exactly_covers_after_rounding": true
+    }
+  ],
+  "status": "RetiredRootRationalCliqueCoverDuplicate",
+  "outcome": "The fractional clique-cover LP optimum matches the replayed integer clique-cover objective to solver tolerance. Rationalizing the floating solution does not produce a certificate better than the existing denominator-1 integer cover.",
+  "next_round_seed": "Do not add a root-only rational clique-cover replay checker for W607. Future rational certificate work must include non-clique cuts, branch-local duals that beat integer covers, or solver-native proof artifacts."
+}

@@ -57,6 +57,12 @@ Status meanings:
 | 34 | Known obstruction containment test | `src/candidate_screening/invariants/known_obstruction_containment.rs` | `query_native_bounded` |
 | 35 | Candidate novelty / non-isomorphism test | `src/candidate_screening/invariants/candidate_novelty_non_isomorphism.rs` | `query_native_bounded` |
 
+Frontier research lane:
+
+| Lane | Screening Surface | Code File | Current Status |
+|---|---|---|---|
+| H-FRAC | Geometric fractional chromatic number | `src/candidate_screening/invariants/geometric_fractional_chromatic_number.rs` | `query_native_bounded` |
+
 Next implementation pressure should go first to exact geometry ownership
 families, then finite graph optimization families, then periodic/generated
 pattern families.

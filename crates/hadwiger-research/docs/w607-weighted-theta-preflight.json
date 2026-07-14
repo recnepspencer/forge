@@ -1,0 +1,61 @@
+{
+  "schema": "forge.hadwiger.w607_weighted_theta_preflight.v1",
+  "formulation": "dual native stable-set theta probe: minimize the largest eigenvalue of sqrt(w)sqrt(w)^T - sum_edges z_ij E_ij",
+  "solver_note": "Clarabel 0.11.1 SDP cone attempted a 272 GB allocation for the 607x607 PSD cone; spectral result is diagnostic only",
+  "target": 512933.0,
+  "status": "RetireWeightedThetaPreflight",
+  "runs": [
+    {
+      "name": "empty_graph_sanity",
+      "vertices": 607,
+      "edges": 0,
+      "solver_status": "AnalyticSanity",
+      "objective": 1999983.0,
+      "dual_objective": 1999983.0,
+      "absolute_gap": 0.0,
+      "relative_gap": 0.0,
+      "primal_residual": null,
+      "dual_residual": null,
+      "iterations": 0,
+      "solve_time_seconds": null,
+      "wall_time_seconds": 0.00010251998901367188,
+      "expected": 1999983.0,
+      "expected_abs_error": 0.0
+    },
+    {
+      "name": "complete_graph_sanity",
+      "vertices": 607,
+      "edges": 183921,
+      "solver_status": "AnalyticSanity",
+      "objective": 36195.0,
+      "dual_objective": 36195.0,
+      "absolute_gap": 0.0,
+      "relative_gap": 0.0,
+      "primal_residual": null,
+      "dual_residual": null,
+      "iterations": 0,
+      "solve_time_seconds": null,
+      "wall_time_seconds": 4.3392181396484375e-05,
+      "expected": 36195.0,
+      "expected_abs_error": 0.0
+    },
+    {
+      "name": "w607_native_weighted_theta",
+      "vertices": 607,
+      "edges": 3390,
+      "solver_status": "SpectralDualProbeOnly",
+      "objective": 614434.7845302263,
+      "dual_objective": 614434.7845302263,
+      "absolute_gap": 0.0,
+      "relative_gap": 0.0,
+      "primal_residual": null,
+      "dual_residual": null,
+      "iterations": 200,
+      "solve_time_seconds": null,
+      "wall_time_seconds": 10.119880199432373,
+      "expected": null,
+      "expected_abs_error": null
+    }
+  ],
+  "conclusion": "native weighted theta gives 614434.784530 or lacks strict residuals; retire theta as a W607 target-closing lane"
+}

@@ -1,0 +1,588 @@
+{
+  "schema": "forge.hadwiger.w607_tailored_gamma0_slack_face_diagnostic.v1",
+  "authority": "face_valid_only",
+  "parent_valid": false,
+  "requires_gamma1_for_parent": true,
+  "tested_with_x304_fixed": 0,
+  "tree_artifact": "docs\\w607-tailored-gamma0-branch-tree.json",
+  "tree_artifact_digest": "180dfcf91ce806c571877064f1cf6cdaf201535a62557c260370b74fdccaae1c",
+  "branch_vertex": 304,
+  "branch_variables": [
+    456,
+    383,
+    222,
+    152,
+    386,
+    225,
+    305,
+    384,
+    223
+  ],
+  "gamma0_d": 609058840.616211,
+  "gamma0_d_num_d1024": 623676252791.0001,
+  "baseline_face_objective": 594914.3515250728,
+  "baseline_x304": 0.0,
+  "q_support": [],
+  "q_support_size": 0,
+  "rhs_reduction": -0.0,
+  "rhs_reduction_num_d1024": -0.0,
+  "current_face_violation": -0.0,
+  "current_face_violation_num_d1024": -0.0,
+  "pure_reduction_share": null,
+  "face_objective_with_row": 594706.3401566616,
+  "face_drop": 208.0113684112439,
+  "post_x304": 0.0,
+  "top_changed_vertices": [
+    {
+      "vertex": 601,
+      "weight": 502.0,
+      "before": 0.27300765694879026,
+      "after": 0.2717876632336201,
+      "delta": 0.0012199937151701756
+    },
+    {
+      "vertex": 427,
+      "weight": 6594.0,
+      "before": 0.2730076569487662,
+      "after": 0.271787663233633,
+      "delta": 0.0012199937151332052
+    },
+    {
+      "vertex": 421,
+      "weight": 794.0,
+      "before": 0.2730076569487662,
+      "after": 0.271787663233633,
+      "delta": 0.0012199937151332052
+    },
+    {
+      "vertex": 598,
+      "weight": 794.0,
+      "before": 0.2730076569487662,
+      "after": 0.271787663233633,
+      "delta": 0.0012199937151332052
+    },
+    {
+      "vertex": 576,
+      "weight": 2196.0,
+      "before": 0.39365900971789736,
+      "after": 0.39487900343302995,
+      "delta": 0.0012199937151325946
+    },
+    {
+      "vertex": 291,
+      "weight": 502.0,
+      "before": 0.27300765694875584,
+      "after": 0.2717876632336286,
+      "delta": 0.0012199937151272655
+    },
+    {
+      "vertex": 496,
+      "weight": 3826.0,
+      "before": 0.39365900971790563,
+      "after": 0.3948790034330328,
+      "delta": 0.0012199937151271545
+    },
+    {
+      "vertex": 349,
+      "weight": 3826.0,
+      "before": 0.3936590097179094,
+      "after": 0.39487900343303556,
+      "delta": 0.0012199937151261553
+    },
+    {
+      "vertex": 519,
+      "weight": 7682.0,
+      "before": 0.2730076569487632,
+      "after": 0.27178766323363746,
+      "delta": 0.0012199937151257667
+    },
+    {
+      "vertex": 375,
+      "weight": 7068.0,
+      "before": 0.27300765694874524,
+      "after": 0.2717876632336201,
+      "delta": 0.001219993715125156
+    },
+    {
+      "vertex": 569,
+      "weight": 1204.0,
+      "before": 0.27300765694874524,
+      "after": 0.2717876632336201,
+      "delta": 0.001219993715125156
+    },
+    {
+      "vertex": 300,
+      "weight": 2196.0,
+      "before": 0.3936590097179189,
+      "after": 0.39487900343303967,
+      "delta": 0.0012199937151207707
+    }
+  ],
+  "gates": {
+    "violation_kill_num": 256000.0,
+    "violation_fund_num": 1024000.0,
+    "face_drop_kill": 250.0,
+    "face_drop_fund": 1000.0,
+    "support_fund": 8,
+    "pure_reduction_share_kill": 0.9
+  },
+  "leaf_constraints": [
+    {
+      "included": [
+        222,
+        456
+      ],
+      "excluded": [],
+      "leaf_upper": 609058840.616211,
+      "slack_before": 0.0,
+      "charged_branch_vertices": [
+        456,
+        222,
+        225,
+        305,
+        384,
+        223
+      ]
+    },
+    {
+      "included": [
+        152,
+        383
+      ],
+      "excluded": [
+        456
+      ],
+      "leaf_upper": 609058839.0625,
+      "slack_before": 1.5537110567092896,
+      "charged_branch_vertices": [
+        383,
+        152,
+        386,
+        305,
+        384,
+        223
+      ]
+    },
+    {
+      "included": [],
+      "excluded": [
+        152,
+        222,
+        225,
+        305,
+        383,
+        384,
+        386,
+        456
+      ],
+      "leaf_upper": 607590183.3333331,
+      "slack_before": 1468657.282877922,
+      "charged_branch_vertices": [
+        223
+      ]
+    },
+    {
+      "included": [
+        152,
+        456
+      ],
+      "excluded": [
+        222
+      ],
+      "leaf_upper": 603883948.878581,
+      "slack_before": 5174891.73763001,
+      "charged_branch_vertices": [
+        456,
+        152,
+        305,
+        384,
+        223
+      ]
+    },
+    {
+      "included": [
+        225,
+        383
+      ],
+      "excluded": [
+        152,
+        386,
+        456
+      ],
+      "leaf_upper": 603883650.3160808,
+      "slack_before": 5175190.300130248,
+      "charged_branch_vertices": [
+        383,
+        225,
+        305,
+        384,
+        223
+      ]
+    },
+    {
+      "included": [
+        222,
+        386
+      ],
+      "excluded": [
+        383,
+        456
+      ],
+      "leaf_upper": 603883648.8336585,
+      "slack_before": 5175191.7825526,
+      "charged_branch_vertices": [
+        222,
+        386,
+        305,
+        384,
+        223
+      ]
+    },
+    {
+      "included": [
+        456
+      ],
+      "excluded": [
+        152,
+        222,
+        225,
+        305
+      ],
+      "leaf_upper": 603600446.6572262,
+      "slack_before": 5458393.958984852,
+      "charged_branch_vertices": [
+        456,
+        384,
+        223
+      ]
+    },
+    {
+      "included": [
+        383
+      ],
+      "excluded": [
+        152,
+        223,
+        225,
+        386,
+        456
+      ],
+      "leaf_upper": 603600445.0683595,
+      "slack_before": 5458395.5478515625,
+      "charged_branch_vertices": [
+        383,
+        305,
+        384
+      ]
+    },
+    {
+      "included": [
+        225
+      ],
+      "excluded": [
+        152,
+        222,
+        383,
+        384,
+        386,
+        456
+      ],
+      "leaf_upper": 603162904.747721,
+      "slack_before": 5895935.8684901,
+      "charged_branch_vertices": [
+        225,
+        305,
+        223
+      ]
+    },
+    {
+      "included": [
+        386
+      ],
+      "excluded": [
+        152,
+        222,
+        305,
+        383,
+        456
+      ],
+      "leaf_upper": 603162904.735026,
+      "slack_before": 5895935.881185055,
+      "charged_branch_vertices": [
+        386,
+        384,
+        223
+      ]
+    },
+    {
+      "included": [
+        152
+      ],
+      "excluded": [
+        222,
+        383,
+        384,
+        386,
+        456
+      ],
+      "leaf_upper": 603162904.7213537,
+      "slack_before": 5895935.894857407,
+      "charged_branch_vertices": [
+        152,
+        305,
+        223
+      ]
+    },
+    {
+      "included": [
+        222
+      ],
+      "excluded": [
+        223,
+        225,
+        383,
+        386,
+        456
+      ],
+      "leaf_upper": 603162904.3486327,
+      "slack_before": 5895936.267578363,
+      "charged_branch_vertices": [
+        222,
+        305,
+        384
+      ]
+    },
+    {
+      "included": [
+        152,
+        386
+      ],
+      "excluded": [
+        222,
+        383,
+        456
+      ],
+      "leaf_upper": 602048600.1230472,
+      "slack_before": 7010240.493163824,
+      "charged_branch_vertices": [
+        152,
+        386,
+        305,
+        384,
+        223
+      ]
+    },
+    {
+      "included": [
+        383,
+        386
+      ],
+      "excluded": [
+        152,
+        456
+      ],
+      "leaf_upper": 602048599.8867192,
+      "slack_before": 7010240.72949183,
+      "charged_branch_vertices": [
+        383,
+        386,
+        305,
+        384,
+        223
+      ]
+    },
+    {
+      "included": [
+        225,
+        456
+      ],
+      "excluded": [
+        152,
+        222
+      ],
+      "leaf_upper": 602048599.7382811,
+      "slack_before": 7010240.877929926,
+      "charged_branch_vertices": [
+        456,
+        225,
+        305,
+        384,
+        223
+      ]
+    },
+    {
+      "included": [
+        222,
+        225
+      ],
+      "excluded": [
+        383,
+        386,
+        456
+      ],
+      "leaf_upper": 602048599.6796874,
+      "slack_before": 7010240.936523676,
+      "charged_branch_vertices": [
+        222,
+        225,
+        305,
+        384,
+        223
+      ]
+    },
+    {
+      "included": [
+        384
+      ],
+      "excluded": [
+        152,
+        222,
+        225,
+        305,
+        383,
+        386,
+        456
+      ],
+      "leaf_upper": 584440883.6666664,
+      "slack_before": 24617956.94954467,
+      "charged_branch_vertices": [
+        384
+      ]
+    },
+    {
+      "included": [
+        305
+      ],
+      "excluded": [
+        152,
+        222,
+        225,
+        383,
+        386,
+        456
+      ],
+      "leaf_upper": 584440881.0,
+      "slack_before": 24617959.616211057,
+      "charged_branch_vertices": [
+        305
+      ]
+    },
+    {
+      "included": [
+        222,
+        223
+      ],
+      "excluded": [
+        225,
+        383,
+        386,
+        456
+      ],
+      "leaf_upper": 582671557.3486333,
+      "slack_before": 26387283.267577767,
+      "charged_branch_vertices": [
+        222,
+        223
+      ]
+    },
+    {
+      "included": [
+        305,
+        386
+      ],
+      "excluded": [
+        152,
+        222,
+        383,
+        456
+      ],
+      "leaf_upper": 582671555.4016927,
+      "slack_before": 26387285.21451831,
+      "charged_branch_vertices": [
+        386,
+        305
+      ]
+    },
+    {
+      "included": [
+        225,
+        384
+      ],
+      "excluded": [
+        152,
+        222,
+        383,
+        386,
+        456
+      ],
+      "leaf_upper": 579463768.5810554,
+      "slack_before": 29595072.035155654,
+      "charged_branch_vertices": [
+        225,
+        384
+      ]
+    },
+    {
+      "included": [
+        152,
+        384
+      ],
+      "excluded": [
+        222,
+        383,
+        386,
+        456
+      ],
+      "leaf_upper": 579463768.554688,
+      "slack_before": 29595072.06152308,
+      "charged_branch_vertices": [
+        152,
+        384
+      ]
+    },
+    {
+      "included": [
+        223,
+        383
+      ],
+      "excluded": [
+        152,
+        225,
+        386,
+        456
+      ],
+      "leaf_upper": 577457048.0475259,
+      "slack_before": 31601792.568685174,
+      "charged_branch_vertices": [
+        383,
+        223
+      ]
+    },
+    {
+      "included": [
+        305,
+        456
+      ],
+      "excluded": [
+        152,
+        222,
+        225
+      ],
+      "leaf_upper": 577457044.9488934,
+      "slack_before": 31601795.66731763,
+      "charged_branch_vertices": [
+        456,
+        305
+      ]
+    }
+  ],
+  "failure_modes": [
+    "face_row_used_as_parent_row",
+    "undercharged_undecided_branch_variable",
+    "stale_leaf_bound_for_wrong_vector",
+    "support_leakage_beyond_tailored_branch_variables",
+    "diagnostic_slack_mistaken_for_exact_replay_slack",
+    "future_gamma1_erases_face_gain"
+  ],
+  "status": "RetireTailoredGamma0SlackFace"
+}

@@ -1,0 +1,186 @@
+{
+  "schema": "forge.hadwiger.w607_v304_aggregate_dual_lift_preflight.v1",
+  "excluded_vertex": 304,
+  "certificate_objective_numerator": 647496725,
+  "expected_objective_numerator": 647496725,
+  "denominator": 1024,
+  "row_counts": {
+    "parent_triangle": 599,
+    "child_weighted_rank": 1
+  },
+  "min_active_slack_num": 0,
+  "tight_active_vertices": 147,
+  "positive_slack_vertices": 459,
+  "root_objective": 641090.9615275878,
+  "known_root_objective": 641090.9615275887,
+  "residual_vertex_count": 582,
+  "gamma_success": false,
+  "gamma_mip_gap": 0.12316104259441568,
+  "gamma_seconds": 180.0270586013794,
+  "gamma_numerator": null,
+  "gamma_incumbent_numerator": 486204369,
+  "gamma_upper_bound_numerator": 546085806,
+  "lift_coefficient_l": null,
+  "certified_lift_lower_bound": 101410919,
+  "lp_test_lift_coefficient": 101410919,
+  "residual_objective_split_coefficient": 65934182,
+  "lift_minus_residual_split_coefficient": null,
+  "root_x304": 0.353842692012308,
+  "root_aggregate_lhs_num": 643453981,
+  "root_aggregate_lhs_with_lift_num": null,
+  "root_aggregate_violation_num": 31840769,
+  "root_aggregate_violation": 31094.5009765625,
+  "root_with_aggregate_objective": 632232.3996589413,
+  "root_aggregate_drop": 8858.561868646531,
+  "root_with_aggregate_x304": 0.0,
+  "split_with_aggregate_objective": 632232.3996589428,
+  "split_aggregate_improvement_over_split": 88.62084886967205,
+  "split_with_aggregate_x304": 0.0,
+  "top_positive_slack_vertices": [
+    {
+      "vertex": 456,
+      "slack_num": 7788,
+      "weight": 24698
+    },
+    {
+      "vertex": 225,
+      "slack_num": 7787,
+      "weight": 24698
+    },
+    {
+      "vertex": 383,
+      "slack_num": 7787,
+      "weight": 24698
+    },
+    {
+      "vertex": 386,
+      "slack_num": 7787,
+      "weight": 24698
+    },
+    {
+      "vertex": 152,
+      "slack_num": 7786,
+      "weight": 24698
+    },
+    {
+      "vertex": 222,
+      "slack_num": 7786,
+      "weight": 24698
+    },
+    {
+      "vertex": 223,
+      "slack_num": 5640,
+      "weight": 17892
+    },
+    {
+      "vertex": 305,
+      "slack_num": 5640,
+      "weight": 17892
+    },
+    {
+      "vertex": 384,
+      "slack_num": 5640,
+      "weight": 17892
+    },
+    {
+      "vertex": 224,
+      "slack_num": 5639,
+      "weight": 17892
+    },
+    {
+      "vertex": 303,
+      "slack_num": 5639,
+      "weight": 17892
+    },
+    {
+      "vertex": 385,
+      "slack_num": 5639,
+      "weight": 17892
+    },
+    {
+      "vertex": 88,
+      "slack_num": 3590,
+      "weight": 11384
+    },
+    {
+      "vertex": 517,
+      "slack_num": 3588,
+      "weight": 11384
+    },
+    {
+      "vertex": 153,
+      "slack_num": 3202,
+      "weight": 10154
+    },
+    {
+      "vertex": 457,
+      "slack_num": 3202,
+      "weight": 10154
+    },
+    {
+      "vertex": 151,
+      "slack_num": 3201,
+      "weight": 10154
+    },
+    {
+      "vertex": 302,
+      "slack_num": 3201,
+      "weight": 10154
+    },
+    {
+      "vertex": 306,
+      "slack_num": 3201,
+      "weight": 10154
+    },
+    {
+      "vertex": 455,
+      "slack_num": 3201,
+      "weight": 10154
+    }
+  ],
+  "gamma_witness_size": 138,
+  "gamma_witness_head": [
+    8,
+    9,
+    20,
+    21,
+    22,
+    25,
+    27,
+    28,
+    29,
+    30,
+    39,
+    40,
+    43,
+    61,
+    62,
+    67,
+    68,
+    74,
+    77,
+    78,
+    79,
+    88,
+    89,
+    91,
+    92,
+    103,
+    114,
+    115,
+    120,
+    121,
+    122,
+    123,
+    134,
+    148,
+    151,
+    154,
+    161,
+    165,
+    166,
+    173
+  ],
+  "status": "FundAggregateDualLiftRootCutWithCertifiedLift",
+  "seconds": 182.73875737190247
+}

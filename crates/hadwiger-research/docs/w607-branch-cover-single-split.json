@@ -1,0 +1,31 @@
+{
+  "root_bound": 666661,
+  "target": 512933,
+  "chosen_vertex": 304,
+  "chosen_weight": 36195,
+  "include": {
+    "label": "include",
+    "success": false,
+    "status": 1,
+    "objective": 567933,
+    "seconds": 60.33055901527405,
+    "vertices": 582,
+    "edges": 3036,
+    "cliques": 1546,
+    "message": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+    "total": 604128
+  },
+  "exclude": {
+    "label": "exclude",
+    "success": false,
+    "status": 1,
+    "objective": 654599,
+    "seconds": 72.89114665985107,
+    "vertices": 606,
+    "edges": 3366,
+    "cliques": 1756,
+    "message": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+    "total": 654599
+  },
+  "max_child_total": 654599
+}

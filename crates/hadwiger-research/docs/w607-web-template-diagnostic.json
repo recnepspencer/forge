@@ -1,0 +1,45 @@
+{
+  "schema": "forge.hadwiger.w607_web_template_diagnostic.v1",
+  "authority": "diagnostic_only_structural_web_template_plus_exact_alpha",
+  "second_agent_verdict": "web_only_tiny_template_falsifier_clique_family_skipped",
+  "base_objective": 594914.351525072,
+  "baseline_reproduced": true,
+  "pool_count": 20,
+  "pool_reports": [
+    {
+      "pool": "seed_88",
+      "checked": 500,
+      "structural_webs": 0,
+      "accepted": 0
+    }
+  ],
+  "candidate_count": 500,
+  "generated_cut_count": 0,
+  "tested_cut_count": 0,
+  "accepted_cut_count": 0,
+  "best_single_drop": 0.0,
+  "final_objective": 594914.351525072,
+  "total_drop": 0.0,
+  "status": "RetireWebTemplateDiagnostic",
+  "gates": {
+    "max_pools": 20,
+    "early_pool_kill": 8,
+    "pool_size": 60,
+    "max_candidates": 500,
+    "max_accepted": 20,
+    "k_range": [
+      3,
+      8
+    ],
+    "n_range": [
+      9,
+      60
+    ],
+    "violation_gate": 0.05,
+    "single_drop_gate": 1000.0,
+    "batch_drop_gate": 3000.0,
+    "kill_drop": 250.0
+  },
+  "top_tested": [],
+  "seconds": 1.0507912635803223
+}

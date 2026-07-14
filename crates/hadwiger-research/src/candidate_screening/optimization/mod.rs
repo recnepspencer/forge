@@ -1,4 +1,5 @@
 mod generated_pattern_certificates;
+mod geometric_fractional_certificates;
 mod graph_certificates;
 mod graph_embedding_certificates;
 mod graph_index_certificates;
@@ -14,6 +15,11 @@ pub use generated_pattern_certificates::{
     FinitePatchBoundaryExtensionCertificate, MonodromyColorHolonomyCertificate,
     SubstitutionConsistencyCertificate, SubstitutionConsistencyFailureKind,
     TranslationRotationClosureCertificate,
+};
+pub use geometric_fractional_certificates::{
+    GeometricFractionalChromaticCertificate, GeometricFractionalEqualityAdjustment,
+    GeometricFractionalSearchScope, GeometricPairwiseSquaredDistance,
+    GeometricSubsetIsometryWitness,
 };
 pub use graph_certificates::{
     FractionalChromaticCertificate, LovaszThetaCertificate, ScreeningMatrixCertificate,

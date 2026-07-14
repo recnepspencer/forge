@@ -1,0 +1,2711 @@
+{
+  "schema": "forge.hadwiger.w607_upward_rational_terminal_export_probe.v1",
+  "authority": "selected_terminal_support_preserving_rational_repair_preflight_only",
+  "second_opinion": {
+    "agent": "Linnaeus",
+    "decision": "approve_support_preserving_rational_repair"
+  },
+  "source_binding": {
+    "fresh_replay_path": "C:\\forge-2\\crates\\hadwiger-research\\docs\\w607-fresh-mixed-branch-replay.json",
+    "fresh_replay_digest": "8c2f68061175a81b575fc80b06f5e64392a7624aa466e2b199e30826f474a189",
+    "first_family_source": "C:\\forge-2\\crates\\hadwiger-research\\docs\\w607-full-tree-rank-family.json",
+    "first_family_digest": "2ce678706ac4740bb1ae5a9733f2dc12151ecf576358e399230571ffb895aea8",
+    "graph_digest": "5ee6b6ce564e2034a89df8ba5cb0a2103d3fcd3a5aacea72b13445c456f57683",
+    "root_rows_digest": "89e4c264528c0c2bc2838c855c62b2577f68c92a30c653a9ebcb093555a7398f",
+    "parent_rows_digest": "2d7e16c7d9266117b4395ebb68e337d511cc4ca7344ad7c3081dfef855451378"
+  },
+  "scope": {
+    "top_leaves": [
+      1,
+      6,
+      12,
+      2,
+      4,
+      9
+    ],
+    "required_export_count": 10,
+    "audit_only_count": 1,
+    "denominator_caps": [
+      1000000,
+      100000000,
+      1000000000,
+      4294967296
+    ]
+  },
+  "gates": {
+    "export_gate": 586500.0,
+    "terminal_allowance": 300.0,
+    "denominator_caps": [
+      1000000,
+      100000000,
+      1000000000,
+      4294967296
+    ],
+    "max_denominator": 4294967296,
+    "max_numerator_bits": 48,
+    "repair_objective_cost": 1.0,
+    "parent_objective_overhead_cap": 50.0,
+    "total_row_budget": 15000
+  },
+  "summary": {
+    "required_successes": 4,
+    "required_total": 10,
+    "total_success_rows": 2376,
+    "worst_success_objective": 581481.0000000433
+  },
+  "terminals": [
+    {
+      "leaf_index": 1,
+      "terminal_id": "depth3_terminal_0",
+      "expected_bound": 586224.2382592546,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 0.0
+      },
+      "depth": 3,
+      "exceptional_rule": "none",
+      "export_required": true,
+      "selection_reason": "top_six_final_terminal",
+      "floating_objective": 586224.2382592546,
+      "expected_error": 0.0,
+      "hidden_solver_bound_dual_max": 0.0,
+      "row_system_digest": "5dbe91a881587b43dfc2546c45f3895b92de257c88b493aed8c9fd83cfcc9465",
+      "attempts": [
+        {
+          "denominator_cap": 1000000,
+          "objective": {
+            "num": 452447465617,
+            "den": 500000,
+            "float": 904894.931234
+          },
+          "objective_float": 904894.931234,
+          "objective_over_expected": 318670.6929747454,
+          "objective_margin_to_allowed": -318394.931234,
+          "repair_objective_cost": 318670.6929747454,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 601,
+          "max_denominator": 1000000,
+          "max_denominator_bits": 20,
+          "max_numerator_bits": 36,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 0,
+            "mass": 0.0
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.892237777869682e-07,
+                "rational_multiplier": {
+                  "num": 1,
+                  "den": 1000000,
+                  "float": 1e-06
+                },
+                "denominator": 1000000,
+                "numerator_bits": 1,
+                "objective_contribution": 623894.447014,
+                "objective_overhead": 318670.44870549935
+              }
+            ],
+            "max_parent_objective_overhead_abs": 318670.44870549935
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 100000000,
+          "objective": {
+            "num": 29335425989389,
+            "den": 50000000,
+            "float": 586708.51978778
+          },
+          "objective_float": 586708.51978778,
+          "objective_over_expected": 484.2815285253945,
+          "objective_margin_to_allowed": -208.51978778,
+          "repair_objective_cost": 484.2815285254037,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 601,
+          "max_denominator": 100000000,
+          "max_denominator_bits": 27,
+          "max_numerator_bits": 43,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 0,
+            "mass": 0.0
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.892237777869682e-07,
+                "rational_multiplier": {
+                  "num": 49,
+                  "den": 100000000,
+                  "float": 4.9e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 6,
+                "objective_contribution": 305708.27903686,
+                "objective_overhead": 484.28072835941566
+              }
+            ],
+            "max_parent_objective_overhead_abs": 484.28072835941566
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 1000000000,
+          "objective": {
+            "num": 146677129752283,
+            "den": 250000000,
+            "float": 586708.519009132
+          },
+          "objective_float": 586708.519009132,
+          "objective_over_expected": 484.2807498773945,
+          "objective_margin_to_allowed": -208.519009132,
+          "repair_objective_cost": 484.2807498774491,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 601,
+          "max_denominator": 1000000000,
+          "max_denominator_bits": 30,
+          "max_numerator_bits": 46,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 0,
+            "mass": 0.0
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.892237777869682e-07,
+                "rational_multiplier": {
+                  "num": 49,
+                  "den": 100000000,
+                  "float": 4.9e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 6,
+                "objective_contribution": 305708.27903686,
+                "objective_overhead": 484.28072835941566
+              }
+            ],
+            "max_parent_objective_overhead_abs": 484.28072835941566
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 4294967296,
+          "objective": {
+            "num": 1259156484245069,
+            "den": 2147483648,
+            "float": 586340.4293754459
+          },
+          "objective_float": 586340.4293754459,
+          "objective_over_expected": 116.19111619133037,
+          "objective_margin_to_allowed": 159.57062455406412,
+          "repair_objective_cost": 116.19111619133037,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 601,
+          "max_denominator": 4294967296,
+          "max_denominator_bits": 33,
+          "max_numerator_bits": 47,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 0,
+            "mass": 0.0
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.892237777869682e-07,
+                "rational_multiplier": {
+                  "num": 1051,
+                  "den": 2147483648,
+                  "float": 4.89410012960434e-07
+                },
+                "denominator": 2147483648,
+                "numerator_bits": 11,
+                "objective_contribution": 305340.1893990645,
+                "objective_overhead": 116.19109056395246
+              }
+            ],
+            "max_parent_objective_overhead_abs": 116.19109056395246
+          },
+          "passes": false
+        }
+      ],
+      "success_summary": null,
+      "failure_reasons": [
+        "no_export_success"
+      ],
+      "status": "export_failed"
+    },
+    {
+      "leaf_index": 6,
+      "terminal_id": "depth3_terminal_0",
+      "expected_bound": 586224.039267464,
+      "pool_assignment": {
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "depth": 3,
+      "exceptional_rule": "none",
+      "export_required": true,
+      "selection_reason": "top_six_final_terminal",
+      "floating_objective": 586224.0392674641,
+      "expected_error": 1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "row_system_digest": "4464c68ba107a92f15393b6d46f54330426c5eadd201b2b16e913669b2290048",
+      "attempts": [
+        {
+          "denominator_cap": 1000000,
+          "objective": {
+            "num": 904895092131,
+            "den": 1000000,
+            "float": 904895.092131
+          },
+          "objective_float": 904895.092131,
+          "objective_over_expected": 318671.05286353605,
+          "objective_margin_to_allowed": -318395.092131,
+          "repair_objective_cost": 318671.05286353605,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 602,
+          "max_denominator": 1000000,
+          "max_denominator_bits": 20,
+          "max_numerator_bits": 36,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 1,
+            "mass": 4943.519297116926
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.892231479829195e-07,
+                "rational_multiplier": {
+                  "num": 1,
+                  "den": 1000000,
+                  "float": 1e-06
+                },
+                "denominator": 1000000,
+                "numerator_bits": 1,
+                "objective_contribution": 623894.447014,
+                "objective_overhead": 318670.84163674805
+              }
+            ],
+            "max_parent_objective_overhead_abs": 318670.84163674805
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 100000000,
+          "objective": {
+            "num": 29335435716133,
+            "den": 50000000,
+            "float": 586708.71432266
+          },
+          "objective_float": 586708.71432266,
+          "objective_over_expected": 484.67505519604117,
+          "objective_margin_to_allowed": -208.71432266,
+          "repair_objective_cost": 484.6750551960431,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 602,
+          "max_denominator": 100000000,
+          "max_denominator_bits": 27,
+          "max_numerator_bits": 40,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 1,
+            "mass": 4943.519297116926
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.892231479829195e-07,
+                "rational_multiplier": {
+                  "num": 49,
+                  "den": 100000000,
+                  "float": 4.9e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 6,
+                "objective_contribution": 305708.27903686,
+                "objective_overhead": 484.6736596081173
+              }
+            ],
+            "max_parent_objective_overhead_abs": 484.6736596081173
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 1000000000,
+          "objective": {
+            "num": 117341742605313,
+            "den": 200000000,
+            "float": 586708.713026565
+          },
+          "objective_float": 586708.713026565,
+          "objective_over_expected": 484.6737591010412,
+          "objective_margin_to_allowed": -208.713026565,
+          "repair_objective_cost": 484.6737591010751,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 602,
+          "max_denominator": 1000000000,
+          "max_denominator_bits": 30,
+          "max_numerator_bits": 46,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 1,
+            "mass": 4943.519297116926
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.892231479829195e-07,
+                "rational_multiplier": {
+                  "num": 49,
+                  "den": 100000000,
+                  "float": 4.9e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 6,
+                "objective_contribution": 305708.27903686,
+                "objective_overhead": 484.6736596081173
+              }
+            ],
+            "max_parent_objective_overhead_abs": 484.6736596081173
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 4294967296,
+          "objective": {
+            "num": 629578450400391,
+            "den": 1073741824,
+            "float": 586340.6233493155
+          },
+          "objective_float": 586340.6233493155,
+          "objective_over_expected": 116.58408185152803,
+          "objective_margin_to_allowed": 159.37665068451315,
+          "repair_objective_cost": 116.58408185152803,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 602,
+          "max_denominator": 4294967296,
+          "max_denominator_bits": 33,
+          "max_numerator_bits": 47,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 1,
+            "mass": 4943.519297116926
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.892231479829195e-07,
+                "rational_multiplier": {
+                  "num": 1051,
+                  "den": 2147483648,
+                  "float": 4.89410012960434e-07
+                },
+                "denominator": 2147483648,
+                "numerator_bits": 11,
+                "objective_contribution": 305340.1893990645,
+                "objective_overhead": 116.5840218126541
+              }
+            ],
+            "max_parent_objective_overhead_abs": 116.5840218126541
+          },
+          "passes": false
+        }
+      ],
+      "success_summary": null,
+      "failure_reasons": [
+        "no_export_success"
+      ],
+      "status": "export_failed"
+    },
+    {
+      "leaf_index": 12,
+      "terminal_id": "depth3_terminal_0",
+      "expected_bound": 586223.690675106,
+      "pool_assignment": {
+        "225": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "depth": 3,
+      "exceptional_rule": "none",
+      "export_required": true,
+      "selection_reason": "top_six_final_terminal",
+      "floating_objective": 586223.6906751058,
+      "expected_error": -2.3283064365386963e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "row_system_digest": "5236a1ec6d2f481305ec3b43663394c7ef9b28c9c0dbbc81f57f9fa9e4126ba5",
+      "attempts": [
+        {
+          "denominator_cap": 1000000,
+          "objective": {
+            "num": 904894729101,
+            "den": 1000000,
+            "float": 904894.729101
+          },
+          "objective_float": 904894.729101,
+          "objective_over_expected": 318671.038425894,
+          "objective_margin_to_allowed": -318394.729101,
+          "repair_objective_cost": 318671.038425894,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 598,
+          "max_denominator": 1000000,
+          "max_denominator_bits": 20,
+          "max_numerator_bits": 36,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 4,
+            "mass": 753.8729404282201
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.892232379548272e-07,
+                "rational_multiplier": {
+                  "num": 1,
+                  "den": 1000000,
+                  "float": 1e-06
+                },
+                "denominator": 1000000,
+                "numerator_bits": 1,
+                "objective_contribution": 623894.447014,
+                "objective_overhead": 318670.7855037745
+              }
+            ],
+            "max_parent_objective_overhead_abs": 318670.7855037745
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 100000000,
+          "objective": {
+            "num": 58670830988189,
+            "den": 100000000,
+            "float": 586708.30988189
+          },
+          "objective_float": 586708.30988189,
+          "objective_over_expected": 484.619206783984,
+          "objective_margin_to_allowed": -208.30988189,
+          "repair_objective_cost": 484.6192067839438,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 598,
+          "max_denominator": 100000000,
+          "max_denominator_bits": 27,
+          "max_numerator_bits": 40,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 4,
+            "mass": 753.8729404282201
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.892232379548272e-07,
+                "rational_multiplier": {
+                  "num": 49,
+                  "den": 100000000,
+                  "float": 4.9e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 6,
+                "objective_contribution": 305708.27903686,
+                "objective_overhead": 484.6175266345381
+              }
+            ],
+            "max_parent_objective_overhead_abs": 484.6175266345381
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 1000000000,
+          "objective": {
+            "num": 73338538540879,
+            "den": 125000000,
+            "float": 586708.308327032
+          },
+          "objective_float": 586708.308327032,
+          "objective_over_expected": 484.61765192598403,
+          "objective_margin_to_allowed": -208.308327032,
+          "repair_objective_cost": 484.6176519260043,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 598,
+          "max_denominator": 1000000000,
+          "max_denominator_bits": 30,
+          "max_numerator_bits": 46,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 4,
+            "mass": 753.8729404282201
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.892232379548272e-07,
+                "rational_multiplier": {
+                  "num": 49,
+                  "den": 100000000,
+                  "float": 4.9e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 6,
+                "objective_contribution": 305708.27903686,
+                "objective_overhead": 484.6175266345381
+              }
+            ],
+            "max_parent_objective_overhead_abs": 484.6175266345381
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 4294967296,
+          "objective": {
+            "num": 2518312063298181,
+            "den": 4294967296,
+            "float": 586340.21861902
+          },
+          "objective_float": 586340.21861902,
+          "objective_over_expected": 116.52794391394127,
+          "objective_margin_to_allowed": 159.78138098004274,
+          "repair_objective_cost": 116.52794391394127,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 598,
+          "max_denominator": 4294967296,
+          "max_denominator_bits": 33,
+          "max_numerator_bits": 48,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 4,
+            "mass": 753.8729404282201
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.892232379548272e-07,
+                "rational_multiplier": {
+                  "num": 1051,
+                  "den": 2147483648,
+                  "float": 4.89410012960434e-07
+                },
+                "denominator": 2147483648,
+                "numerator_bits": 11,
+                "objective_contribution": 305340.1893990645,
+                "objective_overhead": 116.52788883907488
+              }
+            ],
+            "max_parent_objective_overhead_abs": 116.52788883907488
+          },
+          "passes": false
+        }
+      ],
+      "success_summary": null,
+      "failure_reasons": [
+        "no_export_success"
+      ],
+      "status": "export_failed"
+    },
+    {
+      "leaf_index": 2,
+      "terminal_id": "depth3_terminal_0",
+      "expected_bound": 586223.1967256626,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 0.0
+      },
+      "depth": 3,
+      "exceptional_rule": "none",
+      "export_required": true,
+      "selection_reason": "top_six_final_terminal",
+      "floating_objective": 586223.1967256627,
+      "expected_error": 1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "row_system_digest": "b3775820fec5c17e42719164e350cfd8f6aff3ca9025e088e07f8147703978e0",
+      "attempts": [
+        {
+          "denominator_cap": 1000000,
+          "objective": {
+            "num": 181005898653,
+            "den": 200000,
+            "float": 905029.493265
+          },
+          "objective_float": 905029.493265,
+          "objective_over_expected": 318806.29653933743,
+          "objective_margin_to_allowed": -318529.493265,
+          "repair_objective_cost": 318806.2965393375,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 598,
+          "max_denominator": 1000000,
+          "max_denominator_bits": 20,
+          "max_numerator_bits": 36,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 2,
+            "mass": 817.7215705484107
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.890061421101413e-07,
+                "rational_multiplier": {
+                  "num": 1,
+                  "den": 1000000,
+                  "float": 1e-06
+                },
+                "denominator": 1000000,
+                "numerator_bits": 1,
+                "objective_contribution": 623894.447014,
+                "objective_overhead": 318806.2303957438
+              }
+            ],
+            "max_parent_objective_overhead_abs": 318806.2303957438
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 100000000,
+          "objective": {
+            "num": 11736865206197,
+            "den": 20000000,
+            "float": 586843.26030985
+          },
+          "objective_float": 586843.26030985,
+          "objective_over_expected": 620.0635841874351,
+          "objective_margin_to_allowed": -343.26030985,
+          "repair_objective_cost": 620.0635841874173,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            563,
+            602
+          ],
+          "positive_row_count": 598,
+          "max_denominator": 100000000,
+          "max_denominator_bits": 27,
+          "max_numerator_bits": 42,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 2,
+            "mass": 817.7215705484107
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.890061421101413e-07,
+                "rational_multiplier": {
+                  "num": 49,
+                  "den": 100000000,
+                  "float": 4.9e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 6,
+                "objective_contribution": 305708.27903686,
+                "objective_overhead": 620.0624186038622
+              }
+            ],
+            "max_parent_objective_overhead_abs": 620.0624186038622
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 1000000000,
+          "objective": {
+            "num": 29342162963623,
+            "den": 50000000,
+            "float": 586843.25927246
+          },
+          "objective_float": 586843.25927246,
+          "objective_over_expected": 620.0625467974352,
+          "objective_margin_to_allowed": -343.25927246,
+          "repair_objective_cost": 620.062546797446,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 598,
+          "max_denominator": 1000000000,
+          "max_denominator_bits": 30,
+          "max_numerator_bits": 44,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 2,
+            "mass": 817.7215705484107
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.890061421101413e-07,
+                "rational_multiplier": {
+                  "num": 49,
+                  "den": 100000000,
+                  "float": 4.9e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 6,
+                "objective_contribution": 305708.27903686,
+                "objective_overhead": 620.0624186038622
+              }
+            ],
+            "max_parent_objective_overhead_abs": 620.0624186038622
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 4294967296,
+          "objective": {
+            "num": 2518267778676617,
+            "den": 4294967296,
+            "float": 586329.9078020772
+          },
+          "objective_float": 586329.9078020772,
+          "objective_over_expected": 106.71107641467825,
+          "objective_margin_to_allowed": 170.0921979227569,
+          "repair_objective_cost": 106.71107641467825,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 598,
+          "max_denominator": 4294967296,
+          "max_denominator_bits": 33,
+          "max_numerator_bits": 48,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 2,
+            "mass": 817.7215705484107
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.890061421101413e-07,
+                "rational_multiplier": {
+                  "num": 2101,
+                  "den": 4294967296,
+                  "float": 4.891771823167801e-07
+                },
+                "denominator": 4294967296,
+                "numerator_bits": 12,
+                "objective_contribution": 305194.9276533942,
+                "objective_overhead": 106.71103513805429
+              }
+            ],
+            "max_parent_objective_overhead_abs": 106.71103513805429
+          },
+          "passes": false
+        }
+      ],
+      "success_summary": null,
+      "failure_reasons": [
+        "no_export_success"
+      ],
+      "status": "export_failed"
+    },
+    {
+      "leaf_index": 4,
+      "terminal_id": "depth3_terminal_0",
+      "expected_bound": 586222.998756283,
+      "pool_assignment": {
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "depth": 3,
+      "exceptional_rule": "none",
+      "export_required": true,
+      "selection_reason": "top_six_final_terminal",
+      "floating_objective": 586222.9987562828,
+      "expected_error": -1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "row_system_digest": "44395cf701a91ea55cd8d34afa37e9bc9d586ab782ef24a31fb5caccb0dbacad",
+      "attempts": [
+        {
+          "denominator_cap": 1000000,
+          "objective": {
+            "num": 905029597329,
+            "den": 1000000,
+            "float": 905029.597329
+          },
+          "objective_float": 905029.597329,
+          "objective_over_expected": 318806.59857271705,
+          "objective_margin_to_allowed": -318529.597329,
+          "repair_objective_cost": 318806.59857271705,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 596,
+          "max_denominator": 1000000,
+          "max_denominator_bits": 20,
+          "max_numerator_bits": 34,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 5,
+            "mass": 6020.134999194373
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.890058724340178e-07,
+                "rational_multiplier": {
+                  "num": 1,
+                  "den": 1000000,
+                  "float": 1e-06
+                },
+                "denominator": 1000000,
+                "numerator_bits": 1,
+                "objective_contribution": 623894.447014,
+                "objective_overhead": 318806.39864517975
+              }
+            ],
+            "max_parent_objective_overhead_abs": 318806.39864517975
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 100000000,
+          "objective": {
+            "num": 29342161492369,
+            "den": 50000000,
+            "float": 586843.22984738
+          },
+          "objective_float": 586843.22984738,
+          "objective_over_expected": 620.2310910970372,
+          "objective_margin_to_allowed": -343.22984738,
+          "repair_objective_cost": 620.2310910969973,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 596,
+          "max_denominator": 100000000,
+          "max_denominator_bits": 27,
+          "max_numerator_bits": 40,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 5,
+            "mass": 6020.134999194373
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.890058724340178e-07,
+                "rational_multiplier": {
+                  "num": 49,
+                  "den": 100000000,
+                  "float": 4.9e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 6,
+                "objective_contribution": 305708.27903686,
+                "objective_overhead": 620.2306680398178
+              }
+            ],
+            "max_parent_objective_overhead_abs": 620.2306680398178
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 1000000000,
+          "objective": {
+            "num": 117368645917237,
+            "den": 200000000,
+            "float": 586843.229586185
+          },
+          "objective_float": 586843.229586185,
+          "objective_over_expected": 620.2308299020372,
+          "objective_margin_to_allowed": -343.229586185,
+          "repair_objective_cost": 620.2308299019933,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 596,
+          "max_denominator": 1000000000,
+          "max_denominator_bits": 30,
+          "max_numerator_bits": 46,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 5,
+            "mass": 6020.134999194373
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.890058724340178e-07,
+                "rational_multiplier": {
+                  "num": 49,
+                  "den": 100000000,
+                  "float": 4.9e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 6,
+                "objective_contribution": 305708.27903686,
+                "objective_overhead": 620.2306680398178
+              }
+            ],
+            "max_parent_objective_overhead_abs": 620.2306680398178
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 4294967296,
+          "objective": {
+            "num": 1259133825526833,
+            "den": 2147483648,
+            "float": 586329.8780875434
+          },
+          "objective_float": 586329.8780875434,
+          "objective_over_expected": 106.87933126045391,
+          "objective_margin_to_allowed": 170.12191245658323,
+          "repair_objective_cost": 106.87933126045391,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 596,
+          "max_denominator": 4294967296,
+          "max_denominator_bits": 33,
+          "max_numerator_bits": 48,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 5,
+            "mass": 6020.134999194373
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.890058724340178e-07,
+                "rational_multiplier": {
+                  "num": 2101,
+                  "den": 4294967296,
+                  "float": 4.891771823167801e-07
+                },
+                "denominator": 4294967296,
+                "numerator_bits": 12,
+                "objective_contribution": 305194.9276533942,
+                "objective_overhead": 106.87928457400994
+              }
+            ],
+            "max_parent_objective_overhead_abs": 106.87928457400994
+          },
+          "passes": false
+        }
+      ],
+      "success_summary": null,
+      "failure_reasons": [
+        "no_export_success"
+      ],
+      "status": "export_failed"
+    },
+    {
+      "leaf_index": 9,
+      "terminal_id": "depth3_terminal_0",
+      "expected_bound": 586222.996110642,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "225": 0.0
+      },
+      "depth": 3,
+      "exceptional_rule": "none",
+      "export_required": true,
+      "selection_reason": "top_six_final_terminal",
+      "floating_objective": 586222.9961106421,
+      "expected_error": 1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "row_system_digest": "2486b1bcce6901aaafe7459188e63e88f29cae279ca4a0db430c1aae934a9821",
+      "attempts": [
+        {
+          "denominator_cap": 1000000,
+          "objective": {
+            "num": 452514790113,
+            "den": 500000,
+            "float": 905029.580226
+          },
+          "objective_float": 905029.580226,
+          "objective_over_expected": 318806.584115358,
+          "objective_margin_to_allowed": -318529.580226,
+          "repair_objective_cost": 318806.58411535807,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 600,
+          "max_denominator": 1000000,
+          "max_denominator_bits": 20,
+          "max_numerator_bits": 34,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 3,
+            "mass": 926.7028443225145
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.89005962326026e-07,
+                "rational_multiplier": {
+                  "num": 1,
+                  "den": 1000000,
+                  "float": 1e-06
+                },
+                "denominator": 1000000,
+                "numerator_bits": 1,
+                "objective_contribution": 623894.447014,
+                "objective_overhead": 318806.34256205504
+              }
+            ],
+            "max_parent_objective_overhead_abs": 318806.34256205504
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 100000000,
+          "objective": {
+            "num": 58684317136627,
+            "den": 100000000,
+            "float": 586843.17136627
+          },
+          "objective_float": 586843.17136627,
+          "objective_over_expected": 620.1752556280204,
+          "objective_margin_to_allowed": -343.17136627,
+          "repair_objective_cost": 620.1752556280699,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 600,
+          "max_denominator": 100000000,
+          "max_denominator_bits": 27,
+          "max_numerator_bits": 43,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 3,
+            "mass": 926.7028443225145
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.89005962326026e-07,
+                "rational_multiplier": {
+                  "num": 49,
+                  "den": 100000000,
+                  "float": 4.9e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 6,
+                "objective_contribution": 305708.27903686,
+                "objective_overhead": 620.1745849151048
+              }
+            ],
+            "max_parent_objective_overhead_abs": 620.1745849151048
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 1000000000,
+          "objective": {
+            "num": 586843170846167,
+            "den": 1000000000,
+            "float": 586843.170846167
+          },
+          "objective_float": 586843.170846167,
+          "objective_over_expected": 620.1747355250204,
+          "objective_margin_to_allowed": -343.170846167,
+          "repair_objective_cost": 620.1747355250409,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 600,
+          "max_denominator": 1000000000,
+          "max_denominator_bits": 30,
+          "max_numerator_bits": 44,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 3,
+            "mass": 926.7028443225145
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.89005962326026e-07,
+                "rational_multiplier": {
+                  "num": 49,
+                  "den": 100000000,
+                  "float": 4.9e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 6,
+                "objective_contribution": 305708.27903686,
+                "objective_overhead": 620.1745849151048
+              }
+            ],
+            "max_parent_objective_overhead_abs": 620.1745849151048
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 4294967296,
+          "objective": {
+            "num": 2518267398635255,
+            "den": 4294967296,
+            "float": 586329.8193168023
+          },
+          "objective_float": 586329.8193168023,
+          "objective_over_expected": 106.82320616033394,
+          "objective_margin_to_allowed": 170.18068319768645,
+          "repair_objective_cost": 106.82320616033394,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 600,
+          "max_denominator": 4294967296,
+          "max_denominator_bits": 33,
+          "max_numerator_bits": 49,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 3,
+            "mass": 926.7028443225145
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 4.89005962326026e-07,
+                "rational_multiplier": {
+                  "num": 2101,
+                  "den": 4294967296,
+                  "float": 4.891771823167801e-07
+                },
+                "denominator": 4294967296,
+                "numerator_bits": 12,
+                "objective_contribution": 305194.9276533942,
+                "objective_overhead": 106.8232014492969
+              }
+            ],
+            "max_parent_objective_overhead_abs": 106.8232014492969
+          },
+          "passes": false
+        }
+      ],
+      "success_summary": null,
+      "failure_reasons": [
+        "no_export_success"
+      ],
+      "status": "export_failed"
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_trigger_terminal",
+      "expected_bound": 588378.8642942241,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0
+      },
+      "depth": 4,
+      "exceptional_rule": "leaf0_depth4_residual_pair_closure",
+      "export_required": false,
+      "selection_reason": "leaf0_exception_trigger_audit",
+      "floating_objective": 588378.864294224,
+      "expected_error": -1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "row_system_digest": "85092bca5753a91a7c8d02bf89df6f1aec827e309e496cdcb54be1494fa4ab99",
+      "attempts": [
+        {
+          "denominator_cap": 1000000,
+          "objective": {
+            "num": 277714617117,
+            "den": 250000,
+            "float": 1110858.468468
+          },
+          "objective_float": 1110858.468468,
+          "objective_over_expected": 522479.60417377594,
+          "objective_margin_to_allowed": -524358.468468,
+          "repair_objective_cost": 522479.6041737759,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 599,
+          "max_denominator": 1000000,
+          "max_denominator_bits": 20,
+          "max_numerator_bits": 34,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 0,
+            "mass": 0.0
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 1.625517674271786e-07,
+                "rational_multiplier": {
+                  "num": 1,
+                  "den": 1000000,
+                  "float": 1e-06
+                },
+                "denominator": 1000000,
+                "numerator_bits": 1,
+                "objective_contribution": 623894.447014,
+                "objective_overhead": 522479.301963872
+              }
+            ],
+            "max_parent_objective_overhead_abs": 522479.301963872
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 100000000,
+          "objective": {
+            "num": 59302577667153,
+            "den": 100000000,
+            "float": 593025.77667153
+          },
+          "objective_float": 593025.77667153,
+          "objective_over_expected": 4646.912377305931,
+          "objective_margin_to_allowed": -6525.77667153,
+          "repair_objective_cost": 4646.912377305911,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 599,
+          "max_denominator": 100000000,
+          "max_denominator_bits": 27,
+          "max_numerator_bits": 40,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 0,
+            "mass": 0.0
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 1.625517674271786e-07,
+                "rational_multiplier": {
+                  "num": 17,
+                  "den": 100000000,
+                  "float": 1.7e-07
+                },
+                "denominator": 100000000,
+                "numerator_bits": 5,
+                "objective_contribution": 106062.05599238,
+                "objective_overhead": 4646.910942252056
+              }
+            ],
+            "max_parent_objective_overhead_abs": 4646.910942252056
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 1000000000,
+          "objective": {
+            "num": 588658514453649,
+            "den": 1000000000,
+            "float": 588658.514453649
+          },
+          "objective_float": 588658.514453649,
+          "objective_over_expected": 279.65015942493056,
+          "objective_margin_to_allowed": -2158.514453649,
+          "repair_objective_cost": 279.65015942498576,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 599,
+          "max_denominator": 1000000000,
+          "max_denominator_bits": 30,
+          "max_numerator_bits": 44,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 0,
+            "mass": 0.0
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 1.625517674271786e-07,
+                "rational_multiplier": {
+                  "num": 163,
+                  "den": 1000000000,
+                  "float": 1.63e-07
+                },
+                "denominator": 1000000000,
+                "numerator_bits": 8,
+                "objective_contribution": 101694.794863282,
+                "objective_overhead": 279.6498131540575
+              }
+            ],
+            "max_parent_objective_overhead_abs": 279.6498131540575
+          },
+          "passes": false
+        },
+        {
+          "denominator_cap": 4294967296,
+          "objective": {
+            "num": 631898866746379,
+            "den": 1073741824,
+            "float": 588501.6794748409
+          },
+          "objective_float": 588501.6794748409,
+          "objective_over_expected": 122.81518061680254,
+          "objective_margin_to_allowed": -2001.679474840872,
+          "repair_objective_cost": 122.81518061680254,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 0,
+          "argmin_vertices": [
+            5,
+            6,
+            45,
+            46,
+            240,
+            241,
+            367,
+            368,
+            562,
+            563,
+            602,
+            603
+          ],
+          "positive_row_count": 599,
+          "max_denominator": 4294967296,
+          "max_denominator_bits": 33,
+          "max_numerator_bits": 45,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 0,
+            "mass": 0.0
+          },
+          "parent_lift_report": {
+            "rows": [
+              {
+                "id": "parent_lift_1",
+                "float_multiplier": 1.625517674271786e-07,
+                "rational_multiplier": {
+                  "num": 699,
+                  "den": 4294967296,
+                  "float": 1.6274861991405487e-07
+                },
+                "denominator": 4294967296,
+                "numerator_bits": 10,
+                "objective_contribution": 101537.96022357093,
+                "objective_overhead": 122.81517344299937
+              }
+            ],
+            "max_parent_objective_overhead_abs": 122.81517344299937
+          },
+          "passes": false
+        }
+      ],
+      "success_summary": null,
+      "failure_reasons": [],
+      "status": "audit_only"
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_child_0",
+      "expected_bound": 581480.9999999993,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "depth": 5,
+      "exceptional_rule": "leaf0_residual_pair_child",
+      "export_required": true,
+      "selection_reason": "leaf0_exception_child_export",
+      "residual_pair_assignment": {
+        "222": 0.0,
+        "456": 0.0
+      },
+      "floating_objective": 581480.9999999999,
+      "expected_error": 5.820766091346741e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "row_system_digest": "8128fcbbcfd3c2960c071242c61f56bb22459f1e7e6e6abea03869906fa17ba0",
+      "attempts": [
+        {
+          "denominator_cap": 1000000,
+          "objective": {
+            "num": 290740500093,
+            "den": 500000,
+            "float": 581481.000186
+          },
+          "objective_float": 581481.000186,
+          "objective_over_expected": 0.00018600069849193096,
+          "objective_margin_to_allowed": 299.9998139993015,
+          "repair_objective_cost": 0.00018600071780383587,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 225,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ],
+          "positive_row_count": 597,
+          "max_denominator": 1000000,
+          "max_denominator_bits": 20,
+          "max_numerator_bits": 33,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 0,
+            "mass": 0.0
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        },
+        {
+          "denominator_cap": 100000000,
+          "objective": {
+            "num": 58148100000189,
+            "den": 100000000,
+            "float": 581481.00000189
+          },
+          "objective_float": 581481.00000189,
+          "objective_over_expected": 1.8906984919309615e-06,
+          "objective_margin_to_allowed": 299.9999981093015,
+          "repair_objective_cost": 1.8907012417912483e-06,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 225,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ],
+          "positive_row_count": 597,
+          "max_denominator": 100000000,
+          "max_denominator_bits": 27,
+          "max_numerator_bits": 39,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 0,
+            "mass": 0.0
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        },
+        {
+          "denominator_cap": 1000000000,
+          "objective": {
+            "num": 72685125000023,
+            "den": 125000000,
+            "float": 581481.000000184
+          },
+          "objective_float": 581481.000000184,
+          "objective_over_expected": 1.8469849193096162e-07,
+          "objective_margin_to_allowed": 299.9999998153015,
+          "repair_objective_cost": 1.8475111573934555e-07,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 225,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ],
+          "positive_row_count": 597,
+          "max_denominator": 1000000000,
+          "max_denominator_bits": 30,
+          "max_numerator_bits": 43,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 0,
+            "mass": 0.0
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        },
+        {
+          "denominator_cap": 4294967296,
+          "objective": {
+            "num": 1248720939122781,
+            "den": 2147483648,
+            "float": 581481.0000000433
+          },
+          "objective_float": 581481.0000000433,
+          "objective_over_expected": 4.400499165058136e-08,
+          "objective_margin_to_allowed": 299.999999955995,
+          "repair_objective_cost": 4.400499165058136e-08,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 225,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ],
+          "positive_row_count": 597,
+          "max_denominator": 4294967296,
+          "max_denominator_bits": 33,
+          "max_numerator_bits": 45,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 0,
+            "mass": 0.0
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        }
+      ],
+      "success_summary": {
+        "denominator_cap": 4294967296,
+        "objective": {
+          "num": 1248720939122781,
+          "den": 2147483648,
+          "float": 581481.0000000433
+        },
+        "objective_float": 581481.0000000433,
+        "objective_over_expected": 4.400499165058136e-08,
+        "objective_margin_to_allowed": 299.999999955995,
+        "repair_objective_cost": 4.400499165058136e-08,
+        "min_slack": 1,
+        "zero_slack_vertex_count": 225,
+        "argmin_vertices": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          11,
+          12,
+          13
+        ],
+        "positive_row_count": 597,
+        "max_denominator": 4294967296,
+        "max_denominator_bits": 33,
+        "max_numerator_bits": 45,
+        "lower_bound_positive_reported_not_exported": {
+          "count": 0,
+          "mass": 0.0
+        },
+        "parent_lift_report": {
+          "rows": [],
+          "max_parent_objective_overhead_abs": 0.0
+        },
+        "passes": true
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_child_1",
+      "expected_bound": 559233.6666666667,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "depth": 5,
+      "exceptional_rule": "leaf0_residual_pair_child",
+      "export_required": true,
+      "selection_reason": "leaf0_exception_child_export",
+      "residual_pair_assignment": {
+        "222": 0.0,
+        "456": 1.0
+      },
+      "floating_objective": 559233.6666666666,
+      "expected_error": -1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "row_system_digest": "8128fcbbcfd3c2960c071242c61f56bb22459f1e7e6e6abea03869906fa17ba0",
+      "attempts": [
+        {
+          "denominator_cap": 1000000,
+          "objective": {
+            "num": 279616833407,
+            "den": 500000,
+            "float": 559233.666814
+          },
+          "objective_float": 559233.666814,
+          "objective_over_expected": 0.0001473332557231188,
+          "objective_margin_to_allowed": 299.9998526667443,
+          "repair_objective_cost": 0.00014733325224369764,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 302,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            13
+          ],
+          "positive_row_count": 592,
+          "max_denominator": 1000000,
+          "max_denominator_bits": 20,
+          "max_numerator_bits": 33,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 1,
+            "mass": 22881.0
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        },
+        {
+          "denominator_cap": 100000000,
+          "objective": {
+            "num": 13980841666703,
+            "den": 25000000,
+            "float": 559233.66666812
+          },
+          "objective_float": 559233.66666812,
+          "objective_over_expected": 1.453255723118782e-06,
+          "objective_margin_to_allowed": 299.9999985467443,
+          "repair_objective_cost": 1.4532124623656273e-06,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 302,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            13
+          ],
+          "positive_row_count": 592,
+          "max_denominator": 100000000,
+          "max_denominator_bits": 27,
+          "max_numerator_bits": 39,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 1,
+            "mass": 22881.0
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        },
+        {
+          "denominator_cap": 1000000000,
+          "objective": {
+            "num": 279616833333407,
+            "den": 500000000,
+            "float": 559233.666666814
+          },
+          "objective_float": 559233.666666814,
+          "objective_over_expected": 1.4725572311878203e-07,
+          "objective_margin_to_allowed": 299.9999998527443,
+          "repair_objective_cost": 1.4726538211107254e-07,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 302,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            13
+          ],
+          "positive_row_count": 592,
+          "max_denominator": 1000000000,
+          "max_denominator_bits": 30,
+          "max_numerator_bits": 43,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 1,
+            "mass": 22881.0
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        },
+        {
+          "denominator_cap": 4294967296,
+          "objective": {
+            "num": 600472577288911,
+            "den": 1073741824,
+            "float": 559233.6666667005
+          },
+          "objective_float": 559233.6666667005,
+          "objective_over_expected": 3.3760443329811096e-08,
+          "objective_margin_to_allowed": 299.99999996623956,
+          "repair_objective_cost": 3.3760443329811096e-08,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 302,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            13
+          ],
+          "positive_row_count": 592,
+          "max_denominator": 4294967296,
+          "max_denominator_bits": 33,
+          "max_numerator_bits": 45,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 1,
+            "mass": 22881.0
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        }
+      ],
+      "success_summary": {
+        "denominator_cap": 4294967296,
+        "objective": {
+          "num": 600472577288911,
+          "den": 1073741824,
+          "float": 559233.6666667005
+        },
+        "objective_float": 559233.6666667005,
+        "objective_over_expected": 3.3760443329811096e-08,
+        "objective_margin_to_allowed": 299.99999996623956,
+        "repair_objective_cost": 3.3760443329811096e-08,
+        "min_slack": 1,
+        "zero_slack_vertex_count": 302,
+        "argmin_vertices": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          13
+        ],
+        "positive_row_count": 592,
+        "max_denominator": 4294967296,
+        "max_denominator_bits": 33,
+        "max_numerator_bits": 45,
+        "lower_bound_positive_reported_not_exported": {
+          "count": 1,
+          "mass": 22881.0
+        },
+        "parent_lift_report": {
+          "rows": [],
+          "max_parent_objective_overhead_abs": 0.0
+        },
+        "passes": true
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_child_2",
+      "expected_bound": 559233.6666666666,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "depth": 5,
+      "exceptional_rule": "leaf0_residual_pair_child",
+      "export_required": true,
+      "selection_reason": "leaf0_exception_child_export",
+      "residual_pair_assignment": {
+        "222": 1.0,
+        "456": 0.0
+      },
+      "floating_objective": 559233.6666666665,
+      "expected_error": -1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "row_system_digest": "8128fcbbcfd3c2960c071242c61f56bb22459f1e7e6e6abea03869906fa17ba0",
+      "attempts": [
+        {
+          "denominator_cap": 1000000,
+          "objective": {
+            "num": 559233666817,
+            "den": 1000000,
+            "float": 559233.666817
+          },
+          "objective_float": 559233.666817,
+          "objective_over_expected": 0.0001503333721384406,
+          "objective_margin_to_allowed": 299.9998496666279,
+          "repair_objective_cost": 0.00015033339150249958,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 288,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ],
+          "positive_row_count": 593,
+          "max_denominator": 1000000,
+          "max_denominator_bits": 20,
+          "max_numerator_bits": 33,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 1,
+            "mass": 22881.0
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        },
+        {
+          "denominator_cap": 100000000,
+          "objective": {
+            "num": 27961683333411,
+            "den": 50000000,
+            "float": 559233.66666822
+          },
+          "objective_float": 559233.66666822,
+          "objective_over_expected": 1.553372138440609e-06,
+          "objective_margin_to_allowed": 299.99999844662784,
+          "repair_objective_cost": 1.5533296391367912e-06,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 288,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ],
+          "positive_row_count": 593,
+          "max_denominator": 100000000,
+          "max_denominator_bits": 27,
+          "max_numerator_bits": 40,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 1,
+            "mass": 22881.0
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        },
+        {
+          "denominator_cap": 1000000000,
+          "objective": {
+            "num": 559233666666821,
+            "den": 1000000000,
+            "float": 559233.666666821
+          },
+          "objective_float": 559233.666666821,
+          "objective_over_expected": 1.54372138440609e-07,
+          "objective_margin_to_allowed": 299.9999998456279,
+          "repair_objective_cost": 1.5436671674251556e-07,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 288,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ],
+          "positive_row_count": 593,
+          "max_denominator": 1000000000,
+          "max_denominator_bits": 30,
+          "max_numerator_bits": 43,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 1,
+            "mass": 22881.0
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        },
+        {
+          "denominator_cap": 4294967296,
+          "objective": {
+            "num": 2401890309155651,
+            "den": 4294967296,
+            "float": 559233.6666667021
+          },
+          "objective_float": 559233.6666667021,
+          "objective_over_expected": 3.550667315721512e-08,
+          "objective_margin_to_allowed": 299.9999999644933,
+          "repair_objective_cost": 3.550667315721512e-08,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 288,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ],
+          "positive_row_count": 593,
+          "max_denominator": 4294967296,
+          "max_denominator_bits": 33,
+          "max_numerator_bits": 45,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 1,
+            "mass": 22881.0
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        }
+      ],
+      "success_summary": {
+        "denominator_cap": 4294967296,
+        "objective": {
+          "num": 2401890309155651,
+          "den": 4294967296,
+          "float": 559233.6666667021
+        },
+        "objective_float": 559233.6666667021,
+        "objective_over_expected": 3.550667315721512e-08,
+        "objective_margin_to_allowed": 299.9999999644933,
+        "repair_objective_cost": 3.550667315721512e-08,
+        "min_slack": 1,
+        "zero_slack_vertex_count": 288,
+        "argmin_vertices": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "positive_row_count": 593,
+        "max_denominator": 4294967296,
+        "max_denominator_bits": 33,
+        "max_numerator_bits": 45,
+        "lower_bound_positive_reported_not_exported": {
+          "count": 1,
+          "mass": 22881.0
+        },
+        "parent_lift_report": {
+          "rows": [],
+          "max_parent_objective_overhead_abs": 0.0
+        },
+        "passes": true
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_child_3",
+      "expected_bound": 558844.3246901055,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "depth": 5,
+      "exceptional_rule": "leaf0_residual_pair_child",
+      "export_required": true,
+      "selection_reason": "leaf0_exception_child_export",
+      "residual_pair_assignment": {
+        "222": 1.0,
+        "456": 1.0
+      },
+      "floating_objective": 558844.3246901053,
+      "expected_error": -2.3283064365386963e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "row_system_digest": "8128fcbbcfd3c2960c071242c61f56bb22459f1e7e6e6abea03869906fa17ba0",
+      "attempts": [
+        {
+          "denominator_cap": 1000000,
+          "objective": {
+            "num": 558844407403,
+            "den": 1000000,
+            "float": 558844.407403
+          },
+          "objective_float": 558844.407403,
+          "objective_over_expected": 0.08271289449005574,
+          "objective_margin_to_allowed": 299.91728710550996,
+          "repair_objective_cost": 0.08271289453841746,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 208,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ],
+          "positive_row_count": 594,
+          "max_denominator": 1000000,
+          "max_denominator_bits": 20,
+          "max_numerator_bits": 36,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 4,
+            "mass": 16384.514031372673
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        },
+        {
+          "denominator_cap": 100000000,
+          "objective": {
+            "num": 13971108189509,
+            "den": 25000000,
+            "float": 558844.32758036
+          },
+          "objective_float": 558844.32758036,
+          "objective_over_expected": 0.00289025449005574,
+          "objective_margin_to_allowed": 299.99710974550993,
+          "repair_objective_cost": 0.002890254487283528,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 208,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ],
+          "positive_row_count": 594,
+          "max_denominator": 100000000,
+          "max_denominator_bits": 27,
+          "max_numerator_bits": 44,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 4,
+            "mass": 16384.514031372673
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        },
+        {
+          "denominator_cap": 1000000000,
+          "objective": {
+            "num": 139711081261119,
+            "den": 250000000,
+            "float": 558844.325044476
+          },
+          "objective_float": 558844.325044476,
+          "objective_over_expected": 0.00035437049005573987,
+          "objective_margin_to_allowed": 299.9996456295099,
+          "repair_objective_cost": 0.0003543704515323043,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 208,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ],
+          "positive_row_count": 594,
+          "max_denominator": 1000000000,
+          "max_denominator_bits": 30,
+          "max_numerator_bits": 47,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 4,
+            "mass": 16384.514031372673
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        },
+        {
+          "denominator_cap": 4294967296,
+          "objective": {
+            "num": 2400218098258177,
+            "den": 4294967296,
+            "float": 558844.3247271182
+          },
+          "objective_float": 558844.3247271182,
+          "objective_over_expected": 3.7012738175690174e-05,
+          "objective_margin_to_allowed": 299.9999629872618,
+          "repair_objective_cost": 3.7012738175690174e-05,
+          "min_slack": 1,
+          "zero_slack_vertex_count": 208,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ],
+          "positive_row_count": 594,
+          "max_denominator": 4294967296,
+          "max_denominator_bits": 33,
+          "max_numerator_bits": 47,
+          "lower_bound_positive_reported_not_exported": {
+            "count": 4,
+            "mass": 16384.514031372673
+          },
+          "parent_lift_report": {
+            "rows": [],
+            "max_parent_objective_overhead_abs": 0.0
+          },
+          "passes": true
+        }
+      ],
+      "success_summary": {
+        "denominator_cap": 4294967296,
+        "objective": {
+          "num": 2400218098258177,
+          "den": 4294967296,
+          "float": 558844.3247271182
+        },
+        "objective_float": 558844.3247271182,
+        "objective_over_expected": 3.7012738175690174e-05,
+        "objective_margin_to_allowed": 299.9999629872618,
+        "repair_objective_cost": 3.7012738175690174e-05,
+        "min_slack": 1,
+        "zero_slack_vertex_count": 208,
+        "argmin_vertices": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          11,
+          12,
+          13
+        ],
+        "positive_row_count": 594,
+        "max_denominator": 4294967296,
+        "max_denominator_bits": 33,
+        "max_numerator_bits": 47,
+        "lower_bound_positive_reported_not_exported": {
+          "count": 4,
+          "mass": 16384.514031372673
+        },
+        "parent_lift_report": {
+          "rows": [],
+          "max_parent_objective_overhead_abs": 0.0
+        },
+        "passes": true
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    }
+  ],
+  "failure_reasons": [
+    "depth3_terminal_0:no_export_success",
+    "not_all_required_terminals_exported"
+  ],
+  "status": "retire_upward_rational_terminal_export_probe"
+}

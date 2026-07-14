@@ -89,6 +89,10 @@ varisat = "0.2.1"
 sha2 = "0.10"
 good_lp = { version = "1.15.2", default-features = false, features = ["minilp"] }
 clarabel = "0.11.1"
+num-bigint = "0.4"
+num-integer = "0.1"
+num-traits = "0.2"
+zip = { version = "2", default-features = false, features = ["deflate"] }
 
 # Observability
 tracing = "0.1"

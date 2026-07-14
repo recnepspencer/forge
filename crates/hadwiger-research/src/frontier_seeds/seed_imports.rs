@@ -13,6 +13,14 @@ const HEULE_510_COORDINATE_DIGEST: &str =
     "sha256:f6aba3ec7158445875229ff1bf52b68a9a709cd871bdfe468ca65ad865b8622a";
 const HEULE_510_URL: &str =
     "https://github.com/vasnesterov/HadwigerNelson/blob/master/vtx/510_heule.vtx";
+const G27_GEOMETRIC_FRACTIONAL_URL: &str = "https://static.renyi.hu/ai-shared/daniel/fcn-4/";
+const G27_GEOMETRIC_FRACTIONAL_DIGEST: &str = concat!(
+    "g27_coeffs=sha256:9b368fcc538940cda9678c87fda77aee532c5f153cb7bc3e6903fd05862e6168;",
+    "adjacency=sha256:7a47c3d25bb459ef4cdd73ffa1372734c967bf93cb319265738a01c4d6882fa0;",
+    "atoms=sha256:b425ec7045d74028aec379440823903801e15703834d31652c0a3cff354bab74;",
+    "isometries=sha256:ec556af4c50e1e170b585d123513258732c9e4b9859938e22ace574e41b700ad;",
+    "witness=sha256:1581c9d2139b12d56a3f9b0e2b88f0d985f2244aa0239b8fe004d496bd151adb"
+);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FrontierSeedFormat {
@@ -63,6 +71,19 @@ impl FrontierGraphSeedImport {
             format: FrontierSeedFormat::DimacsEdgeList,
             edge_list: HEULE_510_EDGE_LIST.to_string(),
             algebraic_embedding_certificate: Some(HEULE_510_ALGEBRAIC_CERTIFICATE.to_string()),
+        }
+    }
+
+    pub fn g27_geometric_fractional() -> Self {
+        Self {
+            seed_id: "matolcsi-ruzsa-varga-zsamboki-g27".to_string(),
+            version_id: "g27.geometric_fractional.v1".to_string(),
+            source_url: G27_GEOMETRIC_FRACTIONAL_URL.to_string(),
+            source_digest: G27_GEOMETRIC_FRACTIONAL_DIGEST.to_string(),
+            source_family: "geometric_fractional_chromatic_g27".to_string(),
+            format: FrontierSeedFormat::DimacsEdgeList,
+            edge_list: super::g27_geometric_fractional::g27_dimacs_edge_list(),
+            algebraic_embedding_certificate: None,
         }
     }
 

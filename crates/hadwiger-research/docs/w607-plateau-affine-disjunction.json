@@ -1,0 +1,635 @@
+{
+  "schema": "forge.hadwiger.w607_plateau_affine_disjunction.v1",
+  "authority": "diagnostic_affine_disjunctive_aggregation_not_replay_authority",
+  "graph_digest": "5ee6b6ce564e2034a89df8ba5cb0a2103d3fcd3a5aacea72b13445c456f57683",
+  "row_system": "16_root_rank_rows_plus_projected_parent_lift_plus_branch_slack_parent_lift",
+  "tier_a_vertices": [
+    305,
+    224,
+    385,
+    303,
+    223,
+    384
+  ],
+  "expanded_count": 15,
+  "leaf_count": 16,
+  "root_objective": 594914.351525072,
+  "root_tier_values": {
+    "305": 0.33333333333339504,
+    "224": 0.3333333333333428,
+    "385": 0.3333333333333317,
+    "303": 0.3333333333333255,
+    "223": 0.33333333333332005,
+    "384": 0.3333333333332849
+  },
+  "coefficients": {
+    "305": 2084.031699099811,
+    "224": 2085.5905341790058,
+    "385": 2085.589009140036,
+    "303": 2085.589533373015,
+    "223": 2084.031842072378,
+    "384": 2084.0318897290854
+  },
+  "B": 596443.4887654827,
+  "raw_violation": 2640.4842621204443,
+  "new_objective": 594775.1668514076,
+  "drop": 139.1846736643929,
+  "new_tier_values": {
+    "305": 0.33333333333331444,
+    "224": 0.0,
+    "385": 0.0,
+    "303": 0.0,
+    "223": 0.3333333333333379,
+    "384": 0.13385946814240204
+  },
+  "scalar_max_leaf_bound": 594597.0511219536,
+  "scalar_max_leaf_drop": 317.30040311813354,
+  "known_max_leaf_drop": 317.3004031183664,
+  "active_leaf_indices": [
+    2,
+    6,
+    7,
+    8,
+    11,
+    14,
+    15
+  ],
+  "gates": {
+    "raw_kill": 250.0,
+    "drop_kill": 250.0,
+    "fund_drop": 1000.0,
+    "strong_drop": 3000.0,
+    "meaningful_objective": 593500.0,
+    "repackage_margin": 100.0
+  },
+  "leaves": [
+    {
+      "leaf_index": 0,
+      "included": [],
+      "excluded": [
+        223,
+        224,
+        303,
+        305,
+        384,
+        385
+      ],
+      "upper": 594597.0511219536,
+      "depth": 6,
+      "fixed_one": [],
+      "fixed_zero": [
+        223,
+        224,
+        303,
+        305,
+        384,
+        385
+      ],
+      "neighbor_forced_zero": [],
+      "charged_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "affine_leaf_bound": 594597.0511219536,
+      "slack_to_B": 1846.4376435290324
+    },
+    {
+      "leaf_index": 1,
+      "included": [
+        223
+      ],
+      "excluded": [
+        224,
+        303,
+        305,
+        384,
+        385
+      ],
+      "upper": 594359.4564410276,
+      "depth": 6,
+      "fixed_one": [
+        223
+      ],
+      "fixed_zero": [
+        224,
+        303,
+        305,
+        384,
+        385
+      ],
+      "neighbor_forced_zero": [],
+      "charged_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "affine_leaf_bound": 596443.4882831,
+      "slack_to_B": 0.00048238271847367287
+    },
+    {
+      "leaf_index": 2,
+      "included": [
+        303
+      ],
+      "excluded": [
+        223,
+        224,
+        305,
+        384,
+        385
+      ],
+      "upper": 594357.8992321097,
+      "depth": 6,
+      "fixed_one": [
+        303
+      ],
+      "fixed_zero": [
+        223,
+        224,
+        305,
+        384,
+        385
+      ],
+      "neighbor_forced_zero": [],
+      "charged_mask": [
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "affine_leaf_bound": 596443.4887654827,
+      "slack_to_B": 0.0
+    },
+    {
+      "leaf_index": 3,
+      "included": [
+        223,
+        303
+      ],
+      "excluded": [
+        224,
+        305,
+        384,
+        385
+      ],
+      "upper": 592273.8672470658,
+      "depth": 6,
+      "fixed_one": [
+        223,
+        303
+      ],
+      "fixed_zero": [
+        224,
+        305,
+        384,
+        385
+      ],
+      "neighbor_forced_zero": [],
+      "charged_mask": [
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "affine_leaf_bound": 596443.4886225112,
+      "slack_to_B": 0.00014297151938080788
+    },
+    {
+      "leaf_index": 4,
+      "included": [
+        385
+      ],
+      "excluded": [
+        223,
+        224,
+        305,
+        384
+      ],
+      "upper": 594357.7684871177,
+      "depth": 5,
+      "fixed_one": [
+        385
+      ],
+      "fixed_zero": [
+        223,
+        224,
+        305,
+        384
+      ],
+      "neighbor_forced_zero": [
+        303
+      ],
+      "charged_mask": [
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "affine_leaf_bound": 596443.3574962578,
+      "slack_to_B": 0.13126922491937876
+    },
+    {
+      "leaf_index": 5,
+      "included": [
+        223,
+        385
+      ],
+      "excluded": [
+        224,
+        305,
+        384
+      ],
+      "upper": 592196.8722383025,
+      "depth": 5,
+      "fixed_one": [
+        223,
+        385
+      ],
+      "fixed_zero": [
+        224,
+        305,
+        384
+      ],
+      "neighbor_forced_zero": [
+        303
+      ],
+      "charged_mask": [
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "affine_leaf_bound": 596366.4930895149,
+      "slack_to_B": 76.99567596777342
+    },
+    {
+      "leaf_index": 6,
+      "included": [
+        384
+      ],
+      "excluded": [
+        224,
+        303,
+        305,
+        385
+      ],
+      "upper": 594359.4568757536,
+      "depth": 5,
+      "fixed_one": [
+        384
+      ],
+      "fixed_zero": [
+        224,
+        303,
+        305,
+        385
+      ],
+      "neighbor_forced_zero": [
+        223
+      ],
+      "charged_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "affine_leaf_bound": 596443.4887654827,
+      "slack_to_B": 0.0
+    },
+    {
+      "leaf_index": 7,
+      "included": [
+        384,
+        385
+      ],
+      "excluded": [
+        224,
+        303,
+        305
+      ],
+      "upper": 592273.8678666136,
+      "depth": 5,
+      "fixed_one": [
+        384,
+        385
+      ],
+      "fixed_zero": [
+        224,
+        303,
+        305
+      ],
+      "neighbor_forced_zero": [
+        223
+      ],
+      "charged_mask": [
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "affine_leaf_bound": 596443.4887654827,
+      "slack_to_B": 0.0
+    },
+    {
+      "leaf_index": 8,
+      "included": [
+        303,
+        384
+      ],
+      "excluded": [
+        224,
+        305
+      ],
+      "upper": 592273.8673423806,
+      "depth": 4,
+      "fixed_one": [
+        303,
+        384
+      ],
+      "fixed_zero": [
+        224,
+        305
+      ],
+      "neighbor_forced_zero": [
+        223,
+        385
+      ],
+      "charged_mask": [
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "affine_leaf_bound": 596443.4887654827,
+      "slack_to_B": 0.0
+    },
+    {
+      "leaf_index": 9,
+      "included": [
+        224
+      ],
+      "excluded": [
+        223,
+        305,
+        384
+      ],
+      "upper": 594357.7643092521,
+      "depth": 4,
+      "fixed_one": [
+        224
+      ],
+      "fixed_zero": [
+        223,
+        305,
+        384
+      ],
+      "neighbor_forced_zero": [
+        303,
+        385
+      ],
+      "charged_mask": [
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "affine_leaf_bound": 596443.3548434312,
+      "slack_to_B": 0.13392205152194947
+    },
+    {
+      "leaf_index": 10,
+      "included": [
+        224,
+        384
+      ],
+      "excluded": [
+        223,
+        305
+      ],
+      "upper": 592196.8707394645,
+      "depth": 4,
+      "fixed_one": [
+        224,
+        384
+      ],
+      "fixed_zero": [
+        223,
+        305
+      ],
+      "neighbor_forced_zero": [
+        303,
+        385
+      ],
+      "charged_mask": [
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "affine_leaf_bound": 596366.4931633726,
+      "slack_to_B": 76.99560211005155
+    },
+    {
+      "leaf_index": 11,
+      "included": [
+        223,
+        224
+      ],
+      "excluded": [
+        305
+      ],
+      "upper": 592273.8663892313,
+      "depth": 3,
+      "fixed_one": [
+        223,
+        224
+      ],
+      "fixed_zero": [
+        305
+      ],
+      "neighbor_forced_zero": [
+        303,
+        384,
+        385
+      ],
+      "charged_mask": [
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "affine_leaf_bound": 596443.4887654827,
+      "slack_to_B": 0.0
+    },
+    {
+      "leaf_index": 12,
+      "included": [
+        305
+      ],
+      "excluded": [
+        224,
+        303,
+        385
+      ],
+      "upper": 594359.3562340162,
+      "depth": 4,
+      "fixed_one": [
+        305
+      ],
+      "fixed_zero": [
+        224,
+        303,
+        385
+      ],
+      "neighbor_forced_zero": [
+        223,
+        384
+      ],
+      "charged_mask": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "affine_leaf_bound": 596443.387933116,
+      "slack_to_B": 0.10083236661739647
+    },
+    {
+      "leaf_index": 13,
+      "included": [
+        303,
+        305
+      ],
+      "excluded": [
+        224,
+        385
+      ],
+      "upper": 592196.8714540305,
+      "depth": 4,
+      "fixed_one": [
+        303,
+        305
+      ],
+      "fixed_zero": [
+        224,
+        385
+      ],
+      "neighbor_forced_zero": [
+        223,
+        384
+      ],
+      "charged_mask": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "affine_leaf_bound": 596366.4926865033,
+      "slack_to_B": 76.99607897934038
+    },
+    {
+      "leaf_index": 14,
+      "included": [
+        224,
+        305
+      ],
+      "excluded": [
+        385
+      ],
+      "upper": 592273.8665322039,
+      "depth": 3,
+      "fixed_one": [
+        224,
+        305
+      ],
+      "fixed_zero": [
+        385
+      ],
+      "neighbor_forced_zero": [
+        223,
+        303,
+        384
+      ],
+      "charged_mask": [
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "affine_leaf_bound": 596443.4887654827,
+      "slack_to_B": 0.0
+    },
+    {
+      "leaf_index": 15,
+      "included": [
+        305,
+        385
+      ],
+      "excluded": [],
+      "upper": 592273.8680572428,
+      "depth": 2,
+      "fixed_one": [
+        305,
+        385
+      ],
+      "fixed_zero": [],
+      "neighbor_forced_zero": [
+        223,
+        224,
+        303,
+        384
+      ],
+      "charged_mask": [
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "affine_leaf_bound": 596443.4887654827,
+      "slack_to_B": 0.0
+    }
+  ],
+  "failure_modes": [
+    "leaf_bounds_not_full_parent_objective",
+    "leaves_not_semantic_partition",
+    "neighbor_zero_not_graph_verified",
+    "signed_coefficients_used_without_exact_leaf_supremum",
+    "diagnostic_aggregation_mistaken_for_replay_authority"
+  ],
+  "status": "RetirePlateauAffineDisjunction"
+}

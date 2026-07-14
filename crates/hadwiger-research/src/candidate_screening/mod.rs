@@ -12,6 +12,7 @@ mod finite_graph_view;
 mod finite_patch_boundary_extension_screening;
 mod forbidden_displacement_screening;
 mod fractional_chromatic_screening;
+mod geometric_fractional_chromatic_screening;
 mod graph_embedding_index;
 mod graph_embedding_screening_support;
 mod invariants;
@@ -61,6 +62,10 @@ pub use fractional_chromatic_screening::{
     evaluate_fractional_chromatic_certificate_checked,
     evaluate_fractional_chromatic_screening_checked,
 };
+pub use geometric_fractional_chromatic_screening::{
+    evaluate_geometric_fractional_chromatic_certificate_checked,
+    evaluate_geometric_fractional_chromatic_screening_checked,
+};
 pub(crate) use graph_embedding_index::ScreeningFiniteGraphIndex;
 use invariants::{invariant_definition, ALL_SCREENING_FAMILIES};
 pub use known_obstruction_containment_screening::evaluate_known_obstruction_containment_screening_checked;
@@ -86,15 +91,17 @@ pub use optimization::{
     ExactConflictGraphEdgeCertificate, ExactUnitDistanceConflictCertificate,
     ExhaustiveLocalNeighborhoodCertificate, FinitePatchBoundaryExtensionCertificate,
     ForbiddenDisplacementCertificate, FractionalChromaticCertificate,
-    KnownObstructionContainmentCertificate, LocalDensityWindowCertificate, LovaszThetaCertificate,
-    MinkowskiUnitIntersectionCertificate, MonodromyColorHolonomyCertificate,
-    NumericalMarginCertificate, PeriodicColorClassMeasureModel, PeriodicMeasureCell,
-    PeriodicMeasureWindow, PeriodicQuotientConflictCertificate, PeriodicQuotientRectangleModel,
-    PeriodicQuotientTile, RigidityRealizationCertificate, RigidityRealizationPosture,
-    SameColorSeparationCertificate, ScreeningMatrixCertificate, ScreeningPsdWitnessCertificate,
-    ScreeningRational, ScreeningRectangularRegion, ScreeningSolverTranscript,
-    SubstitutionConsistencyCertificate, SubstitutionConsistencyFailureKind,
-    SymmetryOrbitReductionCertificate, TileDiameterCertificate,
+    GeometricFractionalChromaticCertificate, GeometricFractionalEqualityAdjustment,
+    GeometricFractionalSearchScope, GeometricPairwiseSquaredDistance,
+    GeometricSubsetIsometryWitness, KnownObstructionContainmentCertificate,
+    LocalDensityWindowCertificate, LovaszThetaCertificate, MinkowskiUnitIntersectionCertificate,
+    MonodromyColorHolonomyCertificate, NumericalMarginCertificate, PeriodicColorClassMeasureModel,
+    PeriodicMeasureCell, PeriodicMeasureWindow, PeriodicQuotientConflictCertificate,
+    PeriodicQuotientRectangleModel, PeriodicQuotientTile, RigidityRealizationCertificate,
+    RigidityRealizationPosture, SameColorSeparationCertificate, ScreeningMatrixCertificate,
+    ScreeningPsdWitnessCertificate, ScreeningRational, ScreeningRectangularRegion,
+    ScreeningSolverTranscript, SubstitutionConsistencyCertificate,
+    SubstitutionConsistencyFailureKind, SymmetryOrbitReductionCertificate, TileDiameterCertificate,
     TranslationRotationClosureCertificate, UnitDistanceEmbeddabilityCertificate,
 };
 pub use periodic_quotient_graph_screening::evaluate_periodic_quotient_graph_screening_checked;
@@ -118,6 +125,7 @@ pub enum CandidateScreeningInvariantFamily {
     WeightedIndependenceNumberBound,
     HallRatioSubpatchIndependenceBound,
     FractionalChromaticNumber,
+    GeometricFractionalChromaticNumber,
     LovaszThetaBound,
     SpectralHoffmanBound,
     DegeneracyKCoreFilter,
@@ -154,7 +162,7 @@ impl CandidateScreeningInvariantFamily {
         invariant_definition(self).title
     }
 
-    pub fn all() -> &'static [Self; 34] {
+    pub fn all() -> &'static [Self; 35] {
         &ALL_SCREENING_FAMILIES
     }
 }

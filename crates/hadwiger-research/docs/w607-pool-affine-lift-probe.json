@@ -1,0 +1,3329 @@
+{
+  "schema": "forge.hadwiger.w607_pool_affine_lift_probe.v1",
+  "authority": "diagnostic_pool_affine_bridge_not_export_authority",
+  "source_binding": {
+    "fresh_replay_path": "C:\\forge-2\\crates\\hadwiger-research\\docs\\w607-fresh-mixed-branch-replay.json",
+    "fresh_replay_digest": "8c2f68061175a81b575fc80b06f5e64392a7624aa466e2b199e30826f474a189",
+    "graph_digest": "5ee6b6ce564e2034a89df8ba5cb0a2103d3fcd3a5aacea72b13445c456f57683",
+    "fixed_pool_one_based": [
+      152,
+      222,
+      225,
+      383,
+      386,
+      456
+    ]
+  },
+  "second_opinion": {
+    "agent": "Hume",
+    "decision": "approve_bounded_diagnostic_bridge",
+    "primary_failure_mode": "semantic_invalidity_or_vacuity_of_terminal_mask_abstraction"
+  },
+  "semantics_check": {
+    "coefficients_nonnegative": true,
+    "mask_rule": "fixed_0_to_0_fixed_1_to_1_free_or_unresolved_to_1",
+    "free_variables_are_worst_case_one": true,
+    "diagnostic_branch_authority_only": true
+  },
+  "root_measurement": {
+    "baseline_objective": 594914.351525072,
+    "baseline_pool_values": {
+      "152": 0.0,
+      "222": 0.0,
+      "225": 0.0,
+      "383": 0.0,
+      "386": 0.0,
+      "456": 0.0
+    },
+    "raw_violation_at_baseline": -586224.2382592546,
+    "post_row_objective": 586224.2382592552,
+    "drop": 8690.11326581682,
+    "post_row_pool_values": {
+      "152": 0.046183222456002704,
+      "222": 0.2506441302835529,
+      "225": 0.2506441302835529,
+      "383": 0.43049392294652006,
+      "386": 0.43049392294652006,
+      "456": 0.2506441302835529
+    }
+  },
+  "lp_result": {
+    "status": "optimal",
+    "objective_B_minus_c_dot_x_root": 586224.2382592546,
+    "B": 586224.2382592546,
+    "coefficients": {
+      "152": 0.0,
+      "222": 0.0,
+      "225": 0.0,
+      "383": 0.0,
+      "386": 0.0,
+      "456": 0.0
+    },
+    "active_terminal_indices": [
+      15
+    ],
+    "min_slack": 0.0,
+    "max_slack": 42025.581820346415
+  },
+  "degeneracy_checks": {
+    "coefficient_norm": 0.0,
+    "zero_coefficients": true,
+    "uniform_nonzero_coefficients": false,
+    "scalar_max_bound": 586224.2382592546,
+    "scalar_root_objective": 586224.2382592552,
+    "scalar_root_drop": 8690.11326581682,
+    "drop_minus_scalar_drop": 0.0
+  },
+  "terminal_count": 135,
+  "terminal_table": [
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_child_0",
+      "U_t": 581480.9999999993,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "leaf0_residual_pair_child",
+      "mask_t": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "free_pool_variables": []
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_child_1",
+      "U_t": 559233.6666666667,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "leaf0_residual_pair_child",
+      "mask_t": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": []
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_child_2",
+      "U_t": 559233.6666666666,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "leaf0_residual_pair_child",
+      "mask_t": [
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "free_pool_variables": []
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_child_3",
+      "U_t": 558844.3246901055,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "leaf0_residual_pair_child",
+      "mask_t": [
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": []
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "depth4_terminal_1",
+      "U_t": 575613.6666666665,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 1.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "leaf0_depth4_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        222,
+        383
+      ]
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "depth4_terminal_2",
+      "U_t": 569210.4483390413,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 1.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "leaf0_depth4_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        383
+      ]
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "depth4_terminal_3",
+      "U_t": 568034.577222513,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "leaf0_depth4_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "depth4_terminal_4",
+      "U_t": 560438.9999999998,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 1.0
+      },
+      "closure_source": "leaf0_depth4_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "depth4_terminal_5",
+      "U_t": 560438.9999999997,
+      "pool_assignment": {
+        "152": 0.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "leaf0_depth4_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "depth4_terminal_6",
+      "U_t": 560402.5411524331,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "closure_source": "leaf0_depth4_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "depth4_terminal_7",
+      "U_t": 559233.6666666667,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 0.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "closure_source": "leaf0_depth4_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        456
+      ]
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "depth4_terminal_8",
+      "U_t": 559233.6666666667,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 0.0,
+        "386": 1.0
+      },
+      "closure_source": "leaf0_depth4_terminal",
+      "mask_t": [
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "depth4_terminal_9",
+      "U_t": 559233.6666666664,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "leaf0_depth4_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        222,
+        225
+      ]
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "depth4_terminal_10",
+      "U_t": 556348.9154228856,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "383": 0.0,
+        "386": 1.0
+      },
+      "closure_source": "leaf0_depth4_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "depth4_terminal_11",
+      "U_t": 556348.9154228853,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "leaf0_depth4_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225
+      ]
+    },
+    {
+      "leaf_index": 1,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 586224.2382592546,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 1,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 565696.5692279482,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        225,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 1,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 564148.629637964,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 1,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 561177.124384682,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 1,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 559480.8345357667,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 1,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 558031.4719164175,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 1,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 555380.2318363506,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 1,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 552705.6041166417,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 2,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 586223.1967256626,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 2,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 565696.5692279491,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 0.0,
+        "383": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 2,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 564148.6296379645,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "383": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 2,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 561177.124384682,
+      "pool_assignment": {
+        "152": 1.0,
+        "222": 0.0,
+        "383": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 2,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 559480.8345357666,
+      "pool_assignment": {
+        "152": 0.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 2,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 558031.471916417,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 2,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 555380.2318363499,
+      "pool_assignment": {
+        "152": 0.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 2,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 552705.6041166415,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 3,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 579583.5918367348,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 3,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 567152.9999999997,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        383,
+        456
+      ]
+    },
+    {
+      "leaf_index": 3,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 559939.748557707,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 3,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 554365.5174603178,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        383,
+        456
+      ]
+    },
+    {
+      "leaf_index": 3,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 554263.0070417896,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 3,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 551273.2499999999,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 3,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 550036.3333333326,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 3,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 548554.7519379845,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 4,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 586222.998756283,
+      "pool_assignment": {
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        225
+      ]
+    },
+    {
+      "leaf_index": 4,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 565696.5692279494,
+      "pool_assignment": {
+        "222": 0.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        225,
+        383
+      ]
+    },
+    {
+      "leaf_index": 4,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 564148.6296379645,
+      "pool_assignment": {
+        "222": 1.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        225,
+        383
+      ]
+    },
+    {
+      "leaf_index": 4,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 561177.1243846819,
+      "pool_assignment": {
+        "383": 1.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        225
+      ]
+    },
+    {
+      "leaf_index": 4,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 559480.8345357669,
+      "pool_assignment": {
+        "152": 0.0,
+        "383": 0.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 4,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 558031.4719164178,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 4,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 555380.2318363505,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 4,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 552705.6041166416,
+      "pool_assignment": {
+        "152": 0.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 5,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 575713.3389251716,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 0.0,
+        "383": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 5,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 560463.1234294161,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 0.0,
+        "383": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 5,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 554161.0000000001,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 5,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 551517.9684573812,
+      "pool_assignment": {
+        "222": 1.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        225,
+        383
+      ]
+    },
+    {
+      "leaf_index": 5,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 551008.9166666669,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 5,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 548494.7777777775,
+      "pool_assignment": {
+        "222": 1.0,
+        "386": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        225,
+        383
+      ]
+    },
+    {
+      "leaf_index": 5,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 547650.2982456138,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 5,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 544198.6564389087,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 6,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 586224.039267464,
+      "pool_assignment": {
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        225
+      ]
+    },
+    {
+      "leaf_index": 6,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 565696.5692279495,
+      "pool_assignment": {
+        "225": 0.0,
+        "383": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        386
+      ]
+    },
+    {
+      "leaf_index": 6,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 564148.6296379641,
+      "pool_assignment": {
+        "225": 1.0,
+        "383": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        386
+      ]
+    },
+    {
+      "leaf_index": 6,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 561177.1243846823,
+      "pool_assignment": {
+        "383": 0.0,
+        "386": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        225
+      ]
+    },
+    {
+      "leaf_index": 6,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 559480.834535767,
+      "pool_assignment": {
+        "152": 0.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 6,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 558031.471916418,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 6,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 555380.2318363504,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 6,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 552705.6041166418,
+      "pool_assignment": {
+        "152": 0.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 7,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 579583.5918367342,
+      "pool_assignment": {
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        225
+      ]
+    },
+    {
+      "leaf_index": 7,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 566621.3710591246,
+      "pool_assignment": {
+        "225": 0.0,
+        "383": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        386
+      ]
+    },
+    {
+      "leaf_index": 7,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 559939.7485577068,
+      "pool_assignment": {
+        "383": 0.0,
+        "386": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        225
+      ]
+    },
+    {
+      "leaf_index": 7,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 558297.6694268546,
+      "pool_assignment": {
+        "225": 1.0,
+        "383": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        386
+      ]
+    },
+    {
+      "leaf_index": 7,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 554263.0070417895,
+      "pool_assignment": {
+        "152": 0.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 7,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 551273.2500000001,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 7,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 550036.3333333333,
+      "pool_assignment": {
+        "152": 0.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 7,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 548554.7519379844,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 8,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 578864.0765520872,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "225": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        383,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 8,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 565614.3941120852,
+      "pool_assignment": {
+        "152": 1.0,
+        "222": 0.0,
+        "225": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        383,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 8,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 554365.5174603175,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 1.0,
+        "383": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 8,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 554263.0070417882,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 8,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 554104.7649118567,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 1.0,
+        "383": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 8,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 551273.2499999999,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 8,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 550036.3333333335,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 8,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 548554.7519379848,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 9,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 586222.996110642,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "225": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        383,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 9,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 565696.5692279496,
+      "pool_assignment": {
+        "152": 1.0,
+        "225": 0.0,
+        "383": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 9,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 564148.6296379642,
+      "pool_assignment": {
+        "152": 1.0,
+        "225": 0.0,
+        "383": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 9,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 561177.1243846823,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "225": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        383,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 9,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 559480.834535767,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 9,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 558031.4719164177,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 9,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 555380.2318363506,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 9,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 552705.6041166424,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 10,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 575904.9999999999,
+      "pool_assignment": {
+        "152": 0.0,
+        "383": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        386
+      ]
+    },
+    {
+      "leaf_index": 10,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 559041.6073207175,
+      "pool_assignment": {
+        "152": 0.0,
+        "383": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        386
+      ]
+    },
+    {
+      "leaf_index": 10,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 557972.9638095238,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        386
+      ]
+    },
+    {
+      "leaf_index": 10,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 554161.0000000001,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 10,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 551517.9684573823,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        386
+      ]
+    },
+    {
+      "leaf_index": 10,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 551517.9684573822,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 10,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 551008.9166666669,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 10,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 548494.7777777776,
+      "pool_assignment": {
+        "152": 1.0,
+        "225": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 11,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 577886.3786800732,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 11,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 566621.371059124,
+      "pool_assignment": {
+        "152": 1.0,
+        "222": 0.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        383,
+        456
+      ]
+    },
+    {
+      "leaf_index": 11,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 558297.6694268546,
+      "pool_assignment": {
+        "152": 1.0,
+        "222": 0.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        383,
+        456
+      ]
+    },
+    {
+      "leaf_index": 11,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 556773.2729597234,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 11,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 554263.0070417892,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 11,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 551273.2499999998,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 11,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 550036.3333333341,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 11,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 548554.7519379844,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 12,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 586223.690675106,
+      "pool_assignment": {
+        "225": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        383
+      ]
+    },
+    {
+      "leaf_index": 12,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 565696.5692279489,
+      "pool_assignment": {
+        "225": 0.0,
+        "383": 0.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        456
+      ]
+    },
+    {
+      "leaf_index": 12,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 564148.6296379642,
+      "pool_assignment": {
+        "225": 0.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        456
+      ]
+    },
+    {
+      "leaf_index": 12,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 561177.1243846823,
+      "pool_assignment": {
+        "225": 0.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        222,
+        383
+      ]
+    },
+    {
+      "leaf_index": 12,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 559480.8345357667,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 12,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 558031.4719164177,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 12,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 555380.23183635,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 12,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 552705.604116642,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 13,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 575979.6666666664,
+      "pool_assignment": {
+        "222": 0.0,
+        "383": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        225,
+        386
+      ]
+    },
+    {
+      "leaf_index": 13,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 567318.9905274581,
+      "pool_assignment": {
+        "222": 0.0,
+        "383": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        225,
+        386
+      ]
+    },
+    {
+      "leaf_index": 13,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 554643.8396127523,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 0.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 13,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 554160.9999999991,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 13,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 551008.9166666662,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 13,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 547650.2982456139,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 13,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 544198.6564389082,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 13,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 544198.6564389082,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 0.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 14,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 578864.0765520871,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 14,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 565614.3941120853,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "383": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        225,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 14,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 554365.5174603176,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 1.0,
+        "383": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 14,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 554263.0070417894,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 14,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 554104.7649118574,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 0.0,
+        "383": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        386,
+        456
+      ]
+    },
+    {
+      "leaf_index": 14,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 551273.25,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 14,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 550036.3333333327,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 0.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 14,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 548554.7519379843,
+      "pool_assignment": {
+        "152": 1.0,
+        "383": 1.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        225,
+        456
+      ]
+    },
+    {
+      "leaf_index": 15,
+      "terminal_id": "depth3_terminal_0",
+      "U_t": 577886.378680073,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 0.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        383,
+        456
+      ]
+    },
+    {
+      "leaf_index": 15,
+      "terminal_id": "depth3_terminal_1",
+      "U_t": 566621.3710591241,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 0.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        383,
+        456
+      ]
+    },
+    {
+      "leaf_index": 15,
+      "terminal_id": "depth3_terminal_2",
+      "U_t": 558297.6694268546,
+      "pool_assignment": {
+        "152": 1.0,
+        "225": 0.0,
+        "386": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        383,
+        456
+      ]
+    },
+    {
+      "leaf_index": 15,
+      "terminal_id": "depth3_terminal_3",
+      "U_t": 556773.2729597231,
+      "pool_assignment": {
+        "152": 1.0,
+        "225": 0.0,
+        "386": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        222,
+        383,
+        456
+      ]
+    },
+    {
+      "leaf_index": 15,
+      "terminal_id": "depth3_terminal_4",
+      "U_t": 554263.0070417884,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 15,
+      "terminal_id": "depth3_terminal_5",
+      "U_t": 551273.2499999999,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 15,
+      "terminal_id": "depth3_terminal_6",
+      "U_t": 550036.3333333335,
+      "pool_assignment": {
+        "222": 0.0,
+        "225": 1.0,
+        "456": 1.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    },
+    {
+      "leaf_index": 15,
+      "terminal_id": "depth3_terminal_7",
+      "U_t": 548554.7519379847,
+      "pool_assignment": {
+        "222": 1.0,
+        "225": 1.0,
+        "456": 0.0
+      },
+      "closure_source": "depth3_fixed_pool_terminal",
+      "mask_t": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "free_pool_variables": [
+        152,
+        383,
+        386
+      ]
+    }
+  ],
+  "gates": {
+    "target_gate": 586500.0,
+    "raw_kill": 250.0,
+    "drop_kill": 250.0,
+    "fund_drop": 1000.0,
+    "fund_objective": 593500.0
+  },
+  "failure_reasons": [
+    "zero_coefficients",
+    "raw_violation_below_gate",
+    "scalar_cap_equivalent_or_weaker"
+  ],
+  "status": "retire_pool_affine_lift_probe"
+}

@@ -1,0 +1,1109 @@
+{
+  "schema": "forge.hadwiger.w607_hybrid_terminal_export_preflight.v1",
+  "authority": "selected_terminal_preflight_only_no_root_or_full_export_authority",
+  "second_opinion": {
+    "agent": "Leibniz",
+    "decision": "approve_mechanism_class_hybrid_policy"
+  },
+  "class_policy": {
+    "top_six_depth3_parent_lift": "per_row_rational_reconstruction",
+    "leaf0_residual_child": "common_denominator_upward_integer"
+  },
+  "source_binding": {
+    "fresh_replay_path": "C:\\forge-2\\crates\\hadwiger-research\\docs\\w607-fresh-mixed-branch-replay.json",
+    "fresh_replay_digest": "8c2f68061175a81b575fc80b06f5e64392a7624aa466e2b199e30826f474a189",
+    "first_family_source": "C:\\forge-2\\crates\\hadwiger-research\\docs\\w607-full-tree-rank-family.json",
+    "first_family_digest": "2ce678706ac4740bb1ae5a9733f2dc12151ecf576358e399230571ffb895aea8",
+    "graph_digest": "5ee6b6ce564e2034a89df8ba5cb0a2103d3fcd3a5aacea72b13445c456f57683",
+    "root_rows_digest": "89e4c264528c0c2bc2838c855c62b2577f68c92a30c653a9ebcb093555a7398f",
+    "parent_rows_digest": "2d7e16c7d9266117b4395ebb68e337d511cc4ca7344ad7c3081dfef855451378"
+  },
+  "scope": {
+    "top_leaves": [
+      1,
+      6,
+      12,
+      2,
+      4,
+      9
+    ],
+    "required_export_count": 10,
+    "audit_only_count": 1
+  },
+  "gates": {
+    "export_gate": 586500.0,
+    "terminal_allowance": 300.0,
+    "integer_denominators": [
+      1024,
+      4096,
+      16777216
+    ],
+    "rational_denominator_cap": 4294967296,
+    "max_numerator_bits": 48,
+    "parent_overhead_cap": 0.001,
+    "total_row_budget": 15000
+  },
+  "summary": {
+    "required_successes": 10,
+    "required_total": 10,
+    "total_success_rows": 5971,
+    "worst_success_objective": 586224.2382592709
+  },
+  "terminals": [
+    {
+      "leaf_index": 1,
+      "terminal_id": "depth3_terminal_0",
+      "expected_bound": 586224.2382592546,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 0.0
+      },
+      "depth": 3,
+      "exceptional_rule": "none",
+      "export_required": true,
+      "selection_reason": "top_six_final_terminal",
+      "mechanism_class": "top_six_depth3_parent_lift",
+      "selected_strategy": "per_row_rational_reconstruction",
+      "fixed_digest": "422129bd1c9cbfbb9b405cfa8fe0d93d549c9e16909e522a69fa33af4de70b4d",
+      "row_system_digest": "5dbe91a881587b43dfc2546c45f3895b92de257c88b493aed8c9fd83cfcc9465",
+      "floating_objective": 586224.2382592546,
+      "expected_error": 0.0,
+      "hidden_solver_bound_dual_max": 0.0,
+      "certificate": {
+        "strategy": "per_row_rational_reconstruction",
+        "objective_float": 586224.2382592709,
+        "objective_over_expected": 1.6318181939609968e-08,
+        "objective_margin_to_gate": 275.76174072907634,
+        "objective_margin_to_expected_plus_allowance": 299.99999998368185,
+        "min_slack": 1,
+        "zero_slack_vertex_count": 0,
+        "argmin_vertices": [
+          5,
+          6,
+          45,
+          46,
+          240,
+          241,
+          367,
+          368,
+          562,
+          563,
+          602,
+          603
+        ],
+        "positive_row_count": 601,
+        "max_denominator": 4293595594,
+        "max_denominator_bits": 32,
+        "max_numerator_bits": 48,
+        "lower_bound_positive_reported_not_exported": 0,
+        "parent_lift_report": {
+          "rows": [
+            {
+              "id": "parent_lift_1",
+              "float_multiplier": 4.892237777869682e-07,
+              "rational_multiplier": {
+                "num": 1703,
+                "den": 3481024589,
+                "float": 4.892237777869946e-07
+              },
+              "denominator": 3481024589,
+              "numerator_bits": 11,
+              "objective_contribution": 305223.998308517,
+              "objective_overhead": 1.641456037759781e-08
+            }
+          ],
+          "max_parent_objective_overhead_abs": 1.641456037759781e-08
+        }
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    },
+    {
+      "leaf_index": 6,
+      "terminal_id": "depth3_terminal_0",
+      "expected_bound": 586224.039267464,
+      "pool_assignment": {
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "depth": 3,
+      "exceptional_rule": "none",
+      "export_required": true,
+      "selection_reason": "top_six_final_terminal",
+      "mechanism_class": "top_six_depth3_parent_lift",
+      "selected_strategy": "per_row_rational_reconstruction",
+      "fixed_digest": "f73a2a591426b5758eaa90da607647d3dc2cf76a3019d9c51b3ec4b449ac9e79",
+      "row_system_digest": "4464c68ba107a92f15393b6d46f54330426c5eadd201b2b16e913669b2290048",
+      "floating_objective": 586224.0392674641,
+      "expected_error": 1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "certificate": {
+        "strategy": "per_row_rational_reconstruction",
+        "objective_float": 586224.0392785528,
+        "objective_over_expected": 1.1088785237469507e-05,
+        "objective_margin_to_gate": 275.96072144725593,
+        "objective_margin_to_expected_plus_allowance": 299.99998891121476,
+        "min_slack": 1,
+        "zero_slack_vertex_count": 0,
+        "argmin_vertices": [
+          5,
+          6,
+          45,
+          46,
+          240,
+          241,
+          367,
+          368,
+          562,
+          563,
+          602,
+          603
+        ],
+        "positive_row_count": 602,
+        "max_denominator": 4294563756,
+        "max_denominator_bits": 32,
+        "max_numerator_bits": 47,
+        "lower_bound_positive_reported_not_exported": 1,
+        "parent_lift_report": {
+          "rows": [
+            {
+              "id": "parent_lift_1",
+              "float_multiplier": 4.892231479829195e-07,
+              "rational_multiplier": {
+                "num": 2101,
+                "den": 4294563756,
+                "float": 4.89223148000693e-07
+              },
+              "denominator": 4294563756,
+              "numerator_bits": 12,
+              "objective_contribution": 305223.60538834066,
+              "objective_overhead": 1.1088792234659195e-05
+            }
+          ],
+          "max_parent_objective_overhead_abs": 1.1088792234659195e-05
+        }
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    },
+    {
+      "leaf_index": 12,
+      "terminal_id": "depth3_terminal_0",
+      "expected_bound": 586223.690675106,
+      "pool_assignment": {
+        "225": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "depth": 3,
+      "exceptional_rule": "none",
+      "export_required": true,
+      "selection_reason": "top_six_final_terminal",
+      "mechanism_class": "top_six_depth3_parent_lift",
+      "selected_strategy": "per_row_rational_reconstruction",
+      "fixed_digest": "eac8650e270770f83e03543f3f99c97f9f37bbccbe5a8923b278a186e0c3ef15",
+      "row_system_digest": "5236a1ec6d2f481305ec3b43663394c7ef9b28c9c0dbbc81f57f9fa9e4126ba5",
+      "floating_objective": 586223.6906751058,
+      "expected_error": -2.3283064365386963e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "certificate": {
+        "strategy": "per_row_rational_reconstruction",
+        "objective_float": 586223.6906751489,
+        "objective_over_expected": 4.285306644788523e-08,
+        "objective_margin_to_gate": 276.30932485113095,
+        "objective_margin_to_expected_plus_allowance": 299.99999995714694,
+        "min_slack": 1,
+        "zero_slack_vertex_count": 0,
+        "argmin_vertices": [
+          5,
+          6,
+          45,
+          46,
+          240,
+          241,
+          367,
+          368,
+          562,
+          563,
+          602,
+          603
+        ],
+        "positive_row_count": 598,
+        "max_denominator": 4293612556,
+        "max_denominator_bits": 32,
+        "max_numerator_bits": 46,
+        "lower_bound_positive_reported_not_exported": 4,
+        "parent_lift_report": {
+          "rows": [
+            {
+              "id": "parent_lift_1",
+              "float_multiplier": 4.892232379548272e-07,
+              "rational_multiplier": {
+                "num": 1326,
+                "den": 2710419083,
+                "float": 4.89223237954896e-07
+              },
+              "denominator": 2710419083,
+              "numerator_bits": 11,
+              "objective_contribution": 305223.6615102684,
+              "objective_overhead": 4.289904609322548e-08
+            }
+          ],
+          "max_parent_objective_overhead_abs": 4.289904609322548e-08
+        }
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    },
+    {
+      "leaf_index": 2,
+      "terminal_id": "depth3_terminal_0",
+      "expected_bound": 586223.1967256626,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "383": 0.0
+      },
+      "depth": 3,
+      "exceptional_rule": "none",
+      "export_required": true,
+      "selection_reason": "top_six_final_terminal",
+      "mechanism_class": "top_six_depth3_parent_lift",
+      "selected_strategy": "per_row_rational_reconstruction",
+      "fixed_digest": "1fe3e33537ff0351d089aa09cae2a6be8164f8067f63824b973e235804b04793",
+      "row_system_digest": "b3775820fec5c17e42719164e350cfd8f6aff3ca9025e088e07f8147703978e0",
+      "floating_objective": 586223.1967256627,
+      "expected_error": 1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "certificate": {
+        "strategy": "per_row_rational_reconstruction",
+        "objective_float": 586223.1967257337,
+        "objective_over_expected": 7.114975667106361e-08,
+        "objective_margin_to_gate": 276.80327426628537,
+        "objective_margin_to_expected_plus_allowance": 299.99999992885023,
+        "min_slack": 1,
+        "zero_slack_vertex_count": 0,
+        "argmin_vertices": [
+          562,
+          603
+        ],
+        "positive_row_count": 598,
+        "max_denominator": 4292000193,
+        "max_denominator_bits": 32,
+        "max_numerator_bits": 46,
+        "lower_bound_positive_reported_not_exported": 2,
+        "parent_lift_report": {
+          "rows": [
+            {
+              "id": "parent_lift_1",
+              "float_multiplier": 4.890061421101413e-07,
+              "rational_multiplier": {
+                "num": 157,
+                "den": 321059362,
+                "float": 4.890061421102556e-07
+              },
+              "denominator": 321059362,
+              "numerator_bits": 8,
+              "objective_contribution": 305088.2166183274,
+              "objective_overhead": 7.130438461899757e-08
+            }
+          ],
+          "max_parent_objective_overhead_abs": 7.130438461899757e-08
+        }
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    },
+    {
+      "leaf_index": 4,
+      "terminal_id": "depth3_terminal_0",
+      "expected_bound": 586222.998756283,
+      "pool_assignment": {
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "depth": 3,
+      "exceptional_rule": "none",
+      "export_required": true,
+      "selection_reason": "top_six_final_terminal",
+      "mechanism_class": "top_six_depth3_parent_lift",
+      "selected_strategy": "per_row_rational_reconstruction",
+      "fixed_digest": "02a4425b9c788d1eb4ab85f9178601c9a7cfc5bf4a515cdf645e8b2db1d37354",
+      "row_system_digest": "44395cf701a91ea55cd8d34afa37e9bc9d586ab782ef24a31fb5caccb0dbacad",
+      "floating_objective": 586222.9987562828,
+      "expected_error": -1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "certificate": {
+        "strategy": "per_row_rational_reconstruction",
+        "objective_float": 586222.9987563139,
+        "objective_over_expected": 3.095251350066991e-08,
+        "objective_margin_to_gate": 277.00124368608465,
+        "objective_margin_to_expected_plus_allowance": 299.9999999690475,
+        "min_slack": 1,
+        "zero_slack_vertex_count": 0,
+        "argmin_vertices": [
+          5,
+          6,
+          45,
+          46,
+          240,
+          241,
+          367,
+          368,
+          562,
+          563,
+          602,
+          603
+        ],
+        "positive_row_count": 596,
+        "max_denominator": 4294683861,
+        "max_denominator_bits": 32,
+        "max_numerator_bits": 47,
+        "lower_bound_positive_reported_not_exported": 5,
+        "parent_lift_report": {
+          "rows": [
+            {
+              "id": "parent_lift_1",
+              "float_multiplier": 4.890058724340178e-07,
+              "rational_multiplier": {
+                "num": 1867,
+                "den": 3817950060,
+                "float": 4.890058724340675e-07
+              },
+              "denominator": 3817950060,
+              "numerator_bits": 11,
+              "objective_contribution": 305088.04836885113,
+              "objective_overhead": 3.096647560596466e-08
+            }
+          ],
+          "max_parent_objective_overhead_abs": 3.096647560596466e-08
+        }
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    },
+    {
+      "leaf_index": 9,
+      "terminal_id": "depth3_terminal_0",
+      "expected_bound": 586222.996110642,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "225": 0.0
+      },
+      "depth": 3,
+      "exceptional_rule": "none",
+      "export_required": true,
+      "selection_reason": "top_six_final_terminal",
+      "mechanism_class": "top_six_depth3_parent_lift",
+      "selected_strategy": "per_row_rational_reconstruction",
+      "fixed_digest": "9e16e757ffceb9649cc3acea738c5253af1765669e4b317841744580e2252f0e",
+      "row_system_digest": "2486b1bcce6901aaafe7459188e63e88f29cae279ca4a0db430c1aae934a9821",
+      "floating_objective": 586222.9961106421,
+      "expected_error": 1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "certificate": {
+        "strategy": "per_row_rational_reconstruction",
+        "objective_float": 586222.9961106672,
+        "objective_over_expected": 2.5241386589918324e-08,
+        "objective_margin_to_gate": 277.003889332779,
+        "objective_margin_to_expected_plus_allowance": 299.9999999747586,
+        "min_slack": 1,
+        "zero_slack_vertex_count": 0,
+        "argmin_vertices": [
+          5,
+          6,
+          45,
+          46,
+          240,
+          241,
+          367,
+          368,
+          562,
+          563,
+          602,
+          603
+        ],
+        "positive_row_count": 600,
+        "max_denominator": 4294967296,
+        "max_denominator_bits": 33,
+        "max_numerator_bits": 48,
+        "lower_bound_positive_reported_not_exported": 3,
+        "parent_lift_report": {
+          "rows": [
+            {
+              "id": "parent_lift_1",
+              "float_multiplier": 4.89005962326026e-07,
+              "rational_multiplier": {
+                "num": 1151,
+                "den": 2353754532,
+                "float": 4.890059623260664e-07
+              },
+              "denominator": 2353754532,
+              "numerator_bits": 11,
+              "objective_contribution": 305088.1044519701,
+              "objective_overhead": 2.5262124836444855e-08
+            }
+          ],
+          "max_parent_objective_overhead_abs": 2.5262124836444855e-08
+        }
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_trigger_terminal",
+      "expected_bound": 588378.8642942241,
+      "pool_assignment": {
+        "152": 0.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0
+      },
+      "depth": 4,
+      "exceptional_rule": "leaf0_depth4_residual_pair_closure",
+      "export_required": false,
+      "selection_reason": "leaf0_exception_trigger_audit",
+      "mechanism_class": "audit_only_trigger",
+      "selected_strategy": "audit_only_no_pass_gate",
+      "fixed_digest": "b8333d04bd1cecd3bd5d57290a60faf17d27f867973aa8d0e7440b0ead7debc0",
+      "row_system_digest": "85092bca5753a91a7c8d02bf89df6f1aec827e309e496cdcb54be1494fa4ab99",
+      "floating_objective": 588378.864294224,
+      "expected_error": -1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "certificate": {
+        "strategy": "audit_only",
+        "objective_float": 598524.743146658,
+        "min_slack": 18881747
+      },
+      "failure_reasons": [],
+      "status": "audit_only"
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_child_0",
+      "expected_bound": 581480.9999999993,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "depth": 5,
+      "exceptional_rule": "leaf0_residual_pair_child",
+      "export_required": true,
+      "selection_reason": "leaf0_exception_child_export",
+      "residual_pair_assignment": {
+        "222": 0.0,
+        "456": 0.0
+      },
+      "mechanism_class": "leaf0_residual_child",
+      "selected_strategy": "common_denominator_upward_integer",
+      "fixed_digest": "7b91cbf63c57603260c46d7655a9abdfee4fb692c3f84af4f2c7cd116283484d",
+      "row_system_digest": "8128fcbbcfd3c2960c071242c61f56bb22459f1e7e6e6abea03869906fa17ba0",
+      "floating_objective": 581480.9999999999,
+      "expected_error": 5.820766091346741e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "certificate": {
+        "strategy": "common_denominator_upward_integer",
+        "attempts": [
+          {
+            "denominator": 1024,
+            "objective_num": 595436733,
+            "objective_bound": 581481.1845703125,
+            "min_slack": 0,
+            "argmin_vertices": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              11,
+              12,
+              13
+            ],
+            "positive_row_count": 597,
+            "variable_upper_row_count": 0,
+            "variable_upper_objective": 0.0,
+            "lower_bound_positive_count_reported_not_exported": 0,
+            "lower_bound_positive_mass_reported_not_exported": 0.0,
+            "objective_over_expected": 0.18457031319849193,
+            "objective_margin_to_gate": 5018.8154296875,
+            "objective_margin_to_expected_plus_allowance": 299.8154296868015,
+            "max_numerator_bits": 25,
+            "passes": true
+          },
+          {
+            "denominator": 4096,
+            "objective_num": 2381746366,
+            "objective_bound": 581481.0463867188,
+            "min_slack": 0,
+            "argmin_vertices": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              11,
+              12,
+              13
+            ],
+            "positive_row_count": 597,
+            "variable_upper_row_count": 0,
+            "variable_upper_objective": 0.0,
+            "lower_bound_positive_count_reported_not_exported": 0,
+            "lower_bound_positive_mass_reported_not_exported": 0.0,
+            "objective_over_expected": 0.04638671944849193,
+            "objective_margin_to_gate": 5018.95361328125,
+            "objective_margin_to_expected_plus_allowance": 299.9536132805515,
+            "max_numerator_bits": 27,
+            "passes": true
+          },
+          {
+            "denominator": 16777216,
+            "objective_num": 9755632337082,
+            "objective_bound": 581481.0000110865,
+            "min_slack": 0,
+            "argmin_vertices": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              11,
+              12,
+              13
+            ],
+            "positive_row_count": 597,
+            "variable_upper_row_count": 0,
+            "variable_upper_objective": 0.0,
+            "lower_bound_positive_count_reported_not_exported": 0,
+            "lower_bound_positive_mass_reported_not_exported": 0.0,
+            "objective_over_expected": 1.1087162420153618e-05,
+            "objective_margin_to_gate": 5018.999988913536,
+            "objective_margin_to_expected_plus_allowance": 299.9999889128376,
+            "max_numerator_bits": 39,
+            "passes": true
+          }
+        ],
+        "selected": {
+          "denominator": 1024,
+          "objective_num": 595436733,
+          "objective_bound": 581481.1845703125,
+          "min_slack": 0,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ],
+          "positive_row_count": 597,
+          "variable_upper_row_count": 0,
+          "variable_upper_objective": 0.0,
+          "lower_bound_positive_count_reported_not_exported": 0,
+          "lower_bound_positive_mass_reported_not_exported": 0.0,
+          "objective_over_expected": 0.18457031319849193,
+          "objective_margin_to_gate": 5018.8154296875,
+          "objective_margin_to_expected_plus_allowance": 299.8154296868015,
+          "max_numerator_bits": 25,
+          "passes": true
+        }
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_child_1",
+      "expected_bound": 559233.6666666667,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 0.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "depth": 5,
+      "exceptional_rule": "leaf0_residual_pair_child",
+      "export_required": true,
+      "selection_reason": "leaf0_exception_child_export",
+      "residual_pair_assignment": {
+        "222": 0.0,
+        "456": 1.0
+      },
+      "mechanism_class": "leaf0_residual_child",
+      "selected_strategy": "common_denominator_upward_integer",
+      "fixed_digest": "bae2e0653f5fb2ee1e96dbcf5ec2a433e8dcf9a227a57384c1fa14b7fcd6972e",
+      "row_system_digest": "8128fcbbcfd3c2960c071242c61f56bb22459f1e7e6e6abea03869906fa17ba0",
+      "floating_objective": 559233.6666666666,
+      "expected_error": -1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "certificate": {
+        "strategy": "common_denominator_upward_integer",
+        "attempts": [
+          {
+            "denominator": 1024,
+            "objective_num": 572655423,
+            "objective_bound": 559233.8115234375,
+            "min_slack": 0,
+            "argmin_vertices": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              13
+            ],
+            "positive_row_count": 592,
+            "variable_upper_row_count": 0,
+            "variable_upper_objective": 0.0,
+            "lower_bound_positive_count_reported_not_exported": 1,
+            "lower_bound_positive_mass_reported_not_exported": 22881.0,
+            "objective_over_expected": 0.14485677075572312,
+            "objective_margin_to_gate": 27266.1884765625,
+            "objective_margin_to_expected_plus_allowance": 299.8551432292443,
+            "max_numerator_bits": 27,
+            "passes": true
+          },
+          {
+            "denominator": 4096,
+            "objective_num": 2290621240,
+            "objective_bound": 559233.701171875,
+            "min_slack": 0,
+            "argmin_vertices": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              13
+            ],
+            "positive_row_count": 592,
+            "variable_upper_row_count": 0,
+            "variable_upper_objective": 0.0,
+            "lower_bound_positive_count_reported_not_exported": 1,
+            "lower_bound_positive_mass_reported_not_exported": 22881.0,
+            "objective_over_expected": 0.03450520825572312,
+            "objective_margin_to_gate": 27266.298828125,
+            "objective_margin_to_expected_plus_allowance": 299.9654947917443,
+            "max_numerator_bits": 29,
+            "passes": true
+          },
+          {
+            "denominator": 16777216,
+            "objective_num": 9382384020285,
+            "objective_bound": 559233.6666753888,
+            "min_slack": 0,
+            "argmin_vertices": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              13
+            ],
+            "positive_row_count": 592,
+            "variable_upper_row_count": 0,
+            "variable_upper_objective": 0.0,
+            "lower_bound_positive_count_reported_not_exported": 1,
+            "lower_bound_positive_mass_reported_not_exported": 22881.0,
+            "objective_over_expected": 8.72206874191761e-06,
+            "objective_margin_to_gate": 27266.333324611187,
+            "objective_margin_to_expected_plus_allowance": 299.99999127793126,
+            "max_numerator_bits": 41,
+            "passes": true
+          }
+        ],
+        "selected": {
+          "denominator": 1024,
+          "objective_num": 572655423,
+          "objective_bound": 559233.8115234375,
+          "min_slack": 0,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            13
+          ],
+          "positive_row_count": 592,
+          "variable_upper_row_count": 0,
+          "variable_upper_objective": 0.0,
+          "lower_bound_positive_count_reported_not_exported": 1,
+          "lower_bound_positive_mass_reported_not_exported": 22881.0,
+          "objective_over_expected": 0.14485677075572312,
+          "objective_margin_to_gate": 27266.1884765625,
+          "objective_margin_to_expected_plus_allowance": 299.8551432292443,
+          "max_numerator_bits": 27,
+          "passes": true
+        }
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_child_2",
+      "expected_bound": 559233.6666666666,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 0.0
+      },
+      "depth": 5,
+      "exceptional_rule": "leaf0_residual_pair_child",
+      "export_required": true,
+      "selection_reason": "leaf0_exception_child_export",
+      "residual_pair_assignment": {
+        "222": 1.0,
+        "456": 0.0
+      },
+      "mechanism_class": "leaf0_residual_child",
+      "selected_strategy": "common_denominator_upward_integer",
+      "fixed_digest": "2b0595c3d3b7eabcbd9866f47fc3a324a2ef9b7757c265d2dbce59ee3d2fb980",
+      "row_system_digest": "8128fcbbcfd3c2960c071242c61f56bb22459f1e7e6e6abea03869906fa17ba0",
+      "floating_objective": 559233.6666666665,
+      "expected_error": -1.1641532182693481e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "certificate": {
+        "strategy": "common_denominator_upward_integer",
+        "attempts": [
+          {
+            "denominator": 1024,
+            "objective_num": 572655426,
+            "objective_bound": 559233.814453125,
+            "min_slack": 0,
+            "argmin_vertices": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "positive_row_count": 593,
+            "variable_upper_row_count": 0,
+            "variable_upper_objective": 0.0,
+            "lower_bound_positive_count_reported_not_exported": 1,
+            "lower_bound_positive_mass_reported_not_exported": 22881.0,
+            "objective_over_expected": 0.14778645837213844,
+            "objective_margin_to_gate": 27266.185546875,
+            "objective_margin_to_expected_plus_allowance": 299.85221354162786,
+            "max_numerator_bits": 27,
+            "passes": true
+          },
+          {
+            "denominator": 4096,
+            "objective_num": 2290621252,
+            "objective_bound": 559233.7041015625,
+            "min_slack": 0,
+            "argmin_vertices": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "positive_row_count": 593,
+            "variable_upper_row_count": 0,
+            "variable_upper_objective": 0.0,
+            "lower_bound_positive_count_reported_not_exported": 1,
+            "lower_bound_positive_mass_reported_not_exported": 22881.0,
+            "objective_over_expected": 0.03743489587213844,
+            "objective_margin_to_gate": 27266.2958984375,
+            "objective_margin_to_expected_plus_allowance": 299.96256510412786,
+            "max_numerator_bits": 29,
+            "passes": true
+          },
+          {
+            "denominator": 16777216,
+            "objective_num": 9382384020292,
+            "objective_bound": 559233.666675806,
+            "min_slack": 0,
+            "argmin_vertices": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "positive_row_count": 593,
+            "variable_upper_row_count": 0,
+            "variable_upper_objective": 0.0,
+            "lower_bound_positive_count_reported_not_exported": 1,
+            "lower_bound_positive_mass_reported_not_exported": 22881.0,
+            "objective_over_expected": 9.139417670667171e-06,
+            "objective_margin_to_gate": 27266.333324193954,
+            "objective_margin_to_expected_plus_allowance": 299.99999086058233,
+            "max_numerator_bits": 41,
+            "passes": true
+          }
+        ],
+        "selected": {
+          "denominator": 1024,
+          "objective_num": 572655426,
+          "objective_bound": 559233.814453125,
+          "min_slack": 0,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ],
+          "positive_row_count": 593,
+          "variable_upper_row_count": 0,
+          "variable_upper_objective": 0.0,
+          "lower_bound_positive_count_reported_not_exported": 1,
+          "lower_bound_positive_mass_reported_not_exported": 22881.0,
+          "objective_over_expected": 0.14778645837213844,
+          "objective_margin_to_gate": 27266.185546875,
+          "objective_margin_to_expected_plus_allowance": 299.85221354162786,
+          "max_numerator_bits": 27,
+          "passes": true
+        }
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    },
+    {
+      "leaf_index": 0,
+      "terminal_id": "closure_0_child_3",
+      "expected_bound": 558844.3246901055,
+      "pool_assignment": {
+        "152": 0.0,
+        "222": 1.0,
+        "225": 0.0,
+        "383": 0.0,
+        "386": 0.0,
+        "456": 1.0
+      },
+      "depth": 5,
+      "exceptional_rule": "leaf0_residual_pair_child",
+      "export_required": true,
+      "selection_reason": "leaf0_exception_child_export",
+      "residual_pair_assignment": {
+        "222": 1.0,
+        "456": 1.0
+      },
+      "mechanism_class": "leaf0_residual_child",
+      "selected_strategy": "common_denominator_upward_integer",
+      "fixed_digest": "708a2d6ae8c3a15da44f0f252f4898401d93d1429e6d033ce1d47535f7161c6a",
+      "row_system_digest": "8128fcbbcfd3c2960c071242c61f56bb22459f1e7e6e6abea03869906fa17ba0",
+      "floating_objective": 558844.3246901053,
+      "expected_error": -2.3283064365386963e-10,
+      "hidden_solver_bound_dual_max": 0.0,
+      "certificate": {
+        "strategy": "common_denominator_upward_integer",
+        "attempts": [
+          {
+            "denominator": 1024,
+            "objective_num": 572574635,
+            "objective_bound": 559154.9169921875,
+            "min_slack": 0,
+            "argmin_vertices": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              11,
+              12,
+              13
+            ],
+            "positive_row_count": 594,
+            "variable_upper_row_count": 0,
+            "variable_upper_objective": 0.0,
+            "lower_bound_positive_count_reported_not_exported": 4,
+            "lower_bound_positive_mass_reported_not_exported": 16384.514031372673,
+            "objective_over_expected": 310.59230208199006,
+            "objective_margin_to_gate": 27345.0830078125,
+            "objective_margin_to_expected_plus_allowance": -10.592302081990056,
+            "max_numerator_bits": 27,
+            "passes": false
+          },
+          {
+            "denominator": 4096,
+            "objective_num": 2289211896,
+            "objective_bound": 558889.623046875,
+            "min_slack": 0,
+            "argmin_vertices": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              11,
+              12,
+              13
+            ],
+            "positive_row_count": 594,
+            "variable_upper_row_count": 0,
+            "variable_upper_objective": 0.0,
+            "lower_bound_positive_count_reported_not_exported": 4,
+            "lower_bound_positive_mass_reported_not_exported": 16384.514031372673,
+            "objective_over_expected": 45.298356769490056,
+            "objective_margin_to_gate": 27610.376953125,
+            "objective_margin_to_expected_plus_allowance": 254.70164323050994,
+            "max_numerator_bits": 29,
+            "passes": true
+          },
+          {
+            "denominator": 16777216,
+            "objective_num": 9375851962065,
+            "objective_bound": 558844.3256655335,
+            "min_slack": 0,
+            "argmin_vertices": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              11,
+              12,
+              13
+            ],
+            "positive_row_count": 594,
+            "variable_upper_row_count": 0,
+            "variable_upper_objective": 0.0,
+            "lower_bound_positive_count_reported_not_exported": 4,
+            "lower_bound_positive_mass_reported_not_exported": 16384.514031372673,
+            "objective_over_expected": 0.0009754280326887965,
+            "objective_margin_to_gate": 27655.674334466457,
+            "objective_margin_to_expected_plus_allowance": 299.9990245719673,
+            "max_numerator_bits": 41,
+            "passes": true
+          }
+        ],
+        "selected": {
+          "denominator": 4096,
+          "objective_num": 2289211896,
+          "objective_bound": 558889.623046875,
+          "min_slack": 0,
+          "argmin_vertices": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ],
+          "positive_row_count": 594,
+          "variable_upper_row_count": 0,
+          "variable_upper_objective": 0.0,
+          "lower_bound_positive_count_reported_not_exported": 4,
+          "lower_bound_positive_mass_reported_not_exported": 16384.514031372673,
+          "objective_over_expected": 45.298356769490056,
+          "objective_margin_to_gate": 27610.376953125,
+          "objective_margin_to_expected_plus_allowance": 254.70164323050994,
+          "max_numerator_bits": 29,
+          "passes": true
+        }
+      },
+      "failure_reasons": [],
+      "status": "export_success"
+    }
+  ],
+  "failure_reasons": [],
+  "status": "fund_full_mixed_tree_terminal_export_design"
+}

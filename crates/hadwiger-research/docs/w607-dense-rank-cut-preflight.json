@@ -1,0 +1,442 @@
+{
+  "schema": "forge.hadwiger.w607_dense_rank_cut_preflight.v1",
+  "root_clique_lp_objective": 666661.0,
+  "pocket_count": 48,
+  "violated_count": 0,
+  "new_lp_objective": null,
+  "rows": [
+    {
+      "name": "top_x_20",
+      "size": 20,
+      "sum_x": 6.666666666668969,
+      "alpha": 19,
+      "success": true,
+      "seconds": 0.002057313919067383,
+      "violation": -12.33333333333103
+    },
+    {
+      "name": "top_x_40",
+      "size": 40,
+      "sum_x": 13.333333333337078,
+      "alpha": 32,
+      "success": true,
+      "seconds": 0.0014460086822509766,
+      "violation": -18.66666666666292
+    },
+    {
+      "name": "top_x_60",
+      "size": 60,
+      "sum_x": 20.00000000000484,
+      "alpha": 47,
+      "success": true,
+      "seconds": 0.0015246868133544922,
+      "violation": -26.99999999999516
+    },
+    {
+      "name": "top_x_80",
+      "size": 80,
+      "sum_x": 26.666666666672334,
+      "alpha": 57,
+      "success": true,
+      "seconds": 0.0015478134155273438,
+      "violation": -30.333333333327666
+    },
+    {
+      "name": "top_wx_20",
+      "size": 20,
+      "sum_x": 6.666666666666693,
+      "alpha": 10,
+      "success": true,
+      "seconds": 0.0025849342346191406,
+      "violation": -3.3333333333333073
+    },
+    {
+      "name": "top_wx_40",
+      "size": 40,
+      "sum_x": 13.333333333333524,
+      "alpha": 17,
+      "success": true,
+      "seconds": 0.019283294677734375,
+      "violation": -3.666666666666476
+    },
+    {
+      "name": "top_wx_60",
+      "size": 60,
+      "sum_x": 20.00000000000002,
+      "alpha": 24,
+      "success": true,
+      "seconds": 0.013580322265625,
+      "violation": -3.9999999999999787
+    },
+    {
+      "name": "top_wx_80",
+      "size": 80,
+      "sum_x": 26.666666666666572,
+      "alpha": 32,
+      "success": true,
+      "seconds": 0.014312982559204102,
+      "violation": -5.333333333333428
+    },
+    {
+      "name": "closed_304",
+      "size": 25,
+      "sum_x": 8.333333333333465,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.011272668838500977,
+      "violation": -3.6666666666665346
+    },
+    {
+      "name": "twohop_clip_304",
+      "size": 80,
+      "sum_x": 26.66666666666869,
+      "alpha": 46,
+      "success": true,
+      "seconds": 0.003708362579345703,
+      "violation": -19.33333333333131
+    },
+    {
+      "name": "closed_456",
+      "size": 25,
+      "sum_x": 8.33333333333325,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.015948772430419922,
+      "violation": -3.6666666666667496
+    },
+    {
+      "name": "twohop_clip_456",
+      "size": 80,
+      "sum_x": 26.666666666668796,
+      "alpha": 46,
+      "success": true,
+      "seconds": 0.002133607864379883,
+      "violation": -19.333333333331204
+    },
+    {
+      "name": "closed_152",
+      "size": 25,
+      "sum_x": 8.333333333333199,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.01108860969543457,
+      "violation": -3.666666666666801
+    },
+    {
+      "name": "twohop_clip_152",
+      "size": 80,
+      "sum_x": 26.666666666669368,
+      "alpha": 43,
+      "success": true,
+      "seconds": 0.01979351043701172,
+      "violation": -16.333333333330632
+    },
+    {
+      "name": "closed_222",
+      "size": 25,
+      "sum_x": 8.333333333333337,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.013196945190429688,
+      "violation": -3.6666666666666625
+    },
+    {
+      "name": "twohop_clip_222",
+      "size": 80,
+      "sum_x": 26.666666666668675,
+      "alpha": 48,
+      "success": true,
+      "seconds": 0.002584695816040039,
+      "violation": -21.333333333331325
+    },
+    {
+      "name": "closed_383",
+      "size": 25,
+      "sum_x": 8.333333333333247,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.013204813003540039,
+      "violation": -3.666666666666753
+    },
+    {
+      "name": "twohop_clip_383",
+      "size": 80,
+      "sum_x": 26.66666666666864,
+      "alpha": 43,
+      "success": true,
+      "seconds": 0.00260162353515625,
+      "violation": -16.33333333333136
+    },
+    {
+      "name": "closed_386",
+      "size": 25,
+      "sum_x": 8.333333333333478,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.01207733154296875,
+      "violation": -3.666666666666522
+    },
+    {
+      "name": "twohop_clip_386",
+      "size": 80,
+      "sum_x": 26.666666666669325,
+      "alpha": 42,
+      "success": true,
+      "seconds": 0.0027005672454833984,
+      "violation": -15.333333333330675
+    },
+    {
+      "name": "closed_225",
+      "size": 25,
+      "sum_x": 8.333333333333195,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.013083934783935547,
+      "violation": -3.6666666666668046
+    },
+    {
+      "name": "twohop_clip_225",
+      "size": 80,
+      "sum_x": 26.66666666666994,
+      "alpha": 45,
+      "success": true,
+      "seconds": 0.016312599182128906,
+      "violation": -18.33333333333006
+    },
+    {
+      "name": "closed_305",
+      "size": 19,
+      "sum_x": 6.333333333333275,
+      "alpha": 9,
+      "success": true,
+      "seconds": 0.013840913772583008,
+      "violation": -2.6666666666667247
+    },
+    {
+      "name": "twohop_clip_305",
+      "size": 80,
+      "sum_x": 26.666666666668256,
+      "alpha": 42,
+      "success": true,
+      "seconds": 0.0037841796875,
+      "violation": -15.333333333331744
+    },
+    {
+      "name": "closed_303",
+      "size": 19,
+      "sum_x": 6.3333333333332495,
+      "alpha": 9,
+      "success": true,
+      "seconds": 0.014279365539550781,
+      "violation": -2.6666666666667505
+    },
+    {
+      "name": "twohop_clip_303",
+      "size": 80,
+      "sum_x": 26.666666666668135,
+      "alpha": 39,
+      "success": true,
+      "seconds": 0.013669729232788086,
+      "violation": -12.333333333331865
+    },
+    {
+      "name": "closed_384",
+      "size": 19,
+      "sum_x": 6.333333333333251,
+      "alpha": 9,
+      "success": true,
+      "seconds": 0.013586997985839844,
+      "violation": -2.6666666666667487
+    },
+    {
+      "name": "twohop_clip_384",
+      "size": 80,
+      "sum_x": 26.66666666666803,
+      "alpha": 41,
+      "success": true,
+      "seconds": 0.013054132461547852,
+      "violation": -14.333333333331971
+    },
+    {
+      "name": "closed_223",
+      "size": 19,
+      "sum_x": 6.333333333333299,
+      "alpha": 9,
+      "success": true,
+      "seconds": 0.017958402633666992,
+      "violation": -2.6666666666667007
+    },
+    {
+      "name": "twohop_clip_223",
+      "size": 80,
+      "sum_x": 26.666666666668057,
+      "alpha": 41,
+      "success": true,
+      "seconds": 0.01280069351196289,
+      "violation": -14.333333333331943
+    },
+    {
+      "name": "closed_224",
+      "size": 19,
+      "sum_x": 6.333333333333238,
+      "alpha": 9,
+      "success": true,
+      "seconds": 0.014740943908691406,
+      "violation": -2.666666666666762
+    },
+    {
+      "name": "twohop_clip_224",
+      "size": 80,
+      "sum_x": 26.66666666666812,
+      "alpha": 37,
+      "success": true,
+      "seconds": 0.016371965408325195,
+      "violation": -10.333333333331879
+    },
+    {
+      "name": "closed_385",
+      "size": 19,
+      "sum_x": 6.333333333333265,
+      "alpha": 9,
+      "success": true,
+      "seconds": 0.012628555297851562,
+      "violation": -2.6666666666667354
+    },
+    {
+      "name": "twohop_clip_385",
+      "size": 80,
+      "sum_x": 26.66666666666826,
+      "alpha": 39,
+      "success": true,
+      "seconds": 0.003936290740966797,
+      "violation": -12.33333333333174
+    },
+    {
+      "name": "closed_307",
+      "size": 25,
+      "sum_x": 8.33333333333309,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.011035442352294922,
+      "violation": -3.6666666666669094
+    },
+    {
+      "name": "twohop_clip_307",
+      "size": 80,
+      "sum_x": 26.66666666666914,
+      "alpha": 39,
+      "success": true,
+      "seconds": 0.011823177337646484,
+      "violation": -12.33333333333086
+    },
+    {
+      "name": "closed_88",
+      "size": 25,
+      "sum_x": 8.333333333333222,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.011970281600952148,
+      "violation": -3.666666666666778
+    },
+    {
+      "name": "twohop_clip_88",
+      "size": 80,
+      "sum_x": 26.66666666666834,
+      "alpha": 36,
+      "success": true,
+      "seconds": 0.07991313934326172,
+      "violation": -9.333333333331659
+    },
+    {
+      "name": "closed_91",
+      "size": 25,
+      "sum_x": 8.333333333333382,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.010973930358886719,
+      "violation": -3.666666666666618
+    },
+    {
+      "name": "twohop_clip_91",
+      "size": 80,
+      "sum_x": 26.666666666669105,
+      "alpha": 38,
+      "success": true,
+      "seconds": 0.011236190795898438,
+      "violation": -11.333333333330895
+    },
+    {
+      "name": "closed_520",
+      "size": 25,
+      "sum_x": 8.333333333333332,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.010860204696655273,
+      "violation": -3.666666666666668
+    },
+    {
+      "name": "twohop_clip_520",
+      "size": 80,
+      "sum_x": 26.666666666668707,
+      "alpha": 39,
+      "success": true,
+      "seconds": 0.0211946964263916,
+      "violation": -12.333333333331293
+    },
+    {
+      "name": "closed_301",
+      "size": 25,
+      "sum_x": 8.333333333333428,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.010483980178833008,
+      "violation": -3.666666666666572
+    },
+    {
+      "name": "twohop_clip_301",
+      "size": 80,
+      "sum_x": 26.666666666668394,
+      "alpha": 39,
+      "success": true,
+      "seconds": 0.011932134628295898,
+      "violation": -12.333333333331606
+    },
+    {
+      "name": "closed_517",
+      "size": 25,
+      "sum_x": 8.333333333333568,
+      "alpha": 12,
+      "success": true,
+      "seconds": 0.01080012321472168,
+      "violation": -3.6666666666664316
+    },
+    {
+      "name": "twohop_clip_517",
+      "size": 80,
+      "sum_x": 26.666666666668362,
+      "alpha": 38,
+      "success": true,
+      "seconds": 0.01148080825805664,
+      "violation": -11.333333333331638
+    },
+    {
+      "name": "closed_151",
+      "size": 19,
+      "sum_x": 6.333333333333415,
+      "alpha": 9,
+      "success": true,
+      "seconds": 0.01293635368347168,
+      "violation": -2.6666666666665853
+    },
+    {
+      "name": "twohop_clip_151",
+      "size": 80,
+      "sum_x": 26.666666666668025,
+      "alpha": 41,
+      "success": true,
+      "seconds": 0.0034189224243164062,
+      "violation": -14.333333333331975
+    }
+  ],
+  "status": "RetiredNoViolatedDenseRankCuts"
+}

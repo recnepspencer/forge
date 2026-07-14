@@ -86,7 +86,9 @@ fn report_colorability(
         graph.vertex_count(),
         graph.edge_count(),
         checked.colorability_verification().posture(),
-        checked.not_k_colorable_aspect().satisfies_mathematical_dependency(),
+        checked
+            .not_k_colorable_aspect()
+            .satisfies_mathematical_dependency(),
         graph.artifact_digest().stable_token()
     );
 }

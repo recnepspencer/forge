@@ -1,0 +1,17 @@
+{
+  "schema": "forge.hadwiger.w607_v304_split_cut_diagnostic.v1",
+  "root_objective": 641090.9615275878,
+  "known_root_objective": 641090.9615275887,
+  "root_x304": 0.353842692012308,
+  "include_bound_num": 618626223,
+  "exclude_bound_num": 647496725,
+  "denominator": 1024,
+  "split_cut_rhs_num": 647496725,
+  "split_cut_lhs_at_root_num_rounded": 666692761,
+  "split_cut_violation_num_rounded": 19196036,
+  "split_cut_violation": 18746.12890625,
+  "root_with_split_cut_objective": 632321.0205078127,
+  "root_drop": 8769.941019775113,
+  "new_x304": 0.0,
+  "status": "SplitObjectiveCutMovedRoot"
+}

@@ -1,0 +1,443 @@
+{
+  "schema": "forge.hadwiger.w607_gamma1_branch_tree_preflight.v1",
+  "branch_vertex": 304,
+  "target_gamma1": 546085806.0,
+  "near_close_threshold": 548816235.03,
+  "kill_threshold": 551546664.0600001,
+  "node_limit": 64,
+  "flat_edge_triangle_rank_upper": 581636664.666667,
+  "flat_relative_gap": 0.06510123185048869,
+  "flat_passes_half_percent_gate": false,
+  "expanded_node_count": 15,
+  "closed_leaf_count": 16,
+  "open_leaf_count": 0,
+  "max_depth": 6,
+  "max_open_upper": 0.0,
+  "max_open_relative_gap": null,
+  "best_open_leaf": null,
+  "worst_closed_leaf": {
+    "included": [
+      88,
+      301,
+      384
+    ],
+    "excluded": [],
+    "upper": 545981756.7120998,
+    "included_weight": 41645076.0,
+    "residual_upper": 504336680.71209985,
+    "active_vertices": 520
+  },
+  "closed_leaves": [
+    {
+      "included": [
+        88,
+        301,
+        384
+      ],
+      "excluded": [],
+      "upper": 545981756.7120998,
+      "included_weight": 41645076.0,
+      "residual_upper": 504336680.71209985,
+      "active_vertices": 520,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        384
+      ],
+      "excluded": [
+        88,
+        307
+      ],
+      "upper": 545667283.8888888,
+      "included_weight": 18327048.0,
+      "residual_upper": 527340235.8888889,
+      "active_vertices": 563,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        223
+      ],
+      "excluded": [
+        307,
+        384,
+        517
+      ],
+      "upper": 545667283.5000001,
+      "included_weight": 18327048.0,
+      "residual_upper": 527340235.5000001,
+      "active_vertices": 563,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        305
+      ],
+      "excluded": [
+        88,
+        223,
+        384,
+        517
+      ],
+      "upper": 545666087.3333341,
+      "included_weight": 18327048.0,
+      "residual_upper": 527339039.3333341,
+      "active_vertices": 563,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        223,
+        517
+      ],
+      "excluded": [
+        91,
+        384
+      ],
+      "upper": 545356133.4444447,
+      "included_weight": 29987852.0,
+      "residual_upper": 515368281.4444447,
+      "active_vertices": 541,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        88,
+        384
+      ],
+      "excluded": [
+        301
+      ],
+      "upper": 545232771.7440476,
+      "included_weight": 29987854.0,
+      "residual_upper": 515244917.7440477,
+      "active_vertices": 541,
+      "closed_by": "target"
+    },
+    {
+      "included": [],
+      "excluded": [
+        223,
+        224,
+        303,
+        305,
+        384,
+        385
+      ],
+      "upper": 544982569.6666667,
+      "included_weight": 0.0,
+      "residual_upper": 544982569.6666667,
+      "active_vertices": 576,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        305,
+        517
+      ],
+      "excluded": [
+        88,
+        223,
+        384
+      ],
+      "upper": 544409023.5,
+      "included_weight": 29987852.0,
+      "residual_upper": 514421171.50000006,
+      "active_vertices": 541,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        88,
+        305
+      ],
+      "excluded": [
+        223,
+        384,
+        517
+      ],
+      "upper": 544409022.3333333,
+      "included_weight": 29987854.0,
+      "residual_upper": 514421168.3333332,
+      "active_vertices": 541,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        223,
+        307
+      ],
+      "excluded": [
+        384,
+        517
+      ],
+      "upper": 544406634.666667,
+      "included_weight": 29984269.0,
+      "residual_upper": 514422365.66666704,
+      "active_vertices": 541,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        307,
+        384
+      ],
+      "excluded": [
+        88
+      ],
+      "upper": 544406634.5000002,
+      "included_weight": 29984269.0,
+      "residual_upper": 514422365.5000002,
+      "active_vertices": 541,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        91,
+        223,
+        517
+      ],
+      "excluded": [
+        384
+      ],
+      "upper": 544245584.1111115,
+      "included_weight": 41645074.0,
+      "residual_upper": 502600510.1111115,
+      "active_vertices": 519,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        88,
+        305,
+        517
+      ],
+      "excluded": [
+        223,
+        384
+      ],
+      "upper": 543094501.7500005,
+      "included_weight": 41648658.0,
+      "residual_upper": 501445843.75000054,
+      "active_vertices": 519,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        224
+      ],
+      "excluded": [
+        223,
+        305,
+        384
+      ],
+      "upper": 538676874.3226489,
+      "included_weight": 18327047.0,
+      "residual_upper": 520349827.3226489,
+      "active_vertices": 562,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        385
+      ],
+      "excluded": [
+        223,
+        224,
+        303,
+        305,
+        384
+      ],
+      "upper": 538676872.3660967,
+      "included_weight": 18327047.0,
+      "residual_upper": 520349825.3660967,
+      "active_vertices": 562,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        303
+      ],
+      "excluded": [
+        223,
+        224,
+        305,
+        384
+      ],
+      "upper": 538676574.5113797,
+      "included_weight": 18327047.0,
+      "residual_upper": 520349527.5113798,
+      "active_vertices": 562,
+      "closed_by": "target"
+    }
+  ],
+  "expanded_nodes": [
+    {
+      "depth": 0,
+      "branch_vertex": 384,
+      "upper": 581636664.666667,
+      "included_weight": 0.0,
+      "residual_upper": 581636664.666667,
+      "active_vertices": 582,
+      "branch_x": 0.3333333333333448,
+      "branch_c0": 18327048.0,
+      "branch_contribution": 6109016.0000002105
+    },
+    {
+      "depth": 1,
+      "branch_vertex": 223,
+      "upper": 575527648.6666665,
+      "included_weight": 0.0,
+      "residual_upper": 575527648.6666665,
+      "active_vertices": 581,
+      "branch_x": 0.3333333333333502,
+      "branch_c0": 18327048.0,
+      "branch_contribution": 6109016.000000309
+    },
+    {
+      "depth": 2,
+      "branch_vertex": 305,
+      "upper": 569418632.6666666,
+      "included_weight": 0.0,
+      "residual_upper": 569418632.6666666,
+      "active_vertices": 580,
+      "branch_x": 0.3333333333333352,
+      "branch_c0": 18327048.0,
+      "branch_contribution": 6109016.000000034
+    },
+    {
+      "depth": 3,
+      "branch_vertex": 224,
+      "upper": 563309616.6666659,
+      "included_weight": 0.0,
+      "residual_upper": 563309616.6666659,
+      "active_vertices": 579,
+      "branch_x": 0.3333333333333823,
+      "branch_c0": 18327047.0,
+      "branch_contribution": 6109015.666667564
+    },
+    {
+      "depth": 4,
+      "branch_vertex": 303,
+      "upper": 557200601.0000002,
+      "included_weight": 0.0,
+      "residual_upper": 557200601.0000002,
+      "active_vertices": 578,
+      "branch_x": 0.3333333333333542,
+      "branch_c0": 18327047.0,
+      "branch_contribution": 6109015.666667049
+    },
+    {
+      "depth": 3,
+      "branch_vertex": 88,
+      "upper": 554342442.7222226,
+      "included_weight": 18327048.0,
+      "residual_upper": 536015394.7222225,
+      "active_vertices": 565,
+      "branch_x": 0.5555555555555561,
+      "branch_c0": 11660806.0,
+      "branch_contribution": 6478225.5555555625
+    },
+    {
+      "depth": 1,
+      "branch_vertex": 88,
+      "upper": 554341647.8888892,
+      "included_weight": 18327048.0,
+      "residual_upper": 536014599.8888892,
+      "active_vertices": 565,
+      "branch_x": 0.5555555555555577,
+      "branch_c0": 11660806.0,
+      "branch_contribution": 6478225.55555558
+    },
+    {
+      "depth": 2,
+      "branch_vertex": 517,
+      "upper": 554341647.0555557,
+      "included_weight": 18327048.0,
+      "residual_upper": 536014599.0555557,
+      "active_vertices": 565,
+      "branch_x": 0.5555555555557198,
+      "branch_c0": 11660804.0,
+      "branch_contribution": 6478224.44444636
+    },
+    {
+      "depth": 5,
+      "branch_vertex": 385,
+      "upper": 551091585.3333337,
+      "included_weight": 0.0,
+      "residual_upper": 551091585.3333337,
+      "active_vertices": 577,
+      "branch_x": 0.3333333333333421,
+      "branch_c0": 18327047.0,
+      "branch_contribution": 6109015.666666827
+    },
+    {
+      "depth": 4,
+      "branch_vertex": 517,
+      "upper": 550005416.766667,
+      "included_weight": 18327048.0,
+      "residual_upper": 531678368.766667,
+      "active_vertices": 564,
+      "branch_x": 0.5333333333333329,
+      "branch_c0": 11660804.0,
+      "branch_contribution": 6219095.466666661
+    },
+    {
+      "depth": 2,
+      "branch_vertex": 307,
+      "upper": 550004701.9333339,
+      "included_weight": 18327048.0,
+      "residual_upper": 531677653.9333339,
+      "active_vertices": 564,
+      "branch_x": 0.5333333333330404,
+      "branch_c0": 11657221.0,
+      "branch_contribution": 6217184.533329919
+    },
+    {
+      "depth": 3,
+      "branch_vertex": 307,
+      "upper": 550004701.6666666,
+      "included_weight": 18327048.0,
+      "residual_upper": 531677653.6666666,
+      "active_vertices": 564,
+      "branch_x": 0.5333333333333373,
+      "branch_c0": 11657221.0,
+      "branch_contribution": 6217184.53333338
+    },
+    {
+      "depth": 4,
+      "branch_vertex": 517,
+      "upper": 548885270.666667,
+      "included_weight": 29987854.0,
+      "residual_upper": 518897416.66666704,
+      "active_vertices": 542,
+      "branch_x": 0.6666666666666761,
+      "branch_c0": 11660804.0,
+      "branch_contribution": 7773869.333333443
+    },
+    {
+      "depth": 3,
+      "branch_vertex": 91,
+      "upper": 548884079.666667,
+      "included_weight": 29987852.0,
+      "residual_upper": 518896227.6666669,
+      "active_vertices": 542,
+      "branch_x": 0.6666666666666888,
+      "branch_c0": 11657222.0,
+      "branch_contribution": 7771481.333333592
+    },
+    {
+      "depth": 2,
+      "branch_vertex": 301,
+      "upper": 548884076.666666,
+      "included_weight": 29987854.0,
+      "residual_upper": 518896222.6666661,
+      "active_vertices": 542,
+      "branch_x": 0.6666666666666523,
+      "branch_c0": 11657222.0,
+      "branch_contribution": 7771481.333333166
+    }
+  ],
+  "status": "CloseGamma1BranchTree"
+}

@@ -1,0 +1,898 @@
+{
+  "schema": "forge.hadwiger.w607_tailored_gamma0_branch_tree.v1",
+  "authority": "diagnostic_only_not_proof_authority_until_rounded_leaf_duals_replay",
+  "second_agent_recommendation": "run_bounded_diagnostic_not_export_yet",
+  "branch_domain": "x304=0",
+  "row_language": "edge_triangle_replayed_weighted_rank_rows",
+  "node_limit": 96,
+  "vector": {
+    "name": "d=c0+p",
+    "denominator": 1024,
+    "d_num_digest": "41d3c726b22c249dde518dd9ea96396d6fe26bfec821f28d22a2abd08bd1f43a",
+    "p_support": [
+      152,
+      222,
+      225,
+      383,
+      386,
+      456
+    ],
+    "p_num_d1024": {
+      "152": 326679096,
+      "222": 326679397,
+      "225": 325454931,
+      "383": 326679622,
+      "386": 325455430,
+      "456": 326679457
+    }
+  },
+  "bounds": {
+    "charged_gamma0_num_d1024": 623894447014.0,
+    "charged_gamma0": 609271920.9121094,
+    "gamma1_modified_num_d1024": 559085319025.0,
+    "cheap_close_target": 609271670.9121094,
+    "diagnostic_gamma0": 609058840.616211,
+    "diagnostic_gamma0_num_d1024": 623676252791.0001,
+    "gain_num_d1024": 218194222.99987793,
+    "gain_objective": 213080.2958983183,
+    "new_lift_num_d1024": 64590933766.00012
+  },
+  "gates": {
+    "cheap_gain_num": 256000.0,
+    "export_gain_num": 1024000.0,
+    "strong_gain_num": 3072000.0,
+    "cheap_root_drop": 250.0,
+    "export_root_drop": 1000.0,
+    "strong_root_drop": 3000.0
+  },
+  "prechecks": {
+    "old_leaf_worst": {
+      "included": [
+        225
+      ],
+      "excluded": [
+        222,
+        383,
+        386,
+        456
+      ],
+      "upper": 609271920.7477217,
+      "included_weight": 25616366.081054688,
+      "residual_upper": 583655554.666667,
+      "active_vertices": 579
+    },
+    "old_leaf_worst_gain_num": 168.3330078125,
+    "flat_root_compare": {
+      "c0_root_upper": 654024375.5893382,
+      "d_root_upper": 654661624.2654462,
+      "c0_top_fractional": [
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "objective_coeff": 25298540.0,
+          "objective_contribution": 8432846.666665502
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "objective_coeff": 25298539.0,
+          "objective_contribution": 8432846.333333503
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "objective_coeff": 25298539.0,
+          "objective_contribution": 8432846.333333325
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "objective_coeff": 25298539.0,
+          "objective_contribution": 8432846.333332038
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "objective_coeff": 25298538.0,
+          "objective_contribution": 8432846.000000712
+        },
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "objective_coeff": 25298538.0,
+          "objective_contribution": 8432845.999995895
+        },
+        {
+          "vertex": 384,
+          "weight": 17892.0,
+          "objective_coeff": 18327048.0,
+          "objective_contribution": 6919227.235767574
+        },
+        {
+          "vertex": 305,
+          "weight": 17892.0,
+          "objective_coeff": 18327048.0,
+          "objective_contribution": 6919227.235756935
+        },
+        {
+          "vertex": 303,
+          "weight": 17892.0,
+          "objective_coeff": 18327047.0,
+          "objective_contribution": 6919226.8582261065
+        },
+        {
+          "vertex": 224,
+          "weight": 17892.0,
+          "objective_coeff": 18327047.0,
+          "objective_contribution": 6919226.858221195
+        },
+        {
+          "vertex": 223,
+          "weight": 17892.0,
+          "objective_coeff": 18327048.0,
+          "objective_contribution": 4488593.52847549
+        },
+        {
+          "vertex": 385,
+          "weight": 17892.0,
+          "objective_coeff": 18327047.0,
+          "objective_contribution": 4488593.283552698
+        }
+      ],
+      "d_top_fractional": [
+        {
+          "vertex": 456,
+          "weight": 24698.0,
+          "objective_coeff": 25617562.907226562,
+          "objective_contribution": 8539187.6357414
+        },
+        {
+          "vertex": 383,
+          "weight": 24698.0,
+          "objective_coeff": 25617562.068359375,
+          "objective_contribution": 8539187.356120428
+        },
+        {
+          "vertex": 222,
+          "weight": 24698.0,
+          "objective_coeff": 25617560.848632812,
+          "objective_contribution": 8539186.94954413
+        },
+        {
+          "vertex": 152,
+          "weight": 24698.0,
+          "objective_coeff": 25617560.5546875,
+          "objective_contribution": 8539186.851562781
+        },
+        {
+          "vertex": 386,
+          "weight": 24698.0,
+          "objective_coeff": 25616366.568359375,
+          "objective_contribution": 8538788.85612009
+        },
+        {
+          "vertex": 225,
+          "weight": 24698.0,
+          "objective_coeff": 25616366.081054688,
+          "objective_contribution": 8538788.693684997
+        },
+        {
+          "vertex": 305,
+          "weight": 17892.0,
+          "objective_coeff": 18327048.0,
+          "objective_contribution": 6919227.235772985
+        },
+        {
+          "vertex": 384,
+          "weight": 17892.0,
+          "objective_coeff": 18327048.0,
+          "objective_contribution": 6919227.235768973
+        },
+        {
+          "vertex": 224,
+          "weight": 17892.0,
+          "objective_coeff": 18327047.0,
+          "objective_contribution": 6919226.858226024
+        },
+        {
+          "vertex": 303,
+          "weight": 17892.0,
+          "objective_coeff": 18327047.0,
+          "objective_contribution": 6919226.858223793
+        },
+        {
+          "vertex": 223,
+          "weight": 17892.0,
+          "objective_coeff": 18327048.0,
+          "objective_contribution": 4488593.528458043
+        },
+        {
+          "vertex": 385,
+          "weight": 17892.0,
+          "objective_coeff": 18327047.0,
+          "objective_contribution": 4488593.283550183
+        }
+      ]
+    }
+  },
+  "tree": {
+    "root_upper": 654661624.2654462,
+    "close_target": 609271670.9121094,
+    "expanded_node_count": 23,
+    "closed_leaf_count": 24,
+    "open_leaf_count": 0,
+    "max_depth": 8,
+    "max_open_upper": 0.0,
+    "max_closed_upper": 609058840.616211,
+    "diagnostic_upper": 609058840.616211,
+    "worst_open_leaf": null,
+    "worst_closed_leaf": {
+      "included": [
+        222,
+        456
+      ],
+      "excluded": [],
+      "upper": 609058840.616211,
+      "included_weight": 51235123.755859375,
+      "residual_upper": 557823716.8603517,
+      "active_vertices": 559
+    },
+    "closed_leaves": [
+      {
+        "included": [
+          222,
+          456
+        ],
+        "excluded": [],
+        "upper": 609058840.616211,
+        "included_weight": 51235123.755859375,
+        "residual_upper": 557823716.8603517,
+        "active_vertices": 559,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          152,
+          383
+        ],
+        "excluded": [
+          456
+        ],
+        "upper": 609058839.0625,
+        "included_weight": 51235122.623046875,
+        "residual_upper": 557823716.4394531,
+        "active_vertices": 559,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [],
+        "excluded": [
+          152,
+          222,
+          225,
+          305,
+          383,
+          384,
+          386,
+          456
+        ],
+        "upper": 607590183.3333331,
+        "included_weight": 0.0,
+        "residual_upper": 607590183.3333331,
+        "active_vertices": 598,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          152,
+          456
+        ],
+        "excluded": [
+          222
+        ],
+        "upper": 603883948.878581,
+        "included_weight": 51235123.46191406,
+        "residual_upper": 552648825.416667,
+        "active_vertices": 558,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          225,
+          383
+        ],
+        "excluded": [
+          152,
+          386,
+          456
+        ],
+        "upper": 603883650.3160808,
+        "included_weight": 51233928.14941406,
+        "residual_upper": 552649722.1666667,
+        "active_vertices": 558,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          222,
+          386
+        ],
+        "excluded": [
+          383,
+          456
+        ],
+        "upper": 603883648.8336585,
+        "included_weight": 51233927.41699219,
+        "residual_upper": 552649721.4166663,
+        "active_vertices": 558,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          456
+        ],
+        "excluded": [
+          152,
+          222,
+          225,
+          305
+        ],
+        "upper": 603600446.6572262,
+        "included_weight": 25617562.907226562,
+        "residual_upper": 577982883.7499996,
+        "active_vertices": 578,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          383
+        ],
+        "excluded": [
+          152,
+          223,
+          225,
+          386,
+          456
+        ],
+        "upper": 603600445.0683595,
+        "included_weight": 25617562.068359375,
+        "residual_upper": 577982883.0000001,
+        "active_vertices": 578,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          225
+        ],
+        "excluded": [
+          152,
+          222,
+          383,
+          384,
+          386,
+          456
+        ],
+        "upper": 603162904.747721,
+        "included_weight": 25616366.081054688,
+        "residual_upper": 577546538.6666663,
+        "active_vertices": 578,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          386
+        ],
+        "excluded": [
+          152,
+          222,
+          305,
+          383,
+          456
+        ],
+        "upper": 603162904.735026,
+        "included_weight": 25616366.568359375,
+        "residual_upper": 577546538.1666666,
+        "active_vertices": 578,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          152
+        ],
+        "excluded": [
+          222,
+          383,
+          384,
+          386,
+          456
+        ],
+        "upper": 603162904.7213537,
+        "included_weight": 25617560.5546875,
+        "residual_upper": 577545344.1666662,
+        "active_vertices": 578,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          222
+        ],
+        "excluded": [
+          223,
+          225,
+          383,
+          386,
+          456
+        ],
+        "upper": 603162904.3486327,
+        "included_weight": 25617560.848632812,
+        "residual_upper": 577545343.4999999,
+        "active_vertices": 578,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          152,
+          386
+        ],
+        "excluded": [
+          222,
+          383,
+          456
+        ],
+        "upper": 602048600.1230472,
+        "included_weight": 51233927.123046875,
+        "residual_upper": 550814673.0000004,
+        "active_vertices": 558,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          383,
+          386
+        ],
+        "excluded": [
+          152,
+          456
+        ],
+        "upper": 602048599.8867192,
+        "included_weight": 51233928.63671875,
+        "residual_upper": 550814671.2500005,
+        "active_vertices": 558,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          225,
+          456
+        ],
+        "excluded": [
+          152,
+          222
+        ],
+        "upper": 602048599.7382811,
+        "included_weight": 51233928.98828125,
+        "residual_upper": 550814670.7499999,
+        "active_vertices": 558,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          222,
+          225
+        ],
+        "excluded": [
+          383,
+          386,
+          456
+        ],
+        "upper": 602048599.6796874,
+        "included_weight": 51233926.9296875,
+        "residual_upper": 550814672.7499999,
+        "active_vertices": 558,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          384
+        ],
+        "excluded": [
+          152,
+          222,
+          225,
+          305,
+          383,
+          386,
+          456
+        ],
+        "upper": 584440883.6666664,
+        "included_weight": 18327048.0,
+        "residual_upper": 566113835.6666664,
+        "active_vertices": 581,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          305
+        ],
+        "excluded": [
+          152,
+          222,
+          225,
+          383,
+          386,
+          456
+        ],
+        "upper": 584440881.0,
+        "included_weight": 18327048.0,
+        "residual_upper": 566113833.0,
+        "active_vertices": 581,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          222,
+          223
+        ],
+        "excluded": [
+          225,
+          383,
+          386,
+          456
+        ],
+        "upper": 582671557.3486333,
+        "included_weight": 43944608.84863281,
+        "residual_upper": 538726948.5000005,
+        "active_vertices": 562,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          305,
+          386
+        ],
+        "excluded": [
+          152,
+          222,
+          383,
+          456
+        ],
+        "upper": 582671555.4016927,
+        "included_weight": 43943414.568359375,
+        "residual_upper": 538728140.8333334,
+        "active_vertices": 562,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          225,
+          384
+        ],
+        "excluded": [
+          152,
+          222,
+          383,
+          386,
+          456
+        ],
+        "upper": 579463768.5810554,
+        "included_weight": 43943414.08105469,
+        "residual_upper": 535520354.50000066,
+        "active_vertices": 560,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          152,
+          384
+        ],
+        "excluded": [
+          222,
+          383,
+          386,
+          456
+        ],
+        "upper": 579463768.554688,
+        "included_weight": 43944608.5546875,
+        "residual_upper": 535519160.0000004,
+        "active_vertices": 560,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          223,
+          383
+        ],
+        "excluded": [
+          152,
+          225,
+          386,
+          456
+        ],
+        "upper": 577457048.0475259,
+        "included_weight": 43944610.068359375,
+        "residual_upper": 533512437.9791665,
+        "active_vertices": 560,
+        "closed_by": "close_target"
+      },
+      {
+        "included": [
+          305,
+          456
+        ],
+        "excluded": [
+          152,
+          222,
+          225
+        ],
+        "upper": 577457044.9488934,
+        "included_weight": 43944610.90722656,
+        "residual_upper": 533512434.04166687,
+        "active_vertices": 560,
+        "closed_by": "close_target"
+      }
+    ],
+    "expanded_nodes": [
+      {
+        "depth": 0,
+        "branch_vertex": 456,
+        "upper": 654661624.2654462,
+        "included_weight": 0.0,
+        "residual_upper": 654661624.2654462,
+        "active_vertices": 606,
+        "branch_x": 0.33333333333330256,
+        "branch_d": 25617562.907226562,
+        "branch_contribution": 8539187.6357414
+      },
+      {
+        "depth": 1,
+        "branch_vertex": 383,
+        "upper": 652653859.0375392,
+        "included_weight": 0.0,
+        "residual_upper": 652653859.0375392,
+        "active_vertices": 605,
+        "branch_x": 0.33333333333332393,
+        "branch_d": 25617562.068359375,
+        "branch_contribution": 8539187.35611955
+      },
+      {
+        "depth": 2,
+        "branch_vertex": 222,
+        "upper": 650646094.0892525,
+        "included_weight": 0.0,
+        "residual_upper": 650646094.0892525,
+        "active_vertices": 604,
+        "branch_x": 0.3333333333333434,
+        "branch_d": 25617560.848632812,
+        "branch_contribution": 8539186.949544528
+      },
+      {
+        "depth": 3,
+        "branch_vertex": 152,
+        "upper": 645424979.7347018,
+        "included_weight": 0.0,
+        "residual_upper": 645424979.7347018,
+        "active_vertices": 603,
+        "branch_x": 0.3333333333335033,
+        "branch_d": 25617560.5546875,
+        "branch_contribution": 8539186.851566853
+      },
+      {
+        "depth": 4,
+        "branch_vertex": 386,
+        "upper": 636885792.8831372,
+        "included_weight": 0.0,
+        "residual_upper": 636885792.8831372,
+        "active_vertices": 602,
+        "branch_x": 0.33333333333336057,
+        "branch_d": 25616366.568359375,
+        "branch_contribution": 8538788.85612049
+      },
+      {
+        "depth": 1,
+        "branch_vertex": 222,
+        "upper": 634889083.2353516,
+        "included_weight": 25617562.907226562,
+        "residual_upper": 609271520.328125,
+        "active_vertices": 582,
+        "branch_x": 0.3333333333333426,
+        "branch_d": 25617560.848632812,
+        "branch_contribution": 8539186.949544508
+      },
+      {
+        "depth": 2,
+        "branch_vertex": 152,
+        "upper": 634888685.136394,
+        "included_weight": 25617562.068359375,
+        "residual_upper": 609271123.0680346,
+        "active_vertices": 582,
+        "branch_x": 0.3333333333333245,
+        "branch_d": 25617560.5546875,
+        "branch_contribution": 8539186.851562273
+      },
+      {
+        "depth": 5,
+        "branch_vertex": 225,
+        "upper": 628347004.0270176,
+        "included_weight": 0.0,
+        "residual_upper": 628347004.0270176,
+        "active_vertices": 601,
+        "branch_x": 0.33333333333352966,
+        "branch_d": 25616366.081054688,
+        "branch_contribution": 8538788.693689926
+      },
+      {
+        "depth": 2,
+        "branch_vertex": 152,
+        "upper": 626349896.2858073,
+        "included_weight": 25617562.907226562,
+        "residual_upper": 600732333.3785807,
+        "active_vertices": 581,
+        "branch_x": 0.33333333333333176,
+        "branch_d": 25617560.5546875,
+        "branch_contribution": 8539186.851562459
+      },
+      {
+        "depth": 3,
+        "branch_vertex": 386,
+        "upper": 626349498.28483,
+        "included_weight": 25617562.068359375,
+        "residual_upper": 600731936.2164706,
+        "active_vertices": 581,
+        "branch_x": 0.3333333333331861,
+        "branch_d": 25616366.568359375,
+        "branch_contribution": 8538788.85611602
+      },
+      {
+        "depth": 3,
+        "branch_vertex": 386,
+        "upper": 626349497.898437,
+        "included_weight": 25617560.848632812,
+        "residual_upper": 600731937.0498042,
+        "active_vertices": 581,
+        "branch_x": 0.3333333333332118,
+        "branch_d": 25616366.568359375,
+        "branch_contribution": 8538788.856116679
+      },
+      {
+        "depth": 6,
+        "branch_vertex": 305,
+        "upper": 619808215.3333331,
+        "included_weight": 0.0,
+        "residual_upper": 619808215.3333331,
+        "active_vertices": 600,
+        "branch_x": 0.3333333333334234,
+        "branch_d": 18327048.0,
+        "branch_contribution": 6109016.000001651
+      },
+      {
+        "depth": 4,
+        "branch_vertex": 386,
+        "upper": 617810709.5774745,
+        "included_weight": 25617560.5546875,
+        "residual_upper": 592193149.022787,
+        "active_vertices": 580,
+        "branch_x": 0.33333333333330567,
+        "branch_d": 25616366.568359375,
+        "branch_contribution": 8538788.856119083
+      },
+      {
+        "depth": 3,
+        "branch_vertex": 225,
+        "upper": 617810709.4342444,
+        "included_weight": 25617562.907226562,
+        "residual_upper": 592193146.5270178,
+        "active_vertices": 580,
+        "branch_x": 0.33333333333329085,
+        "branch_d": 25616366.081054688,
+        "branch_contribution": 8538788.693683807
+      },
+      {
+        "depth": 4,
+        "branch_vertex": 225,
+        "upper": 617810709.4287112,
+        "included_weight": 25617562.068359375,
+        "residual_upper": 592193147.3603518,
+        "active_vertices": 580,
+        "branch_x": 0.3333333333333302,
+        "branch_d": 25616366.081054688,
+        "branch_contribution": 8538788.693684816
+      },
+      {
+        "depth": 4,
+        "branch_vertex": 225,
+        "upper": 617810709.0423177,
+        "included_weight": 25617560.848632812,
+        "residual_upper": 592193148.1936849,
+        "active_vertices": 580,
+        "branch_x": 0.333333333333381,
+        "branch_d": 25616366.081054688,
+        "branch_contribution": 8538788.693686116
+      },
+      {
+        "depth": 7,
+        "branch_vertex": 384,
+        "upper": 613699199.3333322,
+        "included_weight": 0.0,
+        "residual_upper": 613699199.3333322,
+        "active_vertices": 599,
+        "branch_x": 0.3333333333333338,
+        "branch_d": 18327048.0,
+        "branch_contribution": 6109016.000000008
+      },
+      {
+        "depth": 6,
+        "branch_vertex": 384,
+        "upper": 609271920.7477217,
+        "included_weight": 25616366.081054688,
+        "residual_upper": 583655554.666667,
+        "active_vertices": 579,
+        "branch_x": 0.33333333333333603,
+        "branch_d": 18327048.0,
+        "branch_contribution": 6109016.000000049
+      },
+      {
+        "depth": 4,
+        "branch_vertex": 305,
+        "upper": 609271920.7405599,
+        "included_weight": 25617562.907226562,
+        "residual_upper": 583654357.8333334,
+        "active_vertices": 579,
+        "branch_x": 0.33333333333335985,
+        "branch_d": 18327048.0,
+        "branch_contribution": 6109016.000000486
+      },
+      {
+        "depth": 5,
+        "branch_vertex": 223,
+        "upper": 609271920.7350265,
+        "included_weight": 25617562.068359375,
+        "residual_upper": 583654358.6666671,
+        "active_vertices": 579,
+        "branch_x": 0.33333333333333337,
+        "branch_d": 18327048.0,
+        "branch_contribution": 6109016.000000001
+      },
+      {
+        "depth": 5,
+        "branch_vertex": 305,
+        "upper": 609271920.7350264,
+        "included_weight": 25616366.568359375,
+        "residual_upper": 583655554.166667,
+        "active_vertices": 579,
+        "branch_x": 0.33333333333334686,
+        "branch_d": 18327048.0,
+        "branch_contribution": 6109016.000000248
+      },
+      {
+        "depth": 5,
+        "branch_vertex": 384,
+        "upper": 609271920.721354,
+        "included_weight": 25617560.5546875,
+        "residual_upper": 583654360.1666665,
+        "active_vertices": 579,
+        "branch_x": 0.33333333333333476,
+        "branch_d": 18327048.0,
+        "branch_contribution": 6109016.000000026
+      },
+      {
+        "depth": 5,
+        "branch_vertex": 223,
+        "upper": 609271920.3486327,
+        "included_weight": 25617560.848632812,
+        "residual_upper": 583654359.4999999,
+        "active_vertices": 579,
+        "branch_x": 0.3333333333333343,
+        "branch_d": 18327048.0,
+        "branch_contribution": 6109016.000000018
+      }
+    ]
+  },
+  "root_effect": {
+    "baseline_objective": 594914.351525072,
+    "new_objective": 594706.340156662,
+    "root_drop": 208.01136840996332,
+    "baseline_x304": 0.0,
+    "new_x304": 0.0
+  },
+  "status": "RetireTailoredGamma0Tree"
+}

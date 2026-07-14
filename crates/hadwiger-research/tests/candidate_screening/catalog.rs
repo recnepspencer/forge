@@ -8,7 +8,7 @@ fn screening_catalog_materializes_all_solved_filter_nodes() {
 
     let catalog = draft_candidate_screening_invariant_catalog_checked(&handle).unwrap();
 
-    assert_eq!(catalog.nodes().len(), 34);
+    assert_eq!(catalog.nodes().len(), 35);
     for family in CandidateScreeningInvariantFamily::all() {
         assert!(catalog.has_family(*family), "missing {family:?}");
     }
@@ -16,6 +16,9 @@ fn screening_catalog_materializes_all_solved_filter_nodes() {
     assert!(catalog.has_family(CandidateScreeningInvariantFamily::ExactUnitDistanceConflict));
     assert!(catalog.has_family(CandidateScreeningInvariantFamily::MinkowskiDifferenceGeometry));
     assert!(catalog.has_family(CandidateScreeningInvariantFamily::CandidateNoveltyNonIsomorphism));
+    assert!(
+        catalog.has_family(CandidateScreeningInvariantFamily::GeometricFractionalChromaticNumber)
+    );
     assert!(!catalog.admits_theorem_authority());
     assert!(!catalog.registers_query_invariant_authority());
 }
@@ -106,7 +109,7 @@ fn every_screening_family_produces_checked_evaluation_artifact() {
     let report = assemble_candidate_screening_report_checked(&handle, &catalog, evaluations)
         .expect("screening report should assemble");
 
-    assert_eq!(report.evaluations().len(), 34);
+    assert_eq!(report.evaluations().len(), 35);
     assert_eq!(report.rejected_count(), 0);
     assert!(!report.admits_theorem_authority());
 }

@@ -12,6 +12,7 @@ use super::family_markers::{
     ExhaustiveLocalNeighborhoodScreeningDeclarationFamily,
     FinitePatchBoundaryExtensionScreeningDeclarationFamily,
     ForbiddenDisplacementScreeningDeclarationFamily, FractionalChromaticScreeningDeclarationFamily,
+    GeometricFractionalChromaticScreeningDeclarationFamily,
     KnownObstructionContainmentScreeningDeclarationFamily,
     LocalDensityWindowScreeningDeclarationFamily, LovaszThetaScreeningDeclarationFamily,
     MinkowskiDifferenceScreeningDeclarationFamily,
@@ -37,8 +38,8 @@ use super::geometry_screening_request_types::{
 };
 use super::screening_request_types::{
     AutocorrelationZeroScreeningDeclaration, DensityCapScreeningDeclaration,
-    FractionalChromaticScreeningDeclaration, LocalDensityWindowScreeningDeclaration,
-    LovaszThetaScreeningDeclaration,
+    FractionalChromaticScreeningDeclaration, GeometricFractionalChromaticScreeningDeclaration,
+    LocalDensityWindowScreeningDeclaration, LovaszThetaScreeningDeclaration,
 };
 use crate::query_entry::HadwigerResearchDomainEntry;
 
@@ -66,6 +67,27 @@ impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
                 self.graph_version_reference(),
             ),
             unsigned_entry("color_limit", self.color_limit()),
+            ForgeQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
+        ]
+    }
+}
+
+impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
+    for GeometricFractionalChromaticScreeningDeclaration
+{
+    type Family = GeometricFractionalChromaticScreeningDeclarationFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![
+            kind_entry("geometric_fractional_chromatic_screening"),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "graph_version_reference",
+                self.graph_version_reference(),
+            ),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "target_lower_bound",
+                self.target_lower_bound(),
+            ),
             ForgeQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
         ]
     }

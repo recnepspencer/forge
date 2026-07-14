@@ -1,0 +1,465 @@
+{
+  "schema": "forge.hadwiger.w607_root_lp_dual_certificate_diagnostic.v1",
+  "root_objective": 641090.9615275878,
+  "known_objective": 641090.9615275887,
+  "positive_dual_row_count": 597,
+  "positive_dual_count_by_kind": {
+    "edge": 0,
+    "triangle": 595,
+    "rank": 2,
+    "singleton_bound": 0
+  },
+  "objective_contribution_by_kind": {
+    "edge": 0.0,
+    "triangle": 384693.94342536386,
+    "rank": 256397.0181022246,
+    "singleton_bound": 0.0
+  },
+  "dual_objective_float": 641090.9615275887,
+  "tiny_objective_mass_below_1e_minus_4": 0.0,
+  "tiny_mass_fraction": 0.0,
+  "coverage_slack": {
+    "min": -2.9103830456733704e-11,
+    "median": 0.0,
+    "max": 2.0463630789890885e-11,
+    "near_tight_vertices": 607,
+    "negative_slack_vertices": 0
+  },
+  "rationalization_attempts": [
+    {
+      "denominator": 1024,
+      "objective": 641394.1201171875,
+      "row_count": 597,
+      "repaired_vertices": 0,
+      "repair_objective": 0.0,
+      "max_multiplier_numerator": 4130685,
+      "passes": true
+    },
+    {
+      "denominator": 10000,
+      "objective": 641110.4531,
+      "row_count": 597,
+      "repaired_vertices": 0,
+      "repair_objective": 0.0,
+      "max_multiplier_numerator": 40338712,
+      "passes": true
+    },
+    {
+      "denominator": 1000000,
+      "objective": 641091.285578,
+      "row_count": 597,
+      "repaired_vertices": 0,
+      "repair_objective": 0.0,
+      "max_multiplier_numerator": 4033871175,
+      "passes": true
+    }
+  ],
+  "top_dual_rows": [
+    {
+      "kind": "rank",
+      "name": "top_weight_120",
+      "multiplier": 0.7745433056704608,
+      "rhs": 316539.0,
+      "objective_contribution": 245173.163433622,
+      "size": 120
+    },
+    {
+      "kind": "rank",
+      "name": "dense80_304",
+      "multiplier": 0.05549248571684128,
+      "rhs": 202259.0,
+      "objective_contribution": 11223.8546686026,
+      "size": 80
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_775",
+      "multiplier": 4033.8711749441154,
+      "rhs": 1.0,
+      "objective_contribution": 4033.8711749441154,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_780",
+      "multiplier": 4033.8711749441154,
+      "rhs": 1.0,
+      "objective_contribution": 4033.8711749441154,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_962",
+      "multiplier": 2642.604319375703,
+      "rhs": 1.0,
+      "objective_contribution": 2642.604319375703,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1653",
+      "multiplier": 2118.0,
+      "rhs": 1.0,
+      "objective_contribution": 2118.0,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1322",
+      "multiplier": 2090.3595404329717,
+      "rhs": 1.0,
+      "objective_contribution": 2090.3595404329717,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1317",
+      "multiplier": 1994.4711363445003,
+      "rhs": 1.0,
+      "objective_contribution": 1994.4711363445003,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_129",
+      "multiplier": 1903.6259795276364,
+      "rhs": 1.0,
+      "objective_contribution": 1903.6259795276364,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_725",
+      "multiplier": 1828.0000000000205,
+      "rhs": 1.0,
+      "objective_contribution": 1828.0000000000205,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_816",
+      "multiplier": 1828.000000000002,
+      "rhs": 1.0,
+      "objective_contribution": 1828.000000000002,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_239",
+      "multiplier": 1828.0000000000002,
+      "rhs": 1.0,
+      "objective_contribution": 1828.0000000000002,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1414",
+      "multiplier": 1828.0,
+      "rhs": 1.0,
+      "objective_contribution": 1828.0,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1346",
+      "multiplier": 1817.0317137777358,
+      "rhs": 1.0,
+      "objective_contribution": 1817.0317137777358,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_966",
+      "multiplier": 1804.4626444473893,
+      "rhs": 1.0,
+      "objective_contribution": 1804.4626444473893,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1546",
+      "multiplier": 1731.9583258395196,
+      "rhs": 1.0,
+      "objective_contribution": 1731.9583258395196,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_172",
+      "multiplier": 1727.633724569293,
+      "rhs": 1.0,
+      "objective_contribution": 1727.633724569293,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1661",
+      "multiplier": 1693.434013495759,
+      "rhs": 1.0,
+      "objective_contribution": 1693.434013495759,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_320",
+      "multiplier": 1646.0,
+      "rhs": 1.0,
+      "objective_contribution": 1646.0,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1495",
+      "multiplier": 1619.5361120110274,
+      "rhs": 1.0,
+      "objective_contribution": 1619.5361120110274,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1563",
+      "multiplier": 1599.35581281764,
+      "rhs": 1.0,
+      "objective_contribution": 1599.35581281764,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1237",
+      "multiplier": 1593.5279155211974,
+      "rhs": 1.0,
+      "objective_contribution": 1593.5279155211974,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_334",
+      "multiplier": 1593.5279155211829,
+      "rhs": 1.0,
+      "objective_contribution": 1593.5279155211829,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1125",
+      "multiplier": 1593.5279155211756,
+      "rhs": 1.0,
+      "objective_contribution": 1593.5279155211756,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_723",
+      "multiplier": 1575.1854522363683,
+      "rhs": 1.0,
+      "objective_contribution": 1575.1854522363683,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_974",
+      "multiplier": 1561.0385389879566,
+      "rhs": 1.0,
+      "objective_contribution": 1561.0385389879566,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1146",
+      "multiplier": 1547.3981643001875,
+      "rhs": 1.0,
+      "objective_contribution": 1547.3981643001875,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_263",
+      "multiplier": 1535.9540273851046,
+      "rhs": 1.0,
+      "objective_contribution": 1535.9540273851046,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_305",
+      "multiplier": 1515.584305367157,
+      "rhs": 1.0,
+      "objective_contribution": 1515.584305367157,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1165",
+      "multiplier": 1505.347247452938,
+      "rhs": 1.0,
+      "objective_contribution": 1505.347247452938,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1586",
+      "multiplier": 1484.725693495932,
+      "rhs": 1.0,
+      "objective_contribution": 1484.725693495932,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1110",
+      "multiplier": 1451.7468628658062,
+      "rhs": 1.0,
+      "objective_contribution": 1451.7468628658062,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_971",
+      "multiplier": 1446.4288218851034,
+      "rhs": 1.0,
+      "objective_contribution": 1446.4288218851034,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_374",
+      "multiplier": 1440.7040324133925,
+      "rhs": 1.0,
+      "objective_contribution": 1440.7040324133925,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_114",
+      "multiplier": 1420.0934707528386,
+      "rhs": 1.0,
+      "objective_contribution": 1420.0934707528386,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_444",
+      "multiplier": 1405.795338240623,
+      "rhs": 1.0,
+      "objective_contribution": 1405.795338240623,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_800",
+      "multiplier": 1372.0000000000027,
+      "rhs": 1.0,
+      "objective_contribution": 1372.0000000000027,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1105",
+      "multiplier": 1372.0,
+      "rhs": 1.0,
+      "objective_contribution": 1372.0,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_276",
+      "multiplier": 1363.07278734367,
+      "rhs": 1.0,
+      "objective_contribution": 1363.07278734367,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1202",
+      "multiplier": 1349.8237323103524,
+      "rhs": 1.0,
+      "objective_contribution": 1349.8237323103524,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1286",
+      "multiplier": 1336.870941811936,
+      "rhs": 1.0,
+      "objective_contribution": 1336.870941811936,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1570",
+      "multiplier": 1305.3923393352795,
+      "rhs": 1.0,
+      "objective_contribution": 1305.3923393352795,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_183",
+      "multiplier": 1301.2077622826164,
+      "rhs": 1.0,
+      "objective_contribution": 1301.2077622826164,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_384",
+      "multiplier": 1290.857550935612,
+      "rhs": 1.0,
+      "objective_contribution": 1290.857550935612,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1556",
+      "multiplier": 1286.627091726692,
+      "rhs": 1.0,
+      "objective_contribution": 1286.627091726692,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_768",
+      "multiplier": 1267.8445531172865,
+      "rhs": 1.0,
+      "objective_contribution": 1267.8445531172865,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_1186",
+      "multiplier": 1266.2238401844793,
+      "rhs": 1.0,
+      "objective_contribution": 1266.2238401844793,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_496",
+      "multiplier": 1264.193783661247,
+      "rhs": 1.0,
+      "objective_contribution": 1264.193783661247,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_386",
+      "multiplier": 1260.6834257291878,
+      "rhs": 1.0,
+      "objective_contribution": 1260.6834257291878,
+      "size": 3
+    },
+    {
+      "kind": "triangle",
+      "name": "triangle_897",
+      "multiplier": 1260.166125318041,
+      "rhs": 1.0,
+      "objective_contribution": 1260.166125318041,
+      "size": 3
+    }
+  ],
+  "status": "FundRootLpDualRationalization",
+  "thresholds": {
+    "max_rows_to_fund": 5000,
+    "max_certificate_objective": 641500.0,
+    "positive_tolerance": 1e-08
+  }
+}

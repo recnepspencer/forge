@@ -1,0 +1,154 @@
+{
+  "schema": "forge.hadwiger.w607_dense180_variant_literal_preflight.v1",
+  "authority": "diagnostic_literal_face_alignment_not_export_authority",
+  "second_opinion": {
+    "agent": "Singer",
+    "decision": "approve_bounded_preflight",
+    "primary_failure_mode": "six_face_separator_not_root_valid_without_all16_check"
+  },
+  "source_artifacts": {
+    "fresh_replay": "crates/hadwiger-research/docs/w607-fresh-mixed-branch-replay.json",
+    "alignment": "crates/hadwiger-research/docs/w607-first-family-alignment-probe.json",
+    "packaging": "crates/hadwiger-research/docs/w607-dense180-core-packaging-probe.json"
+  },
+  "tier_a_vertices": [
+    223,
+    224,
+    303,
+    305,
+    384,
+    385
+  ],
+  "target_gate": 586500.0,
+  "active_singleton_leaves": [
+    {
+      "leaf_index": 1,
+      "included_tier_a": 223,
+      "excluded_tier_a": [
+        224,
+        303,
+        305,
+        384,
+        385
+      ],
+      "mixed_bound": 586224.2382592546,
+      "center": 152,
+      "support_digest": "b3c4c91b3abc782cff3a63ef454cbe4860eae8350210aa5fc7551ce0e121a341",
+      "variant_size": 71,
+      "variant_alpha_w": 115942
+    },
+    {
+      "leaf_index": 9,
+      "included_tier_a": 224,
+      "excluded_tier_a": [
+        223,
+        305,
+        384
+      ],
+      "mixed_bound": 586222.996110642,
+      "center": 383,
+      "support_digest": "f026d0fe6ed3bf10ba3f0c75346cad81e365d98d562e2aa1102294d8df87db54",
+      "variant_size": 71,
+      "variant_alpha_w": 115942
+    },
+    {
+      "leaf_index": 2,
+      "included_tier_a": 303,
+      "excluded_tier_a": [
+        223,
+        224,
+        305,
+        384,
+        385
+      ],
+      "mixed_bound": 586223.1967256626,
+      "center": 225,
+      "support_digest": "d009a65cd8287975e3c533c8417e07829b7b8b3c355ff9ebaa88827368fb9e9f",
+      "variant_size": 71,
+      "variant_alpha_w": 115942
+    },
+    {
+      "leaf_index": 12,
+      "included_tier_a": 305,
+      "excluded_tier_a": [
+        224,
+        303,
+        385
+      ],
+      "mixed_bound": 586223.690675106,
+      "center": 383,
+      "support_digest": "006af7299e22aaeb1058dd20b2f336372409f0d3aaee29eaeb9b886a10e14a33",
+      "variant_size": 71,
+      "variant_alpha_w": 115942
+    },
+    {
+      "leaf_index": 6,
+      "included_tier_a": 384,
+      "excluded_tier_a": [
+        224,
+        303,
+        305,
+        385
+      ],
+      "mixed_bound": 586224.039267464,
+      "center": 152,
+      "support_digest": "6789d3c097b43e913a6af278ad867633d1617654760f0f2f4cc1cc0961e8cb3b",
+      "variant_size": 71,
+      "variant_alpha_w": 115942
+    },
+    {
+      "leaf_index": 4,
+      "included_tier_a": 385,
+      "excluded_tier_a": [
+        223,
+        224,
+        305,
+        384
+      ],
+      "mixed_bound": 586222.998756283,
+      "center": 456,
+      "support_digest": "41c365606b63df80a1793064b76167d6b4d398a114c9f966ba44ec92721460fb",
+      "variant_size": 71,
+      "variant_alpha_w": 115942
+    }
+  ],
+  "included_tier_a_cover": [
+    223,
+    224,
+    303,
+    305,
+    384,
+    385
+  ],
+  "singleton_non_active_leaves": [],
+  "worst_non_active_leaf": {
+    "leaf_index": 0,
+    "included": [],
+    "excluded": [
+      223,
+      224,
+      303,
+      305,
+      384,
+      385
+    ],
+    "mixed_bound": 581480.9999999993
+  },
+  "variant_alpha_values": [
+    115942,
+    115942,
+    115942,
+    115942,
+    115942,
+    115942
+  ],
+  "dense180_invariant_signature_count": 1,
+  "validity_scope": {
+    "six_singleton_faces_checked": true,
+    "all16_bounds_checked_against_gate": true,
+    "root_valid_cut_constructed": false,
+    "literal_lift_still_required": true
+  },
+  "failure_reasons": [],
+  "status": "fund_singleton_literal_disjunction"
+}

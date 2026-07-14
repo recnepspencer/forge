@@ -1,0 +1,116 @@
+{
+  "schema": "forge.hadwiger.w607_branch_slack_residual_sensitivity.v1",
+  "base_objective_with_replayed_p": 594914.351525072,
+  "base_x304": 0.0,
+  "candidate_limit": 32,
+  "candidate_count": 32,
+  "old_positive_p_vertices": [
+    152,
+    222,
+    225,
+    383,
+    386,
+    456
+  ],
+  "q_support": [],
+  "q_support_size": 0,
+  "residual_reduction2_num": -0.0,
+  "residual_reduction2": -0.0,
+  "current_solution_violation_num": -0.0,
+  "current_solution_violation": -0.0,
+  "base_face_objective": 594914.3515250728,
+  "q_face_objective": 594914.351525073,
+  "q_face_drop": -2.3283064365386963e-10,
+  "min_residual_after_q_num": 0.0,
+  "violation_gate_num": 1024000,
+  "face_drop_gate": 1000.0,
+  "support_gate": 12,
+  "top_singleton_candidates": [
+    {
+      "vertex": 223,
+      "x": 0.33333333333332005,
+      "weight": 17892,
+      "singleton_capacity_num": 0,
+      "singleton_value": 0.0
+    },
+    {
+      "vertex": 224,
+      "x": 0.3333333333333428,
+      "weight": 17892,
+      "singleton_capacity_num": 0,
+      "singleton_value": 0.0
+    },
+    {
+      "vertex": 303,
+      "x": 0.3333333333333255,
+      "weight": 17892,
+      "singleton_capacity_num": 0,
+      "singleton_value": 0.0
+    },
+    {
+      "vertex": 385,
+      "x": 0.3333333333333317,
+      "weight": 17892,
+      "singleton_capacity_num": 0,
+      "singleton_value": 0.0
+    },
+    {
+      "vertex": 88,
+      "x": 0.33333333333333703,
+      "weight": 11384,
+      "singleton_capacity_num": 0,
+      "singleton_value": 0.0
+    },
+    {
+      "vertex": 91,
+      "x": 0.33333333333332293,
+      "weight": 11384,
+      "singleton_capacity_num": 0,
+      "singleton_value": 0.0
+    },
+    {
+      "vertex": 301,
+      "x": 0.33333333333334036,
+      "weight": 11384,
+      "singleton_capacity_num": 0,
+      "singleton_value": 0.0
+    },
+    {
+      "vertex": 307,
+      "x": 0.3333333333333198,
+      "weight": 11384,
+      "singleton_capacity_num": 0,
+      "singleton_value": 0.0
+    },
+    {
+      "vertex": 517,
+      "x": 0.3333333333333451,
+      "weight": 11384,
+      "singleton_capacity_num": 0,
+      "singleton_value": 0.0
+    },
+    {
+      "vertex": 520,
+      "x": 0.3333333333333184,
+      "weight": 11384,
+      "singleton_capacity_num": 0,
+      "singleton_value": 0.0
+    },
+    {
+      "vertex": 151,
+      "x": 0.3333333333333317,
+      "weight": 10154,
+      "singleton_capacity_num": 0,
+      "singleton_value": 0.0
+    },
+    {
+      "vertex": 153,
+      "x": 0.273007656948744,
+      "weight": 10154,
+      "singleton_capacity_num": 0,
+      "singleton_value": 0.0
+    }
+  ],
+  "status": "RetireResidualBranchSlackIteration",
+  "authority": "diagnostic_only_no_gamma1_or_parent_replay"
+}

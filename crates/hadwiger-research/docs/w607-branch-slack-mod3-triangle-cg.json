@@ -1,0 +1,292 @@
+{
+  "schema": "forge.hadwiger.w607_branch_slack_mod3_triangle_cg.v1",
+  "base_objective": 594914.351525072,
+  "triangle_count": 1714,
+  "tight_triangle_count": 1261,
+  "pool_count": 26,
+  "generated_cut_count": 0,
+  "pool_reports": [
+    {
+      "pool": "seed_88",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_91",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_151",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_223",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_224",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_301",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_303",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_305",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_306",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_307",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_384",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_385",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_455",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_517",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_520",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "seed_153",
+      "triangles": 120,
+      "basis_dimension": 2,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 204,
+      "rejections": {
+        "rhs_integral": 204
+      }
+    },
+    {
+      "pool": "seed_302",
+      "triangles": 120,
+      "basis_dimension": 2,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 204,
+      "rejections": {
+        "rhs_integral": 204
+      }
+    },
+    {
+      "pool": "seed_457",
+      "triangles": 120,
+      "basis_dimension": 2,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 204,
+      "rejections": {
+        "rhs_integral": 204
+      }
+    },
+    {
+      "pool": "seed_335",
+      "triangles": 120,
+      "basis_dimension": 4,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 216,
+      "rejections": {
+        "rhs_integral": 216
+      }
+    },
+    {
+      "pool": "seed_354",
+      "triangles": 120,
+      "basis_dimension": 4,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 216,
+      "rejections": {
+        "rhs_integral": 216
+      }
+    },
+    {
+      "pool": "seed_254",
+      "triangles": 120,
+      "basis_dimension": 4,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 216,
+      "rejections": {
+        "rhs_integral": 216
+      }
+    },
+    {
+      "pool": "seed_295",
+      "triangles": 120,
+      "basis_dimension": 4,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 216,
+      "rejections": {
+        "rhs_integral": 216
+      }
+    },
+    {
+      "pool": "seed_273",
+      "triangles": 120,
+      "basis_dimension": 4,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 216,
+      "rejections": {
+        "rhs_integral": 216
+      }
+    },
+    {
+      "pool": "seed_313",
+      "triangles": 120,
+      "basis_dimension": 4,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 216,
+      "rejections": {
+        "rhs_integral": 216
+      }
+    },
+    {
+      "pool": "plateau_all",
+      "triangles": 120,
+      "basis_dimension": 6,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 236,
+      "rejections": {
+        "rhs_integral": 236
+      }
+    },
+    {
+      "pool": "top_tight",
+      "triangles": 120,
+      "basis_dimension": 5,
+      "basis_with_nonzero_sum_mod3": 0,
+      "vectors_tested": 225,
+      "rejections": {
+        "rhs_integral": 225
+      }
+    }
+  ],
+  "tested_cut_count": 0,
+  "accepted_cut_count": 0,
+  "best_single_drop": 0.0,
+  "final_objective": 594914.351525072,
+  "total_drop": 0.0,
+  "base_heavy_third_plateau_count": 15,
+  "final_heavy_third_plateau_count": 15,
+  "status": "RetireMod3TriangleCg",
+  "gates": {
+    "tight_tolerance": 1e-08,
+    "max_triangles_per_cut": 120,
+    "max_vertex_support": 240,
+    "max_coefficient": 8,
+    "max_accepted_cuts": 50,
+    "single_kill_drop": 100.0,
+    "single_fund_drop": 1000.0,
+    "batch_kill_drop": 1000.0,
+    "batch_interesting_drop": 3000.0,
+    "batch_fund_drop": 5000.0,
+    "continuation_objective": 590000.0
+  },
+  "top_tested_cuts": []
+}

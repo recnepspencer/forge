@@ -10,6 +10,13 @@ pub struct FractionalChromaticScreeningDeclaration {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GeometricFractionalChromaticScreeningDeclaration {
+    graph_version_reference: String,
+    target_lower_bound: String,
+    screening_basis: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LovaszThetaScreeningDeclaration {
     graph_version_reference: String,
     color_limit: u32,
@@ -85,6 +92,45 @@ macro_rules! graph_screening_declaration {
 
 graph_screening_declaration!(FractionalChromaticScreeningDeclaration);
 graph_screening_declaration!(LovaszThetaScreeningDeclaration);
+
+impl GeometricFractionalChromaticScreeningDeclaration {
+    pub fn new(
+        graph_version_reference: impl Into<String>,
+        target_lower_bound: impl Into<String>,
+        screening_basis: impl Into<String>,
+    ) -> Self {
+        Self::try_new(graph_version_reference, target_lower_bound, screening_basis).expect(
+            "graph_version_reference, target_lower_bound, and screening_basis must be non-empty",
+        )
+    }
+
+    pub fn try_new(
+        graph_version_reference: impl Into<String>,
+        target_lower_bound: impl Into<String>,
+        screening_basis: impl Into<String>,
+    ) -> Result<Self, HadwigerResearchDeclarationShapeError> {
+        Ok(Self {
+            graph_version_reference: require_non_empty(
+                graph_version_reference,
+                "graph_version_reference",
+            )?,
+            target_lower_bound: require_non_empty(target_lower_bound, "target_lower_bound")?,
+            screening_basis: require_non_empty(screening_basis, "screening_basis")?,
+        })
+    }
+
+    pub(crate) fn graph_version_reference(&self) -> &str {
+        &self.graph_version_reference
+    }
+
+    pub(crate) fn target_lower_bound(&self) -> &str {
+        &self.target_lower_bound
+    }
+
+    pub(crate) fn screening_basis(&self) -> &str {
+        &self.screening_basis
+    }
+}
 
 impl AutocorrelationZeroScreeningDeclaration {
     pub fn new(

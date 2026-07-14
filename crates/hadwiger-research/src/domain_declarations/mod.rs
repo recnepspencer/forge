@@ -22,6 +22,7 @@ pub use family_markers::{
     FinitePatchBoundaryExtensionScreeningDeclarationFamily,
     ForbiddenDisplacementScreeningDeclarationFamily, FractionalChromaticScreeningDeclarationFamily,
     GeneratedPatternClosureDeclarationFamily,
+    GeometricFractionalChromaticScreeningDeclarationFamily,
     KnownObstructionContainmentScreeningDeclarationFamily,
     LocalDensityWindowScreeningDeclarationFamily, LovaszThetaScreeningDeclarationFamily,
     LowerBoundTilingIterationDeclarationFamily, LowerBoundWitnessDeclarationFamily,
@@ -69,8 +70,8 @@ pub use request_types::{
 };
 pub use screening_request_types::{
     AutocorrelationZeroScreeningDeclaration, DensityCapScreeningDeclaration,
-    FractionalChromaticScreeningDeclaration, LocalDensityWindowScreeningDeclaration,
-    LovaszThetaScreeningDeclaration,
+    FractionalChromaticScreeningDeclaration, GeometricFractionalChromaticScreeningDeclaration,
+    LocalDensityWindowScreeningDeclaration, LovaszThetaScreeningDeclaration,
 };
 pub use tiling_request_types::{
     ConflictGraphExtractionDeclaration, CoreExtractionDeclaration,

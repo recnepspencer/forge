@@ -1,0 +1,508 @@
+{
+  "schema": "forge.hadwiger.w607_gamma0_branch_tree_preflight.v1",
+  "branch_vertex": 304,
+  "target_gamma0": 613372392.0,
+  "near_close_threshold": 616439253.9599999,
+  "kill_threshold": 619506115.92,
+  "node_limit": 64,
+  "root_upper": 654024375.5893382,
+  "root_relative_gap": 0.06627618738558774,
+  "expanded_node_count": 17,
+  "closed_leaf_count": 18,
+  "open_leaf_count": 0,
+  "max_depth": 8,
+  "max_open_upper": 0.0,
+  "max_open_relative_gap": null,
+  "best_open_leaf": null,
+  "worst_closed_leaf": {
+    "included": [
+      225
+    ],
+    "excluded": [
+      222,
+      383,
+      386,
+      456
+    ],
+    "upper": 608954093.666667,
+    "included_weight": 25298539.0,
+    "residual_upper": 583655554.666667,
+    "active_vertices": 579
+  },
+  "closed_leaves": [
+    {
+      "included": [
+        225
+      ],
+      "excluded": [
+        222,
+        383,
+        386,
+        456
+      ],
+      "upper": 608954093.666667,
+      "included_weight": 25298539.0,
+      "residual_upper": 583655554.666667,
+      "active_vertices": 579,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        386
+      ],
+      "excluded": [
+        152,
+        222,
+        383,
+        456
+      ],
+      "upper": 608954093.166667,
+      "included_weight": 25298539.0,
+      "residual_upper": 583655554.166667,
+      "active_vertices": 579,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        152
+      ],
+      "excluded": [
+        222,
+        225,
+        383,
+        386,
+        456
+      ],
+      "upper": 608952898.1666665,
+      "included_weight": 25298538.0,
+      "residual_upper": 583654360.1666665,
+      "active_vertices": 579,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        456
+      ],
+      "excluded": [
+        152,
+        222,
+        225
+      ],
+      "upper": 608952897.8333334,
+      "included_weight": 25298540.0,
+      "residual_upper": 583654357.8333334,
+      "active_vertices": 579,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        383
+      ],
+      "excluded": [
+        152,
+        225,
+        386,
+        456
+      ],
+      "upper": 608952897.6666671,
+      "included_weight": 25298539.0,
+      "residual_upper": 583654358.6666671,
+      "active_vertices": 579,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        222
+      ],
+      "excluded": [
+        225,
+        383,
+        386,
+        456
+      ],
+      "upper": 608952897.4999999,
+      "included_weight": 25298538.0,
+      "residual_upper": 583654359.4999999,
+      "active_vertices": 579,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        225,
+        456
+      ],
+      "excluded": [],
+      "upper": 608316047.9166659,
+      "included_weight": 50597079.0,
+      "residual_upper": 557718968.9166659,
+      "active_vertices": 559,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        383,
+        386
+      ],
+      "excluded": [
+        456
+      ],
+      "upper": 608316047.5833338,
+      "included_weight": 50597078.0,
+      "residual_upper": 557718969.5833338,
+      "active_vertices": 559,
+      "closed_by": "target"
+    },
+    {
+      "included": [],
+      "excluded": [
+        152,
+        222,
+        225,
+        305,
+        383,
+        384,
+        386,
+        456
+      ],
+      "upper": 607590183.3333331,
+      "included_weight": 0.0,
+      "residual_upper": 607590183.3333331,
+      "active_vertices": 598,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        225,
+        383
+      ],
+      "excluded": [
+        386,
+        456
+      ],
+      "upper": 603246800.1666667,
+      "included_weight": 50597078.0,
+      "residual_upper": 552649722.1666667,
+      "active_vertices": 558,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        222,
+        386
+      ],
+      "excluded": [
+        383,
+        456
+      ],
+      "upper": 603246798.4166663,
+      "included_weight": 50597077.0,
+      "residual_upper": 552649721.4166663,
+      "active_vertices": 558,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        152,
+        456
+      ],
+      "excluded": [
+        222,
+        225
+      ],
+      "upper": 603245903.416667,
+      "included_weight": 50597078.0,
+      "residual_upper": 552648825.416667,
+      "active_vertices": 558,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        152,
+        386
+      ],
+      "excluded": [
+        222,
+        383,
+        456
+      ],
+      "upper": 601411750.0000004,
+      "included_weight": 50597077.0,
+      "residual_upper": 550814673.0000004,
+      "active_vertices": 558,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        222,
+        225
+      ],
+      "excluded": [
+        383,
+        386,
+        456
+      ],
+      "upper": 601411749.7499999,
+      "included_weight": 50597077.0,
+      "residual_upper": 550814672.7499999,
+      "active_vertices": 558,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        222,
+        456
+      ],
+      "excluded": [
+        225
+      ],
+      "upper": 601409958.7500007,
+      "included_weight": 50597078.0,
+      "residual_upper": 550812880.7500007,
+      "active_vertices": 558,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        152,
+        383
+      ],
+      "excluded": [
+        225,
+        386,
+        456
+      ],
+      "upper": 601409955.5,
+      "included_weight": 50597077.0,
+      "residual_upper": 550812878.5,
+      "active_vertices": 558,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        384
+      ],
+      "excluded": [
+        152,
+        222,
+        225,
+        305,
+        383,
+        386,
+        456
+      ],
+      "upper": 584440883.6666664,
+      "included_weight": 18327048.0,
+      "residual_upper": 566113835.6666664,
+      "active_vertices": 581,
+      "closed_by": "target"
+    },
+    {
+      "included": [
+        305
+      ],
+      "excluded": [
+        152,
+        222,
+        225,
+        383,
+        386,
+        456
+      ],
+      "upper": 584440881.0,
+      "included_weight": 18327048.0,
+      "residual_upper": 566113833.0,
+      "active_vertices": 581,
+      "closed_by": "target"
+    }
+  ],
+  "expanded_nodes": [
+    {
+      "depth": 0,
+      "branch_vertex": 456,
+      "upper": 654024375.5893382,
+      "included_weight": 0.0,
+      "residual_upper": 654024375.5893382,
+      "active_vertices": 606,
+      "branch_x": 0.3333333333332873,
+      "branch_c0": 25298540.0,
+      "branch_contribution": 8432846.666665502
+    },
+    {
+      "depth": 1,
+      "branch_vertex": 386,
+      "upper": 652122951.3305068,
+      "included_weight": 0.0,
+      "residual_upper": 652122951.3305068,
+      "active_vertices": 605,
+      "branch_x": 0.33333333333333465,
+      "branch_c0": 25298539.0,
+      "branch_contribution": 8432846.333333367
+    },
+    {
+      "depth": 2,
+      "branch_vertex": 383,
+      "upper": 650221527.4050089,
+      "included_weight": 0.0,
+      "residual_upper": 650221527.4050089,
+      "active_vertices": 604,
+      "branch_x": 0.33333333333357174,
+      "branch_c0": 25298539.0,
+      "branch_contribution": 8432846.333339365
+    },
+    {
+      "depth": 3,
+      "branch_vertex": 225,
+      "upper": 645106753.666667,
+      "included_weight": 0.0,
+      "residual_upper": 645106753.666667,
+      "active_vertices": 603,
+      "branch_x": 0.33333333333343607,
+      "branch_c0": 25298539.0,
+      "branch_contribution": 8432846.333335932
+    },
+    {
+      "depth": 4,
+      "branch_vertex": 222,
+      "upper": 636673907.3333331,
+      "included_weight": 0.0,
+      "residual_upper": 636673907.3333331,
+      "active_vertices": 602,
+      "branch_x": 0.3333333333333914,
+      "branch_c0": 25298538.0,
+      "branch_contribution": 8432846.000001468
+    },
+    {
+      "depth": 2,
+      "branch_vertex": 383,
+      "upper": 634252631.5000007,
+      "included_weight": 25298539.0,
+      "residual_upper": 608954092.5000007,
+      "active_vertices": 582,
+      "branch_x": 0.33333333333281684,
+      "branch_c0": 25298539.0,
+      "branch_contribution": 8432846.333320267
+    },
+    {
+      "depth": 1,
+      "branch_vertex": 225,
+      "upper": 634251436.1666667,
+      "included_weight": 25298540.0,
+      "residual_upper": 608952896.1666667,
+      "active_vertices": 582,
+      "branch_x": 0.3333333333321631,
+      "branch_c0": 25298539.0,
+      "branch_contribution": 8432846.333303727
+    },
+    {
+      "depth": 5,
+      "branch_vertex": 152,
+      "upper": 628241061.333333,
+      "included_weight": 0.0,
+      "residual_upper": 628241061.333333,
+      "active_vertices": 601,
+      "branch_x": 0.3333333333333416,
+      "branch_c0": 25298538.0,
+      "branch_contribution": 8432846.000000209
+    },
+    {
+      "depth": 3,
+      "branch_vertex": 222,
+      "upper": 625819785.1666667,
+      "included_weight": 25298539.0,
+      "residual_upper": 600521246.1666667,
+      "active_vertices": 581,
+      "branch_x": 0.3333333333333318,
+      "branch_c0": 25298538.0,
+      "branch_contribution": 8432845.99999996
+    },
+    {
+      "depth": 3,
+      "branch_vertex": 225,
+      "upper": 625818590.0000004,
+      "included_weight": 25298539.0,
+      "residual_upper": 600520051.0000004,
+      "active_vertices": 581,
+      "branch_x": 0.3333333333333377,
+      "branch_c0": 25298539.0,
+      "branch_contribution": 8432846.333333444
+    },
+    {
+      "depth": 2,
+      "branch_vertex": 222,
+      "upper": 625818589.8333331,
+      "included_weight": 25298540.0,
+      "residual_upper": 600520049.8333331,
+      "active_vertices": 581,
+      "branch_x": 0.33333333333335713,
+      "branch_c0": 25298538.0,
+      "branch_contribution": 8432846.000000602
+    },
+    {
+      "depth": 6,
+      "branch_vertex": 305,
+      "upper": 619808215.3333331,
+      "included_weight": 0.0,
+      "residual_upper": 619808215.3333331,
+      "active_vertices": 600,
+      "branch_x": 0.3333333333334234,
+      "branch_c0": 18327048.0,
+      "branch_contribution": 6109016.000001651
+    },
+    {
+      "depth": 4,
+      "branch_vertex": 222,
+      "upper": 617386939.6666658,
+      "included_weight": 25298539.0,
+      "residual_upper": 592088400.6666658,
+      "active_vertices": 580,
+      "branch_x": 0.3333333333333284,
+      "branch_c0": 25298538.0,
+      "branch_contribution": 8432845.999999875
+    },
+    {
+      "depth": 4,
+      "branch_vertex": 152,
+      "upper": 617386939.1666677,
+      "included_weight": 25298539.0,
+      "residual_upper": 592088400.1666677,
+      "active_vertices": 580,
+      "branch_x": 0.33333333333269,
+      "branch_c0": 25298538.0,
+      "branch_contribution": 8432845.999983724
+    },
+    {
+      "depth": 3,
+      "branch_vertex": 152,
+      "upper": 617385743.8333331,
+      "included_weight": 25298540.0,
+      "residual_upper": 592087203.8333331,
+      "active_vertices": 580,
+      "branch_x": 0.33333333333327647,
+      "branch_c0": 25298538.0,
+      "branch_contribution": 8432845.999998562
+    },
+    {
+      "depth": 4,
+      "branch_vertex": 152,
+      "upper": 617385743.6666669,
+      "included_weight": 25298539.0,
+      "residual_upper": 592087204.6666669,
+      "active_vertices": 580,
+      "branch_x": 0.33333333333332943,
+      "branch_c0": 25298538.0,
+      "branch_contribution": 8432845.999999901
+    },
+    {
+      "depth": 7,
+      "branch_vertex": 384,
+      "upper": 613699199.3333322,
+      "included_weight": 0.0,
+      "residual_upper": 613699199.3333322,
+      "active_vertices": 599,
+      "branch_x": 0.3333333333333338,
+      "branch_c0": 18327048.0,
+      "branch_contribution": 6109016.000000008
+    }
+  ],
+  "status": "CloseGamma0BranchTree"
+}
