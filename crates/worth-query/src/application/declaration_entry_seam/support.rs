@@ -1,9 +1,9 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationAspectPublication,
-    WorthQueryDeclarationBridgeAuthorityAspectSummary, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDeclarationRelationalAuthorityAspectSummary,
+    WorthQueryDeclarationAspectPublication, WorthQueryDeclarationBridgeAuthorityAspectSummary,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
+    WorthQueryDeclarationRelationalAuthorityAspectSummary,
     WorthQueryDeclarationSignalAuthorityAspectSummary, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 
 use super::{
@@ -232,7 +232,7 @@ pub(crate) fn worth_query_declaration_entry_readiness_report<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> WorthQueryDeclarationEntryReadinessReport<D, I> {
     match worth_query_declaration_entry_readiness_report_with_request::<D, C, I>(
         handle,
@@ -250,7 +250,7 @@ pub(crate) fn worth_query_declaration_entry_readiness_report_with_request<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     request: WorthQueryDeclarationEntryReadinessRequest<D, I>,
 ) -> Result<
     WorthQueryDeclarationEntryReadinessReport<D, I>,
@@ -278,7 +278,7 @@ pub(crate) fn worth_query_declaration_entry_readiness_report_with_context<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     contribution_evidence: Option<&WorthQueryDeclarationEntryContributionEvidenceSet>,
     declaration_digest: Option<&str>,
     subject_strength: WorthQueryDeclarationEntryRetainedSubjectStrength,

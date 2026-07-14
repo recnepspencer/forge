@@ -1,8 +1,7 @@
 use hadwiger_research::facade::*;
 
 pub fn handle() -> HadwigerResearchHandle {
-    admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
-        .expect("Hadwiger handle admits")
+    crate::installed_support::installed_hadwiger_research_handle().expect("Hadwiger handle admits")
 }
 
 pub fn graph_version(graph_id: &str) -> GraphVersion {

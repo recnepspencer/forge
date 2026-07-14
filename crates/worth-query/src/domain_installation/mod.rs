@@ -1,6 +1,7 @@
 mod admission;
 mod canonical_identity;
 mod capabilities;
+mod declaration_context;
 mod definitions;
 mod denial;
 mod execution;
@@ -16,6 +17,10 @@ mod validation;
 
 pub(crate) use admission::{admit_domain_package, WorthQueryAdmittedDomainPackage};
 pub use capabilities::*;
+pub use declaration_context::{
+    WorthQueryInstalledDomainDeclarationContext, WorthQueryInstalledDomainDeclarationContextDenial,
+    WorthQueryInstalledDomainDeclarationContextDenialKind,
+};
 pub use definitions::{
     WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphReadOperationDefinition,
     WorthQueryDomainInvariantDefinition, WorthQueryDomainInvariantPredicate,

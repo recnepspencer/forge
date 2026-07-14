@@ -13,7 +13,7 @@ pub(super) fn lower_from_issued_envelope<
     C: crate::application::WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<D, C>,
     plan: &WorthQueryDeclarationEntryOrchestrationPlan<D, I>,
     step_records: &mut Vec<WorthQueryDeclarationEntryOrchestrationStageRecord>,
     receipt: WorthQueryDeclarationReceipt<D, I>,
@@ -40,7 +40,7 @@ pub(super) fn lower_from_deferred_envelope<
     C: crate::application::WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<D, C>,
     receipt: WorthQueryDeclarationReceiptDeferred<D, I>,
 ) -> WorthQueryDeclarationEntryOrchestrationOutcome<D, I> {
     match handle.envelope_routes_checked(WorthQueryDeclarationEnvelopeInput::deferred(receipt)) {
@@ -65,7 +65,7 @@ pub(super) fn lower_from_denied_envelope<
     C: crate::application::WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<D, C>,
     receipt: WorthQueryDeclarationReceiptDenied<D, I>,
 ) -> WorthQueryDeclarationEntryOrchestrationOutcome<D, I> {
     match handle.envelope_routes_checked(WorthQueryDeclarationEnvelopeInput::denied(receipt)) {
@@ -90,7 +90,7 @@ pub(super) fn lower_from_failed_envelope<
     C: crate::application::WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<D, C>,
     receipt: WorthQueryDeclarationReceiptFailed<D, I>,
 ) -> WorthQueryDeclarationEntryOrchestrationOutcome<D, I> {
     match handle.envelope_routes_checked(WorthQueryDeclarationEnvelopeInput::failed(receipt)) {

@@ -2,10 +2,9 @@ use std::marker::PhantomData;
 
 use crate::application::{
     review_declaration_legality, worth_query_checked_declaration_signal_compatibility_on_handle,
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryApplicationFacade,
-    WorthQueryAsyncDeclarationClause, WorthQueryAsyncDeclarationSupport,
-    WorthQueryAsyncFailurePosture, WorthQueryAsyncLoadingPosture,
-    WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncSourceFamily,
+    WorthQueryApplicationFacade, WorthQueryAsyncDeclarationClause,
+    WorthQueryAsyncDeclarationSupport, WorthQueryAsyncFailurePosture,
+    WorthQueryAsyncLoadingPosture, WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncSourceFamily,
     WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily, WorthQueryConfig,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationBridgeContinuationMode,
@@ -20,9 +19,10 @@ use crate::application::{
     WorthQueryDeclarationSignalCompatibilityInput,
     WorthQueryDeclarationSignalCompatibilitySupportRow,
     WorthQueryDeclarationSignalCompatibilitySupportStatus, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext, WorthQueryNeighborhoodCapableGrouping,
-    WorthQuerySignalCompatiblePosture, WorthQueryTemporalDeclarationClause,
-    WorthQueryTemporalDeclarationSupport, WorthQueryTemporalDuration,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
+    WorthQueryNeighborhoodCapableGrouping, WorthQuerySignalCompatiblePosture,
+    WorthQueryTemporalDeclarationClause, WorthQueryTemporalDeclarationSupport,
+    WorthQueryTemporalDuration,
 };
 use crate::runtime::WorthQueryRuntimeFamilySupportStatus;
 
@@ -267,7 +267,7 @@ impl WorthQueryDeclarationInput<FutureSignalDomain> for FutureSignalInput<AsyncF
 
 pub(crate) fn future_signal_admitted_handle(
     world: &'static str,
-) -> WorthQueryAdmittedConfiguredDomainHandle<FutureSignalDomain, FutureSignalWorld> {
+) -> WorthQueryInstalledDomainDeclarationContext<FutureSignalDomain, FutureSignalWorld> {
     WorthQueryApplicationFacade::new(WorthQueryConfig::runtime_backed_default())
         .unwrap()
         .domain(FutureSignalDomain)
@@ -286,7 +286,7 @@ pub(crate) fn future_signal_bridge_request() -> WorthQueryDeclarationBridgeConti
 }
 
 pub(crate) fn checked_signal_public_posture<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<FutureSignalDomain, FutureSignalWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<FutureSignalDomain, FutureSignalWorld>,
     input: FutureSignalInput<F>,
 ) -> WorthQueryDeclarationSignalCompatibilityChecked<FutureSignalDomain, FutureSignalInput<F>>
 where
@@ -304,7 +304,7 @@ where
 }
 
 pub(crate) fn checked_signal_supported_runtime_test_posture<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<FutureSignalDomain, FutureSignalWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<FutureSignalDomain, FutureSignalWorld>,
     input: FutureSignalInput<F>,
 ) -> WorthQueryDeclarationSignalCompatibilityChecked<FutureSignalDomain, FutureSignalInput<F>>
 where
@@ -341,7 +341,7 @@ where
 }
 
 fn future_supported_runtime_envelope_checked<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<FutureSignalDomain, FutureSignalWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<FutureSignalDomain, FutureSignalWorld>,
     input: FutureSignalInput<F>,
 ) -> crate::application::WorthQueryDeclarationEnvelopeChecked<
     FutureSignalDomain,

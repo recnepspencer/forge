@@ -1,8 +1,8 @@
 use crate::application::{
-    dispatch_graph_obligations_for_orchestration, WorthQueryAdmittedConfiguredDomainHandle,
-    WorthQueryDeclarationEntryOrchestrationStage, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryGraphObligationOrchestrationBoundary, WorthQueryGraphObligationOrchestrationDispatch,
+    dispatch_graph_obligations_for_orchestration, WorthQueryDeclarationEntryOrchestrationStage,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryGraphObligationOrchestrationBoundary,
+    WorthQueryGraphObligationOrchestrationDispatch, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::WorthQueryBindingLinkedArtifacts;
 
@@ -27,7 +27,7 @@ pub(super) fn dispatch_contribution_orchestration_graph_obligations<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: &DeclarationLowering<D, I>,
     linked: &WorthQueryBindingLinkedArtifacts,
 ) -> ContributionOrchestrationGraphDispatch<D, I> {

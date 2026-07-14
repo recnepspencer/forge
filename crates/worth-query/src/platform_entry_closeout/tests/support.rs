@@ -95,7 +95,8 @@ impl WorthQueryDeclarationInput<CloseoutDomain> for CloseoutInput {
 
 pub(super) fn admitted_handle(
     regime: &'static str,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<CloseoutDomain, CloseoutWorld> {
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<CloseoutDomain, CloseoutWorld>
+{
     WorthQueryApplicationFacade::runtime_backed_default()
         .domain(CloseoutDomain)
         .with_operating_context(CloseoutWorld(regime))

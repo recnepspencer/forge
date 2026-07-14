@@ -1,4 +1,4 @@
-use worth_query::facade::foundation::{WorthQueryAdmittedConfiguredDomainHandle, WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext};
+use worth_query::facade::foundation::{WorthQueryInstalledDomainDeclarationContext, WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct GeometryDomainEntry;
@@ -35,7 +35,7 @@ impl WorthQueryDomainOperatingContext<GeometryDomainEntry> for GeometryOperating
 }
 
 fn require_admitted(
-    _handle: WorthQueryAdmittedConfiguredDomainHandle<GeometryDomainEntry, GeometryOperatingContext>,
+    _handle: WorthQueryInstalledDomainDeclarationContext<GeometryDomainEntry, GeometryOperatingContext>,
 ) {
 }
 

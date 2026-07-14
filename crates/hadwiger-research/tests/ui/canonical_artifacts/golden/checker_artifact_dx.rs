@@ -1,14 +1,14 @@
 use hadwiger_research::facade::{
-    admit_hadwiger_research_handle, declare_research_request_checked, CandidateGraphDeclaration,
+    declare_research_request_checked, hadwiger_research_domain_package, CandidateGraphDeclaration,
     ExactGraphEmbedding, ExactPoint2, GraphIdentity, GraphVersion, HadwigerResearchOperatingContext,
-    HadwigerCanonicalArtifact, HadwigerDeclaredFamilyCheckedExt,
+    HadwigerCanonicalArtifact, HadwigerDeclaredFamilyCheckedExt, HadwigerResearchDomainEntry,
+    HadwigerResearchHandle, HadwigerResearchQueryExt,
     verify_unit_distance_embedding_checked,
 };
+use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 
 fn main() {
-    let handle =
-        admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
-            .expect("real handle should admit");
+    let handle = installed_declarations().expect("real handle should admit");
     let declaration = declare_research_request_checked(
         &handle,
         CandidateGraphDeclaration::new("candidate-a").with_graph_version("v1"),
@@ -45,4 +45,15 @@ fn main() {
     assert!(checked
         .unit_distance_aspect()
         .satisfies_mathematical_dependency());
+}
+
+fn installed_declarations() -> Result<HadwigerResearchHandle, String> {
+    let schema = WorthQueryTestBackendSchema::single_collection("HadwigerCandidate")
+        .aspect("identity.id", "identity.id").map_err(|error| error.to_string())?;
+    let workspace = in_memory_test_runtime().with_schema(schema)
+        .domain_package(hadwiger_research_domain_package())
+        .workspace("hadwiger-checker-artifact-dx").map_err(|error| error.to_string())?;
+    let installed = workspace.domain(HadwigerResearchDomainEntry).map_err(|error| error.to_string())?;
+    installed.research_declarations(&workspace, HadwigerResearchOperatingContext::default())
+        .map_err(|error| error.to_string())
 }

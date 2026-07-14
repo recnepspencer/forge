@@ -235,21 +235,24 @@ pub use declaration_signal_compatibility::{
     WorthQueryDeclarationSignalCompatibilityTerminalError,
     WorthQueryDeclarationSignalExecutionFamily,
 };
-pub use domain_entry::{
-    WorthQueryDomainEntryChecked, WorthQueryDomainEntryDeferred, WorthQueryDomainEntryMarker,
-    WorthQueryDomainEntryProofRoot, WorthQueryDomainEntryRoot,
-    WorthQueryDomainEntrySupportSnapshot, WorthQueryDomainEntryUnsupported,
-};
 #[cfg(test)]
+pub use domain_entry::{
+    WorthQueryDomainEntryChecked, WorthQueryDomainEntryDeferred, WorthQueryDomainEntryProofRoot,
+    WorthQueryDomainEntryRoot, WorthQueryDomainEntryUnsupported,
+};
+pub use domain_entry::{WorthQueryDomainEntryMarker, WorthQueryDomainEntrySupportSnapshot};
 pub(crate) use domain_handle::compose_basis_lifecycle_support_identity;
 pub use domain_handle::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryAdmittedWorldBasis,
+    WorthQueryAdmittedWorldBasis, WorthQueryContinuationExecutionReadmissionObservation,
+    WorthQueryDeclarationEntryProgressionError, WorthQueryDomainOperatingContext,
+    WorthQueryDomainOperatingRequirement, WorthQueryInstalledDomainDeclarationContext,
+};
+#[cfg(test)]
+pub use domain_handle::{
     WorthQueryConfiguredDomainHandleAdmissionError, WorthQueryConfiguredDomainHandleChecked,
     WorthQueryConfiguredDomainHandleDeferred, WorthQueryConfiguredDomainHandleDraft,
     WorthQueryConfiguredDomainHandleInvalidContext, WorthQueryConfiguredDomainHandleUnsupported,
-    WorthQueryContinuationExecutionReadmissionObservation,
-    WorthQueryDeclarationEntryProgressionError, WorthQueryDomainOperatingContext,
-    WorthQueryDomainOperatingRequirement, WorthQueryValidatedConfiguredDomainHandle,
+    WorthQueryValidatedConfiguredDomainHandle,
 };
 #[allow(unused_imports)]
 pub use graph_obligation_orchestration::{

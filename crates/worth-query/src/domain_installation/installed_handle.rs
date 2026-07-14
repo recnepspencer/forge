@@ -1,14 +1,20 @@
+use std::any::TypeId;
+use std::collections::BTreeMap;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::application::WorthQueryDeclarationEntryContributionCategoryFamily;
+use crate::application::{
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
+    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainEntrySupportSnapshot,
+    WorthQueryDomainOperatingRequirement,
+};
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
     WorthQueryEvidenceTag,
 };
 use crate::runtime::WorthQueryRuntimeAuthorityIdentity;
 
-use super::WorthQueryDomainPackageIdentity;
+use super::{WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainPackageIdentity};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct WorthQueryDomainInstallationGeneration(u64);
@@ -33,11 +39,17 @@ pub struct WorthQueryInstalledDomainHandle<D> {
 pub struct WorthQueryInstalledDomainAuthority {
     runtime_authority: WorthQueryRuntimeAuthorityIdentity,
     generation: WorthQueryDomainInstallationGeneration,
+    marker_type: TypeId,
     domain_key: &'static str,
     display_name: &'static str,
     domain_owner: String,
     package_identity: WorthQueryDomainPackageIdentity,
     installation_identity: WorthQueryEvidenceIdentity,
+    support_snapshot: WorthQueryDomainEntrySupportSnapshot,
+    required_capabilities: Vec<WorthQueryCapabilityFamily>,
+    required_configuration: Vec<WorthQueryConfigSectionFamily>,
+    operating_requirements: Vec<WorthQueryDomainOperatingRequirement>,
+    declaration_families: BTreeMap<String, u32>,
     contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
     world_identity: WorthQueryEvidenceIdentity,
     authority_identity: WorthQueryEvidenceIdentity,
@@ -47,13 +59,23 @@ impl WorthQueryInstalledDomainAuthority {
     pub(crate) fn new(
         runtime_authority: WorthQueryRuntimeAuthorityIdentity,
         generation: WorthQueryDomainInstallationGeneration,
+        marker_type: TypeId,
         domain_key: &'static str,
         display_name: &'static str,
         domain_owner: String,
         package_identity: WorthQueryDomainPackageIdentity,
         installation_identity: WorthQueryEvidenceIdentity,
+        support_snapshot: WorthQueryDomainEntrySupportSnapshot,
+        required_capabilities: Vec<WorthQueryCapabilityFamily>,
+        required_configuration: Vec<WorthQueryConfigSectionFamily>,
+        operating_requirements: Vec<WorthQueryDomainOperatingRequirement>,
+        declaration_families: Vec<WorthQueryDomainDeclarationFamilyDefinition>,
         contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
     ) -> Self {
+        let declaration_families = declaration_families
+            .into_iter()
+            .map(|family| (family.family_key().to_string(), family.version()))
+            .collect();
         let world_identity =
             worth_query_evidence_identity(WorthQueryEvidenceScope::InstalledDomainWorld)
                 .field_value(
@@ -83,11 +105,17 @@ impl WorthQueryInstalledDomainAuthority {
         Self {
             runtime_authority,
             generation,
+            marker_type,
             domain_key,
             display_name,
             domain_owner,
             package_identity,
             installation_identity,
+            support_snapshot,
+            required_capabilities,
+            required_configuration,
+            operating_requirements,
+            declaration_families,
             contribution_policy,
             world_identity,
             authority_identity,
@@ -117,6 +145,26 @@ impl WorthQueryInstalledDomainAuthority {
     }
     pub fn contribution_policy(&self) -> &[WorthQueryDeclarationEntryContributionCategoryFamily] {
         &self.contribution_policy
+    }
+
+    pub fn required_capabilities(&self) -> &[WorthQueryCapabilityFamily] {
+        &self.required_capabilities
+    }
+
+    pub fn required_configuration(&self) -> &[WorthQueryConfigSectionFamily] {
+        &self.required_configuration
+    }
+
+    pub fn operating_requirements(&self) -> &[WorthQueryDomainOperatingRequirement] {
+        &self.operating_requirements
+    }
+
+    pub fn support_snapshot(&self) -> &WorthQueryDomainEntrySupportSnapshot {
+        &self.support_snapshot
+    }
+
+    pub fn declaration_family_version(&self, family_key: &str) -> Option<u32> {
+        self.declaration_families.get(family_key).copied()
     }
 
     pub fn world_identity(&self) -> &WorthQueryEvidenceIdentity {
@@ -162,6 +210,10 @@ impl WorthQueryInstalledDomainAuthority {
 
     pub(crate) fn runtime_authority(&self) -> WorthQueryRuntimeAuthorityIdentity {
         self.runtime_authority
+    }
+
+    pub(crate) fn marker_type(&self) -> TypeId {
+        self.marker_type
     }
 }
 
@@ -252,6 +304,46 @@ impl<D> WorthQueryInstalledDomainHandle<D> {
 
     pub fn rebind_request(&self) -> super::WorthQueryDomainRebindRequest<D> {
         super::WorthQueryDomainRebindRequest::new(self.authority_witness())
+    }
+
+    pub fn declarations<C>(
+        &self,
+        runtime: &crate::runtime::WorthQueryRuntime,
+        operating_context: C,
+    ) -> Result<
+        super::WorthQueryInstalledDomainDeclarationContext<D, C>,
+        super::WorthQueryInstalledDomainDeclarationContextDenial,
+    >
+    where
+        D: crate::application::WorthQueryDomainEntryMarker + 'static,
+        C: crate::application::WorthQueryDomainOperatingContext<D>,
+    {
+        runtime
+            .validate_installed_domain_handle(self)
+            .map_err(super::WorthQueryInstalledDomainDeclarationContextDenial::handle)?;
+        super::WorthQueryInstalledDomainDeclarationContext::admit(
+            self.authority_witness(),
+            operating_context,
+        )
+    }
+
+    pub fn declarations_in<C>(
+        &self,
+        workspace: &crate::runtime::WorthQueryWorkspace,
+        operating_context: C,
+    ) -> Result<
+        super::WorthQueryInstalledDomainDeclarationContext<D, C>,
+        super::WorthQueryInstalledDomainDeclarationContextDenial,
+    >
+    where
+        D: crate::application::WorthQueryDomainEntryMarker + 'static,
+        C: crate::application::WorthQueryDomainOperatingContext<D>,
+    {
+        let witness = self.authority_witness();
+        workspace
+            .validate_installed_domain_witness::<D>(&witness)
+            .map_err(super::WorthQueryInstalledDomainDeclarationContextDenial::handle)?;
+        super::WorthQueryInstalledDomainDeclarationContext::admit(witness, operating_context)
     }
 }
 

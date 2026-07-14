@@ -2,9 +2,9 @@ use worth_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfi
 
 use crate::application::{
     checked_route_plan_from_progressed_with_profile, worth_query_checked_declaration_receipt,
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDeclarationReceiptInput, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
+    WorthQueryDeclarationReceiptInput, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::{
     WorthQueryBindingAspectFitReport, WorthQueryBindingLinkedArtifacts,
@@ -21,7 +21,7 @@ pub(crate) fn bind_envelope_from_target_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     request: WorthQueryResolveEnvelopeFromTargetRequest<D, I>,
 ) -> WorthQueryBindingTranscript<crate::application::WorthQueryDeclarationEnvelopeInput<D, I>> {
     let (source, contract, allow_superset, partial_narrowing, route_intent) = request.into_parts();

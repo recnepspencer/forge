@@ -1,7 +1,6 @@
+use worth_query::facade::domain::WorthQueryInstalledDomainDeclarationContext;
 use worth_query::facade::foundation::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryApplicationFacade,
     WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryConfiguredDomainHandleAdmissionError, WorthQueryConfiguredDomainHandleInvalidContext,
     WorthQueryContributionComposedOrchestrationChecked,
     WorthQueryContributionComposedOrchestrationInput,
     WorthQueryContributionComposedOrchestrationTranscript,
@@ -18,7 +17,7 @@ use super::{HadwigerResearchDomainEntry, HadwigerResearchOperatingContext};
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct HadwigerResearchHandle {
-    query_handle: WorthQueryAdmittedConfiguredDomainHandle<
+    query_handle: WorthQueryInstalledDomainDeclarationContext<
         HadwigerResearchDomainEntry,
         HadwigerResearchOperatingContext,
     >,
@@ -41,7 +40,7 @@ impl std::fmt::Debug for HadwigerResearchHandle {
 
 impl HadwigerResearchHandle {
     pub(crate) fn new(
-        query_handle: WorthQueryAdmittedConfiguredDomainHandle<
+        query_handle: WorthQueryInstalledDomainDeclarationContext<
             HadwigerResearchDomainEntry,
             HadwigerResearchOperatingContext,
         >,
@@ -187,35 +186,4 @@ impl HadwigerResearchHandle {
         self.query_handle
             .recover_from_grouped_orchestration_proof(proof)
     }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum HadwigerResearchAdmissionError {
-    InvalidContext(
-        WorthQueryConfiguredDomainHandleInvalidContext<
-            HadwigerResearchDomainEntry,
-            HadwigerResearchOperatingContext,
-        >,
-    ),
-    Admission(
-        WorthQueryConfiguredDomainHandleAdmissionError<
-            HadwigerResearchDomainEntry,
-            HadwigerResearchOperatingContext,
-        >,
-    ),
-}
-
-pub fn admit_hadwiger_research_handle(
-    context: HadwigerResearchOperatingContext,
-) -> Result<HadwigerResearchHandle, HadwigerResearchAdmissionError> {
-    let validated = WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(HadwigerResearchDomainEntry)
-        .with_operating_context(context)
-        .validate()
-        .map_err(HadwigerResearchAdmissionError::InvalidContext)?;
-
-    validated
-        .admit()
-        .map(HadwigerResearchHandle::new)
-        .map_err(HadwigerResearchAdmissionError::Admission)
 }

@@ -209,8 +209,7 @@ pub use crate::proof_claims::{
     PlaneLowerBoundClaimRequest, PlaneUpperBoundClaimRequest,
 };
 pub use crate::query_entry::{
-    admit_hadwiger_research_handle, hadwiger_research_domain_package,
-    HadwigerCandidateContribution, HadwigerResearchAdmissionError,
+    hadwiger_research_domain_package, HadwigerCandidateContribution,
     HadwigerResearchAssumptionRegime, HadwigerResearchCheckerSupportRegime,
     HadwigerResearchDomainEntry, HadwigerResearchHandle, HadwigerResearchInvalidationRegime,
     HadwigerResearchOperatingContext, HadwigerResearchQueryExt,

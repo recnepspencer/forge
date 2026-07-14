@@ -1,8 +1,8 @@
 use crate::application::aspect_coverage_from_publication;
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryAdmittedDeclarationProgression,
-    WorthQueryDeclarationEnvelope, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryAdmittedDeclarationProgression, WorthQueryDeclarationEnvelope,
+    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::domain_capabilities::WorthQueryDeclarationBoundContributionTarget;
 use crate::evidence_identity::{
@@ -30,7 +30,7 @@ pub(crate) fn lower_declaration<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration_input: I,
 ) -> Result<DeclarationLowering<D, I>, WorthQueryContributionComposedOrchestrationOutcome<D, I>> {
     let progressed = match handle.declare_review_and_progress(declaration_input) {
@@ -45,7 +45,7 @@ pub(crate) fn lower_progressed_declaration<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> Result<DeclarationLowering<D, I>, WorthQueryContributionComposedOrchestrationOutcome<D, I>> {
     let target = WorthQueryDeclarationBoundContributionTarget::for_canonical_declaration(

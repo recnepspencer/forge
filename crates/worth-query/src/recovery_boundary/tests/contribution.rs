@@ -118,7 +118,7 @@ impl WorthQueryDeclarationInput<ContributionRecoveryDomain> for ContributionReco
     }
 }
 
-fn contribution_handle() -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+fn contribution_handle() -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     ContributionRecoveryDomain,
     ContributionRecoveryWorld,
 > {

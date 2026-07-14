@@ -1,8 +1,8 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
-    WorthQueryDeclarationAspectCoverage, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
+    WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -51,7 +51,7 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for GeometryWorld {
 
 pub fn handle(
     regime: &'static str,
-) -> WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld> {
+) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld> {
     WorthQueryApplicationFacade::runtime_backed_default()
         .domain(GeometryDomain)
         .with_operating_context(GeometryWorld(regime))

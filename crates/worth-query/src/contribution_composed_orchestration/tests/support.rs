@@ -238,7 +238,7 @@ impl WorthQueryDeclarationInput<ContributionDomain> for DeferredAdmissionContrib
     }
 }
 
-pub(super) fn admitted_handle() -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+pub(super) fn admitted_handle() -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     ContributionDomain,
     ContributionWorld,
 > {
@@ -252,7 +252,7 @@ pub(super) fn admitted_handle() -> crate::application::WorthQueryAdmittedConfigu
 }
 
 pub(super) fn target_for_envelope(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         ContributionDomain,
         ContributionWorld,
     >,

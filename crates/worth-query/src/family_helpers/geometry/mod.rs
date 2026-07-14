@@ -5,9 +5,9 @@ mod material_attachment;
 pub use material_attachment::WorthQueryGeometryMaterialAttachmentInput;
 
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryAdmittedDeclarationProgression,
-    WorthQueryDeclarationEntryProgressionError, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryAdmittedDeclarationProgression, WorthQueryDeclarationEntryProgressionError,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::contribution_composed_orchestration::{
     WorthQueryContributionComposedOrchestration,
@@ -42,13 +42,13 @@ pub struct WorthQueryGeometryFamilyHelpers<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,
 > {
-    handle: &'a WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &'a WorthQueryInstalledDomainDeclarationContext<D, C>,
 }
 
 impl<'a, D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
     WorthQueryGeometryFamilyHelpers<'a, D, C>
 {
-    pub(crate) fn new(handle: &'a WorthQueryAdmittedConfiguredDomainHandle<D, C>) -> Self {
+    pub(crate) fn new(handle: &'a WorthQueryInstalledDomainDeclarationContext<D, C>) -> Self {
         Self { handle }
     }
 

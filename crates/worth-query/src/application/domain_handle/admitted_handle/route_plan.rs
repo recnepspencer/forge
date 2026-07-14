@@ -9,11 +9,11 @@ use crate::application::{
 };
 use worth_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfile;
 
-use super::WorthQueryAdmittedConfiguredDomainHandle;
+use super::WorthQueryInstalledDomainDeclarationContext;
 use crate::application::WorthQueryDomainOperatingContext;
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn plan_routes<I>(
         &self,
@@ -131,7 +131,7 @@ pub(crate) fn checked_route_plan_from_progressed_with_profile<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     route_intent: Option<WorthQueryDeclarationRouteIntent>,
     profile: FoundationalBoundaryEvidenceMaterializationProfile,

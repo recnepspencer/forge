@@ -332,8 +332,10 @@ impl_declaration_input!(
 
 pub(super) fn admitted_handle(
     regime: &'static str,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, CollaborativeWorld>
-{
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
+    GeometryDomain,
+    CollaborativeWorld,
+> {
     WorthQueryApplicationFacade::runtime_backed_default()
         .domain(GeometryDomain)
         .with_operating_context(CollaborativeWorld::named(regime))
@@ -344,7 +346,7 @@ pub(super) fn admitted_handle(
 }
 
 pub(super) fn legal<F>(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         GeometryDomain,
         CollaborativeWorld,
     >,
@@ -360,7 +362,7 @@ where
 }
 
 pub(super) fn progressed<F>(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         GeometryDomain,
         CollaborativeWorld,
     >,

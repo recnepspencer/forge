@@ -1,18 +1,17 @@
 use crate::application::{
-    worth_query_checked_declaration_bridge_routing_on_handle,
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationBridgeRouting,
+    worth_query_checked_declaration_bridge_routing_on_handle, WorthQueryDeclarationBridgeRouting,
     WorthQueryDeclarationBridgeRoutingChecked, WorthQueryDeclarationBridgeRoutingInput,
     WorthQueryDeclarationBridgeRoutingSupportStatus, WorthQueryDeclarationEnvelopeInput,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
     WorthQueryDeclarationLegalityChecked, WorthQueryDeclarationLegalityInput,
-    WorthQueryDeclarationReceiptInput,
+    WorthQueryDeclarationReceiptInput, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::runtime::WorthQueryRuntimeFamilySupportStatus;
 
 use super::domain::{GeometryDomain, GeometryWorld, RoutingInput};
 
 pub(crate) fn checked_from_progressed<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: RoutingInput<F>,
 ) -> WorthQueryDeclarationBridgeRoutingChecked<GeometryDomain, RoutingInput<F>>
 where
@@ -44,7 +43,7 @@ where
 }
 
 pub(crate) fn routed_from_progressed<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: RoutingInput<F>,
 ) -> WorthQueryDeclarationBridgeRouting<GeometryDomain, RoutingInput<F>>
 where
@@ -63,7 +62,7 @@ where
 }
 
 pub(crate) fn checked_from_future_supported_runtime_test_posture<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: RoutingInput<F>,
 ) -> WorthQueryDeclarationBridgeRoutingChecked<GeometryDomain, RoutingInput<F>>
 where
@@ -118,7 +117,7 @@ where
 }
 
 pub(crate) fn routed_from_future_supported_runtime_test_posture<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: RoutingInput<F>,
 ) -> WorthQueryDeclarationBridgeRouting<GeometryDomain, RoutingInput<F>>
 where

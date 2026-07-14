@@ -20,8 +20,11 @@ use crate::evidence_identity::{
 impl WorthQueryRuntimeStateTarget for &WorthQueryAdmittedWorldBasis {
     fn into_state_snapshot(
         self,
-        _runtime: &WorthQueryRuntime,
+        runtime: &WorthQueryRuntime,
     ) -> Result<WorthQueryRuntimeStateSnapshot, WorthQueryRuntimeError> {
+        runtime
+            .validate_installed_domain_authority(self.installed_authority())
+            .map_err(WorthQueryRuntimeError::InstalledDomainAuthorityDenied)?;
         Ok(WorthQueryRuntimeStateSnapshot::ready(
             runtime_state_snapshot_basis_label_identity(self.basis_lifecycle_support_identity()),
             runtime_state_snapshot_result_shape_label_identity(self.handle_identity()),

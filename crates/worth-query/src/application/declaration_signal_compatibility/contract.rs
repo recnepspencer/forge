@@ -1,9 +1,9 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryCapabilityFamily,
-    WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationAspectFit,
     WorthQueryDeclarationAuthorityAspectMismatch, WorthQueryDeclarationInput,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::basis_lifecycle::BasisFamily;
 
@@ -273,7 +273,7 @@ pub(crate) fn derive_signal_compatibility_support_report<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> WorthQueryDeclarationSignalCompatibilitySupportReport<D, I> {
     crate::application::worth_query_signal_compatibility_support_from_entry_readiness::<D, C, I>(
         handle,

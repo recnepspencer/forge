@@ -1,7 +1,10 @@
-use super::admitted_handle::WorthQueryAdmittedConfiguredDomainHandle;
+#[cfg(test)]
+use super::admitted_handle::WorthQueryInstalledDomainDeclarationContext;
+#[cfg(test)]
 use super::operating_context::{
     WorthQueryDomainOperatingContext, WorthQueryDomainOperatingRequirement,
 };
+#[cfg(test)]
 use crate::application::{
     WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDomainEntryMarker,
 };
@@ -14,28 +17,31 @@ use crate::evidence_identity::{
 pub struct WorthQueryAdmittedWorldBasis {
     domain_key: &'static str,
     display_name: &'static str,
-    operating_context_identity_digest: String,
+    operating_context_identity: WorthQueryEvidenceIdentity,
     handle_identity: WorthQueryEvidenceIdentity,
     support_snapshot_digest: String,
     basis_lifecycle_support_identity: WorthQueryEvidenceIdentity,
+    installed_authority: crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness,
 }
 
 impl WorthQueryAdmittedWorldBasis {
     pub(crate) fn new(
         domain_key: &'static str,
         display_name: &'static str,
-        operating_context_identity_digest: String,
+        operating_context_identity: WorthQueryEvidenceIdentity,
         handle_identity: WorthQueryEvidenceIdentity,
         support_snapshot_digest: String,
         basis_lifecycle_support_identity: WorthQueryEvidenceIdentity,
+        installed_authority: crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness,
     ) -> Self {
         Self {
             domain_key,
             display_name,
-            operating_context_identity_digest,
+            operating_context_identity,
             handle_identity,
             support_snapshot_digest,
             basis_lifecycle_support_identity,
+            installed_authority,
         }
     }
 
@@ -48,7 +54,11 @@ impl WorthQueryAdmittedWorldBasis {
     }
 
     pub fn operating_context_identity_digest(&self) -> &str {
-        &self.operating_context_identity_digest
+        self.operating_context_identity.as_str()
+    }
+
+    pub fn operating_context_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.operating_context_identity
     }
 
     pub fn handle_identity(&self) -> &WorthQueryEvidenceIdentity {
@@ -70,8 +80,15 @@ impl WorthQueryAdmittedWorldBasis {
     pub fn basis_lifecycle_support_for_reporting(&self) -> &str {
         self.basis_lifecycle_support_identity.as_str()
     }
+
+    pub fn installed_authority(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness {
+        &self.installed_authority
+    }
 }
 
+#[cfg(test)]
 pub(crate) fn compose_admitted_configured_domain_handle_identity_parts(
     domain_key: &str,
     display_name: &str,
@@ -128,11 +145,12 @@ pub(crate) fn compose_admitted_configured_domain_handle_identity_parts(
         .seal()
 }
 
+#[cfg(test)]
 pub(crate) fn compose_admitted_configured_domain_handle_identity<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> WorthQueryEvidenceIdentity {
     compose_admitted_configured_domain_handle_identity_parts(
         handle.domain_key(),

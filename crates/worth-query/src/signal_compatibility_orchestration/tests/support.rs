@@ -166,14 +166,14 @@ impl WorthQueryDeclarationInput<SignalDomain> for SignalInput {
 
 pub(super) fn admitted_handle(
     world: &'static str,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<SignalDomain, SignalWorld> {
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<SignalDomain, SignalWorld> {
     admitted_handle_with_config(world, WorthQueryConfig::runtime_backed_default())
 }
 
 fn admitted_handle_with_config(
     world: &'static str,
     config: WorthQueryConfig,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<SignalDomain, SignalWorld> {
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<SignalDomain, SignalWorld> {
     WorthQueryApplicationFacade::new(config)
         .unwrap()
         .domain(SignalDomain)
@@ -192,7 +192,7 @@ pub(super) fn bridge_request() -> WorthQueryDeclarationBridgeContinuationRequest
 }
 
 pub(super) fn envelope(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         SignalDomain,
         SignalWorld,
     >,
@@ -207,7 +207,7 @@ pub(super) fn envelope(
 }
 
 pub(super) fn orchestration_input(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         SignalDomain,
         SignalWorld,
     >,

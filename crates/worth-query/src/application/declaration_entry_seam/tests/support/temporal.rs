@@ -1,14 +1,14 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryBridgeContinuationAuthority,
-    WorthQueryDeclarationBridgeContinuationContract, WorthQueryDeclarationCanonicalEntry,
-    WorthQueryDeclarationEnvelope, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
+    WorthQueryBridgeContinuationAuthority, WorthQueryDeclarationBridgeContinuationContract,
+    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationEnvelope,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
     WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRouteContract,
     WorthQueryDeclarationSignalCompatibilityContract, WorthQueryDomainOperatingContext,
-    WorthQueryNeighborhoodCapableGrouping, WorthQuerySignalCompatiblePosture,
-    WorthQueryTemporalDeclarationClause, WorthQueryTemporalDeclarationSupport,
-    WorthQueryTemporalDuration,
+    WorthQueryInstalledDomainDeclarationContext, WorthQueryNeighborhoodCapableGrouping,
+    WorthQuerySignalCompatiblePosture, WorthQueryTemporalDeclarationClause,
+    WorthQueryTemporalDeclarationSupport, WorthQueryTemporalDuration,
 };
 
 use super::domain::GeometryDomain;
@@ -154,7 +154,7 @@ impl_temporal_input!(
 );
 
 pub fn temporal_current_envelope<C: WorthQueryDomainOperatingContext<GeometryDomain>>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, C>,
     input: TemporalInput<TemporalCurrentFamily>,
 ) -> WorthQueryDeclarationEnvelope<GeometryDomain, TemporalInput<TemporalCurrentFamily>> {
     let progressed = match handle.declare_review_and_progress(input) {

@@ -2,11 +2,19 @@
 
 use worth_query::facade::{domain, read};
 
-use super::HadwigerResearchDomainEntry;
+use super::{
+    HadwigerResearchDomainEntry, HadwigerResearchHandle, HadwigerResearchOperatingContext,
+};
 
 const CANDIDATE_ROOT: &str = "HadwigerCandidate";
 
 pub trait HadwigerResearchQueryExt {
+    fn research_declarations(
+        &self,
+        workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
+        context: HadwigerResearchOperatingContext,
+    ) -> Result<HadwigerResearchHandle, domain::WorthQueryInstalledDomainDeclarationContextDenial>;
+
     fn candidate_search(
         &self,
     ) -> Result<
@@ -27,6 +35,16 @@ pub trait HadwigerResearchQueryExt {
 impl HadwigerResearchQueryExt
     for domain::WorthQueryInstalledDomainHandle<HadwigerResearchDomainEntry>
 {
+    fn research_declarations(
+        &self,
+        workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
+        context: HadwigerResearchOperatingContext,
+    ) -> Result<HadwigerResearchHandle, domain::WorthQueryInstalledDomainDeclarationContextDenial>
+    {
+        self.declarations_in(workspace, context)
+            .map(HadwigerResearchHandle::new)
+    }
+
     fn candidate_search(
         &self,
     ) -> Result<

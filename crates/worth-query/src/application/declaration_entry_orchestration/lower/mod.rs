@@ -37,7 +37,7 @@ pub(crate) fn worth_query_lower_declaration_entry_orchestration_on_handle<
     C: crate::application::WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<D, C>,
     input: I,
     exposure_level: WorthQueryDeclarationEntryOrchestrationExposureLevel,
     artifact_policy: WorthQueryDeclarationEntryOrchestrationArtifactPolicy,
@@ -81,7 +81,7 @@ pub(crate) fn worth_query_checked_declaration_entry_orchestration_on_handle<
     C: crate::application::WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<D, C>,
     input: I,
 ) -> WorthQueryDeclarationEntryOrchestrationOutcome<D, I> {
     worth_query_lower_declaration_entry_orchestration_on_handle(

@@ -1,7 +1,7 @@
 use hadwiger_research::facade::*;
 
 fn handle() -> HadwigerResearchHandle {
-    admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
+    crate::installed_support::installed_hadwiger_research_handle()
         .expect("Hadwiger handle should admit")
 }
 
@@ -354,3 +354,4 @@ fn certification_bundle_retains_digest_inventory_and_scenarios() {
         .iter()
         .any(|(name, _)| name.starts_with("retained_evidence:")));
 }
+mod installed_support;

@@ -1,6 +1,7 @@
 use crate::application::{
     WorthQueryApplicationFacade, WorthQueryCapabilityStatus,
     WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainEntryMarker,
+    WorthQueryDomainEntrySupportSnapshot,
 };
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
@@ -23,6 +24,7 @@ pub(crate) struct WorthQueryAdmittedDomainPackage<D: WorthQueryDomainEntryMarker
     pub(crate) identity: WorthQueryDomainIdentityDeclaration<D>,
     pub(crate) package_identity: WorthQueryDomainPackageIdentity,
     pub(crate) admission_identity: WorthQueryEvidenceIdentity,
+    pub(crate) support_snapshot: WorthQueryDomainEntrySupportSnapshot,
     pub(crate) required_capabilities: Vec<WorthQueryCapabilityFamily>,
     pub(crate) required_configuration: Vec<WorthQueryConfigSectionFamily>,
     pub(crate) operating_requirements: Vec<WorthQueryDomainOperatingRequirement>,
@@ -38,6 +40,8 @@ pub(crate) fn admit_domain_package<D: WorthQueryDomainEntryMarker>(
 ) -> Result<WorthQueryAdmittedDomainPackage<D>, WorthQueryDomainPackageAdmissionDenial> {
     let facade = WorthQueryApplicationFacade::runtime_backed_default();
     let support_matrix = facade.support_matrix();
+    let support_snapshot =
+        WorthQueryDomainEntrySupportSnapshot::from_support_report(facade.support_report());
     for family in &package.required_capabilities {
         let status = support_matrix
             .descriptor(*family)
@@ -94,6 +98,7 @@ pub(crate) fn admit_domain_package<D: WorthQueryDomainEntryMarker>(
         identity: package.identity,
         package_identity: package.package_identity,
         admission_identity,
+        support_snapshot,
         required_capabilities: package.required_capabilities,
         required_configuration: package.required_configuration,
         operating_requirements: package.operating_requirements,

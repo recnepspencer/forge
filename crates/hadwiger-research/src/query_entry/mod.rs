@@ -4,9 +4,7 @@ mod domain_package;
 mod operating_context;
 mod ordinary_query;
 
-pub use admitted_handle::{
-    admit_hadwiger_research_handle, HadwigerResearchAdmissionError, HadwigerResearchHandle,
-};
+pub use admitted_handle::HadwigerResearchHandle;
 pub use domain_marker::HadwigerResearchDomainEntry;
 pub use domain_package::hadwiger_research_domain_package;
 pub use operating_context::{

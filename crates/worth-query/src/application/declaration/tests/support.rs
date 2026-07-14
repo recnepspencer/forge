@@ -361,7 +361,7 @@ impl WorthQueryDeclarationInput<GeometryDomain> for DeferredTemporalReadDeclarat
 
 pub fn admitted_handle(
     regime: GeometryOperatingContext,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     GeometryDomain,
     GeometryOperatingContext,
 > {
@@ -374,7 +374,7 @@ pub fn admitted_handle(
         .expect("context should admit")
 }
 
-pub fn admitted_topology_handle() -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+pub fn admitted_topology_handle() -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     TopologyDomain,
     GeometryOperatingContext,
 > {

@@ -1,14 +1,14 @@
 use hadwiger_research::facade::{
-    admit_hadwiger_research_handle, build_motif_from_seed_declaration_checked,
-    declare_research_request_checked, HadwigerCanonicalArtifact, HadwigerDeclaredFamilyCheckedExt,
-    HadwigerResearchOperatingContext, MotifArtifact, MotifForbiddenSameColorPair,
-    MotifSeedDeclaration, MotifTerminal, MotifUnitEdge, MotifVertex,
+    build_motif_from_seed_declaration_checked, declare_research_request_checked,
+    hadwiger_research_domain_package, HadwigerCanonicalArtifact, HadwigerDeclaredFamilyCheckedExt,
+    HadwigerResearchDomainEntry, HadwigerResearchHandle, HadwigerResearchOperatingContext,
+    HadwigerResearchQueryExt, MotifArtifact, MotifForbiddenSameColorPair, MotifSeedDeclaration,
+    MotifTerminal, MotifUnitEdge, MotifVertex,
 };
+use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 
 fn main() {
-    let handle =
-        admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
-            .expect("handle admits");
+    let handle = installed_declarations().expect("handle admits");
     let declaration = declare_research_request_checked(
         &handle,
         MotifSeedDeclaration::new("moser-basin-motif")
@@ -45,4 +45,15 @@ fn main() {
     assert_eq!(motif.motif_id(), "moser-basin-motif");
     assert!(!motif.admits_theorem_authority());
     assert!(!motif.reference().stable_token().is_empty());
+}
+
+fn installed_declarations() -> Result<HadwigerResearchHandle, String> {
+    let schema = WorthQueryTestBackendSchema::single_collection("HadwigerCandidate")
+        .aspect("identity.id", "identity.id").map_err(|error| error.to_string())?;
+    let workspace = in_memory_test_runtime().with_schema(schema)
+        .domain_package(hadwiger_research_domain_package())
+        .workspace("hadwiger-motif-artifact-dx").map_err(|error| error.to_string())?;
+    let installed = workspace.domain(HadwigerResearchDomainEntry).map_err(|error| error.to_string())?;
+    installed.research_declarations(&workspace, HadwigerResearchOperatingContext::default())
+        .map_err(|error| error.to_string())
 }

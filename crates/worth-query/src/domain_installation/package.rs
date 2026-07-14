@@ -92,6 +92,15 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
     }
 
     #[must_use]
+    pub fn declaration_families(
+        mut self,
+        definitions: impl IntoIterator<Item = WorthQueryDomainDeclarationFamilyDefinition>,
+    ) -> Self {
+        self.declaration_families.extend(definitions);
+        self
+    }
+
+    #[must_use]
     pub fn permits_contribution(
         mut self,
         category: WorthQueryDeclarationEntryContributionCategoryFamily,

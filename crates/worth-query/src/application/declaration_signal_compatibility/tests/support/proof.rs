@@ -1,6 +1,5 @@
 use crate::application::{
-    worth_query_checked_declaration_signal_compatibility_on_handle,
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationAspectFit,
+    worth_query_checked_declaration_signal_compatibility_on_handle, WorthQueryDeclarationAspectFit,
     WorthQueryDeclarationEnvelopeChecked, WorthQueryDeclarationFamilyMarker,
     WorthQueryDeclarationFoundationalEvidenceInput, WorthQueryDeclarationInput,
     WorthQueryDeclarationLegalityChecked, WorthQueryDeclarationLegalityInput,
@@ -9,13 +8,14 @@ use crate::application::{
     WorthQueryDeclarationSignalCompatibilityInput,
     WorthQueryDeclarationSignalCompatibilitySupportRow,
     WorthQueryDeclarationSignalCompatibilitySupportStatus,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::runtime::WorthQueryRuntimeFamilySupportStatus;
 
 use super::domain::{GeometryDomain, GeometryWorld};
 
 pub fn envelope_checked_for<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     input: super::domain::Input<F>,
 ) -> WorthQueryDeclarationEnvelopeChecked<GeometryDomain, super::domain::Input<F>>
 where
@@ -43,7 +43,7 @@ where
 }
 
 pub fn compatibility_from_envelope_input<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     input: super::domain::Input<F>,
 ) -> WorthQueryDeclarationSignalCompatibility<GeometryDomain, super::domain::Input<F>>
 where
@@ -59,7 +59,7 @@ where
 }
 
 pub fn checked_from_future_public_runtime_signal_posture<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     input: super::domain::Input<F>,
 ) -> WorthQueryDeclarationSignalCompatibilityChecked<GeometryDomain, super::domain::Input<F>>
 where
@@ -77,7 +77,7 @@ where
 }
 
 pub fn compatibility_from_future_supported_runtime_test_posture<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     input: super::domain::Input<F>,
 ) -> WorthQueryDeclarationSignalCompatibility<GeometryDomain, super::domain::Input<F>>
 where
@@ -100,7 +100,7 @@ where
 }
 
 fn future_supported_runtime_envelope_checked<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     input: super::domain::Input<F>,
 ) -> WorthQueryDeclarationEnvelopeChecked<GeometryDomain, super::domain::Input<F>>
 where

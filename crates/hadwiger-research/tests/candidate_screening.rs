@@ -10,6 +10,7 @@ mod geometry_certificates;
 mod geometry_ownership_certificates;
 #[path = "candidate_screening/graph_embedding_certificates.rs"]
 mod graph_embedding_certificates;
+mod installed_support;
 #[path = "candidate_screening/measure_certificates.rs"]
 mod measure_certificates;
 #[path = "candidate_screening/optimization_certificates.rs"]

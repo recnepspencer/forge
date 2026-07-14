@@ -1,9 +1,10 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationEntryOrchestrationDeferred,
-    WorthQueryDeclarationEntryOrchestrationDenied, WorthQueryDeclarationEntryOrchestrationFailed,
-    WorthQueryDeclarationEntryOrchestrationOutcome, WorthQueryDeclarationEntryOrchestrationStage,
-    WorthQueryDeclarationEnvelopeChecked, WorthQueryDeclarationEnvelopeOrchestrationTranscript,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationEntryOrchestrationDeferred, WorthQueryDeclarationEntryOrchestrationDenied,
+    WorthQueryDeclarationEntryOrchestrationFailed, WorthQueryDeclarationEntryOrchestrationOutcome,
+    WorthQueryDeclarationEntryOrchestrationStage, WorthQueryDeclarationEnvelopeChecked,
+    WorthQueryDeclarationEnvelopeOrchestrationTranscript, WorthQueryDeclarationInput,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use worth_foundational::facade::CanonicalDerivedDigest;
 
@@ -44,7 +45,7 @@ pub(crate) fn lower_grouped_members_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
     capture_proof: bool,
 ) -> WorthQueryGroupedMemberLowering<D, I> {

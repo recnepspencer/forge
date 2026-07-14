@@ -1,9 +1,9 @@
 mod graph_dispatch;
 
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationEntryOrchestrationStage,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryGraphObligationOrchestrationDispatch,
+    WorthQueryDeclarationEntryOrchestrationStage, WorthQueryDeclarationInput,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryGraphObligationOrchestrationDispatch, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::WorthQueryBindingLinkedArtifacts;
 
@@ -128,7 +128,7 @@ pub(crate) fn orchestrate_declaration_with_contributions_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     input: WorthQueryContributionComposedOrchestrationInput<D, I>,
 ) -> WorthQueryContributionComposedOrchestrationTranscript<D, I> {
     let request_descriptor_value = request_descriptor(&input);

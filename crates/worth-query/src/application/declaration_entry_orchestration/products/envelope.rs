@@ -1,11 +1,11 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryAdmittedDeclarationProgression,
+    WorthQueryAdmittedDeclarationProgression,
     WorthQueryDeclarationEntryOrchestrationArtifactPolicy,
     WorthQueryDeclarationEntryOrchestrationExposureLevel,
     WorthQueryDeclarationEntryOrchestrationProduct, WorthQueryDeclarationEnvelope,
     WorthQueryDeclarationEnvelopeChecked, WorthQueryDeclarationEnvelopeTerminalError,
     WorthQueryDeclarationInput, WorthQueryDeclarationRouteIntent, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 
 use super::common::{envelope_orchestration_identity, envelope_terminal_from_checked};
@@ -20,7 +20,7 @@ pub(crate) fn worth_query_declaration_envelope_orchestration_from_progressed_on_
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     route_intent: Option<WorthQueryDeclarationRouteIntent>,
 ) -> Result<WorthQueryDeclarationEnvelope<D, I>, WorthQueryDeclarationEnvelopeTerminalError<D, I>> {
@@ -39,7 +39,7 @@ pub(crate) fn worth_query_checked_declaration_envelope_orchestration_from_progre
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     route_intent: Option<WorthQueryDeclarationRouteIntent>,
 ) -> WorthQueryDeclarationEnvelopeChecked<D, I> {
@@ -63,7 +63,7 @@ pub(crate) fn worth_query_declaration_envelope_orchestration_from_progressed_pro
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     route_intent: Option<WorthQueryDeclarationRouteIntent>,
 ) -> WorthQueryDeclarationEnvelopeOrchestrationTranscript<D, I> {

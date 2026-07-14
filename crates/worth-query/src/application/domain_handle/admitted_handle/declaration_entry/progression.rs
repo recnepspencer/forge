@@ -6,11 +6,11 @@ use crate::application::{
     WorthQueryDeclarationProgressionTerminalError, WorthQueryDomainEntryMarker,
 };
 
-use super::super::WorthQueryAdmittedConfiguredDomainHandle;
+use super::super::WorthQueryInstalledDomainDeclarationContext;
 use crate::application::WorthQueryDomainOperatingContext;
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn declaration_progression_recipe<I>(
         &self,

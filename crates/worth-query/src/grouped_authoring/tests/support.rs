@@ -224,7 +224,8 @@ impl WorthQueryDeclarationInput<GeometryDomain> for RequiredIntentGeometryInput 
 
 pub(super) fn admitted_handle(
     world: &'static str,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld> {
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>
+{
     WorthQueryApplicationFacade::runtime_backed_default()
         .domain(GeometryDomain)
         .with_operating_context(GeometryWorld(world))
@@ -236,7 +237,8 @@ pub(super) fn admitted_handle(
 
 pub(super) fn admitted_handle_with_shifted_relational_digest(
     world: &'static str,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld> {
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>
+{
     WorthQueryApplicationFacade::new(
         WorthQueryConfig::runtime_backed_default().with_relational(
             WorthQueryRelationalConfig::enabled().with_historical_evaluation(false),

@@ -122,6 +122,7 @@ pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static 
         S::DomainPackageAdmission => "domain-package-admission",
         S::DomainInstallation => "domain-installation",
         S::InstalledDomainHandle => "installed-domain-handle",
+        S::InstalledDomainDeclarationContext => "installed-domain-declaration-context",
         S::InstalledDomainWorld => "installed-domain-world",
         S::InstalledDomainContributionTarget => "installed-domain-contribution-target",
         S::InstalledDomainContribution => "installed-domain-contribution",

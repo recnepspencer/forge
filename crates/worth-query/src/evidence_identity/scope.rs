@@ -72,6 +72,7 @@ pub enum WorthQueryEvidenceScope {
     DomainPackageAdmission,
     DomainInstallation,
     InstalledDomainHandle,
+    InstalledDomainDeclarationContext,
     InstalledDomainWorld,
     InstalledDomainContributionTarget,
     InstalledDomainContribution,

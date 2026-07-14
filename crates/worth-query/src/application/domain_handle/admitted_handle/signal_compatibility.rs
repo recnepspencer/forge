@@ -1,19 +1,19 @@
 use crate::application::{
     derive_signal_compatibility_support_report,
     worth_query_checked_declaration_signal_compatibility_on_handle,
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationEnvelopeInput,
-    WorthQueryDeclarationFoundationalEvidenceInput, WorthQueryDeclarationInput,
-    WorthQueryDeclarationReceiptInput, WorthQueryDeclarationRouteIntent,
-    WorthQueryDeclarationRoutePlanInput, WorthQueryDeclarationSignalCompatibility,
-    WorthQueryDeclarationSignalCompatibilityChecked, WorthQueryDeclarationSignalCompatibilityInput,
+    WorthQueryDeclarationEnvelopeInput, WorthQueryDeclarationFoundationalEvidenceInput,
+    WorthQueryDeclarationInput, WorthQueryDeclarationReceiptInput,
+    WorthQueryDeclarationRouteIntent, WorthQueryDeclarationRoutePlanInput,
+    WorthQueryDeclarationSignalCompatibility, WorthQueryDeclarationSignalCompatibilityChecked,
+    WorthQueryDeclarationSignalCompatibilityInput,
     WorthQueryDeclarationSignalCompatibilitySupportReport,
     WorthQueryDeclarationSignalCompatibilityTerminalError,
     WorthQueryDeclarationSupportsSignalCompatibility, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn signal_compatibility<I: WorthQueryDeclarationInput<D>>(
         &self,
@@ -59,7 +59,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
 }
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn signal_compatibility_from_progressed<I>(
         &self,

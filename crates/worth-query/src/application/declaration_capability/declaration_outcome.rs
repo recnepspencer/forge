@@ -5,11 +5,11 @@ use super::support_checked::{
     worth_query_checked_family_support, WorthQueryDeclarationFamilySupportChecked,
 };
 use crate::application::{
-    worth_query_canonical_declaration, WorthQueryAdmittedConfiguredDomainHandle,
-    WorthQueryAsyncDeclarationSupport, WorthQueryCanonicalDeclarationArtifact,
-    WorthQueryDeclarationCanonicalizationError, WorthQueryDeclarationCanonicalizationVersion,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext, WorthQueryTemporalDeclarationSupport,
+    worth_query_canonical_declaration, WorthQueryAsyncDeclarationSupport,
+    WorthQueryCanonicalDeclarationArtifact, WorthQueryDeclarationCanonicalizationError,
+    WorthQueryDeclarationCanonicalizationVersion, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext, WorthQueryTemporalDeclarationSupport,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -133,7 +133,7 @@ pub(crate) fn worth_query_checked_family_declaration<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     input: I,
     version: WorthQueryDeclarationCanonicalizationVersion,
 ) -> WorthQueryDeclaredFamilyChecked<D, I> {

@@ -1,9 +1,8 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationBridgeContinuationRequest,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationSignalCompatibilityChecked,
+    WorthQueryDeclarationBridgeContinuationRequest, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationInput, WorthQueryDeclarationSignalCompatibilityChecked,
     WorthQueryDeclarationSignalCompatibilityDenialCause, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::{
     WorthQueryBindingLinkedArtifacts, WorthQueryBindingNarrowingDecision,
@@ -95,7 +94,7 @@ pub(crate) fn orchestrate_signal_compatibility_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     input: WorthQuerySignalCompatibilityOrchestrationInput<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationTranscript<D, I> {
     let (subject, required_contract, bridge_request) = input.into_parts();
@@ -140,7 +139,7 @@ pub(crate) fn orchestrated_outcome_from_signal_checked_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     required_contract: crate::application::WorthQueryDeclarationAspectContract,
     bridge_request: Option<WorthQueryDeclarationBridgeContinuationRequest>,
     checked: WorthQueryDeclarationSignalCompatibilityChecked<D, I>,
@@ -153,7 +152,7 @@ fn outcome_from_signal_checked<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     required_contract: crate::application::WorthQueryDeclarationAspectContract,
     bridge_request: Option<WorthQueryDeclarationBridgeContinuationRequest>,
     checked: WorthQueryDeclarationSignalCompatibilityChecked<D, I>,

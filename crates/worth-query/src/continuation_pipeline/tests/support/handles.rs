@@ -17,7 +17,7 @@ use super::{
 
 pub(crate) fn admitted_handle(
     world: &'static str,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     ContinuationDomain,
     ContinuationWorld,
 > {
@@ -27,7 +27,7 @@ pub(crate) fn admitted_handle(
 pub(crate) fn configured_handle(
     world: &'static str,
     config: WorthQueryConfig,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     ContinuationDomain,
     ContinuationWorld,
 > {
@@ -43,7 +43,7 @@ pub(crate) fn configured_handle(
 
 pub(crate) fn preview_disabled_handle(
     world: &'static str,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     ContinuationDomain,
     LenientContinuationWorld,
 > {
@@ -62,7 +62,7 @@ pub(crate) fn preview_disabled_handle(
 
 pub(crate) fn historical_disabled_handle(
     world: &'static str,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     ContinuationDomain,
     LenientContinuationWorld,
 > {
@@ -83,7 +83,7 @@ pub(crate) fn historical_disabled_handle(
 pub(crate) fn drifted_readmission_handle(
     world: &'static str,
     drift: ReadmissionDrift,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     ContinuationDomain,
     DriftedContinuationWorld,
 > {
@@ -122,7 +122,7 @@ pub(crate) fn preview_session_request() -> WorthQueryDeclarationBridgeContinuati
 }
 
 pub(crate) fn envelope<I>(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         ContinuationDomain,
         ContinuationWorld,
     >,
@@ -141,7 +141,7 @@ where
 }
 
 pub(crate) fn target_request<I>(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         ContinuationDomain,
         ContinuationWorld,
     >,
@@ -160,7 +160,7 @@ where
 }
 
 pub(crate) fn context_request(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         ContinuationDomain,
         ContinuationWorld,
     >,

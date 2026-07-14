@@ -1,6 +1,7 @@
 mod canonical_entries;
 mod family_markers;
 mod geometry_screening_request_types;
+mod package_registration;
 mod proof_claim_request_types;
 mod query_operations;
 mod request_types;
@@ -52,6 +53,7 @@ pub use geometry_screening_request_types::{
     SymmetryOrbitReductionScreeningDeclaration, TileDiameterScreeningDeclaration,
     TranslationRotationClosureScreeningDeclaration, UnitDistanceEmbeddabilityScreeningDeclaration,
 };
+pub(crate) use package_registration::hadwiger_declaration_family_definitions;
 pub use proof_claim_request_types::{
     BackgroundTheoremDeclaration, PlaneExactValueClaimDeclaration, PlaneLowerBoundClaimDeclaration,
     PlaneUpperBoundClaimDeclaration,

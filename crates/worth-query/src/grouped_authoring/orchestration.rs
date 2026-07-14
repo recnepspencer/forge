@@ -1,7 +1,7 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationEnvelope,
-    WorthQueryDeclarationEnvelopeOrchestrationTranscript, WorthQueryDeclarationInput,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationEnvelope, WorthQueryDeclarationEnvelopeOrchestrationTranscript,
+    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::identity::hash_parts;
 
@@ -281,7 +281,7 @@ pub(crate) fn worth_query_grouped_orchestration_checked_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
 ) -> WorthQueryGroupedOrchestrationChecked<D, I> {
     lower_grouped_members_on_handle(handle, declaration, false).checked()
@@ -292,7 +292,7 @@ pub(crate) fn worth_query_grouped_orchestration_proof_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
 ) -> WorthQueryGroupedOrchestrationTranscript<D, I> {
     let (checked, member_transcripts) =

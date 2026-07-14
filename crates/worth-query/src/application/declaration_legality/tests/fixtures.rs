@@ -365,8 +365,10 @@ impl_temporal_input!(
 
 pub(super) fn admitted_handle(
     regime: &'static str,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, CollaborativeWorld>
-{
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
+    GeometryDomain,
+    CollaborativeWorld,
+> {
     WorthQueryApplicationFacade::runtime_backed_default()
         .domain(GeometryDomain)
         .with_operating_context(CollaborativeWorld::named(regime))

@@ -44,6 +44,14 @@ impl WorthQueryRuntime {
             .validate_authority::<D>(witness.authority())
     }
 
+    pub(crate) fn validate_installed_domain_authority(
+        &self,
+        witness: &WorthQueryInstalledDomainAuthorityWitness,
+    ) -> Result<(), WorthQueryDomainHandleDenial> {
+        self.domain_installation_registry
+            .validate_erased_authority(witness.authority())
+    }
+
     pub fn domain_installation_lookup_counters(
         &self,
     ) -> WorthQueryDomainInstallationLookupCounters {

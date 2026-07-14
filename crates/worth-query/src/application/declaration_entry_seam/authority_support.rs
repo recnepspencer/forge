@@ -1,15 +1,14 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationBridgeRoutingSupportReport,
-    WorthQueryDeclarationBridgeRoutingSupportRow, WorthQueryDeclarationBridgeRoutingSupportStatus,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationRelationalRoutingSupportReport,
+    WorthQueryDeclarationBridgeRoutingSupportReport, WorthQueryDeclarationBridgeRoutingSupportRow,
+    WorthQueryDeclarationBridgeRoutingSupportStatus, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationInput, WorthQueryDeclarationRelationalRoutingSupportReport,
     WorthQueryDeclarationRelationalRoutingSupportRow,
     WorthQueryDeclarationRelationalTruthRoutingSupportStatus,
     WorthQueryDeclarationSignalCompatibilitySupportReport,
     WorthQueryDeclarationSignalCompatibilitySupportRow,
     WorthQueryDeclarationSignalCompatibilitySupportStatus,
     WorthQueryDeclarationSignalExecutionFamily, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::basis_lifecycle::BasisFamily;
 
@@ -25,7 +24,7 @@ pub(crate) fn worth_query_relational_routing_support_from_entry_readiness<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> WorthQueryDeclarationRelationalRoutingSupportReport<D, I> {
     let mut rows = Vec::new();
     for crossing in crossing_rows_for_family::<D, C, I>(handle)
@@ -80,7 +79,7 @@ pub(crate) fn worth_query_bridge_routing_support_from_entry_readiness<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> WorthQueryDeclarationBridgeRoutingSupportReport<D, I> {
     let mut rows = Vec::new();
     for crossing in crossing_rows_for_family::<D, C, I>(handle)
@@ -143,7 +142,7 @@ pub(crate) fn worth_query_signal_compatibility_support_from_entry_readiness<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> WorthQueryDeclarationSignalCompatibilitySupportReport<D, I> {
     let mut rows = Vec::new();
     for crossing in crossing_rows_for_family::<D, C, I>(handle)

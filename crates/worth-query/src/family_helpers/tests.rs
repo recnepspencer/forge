@@ -133,7 +133,8 @@ impl WorthQueryDeclarationInput<GeometryDomain> for GeometryInput {
 
 fn admitted_handle(
     world: &'static str,
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld> {
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>
+{
     WorthQueryApplicationFacade::runtime_backed_default()
         .domain(GeometryDomain)
         .with_operating_context(GeometryWorld(world))
@@ -158,7 +159,7 @@ fn runtime_route_request() -> crate::application::WorthQueryDeclarationBridgeCon
 }
 
 fn progressed(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         GeometryDomain,
         GeometryWorld,
     >,
@@ -362,7 +363,7 @@ fn material_attachment_helper_preserves_contribution_checked_topology() {
 }
 
 fn generic_signal_orchestration_input(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         GeometryDomain,
         GeometryWorld,
     >,

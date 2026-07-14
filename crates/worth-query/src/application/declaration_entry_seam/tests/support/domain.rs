@@ -1,15 +1,15 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryApplicationFacade,
-    WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily, WorthQueryConfig,
-    WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    WorthQueryApplicationFacade, WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
+    WorthQueryConfig, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationBridgeContinuationContract,
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationEnvelope,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
     WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRelationalTruthContract,
     WorthQueryDeclarationRouteContract, WorthQueryDeclarationSignalCompatibilityContract,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext, WorthQueryMixedAuthority,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext, WorthQueryMixedAuthority,
     WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
     WorthQuerySignalCompatiblePosture, WorthQuerySignalConfig, WorthQuerySignalDeferredPosture,
     WorthQuerySignalNotCompatiblePosture,
@@ -242,7 +242,7 @@ impl_input!(
 
 pub fn handle(
     regime: &'static str,
-) -> WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld> {
+) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld> {
     WorthQueryApplicationFacade::runtime_backed_default()
         .domain(GeometryDomain)
         .with_operating_context(GeometryWorld(regime))
@@ -280,7 +280,7 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for SignallessWorld {
 
 pub fn signal_disabled_handle(
     regime: &'static str,
-) -> WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, SignallessWorld> {
+) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, SignallessWorld> {
     WorthQueryApplicationFacade::new(
         WorthQueryConfig::runtime_backed_default().with_signal(WorthQuerySignalConfig::disabled()),
     )
@@ -294,7 +294,7 @@ pub fn signal_disabled_handle(
 }
 
 pub fn bridge_signal_envelope<C: WorthQueryDomainOperatingContext<GeometryDomain>>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, C>,
     edge_ref: &'static str,
 ) -> WorthQueryDeclarationEnvelope<GeometryDomain, Input<BridgeSignalFamily>> {
     let progressed =
@@ -309,7 +309,7 @@ pub fn bridge_signal_envelope<C: WorthQueryDomainOperatingContext<GeometryDomain
 }
 
 pub fn authority_rich_envelope<C: WorthQueryDomainOperatingContext<GeometryDomain>>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, C>,
     edge_ref: &'static str,
 ) -> WorthQueryDeclarationEnvelope<GeometryDomain, Input<AuthorityRichFamily>> {
     let progressed =

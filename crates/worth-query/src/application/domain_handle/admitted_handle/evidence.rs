@@ -7,11 +7,11 @@ use crate::application::{
 };
 use worth_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfile;
 
-use super::WorthQueryAdmittedConfiguredDomainHandle;
+use super::WorthQueryInstalledDomainDeclarationContext;
 use crate::application::WorthQueryDomainOperatingContext;
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn describe_foundational<I>(
         &self,

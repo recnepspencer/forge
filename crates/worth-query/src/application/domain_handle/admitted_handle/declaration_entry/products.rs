@@ -18,11 +18,11 @@ use crate::application::{
     WorthQueryDeclarationRoutePlanTerminalError, WorthQueryDomainEntryMarker,
 };
 
-use super::super::WorthQueryAdmittedConfiguredDomainHandle;
+use super::super::WorthQueryInstalledDomainDeclarationContext;
 use crate::application::WorthQueryDomainOperatingContext;
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub(crate) fn orchestrate_routes_from_progressed<I>(
         &self,

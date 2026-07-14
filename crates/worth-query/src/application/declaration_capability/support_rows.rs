@@ -14,6 +14,9 @@ pub(crate) fn row(
         WorthQueryDeclarationCapabilityStatus::Admitted => {
             "family capability is admitted for this operating world"
         }
+        WorthQueryDeclarationCapabilityStatus::NotInstalled => {
+            "declaration family is not installed by this domain package"
+        }
         WorthQueryDeclarationCapabilityStatus::DeferredDebt => {
             "required family capability remains deferred debt in this Query build"
         }

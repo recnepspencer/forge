@@ -7,7 +7,8 @@ use super::completeness_support::{
 fn runtime_stop_class_taxonomy_covers_representative_runtime_error_variants() {
     for error in representative_runtime_stop_errors() {
         match error.stop_class() {
-            WorthQueryStopClass::MissingRuntimeComponent { .. }
+            WorthQueryStopClass::InstalledDomainAuthorityDenied { .. }
+            | WorthQueryStopClass::MissingRuntimeComponent { .. }
             | WorthQueryStopClass::ExistingTruthAssertionDenied { .. }
             | WorthQueryStopClass::ExistingTruthProbeDenied { .. }
             | WorthQueryStopClass::MutationBindingDenied { .. }

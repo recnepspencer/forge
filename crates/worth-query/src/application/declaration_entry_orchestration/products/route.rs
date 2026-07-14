@@ -1,11 +1,12 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryAdmittedDeclarationProgression,
+    WorthQueryAdmittedDeclarationProgression,
     WorthQueryDeclarationEntryOrchestrationArtifactPolicy,
     WorthQueryDeclarationEntryOrchestrationExposureLevel,
     WorthQueryDeclarationEntryOrchestrationProduct, WorthQueryDeclarationInput,
     WorthQueryDeclarationRouteIntent, WorthQueryDeclarationRoutePlan,
     WorthQueryDeclarationRoutePlanChecked, WorthQueryDeclarationRoutePlanTerminalError,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 
 use super::common::{route_orchestration_identity, route_terminal_from_checked};
@@ -20,7 +21,7 @@ pub(crate) fn worth_query_declaration_route_orchestration_from_progressed_on_han
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     route_intent: Option<WorthQueryDeclarationRouteIntent>,
 ) -> Result<WorthQueryDeclarationRoutePlan<D, I>, WorthQueryDeclarationRoutePlanTerminalError<D, I>>
@@ -40,7 +41,7 @@ pub(crate) fn worth_query_checked_declaration_route_orchestration_from_progresse
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     route_intent: Option<WorthQueryDeclarationRouteIntent>,
 ) -> WorthQueryDeclarationRoutePlanChecked<D, I> {
@@ -64,7 +65,7 @@ pub(crate) fn worth_query_declaration_route_orchestration_from_progressed_proof_
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     route_intent: Option<WorthQueryDeclarationRouteIntent>,
 ) -> WorthQueryDeclarationRouteOrchestrationTranscript<D, I> {

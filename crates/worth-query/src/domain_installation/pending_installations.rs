@@ -6,7 +6,7 @@ use worth_relational::facade::runtime::CustomInvariantRegistration;
 use crate::application::{
     WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
     WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingRequirement,
+    WorthQueryDomainEntrySupportSnapshot, WorthQueryDomainOperatingRequirement,
 };
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::runtime::{
@@ -36,6 +36,7 @@ pub(crate) struct WorthQueryInstalledDomainArtifact {
     pub(crate) semantic_version: WorthQueryDomainSemanticVersion,
     pub(crate) package_identity: WorthQueryDomainPackageIdentity,
     pub(crate) admission_identity: WorthQueryEvidenceIdentity,
+    pub(crate) support_snapshot: WorthQueryDomainEntrySupportSnapshot,
     pub(crate) required_capabilities: Vec<WorthQueryCapabilityFamily>,
     pub(crate) required_configuration: Vec<WorthQueryConfigSectionFamily>,
     pub(crate) operating_requirements: Vec<WorthQueryDomainOperatingRequirement>,
@@ -112,6 +113,7 @@ impl WorthQueryPendingDomainInstallations {
             semantic_version: package.identity.semantic_version(),
             package_identity: package.package_identity,
             admission_identity: package.admission_identity,
+            support_snapshot: package.support_snapshot,
             required_capabilities: package.required_capabilities,
             required_configuration: package.required_configuration,
             operating_requirements: package.operating_requirements,

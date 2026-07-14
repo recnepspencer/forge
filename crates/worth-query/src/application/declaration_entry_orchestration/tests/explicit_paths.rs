@@ -12,7 +12,7 @@ use super::domain::{
 };
 
 pub(super) fn explicit_success_path_parity(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         GeometryDomain,
         CollaborativeWorld,
     >,
@@ -60,7 +60,7 @@ pub(super) fn explicit_success_path_parity(
 }
 
 pub(super) fn explicit_deferred_route_path_parity(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         GeometryDomain,
         CollaborativeWorld,
     >,

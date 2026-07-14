@@ -23,7 +23,7 @@ pub(super) fn lower_from_legality_checked<
     C: crate::application::WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<D, C>,
     plan: &WorthQueryDeclarationEntryOrchestrationPlan<D, I>,
     automation_context: &WorthQueryDeclarationEntryOrchestrationAutomationContext<'_>,
     step_records: &mut Vec<WorthQueryDeclarationEntryOrchestrationStageRecord>,

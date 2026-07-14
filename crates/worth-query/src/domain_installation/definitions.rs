@@ -1,5 +1,6 @@
 use worth_relational::facade::identity::KindId;
 
+use crate::application::{WorthQueryDeclarationFamilyMarker, WorthQueryDomainEntryMarker};
 use crate::authoring::RelationName;
 use crate::runtime::{
     WorthQueryGraphReadOperationCapabilityRequirementDeclaration,
@@ -200,31 +201,42 @@ impl WorthQueryDomainGraphReadOperationDefinition {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryDomainDeclarationFamilyDefinition {
-    name: WorthQueryDomainIdentityName,
+    family_key: String,
     version: u32,
 }
 
 impl WorthQueryDomainDeclarationFamilyDefinition {
-    pub fn new(
+    fn new(
         name: impl Into<String>,
         version: u32,
     ) -> Result<Self, WorthQueryDomainIdentityComponentError> {
+        let family_key = super::WorthQueryDomainIdentityNamespace::new(name)?
+            .as_str()
+            .to_string();
         Ok(Self {
-            name: WorthQueryDomainIdentityName::new(name)?,
+            family_key,
             version,
         })
     }
 
-    pub fn name(&self) -> &WorthQueryDomainIdentityName {
-        &self.name
+    pub fn from_marker<D, F>(version: u32) -> Result<Self, WorthQueryDomainIdentityComponentError>
+    where
+        D: WorthQueryDomainEntryMarker,
+        F: WorthQueryDeclarationFamilyMarker<D>,
+    {
+        Self::new(F::semantic_family_key(), version)
+    }
+
+    pub fn family_key(&self) -> &str {
+        &self.family_key
     }
     pub fn version(&self) -> u32 {
         self.version
     }
     pub(crate) fn slot_key(&self) -> &str {
-        self.name.as_str()
+        &self.family_key
     }
     pub(crate) fn canonical_part(&self) -> String {
-        format!("{}:{}", self.name.as_str(), self.version)
+        format!("{}:{}", self.family_key, self.version)
     }
 }
