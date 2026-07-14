@@ -1,13 +1,25 @@
+use super::core_phase_registry::core_phase_surface_rows;
+use super::exposure_registry::public_phase_exposure_rows;
 use super::model::{
     WorthQueryDeclarativeCapabilityFamily as Family,
     WorthQueryDeclarativePhaseResponsibility as Phase, WorthQueryDeclarativeSurfaceClass as Class,
     WorthQueryDeclarativeSurfaceRow as Row,
 };
+use super::phase_graph_registry::phase_graph_surface_rows;
+use super::policy_phase_registry::policy_phase_surface_rows;
+use super::preview_phase_registry::preview_phase_surface_rows;
 
 const ORDINARY_READ_DECLARATION: &str = "src/ordinary/read/declaration.rs";
 const ORDINARY_READ_EXECUTION: &str = "src/ordinary/read/execution.rs";
 const ORDINARY_READ_REQUEST: &str = "src/ordinary/read/request.rs";
 const ORDINARY_READ_CONTEXT: &str = "src/ordinary/read/context/declaration.rs";
+const ORDINARY_COUNT_EXECUTION: &str = "src/ordinary/count/execution.rs";
+const ORDINARY_COUNT_DECLARATION: &str = "src/ordinary/count/declaration.rs";
+const ORDINARY_COUNT_REQUEST: &str = "src/ordinary/count/request.rs";
+const ORDINARY_LIVE_DECLARATION: &str = "src/ordinary/live/declaration.rs";
+const ORDINARY_LIVE_DISPOSAL: &str = "src/ordinary/live/disposal.rs";
+const ORDINARY_LIVE_EXECUTION: &str = "src/ordinary/live/execution.rs";
+const ORDINARY_LIVE_REQUEST: &str = "src/ordinary/live/request.rs";
 const WORKSPACE_QUERIES: &str = "src/runtime/workspace_queries.rs";
 const DECLARATION_ORCHESTRATION: &str =
     "src/application/domain_handle/admitted_handle/declaration_entry/orchestration.rs";
@@ -15,7 +27,18 @@ const DECLARATION_PRODUCTS: &str =
     "src/application/domain_handle/admitted_handle/declaration_entry/products.rs";
 
 pub fn worth_query_declarative_surface_rows() -> &'static [Row] {
-    DECLARATIVE_SURFACE_ROWS
+    static ROWS: std::sync::OnceLock<Vec<Row>> = std::sync::OnceLock::new();
+    ROWS.get_or_init(|| {
+        DECLARATIVE_SURFACE_ROWS
+            .iter()
+            .chain(core_phase_surface_rows())
+            .chain(public_phase_exposure_rows())
+            .chain(phase_graph_surface_rows())
+            .chain(policy_phase_surface_rows())
+            .chain(preview_phase_surface_rows())
+            .copied()
+            .collect()
+    })
 }
 
 const DECLARATIVE_SURFACE_ROWS: &[Row] = &[
@@ -78,6 +101,76 @@ const DECLARATIVE_SURFACE_ROWS: &[Row] = &[
         Class::OrdinaryDeclaration,
         "ordinary read consumer",
         "WorthQueryReadRequest::run",
+    ),
+    Row::new(
+        ORDINARY_COUNT_REQUEST,
+        "using",
+        Family::Aggregate,
+        Phase::Refine,
+        Class::OrdinaryDeclaration,
+        Class::OrdinaryDeclaration,
+        "ordinary aggregate consumer",
+        "WorthQueryCountDeclaration::using",
+    ),
+    Row::new(
+        ORDINARY_COUNT_DECLARATION,
+        "declare_count",
+        Family::Aggregate,
+        Phase::Declare,
+        Class::OrdinaryDeclaration,
+        Class::OrdinaryDeclaration,
+        "ordinary aggregate consumer",
+        "facade::read::declare_count",
+    ),
+    Row::new(
+        ORDINARY_COUNT_EXECUTION,
+        "run",
+        Family::Aggregate,
+        Phase::Execute,
+        Class::OrdinaryDeclaration,
+        Class::OrdinaryDeclaration,
+        "ordinary aggregate consumer",
+        "WorthQueryCountRequest::run",
+    ),
+    Row::new(
+        ORDINARY_LIVE_REQUEST,
+        "using",
+        Family::Live,
+        Phase::Refine,
+        Class::OrdinaryDeclaration,
+        Class::OrdinaryDeclaration,
+        "ordinary live consumer",
+        "WorthQueryLiveDeclaration::using",
+    ),
+    Row::new(
+        ORDINARY_LIVE_DECLARATION,
+        "declare_live",
+        Family::Live,
+        Phase::Declare,
+        Class::OrdinaryDeclaration,
+        Class::OrdinaryDeclaration,
+        "ordinary live consumer",
+        "facade::read::declare_live",
+    ),
+    Row::new(
+        ORDINARY_LIVE_EXECUTION,
+        "open",
+        Family::Live,
+        Phase::Execute,
+        Class::OrdinaryDeclaration,
+        Class::OrdinaryDeclaration,
+        "ordinary live consumer",
+        "WorthQueryLiveRequest::open",
+    ),
+    Row::new(
+        ORDINARY_LIVE_DISPOSAL,
+        "close",
+        Family::Live,
+        Phase::Dispose,
+        Class::OrdinaryDeclaration,
+        Class::OrdinaryDeclaration,
+        "ordinary live consumer",
+        "WorthQueryManagedLiveHandle::close",
     ),
     read_mechanism("compose_read", Phase::Declare),
     read_mechanism("compose_read_with_invariant_pack", Phase::Declare),

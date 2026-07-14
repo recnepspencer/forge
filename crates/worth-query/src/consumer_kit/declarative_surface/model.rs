@@ -1,8 +1,15 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum WorthQueryDeclarativeCapabilityFamily {
     Read,
+    Aggregate,
     Live,
+    Historical,
+    Comparison,
+    Preview,
+    Mutation,
+    Workflow,
     Inspection,
+    DomainExtension,
     GeneralDeclaration,
 }
 
@@ -10,8 +17,15 @@ impl WorthQueryDeclarativeCapabilityFamily {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Read => "read",
+            Self::Aggregate => "aggregate",
             Self::Live => "live",
+            Self::Historical => "historical",
+            Self::Comparison => "comparison",
+            Self::Preview => "preview",
+            Self::Mutation => "mutation",
+            Self::Workflow => "workflow",
             Self::Inspection => "inspection",
+            Self::DomainExtension => "domain-extension",
             Self::GeneralDeclaration => "general-declaration",
         }
     }
@@ -21,9 +35,15 @@ impl WorthQueryDeclarativeCapabilityFamily {
 pub enum WorthQueryDeclarativePhaseResponsibility {
     Declare,
     Refine,
+    Canonicalize,
+    Bind,
+    Validate,
     Admit,
     Plan,
+    Lower,
     Execute,
+    Maintain,
+    Dispose,
     AssembleOutcome,
     Inspect,
 }
@@ -33,9 +53,15 @@ impl WorthQueryDeclarativePhaseResponsibility {
         match self {
             Self::Declare => "declare",
             Self::Refine => "refine",
+            Self::Canonicalize => "canonicalize",
+            Self::Bind => "bind",
+            Self::Validate => "validate",
             Self::Admit => "admit",
             Self::Plan => "plan",
+            Self::Lower => "lower",
             Self::Execute => "execute",
+            Self::Maintain => "maintain",
+            Self::Dispose => "dispose",
             Self::AssembleOutcome => "assemble-outcome",
             Self::Inspect => "inspect",
         }
@@ -74,6 +100,7 @@ impl WorthQueryDeclarativeSurfaceClass {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthQueryDeclarativeSurfaceRow {
     source_path: &'static str,
+    owner: Option<&'static str>,
     function_name: &'static str,
     capability_family: WorthQueryDeclarativeCapabilityFamily,
     phase_responsibility: WorthQueryDeclarativePhaseResponsibility,
@@ -95,8 +122,59 @@ impl WorthQueryDeclarativeSurfaceRow {
         expected_consumer: &'static str,
         replacement: &'static str,
     ) -> Self {
+        Self::with_owner(
+            source_path,
+            None,
+            function_name,
+            capability_family,
+            phase_responsibility,
+            current_class,
+            target_class,
+            expected_consumer,
+            replacement,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) const fn method(
+        source_path: &'static str,
+        owner: &'static str,
+        function_name: &'static str,
+        capability_family: WorthQueryDeclarativeCapabilityFamily,
+        phase_responsibility: WorthQueryDeclarativePhaseResponsibility,
+        current_class: WorthQueryDeclarativeSurfaceClass,
+        target_class: WorthQueryDeclarativeSurfaceClass,
+        expected_consumer: &'static str,
+        replacement: &'static str,
+    ) -> Self {
+        Self::with_owner(
+            source_path,
+            Some(owner),
+            function_name,
+            capability_family,
+            phase_responsibility,
+            current_class,
+            target_class,
+            expected_consumer,
+            replacement,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    const fn with_owner(
+        source_path: &'static str,
+        owner: Option<&'static str>,
+        function_name: &'static str,
+        capability_family: WorthQueryDeclarativeCapabilityFamily,
+        phase_responsibility: WorthQueryDeclarativePhaseResponsibility,
+        current_class: WorthQueryDeclarativeSurfaceClass,
+        target_class: WorthQueryDeclarativeSurfaceClass,
+        expected_consumer: &'static str,
+        replacement: &'static str,
+    ) -> Self {
         Self {
             source_path,
+            owner,
             function_name,
             capability_family,
             phase_responsibility,
@@ -113,6 +191,10 @@ impl WorthQueryDeclarativeSurfaceRow {
 
     pub fn function_name(&self) -> &'static str {
         self.function_name
+    }
+
+    pub fn owner(&self) -> Option<&'static str> {
+        self.owner
     }
 
     pub fn capability_family(&self) -> WorthQueryDeclarativeCapabilityFamily {

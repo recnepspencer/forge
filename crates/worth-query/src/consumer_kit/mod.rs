@@ -36,8 +36,15 @@ pub use consumer_residue::{
     WorthQueryConsumerResidueSourceInventory, WorthQueryConsumerResidueSourceSite,
 };
 pub use declarative_surface::{
+    audit_consumer_journey_sources, audit_consumer_orchestration_sources,
     audit_declarative_surface_sources, current_declarative_surface_audit,
-    worth_query_declarative_surface_rows, WorthQueryDeclarativeCapabilityFamily,
+    worth_query_consumer_journey_rows, worth_query_declarative_surface_rows,
+    WorthQueryConsumerJourneyAudit, WorthQueryConsumerJourneyFinding,
+    WorthQueryConsumerJourneyFindingKind, WorthQueryConsumerJourneyRow,
+    WorthQueryConsumerJourneySource, WorthQueryConsumerOrchestrationAudit,
+    WorthQueryConsumerOrchestrationError, WorthQueryConsumerOrchestrationErrorKind,
+    WorthQueryConsumerOrchestrationFinding, WorthQueryConsumerOrchestrationPhase,
+    WorthQueryConsumerOrchestrationSite, WorthQueryDeclarativeCapabilityFamily,
     WorthQueryDeclarativePhaseResponsibility, WorthQueryDeclarativeSurfaceAudit,
     WorthQueryDeclarativeSurfaceClass, WorthQueryDeclarativeSurfaceFinding,
     WorthQueryDeclarativeSurfaceFindingKind, WorthQueryDeclarativeSurfaceRow,

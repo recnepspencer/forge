@@ -34,8 +34,15 @@ pub use crate::basis_lifecycle::{
     BasisLifecycleReuseSurface, BasisLifecycleSlopeDigest, BasisLifecycleSlopeFamily,
 };
 pub use crate::consumer_kit::{
+    audit_consumer_journey_sources, audit_consumer_orchestration_sources,
     audit_declarative_surface_sources, current_declarative_surface_audit,
-    worth_query_declarative_surface_rows, WorthQueryDeclarativeCapabilityFamily,
+    worth_query_consumer_journey_rows, worth_query_declarative_surface_rows,
+    WorthQueryConsumerJourneyAudit, WorthQueryConsumerJourneyFinding,
+    WorthQueryConsumerJourneyFindingKind, WorthQueryConsumerJourneyRow,
+    WorthQueryConsumerJourneySource, WorthQueryConsumerOrchestrationAudit,
+    WorthQueryConsumerOrchestrationError, WorthQueryConsumerOrchestrationErrorKind,
+    WorthQueryConsumerOrchestrationFinding, WorthQueryConsumerOrchestrationPhase,
+    WorthQueryConsumerOrchestrationSite, WorthQueryDeclarativeCapabilityFamily,
     WorthQueryDeclarativePhaseResponsibility, WorthQueryDeclarativeSurfaceAudit,
     WorthQueryDeclarativeSurfaceClass, WorthQueryDeclarativeSurfaceFinding,
     WorthQueryDeclarativeSurfaceFindingKind, WorthQueryDeclarativeSurfaceRow,

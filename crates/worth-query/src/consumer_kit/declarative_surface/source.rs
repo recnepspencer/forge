@@ -25,6 +25,7 @@ impl WorthQueryDeclarativeSurfaceSource {
 pub struct WorthQueryDeclarativeSurfaceSourceSite {
     path: String,
     line: usize,
+    owner: Option<String>,
     function_name: String,
 }
 
@@ -33,6 +34,16 @@ impl WorthQueryDeclarativeSurfaceSourceSite {
         Self {
             path: path.to_string(),
             line,
+            owner: None,
+            function_name: function_name.to_string(),
+        }
+    }
+
+    pub(crate) fn method(path: &str, line: usize, owner: &str, function_name: &str) -> Self {
+        Self {
+            path: path.to_string(),
+            line,
+            owner: Some(owner.to_string()),
             function_name: function_name.to_string(),
         }
     }
@@ -48,10 +59,15 @@ impl WorthQueryDeclarativeSurfaceSourceSite {
     pub fn function_name(&self) -> &str {
         &self.function_name
     }
+
+    pub fn owner(&self) -> Option<&str> {
+        self.owner.as_deref()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum WorthQueryDeclarativeSurfaceFindingKind {
+    InvalidRustSource,
     UnclassifiedPublicPhaseSurface,
     MissingRegisteredSurface,
     DuplicatePublicPhaseSurface,
