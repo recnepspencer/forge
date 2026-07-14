@@ -277,4 +277,10 @@ pub trait WorthQueryDomainCapabilityTargetBinding: Clone {
     fn semantics(&self) -> &WorthQueryDomainCapabilityTargetSemantics {
         self.erased_target().semantics()
     }
+
+    fn installed_authority(
+        &self,
+    ) -> Option<&crate::domain_installation::WorthQueryInstalledDomainAuthority> {
+        None
+    }
 }

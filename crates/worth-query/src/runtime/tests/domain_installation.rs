@@ -7,14 +7,27 @@ use crate::authoring::{
     AspectFieldSelector, DetailQueryBuilder, DetailResultShapeBuilder, RelationName,
     WorthQueryGraphReadDomainOperationDeclaration,
 };
+use crate::domain_capabilities::{
+    admit_eligible_domain_capability_contribution,
+    evaluate_requested_domain_capability_contribution, materialize_canonical_admission_artifact,
+    prepare_admitted_domain_capability_contribution_for_materialization,
+    WorthQueryAdmissionContributionAuthoring, WorthQueryDomainCapabilityProgressionDenialKind,
+};
 use crate::domain_installation::{
     WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainHandleDenialKind,
     WorthQueryDomainIdentityDeclaration, WorthQueryDomainIdentityName,
     WorthQueryDomainIdentityNamespace, WorthQueryDomainInstallationDenialKind,
-    WorthQueryDomainPackage, WorthQueryDomainSemanticVersion,
+    WorthQueryDomainPackage, WorthQueryDomainRebindDenialKind, WorthQueryDomainRebindNextAction,
+    WorthQueryDomainSemanticVersion,
 };
-use crate::runtime::{WorthQueryReadBuilder, WorthQueryReadFamily, WorthQueryRuntime};
+use crate::runtime::{
+    WorthQueryIntentDeclaration, WorthQueryIntentInput, WorthQueryReadBuilder,
+    WorthQueryReadFamily, WorthQueryRuntime,
+};
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
+
+mod authority;
+mod rebind;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct InstalledDomain;
@@ -23,10 +36,14 @@ struct InstalledDomain;
 struct OtherInstalledDomain;
 
 fn identity<D>() -> WorthQueryDomainIdentityDeclaration<D> {
+    identity_version(0)
+}
+
+fn identity_version<D>(minor: u32) -> WorthQueryDomainIdentityDeclaration<D> {
     WorthQueryDomainIdentityDeclaration::new(
         WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
         WorthQueryDomainIdentityName::new("installed-domain").unwrap(),
-        WorthQueryDomainSemanticVersion::new(1, 0),
+        WorthQueryDomainSemanticVersion::new(1, minor),
     )
 }
 
@@ -55,6 +72,23 @@ fn admitted<D>(marker: D) -> crate::domain_installation::WorthQueryAdmittedDomai
 fn installed_runtime() -> WorthQueryRuntime {
     complete_backend_from_parts_builder()
         .domain_package(admitted(InstalledDomain))
+        .unwrap()
+        .build_backend_from_parts()
+        .build()
+        .unwrap()
+}
+
+fn changed_package_runtime() -> WorthQueryRuntime {
+    let changed = WorthQueryDomainPackage::declare(InstalledDomain, identity_version(1))
+        .requires_capability(WorthQueryCapabilityFamily::QueryRead)
+        .requires_configuration(WorthQueryConfigSectionFamily::Query)
+        .permits_contribution(WorthQueryDeclarationEntryContributionCategoryFamily::Admission)
+        .validate()
+        .unwrap()
+        .admit(&WorthQueryApplicationFacade::runtime_backed_default())
+        .unwrap();
+    complete_backend_from_parts_builder()
+        .domain_package(changed)
         .unwrap()
         .build_backend_from_parts()
         .build()

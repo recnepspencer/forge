@@ -37,6 +37,7 @@ pub struct WorthQueryInstalledDomainAuthority {
     package_identity: WorthQueryDomainPackageIdentity,
     installation_identity: WorthQueryEvidenceIdentity,
     contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
+    world_identity: WorthQueryEvidenceIdentity,
     authority_identity: WorthQueryEvidenceIdentity,
 }
 
@@ -49,6 +50,13 @@ impl WorthQueryInstalledDomainAuthority {
         installation_identity: WorthQueryEvidenceIdentity,
         contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
     ) -> Self {
+        let world_identity =
+            worth_query_evidence_identity(WorthQueryEvidenceScope::InstalledDomainWorld)
+                .field_value(
+                    WorthQueryEvidenceTag::new("runtime_authority"),
+                    runtime_authority.as_u64().to_string(),
+                )
+                .seal();
         let authority_identity =
             worth_query_evidence_identity(WorthQueryEvidenceScope::InstalledDomainHandle)
                 .field_evidence_identity(
@@ -75,6 +83,7 @@ impl WorthQueryInstalledDomainAuthority {
             package_identity,
             installation_identity,
             contribution_policy,
+            world_identity,
             authority_identity,
         }
     }
@@ -96,6 +105,47 @@ impl WorthQueryInstalledDomainAuthority {
     }
     pub fn contribution_policy(&self) -> &[WorthQueryDeclarationEntryContributionCategoryFamily] {
         &self.contribution_policy
+    }
+
+    pub fn world_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.world_identity
+    }
+
+    pub(crate) fn permits_contribution(
+        &self,
+        category: WorthQueryDeclarationEntryContributionCategoryFamily,
+    ) -> bool {
+        self.contribution_policy.contains(&category)
+    }
+
+    pub(crate) fn permits_domain_capability_category(
+        &self,
+        category: crate::domain_capabilities::WorthQueryDomainCapabilityCategory,
+    ) -> bool {
+        let category = match category {
+            crate::domain_capabilities::WorthQueryDomainCapabilityCategory::Admission => {
+                WorthQueryDeclarationEntryContributionCategoryFamily::Admission
+            }
+            crate::domain_capabilities::WorthQueryDomainCapabilityCategory::SupportTraceability => {
+                WorthQueryDeclarationEntryContributionCategoryFamily::SupportTraceability
+            }
+            crate::domain_capabilities::WorthQueryDomainCapabilityCategory::InvariantCapability => {
+                WorthQueryDeclarationEntryContributionCategoryFamily::InvariantCapability
+            }
+            crate::domain_capabilities::WorthQueryDomainCapabilityCategory::WorkflowPreview => {
+                WorthQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview
+            }
+            crate::domain_capabilities::WorthQueryDomainCapabilityCategory::ContinuityLineage => {
+                WorthQueryDeclarationEntryContributionCategoryFamily::ContinuityLineage
+            }
+            crate::domain_capabilities::WorthQueryDomainCapabilityCategory::ConsequenceAftermath => {
+                WorthQueryDeclarationEntryContributionCategoryFamily::ConsequenceAftermath
+            }
+            crate::domain_capabilities::WorthQueryDomainCapabilityCategory::ExplanationInspection => {
+                WorthQueryDeclarationEntryContributionCategoryFamily::ExplanationInspection
+            }
+        };
+        self.permits_contribution(category)
     }
 
     pub(crate) fn runtime_authority(&self) -> WorthQueryRuntimeAuthorityIdentity {
@@ -138,6 +188,46 @@ impl<D> WorthQueryInstalledDomainHandle<D> {
 
     pub(crate) fn authority_arc(&self) -> Arc<WorthQueryInstalledDomainAuthority> {
         Arc::clone(&self.authority)
+    }
+
+    pub fn contributions(
+        &self,
+        runtime: &crate::runtime::WorthQueryRuntime,
+    ) -> Result<
+        crate::domain_capabilities::WorthQueryInstalledDomainContributionSurface,
+        WorthQueryDomainHandleDenial,
+    >
+    where
+        D: 'static,
+    {
+        runtime.validate_installed_domain_handle(self)?;
+        Ok(
+            crate::domain_capabilities::WorthQueryInstalledDomainContributionSurface::new(
+                self.authority_arc(),
+            ),
+        )
+    }
+
+    pub fn authority_witness(&self) -> super::WorthQueryInstalledDomainAuthorityWitness {
+        super::WorthQueryInstalledDomainAuthorityWitness::from_authority(self.authority_arc())
+    }
+
+    pub fn rebind_request(&self) -> super::WorthQueryDomainRebindRequest<D> {
+        super::WorthQueryDomainRebindRequest::new(self.authority_witness())
+    }
+
+    pub fn admit_read(
+        &self,
+        runtime: &crate::runtime::WorthQueryRuntime,
+        family: &crate::runtime::WorthQueryReadFamily,
+    ) -> Result<
+        super::WorthQueryInstalledDomainReadAdmission<D>,
+        super::WorthQueryInstalledDomainReadAdmissionError,
+    >
+    where
+        D: 'static,
+    {
+        super::WorthQueryInstalledDomainReadAdmission::admit(self, runtime, family)
     }
 }
 

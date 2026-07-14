@@ -13,6 +13,7 @@ pub(crate) use scope::WorthQueryDeclarationEntryContributionProofScope;
 pub enum WorthQueryDeclarationEntryContributionCategoryFamily {
     Admission,
     SupportTraceability,
+    InvariantCapability,
     ExplanationInspection,
     WorkflowPreview,
     ContinuityLineage,
@@ -24,6 +25,7 @@ impl WorthQueryDeclarationEntryContributionCategoryFamily {
         match self {
             Self::Admission => "admission",
             Self::SupportTraceability => "support_traceability",
+            Self::InvariantCapability => "invariant_capability",
             Self::ExplanationInspection => "explanation_inspection",
             Self::WorkflowPreview => "workflow_preview",
             Self::ContinuityLineage => "continuity_lineage",

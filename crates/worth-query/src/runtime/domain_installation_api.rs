@@ -1,7 +1,8 @@
 use crate::domain_installation::{
     WorthQueryDomainExecutionIndexRebuildReport, WorthQueryDomainHandleDenial,
     WorthQueryDomainInstallationLookupCounters, WorthQueryDomainInstallationReceipt,
-    WorthQueryInstalledDomainHandle,
+    WorthQueryDomainRebindDenial, WorthQueryDomainRebindReceipt, WorthQueryDomainRebindRequest,
+    WorthQueryInstalledDomainHandle, WorthQueryReboundDomainHandle,
 };
 
 use super::WorthQueryRuntime;
@@ -45,6 +46,26 @@ impl WorthQueryRuntime {
     ) -> WorthQueryDomainExecutionIndexRebuildReport {
         self.domain_installation_registry
             .rebuild_execution_index_report()
+    }
+
+    pub fn rebind_domain<D: 'static>(
+        &self,
+        request: WorthQueryDomainRebindRequest<D>,
+    ) -> Result<WorthQueryReboundDomainHandle<D>, WorthQueryDomainRebindDenial> {
+        let prior = request.into_prior();
+        let current = self
+            .domain_installation_registry
+            .domain::<D>()
+            .map_err(|_| WorthQueryDomainRebindDenial::domain_not_installed(&prior))?;
+        if prior.package_identity() != current.package_identity() {
+            return Err(WorthQueryDomainRebindDenial::package_meaning_changed(
+                &prior,
+                current.authority(),
+            ));
+        }
+        let current_witness = current.authority_witness();
+        let receipt = WorthQueryDomainRebindReceipt::new(&prior, &current_witness);
+        Ok(WorthQueryReboundDomainHandle::new(current, receipt))
     }
 
     pub(crate) fn installed_domain_execution_index(

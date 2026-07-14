@@ -83,12 +83,25 @@ impl WorthQueryWorkflowPreviewMaterializationTarget
 {
 }
 
+impl<T> WorthQueryWorkflowPreviewMaterializationTarget
+    for crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>
+where
+    T: WorthQueryWorkflowPreviewMaterializationTarget,
+{
+}
+
 mod private {
     pub trait Sealed {}
 }
 
 impl private::Sealed for WorthQueryDeclarationBoundContributionTarget {}
 impl private::Sealed for WorthQueryAdmittedPlanBoundContributionTarget {}
+impl<T> private::Sealed
+    for crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>
+where
+    T: WorthQueryWorkflowPreviewMaterializationTarget,
+{
+}
 
 pub(super) fn admit_validated_preview_workflow_foundation<T>(
     contribution: &WorthQueryMaterializationReadyWorkflowContribution<T>,

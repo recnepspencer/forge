@@ -101,6 +101,26 @@ impl WorthQueryAdmissionContributionAuthoring {
         bind_requested(self.payload, target)
     }
 
+    pub(crate) fn bind_to_installed_target<T>(
+        self,
+        target: crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>,
+    ) -> WorthQueryRequestedAdmissionContribution<
+        crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>,
+    >
+    where
+        T: crate::domain_capabilities::WorthQueryDomainCapabilityTargetBinding,
+        (WorthQueryAdmissionContributionPayload, T):
+            crate::domain_capabilities::proof_integration::AllowedContributionBinding<
+                WorthQueryAdmissionContributionPayload,
+                T,
+            >,
+    {
+        bind_requested::<
+            WorthQueryAdmissionContributionPayload,
+            crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>,
+        >(self.payload, target)
+    }
+
     fn new(
         posture: WorthQueryAdmissionContributionPosture,
         semantic_code: impl Into<String>,

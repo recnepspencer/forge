@@ -165,6 +165,7 @@ fn category_allowed_for_target_and_context(
         WorthQueryDeclarationEntryContributionTargetFamily::DeclarationBound => match category {
             WorthQueryDeclarationEntryContributionCategoryFamily::Admission
             | WorthQueryDeclarationEntryContributionCategoryFamily::SupportTraceability
+            | WorthQueryDeclarationEntryContributionCategoryFamily::InvariantCapability
             | WorthQueryDeclarationEntryContributionCategoryFamily::ExplanationInspection => true,
             WorthQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview => {
                 context.admitted_plan_digest.is_some()
@@ -179,6 +180,7 @@ fn category_allowed_for_target_and_context(
                 category,
                 WorthQueryDeclarationEntryContributionCategoryFamily::Admission
                     | WorthQueryDeclarationEntryContributionCategoryFamily::SupportTraceability
+                    | WorthQueryDeclarationEntryContributionCategoryFamily::InvariantCapability
                     | WorthQueryDeclarationEntryContributionCategoryFamily::ExplanationInspection
                     | WorthQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview
                     | WorthQueryDeclarationEntryContributionCategoryFamily::ContinuityLineage
@@ -188,6 +190,7 @@ fn category_allowed_for_target_and_context(
         WorthQueryDeclarationEntryContributionTargetFamily::LowerRuntimeBound => matches!(
             category,
             WorthQueryDeclarationEntryContributionCategoryFamily::SupportTraceability
+                | WorthQueryDeclarationEntryContributionCategoryFamily::InvariantCapability
                 | WorthQueryDeclarationEntryContributionCategoryFamily::ExplanationInspection
                 | WorthQueryDeclarationEntryContributionCategoryFamily::ConsequenceAftermath
         ),

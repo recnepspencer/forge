@@ -12,7 +12,7 @@ use crate::domain_capabilities::eligibility::{
 };
 use crate::domain_capabilities::payloads::WorthQueryAdmissionContributionPosture;
 use crate::domain_capabilities::{
-    WorthQueryDeclarationBoundContributionTarget, WorthQueryDomainCapabilityTargetKind,
+    WorthQueryDomainCapabilityTargetKind, WorthQueryInstalledDeclarationContributionTarget,
 };
 
 use super::intent::WorthQueryIntentDomainContributionSurface;
@@ -20,8 +20,7 @@ use super::shared::{materialize_common_lane, qualify_semantic_code};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryIntentAdmissionDraft {
-    domain: String,
-    target: WorthQueryDeclarationBoundContributionTarget,
+    target: WorthQueryInstalledDeclarationContributionTarget,
     posture: WorthQueryAdmissionContributionPosture,
     semantic_code: String,
 }
@@ -29,7 +28,6 @@ pub struct WorthQueryIntentAdmissionDraft {
 impl WorthQueryIntentDomainContributionSurface {
     pub fn advises(self, semantic_code: impl Into<String>) -> WorthQueryIntentAdmissionDraft {
         WorthQueryIntentAdmissionDraft::new(
-            self.domain,
             self.target,
             crate::domain_capabilities::payloads::WorthQueryAdmissionContributionPosture::Advisory,
             semantic_code,
@@ -41,7 +39,6 @@ impl WorthQueryIntentDomainContributionSurface {
         semantic_code: impl Into<String>,
     ) -> WorthQueryIntentAdmissionDraft {
         WorthQueryIntentAdmissionDraft::new(
-            self.domain,
             self.target,
             crate::domain_capabilities::payloads::WorthQueryAdmissionContributionPosture::Violation,
             semantic_code,
@@ -51,13 +48,11 @@ impl WorthQueryIntentDomainContributionSurface {
 
 impl WorthQueryIntentAdmissionDraft {
     pub(crate) fn new(
-        domain: String,
-        target: WorthQueryDeclarationBoundContributionTarget,
+        target: WorthQueryInstalledDeclarationContributionTarget,
         posture: WorthQueryAdmissionContributionPosture,
         semantic_code: impl Into<String>,
     ) -> Self {
         Self {
-            domain,
             target,
             posture,
             semantic_code: semantic_code.into(),
@@ -66,7 +61,6 @@ impl WorthQueryIntentAdmissionDraft {
 
     pub fn because(self, detail: impl Into<String>) -> WorthQueryIntentAdmissionContribution {
         WorthQueryIntentAdmissionContribution {
-            domain: self.domain,
             target: self.target,
             posture: self.posture,
             semantic_code: self.semantic_code,
@@ -77,8 +71,7 @@ impl WorthQueryIntentAdmissionDraft {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryIntentAdmissionContribution {
-    domain: String,
-    target: WorthQueryDeclarationBoundContributionTarget,
+    target: WorthQueryInstalledDeclarationContributionTarget,
     posture: WorthQueryAdmissionContributionPosture,
     semantic_code: String,
     detail: String,
@@ -88,18 +81,18 @@ impl WorthQueryIntentAdmissionContribution {
     pub fn try_materialize(
         self,
     ) -> WorthQueryCheckedDomainCapabilityOutcome<
-        WorthQueryCanonicalAdmissionArtifact<WorthQueryDeclarationBoundContributionTarget>,
+        WorthQueryCanonicalAdmissionArtifact<WorthQueryInstalledDeclarationContributionTarget>,
     > {
-        let semantic_code = qualify_semantic_code(&self.domain, &self.semantic_code);
+        let semantic_code = qualify_semantic_code(self.target.authority(), &self.semantic_code);
         let target = self.target.clone();
         let requested = match self.posture {
             WorthQueryAdmissionContributionPosture::Advisory => {
                 WorthQueryAdmissionContributionAuthoring::advisory(semantic_code, self.detail)
-                    .bind_to_declaration_target(self.target)
+                    .bind_to_installed_target(self.target)
             }
             WorthQueryAdmissionContributionPosture::Violation => {
                 WorthQueryAdmissionContributionAuthoring::violation(semantic_code, self.detail)
-                    .bind_to_declaration_target(self.target)
+                    .bind_to_installed_target(self.target)
             }
             WorthQueryAdmissionContributionPosture::SupportOnly => unreachable!(),
         };
@@ -127,7 +120,7 @@ impl WorthQueryIntentAdmissionContribution {
     pub fn materialize(
         self,
     ) -> Result<
-        WorthQueryCanonicalAdmissionArtifact<WorthQueryDeclarationBoundContributionTarget>,
+        WorthQueryCanonicalAdmissionArtifact<WorthQueryInstalledDeclarationContributionTarget>,
         WorthQueryDomainCapabilityMaterializationError,
     > {
         self.try_materialize().into_result()

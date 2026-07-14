@@ -177,13 +177,14 @@ impl WorthQueryLowerRuntimeBoundarySupportTraceabilityArtifact {
     }
 }
 
-pub fn materialize_intent_declaration_support_traceability_artifact(
-    contribution: WorthQueryMaterializationReadySupportContribution<
-        WorthQueryDeclarationBoundContributionTarget,
-    >,
+pub(crate) fn materialize_intent_declaration_support_traceability_artifact<T>(
+    contribution: WorthQueryMaterializationReadySupportContribution<T>,
 ) -> WorthQueryDomainCapabilityTransitionOutcome<
     WorthQueryIntentDeclarationSupportTraceabilityArtifact,
-> {
+>
+where
+    T: crate::domain_capabilities::WorthQueryDeclarationContributionTargetBinding,
+{
     let domain_contribution = contribution.payload();
     let payload = domain_contribution.payload();
     let Some((name, strategy_name, strategy_version, input_contract, source_lane, target_lane)) =
@@ -244,13 +245,14 @@ pub fn materialize_intent_declaration_support_traceability_artifact(
     })
 }
 
-pub fn materialize_lower_runtime_support_traceability_artifact(
-    contribution: WorthQueryMaterializationReadySupportContribution<
-        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
-    >,
+pub(crate) fn materialize_lower_runtime_support_traceability_artifact<T>(
+    contribution: WorthQueryMaterializationReadySupportContribution<T>,
 ) -> WorthQueryDomainCapabilityTransitionOutcome<
     WorthQueryLowerRuntimeBoundarySupportTraceabilityArtifact,
-> {
+>
+where
+    T: crate::domain_capabilities::WorthQueryLowerRuntimeContributionTargetBinding,
+{
     let domain_contribution = contribution.payload();
     let payload = domain_contribution.payload();
     let Some((
