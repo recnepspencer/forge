@@ -45,6 +45,18 @@ impl WorthQueryWorkspace {
             .execute()
     }
 
+    pub(crate) fn execute_declared_read_graph_in_basis_context(
+        &mut self,
+        read_graph: WorthQueryReadGraph,
+        context: &crate::query_context::ScopedQueryBasisContext,
+    ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
+        self.runtime
+            .admit_facade_family(super::WorthQueryRuntimeFacadeFamily::Read)?;
+        let family = WorthQueryReadFamily::new_kernel_only("declared_historical_read", read_graph);
+        self.read_family_in_basis_context_intent(&family, context)
+            .execute()
+    }
+
     pub(crate) fn execute_declared_count_graph_in_authority(
         &mut self,
         read_graph: WorthQueryReadGraph,

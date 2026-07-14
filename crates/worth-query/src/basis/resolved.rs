@@ -109,6 +109,22 @@ impl ResolvedSnapshotBasis {
         }
     }
 
+    pub(crate) fn new_with_reporting_label(
+        intent: ExecutionBasisIntent,
+        identity: ResolvedSnapshotIdentity,
+        resolution_mode: BasisResolutionMode,
+        reporting_label: impl Into<String>,
+    ) -> Self {
+        let proof = ResolvedBasisProof::new(identity.evidence_identity(), resolution_mode.clone())
+            .with_reporting_label(reporting_label);
+        Self {
+            intent,
+            identity,
+            resolution_mode,
+            proof,
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn replace_proof_for_test(mut self, proof: ResolvedBasisProof) -> Self {
         self.proof = proof;

@@ -243,6 +243,32 @@ pub fn resolve_runtime_current_snapshot_basis(
     )
 }
 
+pub(crate) fn resolve_runtime_historical_snapshot_basis(
+    snapshot_identity: WorthQueryEvidenceIdentity,
+    schema_basis: SchemaBasisDigest,
+    workspace_scope: impl Into<String>,
+) -> ResolvedSnapshotBasis {
+    let reporting_label = snapshot_identity.as_str().to_string();
+    let intent = ExecutionBasisIntent::new(
+        BasisAuthorityFamily::Runtime,
+        SnapshotLineageClass::ReplayEquivalent,
+        false,
+    );
+    let identity = ResolvedSnapshotIdentity::new(
+        BasisAuthorityFamily::Runtime,
+        Some(workspace_scope.into()),
+        snapshot_identity,
+        schema_basis,
+        SnapshotLineageClass::ReplayEquivalent,
+    );
+    ResolvedSnapshotBasis::new_with_reporting_label(
+        intent,
+        identity,
+        BasisResolutionMode::RuntimeDirect,
+        reporting_label,
+    )
+}
+
 pub fn admit_runtime_current_snapshot_basis(
     snapshot_identity: WorthQueryEvidenceIdentity,
     external_schema_basis: QueryExternalSchemaBasisToken,

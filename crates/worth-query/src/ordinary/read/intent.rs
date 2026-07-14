@@ -28,7 +28,7 @@ use crate::validation::ValidatedQueryBundle;
 /// This type is present in the inferred builder signature only. Consumers
 /// cannot inspect or manufacture its canonical, validated, or schema-bearing
 /// internals, and only Query's context handoff may plan it.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryDeclaredReadIntent {
     digest: String,
     family: WorthQueryReadGraphFamily,
@@ -67,7 +67,7 @@ pub(crate) struct WorthQueryDeclaredReadArtifacts {
     pub(crate) validated: ValidatedQueryBundle,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum WorthQueryReadPlanningAuthority {
     Canonical {
         relationship_proof: Option<RelationshipProofAdmission>,
@@ -122,20 +122,52 @@ impl WorthQueryDeclaredReadIntent {
         self,
         authority: WorthQueryReadPlanningAuthority,
     ) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
-        self.plan_result_family(authority, WorthQueryDeclaredReadResultFamily::Rows)
+        self.plan_result_family(
+            authority,
+            WorthQueryDeclaredReadResultFamily::Rows,
+            ExecutionBasisIntent::new(
+                BasisAuthorityFamily::Runtime,
+                SnapshotLineageClass::CurrentHead,
+                false,
+            ),
+        )
+    }
+
+    pub(crate) fn plan_runtime_historical(
+        self,
+        authority: WorthQueryReadPlanningAuthority,
+    ) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+        self.plan_result_family(
+            authority,
+            WorthQueryDeclaredReadResultFamily::Rows,
+            ExecutionBasisIntent::new(
+                BasisAuthorityFamily::Runtime,
+                SnapshotLineageClass::ReplayEquivalent,
+                false,
+            ),
+        )
     }
 
     pub(crate) fn plan_count(
         self,
         authority: WorthQueryReadPlanningAuthority,
     ) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
-        self.plan_result_family(authority, WorthQueryDeclaredReadResultFamily::CountRows)
+        self.plan_result_family(
+            authority,
+            WorthQueryDeclaredReadResultFamily::CountRows,
+            ExecutionBasisIntent::new(
+                BasisAuthorityFamily::Runtime,
+                SnapshotLineageClass::CurrentHead,
+                false,
+            ),
+        )
     }
 
     fn plan_result_family(
         self,
         authority: WorthQueryReadPlanningAuthority,
         result_family: WorthQueryDeclaredReadResultFamily,
+        basis_intent: ExecutionBasisIntent,
     ) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
         let mut declarative_request = self.declarative_request;
         let (relationship_proof_admission, policy_aware_plan) = match authority {
@@ -155,11 +187,6 @@ impl WorthQueryDeclaredReadIntent {
                 (relationship_proof, plan)
             }
         };
-        let basis_intent = ExecutionBasisIntent::new(
-            BasisAuthorityFamily::Runtime,
-            SnapshotLineageClass::CurrentHead,
-            false,
-        );
         let request_context = planning_request_context_for_direct(&self.validated, basis_intent)
             .map_err(planning_denial)?;
         let execution_plan = match (result_family, policy_aware_plan.as_ref()) {
