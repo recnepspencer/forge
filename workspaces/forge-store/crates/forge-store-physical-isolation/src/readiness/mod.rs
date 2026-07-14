@@ -43,7 +43,7 @@ pub use isolation_denial::{
 pub use proof_progression::{
     PhysicalIsolationAdmittedEntryRecipe, PhysicalIsolationEntryProofProgression,
     PhysicalIsolationEntryProofRequest, PhysicalIsolationLoweredEntryRecipe,
-    PhysicalIsolationResolvedEntryRecipe, S4RecoveryReadinessBasis,
+    PhysicalIsolationResolvedEntryRecipe, RecoveryReadinessBasis,
 };
 pub use request::PhysicalIsolationEntryRequest;
 #[cfg(any(test, feature = "certification-authority"))]

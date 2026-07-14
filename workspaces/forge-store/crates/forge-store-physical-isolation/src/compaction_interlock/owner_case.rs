@@ -25,14 +25,19 @@ impl CompactionOwnerCaseId {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CompactionOwnerCase {
+pub struct CompactionOwnerCaseDeclaration {
     id: CompactionOwnerCaseId,
     from: CompactionCutoverState,
     to: CompactionCutoverState,
 }
 
-impl CompactionOwnerCase {
-    pub(super) const fn issued_by_owner(
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CompactionOwnerCaseObservation {
+    declaration: CompactionOwnerCaseDeclaration,
+}
+
+impl CompactionOwnerCaseDeclaration {
+    pub(super) const fn declared_by_owner(
         id: CompactionOwnerCaseId,
         from: CompactionCutoverState,
         to: CompactionCutoverState,
@@ -48,5 +53,27 @@ impl CompactionOwnerCase {
     }
     pub const fn to(self) -> CompactionCutoverState {
         self.to
+    }
+}
+
+impl CompactionOwnerCaseObservation {
+    pub(super) const fn issued_by_owner(declaration: CompactionOwnerCaseDeclaration) -> Self {
+        Self { declaration }
+    }
+
+    pub const fn declaration(self) -> CompactionOwnerCaseDeclaration {
+        self.declaration
+    }
+
+    pub const fn id(self) -> CompactionOwnerCaseId {
+        self.declaration.id()
+    }
+
+    pub const fn from(self) -> CompactionCutoverState {
+        self.declaration.from()
+    }
+
+    pub const fn to(self) -> CompactionCutoverState {
+        self.declaration.to()
     }
 }

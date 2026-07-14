@@ -11,7 +11,7 @@ use super::{
 };
 use crate::{
     BoundedMemoryCloseoutReport, BoundedMemoryOperationKind, BoundedMemoryResidencySuite,
-    BoundedOperationEnvelopeReport, BufferPoolCertificationBundle, S2BoundaryDenialKind,
+    BoundedOperationEnvelopeReport, BufferPoolCertificationBundle, MemoryBoundaryDenialKind,
 };
 use forge_store_physical_format::{
     PhysicalHeaderDecodeWitness, PhysicalReferenceValidationWitness,
@@ -92,7 +92,7 @@ fn complete_closeout_report() -> BoundedMemoryCloseoutReport {
 fn suite() -> BoundedMemoryResidencySuite {
     BoundedMemoryResidencySuite::admit(
         operation_reports(),
-        &S2BoundaryDenialKind::ALL,
+        &MemoryBoundaryDenialKind::ALL,
         harness_evidence(),
     )
     .unwrap()

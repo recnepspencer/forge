@@ -94,6 +94,28 @@ impl BaselineBTreeExactCounterWitness {
         self.write_amplification
     }
 
+    pub(super) const fn access_path_snapshot(self) -> crate::AccessPathCounterSnapshot {
+        crate::AccessPathCounterSnapshot::exact(
+            self.point_lookups,
+            self.range_lookups,
+            self.wal_replays,
+            self.publications,
+            self.maintenance_reads,
+            self.page_touches,
+            self.index_probes,
+            self.key_comparisons,
+            self.range_steps,
+            self.prefix_steps,
+            self.chunk_tree_node_reads,
+            self.manifest_reads,
+            self.bytes_read,
+            self.bytes_written,
+            self.write_fanout,
+            self.read_amplification,
+            self.write_amplification,
+        )
+    }
+
     pub(super) fn from_replay_reads(
         reads: [forge_store_physical_format::PhysicalLayoutAccessCounterSnapshot; 3],
     ) -> Self {
@@ -125,6 +147,51 @@ impl BaselineBTreeExactCounterWitness {
             read_amplification: page_touches,
             ..BaselineBTreeExactCounterValues::default()
         })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BaselineBTreeLookupCounterReceipt {
+    plan_binding: crate::AccessPlanIdentity,
+    planned: crate::AccessPathCounterSnapshot,
+    observed: crate::AccessPathCounterSnapshot,
+    observation: crate::PlannedCounterObservation,
+}
+
+impl BaselineBTreeLookupCounterReceipt {
+    pub(super) fn issue(
+        plan_binding: &crate::AccessPlanIdentity,
+        observed: BaselineBTreeExactCounterWitness,
+        allocation_events: u64,
+    ) -> Result<Self, crate::CounterEnvelopeViolation> {
+        let planned = plan_binding.planned_counter_envelope().lookup();
+        let observed = observed
+            .access_path_snapshot()
+            .with_allocation_events(allocation_events)
+            .with_selected_plan_authority_allocation();
+        let observation = planned.validate_observation(observed)?;
+        Ok(Self {
+            plan_binding: plan_binding.clone(),
+            planned,
+            observed,
+            observation,
+        })
+    }
+
+    pub const fn plan_binding(&self) -> &crate::AccessPlanIdentity {
+        &self.plan_binding
+    }
+
+    pub const fn planned(&self) -> crate::AccessPathCounterSnapshot {
+        self.planned
+    }
+
+    pub const fn observed(&self) -> crate::AccessPathCounterSnapshot {
+        self.observed
+    }
+
+    pub const fn observation(&self) -> crate::PlannedCounterObservation {
+        self.observation
     }
 }
 

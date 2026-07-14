@@ -1,7 +1,7 @@
 use crate::{
     ExtentRecordCounterSnapshot, ManifestDiscoveryCounterSnapshot, OfflineVerifierCounterSnapshot,
     PageRecordCounterSnapshot, PhysicalHeaderDecodeCounterSnapshot, PhysicalOperationKind,
-    PhysicalReferenceValidationCounterSnapshot, PlatformPhysicalFacadeCounterSnapshot,
+    PhysicalReferenceValidationCounterSnapshot, PhysicalStoreRuntimeCounterSnapshot,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,7 +153,7 @@ impl PhysicalOperationCounterSnapshot {
         )
     }
 
-    pub fn from_root_open(counters: PlatformPhysicalFacadeCounterSnapshot) -> Self {
+    pub fn from_root_open(counters: PhysicalStoreRuntimeCounterSnapshot) -> Self {
         Self::new(
             PhysicalOperationKind::RootManifestOpen,
             vec![

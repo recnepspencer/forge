@@ -150,7 +150,7 @@ fn required_roadmap_requirements_from_spec() -> &'static [SimulationHarnessRoadm
         SimulationHarnessRoadmapRequirement::GeneratedCoverageMatrix,
         SimulationHarnessRoadmapRequirement::HarnessMaturityLadder,
         SimulationHarnessRoadmapRequirement::ForbiddenShortcutRejection,
-        SimulationHarnessRoadmapRequirement::S4RecoveryDogfoodSlice,
+        SimulationHarnessRoadmapRequirement::RecoveryDogfoodSlice,
         SimulationHarnessRoadmapRequirement::PhysicalIsolationReadinessShapeProbeNonClaim,
         SimulationHarnessRoadmapRequirement::FutureExtensionSlotContainment,
         SimulationHarnessRoadmapRequirement::MutationStyleHarnessValidation,

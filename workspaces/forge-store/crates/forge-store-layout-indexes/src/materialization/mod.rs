@@ -15,12 +15,33 @@ pub(crate) mod test_support;
 pub(crate) mod tests;
 mod watermark;
 
-pub use admission::AdmittedLayoutMaterialization;
+pub use admission::{
+    btree_lookup_materialization_admission_cases,
+    btree_publication_materialization_admission_cases,
+    btree_replay_materialization_admission_cases, catalog_root_materialization_admission_cases,
+    imported_blob_materialization_admission_cases, lsm_lookup_materialization_admission_cases,
+    lsm_publication_materialization_admission_cases, lsm_replay_materialization_admission_cases,
+    restored_artifact_materialization_admission_cases, AdmittedLayoutMaterialization,
+    BTreeLookupMaterializationAdmissionCaseId, BTreeLookupMaterializationAdmissionOutcome,
+    BTreeLookupMaterializationAdmissionView, BTreePublicationMaterializationAdmissionCaseId,
+    BTreePublicationMaterializationAdmissionOutcome, BTreePublicationMaterializationAdmissionView,
+    BTreeReplayMaterializationAdmissionCaseId, BTreeReplayMaterializationAdmissionOutcome,
+    BTreeReplayMaterializationAdmissionView, CatalogRootMaterializationAdmissionCaseId,
+    CatalogRootMaterializationAdmissionOutcome, CatalogRootMaterializationAdmissionView,
+    ImportedBlobMaterializationAdmissionCaseId, ImportedBlobMaterializationAdmissionOutcome,
+    ImportedBlobMaterializationAdmissionView, LsmLookupMaterializationAdmissionCaseId,
+    LsmLookupMaterializationAdmissionOutcome, LsmLookupMaterializationAdmissionView,
+    LsmPublicationMaterializationAdmissionCaseId, LsmPublicationMaterializationAdmissionOutcome,
+    LsmPublicationMaterializationAdmissionView, LsmReplayMaterializationAdmissionCaseId,
+    LsmReplayMaterializationAdmissionOutcome, LsmReplayMaterializationAdmissionView,
+    RestoredArtifactMaterializationAdmissionCaseId,
+    RestoredArtifactMaterializationAdmissionOutcome, RestoredArtifactMaterializationAdmissionView,
+};
 pub(crate) use coverage::LayoutCoverageWitness;
 pub use coverage_basis::AdmittedCoverageBasis;
 #[cfg(test)]
 pub use denial::CoverageGapWitness;
-pub use denial::MaterializationDenial;
+pub use denial::{MaterializationDenial, MaterializationDenialKind};
 pub use freshness::{
     CurrentLayoutMaterialization, CurrentMaterializationFrontier, MaterializationFreshness,
     StaleLayoutMaterialization,

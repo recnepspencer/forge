@@ -27,7 +27,7 @@ pub use acceptance_run::{
 pub use bundle::PhysicalSimulationHarnessCertificationBundle;
 pub use denial::PhysicalSimulationHarnessCloseoutDenial;
 pub use dogfood::{
-    PhysicalIsolationReadinessShapeProbeScenario, S4RecoveryDogfoodScenario,
+    PhysicalIsolationReadinessShapeProbeScenario, RecoveryDogfoodScenario,
     ShortcutRejectionDogfoodScenario, SimulationHarnessDogfoodReport,
 };
 pub use future_slots::{
@@ -39,7 +39,7 @@ pub use report::{
 };
 pub use suite::PhysicalSimulationHarnessCloseoutSuite;
 pub use vertical_slice::{
-    PhysicalIsolationReadinessShapeProbeSliceEvidence, S4RecoveryDogfoodSliceEvidence,
+    PhysicalIsolationReadinessShapeProbeSliceEvidence, RecoveryDogfoodSliceEvidence,
     ShortcutRejectionDogfoodSliceEvidence, SimulationHarnessDogfoodEvidence,
     SimulationHarnessDogfoodSliceKind,
 };

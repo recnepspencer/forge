@@ -55,7 +55,10 @@ pub fn execute_lsm_replay_hostile_matrix() -> LsmReplayHostileMatrix {
 
     let replaced = lsm_membership_replacement_crash_fixture();
     let reopened = super::open_lsm_index(replaced.anchor()).unwrap();
-    let retired_membership_denial = reopened.select_compaction(replaced.key()).unwrap_err();
+    let retired_membership_denial =
+        forge_store_lsm_authority::select_lsm_compaction_membership(&reopened, replaced.key())
+            .into_result()
+            .unwrap_err();
 
     LsmReplayHostileMatrix {
         permutation_denials,
@@ -63,6 +66,33 @@ pub fn execute_lsm_replay_hostile_matrix() -> LsmReplayHostileMatrix {
         unsupported_kind_denials,
         retired_membership_denial,
     }
+}
+
+pub fn execute_frontierless_lsm_replay_source_fixture() -> AdmittedLsmReplaySource {
+    let last = u64::MAX;
+    let (access, key) = admitted_index(last);
+    let records = [
+        durable_record_binding_with_lsn(key, last - 2, BlobWalRecordKind::LsmValue, 1, 1, 41),
+        durable_record_binding_with_lsn(
+            key,
+            last - 1,
+            BlobWalRecordKind::GenerationPublication,
+            1,
+            1,
+            42,
+        ),
+        durable_record_binding_with_lsn(key, last, BlobWalRecordKind::LsmTombstone, 1, 1, 43),
+    ];
+    let mut session = super::open_lsm_index(&records[0].1).unwrap();
+    for (envelope, receipt) in records {
+        access
+            .persist_record(&mut session, envelope, &receipt, key)
+            .unwrap();
+    }
+    let membership = forge_store_lsm_authority::select_lsm_compaction_membership(&session, key)
+        .into_result()
+        .unwrap();
+    AdmittedLsmReplaySource::admit_recovered_membership(membership, None, None).unwrap()
 }
 
 fn replay_denial(sequences: [u64; 3], duplicate: bool) -> LsmReplaySourceDenial {
@@ -93,7 +123,9 @@ fn replay_denial(sequences: [u64; 3], duplicate: bool) -> LsmReplaySourceDenial 
             .persist_record(&mut session, envelope, &receipt, key)
             .unwrap();
     }
-    let membership = session.select_compaction(key).unwrap();
+    let membership = forge_store_lsm_authority::select_lsm_compaction_membership(&session, key)
+        .into_result()
+        .unwrap();
     AdmittedLsmReplaySource::admit_recovered_membership(membership, None, None).unwrap_err()
 }
 
@@ -106,7 +138,9 @@ fn unsupported_kind_denial(kind: BlobWalRecordKind) -> LsmMembershipDenial {
         .unwrap();
     let (envelope, receipt) = durable_record_binding(key, 92, kind);
     let record = LsmMembershipRecord::admit(envelope, &receipt, key).unwrap();
-    session.persist(record).unwrap_err()
+    forge_store_lsm_authority::persist_lsm_membership_record(&mut session, record)
+        .into_result()
+        .unwrap_err()
 }
 
 fn admitted_index(
@@ -130,6 +164,7 @@ fn admitted_index(
             StoreWalRecordIdentity::new(sequence),
             PreExecutionBudgetEnvelope::maintenance_default(),
         ))
+        .into_result()
         .unwrap();
     let key = access.admit_key(metadata, compaction).unwrap();
     (access, key)
@@ -149,7 +184,9 @@ fn independently_admitted_replay_sources_do_not_alias() {
             .persist_record(&mut session, envelope, &receipt, key)
             .unwrap();
     }
-    let membership = session.select_compaction(key).unwrap();
+    let membership = forge_store_lsm_authority::select_lsm_compaction_membership(&session, key)
+        .into_result()
+        .unwrap();
     let first = AdmittedLsmReplaySource::admit_recovered_membership(membership.clone(), None, None)
         .unwrap();
     let cloned = first.clone();

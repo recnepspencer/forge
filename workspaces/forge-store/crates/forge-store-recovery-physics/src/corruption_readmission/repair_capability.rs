@@ -16,8 +16,8 @@ pub fn classify_recovery_repair_capability(
         | CorruptionHandoffDamageCase::AuthenticityFailure
         | CorruptionHandoffDamageCase::MissingChunk
         | CorruptionHandoffDamageCase::StaleGeneration => match handoff_posture {
-            QuarantineHandoffPosture::S4RecoveryOwnerRequired
-            | QuarantineHandoffPosture::S10RepairOwnerRequired => {
+            QuarantineHandoffPosture::RecoveryOwnerRequired
+            | QuarantineHandoffPosture::RepairOwnerRequired => {
                 RecoveryCorruptionRepairCapability::ClassifyGenerationPosture
             }
             QuarantineHandoffPosture::AuditRetentionOwnerRequired

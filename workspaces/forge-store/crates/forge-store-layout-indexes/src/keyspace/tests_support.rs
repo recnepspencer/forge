@@ -131,7 +131,7 @@ fn blob_identity_harness_witness(
         BlobHarnessChunkSizeClass::Fixed64KiB,
     )
     .expect("blob topology should admit");
-    let witness = execute_blob_harness(BlobHarnessExecutionInput::new(
+    execute_blob_harness(BlobHarnessExecutionInput::new(
         BlobHarnessEnvelopeProfile::Local,
         BlobHarnessSizeClass::LocalDeterministic,
         BlobHarnessPlacementClass::StoreLocal,
@@ -140,9 +140,7 @@ fn blob_identity_harness_witness(
         BlobHarnessFailurePoint::NoFaultSeed,
         actor_mix,
         topology,
-    ));
-
-    witness
+    ))
 }
 
 pub(crate) fn page_slot_reference_admission(

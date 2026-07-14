@@ -2,7 +2,7 @@ use crate::{
     physical_bootstrap_catalog, PhysicalBootstrapCatalogDenial,
     PhysicalBootstrapCatalogOpenWitness, PhysicalExtentId, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot, PhysicalRootReference,
-    PhysicalSegmentId, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
+    PhysicalSegmentId, PhysicalStoreRuntime, PlatformPhysicalAppendRequest,
     PlatformPhysicalOpenRequest,
 };
 use forge_store_contracts::{
@@ -74,7 +74,7 @@ fn bootstrap_identity_replays_stably_across_publish_and_reopen() {
     let first = physical_bootstrap_catalog()
         .discover_catalog(&open)
         .expect("first bootstrap replay should derive");
-    let mut reopened = PlatformPhysicalFacade::reopen(
+    let mut reopened = PhysicalStoreRuntime::reopen(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
         published.replay_artifact(),
@@ -100,7 +100,7 @@ fn bootstrap_identity_replays_stably_across_publish_and_reopen() {
 
 #[test]
 fn bootstrap_identity_replays_stably_across_crash_recovery() {
-    let mut facade = PlatformPhysicalFacade::open_physical_format(
+    let mut facade = PhysicalStoreRuntime::open_physical_format(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
     )
@@ -144,7 +144,7 @@ fn bootstrap_identity_replays_stably_across_crash_recovery() {
         facade.publish_interrupted_physical_root().is_err(),
         "interrupted publish should simulate crash lane"
     );
-    let _recovered = PlatformPhysicalFacade::reopen(
+    let _recovered = PhysicalStoreRuntime::reopen(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
         durable.replay_artifact(),
@@ -163,7 +163,7 @@ fn bootstrap_identity_replays_stably_across_crash_recovery() {
 }
 
 fn published_layout() -> crate::PlatformPhysicalRootPublicationReport {
-    let mut facade = PlatformPhysicalFacade::open_physical_format(
+    let mut facade = PhysicalStoreRuntime::open_physical_format(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
     )

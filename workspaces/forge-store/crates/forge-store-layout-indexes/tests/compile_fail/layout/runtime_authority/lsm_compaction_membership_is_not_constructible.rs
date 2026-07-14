@@ -3,7 +3,7 @@ use forge_store_lsm_authority::LsmCompactionMembership;
 fn forge() -> LsmCompactionMembership {
     LsmCompactionMembership {
         key: panic!(),
-        records: panic!(),
+        record_set: panic!(),
         base: panic!(),
         version: 1,
         store_binding: String::new(),

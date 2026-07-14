@@ -52,7 +52,7 @@ fn copied_artifacts_have_typed_lifecycle_denials() {
     );
     assert_eq!(
         reject_physical_integrity_report_as_lifecycle_receipt(&"new report"),
-        BlobLifecycleDenial::S3IntegrityReportRejected
+        BlobLifecycleDenial::IntegrityReportRejected
     );
     assert_eq!(
         reject_terminal_projection_row_as_lifecycle_receipt(&"projection row"),

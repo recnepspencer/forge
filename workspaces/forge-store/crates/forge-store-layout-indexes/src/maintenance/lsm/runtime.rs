@@ -1,8 +1,5 @@
-use super::{
-    denial::LsmMaintenanceAdmissionDenied,
-    request::{
-        LsmCompactionAdmissionRequest, LsmReplayAdmissionRequest, LsmRunPublicationAdmissionRequest,
-    },
+use super::request::{
+    LsmCompactionAdmissionRequest, LsmReplayAdmissionRequest, LsmRunPublicationAdmissionRequest,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,21 +13,21 @@ impl LayoutLsmMaintenance {
     pub fn admit_run_publication(
         self,
         request: LsmRunPublicationAdmissionRequest<'_>,
-    ) -> Result<crate::BaselineLsmRunPublicationAdmission, LsmMaintenanceAdmissionDenied> {
+    ) -> super::LsmRunPublicationAdmissionOutcome {
         super::run_publication::admit(request)
     }
 
     pub fn admit_replay(
         self,
         request: LsmReplayAdmissionRequest<'_>,
-    ) -> Result<crate::BaselineLsmReplayAdmission, LsmMaintenanceAdmissionDenied> {
+    ) -> super::LsmReplayMaintenanceAdmissionOutcome {
         super::replay::admit(request)
     }
 
     pub fn admit_compaction(
         self,
         request: LsmCompactionAdmissionRequest<'_>,
-    ) -> Result<crate::BaselineLsmCompactionAdmission, LsmMaintenanceAdmissionDenied> {
+    ) -> super::LsmCompactionMaintenanceAdmissionOutcome {
         super::compaction::admit(request)
     }
 }

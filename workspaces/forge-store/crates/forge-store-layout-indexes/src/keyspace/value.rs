@@ -248,7 +248,6 @@ pub(crate) fn admit_page_key(
         .map(|key| AdmittedConcretePhysicalKey::new(domain, key))
 }
 
-#[cfg(test)]
 pub(crate) fn admit_root_key(
     domain: AdmittedPhysicalKeyDomain,
     root_reference: PhysicalRootReference,

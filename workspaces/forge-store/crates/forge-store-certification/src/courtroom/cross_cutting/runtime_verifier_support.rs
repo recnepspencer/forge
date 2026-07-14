@@ -3,7 +3,7 @@ use crate::{
     RuntimeVerifierComparisonReport,
 };
 use forge_store_physical_format::{
-    PhysicalShortcutBoundary, PlatformPhysicalFacadeDenial, PlatformPhysicalFacadeDenialKind,
+    PhysicalShortcutBoundary, PhysicalStoreRuntimeDenial, PhysicalStoreRuntimeDenialKind,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -47,9 +47,9 @@ impl RuntimeVerifierSupportReport {
     }
 
     pub fn from_shortcut_facade_denial(
-        denial: &PlatformPhysicalFacadeDenial,
+        denial: &PhysicalStoreRuntimeDenial,
     ) -> Result<Self, RuntimeVerifierSupportDenial> {
-        if denial.kind() != PlatformPhysicalFacadeDenialKind::ShortcutBoundaryRejected {
+        if denial.kind() != PhysicalStoreRuntimeDenialKind::ShortcutBoundaryRejected {
             return Err(RuntimeVerifierSupportDenial::UnexpectedFacadeDenial(
                 denial.kind(),
             ));
@@ -90,6 +90,6 @@ impl RuntimeVerifierSupportReport {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimeVerifierSupportDenial {
     UnexpectedMismatch(RuntimeVerifierComparisonClassification),
-    UnexpectedFacadeDenial(PlatformPhysicalFacadeDenialKind),
+    UnexpectedFacadeDenial(PhysicalStoreRuntimeDenialKind),
     MissingShortcutBoundary,
 }

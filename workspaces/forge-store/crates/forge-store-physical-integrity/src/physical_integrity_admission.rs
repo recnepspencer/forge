@@ -1,9 +1,9 @@
 use crate::{
     execute_declared_checksum, ChecksumAlgorithmClaim, ChecksumAlgorithmId,
-    ChecksumAlgorithmMismatchDenial, ChecksumScopeDeclaration, DeclaredPhysicalChecksum,
-    IntegrityCheckedFrame, IntegrityCheckedPage, IntegrityInspectionLease,
-    PhysicalIntegrityAdmissionRequest, PreDecodeAdmissionCounters, PreDecodePhysicalDenial,
-    PreDecodePhysicalDenialKind, S3ChecksumDeclarationAdmission,
+    ChecksumAlgorithmMismatchDenial, ChecksumDeclarationAdmission, ChecksumScopeDeclaration,
+    DeclaredPhysicalChecksum, IntegrityCheckedFrame, IntegrityCheckedPage,
+    IntegrityInspectionLease, PhysicalIntegrityAdmissionRequest, PreDecodeAdmissionCounters,
+    PreDecodePhysicalDenial, PreDecodePhysicalDenialKind,
 };
 use forge_store_physical_format::{
     PhysicalFrameKind, PhysicalHeaderDecodeWitness, PhysicalHeaderKind, PhysicalPageKind,
@@ -38,7 +38,7 @@ impl<'lease> PhysicalIntegrityAdmissionSeed<'lease> {
 
     pub fn with_checksum_declaration(
         self,
-        declaration: S3ChecksumDeclarationAdmission,
+        declaration: ChecksumDeclarationAdmission,
     ) -> Result<PhysicalIntegrityAdmission<'lease>, PreDecodePhysicalDenial> {
         if declaration.entry_witness() != self.lease.entry_witness() {
             return Err(PreDecodePhysicalDenial::new(
@@ -69,7 +69,7 @@ impl<'lease> PhysicalIntegrityAdmissionSeed<'lease> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalIntegrityAdmission<'lease> {
     lease: IntegrityInspectionLease<'lease>,
-    declaration: S3ChecksumDeclarationAdmission,
+    declaration: ChecksumDeclarationAdmission,
 }
 
 impl<'lease> PhysicalIntegrityAdmission<'lease> {

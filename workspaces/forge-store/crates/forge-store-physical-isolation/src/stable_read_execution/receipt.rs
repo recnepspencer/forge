@@ -5,10 +5,10 @@ use crate::{PhysicalReadPlanReleaseReceipt, StablePhysicalReadFoundationalEviden
 use crate::epoch::{manifest_epoch_from_entry_seed, root_epoch_from_entry_seed};
 #[cfg(any(test, feature = "certification-authority"))]
 use crate::{
-    admit_seed_stable_read_plan, lower_latch_acquisition_plan, CompactionReadInterlockPlan,
-    CurrentPhysicalRoot, CurrentPhysicalRootBasis, GenerationCountedPhysicalReference,
-    LatchAcquisitionRequest, LatchAcquisitionStep, PhysicalLatchKey, PhysicalOrderingContract,
-    PhysicalReadPlanFootprint, PhysicalReadPlanReleaseSemantics, PhysicalReadPlanRetryPosture,
+    admit_seed_stable_read_plan, lower_latch_acquisition_plan, CurrentPhysicalRoot,
+    CurrentPhysicalRootBasis, GenerationCountedPhysicalReference, LatchAcquisitionRequest,
+    LatchAcquisitionStep, PhysicalLatchKey, PhysicalOrderingContract, PhysicalReadPlanFootprint,
+    PhysicalReadPlanReleaseSemantics, PhysicalReadPlanRetryPosture,
     PhysicalReadProtectedFootprintBasis, PhysicalReadReachabilityBarrier,
     ProtectedPhysicalReferenceSet, ReadPlanAdmissionScratchArena, ReadPlanCounterSnapshot,
     SeedStableReadPlan, StablePhysicalReadPlan,
@@ -65,30 +65,7 @@ pub fn stable_physical_read_receipt_for_certification_test(
 }
 
 #[cfg(any(test, feature = "certification-authority"))]
-pub fn stable_physical_read_receipt_for_mismatched_compaction_test(
-    guarded_bytes: u64,
-) -> StablePhysicalReadReceipt {
-    let root = current_root_for_certification_seed(18);
-    stable_physical_read_receipt_for_certification_root(root, guarded_bytes)
-}
-
-#[cfg(any(test, feature = "certification-authority"))]
-pub fn stable_physical_read_receipt_for_compaction_plan_test(
-    plan: &CompactionReadInterlockPlan,
-    guarded_bytes: u64,
-) -> StablePhysicalReadReceipt {
-    StablePhysicalReadReceipt::new(
-        PhysicalReadPlanReleaseReceipt::new(
-            plan.protected().root(),
-            plan.protected().footprint_basis(),
-        ),
-        StablePhysicalReadExecutionCounters::for_certification_test(guarded_bytes),
-        PhysicalReadIoPosture::ordinary(),
-    )
-}
-
-#[cfg(any(test, feature = "certification-authority"))]
-pub fn stable_physical_read_receipt_for_certification_root(
+pub(crate) fn stable_physical_read_receipt_for_certification_root(
     root: CurrentPhysicalRoot,
     guarded_bytes: u64,
 ) -> StablePhysicalReadReceipt {

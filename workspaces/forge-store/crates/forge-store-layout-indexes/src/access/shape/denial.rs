@@ -1,5 +1,5 @@
+use super::kind::AccessShape;
 use super::lane::AccessLaneClassification;
-use super::shape::AccessShape;
 use crate::maintenance::PhysicalMutationShape;
 use crate::materialization::MaterializationDenial;
 

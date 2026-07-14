@@ -100,12 +100,10 @@ fn deterministic_selection_keeps_btree_fingerprint_stable_for_exact_range_reads(
             planned_counter_envelope: first.planned_counter_envelope(),
         })
     );
-    let admission = first
-        .strategy_admission()
-        .expect("indexed range selection retains request-bound strategy admission");
+    let admission = first.strategy_admission();
     assert_eq!(
         admission.request().exact_coverage(),
-        first.materialization().map(|value| value.coverage())
+        Some(first.materialization().coverage())
     );
     assert_eq!(
         admission.request().requested_capability(),

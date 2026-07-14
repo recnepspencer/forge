@@ -10,6 +10,7 @@ mod plan;
 mod readiness;
 mod receipt;
 mod root_candidate;
+mod runtime;
 mod swap;
 
 pub use crash_matrix::PublicationCrashRecoveryOutcome;
@@ -23,7 +24,9 @@ pub use intent::{
 };
 pub use old_reachability::{OldReachabilityPreservation, ReleasedOldReachability};
 pub use ordering::{AtomicPhysicalRootSwap, RootSwapOrderingContract};
-pub use plan::{CopyOnWritePublicationPlan, LoweredCopyOnWritePublicationPlan};
+pub use plan::{
+    CopyOnWritePublicationBinding, CopyOnWritePublicationPlan, LoweredCopyOnWritePublicationPlan,
+};
 pub use readiness::{
     NewRootPublicationProof, PhysicalPublicationReadiness, PublicationEpochReadiness,
     PublicationLatchReadiness,
@@ -33,5 +36,6 @@ pub use receipt::{
     PhysicalPublicationReleasePosture,
 };
 pub use root_candidate::PublicationRootCandidate;
+pub use runtime::PhysicalRootPublicationRuntime;
 pub use swap::PublishedCopyOnWriteRootSwap;
 pub use swap::ReadCopyUpdateRootPublication;

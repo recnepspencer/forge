@@ -1,10 +1,10 @@
 use super::contract::{AccessShapeContract, ExpectedCounterClass};
 use super::denial::AccessShapeUnsupportedDenial;
-use super::detail::{
-    AccessShapeDetail, BoundedScanBasis, FullDeclaredScanBasis, ManifestGraphWalkBasis,
-};
+use super::detail::{AccessShapeDetail, FullDeclaredScanBasis};
+#[cfg(test)]
+use super::detail::{BoundedScanBasis, ManifestGraphWalkBasis};
+use super::kind::AccessShape;
 use super::lane::AccessLaneClassification;
-use super::shape::AccessShape;
 
 #[derive(Debug, PartialEq, Eq)]
 enum FullDeclaredScanCase {
@@ -17,6 +17,29 @@ pub struct FullDeclaredScanOutcome {
     case: FullDeclaredScanCase,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum FullDeclaredScanCaseId {
+    Admitted,
+    HiddenBroadScanDenied,
+}
+
+impl FullDeclaredScanCaseId {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Admitted => "layout.access.full_declared_scan.admitted",
+            Self::HiddenBroadScanDenied => "layout.access.full_declared_scan.denied.hidden",
+        }
+    }
+}
+
+pub fn full_declared_scan_cases() -> impl Iterator<Item = FullDeclaredScanCaseId> {
+    [
+        FullDeclaredScanCaseId::Admitted,
+        FullDeclaredScanCaseId::HiddenBroadScanDenied,
+    ]
+    .into_iter()
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FullDeclaredScanView<'a> {
     Success(&'a AccessShapeContract),
@@ -24,11 +47,11 @@ pub enum FullDeclaredScanView<'a> {
 }
 
 impl FullDeclaredScanOutcome {
-    pub(crate) fn admitted(value: AccessShapeContract) -> Self {
+    fn admitted(value: AccessShapeContract) -> Self {
         Self::from_owner_payload(FullDeclaredScanCase::Success(value))
     }
 
-    pub(crate) fn hidden_denied(value: AccessShapeUnsupportedDenial) -> Self {
+    fn hidden_denied(value: AccessShapeUnsupportedDenial) -> Self {
         Self::from_owner_payload(FullDeclaredScanCase::HiddenDenied(value))
     }
 
@@ -40,6 +63,13 @@ impl FullDeclaredScanOutcome {
         match &self.case {
             FullDeclaredScanCase::Success(value) => FullDeclaredScanView::Success(value),
             FullDeclaredScanCase::HiddenDenied(value) => FullDeclaredScanView::HiddenDenied(value),
+        }
+    }
+
+    pub const fn case_id(&self) -> FullDeclaredScanCaseId {
+        match &self.case {
+            FullDeclaredScanCase::Success(_) => FullDeclaredScanCaseId::Admitted,
+            FullDeclaredScanCase::HiddenDenied(_) => FullDeclaredScanCaseId::HiddenBroadScanDenied,
         }
     }
 
@@ -85,8 +115,7 @@ pub(crate) fn bounded_scan(
     ))
 }
 
-#[cfg(test)]
-pub(crate) fn full_declared_scan(
+pub(super) fn full_declared_scan(
     lane: AccessLaneClassification,
     basis: FullDeclaredScanBasis,
 ) -> FullDeclaredScanOutcome {

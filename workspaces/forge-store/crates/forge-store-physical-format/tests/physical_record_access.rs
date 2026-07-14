@@ -4,7 +4,7 @@ use forge_store_contracts::{
 use forge_store_physical_format::{
     access::{extent::extent_access_counters, page::page_access_counters},
     PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
-    PhysicalRecordSlot, PhysicalSegmentId, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
+    PhysicalRecordSlot, PhysicalSegmentId, PhysicalStoreRuntime, PlatformPhysicalAppendRequest,
     PlatformPhysicalOpenRequest,
 };
 
@@ -53,7 +53,7 @@ fn extent_and_reopen_follow_public_physical_evidence() {
     assert_eq!(extent.record_view().payload().as_bytes(), b"extent-backed");
 
     let published = facade.publish_physical_root().expect("public root publish");
-    let mut reopened = PlatformPhysicalFacade::reopen(
+    let mut reopened = PhysicalStoreRuntime::reopen(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
         published.replay_artifact(),
@@ -147,8 +147,8 @@ fn point_counters_do_not_scale_with_storage_cardinality() {
     assert_eq!(extent_counters.bytes_read(), 4_096);
 }
 
-fn open_facade() -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_physical_format(
+fn open_facade() -> PhysicalStoreRuntime {
+    PhysicalStoreRuntime::open_physical_format(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
     )

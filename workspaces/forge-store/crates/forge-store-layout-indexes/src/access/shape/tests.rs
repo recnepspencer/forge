@@ -223,7 +223,7 @@ fn mutation_and_maintenance_shapes_keep_denial_boundaries() {
     );
     assert_eq!(
         rebuild.detail(),
-        AccessShapeDetail::RebuildRead(MaintenanceReadBasis::RebuildTraversal)
+        AccessShapeDetail::RebuildRead(MaintenanceReadBasis::Rebuild)
     );
     assert_eq!(
         rebuild.expected_counters(),
@@ -231,7 +231,7 @@ fn mutation_and_maintenance_shapes_keep_denial_boundaries() {
     );
     assert_eq!(
         verifier.detail(),
-        AccessShapeDetail::VerifierRead(MaintenanceReadBasis::VerifierTraversal)
+        AccessShapeDetail::VerifierRead(MaintenanceReadBasis::Verifier)
     );
     assert_eq!(
         verifier.expected_counters(),
@@ -239,7 +239,7 @@ fn mutation_and_maintenance_shapes_keep_denial_boundaries() {
     );
     assert_eq!(
         repair.detail(),
-        AccessShapeDetail::RepairRead(MaintenanceReadBasis::RepairTraversal)
+        AccessShapeDetail::RepairRead(MaintenanceReadBasis::Repair)
     );
     assert_eq!(
         repair.expected_counters(),
@@ -247,7 +247,7 @@ fn mutation_and_maintenance_shapes_keep_denial_boundaries() {
     );
     assert_eq!(
         quarantine.detail(),
-        AccessShapeDetail::QuarantineRead(MaintenanceReadBasis::QuarantineTraversal)
+        AccessShapeDetail::QuarantineRead(MaintenanceReadBasis::Quarantine)
     );
     assert_eq!(
         quarantine.expected_counters(),

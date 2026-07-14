@@ -3,6 +3,7 @@ mod contract;
 mod degraded;
 mod denial;
 mod detail;
+mod kind;
 mod lane;
 mod point;
 mod prefix;
@@ -13,9 +14,7 @@ mod rebuild;
 mod registry;
 #[cfg(test)]
 mod repair;
-#[cfg(test)]
 mod scan;
-mod shape;
 #[cfg(test)]
 mod streaming;
 #[cfg(test)]
@@ -28,13 +27,17 @@ pub use contract::{
 };
 pub use degraded::DegradedExactScanRequest;
 pub use denial::AccessShapeUnsupportedDenial;
+pub use detail::FullDeclaredScanBasis;
 pub use detail::{AccessShapeDetail, PrefixBasis, RangeBasis};
 #[cfg(test)]
 pub use detail::{
-    BoundedScanBasis, CoalescedPageReadBasis, DegradedExactScanBasis, FullDeclaredScanBasis,
-    GroupedPrefixBasis, MaintenanceReadBasis, ManifestGraphWalkBasis, MultiRangeBasis,
-    MutationAccessBasis, StreamingContinuationBasis, StreamingReadBasis,
+    BoundedScanBasis, CoalescedPageReadBasis, DegradedExactScanBasis, GroupedPrefixBasis,
+    MaintenanceReadBasis, ManifestGraphWalkBasis, MultiRangeBasis, MutationAccessBasis,
+    StreamingContinuationBasis, StreamingReadBasis,
 };
+pub use kind::AccessShape;
 pub use lane::AccessLaneClassification;
 pub use registry::access_shapes;
-pub use shape::AccessShape;
+pub use scan::{
+    full_declared_scan_cases, FullDeclaredScanCaseId, FullDeclaredScanOutcome, FullDeclaredScanView,
+};

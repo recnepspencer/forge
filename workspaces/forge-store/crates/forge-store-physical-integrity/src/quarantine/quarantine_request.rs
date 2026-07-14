@@ -15,7 +15,7 @@ impl QuarantineSealRequest {
         Self {
             finding,
             initial_posture: QuarantineLifecyclePosture::Proposed,
-            handoff_posture: QuarantineHandoffPosture::S4RecoveryOwnerRequired,
+            handoff_posture: QuarantineHandoffPosture::RecoveryOwnerRequired,
         }
     }
 

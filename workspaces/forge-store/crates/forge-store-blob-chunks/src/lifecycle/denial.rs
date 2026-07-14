@@ -6,7 +6,7 @@ pub enum BlobLifecycleDenial {
     CopiedCounterSnapshotRejected {
         counters: BlobLifecycleCounterSnapshot,
     },
-    S3IntegrityReportRejected,
+    IntegrityReportRejected,
     TerminalProjectionRowRejected,
     ImportedManifestTextRejected,
     S6PlacementSeedCarriesNoLifecycleAuthority,
@@ -37,7 +37,7 @@ pub const fn reject_copied_counters_as_lifecycle_receipt(
 pub const fn reject_physical_integrity_report_as_lifecycle_receipt<T>(
     _: &T,
 ) -> BlobLifecycleDenial {
-    BlobLifecycleDenial::S3IntegrityReportRejected
+    BlobLifecycleDenial::IntegrityReportRejected
 }
 
 pub const fn reject_terminal_projection_row_as_lifecycle_receipt<T>(_: &T) -> BlobLifecycleDenial {

@@ -3,7 +3,7 @@ use crate::access::grammar::PhysicalLayoutAccessFamily;
 use crate::access::manifest::root_discovery::canonical_root_manifest;
 use crate::{
     FreeSpaceReuseCell, PhysicalForegroundBoundednessOutcome, PhysicalFreeSpaceSearchPolicy,
-    PlatformPhysicalFacade, PlatformPhysicalFacadeDenial, PlatformPhysicalFacadeDenialKind,
+    PhysicalStoreRuntime, PhysicalStoreRuntimeDenial, PhysicalStoreRuntimeDenialKind,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,18 +15,18 @@ pub struct FreeSpaceLayoutReport {
 
 #[derive(Debug)]
 pub struct FreeSpaceAccess<'a> {
-    facade: &'a mut PlatformPhysicalFacade,
+    facade: &'a mut PhysicalStoreRuntime,
 }
 
 impl<'a> FreeSpaceAccess<'a> {
-    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+    pub(crate) fn new(facade: &'a mut PhysicalStoreRuntime) -> Self {
         Self { facade }
     }
 
     pub fn bounded_candidates(
         &mut self,
         policy: PhysicalFreeSpaceSearchPolicy,
-    ) -> Result<FreeSpaceLayoutReport, PlatformPhysicalFacadeDenial> {
+    ) -> Result<FreeSpaceLayoutReport, PhysicalStoreRuntimeDenial> {
         let access = canonical_root_manifest(self.facade)?;
         let root = access.root();
         let pressure = policy.evaluate(
@@ -34,8 +34,8 @@ impl<'a> FreeSpaceAccess<'a> {
             root.free_space().len() as u32,
         );
         if !pressure.is_admitted() {
-            return Err(PlatformPhysicalFacadeDenial::new(
-                PlatformPhysicalFacadeDenialKind::FullStoreMaterializationRejected,
+            return Err(PhysicalStoreRuntimeDenial::new(
+                PhysicalStoreRuntimeDenialKind::FullStoreMaterializationRejected,
             ));
         }
         let limit = policy.foreground_candidate_bound() as usize;

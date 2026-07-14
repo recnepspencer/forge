@@ -31,12 +31,10 @@ pub use access_request::{
     PhysicalAccessRequestAdmissionDenied,
 };
 pub use admission::access_planning;
-#[cfg(test)]
 pub(crate) use admission::AccessPlanningFacade;
 pub use candidates::{BTreeLookupOperation, SelectionCandidateAudit, SelectionCandidateOutcome};
 pub use cost::{AccessPlanCostClass, AccessPlanCostDenial, AccessPlanCostEstimate};
-#[cfg(test)]
-pub(crate) use decision::AccessPlanSelectionCase;
+pub use decision::AccessPlanSelectionCaseId;
 pub use denial::{
     AccessPlanSelectionDenied, SelectionCandidateRejection, SelectionCandidateRejectionCase,
 };
@@ -46,12 +44,13 @@ pub use imported_blob::{
 };
 pub use plan_identity::AccessPlanIdentity;
 pub use selected_plan::{
-    SelectedAccessPlanBasis, SelectedBTreeLookup, SelectedBTreeReplayRecovery,
-    SelectedDegradedExactScan, SelectedLsmCompaction, SelectedLsmLookup, SelectedLsmReplayRecovery,
-    SelectedLsmRunPublication,
+    SelectedBTreeLookup, SelectedBTreeReplayRecovery, SelectedDegradedExactScan,
+    SelectedLsmCompaction, SelectedLsmLookup, SelectedLsmReplayRecovery, SelectedLsmRunPublication,
 };
 #[cfg(test)]
 pub(crate) use selection_basis::PlanningCapabilityGrant;
 pub use selection_basis::{DeterministicSelectionRule, SelectionCandidateEligibility};
-pub use selection_outcome::{AccessPlanSelectionOutcome, AccessPlanSelectionView};
+pub use selection_outcome::{
+    access_plan_selection_cases, AccessPlanSelectionOutcome, AccessPlanSelectionView,
+};
 pub use selection_receipt::AccessPlanSelector;

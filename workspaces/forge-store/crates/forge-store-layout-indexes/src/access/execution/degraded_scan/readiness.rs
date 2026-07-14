@@ -3,10 +3,10 @@ use forge_proof::raw::{
     ExecutionReadyAdmissionReadiness, ExecutionReadyRecipe, TransitionOutcome,
 };
 
-use super::{DegradedScanLoweringBasis, LoweredDegradedExactScan, StaleDegradedExactScan};
-use crate::access::execution::transition_authority::{
-    readiness_authority, ExecutionReadinessAuthority, ExecutionReadinessDeferred,
+use super::authority::{
+    readiness_authority, DegradedScanReadinessAuthority, DegradedScanReadinessDeferred,
 };
+use super::{DegradedScanLoweringBasis, LoweredDegradedExactScan, StaleDegradedExactScan};
 use crate::planning::SelectedDegradedExactScan;
 
 pub(super) type DegradedScanReadyRecipe = ExecutionReadyRecipe<
@@ -21,12 +21,21 @@ pub(super) type DegradedScanReadyRecipe = ExecutionReadyRecipe<
 pub struct DegradedScanReady {
     recipe: DegradedScanReadyRecipe,
     current_materialization: crate::CurrentLayoutMaterialization,
+    rebind_trace: Option<super::DegradedScanRebindTrace>,
 }
 
 impl DegradedScanReady {
-    pub(super) fn issue(
+    fn issue(
         lowered: LoweredDegradedExactScan,
         current_materialization: crate::CurrentLayoutMaterialization,
+    ) -> Self {
+        Self::issue_with_rebind(lowered, current_materialization, None)
+    }
+
+    fn issue_with_rebind(
+        lowered: LoweredDegradedExactScan,
+        current_materialization: crate::CurrentLayoutMaterialization,
+        rebind_trace: Option<super::DegradedScanRebindTrace>,
     ) -> Self {
         let outcome = CheckedAdmitExecutionReadyRecipeTransition.transition(
             lowered.into_recipe(),
@@ -34,10 +43,10 @@ impl DegradedScanReady {
                 SelectedDegradedExactScan,
                 DegradedScanLoweringBasis,
                 &'static str,
-                ExecutionReadinessAuthority,
-                ExecutionReadinessDeferred,
-                ExecutionReadinessDeferred,
-                ExecutionReadinessDeferred,
+                DegradedScanReadinessAuthority,
+                DegradedScanReadinessDeferred,
+                DegradedScanReadinessDeferred,
+                DegradedScanReadinessDeferred,
             >::ready(ExecutionReadinessContext::new(
                 "degraded-scan-ready",
                 readiness_authority(),
@@ -47,19 +56,18 @@ impl DegradedScanReady {
             TransitionOutcome::Success(recipe) => Self {
                 recipe,
                 current_materialization,
+                rebind_trace,
             },
             _ => unreachable!("degraded readiness is issued only after owner classification"),
         }
     }
 
-    pub(in crate::access::execution::degraded_scan) fn from_recipe(
-        recipe: DegradedScanReadyRecipe,
+    fn from_rebind(
+        lowered: LoweredDegradedExactScan,
         current_materialization: crate::CurrentLayoutMaterialization,
+        rebind_trace: super::DegradedScanRebindTrace,
     ) -> Self {
-        Self {
-            recipe,
-            current_materialization,
-        }
+        Self::issue_with_rebind(lowered, current_materialization, Some(rebind_trace))
     }
 
     pub fn selected(&self) -> &SelectedDegradedExactScan {
@@ -71,11 +79,22 @@ impl DegradedScanReady {
     pub const fn current_materialization(&self) -> &crate::CurrentLayoutMaterialization {
         &self.current_materialization
     }
+    pub const fn rebind_trace(&self) -> Option<&super::DegradedScanRebindTrace> {
+        self.rebind_trace.as_ref()
+    }
     pub(super) fn into_parts(
         self,
     ) -> (DegradedScanReadyRecipe, crate::CurrentLayoutMaterialization) {
         (self.recipe, self.current_materialization)
     }
+}
+
+pub(in crate::access::execution::degraded_scan) fn admit_rebound_ready(
+    lowered: LoweredDegradedExactScan,
+    admission: super::DegradedScanRebindAdmission,
+) -> DegradedScanReady {
+    let (current_materialization, rebind_trace) = admission.into_ready_basis();
+    DegradedScanReady::from_rebind(lowered, current_materialization, rebind_trace)
 }
 
 macro_rules! define_degraded_readiness_cases {
@@ -131,12 +150,12 @@ pub struct DegradedScanReadinessOutcome {
 }
 
 impl DegradedScanReadinessOutcome {
-    pub(super) fn ready(value: DegradedScanReady) -> Self {
+    fn ready(value: DegradedScanReady) -> Self {
         Self {
             case: DegradedScanReadinessCase::Ready(value),
         }
     }
-    pub(super) fn stale(value: StaleDegradedExactScan) -> Self {
+    fn stale(value: StaleDegradedExactScan) -> Self {
         Self {
             case: DegradedScanReadinessCase::Stale(value),
         }
@@ -159,5 +178,21 @@ impl DegradedScanReadinessOutcome {
             DegradedScanReadinessCase::Stale(value) => Ok(value),
             case => Err(Self { case }),
         }
+    }
+}
+
+pub(in crate::access::execution::degraded_scan) fn classify_readiness(
+    lowered: LoweredDegradedExactScan,
+    frontier: crate::CurrentMaterializationFrontier,
+) -> DegradedScanReadinessOutcome {
+    let materialization = lowered.selected().materialization().clone();
+    match materialization.classify_freshness_at(frontier) {
+        Ok(crate::MaterializationFreshness::Current(current)) => {
+            DegradedScanReadinessOutcome::ready(DegradedScanReady::issue(lowered, current))
+        }
+        Ok(crate::MaterializationFreshness::Stale(stale)) => {
+            DegradedScanReadinessOutcome::stale(lowered.stale(stale))
+        }
+        Err(_) => unreachable!("degraded selection retains exact admitted materialization"),
     }
 }

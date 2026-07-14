@@ -206,11 +206,16 @@ fn execution_directory<T>(execute: impl FnOnce(&std::path::Path) -> T) -> T {
 
 fn new_execution_directory() -> std::path::PathBuf {
     static FIXTURE_SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let directory = std::env::temp_dir().join(format!(
-        "forge-store-lsm-durability-{}-{}",
-        std::process::id(),
-        FIXTURE_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-    ));
-    std::fs::create_dir_all(&directory).expect("unique durability execution directory");
-    directory
+    loop {
+        let directory = std::env::temp_dir().join(format!(
+            "forge-store-lsm-durability-{}-{}",
+            std::process::id(),
+            FIXTURE_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+        ));
+        match std::fs::create_dir(&directory) {
+            Ok(()) => return directory,
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => panic!("cannot create durability execution directory: {error}"),
+        }
+    }
 }

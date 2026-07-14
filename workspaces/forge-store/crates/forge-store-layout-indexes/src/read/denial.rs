@@ -11,12 +11,11 @@ pub enum LayoutReadAdmissionDenied {
     RequestAdmission(crate::PhysicalAccessRequestAdmissionDenied),
     NoEligibleLayout,
     StrategyInvariant(crate::strategy::StrategyDenial),
-    AmbiguousLayout,
     Cost(crate::AccessPlanCostDenial),
     Budget(PreExecutionBudgetDenial),
     UnexpectedSelectedOperation,
-    BTreeExecution(crate::BaselineBTreeExecutionDenial),
     StaleMaterialization(crate::StaleLayoutMaterialization),
+    CounterEnvelope(crate::CounterEnvelopeViolation),
 }
 
 pub(super) const fn map_artifact_denial(
@@ -54,9 +53,6 @@ pub(super) const fn map_selection_denial(
     match denial {
         crate::AccessPlanSelectionDenied::NoEligibleAlternative => {
             LayoutReadAdmissionDenied::NoEligibleLayout
-        }
-        crate::AccessPlanSelectionDenied::OverlappingEligibleStrategyAuthority { .. } => {
-            LayoutReadAdmissionDenied::AmbiguousLayout
         }
         crate::AccessPlanSelectionDenied::CostDenied(denial) => {
             LayoutReadAdmissionDenied::Cost(denial)

@@ -45,12 +45,12 @@ const EXPECTED_FAMILIES: &[DurableArtifactFamilyId] = &[
     DurableArtifactFamilyId::CompatibilityEmbeddedCheckpointAuthority,
     DurableArtifactFamilyId::CompatibilitySnapshotRecord,
     DurableArtifactFamilyId::CompatibilityDeltaRecord,
-    DurableArtifactFamilyId::CompatibilityMilestone6LayoutBlockChunkRecord,
-    DurableArtifactFamilyId::CompatibilityMilestone8BasisContinuationDescriptor,
-    DurableArtifactFamilyId::CompatibilityMilestone9BulkRecord,
-    DurableArtifactFamilyId::CompatibilityMilestone10RetentionRebuildRecord,
-    DurableArtifactFamilyId::CompatibilityMilestone11MaintenanceRecord,
-    DurableArtifactFamilyId::CompatibilityMilestone13TieringRecord,
+    DurableArtifactFamilyId::CompatibilityLegacyLayoutBlockChunkRecord,
+    DurableArtifactFamilyId::CompatibilityLegacyBasisContinuationDescriptor,
+    DurableArtifactFamilyId::CompatibilityLegacyBulkRecord,
+    DurableArtifactFamilyId::CompatibilityLegacyRetentionRebuildRecord,
+    DurableArtifactFamilyId::CompatibilityLegacyMaintenanceRecord,
+    DurableArtifactFamilyId::CompatibilityLegacyTieringRecord,
     DurableArtifactFamilyId::MaintenanceSnapshot,
     DurableArtifactFamilyId::MaintenanceCompaction,
     DurableArtifactFamilyId::MaintenanceReclaim,
@@ -71,7 +71,7 @@ const EXPECTED_FAMILIES: &[DurableArtifactFamilyId] = &[
     DurableArtifactFamilyId::PlacementStableBasis,
     DurableArtifactFamilyId::PlacementSnapshotFamily,
     DurableArtifactFamilyId::PlacementBranchDeltaFamily,
-    DurableArtifactFamilyId::PlacementMilestone6LayoutFamily,
+    DurableArtifactFamilyId::PlacementLegacyLayoutFamily,
     DurableArtifactFamilyId::PublicationWalIntent,
     DurableArtifactFamilyId::PublicationWalCanonicalResult,
     DurableArtifactFamilyId::PublicationWalPublicationProgress,
@@ -80,10 +80,10 @@ const EXPECTED_FAMILIES: &[DurableArtifactFamilyId] = &[
     DurableArtifactFamilyId::PublicationAcknowledgmentEligibility,
     DurableArtifactFamilyId::PublicationSnapshotBasis,
     DurableArtifactFamilyId::PublicationSnapshotImage,
-    DurableArtifactFamilyId::DerivedRetentionMilestone6LayoutMaterialization,
-    DurableArtifactFamilyId::DerivedRetentionMilestone6ScopeSliceMembership,
-    DurableArtifactFamilyId::DerivedRetentionMilestone6StructuralBlock,
-    DurableArtifactFamilyId::DerivedRetentionMilestone6ChunkMembership,
+    DurableArtifactFamilyId::DerivedRetentionLegacyLayoutMaterialization,
+    DurableArtifactFamilyId::DerivedRetentionLegacyScopeSliceMembership,
+    DurableArtifactFamilyId::DerivedRetentionLegacyStructuralBlock,
+    DurableArtifactFamilyId::DerivedRetentionLegacyChunkMembership,
     DurableArtifactFamilyId::LayoutCompactionUnit,
     DurableArtifactFamilyId::SnapshotArtifact,
     DurableArtifactFamilyId::BranchDeltaArtifact,
@@ -172,7 +172,7 @@ fn named_existing_inputs_map_to_real_family_boundaries() {
     );
     assert_eq!(
         inventory
-            .declaration(DurableArtifactFamilyId::DerivedRetentionMilestone6LayoutMaterialization)
+            .declaration(DurableArtifactFamilyId::DerivedRetentionLegacyLayoutMaterialization)
             .unwrap()
             .owning_boundary(),
         DurableArtifactOwningBoundary::ForgeStoreRetention
@@ -196,7 +196,7 @@ fn non_authority_families_remain_non_authority() {
         DurableArtifactFamilyId::ExportBundle,
         DurableArtifactFamilyId::CapsuleArtifact,
         DurableArtifactFamilyId::CompatibilitySnapshotRecord,
-        DurableArtifactFamilyId::DerivedRetentionMilestone6LayoutMaterialization,
+        DurableArtifactFamilyId::DerivedRetentionLegacyLayoutMaterialization,
     ] {
         let declaration = inventory.declaration(family).unwrap();
         assert!(
@@ -240,12 +240,12 @@ fn every_real_existing_family_variant_is_individually_addressable() {
         DurableArtifactFamilyId::WalDurablePublicationProgress,
         DurableArtifactFamilyId::WalRecoveryDecision,
         DurableArtifactFamilyId::CompatibilityCommitEnvelope,
-        DurableArtifactFamilyId::CompatibilityMilestone13TieringRecord,
+        DurableArtifactFamilyId::CompatibilityLegacyTieringRecord,
         DurableArtifactFamilyId::MaintenanceCapsule,
         DurableArtifactFamilyId::SupportEmbeddedCheckpoint,
-        DurableArtifactFamilyId::PlacementMilestone6LayoutFamily,
+        DurableArtifactFamilyId::PlacementLegacyLayoutFamily,
         DurableArtifactFamilyId::PublicationSnapshotImage,
-        DurableArtifactFamilyId::DerivedRetentionMilestone6ChunkMembership,
+        DurableArtifactFamilyId::DerivedRetentionLegacyChunkMembership,
     ] {
         assert!(
             inventory.declaration(family).is_ok(),
@@ -272,10 +272,10 @@ fn existing_family_inputs_lower_directly_to_canonical_declarations() {
     );
     assert_eq!(
         facade
-            .admit_existing_family(&CompatibilityFamilyKind::Milestone13TieringRecord)
+            .admit_existing_family(&CompatibilityFamilyKind::LegacyTieringRecord)
             .unwrap()
             .family_id(),
-        DurableArtifactFamilyId::CompatibilityMilestone13TieringRecord
+        DurableArtifactFamilyId::CompatibilityLegacyTieringRecord
     );
     assert_eq!(
         facade
@@ -293,10 +293,10 @@ fn existing_family_inputs_lower_directly_to_canonical_declarations() {
     );
     assert_eq!(
         facade
-            .admit_existing_family(&PlacementArtifactFamily::Milestone6LayoutFamily)
+            .admit_existing_family(&PlacementArtifactFamily::LegacyLayoutFamily)
             .unwrap()
             .family_id(),
-        DurableArtifactFamilyId::PlacementMilestone6LayoutFamily
+        DurableArtifactFamilyId::PlacementLegacyLayoutFamily
     );
     assert_eq!(
         facade
@@ -307,10 +307,10 @@ fn existing_family_inputs_lower_directly_to_canonical_declarations() {
     );
     assert_eq!(
         facade
-            .admit_existing_family(&DerivedFamilyRetentionPolicy::Milestone6ChunkMembership)
+            .admit_existing_family(&DerivedFamilyRetentionPolicy::LegacyChunkMembership)
             .unwrap()
             .family_id(),
-        DurableArtifactFamilyId::DerivedRetentionMilestone6ChunkMembership
+        DurableArtifactFamilyId::DerivedRetentionLegacyChunkMembership
     );
     assert_eq!(
         facade

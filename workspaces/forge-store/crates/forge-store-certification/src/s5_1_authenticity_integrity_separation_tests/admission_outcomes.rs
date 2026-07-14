@@ -8,7 +8,7 @@ use crate::courtroom::harness::test_support::authenticity_integrity_test_support
 use forge_store_physical_format::PhysicalFrameKind;
 use forge_store_physical_integrity::{
     AuthenticityRequiredPhysicalDecodeGate, DeclaredPhysicalChecksum,
-    PhysicalIntegrityAdmissionRequest, S3LogicalDecoder,
+    PhysicalIntegrityAdmissionRequest, LogicalDecoder,
 };
 use forge_store_security::{
     StoreAuthenticityCheck, StoreAuthenticityCheckDenialKind, StoreAuthenticityRequirement,

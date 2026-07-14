@@ -1,10 +1,4 @@
-use forge_store_physical_isolation::{
-    compaction_cutover_evidence_for_certification_plan,
-    compaction_cutover_evidence_for_certification_rewrite_manifest,
-    compaction_read_interlock_plan_for_certification_test,
-    stable_physical_read_receipt_for_compaction_plan_test,
-    stable_physical_read_receipt_for_mismatched_compaction_test,
-};
+use forge_store_test_support::harness::physical_isolation::compaction as physical_compaction;
 
 use crate::lifecycle::generation_registry_test_support::{
     current_authority, lifecycle_receipt_for_publication_with_bytes, root_publication_with_bytes,
@@ -66,7 +60,7 @@ pub(crate) fn intent(case: &str) -> BlobCompactionIntent {
     let (lifecycle, uncompacted_publication) = lifecycle_with_publication(case);
     let reachability = lifecycle.reachability().clone();
     let placement = admit_inline_placement(&reachability);
-    let physical = compaction_read_interlock_plan_for_certification_test();
+    let physical = physical_compaction::admitted_compaction_plan();
     let read_hold = read_hold_for_plan(&physical);
     BlobCompactionIntent::for_published_generation(
         lifecycle,
@@ -81,7 +75,7 @@ pub(crate) fn intent(case: &str) -> BlobCompactionIntent {
 pub(crate) fn intent_without_reachability(case: &str) -> BlobCompactionIntent {
     let (lifecycle, uncompacted_publication) = lifecycle_with_publication(case);
     let placement = admit_inline_placement(lifecycle.reachability());
-    let physical = compaction_read_interlock_plan_for_certification_test();
+    let physical = physical_compaction::admitted_compaction_plan();
     let read_hold = read_hold_for_plan(&physical);
     BlobCompactionIntent::without_reachability(
         lifecycle,
@@ -95,21 +89,31 @@ pub(crate) fn intent_without_reachability(case: &str) -> BlobCompactionIntent {
 fn read_hold_for_plan(
     plan: &forge_store_physical_isolation::CompactionReadInterlockPlan,
 ) -> BlobCompactionReadHold {
-    BlobCompactionReadHold::released(stable_physical_read_receipt_for_compaction_plan_test(
-        plan, 64,
-    ))
+    BlobCompactionReadHold::released(
+        plan.source_integrity()
+            .stable_read_receipt()
+            .expect("ordinary compaction plan retains its executed stable read"),
+    )
 }
 
 pub(crate) fn mismatched_read_hold() -> BlobCompactionReadHold {
-    BlobCompactionReadHold::released(stable_physical_read_receipt_for_mismatched_compaction_test(
-        64,
-    ))
+    let mismatched = physical_compaction::admitted_compaction_plan_for_seed(18);
+    BlobCompactionReadHold::released(
+        mismatched
+            .source_integrity()
+            .stable_read_receipt()
+            .expect("mismatched plan retains a real stable read"),
+    )
 }
 
 pub(crate) fn active_read_hold() -> BlobCompactionReadHold {
-    BlobCompactionReadHold::active(stable_physical_read_receipt_for_mismatched_compaction_test(
-        64,
-    ))
+    let active = physical_compaction::admitted_compaction_plan_for_seed(18);
+    BlobCompactionReadHold::active(
+        active
+            .source_integrity()
+            .stable_read_receipt()
+            .expect("active plan retains a real stable read"),
+    )
 }
 
 pub(crate) fn unavailable_cold() -> BlobCompactionColdReadiness {
@@ -202,7 +206,7 @@ pub(crate) fn verified_read_for_rewritten(
 pub(crate) fn verdict_for_plan(
     plan: &crate::BlobCompactionRewritePlan,
 ) -> ReadDuringCompactionVerdict {
-    let evidence = compaction_cutover_evidence_for_certification_plan(plan.physical());
+    let evidence = physical_compaction::execute_compaction_cutover(plan.physical());
     admit_verdict_from_evidence(evidence)
 }
 
@@ -210,7 +214,7 @@ pub(crate) fn verdict_for_rewrite(
     plan: &crate::BlobCompactionRewritePlan,
     rewritten: &BlobChunkRootPublication,
 ) -> ReadDuringCompactionVerdict {
-    let evidence = compaction_cutover_evidence_for_certification_rewrite_manifest(
+    let evidence = physical_compaction::execute_compaction_cutover_for_manifest(
         plan.physical(),
         physical_rewrite_manifest_epoch_for_root(
             rewritten.chunk_tree_root(),
@@ -224,7 +228,7 @@ pub(crate) fn mismatched_verdict_for_rewrite(
     plan: &crate::BlobCompactionRewritePlan,
     rewritten: &BlobChunkRootPublication,
 ) -> ReadDuringCompactionVerdict {
-    let evidence = compaction_cutover_evidence_for_certification_rewrite_manifest(
+    let evidence = physical_compaction::execute_compaction_cutover_for_manifest(
         plan.physical(),
         physical_rewrite_manifest_epoch_for_root(
             rewritten.chunk_tree_root(),
@@ -236,7 +240,7 @@ pub(crate) fn mismatched_verdict_for_rewrite(
 }
 
 fn admit_verdict_from_evidence(
-    evidence: forge_store_physical_isolation::CompactionCutoverEvidenceForCertification,
+    evidence: physical_compaction::ExecutedCompactionCutover,
 ) -> ReadDuringCompactionVerdict {
     let (publication, recovery, pre_cutover_read, post_cutover_read) = evidence.into_parts();
     execute_read_during_compaction_cutover(

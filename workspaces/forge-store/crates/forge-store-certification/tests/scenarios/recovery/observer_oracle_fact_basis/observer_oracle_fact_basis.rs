@@ -146,7 +146,7 @@ fn complete_context() -> SimulationPlanningContext {
 
 fn recovery_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s45.phase7.recovery.oracle")
-        .family(PhysicalSimulationScenarioFamily::S4RecoveryDogfood)
+        .family(PhysicalSimulationScenarioFamily::RecoveryDogfood)
         .intent(PhysicalScenarioIntent::RecoveryReplayDogfood)
         .fixture(
             NativeStoreAspectFixture::segment_header("phase7-recovery", 7)

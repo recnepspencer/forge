@@ -163,7 +163,7 @@ fn oracle_family_admission_is_plan_bound_not_fixture_label_bound() {
     assert_eq!(
         denial,
         OracleDenial::OracleFamilyNotRequired {
-            family: OracleFamilyKind::S4RecoveryDogfood,
+            family: OracleFamilyKind::RecoveryDogfood,
         }
     );
 }

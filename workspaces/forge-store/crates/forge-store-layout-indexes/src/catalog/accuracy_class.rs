@@ -51,17 +51,17 @@ pub(crate) fn declare_derived_accuracy_class(
             DurableArtifactFamilyId::ChunkTreeRoot
             | DurableArtifactFamilyId::DedupeIndex
             | DurableArtifactFamilyId::ReachabilityEdge
-            | DurableArtifactFamilyId::DerivedRetentionMilestone6LayoutMaterialization
-            | DurableArtifactFamilyId::DerivedRetentionMilestone6ScopeSliceMembership
-            | DurableArtifactFamilyId::DerivedRetentionMilestone6StructuralBlock
-            | DurableArtifactFamilyId::DerivedRetentionMilestone6ChunkMembership => {
+            | DurableArtifactFamilyId::DerivedRetentionLegacyLayoutMaterialization
+            | DurableArtifactFamilyId::DerivedRetentionLegacyScopeSliceMembership
+            | DurableArtifactFamilyId::DerivedRetentionLegacyStructuralBlock
+            | DurableArtifactFamilyId::DerivedRetentionLegacyChunkMembership => {
                 DerivedAccuracyClass::Exact
             }
             DurableArtifactFamilyId::LayoutCompactionUnit
             | DurableArtifactFamilyId::PlacementStableBasis
             | DurableArtifactFamilyId::PlacementSnapshotFamily
             | DurableArtifactFamilyId::PlacementBranchDeltaFamily
-            | DurableArtifactFamilyId::PlacementMilestone6LayoutFamily
+            | DurableArtifactFamilyId::PlacementLegacyLayoutFamily
             | DurableArtifactFamilyId::SchedulerReservationIndex
             | DurableArtifactFamilyId::TierPlacementManifest
             | DurableArtifactFamilyId::ColdRecallQueue
@@ -74,12 +74,12 @@ pub(crate) fn declare_derived_accuracy_class(
             }
             DurableArtifactFamilyId::CompatibilitySnapshotRecord
             | DurableArtifactFamilyId::CompatibilityDeltaRecord
-            | DurableArtifactFamilyId::CompatibilityMilestone6LayoutBlockChunkRecord
-            | DurableArtifactFamilyId::CompatibilityMilestone8BasisContinuationDescriptor
-            | DurableArtifactFamilyId::CompatibilityMilestone9BulkRecord
-            | DurableArtifactFamilyId::CompatibilityMilestone10RetentionRebuildRecord
-            | DurableArtifactFamilyId::CompatibilityMilestone11MaintenanceRecord
-            | DurableArtifactFamilyId::CompatibilityMilestone13TieringRecord => {
+            | DurableArtifactFamilyId::CompatibilityLegacyLayoutBlockChunkRecord
+            | DurableArtifactFamilyId::CompatibilityLegacyBasisContinuationDescriptor
+            | DurableArtifactFamilyId::CompatibilityLegacyBulkRecord
+            | DurableArtifactFamilyId::CompatibilityLegacyRetentionRebuildRecord
+            | DurableArtifactFamilyId::CompatibilityLegacyMaintenanceRecord
+            | DurableArtifactFamilyId::CompatibilityLegacyTieringRecord => {
                 DerivedAccuracyClass::Approximate
             }
             DurableArtifactFamilyId::MaintenanceSnapshot

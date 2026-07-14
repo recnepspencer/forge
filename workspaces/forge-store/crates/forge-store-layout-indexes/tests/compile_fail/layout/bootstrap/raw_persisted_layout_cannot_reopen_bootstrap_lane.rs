@@ -2,12 +2,12 @@ use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
 use forge_store_physical_format::{
-    PersistedPhysicalLayout, PlatformPhysicalFacade, PlatformPhysicalOpenRequest,
+    PersistedPhysicalLayout, PhysicalStoreRuntime, PlatformPhysicalOpenRequest,
 };
 
 fn main() {
     let layout = PersistedPhysicalLayout::builder().build();
-    let _reopened = PlatformPhysicalFacade::reopen(
+    let _reopened = PhysicalStoreRuntime::reopen(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
         layout,

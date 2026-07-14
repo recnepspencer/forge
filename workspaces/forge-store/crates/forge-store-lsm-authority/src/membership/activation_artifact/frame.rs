@@ -1,7 +1,7 @@
-use super::super::artifact::checksum;
+use super::super::durable_artifact::checksum;
 use super::super::model::LsmMembershipReadmissionAuthority;
-use super::super::session::LsmMembershipDenial;
 use super::event::PersistedMembershipActivation;
+use crate::membership::LsmMembershipDenial;
 
 const MAGIC: [u8; 8] = *b"FSLACTV\0";
 const VERSION: u16 = 1;

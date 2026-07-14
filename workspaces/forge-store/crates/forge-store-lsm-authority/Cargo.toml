@@ -11,6 +11,7 @@ forge-store-physical-isolation.workspace = true
 forge-store-recovery-physics.workspace = true
 forge-store-security.workspace = true
 forge-store-wal.workspace = true
+sha2 = "0.10"
 
 [dev-dependencies]
 forge-store-security = { workspace = true, features = ["certification-test-authority"] }

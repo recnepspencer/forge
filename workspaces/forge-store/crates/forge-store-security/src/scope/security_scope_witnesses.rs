@@ -147,9 +147,7 @@ impl StoreCurrentSecurityScopeWitnessSet {
         &self.key_scope
     }
 
-    pub const fn authority_identity(
-        &self,
-    ) -> forge_store_authority::StoreCurrentAuthorityIdentity {
+    pub const fn authority_identity(&self) -> forge_store_authority::StoreCurrentAuthorityIdentity {
         self.authority_identity
     }
 

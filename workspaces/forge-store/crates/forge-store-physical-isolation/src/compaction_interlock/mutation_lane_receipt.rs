@@ -30,9 +30,9 @@ macro_rules! define_compaction_mutation_outcomes {
         }
 
         impl CompactionMutationLaneReceiptKind {
-            const fn owner_case(self) -> super::CompactionOwnerCase {
+            const fn owner_case(self) -> super::CompactionOwnerCaseDeclaration {
                 match self {
-                    $(Self::$variant => super::CompactionOwnerCase::issued_by_owner(
+                    $(Self::$variant => super::CompactionOwnerCaseDeclaration::declared_by_owner(
                         super::CompactionOwnerCaseId::owned($id),
                         super::CompactionCutoverState::$from,
                         super::CompactionCutoverState::Denied,
@@ -157,8 +157,8 @@ impl CompactionMutationLaneReceipt {
         self.kind
     }
 
-    pub const fn owner_case(&self) -> super::CompactionOwnerCase {
-        self.kind.owner_case()
+    pub const fn owner_case_observation(&self) -> super::CompactionOwnerCaseObservation {
+        super::CompactionOwnerCaseObservation::issued_by_owner(self.kind.owner_case())
     }
 
     pub const fn denial(&self) -> CompactionReadInterlockDenial {
@@ -170,7 +170,7 @@ impl CompactionMutationLaneReceipt {
     }
 }
 
-pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCase> {
+pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCaseDeclaration> {
     CompactionMutationLaneReceiptKind::all().map(CompactionMutationLaneReceiptKind::owner_case)
 }
 

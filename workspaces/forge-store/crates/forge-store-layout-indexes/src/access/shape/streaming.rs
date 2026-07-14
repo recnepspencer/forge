@@ -4,8 +4,8 @@ use super::detail::{
     AccessShapeDetail, ChunkTreeWalkBasis, CoalescedPageReadBasis, StreamingContinuationBasis,
     StreamingReadBasis,
 };
+use super::kind::AccessShape;
 use super::lane::AccessLaneClassification;
-use super::shape::AccessShape;
 
 #[cfg(test)]
 pub(crate) fn coalesced_page_read() -> Result<AccessShapeContract, AccessShapeUnsupportedDenial> {

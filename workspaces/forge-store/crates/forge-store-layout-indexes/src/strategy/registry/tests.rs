@@ -130,7 +130,7 @@ fn registry_denial_case_inventory_is_exhaustive_and_unique() {
     use std::collections::HashSet;
 
     let cases = crate::strategy::registry::LayoutAdmissionDenialCase::ALL;
-    assert_eq!(cases.len(), 17);
+    assert_eq!(cases.len(), 15);
     assert_eq!(cases.into_iter().collect::<HashSet<_>>().len(), cases.len());
 }
 

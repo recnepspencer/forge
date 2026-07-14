@@ -15,7 +15,7 @@ pub(super) fn recovery_shape(actor_step_count: u64) -> RequiredSimulationPlanSha
         observers: RequiredObserverSet::from_observers([ObserverKind::RecoveryOutcomeObserver]),
         oracle_families: RequiredOracleFamilySet::from_oracles([
             OracleFamilyKind::TranscriptReplayEvidence,
-            OracleFamilyKind::S4RecoveryDogfood,
+            OracleFamilyKind::RecoveryDogfood,
         ]),
         counter_contracts: RequiredCounterContractSet::from_contracts([
             PhysicalCounterContract::exact(CounterContractKind::ActorStepExact, actor_step_count),
@@ -27,7 +27,7 @@ pub(super) fn recovery_shape(actor_step_count: u64) -> RequiredSimulationPlanSha
         ]),
         fixture_classes: RequiredFixtureClassSet::from_fixture_classes([
             FixtureClassKind::AspectNativeBoundaryFact,
-            FixtureClassKind::S4RecoveryArtifacts,
+            FixtureClassKind::RecoveryArtifacts,
         ]),
     }
 }
@@ -49,7 +49,7 @@ pub(super) fn physical_isolation_checkpoint_publication_crash_replay_shape(
         oracle_families: RequiredOracleFamilySet::from_oracles([
             OracleFamilyKind::TranscriptReplayEvidence,
             OracleFamilyKind::PhysicalIsolationReadinessShape,
-            OracleFamilyKind::S4RecoveryDogfood,
+            OracleFamilyKind::RecoveryDogfood,
         ]),
         counter_contracts: RequiredCounterContractSet::from_contracts([
             PhysicalCounterContract::exact(CounterContractKind::ActorStepExact, actor_step_count),
@@ -68,7 +68,7 @@ pub(super) fn physical_isolation_checkpoint_publication_crash_replay_shape(
         ]),
         fixture_classes: RequiredFixtureClassSet::from_fixture_classes([
             FixtureClassKind::AspectNativeBoundaryFact,
-            FixtureClassKind::S4RecoveryArtifacts,
+            FixtureClassKind::RecoveryArtifacts,
         ]),
     }
 }

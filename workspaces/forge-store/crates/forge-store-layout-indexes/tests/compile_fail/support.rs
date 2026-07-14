@@ -1,3 +1,6 @@
+#[path = "cargo_artifact_message.rs"]
+mod cargo_artifact_message;
+
 pub fn assert_compile_fails(fixture_name: &str, expected_stderr: &[&str], extern_crates: &[&str]) {
     assert_compile_fails_in_ui_dir("foundations", fixture_name, expected_stderr, extern_crates);
 }
@@ -8,6 +11,12 @@ pub fn assert_compile_fails_in_ui_dir(
     expected_stderr: &[&str],
     extern_crates: &[&str],
 ) {
+    // Cargo-backed fixtures can update dependency artifacts while raw rustc
+    // fixtures resolve their externs. Keep the proof runs atomic so a fixture
+    // can fail only for the boundary it is intended to exercise.
+    let _compile_guard = compile_fail_lock()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let source_path = fixture_path(ui_dir, fixture_name);
     let output = run_compile_fail_case(&source_path, ui_dir, fixture_name, extern_crates);
 
@@ -26,6 +35,11 @@ pub fn assert_compile_fails_in_ui_dir(
     }
 }
 
+fn compile_fail_lock() -> &'static std::sync::Mutex<()> {
+    static LOCK: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
+    LOCK.get_or_init(|| std::sync::Mutex::new(()))
+}
+
 fn fixture_path(ui_dir: &str, fixture_name: &str) -> std::path::PathBuf {
     std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests")
@@ -41,9 +55,6 @@ fn run_compile_fail_case(
     fixture_name: &str,
     extern_crates: &[&str],
 ) -> std::process::Output {
-    if ui_dir == "runtime_authority" {
-        return run_cargo_compile_fail_case(source_path, ui_dir, fixture_name, extern_crates);
-    }
     let output_dir = std::env::temp_dir()
         .join(format!("layout-indexes-{ui_dir}-ui"))
         .join(std::process::id().to_string())
@@ -76,59 +87,6 @@ fn run_compile_fail_case(
     command.arg(source_path).output().unwrap()
 }
 
-fn run_cargo_compile_fail_case(
-    source_path: &std::path::Path,
-    ui_dir: &str,
-    fixture_name: &str,
-    extern_crates: &[&str],
-) -> std::process::Output {
-    let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let case_dir = std::env::temp_dir()
-        .join(format!("layout-indexes-{ui_dir}-cargo-ui"))
-        .join(std::process::id().to_string())
-        .join(fixture_name.trim_end_matches(".rs"));
-    let source_dir = case_dir.join("src");
-    std::fs::create_dir_all(&source_dir).unwrap();
-    std::fs::copy(source_path, source_dir.join("main.rs")).unwrap();
-
-    let manifest_path = manifest_dir.to_string_lossy().replace('\\', "/");
-    let mut dependencies =
-        format!("forge-store-layout-indexes = {{ path = \"{manifest_path}\" }}\n");
-    for crate_name in extern_crates {
-        let package = crate_name.replace('_', "-");
-        let sibling = manifest_dir.parent().unwrap().join(&package);
-        let repository = store_workspace_root(&manifest_dir)
-            .parent()
-            .and_then(std::path::Path::parent)
-            .expect("forge-store workspace lives under the repository workspaces directory");
-        let repository_crate = repository.join("crates").join(&package);
-        let path = if sibling.join("Cargo.toml").is_file() {
-            sibling
-        } else {
-            repository_crate
-        };
-        let path = path.to_string_lossy().replace('\\', "/");
-        dependencies.push_str(&format!("{package} = {{ path = \"{path}\" }}\n"));
-    }
-    let manifest = format!(
-        "[package]\nname = \"layout-runtime-authority-ui\"\nversion = \"0.0.0\"\nedition = \"2021\"\n\n[workspace]\n\n[dependencies]\n{dependencies}"
-    );
-    std::fs::write(case_dir.join("Cargo.toml"), manifest).unwrap();
-
-    std::process::Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
-        .arg("check")
-        .arg("--offline")
-        .arg("--quiet")
-        .arg("--manifest-path")
-        .arg(case_dir.join("Cargo.toml"))
-        .env(
-            "CARGO_TARGET_DIR",
-            compiled_dependency_dir().parent().unwrap(),
-        )
-        .output()
-        .unwrap()
-}
-
 fn compiled_dependency_dir() -> std::path::PathBuf {
     let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let workspace_root = store_workspace_root(&manifest_dir);
@@ -146,38 +104,53 @@ fn compiled_dependency_dir() -> std::path::PathBuf {
 }
 
 fn compiled_extern(crate_name: &str) -> std::path::PathBuf {
-    let dependencies = compiled_dependency_dir();
-    let prefix = format!("lib{crate_name}-");
-    let mut artifacts = std::fs::read_dir(&dependencies)
-        .unwrap_or_else(|error| {
-            panic!(
-                "failed to read compiled dependency directory {}: {error}",
-                dependencies.display()
-            )
-        })
-        .filter_map(Result::ok)
-        .map(|entry| entry.path())
-        .filter(|path| {
-            path.file_name()
-                .and_then(|name| name.to_str())
-                .is_some_and(|name| name.starts_with(&prefix))
-                && path
-                    .extension()
-                    .is_some_and(|extension| extension == "rlib" || extension == "rmeta")
-        })
-        .collect::<Vec<_>>();
-    artifacts.sort_by_key(|path| {
-        (
-            path.extension()
-                .is_some_and(|extension| extension == "rlib"),
-            std::fs::metadata(path)
-                .and_then(|metadata| metadata.modified())
-                .ok(),
-        )
-    });
-    artifacts
-        .pop()
-        .unwrap_or_else(|| panic!("missing compiled extern for {crate_name}"))
+    compiled_artifact_graph()
+        .get(crate_name)
+        .cloned()
+        .unwrap_or_else(|| panic!("Cargo did not emit a compiled extern for {crate_name}"))
+}
+
+fn compiled_artifact_graph() -> &'static std::collections::HashMap<String, std::path::PathBuf> {
+    static GRAPH: std::sync::OnceLock<std::collections::HashMap<String, std::path::PathBuf>> =
+        std::sync::OnceLock::new();
+
+    GRAPH.get_or_init(|| {
+        let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let workspace_root = store_workspace_root(&manifest_dir);
+        let output =
+            std::process::Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
+                .arg("check")
+                .arg("--offline")
+                .arg("--message-format=json")
+                .arg("-p")
+                .arg("forge-store-layout-indexes")
+                .arg("--test")
+                .arg("layout_scenarios")
+                .current_dir(workspace_root)
+                .output()
+                .expect("Cargo must be available for compile-fail artifact discovery");
+        assert!(
+            output.status.success(),
+            "Cargo artifact discovery failed:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        let mut graph = std::collections::HashMap::new();
+        for line in String::from_utf8_lossy(&output.stdout).lines() {
+            let Some(message) = cargo_artifact_message::parse(line) else {
+                continue;
+            };
+            let artifact = message.filenames.into_iter().find(|path| {
+                path.extension().is_some_and(|extension| {
+                    extension == "rlib" || extension == "rmeta" || extension == "dll"
+                })
+            });
+            if let Some(artifact) = artifact {
+                graph.insert(message.target_name.replace('-', "_"), artifact);
+            }
+        }
+        graph
+    })
 }
 
 fn assert_intended_compile_failure(ui_dir: &str, fixture_name: &str, stderr: &str) {

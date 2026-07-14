@@ -2,7 +2,9 @@ use super::{
     FutureLayoutCustomizationAdmission, FutureLayoutCustomizationDeferred,
     FutureLayoutCustomizationDenial, FutureLayoutCustomizationRequest,
 };
-use crate::strategy::registry::{layout_admission_registry, LayoutAdmissionRequest};
+use crate::strategy::registry::{
+    layout_admission_registry, LayoutAdmissionRequest, LayoutAdmissionView,
+};
 use forge_proof::TransitionOutcome;
 
 pub type FutureLayoutCustomizationOutcome = TransitionOutcome<
@@ -70,13 +72,13 @@ impl LayoutCustomizationBoundaryFacade {
         );
 
         let admission = layout_admission_registry().admit(layout_request);
-        match admission.into_result() {
-            Ok(snapshot) => TransitionOutcome::success(FutureLayoutCustomizationAdmission::new(
-                request, snapshot,
-            )),
-            Err(denial) => {
+        match admission.view() {
+            LayoutAdmissionView::Admitted(snapshot) => TransitionOutcome::success(
+                FutureLayoutCustomizationAdmission::new(request, snapshot.clone()),
+            ),
+            LayoutAdmissionView::Denied(denial) => {
                 TransitionOutcome::denied(FutureLayoutCustomizationDenial::StoreAdmissionDenied(
-                    super::LayoutAdmissionDenialProjection::new(denial),
+                    super::LayoutAdmissionDenialProjection::new(denial.clone()),
                 ))
             }
         }

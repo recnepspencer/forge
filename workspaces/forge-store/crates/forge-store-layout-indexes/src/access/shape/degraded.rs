@@ -23,6 +23,12 @@ impl DegradedExactScanRequest {
     }
 }
 
+impl Default for DegradedExactScanRequest {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub(crate) fn explicit_degraded_exact_scan(
     request: DegradedExactScanRequest,
 ) -> Result<AccessShapeContract, AccessShapeUnsupportedDenial> {

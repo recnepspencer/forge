@@ -1,10 +1,20 @@
-use forge_store_layout_indexes::BaselineBTreeExactCounterWitness;
+use forge_store_layout_indexes::{
+    AccessPathCounterSnapshot, AccessPlanIdentity, BaselineBTreeLookupCounterReceipt,
+    PlannedCounterObservation,
+};
 
-struct FoundationalPerformanceCounterRow;
-
-fn require_receipt(_: BaselineBTreeExactCounterWitness) {}
-
-fn main() {
-    let rows: Vec<FoundationalPerformanceCounterRow> = Vec::new();
-    require_receipt(rows);
+fn forge(
+    plan_binding: AccessPlanIdentity,
+    planned: AccessPathCounterSnapshot,
+    observed: AccessPathCounterSnapshot,
+    observation: PlannedCounterObservation,
+) -> BaselineBTreeLookupCounterReceipt {
+    BaselineBTreeLookupCounterReceipt {
+        plan_binding,
+        planned,
+        observed,
+        observation,
+    }
 }
+
+fn main() {}

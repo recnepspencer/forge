@@ -1,5 +1,11 @@
+#[path = "../cargo_artifacts.rs"]
+mod cargo_artifacts;
+
+const TEST_TARGET: &str = "s4_5_forbidden_shortcut_rejection_compile_fail";
+
 #[test]
 fn forbidden_shortcut_authority_cannot_be_forged_at_compile_time() {
+    cargo_artifacts::discover(TEST_TARGET);
     for fixture in compile_fail_fixtures() {
         assert_compile_fails(fixture);
     }
@@ -27,7 +33,7 @@ fn compile_fail_fixtures() -> Vec<CompileFailFixture> {
         CompileFailFixture {
             directory: "forbidden_shortcuts",
             name: "raw_json_cannot_satisfy_certified_scenario.rs",
-            expected_stderr: &["CertifiedPhysicalScenario", "Value"],
+            expected_stderr: &["CertifiedPhysicalScenario", "u8"],
         },
         CompileFailFixture {
             directory: "forbidden_shortcuts",
@@ -135,7 +141,7 @@ fn prepare_compile_fail_fixture(fixture: CompileFailFixture) -> std::path::PathB
 
 fn run_compile_fail_case(case_dir: &std::path::Path) -> std::process::Output {
     let rustc = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
-    let deps_dir = workspace_deps_dir();
+    let deps_dir = cargo_artifacts::dependency_dir();
     std::process::Command::new(rustc)
         .arg("--edition=2021")
         .arg("--crate-name")
@@ -148,22 +154,18 @@ fn run_compile_fail_case(case_dir: &std::path::Path) -> std::process::Output {
         .arg("--extern")
         .arg(format!(
             "forge_store_physical_certification={}",
-            latest_rlib(&deps_dir, "libforge_store_physical_certification").display()
+            cargo_artifacts::compiled_extern(TEST_TARGET, "forge_store_physical_certification")
+                .display()
         ))
         .arg("--extern")
         .arg(format!(
             "forge_proof={}",
-            latest_rlib(&deps_dir, "libforge_proof").display()
+            cargo_artifacts::compiled_extern(TEST_TARGET, "forge_proof").display()
         ))
         .arg("--extern")
         .arg(format!(
             "forge_store_readiness={}",
-            latest_rlib(&deps_dir, "libforge_store_readiness").display()
-        ))
-        .arg("--extern")
-        .arg(format!(
-            "serde_json={}",
-            latest_rlib(&deps_dir, "libserde_json").display()
+            cargo_artifacts::compiled_extern(TEST_TARGET, "forge_store_readiness").display()
         ))
         .arg("-o")
         .arg(case_dir.join("shortcut-ui.exe"))
@@ -177,35 +179,4 @@ fn compile_fail_case_dir(fixture_name: &str) -> std::path::PathBuf {
         .join(std::process::id().to_string())
         .join("cases")
         .join(fixture_name.trim_end_matches(".rs"))
-}
-
-fn workspace_deps_dir() -> std::path::PathBuf {
-    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .expect("certification crate lives under workspaces/forge-store/crates")
-        .join("target")
-        .join("debug")
-        .join("deps")
-}
-
-fn latest_rlib(deps_dir: &std::path::Path, stem: &str) -> std::path::PathBuf {
-    std::fs::read_dir(deps_dir)
-        .unwrap()
-        .filter_map(Result::ok)
-        .map(|entry| entry.path())
-        .filter(|path| {
-            path.extension()
-                .is_some_and(|extension| extension == "rlib")
-                && path
-                    .file_stem()
-                    .and_then(|name| name.to_str())
-                    .is_some_and(|name| name.starts_with(stem))
-        })
-        .max_by_key(|path| {
-            path.metadata()
-                .and_then(|metadata| metadata.modified())
-                .unwrap()
-        })
-        .unwrap_or_else(|| panic!("missing {stem} rlib in {}", deps_dir.display()))
 }

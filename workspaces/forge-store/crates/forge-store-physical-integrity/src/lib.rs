@@ -78,7 +78,7 @@ pub use blob_chunks::chunk_integrity_request::{
 pub use checksums::checksum_algorithm::{ChecksumAlgorithmClaim, ChecksumAlgorithmId};
 pub use checksums::checksum_compatibility::ChecksumCompatibilityPosture;
 pub use checksums::checksum_declaration::{
-    ChecksumAlgorithmDeclaration, ChecksumCoverageBasis, S3ChecksumDeclarationAdmission,
+    ChecksumAlgorithmDeclaration, ChecksumCoverageBasis, ChecksumDeclarationAdmission,
 };
 pub use checksums::checksum_denial::ChecksumAlgorithmMismatchDenial;
 pub use checksums::checksum_detection_model::{
@@ -156,7 +156,7 @@ pub use integrity_checked_physical_form::{
     IntegrityCheckedFrame, IntegrityCheckedPage, IntegrityCheckedPhysicalFormKind,
 };
 pub use logical_decode_gate::{
-    LogicalDecodeGate, LogicalDecodeGateEvidence, LogicalDecodeGateIdentity, S3LogicalDecoder,
+    LogicalDecodeGate, LogicalDecodeGateEvidence, LogicalDecodeGateIdentity, LogicalDecoder,
 };
 pub(crate) use manifests::manifest_allocation_map::allocation_map_report;
 pub use manifests::manifest_integrity::ManifestIntegrityAuthority;
@@ -189,6 +189,9 @@ pub use quarantine::quarantine_authority::PhysicalQuarantineAuthority;
 pub use quarantine::quarantine_denial::{QuarantineSealDenial, QuarantineSealDenialKind};
 pub use quarantine::quarantine_finding::ExecutedQuarantineFinding;
 pub use quarantine::quarantine_locality::{PhysicalLocalityReport, QuarantineLocalityBoundary};
+pub use quarantine::quarantine_outcome::{
+    QuarantineSealCounterSnapshot, QuarantineSealOutcome, QuarantineSealOutcomeView,
+};
 pub use quarantine::quarantine_posture::{QuarantineHandoffPosture, QuarantineLifecyclePosture};
 pub use quarantine::quarantine_receipt::{FoundationalQuarantineReceiptBasis, QuarantineReceipt};
 pub use quarantine::quarantine_record::QuarantineRecord;

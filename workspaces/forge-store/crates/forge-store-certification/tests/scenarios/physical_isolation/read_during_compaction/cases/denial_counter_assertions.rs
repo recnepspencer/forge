@@ -83,11 +83,12 @@ fn compaction_denies_quarantine_stale_epoch_in_place_and_backend_residue() {
         inputs.new_validation,
         None,
     );
-    let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
-        CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
-        receipt,
-    )
-    .unwrap();
+    let publication =
+        forge_store_physical_isolation::CompactionRewritePublication::publish_rewrite(
+            CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
+            receipt,
+        )
+        .unwrap();
     let residue = CompactionCutoverRecoveryPosture::missing_generation_identity(
         source_precedence_fixture::trace("backend-residue", 11),
     );
@@ -191,7 +192,7 @@ fn compaction_rejects_minted_source_and_publication_mismatches() {
     );
 
     assert!(matches!(
-        forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
+        forge_store_physical_isolation::CompactionRewritePublication::publish_rewrite(
             CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
             receipt,
         ),

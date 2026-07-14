@@ -1,6 +1,6 @@
 use crate::catalog::ArtifactFamilyAccessLane;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum IndexMaintenanceMode {
     SynchronousExact,
     AsynchronousLagged,

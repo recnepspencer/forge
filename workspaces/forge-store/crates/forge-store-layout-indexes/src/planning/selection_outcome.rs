@@ -48,29 +48,30 @@ impl AccessPlanSelectionOutcome {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn case(&self) -> super::decision::AccessPlanSelectionCase {
-        use super::decision::AccessPlanSelectionCase;
+    pub fn case_id(&self) -> super::decision::AccessPlanSelectionCaseId {
+        use super::decision::AccessPlanSelectionCaseId as CaseId;
 
         match self.view() {
             AccessPlanSelectionView::BTreeLookup(plan) => match plan.operation() {
-                super::BTreeLookupOperation::Point => AccessPlanSelectionCase::BTreePointLookup,
-                super::BTreeLookupOperation::Range => AccessPlanSelectionCase::BTreeRangeLookup,
-                super::BTreeLookupOperation::Prefix => AccessPlanSelectionCase::BTreePrefixLookup,
+                super::BTreeLookupOperation::Point => CaseId::BTreePointLookup,
+                super::BTreeLookupOperation::Range => CaseId::BTreeRangeLookup,
+                super::BTreeLookupOperation::Prefix => CaseId::BTreePrefixLookup,
             },
-            AccessPlanSelectionView::BTreeReplayRecovery(_) => {
-                AccessPlanSelectionCase::BTreeReplayRecovery
+            AccessPlanSelectionView::BTreeReplayRecovery(_) => CaseId::BTreeReplayRecovery,
+            AccessPlanSelectionView::LsmLookup(_) => CaseId::LsmLookup,
+            AccessPlanSelectionView::LsmRunPublication(_) => CaseId::LsmRunPublication,
+            AccessPlanSelectionView::LsmReplayRecovery(_) => CaseId::LsmReplayRecovery,
+            AccessPlanSelectionView::LsmCompaction(_) => CaseId::LsmCompaction,
+            AccessPlanSelectionView::Degraded(_) => CaseId::DegradedExactScan,
+            AccessPlanSelectionView::Denied(AccessPlanSelectionDenied::NoEligibleAlternative) => {
+                CaseId::NoEligibleAlternative
             }
-            AccessPlanSelectionView::LsmLookup(_) => AccessPlanSelectionCase::LsmLookup,
-            AccessPlanSelectionView::LsmRunPublication(_) => {
-                AccessPlanSelectionCase::LsmRunPublication
+            AccessPlanSelectionView::Denied(AccessPlanSelectionDenied::CostDenied(_)) => {
+                CaseId::CostDenied
             }
-            AccessPlanSelectionView::LsmReplayRecovery(_) => {
-                AccessPlanSelectionCase::LsmReplayRecovery
+            AccessPlanSelectionView::Denied(AccessPlanSelectionDenied::BudgetDenied(_)) => {
+                CaseId::BudgetDenied
             }
-            AccessPlanSelectionView::LsmCompaction(_) => AccessPlanSelectionCase::LsmCompaction,
-            AccessPlanSelectionView::Degraded(_) => AccessPlanSelectionCase::DegradedExactScan,
-            AccessPlanSelectionView::Denied(_) => AccessPlanSelectionCase::Denied,
         }
     }
 
@@ -176,4 +177,9 @@ impl AccessPlanSelectionOutcome {
             _ => Err(self),
         }
     }
+}
+
+pub fn access_plan_selection_cases(
+) -> impl Iterator<Item = super::decision::AccessPlanSelectionCaseId> {
+    super::decision::AccessPlanSelectionCaseId::ALL.into_iter()
 }

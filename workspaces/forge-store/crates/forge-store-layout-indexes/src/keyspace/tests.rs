@@ -1,9 +1,10 @@
+use super::key_domain_law;
 use super::tests_support::{
     admit_key_domain_scope, admitted_scope, page_id, root_reference, segment_id,
 };
 use crate::{
-    layout_declarations, ArtifactFamilyDenial, CompositeKeyField, HashCollisionBehavior,
-    PhysicalKeyDomain,
+    layout_declarations, ArtifactFamilyAdmissionView, ArtifactFamilyDenial, CompositeKeyField,
+    HashCollisionBehavior, PhysicalKeyDomain, PhysicalKeyDomainAdmissionView,
 };
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_security::{
@@ -25,12 +26,20 @@ fn admitted_domain_binds_family_security_and_exact_applicable_law_suite() {
     let page_declaration = layout_declarations()
         .declaration(DurableArtifactFamilyId::PhysicalPage)
         .unwrap();
-    let page_family = layout_declarations()
-        .admit_physical_artifact_family(page_declaration, page_security.witnesses())
-        .unwrap();
-    let page = layout_declarations()
-        .admit_physical_key_domain(page_family, page_security.witnesses())
-        .unwrap();
+    let family_outcome = layout_declarations()
+        .admit_physical_artifact_family(page_declaration, page_security.witnesses());
+    assert!(matches!(
+        family_outcome.view(),
+        ArtifactFamilyAdmissionView::Admitted(_)
+    ));
+    let page_family = family_outcome.unwrap();
+    let domain_outcome =
+        layout_declarations().admit_physical_key_domain(page_family, page_security.witnesses());
+    assert!(matches!(
+        domain_outcome.view(),
+        PhysicalKeyDomainAdmissionView::Admitted(_)
+    ));
+    let page = domain_outcome.unwrap();
 
     assert_eq!(page.family(), page_family);
     assert_eq!(page.domain(), PhysicalKeyDomain::PageAddressKey);
@@ -48,10 +57,13 @@ fn admitted_domain_binds_family_security_and_exact_applicable_law_suite() {
         StoreAuthenticityRequirement::not_required(),
         StoreCustodyPosture::InternalStoreCustody,
     );
-    assert_eq!(
-        layout_declarations().admit_physical_key_domain(page_family, root_security.witnesses()),
-        Err(ArtifactFamilyDenial::SecurityAuthorityMismatch),
-    );
+    let denied =
+        layout_declarations().admit_physical_key_domain(page_family, root_security.witnesses());
+    assert!(matches!(
+        denied.view(),
+        PhysicalKeyDomainAdmissionView::Denied(ArtifactFamilyDenial::SecurityAuthorityMismatch)
+    ));
+    assert_eq!(denied, Err(ArtifactFamilyDenial::SecurityAuthorityMismatch),);
     let root_declaration = layout_declarations()
         .declaration(DurableArtifactFamilyId::PhysicalRootManifest)
         .unwrap();
@@ -80,9 +92,7 @@ fn pages_admit_concrete_bytes_order_prefix_and_range() {
             StoreCustodyPosture::InternalStoreCustody,
         ),
     );
-    let domain = layout_declarations()
-        .declare_physical_key_domain(scope)
-        .unwrap();
+    let domain = key_domain_law().declare_physical_key_domain(scope).unwrap();
     let encoding = layout_declarations().require_canonical_key_encoding(domain);
     let comparator = layout_declarations().declare_comparator_law(encoding);
     let range = layout_declarations()
@@ -152,9 +162,7 @@ fn root_manifest_denies_prefix_and_range_but_keeps_exact_identity() {
             StoreCustodyPosture::InternalStoreCustody,
         ),
     );
-    let domain = layout_declarations()
-        .declare_physical_key_domain(scope)
-        .unwrap();
+    let domain = key_domain_law().declare_physical_key_domain(scope).unwrap();
     let encoding = layout_declarations().require_canonical_key_encoding(domain);
     let comparator = layout_declarations().declare_comparator_law(encoding);
     let hash_law = layout_declarations().declare_hash_collision_law(domain);
@@ -203,7 +211,7 @@ fn denies_cross_domain_concrete_key_shortcuts() {
             StoreCustodyPosture::InternalStoreCustody,
         ),
     );
-    let page_domain = layout_declarations()
+    let page_domain = key_domain_law()
         .declare_physical_key_domain(page_scope)
         .unwrap();
 
@@ -239,11 +247,11 @@ fn denies_families_without_explicit_concrete_key_law() {
     );
 
     assert_eq!(
-        layout_declarations().declare_physical_key_domain(repair_scope),
+        key_domain_law().declare_physical_key_domain(repair_scope),
         Err(ArtifactFamilyDenial::PhysicalKeyDomainNotDeclaredForFamily)
     );
     assert_eq!(
-        layout_declarations().declare_physical_key_domain(transfer_scope),
+        key_domain_law().declare_physical_key_domain(transfer_scope),
         Err(ArtifactFamilyDenial::PhysicalKeyDomainNotDeclaredForFamily)
     );
 }

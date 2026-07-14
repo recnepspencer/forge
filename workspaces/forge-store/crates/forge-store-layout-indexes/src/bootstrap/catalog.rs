@@ -17,6 +17,8 @@ pub struct BootstrapLayoutCatalog {
 }
 
 impl BootstrapLayoutCatalog {
+    // Bootstrap counters stay individually named so field order cannot hide a count class.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         identity: PhysicalBootstrapCatalogIdentity,
         discovery_layout: MinimalRootDiscoveryLayout,

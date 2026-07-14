@@ -3,7 +3,7 @@ use super::{
     BackgroundPacingOutcome,
 };
 
-/// Sealed S6 pacing capability issued only from verified background pacing outcomes.
+/// Sealed background-pacing capability issued only from verified background pacing outcomes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BackgroundPacingCapability {
     class: BackgroundIoPressureClass,

@@ -14,8 +14,8 @@ use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATI
 use forge_store_physical_format::{PhysicalAuthenticityIdentity, PhysicalFrameKind};
 use forge_store_physical_integrity::{
     AuthenticityPolicyDecodeCounters, AuthenticityPolicyPhysicalDecodeGate,
-    DeclaredPhysicalChecksum, LogicalDecodeGateIdentity, PhysicalIntegrityAdmissionRequest,
-    S3LogicalDecoder,
+    DeclaredPhysicalChecksum, LogicalDecodeGateIdentity, LogicalDecoder,
+    PhysicalIntegrityAdmissionRequest,
 };
 use forge_store_security::{
     admit_store_authenticity_witness_observation, admit_store_security_scope,

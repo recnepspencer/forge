@@ -80,11 +80,11 @@
 //!     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 //! };
 //! use forge_store_physical_format::{
-//!     PersistedPhysicalLayout, PlatformPhysicalFacade, PlatformPhysicalOpenRequest,
+//!     PersistedPhysicalLayout, PhysicalStoreRuntime, PlatformPhysicalOpenRequest,
 //! };
 //!
 //! let layout = PersistedPhysicalLayout::builder().build();
-//! let _reopened = PlatformPhysicalFacade::reopen(
+//! let _reopened = PhysicalStoreRuntime::reopen(
 //!     AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
 //!         ROADMAP_2_S1_SCOPE,
 //!         HandoffEvidenceDigestSet::new(

@@ -1,42 +1,12 @@
+mod absence;
+mod owner_cases;
+
 use forge_store_budgets::PreExecutionBudgetEnvelope;
 use forge_store_layout_indexes::{
-    btree_lookup_execution_cases, layout_read_runtime, BTreeLookupExecutionView,
-    BaselineBTreeLookupBranch, BaselineBTreeReadPreflight, BaselineBTreeReadShape,
-    BaselineBTreeReadSource, LayoutReadAdmissionDenied, PageLookupRequest,
+    layout_read_runtime, BTreeLookupExecutionView, BaselineBTreeLookupBranch,
+    BaselineBTreeReadPreflight, BaselineBTreeReadShape, BaselineBTreeReadSource,
+    LayoutReadAdmissionDenied, PageLookupRequest, PlannedCounterObservation,
 };
-
-#[test]
-fn ordinary_runtime_observes_every_declared_btree_lookup_execution_case() {
-    let catalog = admitted_layout_bootstrap_catalog();
-    let security = admitted_tenant_page_security_scope_for_layout_partition_test();
-    let execute = |slot| {
-        layout_read_runtime()
-            .execute_page_lookup(PageLookupRequest::new(
-                &catalog,
-                security.witnesses(),
-                segment(7),
-                page(9),
-                slot,
-                PreExecutionBudgetEnvelope::foreground_default(),
-                ordinary_source(),
-            ))
-            .unwrap()
-            .case_id()
-            .name()
-    };
-
-    let observed = [
-        execute(baseline_btree_probe_slot()),
-        execute(forge_store_physical_format::PhysicalRecordSlot::from_raw(15).unwrap()),
-    ]
-    .into_iter()
-    .collect::<std::collections::BTreeSet<_>>();
-    let declared = btree_lookup_execution_cases()
-        .map(|case| case.name())
-        .collect::<std::collections::BTreeSet<_>>();
-
-    assert_eq!(observed, declared);
-}
 use forge_store_physical_format::{PhysicalPageId, PhysicalSegmentId};
 use forge_store_physical_integrity::CompactionSourceIntegrityClearance;
 use forge_store_physical_isolation::{
@@ -47,24 +17,21 @@ use forge_store_security::{
     admitted_store_managed_root_security_scope_for_layout_partition_test,
     admitted_tenant_page_security_scope_for_layout_partition_test,
 };
+use forge_store_test_support::harness::physical_isolation::epoch_scope as physical_support;
+use forge_store_test_support::harness::physical_isolation::read_plan as plan_admission;
+use forge_store_test_support::harness::recovery::source_precedence as source_precedence_fixture;
 use forge_store_test_support::{
     admitted_layout_bootstrap_catalog, baseline_btree_probe_slot,
     deterministic_baseline_btree_read_preflight, deterministic_corrupt_leaf_btree_read_preflight,
     deterministic_cross_store_btree_read_preflight, deterministic_stale_child_btree_read_preflight,
     foreign_layout_physical_store_identity,
 };
-
-use forge_store_test_support::harness::physical_isolation::epoch_scope as physical_support;
-use forge_store_test_support::harness::physical_isolation::read_plan as plan_admission;
-use forge_store_test_support::harness::recovery::source_precedence as source_precedence_fixture;
-
 #[test]
 fn ordinary_runtime_selects_and_executes_separator_directed_page_lookup() {
     let catalog = admitted_layout_bootstrap_catalog();
     let security = admitted_tenant_page_security_scope_for_layout_partition_test();
     let source = ordinary_source();
     let source_authority = source.store_authority_identity();
-
     let executed = layout_read_runtime()
         .execute_page_lookup(PageLookupRequest::new(
             &catalog,
@@ -75,6 +42,8 @@ fn ordinary_runtime_selects_and_executes_separator_directed_page_lookup() {
             PreExecutionBudgetEnvelope::foreground_default(),
             source,
         ))
+        .unwrap()
+        .into_result()
         .unwrap();
     let BTreeLookupExecutionView::Found(lookup) = executed.view() else {
         panic!("ordinary probe must issue the found case")
@@ -91,6 +60,10 @@ fn ordinary_runtime_selects_and_executes_separator_directed_page_lookup() {
     assert_eq!(counters.key_comparisons(), 2);
     assert_eq!(counters.bytes_read(), 8_192);
     assert_eq!(counters.read_amplification(), 2);
+    let receipt = executed.counter_receipt();
+    assert_eq!(receipt.observation(), PlannedCounterObservation::Exact);
+    assert_eq!(receipt.observed().allocation_events(), 4);
+    assert_eq!(receipt.planned(), receipt.observed());
     assert_eq!(source_authority, security.witnesses().authority_identity());
     assert_eq!(
         executed
@@ -130,6 +103,8 @@ fn ordinary_runtime_derives_range_and_prefix_execution_from_admitted_intent() {
             PreExecutionBudgetEnvelope::foreground_default(),
             ordinary_source(),
         ))
+        .unwrap()
+        .into_result()
         .unwrap();
     let prefix = layout_read_runtime()
         .execute_page_lookup(PageLookupRequest::prefix(
@@ -141,6 +116,8 @@ fn ordinary_runtime_derives_range_and_prefix_execution_from_admitted_intent() {
             PreExecutionBudgetEnvelope::foreground_default(),
             ordinary_source(),
         ))
+        .unwrap()
+        .into_result()
         .unwrap();
 
     let BTreeLookupExecutionView::Found(range) = range.view() else {
@@ -156,41 +133,13 @@ fn ordinary_runtime_derives_range_and_prefix_execution_from_admitted_intent() {
 }
 
 #[test]
-fn absent_probe_issues_key_and_source_bound_absence_after_real_leaf_selection() {
-    let catalog = admitted_layout_bootstrap_catalog();
-    let security = admitted_tenant_page_security_scope_for_layout_partition_test();
-    let source = ordinary_source();
-
-    let executed = layout_read_runtime()
-        .execute_page_lookup(PageLookupRequest::new(
-            &catalog,
-            security.witnesses(),
-            segment(7),
-            page(9),
-            forge_store_physical_format::PhysicalRecordSlot::from_raw(15).unwrap(),
-            PreExecutionBudgetEnvelope::foreground_default(),
-            source,
-        ))
-        .unwrap();
-    let BTreeLookupExecutionView::Absent(absence) = executed.view() else {
-        panic!("missing probe must issue the absent case")
-    };
-    assert_eq!(absence.probe_slot().get(), 15);
-    assert_eq!(
-        absence.current_materialization(),
-        executed.current_materialization(),
-    );
-    assert!(absence.selected_leaf().page_id().is_some());
-}
-
-#[test]
 fn malformed_persisted_leaf_is_rejected_at_the_physical_read_transition() {
     let catalog = admitted_layout_bootstrap_catalog();
     let security = admitted_tenant_page_security_scope_for_layout_partition_test();
     let source = admit_source(deterministic_corrupt_leaf_btree_read_preflight());
 
-    assert_eq!(
-        layout_read_runtime().execute_page_lookup(PageLookupRequest::new(
+    let outcome = layout_read_runtime()
+        .execute_page_lookup(PageLookupRequest::new(
             &catalog,
             security.witnesses(),
             segment(7),
@@ -198,11 +147,14 @@ fn malformed_persisted_leaf_is_rejected_at_the_physical_read_transition() {
             baseline_btree_probe_slot(),
             PreExecutionBudgetEnvelope::foreground_default(),
             source,
-        )),
-        Err(LayoutReadAdmissionDenied::BTreeExecution(
-            forge_store_layout_indexes::BaselineBTreeExecutionDenial::InvalidLeafNode,
-        )),
-    );
+        ))
+        .unwrap();
+    assert!(matches!(
+        outcome.view(),
+        BTreeLookupExecutionView::Denied(
+            forge_store_layout_indexes::BaselineBTreeExecutionDenial::InvalidLeafNode
+        )
+    ));
 }
 
 #[test]
@@ -220,11 +172,12 @@ fn stale_child_generation_cannot_read_newer_physical_bytes() {
         source,
     ));
 
+    let outcome = outcome.unwrap();
     assert!(matches!(
-        outcome,
-        Err(LayoutReadAdmissionDenied::BTreeExecution(
-            forge_store_layout_indexes::BaselineBTreeExecutionDenial::Physical(_),
-        ))
+        outcome.view(),
+        BTreeLookupExecutionView::Denied(
+            forge_store_layout_indexes::BaselineBTreeExecutionDenial::Physical(_)
+        )
     ));
 }
 
@@ -262,6 +215,8 @@ fn active_btree_read_defers_reclaim_for_overlapping_compaction() {
             PreExecutionBudgetEnvelope::foreground_default(),
             source,
         ))
+        .unwrap()
+        .into_result()
         .unwrap();
     let integrity =
         source_precedence_fixture::intact_wal_integrity_evidence_for_owner(candidate.owner());

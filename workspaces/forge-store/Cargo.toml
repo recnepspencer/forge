@@ -35,7 +35,6 @@ members = [
     "crates/forge-store-recovery-physics",
     "crates/forge-store-replication",
     "crates/forge-store-retention",
-    "crates/forge-store-s0-reclassification",
     "crates/forge-store-schema-lineage",
     "crates/forge-store-security",
     "crates/forge-store-snapshots",
@@ -85,7 +84,6 @@ forge-store-reclaim-policy = { path = "crates/forge-store-reclaim-policy" }
 forge-store-recovery-physics = { path = "crates/forge-store-recovery-physics" }
 forge-store-replication = { path = "crates/forge-store-replication" }
 forge-store-retention = { path = "crates/forge-store-retention" }
-forge-store-s0-reclassification = { path = "crates/forge-store-s0-reclassification" }
 forge-store-schema-lineage = { path = "crates/forge-store-schema-lineage" }
 forge-store-security = { path = "crates/forge-store-security" }
 forge-store-snapshots = { path = "crates/forge-store-snapshots" }

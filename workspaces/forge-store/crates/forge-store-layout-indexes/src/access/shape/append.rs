@@ -2,8 +2,8 @@ use super::contract::ExpectedCounterClass;
 use super::contract::{AccessShapeContract, AccessStaleDisposition};
 use super::denial::AccessShapeUnsupportedDenial;
 use super::detail::{AccessShapeDetail, MutationAccessBasis};
+use super::kind::AccessShape;
 use super::lane::AccessLaneClassification;
-use super::shape::AccessShape;
 use crate::maintenance::PhysicalMutationShape;
 
 pub(crate) fn append_path(

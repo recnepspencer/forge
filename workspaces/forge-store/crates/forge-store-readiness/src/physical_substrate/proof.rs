@@ -7,8 +7,8 @@ use forge_store_contracts::{AcceptedHandoffReadiness, ROADMAP_2_S1_SCOPE};
 use forge_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalPublicationState,
-    PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId,
-    PlatformPhysicalAppendRequest, PlatformPhysicalFacade, PlatformPhysicalFacadeCounterSnapshot,
+    PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId, PhysicalStoreRuntime,
+    PhysicalStoreRuntimeCounterSnapshot, PlatformPhysicalAppendRequest,
     PlatformPhysicalOpenRequest, PHYSICAL_HEADER_LENGTH,
 };
 
@@ -87,7 +87,7 @@ fn prove_physical_format_physical_handoff_evidence(
     let scan = facade
         .scan_physical_layout()
         .map_err(|_| proof_rejected())?;
-    let mut reopened = PlatformPhysicalFacade::reopen(
+    let mut reopened = PhysicalStoreRuntime::reopen(
         reopen_readiness,
         PlatformPhysicalOpenRequest::physical_format_canonical(),
         published.replay_artifact(),
@@ -114,8 +114,8 @@ fn prove_physical_format_physical_handoff_evidence(
 
 fn open_facade(
     readiness: AcceptedHandoffReadiness,
-) -> Result<PlatformPhysicalFacade, PhysicalSubstrateReadinessDenial> {
-    PlatformPhysicalFacade::open_physical_format(
+) -> Result<PhysicalStoreRuntime, PhysicalSubstrateReadinessDenial> {
+    PhysicalStoreRuntime::open_physical_format(
         readiness,
         PlatformPhysicalOpenRequest::physical_format_canonical(),
     )
@@ -123,8 +123,8 @@ fn open_facade(
 }
 
 fn rejected_shortcut_counters(
-    facade: &mut PlatformPhysicalFacade,
-) -> Result<PlatformPhysicalFacadeCounterSnapshot, PhysicalSubstrateReadinessDenial> {
+    facade: &mut PhysicalStoreRuntime,
+) -> Result<PhysicalStoreRuntimeCounterSnapshot, PhysicalSubstrateReadinessDenial> {
     if facade.reject_full_store_heap_materialization().is_ok()
         || facade.reject_backend_residue_guess().is_ok()
     {
@@ -133,13 +133,13 @@ fn rejected_shortcut_counters(
     Ok(facade.counters())
 }
 
-const fn no_materialization_evidence_count(counters: PlatformPhysicalFacadeCounterSnapshot) -> u32 {
+const fn no_materialization_evidence_count(counters: PhysicalStoreRuntimeCounterSnapshot) -> u32 {
     counters.full_store_materialization_rejections() + counters.backend_residue_guess_rejections()
 }
 
 const fn counter_evidence_count(
-    facade: PlatformPhysicalFacadeCounterSnapshot,
-    reopened: PlatformPhysicalFacadeCounterSnapshot,
+    facade: PhysicalStoreRuntimeCounterSnapshot,
+    reopened: PhysicalStoreRuntimeCounterSnapshot,
 ) -> u32 {
     facade.opens()
         + facade.appends()
@@ -249,6 +249,6 @@ fn generation(value: u64) -> Result<PhysicalGeneration, PhysicalSubstrateReadine
 
 const fn proof_rejected() -> PhysicalSubstrateReadinessDenial {
     PhysicalSubstrateReadinessDenial::new(
-        PhysicalSubstrateReadinessDenialKind::S1PhysicalSubstrateProofRejected,
+        PhysicalSubstrateReadinessDenialKind::PhysicalSubstrateProofRejected,
     )
 }

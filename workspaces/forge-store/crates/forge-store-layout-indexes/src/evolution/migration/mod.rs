@@ -1,33 +1,59 @@
-mod compatibility_window;
+mod binding;
+mod compatibility;
+mod counters;
+mod declaration;
 mod denial;
-mod evolution_declaration;
-mod interruption;
-mod migration_plan;
-mod planning;
-mod rollback_plan;
-mod stale_rebind;
+mod forward;
+#[cfg(test)]
+mod interruption_tests;
+mod plan_fingerprint;
+mod rollback;
+#[cfg(test)]
+mod rollback_interruption_tests;
 #[cfg(test)]
 pub(crate) mod test_support;
 #[cfg(test)]
 pub(crate) mod tests;
-mod transition_outcome;
 mod version;
 
-pub use compatibility_window::{
-    LayoutCompatibilityWindow, LayoutReadCompatibilityPosture, LayoutWriteCompatibilityPosture,
+pub use binding::{
+    layout_binding_admission_cases, layout_evolution_binding, LayoutBindingAdmissionCaseId,
+    LayoutBindingAdmissionOutcome, LayoutBindingAdmissionView, LayoutBindingRequest,
+    LayoutBindingSourceIdentity, LayoutBindingWitness, LayoutEvolutionBinding,
+    LayoutRebindRequired,
 };
-pub use denial::LayoutEvolutionDenial;
-pub use evolution_declaration::{LayoutBindingWitness, LayoutEvolutionDeclaration};
-pub use interruption::{
-    LayoutInterruptedMigrationDisposition, LayoutInterruptionPolicy, LayoutInterruptionState,
+pub use compatibility::{
+    layout_backward_read_compatibility, layout_backward_read_compatibility_cases,
+    LayoutBackwardReadCompatibility, LayoutBackwardReadCompatibilityCaseId,
+    LayoutBackwardReadEvidence, LayoutBackwardReadOutcome, LayoutBackwardReadRequest,
+    LayoutBackwardReadView, LayoutCompatibilityWindow, LayoutReadCompatibilityPosture,
+    LayoutWriteCompatibilityPosture,
 };
-pub use migration_plan::{LayoutMigrationPlan, LayoutMigrationRequest, LayoutPlanFingerprint};
-pub use planning::{layout_migration, LayoutMigrationFacade};
-pub use rollback_plan::{LayoutRollbackPlan, LayoutRollbackRequest};
-pub use stale_rebind::{LayoutRebindRequired, LayoutStaleBinding};
-pub use transition_outcome::{
-    migration_planning_cases, rollback_planning_cases, MigrationPlanningCaseId,
-    MigrationPlanningOutcome, MigrationPlanningView, RollbackPlanningCaseId,
+pub use counters::{LayoutMigrationCounterSnapshot, LayoutRollbackCounterSnapshot};
+pub use declaration::LayoutEvolutionDeclaration;
+pub use denial::{LayoutEvolutionDenial, LayoutEvolutionDenialKind};
+pub use forward::{
+    layout_migration_execution, layout_migration_execution_cases,
+    layout_migration_interruption_cases, layout_migration_operation, migration_planning_cases,
+    LayoutInterruptedMigrationDisposition, LayoutInterruptionBoundary,
+    LayoutInterruptionFingerprint, LayoutInterruptionPolicy, LayoutInterruptionState,
+    LayoutMigrationExecution, LayoutMigrationExecutionCaseId, LayoutMigrationExecutionFingerprint,
+    LayoutMigrationExecutionOutcome, LayoutMigrationExecutionRequest, LayoutMigrationExecutionView,
+    LayoutMigrationInterruptionCaseId, LayoutMigrationInterruptionOutcome,
+    LayoutMigrationInterruptionView, LayoutMigrationOperation, LayoutMigrationPlan,
+    LayoutMigrationReceipt, LayoutMigrationRequest, MigrationPlanningCaseId,
+    MigrationPlanningOutcome, MigrationPlanningView,
+};
+pub use plan_fingerprint::LayoutPlanFingerprint;
+pub use rollback::{
+    layout_rollback_execution, layout_rollback_execution_cases, layout_rollback_interruption_cases,
+    layout_rollback_operation, rollback_planning_cases, LayoutRollbackExecution,
+    LayoutRollbackExecutionCaseId, LayoutRollbackExecutionFingerprint,
+    LayoutRollbackExecutionOutcome, LayoutRollbackExecutionRequest, LayoutRollbackExecutionView,
+    LayoutRollbackInterruptionBoundary, LayoutRollbackInterruptionCaseId,
+    LayoutRollbackInterruptionOutcome, LayoutRollbackInterruptionPosture,
+    LayoutRollbackInterruptionState, LayoutRollbackInterruptionView, LayoutRollbackOperation,
+    LayoutRollbackPlan, LayoutRollbackReceipt, LayoutRollbackRequest, RollbackPlanningCaseId,
     RollbackPlanningOutcome, RollbackPlanningView,
 };
 pub use version::LayoutVersion;

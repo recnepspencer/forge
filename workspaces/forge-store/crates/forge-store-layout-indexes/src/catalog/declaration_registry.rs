@@ -11,11 +11,11 @@ use crate::{
     keyspace::{
         admit_blob_identity_key, admit_physical_reference_key, admit_root_manifest_key,
         compare_concrete_physical_keys, declare_composite_key_ordering, declare_hash_collision_law,
-        declare_physical_key_domain, declare_tenant_scoped_key_domain, hash_digest_for_key,
-        prefix_bytes_for_key, prefix_successor_bytes, range_end_bytes_for_key,
-        range_start_bytes_for_key, require_exact_hash_identity_claim, require_prefix_law,
-        require_range_bound_law, verify_hash_identity, CompositeKeyOrderingLaw, HashCollisionLaw,
-        PrefixLawWitness, RangeBoundLawWitness, TenantScopedKeyDomain,
+        declare_tenant_scoped_key_domain, hash_digest_for_key, prefix_bytes_for_key,
+        prefix_successor_bytes, range_end_bytes_for_key, range_start_bytes_for_key,
+        require_exact_hash_identity_claim, require_prefix_law, require_range_bound_law,
+        verify_hash_identity, CompositeKeyOrderingLaw, HashCollisionLaw, PrefixLawWitness,
+        RangeBoundLawWitness, TenantScopedKeyDomain,
     },
 };
 use crate::{
@@ -30,9 +30,10 @@ use crate::{
     },
 };
 use forge_store_contracts::{DurableArtifactFamilyId, WalRecordFamily};
-use forge_store_physical_format::{PhysicalPageId, PhysicalSegmentId};
 #[cfg(test)]
-use forge_store_physical_format::{PhysicalReferenceAdmissionWitness, PhysicalRootReference};
+use forge_store_physical_format::PhysicalReferenceAdmissionWitness;
+use forge_store_physical_format::{PhysicalPageId, PhysicalRootReference, PhysicalSegmentId};
+#[cfg(test)]
 use forge_store_security::StoreCurrentSecurityScopeWitnessSet;
 use forge_store_wal::StoreWalRecordIdentity;
 #[cfg(test)]
@@ -42,22 +43,6 @@ use std::cmp::Ordering;
 pub struct LayoutDeclarationsFacade;
 
 impl LayoutDeclarationsFacade {
-    pub fn admit_physical_key_domain(
-        &self,
-        family: crate::AdmittedPhysicalArtifactFamily,
-        security: &StoreCurrentSecurityScopeWitnessSet,
-    ) -> Result<crate::keyspace::AdmittedPhysicalKeyDomain, ArtifactFamilyDenial> {
-        crate::keyspace::AdmittedPhysicalKeyDomain::admit(family, security)
-    }
-
-    pub fn admit_physical_artifact_family(
-        &self,
-        declaration: &'static PhysicalArtifactFamilyDeclaration,
-        security: &StoreCurrentSecurityScopeWitnessSet,
-    ) -> Result<crate::artifact_family::AdmittedPhysicalArtifactFamily, ArtifactFamilyDenial> {
-        crate::artifact_family::AdmittedPhysicalArtifactFamily::admit(declaration, security)
-    }
-
     pub const fn artifact_families(&self) -> ArtifactFamilyInventory {
         ArtifactFamilyInventory::current()
     }
@@ -131,14 +116,6 @@ impl LayoutDeclarationsFacade {
         security_scope: &StoreCurrentSecurityScopeWitnessSet,
     ) -> Result<ArtifactScopePartitionWitness, ArtifactFamilyDenial> {
         require_scope_partition(accuracy, security_scope)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn declare_physical_key_domain(
-        &self,
-        scope: ArtifactScopePartitionWitness,
-    ) -> crate::keyspace::KeyDomainAdmissionOutcome {
-        crate::keyspace::issue_key_domain_admission(declare_physical_key_domain(scope))
     }
 
     pub(crate) fn require_canonical_key_encoding(
@@ -218,7 +195,7 @@ impl LayoutDeclarationsFacade {
         admit_page_address_key(domain, segment_id, page_id)
     }
 
-    pub(crate) fn admit_page_key(
+    pub fn admit_page_key(
         &self,
         domain: crate::AdmittedPhysicalKeyDomain,
         segment_id: PhysicalSegmentId,
@@ -245,13 +222,21 @@ impl LayoutDeclarationsFacade {
         admit_wal_record_key(domain, family, sequence)
     }
 
-    pub(crate) fn admit_wal_key(
+    pub fn admit_wal_key(
         &self,
         domain: crate::AdmittedPhysicalKeyDomain,
         family: WalRecordFamily,
         sequence: StoreWalRecordIdentity,
     ) -> Result<crate::keyspace::AdmittedConcretePhysicalKey, ArtifactFamilyDenial> {
         crate::keyspace::admit_wal_key(domain, family, sequence)
+    }
+
+    pub fn admit_root_key(
+        &self,
+        domain: crate::AdmittedPhysicalKeyDomain,
+        root_reference: PhysicalRootReference,
+    ) -> Result<crate::keyspace::AdmittedConcretePhysicalKey, ArtifactFamilyDenial> {
+        crate::keyspace::admit_root_key(domain, root_reference)
     }
 
     #[cfg(test)]

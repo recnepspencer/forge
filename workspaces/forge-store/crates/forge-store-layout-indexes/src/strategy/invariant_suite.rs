@@ -83,6 +83,10 @@ impl StrategyCounterProfile {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// The admitted suite is a cold, immutable law bundle retained behind the registry snapshot's
+// shared handle. Keeping both strategy-native suites inline preserves Copy semantics for the
+// production strategy capability and avoids adding allocation to every strategy use.
+#[allow(clippy::large_enum_variant)]
 enum StrategySpecificInvariantSuite {
     BTree(BTreeInvariantSuite),
     Lsm(LsmInvariantSuite),
@@ -102,7 +106,7 @@ pub struct StrategyInvariantSuite {
 
 #[derive(Debug, PartialEq, Eq)]
 enum StrategyInvariantAdmissionCase {
-    Success(StrategyInvariantSuite),
+    Success(Box<StrategyInvariantSuite>),
     Denied(StrategyDenial),
 }
 
@@ -112,11 +116,11 @@ pub(crate) struct StrategyInvariantAdmissionOutcome {
 }
 
 impl StrategyInvariantAdmissionOutcome {
-    pub(crate) fn admitted(value: StrategyInvariantSuite) -> Self {
-        Self::from_owner_payload(StrategyInvariantAdmissionCase::Success(value))
+    fn admitted(value: StrategyInvariantSuite) -> Self {
+        Self::from_owner_payload(StrategyInvariantAdmissionCase::Success(Box::new(value)))
     }
 
-    pub(crate) fn denied(value: StrategyDenial) -> Self {
+    fn denied(value: StrategyDenial) -> Self {
         Self::from_owner_payload(StrategyInvariantAdmissionCase::Denied(value))
     }
 
@@ -133,7 +137,7 @@ impl StrategyInvariantAdmissionOutcome {
     pub(crate) fn into_admitted(self) -> Result<AdmittedStrategyInvariants, StrategyDenial> {
         match self.into_owner_payload() {
             StrategyInvariantAdmissionCase::Success(suite) => {
-                Ok(AdmittedStrategyInvariants { suite })
+                Ok(AdmittedStrategyInvariants { suite: *suite })
             }
             StrategyInvariantAdmissionCase::Denied(denial) => Err(denial),
         }

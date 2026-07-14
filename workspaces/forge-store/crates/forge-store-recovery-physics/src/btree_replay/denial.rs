@@ -1,11 +1,11 @@
 use forge_store_physical_format::{
-    PhysicalBootstrapCatalogDenial, PhysicalReference, PlatformPhysicalFacadeDenial,
+    PhysicalBootstrapCatalogDenial, PhysicalReference, PhysicalStoreRuntimeDenial,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BTreeReplaySourceDenial {
     BootstrapCatalog(PhysicalBootstrapCatalogDenial),
-    PhysicalOpen(PlatformPhysicalFacadeDenial),
+    PhysicalOpen(PhysicalStoreRuntimeDenial),
     RootManifestMissing,
     AmbiguousRootManifest {
         candidates: usize,
@@ -30,8 +30,8 @@ impl From<PhysicalBootstrapCatalogDenial> for BTreeReplaySourceDenial {
     }
 }
 
-impl From<PlatformPhysicalFacadeDenial> for BTreeReplaySourceDenial {
-    fn from(value: PlatformPhysicalFacadeDenial) -> Self {
+impl From<PhysicalStoreRuntimeDenial> for BTreeReplaySourceDenial {
+    fn from(value: PhysicalStoreRuntimeDenial) -> Self {
         Self::PhysicalOpen(value)
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    PlatformPhysicalFacadeEvidenceReport, PlatformPhysicalFacadeEvidenceRow,
+    PhysicalStoreRuntimeEvidenceReport, PhysicalStoreRuntimeEvidenceRow,
     RuntimeVerifierRelationship, ScenarioDenialBoundary,
 };
 use forge_store_contracts::{
@@ -7,7 +7,7 @@ use forge_store_contracts::{
 };
 use forge_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
-    PhysicalSegmentId, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
+    PhysicalSegmentId, PhysicalStoreRuntime, PlatformPhysicalAppendRequest,
     PlatformPhysicalOpenRequest,
 };
 
@@ -31,8 +31,8 @@ fn facade_scan_evidence_materializes_runtime_verifier_parity() {
         .scan_physical_layout()
         .expect("scan through verifier");
 
-    let report = PlatformPhysicalFacadeEvidenceReport::from_facade_evidence(
-        PlatformPhysicalFacadeEvidenceRow::RuntimeVerifierParity,
+    let report = PhysicalStoreRuntimeEvidenceReport::from_facade_evidence(
+        PhysicalStoreRuntimeEvidenceRow::RuntimeVerifierParity,
         &scan.platform_evidence(),
     )
     .expect("facade evidence row");
@@ -54,7 +54,7 @@ fn facade_shortcut_rejections_materialize_certification_trace() {
         .reject_backend_residue_guess()
         .expect_err("residue rejected");
 
-    let report = PlatformPhysicalFacadeEvidenceReport::from_shortcut_counters(facade.counters())
+    let report = PhysicalStoreRuntimeEvidenceReport::from_shortcut_counters(facade.counters())
         .expect("shortcut evidence row");
 
     assert!(report
@@ -65,8 +65,8 @@ fn facade_shortcut_rejections_materialize_certification_trace() {
         .contains(&ScenarioDenialBoundary::BackendResidueGuessing));
 }
 
-fn open_facade() -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_physical_format(
+fn open_facade() -> PhysicalStoreRuntime {
+    PhysicalStoreRuntime::open_physical_format(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
     )

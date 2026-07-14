@@ -1,4 +1,4 @@
-use forge_store_layout_indexes::maintenance::{
+use forge_store_layout_indexes::{
     IndexMaintenanceMode, LiveExactMaintenanceWitness,
 };
 

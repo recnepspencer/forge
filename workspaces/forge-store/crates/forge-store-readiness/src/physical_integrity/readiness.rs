@@ -17,7 +17,7 @@ impl PhysicalIntegrityReadiness {
     ) -> Result<Self, PhysicalIntegrityReadinessDenial> {
         if !physical_substrate_readiness.is_sealed() {
             return Err(PhysicalIntegrityReadinessDenial::new(
-                PhysicalIntegrityReadinessDenialKind::S2ReadinessNotSealed,
+                PhysicalIntegrityReadinessDenialKind::PhysicalSubstrateReadinessNotSealed,
             ));
         }
         require_physical_recap_matches_physical_substrate_facts(

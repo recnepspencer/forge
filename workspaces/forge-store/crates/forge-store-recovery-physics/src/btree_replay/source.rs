@@ -1,6 +1,6 @@
 use forge_store_contracts::AcceptedHandoffReadiness;
 use forge_store_physical_format::{
-    PersistedPhysicalLayout, PhysicalReference, PhysicalStoreIdentity, PlatformPhysicalFacade,
+    PersistedPhysicalLayout, PhysicalReference, PhysicalStoreIdentity, PhysicalStoreRuntime,
     PlatformPhysicalOpenRequest, PlatformPhysicalReplayArtifact,
 };
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -112,7 +112,6 @@ pub struct AdmittedBTreeReplaySource<I> {
 }
 
 impl<I> AdmittedBTreeReplaySource<I> {
-
     pub const fn intent(&self) -> &I {
         &self.intent
     }
@@ -137,7 +136,7 @@ impl<I> AdmittedBTreeReplaySource<I> {
         &self.physical
     }
 
-    pub fn reopen(&self) -> Result<PlatformPhysicalFacade, BTreeReplaySourceDenial> {
+    pub fn reopen(&self) -> Result<PhysicalStoreRuntime, BTreeReplaySourceDenial> {
         let canonical = PlatformPhysicalOpenRequest::physical_format_canonical();
         let request = PlatformPhysicalOpenRequest::for_store(
             canonical.headers().clone(),

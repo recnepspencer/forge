@@ -33,6 +33,7 @@ fn execution_consumes_handle_admits_guard_and_releases_plan() {
     let reference = current_generation_page_reference(101);
     let plan = admit_plan(&authority, root, protected_set([reference], 4), 8, 4);
     let footprint_basis = plan.footprint().declared_footprint_basis();
+    let admitted_plan_allocations = plan.counters().allocation_events();
     let handle = plan.into_execution_ready_handle();
     let scope = PhysicalByteGuardScope::for_owned_read_buffer(reference);
     let decode_entry = logical_decode_entry_for_handle(&handle, scope, "execution-consumes-handle");
@@ -63,7 +64,10 @@ fn execution_consumes_handle_admits_guard_and_releases_plan() {
     assert_eq!(receipt.counters().guarded_bytes(), 4);
     assert_eq!(receipt.counters().compact_footprint_checks(), 1);
     assert_eq!(receipt.counters().broad_footprint_scans(), 0);
-    assert_eq!(receipt.counters().plan_allocations(), 0);
+    assert_eq!(
+        receipt.counters().plan_allocations(),
+        admitted_plan_allocations
+    );
     assert_eq!(receipt.counters().diagnostic_materializations(), 0);
     let foundational = receipt.lower_to_foundational_evidence();
     assert_eq!(
@@ -88,6 +92,7 @@ fn execution_reports_epoch_retry_without_readmission_or_replanning() {
     let root = current_root_from_authority(&authority);
     let reference = current_generation_page_reference(102);
     let plan = admit_plan(&authority, root, protected_set([reference], 4), 8, 4);
+    let admitted_plan_allocations = plan.counters().allocation_events();
     let drifted_authority =
         physical_authority_from_operation_digest_closeout("s5-phase6-execution-time-drift");
     let drifted_root = current_root_from_authority(&drifted_authority);
@@ -125,7 +130,10 @@ fn execution_reports_epoch_retry_without_readmission_or_replanning() {
         other => panic!("root drift must stay typed as retry/rebind evidence: {other:?}"),
     }
     assert_eq!(execution.counters().broad_footprint_scans(), 0);
-    assert_eq!(execution.counters().plan_allocations(), 0);
+    assert_eq!(
+        execution.counters().plan_allocations(),
+        admitted_plan_allocations
+    );
 }
 
 #[test]
@@ -184,6 +192,7 @@ fn execution_rejects_guard_admitted_by_different_protected_footprint() {
     let right = current_generation_page_reference(112);
     let left_plan = admit_plan(&authority, root, protected_set([left], 4), 8, 4);
     let right_plan = admit_plan(&authority, root, protected_set([right], 4), 8, 4);
+    let admitted_plan_allocations = right_plan.counters().allocation_events();
     let mut left_execution = StablePhysicalReadExecution::from_execution_ready_handle(
         left_plan.into_execution_ready_handle(),
     );
@@ -212,7 +221,10 @@ fn execution_rejects_guard_admitted_by_different_protected_footprint() {
     ));
     assert_eq!(right_execution.counters().guarded_byte_reads(), 0);
     assert_eq!(right_execution.counters().broad_footprint_scans(), 0);
-    assert_eq!(right_execution.counters().plan_allocations(), 0);
+    assert_eq!(
+        right_execution.counters().plan_allocations(),
+        admitted_plan_allocations
+    );
 }
 
 #[test]

@@ -1,20 +1,20 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundedMemoryResidencySuite {
     reports: Vec<BoundedOperationEnvelopeReport>,
-    denials: Vec<S2BoundaryDenialKind>,
+    denials: Vec<MemoryBoundaryDenialKind>,
     harness_evidence: HarnessCloseoutEvidenceReport,
 }
 
 impl BoundedMemoryResidencySuite {
     pub fn admit(
         reports: Vec<BoundedOperationEnvelopeReport>,
-        denials: &[S2BoundaryDenialKind],
+        denials: &[MemoryBoundaryDenialKind],
         harness_evidence: HarnessCloseoutEvidenceReport,
     ) -> Result<Self, BoundedMemoryResidencySuiteDenial> {
         for operation in BoundedMemoryOperationKind::ALL {
             require_report_for_operation(&reports, operation)?;
         }
-        for denial in S2BoundaryDenialKind::ALL {
+        for denial in MemoryBoundaryDenialKind::ALL {
             require_contains_denial(denials, denial)?;
         }
         Ok(Self {
@@ -37,7 +37,7 @@ impl BoundedMemoryResidencySuite {
             .find(|report| report.operation() == operation)
     }
 
-    pub fn denials(&self) -> &[S2BoundaryDenialKind] {
+    pub fn denials(&self) -> &[MemoryBoundaryDenialKind] {
         &self.denials
     }
 
@@ -166,7 +166,7 @@ impl BoundedMemoryOperationKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S2BoundaryDenialKind {
+pub enum MemoryBoundaryDenialKind {
     OverBudgetResidency,
     PinLeak,
     DirtyOverflow,
@@ -175,7 +175,7 @@ pub enum S2BoundaryDenialKind {
     ForgedViewAccess,
 }
 
-impl S2BoundaryDenialKind {
+impl MemoryBoundaryDenialKind {
     pub const ALL: [Self; 6] = [
         Self::OverBudgetResidency,
         Self::PinLeak,
@@ -190,7 +190,7 @@ impl S2BoundaryDenialKind {
 pub enum BoundedMemoryResidencySuiteDenial {
     MissingOperation(BoundedMemoryOperationKind),
     MissingEnvelopeCounters(BoundedMemoryOperationKind),
-    MissingDenial(S2BoundaryDenialKind),
+    MissingDenial(MemoryBoundaryDenialKind),
     MissingHarnessEvidence,
 }
 
@@ -208,8 +208,8 @@ fn require_report_for_operation(
 }
 
 fn require_contains_denial(
-    denials: &[S2BoundaryDenialKind],
-    denial: S2BoundaryDenialKind,
+    denials: &[MemoryBoundaryDenialKind],
+    denial: MemoryBoundaryDenialKind,
 ) -> Result<(), BoundedMemoryResidencySuiteDenial> {
     if denials.contains(&denial) {
         Ok(())

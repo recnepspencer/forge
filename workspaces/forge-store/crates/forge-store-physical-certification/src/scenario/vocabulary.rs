@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PhysicalSimulationScenarioFamily {
-    S4RecoveryDogfood,
+    RecoveryDogfood,
     PhysicalIsolationReadinessShapeProbe,
     PhysicalIsolationStableReadPlanAdmission,
     PhysicalIsolationCompactionInterlock,

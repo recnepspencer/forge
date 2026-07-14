@@ -1,24 +1,32 @@
-use crate::{BlobWalRecordEnvelope, DurablePublicationScope};
+use crate::{
+    BlobWalRecordEnvelope, DurablePublicationScope, WalSecurityMetadataCarrier,
+    WalSecurityMetadataEnvelope,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobWalReplayRebuildWitness {
-    record: BlobWalRecordEnvelope,
+    source: WalSecurityMetadataEnvelope<BlobWalRecordEnvelope>,
     counter_shape: Vec<u64>,
 }
 
 impl BlobWalReplayRebuildWitness {
-    pub fn admit(record: BlobWalRecordEnvelope) -> Self {
-        let counter_shape = counter_shape(&record);
+    pub fn admit(source: WalSecurityMetadataEnvelope<BlobWalRecordEnvelope>) -> Self {
+        let counter_shape = counter_shape(source.record());
 
         Self {
-            record,
+            source,
             counter_shape,
         }
     }
 
     pub const fn record(&self) -> &BlobWalRecordEnvelope {
-        &self.record
+        self.source.record()
     }
+
+    pub const fn security_metadata(&self) -> WalSecurityMetadataCarrier {
+        self.source.security_metadata()
+    }
+
     pub fn counter_shape(&self) -> &[u64] {
         &self.counter_shape
     }

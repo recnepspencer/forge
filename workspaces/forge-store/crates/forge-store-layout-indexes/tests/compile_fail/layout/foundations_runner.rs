@@ -18,7 +18,7 @@ struct CompileFailFixture {
     extern_crates: &'static [&'static str],
 }
 
-fn compile_fail_fixtures() -> [CompileFailFixture; 42] {
+fn compile_fail_fixtures() -> [CompileFailFixture; 43] {
     [
         fixture(
             "raw_struct_cannot_construct_admitted_layout_strategy.rs",
@@ -26,7 +26,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 42] {
             &[],
         ),
         fixture(
-            "raw_struct_cannot_construct_phase_obligation.rs",
+            "bootstrap_catalog_fields_are_not_constructible.rs",
             &["private field", "BootstrapLayoutCatalog"],
             &[],
         ),
@@ -44,8 +44,8 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 42] {
             &[],
         ),
         fixture(
-            "certification_closeout_cannot_satisfy_executed_evidence.rs",
-            &["S8ExecutedAccessEvidence"],
+            "certification_report_cannot_satisfy_owner_outcome.rs",
+            &["BTreeLookupExecutionOutcome", "LayoutCourtroomReport"],
             &["forge_store_certification"],
         ),
         fixture(
@@ -76,10 +76,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 42] {
         ),
         fixture(
             "copied_counter_rows_cannot_satisfy_planned_vs_observed.rs",
-            &[
-                "BaselineBTreeExactCounterWitness",
-                "Vec<FoundationalPerformanceCounterRow>",
-            ],
+            &["BaselineBTreeLookupCounterReceipt", "private field"],
             &[],
         ),
         fixture(
@@ -189,13 +186,8 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 42] {
             &[],
         ),
         fixture(
-            "execution_readmission_witness_raw_constructor_is_not_public.rs",
-            &["private field", "DegradedScanReadmission"],
-            &[],
-        ),
-        fixture(
-            "execution_rebind_witness_raw_constructor_is_not_public.rs",
-            &["no `DegradedScanRebindAdmission`"],
+            "execution_rebind_admission_raw_constructor_is_not_public.rs",
+            &["private field", "DegradedScanRebindAdmission"],
             &[],
         ),
         fixture(
@@ -209,8 +201,13 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 42] {
             &[],
         ),
         fixture(
+            "layout_corruption_classification_is_owner_issued.rs",
+            &["private struct", "LayoutCorruptionClassification"],
+            &[],
+        ),
+        fixture(
             "derived_projection_cannot_satisfy_exact_access_admission.rs",
-            &["no `access_planning`"],
+            &["no method named `require_exact_point_access`"],
             &[],
         ),
         fixture(
@@ -230,7 +227,10 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 42] {
         ),
         fixture(
             "live_maintenance_request_cannot_mint_lower_mutation_proof.rs",
-            &["no method named", "prove_wal_before_data"],
+            &[
+                "no method named `prove_wal_before_data`",
+                "LiveMaintenanceRequest",
+            ],
             &[],
         ),
         fixture(
@@ -241,6 +241,11 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 42] {
         fixture(
             "physical_root_manifest_rebuild_witness_raw_constructor_is_not_public.rs",
             &["private field", "PhysicalRootManifestRebuildWitness"],
+            &["forge_store_physical_format"],
+        ),
+        fixture(
+            "physical_root_manifest_rebuild_source_raw_constructor_is_not_public.rs",
+            &["private field", "PhysicalRootManifestRebuildSource"],
             &["forge_store_physical_format"],
         ),
         fixture(

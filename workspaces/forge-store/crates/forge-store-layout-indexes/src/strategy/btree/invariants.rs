@@ -24,6 +24,8 @@ pub struct BTreeInvariantSuite {
 }
 
 impl BTreeInvariantSuite {
+    // Keeping every B-tree law explicit makes incomplete suites unrepresentable at the call site.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) const fn new(
         declaration: StrategyDeclaration,
         node_format: BTreeNodeFormatLaw,

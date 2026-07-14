@@ -1,7 +1,7 @@
 use super::{decode_leaf_record, BaselineBTreeExecutionDenial, BaselineBTreeLeafRecord};
 use forge_store_physical_format::{
     access::page::PageAccess, PhysicalLayoutAccessCounterSnapshot, PhysicalReferenceAuthority,
-    PlatformPhysicalFacade, SlotGenerationCell,
+    PhysicalStoreRuntime, SlotGenerationCell,
 };
 
 pub(super) struct ObservedBTreeLeafRead {
@@ -10,7 +10,7 @@ pub(super) struct ObservedBTreeLeafRead {
 }
 
 pub(super) fn read_leaf(
-    facade: &mut PlatformPhysicalFacade,
+    facade: &mut PhysicalStoreRuntime,
     cell: SlotGenerationCell,
 ) -> Result<ObservedBTreeLeafRead, BaselineBTreeExecutionDenial> {
     let reference = PhysicalReferenceAuthority::for_canonical_physical_format()

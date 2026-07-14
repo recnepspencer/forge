@@ -9,6 +9,7 @@ pub mod coverage;
 pub mod dirty_publication;
 pub mod memory_budget;
 pub mod redo_replay;
+mod reopened_artifact;
 #[path = "drivers/crash_harness.rs"]
 mod s4_crash_harness;
 #[path = "drivers/fault_scheduler.rs"]
@@ -33,6 +34,7 @@ pub mod source_precedence;
 pub mod wal_durability;
 pub mod wal_tail;
 
+pub use reopened_artifact::reopened_recovery_artifact_fixture;
 pub use s4_crash_harness::{ExecutedS4CrashHarnessDenial, ExecutedS4CrashHarnessTranscript};
 pub use s4_fault_scheduler::{FaultSchedulerDriver, ScheduledFault};
 pub use s4_fresh_runtime::{

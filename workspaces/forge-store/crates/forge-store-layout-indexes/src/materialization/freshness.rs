@@ -57,17 +57,34 @@ pub struct CurrentLayoutMaterialization {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StaleLayoutMaterialization {
+    inner: std::sync::Arc<StaleLayoutMaterializationData>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct StaleLayoutMaterializationData {
     materialization: AdmittedLayoutMaterialization,
     observed_frontier: CurrentMaterializationFrontier,
 }
 
 impl StaleLayoutMaterialization {
-    pub const fn materialization(&self) -> &AdmittedLayoutMaterialization {
-        &self.materialization
+    fn new(
+        materialization: AdmittedLayoutMaterialization,
+        observed_frontier: CurrentMaterializationFrontier,
+    ) -> Self {
+        Self {
+            inner: std::sync::Arc::new(StaleLayoutMaterializationData {
+                materialization,
+                observed_frontier,
+            }),
+        }
     }
 
-    pub const fn observed_frontier(&self) -> &CurrentMaterializationFrontier {
-        &self.observed_frontier
+    pub fn materialization(&self) -> &AdmittedLayoutMaterialization {
+        &self.inner.materialization
+    }
+
+    pub fn observed_frontier(&self) -> &CurrentMaterializationFrontier {
+        &self.inner.observed_frontier
     }
 }
 
@@ -103,10 +120,7 @@ impl CurrentLayoutMaterialization {
         materialization.coverage().require_exact()?;
         if materialization.source() != frontier.source() {
             return Ok(MaterializationFreshness::Stale(
-                StaleLayoutMaterialization {
-                    materialization,
-                    observed_frontier: frontier,
-                },
+                StaleLayoutMaterialization::new(materialization, frontier),
             ));
         }
         Ok(MaterializationFreshness::Current(Self { materialization }))

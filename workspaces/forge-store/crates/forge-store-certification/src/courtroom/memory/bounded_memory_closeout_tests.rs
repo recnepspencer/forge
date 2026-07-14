@@ -7,8 +7,8 @@ use crate::{
     BoundedMemoryCloseoutReport, BoundedMemoryOperationKind, BoundedMemoryResidencySuite,
     BoundedMemoryResidencySuiteDenial, BoundedOperationEnvelopeCounters,
     BoundedOperationEnvelopeReport, BufferPoolCertificationBundle,
-    BufferPoolCertificationBundleDenial, LargeStorePressureClass, RoadmapLaneFamily,
-    S2AcceptanceSuiteKind, S2BoundaryDenialKind, ScenarioDenialBoundary,
+    BufferPoolCertificationBundleDenial, LargeStorePressureClass, MemoryBoundaryDenialKind,
+    RoadmapLaneFamily, S2AcceptanceSuiteKind, ScenarioDenialBoundary,
     SyntheticCloseoutShortcutAttempt,
 };
 use forge_store_contracts::DeniedBoundaryKind;
@@ -40,9 +40,12 @@ fn bounded_memory_closeout_publishes_concrete_physical_integrity_readiness() {
 fn closeout_rejects_missing_bounded_operation_or_denial() {
     let mut reports = operation_reports();
     reports.retain(|report| report.operation() != BoundedMemoryOperationKind::LargeRecordStreaming);
-    let operation_denial =
-        BoundedMemoryResidencySuite::admit(reports, &S2BoundaryDenialKind::ALL, harness_evidence())
-            .unwrap_err();
+    let operation_denial = BoundedMemoryResidencySuite::admit(
+        reports,
+        &MemoryBoundaryDenialKind::ALL,
+        harness_evidence(),
+    )
+    .unwrap_err();
     assert_eq!(
         operation_denial,
         BoundedMemoryResidencySuiteDenial::MissingOperation(
@@ -52,13 +55,15 @@ fn closeout_rejects_missing_bounded_operation_or_denial() {
 
     let denial = BoundedMemoryResidencySuite::admit(
         operation_reports(),
-        &S2BoundaryDenialKind::ALL[..5],
+        &MemoryBoundaryDenialKind::ALL[..5],
         harness_evidence(),
     )
     .unwrap_err();
     assert_eq!(
         denial,
-        BoundedMemoryResidencySuiteDenial::MissingDenial(S2BoundaryDenialKind::ForgedViewAccess)
+        BoundedMemoryResidencySuiteDenial::MissingDenial(
+            MemoryBoundaryDenialKind::ForgedViewAccess
+        )
     );
 }
 
@@ -88,7 +93,7 @@ fn bundle_rejects_missing_large_store_pressure_class() {
 fn bundle_rejects_harness_closeout_not_matching_pressure_bundles() {
     let suite = BoundedMemoryResidencySuite::admit(
         operation_reports(),
-        &S2BoundaryDenialKind::ALL,
+        &MemoryBoundaryDenialKind::ALL,
         harness_evidence_for_class(LargeStorePressureClass::BarelyOverBudget),
     )
     .unwrap();
@@ -115,8 +120,8 @@ fn bundle_rejects_harness_closeout_not_matching_pressure_bundles() {
 fn bundle_rejects_harness_closeout_missing_acceptance_suite_transcript() {
     let suite = BoundedMemoryResidencySuite::admit(
         operation_reports(),
-        &S2BoundaryDenialKind::ALL,
-        harness_evidence_without_acceptance_suite(S2AcceptanceSuiteKind::S3ReadinessHandoff),
+        &MemoryBoundaryDenialKind::ALL,
+        harness_evidence_without_acceptance_suite(S2AcceptanceSuiteKind::IntegrityReadinessHandoff),
     )
     .unwrap();
     let (foundational, protected_view) = foundational_receipt_with_protected_view();
@@ -133,7 +138,7 @@ fn bundle_rejects_harness_closeout_missing_acceptance_suite_transcript() {
     assert_eq!(
         denial,
         BufferPoolCertificationBundleDenial::MissingHarnessAcceptanceSuite(
-            S2AcceptanceSuiteKind::S3ReadinessHandoff
+            S2AcceptanceSuiteKind::IntegrityReadinessHandoff
         )
     );
 }
@@ -221,9 +226,12 @@ fn bundle_rejects_symbolic_operation_envelope_counters() {
             .unwrap();
         }
     }
-    let suite =
-        BoundedMemoryResidencySuite::admit(reports, &S2BoundaryDenialKind::ALL, harness_evidence())
-            .unwrap();
+    let suite = BoundedMemoryResidencySuite::admit(
+        reports,
+        &MemoryBoundaryDenialKind::ALL,
+        harness_evidence(),
+    )
+    .unwrap();
     let (foundational, protected_view) = foundational_receipt_with_protected_view();
     let denial = BufferPoolCertificationBundle::admit(
         suite,
@@ -262,7 +270,7 @@ fn complete_closeout_report() -> BoundedMemoryCloseoutReport {
 fn suite() -> BoundedMemoryResidencySuite {
     BoundedMemoryResidencySuite::admit(
         operation_reports(),
-        &S2BoundaryDenialKind::ALL,
+        &MemoryBoundaryDenialKind::ALL,
         harness_evidence(),
     )
     .unwrap()

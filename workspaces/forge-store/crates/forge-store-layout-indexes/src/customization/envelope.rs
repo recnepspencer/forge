@@ -38,24 +38,24 @@ impl FutureLayoutWorkloadEnvelope {
     }
 
     pub const fn supports_capability(self, capability: FutureLayoutCapabilityRequest) -> bool {
-        match (self, capability) {
-            (Self::ForegroundLowFanout, FutureLayoutCapabilityRequest::PointLookup { .. }) => true,
+        matches!(
+            (self, capability),
             (
+                Self::ForegroundLowFanout,
+                FutureLayoutCapabilityRequest::PointLookup { .. }
+            ) | (
                 Self::ForegroundBoundedTraversal,
                 FutureLayoutCapabilityRequest::PointLookup { .. }
-                | FutureLayoutCapabilityRequest::OrderedRange { .. }
-                | FutureLayoutCapabilityRequest::PrefixTraversal { .. }
-                | FutureLayoutCapabilityRequest::BlobStreaming { .. },
-            ) => true,
-            (
+                    | FutureLayoutCapabilityRequest::OrderedRange { .. }
+                    | FutureLayoutCapabilityRequest::PrefixTraversal { .. }
+                    | FutureLayoutCapabilityRequest::BlobStreaming { .. }
+            ) | (
                 Self::BackgroundRebuildProjection,
-                FutureLayoutCapabilityRequest::RebuildableProjection { .. },
-            ) => true,
-            (
+                FutureLayoutCapabilityRequest::RebuildableProjection { .. }
+            ) | (
                 Self::VerifierCorpusInspection,
-                FutureLayoutCapabilityRequest::VerifierDeclaredScan { .. },
-            ) => true,
-            _ => false,
-        }
+                FutureLayoutCapabilityRequest::VerifierDeclaredScan { .. }
+            )
+        )
     }
 }

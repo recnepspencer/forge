@@ -15,6 +15,6 @@ pub use import_placement_plan::{
 };
 pub use restored_layout_materialization::{
     admit_restored_layout_materialization, restored_layout_materialization_cases,
-    RestoredLayoutMaterializationCaseId, RestoredLayoutMaterializationOutcome,
-    RestoredLayoutMaterializationView,
+    RestoredLayoutMaterializationCaseId, RestoredLayoutMaterializationObservation,
+    RestoredLayoutMaterializationOutcome, RestoredLayoutMaterializationView,
 };

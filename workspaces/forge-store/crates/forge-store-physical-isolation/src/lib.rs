@@ -49,26 +49,16 @@ pub use checkpoint_interlock::{
     CheckpointReadInterlockDenial, CheckpointReadInterlockPlan, CheckpointRootEpochTransition,
     ReadDuringCheckpointVerdict,
 };
-#[cfg(any(test, feature = "certification-authority"))]
-pub use compaction_interlock::{
-    compaction_cutover_evidence_for_certification_plan,
-    compaction_cutover_evidence_for_certification_rewrite_manifest,
-    publish_compaction_rewrite_for_certification, CompactionCutoverEvidenceForCertification,
-};
 pub use compaction_interlock::{
     compaction_owner_case_inventory, compaction_rewrite_scheduler_demand,
     execute_read_during_compaction_cutover, CompactionCandidateRangeSet, CompactionCutoverDelta,
     CompactionCutoverStabilityProof, CompactionCutoverState, CompactionDeferredReclaimQueue,
     CompactionInterlockFoundationalEvidence, CompactionMutationLaneOrigin,
-    CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind, CompactionOwnerCase,
-    CompactionOwnerCaseId, CompactionProtectedReferenceSet, CompactionReadInterlockCounters,
+    CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
+    CompactionOwnerCaseDeclaration, CompactionOwnerCaseId, CompactionOwnerCaseObservation,
+    CompactionProtectedReferenceSet, CompactionReadInterlockCounters,
     CompactionReadInterlockDenial, CompactionReadInterlockPlan, CompactionRewritePublication,
     CompactionSourceIntegrityEvidence, DrainedCompactionReclaim, ReadDuringCompactionVerdict,
-};
-#[cfg(any(test, feature = "certification-authority"))]
-pub use compaction_interlock::{
-    compaction_read_interlock_plan_for_certification_root_seed,
-    compaction_read_interlock_plan_for_certification_test,
 };
 #[cfg(any(test, feature = "certification-authority"))]
 pub use epoch::next_root_epoch_for_certification;
@@ -155,7 +145,8 @@ pub use physical_read_plan::{
     ValidatedRootObservation,
 };
 pub use physical_semantic_boundary::{
-    admit_physical_read_stability_authority, correlate_semantic_visibility_with_physical_snapshot,
+    admit_physical_read_stability_authority, admit_post_compaction_read_stability_authority,
+    correlate_semantic_visibility_with_physical_snapshot,
     deny_semantic_visibility_as_physical_stability, PhysicalReadStabilityAuthority,
     PhysicalReadStabilityCorrelationBasis, PhysicalSemanticBoundaryDenial,
     PhysicalSemanticBoundaryOutcome, PhysicalSemanticBoundaryRoleEvidence,
@@ -164,16 +155,17 @@ pub use physical_semantic_boundary::{
     SemanticVisibilityReferenceKind,
 };
 pub use publication::{
-    AllocatorPublicationFence, AtomicPhysicalRootSwap, CopyOnWritePublicationPlan,
-    CrashStableFreeReusePosture, LoweredCopyOnWritePublicationPlan, ManifestPublicationEpoch,
-    NewRootPublicationProof, OldReachabilityPreservation, PhysicalIdentityReuse,
-    PhysicalPublicationCounterSnapshot, PhysicalPublicationDenial,
+    AllocatorPublicationFence, AtomicPhysicalRootSwap, CopyOnWritePublicationBinding,
+    CopyOnWritePublicationPlan, CrashStableFreeReusePosture, LoweredCopyOnWritePublicationPlan,
+    ManifestPublicationEpoch, NewRootPublicationProof, OldReachabilityPreservation,
+    PhysicalIdentityReuse, PhysicalPublicationCounterSnapshot, PhysicalPublicationDenial,
     PhysicalPublicationFoundationalEvidence, PhysicalPublicationIntent,
     PhysicalPublicationIntentKind, PhysicalPublicationReadiness, PhysicalPublicationReceipt,
-    PhysicalPublicationReleasePosture, PublicationCrashRecoveryOutcome, PublicationEpochPair,
-    PublicationEpochReadiness, PublicationLatchReadiness, PublicationRootCandidate,
-    PublishedCopyOnWriteRootSwap, ReadCopyUpdateRootPublication, ReleasedOldReachability,
-    RootPublicationEpoch, RootSwapOrderingContract, ValidatedPhysicalPublicationIntent,
+    PhysicalPublicationReleasePosture, PhysicalRootPublicationRuntime,
+    PublicationCrashRecoveryOutcome, PublicationEpochPair, PublicationEpochReadiness,
+    PublicationLatchReadiness, PublicationRootCandidate, PublishedCopyOnWriteRootSwap,
+    ReadCopyUpdateRootPublication, ReleasedOldReachability, RootPublicationEpoch,
+    RootSwapOrderingContract, ValidatedPhysicalPublicationIntent,
 };
 pub use readiness::interference::{
     BackgroundMaintenanceIsolationAssumption, ForegroundInterferenceSurface,
@@ -197,8 +189,7 @@ pub use readiness::{
     PhysicalIsolationEntryIdentity, PhysicalIsolationEntryProofProgression,
     PhysicalIsolationEntryProofRequest, PhysicalIsolationEntryRebindRequired,
     PhysicalIsolationEntryRequest, PhysicalIsolationLoweredEntryRecipe,
-    PhysicalIsolationResolvedEntryRecipe, PhysicalIsolationRootEpochBasis,
-    S4RecoveryReadinessBasis,
+    PhysicalIsolationResolvedEntryRecipe, PhysicalIsolationRootEpochBasis, RecoveryReadinessBasis,
 };
 pub use readiness::{
     publish_scheduler_isolation_capability_from_executed_evidence,
@@ -240,10 +231,7 @@ pub use security_scope_propagation::{
 pub use stable_read_execution::{
     stable_physical_read_plan_for_certification_seed,
     stable_physical_read_plan_for_certification_test,
-    stable_physical_read_receipt_for_certification_root,
     stable_physical_read_receipt_for_certification_test,
-    stable_physical_read_receipt_for_compaction_plan_test,
-    stable_physical_read_receipt_for_mismatched_compaction_test,
 };
 pub use stable_read_execution::{
     ByteGuardedPhysicalRead, EpochRetryReceipt, PhysicalByteGuardAdmission,

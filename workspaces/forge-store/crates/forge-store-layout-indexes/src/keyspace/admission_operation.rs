@@ -6,13 +6,12 @@ use crate::keyspace::{
     admit_physical_reference_key, admit_root_manifest_key, admit_segment_address_key,
     admit_wal_record_key, canonical_bytes_for_key, compare_concrete_physical_keys,
     declare_comparator_law, declare_composite_key_ordering, declare_hash_collision_law,
-    declare_physical_key_domain, declare_tenant_scoped_key_domain, hash_digest_for_key,
-    prefix_bytes_for_key, prefix_successor_bytes, range_end_bytes_for_key,
-    range_start_bytes_for_key, require_canonical_key_encoding, require_exact_hash_identity_claim,
-    require_prefix_law, require_range_bound_law, verify_hash_identity, CanonicalKeyBytes,
-    CanonicalKeyEncoding, ComparatorLaw, CompositeKeyOrderingLaw, ConcretePhysicalKeyWitness,
-    HashCollisionLaw, PhysicalKeyDomainWitness, PrefixLawWitness, RangeBoundLawWitness,
-    TenantScopedKeyDomain,
+    declare_tenant_scoped_key_domain, hash_digest_for_key, prefix_bytes_for_key,
+    prefix_successor_bytes, range_end_bytes_for_key, range_start_bytes_for_key,
+    require_canonical_key_encoding, require_exact_hash_identity_claim, require_prefix_law,
+    require_range_bound_law, verify_hash_identity, CanonicalKeyBytes, CanonicalKeyEncoding,
+    ComparatorLaw, CompositeKeyOrderingLaw, ConcretePhysicalKeyWitness, HashCollisionLaw,
+    PhysicalKeyDomainWitness, PrefixLawWitness, RangeBoundLawWitness, TenantScopedKeyDomain,
 };
 use forge_store_contracts::WalRecordFamily;
 use forge_store_physical_format::{
@@ -29,8 +28,8 @@ impl KeyDomainLawFacade {
     pub fn declare_physical_key_domain(
         &self,
         scope: ArtifactScopePartitionWitness,
-    ) -> crate::keyspace::KeyDomainAdmissionOutcome {
-        crate::keyspace::issue_key_domain_admission(declare_physical_key_domain(scope))
+    ) -> Result<PhysicalKeyDomainWitness, ArtifactFamilyDenial> {
+        crate::keyspace::declare_physical_key_domain(scope)
     }
 
     pub fn require_canonical_key_encoding(

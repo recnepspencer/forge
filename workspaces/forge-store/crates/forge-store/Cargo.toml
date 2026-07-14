@@ -34,7 +34,6 @@ forge-store-physical-isolation.workspace = true
 forge-store-recovery-physics.workspace = true
 forge-store-replication.workspace = true
 forge-store-retention.workspace = true
-forge-store-s0-reclassification.workspace = true
 forge-store-schema-lineage.workspace = true
 forge-store-security.workspace = true
 forge-store-snapshots.workspace = true

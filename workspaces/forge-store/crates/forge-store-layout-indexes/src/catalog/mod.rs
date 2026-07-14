@@ -10,9 +10,9 @@ mod inventory;
 use crate::artifact_family::artifact_family_inventory_rows;
 mod lifecycle;
 #[cfg(test)]
-mod phase_three_tests;
+mod lifecycle_authority_tests;
 #[cfg(test)]
-mod phase_two_tests;
+mod scope_authority_tests;
 mod scope_partition;
 pub(crate) mod system_families;
 #[cfg(test)]
@@ -36,7 +36,8 @@ pub use classification::{
 };
 pub use declaration::{PhysicalArtifactFamily, PhysicalArtifactFamilyDeclaration};
 pub use declaration_registry::layout_declarations;
-pub use denial::ArtifactFamilyDenial;
+pub(crate) use declaration_registry::LayoutDeclarationsFacade;
+pub use denial::{ArtifactFamilyDenial, ArtifactFamilyDenialKind};
 pub use inventory::{
     ArtifactFamilyInventory, ArtifactFamilyInventoryRow, ExistingArtifactFamilySurface,
 };

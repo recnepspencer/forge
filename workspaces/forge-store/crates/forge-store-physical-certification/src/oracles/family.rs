@@ -55,7 +55,7 @@ impl ReusablePhysicalOracleFamily {
 
     pub const fn recovery_dogfood() -> Self {
         Self {
-            kind: OracleFamilyKind::S4RecoveryDogfood,
+            kind: OracleFamilyKind::RecoveryDogfood,
         }
     }
 

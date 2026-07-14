@@ -1,19 +1,19 @@
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExecutedLayoutOperation {
-    BTreeLookup(crate::BaselineBTreeLookupExecution),
-    BTreeReplay(crate::BaselineBTreeReplayRecoveryExecution),
-    LsmLookup(crate::BaselineLsmLookupExecution),
-    LsmRunPublication(crate::BaselineLsmManifestPublicationExecution),
-    LsmReplay(crate::BaselineLsmReplayExecution),
-    LsmCompaction(crate::BaselineLsmCompactionPublicationReceipt),
-    DegradedScan(super::DegradedScanExecution),
+    BTreeLookup(Box<crate::BaselineBTreeLookupExecution>),
+    BTreeReplay(Box<crate::BaselineBTreeReplayRecoveryExecution>),
+    LsmLookup(Box<crate::BaselineLsmLookupExecution>),
+    LsmRunPublication(Box<crate::BaselineLsmManifestPublicationExecution>),
+    LsmReplay(Box<crate::BaselineLsmReplayExecution>),
+    LsmCompaction(Box<crate::BaselineLsmCompactionPublicationReceipt>),
+    DegradedScan(Box<super::DegradedScanExecution>),
 }
 
 macro_rules! observe_owner_execution {
     ($owner:ty, $case:ident) => {
         impl From<$owner> for ExecutedLayoutOperation {
             fn from(executed: $owner) -> Self {
-                Self::$case(executed)
+                Self::$case(Box::new(executed))
             }
         }
     };

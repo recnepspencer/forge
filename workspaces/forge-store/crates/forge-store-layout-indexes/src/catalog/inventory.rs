@@ -56,10 +56,10 @@ impl ArtifactFamilyInventory {
     }
 }
 
-pub(crate) fn declaration_in_rows<'a>(
-    rows: &'a [ArtifactFamilyInventoryRow],
+pub(crate) fn declaration_in_rows(
+    rows: &[ArtifactFamilyInventoryRow],
     family_id: DurableArtifactFamilyId,
-) -> Result<&'a PhysicalArtifactFamilyDeclaration, ArtifactFamilyDenial> {
+) -> Result<&PhysicalArtifactFamilyDeclaration, ArtifactFamilyDenial> {
     let mut index = 0;
     while index < rows.len() {
         let row = &rows[index];
@@ -108,24 +108,20 @@ impl ExistingArtifactFamilySurface for CompatibilityFamilyKind {
             }
             Self::SnapshotRecord => DurableArtifactFamilyId::CompatibilitySnapshotRecord,
             Self::DeltaRecord => DurableArtifactFamilyId::CompatibilityDeltaRecord,
-            Self::Milestone6LayoutBlockChunkRecord => {
-                DurableArtifactFamilyId::CompatibilityMilestone6LayoutBlockChunkRecord
+            Self::LegacyLayoutBlockChunkRecord => {
+                DurableArtifactFamilyId::CompatibilityLegacyLayoutBlockChunkRecord
             }
-            Self::Milestone8BasisContinuationDescriptor => {
-                DurableArtifactFamilyId::CompatibilityMilestone8BasisContinuationDescriptor
+            Self::LegacyBasisContinuationDescriptor => {
+                DurableArtifactFamilyId::CompatibilityLegacyBasisContinuationDescriptor
             }
-            Self::Milestone9BulkRecord => {
-                DurableArtifactFamilyId::CompatibilityMilestone9BulkRecord
+            Self::LegacyBulkRecord => DurableArtifactFamilyId::CompatibilityLegacyBulkRecord,
+            Self::LegacyRetentionRebuildRecord => {
+                DurableArtifactFamilyId::CompatibilityLegacyRetentionRebuildRecord
             }
-            Self::Milestone10RetentionRebuildRecord => {
-                DurableArtifactFamilyId::CompatibilityMilestone10RetentionRebuildRecord
+            Self::LegacyMaintenanceRecord => {
+                DurableArtifactFamilyId::CompatibilityLegacyMaintenanceRecord
             }
-            Self::Milestone11MaintenanceRecord => {
-                DurableArtifactFamilyId::CompatibilityMilestone11MaintenanceRecord
-            }
-            Self::Milestone13TieringRecord => {
-                DurableArtifactFamilyId::CompatibilityMilestone13TieringRecord
-            }
+            Self::LegacyTieringRecord => DurableArtifactFamilyId::CompatibilityLegacyTieringRecord,
         }
     }
 }
@@ -165,9 +161,7 @@ impl ExistingArtifactFamilySurface for PlacementArtifactFamily {
             Self::StableBasis => DurableArtifactFamilyId::PlacementStableBasis,
             Self::SnapshotFamily => DurableArtifactFamilyId::PlacementSnapshotFamily,
             Self::BranchDeltaFamily => DurableArtifactFamilyId::PlacementBranchDeltaFamily,
-            Self::Milestone6LayoutFamily => {
-                DurableArtifactFamilyId::PlacementMilestone6LayoutFamily
-            }
+            Self::LegacyLayoutFamily => DurableArtifactFamilyId::PlacementLegacyLayoutFamily,
         }
     }
 }
@@ -200,17 +194,17 @@ impl private::Sealed for DerivedFamilyRetentionPolicy {}
 impl ExistingArtifactFamilySurface for DerivedFamilyRetentionPolicy {
     fn canonical_family_id(&self) -> DurableArtifactFamilyId {
         match self {
-            Self::Milestone6LayoutMaterialization => {
-                DurableArtifactFamilyId::DerivedRetentionMilestone6LayoutMaterialization
+            Self::LegacyLayoutMaterialization => {
+                DurableArtifactFamilyId::DerivedRetentionLegacyLayoutMaterialization
             }
-            Self::Milestone6ScopeSliceMembership => {
-                DurableArtifactFamilyId::DerivedRetentionMilestone6ScopeSliceMembership
+            Self::LegacyScopeSliceMembership => {
+                DurableArtifactFamilyId::DerivedRetentionLegacyScopeSliceMembership
             }
-            Self::Milestone6StructuralBlock => {
-                DurableArtifactFamilyId::DerivedRetentionMilestone6StructuralBlock
+            Self::LegacyStructuralBlock => {
+                DurableArtifactFamilyId::DerivedRetentionLegacyStructuralBlock
             }
-            Self::Milestone6ChunkMembership => {
-                DurableArtifactFamilyId::DerivedRetentionMilestone6ChunkMembership
+            Self::LegacyChunkMembership => {
+                DurableArtifactFamilyId::DerivedRetentionLegacyChunkMembership
             }
         }
     }

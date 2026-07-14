@@ -1,11 +1,39 @@
 //! Lifecycle-ordered public facade for forge-store-certification.
 //!
-//! Order: authority ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ evidence ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ scenario ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ replay ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ harness ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ closeout ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ lanes.
+//! Order: authority -> evidence -> scenario -> replay -> harness -> adjudication -> lanes.
 
-// --- runtime matrix: courtroom-only Phase 33 completeness gate ---
-pub use crate::courtroom::layout::runtime_matrix::{
-    require_complete_layout_runtime_matrix, required_layout_runtime_obligations,
-    LayoutRuntimeCompletenessDenial, LayoutRuntimeStrategyEquivalenceClass,
+pub use crate::courtroom::foundational::{
+    accept_aspect_native_boundary_handoff, reconstruct_aspect_native_boundary_verdict,
+    reject_terminal_json_projection_as_boundary_handoff, AspectNativeBoundaryHandoff,
+    AspectNativeBoundaryHandoffDenial, AspectNativeBoundaryHandoffVerdict,
+    AspectNativeRejectedInputKind,
+};
+pub use crate::courtroom::layout::adjudication::{
+    adjudicate_layout_courtroom, adjudicate_layout_hazards, assemble_layout_evidence_bundle,
+    certify_layout_foundational_closeout, observe_layout_proof_outcomes, LayoutCompileFailBoundary,
+    LayoutCourtroomDenial, LayoutCourtroomReport, LayoutCourtroomTranscriptIdentity,
+    LayoutEvidenceAssemblyDenial, LayoutEvidenceBundle, LayoutFoundationalCloseoutDenial,
+    LayoutFoundationalCloseoutEvidence, LayoutHazard, LayoutHazardAdjudicationDenial,
+    LayoutHazardEvidencePosture, LayoutHazardInventory, LayoutHazardRow, LayoutProofOutcomeKind,
+    LayoutProofOutcomeObservation,
+};
+pub use crate::courtroom::layout::formal_observation::{
+    observe_layout_formal_model, LayoutDurableArtifactKind, LayoutDurableArtifactObservation,
+    LayoutDurableOrdering, LayoutFormalInvariant, LayoutFormalObservation,
+    LayoutFormalObservationDenial, LayoutFormalOwnerFamilyObservation,
+};
+pub use crate::courtroom::layout::owner_coverage::{
+    certify_exact_owner_case_coverage, require_exact_owner_case_coverage,
+    LayoutOwnerCaseDeclarations, LayoutOwnerCoverageDenial, LayoutOwnerCoverageIssue,
+    LayoutOwnerCoverageReceipt, LayoutOwnerFamily, LayoutOwnerObservationLedger,
+};
+pub use crate::courtroom::layout::owner_evidence::{
+    certify_layout_owner_execution_evidence, LayoutOwnerExecutionEvidence,
+    LayoutOwnerExecutionEvidenceDenial,
+};
+pub use crate::courtroom::layout::owner_scenarios::{
+    execute_declaration_owner_scenarios, LayoutOwnerScenarioExecutionDenial,
+    LayoutOwnerScenarioTranscript,
 };
 
 // --- authority: substrate certification entry points ---
@@ -28,16 +56,16 @@ pub use crate::courtroom::memory::bounded_memory_closeout::{
 };
 pub use crate::courtroom::memory::bounded_memory_residency_suite::{
     BoundedMemoryOperationKind, BoundedMemoryResidencySuite, BoundedMemoryResidencySuiteDenial,
-    BoundedOperationEnvelopeCounters, BoundedOperationEnvelopeReport, S2BoundaryDenialKind,
+    BoundedOperationEnvelopeCounters, BoundedOperationEnvelopeReport, MemoryBoundaryDenialKind,
 };
 pub use crate::courtroom::memory::buffer_pool_certification_bundle::{
     BufferPoolCertificationBundle, BufferPoolCertificationBundleDenial,
 };
 pub use crate::evidence::by_substrate::{
-    certify_foundational_handoff_gate_proof_evidence,
-    offline_observer_requires_physical_references, AllocationEnvelopeEvidenceDenial,
-    AllocationEnvelopeEvidenceReport, AllocationEnvelopeEvidenceRow,
-    AllocationEnvelopePerformanceReceipt, BackgroundClassEnvelopeEvidence,
+    certify_aspect_native_boundary_audit, offline_observer_requires_physical_references,
+    AllocationEnvelopeEvidenceDenial, AllocationEnvelopeEvidenceReport,
+    AllocationEnvelopeEvidenceRow, AllocationEnvelopePerformanceReceipt,
+    AspectNativeBoundaryCertificationDenial, BackgroundClassEnvelopeEvidence,
     BackgroundEnvelopeEvidenceBundle, BackgroundEnvelopeEvidenceDenial,
     BinaryPhysicalFormatEvidence, BinaryPhysicalFormatEvidenceDenial,
     BufferPoolProvenanceAttachment, CompletedResidencyBoundaryReceipt,
@@ -59,16 +87,16 @@ pub use crate::evidence::by_substrate::{
     PhysicalManifestDiscoveryEvidenceRow, PhysicalOfflineVerifierEvidenceDenial,
     PhysicalOfflineVerifierEvidenceReport, PhysicalOfflineVerifierEvidenceRow,
     PhysicalPageRecordFramingEvidenceDenial, PhysicalPageRecordFramingEvidenceReport,
-    PhysicalPageRecordFramingEvidenceRow, PinLifecycleEvidenceDenial, PinLifecycleEvidenceReport,
-    PinLifecycleEvidenceRow, PlatformPhysicalFacadeEvidenceDenial,
-    PlatformPhysicalFacadeEvidenceReport, PlatformPhysicalFacadeEvidenceRow,
+    PhysicalPageRecordFramingEvidenceRow, PhysicalStoreRuntimeEvidenceDenial,
+    PhysicalStoreRuntimeEvidenceReport, PhysicalStoreRuntimeEvidenceRow,
+    PinLifecycleEvidenceDenial, PinLifecycleEvidenceReport, PinLifecycleEvidenceRow,
     ProtectedIntegrityViewEvidence, ProtectedIntegrityViewEvidenceDenial, RecordViewEvidenceDenial,
     RecordViewEvidenceReport, RecordViewEvidenceRow, RequiredInterferenceKind,
     ResidentFrameAuthorityEvidenceDenial, ResidentFrameAuthorityEvidenceReport,
     ResidentFrameAuthorityEvidenceRow, ResidentMemoryPerformanceReceipt,
-    S0HandoffGateCertificationDenial, S2EntryBoundaryEvidenceDenial, S2EntryBoundaryEvidenceReport,
-    S2EntryBoundaryEvidenceRow, S2ForbiddenEntryAttempt, SpeculativeWorkEvidenceDenial,
-    SpeculativeWorkEvidenceReport, SpeculativeWorkEvidenceRow, ZeroCopyLayoutPostureReport,
+    S2EntryBoundaryEvidenceDenial, S2EntryBoundaryEvidenceReport, S2EntryBoundaryEvidenceRow,
+    S2ForbiddenEntryAttempt, SpeculativeWorkEvidenceDenial, SpeculativeWorkEvidenceReport,
+    SpeculativeWorkEvidenceRow, ZeroCopyLayoutPostureReport,
 };
 pub use crate::scenario::memory::bounded_memory_harness_closeout::{
     HarnessCloseoutEvidenceReport, HarnessCloseoutTranscriptEvidence,
@@ -93,9 +121,16 @@ pub use crate::courtroom::closeout::{
     physical_isolation_required_mutation_rows, BlobCloseoutCertificationInput, BlobCloseoutDenial,
     BlobCloseoutEvidencePolicy, BlobCloseoutRequest, BlobCloseoutShortcutAttempt,
     BlobCloseoutShortcutInput, BlobCloseoutShortcutRejectionReport, BlobStoreCloseoutCertificate,
-    ExecutedPhysicalIsolationEvidenceSource, ExecutedPhysicalIsolationFinding,
-    ExecutedPhysicalIsolationOutcome, ExecutedPhysicalIsolationRequiredCounters,
-    ExecutedPhysicalIsolationSourceBasis, ExecutedPhysicalIsolationSourceDenial,
+    CorruptionLocalizationBoundary, ExecutedCorruptionLocalizationEvidence,
+    ExecutedIntegrityBoundaryDenialEvidence, ExecutedPhysicalIsolationEvidenceSource,
+    ExecutedPhysicalIsolationFinding, ExecutedPhysicalIsolationOutcome,
+    ExecutedPhysicalIsolationRequiredCounters, ExecutedPhysicalIsolationSourceBasis,
+    ExecutedPhysicalIsolationSourceDenial, IntegrityCloseoutDenialBoundary,
+    IntegrityCloseoutEvidenceFamily, IntegrityCloseoutExecutedOutputKind,
+    IntegrityCloseoutHarnessSummary, IntegrityCloseoutModuleKind, IntegrityCompositionEvidence,
+    IntegrityHarnessExecutionEvidence, IntegrityHarnessTranscriptEvidence,
+    IntegrityModuleCompositionEvidence, IntegrityOwnedCloseoutFileEvidence,
+    IntegrityRecoveryHandoffCloseoutEvidence, PhysicalIntegrityAcceptanceSuite,
     PhysicalIntegrityCertificationBundle, PhysicalIntegrityCloseoutDenial,
     PhysicalIntegrityCloseoutReport, PhysicalIntegrityCloseoutSuite,
     PhysicalIntegrityCloseoutSuiteEvidence, PhysicalIsolationCloseoutDenial,
@@ -120,14 +155,9 @@ pub use crate::courtroom::closeout::{
     RecoveryPhysicsScenarioDefinitionDenial, RecoveryPhysicsScenarioDrivers,
     RecoveryPhysicsScenarioPlan, RecoveryPhysicsScenarioPlanDenial, RecoveryPhysicsShortcutAttempt,
     RecoveryPhysicsShortcutDenialBoundary, RecoveryPhysicsShortcutDenialReason,
-    RecoveryPhysicsShortcutRejection, RecoveryPhysicsTranscript, S3AcceptanceSuiteKind,
-    S3CloseoutDenialBoundary, S3CloseoutEvidenceFamily, S3CloseoutExecutedOutputKind,
-    S3CloseoutHarnessExecutionEvidence, S3CloseoutModuleKind, S3CloseoutSuiteHarnessSummary,
-    S3CorruptionLocalizationBoundary, S3ExecutedBoundaryDenialEvidence,
-    S3ExecutedCorruptionLocalizationEvidence, S3HarnessTranscriptEvidence,
-    S3LineCapCompositionEvidence, S3LineCapModuleEvidence, S3OwnedCloseoutFileEvidence,
-    S3S4HandoffCloseoutEvidence, S51CertificationCloseoutDenial, S51CertificationCloseoutEvidence,
-    S51CertificationCloseoutInput, S51CertificationEvidencePolicy, S51CloseoutApiAdoptionEvidence,
+    RecoveryPhysicsShortcutRejection, RecoveryPhysicsTranscript, S51CertificationCloseoutDenial,
+    S51CertificationCloseoutEvidence, S51CertificationCloseoutInput,
+    S51CertificationEvidencePolicy, S51CloseoutApiAdoptionEvidence,
     S51CloseoutBoundaryEvidencePublication, S51CloseoutCounterMatrix,
     S51CloseoutFoundationalBoundaryPackage, S51CloseoutFoundationalLane,
     S51CloseoutPerformanceReceipts, S51CloseoutPerformanceRows, S5CloseoutReservationSet,
@@ -177,25 +207,23 @@ pub use crate::courtroom::harness::{
 };
 // --- replay: observed traces and verifier comparison ---
 pub use crate::courtroom::replay::{
-    assemble_layout_index_layout_replay_bundle, FixtureAdversaryPosture, FixtureAdversaryReport,
-    LargeStorePressureClass, LayoutReplayBundle, ObservedPhysicalTrace, OfflineVerifierObserver,
-    PhysicalCounterExpectationKind, PhysicalHostileScaleCondition,
-    PhysicalHostileScaleFixtureDenial, PhysicalHostileScaleFixtureReport,
-    PhysicalHostileScaleFixtureSource, PhysicalLayoutParity, PhysicalLayoutParityDenial,
-    PhysicalLayoutParityReport, PhysicalRuntimeVerifierComparison, PhysicalScalePropertyEvidence,
-    PhysicalStoryTranscript, RuntimeLayoutObserver, RuntimeVerifierComparisonClassification,
-    RuntimeVerifierComparisonDenial, RuntimeVerifierComparisonReport,
-    RuntimeVerifierDiagnosticDenial, RuntimeVerifierDiagnosticKind,
-    RuntimeVerifierDiagnosticReport, RuntimeVerifierParityTrace, RuntimeVerifierRelationship,
-    RuntimeVerifierSupportDenial, RuntimeVerifierSupportReport, ScenarioCounterExpectation,
-    ScenarioCounterObservation, ScenarioCounterTrace, ScenarioDenialBoundary, ScenarioDenialTrace,
-    ScenarioObserverTrace, ShortcutRejectionTrace,
+    FixtureAdversaryPosture, FixtureAdversaryReport, LargeStorePressureClass,
+    ObservedPhysicalTrace, OfflineVerifierObserver, PhysicalCounterExpectationKind,
+    PhysicalHostileScaleCondition, PhysicalHostileScaleFixtureDenial,
+    PhysicalHostileScaleFixtureReport, PhysicalHostileScaleFixtureSource, PhysicalLayoutParity,
+    PhysicalLayoutParityDenial, PhysicalLayoutParityReport, PhysicalRuntimeVerifierComparison,
+    PhysicalScalePropertyEvidence, PhysicalStoryTranscript, RuntimeLayoutObserver,
+    RuntimeVerifierComparisonClassification, RuntimeVerifierComparisonDenial,
+    RuntimeVerifierComparisonReport, RuntimeVerifierDiagnosticDenial,
+    RuntimeVerifierDiagnosticKind, RuntimeVerifierDiagnosticReport, RuntimeVerifierParityTrace,
+    RuntimeVerifierRelationship, RuntimeVerifierSupportDenial, RuntimeVerifierSupportReport,
+    ScenarioCounterExpectation, ScenarioCounterObservation, ScenarioCounterTrace,
+    ScenarioDenialBoundary, ScenarioDenialTrace, ScenarioObserverTrace, ShortcutRejectionTrace,
 };
 // --- scenario: definition, planning, and execution ---
 pub use crate::courtroom::scenario::{
-    certify_layout_index_layout_scenario, ArtifactPolicy, ExpectedPhysicalFootprint,
-    LayoutScenarioCertificate, PhysicalScenarioCapabilityTier, PhysicalScenarioCostClass,
-    PhysicalScenarioDefinition, PhysicalScenarioDefinitionBuilder,
+    ArtifactPolicy, ExpectedPhysicalFootprint, PhysicalScenarioCapabilityTier,
+    PhysicalScenarioCostClass, PhysicalScenarioDefinition, PhysicalScenarioDefinitionBuilder,
     PhysicalScenarioDefinitionDenial, PhysicalScenarioExecution, PhysicalScenarioExecutionReport,
     PhysicalScenarioPlan, PhysicalScenarioPlanDenial, PhysicalScenarioPlanIdentity,
     PhysicalScenarioPlannedWorkBoundaryReport, PhysicalStoryStep, ScenarioLane,

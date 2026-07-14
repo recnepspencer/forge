@@ -8,6 +8,7 @@ use forge_store_physical_format::PhysicalGenerationOwner;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompactionCandidateRangeSet {
     ranges: ProtectedReferenceRangeSet,
+    references: Vec<CurrentGenerationPhysicalReference>,
     owners: Vec<PhysicalGenerationOwner>,
     candidate_references: u64,
 }
@@ -29,12 +30,17 @@ impl CompactionCandidateRangeSet {
             .iter()
             .map(|reference| reference.owner())
             .collect::<Vec<_>>();
+        let references = protected
+            .iter()
+            .map(|reference| reference.current_generation())
+            .collect::<Vec<_>>();
         let ranges = ProtectedReferenceRangeSet::from_references(
             &protected,
             Vec::<ProtectedReferenceRange>::with_capacity(protected.len()),
         );
         Ok(Self {
             ranges,
+            references,
             owners,
             candidate_references: protected.len() as u64,
         })
@@ -60,6 +66,10 @@ impl CompactionCandidateRangeSet {
         &self.ranges
     }
 
+    pub fn references(&self) -> &[CurrentGenerationPhysicalReference] {
+        &self.references
+    }
+
     pub fn is_fully_covered_by_owner(&self, owner: PhysicalGenerationOwner) -> bool {
         self.owners
             .iter()
@@ -68,24 +78,5 @@ impl CompactionCandidateRangeSet {
 
     pub const fn candidate_references(&self) -> u64 {
         self.candidate_references
-    }
-
-    #[cfg(any(test, feature = "certification-authority"))]
-    pub(super) fn first_owner(&self) -> Option<PhysicalGenerationOwner> {
-        self.owners.first().copied()
-    }
-
-    #[cfg(any(test, feature = "certification-authority"))]
-    pub(crate) fn from_protected_set_for_certification_test(
-        protected: &CompactionProtectedReferenceSet,
-    ) -> Self {
-        let owner = protected
-            .first_owner()
-            .expect("certification protected set should have an owner");
-        Self {
-            ranges: protected.ranges().clone(),
-            owners: vec![owner],
-            candidate_references: protected.ranges().ranges().len() as u64,
-        }
     }
 }

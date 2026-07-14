@@ -203,7 +203,6 @@ dependencies = [
  "forge-store-recovery-physics",
  "forge-store-replication",
  "forge-store-retention",
- "forge-store-s0-reclassification",
  "forge-store-schema-lineage",
  "forge-store-security",
  "forge-store-snapshots",
@@ -337,7 +336,6 @@ dependencies = [
  "forge-store-reclaim-policy",
  "forge-store-recovery-physics",
  "forge-store-replication",
- "forge-store-s0-reclassification",
  "forge-store-security",
  "forge-store-subscription-support",
  "forge-store-test-support",
@@ -457,6 +455,7 @@ dependencies = [
  "forge-store-recovery-physics",
  "forge-store-security",
  "forge-store-wal",
+ "sha2",
 ]
 
 [[package]]
@@ -625,7 +624,6 @@ dependencies = [
  "forge-store-contracts",
  "forge-store-layout-indexes",
  "forge-store-physical-format",
- "forge-store-s0-reclassification",
  "forge-store-security",
 ]
 
@@ -682,14 +680,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "forge-store-s0-reclassification"
-version = "0.1.0"
-dependencies = [
- "forge-store-claim-boundaries",
- "forge-store-contracts",
-]
-
-[[package]]
 name = "forge-store-schema-lineage"
 version = "0.1.0"
 dependencies = [
@@ -742,6 +732,7 @@ dependencies = [
  "forge-store-blob-chunks",
  "forge-store-budgets",
  "forge-store-buffer-pool",
+ "forge-store-compatibility",
  "forge-store-contracts",
  "forge-store-io-scheduler",
  "forge-store-layout-indexes",

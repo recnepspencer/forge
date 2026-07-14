@@ -101,12 +101,12 @@
 //!
 //! ```compile_fail
 //! use forge_store_physical_format::{
-//!     PhysicalShortcutBoundaryDenial, PlatformPhysicalFacadeDenial,
-//!     PlatformPhysicalFacadeDenialKind,
+//!     PhysicalShortcutBoundaryDenial, PhysicalStoreRuntimeDenial,
+//!     PhysicalStoreRuntimeDenialKind,
 //! };
 //!
-//! let denial = PlatformPhysicalFacadeDenial::new(
-//!     PlatformPhysicalFacadeDenialKind::ShortcutBoundaryRejected,
+//! let denial = PhysicalStoreRuntimeDenial::new(
+//!     PhysicalStoreRuntimeDenialKind::ShortcutBoundaryRejected,
 //! );
 //! let shortcut: PhysicalShortcutBoundaryDenial = todo!();
 //! let _forged = denial.with_shortcut_denial(shortcut);

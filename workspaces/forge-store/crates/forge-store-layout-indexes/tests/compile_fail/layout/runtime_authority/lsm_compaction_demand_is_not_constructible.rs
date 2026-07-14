@@ -6,7 +6,6 @@ fn forge() -> AdmittedLsmCompactionDemand {
         generation: todo!(),
         tombstone: todo!(),
         membership: todo!(),
-        compaction_admission: todo!(),
         output: todo!(),
         physical_intent: todo!(),
     }

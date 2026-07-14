@@ -1,8 +1,8 @@
 use super::contract::{AccessShapeContract, ExpectedCounterClass};
 use super::denial::AccessShapeUnsupportedDenial;
 use super::detail::{AccessShapeDetail, MaintenanceReadBasis};
+use super::kind::AccessShape;
 use super::lane::AccessLaneClassification;
-use super::shape::AccessShape;
 
 pub(crate) fn rebuild_read_declaration(
     lane: AccessLaneClassification,
@@ -14,7 +14,7 @@ pub(crate) fn rebuild_read_declaration(
         });
     }
     Ok(AccessShapeContract::exact_read_declaration(
-        AccessShapeDetail::RebuildRead(MaintenanceReadBasis::RebuildTraversal),
+        AccessShapeDetail::RebuildRead(MaintenanceReadBasis::Rebuild),
         lane,
         ExpectedCounterClass::RebuildTraversal,
     ))

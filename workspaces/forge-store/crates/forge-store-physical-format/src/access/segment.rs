@@ -1,8 +1,8 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
 use super::grammar::PhysicalLayoutAccessFamily;
 use crate::{
-    PhysicalSegmentId, PlatformPhysicalFacade, PlatformPhysicalFacadeDenial,
-    PlatformPhysicalFacadeDenialKind,
+    PhysicalSegmentId, PhysicalStoreRuntime, PhysicalStoreRuntimeDenial,
+    PhysicalStoreRuntimeDenialKind,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,25 +15,25 @@ pub struct PhysicalSegmentLayoutReport {
 
 #[derive(Debug)]
 pub struct SegmentAccess<'a> {
-    facade: &'a mut PlatformPhysicalFacade,
+    facade: &'a mut PhysicalStoreRuntime,
 }
 
 impl<'a> SegmentAccess<'a> {
-    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+    pub(crate) fn new(facade: &'a mut PhysicalStoreRuntime) -> Self {
         Self { facade }
     }
 
     pub fn read_segment(
         &mut self,
         segment_id: PhysicalSegmentId,
-    ) -> Result<PhysicalSegmentLayoutReport, PlatformPhysicalFacadeDenial> {
+    ) -> Result<PhysicalSegmentLayoutReport, PhysicalStoreRuntimeDenial> {
         let occupancy = self
             .facade
             .storage_ref()
             .segment_occupancy(segment_id)
             .ok_or_else(|| {
-                PlatformPhysicalFacadeDenial::new(
-                    PlatformPhysicalFacadeDenialKind::MissingPhysicalRecord,
+                PhysicalStoreRuntimeDenial::new(
+                    PhysicalStoreRuntimeDenialKind::MissingPhysicalRecord,
                 )
             })?;
         let _ = self.facade.mark_read();

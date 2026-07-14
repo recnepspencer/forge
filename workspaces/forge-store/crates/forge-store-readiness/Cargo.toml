@@ -14,7 +14,6 @@ forge-store-contracts.workspace = true
 forge-store-blob-chunks.workspace = true
 forge-store-layout-indexes.workspace = true
 forge-store-physical-format.workspace = true
-forge-store-s0-reclassification.workspace = true
 forge-store-security.workspace = true
 
 [features]

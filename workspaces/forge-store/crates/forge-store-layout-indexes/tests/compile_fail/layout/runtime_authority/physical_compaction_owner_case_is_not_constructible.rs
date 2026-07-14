@@ -1,11 +1,10 @@
 use forge_store_physical_isolation::{
-    CompactionCutoverState, CompactionOwnerCase, CompactionOwnerCaseId,
+    CompactionOwnerCaseDeclaration, CompactionOwnerCaseObservation,
 };
 
 fn main() {
-    let _forged = CompactionOwnerCase {
-        id: CompactionOwnerCaseId("physical.compaction.forged"),
-        from: CompactionCutoverState::PlanAdmitted,
-        to: CompactionCutoverState::Denied,
+    let declaration: CompactionOwnerCaseDeclaration = todo!();
+    let _forged = CompactionOwnerCaseObservation {
+        declaration,
     };
 }

@@ -126,10 +126,10 @@ impl LsmMembershipRecord {
             return None;
         };
         if scope != durable.scope()
-            || !super::artifact::persisted_artifact_matches(
+            || !super::durable_artifact::persisted_artifact_matches(
                 durable.persisted_path(),
                 durable.persisted_bytes(),
-                &super::artifact::lsm_membership_record_bytes(&envelope, key),
+                &super::durable_artifact::lsm_membership_record_bytes(&envelope, key),
             )
         {
             return None;
@@ -172,7 +172,7 @@ impl LsmMembershipRecord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LsmCompactionMembership {
     pub(crate) key: LsmMembershipKey,
-    pub(crate) records: [LsmMembershipRecord; 3],
+    pub(crate) record_set: super::LsmCompactionRecordSet,
     pub(crate) base: Option<super::PublishedLsmMembershipReplacement>,
     pub(crate) version: u64,
     pub(crate) store_binding: String,
@@ -189,8 +189,8 @@ impl LsmCompactionMembership {
         &self.key
     }
 
-    pub const fn records(&self) -> &[LsmMembershipRecord; 3] {
-        &self.records
+    pub const fn record_set(&self) -> &super::LsmCompactionRecordSet {
+        &self.record_set
     }
 
     pub const fn base(&self) -> Option<&super::PublishedLsmMembershipReplacement> {
@@ -198,15 +198,19 @@ impl LsmCompactionMembership {
     }
 
     pub fn identities(&self) -> [BlobWalRecordIdentity; 3] {
-        self.records.each_ref().map(|record| record.identity())
+        self.record_set.identities()
+    }
+
+    pub fn identity_set(&self) -> super::LsmCompactionRecordIdentitySet {
+        self.record_set.identity_set()
     }
 
     pub fn revalidate_artifacts(&self) -> Result<(), super::LsmMembershipDenial> {
-        if self.records.iter().any(|record| {
-            !super::artifact::persisted_artifact_matches(
+        if self.record_set.iter().any(|record| {
+            !super::durable_artifact::persisted_artifact_matches(
                 &record.persisted_path,
                 record.persisted_bytes,
-                &super::artifact::lsm_membership_record_bytes(&record.envelope, record.key),
+                &super::durable_artifact::lsm_membership_record_bytes(&record.envelope, record.key),
             )
         }) || self
             .base
@@ -243,7 +247,7 @@ impl LsmCompactionMembership {
         let output = self.expected_output_identity()?;
         CheckpointDurablePublicationScope::new(
             checkpoint,
-            super::artifact::lsm_membership_replacement_digest(
+            super::durable_artifact::lsm_membership_replacement_digest(
                 self.key,
                 self.identities(),
                 self.base.as_ref().map(|base| base.output()),
@@ -256,7 +260,7 @@ impl LsmCompactionMembership {
     }
 
     pub fn replacement_manifest_digest(&self) -> String {
-        super::artifact::lsm_membership_replacement_digest(
+        super::durable_artifact::lsm_membership_replacement_digest(
             self.key,
             self.identities(),
             self.base.as_ref().map(|base| base.output()),
@@ -268,7 +272,11 @@ impl LsmCompactionMembership {
 
     pub fn expected_output_identity(&self) -> Option<BlobWalRecordIdentity> {
         BlobWalRecordIdentity::new(
-            self.identities()[2].sequence().checked_add(1)?,
+            self.record_set
+                .tombstone()
+                .identity()
+                .sequence()
+                .checked_add(1)?,
             BlobWalRecordKind::GenerationPublication,
         )
     }
@@ -282,7 +290,7 @@ impl LsmCompactionMembership {
         format!(
             "lsm-output-v1:{root_scope}:{target_epoch}:{manifest_epoch}:{:02x?}:{}",
             self.key.canonical(),
-            super::artifact::lsm_membership_digest(
+            super::durable_artifact::lsm_membership_digest(
                 self.key,
                 self.identities(),
                 self.base.as_ref().map(|base| base.output()),

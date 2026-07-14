@@ -32,7 +32,7 @@ pub(super) const REACHABILITY_AND_HOLD_ROWS: &[ArtifactFamilyInventoryRow] = &[
 
 pub(super) const DERIVED_ROWS: &[ArtifactFamilyInventoryRow] = &[
     row(
-        Family::DerivedRetentionMilestone6LayoutMaterialization,
+        Family::DerivedRetentionLegacyLayoutMaterialization,
         Authority::Derived,
         Lifecycle::DerivedState,
         Lane::MaintenancePath,
@@ -42,7 +42,7 @@ pub(super) const DERIVED_ROWS: &[ArtifactFamilyInventoryRow] = &[
         OFFLINE_ONLY,
     ),
     row(
-        Family::DerivedRetentionMilestone6ScopeSliceMembership,
+        Family::DerivedRetentionLegacyScopeSliceMembership,
         Authority::Derived,
         Lifecycle::DerivedState,
         Lane::MaintenancePath,
@@ -52,7 +52,7 @@ pub(super) const DERIVED_ROWS: &[ArtifactFamilyInventoryRow] = &[
         OFFLINE_ONLY,
     ),
     row(
-        Family::DerivedRetentionMilestone6StructuralBlock,
+        Family::DerivedRetentionLegacyStructuralBlock,
         Authority::Derived,
         Lifecycle::DerivedState,
         Lane::MaintenancePath,
@@ -62,7 +62,7 @@ pub(super) const DERIVED_ROWS: &[ArtifactFamilyInventoryRow] = &[
         OFFLINE_ONLY,
     ),
     row(
-        Family::DerivedRetentionMilestone6ChunkMembership,
+        Family::DerivedRetentionLegacyChunkMembership,
         Authority::Derived,
         Lifecycle::DerivedState,
         Lane::MaintenancePath,

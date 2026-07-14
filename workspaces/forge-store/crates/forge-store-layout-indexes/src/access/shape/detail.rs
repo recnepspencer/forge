@@ -1,4 +1,4 @@
-use super::shape::AccessShape;
+use super::kind::AccessShape;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BatchPointBasis {
@@ -73,10 +73,10 @@ pub enum MutationAccessBasis {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaintenanceReadBasis {
-    RebuildTraversal,
-    VerifierTraversal,
-    RepairTraversal,
-    QuarantineTraversal,
+    Rebuild,
+    Verifier,
+    Repair,
+    Quarantine,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

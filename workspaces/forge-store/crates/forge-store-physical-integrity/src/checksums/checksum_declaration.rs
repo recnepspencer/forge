@@ -102,8 +102,8 @@ impl ChecksumAlgorithmDeclaration {
     pub fn admit_for_physical_integrity_entry(
         self,
         entry_witness: IntegrityEntryWitness,
-    ) -> S3ChecksumDeclarationAdmission {
-        S3ChecksumDeclarationAdmission {
+    ) -> ChecksumDeclarationAdmission {
+        ChecksumDeclarationAdmission {
             declaration: self,
             entry_witness,
         }
@@ -111,12 +111,12 @@ impl ChecksumAlgorithmDeclaration {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S3ChecksumDeclarationAdmission {
+pub struct ChecksumDeclarationAdmission {
     declaration: ChecksumAlgorithmDeclaration,
     entry_witness: IntegrityEntryWitness,
 }
 
-impl S3ChecksumDeclarationAdmission {
+impl ChecksumDeclarationAdmission {
     pub fn declaration(&self) -> &ChecksumAlgorithmDeclaration {
         &self.declaration
     }

@@ -1,24 +1,24 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
 use crate::{
     page_record::RecordLocateReport, PhysicalPageRecordAuthority, PhysicalReference,
-    PhysicalReferenceAuthority, PlatformPhysicalFacade, PlatformPhysicalFacadeDenial,
-    PlatformPhysicalFacadeDenialKind,
+    PhysicalReferenceAuthority, PhysicalStoreRuntime, PhysicalStoreRuntimeDenial,
+    PhysicalStoreRuntimeDenialKind,
 };
 
 #[derive(Debug)]
 pub struct PageAccess<'a> {
-    facade: &'a mut PlatformPhysicalFacade,
+    facade: &'a mut PhysicalStoreRuntime,
 }
 
 impl<'a> PageAccess<'a> {
-    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+    pub(crate) fn new(facade: &'a mut PhysicalStoreRuntime) -> Self {
         Self { facade }
     }
 
     pub fn locate_record(
         &mut self,
         reference: PhysicalReference,
-    ) -> Result<RecordLocateReport<'_>, PlatformPhysicalFacadeDenial> {
+    ) -> Result<RecordLocateReport<'_>, PhysicalStoreRuntimeDenial> {
         self.facade.ensure_admitted_reference(reference)?;
         self.facade.mark_locate();
         locate_page_record(
@@ -32,7 +32,7 @@ impl<'a> PageAccess<'a> {
     pub fn read_record(
         &mut self,
         reference: PhysicalReference,
-    ) -> Result<RecordLocateReport<'_>, PlatformPhysicalFacadeDenial> {
+    ) -> Result<RecordLocateReport<'_>, PhysicalStoreRuntimeDenial> {
         self.facade.ensure_admitted_reference(reference)?;
         self.facade.mark_read();
         locate_page_record(
@@ -58,38 +58,38 @@ pub fn page_access_counters(report: RecordLocateReport<'_>) -> PhysicalLayoutAcc
 }
 
 pub(crate) fn locate_page_record<'a>(
-    storage: &'a crate::facade::storage::PlatformPhysicalFacadeStorage,
+    storage: &'a crate::physical_store_runtime::storage::PhysicalStoreRuntimeStorage,
     page_records: &PhysicalPageRecordAuthority,
     references: PhysicalReferenceAuthority,
     reference: PhysicalReference,
-) -> Result<RecordLocateReport<'a>, PlatformPhysicalFacadeDenial> {
+) -> Result<RecordLocateReport<'a>, PhysicalStoreRuntimeDenial> {
     let page = storage.page_for_reference(reference)?;
     let slot_cell = super::reference::slot_cell_from_reference(reference)?;
     let admission = references.admit_page_slot(slot_cell);
     let validation = references
         .validate_page_slot(admission, slot_cell)
         .map_err(|denial| {
-            PlatformPhysicalFacadeDenial::new(
-                PlatformPhysicalFacadeDenialKind::ReferenceValidationDenied,
+            PhysicalStoreRuntimeDenial::new(
+                PhysicalStoreRuntimeDenialKind::ReferenceValidationDenied,
             )
             .with_reference_denial(denial)
         })?;
     let header = page_records
         .decode_record_page_header(page.cell(), page.bytes(), crate::PhysicalPageKind::DataPage)
         .map_err(|denial| {
-            PlatformPhysicalFacadeDenial::new(PlatformPhysicalFacadeDenialKind::HeaderDecodeDenied)
+            PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::HeaderDecodeDenied)
                 .with_header_denial(denial)
         })?;
     let page_payload = page_records
         .admit_record_page_payload(page.bytes(), header.witness())
         .map_err(|denial| {
-            PlatformPhysicalFacadeDenial::new(PlatformPhysicalFacadeDenialKind::HeaderDecodeDenied)
+            PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::HeaderDecodeDenied)
                 .with_header_denial(denial)
         })?;
     page_records
         .locate_record(page_payload, validation)
         .map_err(|denial| {
-            PlatformPhysicalFacadeDenial::new(PlatformPhysicalFacadeDenialKind::PageRecordDenied)
+            PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::PageRecordDenied)
                 .with_page_denial(denial)
         })
         .map(|located| located)

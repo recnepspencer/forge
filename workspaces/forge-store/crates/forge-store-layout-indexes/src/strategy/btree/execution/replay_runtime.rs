@@ -70,12 +70,14 @@ impl BTreeReplayRuntime {
             current_materialization,
         } = ready;
         let mut facade = source.reopen()?;
-        let mut root_access = facade.page_access();
-        let root = root_access.read_record(source.root_reference())?;
-        let root_counters = PageAccess::access_counters(root);
-        let node = decode_root_record(root.record_view().payload().as_bytes())
-            .ok_or(BaselineBTreeExecutionDenial::InvalidRootNode)?;
-        drop(root_access);
+        let (root_counters, node) = {
+            let mut root_access = facade.page_access();
+            let root = root_access.read_record(source.root_reference())?;
+            let root_counters = PageAccess::access_counters(root);
+            let node = decode_root_record(root.record_view().payload().as_bytes())
+                .ok_or(BaselineBTreeExecutionDenial::InvalidRootNode)?;
+            (root_counters, node)
+        };
         let left = read_leaf(&mut facade, node.left_child())?;
         let right = read_leaf(&mut facade, node.right_child())?;
         let authority_records = left

@@ -3,9 +3,7 @@ use crate::catalog::{
     DurableArtifactMigrationPosture,
 };
 use crate::keyspace::{CompositeKeyOrderingLaw, HashCollisionLaw, PhysicalKeyDomainWitness};
-use crate::maintenance::{
-    IndexMaintenanceMode, LiveExactMaintenanceWitness, PhysicalMutationShape,
-};
+use crate::maintenance::{IndexMaintenanceMode, PhysicalMutationShape};
 use crate::materialization::LayoutCoverageWitness;
 use crate::strategy::LayoutStrategyFamily;
 use crate::strategy::StrategyAuthorityBasis;
@@ -108,11 +106,10 @@ pub struct LayoutAdmissionRequest {
     required_key_laws: RequestedKeyLawSet,
     require_exact_materialization: bool,
     exact_coverage: Option<LayoutCoverageWitness>,
-    exact_maintenance_witness: Option<LiveExactMaintenanceWitness>,
 }
 
 impl LayoutAdmissionRequest {
-    pub(crate) const fn from_admitted(
+    pub const fn from_admitted(
         family_authority: crate::AdmittedPhysicalArtifactFamily,
         key_domain: crate::AdmittedPhysicalKeyDomain,
         family: LayoutStrategyFamily,
@@ -146,7 +143,6 @@ impl LayoutAdmissionRequest {
             required_key_laws: RequestedKeyLawSet::new(),
             require_exact_materialization: false,
             exact_coverage: None,
-            exact_maintenance_witness: None,
         }
     }
 
@@ -191,11 +187,6 @@ impl LayoutAdmissionRequest {
     pub fn require_exact_materialization(mut self, coverage: LayoutCoverageWitness) -> Self {
         self.require_exact_materialization = true;
         self.exact_coverage = Some(coverage);
-        self
-    }
-
-    pub fn under_live_exact_maintenance(mut self, witness: LiveExactMaintenanceWitness) -> Self {
-        self.exact_maintenance_witness = Some(witness);
         self
     }
 
@@ -249,9 +240,5 @@ impl LayoutAdmissionRequest {
 
     pub const fn exact_coverage(&self) -> Option<&LayoutCoverageWitness> {
         self.exact_coverage.as_ref()
-    }
-
-    pub const fn exact_maintenance_witness(&self) -> Option<&LiveExactMaintenanceWitness> {
-        self.exact_maintenance_witness.as_ref()
     }
 }

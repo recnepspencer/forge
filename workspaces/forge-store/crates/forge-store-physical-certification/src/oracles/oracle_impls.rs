@@ -37,7 +37,7 @@ impl PhysicalProofOracle for CrashRecoversOldOrNewNeverMixedOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S4RecoveryDogfood
+        OracleFamilyKind::RecoveryDogfood
     }
 
     fn judge_basis(

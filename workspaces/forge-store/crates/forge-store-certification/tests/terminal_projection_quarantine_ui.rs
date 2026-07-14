@@ -1,5 +1,11 @@
+#[path = "compile_fail/cargo_artifacts.rs"]
+mod cargo_artifacts;
+
+const TEST_TARGET: &str = "terminal_projection_quarantine_ui";
+
 #[test]
 fn terminal_projection_quarantine_denies_neutral_public_callers() {
+    cargo_artifacts::discover(TEST_TARGET);
     for fixture in terminal_projection_quarantine_fixtures() {
         assert_compile_fails(fixture);
     }
@@ -113,30 +119,11 @@ fn terminal_projection_quarantine_rustc_metadata_dir(fixture_name: &str) -> std:
 }
 
 fn workspace_debug_deps_dir(manifest_dir: &std::path::Path) -> std::path::PathBuf {
-    manifest_dir
-        .ancestors()
-        .nth(2)
-        .expect("certification crate lives under workspaces/forge-store/crates")
-        .join("target")
-        .join("debug")
-        .join("deps")
+    let _ = manifest_dir;
+    cargo_artifacts::dependency_dir()
 }
 
 fn newest_aspect_native_rlib(deps_dir: &std::path::Path) -> std::path::PathBuf {
-    std::fs::read_dir(deps_dir)
-        .unwrap()
-        .filter_map(Result::ok)
-        .filter(|entry| {
-            entry
-                .file_name()
-                .to_string_lossy()
-                .starts_with("libforge_store_aspect_native-")
-                && entry
-                    .path()
-                    .extension()
-                    .is_some_and(|extension| extension == "rlib")
-        })
-        .max_by_key(|entry| entry.metadata().unwrap().modified().unwrap())
-        .expect("forge-store-aspect-native rlib is built before UI fixture checks")
-        .path()
+    let _ = deps_dir;
+    cargo_artifacts::compiled_extern(TEST_TARGET, "forge_store_aspect_native")
 }

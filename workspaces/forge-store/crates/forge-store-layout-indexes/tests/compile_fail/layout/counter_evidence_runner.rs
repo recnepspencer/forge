@@ -18,7 +18,7 @@ struct CompileFailFixture {
     expected_stderr: &'static [&'static str],
 }
 
-const fn fixtures() -> [CompileFailFixture; 3] {
+const fn fixtures() -> [CompileFailFixture; 4] {
     [
         CompileFailFixture {
             name: "coarse_execution_counter_lane_is_not_public.rs",
@@ -31,6 +31,10 @@ const fn fixtures() -> [CompileFailFixture; 3] {
         CompileFailFixture {
             name: "seeded_execution_transcript_lane_is_not_public.rs",
             expected_stderr: &["unresolved import", "execute_baseline_btree_transcript"],
+        },
+        CompileFailFixture {
+            name: "layout_access_performance_receipt_fields_are_private.rs",
+            expected_stderr: &["LayoutAccessPerformanceReceipt", "private"],
         },
     ]
 }

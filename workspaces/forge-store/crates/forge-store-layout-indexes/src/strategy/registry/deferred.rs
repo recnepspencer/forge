@@ -7,8 +7,4 @@ pub enum LayoutAdmissionDeferred {
         family: LayoutStrategyFamily,
         capability: LayoutStrategyCapability,
     },
-    LiveExactMaintenanceWitnessRequired {
-        family: LayoutStrategyFamily,
-        capability: LayoutStrategyCapability,
-    },
 }

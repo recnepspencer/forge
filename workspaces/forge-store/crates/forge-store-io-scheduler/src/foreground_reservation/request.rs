@@ -74,7 +74,7 @@ pub const fn reject_semantic_priority_as_foreground_reservation(
 
 pub const fn reject_copied_physical_isolation_counters_as_foreground_reservation(
 ) -> Result<(), super::ForegroundReservationAdmissionDenial> {
-    Err(super::ForegroundReservationAdmissionDenial::CopiedS5CountersCannotReserve)
+    Err(super::ForegroundReservationAdmissionDenial::CopiedIsolationCountersCannotReserve)
 }
 
 pub const fn reject_copied_security_scope_fields_as_foreground_reservation(

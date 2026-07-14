@@ -3095,7 +3095,8 @@ domain operation that owns it.
 - `LayoutMaterializationState`, `LayoutCoverageWitness`,
   `MaterializationCompleteness`, `PhysicalAbsenceProof`
 - access-shape admission, candidate classification, deterministic plan
-  selection, `AccessPlanBudget`, and `PlannedCounterEnvelope`
+  selection, `PreExecutionBudgetAdmissionReceipt`, and
+  `PlannedCounterEnvelope`
 - indexed and degraded lowering, execution readiness, counter admission,
   executed evidence, and planned-versus-observed receipts
 - `forge_proof::AuthorityWitness`, `forge_proof::TransitionOutcome`, and the
@@ -3147,11 +3148,22 @@ candidate selection, materialization classification, or key-law validation
 inside the same trust boundary. Exact structural counters remain attached to
 the executed result.
 
+This phase owns production completeness for the read-side capability chain and
+critical proof at each authority boundary. Every owner case declared by this
+chain must be ordinarily reachable before the phase closes. Phase 37 owns exact
+cross-product accounting, the complete hostile matrix, mutation testing, and
+large-scale simulations; Phase 38 owns the workspace-wide residue audit and
+final courtroom verdict. Those later phases may expose a real defect here, but
+they do not justify leaving a production operation or authority boundary
+unfinished.
+
 ### Tests
 
-- Execute every admitted durable family through its supported access shapes,
-  including unsupported-shape, missing-strategy, stale, rebind, budget-denied,
-  hidden-scan, corrupt-derived, and degraded-exact cases.
+- Reach every declared read-side owner case through its ordinary production
+  facade, including unsupported-shape, missing-strategy, stale, rebind,
+  budget-denied, hidden-scan, corrupt-derived, and degraded-exact cases. This
+  establishes ordinary reachability; Phase 37 owns exact cross-product and
+  coverage-receipt closure.
 - Prove identical semantic requests produce deterministic selection and plan
   fingerprints independent of declaration order, registry iteration order, or
   certification scenario ordering.
@@ -3161,22 +3173,28 @@ the executed result.
 - Prove indexed evidence cannot be minted from degraded execution and degraded
   evidence cannot claim bounded indexed locality.
 - Assert exact page-touch, index-probe, key-comparison, byte-read, allocation,
-  and amplification counters for the baseline B-tree and LSM paths and for
-  every declared equivalence class.
-- Add compile-fail cases proving external callers and sibling domains cannot
-  invoke issuance, construct private cases, pair payloads with outcomes, skip
-  budget admission, or use removed compatibility facades. Every fixture must
-  fail for the intended privacy/type error, never `E0463`.
-- Add structural residue checks rejecting milestone vocabulary, crate-wide
-  outcome issuers, payload-derived owner selection, generic transition
-  catalogs, and business logic in root or `mod.rs` facades.
+  and amplification counters for baseline B-tree and LSM operations. Use
+  scale-sensitive workloads to prove locality and amplification slopes only
+  for algorithms whose work should vary with key count, tree height, run
+  count, result width, or bytes read; use exact fixed counters for constant
+  admission and metadata transitions.
+- Add focused compile-fail cases for the strongest read-side authority seams:
+  external callers and sibling domains cannot invoke issuance, construct
+  private cases, pair payloads with outcomes, or skip budget admission. Every
+  fixture must fail for the intended privacy/type error, never `E0463`; Phase
+  37 owns the complete compile-fail matrix.
+- Add local structural checks for the migrated read-path modules, rejecting
+  milestone vocabulary, crate-wide outcome issuers, payload-derived owner
+  selection, generic transition catalogs, and business logic in root or
+  `mod.rs` facades. Phase 38 owns the final workspace-wide residue audit.
 
 ### Closeout Gate
 
 This phase is done when the complete ordinary read path is expressed by
-permanent owner-issued capabilities, all supported families execute through
-that path with exact counters, and neither sibling modules nor projections can
-manufacture a stronger stage.
+permanent owner-issued capabilities, every declared read-side owner case is
+ordinarily reachable, critical substitutions are rejected at their real
+boundaries, algorithm-sensitive counters prove the claimed read-path costs,
+and neither sibling modules nor projections can manufacture a stronger stage.
 
 ## Phase 35: Complete Layout Mutation And Recovery Authority
 
@@ -3200,6 +3218,27 @@ without broad transition bags or certification-authored authority.
   disposition
 
 ### Required Work
+
+Complete the owner state machines in this order. Each step must leave its
+production capability usable through the ordinary facade and must close its
+critical local authority tests before the next step begins. These are ordered
+implementation boundaries inside Phase 35, not duplicate final-certification
+gates:
+
+1. maintenance admission, lowering, deferred/lagged handling, and exact
+   publication;
+2. rebuild execution followed by independent parity verification;
+3. migration readiness, interruption/resume, rollback, and stale rebind;
+4. corruption classification, quarantine, and each source-specific
+   readmission boundary; and
+5. bootstrap discovery followed by explicit removal, denial, or bounded
+   ownership of every legacy surface.
+
+An owner boundary is complete here when the production operation exists, its
+ordinary cases are reachable, its strongest local forgery is rejected, and its
+replay or convergence obligation passes. Exhaustive family cross-products,
+complete hostile and compile-fail matrices, mutation testing, and large-scale
+simulation remain centralized in Phase 37.
 
 Split maintenance into owner operations for mutation admission, publication
 lowering, lag/deferred handling, rebuild admission, rebuild execution, and
@@ -3236,14 +3275,27 @@ All touched types, files, exports, and tests adopt permanent vocabulary and
 owner-shaped directories. Facades delegate; they do not classify corruption,
 select maintenance cases, or issue outcomes.
 
+This phase contains several separate owner state machines because maintenance,
+rebuild/parity, migration/rollback, corruption/readmission, bootstrap, and
+legacy disposition have different authorities and failure modes. They must not
+be collapsed into one implementation category or one broad outcome family.
+The phase gate is complete production capability, preserved authority, replay
+convergence, ordinary reachability of every declared owner case, and critical
+adversarial proof at each trust boundary. Phase 37 owns exhaustive family
+cross-products, the complete hostile and compile-fail matrices, mutation
+testing, and scale simulations.
+
 ### Tests
 
 - Exercise exact, lagged, advisory, verifier-only, migration-only,
   rebuild-only, and deferred maintenance through ordinary production requests;
-  prove none can be substituted for exact publication.
-- Prove rebuild followed by parity converges to the same derived identity and
-  counters as uninterrupted maintenance, while a forged rebuild receipt or
-  copied parity row cannot publish.
+  prove every declared maintenance owner case is ordinarily reachable and none
+  can be substituted for exact publication.
+- Prove rebuild followed by parity converges to the same derived identity as
+  uninterrupted maintenance. Exact counters must prove each path's own
+  declared work; rebuild and mutation counters must not be forced into false
+  equality merely because their semantic result converges. A forged rebuild
+  receipt or copied parity row cannot publish.
 - Crash and resume migration and rollback at every declared interruption
   boundary; independent replay must converge on the same compatibility,
   binding, and publication posture.
@@ -3255,18 +3307,29 @@ select maintenance cases, or issue outcomes.
   promoted into physical authority.
 - Prove bootstrap cannot use an ordinary family path before catalog admission
   and cannot construct current coverage from copied root rows.
-- Add compile-fail and structural tests preventing sibling modules,
-  certification, and test support from constructing maintenance, evolution,
-  integrity, bootstrap, or legacy outcomes.
-- Assert exact mutation, publication, rebuild, parity, migration, quarantine,
-  and bootstrap counters with scale-sensitive workloads.
+- Add focused compile-fail tests at the strongest mutation, migration,
+  readmission, and bootstrap authority seams, proving sibling modules,
+  certification, and test support cannot construct owner outcomes. Phase 37
+  owns exhaustive constructor and lifecycle-stage compile-fail coverage.
+- Prove scale slopes with exact structural counters for mutation, publication,
+  rebuild, parity, and any migration data path whose work legitimately varies
+  with records, pages, runs, or bytes. Use exact fixed-cost counters for
+  migration and rollback metadata transitions, quarantine classification,
+  readmission, compatibility admission, and bootstrap discovery. Do not create
+  synthetic scale workloads for operations whose contract is fixed-cost
+  metadata work.
+- Add local structural checks for the owner modules changed in this phase;
+  Phase 38 owns the final workspace-wide residue audit.
 
 ### Closeout Gate
 
-This phase is done when every write-side and exceptional-state transition is
-issued by its permanent owner, recovery and evolution converge under replay,
-and no broad outcome, facade, compatibility adapter, or test helper can mint a
-stronger layout capability.
+This phase is done when every write-side and exceptional-state production
+capability exists, every declared owner case is ordinarily reachable through
+its permanent owner, critical authority substitutions are denied, recovery and
+evolution converge under replay, and no broad outcome, facade, compatibility
+adapter, or test helper can mint a stronger layout capability. Exhaustive
+cross-product certification remains Phase 37 work, not a duplicated local
+gate.
 
 ## Phase 36: Complete Physical Compaction And Durable Membership Authority
 
@@ -3323,45 +3386,59 @@ Formal-model input is an observation over owner-issued outcomes and durable
 artifacts, not a production milestone handoff. Runtime crates must not expose
 `S9` inventories, roadmap state machines, or generic transition arrays.
 
+This phase owns the complete production join between layout observation and
+physical/WAL authority. Every physical owner case and its layout projection
+must be ordinarily reachable, and the critical identity, replay, retirement,
+and locality boundaries must be proven here. Phase 37 owns the exhaustive
+field-substitution cross-product, exact global case accounting, complete
+compile-fail matrix, mutation testing, and large-scale simulations.
+
 ### Tests
 
 - Destroy the derived in-memory index and journal cache, reopen from admitted
   WAL/checkpoint/manifest authority, and prove identical key-local membership,
   visibility, retirement, and exact counters.
-- Exercise every physical compaction success and denial through its ordinary
-  owner operation; compare the observed case set exactly with the physical
-  declared set.
-- Prove a bijective physical-to-layout projection with unique case identity and
-  round-trip observation for every cutover, publication, visibility, reclaim,
-  and mutation-denial case.
-- Reject syntactically valid mutations to tenant/key scope, canonical key,
-  store identity, segment/generation, LSN range, frame digest, checkpoint,
-  manifest membership, persisted path, byte count, or checksum during ordinary
-  reopen/readmission.
+- Reach every declared physical compaction success and denial through its
+  ordinary owner operation. Preserve unique operation and case identity in the
+  read-only layout projection; Phase 37 owns exact global set equality and the
+  complete projection cross-product.
+- Prove the physical-to-layout projection is bijective for each operation
+  family with critical cutover, publication, visibility, reclaim, and
+  mutation-denial cases. No projection may merge distinct lower-owner cases.
+- Reject critical syntactically valid substitutions across security scope,
+  canonical key, store identity, segment generation, LSN/checkpoint coverage,
+  manifest membership, persisted path, and complete-envelope integrity during
+  ordinary reopen/readmission. Phase 37 expands these axes into the exhaustive
+  hostile field matrix.
 - Reject early tombstone retirement, active-reader reclaim, copied manifest
   membership, equal-digest cross-store retirement, duplicate replay, and
   checkpoint/coverage disagreement.
 - Prove key-local lookup, retirement, reopen, and compaction do not require a
   broad scan where locality-bounded behavior is claimed, using exact
   page/run/manifest/record/byte counters.
-- Compile-fail proof must prevent layout, certification, and test support from
-  constructing physical outcomes, durable membership, publication authority,
-  or reclaim readiness from raw fields.
+- Focused compile-fail proof must prevent layout, certification, and test
+  support from constructing the principal physical outcome, durable
+  membership, publication authority, or reclaim-readiness capabilities from
+  raw fields. Phase 37 owns complete constructor and lifecycle-stage coverage.
 
 ### Closeout Gate
 
-This phase is done when physical operations and durable WAL/manifest artifacts
-are the only sources of compaction and membership truth, layout projection is
-provably bijective and observational, and reopen reconstructs the same bounded
-membership without certification or cache authority.
+This phase is done when all physical compaction and durable-membership
+capabilities exist, every declared owner case is ordinarily reachable,
+physical operations and admitted WAL/manifest artifacts are the only sources
+of truth, layout projection preserves lower-owner identity without
+reinterpretation, and reopen reconstructs the same bounded membership without
+certification or cache authority.
 
 ## Phase 37: Exhaustive Runtime And Hostile Coverage
 
 ### Purpose
 
-Build the executed observation and adversarial harness surfaces needed to prove
-Phases 34-36 completely, rather than accepting representative examples or
-compile-only privacy as evidence of architectural closure.
+Centralize the exhaustive observation, hostile cross-product, mutation, and
+scale proof for the production capabilities completed in Phases 34-36. This is
+the one phase that turns ordinary owner-case reachability into exact milestone
+coverage rather than making each implementation phase independently repeat the
+entire final standard.
 
 ### Relevant APIs
 
@@ -3414,6 +3491,22 @@ crate-wide outcome issuers, business logic in facades or `mod.rs`, independent
 transition arrays, certification-authored lower evidence, and compatibility
 aliases preserving removed paths.
 
+Phase 37 owns exhaustive owner-family accounting, all named hostile
+substitution combinations, the complete compile-fail authority matrix,
+mutation testing, shrink/replay evidence, and large-scale simulation. If this
+work discovers a missing production capability or authority boundary, the fix
+lands in the permanent owner from Phases 34-36 and its focused tests are rerun;
+the harness must not compensate by authoring a synthetic outcome or alternate
+authority lane.
+
+Performance proof is algorithm-aware. Scale-sensitive slopes are required for
+lookup, mutation, rebuild, B-tree traversal, LSM lookup/compaction,
+publication, reopen/locality, and blob-touching layout paths whose work should
+vary with data shape. Migration/rollback metadata, compatibility admission,
+quarantine classification, readmission, and bootstrap use exact fixed-cost
+counters unless the production algorithm actually traverses variable data.
+Workload size alone must not be used to manufacture a meaningless slope.
+
 ### Tests
 
 - Exact matrix proof for every owner family, including explicit failure output
@@ -3423,8 +3516,10 @@ aliases preserving removed paths.
 - Runtime forgery proof for every copied, cross-scope, stale, reordered,
   recomputed, duplicate, and projection-as-authority attack named above.
 - Scale simulations proving claimed locality and amplification slopes with
-  exact structural counters, including S.7 multi-GB blob fixtures where layout
-  behavior touches blob storage.
+  exact structural counters for scale-sensitive algorithms, including S.7
+  multi-GB blob fixtures where layout behavior touches blob storage. Fixed-cost
+  metadata transitions instead prove exact invariant counter shapes across
+  adversarial inputs and replay.
 - Compile-fail proof that external callers, sibling domains, certification, and
   test support cannot issue outcomes, construct owner cases, mint authority,
   skip lifecycle stages, or use a projection as a stronger input. Every case
@@ -3438,8 +3533,10 @@ aliases preserving removed paths.
 ### Closeout Gate
 
 This phase is done when every declared owner case has exact ordinary-production
-evidence, every named forgery is rejected at its real boundary, scale claims
-have exact counters, and test support cannot manufacture the facts it observes.
+evidence, the complete hostile and compile-fail matrices reject every named
+forgery at its real boundary, mutation tests demonstrate oracle sensitivity,
+algorithm-sensitive scale claims and fixed-cost metadata claims have honest
+exact counters, and test support cannot manufacture the facts it observes.
 
 ## Phase 38: Certification Courtroom, Formal-Model Input, And S.8 Closeout
 
@@ -3506,13 +3603,23 @@ domain vocabulary. Root facades and `mod.rs` files aggregate only. Compatibility
 aliases, generic transition facts, crate-wide issuers, static authority tables,
 and certification/test authority shortcuts are removed rather than deprecated.
 
-Run focused closeout across production facades, owner-local visibility,
-compile-fail authority, exact runtime coverage, replay and integration
-simulations, performance counters, planned-versus-observed budgets, B-tree and
-LSM invariants, materialization/absence, rebuild/parity, durable membership,
-compaction bijection, legacy disposition, hazard coverage, docs/roadmap
-consistency, `qa-loop`, hostile test QA, and code-quality QA. Findings are
-repaired and all three QA passes repeated until clean.
+Phase 38 consumes the production evidence from Phases 34-36 and the exact
+coverage receipts from Phase 37. It does not restate or independently rebuild
+their owner-case matrices, hostile cross-products, or scale simulations. Its
+job is to prove that certification can judge those artifacts without becoming
+authority, that formal-model observations are faithfully derived, and that the
+workspace has no surviving shortcut around the completed architecture.
+
+Run final integration and traceability closeout across production facades,
+owner-local visibility, Phase 37 coverage receipts, replay bundles,
+planned-versus-observed performance evidence, B-tree and LSM invariants,
+materialization/absence, rebuild/parity, durable membership, compaction
+bijection, legacy disposition, hazard coverage, docs/roadmap consistency,
+`qa-loop`, hostile test QA, and code-quality QA. A finding may reveal a real
+defect in an earlier owner; repair that owner and regenerate the affected
+evidence. Certification may not hide the defect, duplicate the owner, or turn
+Phase 38 into another implementation authority. Repeat the affected focused
+proof and all three final QA passes until clean.
 
 ### Required Verification
 

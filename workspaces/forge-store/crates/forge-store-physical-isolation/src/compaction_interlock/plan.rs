@@ -2,18 +2,14 @@ use super::{
     CompactionCandidateRangeSet, CompactionProtectedReferenceSet, CompactionReadInterlockCounters,
     CompactionReadInterlockDenial,
 };
-use crate::{
-    CurrentPhysicalRoot, PhysicalReadProtectedFootprintBasis, RootEpoch, StablePhysicalReadReceipt,
-};
-use forge_store_physical_format::PhysicalGenerationOwner;
+use crate::{RootEpoch, StablePhysicalReadReceipt};
 use forge_store_physical_integrity::CompactionSourceIntegrityClearance;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CompactionSourceEvidencePosture {
     IntegrityClearedStableRead {
-        root: CurrentPhysicalRoot,
-        footprint: PhysicalReadProtectedFootprintBasis,
-        owner: PhysicalGenerationOwner,
+        receipt: StablePhysicalReadReceipt,
+        clearance: CompactionSourceIntegrityClearance,
     },
     Quarantined(CompactionSourceIntegrityClearance),
 }
@@ -42,11 +38,8 @@ impl CompactionSourceIntegrityEvidence {
         }
         Ok(Self {
             posture: CompactionSourceEvidencePosture::IntegrityClearedStableRead {
-                root: release.root(),
-                footprint: release.footprint_basis(),
-                owner: clearance
-                    .locality_owner()
-                    .ok_or(CompactionReadInterlockDenial::SourceEvidenceMismatch)?,
+                receipt,
+                clearance,
             },
         })
     }
@@ -59,6 +52,15 @@ impl CompactionSourceIntegrityEvidence {
 
     const fn posture(self) -> CompactionSourceEvidencePosture {
         self.posture
+    }
+
+    pub const fn stable_read_receipt(self) -> Option<StablePhysicalReadReceipt> {
+        match self.posture {
+            CompactionSourceEvidencePosture::IntegrityClearedStableRead { receipt, .. } => {
+                Some(receipt)
+            }
+            CompactionSourceEvidencePosture::Quarantined(_) => None,
+        }
     }
 }
 
@@ -93,18 +95,20 @@ impl CompactionReadInterlockPlan {
             CompactionSourceEvidencePosture::Quarantined(_) => {
                 return Err(CompactionReadInterlockDenial::QuarantinedCandidateRange);
             }
-            CompactionSourceEvidencePosture::IntegrityClearedStableRead {
-                root,
-                footprint,
-                owner,
-            } => {
+            CompactionSourceEvidencePosture::IntegrityClearedStableRead { receipt, clearance } => {
+                let release = receipt.read_plan_release();
+                let owner = clearance
+                    .locality_owner()
+                    .ok_or(CompactionReadInterlockDenial::SourceEvidenceMismatch)?;
                 if !protected.contains_owner(owner) {
                     return Err(CompactionReadInterlockDenial::SourceEvidenceMismatch);
                 }
                 if !candidates.is_fully_covered_by_owner(owner) {
                     return Err(CompactionReadInterlockDenial::SourceEvidenceMismatch);
                 }
-                if root != protected.root() || footprint != protected.footprint_basis() {
+                if release.root() != protected.root()
+                    || release.footprint_basis() != protected.footprint_basis()
+                {
                     return Err(CompactionReadInterlockDenial::SourceEvidenceMismatch);
                 }
             }
@@ -174,51 +178,4 @@ impl CompactionReadInterlockPlan {
     pub const fn source_integrity(&self) -> CompactionSourceIntegrityEvidence {
         self.source_integrity
     }
-
-    #[cfg(any(test, feature = "certification-authority"))]
-    pub fn for_certification_test() -> Self {
-        Self::for_certification_root_seed(17)
-    }
-
-    #[cfg(any(test, feature = "certification-authority"))]
-    fn for_certification_root_seed(root_seed: u64) -> Self {
-        let read_plan = crate::stable_physical_read_plan_for_certification_seed(root_seed, 64);
-        let protected = CompactionProtectedReferenceSet::from_read_plan(&read_plan);
-        let candidates =
-            CompactionCandidateRangeSet::from_protected_set_for_certification_test(&protected);
-        let source_epoch = protected.root().epoch();
-        let target_epoch = crate::RootEpoch::from_admitted_physical_basis(source_epoch.get() + 1);
-        let counters = candidates.intersect_protected(&protected);
-        let source_integrity = CompactionSourceIntegrityEvidence {
-            posture: CompactionSourceEvidencePosture::IntegrityClearedStableRead {
-                root: protected.root(),
-                footprint: protected.footprint_basis(),
-                owner: candidates
-                    .first_owner()
-                    .expect("certification candidate set should have an owner"),
-            },
-        };
-        Self {
-            identity: super::plan_identity::CompactionPlanIdentity::issue(),
-            protected,
-            candidates,
-            source_epoch,
-            target_epoch,
-            counters,
-            reclaim_deferred: counters.overlapping_ranges() > 0,
-            source_integrity,
-        }
-    }
-}
-
-#[cfg(any(test, feature = "certification-authority"))]
-pub fn compaction_read_interlock_plan_for_certification_test() -> CompactionReadInterlockPlan {
-    CompactionReadInterlockPlan::for_certification_test()
-}
-
-#[cfg(any(test, feature = "certification-authority"))]
-pub fn compaction_read_interlock_plan_for_certification_root_seed(
-    root_seed: u64,
-) -> CompactionReadInterlockPlan {
-    CompactionReadInterlockPlan::for_certification_root_seed(root_seed)
 }

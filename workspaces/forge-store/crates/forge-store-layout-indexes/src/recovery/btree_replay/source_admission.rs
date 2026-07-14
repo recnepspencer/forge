@@ -11,5 +11,5 @@ pub(super) fn admit(
             request.physical_source.expected_store_identity.clone(),
             request.physical_source.durable_source.clone(),
         )
-        .map_err(BTreeReplayDenied::Execution)
+        .map_err(|denial| BTreeReplayDenied::Execution(Box::new(denial)))
 }

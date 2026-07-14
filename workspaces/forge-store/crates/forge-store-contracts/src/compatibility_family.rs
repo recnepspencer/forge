@@ -37,12 +37,12 @@ pub enum CompatibilityFamilyKind {
     EmbeddedCheckpointAuthority,
     SnapshotRecord,
     DeltaRecord,
-    Milestone6LayoutBlockChunkRecord,
-    Milestone8BasisContinuationDescriptor,
-    Milestone9BulkRecord,
-    Milestone10RetentionRebuildRecord,
-    Milestone11MaintenanceRecord,
-    Milestone13TieringRecord,
+    LegacyLayoutBlockChunkRecord,
+    LegacyBasisContinuationDescriptor,
+    LegacyBulkRecord,
+    LegacyRetentionRebuildRecord,
+    LegacyMaintenanceRecord,
+    LegacyTieringRecord,
 }
 
 impl CompatibilityFamilyKind {
@@ -57,14 +57,12 @@ impl CompatibilityFamilyKind {
             Self::EmbeddedCheckpointAuthority => "embedded_checkpoint_authority",
             Self::SnapshotRecord => "snapshot_record",
             Self::DeltaRecord => "delta_record",
-            Self::Milestone6LayoutBlockChunkRecord => "milestone_6_layout_block_chunk_record",
-            Self::Milestone8BasisContinuationDescriptor => {
-                "milestone_8_basis_continuation_descriptor"
-            }
-            Self::Milestone9BulkRecord => "milestone_9_bulk_record",
-            Self::Milestone10RetentionRebuildRecord => "milestone_10_retention_rebuild_record",
-            Self::Milestone11MaintenanceRecord => "milestone_11_maintenance_record",
-            Self::Milestone13TieringRecord => "milestone_13_tiering_record",
+            Self::LegacyLayoutBlockChunkRecord => "milestone_6_layout_block_chunk_record",
+            Self::LegacyBasisContinuationDescriptor => "milestone_8_basis_continuation_descriptor",
+            Self::LegacyBulkRecord => "milestone_9_bulk_record",
+            Self::LegacyRetentionRebuildRecord => "milestone_10_retention_rebuild_record",
+            Self::LegacyMaintenanceRecord => "milestone_11_maintenance_record",
+            Self::LegacyTieringRecord => "milestone_13_tiering_record",
         }
     }
 
@@ -83,12 +81,12 @@ impl CompatibilityFamilyKind {
             }
             Self::SnapshotRecord
             | Self::DeltaRecord
-            | Self::Milestone6LayoutBlockChunkRecord
-            | Self::Milestone8BasisContinuationDescriptor
-            | Self::Milestone9BulkRecord
-            | Self::Milestone10RetentionRebuildRecord
-            | Self::Milestone11MaintenanceRecord
-            | Self::Milestone13TieringRecord => CompatibilityAuthorityClassification::Derived,
+            | Self::LegacyLayoutBlockChunkRecord
+            | Self::LegacyBasisContinuationDescriptor
+            | Self::LegacyBulkRecord
+            | Self::LegacyRetentionRebuildRecord
+            | Self::LegacyMaintenanceRecord
+            | Self::LegacyTieringRecord => CompatibilityAuthorityClassification::Derived,
         }
     }
 }
@@ -101,12 +99,12 @@ pub const FIRST_SHIP_COMPATIBILITY_FAMILIES: [CompatibilityFamilyKind; 13] = [
     CompatibilityFamilyKind::EmbeddedCheckpointAuthority,
     CompatibilityFamilyKind::SnapshotRecord,
     CompatibilityFamilyKind::DeltaRecord,
-    CompatibilityFamilyKind::Milestone6LayoutBlockChunkRecord,
-    CompatibilityFamilyKind::Milestone8BasisContinuationDescriptor,
-    CompatibilityFamilyKind::Milestone9BulkRecord,
-    CompatibilityFamilyKind::Milestone10RetentionRebuildRecord,
-    CompatibilityFamilyKind::Milestone11MaintenanceRecord,
-    CompatibilityFamilyKind::Milestone13TieringRecord,
+    CompatibilityFamilyKind::LegacyLayoutBlockChunkRecord,
+    CompatibilityFamilyKind::LegacyBasisContinuationDescriptor,
+    CompatibilityFamilyKind::LegacyBulkRecord,
+    CompatibilityFamilyKind::LegacyRetentionRebuildRecord,
+    CompatibilityFamilyKind::LegacyMaintenanceRecord,
+    CompatibilityFamilyKind::LegacyTieringRecord,
 ];
 
 pub const FIRST_SHIP_COMPATIBILITY_FAMILY_COUNT: usize = FIRST_SHIP_COMPATIBILITY_FAMILIES.len();

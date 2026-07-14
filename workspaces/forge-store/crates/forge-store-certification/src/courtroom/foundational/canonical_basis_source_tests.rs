@@ -50,9 +50,9 @@ fn source_map_covers_scanned_store_workspace_family_surfaces() {
                 == "workspaces/forge-store/crates/forge-store-physical-integrity/src/index_pages/index_page_integrity_request.rs"
     }));
     assert!(scanned.iter().any(|family| {
-        family.family_name() == "S3ExecutedBoundaryDenialEvidence"
+        family.family_name() == "ExecutedIntegrityBoundaryDenialEvidence"
             && family.source_path()
-                == "workspaces/forge-store/crates/forge-store-certification/src/courtroom/physical_integrity/physical_integrity_closeout_proof.rs"
+                == "workspaces/forge-store/crates/forge-store-certification/src/courtroom/physical_integrity/closeout/suite/physical_integrity_closeout_proof.rs"
     }));
     assert!(scanned.iter().any(|family| {
         family.family_name() == "PhysicalRecoverySource"
@@ -144,7 +144,7 @@ fn native_source_kinds_are_distinct_across_similar_families() {
 #[test]
 fn source_roles_keep_handoffs_performance_and_recovery_separate() {
     let handoff = canonical_basis_source_owner_for_family(
-        StoreCanonicalBasisFamily::S3IntegrityCloseoutHandoff,
+        StoreCanonicalBasisFamily::IntegrityCloseoutHandoff,
     )
     .unwrap();
     let performance = canonical_basis_source_owner_for_family(

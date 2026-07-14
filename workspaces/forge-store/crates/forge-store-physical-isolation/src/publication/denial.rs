@@ -5,6 +5,7 @@ pub enum PhysicalPublicationDenial {
     InPlaceReachableOverwrite,
     MissingOldReachability,
     MissingReachabilityEvidence,
+    StoreAuthorityMismatch,
     StaleRootPublicationEpoch,
     StaleManifestPublicationEpoch,
     WeakOrdering(PhysicalOrderingContractDenial),

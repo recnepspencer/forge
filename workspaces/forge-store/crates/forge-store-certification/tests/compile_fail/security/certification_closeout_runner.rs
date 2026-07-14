@@ -1,7 +1,13 @@
+#[path = "../cargo_artifacts.rs"]
+mod cargo_artifacts;
+
+const TEST_TARGET: &str = "s5_1_certification_closeout_compile_fail";
+
 #[test]
 fn closeout_rejects_certification_owned_authority_shortcuts() {
     let repo_root = repo_root();
     build_compile_fail_dependencies(&repo_root);
+    cargo_artifacts::discover(TEST_TARGET);
     for fixture in fixtures() {
         assert_compile_fails(&repo_root, fixture);
     }
@@ -85,19 +91,14 @@ fn build_compile_fail_dependencies(repo_root: &std::path::Path) {
     assert!(status.success(), "failed to build closeout fixture deps");
 }
 
-fn run_compile_fail_case(repo_root: &std::path::Path, fixture_name: &str) -> std::process::Output {
+fn run_compile_fail_case(_repo_root: &std::path::Path, fixture_name: &str) -> std::process::Output {
     let source = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests")
         .join("compile_fail")
         .join("security")
         .join("certification_closeout")
         .join(fixture_name);
-    let deps = repo_root
-        .join("workspaces")
-        .join("forge-store")
-        .join("target")
-        .join("debug")
-        .join("deps");
+    let deps = cargo_artifacts::dependency_dir();
     std::process::Command::new("rustc")
         .arg("--edition=2021")
         .arg(source)
@@ -134,21 +135,8 @@ fn extern_args(deps: &std::path::Path) -> Vec<std::ffi::OsString> {
     .collect()
 }
 
-fn rlib_path(deps: &std::path::Path, crate_name: &str) -> std::path::PathBuf {
-    let prefix = format!("lib{crate_name}-");
-    std::fs::read_dir(deps)
-        .unwrap()
-        .filter_map(Result::ok)
-        .map(|entry| entry.path())
-        .filter(|path| {
-            path.extension().and_then(|extension| extension.to_str()) == Some("rlib")
-                && path
-                    .file_name()
-                    .and_then(|file_name| file_name.to_str())
-                    .is_some_and(|file_name| file_name.starts_with(&prefix))
-        })
-        .max_by_key(|path| path.metadata().and_then(|m| m.modified()).unwrap())
-        .unwrap_or_else(|| panic!("missing compiled rlib for {crate_name}"))
+fn rlib_path(_deps: &std::path::Path, crate_name: &str) -> std::path::PathBuf {
+    cargo_artifacts::compiled_extern(TEST_TARGET, crate_name)
 }
 
 fn manifest_path(path: &std::path::Path) -> String {

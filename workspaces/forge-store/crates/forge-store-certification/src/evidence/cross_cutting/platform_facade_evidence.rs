@@ -3,17 +3,17 @@ use crate::{
     ScenarioDenialBoundary, ShortcutRejectionTrace,
 };
 use forge_store_physical_format::{
-    PlatformPhysicalFacadeCounterSnapshot, PlatformPhysicalFacadeEvidence,
+    PhysicalStoreRuntimeCounterSnapshot, PhysicalStoreRuntimeEvidence,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PlatformPhysicalFacadeEvidenceRow {
+pub enum PhysicalStoreRuntimeEvidenceRow {
     OperationSurface,
     RuntimeVerifierParity,
     ShortcutRejections,
 }
 
-impl PlatformPhysicalFacadeEvidenceRow {
+impl PhysicalStoreRuntimeEvidenceRow {
     pub const fn physical_format_required() -> [Self; 3] {
         [
             Self::OperationSurface,
@@ -28,29 +28,29 @@ impl PlatformPhysicalFacadeEvidenceRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PlatformPhysicalFacadeEvidenceReport {
-    row: PlatformPhysicalFacadeEvidenceRow,
+pub struct PhysicalStoreRuntimeEvidenceReport {
+    row: PhysicalStoreRuntimeEvidenceRow,
     lane: PhysicalSubstrateLane,
     observed_references: u32,
-    counters: PlatformPhysicalFacadeCounterSnapshot,
+    counters: PhysicalStoreRuntimeCounterSnapshot,
     parity: RuntimeVerifierParityTrace,
     shortcut_rejections: ShortcutRejectionTrace,
 }
 
-impl PlatformPhysicalFacadeEvidenceReport {
+impl PhysicalStoreRuntimeEvidenceReport {
     pub fn from_facade_evidence(
-        row: PlatformPhysicalFacadeEvidenceRow,
-        evidence: &PlatformPhysicalFacadeEvidence,
-    ) -> Result<Self, PlatformPhysicalFacadeEvidenceDenial> {
-        if row != PlatformPhysicalFacadeEvidenceRow::OperationSurface
-            && row != PlatformPhysicalFacadeEvidenceRow::RuntimeVerifierParity
+        row: PhysicalStoreRuntimeEvidenceRow,
+        evidence: &PhysicalStoreRuntimeEvidence,
+    ) -> Result<Self, PhysicalStoreRuntimeEvidenceDenial> {
+        if row != PhysicalStoreRuntimeEvidenceRow::OperationSurface
+            && row != PhysicalStoreRuntimeEvidenceRow::RuntimeVerifierParity
         {
-            return Err(PlatformPhysicalFacadeEvidenceDenial::UnexpectedEvidenceRow(
+            return Err(PhysicalStoreRuntimeEvidenceDenial::UnexpectedEvidenceRow(
                 row,
             ));
         }
         if !evidence.proves_platform_boundary() {
-            return Err(PlatformPhysicalFacadeEvidenceDenial::MissingFacadeEvidence);
+            return Err(PhysicalStoreRuntimeEvidenceDenial::MissingFacadeEvidence);
         }
         Ok(Self::new(
             row,
@@ -62,15 +62,15 @@ impl PlatformPhysicalFacadeEvidenceReport {
     }
 
     pub fn from_shortcut_counters(
-        counters: PlatformPhysicalFacadeCounterSnapshot,
-    ) -> Result<Self, PlatformPhysicalFacadeEvidenceDenial> {
+        counters: PhysicalStoreRuntimeCounterSnapshot,
+    ) -> Result<Self, PhysicalStoreRuntimeEvidenceDenial> {
         if counters.full_store_materialization_rejections() == 0
             || counters.backend_residue_guess_rejections() == 0
         {
-            return Err(PlatformPhysicalFacadeEvidenceDenial::MissingShortcutRejection);
+            return Err(PhysicalStoreRuntimeEvidenceDenial::MissingShortcutRejection);
         }
         Ok(Self::new(
-            PlatformPhysicalFacadeEvidenceRow::ShortcutRejections,
+            PhysicalStoreRuntimeEvidenceRow::ShortcutRejections,
             0,
             counters,
             RuntimeVerifierParityTrace::new(RuntimeVerifierRelationship::NotApplicable),
@@ -81,7 +81,7 @@ impl PlatformPhysicalFacadeEvidenceReport {
         ))
     }
 
-    pub const fn row(&self) -> PlatformPhysicalFacadeEvidenceRow {
+    pub const fn row(&self) -> PhysicalStoreRuntimeEvidenceRow {
         self.row
     }
 
@@ -93,7 +93,7 @@ impl PlatformPhysicalFacadeEvidenceReport {
         self.observed_references
     }
 
-    pub const fn counters(&self) -> PlatformPhysicalFacadeCounterSnapshot {
+    pub const fn counters(&self) -> PhysicalStoreRuntimeCounterSnapshot {
         self.counters
     }
 
@@ -106,9 +106,9 @@ impl PlatformPhysicalFacadeEvidenceReport {
     }
 
     const fn new(
-        row: PlatformPhysicalFacadeEvidenceRow,
+        row: PhysicalStoreRuntimeEvidenceRow,
         observed_references: u32,
-        counters: PlatformPhysicalFacadeCounterSnapshot,
+        counters: PhysicalStoreRuntimeCounterSnapshot,
         parity: RuntimeVerifierParityTrace,
         shortcut_rejections: ShortcutRejectionTrace,
     ) -> Self {
@@ -124,8 +124,8 @@ impl PlatformPhysicalFacadeEvidenceReport {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PlatformPhysicalFacadeEvidenceDenial {
-    UnexpectedEvidenceRow(PlatformPhysicalFacadeEvidenceRow),
+pub enum PhysicalStoreRuntimeEvidenceDenial {
+    UnexpectedEvidenceRow(PhysicalStoreRuntimeEvidenceRow),
     MissingFacadeEvidence,
     MissingShortcutRejection,
 }

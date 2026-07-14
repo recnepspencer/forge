@@ -10,7 +10,7 @@ use forge_store_blob_chunks::{
 
 pub(crate) fn family_token(family: PhysicalSimulationScenarioFamily) -> &'static str {
     match family {
-        PhysicalSimulationScenarioFamily::S4RecoveryDogfood => "s4-recovery-dogfood",
+        PhysicalSimulationScenarioFamily::RecoveryDogfood => "s4-recovery-dogfood",
         PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe => {
             "s5-readiness-shape-probe"
         }
@@ -162,7 +162,7 @@ pub(crate) fn fault_token(fault: PhysicalScenarioFaultKind) -> &'static str {
 
 pub(crate) fn expectation_token(expectation: PhysicalScenarioExpectationKind) -> &'static str {
     match expectation {
-        PhysicalScenarioExpectationKind::S4RecoveryDogfood => "s4-recovery-dogfood",
+        PhysicalScenarioExpectationKind::RecoveryDogfood => "s4-recovery-dogfood",
         PhysicalScenarioExpectationKind::PhysicalIsolationReadinessShapeProbe => {
             "s5-readiness-shape-probe"
         }

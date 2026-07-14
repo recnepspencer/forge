@@ -1,6 +1,4 @@
 use super::DegradedScanLoweringBasis;
-use crate::catalog::PhysicalArtifactFamily;
-use crate::materialization::LayoutCoverageWitness;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PhysicalDegradedExecutionDenial {
@@ -9,48 +7,50 @@ pub enum PhysicalDegradedExecutionDenial {
         actual: forge_store_authority::StoreCurrentAuthorityIdentity,
     },
     Admission(forge_store_physical_format::PlatformPhysicalOperationAdmissionDenial),
-    Physical(forge_store_physical_format::PlatformPhysicalFacadeDenial),
+    Physical(Box<forge_store_physical_format::PhysicalStoreRuntimeDenial>),
+    CounterDomainOverflow {
+        observed_rows: u64,
+    },
+    CounterEnvelope(crate::CounterEnvelopeViolation),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DegradedScanAdmissionDenied {
-    ReadmissionWitnessMismatch {
+    ReplacementAuthorityMismatch {
         basis: DegradedScanLoweringBasis,
-        expected: DegradedScanLoweringBasis,
-        actual: DegradedScanLoweringBasis,
+        expected: crate::AdmittedPhysicalArtifactFamily,
+        actual: crate::AdmittedPhysicalArtifactFamily,
     },
-    LifecycleFamilyMismatch {
+    ReplacementRequestMismatch {
         basis: DegradedScanLoweringBasis,
-        expected: PhysicalArtifactFamily,
-        actual: PhysicalArtifactFamily,
+        expected: Box<crate::keyspace::AdmittedPhysicalAccessIdentity>,
+        actual: Box<crate::keyspace::AdmittedPhysicalAccessIdentity>,
     },
-    ArtifactFamilyAuthorityMismatch {
+    ReplacementIntentMismatch {
         basis: DegradedScanLoweringBasis,
-        expected_security: forge_store_security::StoreSecurityScopeIdentity,
-        actual_security: forge_store_security::StoreSecurityScopeIdentity,
-        expected_store: forge_store_authority::StoreCurrentAuthorityIdentity,
-        actual_store: forge_store_authority::StoreCurrentAuthorityIdentity,
+        expected: crate::AdmittedAccessIntent,
+        actual: crate::AdmittedAccessIntent,
     },
-    CurrentCoverageMismatch {
+    ReplacementFrontierMismatch {
         basis: DegradedScanLoweringBasis,
-        expected: LayoutCoverageWitness,
-        actual: LayoutCoverageWitness,
+        expected: Box<crate::LayoutMaterializationSourceIdentity>,
+        actual: Box<crate::LayoutMaterializationSourceIdentity>,
     },
-    ReadmissionCurrentCoverageMismatch {
+    RebindAdmissionMismatch {
         basis: DegradedScanLoweringBasis,
-        expected: LayoutCoverageWitness,
-        actual: LayoutCoverageWitness,
+        expected_replacement: crate::AccessPlanIdentity,
+        admitted_replacement: crate::AccessPlanIdentity,
     },
 }
 
 impl DegradedScanAdmissionDenied {
     pub const fn basis(&self) -> &DegradedScanLoweringBasis {
         match self {
-            Self::ReadmissionWitnessMismatch { basis, .. }
-            | Self::LifecycleFamilyMismatch { basis, .. }
-            | Self::ArtifactFamilyAuthorityMismatch { basis, .. }
-            | Self::CurrentCoverageMismatch { basis, .. }
-            | Self::ReadmissionCurrentCoverageMismatch { basis, .. } => basis,
+            Self::ReplacementAuthorityMismatch { basis, .. }
+            | Self::ReplacementRequestMismatch { basis, .. }
+            | Self::ReplacementIntentMismatch { basis, .. }
+            | Self::ReplacementFrontierMismatch { basis, .. }
+            | Self::RebindAdmissionMismatch { basis, .. } => basis,
         }
     }
 }

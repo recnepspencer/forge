@@ -1,4 +1,6 @@
-use super::{BaselineLsmCounterObservation, BaselineLsmLookupAdmission};
+use super::{
+    BaselineLsmCounterObservation, BaselineLsmLookupAdmission, BaselineLsmLookupCounterReceipt,
+};
 use forge_store_wal::BlobWalRecordIdentity;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -10,39 +12,19 @@ pub enum BaselineLsmLookupDisposition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BaselineLsmLookupAbsence {
-    plan_binding: crate::planning::AccessPlanIdentity,
-    request_identity: crate::keyspace::AdmittedPhysicalAccessIdentity,
     probe_sequence: u64,
-    current_materialization: crate::CurrentLayoutMaterialization,
     tombstone_blocks_older: bool,
 }
 
 impl BaselineLsmLookupAbsence {
-    fn issue(
-        admission: &BaselineLsmLookupAdmission,
-        probe_sequence: u64,
-        tombstone_blocks_older: bool,
-    ) -> Self {
+    fn issue(probe_sequence: u64, tombstone_blocks_older: bool) -> Self {
         Self {
-            plan_binding: admission.plan_binding().clone(),
-            request_identity: admission.request_identity(),
             probe_sequence,
-            current_materialization: admission.current_materialization().clone(),
             tombstone_blocks_older,
         }
     }
-
-    pub const fn plan_binding(&self) -> &crate::planning::AccessPlanIdentity {
-        &self.plan_binding
-    }
-    pub const fn request_identity(&self) -> crate::keyspace::AdmittedPhysicalAccessIdentity {
-        self.request_identity
-    }
     pub const fn probe_sequence(&self) -> u64 {
         self.probe_sequence
-    }
-    pub const fn current_materialization(&self) -> &crate::CurrentLayoutMaterialization {
-        &self.current_materialization
     }
     pub const fn tombstone_blocks_older(&self) -> bool {
         self.tombstone_blocks_older
@@ -54,6 +36,7 @@ pub struct BaselineLsmLookupExecution {
     admission: BaselineLsmLookupAdmission,
     probe_sequence: u64,
     counters: BaselineLsmCounterObservation,
+    counter_receipt: BaselineLsmLookupCounterReceipt,
     observation: BaselineLsmLookupObservation,
 }
 
@@ -106,10 +89,11 @@ impl BaselineLsmLookupExecution {
         memtable_record: BlobWalRecordIdentity,
         sorted_run_record: BlobWalRecordIdentity,
         tombstone_blocks_older: bool,
-    ) -> Self {
+        comparisons: u16,
+    ) -> Result<Self, crate::CounterEnvelopeViolation> {
         let observation = match disposition {
             BaselineLsmLookupDisposition::NotFound => BaselineLsmLookupObservation::Absent(
-                BaselineLsmLookupAbsence::issue(&admission, probe_sequence, tombstone_blocks_older),
+                BaselineLsmLookupAbsence::issue(probe_sequence, tombstone_blocks_older),
             ),
             BaselineLsmLookupDisposition::Memtable => {
                 BaselineLsmLookupObservation::Memtable(memtable_record)
@@ -118,18 +102,22 @@ impl BaselineLsmLookupExecution {
                 BaselineLsmLookupObservation::SortedRun(sorted_run_record)
             }
         };
-        Self {
+        let counters = BaselineLsmCounterObservation::lookup(comparisons);
+        let counter_receipt =
+            BaselineLsmLookupCounterReceipt::issue(admission.plan_binding(), counters)?;
+        Ok(Self {
             admission,
             probe_sequence,
-            counters: BaselineLsmCounterObservation::lookup(),
+            counters,
+            counter_receipt,
             observation,
-        }
+        })
     }
 
-    pub const fn plan_binding(&self) -> &crate::planning::AccessPlanIdentity {
+    pub fn plan_binding(&self) -> &crate::planning::AccessPlanIdentity {
         self.admission.plan_binding()
     }
-    pub const fn request_identity(&self) -> crate::keyspace::AdmittedPhysicalAccessIdentity {
+    pub fn request_identity(&self) -> crate::keyspace::AdmittedPhysicalAccessIdentity {
         self.admission.request_identity()
     }
     pub const fn probe_sequence(&self) -> u64 {
@@ -159,6 +147,10 @@ impl BaselineLsmLookupExecution {
     }
     pub const fn counters(&self) -> BaselineLsmCounterObservation {
         self.counters
+    }
+
+    pub const fn counter_receipt(&self) -> &BaselineLsmLookupCounterReceipt {
+        &self.counter_receipt
     }
     pub const fn current_materialization(&self) -> &crate::CurrentLayoutMaterialization {
         self.admission.current_materialization()

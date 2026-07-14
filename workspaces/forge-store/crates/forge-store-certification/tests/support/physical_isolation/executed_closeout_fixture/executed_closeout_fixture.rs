@@ -109,11 +109,12 @@ fn admitted_compaction_surfaces() -> (
         inputs.new_validation,
         None,
     );
-    let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
-        CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
-        receipt,
-    )
-    .unwrap();
+    let publication =
+        forge_store_physical_isolation::CompactionRewritePublication::publish_rewrite(
+            CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
+            receipt,
+        )
+        .unwrap();
     let publication_receipt = publication.publication().clone();
     let recovery_posture = CompactionCutoverRecoveryPosture::admit_visible_product(
         source_precedence_fixture::compaction_visible_product_evidence(9),

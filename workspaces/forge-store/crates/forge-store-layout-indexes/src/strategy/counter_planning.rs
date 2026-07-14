@@ -64,7 +64,8 @@ pub(super) const fn declared_strategy_counter_envelope(
     match family {
         LayoutStrategyFamily::BaselineBTreeRange => None,
         LayoutStrategyFamily::BaselineLsmWriteOptimized => Some(PlannedCounterEnvelope::new(
-            AccessPathCounterSnapshot::exact(1, 1, 0, 0, 0, 2, 2, 2, 1, 0, 0, 0, 8_192, 0, 0, 2, 0),
+            AccessPathCounterSnapshot::exact(1, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 3, 0)
+                .with_selected_plan_authority_allocation(),
             AccessPathCounterSnapshot::exact(
                 0, 0, 0, 2, 2, 4, 0, 0, 0, 0, 0, 4, 16_384, 8_192, 2, 4, 2,
             ),
@@ -110,7 +111,9 @@ pub(super) const fn family_requires_shape_specific_lookup_envelope(
 
 const fn baseline_btree_point_counter_envelope() -> PlannedCounterEnvelope {
     PlannedCounterEnvelope::new(
-        AccessPathCounterSnapshot::exact(1, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 8_192, 0, 0, 2, 0),
+        AccessPathCounterSnapshot::exact(1, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 8_192, 0, 0, 2, 0)
+            .with_allocation_events(3)
+            .with_selected_plan_authority_allocation(),
         baseline_btree_publication_snapshot(),
         baseline_btree_recovery_snapshot(),
     )
@@ -126,7 +129,9 @@ const fn baseline_btree_replay_counter_envelope() -> PlannedCounterEnvelope {
 
 const fn baseline_btree_range_counter_envelope() -> PlannedCounterEnvelope {
     PlannedCounterEnvelope::new(
-        AccessPathCounterSnapshot::exact(0, 1, 0, 0, 0, 2, 2, 2, 1, 0, 0, 0, 8_192, 0, 0, 2, 0),
+        AccessPathCounterSnapshot::exact(0, 1, 0, 0, 0, 2, 2, 2, 1, 0, 0, 0, 8_192, 0, 0, 2, 0)
+            .with_allocation_events(3)
+            .with_selected_plan_authority_allocation(),
         baseline_btree_publication_snapshot(),
         baseline_btree_recovery_snapshot(),
     )
@@ -134,7 +139,9 @@ const fn baseline_btree_range_counter_envelope() -> PlannedCounterEnvelope {
 
 const fn baseline_btree_prefix_counter_envelope() -> PlannedCounterEnvelope {
     PlannedCounterEnvelope::new(
-        AccessPathCounterSnapshot::exact(0, 1, 0, 0, 0, 2, 2, 2, 0, 1, 0, 0, 8_192, 0, 0, 2, 0),
+        AccessPathCounterSnapshot::exact(0, 1, 0, 0, 0, 2, 2, 2, 0, 1, 0, 0, 8_192, 0, 0, 2, 0)
+            .with_allocation_events(3)
+            .with_selected_plan_authority_allocation(),
         baseline_btree_publication_snapshot(),
         baseline_btree_recovery_snapshot(),
     )

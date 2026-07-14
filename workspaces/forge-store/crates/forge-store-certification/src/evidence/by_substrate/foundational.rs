@@ -8,7 +8,7 @@ pub use crate::evidence::foundational::foundational_boundary_evidence::{
     ResidentMemoryPerformanceReceipt, ZeroCopyLayoutPostureReport,
 };
 pub use crate::evidence::foundational::handoff_gate_evidence::{
-    certify_foundational_handoff_gate_proof_evidence, S0HandoffGateCertificationDenial,
+    certify_aspect_native_boundary_audit, AspectNativeBoundaryCertificationDenial,
 };
 pub use crate::evidence::physical_integrity::physical_foundation_evidence::{
     PhysicalFoundationEvidenceBundle, PhysicalFoundationEvidenceBundleBuilder,

@@ -5,6 +5,7 @@ use forge_store_physical_integrity::{
     PhysicalIntegrityEvidenceProfile, QuarantineHandoffPosture, QuarantineRecord,
     StoreExecutedIntegrityEvidence,
 };
+use forge_store_security::StoreCurrentSecurityScopeWitnessSet;
 
 use crate::{
     verify_store_authority_for_readmission, IntegrityHandoffDenial,
@@ -31,6 +32,8 @@ pub struct RecoveryLayoutReadmissionWitness {
     family_id: DurableArtifactFamilyId,
     class: RecoveryLayoutReadmissionClass,
     identity: RecoveryLayoutReadmissionIdentity,
+    source_store_authority_identity: Option<forge_store_authority::StoreCurrentAuthorityIdentity>,
+    source_security_scope_identity: Option<forge_store_security::StoreSecurityScopeIdentity>,
     replay_frontier: Option<crate::LogSequenceNumber>,
 }
 
@@ -47,6 +50,18 @@ impl RecoveryLayoutReadmissionWitness {
     pub const fn replay_frontier(&self) -> Option<crate::LogSequenceNumber> {
         self.replay_frontier
     }
+
+    pub const fn source_store_authority_identity(
+        &self,
+    ) -> Option<forge_store_authority::StoreCurrentAuthorityIdentity> {
+        self.source_store_authority_identity
+    }
+
+    pub const fn source_security_scope_identity(
+        &self,
+    ) -> Option<forge_store_security::StoreSecurityScopeIdentity> {
+        self.source_security_scope_identity
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,13 +70,22 @@ pub enum RecoveryLayoutReadmissionAdmissionDenial {
     QuarantineReceiptEvidence(PhysicalIntegrityEvidenceDenial),
     QuarantineHandoff(IntegrityHandoffDenial),
     StoreAuthority(crate::BlobReplayAdmissionDenial),
+    SecurityScopeAuthorityMismatch {
+        store: forge_store_authority::StoreCurrentAuthorityIdentity,
+        security: forge_store_authority::StoreCurrentAuthorityIdentity,
+    },
     DerivedProjectionDamageCannotReadmit,
+    UnexpectedReadmissionClass {
+        expected: RecoveryLayoutReadmissionClass,
+        actual: RecoveryLayoutReadmissionClass,
+    },
 }
 
-pub fn admit_record_backed_layout_readmission(
+fn admit_record_backed_layout_readmission(
     family_id: DurableArtifactFamilyId,
     record: &QuarantineRecord,
     current_store_authority: &StoreCurrentAuthorityWitness,
+    current_security_scope: &StoreCurrentSecurityScopeWitnessSet,
 ) -> Result<RecoveryLayoutReadmissionWitness, RecoveryLayoutReadmissionAdmissionDenial> {
     let evidence = PhysicalIntegrityEvidenceAuthority::store_local()
         .materialize(
@@ -76,17 +100,27 @@ pub fn admit_record_backed_layout_readmission(
         .map_err(RecoveryLayoutReadmissionAdmissionDenial::QuarantineHandoff)?;
     verify_store_authority_for_readmission(current_store_authority)
         .map_err(RecoveryLayoutReadmissionAdmissionDenial::StoreAuthority)?;
+    if current_security_scope.authority_identity() != current_store_authority.authority_identity() {
+        return Err(
+            RecoveryLayoutReadmissionAdmissionDenial::SecurityScopeAuthorityMismatch {
+                store: current_store_authority.authority_identity(),
+                security: current_security_scope.authority_identity(),
+            },
+        );
+    }
     Ok(RecoveryLayoutReadmissionWitness {
         family_id,
         class: classify_record(record)?,
         identity: RecoveryLayoutReadmissionIdentity::QuarantineReceipt(
             record.receipt().foundational_basis().digest().clone(),
         ),
+        source_store_authority_identity: Some(current_store_authority.authority_identity()),
+        source_security_scope_identity: Some(current_security_scope.key_scope().identity()),
         replay_frontier: None,
     })
 }
 
-pub fn admit_offline_layout_readmission(
+fn admit_offline_layout_readmission(
     family_id: DurableArtifactFamilyId,
     admission: &ReopenedRecoveryArtifactAdmission,
 ) -> RecoveryLayoutReadmissionWitness {
@@ -102,7 +136,130 @@ pub fn admit_offline_layout_readmission(
         identity: RecoveryLayoutReadmissionIdentity::OfflineArtifactDigest(
             admission.artifact_digest().clone(),
         ),
+        source_store_authority_identity: None,
+        source_security_scope_identity: None,
         replay_frontier,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LayoutReadmissionAuthority;
+
+pub const fn layout_readmission() -> LayoutReadmissionAuthority {
+    LayoutReadmissionAuthority
+}
+
+macro_rules! readmission_outcome {
+    ($name:ident) => {
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub struct $name {
+            result:
+                Result<RecoveryLayoutReadmissionWitness, RecoveryLayoutReadmissionAdmissionDenial>,
+        }
+
+        impl $name {
+            fn issue(
+                result: Result<
+                    RecoveryLayoutReadmissionWitness,
+                    RecoveryLayoutReadmissionAdmissionDenial,
+                >,
+            ) -> Self {
+                Self { result }
+            }
+
+            pub const fn view(&self) -> RecoveryLayoutReadmissionOutcomeView<'_> {
+                match &self.result {
+                    Ok(witness) => RecoveryLayoutReadmissionOutcomeView::Readmitted(witness),
+                    Err(denial) => RecoveryLayoutReadmissionOutcomeView::Denied(denial),
+                }
+            }
+
+            pub fn into_result(
+                self,
+            ) -> Result<RecoveryLayoutReadmissionWitness, RecoveryLayoutReadmissionAdmissionDenial>
+            {
+                self.result
+            }
+
+            pub fn expect(self, message: &str) -> RecoveryLayoutReadmissionWitness {
+                self.result.expect(message)
+            }
+        }
+    };
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RecoveryLayoutReadmissionOutcomeView<'a> {
+    Readmitted(&'a RecoveryLayoutReadmissionWitness),
+    Denied(&'a RecoveryLayoutReadmissionAdmissionDenial),
+}
+
+readmission_outcome!(QuarantineLayoutReadmissionOutcome);
+readmission_outcome!(ImportLayoutReadmissionOutcome);
+readmission_outcome!(OfflineLayoutReadmissionOutcome);
+
+impl LayoutReadmissionAuthority {
+    pub fn admit_quarantine(
+        self,
+        family_id: DurableArtifactFamilyId,
+        record: &QuarantineRecord,
+        current_store_authority: &StoreCurrentAuthorityWitness,
+        current_security_scope: &StoreCurrentSecurityScopeWitnessSet,
+    ) -> QuarantineLayoutReadmissionOutcome {
+        QuarantineLayoutReadmissionOutcome::issue(require_record_class(
+            admit_record_backed_layout_readmission(
+                family_id,
+                record,
+                current_store_authority,
+                current_security_scope,
+            ),
+            RecoveryLayoutReadmissionClass::QuarantineRecovery,
+        ))
+    }
+
+    pub fn admit_import(
+        self,
+        family_id: DurableArtifactFamilyId,
+        record: &QuarantineRecord,
+        current_store_authority: &StoreCurrentAuthorityWitness,
+        current_security_scope: &StoreCurrentSecurityScopeWitnessSet,
+    ) -> ImportLayoutReadmissionOutcome {
+        ImportLayoutReadmissionOutcome::issue(require_record_class(
+            admit_record_backed_layout_readmission(
+                family_id,
+                record,
+                current_store_authority,
+                current_security_scope,
+            ),
+            RecoveryLayoutReadmissionClass::ImportBoundaryReadmission,
+        ))
+    }
+
+    pub fn admit_offline(
+        self,
+        family_id: DurableArtifactFamilyId,
+        admission: &ReopenedRecoveryArtifactAdmission,
+    ) -> OfflineLayoutReadmissionOutcome {
+        OfflineLayoutReadmissionOutcome::issue(Ok(admit_offline_layout_readmission(
+            family_id, admission,
+        )))
+    }
+}
+
+fn require_record_class(
+    result: Result<RecoveryLayoutReadmissionWitness, RecoveryLayoutReadmissionAdmissionDenial>,
+    expected: RecoveryLayoutReadmissionClass,
+) -> Result<RecoveryLayoutReadmissionWitness, RecoveryLayoutReadmissionAdmissionDenial> {
+    let witness = result?;
+    if witness.class() == expected {
+        Ok(witness)
+    } else {
+        Err(
+            RecoveryLayoutReadmissionAdmissionDenial::UnexpectedReadmissionClass {
+                expected,
+                actual: witness.class(),
+            },
+        )
     }
 }
 
@@ -128,8 +285,8 @@ fn classify_posture(
     posture: QuarantineHandoffPosture,
 ) -> Result<RecoveryLayoutReadmissionClass, RecoveryLayoutReadmissionAdmissionDenial> {
     match posture {
-        QuarantineHandoffPosture::S4RecoveryOwnerRequired
-        | QuarantineHandoffPosture::S10RepairOwnerRequired => {
+        QuarantineHandoffPosture::RecoveryOwnerRequired
+        | QuarantineHandoffPosture::RepairOwnerRequired => {
             Ok(RecoveryLayoutReadmissionClass::QuarantineRecovery)
         }
         QuarantineHandoffPosture::AuditRetentionOwnerRequired

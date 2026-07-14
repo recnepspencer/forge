@@ -49,9 +49,7 @@ impl BlobImportReadmissionReceipt {
         self.counters
     }
 
-    pub const fn authority_identity(
-        &self,
-    ) -> forge_store_authority::StoreCurrentAuthorityIdentity {
+    pub const fn authority_identity(&self) -> forge_store_authority::StoreCurrentAuthorityIdentity {
         self.authority_identity
     }
 }
@@ -103,9 +101,7 @@ impl ImportedBlobWitness {
         self.security_metadata
     }
 
-    pub const fn authority_identity(
-        &self,
-    ) -> forge_store_authority::StoreCurrentAuthorityIdentity {
+    pub const fn authority_identity(&self) -> forge_store_authority::StoreCurrentAuthorityIdentity {
         self.authority_identity
     }
 

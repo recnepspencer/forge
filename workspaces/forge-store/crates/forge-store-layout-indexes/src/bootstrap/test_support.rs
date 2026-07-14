@@ -5,7 +5,7 @@ use forge_store_contracts::{
 use forge_store_physical_format::{
     physical_bootstrap_catalog, PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority,
     PhysicalPageId, PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId,
-    PhysicalStoreIdentity, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
+    PhysicalStoreIdentity, PhysicalStoreRuntime, PlatformPhysicalAppendRequest,
     PlatformPhysicalOpenRequest,
 };
 
@@ -88,14 +88,14 @@ fn published_layout(
     }
 }
 
-pub(crate) fn open_physical_facade() -> PlatformPhysicalFacade {
+pub(crate) fn open_physical_facade() -> PhysicalStoreRuntime {
     open_physical_facade_for_store(PhysicalStoreIdentity::physical_format_default())
 }
 
 pub(crate) fn open_physical_facade_for_store(
     store_identity: PhysicalStoreIdentity,
-) -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_physical_format(
+) -> PhysicalStoreRuntime {
+    PhysicalStoreRuntime::open_physical_format(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_for_store(store_identity),
     )

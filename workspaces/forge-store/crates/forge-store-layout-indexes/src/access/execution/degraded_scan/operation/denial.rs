@@ -9,5 +9,6 @@ pub enum DegradedExactScanExecutionDenied {
     Selection(crate::AccessPlanSelectionDenied),
     UnexpectedSelectedOperation,
     Stale(crate::StaleLayoutMaterialization),
+    Rebind(Box<crate::DegradedScanAdmissionDenied>),
     Physical(crate::PhysicalDegradedExecutionDenial),
 }

@@ -3,8 +3,8 @@ use crate::access::counters::PhysicalLayoutAccessCounterSnapshot;
 use crate::access::grammar::PhysicalLayoutAccessFamily;
 use crate::{
     ManifestDiscoveryAuthority, PhysicalReference, PhysicalReferenceAdmissionWitness,
-    PhysicalReferenceAuthority, PhysicalReferenceKind, PlatformPhysicalFacade,
-    PlatformPhysicalFacadeDenial, PlatformPhysicalFacadeDenialKind,
+    PhysicalReferenceAuthority, PhysicalReferenceKind, PhysicalStoreRuntime,
+    PhysicalStoreRuntimeDenial, PhysicalStoreRuntimeDenialKind,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,18 +15,18 @@ pub struct ManifestMembershipLayoutReport {
 
 #[derive(Debug)]
 pub struct ManifestAccess<'a> {
-    facade: &'a mut PlatformPhysicalFacade,
+    facade: &'a mut PhysicalStoreRuntime,
 }
 
 impl<'a> ManifestAccess<'a> {
-    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+    pub(crate) fn new(facade: &'a mut PhysicalStoreRuntime) -> Self {
         Self { facade }
     }
 
     pub fn validate_membership(
         &mut self,
         reference: PhysicalReference,
-    ) -> Result<ManifestMembershipLayoutReport, PlatformPhysicalFacadeDenial> {
+    ) -> Result<ManifestMembershipLayoutReport, PhysicalStoreRuntimeDenial> {
         let access = canonical_root_manifest(self.facade)?;
         let root = access.root();
         let references = PhysicalReferenceAuthority::for_canonical_physical_format();
@@ -42,8 +42,8 @@ impl<'a> ManifestAccess<'a> {
                 discovery
                     .locate_page_slot(discovery_report, admission)
                     .map_err(|denial| {
-                        PlatformPhysicalFacadeDenial::new(
-                            PlatformPhysicalFacadeDenialKind::ManifestDiscoveryDenied,
+                        PhysicalStoreRuntimeDenial::new(
+                            PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied,
                         )
                         .with_manifest_denial(denial)
                     })?;
@@ -52,8 +52,8 @@ impl<'a> ManifestAccess<'a> {
                 discovery
                     .locate_extent(discovery_report, admission)
                     .map_err(|denial| {
-                        PlatformPhysicalFacadeDenial::new(
-                            PlatformPhysicalFacadeDenialKind::ManifestDiscoveryDenied,
+                        PhysicalStoreRuntimeDenial::new(
+                            PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied,
                         )
                         .with_manifest_denial(denial)
                     })?;
@@ -62,8 +62,8 @@ impl<'a> ManifestAccess<'a> {
                 discovery
                     .validate_free_space_reuse(discovery_report, admission)
                     .map_err(|denial| {
-                        PlatformPhysicalFacadeDenial::new(
-                            PlatformPhysicalFacadeDenialKind::ManifestDiscoveryDenied,
+                        PhysicalStoreRuntimeDenial::new(
+                            PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied,
                         )
                         .with_manifest_denial(denial)
                     })?;
@@ -72,8 +72,8 @@ impl<'a> ManifestAccess<'a> {
                 references
                     .validate_root_publication(admission, root.root_publication())
                     .map_err(|denial| {
-                        PlatformPhysicalFacadeDenial::new(
-                            PlatformPhysicalFacadeDenialKind::ManifestDiscoveryDenied,
+                        PhysicalStoreRuntimeDenial::new(
+                            PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied,
                         )
                         .with_reference_denial(denial)
                     })?;

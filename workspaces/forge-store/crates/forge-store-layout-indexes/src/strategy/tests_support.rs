@@ -52,6 +52,35 @@ pub(crate) fn strategy_test_store_identity() -> forge_store_physical_format::Phy
     )
 }
 
+pub(crate) fn strategy_test_security_scope(
+    key_scope: StoreKeyScope,
+    tenant_scope: StoreTenantScope,
+) -> StoreAdmittedSecurityScope {
+    admitted_scope(
+        key_scope,
+        tenant_scope,
+        StoreAuthenticityRequirement::required(
+            StoreAuthenticityRequirementClass::AuthenticatedFrame,
+        ),
+        StoreCustodyPosture::InternalStoreCustody,
+        strategy_store_authority_key(),
+    )
+}
+
+pub(crate) fn strategy_test_wal_security_scope_for_store(
+    store_authority_key: &str,
+) -> StoreAdmittedSecurityScope {
+    admitted_scope(
+        StoreKeyScope::WalCheckpointEnvelope,
+        StoreTenantScope::StoreInternal,
+        StoreAuthenticityRequirement::required(
+            StoreAuthenticityRequirementClass::AuthenticatedWalRecord,
+        ),
+        StoreCustodyPosture::InternalStoreCustody,
+        store_authority_key,
+    )
+}
+
 const fn strategy_store_authority_key() -> &'static str {
     "store.new.strategy"
 }
@@ -91,7 +120,7 @@ pub(crate) fn admit_btree_page_strategy() -> AdmittedLayoutStrategy {
         ),
         StoreCustodyPosture::InternalStoreCustody,
     );
-    layout_admission_registry()
+    *layout_admission_registry()
         .admit(LayoutAdmissionRequest::from_admitted(
             lifecycle,
             key_domain,
@@ -113,7 +142,7 @@ pub(crate) fn admit_lsm_wal_strategy() -> AdmittedLayoutStrategy {
         ),
         StoreCustodyPosture::InternalStoreCustody,
     );
-    layout_admission_registry()
+    *layout_admission_registry()
         .admit(LayoutAdmissionRequest::from_admitted(
             lifecycle,
             key_domain,
@@ -127,7 +156,7 @@ pub(crate) fn admit_lsm_wal_strategy() -> AdmittedLayoutStrategy {
 
 pub(crate) fn admit_persisted_lsm_strategy() -> AdmittedLayoutStrategy {
     let (family, key_domain) = admit_persisted_lsm_scope();
-    layout_admission_registry()
+    *layout_admission_registry()
         .admit(LayoutAdmissionRequest::from_admitted(
             family,
             key_domain,

@@ -6,7 +6,7 @@ use forge_proof::raw::{
 
 use crate::planning::{AccessPlanIdentity, SelectedDegradedExactScan};
 
-use super::super::transition_authority::{lowering_capability, readiness_authority};
+use super::authority::{lowering_capability, readiness_authority};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DegradedScanLoweringBasis {
@@ -41,7 +41,7 @@ pub struct LoweredDegradedExactScan {
 }
 
 impl LoweredDegradedExactScan {
-    pub(super) fn issue(selected: SelectedDegradedExactScan) -> Self {
+    fn issue(selected: SelectedDegradedExactScan) -> Self {
         let basis = DegradedScanLoweringBasis::new(selected.clone());
         let resolved = ResolveRecipeTransition.transition(
             Recipe::new(selected),
@@ -87,10 +87,13 @@ impl StaleDegradedExactScan {
     pub fn basis(&self) -> &DegradedScanLoweringBasis {
         self.recipe.basis().weakened_basis().basis().value()
     }
-    pub(in crate::access::execution::degraded_scan) fn recipe(&self) -> StaleDegradedScanRecipe {
-        self.recipe.clone()
-    }
     pub const fn stale_materialization(&self) -> &crate::StaleLayoutMaterialization {
         &self.materialization
     }
+}
+
+pub(in crate::access::execution::degraded_scan) fn lower(
+    selected: SelectedDegradedExactScan,
+) -> LoweredDegradedExactScan {
+    LoweredDegradedExactScan::issue(selected)
 }

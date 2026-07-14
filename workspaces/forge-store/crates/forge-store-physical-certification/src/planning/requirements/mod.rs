@@ -57,7 +57,7 @@ pub enum OracleFamilyKind {
     PhysicalIsolationReadinessShape,
     PhysicalIsolationInterleaving,
     IoPressureSimulation,
-    S4RecoveryDogfood,
+    RecoveryDogfood,
     BlobHarnessEvidence,
     BlobHeavyQualification,
     ForbiddenShortcutRejection,
@@ -67,7 +67,7 @@ pub enum OracleFamilyKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FixtureClassKind {
     AspectNativeBoundaryFact,
-    S4RecoveryArtifacts,
+    RecoveryArtifacts,
     FutureExtensionSlot,
 }
 
@@ -115,8 +115,8 @@ impl RequiredSimulationPlanShape {
         let actor_step_count = actors.len() as u64;
         let mut shape = match (definition.family(), definition.expectation().kind()) {
             (
-                PhysicalSimulationScenarioFamily::S4RecoveryDogfood,
-                PhysicalScenarioExpectationKind::S4RecoveryDogfood,
+                PhysicalSimulationScenarioFamily::RecoveryDogfood,
+                PhysicalScenarioExpectationKind::RecoveryDogfood,
             ) => recovery_shape(actor_step_count),
             (
                 PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe,

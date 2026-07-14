@@ -89,7 +89,6 @@ mod aspect_native_vocabulary_readiness;
 mod evidence_fields;
 #[cfg(test)]
 mod evidence_fields_tests;
-mod foundational;
 mod foundational_adoption;
 mod foundational_lanes;
 mod physical_integrity;
@@ -102,11 +101,6 @@ pub use aspect_native_vocabulary_readiness::{
     StoreAspectNativeVocabularyReadiness,
 };
 pub use evidence_fields::PhysicalFoundationEvidenceField;
-pub use foundational::{
-    accept_aspect_native_gate_handoff, reconstruct_aspect_native_handoff_verdict,
-    reject_terminal_json_projection_as_aspect_native_handoff, AspectNativeGateHandoff,
-    AspectNativeGateHandoffDenial, AspectNativeGateHandoffVerdict,
-};
 pub use foundational_adoption::{
     FoundationalAdoptionFamily, FoundationalAdoptionRow, FoundationalAdoptionStatus,
     FoundationalVocabularyAdoptionMap, FoundationalVocabularyAdoptionMapBuilder,

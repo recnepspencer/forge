@@ -19,7 +19,7 @@ impl IntegrityEntryDenial {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IntegrityEntryDenialKind {
-    S2ReadinessNotSealed,
+    PhysicalSubstrateReadinessNotSealed,
     MissingProtectedViewCapability,
     MissingVerifierResidentEnvelope,
     MissingScrubAllocationEnvelope,
@@ -37,8 +37,8 @@ pub enum IntegrityEntryDenialKind {
 impl From<PhysicalIntegrityReadinessDenial> for IntegrityEntryDenial {
     fn from(denial: PhysicalIntegrityReadinessDenial) -> Self {
         Self::new(match denial.kind() {
-            PhysicalIntegrityReadinessDenialKind::S2ReadinessNotSealed => {
-                IntegrityEntryDenialKind::S2ReadinessNotSealed
+            PhysicalIntegrityReadinessDenialKind::PhysicalSubstrateReadinessNotSealed => {
+                IntegrityEntryDenialKind::PhysicalSubstrateReadinessNotSealed
             }
             PhysicalIntegrityReadinessDenialKind::MissingProtectedViewCapability => {
                 IntegrityEntryDenialKind::MissingProtectedViewCapability

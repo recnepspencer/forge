@@ -5,7 +5,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S4RecoveryDogfoodScenario {
+pub struct RecoveryDogfoodScenario {
     scenario: CertifiedPhysicalScenario,
 }
 
@@ -21,20 +21,20 @@ pub struct PhysicalIsolationReadinessShapeProbeScenario {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SimulationHarnessDogfoodReport {
-    recovery: S4RecoveryDogfoodScenario,
+    recovery: RecoveryDogfoodScenario,
     shortcut_rejection: ShortcutRejectionDogfoodScenario,
     physical_isolation_readiness_shape_probe: PhysicalIsolationReadinessShapeProbeScenario,
 }
 
-impl S4RecoveryDogfoodScenario {
+impl RecoveryDogfoodScenario {
     pub fn from_public_authoring(
         scenario: CertifiedPhysicalScenario,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         require_scenario_shape(
             &scenario,
-            PhysicalSimulationScenarioFamily::S4RecoveryDogfood,
+            PhysicalSimulationScenarioFamily::RecoveryDogfood,
             PhysicalScenarioIntent::RecoveryReplayDogfood,
-            PhysicalScenarioExpectationKind::S4RecoveryDogfood,
+            PhysicalScenarioExpectationKind::RecoveryDogfood,
         )?;
         require_actor(&scenario, PhysicalScenarioActorRole::RecoveryDriver)?;
         Ok(Self { scenario })
@@ -102,7 +102,7 @@ impl PhysicalIsolationReadinessShapeProbeScenario {
 
 impl SimulationHarnessDogfoodReport {
     pub const fn new(
-        recovery: S4RecoveryDogfoodScenario,
+        recovery: RecoveryDogfoodScenario,
         shortcut_rejection: ShortcutRejectionDogfoodScenario,
         physical_isolation_readiness_shape_probe: PhysicalIsolationReadinessShapeProbeScenario,
     ) -> Self {
@@ -113,7 +113,7 @@ impl SimulationHarnessDogfoodReport {
         }
     }
 
-    pub const fn recovery_slice(&self) -> &S4RecoveryDogfoodScenario {
+    pub const fn recovery_slice(&self) -> &RecoveryDogfoodScenario {
         &self.recovery
     }
 

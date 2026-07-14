@@ -151,7 +151,7 @@ fn mismatched_scenario_meaning_denies_instead_of_defaulting_to_physical_isolatio
     assert_eq!(
         denial,
         SimulationPlanDenial::UnsupportedScenarioShape {
-            family: PhysicalSimulationScenarioFamily::S4RecoveryDogfood,
+            family: PhysicalSimulationScenarioFamily::RecoveryDogfood,
             expectation: forge_store_physical_certification::PhysicalScenarioExpectationKind::PhysicalIsolationReadinessShapeProbe,
         }
     );
@@ -311,7 +311,7 @@ fn physical_isolation_scenario(
 
 fn recovery_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s4.recovery")
-        .family(PhysicalSimulationScenarioFamily::S4RecoveryDogfood)
+        .family(PhysicalSimulationScenarioFamily::RecoveryDogfood)
         .intent(PhysicalScenarioIntent::RecoveryReplayDogfood)
         .fixture(
             NativeStoreAspectFixture::segment_header("s4", 4)
@@ -330,7 +330,7 @@ fn recovery_scenario() -> forge_store_physical_certification::CertifiedPhysicalS
 
 fn mismatched_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.mismatched")
-        .family(PhysicalSimulationScenarioFamily::S4RecoveryDogfood)
+        .family(PhysicalSimulationScenarioFamily::RecoveryDogfood)
         .intent(PhysicalScenarioIntent::RecoveryReplayDogfood)
         .fixture(
             NativeStoreAspectFixture::segment_header("mismatch", 4)

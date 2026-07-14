@@ -10,15 +10,15 @@ impl IntegrityHandoffAdmission {
         s3_payload: PhysicalIntegrityReadinessPayload,
         payload: IntegrityHandoffPayload,
     ) -> Result<AdmittedRecoveryIntegrityInput, IntegrityHandoffDenial> {
-        let _s3_entry_basis = S3HandoffEntryAdmissionBasis::from_payload(s3_payload)?;
+        let _integrity_entry_basis = IntegrityHandoffEntryAdmissionBasis::from_payload(s3_payload)?;
         Ok(AdmittedRecoveryIntegrityInput::from_admitted_integrity_handoff(payload))
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct S3HandoffEntryAdmissionBasis;
+struct IntegrityHandoffEntryAdmissionBasis;
 
-impl S3HandoffEntryAdmissionBasis {
+impl IntegrityHandoffEntryAdmissionBasis {
     fn from_payload(
         payload: PhysicalIntegrityReadinessPayload,
     ) -> Result<Self, IntegrityHandoffDenial> {
@@ -33,7 +33,7 @@ fn require_protected_integrity_view(
     payload: PhysicalIntegrityReadinessPayload,
 ) -> Result<(), IntegrityHandoffDenial> {
     if !payload.protected_view_capability().is_concrete() {
-        return denied(IntegrityHandoffDenialKind::MissingS3ProtectedViewCapability);
+        return denied(IntegrityHandoffDenialKind::MissingProtectedViewCapability);
     }
     Ok(())
 }
@@ -42,7 +42,7 @@ fn require_lease_scoped_integrity_inspection(
     payload: PhysicalIntegrityReadinessPayload,
 ) -> Result<(), IntegrityHandoffDenial> {
     if !payload.inspection_lifetime_law().is_lease_scoped() {
-        return denied(IntegrityHandoffDenialKind::MissingS3InspectionLifetimeLaw);
+        return denied(IntegrityHandoffDenialKind::MissingInspectionLifetimeLaw);
     }
     Ok(())
 }
@@ -52,7 +52,7 @@ fn require_no_materialization_entry_witness(
 ) -> Result<(), IntegrityHandoffDenial> {
     let witness = payload.no_materialization_witness();
     if !witness.forbids_whole_store() || !witness.forbids_whole_object() {
-        return denied(IntegrityHandoffDenialKind::MissingS3NoMaterializationWitness);
+        return denied(IntegrityHandoffDenialKind::MissingNoMaterializationWitness);
     }
     Ok(())
 }

@@ -10,7 +10,8 @@ pub use crate::backup::import::{
     BackupImportCustodyReadmission, BackupImportSourceCustodyDenial,
     BackupImportSourceCustodyScope, ImportPlacementDisposition, ImportPlacementPlan,
     ImportPlacementSource, RestoredLayoutMaterializationCaseId,
-    RestoredLayoutMaterializationOutcome, RestoredLayoutMaterializationView,
+    RestoredLayoutMaterializationObservation, RestoredLayoutMaterializationOutcome,
+    RestoredLayoutMaterializationView,
 };
 pub use crate::backup_export_custody_scheduler_demand::backup_prep_background_pressure_shape;
 pub use crate::capsule_chunk_availability::{

@@ -16,11 +16,11 @@ pub enum PhysicalProofOracleKind {
     ShortcutCertificationRejected,
     TranscriptPreservesEvidence,
     VerifierRuntimeLayoutParity,
-    S3DamagedBytesDenyBeforeLogicalDecode,
-    S3DamageLocalizesToPhysicalBoundary,
-    S3SyntheticShortcutRejected,
-    S3RecoveryHandoffContainsOnlyIntegrityEvidence,
-    S3LineCapCompositionChecked,
+    DamagedBytesDenyBeforeLogicalDecode,
+    DamageLocalizesToPhysicalBoundary,
+    SyntheticShortcutRejected,
+    RecoveryHandoffContainsOnlyIntegrityEvidence,
+    IntegrityCompositionChecked,
 }
 
 impl PhysicalProofOracleKind {
@@ -36,15 +36,15 @@ impl PhysicalProofOracleKind {
             Self::ShortcutCertificationRejected => "shortcut_certification_rejected",
             Self::TranscriptPreservesEvidence => "transcript_preserves_evidence",
             Self::VerifierRuntimeLayoutParity => "verifier_runtime_layout_parity",
-            Self::S3DamagedBytesDenyBeforeLogicalDecode => {
+            Self::DamagedBytesDenyBeforeLogicalDecode => {
                 "s3_damaged_bytes_deny_before_logical_decode"
             }
-            Self::S3DamageLocalizesToPhysicalBoundary => "s3_damage_localizes_to_physical_boundary",
-            Self::S3SyntheticShortcutRejected => "s3_synthetic_shortcut_rejected",
-            Self::S3RecoveryHandoffContainsOnlyIntegrityEvidence => {
+            Self::DamageLocalizesToPhysicalBoundary => "s3_damage_localizes_to_physical_boundary",
+            Self::SyntheticShortcutRejected => "s3_synthetic_shortcut_rejected",
+            Self::RecoveryHandoffContainsOnlyIntegrityEvidence => {
                 "s3_recovery_handoff_contains_only_integrity_evidence"
             }
-            Self::S3LineCapCompositionChecked => "s3_line_cap_composition_checked",
+            Self::IntegrityCompositionChecked => "s3_line_cap_composition_checked",
         }
     }
 }
@@ -148,13 +148,13 @@ fn judge_oracle(
         PhysicalProofOracleKind::VerifierRuntimeLayoutParity => {
             judge_runtime_verifier_parity(trace)
         }
-        PhysicalProofOracleKind::S3DamagedBytesDenyBeforeLogicalDecode => {
+        PhysicalProofOracleKind::DamagedBytesDenyBeforeLogicalDecode => {
             judge_physical_integrity_damaged_bytes_deny_before_logical_decode(trace)
         }
-        PhysicalProofOracleKind::S3DamageLocalizesToPhysicalBoundary
-        | PhysicalProofOracleKind::S3RecoveryHandoffContainsOnlyIntegrityEvidence
-        | PhysicalProofOracleKind::S3LineCapCompositionChecked => judge_transcript_evidence(trace),
-        PhysicalProofOracleKind::S3SyntheticShortcutRejected => {
+        PhysicalProofOracleKind::DamageLocalizesToPhysicalBoundary
+        | PhysicalProofOracleKind::RecoveryHandoffContainsOnlyIntegrityEvidence
+        | PhysicalProofOracleKind::IntegrityCompositionChecked => judge_transcript_evidence(trace),
+        PhysicalProofOracleKind::SyntheticShortcutRejected => {
             judge_shortcut_certification_rejected(trace)
         }
     }

@@ -81,7 +81,7 @@ impl<'lease> LogicalDecodeGate<'lease> {
     }
 }
 
-pub trait S3LogicalDecoder<'lease> {
+pub trait LogicalDecoder<'lease> {
     type Output;
 
     fn decode(&mut self, gate: LogicalDecodeGate<'lease>) -> Self::Output;

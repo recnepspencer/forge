@@ -7,9 +7,9 @@ use super::super::test_support::{
 };
 use crate::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use crate::{
-    admit_queue_execution_plan, lower_buffer_pool_queue_declaration, QueueExecutionAdmissionDenial,
-    QueueExecutionAdmissionRequest, QueueExecutionProgression, QueueGroupingDenial,
-    QueueWorkDeclaration, S6QueueDurabilityClass,
+    admit_queue_execution_plan, lower_buffer_pool_queue_declaration, QueueDurabilityClass,
+    QueueExecutionAdmissionDenial, QueueExecutionAdmissionRequest, QueueExecutionProgression,
+    QueueGroupingDenial, QueueWorkDeclaration,
 };
 
 #[test]
@@ -18,7 +18,7 @@ fn admitted_queue_work_lowers_preserving_policy_and_grouping_basis() {
     let budget = point_read_budget();
     let work = QueueWorkDeclaration::foreground(
         reservation.execution_ready(),
-        S6QueueDurabilityClass::ReadOnly,
+        QueueDurabilityClass::ReadOnly,
         budget,
     )
     .with_grouping_basis(grouping_for(reservation.security_scope_identity()));
@@ -86,7 +86,7 @@ fn grouping_mismatch_is_a_typed_admission_denial() {
     let budget = point_read_budget();
     let work = QueueWorkDeclaration::foreground(
         reservation.execution_ready(),
-        S6QueueDurabilityClass::ReadOnly,
+        QueueDurabilityClass::ReadOnly,
         budget,
     )
     .with_grouping_basis(

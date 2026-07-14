@@ -67,6 +67,11 @@ fn contains_forbidden_vocabulary(source: &str) -> bool {
                             .next()
                             .is_some_and(|character| character.is_ascii_alphabetic())
                     })
+                }) || word.strip_prefix("Milestone").is_some_and(|suffix| {
+                    suffix
+                        .chars()
+                        .next()
+                        .is_some_and(|character| character.is_ascii_digit())
                 })
             })
 }
@@ -78,6 +83,27 @@ fn production_vocabulary_contains_no_milestone_identifiers() {
         assert!(
             !contains_forbidden_vocabulary(&text),
             "production milestone vocabulary remains in {}",
+            path.display()
+        );
+    }
+}
+
+#[test]
+fn rust_file_topology_contains_no_roadmap_ordering() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut sources = Vec::new();
+    rust_sources_below(&root.join("src"), &mut sources);
+    rust_sources_below(&root.join("tests"), &mut sources);
+
+    for path in sources {
+        let name = path.file_name().and_then(std::ffi::OsStr::to_str).unwrap();
+        let normalized = name.to_ascii_lowercase();
+        assert!(
+            !normalized.contains("phase")
+                && !normalized.contains("milestone")
+                && !normalized.starts_with("s8_")
+                && !normalized.starts_with("s9_"),
+            "Rust file topology retains roadmap ordering in {}",
             path.display()
         );
     }
@@ -184,6 +210,56 @@ fn production_authority_types_expose_no_public_fields() {
             );
         }
     }
+}
+
+#[test]
+fn production_read_path_has_no_crate_wide_outcome_issuer() {
+    let planning_exports = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/planning.rs"),
+    )
+    .unwrap();
+    assert!(
+        !planning_exports.contains("SelectedAccessPlanBasis"),
+        "generic selected-plan basis escaped the planning owner"
+    );
+
+    for path in production_sources() {
+        let source = std::fs::read_to_string(&path).unwrap();
+        for line in source.lines().map(str::trim) {
+            assert!(
+                !line.starts_with("pub(crate) fn issue")
+                    && !line.starts_with("pub(crate) const fn issue"),
+                "crate-wide outcome issuer escapes its owner in {}: {line}",
+                path.display()
+            );
+        }
+    }
+
+    for owner in [
+        "src/artifact_family/admission.rs",
+        "src/keyspace/admission.rs",
+        "src/materialization/admission.rs",
+        "src/bootstrap/catalog_read_outcome.rs",
+        "src/strategy/registry/admission_operation.rs",
+    ] {
+        let source =
+            std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(owner))
+                .unwrap();
+        assert!(
+            !source.contains("pub(crate) fn admit")
+                && !source.contains("pub(crate) const fn admit")
+                && !source.contains("pub(crate) fn issue")
+                && !source.contains("pub(crate) const fn issue"),
+            "owner admission file exposes a crate-wide authority constructor: {owner}"
+        );
+    }
+
+    assert!(
+        !std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src/strategy/registry/snapshot.rs")
+            .exists(),
+        "strategy snapshot construction must remain co-located with registry admission"
+    );
 }
 
 #[test]

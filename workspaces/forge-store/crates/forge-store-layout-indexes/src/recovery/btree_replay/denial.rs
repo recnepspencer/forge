@@ -2,34 +2,39 @@ use forge_store_budgets::PreExecutionBudgetDenial;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BTreeReplayDenied {
-    ArtifactFamily,
     SecurityScope,
-    KeyDomain,
-    ConcreteKey,
-    ExactCoverage,
-    Shape,
-    RequestAdmission(crate::PhysicalAccessRequestAdmissionDenied),
-    NoEligibleLayout,
-    AmbiguousLayout,
-    Cost(crate::AccessPlanCostDenial),
     Budget(PreExecutionBudgetDenial),
-    UnexpectedSelectedOperation,
-    Execution(crate::BaselineBTreeExecutionDenial),
+    Execution(Box<crate::BaselineBTreeExecutionDenial>),
 }
 
-pub(super) const fn map_artifact_denial(denial: crate::ArtifactFamilyDenial) -> BTreeReplayDenied {
-    match denial {
-        crate::ArtifactFamilyDenial::CrossKeyScopePartitionDenied
-        | crate::ArtifactFamilyDenial::CrossTenantScopePartitionDenied
-        | crate::ArtifactFamilyDenial::AuthenticityBoundaryDenied
-        | crate::ArtifactFamilyDenial::CustodyBoundaryDenied => BTreeReplayDenied::SecurityScope,
-        _ => BTreeReplayDenied::ArtifactFamily,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum BTreeReplayDenialKind {
+    SecurityScope,
+    Budget,
+    Execution,
+}
+
+impl BTreeReplayDenialKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::SecurityScope => "security_scope",
+            Self::Budget => "budget",
+            Self::Execution => "execution",
+        }
     }
 }
 
-pub(super) const fn map_key_domain_denial(
-    denial: crate::ArtifactFamilyDenial,
-) -> BTreeReplayDenied {
+impl BTreeReplayDenied {
+    pub const fn kind(&self) -> BTreeReplayDenialKind {
+        match self {
+            Self::SecurityScope => BTreeReplayDenialKind::SecurityScope,
+            Self::Budget(_) => BTreeReplayDenialKind::Budget,
+            Self::Execution(_) => BTreeReplayDenialKind::Execution,
+        }
+    }
+}
+
+pub(super) const fn map_security_denial(denial: crate::ArtifactFamilyDenial) -> BTreeReplayDenied {
     match denial {
         crate::ArtifactFamilyDenial::CrossKeyScopePartitionDenied
         | crate::ArtifactFamilyDenial::CrossTenantScopePartitionDenied
@@ -38,21 +43,16 @@ pub(super) const fn map_key_domain_denial(
         | crate::ArtifactFamilyDenial::SecurityAuthorityMismatch => {
             BTreeReplayDenied::SecurityScope
         }
-        _ => BTreeReplayDenied::KeyDomain,
+        _ => BTreeReplayDenied::SecurityScope,
     }
 }
 
-pub(super) const fn map_selection_denial(
-    denial: crate::AccessPlanSelectionDenied,
-) -> BTreeReplayDenied {
+pub(super) fn map_selection_denial(denial: crate::AccessPlanSelectionDenied) -> BTreeReplayDenied {
     match denial {
-        crate::AccessPlanSelectionDenied::NoEligibleAlternative => {
-            BTreeReplayDenied::NoEligibleLayout
-        }
-        crate::AccessPlanSelectionDenied::OverlappingEligibleStrategyAuthority { .. } => {
-            BTreeReplayDenied::AmbiguousLayout
-        }
-        crate::AccessPlanSelectionDenied::CostDenied(denial) => BTreeReplayDenied::Cost(denial),
         crate::AccessPlanSelectionDenied::BudgetDenied(denial) => BTreeReplayDenied::Budget(denial),
+        crate::AccessPlanSelectionDenied::NoEligibleAlternative
+        | crate::AccessPlanSelectionDenied::CostDenied(_) => {
+            unreachable!("admitted B-tree replay has a fixed eligible and costed operation")
+        }
     }
 }

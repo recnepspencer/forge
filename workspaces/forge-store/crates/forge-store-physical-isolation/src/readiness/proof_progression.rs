@@ -10,17 +10,17 @@ use super::{PhysicalIsolationEntryIdentity, PhysicalIsolationRootEpochBasis};
 pub type PhysicalIsolationResolvedEntryRecipe = Recipe<
     Resolved,
     PhysicalIsolationEntryProofRequest,
-    FreshnessScopedBasis<CurrentValidity, AssumptionBasis<S4RecoveryReadinessBasis>>,
+    FreshnessScopedBasis<CurrentValidity, AssumptionBasis<RecoveryReadinessBasis>>,
 >;
 pub type PhysicalIsolationLoweredEntryRecipe = Recipe<
     Lowered,
     PhysicalIsolationEntryProofRequest,
-    FreshnessScopedBasis<CurrentValidity, AssumptionBasis<S4RecoveryReadinessBasis>>,
+    FreshnessScopedBasis<CurrentValidity, AssumptionBasis<RecoveryReadinessBasis>>,
 >;
 pub type PhysicalIsolationAdmittedEntryRecipe = Recipe<
     forge_proof::Admitted,
     PhysicalIsolationEntryProofRequest,
-    FreshnessScopedBasis<CurrentValidity, AssumptionBasis<S4RecoveryReadinessBasis>>,
+    FreshnessScopedBasis<CurrentValidity, AssumptionBasis<RecoveryReadinessBasis>>,
 >;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,7 +29,7 @@ pub struct PhysicalIsolationEntryProofRequest {
 }
 
 #[derive(Debug, Clone)]
-pub struct S4RecoveryReadinessBasis {
+pub struct RecoveryReadinessBasis {
     identity: PhysicalIsolationEntryIdentity,
     root_epoch_basis: PhysicalIsolationRootEpochBasis,
 }
@@ -63,7 +63,7 @@ impl PhysicalIsolationEntryProofProgression {
             .transition(
                 unresolved.clone(),
                 RecipeResolutionContext::new(
-                    S4RecoveryReadinessBasis {
+                    RecoveryReadinessBasis {
                         identity: identity.clone(),
                         root_epoch_basis: identity.root_epoch_basis(),
                     },
@@ -114,7 +114,7 @@ impl PhysicalIsolationEntryProofRequest {
     }
 }
 
-impl S4RecoveryReadinessBasis {
+impl RecoveryReadinessBasis {
     pub const fn identity(&self) -> &PhysicalIsolationEntryIdentity {
         &self.identity
     }

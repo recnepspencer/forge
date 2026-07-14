@@ -6,6 +6,7 @@ mod footprint_ranges;
 mod handle;
 mod hazard;
 mod intent;
+mod known_footprint_admission;
 mod plan;
 mod release;
 mod retry;
@@ -24,6 +25,7 @@ pub use footprint_ranges::{ProtectedReferenceRange, ProtectedReferenceRangeSet};
 pub use handle::StablePhysicalReadHandle;
 pub use hazard::PublishedReaderHazard;
 pub use intent::UnprotectedReadIntent;
+pub(crate) use known_footprint_admission::admit_known_footprint_read;
 pub use plan::{
     admit_seed_stable_read_plan, physical_epoch_vector_for_current_root, SeedStableReadPlan,
     StablePhysicalReadPlan, StablePhysicalReadPlanAdmission,

@@ -14,7 +14,6 @@ mod checksum;
 mod compile_fail;
 mod denial;
 mod extent_record;
-mod facade;
 mod format_identity;
 mod generation;
 mod header;
@@ -22,6 +21,7 @@ mod manifest;
 mod offline_verifier;
 mod page_record;
 mod payload;
+mod physical_store_runtime;
 mod record_framing;
 mod reference;
 mod security_metadata;
@@ -79,24 +79,6 @@ pub use extent_record::{
     ExtentRecordDenial, ExtentRecordDenialKind, ExtentRecordLocateReport,
     PhysicalExtentRecordAuthority,
 };
-pub use facade::{
-    PhysicalStoreIdentity, PlatformPhysicalAppendReport, PlatformPhysicalAppendRequest,
-    PlatformPhysicalDegradedExactScanReady, PlatformPhysicalDegradedExactScanReceipt,
-    PlatformPhysicalDegradedExecutionObservation, PlatformPhysicalFacade,
-    PlatformPhysicalFacadeCounterSnapshot, PlatformPhysicalFacadeDenial,
-    PlatformPhysicalFacadeDenialKind, PlatformPhysicalFacadeEvidence,
-    PlatformPhysicalFacadeOperation, PlatformPhysicalFacadeVocabulary,
-    PlatformPhysicalFramedRecord, PlatformPhysicalHiddenScanDenialReceipt,
-    PlatformPhysicalLayoutAccessIntent, PlatformPhysicalLayoutAccessRequest,
-    PlatformPhysicalOpenRequest,
-    PlatformPhysicalOperationAdmissionDenial, PlatformPhysicalRecordTarget,
-    PlatformPhysicalReplayArtifact, PlatformPhysicalRootPublicationObservation,
-    PlatformPhysicalRootPublicationReady, PlatformPhysicalRootPublicationReport,
-    PlatformPhysicalRuntimeLayoutReport, PlatformPhysicalRuntimeOperation,
-    PlatformPhysicalRuntimeOutcome, PlatformPhysicalRuntimeReceipt,
-    PlatformPhysicalRuntimeReceiptDenial, PlatformPhysicalRuntimeStrategy,
-    PlatformPhysicalScanReport,
-};
 pub use format_identity::{
     PhysicalEpoch, PhysicalExtentId, PhysicalFormatMagic, PhysicalFormatVersion,
     PhysicalFormatVocabulary, PhysicalFrameId, PhysicalGeneration, PhysicalPageId,
@@ -123,9 +105,9 @@ pub use manifest::{
     ManifestDiscoveryDenial, ManifestDiscoveryDenialKind, ManifestDiscoveryReport,
     ManifestVocabularyKind, PhysicalManifestUniverseBuilder, PhysicalReclaimRegion,
     PhysicalReclaimRegionDenial, PhysicalRootManifest, PhysicalRootManifestRebuildRow,
-    PhysicalRootManifestRebuildWitness, PhysicalRootManifestVocabulary,
-    ReclaimedByteInterpretation, SegmentManifestEntry, SegmentManifestVocabulary,
-    SegmentPageManifestEntry,
+    PhysicalRootManifestRebuildSource, PhysicalRootManifestRebuildWitness,
+    PhysicalRootManifestVocabulary, ReclaimedByteInterpretation, SegmentManifestEntry,
+    SegmentManifestVocabulary, SegmentPageManifestEntry,
 };
 pub use offline_verifier::{
     ManifestTraversalReport, MinimalManifestVerifierReport, OfflineManifestCodec,
@@ -141,6 +123,22 @@ pub use page_record::{
     SlotDirectoryEntryState,
 };
 pub use payload::{PhysicalPayloadView, PhysicalPayloadViewAdmission};
+pub use physical_store_runtime::{
+    PhysicalStoreIdentity, PhysicalStoreRuntime, PhysicalStoreRuntimeCounterSnapshot,
+    PhysicalStoreRuntimeDenial, PhysicalStoreRuntimeDenialKind, PhysicalStoreRuntimeEvidence,
+    PhysicalStoreRuntimeOperation, PhysicalStoreRuntimeVocabulary, PlatformPhysicalAppendReport,
+    PlatformPhysicalAppendRequest, PlatformPhysicalDegradedExactScanReady,
+    PlatformPhysicalDegradedExactScanReceipt, PlatformPhysicalDegradedExecutionObservation,
+    PlatformPhysicalFramedRecord, PlatformPhysicalHiddenScanDenialReceipt,
+    PlatformPhysicalLayoutAccessIntent, PlatformPhysicalLayoutAccessRequest,
+    PlatformPhysicalOpenRequest, PlatformPhysicalOperationAdmissionDenial,
+    PlatformPhysicalRecordTarget, PlatformPhysicalReplayArtifact,
+    PlatformPhysicalRootPublicationObservation, PlatformPhysicalRootPublicationReady,
+    PlatformPhysicalRootPublicationReport, PlatformPhysicalRuntimeLayoutReport,
+    PlatformPhysicalRuntimeOperation, PlatformPhysicalRuntimeOutcome,
+    PlatformPhysicalRuntimeReceipt, PlatformPhysicalRuntimeReceiptDenial,
+    PlatformPhysicalRuntimeStrategy, PlatformPhysicalScanReport,
+};
 pub use record_framing::{
     FramedRecordPayload, FramedRecordView, RecordPagePayload, RecordPlacementClass,
     RecordPlacementWitness,

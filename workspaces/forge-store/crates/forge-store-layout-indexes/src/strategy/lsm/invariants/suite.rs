@@ -29,6 +29,8 @@ pub struct LsmInvariantSuite {
 }
 
 impl LsmInvariantSuite {
+    // Keeping every LSM law explicit makes incomplete suites unrepresentable at the call site.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) const fn new(
         declaration: StrategyDeclaration,
         memtable_wal: LsmMemtableWalLaw,
@@ -92,8 +94,8 @@ impl LsmInvariantSuite {
         self,
         receipt: &BaselineLsmCompactionPublicationReceipt,
     ) -> Result<(), StrategyDenial> {
-        self.tombstone.verify_owner_receipt(&receipt)?;
-        self.compaction.verify_owner_receipt(&receipt)?;
+        self.tombstone.verify_owner_receipt(receipt)?;
+        self.compaction.verify_owner_receipt(receipt)?;
         self.run_publication.verify_merge_order_boundary(
             receipt.older_precedes_newer_start(),
             receipt.newer_precedence_preserved(),

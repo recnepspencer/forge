@@ -46,9 +46,8 @@ pub use blob_replay::{
     BlobResumeReplayReadmission,
 };
 pub use btree_replay::{
-    AdmittedBTreeReplayPhysicalSource, AdmittedBTreeReplaySource, BTreeReplayPhysicalSourceIdentity,
-    BTreeReplayRootAgreement,
-    BTreeReplaySourceDenial,
+    AdmittedBTreeReplayPhysicalSource, AdmittedBTreeReplaySource,
+    BTreeReplayPhysicalSourceIdentity, BTreeReplayRootAgreement, BTreeReplaySourceDenial,
 };
 pub use checkpoint_cutover::{
     CheckpointArtifactDurabilityCommitment, CheckpointCandidate,
@@ -105,9 +104,11 @@ pub use layout_projection::{
     ReplayIndexLayoutCounters, ReplayIndexLayoutReport,
 };
 pub use layout_readmission::{
-    admit_offline_layout_readmission, admit_record_backed_layout_readmission,
+    layout_readmission, ImportLayoutReadmissionOutcome, LayoutReadmissionAuthority,
+    OfflineLayoutReadmissionOutcome, QuarantineLayoutReadmissionOutcome,
     RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionClass,
-    RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionWitness,
+    RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionOutcomeView,
+    RecoveryLayoutReadmissionWitness,
 };
 pub use memory_envelope::{RecoveryMemoryEnvelope, RecoveryMemoryEnvelopeDenial};
 pub use offline_verifier::{

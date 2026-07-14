@@ -5,7 +5,7 @@ mod backup_export_custody_denial;
 mod backup_export_custody_emission;
 mod backup_export_custody_handoff;
 mod backup_export_custody_readiness;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
 mod backup_export_custody_test_support;
 #[cfg(test)]
 mod backup_export_custody_tests;
@@ -23,7 +23,7 @@ pub use backup_export_custody_handoff::{
 pub use backup_export_custody_readiness::BackupExportCustodyReadiness;
 
 pub(crate) use backup_export_custody_declaration::backup_capsule_authenticity;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) use backup_export_custody_test_support::current_authority;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) use backup_export_custody_test_support::readmission_trigger;

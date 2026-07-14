@@ -4,7 +4,7 @@ use forge_store_budgets::PreExecutionBudgetDenial;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SelectionCandidateRejection {
-    RegistryDenied(LayoutAdmissionDenial),
+    RegistryDenied(Box<LayoutAdmissionDenial>),
     OperationUnsupported {
         family: LayoutStrategyFamily,
         shape: crate::observation::AccessShape,
@@ -22,7 +22,7 @@ pub enum SelectionCandidateRejectionCase {
 }
 
 impl SelectionCandidateRejectionCase {
-    pub const ALL: [Self; 20] = [
+    pub const ALL: [Self; 18] = [
         Self::RegistryDenied(LayoutAdmissionDenialCase::StrategyVocabularyDenied),
         Self::RegistryDenied(LayoutAdmissionDenialCase::RequestedLaneDoesNotMatchFamilyLane),
         Self::RegistryDenied(LayoutAdmissionDenialCase::RequestedScopeDoesNotMatchKeyDomain),
@@ -38,12 +38,6 @@ impl SelectionCandidateRejectionCase {
         Self::RegistryDenied(LayoutAdmissionDenialCase::HashEqualityLawDoesNotMatchKeyDomain),
         Self::RegistryDenied(LayoutAdmissionDenialCase::CompositeOrderingLawDoesNotMatchKeyDomain),
         Self::RegistryDenied(LayoutAdmissionDenialCase::CoverageFamilyDoesNotMatchStrategy),
-        Self::RegistryDenied(
-            LayoutAdmissionDenialCase::LiveExactMaintenanceWitnessDoesNotMatchStrategy,
-        ),
-        Self::RegistryDenied(
-            LayoutAdmissionDenialCase::LiveExactMaintenanceCoverageDoesNotMatchRequest,
-        ),
         Self::RegistryDenied(LayoutAdmissionDenialCase::ExactMaterializationRequired),
         Self::RegistryDenied(LayoutAdmissionDenialCase::ExactCoverageDenied),
         Self::OperationUnsupported,
@@ -74,10 +68,6 @@ impl SelectionCandidateRejection {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccessPlanSelectionDenied {
     NoEligibleAlternative,
-    OverlappingEligibleStrategyAuthority {
-        first_family: LayoutStrategyFamily,
-        second_family: LayoutStrategyFamily,
-    },
     CostDenied(super::AccessPlanCostDenial),
     BudgetDenied(PreExecutionBudgetDenial),
 }

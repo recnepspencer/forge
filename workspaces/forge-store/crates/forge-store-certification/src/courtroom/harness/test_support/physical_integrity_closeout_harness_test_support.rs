@@ -2,17 +2,17 @@ use crate::scenario::physical_integrity::physical_integrity_closeout_harness_run
     physical_integrity_closeout_suite_plan_and_transcript, run_physical_integrity_closeout_harness,
 };
 use crate::{
-    LaneFamilyExtension, PhysicalProofOracleKind, PhysicalScenarioDefinition,
+    IntegrityHarnessExecutionEvidence, IntegrityHarnessTranscriptEvidence, LaneFamilyExtension,
+    PhysicalIntegrityAcceptanceSuite, PhysicalProofOracleKind, PhysicalScenarioDefinition,
     PhysicalScenarioDriverKind, PhysicalScenarioObserverKind, PhysicalScenarioQualityHarness,
-    PhysicalStoryStep, RoadmapLaneFamily, S3AcceptanceSuiteKind,
-    S3CloseoutHarnessExecutionEvidence, S3HarnessTranscriptEvidence,
+    PhysicalStoryStep, RoadmapLaneFamily,
 };
 use forge_store_test_support::{LargeStorePressureClass, LargeStorePressureFixture};
 
 pub(crate) fn physical_integrity_harness(
-    suite: S3AcceptanceSuiteKind,
-    execution: S3CloseoutHarnessExecutionEvidence,
-) -> S3HarnessTranscriptEvidence {
+    suite: PhysicalIntegrityAcceptanceSuite,
+    execution: IntegrityHarnessExecutionEvidence,
+) -> IntegrityHarnessTranscriptEvidence {
     run_physical_integrity_closeout_harness(suite, execution)
         .unwrap()
         .harness()
@@ -21,7 +21,7 @@ pub(crate) fn physical_integrity_harness(
 
 pub(crate) fn physical_integrity_synthetic_transcript() -> crate::PhysicalStoryTranscript {
     physical_integrity_closeout_suite_plan_and_transcript(
-        S3AcceptanceSuiteKind::SyntheticShortcutRejection,
+        PhysicalIntegrityAcceptanceSuite::SyntheticShortcutRejection,
     )
     .unwrap()
     .1

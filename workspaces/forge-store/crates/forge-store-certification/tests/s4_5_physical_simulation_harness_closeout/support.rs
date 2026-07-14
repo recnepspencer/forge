@@ -11,8 +11,8 @@ use forge_store_physical_certification::{
     PhysicalScenarioSchedule, PhysicalSimulationHarnessCloseoutDenial, PhysicalSimulationPlan,
     PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
     PhysicalSimulationTranscript, ProductionBackedPhysicalFixture, ProductionBoundaryDriverTrace,
-    RecoveryOutcomeObservation, ReusablePhysicalOracleFamily, S4RecoveryDogfoodScenario,
-    S4RecoveryDogfoodSliceEvidence, ShortcutRejectionDogfoodScenario,
+    RecoveryDogfoodScenario, RecoveryDogfoodSliceEvidence, RecoveryOutcomeObservation,
+    ReusablePhysicalOracleFamily, ShortcutRejectionDogfoodScenario,
     ShortcutRejectionDogfoodSliceEvidence, ShortcutRejectionObservation, SimulationEvidencePolicy,
     SimulationHarnessAcceptanceSuiteExecutionProof, SimulationHarnessAcceptanceSuiteReceipt,
     SimulationHarnessAcceptanceSuiteReceiptSet, SimulationHarnessCloseoutCoverageReport,
@@ -26,14 +26,14 @@ use forge_store_test_support::{
 
 use crate::{counter_support, coverage_support};
 
-pub(crate) fn recovery_slice_evidence() -> S4RecoveryDogfoodSliceEvidence {
+pub(crate) fn recovery_slice_evidence() -> RecoveryDogfoodSliceEvidence {
     recovery_slice_evidence_named(
         "store.physical.s45.closeout.s4-recovery-dogfood",
         "closeout-s4-recovery",
     )
 }
 
-pub(crate) fn alternate_recovery_slice_evidence() -> S4RecoveryDogfoodSliceEvidence {
+pub(crate) fn alternate_recovery_slice_evidence() -> RecoveryDogfoodSliceEvidence {
     recovery_slice_evidence_named(
         "store.physical.s45.closeout.s4-recovery-dogfood.alternate",
         "closeout-s4-recovery-alternate",
@@ -206,8 +206,8 @@ pub(crate) fn complete_shortcut_report() -> SyntheticHarnessShortcutRejectionRep
 fn recovery_slice_evidence_named(
     scenario_name: &str,
     fixture_name: &str,
-) -> S4RecoveryDogfoodSliceEvidence {
-    let scenario = S4RecoveryDogfoodScenario::from_public_authoring(
+) -> RecoveryDogfoodSliceEvidence {
+    let scenario = RecoveryDogfoodScenario::from_public_authoring(
         public_recovery_dogfood_scenario(scenario_name, fixture_name),
     )
     .unwrap();
@@ -221,7 +221,7 @@ fn recovery_slice_evidence_named(
         .generate_matrix()
         .unwrap();
     let evidence = PhysicalCertificationEvidenceBundle::from_replay_bundle(replay).unwrap();
-    S4RecoveryDogfoodSliceEvidence::from_replay_evidence(scenario, matrix, evidence).unwrap()
+    RecoveryDogfoodSliceEvidence::from_replay_evidence(scenario, matrix, evidence).unwrap()
 }
 
 fn public_recovery_dogfood_scenario(
@@ -229,7 +229,7 @@ fn public_recovery_dogfood_scenario(
     fixture_name: &str,
 ) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario(scenario_name)
-        .family(PhysicalSimulationScenarioFamily::S4RecoveryDogfood)
+        .family(PhysicalSimulationScenarioFamily::RecoveryDogfood)
         .intent(PhysicalScenarioIntent::RecoveryReplayDogfood)
         .fixture(
             NativeStoreAspectFixture::segment_header(fixture_name, 14)

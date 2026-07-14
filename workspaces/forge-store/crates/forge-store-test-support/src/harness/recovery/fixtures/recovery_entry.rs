@@ -23,11 +23,11 @@ fn admit_recovery_entry_from_recovery_handoff(
         physical_integrity_readiness().payload(),
         intact_payload(label, include_partial_publication_replay_read),
     )
-    .expect("test support S4 handoff admits through public S4 admission");
+    .expect("test support recovery handoff admits through public S4 admission");
     let decision =
         RecoveryEntryAdmission::admit(readiness, recovery_memory_envelope(), physical_authority());
     let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {
-        panic!("intact test support S4 handoff admits recovery entry");
+        panic!("intact test support recovery handoff admits recovery entry");
     };
     admission
 }

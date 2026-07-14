@@ -12,7 +12,7 @@ pub enum S2AcceptanceSuiteKind {
     BackgroundEnvelopeHonesty,
     SyntheticTestRejection,
     FoundationalBoundaryEvidence,
-    S3ReadinessHandoff,
+    IntegrityReadinessHandoff,
 }
 
 impl S2AcceptanceSuiteKind {
@@ -22,7 +22,7 @@ impl S2AcceptanceSuiteKind {
         Self::BackgroundEnvelopeHonesty,
         Self::SyntheticTestRejection,
         Self::FoundationalBoundaryEvidence,
-        Self::S3ReadinessHandoff,
+        Self::IntegrityReadinessHandoff,
     ];
 }
 
@@ -43,7 +43,7 @@ pub(crate) fn transcript_supports_acceptance_suite(
         S2AcceptanceSuiteKind::FoundationalBoundaryEvidence => {
             covers_foundational_boundary(plan, transcript)
         }
-        S2AcceptanceSuiteKind::S3ReadinessHandoff => {
+        S2AcceptanceSuiteKind::IntegrityReadinessHandoff => {
             covers_physical_integrity_readiness_handoff(plan, transcript)
         }
     }

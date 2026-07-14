@@ -5,19 +5,19 @@ use crate::{
 
 use super::{
     PhysicalIsolationReadinessShapeProbeScenario, PhysicalSimulationHarnessCloseoutDenial,
-    S4RecoveryDogfoodScenario, ShortcutRejectionDogfoodScenario,
+    RecoveryDogfoodScenario, ShortcutRejectionDogfoodScenario,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SimulationHarnessDogfoodSliceKind {
-    S4Recovery,
+    Recovery,
     ShortcutRejection,
     PhysicalIsolationReadinessShapeProbe,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S4RecoveryDogfoodSliceEvidence {
-    scenario: S4RecoveryDogfoodScenario,
+pub struct RecoveryDogfoodSliceEvidence {
+    scenario: RecoveryDogfoodScenario,
     coverage: GeneratedCoverageMatrix,
     evidence: PhysicalCertificationEvidenceBundle,
 }
@@ -38,19 +38,19 @@ pub struct PhysicalIsolationReadinessShapeProbeSliceEvidence {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SimulationHarnessDogfoodEvidence {
-    recovery: S4RecoveryDogfoodSliceEvidence,
+    recovery: RecoveryDogfoodSliceEvidence,
     shortcut_rejection: ShortcutRejectionDogfoodSliceEvidence,
     physical_isolation_readiness_shape_probe: PhysicalIsolationReadinessShapeProbeSliceEvidence,
 }
 
-impl S4RecoveryDogfoodSliceEvidence {
+impl RecoveryDogfoodSliceEvidence {
     pub fn from_replay_evidence(
-        scenario: S4RecoveryDogfoodScenario,
+        scenario: RecoveryDogfoodScenario,
         coverage: GeneratedCoverageMatrix,
         evidence: PhysicalCertificationEvidenceBundle,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         require_slice_evidence(
-            SimulationHarnessDogfoodSliceKind::S4Recovery,
+            SimulationHarnessDogfoodSliceKind::Recovery,
             scenario.scenario().identity(),
             &coverage,
             &evidence,
@@ -62,7 +62,7 @@ impl S4RecoveryDogfoodSliceEvidence {
         })
     }
 
-    pub const fn scenario(&self) -> &S4RecoveryDogfoodScenario {
+    pub const fn scenario(&self) -> &RecoveryDogfoodScenario {
         &self.scenario
     }
 
@@ -141,7 +141,7 @@ impl PhysicalIsolationReadinessShapeProbeSliceEvidence {
 
 impl SimulationHarnessDogfoodEvidence {
     pub const fn new(
-        recovery: S4RecoveryDogfoodSliceEvidence,
+        recovery: RecoveryDogfoodSliceEvidence,
         shortcut_rejection: ShortcutRejectionDogfoodSliceEvidence,
         physical_isolation_readiness_shape_probe: PhysicalIsolationReadinessShapeProbeSliceEvidence,
     ) -> Self {
@@ -152,7 +152,7 @@ impl SimulationHarnessDogfoodEvidence {
         }
     }
 
-    pub const fn recovery(&self) -> &S4RecoveryDogfoodSliceEvidence {
+    pub const fn recovery(&self) -> &RecoveryDogfoodSliceEvidence {
         &self.recovery
     }
 

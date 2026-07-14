@@ -5,10 +5,18 @@ pub enum CorruptionDenial {
     },
     FamilyBoundReadmissionWitnessRequired {
         family: crate::PhysicalArtifactFamily,
-        source: super::classification::LayoutReadmissionSource,
+        source: super::readmission::LayoutReadmissionSource,
     },
     QuarantineRecordBackedReadmissionEvidenceRequired {
         family: crate::PhysicalArtifactFamily,
+    },
+    AdmittedFamilyReadmissionAuthorityRequired {
+        family: crate::PhysicalArtifactFamily,
+    },
+    SecurityScopeReadmissionMismatch {
+        family: crate::PhysicalArtifactFamily,
+        required: forge_store_security::StoreSecurityScopeIdentity,
+        current: forge_store_security::StoreSecurityScopeIdentity,
     },
     QuarantineReadmissionRequired {
         family: crate::PhysicalArtifactFamily,
@@ -20,6 +28,10 @@ pub enum CorruptionDenial {
         family: crate::PhysicalArtifactFamily,
     },
     UnexpectedOfflineReadmissionClass {
+        family: crate::PhysicalArtifactFamily,
+        class: forge_store_recovery_physics::RecoveryLayoutReadmissionClass,
+    },
+    UnexpectedQuarantineReadmissionClass {
         family: crate::PhysicalArtifactFamily,
         class: forge_store_recovery_physics::RecoveryLayoutReadmissionClass,
     },

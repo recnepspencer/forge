@@ -1,8 +1,6 @@
-use crate::integrity::{layout_corruption, LayoutCorruptionInput, LayoutCorruptionView};
-use crate::materialization::{LayoutCoverageWitness, LayoutMaterializationState};
-use crate::{layout_declarations, LayoutCorruptionClassification};
+use crate::integrity::{layout_corruption, LayoutCorruptionView};
+use crate::layout_declarations;
 use forge_store_contracts::DurableArtifactFamilyId;
-use forge_store_physical_format::PhysicalEpoch;
 use forge_store_recovery_physics::{
     CheckpointManifestMaterialization, CheckpointPageImageMaterialization,
     PersistedRecoveryArtifactMaterialization, RecoveryOfflineVerifier, RecoveryProfileId,
@@ -13,13 +11,22 @@ pub(super) fn family() -> crate::PhysicalArtifactFamily {
     layout_declarations().seed_family().family()
 }
 
-fn absent_coverage() -> LayoutCoverageWitness {
-    crate::materialization::test_support::materialization_observations()
-        .exact_root_epoch_coverage(
-            LayoutMaterializationState::absent(family()),
-            PhysicalEpoch::from_raw(7).unwrap(),
-        )
-        .expect("absent coverage should admit")
+pub(super) fn admitted_family() -> crate::AdmittedPhysicalArtifactFamily {
+    crate::strategy::tests_support::root_manifest_scope().0
+}
+
+pub(super) fn admitted_family_for_store(
+    store_authority_key: &str,
+) -> crate::AdmittedPhysicalArtifactFamily {
+    crate::strategy::tests_support::admit_strategy_scope_for_store(
+        DurableArtifactFamilyId::PhysicalRootManifest,
+        forge_store_security::StoreKeyScope::StoreManagedRoot,
+        forge_store_security::StoreTenantScope::StoreInternal,
+        forge_store_security::StoreAuthenticityRequirement::not_required(),
+        forge_store_security::StoreCustodyPosture::InternalStoreCustody,
+        store_authority_key,
+    )
+    .0
 }
 
 pub(super) fn offline_admission(
@@ -31,8 +38,8 @@ pub(super) fn offline_admission(
         "posix",
         recovery_profile.clone(),
         CheckpointManifestMaterialization::new(
-            &format!("checkpoint-{seed}"),
-            &format!("root-{seed}"),
+            format!("checkpoint-{seed}"),
+            format!("root-{seed}"),
             19,
             "checkpoint",
             1,
@@ -42,18 +49,18 @@ pub(super) fn offline_admission(
             1,
         ),
         WalRedoFrameMaterialization::new(
-            &format!("wal-{seed}"),
+            format!("wal-{seed}"),
             20,
             1,
-            &format!("sha256:op-{seed}"),
-            &format!("sha256:idem-{seed}"),
+            format!("sha256:op-{seed}"),
+            format!("sha256:idem-{seed}"),
         ),
         CheckpointPageImageMaterialization::new(
-            &format!("page-{seed}"),
+            format!("page-{seed}"),
             1,
             7,
             19,
-            &format!("sha256:page-{seed}"),
+            format!("sha256:page-{seed}"),
         ),
     )
     .materialize()
@@ -66,83 +73,27 @@ pub(super) fn offline_admission(
 }
 
 #[test]
-fn materialization_states_keep_not_found_stale_and_quarantine_distinct() {
+fn corruption_assessment_adapts_physical_and_recovery_authority() {
+    let record =
+        super::readmission_test_support::authoritative_quarantine_record("classification-owner");
+    let quarantine = layout_corruption().assess_physical_quarantine(admitted_family(), record);
     assert!(matches!(
-        layout_corruption().classify(LayoutCorruptionInput::Materialization(absent_coverage())).view(),
-        LayoutCorruptionView::NotFound(actual_family) if *actual_family == family()
+        quarantine.view(),
+        LayoutCorruptionView::Quarantined(witness) if witness.family() == family()
     ));
 
-    let stale = crate::facade::access_planning()
-        .stale_root_epoch_coverage(
-            layout_declarations().seed_family(),
-            PhysicalEpoch::from_raw(9).unwrap(),
-        )
-        .unwrap();
-    assert!(matches!(
-        layout_corruption()
-            .classify(LayoutCorruptionInput::Materialization(stale))
-            .view(),
-        LayoutCorruptionView::StaleBinding(_)
-    ));
-
-    let quarantined = crate::facade::access_planning()
-        .quarantined_wal_lsn_coverage(
-            layout_declarations().seed_family(),
-            forge_store_recovery_physics::LogSequenceNumber::new(21),
-            forge_store_recovery_physics::LogSequenceNumber::new(24),
-            forge_store_recovery_physics::CheckpointCoveredLsnRange::new(
-                forge_store_recovery_physics::LogSequenceNumber::new(22),
-                forge_store_recovery_physics::LogSequenceNumber::new(23),
-            )
-            .unwrap(),
-        )
-        .unwrap();
-    assert!(matches!(
-        layout_corruption()
-            .classify(LayoutCorruptionInput::Materialization(quarantined))
-            .view(),
-        LayoutCorruptionView::Quarantined(_)
-    ));
-}
-
-#[test]
-fn rebuild_classification_keeps_derived_and_authoritative_corruption_distinct() {
-    assert!(matches!(
-        layout_corruption()
-            .classify(LayoutCorruptionInput::RebuildClassification(
-                LayoutCorruptionClassification::DerivedProjectionRebuildToParity
-            ))
-            .view(),
-        LayoutCorruptionView::RebuildRequired(_)
-    ));
-
-    assert!(matches!(
-        layout_corruption()
-            .classify(LayoutCorruptionInput::RebuildClassification(
-                LayoutCorruptionClassification::AuthoritativeSourceQuarantineRequired {
-                    family: family()
-                }
-            ))
-            .view(),
-        LayoutCorruptionView::Quarantined(_)
-    ));
-}
-
-#[test]
-fn terminal_and_offline_inputs_require_store_readmission_on_distinct_lanes() {
-    let offline = layout_corruption().classify(LayoutCorruptionInput::OfflineEvidence {
-        family: family(),
-        admission: offline_admission("offline-required"),
-    });
-    let terminal = layout_corruption().classify(LayoutCorruptionInput::TerminalImport {
-        witness: super::readmission_tests::import_witness(family(), "terminal-import"),
-    });
-
+    let offline = offline_admission("offline-required");
+    let offline = layout_corruption().require_offline_readmission(admitted_family(), &offline);
     assert!(matches!(
         offline.view(),
         LayoutCorruptionView::OfflineReadmissionRequired(requirement)
             if requirement.family() == family()
     ));
+
+    let terminal = layout_corruption().require_import_readmission(
+        admitted_family(),
+        super::readmission_test_support::import_witness(family(), "terminal-import"),
+    );
     assert!(matches!(
         terminal.view(),
         LayoutCorruptionView::ImportReadmissionRequired(requirement)
@@ -151,80 +102,49 @@ fn terminal_and_offline_inputs_require_store_readmission_on_distinct_lanes() {
 }
 
 #[test]
-fn corruption_classification_declares_exactly_the_cases_owner_operations_emit() {
+fn corruption_owner_inventory_equals_ordinary_owner_outputs() {
     use std::collections::BTreeSet;
 
-    let coverage = |state| {
-        crate::materialization::test_support::materialization_observations()
-            .exact_root_epoch_coverage(state, PhysicalEpoch::from_raw(7).unwrap())
-            .unwrap()
-    };
-    let stale = crate::facade::access_planning()
-        .stale_root_epoch_coverage(
-            layout_declarations().seed_family(),
-            PhysicalEpoch::from_raw(9).unwrap(),
-        )
-        .unwrap();
-    let quarantine_record =
+    let record =
         super::readmission_test_support::authoritative_quarantine_record("classification-matrix");
-    let quarantined =
-        layout_corruption().classify(LayoutCorruptionInput::AuthoritativeQuarantine {
-            family: family(),
-            record: quarantine_record.clone(),
-        });
-    let quarantine_required = layout_corruption()
+    let quarantine = layout_corruption().assess_physical_quarantine(
+        admitted_family_for_store("store.new.strategy"),
+        record.clone(),
+    );
+    let readmission = layout_corruption()
         .require_record_backed_recovery_readmission(
-            layout_corruption().classify(LayoutCorruptionInput::AuthoritativeQuarantine {
-                family: family(),
-                record: quarantine_record,
-            }),
+            quarantine,
             &super::readmission_test_support::current_authority(
-                "store.new.corruption",
+                "store.new.strategy",
                 "classification-matrix",
             ),
+            super::readmission_test_support::current_security_scope(
+                "store.new.strategy",
+                "classification-matrix",
+            )
+            .witnesses(),
         )
         .unwrap();
+    let offline = offline_admission("classification-matrix");
 
     let observed = [
         layout_corruption()
-            .classify(LayoutCorruptionInput::Materialization(coverage(
-                LayoutMaterializationState::exact(family()),
-            )))
+            .assess_derived_projection(
+                crate::LayoutCorruptionClassification::derived_projection_rebuild_to_parity(),
+            )
             .case_id(),
         layout_corruption()
-            .classify(LayoutCorruptionInput::Materialization(absent_coverage()))
+            .assess_physical_quarantine(admitted_family(), record)
+            .case_id(),
+        readmission.case_id(),
+        layout_corruption()
+            .require_offline_readmission(admitted_family(), &offline)
             .case_id(),
         layout_corruption()
-            .classify(LayoutCorruptionInput::Materialization(coverage(
-                LayoutMaterializationState::declared_only(family()),
-            )))
-            .case_id(),
-        layout_corruption()
-            .classify(LayoutCorruptionInput::Materialization(stale))
-            .case_id(),
-        layout_corruption()
-            .classify(LayoutCorruptionInput::RebuildClassification(
-                LayoutCorruptionClassification::DerivedProjectionRebuildToParity,
-            ))
-            .case_id(),
-        quarantined.case_id(),
-        quarantine_required.case_id(),
-        layout_corruption()
-            .classify(LayoutCorruptionInput::OfflineEvidence {
-                family: family(),
-                admission: offline_admission("classification-matrix"),
-            })
-            .case_id(),
-        layout_corruption()
-            .classify(LayoutCorruptionInput::TerminalImport {
-                witness: super::readmission_tests::import_witness(
-                    family(),
-                    "classification-matrix",
-                ),
-            })
-            .case_id(),
-        layout_corruption()
-            .classify(LayoutCorruptionInput::MigrationRequired { family: family() })
+            .require_import_readmission(
+                admitted_family(),
+                super::readmission_test_support::import_witness(family(), "classification-matrix"),
+            )
             .case_id(),
     ];
 

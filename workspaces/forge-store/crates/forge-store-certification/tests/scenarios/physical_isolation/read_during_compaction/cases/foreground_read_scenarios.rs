@@ -45,11 +45,12 @@ fn read_during_compaction_verdict_rejects_unbound_read_receipts() {
         inputs.new_validation,
         None,
     );
-    let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
-        CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
-        receipt,
-    )
-    .unwrap();
+    let publication =
+        forge_store_physical_isolation::CompactionRewritePublication::publish_rewrite(
+            CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
+            receipt,
+        )
+        .unwrap();
     let proof = CompactionCutoverStabilityProof::admit(
         publication,
         CompactionCutoverRecoveryPosture::admit_visible_product(

@@ -20,9 +20,9 @@ use crate::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
     admit_secure_io_scope_for_scheduler, admit_security_scope_for_scheduler,
     lower_buffer_pool_queue_declaration, BackgroundResourceBudget, BandwidthToken,
-    CacheResidencyHint, IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest,
-    QueueExecutionReadyPlan, QueueGroupingBasis, QueueRecoveryOrdering, QueueSlot,
-    QueueWorkDeclaration, QueueWritebackPolicy, ReadAheadWindow, S6QueueDurabilityClass,
+    CacheResidencyHint, IoSchedulerBackendCapabilityAdmission, QueueDurabilityClass,
+    QueueExecutionAdmissionRequest, QueueExecutionReadyPlan, QueueGroupingBasis,
+    QueueRecoveryOrdering, QueueSlot, QueueWorkDeclaration, QueueWritebackPolicy, ReadAheadWindow,
     SecureIoOperation, SecureIoPostureRequirement, SecureIoPreservationRequest, WorkerPermit,
 };
 
@@ -56,7 +56,7 @@ pub(crate) fn admitted_plan_for_backend_profile(
     let budget = point_read_budget();
     let work = QueueWorkDeclaration::foreground(
         reservation.execution_ready(),
-        S6QueueDurabilityClass::ReadOnly,
+        QueueDurabilityClass::ReadOnly,
         budget,
     )
     .with_grouping_basis(grouping_for(reservation.security_scope_identity()));
@@ -112,7 +112,7 @@ pub(crate) fn grouping_for(
         security_scope_identity.tenant_scope(),
         security_scope_identity.key_scope(),
         security_scope_identity.authenticity_requirement(),
-        S6QueueDurabilityClass::ReadOnly,
+        QueueDurabilityClass::ReadOnly,
         7,
         crate::QueueWorkClass::Foreground(
             crate::foreground_reservation::ForegroundIoLaneKind::PointRead,
@@ -133,7 +133,7 @@ impl GroupingTestMutation for QueueGroupingBasis {
             self.tenant_scope(),
             self.key_scope(),
             self.authenticity_requirement(),
-            S6QueueDurabilityClass::PlatformDurable,
+            QueueDurabilityClass::PlatformDurable,
             self.flush_epoch(),
             self.work_class(),
             self.recovery_ordering(),

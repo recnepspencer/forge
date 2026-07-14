@@ -5,6 +5,7 @@ use forge_store_security::StoreCurrentSecurityScopeWitnessSet;
 #[derive(Debug)]
 pub struct DegradedExactScanExecutionRequest<'a> {
     pub(super) catalog: &'a crate::BootstrapCatalogReadAdmission,
+    pub(super) current_catalog: &'a crate::BootstrapCatalogReadAdmission,
     pub(super) security: &'a StoreCurrentSecurityScopeWitnessSet,
     pub(super) segment: PhysicalSegmentId,
     pub(super) page: PhysicalPageId,
@@ -23,11 +24,20 @@ impl<'a> DegradedExactScanExecutionRequest<'a> {
     ) -> Self {
         Self {
             catalog,
+            current_catalog: catalog,
             security,
             segment,
             page,
             budget_rows,
             budget,
         }
+    }
+
+    pub fn against_current_catalog(
+        mut self,
+        current_catalog: &'a crate::BootstrapCatalogReadAdmission,
+    ) -> Self {
+        self.current_catalog = current_catalog;
+        self
     }
 }

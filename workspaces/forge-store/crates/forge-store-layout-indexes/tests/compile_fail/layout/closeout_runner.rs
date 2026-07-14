@@ -19,7 +19,7 @@ struct CompileFailFixture {
     extern_crates: &'static [&'static str],
 }
 
-const fn fixtures() -> [CompileFailFixture; 6] {
+const fn fixtures() -> [CompileFailFixture; 9] {
     [
         fixture(
             "counter_snapshot_exact_constructor_is_not_public.rs",
@@ -50,6 +50,21 @@ const fn fixtures() -> [CompileFailFixture; 6] {
             "private_corruption_module_cannot_bypass_layout_readmission_facade.rs",
             &["module `readmission` is private"],
             &[],
+        ),
+        fixture(
+            "layout_foundational_closeout_evidence_fields_are_private.rs",
+            &["LayoutFoundationalCloseoutEvidence", "private"],
+            &["forge_store_certification"],
+        ),
+        fixture(
+            "layout_owner_execution_evidence_fields_are_private.rs",
+            &["LayoutOwnerExecutionEvidence", "private"],
+            &["forge_store_certification"],
+        ),
+        fixture(
+            "layout_evidence_bundle_fields_are_private.rs",
+            &["LayoutEvidenceBundle", "private"],
+            &["forge_store_certification"],
         ),
     ]
 }

@@ -2,8 +2,14 @@ use forge_foundational as _;
 use forge_relational as _;
 use forge_store_physical_isolation as _;
 
+#[path = "../cargo_artifacts.rs"]
+mod cargo_artifacts;
+
+const TEST_TARGET: &str = "s5_physical_semantic_isolation_compile_fail";
+
 #[test]
 fn semantic_visibility_cannot_satisfy_physical_read_stability_authority() {
+    cargo_artifacts::discover(TEST_TARGET);
     for fixture in compile_fail_fixtures() {
         assert_compile_fails(fixture);
     }
@@ -136,30 +142,10 @@ fn compile_fail_case_dir(fixture_name: &str) -> std::path::PathBuf {
 }
 
 fn store_target_deps_dir() -> std::path::PathBuf {
-    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .expect("certification crate lives under nested Store workspace")
-        .join("target")
-        .join("debug")
-        .join("deps")
+    cargo_artifacts::dependency_dir()
 }
 
 fn newest_extern_rlib(deps_dir: &std::path::Path, crate_name: &str) -> std::path::PathBuf {
-    let prefix = format!("lib{crate_name}-");
-    std::fs::read_dir(deps_dir)
-        .expect("target dependency directory is readable")
-        .filter_map(Result::ok)
-        .map(|entry| entry.path())
-        .filter(|path| {
-            path.file_name()
-                .and_then(|name| name.to_str())
-                .is_some_and(|name| name.starts_with(&prefix) && name.ends_with(".rlib"))
-        })
-        .max_by_key(|path| {
-            path.metadata()
-                .and_then(|metadata| metadata.modified())
-                .ok()
-        })
-        .unwrap_or_else(|| panic!("missing compiled rlib for {crate_name}"))
+    let _ = deps_dir;
+    cargo_artifacts::compiled_extern(TEST_TARGET, crate_name)
 }

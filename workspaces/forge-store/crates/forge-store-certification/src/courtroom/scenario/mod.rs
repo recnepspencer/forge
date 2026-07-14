@@ -1,9 +1,6 @@
 //! Scenario definition, planning, and execution surfaces.
 
 pub use crate::evidence::scheduling::scenario_planned_work_evidence::PhysicalScenarioPlannedWorkBoundaryReport;
-pub use crate::scenario::layout::{
-    certify_layout_index_layout_scenario, LayoutScenarioCertificate,
-};
 pub use crate::scenario::scheduling::scenario_definition::{
     PhysicalScenarioDefinition, PhysicalScenarioDefinitionBuilder,
     PhysicalScenarioDefinitionDenial, PhysicalStoryStep, ScenarioLane,

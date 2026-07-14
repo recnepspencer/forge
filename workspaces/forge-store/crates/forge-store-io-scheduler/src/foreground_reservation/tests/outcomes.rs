@@ -115,7 +115,7 @@ fn raw_shortcuts_are_typed_denials_not_reservation_authority() {
     );
     assert_eq!(
         reject_copied_physical_isolation_counters_as_foreground_reservation(),
-        Err(ForegroundReservationAdmissionDenial::CopiedS5CountersCannotReserve)
+        Err(ForegroundReservationAdmissionDenial::CopiedIsolationCountersCannotReserve)
     );
     assert_eq!(
         reject_copied_security_scope_fields_as_foreground_reservation(),

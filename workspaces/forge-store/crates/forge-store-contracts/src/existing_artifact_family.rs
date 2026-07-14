@@ -32,7 +32,7 @@ pub enum PlacementArtifactFamily {
     StableBasis,
     SnapshotFamily,
     BranchDeltaFamily,
-    Milestone6LayoutFamily,
+    LegacyLayoutFamily,
 }
 
 impl PlacementArtifactFamily {
@@ -43,7 +43,7 @@ impl PlacementArtifactFamily {
             Self::StableBasis => "stable_basis",
             Self::SnapshotFamily => "snapshot_family",
             Self::BranchDeltaFamily => "branch_delta_family",
-            Self::Milestone6LayoutFamily => "milestone6_layout_family",
+            Self::LegacyLayoutFamily => "milestone6_layout_family",
         }
     }
 
@@ -54,7 +54,7 @@ impl PlacementArtifactFamily {
             "stable_basis" => Some(Self::StableBasis),
             "snapshot_family" => Some(Self::SnapshotFamily),
             "branch_delta_family" => Some(Self::BranchDeltaFamily),
-            "milestone6_layout_family" => Some(Self::Milestone6LayoutFamily),
+            "milestone6_layout_family" => Some(Self::LegacyLayoutFamily),
             _ => None,
         }
     }
@@ -74,19 +74,19 @@ pub enum PublicationFamily {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum DerivedFamilyRetentionPolicy {
-    Milestone6LayoutMaterialization,
-    Milestone6ScopeSliceMembership,
-    Milestone6StructuralBlock,
-    Milestone6ChunkMembership,
+    LegacyLayoutMaterialization,
+    LegacyScopeSliceMembership,
+    LegacyStructuralBlock,
+    LegacyChunkMembership,
 }
 
 impl DerivedFamilyRetentionPolicy {
     pub const fn label(self) -> &'static str {
         match self {
-            Self::Milestone6LayoutMaterialization => "milestone_6_layout_materialization",
-            Self::Milestone6ScopeSliceMembership => "milestone_6_scope_slice_membership",
-            Self::Milestone6StructuralBlock => "milestone_6_structural_block",
-            Self::Milestone6ChunkMembership => "milestone_6_chunk_membership",
+            Self::LegacyLayoutMaterialization => "milestone_6_layout_materialization",
+            Self::LegacyScopeSliceMembership => "milestone_6_scope_slice_membership",
+            Self::LegacyStructuralBlock => "milestone_6_structural_block",
+            Self::LegacyChunkMembership => "milestone_6_chunk_membership",
         }
     }
 

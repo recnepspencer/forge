@@ -1,10 +1,10 @@
 use forge_store_layout_indexes::integrity::{
-    layout_corruption, OfflineReadmissionRequirement,
+    import_readmission, OfflineReadmissionRequirement,
 };
 use forge_store_recovery_physics::RecoveryLayoutReadmissionWitness;
 
 fn misuse(required: OfflineReadmissionRequirement, witness: RecoveryLayoutReadmissionWitness) {
-    let _ = layout_corruption().readmit_import(required, witness);
+    let _ = import_readmission().admit(required, witness);
 }
 
 fn main() {}

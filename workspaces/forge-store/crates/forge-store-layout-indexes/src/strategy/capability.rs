@@ -14,6 +14,8 @@ pub(crate) struct StrategyCapability {
 }
 
 impl StrategyCapability {
+    // The fixed capability matrix is declared once and read as named columns at each call site.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) const fn new(
         point: bool,
         range: bool,

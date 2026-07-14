@@ -36,12 +36,12 @@ pub enum DurableArtifactFamilyId {
     CompatibilityEmbeddedCheckpointAuthority,
     CompatibilitySnapshotRecord,
     CompatibilityDeltaRecord,
-    CompatibilityMilestone6LayoutBlockChunkRecord,
-    CompatibilityMilestone8BasisContinuationDescriptor,
-    CompatibilityMilestone9BulkRecord,
-    CompatibilityMilestone10RetentionRebuildRecord,
-    CompatibilityMilestone11MaintenanceRecord,
-    CompatibilityMilestone13TieringRecord,
+    CompatibilityLegacyLayoutBlockChunkRecord,
+    CompatibilityLegacyBasisContinuationDescriptor,
+    CompatibilityLegacyBulkRecord,
+    CompatibilityLegacyRetentionRebuildRecord,
+    CompatibilityLegacyMaintenanceRecord,
+    CompatibilityLegacyTieringRecord,
     MaintenanceSnapshot,
     MaintenanceCompaction,
     MaintenanceReclaim,
@@ -62,7 +62,7 @@ pub enum DurableArtifactFamilyId {
     PlacementStableBasis,
     PlacementSnapshotFamily,
     PlacementBranchDeltaFamily,
-    PlacementMilestone6LayoutFamily,
+    PlacementLegacyLayoutFamily,
     PublicationWalIntent,
     PublicationWalCanonicalResult,
     PublicationWalPublicationProgress,
@@ -71,10 +71,10 @@ pub enum DurableArtifactFamilyId {
     PublicationAcknowledgmentEligibility,
     PublicationSnapshotBasis,
     PublicationSnapshotImage,
-    DerivedRetentionMilestone6LayoutMaterialization,
-    DerivedRetentionMilestone6ScopeSliceMembership,
-    DerivedRetentionMilestone6StructuralBlock,
-    DerivedRetentionMilestone6ChunkMembership,
+    DerivedRetentionLegacyLayoutMaterialization,
+    DerivedRetentionLegacyScopeSliceMembership,
+    DerivedRetentionLegacyStructuralBlock,
+    DerivedRetentionLegacyChunkMembership,
     LayoutCompactionUnit,
 }
 
@@ -121,22 +121,20 @@ impl DurableArtifactFamilyId {
             }
             Self::CompatibilitySnapshotRecord => "compatibility_snapshot_record",
             Self::CompatibilityDeltaRecord => "compatibility_delta_record",
-            Self::CompatibilityMilestone6LayoutBlockChunkRecord => {
+            Self::CompatibilityLegacyLayoutBlockChunkRecord => {
                 "compatibility_milestone_6_layout_block_chunk_record"
             }
-            Self::CompatibilityMilestone8BasisContinuationDescriptor => {
+            Self::CompatibilityLegacyBasisContinuationDescriptor => {
                 "compatibility_milestone_8_basis_continuation_descriptor"
             }
-            Self::CompatibilityMilestone9BulkRecord => "compatibility_milestone_9_bulk_record",
-            Self::CompatibilityMilestone10RetentionRebuildRecord => {
+            Self::CompatibilityLegacyBulkRecord => "compatibility_milestone_9_bulk_record",
+            Self::CompatibilityLegacyRetentionRebuildRecord => {
                 "compatibility_milestone_10_retention_rebuild_record"
             }
-            Self::CompatibilityMilestone11MaintenanceRecord => {
+            Self::CompatibilityLegacyMaintenanceRecord => {
                 "compatibility_milestone_11_maintenance_record"
             }
-            Self::CompatibilityMilestone13TieringRecord => {
-                "compatibility_milestone_13_tiering_record"
-            }
+            Self::CompatibilityLegacyTieringRecord => "compatibility_milestone_13_tiering_record",
             Self::MaintenanceSnapshot => "maintenance_snapshot",
             Self::MaintenanceCompaction => "maintenance_compaction",
             Self::MaintenanceReclaim => "maintenance_reclaim",
@@ -157,7 +155,7 @@ impl DurableArtifactFamilyId {
             Self::PlacementStableBasis => "placement_stable_basis",
             Self::PlacementSnapshotFamily => "placement_snapshot_family",
             Self::PlacementBranchDeltaFamily => "placement_branch_delta_family",
-            Self::PlacementMilestone6LayoutFamily => "placement_milestone6_layout_family",
+            Self::PlacementLegacyLayoutFamily => "placement_milestone6_layout_family",
             Self::PublicationWalIntent => "publication_wal_intent",
             Self::PublicationWalCanonicalResult => "publication_wal_canonical_result",
             Self::PublicationWalPublicationProgress => "publication_wal_publication_progress",
@@ -168,16 +166,16 @@ impl DurableArtifactFamilyId {
             Self::PublicationAcknowledgmentEligibility => "publication_acknowledgment_eligibility",
             Self::PublicationSnapshotBasis => "publication_snapshot_basis",
             Self::PublicationSnapshotImage => "publication_snapshot_image",
-            Self::DerivedRetentionMilestone6LayoutMaterialization => {
+            Self::DerivedRetentionLegacyLayoutMaterialization => {
                 "derived_retention_milestone_6_layout_materialization"
             }
-            Self::DerivedRetentionMilestone6ScopeSliceMembership => {
+            Self::DerivedRetentionLegacyScopeSliceMembership => {
                 "derived_retention_milestone_6_scope_slice_membership"
             }
-            Self::DerivedRetentionMilestone6StructuralBlock => {
+            Self::DerivedRetentionLegacyStructuralBlock => {
                 "derived_retention_milestone_6_structural_block"
             }
-            Self::DerivedRetentionMilestone6ChunkMembership => {
+            Self::DerivedRetentionLegacyChunkMembership => {
                 "derived_retention_milestone_6_chunk_membership"
             }
             Self::LayoutCompactionUnit => "layout_compaction_unit",

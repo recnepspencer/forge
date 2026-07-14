@@ -1,7 +1,6 @@
 #![forbid(unsafe_code)]
 
 pub mod harness;
-pub mod layout_harness;
 
 mod actors;
 mod authoring;
@@ -48,7 +47,7 @@ pub use closeout::{
     PhysicalIsolationReadinessShapeProbeSliceEvidence,
     PhysicalSimulationHarnessCertificationBundle, PhysicalSimulationHarnessCloseoutDenial,
     PhysicalSimulationHarnessCloseoutReport, PhysicalSimulationHarnessCloseoutSuite,
-    S4RecoveryDogfoodScenario, S4RecoveryDogfoodSliceEvidence, ShortcutRejectionDogfoodScenario,
+    RecoveryDogfoodScenario, RecoveryDogfoodSliceEvidence, ShortcutRejectionDogfoodScenario,
     ShortcutRejectionDogfoodSliceEvidence, SimulationHarnessAcceptanceEvidenceLane,
     SimulationHarnessAcceptanceSuiteCoverage, SimulationHarnessAcceptanceSuiteEvidence,
     SimulationHarnessAcceptanceSuiteEvidenceSource, SimulationHarnessAcceptanceSuiteExecutionProof,

@@ -37,7 +37,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 6] {
             &[],
         ),
         fixture(
-            "root_phase_obligation_row_is_not_public.rs",
+            "legacy_skeleton_obligation_alias_is_removed.rs",
             &["S8PhaseSkeletonObligationRow"],
             &[],
         ),

@@ -4,11 +4,12 @@ use forge_store_contracts::{
 use forge_store_layout_indexes::{
     encode_baseline_btree_leaf_record, encode_baseline_btree_root_record,
     BaselineBTreeCorruptionMarker, BaselineBTreeExecutionWitness, BaselineBTreeReadPreflight,
+    BaselineBTreeReadSource,
 };
 use forge_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
-    PhysicalReference, PhysicalSegmentId, PhysicalStoreIdentity, PlatformPhysicalAppendRequest,
-    PlatformPhysicalFacade, PlatformPhysicalOpenRequest, PlatformPhysicalReplayArtifact,
+    PhysicalReference, PhysicalSegmentId, PhysicalStoreIdentity, PhysicalStoreRuntime,
+    PlatformPhysicalAppendRequest, PlatformPhysicalOpenRequest, PlatformPhysicalReplayArtifact,
     SlotGenerationCell,
 };
 
@@ -34,31 +35,88 @@ impl DeterministicBTreeReplayWorld {
 }
 
 pub fn deterministic_baseline_btree_read_preflight() -> BaselineBTreeReadPreflight {
-    deterministic_btree_read_source(false, false, None)
+    deterministic_btree_read_preflight(BTreeFixtureDamage::None, None)
 }
 
 pub fn deterministic_cross_store_btree_read_preflight() -> BaselineBTreeReadPreflight {
-    deterministic_btree_read_source(false, false, Some(foreign_layout_physical_store_identity()))
+    deterministic_btree_read_preflight(
+        BTreeFixtureDamage::None,
+        Some(foreign_layout_physical_store_identity()),
+    )
 }
 
 pub fn deterministic_corrupt_leaf_btree_read_preflight() -> BaselineBTreeReadPreflight {
-    deterministic_btree_read_source(true, false, None)
+    deterministic_btree_read_preflight(BTreeFixtureDamage::CorruptLeftLeaf, None)
 }
 
 pub fn deterministic_stale_child_btree_read_preflight() -> BaselineBTreeReadPreflight {
-    deterministic_btree_read_source(false, true, None)
+    deterministic_btree_read_preflight(BTreeFixtureDamage::StaleLeftReference, None)
 }
 
-fn deterministic_btree_read_source(
-    corrupt_left_leaf: bool,
-    stale_left_reference: bool,
+pub fn deterministic_baseline_btree_read_source() -> BaselineBTreeReadSource {
+    admit_read_source(
+        deterministic_baseline_btree_read_preflight(),
+        super::super::physical_isolation::epoch_scope::physical_authority_from_complete_closeout(),
+    )
+}
+
+pub fn deterministic_cross_store_btree_read_source() -> BaselineBTreeReadSource {
+    let store = foreign_layout_physical_store_identity();
+    admit_read_source(
+        deterministic_cross_store_btree_read_preflight(),
+        super::super::physical_isolation::epoch_scope::
+            physical_authority_from_complete_closeout_for_store(&store),
+    )
+}
+
+pub fn deterministic_corrupt_leaf_btree_read_source() -> BaselineBTreeReadSource {
+    admitted_source(BTreeFixtureDamage::CorruptLeftLeaf)
+}
+
+pub fn deterministic_stale_child_btree_read_source() -> BaselineBTreeReadSource {
+    admitted_source(BTreeFixtureDamage::StaleLeftReference)
+}
+
+pub fn deterministic_noncanonical_leaf_btree_read_source() -> BaselineBTreeReadSource {
+    admitted_source(BTreeFixtureDamage::NoncanonicalLeftLeaf)
+}
+
+pub fn deterministic_left_partition_violation_btree_read_source() -> BaselineBTreeReadSource {
+    admitted_source(BTreeFixtureDamage::LeftChildCrossesSeparator)
+}
+
+pub fn deterministic_right_partition_violation_btree_read_source() -> BaselineBTreeReadSource {
+    admitted_source(BTreeFixtureDamage::RightChildPrecedesSeparator)
+}
+
+fn admitted_source(damage: BTreeFixtureDamage) -> BaselineBTreeReadSource {
+    admit_read_source(
+        deterministic_btree_read_preflight(damage, None),
+        super::super::physical_isolation::epoch_scope::physical_authority_from_complete_closeout(),
+    )
+}
+
+fn admit_read_source(
+    preflight: BaselineBTreeReadPreflight,
+    authority: forge_store_physical_isolation::PhysicalReadStabilityAuthority,
+) -> BaselineBTreeReadSource {
+    let root =
+        super::super::physical_isolation::epoch_scope::current_root_from_authority(&authority);
+    let references = super::super::physical_isolation::read_plan::protected_set(
+        preflight.protected_references(),
+        3,
+    );
+    let plan = super::super::physical_isolation::read_plan::admit_plan(
+        &authority, root, references, 12_288, 3,
+    );
+    preflight.admit(plan).unwrap()
+}
+
+fn deterministic_btree_read_preflight(
+    damage: BTreeFixtureDamage,
     store_identity: Option<PhysicalStoreIdentity>,
 ) -> BaselineBTreeReadPreflight {
-    let world = deterministic_btree_replay_world_with_damage(
-        corrupt_left_leaf,
-        stale_left_reference,
-        store_identity,
-    );
+    let world = deterministic_btree_replay_world_with_damage(damage, store_identity);
     BaselineBTreeExecutionWitness::admit_published_layout(
         world.readiness,
         world.root_reference,
@@ -70,12 +128,25 @@ fn deterministic_btree_read_source(
 }
 
 pub fn deterministic_btree_replay_world() -> DeterministicBTreeReplayWorld {
-    deterministic_btree_replay_world_with_damage(false, false, None)
+    deterministic_btree_replay_world_with_damage(BTreeFixtureDamage::None, None)
+}
+
+pub fn deterministic_admitted_btree_replay_physical_source(
+) -> forge_store_recovery_physics::AdmittedBTreeReplayPhysicalSource {
+    let world = deterministic_btree_replay_world();
+    let root = world.root_reference();
+    forge_store_recovery_physics::AdmittedBTreeReplayPhysicalSource::admit(
+        world.readiness().clone(),
+        root,
+        world.replay_artifact().clone(),
+        world.replay_artifact().store_identity().clone(),
+        super::super::recovery::redo_replay::checkpoint_plus_tail_source_for_root(20, 30, root),
+    )
+    .expect("deterministic B-tree replay source must admit through recovery physics")
 }
 
 fn deterministic_btree_replay_world_with_damage(
-    corrupt_left_leaf: bool,
-    stale_left_reference: bool,
+    damage: BTreeFixtureDamage,
     store_identity: Option<PhysicalStoreIdentity>,
 ) -> DeterministicBTreeReplayWorld {
     let readiness = readiness();
@@ -83,12 +154,17 @@ fn deterministic_btree_replay_world_with_damage(
         PlatformPhysicalOpenRequest::physical_format_canonical,
         PlatformPhysicalOpenRequest::physical_format_for_store,
     );
-    let mut facade = PlatformPhysicalFacade::open_physical_format(readiness.clone(), open_request)
+    let mut facade = PhysicalStoreRuntime::open_physical_format(readiness.clone(), open_request)
         .expect("open deterministic B-tree fixture");
-    let left_payload = if corrupt_left_leaf {
-        *b"broken"
-    } else {
-        encode_baseline_btree_leaf_record([slot(10), slot(11)], false, false)
+    let left_payload = match damage {
+        BTreeFixtureDamage::CorruptLeftLeaf => *b"broken",
+        BTreeFixtureDamage::NoncanonicalLeftLeaf => {
+            encode_baseline_btree_leaf_record([slot(11), slot(10)], false, false)
+        }
+        BTreeFixtureDamage::LeftChildCrossesSeparator => {
+            encode_baseline_btree_leaf_record([slot(11), slot(12)], false, false)
+        }
+        _ => encode_baseline_btree_leaf_record([slot(10), slot(11)], false, false),
     };
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -99,10 +175,10 @@ fn deterministic_btree_replay_world_with_damage(
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
             right_slot_cell(),
-            &encode_baseline_btree_leaf_record([slot(12), slot(13)], false, false),
+            &right_leaf_payload(damage),
         ))
         .expect("append right B-tree leaf");
-    let left_reference = if stale_left_reference {
+    let left_reference = if damage == BTreeFixtureDamage::StaleLeftReference {
         cell(11, 1, 99)
     } else {
         left_slot_cell()
@@ -124,6 +200,25 @@ fn deterministic_btree_replay_world_with_damage(
         root_reference: root.reference(),
         replay_artifact: published.replay_artifact(),
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BTreeFixtureDamage {
+    None,
+    CorruptLeftLeaf,
+    StaleLeftReference,
+    NoncanonicalLeftLeaf,
+    LeftChildCrossesSeparator,
+    RightChildPrecedesSeparator,
+}
+
+fn right_leaf_payload(damage: BTreeFixtureDamage) -> [u8; 6] {
+    let slots = if damage == BTreeFixtureDamage::RightChildPrecedesSeparator {
+        [slot(11), slot(13)]
+    } else {
+        [slot(12), slot(13)]
+    };
+    encode_baseline_btree_leaf_record(slots, false, false)
 }
 
 pub fn baseline_btree_probe_slot() -> PhysicalRecordSlot {

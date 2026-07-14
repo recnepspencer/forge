@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use forge_store_budgets::PreExecutionBudgetEnvelope;
+use forge_store_budgets::{PreExecutionBudgetEnvelope, PreExecutionBudgetScope};
 use forge_store_contracts::{DurableArtifactFamilyId, WalRecordFamily};
 use forge_store_physical_format::{PhysicalPageId, PhysicalRootReference, PhysicalSegmentId};
 use forge_store_security::{
@@ -10,8 +10,8 @@ use forge_store_security::{
 
 use super::access_request::AdmittedPlanningRequest;
 use super::{
-    AccessPlanCostClass, AccessPlanCostEstimate, AccessPlanSelectionCase, AccessPlanSelectionView,
-    AccessPlanSelector,
+    access_plan_selection_cases, AccessPlanCostClass, AccessPlanCostEstimate,
+    AccessPlanSelectionCaseId, AccessPlanSelectionView, AccessPlanSelector,
 };
 use crate::access::execution::AccessPathCounterSnapshot;
 use crate::facade::access_planning;
@@ -84,6 +84,49 @@ fn declared_selection_cases_equal_cases_emitted_by_ordinary_requests() {
             )
             .expect("ordinary LSM lookup request must admit"),
         foreground,
+    ));
+
+    observed.insert(select_case(
+        AccessPlanSelector
+            .admit_read_request(
+                page_family,
+                page_key(),
+                page_exact.clone(),
+                crate::access_shapes()
+                    .explicit_degraded_exact_scan(
+                        crate::DegradedExactScanRequest::new()
+                            .with_budget_rows(u16::MAX as u64 + 1),
+                    )
+                    .expect("unrepresentable degraded demand still admits its declaration"),
+            )
+            .expect("degraded cost denial must pass request admission"),
+        PreExecutionBudgetEnvelope::new(
+            PreExecutionBudgetScope::Terminal,
+            u64::MAX,
+            u16::MAX,
+            u16::MAX,
+            u16::MAX,
+            u64::MAX,
+        ),
+    ));
+
+    observed.insert(select_case(
+        AccessPlanSelector
+            .admit_read_request(
+                page_family,
+                page_key(),
+                page_exact.clone(),
+                access_planning().point_access(),
+            )
+            .expect("budget denial must follow ordinary request admission"),
+        PreExecutionBudgetEnvelope::new(
+            PreExecutionBudgetScope::Foreground,
+            0,
+            u16::MAX,
+            u16::MAX,
+            u16::MAX,
+            u64::MAX,
+        ),
     ));
     observed.insert(select_case(
         AccessPlanSelector
@@ -158,7 +201,7 @@ fn declared_selection_cases_equal_cases_emitted_by_ordinary_requests() {
 
     assert_eq!(
         observed,
-        AccessPlanSelectionCase::ALL.into_iter().collect(),
+        access_plan_selection_cases().collect(),
         "the decision owner must not advertise a case ordinary planning cannot emit",
     );
 }
@@ -166,7 +209,7 @@ fn declared_selection_cases_equal_cases_emitted_by_ordinary_requests() {
 fn select_case<Request: AdmittedPlanningRequest>(
     request: Request,
     budget: PreExecutionBudgetEnvelope,
-) -> AccessPlanSelectionCase {
+) -> AccessPlanSelectionCaseId {
     let outcome = AccessPlanSelector.select_admitted_with_budget(request, budget);
     match outcome.view() {
         AccessPlanSelectionView::BTreeLookup(plan) => {
@@ -220,12 +263,12 @@ fn select_case<Request: AdmittedPlanningRequest>(
                 plan.planned_counter_envelope().lookup()
             );
             assert_eq!(estimate.estimated_range_touches(), 8);
-            assert_eq!(estimate.estimated_byte_reads(), 4_096 + 8 * 64);
+            assert_eq!(estimate.estimated_byte_reads(), 8 * 64);
             assert_budget_binding(estimate, plan.budget_receipt());
         }
         AccessPlanSelectionView::Denied(_) => {}
     }
-    outcome.case()
+    outcome.case_id()
 }
 
 fn assert_operation_cost(

@@ -1,5 +1,5 @@
 use forge_store_layout_indexes::{
-    access_planning::access_planning, maintenance::DerivedIndexParityWitness,
+    access_planning, DerivedIndexParityWitness,
 };
 
 fn main() {

@@ -21,9 +21,11 @@ pub(super) fn admit_wal_operation_context(
         .map_err(|_| LsmMaintenanceAdmissionDenied::ArtifactFamily)?;
     let family = declarations
         .admit_physical_artifact_family(declaration, security)
+        .into_result()
         .map_err(|_| LsmMaintenanceAdmissionDenied::ArtifactFamily)?;
     let key_domain = declarations
         .admit_physical_key_domain(family, security)
+        .into_result()
         .map_err(map_key_domain_denial)?;
     let concrete_key = declarations
         .admit_wal_key(key_domain, record_family, record_identity)

@@ -1,16 +1,17 @@
 use forge_proof::{AuthorityMarker, AuthorityWitness};
 
-use crate::{PhysicalIsolationEntryAdmission, PhysicalIsolationRootEpochBasis};
+use crate::{
+    CompactionCutoverStabilityProof, PhysicalIsolationEntryAdmission,
+    PhysicalIsolationRootEpochBasis,
+};
 
 #[derive(Debug, Clone)]
 pub struct PhysicalReadStabilityAuthority {
-    recovered_root: String,
     root_epoch_basis: PhysicalIsolationRootEpochBasis,
 }
 
 #[derive(Debug, Clone)]
 pub struct PhysicalReadStabilityCorrelationBasis {
-    recovered_root: String,
     root_epoch_basis: PhysicalIsolationRootEpochBasis,
 }
 
@@ -22,16 +23,25 @@ pub fn admit_physical_read_stability_authority(
     Ok(PhysicalReadStabilityAuthority::from_entry(entry))
 }
 
+pub fn admit_post_compaction_read_stability_authority(
+    proof: &CompactionCutoverStabilityProof,
+) -> Result<PhysicalReadStabilityAuthority, core::convert::Infallible> {
+    Ok(PhysicalReadStabilityAuthority::from_current_root(
+        proof.post_cutover_root(),
+    ))
+}
+
 impl PhysicalReadStabilityAuthority {
     fn from_entry(entry: &PhysicalIsolationEntryAdmission) -> Self {
         Self {
-            recovered_root: entry.recovered_root().to_string(),
             root_epoch_basis: entry.root_epoch_basis(),
         }
     }
 
-    pub fn recovered_root(&self) -> &str {
-        &self.recovered_root
+    fn from_current_root(root: crate::CurrentPhysicalRoot) -> Self {
+        Self {
+            root_epoch_basis: PhysicalIsolationRootEpochBasis::from_current_root(root),
+        }
     }
 
     pub const fn root_epoch_basis(&self) -> PhysicalIsolationRootEpochBasis {
@@ -40,7 +50,6 @@ impl PhysicalReadStabilityAuthority {
 
     pub fn correlation_basis(&self) -> PhysicalReadStabilityCorrelationBasis {
         PhysicalReadStabilityCorrelationBasis {
-            recovered_root: self.recovered_root.clone(),
             root_epoch_basis: self.root_epoch_basis,
         }
     }
@@ -55,10 +64,6 @@ impl PhysicalReadStabilityAuthority {
 }
 
 impl PhysicalReadStabilityCorrelationBasis {
-    pub fn recovered_root(&self) -> &str {
-        &self.recovered_root
-    }
-
     pub const fn root_epoch_basis(&self) -> PhysicalIsolationRootEpochBasis {
         self.root_epoch_basis
     }

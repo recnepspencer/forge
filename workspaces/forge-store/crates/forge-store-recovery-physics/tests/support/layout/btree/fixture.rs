@@ -1,25 +1,13 @@
-use forge_foundational::{aspects, AspectContract, AspectValue, InternedString, ScalarAspectType};
 use forge_proof::TransitionOutcome;
-use forge_store_aspect_native::{
-    StoreAspectAuthorityInput, StoreAspectBoundaryFact, StoreAspectIdentity,
-    StorePhysicalBoundaryWitness,
-};
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
-use forge_store_buffer_pool::{
-    AllocationAdmission, AllocationByteBudget, AllocationEnvelopeDeclaration,
-    BackgroundEnvelopeAdmission, BackgroundEnvelopeRequest, BackgroundWorkBudgetSnapshot,
-    FixedMetadataReservation,
-};
-use forge_store_contracts::{
-    DurableArtifactFamilyId, StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
-};
+use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_physical_backend::{
     BackendDurabilityBarrierAuthority, SimulatedStrictDurabilityAuthority,
     SimulatedStrictDurableProfile, WalDurabilityBarrier,
 };
 use forge_store_physical_format::{
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReferenceAuthority,
-    PhysicalReferenceScope, PhysicalRootReference, PhysicalSegmentId,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalReferenceAuthority,
+    PhysicalRootReference,
 };
 use forge_store_physical_integrity::{
     ExecutedQuarantineFinding, PhysicalQuarantineAuthority, QuarantineRecord, QuarantineSealRequest,
@@ -32,22 +20,27 @@ use forge_store_recovery_physics::{
     CheckpointManifest, CheckpointPageLsnFrontier, CheckpointPublicationPlan,
     CheckpointRedoBoundary, CheckpointRootPosture, CheckpointSelectorEvidence,
     CheckpointValidation, ContiguousWalTailProof, DurableAckReceipt, IntegrityDamageMap,
-    LogSequenceNumber, PageLsn, RecoveryCandidateDiscoveryTrace, RecoveryMemoryEnvelope,
-    RecoverySourceCandidate, RecoveryStoreFootprint, SharpCheckpointCertificationMode,
-    StoreOwnedCheckpointLocator, WalAppendPlan, WalDurabilityObservationSequence, WalLsnRange,
-    WalSegmentGeneration, WalSegmentId, WalTailRedoSource, WalTailReplayBudget,
+    LogSequenceNumber, PageLsn, RecoverySourceCandidate, RecoveryStoreFootprint,
+    SharpCheckpointCertificationMode, StoreOwnedCheckpointLocator, WalAppendPlan,
+    WalDurabilityObservationSequence, WalLsnRange, WalSegmentGeneration, WalSegmentId,
+    WalTailRedoSource, WalTailReplayBudget,
 };
 use forge_store_wal::{
     admit_replay_cursor, AdmittedReplayTailCursor, WalSegmentScanRecord, WalTopologyScan,
 };
 
-pub struct Phase22Fixture {
+mod fixture_primitives;
+
+pub use fixture_primitives::wal_range;
+use fixture_primitives::*;
+
+pub struct BTreeRecoveryFixture {
     pub checkpoint_receipt: CheckpointCutoverReceipt,
     pub checkpoint_report: forge_store_recovery_physics::CheckpointCutoverLayoutReport,
     pub replay_cursor: AdmittedReplayTailCursor,
 }
 
-pub fn fixture() -> Phase22Fixture {
+pub fn fixture() -> BTreeRecoveryFixture {
     let manifest = checkpoint_manifest();
     let locator_commitment =
         forge_store_recovery_physics::CheckpointLocatorArtifactCommitment::manifest_pointer(
@@ -98,7 +91,7 @@ pub fn fixture() -> Phase22Fixture {
     )
     .expect("replay cursor");
 
-    Phase22Fixture {
+    BTreeRecoveryFixture {
         checkpoint_receipt,
         checkpoint_report,
         replay_cursor,
@@ -149,6 +142,37 @@ pub fn authoritative_quarantine_record(seed: &str) -> QuarantineRecord {
 
 pub fn current_authority(identity_key: &str, value: &str) -> StoreCurrentAuthorityWitness {
     require_current_store_authority(boundary_fact(identity_key, value))
+}
+
+pub fn current_security_scope(
+    identity_key: &str,
+    value: &str,
+) -> forge_store_security::StoreAdmittedSecurityScope {
+    let authority = current_authority(identity_key, value);
+    let key_scope = forge_store_security::StoreKeyScope::WalCheckpointEnvelope;
+    let tenant_scope = forge_store_security::StoreTenantScope::StoreInternal;
+    let authenticity = forge_store_security::StoreAuthenticityRequirement::not_required();
+    let custody = forge_store_security::StoreCustodyPosture::InternalStoreCustody;
+    let expectation = forge_store_security::StoreSecurityScopeAdmissionExpectation::new(
+        key_scope,
+        tenant_scope,
+        authenticity,
+        custody,
+    );
+    match forge_store_security::admit_store_security_scope(
+        forge_store_security::StoreSecurityScopeAdmissionRequest::new(
+            &authority,
+            key_scope,
+            forge_store_security::StoreKeyVersionPosture::Current,
+            tenant_scope,
+            authenticity,
+            custody,
+            expectation,
+        ),
+    ) {
+        TransitionOutcome::Success(admitted) => admitted,
+        outcome => panic!("recovery test security scope should admit: {outcome:?}"),
+    }
 }
 
 pub const fn recovery_family_id() -> DurableArtifactFamilyId {
@@ -251,124 +275,4 @@ fn artifact_ack(
     commitment: CheckpointArtifactDurabilityCommitment,
 ) -> DurableAckReceipt<SimulatedStrictDurableProfile> {
     durable_ack(segment_id, 1, wal_range(10, 30), commitment.digest(), 64)
-}
-
-pub fn wal_range(start: u64, end: u64) -> WalLsnRange {
-    WalLsnRange::new(LogSequenceNumber::new(start), LogSequenceNumber::new(end)).unwrap()
-}
-
-fn trace(label: &str, order: u64) -> RecoveryCandidateDiscoveryTrace {
-    RecoveryCandidateDiscoveryTrace::new("phase22-profile", label, order)
-}
-
-fn test_scope(seed: &str) -> PhysicalReferenceScope {
-    PhysicalReferenceScope::derived_index(
-        PhysicalGenerationAuthority::for_canonical_physical_format()
-            .page_cell(segment(seed_basis(seed) + 1), page(seed_basis(seed) + 11))
-            .with_page_generation(generation(seed_basis(seed) + 5)),
-    )
-}
-
-fn boundary_fact(identity_key: &str, value: &str) -> StoreAspectBoundaryFact {
-    let key = aspects().vocabulary().key(identity_key).unwrap();
-    let contract = aspects()
-        .contract()
-        .for_key(key.clone())
-        .identified_by(aspects().vocabulary().identity(1))
-        .at_revision(aspects().vocabulary().revision(1))
-        .scalar(ScalarAspectType::String);
-    let admitted_state = match aspects()
-        .authoritative_state()
-        .admit([validated_scalar_value(&contract, value)])
-    {
-        TransitionOutcome::Success(state) => state,
-        outcome => panic!("state admission should succeed: {outcome:?}"),
-    };
-    StoreAspectBoundaryFact::from_admitted_state(
-        StoreAspectIdentity::from_aspect_key(key),
-        StoreAspectAuthorityInput::new(admitted_state, physical_witness()),
-    )
-    .unwrap()
-}
-
-fn validated_scalar_value(
-    contract: &AspectContract,
-    raw_value: &str,
-) -> forge_foundational::ContractValidatedAspectArtifact {
-    match aspects()
-        .validate()
-        .against(contract)
-        .value(AspectValue::String(InternedString::from(raw_value)))
-    {
-        TransitionOutcome::Success(value) => value,
-        outcome => panic!("validation should succeed: {outcome:?}"),
-    }
-}
-
-fn physical_witness() -> StorePhysicalBoundaryWitness {
-    StorePhysicalBoundaryWitness::from_physical_authority(
-        StorePhysicalAuthorityWitness::for_aspect_native_boundary(
-            ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
-        )
-        .unwrap(),
-    )
-    .unwrap()
-}
-
-fn segment(value: u64) -> PhysicalSegmentId {
-    PhysicalSegmentId::from_raw(value).unwrap()
-}
-
-fn page(value: u64) -> PhysicalPageId {
-    PhysicalPageId::from_raw(value).unwrap()
-}
-
-fn generation(value: u64) -> PhysicalGeneration {
-    PhysicalGeneration::from_raw(value).unwrap()
-}
-
-fn recovery_memory_envelope() -> RecoveryMemoryEnvelope {
-    RecoveryMemoryEnvelope::from_admitted(admit_background()).unwrap()
-}
-
-fn admit_background() -> forge_store_buffer_pool::AdmittedBackgroundEnvelope {
-    let mut admission = BackgroundEnvelopeAdmission::new();
-    let mut allocation = allocation_admission();
-    admission
-        .admit(
-            BackgroundEnvelopeRequest::recovery_planning()
-                .resident_frames(1)
-                .resident_bytes(128)
-                .pin_pages_for_bounded_step(1)
-                .allocation_bytes(128)
-                .finish(),
-            BackgroundWorkBudgetSnapshot::foreground_reserved(16, 4, 0, 16),
-            &mut allocation,
-        )
-        .unwrap()
-}
-
-fn allocation_admission() -> AllocationAdmission {
-    AllocationAdmission::from_declaration(
-        AllocationEnvelopeDeclaration::declare()
-            .foreground(bytes(512))
-            .maintenance(bytes(512))
-            .recovery(bytes(512))
-            .scrub(bytes(512))
-            .import_export(bytes(512))
-            .streaming(bytes(512))
-            .fixed_metadata(FixedMetadataReservation::constant_bytes(64).unwrap())
-            .seal()
-            .unwrap(),
-    )
-}
-
-fn bytes(bytes: u64) -> AllocationByteBudget {
-    AllocationByteBudget::bytes(bytes).unwrap()
-}
-
-fn seed_basis(seed: &str) -> u64 {
-    seed.bytes().enumerate().fold(17_u64, |acc, (index, byte)| {
-        acc + ((index as u64 + 1) * byte as u64)
-    })
 }

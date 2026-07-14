@@ -17,7 +17,8 @@ use forge_store_physical_isolation::{
 use forge_store_recovery_physics::PublicationCrashStage;
 use publication_support::{
     execute_publication_recovery_replay, mismatched_release_receipt, publication_inputs,
-    publish_copy_on_write, publish_copy_on_write_result, root_publication_validation,
+    publication_inputs_for_store, publish_copy_on_write, publish_copy_on_write_result,
+    root_publication_validation,
 };
 use support::current_generation_page_reference;
 
@@ -337,5 +338,23 @@ fn root_candidate_denies_validation_for_unrelated_published_root() {
     assert_eq!(
         PublicationRootCandidate::admit(inputs.new_root, unrelated_validation).unwrap_err(),
         PhysicalPublicationDenial::RootPublicationValidationRootMismatch
+    );
+}
+
+#[test]
+fn copy_on_write_validation_rejects_roots_issued_by_different_stores() {
+    let current = publication_inputs();
+    let foreign_identity =
+        forge_store_test_support::harness::layout::foreign_layout_physical_store_identity();
+    let foreign = publication_inputs_for_store(&foreign_identity, "foreign-root", 713);
+    let intent = PhysicalPublicationIntent::copy_on_write_root_manifest(
+        current.old_candidate,
+        foreign.new_candidate,
+        current.old_reachability,
+    );
+
+    assert_eq!(
+        intent.validate_copy_on_write_inputs().unwrap_err(),
+        PhysicalPublicationDenial::StoreAuthorityMismatch
     );
 }

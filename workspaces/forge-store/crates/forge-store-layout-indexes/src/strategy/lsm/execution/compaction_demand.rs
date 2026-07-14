@@ -2,7 +2,7 @@ use forge_store_lsm_authority::{
     AdmittedLsmReplacementOutput, LsmCompactionMembership, LsmMembershipArtifactDeclaration,
     LsmMembershipDenial, LsmMembershipKey, LsmMembershipRecord, LsmPhysicalCompactionIntent,
 };
-use forge_store_wal::{AdmittedWalAppendReceipt, BlobWalRecordEnvelope, BlobWalRecordIdentity};
+use forge_store_wal::{AdmittedWalAppendReceipt, BlobWalRecordEnvelope};
 
 /// One owner-admitted pairing of semantic membership, durable output, and the
 /// exact physical reader horizon that the output is allowed to replace.
@@ -12,7 +12,6 @@ pub struct AdmittedLsmCompactionDemand {
     generation: LsmMembershipRecord,
     tombstone: LsmMembershipRecord,
     membership: LsmCompactionMembership,
-    compaction_admission: super::BaselineLsmCompactionAdmission,
     output: AdmittedLsmReplacementOutput,
     physical_intent: LsmPhysicalCompactionIntent,
 }
@@ -42,13 +41,15 @@ impl AdmittedLsmCompactionDemand {
             physical_intent.clone(),
         )
         .map_err(map_membership_denial)?;
-        let [value, generation, tombstone] = plan.membership.records().clone();
+        let records = plan.membership.record_set();
+        let value = records.value().clone();
+        let generation = records.generation().clone();
+        let tombstone = records.tombstone().clone();
         Ok(Self {
             value,
             generation,
             tombstone,
             membership: plan.membership,
-            compaction_admission: plan.admission,
             output,
             physical_intent,
         })
@@ -58,28 +59,20 @@ impl AdmittedLsmCompactionDemand {
         self.membership.key_ref()
     }
 
-    pub(crate) const fn compaction_admission(&self) -> &super::BaselineLsmCompactionAdmission {
-        &self.compaction_admission
-    }
-
     pub(crate) const fn physical_intent(&self) -> &LsmPhysicalCompactionIntent {
         &self.physical_intent
     }
 
-    pub(crate) fn replay_tail(&self) -> [&BlobWalRecordEnvelope; 3] {
-        [
-            self.value.envelope(),
-            self.generation.envelope(),
-            self.tombstone.envelope(),
-        ]
+    pub(crate) const fn value_record(&self) -> &BlobWalRecordEnvelope {
+        self.value.envelope()
     }
 
-    pub(crate) fn identities(&self) -> [BlobWalRecordIdentity; 3] {
-        self.replay_tail().map(|record| record.identity())
+    pub(crate) const fn generation_record(&self) -> &BlobWalRecordEnvelope {
+        self.generation.envelope()
     }
 
-    pub(crate) const fn records(&self) -> [&LsmMembershipRecord; 3] {
-        [&self.value, &self.generation, &self.tombstone]
+    pub(crate) const fn tombstone_record(&self) -> &BlobWalRecordEnvelope {
+        self.tombstone.envelope()
     }
 
     pub(crate) const fn membership(&self) -> &LsmCompactionMembership {
@@ -100,6 +93,15 @@ pub(crate) fn map_membership_denial(
         }
         LsmMembershipDenial::MembershipIncomplete => {
             super::BaselineLsmExecutionAdmissionDenial::PersistedMembershipIncomplete
+        }
+        LsmMembershipDenial::ValueRecordRequired => {
+            super::BaselineLsmExecutionAdmissionDenial::ValueRecordRequired
+        }
+        LsmMembershipDenial::GenerationRecordRequired => {
+            super::BaselineLsmExecutionAdmissionDenial::GenerationRecordRequired
+        }
+        LsmMembershipDenial::TombstoneRecordRequired => {
+            super::BaselineLsmExecutionAdmissionDenial::TombstoneRecordRequired
         }
         LsmMembershipDenial::MembershipStale => {
             super::BaselineLsmExecutionAdmissionDenial::PersistedMembershipStale

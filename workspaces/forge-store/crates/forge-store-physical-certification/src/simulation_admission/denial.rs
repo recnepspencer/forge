@@ -9,7 +9,7 @@ pub enum SimulationHarnessBoundaryDenial {
     TerminalProjectionCannotAdmitEntry,
     MissingRoadmapHarnessRequirement(SimulationHarnessRoadmapRequirement),
     IncompleteS4Closeout,
-    S4CloseoutDoesNotRejectSyntheticShortcuts,
+    RecoveryCloseoutDoesNotRejectSyntheticShortcuts,
     RecoveryCloseoutMissingPhysicalIsolationReadiness,
     PhysicalIsolationAuthorityCannotBeMintedByHarnessEntry,
     TestSupportMechanicsCannotOwnCertificationMeaning,

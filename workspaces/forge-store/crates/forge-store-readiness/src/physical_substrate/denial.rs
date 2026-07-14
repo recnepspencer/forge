@@ -16,7 +16,7 @@ impl PhysicalSubstrateReadinessDenial {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalSubstrateReadinessDenialKind {
     WrongRoadmapScope,
-    S1PhysicalSubstrateProofRejected,
+    PhysicalSubstrateProofRejected,
     MissingPhysicalReferences,
     MissingHeaderDecodeWitnesses,
     MissingPayloadAdmissionWitnesses,

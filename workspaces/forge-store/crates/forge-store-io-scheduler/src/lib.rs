@@ -72,14 +72,14 @@ pub use queue_execution::{
     admit_queue_execution_plan, execute_grouped_ready_queue_plans, execute_ready_queue_plan,
     group_ready_queue_pair, lower_background_queue_lease, lower_buffer_pool_queue_declaration,
     lower_wal_queue_declaration, queue_execution_lowering_authority, AdmittedQueueExecutionPlan,
-    ExecutedQueueEvidence, QueueBackpressureCause, QueueExecutedPlan,
+    ExecutedQueueEvidence, QueueBackpressureCause, QueueDurabilityClass, QueueExecutedPlan,
     QueueExecutionAdmissionDenial, QueueExecutionAdmissionRequest, QueueExecutionBackpressured,
     QueueExecutionCounterSnapshot, QueueExecutionDenied, QueueExecutionLoweringAuthority,
     QueueExecutionOutcome, QueueExecutionPlanBinding, QueueExecutionProgression,
     QueueExecutionReadyPlan, QueueExecutionReplayIdentity, QueueExecutionViolation,
     QueueGroupedReadyPlans, QueueGroupingBasis, QueueGroupingDenial, QueueGroupingOutcome,
     QueueGroupingRejected, QueueReadAheadBasis, QueueRecoveryOrdering, QueueWorkClass,
-    QueueWorkDeclaration, QueueWriteBackBasis, QueueWritebackPolicy, S6QueueDurabilityClass,
+    QueueWorkDeclaration, QueueWriteBackBasis, QueueWritebackPolicy,
 };
 pub use resource_envelope::{IoQueueResourceEnvelope, IoQueueResourceEnvelopeDenial};
 pub use resource_units::{

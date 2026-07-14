@@ -11,6 +11,8 @@ pub struct RepeatedLsmMembershipFixture {
     selected_base: BlobWalRecordIdentity,
     second_output: BlobWalRecordIdentity,
     reopened_output: BlobWalRecordIdentity,
+    published_identity: forge_store_lsm_authority::PublishedLsmMembershipIdentity,
+    reopened_identity: forge_store_lsm_authority::PublishedLsmMembershipIdentity,
 }
 
 impl RepeatedLsmMembershipFixture {
@@ -28,6 +30,18 @@ impl RepeatedLsmMembershipFixture {
 
     pub const fn reopened_output(self) -> BlobWalRecordIdentity {
         self.reopened_output
+    }
+
+    pub const fn published_identity(
+        self,
+    ) -> forge_store_lsm_authority::PublishedLsmMembershipIdentity {
+        self.published_identity
+    }
+
+    pub const fn reopened_identity(
+        self,
+    ) -> forge_store_lsm_authority::PublishedLsmMembershipIdentity {
+        self.reopened_identity
     }
 }
 
@@ -53,7 +67,9 @@ pub fn execute_repeated_lsm_membership_fixture() -> RepeatedLsmMembershipFixture
         BlobWalRecordKind::LsmTombstone,
     );
 
-    let selected = session.select_compaction(key).unwrap();
+    let selected = forge_store_lsm_authority::select_lsm_compaction_membership(&session, key)
+        .into_result()
+        .unwrap();
     let selected_base = selected
         .base()
         .expect("published base is mandatory")
@@ -93,16 +109,27 @@ pub fn execute_repeated_lsm_membership_fixture() -> RepeatedLsmMembershipFixture
         &selected, activation, checkpoint,
     )
     .unwrap();
-    let second = session.replace(&selected, &replacement).unwrap();
+    let second =
+        forge_store_lsm_authority::replace_lsm_membership(&mut session, &selected, &replacement)
+            .into_result()
+            .unwrap();
+    let published_identity = second.identity();
     drop(session);
 
     let reopened = super::open_lsm_index(first.anchor()).unwrap();
-    let reopened_output = reopened.published_replacement(key).unwrap().output();
+    let reopened_replacement =
+        forge_store_lsm_authority::lookup_published_lsm_membership(&reopened, key)
+            .into_result()
+            .unwrap();
+    let reopened_output = reopened_replacement.output();
+    let reopened_identity = reopened_replacement.identity();
     RepeatedLsmMembershipFixture {
         first_output: first.replacement_output(),
         selected_base,
         second_output: second.output(),
         reopened_output,
+        published_identity,
+        reopened_identity,
     }
 }
 
@@ -128,7 +155,9 @@ pub fn substituted_lsm_base_is_rejected_before_compaction(
         47,
         BlobWalRecordKind::LsmTombstone,
     );
-    let selected = session.select_compaction(key).unwrap();
+    let selected = forge_store_lsm_authority::select_lsm_compaction_membership(&session, key)
+        .into_result()
+        .unwrap();
     let mut substituted = std::fs::read(first.replacement_path()).unwrap();
     substituted[0] ^= 0x01;
     std::fs::write(first.replacement_path(), substituted).unwrap();

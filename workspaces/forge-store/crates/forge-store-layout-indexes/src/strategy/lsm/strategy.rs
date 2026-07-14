@@ -1,6 +1,6 @@
 use forge_store_lsm_authority::{
-    AdmittedLsmReplaySource, LsmMembershipKey, LsmMembershipRecord, LsmMembershipSession,
-    LsmReplaySourceDenial,
+    open_lsm_membership, persist_lsm_membership_record, AdmittedLsmReplaySource, LsmMembershipKey,
+    LsmMembershipRecord, LsmMembershipSession, LsmReplaySourceDenial,
 };
 use forge_store_wal::{
     AdmittedCheckpointPublicationReceipt, AdmittedWalAppendReceipt, BlobWalRecordEnvelope,
@@ -41,7 +41,8 @@ impl LsmStrategy {
         durable_anchor: &AdmittedWalAppendReceipt,
         current_scope: &forge_store_security::StoreCurrentSecurityScopeWitnessSet,
     ) -> Result<LsmMembershipSession, BaselineLsmExecutionAdmissionDenial> {
-        LsmMembershipSession::open(durable_anchor, current_scope)
+        open_lsm_membership(durable_anchor, current_scope)
+            .into_result()
             .map_err(super::execution::map_membership_denial)
     }
 
@@ -71,8 +72,8 @@ impl LsmStrategy {
     ) -> Result<LsmMembershipRecord, BaselineLsmExecutionAdmissionDenial> {
         let record = LsmMembershipRecord::admit(envelope, durable, key)
             .ok_or(BaselineLsmExecutionAdmissionDenial::DurableRecordBindingMismatch)?;
-        session
-            .persist(record.clone())
+        persist_lsm_membership_record(session, record.clone())
+            .into_result()
             .map_err(super::execution::map_membership_denial)?;
         Ok(record)
     }

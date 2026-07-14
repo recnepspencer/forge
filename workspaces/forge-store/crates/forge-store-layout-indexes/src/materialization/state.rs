@@ -32,16 +32,6 @@ impl LayoutMaterializationState {
     }
 
     #[cfg(test)]
-    pub(crate) const fn declared_only(family: PhysicalArtifactFamily) -> Self {
-        Self::new(family, MaterializationStateClass::DeclaredOnly)
-    }
-
-    #[cfg(test)]
-    pub(crate) const fn absent(family: PhysicalArtifactFamily) -> Self {
-        Self::new(family, MaterializationStateClass::Absent)
-    }
-
-    #[cfg(test)]
     pub(crate) const fn partially_covered(family: PhysicalArtifactFamily) -> Self {
         Self::new(family, MaterializationStateClass::PartiallyCovered)
     }

@@ -11,8 +11,8 @@ use forge_store_contracts::{
 use forge_store_physical_format::{
     OfflinePhysicalVerifier, OfflineVerifierLayoutObservation, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot, PhysicalSegmentId,
-    PhysicalShortcutBoundary, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
-    PlatformPhysicalFacadeDenial, PlatformPhysicalFacadeDenialKind, PlatformPhysicalOpenRequest,
+    PhysicalShortcutBoundary, PhysicalStoreRuntime, PhysicalStoreRuntimeDenial,
+    PhysicalStoreRuntimeDenialKind, PlatformPhysicalAppendRequest, PlatformPhysicalOpenRequest,
     RuntimeLayoutObservation,
 };
 
@@ -116,15 +116,15 @@ fn shortcut_lanes_are_rejected_at_named_boundaries() {
 
     assert_eq!(
         live_cache.kind(),
-        PlatformPhysicalFacadeDenialKind::ShortcutBoundaryRejected
+        PhysicalStoreRuntimeDenialKind::ShortcutBoundaryRejected
     );
     assert_eq!(
         backend_map.kind(),
-        PlatformPhysicalFacadeDenialKind::ShortcutBoundaryRejected
+        PhysicalStoreRuntimeDenialKind::ShortcutBoundaryRejected
     );
     assert_eq!(
         raw_dump.kind(),
-        PlatformPhysicalFacadeDenialKind::ShortcutBoundaryRejected
+        PhysicalStoreRuntimeDenialKind::ShortcutBoundaryRejected
     );
     assert_eq!(
         support.forbidden_shortcuts(),
@@ -147,7 +147,7 @@ fn shortcut_lanes_are_rejected_at_named_boundaries() {
 #[test]
 fn shortcut_support_and_diagnostics_require_facade_shortcut_boundary() {
     let missing_record =
-        PlatformPhysicalFacadeDenial::new(PlatformPhysicalFacadeDenialKind::MissingPhysicalRecord);
+        PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::MissingPhysicalRecord);
 
     let support_denial = RuntimeVerifierSupportReport::from_shortcut_facade_denial(&missing_record)
         .expect_err("non-shortcut facade denial rejected for shortcut support");
@@ -158,13 +158,13 @@ fn shortcut_support_and_diagnostics_require_facade_shortcut_boundary() {
     assert_eq!(
         support_denial,
         RuntimeVerifierSupportDenial::UnexpectedFacadeDenial(
-            PlatformPhysicalFacadeDenialKind::MissingPhysicalRecord
+            PhysicalStoreRuntimeDenialKind::MissingPhysicalRecord
         )
     );
     assert_eq!(
         diagnostic_denial,
         RuntimeVerifierDiagnosticDenial::UnexpectedFacadeDenial(
-            PlatformPhysicalFacadeDenialKind::MissingPhysicalRecord
+            PhysicalStoreRuntimeDenialKind::MissingPhysicalRecord
         )
     );
 }
@@ -189,7 +189,7 @@ fn observed_offline_layout_with_slot(slot_number: u16) -> OfflineVerifierLayoutO
     OfflineVerifierLayoutObservation::from_verifier_report(&report)
 }
 
-fn append_slot(facade: &mut PlatformPhysicalFacade, slot_number: u16) {
+fn append_slot(facade: &mut PhysicalStoreRuntime, slot_number: u16) {
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
             slot_cell(slot_number),
@@ -198,9 +198,8 @@ fn append_slot(facade: &mut PlatformPhysicalFacade, slot_number: u16) {
         .expect("append through facade");
 }
 
-fn open_facade(open_request: PlatformPhysicalOpenRequest) -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_physical_format(readiness(), open_request)
-        .expect("open S.1 facade")
+fn open_facade(open_request: PlatformPhysicalOpenRequest) -> PhysicalStoreRuntime {
+    PhysicalStoreRuntime::open_physical_format(readiness(), open_request).expect("open S.1 facade")
 }
 
 fn readiness() -> AcceptedHandoffReadiness {

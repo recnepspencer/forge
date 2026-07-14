@@ -61,7 +61,7 @@ pub enum ForegroundReservationAdmissionDenial {
     ReservationBasisRebindRequired,
     RawLaneLabelCannotReserve,
     SemanticPriorityCannotReserve,
-    CopiedS5CountersCannotReserve,
+    CopiedIsolationCountersCannotReserve,
     CopiedSecurityScopeFieldsCannotReserve,
     TerminalProjectionCannotReserve,
 }

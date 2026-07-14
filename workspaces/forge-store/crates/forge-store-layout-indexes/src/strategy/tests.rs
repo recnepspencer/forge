@@ -286,7 +286,7 @@ fn strategy_identity_preserves_family_and_lane_posture() {
         StoreCustodyPosture::InternalStoreCustody,
     );
 
-    let page = layout_admission_registry()
+    let page_snapshot = layout_admission_registry()
         .admit(LayoutAdmissionRequest::from_admitted(
             page_lifecycle,
             page_domain,
@@ -294,9 +294,9 @@ fn strategy_identity_preserves_family_and_lane_posture() {
             LayoutRequestedCapability::point_lookup(),
             ArtifactFamilyAccessLane::HotPath,
         ))
-        .unwrap()
-        .admitted_strategy();
-    let segment = layout_admission_registry()
+        .unwrap();
+    let page = page_snapshot.admitted_strategy();
+    let segment_snapshot = layout_admission_registry()
         .admit(LayoutAdmissionRequest::from_admitted(
             segment_lifecycle,
             segment_domain,
@@ -304,8 +304,8 @@ fn strategy_identity_preserves_family_and_lane_posture() {
             LayoutRequestedCapability::point_lookup(),
             ArtifactFamilyAccessLane::HotPath,
         ))
-        .unwrap()
-        .admitted_strategy();
+        .unwrap();
+    let segment = segment_snapshot.admitted_strategy();
 
     assert_ne!(page.key_domain(), segment.key_domain());
     assert_eq!(page.family(), segment.family());

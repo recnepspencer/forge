@@ -38,40 +38,34 @@ pub(super) fn ready_owner_degraded_scan() -> crate::DegradedScanReady {
     ready
 }
 
-pub(super) fn readmitted_owner_degraded_scan() -> crate::DegradedScanReady {
-    let (selected, catalog) = selected_owner_degraded_scan();
+pub(super) fn rebound_owner_degraded_scan() -> crate::DegradedScanReady {
+    let (selected, _) = selected_owner_degraded_scan();
     let expected_identity = selected.request_identity();
+    let stale_plan = selected.fingerprint().clone();
     let runtime = crate::degraded_scan_runtime();
+    let advanced = crate::bootstrap::test_support::advanced_bootstrap_catalog_read_admission();
     let stale = runtime
         .admit_ready(
             runtime.lower(selected),
-            crate::CurrentMaterializationFrontier::from_catalog(
-                &crate::bootstrap::test_support::advanced_bootstrap_catalog_read_admission(),
-            ),
+            crate::CurrentMaterializationFrontier::from_catalog(&advanced),
         )
         .into_stale()
         .expect("an advanced physical frontier must issue stale degraded evidence");
-    assert_eq!(
-        stale.stale_materialization().materialization(),
-        stale.selected().materialization().unwrap()
-    );
-    let current = stale
-        .selected()
-        .materialization()
-        .unwrap()
-        .clone()
-        .require_current_at(crate::CurrentMaterializationFrontier::from_catalog(
-            &catalog,
-        ))
-        .unwrap();
+    let (family, key_domain) = admit_page_scope();
+    let replacement = selected_degraded_scan(family, key_domain, &advanced);
+    let replacement_plan = replacement.fingerprint().clone();
     let admission = runtime
-        .admit_stale_readmission(&stale, current.clone())
-        .expect("matching current materialization must admit stale degraded execution");
+        .admit_rebind(&stale, &replacement)
+        .expect("replacement selected at the observed frontier must admit rebind");
     let ready = runtime
-        .readmit_stale(stale, admission)
-        .expect("owner-issued readmission must produce degraded readiness");
+        .rebind(stale, replacement, admission)
+        .expect("owner-issued rebind must produce degraded readiness");
     assert_eq!(ready.selected().request_identity(), expected_identity);
-    assert_eq!(ready.current_materialization(), &current);
+    let trace = ready
+        .rebind_trace()
+        .expect("rebound readiness retains lineage");
+    assert_eq!(trace.stale_plan(), &stale_plan);
+    assert_eq!(trace.replacement_plan(), &replacement_plan);
     ready
 }
 
@@ -106,63 +100,25 @@ pub(super) fn observed_degraded_readiness_cases() -> [crate::DegradedScanReadine
     [current.case_id(), stale.case_id()]
 }
 
-pub(super) fn observed_btree_lookup_readiness_cases() -> [crate::BTreeLookupReadinessCaseId; 2] {
-    let (current_selected, catalog) = selected_owner_btree_lookup();
-    let current = crate::access_lowering().admit_btree_lookup_ready(
-        crate::access_lowering().lower_btree_lookup(current_selected),
-        crate::CurrentMaterializationFrontier::from_catalog(&catalog),
-    );
-
-    let (stale_selected, _) = selected_owner_btree_lookup();
-    let stale = crate::access_lowering().admit_btree_lookup_ready(
-        crate::access_lowering().lower_btree_lookup(stale_selected),
-        crate::CurrentMaterializationFrontier::from_catalog(
-            &crate::bootstrap::test_support::advanced_bootstrap_catalog_read_admission(),
-        ),
-    );
-    [current.case_id(), stale.case_id()]
-}
-
-fn selected_owner_btree_lookup() -> (
-    crate::SelectedBTreeLookup,
-    crate::BootstrapCatalogReadAdmission,
-) {
-    let (family, key_domain) = admit_page_scope();
-    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
-    let selected = deterministic_plan_selection()
-        .select_admitted_with_budget(
-            crate::planning::AccessPlanSelector
-                .admit_read_request(
-                    family,
-                    crate::keyspace::admit_page_key(
-                        key_domain,
-                        forge_store_physical_format::PhysicalSegmentId::from_raw(1).unwrap(),
-                        forge_store_physical_format::PhysicalPageId::from_raw(1).unwrap(),
-                    )
-                    .expect("page identity must pass ordinary key admission"),
-                    access_planning()
-                        .admit_current_catalog_root_materialization(family, &catalog)
-                        .unwrap(),
-                    access_planning().range_access(),
-                )
-                .expect("test request must pass ordinary admission"),
-            PreExecutionBudgetEnvelope::foreground_default(),
-        )
-        .into_btree_lookup()
-        .expect("exact page range must select the B-tree lookup owner");
-    (selected, catalog)
-}
-
-fn selected_owner_degraded_scan() -> (
+pub(super) fn selected_owner_degraded_scan() -> (
     crate::SelectedDegradedExactScan,
     crate::BootstrapCatalogReadAdmission,
 ) {
     let (lifecycle, key_domain) = admit_page_scope();
+    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
+    let selected = selected_degraded_scan(lifecycle, key_domain, &catalog);
+    (selected, catalog)
+}
+
+pub(super) fn selected_degraded_scan(
+    lifecycle: crate::AdmittedPhysicalArtifactFamily,
+    key_domain: crate::AdmittedPhysicalKeyDomain,
+    catalog: &crate::BootstrapCatalogReadAdmission,
+) -> crate::SelectedDegradedExactScan {
     let request = crate::access_shapes()
         .explicit_degraded_exact_scan(DegradedExactScanRequest::new().with_budget_rows(8))
         .unwrap();
-    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
-    let selected = deterministic_plan_selection()
+    deterministic_plan_selection()
         .select_admitted_with_budget(
             crate::planning::AccessPlanSelector
                 .admit_read_request(
@@ -175,7 +131,7 @@ fn selected_owner_degraded_scan() -> (
                     .expect("page identity must pass ordinary key admission"),
                     {
                         access_planning()
-                            .admit_current_catalog_root_materialization(lifecycle, &catalog)
+                            .admit_current_catalog_root_materialization(lifecycle, catalog)
                             .expect("physical catalog must admit exact root materialization")
                     },
                     request,
@@ -184,6 +140,5 @@ fn selected_owner_degraded_scan() -> (
             PreExecutionBudgetEnvelope::terminal_default(),
         )
         .into_degraded()
-        .expect("explicit degraded selection must issue the degraded owner capability");
-    (selected, catalog)
+        .expect("explicit degraded selection must issue the degraded owner capability")
 }

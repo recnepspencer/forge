@@ -16,8 +16,8 @@ pub use crate::evidence::cross_cutting::page_record_framing_evidence::{
     PhysicalPageRecordFramingEvidenceRow,
 };
 pub use crate::evidence::cross_cutting::platform_facade_evidence::{
-    PlatformPhysicalFacadeEvidenceDenial, PlatformPhysicalFacadeEvidenceReport,
-    PlatformPhysicalFacadeEvidenceRow,
+    PhysicalStoreRuntimeEvidenceDenial, PhysicalStoreRuntimeEvidenceReport,
+    PhysicalStoreRuntimeEvidenceRow,
 };
 pub use crate::evidence::physical_integrity::manifest_discovery_evidence::{
     PhysicalManifestDiscoveryEvidenceDenial, PhysicalManifestDiscoveryEvidenceReport,

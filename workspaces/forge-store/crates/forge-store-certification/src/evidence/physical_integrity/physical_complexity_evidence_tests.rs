@@ -10,7 +10,7 @@ use forge_store_physical_format::{
     PhysicalForegroundBoundednessOutcome, PhysicalFreeSpaceSearchPolicy,
     PhysicalHeaderDecodeCounterSnapshot, PhysicalLocalityClass,
     PhysicalOperationComplexityContract, PhysicalOperationCounterSnapshot, PhysicalOperationKind,
-    PhysicalReferenceValidationCounterSnapshot, PlatformPhysicalFacadeCounterSnapshot,
+    PhysicalReferenceValidationCounterSnapshot, PhysicalStoreRuntimeCounterSnapshot,
 };
 
 #[test]
@@ -279,7 +279,7 @@ fn counters_for_operation(operation: PhysicalOperationKind) -> PhysicalOperation
         }
         PhysicalOperationKind::RootManifestOpen => {
             PhysicalOperationCounterSnapshot::from_root_open(
-                PlatformPhysicalFacadeCounterSnapshot::empty().with_open(),
+                PhysicalStoreRuntimeCounterSnapshot::empty().with_open(),
             )
         }
         PhysicalOperationKind::AppendRecordPlacement => {

@@ -17,6 +17,29 @@ pub struct AccessPathCounterSnapshot {
     write_fanout: u16,
     read_amplification: u16,
     write_amplification: u16,
+    allocation_events: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlannedCounterObservation {
+    Exact,
+    WithinEnvelope,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CounterEnvelopeViolation {
+    planned: AccessPathCounterSnapshot,
+    observed: AccessPathCounterSnapshot,
+}
+
+impl CounterEnvelopeViolation {
+    pub const fn planned(&self) -> AccessPathCounterSnapshot {
+        self.planned
+    }
+
+    pub const fn observed(&self) -> AccessPathCounterSnapshot {
+        self.observed
+    }
 }
 
 impl AccessPathCounterSnapshot {
@@ -58,7 +81,18 @@ impl AccessPathCounterSnapshot {
             write_fanout,
             read_amplification,
             write_amplification,
+            allocation_events: 0,
         }
+    }
+
+    pub(crate) const fn with_allocation_events(mut self, allocation_events: u64) -> Self {
+        self.allocation_events = allocation_events;
+        self
+    }
+
+    pub(crate) const fn with_selected_plan_authority_allocation(mut self) -> Self {
+        self.allocation_events += 1;
+        self
     }
 
     pub const fn point_lookups(self) -> u16 {
@@ -127,5 +161,87 @@ impl AccessPathCounterSnapshot {
 
     pub const fn write_amplification(self) -> u16 {
         self.write_amplification
+    }
+
+    pub const fn allocation_events(self) -> u64 {
+        self.allocation_events
+    }
+
+    pub(crate) const fn validate_observation(
+        self,
+        observed: Self,
+    ) -> Result<PlannedCounterObservation, CounterEnvelopeViolation> {
+        if self.equals(observed) {
+            Ok(PlannedCounterObservation::Exact)
+        } else if observed.fits_within(self) {
+            Ok(PlannedCounterObservation::WithinEnvelope)
+        } else {
+            Err(CounterEnvelopeViolation {
+                planned: self,
+                observed,
+            })
+        }
+    }
+
+    const fn equals(self, other: Self) -> bool {
+        self.point_lookups == other.point_lookups
+            && self.range_lookups == other.range_lookups
+            && self.wal_replays == other.wal_replays
+            && self.publications == other.publications
+            && self.maintenance_reads == other.maintenance_reads
+            && self.page_touches == other.page_touches
+            && self.index_probes == other.index_probes
+            && self.key_comparisons == other.key_comparisons
+            && self.range_steps == other.range_steps
+            && self.prefix_steps == other.prefix_steps
+            && self.chunk_tree_node_reads == other.chunk_tree_node_reads
+            && self.manifest_reads == other.manifest_reads
+            && self.bytes_read == other.bytes_read
+            && self.bytes_written == other.bytes_written
+            && self.write_fanout == other.write_fanout
+            && self.read_amplification == other.read_amplification
+            && self.write_amplification == other.write_amplification
+            && self.allocation_events == other.allocation_events
+    }
+
+    const fn fits_within(self, envelope: Self) -> bool {
+        self.point_lookups <= envelope.point_lookups
+            && self.range_lookups <= envelope.range_lookups
+            && self.wal_replays <= envelope.wal_replays
+            && self.publications <= envelope.publications
+            && self.maintenance_reads <= envelope.maintenance_reads
+            && self.page_touches <= envelope.page_touches
+            && self.index_probes <= envelope.index_probes
+            && self.key_comparisons <= envelope.key_comparisons
+            && self.range_steps <= envelope.range_steps
+            && self.prefix_steps <= envelope.prefix_steps
+            && self.chunk_tree_node_reads <= envelope.chunk_tree_node_reads
+            && self.manifest_reads <= envelope.manifest_reads
+            && self.bytes_read <= envelope.bytes_read
+            && self.bytes_written <= envelope.bytes_written
+            && self.write_fanout <= envelope.write_fanout
+            && self.read_amplification <= envelope.read_amplification
+            && self.write_amplification <= envelope.write_amplification
+            && self.allocation_events <= envelope.allocation_events
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn allocation_overrun_is_a_typed_violation_not_an_observation_state() {
+        let planned =
+            AccessPathCounterSnapshot::exact(1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 4_096, 0, 0, 1, 0)
+                .with_allocation_events(2);
+        let observed = planned.with_allocation_events(3);
+
+        let violation = planned
+            .validate_observation(observed)
+            .expect_err("allocation overrun must deny successful counter observation");
+
+        assert_eq!(violation.planned().allocation_events(), 2);
+        assert_eq!(violation.observed().allocation_events(), 3);
     }
 }

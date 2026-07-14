@@ -2,7 +2,7 @@ use forge_store_wal::{
     AdmittedCheckpointPublicationReceipt, BlobWalRecordIdentity, BlobWalRecordKind,
 };
 
-use crate::LsmCompactionMembership;
+use crate::{LsmCompactionMembership, LsmMembershipRecord};
 use forge_store_recovery_physics::{
     PartialPublicationClassification, UnacknowledgedPublicationOutcome,
 };
@@ -69,9 +69,9 @@ impl AdmittedLsmReplaySource {
         partial: Option<&PartialPublicationClassification>,
     ) -> Result<Self, LsmReplaySourceDenial> {
         validate_membership(&membership)?;
-        let records = membership.records();
-        let first_wal_lsn = records[0].durable_scope().lsn_start();
-        let last_wal_lsn = records[2].durable_scope().lsn_end();
+        let records = membership.record_set();
+        let first_wal_lsn = records.value().durable_scope().lsn_start();
+        let last_wal_lsn = records.tombstone().durable_scope().lsn_end();
         let checkpoint = classify_partial_publication(partial)?
             .then_some(checkpoint)
             .flatten();
@@ -196,36 +196,29 @@ fn classify_partial_publication(
 }
 
 fn validate_membership(membership: &LsmCompactionMembership) -> Result<(), LsmReplaySourceDenial> {
-    let records = membership.records();
-    let expected = [
-        BlobWalRecordKind::LsmValue,
-        BlobWalRecordKind::GenerationPublication,
-        BlobWalRecordKind::LsmTombstone,
-    ];
-    if records
-        .iter()
-        .zip(expected)
-        .any(|(record, expected)| record.kind() != expected)
-    {
-        return Err(LsmReplaySourceDenial::MembershipRecordKindMismatch);
-    }
-    if !records
-        .windows(2)
-        .all(|pair| pair[0].identity().sequence() < pair[1].identity().sequence())
+    let records = membership.record_set();
+    let value = records.value();
+    let generation = records.generation();
+    let tombstone = records.tombstone();
+    if value.identity().sequence() >= generation.identity().sequence()
+        || generation.identity().sequence() >= tombstone.identity().sequence()
     {
         return Err(LsmReplaySourceDenial::MembershipSequenceNotStrictlyIncreasing);
     }
-    if records.windows(2).any(|pair| {
-        pair[0].durable_scope().segment_id() != pair[1].durable_scope().segment_id()
-            || pair[0].durable_scope().generation() != pair[1].durable_scope().generation()
-    }) {
+    if !same_wal_generation(value, generation) || !same_wal_generation(generation, tombstone) {
         return Err(LsmReplaySourceDenial::MembershipWalGenerationMismatch);
     }
-    if records
-        .windows(2)
-        .any(|pair| pair[0].durable_scope().lsn_end() > pair[1].durable_scope().lsn_start())
-    {
+    if wal_ranges_overlap(value, generation) || wal_ranges_overlap(generation, tombstone) {
         return Err(LsmReplaySourceDenial::MembershipWalRangeOverlap);
     }
     Ok(())
+}
+
+fn same_wal_generation(left: &LsmMembershipRecord, right: &LsmMembershipRecord) -> bool {
+    left.durable_scope().segment_id() == right.durable_scope().segment_id()
+        && left.durable_scope().generation() == right.durable_scope().generation()
+}
+
+fn wal_ranges_overlap(left: &LsmMembershipRecord, right: &LsmMembershipRecord) -> bool {
+    left.durable_scope().lsn_end() > right.durable_scope().lsn_start()
 }

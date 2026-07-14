@@ -6,12 +6,21 @@ use forge_store_layout_indexes::{
 };
 use forge_store_physical_format::{
     physical_bootstrap_catalog, PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority,
-    PhysicalPageId, PhysicalRecordSlot, PhysicalSegmentId, PlatformPhysicalAppendRequest,
-    PlatformPhysicalFacade, PlatformPhysicalOpenRequest,
+    PhysicalPageId, PhysicalRecordSlot, PhysicalSegmentId, PhysicalStoreRuntime,
+    PlatformPhysicalAppendRequest, PlatformPhysicalOpenRequest,
 };
 
 pub fn admitted_layout_bootstrap_catalog() -> BootstrapCatalogReadAdmission {
-    let published = published_layout();
+    admitted_catalog_from_publication(published_layout(false))
+}
+
+pub fn advanced_admitted_layout_bootstrap_catalog() -> BootstrapCatalogReadAdmission {
+    admitted_catalog_from_publication(published_layout(true))
+}
+
+fn admitted_catalog_from_publication(
+    published: forge_store_physical_format::PlatformPhysicalRootPublicationReport,
+) -> BootstrapCatalogReadAdmission {
     let open = published.admit_bootstrap_open_witness().unwrap();
     let discovered = physical_bootstrap_catalog()
         .discover_catalog(&open)
@@ -30,7 +39,7 @@ pub fn admitted_layout_bootstrap_catalog() -> BootstrapCatalogReadAdmission {
         .1
 }
 
-pub fn open_layout_physical_facade() -> PlatformPhysicalFacade {
+pub fn open_layout_physical_facade() -> PhysicalStoreRuntime {
     open_layout_physical_facade_for_store(
         &forge_store_physical_format::PhysicalStoreIdentity::physical_format_default(),
     )
@@ -38,8 +47,8 @@ pub fn open_layout_physical_facade() -> PlatformPhysicalFacade {
 
 pub fn open_layout_physical_facade_for_store(
     store_identity: &forge_store_physical_format::PhysicalStoreIdentity,
-) -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_physical_format(
+) -> PhysicalStoreRuntime {
+    PhysicalStoreRuntime::open_physical_format(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_for_store(store_identity.clone()),
     )
@@ -57,8 +66,10 @@ pub fn foreign_layout_physical_store_identity() -> forge_store_physical_format::
     )
 }
 
-fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
-    let mut facade = PlatformPhysicalFacade::open_physical_format(
+fn published_layout(
+    advance_root: bool,
+) -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
+    let mut facade = PhysicalStoreRuntime::open_physical_format(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
     )
@@ -80,7 +91,12 @@ fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublic
             b"large",
         ))
         .unwrap();
-    facade.publish_physical_root().unwrap()
+    let published = facade.publish_physical_root().unwrap();
+    if advance_root {
+        facade.publish_physical_root().unwrap()
+    } else {
+        published
+    }
 }
 
 fn readiness() -> AcceptedHandoffReadiness {

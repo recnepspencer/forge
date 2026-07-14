@@ -91,9 +91,9 @@ pub const STORE_CANONICAL_BASIS_SOURCE_OWNERS: &[StoreCanonicalBasisSourceOwner]
         StoreCanonicalBasisLane::Handoff,
     ),
     owner(
-        StoreCanonicalBasisFamily::S3IntegrityCloseoutHandoff,
+        StoreCanonicalBasisFamily::IntegrityCloseoutHandoff,
         "forge-store-readiness",
-        "S3 integrity handoff",
+        "integrity handoff",
         HANDOFF,
         StoreCanonicalBasisLane::Handoff,
     ),

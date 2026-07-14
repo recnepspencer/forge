@@ -117,7 +117,9 @@ fn acceptance_suite_transcripts() -> Vec<HarnessCloseoutTranscriptEvidence> {
 
 fn pressure_class_for_suite(suite: S2AcceptanceSuiteKind) -> LargeStorePressureClass {
     match suite {
-        S2AcceptanceSuiteKind::S3ReadinessHandoff => LargeStorePressureClass::ProtectedPressure,
+        S2AcceptanceSuiteKind::IntegrityReadinessHandoff => {
+            LargeStorePressureClass::ProtectedPressure
+        }
         S2AcceptanceSuiteKind::BackgroundEnvelopeHonesty => {
             LargeStorePressureClass::StreamingPressure
         }

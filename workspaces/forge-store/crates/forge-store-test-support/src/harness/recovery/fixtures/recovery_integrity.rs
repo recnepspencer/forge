@@ -198,7 +198,7 @@ fn with_checked_frame(
 
 fn checksum_admission(
     seed: PhysicalIntegrityAdmissionSeed<'_>,
-) -> forge_store_physical_integrity::S3ChecksumDeclarationAdmission {
+) -> forge_store_physical_integrity::ChecksumDeclarationAdmission {
     checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness())
 }
 

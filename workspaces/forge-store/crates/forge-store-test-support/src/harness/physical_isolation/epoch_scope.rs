@@ -74,6 +74,19 @@ pub fn physical_authority_from_operation_digest_closeout(
     ))
 }
 
+pub fn physical_authority_from_operation_digest_closeout_for_store(
+    operation_digest: &str,
+    store_identity: &forge_store_physical_format::PhysicalStoreIdentity,
+) -> forge_store_physical_isolation::PhysicalReadStabilityAuthority {
+    let completion = closeout_fixture::recovery_completion_with_operation_digest(operation_digest);
+    let entry = admit_physical_isolation_entry(PhysicalIsolationEntryRequest::for_store(
+        &completion,
+        store_identity,
+    ))
+    .unwrap();
+    admit_physical_read_stability_authority(&entry).unwrap()
+}
+
 fn generation_counted_extent_reference(generation: u64) -> GenerationCountedPhysicalReference {
     let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let references = PhysicalReferenceAuthority::for_canonical_physical_format();

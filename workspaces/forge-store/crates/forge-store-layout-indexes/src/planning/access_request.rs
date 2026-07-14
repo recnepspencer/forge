@@ -17,22 +17,27 @@ pub enum PhysicalAccessRequestAdmissionDenied {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct AdmittedRequestBasis {
+struct AdmittedRequestCore {
     family: AdmittedPhysicalArtifactFamily,
     key_domain: AdmittedPhysicalKeyDomain,
     identity: AdmittedPhysicalAccessIdentity,
-    materialization: Option<AdmittedLayoutMaterialization>,
     intent: AdmittedAccessIntent,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AdmittedPhysicalReadRequest(AdmittedRequestBasis);
+struct AdmittedMaterializedRequest {
+    core: AdmittedRequestCore,
+    materialization: AdmittedLayoutMaterialization,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AdmittedPhysicalRecoveryRequest(AdmittedRequestBasis);
+pub struct AdmittedPhysicalReadRequest(AdmittedMaterializedRequest);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AdmittedPhysicalMutationRequest(AdmittedRequestBasis);
+pub struct AdmittedPhysicalRecoveryRequest(AdmittedMaterializedRequest);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AdmittedPhysicalMutationRequest(AdmittedRequestCore);
 
 impl AdmittedPhysicalReadRequest {
     pub(super) fn admit(
@@ -61,14 +66,11 @@ impl AdmittedPhysicalReadRequest {
         ) {
             return Err(PhysicalAccessRequestAdmissionDenied::RequestOperationMismatch);
         }
-        admit_basis(family, concrete_key, Some(materialization), access_shape).map(Self)
+        admit_materialized_basis(family, concrete_key, materialization, access_shape).map(Self)
     }
 
     pub const fn materialization(&self) -> &AdmittedLayoutMaterialization {
-        match &self.0.materialization {
-            Some(materialization) => materialization,
-            None => unreachable!(),
-        }
+        &self.0.materialization
     }
 }
 
@@ -88,7 +90,7 @@ impl AdmittedPhysicalRecoveryRequest {
         ) {
             return Err(PhysicalAccessRequestAdmissionDenied::RequestOperationMismatch);
         }
-        admit_basis(family, concrete_key, Some(materialization), access_shape).map(Self)
+        admit_materialized_basis(family, concrete_key, materialization, access_shape).map(Self)
     }
 }
 
@@ -104,16 +106,32 @@ impl AdmittedPhysicalMutationRequest {
         ) {
             return Err(PhysicalAccessRequestAdmissionDenied::RequestOperationMismatch);
         }
-        admit_basis(family, concrete_key, None, access_shape).map(Self)
+        admit_core(family, concrete_key, access_shape, None).map(Self)
     }
 }
 
-fn admit_basis(
+fn admit_materialized_basis(
     family: AdmittedPhysicalArtifactFamily,
     concrete_key: AdmittedConcretePhysicalKey,
-    materialization: Option<AdmittedLayoutMaterialization>,
+    materialization: AdmittedLayoutMaterialization,
     access_shape: AccessShapeContract,
-) -> Result<AdmittedRequestBasis, PhysicalAccessRequestAdmissionDenied> {
+) -> Result<AdmittedMaterializedRequest, PhysicalAccessRequestAdmissionDenied> {
+    let core = admit_core(family, concrete_key, access_shape, Some(&materialization))?;
+    if materialization.family() != family {
+        return Err(PhysicalAccessRequestAdmissionDenied::MaterializationFamilyMismatch);
+    }
+    Ok(AdmittedMaterializedRequest {
+        core,
+        materialization,
+    })
+}
+
+fn admit_core(
+    family: AdmittedPhysicalArtifactFamily,
+    concrete_key: AdmittedConcretePhysicalKey,
+    access_shape: AccessShapeContract,
+    materialization: Option<&AdmittedLayoutMaterialization>,
+) -> Result<AdmittedRequestCore, PhysicalAccessRequestAdmissionDenied> {
     let key_domain = concrete_key.domain();
     if family.family_id() != key_domain.family().family_id() {
         return Err(PhysicalAccessRequestAdmissionDenied::KeyDomainFamilyMismatch);
@@ -124,13 +142,7 @@ fn admit_basis(
     if family.authority_identity() != key_domain.family().authority_identity() {
         return Err(PhysicalAccessRequestAdmissionDenied::KeyDomainAuthorityMismatch);
     }
-    if materialization
-        .as_ref()
-        .is_some_and(|materialization| materialization.family() != family)
-    {
-        return Err(PhysicalAccessRequestAdmissionDenied::MaterializationFamilyMismatch);
-    }
-    let Some(intent) = AdmittedAccessIntent::admit(access_shape, materialization.as_ref()) else {
+    let Some(intent) = AdmittedAccessIntent::admit(access_shape, materialization) else {
         return Err(PhysicalAccessRequestAdmissionDenied::MaterializationCoverageMismatch);
     };
     if !crate::strategy::registry::family_lane_supports_operation(
@@ -139,57 +151,71 @@ fn admit_basis(
     ) {
         return Err(PhysicalAccessRequestAdmissionDenied::OperationLaneUnsupported);
     }
-    Ok(AdmittedRequestBasis {
+    Ok(AdmittedRequestCore {
         family,
         key_domain,
         identity: AdmittedPhysicalAccessIdentity::admit(concrete_key),
-        materialization,
         intent,
     })
 }
 
-pub(crate) trait AdmittedPlanningRequest: private::Sealed {
-    fn into_parts(
-        self,
-    ) -> (
-        AdmittedPhysicalArtifactFamily,
-        AdmittedPhysicalKeyDomain,
-        AdmittedPhysicalAccessIdentity,
-        Option<AdmittedLayoutMaterialization>,
-        AdmittedAccessIntent,
-    );
+pub(crate) enum AdmittedPlanningRequestParts {
+    Materialized {
+        family: AdmittedPhysicalArtifactFamily,
+        key_domain: AdmittedPhysicalKeyDomain,
+        identity: AdmittedPhysicalAccessIdentity,
+        materialization: AdmittedLayoutMaterialization,
+        intent: AdmittedAccessIntent,
+    },
+    Mutation {
+        family: AdmittedPhysicalArtifactFamily,
+        key_domain: AdmittedPhysicalKeyDomain,
+        identity: AdmittedPhysicalAccessIdentity,
+        intent: AdmittedAccessIntent,
+    },
 }
 
-macro_rules! planning_request {
+pub(crate) trait AdmittedPlanningRequest: private::Sealed {
+    fn into_parts(self) -> AdmittedPlanningRequestParts;
+}
+
+macro_rules! materialized_planning_request {
     ($request:ty) => {
         impl private::Sealed for $request {}
 
         impl AdmittedPlanningRequest for $request {
-            fn into_parts(
-                self,
-            ) -> (
-                AdmittedPhysicalArtifactFamily,
-                AdmittedPhysicalKeyDomain,
-                AdmittedPhysicalAccessIdentity,
-                Option<AdmittedLayoutMaterialization>,
-                AdmittedAccessIntent,
-            ) {
-                let basis = self.0;
-                (
-                    basis.family,
-                    basis.key_domain,
-                    basis.identity,
-                    basis.materialization,
-                    basis.intent,
-                )
+            fn into_parts(self) -> AdmittedPlanningRequestParts {
+                let AdmittedMaterializedRequest {
+                    core,
+                    materialization,
+                } = self.0;
+                AdmittedPlanningRequestParts::Materialized {
+                    family: core.family,
+                    key_domain: core.key_domain,
+                    identity: core.identity,
+                    materialization,
+                    intent: core.intent,
+                }
             }
         }
     };
 }
 
-planning_request!(AdmittedPhysicalReadRequest);
-planning_request!(AdmittedPhysicalRecoveryRequest);
-planning_request!(AdmittedPhysicalMutationRequest);
+materialized_planning_request!(AdmittedPhysicalReadRequest);
+materialized_planning_request!(AdmittedPhysicalRecoveryRequest);
+
+impl private::Sealed for AdmittedPhysicalMutationRequest {}
+
+impl AdmittedPlanningRequest for AdmittedPhysicalMutationRequest {
+    fn into_parts(self) -> AdmittedPlanningRequestParts {
+        AdmittedPlanningRequestParts::Mutation {
+            family: self.0.family,
+            key_domain: self.0.key_domain,
+            identity: self.0.identity,
+            intent: self.0.intent,
+        }
+    }
+}
 
 mod private {
     pub trait Sealed {}

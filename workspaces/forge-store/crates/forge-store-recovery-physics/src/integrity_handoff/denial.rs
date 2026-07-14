@@ -17,9 +17,9 @@ pub enum IntegrityHandoffDenialKind {
     MissingWalFrame,
     MissingCheckpointRecord,
     MissingInspectionEnvelopeEvidence,
-    MissingS3ProtectedViewCapability,
-    MissingS3InspectionLifetimeLaw,
-    MissingS3NoMaterializationWitness,
+    MissingProtectedViewCapability,
+    MissingInspectionLifetimeLaw,
+    MissingNoMaterializationWitness,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

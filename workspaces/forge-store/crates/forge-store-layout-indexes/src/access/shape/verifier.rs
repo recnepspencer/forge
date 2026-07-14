@@ -1,8 +1,8 @@
 use super::contract::{AccessShapeContract, ExpectedCounterClass};
 use super::denial::AccessShapeUnsupportedDenial;
 use super::detail::{AccessShapeDetail, MaintenanceReadBasis};
+use super::kind::AccessShape;
 use super::lane::AccessLaneClassification;
-use super::shape::AccessShape;
 
 #[cfg(test)]
 pub(crate) fn verifier_read(
@@ -16,7 +16,7 @@ pub(crate) fn verifier_read(
     }
 
     Ok(AccessShapeContract::exact_read_declaration(
-        AccessShapeDetail::VerifierRead(MaintenanceReadBasis::VerifierTraversal),
+        AccessShapeDetail::VerifierRead(MaintenanceReadBasis::Verifier),
         lane,
         ExpectedCounterClass::VerifierTraversal,
     ))

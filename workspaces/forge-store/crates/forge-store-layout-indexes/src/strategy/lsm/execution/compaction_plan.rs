@@ -1,11 +1,13 @@
-use forge_store_lsm_authority::{LsmCompactionMembership, LsmMembershipKey, LsmMembershipSession};
+use forge_store_lsm_authority::{
+    select_lsm_compaction_membership, LsmCompactionMembership, LsmMembershipKey,
+    LsmMembershipSession,
+};
 use forge_store_wal::{CheckpointDurablePublicationScope, StoreCheckpointRecordIdentity};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BaselineLsmCompactionPlan {
     pub(super) membership: LsmCompactionMembership,
     membership_observation: BaselineLsmMembershipObservation,
-    pub(super) admission: super::BaselineLsmCompactionAdmission,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -37,8 +39,8 @@ impl BaselineLsmCompactionPlan {
         if key.canonical() != admission.selected().request_identity().canonical_key() {
             return Err(super::BaselineLsmExecutionAdmissionDenial::SelectedOperationKeyMismatch);
         }
-        let membership = session
-            .select_compaction(key)
+        let membership = select_lsm_compaction_membership(session, key)
+            .into_result()
             .map_err(super::map_membership_denial)?;
         let membership_observation = BaselineLsmMembershipObservation {
             partition_probes: membership.partition_probes(),
@@ -47,7 +49,6 @@ impl BaselineLsmCompactionPlan {
         Ok(Self {
             membership,
             membership_observation,
-            admission,
         })
     }
 

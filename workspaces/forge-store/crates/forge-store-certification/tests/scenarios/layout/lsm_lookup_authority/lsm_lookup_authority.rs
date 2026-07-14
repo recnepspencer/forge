@@ -6,16 +6,17 @@ use forge_store_contracts::WalRecordFamily;
 use forge_store_layout_indexes::{
     baseline_lsm_lookup_cases, layout_read_runtime, lsm_strategy,
     BaselineLsmExecutionAdmissionDenial, BaselineLsmLookupDisposition, BaselineLsmLookupView,
-    BootstrapCatalogReadAdmission, LayoutReadAdmissionDenied, WalLookupRequest,
+    BootstrapCatalogReadAdmission, LayoutReadAdmissionDenied, PlannedCounterObservation,
+    WalLookupRequest,
 };
 use forge_store_lsm_authority::{LsmMembershipDenial, LsmMembershipReplayPosture};
 use forge_store_security::admitted_store_wal_checkpoint_security_scope_for_layout_partition_test;
 use forge_store_security::admitted_tenant_wal_checkpoint_security_scope_for_layout_partition_test;
 use forge_store_test_support::{
-    admitted_layout_bootstrap_catalog, execute_baseline_lsm_persisted_fixture,
-    execute_lsm_compaction_reader_cutover_fixture, execute_lsm_replay_hostile_matrix,
-    execute_repeated_lsm_membership_fixture, lsm_membership_replacement_crash_fixture,
-    substituted_lsm_base_is_rejected_before_compaction,
+    admitted_layout_bootstrap_catalog, advanced_admitted_layout_bootstrap_catalog,
+    execute_baseline_lsm_persisted_fixture, execute_lsm_compaction_reader_cutover_fixture,
+    execute_lsm_replay_hostile_matrix, execute_repeated_lsm_membership_fixture,
+    lsm_membership_replacement_crash_fixture, substituted_lsm_base_is_rejected_before_compaction,
 };
 use forge_store_wal::{AdmittedWalAppendReceipt, AdmittedWalArtifactStore, StoreWalRecordIdentity};
 
@@ -24,6 +25,34 @@ fn reopen(
 ) -> Result<forge_store_lsm_authority::LsmMembershipSession, BaselineLsmExecutionAdmissionDenial> {
     let security = admitted_store_wal_checkpoint_security_scope_for_layout_partition_test();
     lsm_strategy().open_index(anchor, security.witnesses())
+}
+
+#[test]
+fn ordinary_runtime_rejects_lsm_membership_displaced_before_execution() {
+    let catalog = admitted_layout_bootstrap_catalog();
+    let advanced = advanced_admitted_layout_bootstrap_catalog();
+    let security = admitted_store_wal_checkpoint_security_scope_for_layout_partition_test();
+    let source = execute_baseline_lsm_persisted_fixture().admit_lookup_source();
+
+    let denial = layout_read_runtime()
+        .execute_wal_lookup(
+            WalLookupRequest::new(
+                &catalog,
+                security.witnesses(),
+                WalRecordFamily::DurableMutationIntent,
+                StoreWalRecordIdentity::new(43),
+                43,
+                PreExecutionBudgetEnvelope::foreground_default(),
+                source,
+            )
+            .against_current_catalog(&advanced),
+        )
+        .expect_err("an advanced catalog must stale the admitted LSM membership");
+
+    assert!(matches!(
+        denial,
+        LayoutReadAdmissionDenied::StaleMaterialization(_)
+    ));
 }
 
 #[test]
@@ -50,8 +79,12 @@ fn ordinary_runtime_selects_and_executes_persisted_lsm_membership() {
     assert_eq!(absence.probe_sequence(), 41);
     assert!(absence.tombstone_blocks_older());
     assert_eq!(
-        absence.current_materialization(),
-        blocked.current_materialization(),
+        blocked
+            .plan_binding()
+            .materialization()
+            .expect("executed LSM plan retains materialization")
+            .source(),
+        blocked.current_materialization().materialization().source(),
     );
     assert!(matches!(newest.view(), BaselineLsmLookupView::Memtable(_)));
     assert!(matches!(older.view(), BaselineLsmLookupView::SortedRun(_)));
@@ -63,13 +96,32 @@ fn ordinary_runtime_selects_and_executes_persisted_lsm_membership() {
         .map(|case| case.name())
         .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(declared, observed);
-    for counters in [newest.counters(), older.counters(), blocked.counters()] {
+    for (counters, comparisons) in [
+        (newest.counters(), 1),
+        (older.counters(), 2),
+        (blocked.counters(), 3),
+    ] {
         assert_eq!(counters.point_lookups(), 1);
-        assert_eq!(counters.range_lookups(), 1);
+        assert_eq!(counters.range_lookups(), 0);
         assert_eq!(counters.wal_replays(), 0);
         assert_eq!(counters.publications(), 0);
         assert_eq!(counters.maintenance_reads(), 0);
+        assert_eq!(counters.index_probes(), comparisons);
+        assert_eq!(counters.key_comparisons(), comparisons);
     }
+    assert_eq!(
+        newest.counter_receipt().observation(),
+        PlannedCounterObservation::WithinEnvelope
+    );
+    assert_eq!(newest.counter_receipt().observed().allocation_events(), 1);
+    assert_eq!(
+        older.counter_receipt().observation(),
+        PlannedCounterObservation::WithinEnvelope
+    );
+    assert_eq!(
+        blocked.counter_receipt().observation(),
+        PlannedCounterObservation::Exact
+    );
     assert_eq!(
         newest
             .current_materialization()
@@ -135,9 +187,14 @@ fn missing_activation_cannot_retire_durable_membership() {
 
     let reopened = reopen(fixture.anchor()).unwrap();
 
-    assert!(reopened.select_compaction(fixture.key()).is_ok());
+    assert!(
+        forge_store_lsm_authority::select_lsm_compaction_membership(&reopened, fixture.key())
+            .into_result()
+            .is_ok()
+    );
     assert_eq!(
-        reopened.published_replacement(fixture.key()),
+        forge_store_lsm_authority::lookup_published_lsm_membership(&reopened, fixture.key())
+            .into_result(),
         Err(LsmMembershipDenial::MembershipIncomplete)
     );
     std::fs::rename(hidden, fixture.activation_path()).unwrap();
@@ -158,9 +215,18 @@ fn every_torn_activation_prefix_fails_closed_or_leaves_old_membership_active() {
         .unwrap();
         match reopen(fixture.anchor()) {
             Ok(reopened) => {
-                assert!(reopened.select_compaction(fixture.key()).is_ok());
+                assert!(forge_store_lsm_authority::select_lsm_compaction_membership(
+                    &reopened,
+                    fixture.key()
+                )
+                .into_result()
+                .is_ok());
                 assert_eq!(
-                    reopened.published_replacement(fixture.key()),
+                    forge_store_lsm_authority::lookup_published_lsm_membership(
+                        &reopened,
+                        fixture.key(),
+                    )
+                    .into_result(),
                     Err(LsmMembershipDenial::MembershipIncomplete)
                 );
             }
@@ -176,15 +242,16 @@ fn every_torn_activation_prefix_fails_closed_or_leaves_old_membership_active() {
         LsmMembershipReplayPosture::DurableArtifactsReadmitted
     );
     assert_eq!(
-        reopened
-            .published_replacement(fixture.key())
+        forge_store_lsm_authority::lookup_published_lsm_membership(&reopened, fixture.key())
+            .into_result()
             .unwrap()
             .output(),
         fixture.replacement_output()
     );
     assert_eq!(
-        reopened.select_compaction(fixture.key()),
-        Err(LsmMembershipDenial::MembershipIncomplete)
+        forge_store_lsm_authority::select_lsm_compaction_membership(&reopened, fixture.key())
+            .into_result(),
+        Err(LsmMembershipDenial::ValueRecordRequired)
     );
 }
 
@@ -275,6 +342,7 @@ fn repeated_compaction_selects_and_replays_the_published_base_frontier() {
     assert_eq!(fixture.selected_base(), fixture.first_output());
     assert_ne!(fixture.second_output(), fixture.first_output());
     assert_eq!(fixture.reopened_output(), fixture.second_output());
+    assert_eq!(fixture.reopened_identity(), fixture.published_identity());
 }
 
 #[test]
@@ -302,7 +370,7 @@ fn malformed_replay_membership_is_rejected_by_its_owning_boundary() {
         .all(|denial| *denial == LsmMembershipDenial::UnsupportedRecordKind));
     assert_eq!(
         matrix.retired_membership_denial(),
-        LsmMembershipDenial::MembershipIncomplete
+        LsmMembershipDenial::ValueRecordRequired
     );
 }
 

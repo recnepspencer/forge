@@ -1,13 +1,13 @@
 use super::counters::BaselineBTreeExactCounterValues;
 use super::{
-    decode_leaf_record, decode_root_record, BaselineBTreeExactCounterWitness,
-    BaselineBTreeExecutionDenial, BaselineBTreeLookupAdmission, BaselineBTreeLookupBranch,
+    decode_leaf_record, decode_root_record, verify_selected_leaf_partition,
+    BaselineBTreeExactCounterWitness, BaselineBTreeExecutionDenial, BaselineBTreeLookupBranch,
     BaselineBTreeLookupExecution, BaselineBTreeReadShape,
 };
 use forge_store_contracts::AcceptedHandoffReadiness;
 use forge_store_physical_format::{
     PersistedPhysicalLayout, PhysicalGenerationAuthority, PhysicalRecordSlot, PhysicalReference,
-    PhysicalReferenceAuthority, PlatformPhysicalFacade, PlatformPhysicalOpenRequest,
+    PhysicalReferenceAuthority, PhysicalStoreRuntime, PlatformPhysicalOpenRequest,
     PlatformPhysicalReplayArtifact, SlotGenerationCell,
 };
 use forge_store_physical_isolation::{
@@ -45,18 +45,18 @@ impl BaselineBTreeExecutionWitness {
         super::BaselineBTreeReadPreflight::from_published_layout(self)
     }
 
-    pub(crate) fn execute_separator_directed_read(
+    pub(in crate::strategy::btree::execution) fn execute_separator_directed_read(
         &self,
-        admission: &BaselineBTreeLookupAdmission,
         probe_slot: PhysicalRecordSlot,
         shape: BaselineBTreeReadShape,
     ) -> Result<super::BaselineBTreeLookupObservation, BaselineBTreeExecutionDenial> {
         let mut facade = reopen_facade(self.readiness.clone(), &self.replay_artifact)?;
-        let mut root_access = facade.page_access();
-        let root = root_access.read_record(self.root_reference)?;
-        let node = decode_root_record(root.record_view().payload().as_bytes())
-            .ok_or(BaselineBTreeExecutionDenial::InvalidRootNode)?;
-        drop(root_access);
+        let node = {
+            let mut root_access = facade.page_access();
+            let root = root_access.read_record(self.root_reference)?;
+            decode_root_record(root.record_view().payload().as_bytes())
+                .ok_or(BaselineBTreeExecutionDenial::InvalidRootNode)?
+        };
         let (branch, selected_cell) = if probe_slot.get() < node.separator_slot().get() {
             (BaselineBTreeLookupBranch::Left, node.left_child())
         } else {
@@ -70,16 +70,15 @@ impl BaselineBTreeExecutionWitness {
         let selected_leaf = leaf_access.read_record(selected_reference)?;
         let leaf = decode_leaf_record(selected_leaf.record_view().payload().as_bytes())
             .ok_or(BaselineBTreeExecutionDenial::InvalidLeafNode)?;
+        verify_selected_leaf_partition(node.separator_slot(), branch, leaf)?;
+        let counters = lookup_counters(shape);
         if !leaf.slots().contains(&probe_slot) {
             return Ok(super::BaselineBTreeLookupObservation::Absent(
-                super::BaselineBTreeLookupAbsence::issue(admission, probe_slot, selected_reference),
+                super::BaselineBTreeLookupAbsence::issue(probe_slot, selected_reference, counters),
             ));
         }
-        let counters = lookup_counters(shape);
         Ok(super::BaselineBTreeLookupObservation::Found(
             BaselineBTreeLookupExecution::new(
-                admission.plan_binding().clone(),
-                admission.request_identity(),
                 shape,
                 probe_slot,
                 node.separator_slot(),
@@ -165,7 +164,7 @@ fn lookup_counters(shape: BaselineBTreeReadShape) -> BaselineBTreeExactCounterWi
 fn reopen_facade(
     readiness: AcceptedHandoffReadiness,
     replay_artifact: &PlatformPhysicalReplayArtifact,
-) -> Result<PlatformPhysicalFacade, BaselineBTreeExecutionDenial> {
+) -> Result<PhysicalStoreRuntime, BaselineBTreeExecutionDenial> {
     let request = PlatformPhysicalOpenRequest::physical_format_for_store(
         replay_artifact.store_identity().clone(),
     );

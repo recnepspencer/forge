@@ -3,9 +3,10 @@ name = "forge-store-layout-indexes"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "Roadmap 2 S.8 artifact layout, index, and access-path discipline."
+description = "Durable artifact layout, indexing, and access-path authority."
 
 [dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }
 forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-authority = { path = "../forge-store-authority" }
 forge-store-budgets = { path = "../forge-store-budgets" }
@@ -24,7 +25,6 @@ forge-store-wal = { path = "../forge-store-wal" }
 sha2 = "0.10"
 
 [dev-dependencies]
-forge-foundational = { path = "../../../../crates/forge-foundational" }
 forge-store-aspect-native = { path = "../forge-store-aspect-native" }
 forge-store-blob-chunks = { path = "../forge-store-blob-chunks", features = ["certification-test-authority"] }
 forge-store-budgets = { path = "../forge-store-budgets" }

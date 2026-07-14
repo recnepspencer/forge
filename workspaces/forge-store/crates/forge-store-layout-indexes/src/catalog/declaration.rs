@@ -26,6 +26,8 @@ pub struct PhysicalArtifactFamilyDeclaration {
 }
 
 impl PhysicalArtifactFamilyDeclaration {
+    // Each argument is an independent declaration law, not an interchangeable scalar bag.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) const fn declare(
         family_id: DurableArtifactFamilyId,
         authority: ArtifactFamilyAuthorityClass,

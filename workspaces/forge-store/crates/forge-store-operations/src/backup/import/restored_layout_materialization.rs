@@ -4,7 +4,7 @@ use forge_store_layout_indexes::declarations::{
     AdmittedPhysicalArtifactFamily, PhysicalArtifactFamily,
 };
 use forge_store_layout_indexes::integrity::{
-    layout_corruption, LayoutCorruptionInput, OfflineReadmissionView,
+    layout_corruption, offline_readmission, OfflineReadmissionView,
 };
 use forge_store_layout_indexes::materialization::{
     AdmittedLayoutMaterialization, MaterializationDenial,
@@ -51,6 +51,17 @@ enum RestoredLayoutMaterializationCase {
 #[derive(Debug, PartialEq, Eq)]
 pub struct RestoredLayoutMaterializationOutcome {
     case: RestoredLayoutMaterializationCase,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RestoredLayoutMaterializationObservation {
+    case_id: RestoredLayoutMaterializationCaseId,
+}
+
+impl RestoredLayoutMaterializationObservation {
+    pub const fn case_id(self) -> RestoredLayoutMaterializationCaseId {
+        self.case_id
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,6 +114,12 @@ impl RestoredLayoutMaterializationOutcome {
         }
     }
 
+    pub fn owner_case_observation(&self) -> RestoredLayoutMaterializationObservation {
+        RestoredLayoutMaterializationObservation {
+            case_id: self.case_id(),
+        }
+    }
+
     pub fn into_materialized(self) -> Result<AdmittedLayoutMaterialization, Self> {
         match self.case {
             RestoredLayoutMaterializationCase::Materialized(value) => Ok(value),
@@ -116,34 +133,30 @@ pub fn admit_restored_layout_materialization(
     admitted_family: AdmittedPhysicalArtifactFamily,
     catalog: &BootstrapCatalogReadAdmission,
     reopened: &ReopenedRecoveryArtifactAdmission,
-    custody: BackupExportCustodyAdmission,
+    custody: &BackupExportCustodyAdmission,
 ) -> RestoredLayoutMaterializationOutcome {
     let requirement = layout_corruption()
-        .classify(LayoutCorruptionInput::OfflineEvidence {
-            family,
-            admission: reopened.clone(),
-        })
+        .require_offline_readmission(admitted_family, reopened)
         .into_offline_readmission_requirement()
         .expect("offline recovery evidence always classifies for offline readmission");
-    let recovery_witness =
-        forge_store_recovery_physics::admit_offline_layout_readmission(family.id(), reopened);
-    let readmission = layout_corruption().readmit_offline(requirement, recovery_witness);
+    let recovery_witness = forge_store_recovery_physics::layout_readmission()
+        .admit_offline(family.id(), reopened)
+        .expect("reopened recovery admission issues offline readmission");
+    let readmission = offline_readmission().admit(requirement, recovery_witness);
     let readmission = match readmission.view() {
         OfflineReadmissionView::Readmitted(witness) => *witness,
         OfflineReadmissionView::Denied(_) => {
             unreachable!("owner-derived recovery witness must satisfy its own requirement")
         }
     };
-    let Some(custody) = custody.into_readmitted_security_scope() else {
+    let Some(custody) = custody.readmitted_security_scope() else {
         return RestoredLayoutMaterializationOutcome::custody_readmission_required();
     };
 
-    match access_planning().admit_restored_artifact_materialization(
-        admitted_family,
-        catalog,
-        readmission,
-        custody,
-    ) {
+    match access_planning()
+        .admit_restored_artifact_materialization(admitted_family, catalog, readmission, custody)
+        .into_result()
+    {
         Ok(materialization) => RestoredLayoutMaterializationOutcome::materialized(materialization),
         Err(denial) => RestoredLayoutMaterializationOutcome::materialization_denied(denial),
     }

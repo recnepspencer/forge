@@ -2,9 +2,9 @@ mod execution;
 mod inputs;
 
 pub use execution::{
-    execute_security_scope_harness_replay_with_physical_replay,
-    execute_security_scope_harness_scenario, SecurityScopeHarnessExecution,
-    SecurityScopeHarnessReplayExecution,
+    admit_security_scope_fixture, execute_security_scope_harness_replay_with_physical_replay,
+    execute_security_scope_harness_scenario, SecurityScopeFixtureAuthority,
+    SecurityScopeHarnessExecution, SecurityScopeHarnessReplayExecution,
 };
 pub use inputs::{
     security_scope_drift_scenario, security_scope_metadata_preservation_scenarios,

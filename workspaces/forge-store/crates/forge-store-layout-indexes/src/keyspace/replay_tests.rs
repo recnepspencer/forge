@@ -96,7 +96,7 @@ fn scope_partitioning_denies_cross_scope_key_reuse_on_the_public_lane() {
             StoreCustodyPosture::InternalStoreCustody,
         ),
     );
-    let page_domain = layout_declarations()
+    let page_domain = key_domain_law()
         .declare_physical_key_domain(page_scope)
         .unwrap();
     let page_partition = layout_declarations().declare_tenant_scoped_key_domain(page_domain);
@@ -135,7 +135,7 @@ fn scope_partitioning_denies_cross_scope_key_reuse_on_the_public_lane() {
             StoreCustodyPosture::InternalStoreCustody,
         ),
     );
-    let blob_domain = layout_declarations()
+    let blob_domain = key_domain_law()
         .declare_physical_key_domain(blob_scope)
         .unwrap();
     let blob_partition = layout_declarations().declare_tenant_scoped_key_domain(blob_domain);
@@ -149,3 +149,4 @@ fn scope_partitioning_denies_cross_scope_key_reuse_on_the_public_lane() {
     assert!(page_end.as_bytes() > page_start.as_bytes());
     assert_eq!(page_bytes.as_bytes()[..3], [0x20, 0x02, 0x04]);
 }
+use super::key_domain_law;

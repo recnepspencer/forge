@@ -1,4 +1,4 @@
-use super::access_request::AdmittedPlanningRequest;
+use super::access_request::{AdmittedPlanningRequest, AdmittedPlanningRequestParts};
 use super::decision::decide_access_plan;
 use super::selection_issuance::issue_selection_outcome;
 use super::selection_outcome::AccessPlanSelectionOutcome;
@@ -17,7 +17,7 @@ use forge_store_budgets::PreExecutionBudgetEnvelope;
 pub struct AccessPlanSelector;
 
 impl AccessPlanSelector {
-    pub(crate) fn admit_read_request(
+    pub fn admit_read_request(
         &self,
         family: AdmittedPhysicalArtifactFamily,
         concrete_key: AdmittedConcretePhysicalKey,
@@ -27,7 +27,7 @@ impl AccessPlanSelector {
         AdmittedPhysicalReadRequest::admit(family, concrete_key, materialization, access_shape)
     }
 
-    pub(crate) fn admit_recovery_request(
+    pub fn admit_recovery_request(
         &self,
         family: AdmittedPhysicalArtifactFamily,
         concrete_key: AdmittedConcretePhysicalKey,
@@ -37,13 +37,37 @@ impl AccessPlanSelector {
         AdmittedPhysicalRecoveryRequest::admit(family, concrete_key, materialization, access_shape)
     }
 
-    pub(crate) fn admit_mutation_request(
+    pub fn admit_mutation_request(
         &self,
         family: AdmittedPhysicalArtifactFamily,
         concrete_key: AdmittedConcretePhysicalKey,
         access_shape: AccessShapeContract,
     ) -> Result<AdmittedPhysicalMutationRequest, PhysicalAccessRequestAdmissionDenied> {
         AdmittedPhysicalMutationRequest::admit(family, concrete_key, access_shape)
+    }
+
+    pub fn select_read_with_budget(
+        &self,
+        request: AdmittedPhysicalReadRequest,
+        admitted_budget: PreExecutionBudgetEnvelope,
+    ) -> AccessPlanSelectionOutcome {
+        self.select_admitted_with_budget(request, admitted_budget)
+    }
+
+    pub fn select_recovery_with_budget(
+        &self,
+        request: AdmittedPhysicalRecoveryRequest,
+        admitted_budget: PreExecutionBudgetEnvelope,
+    ) -> AccessPlanSelectionOutcome {
+        self.select_admitted_with_budget(request, admitted_budget)
+    }
+
+    pub fn select_mutation_with_budget(
+        &self,
+        request: AdmittedPhysicalMutationRequest,
+        admitted_budget: PreExecutionBudgetEnvelope,
+    ) -> AccessPlanSelectionOutcome {
+        self.select_admitted_with_budget(request, admitted_budget)
     }
 
     pub(crate) fn select_admitted_with_budget<Request>(
@@ -54,7 +78,22 @@ impl AccessPlanSelector {
     where
         Request: AdmittedPlanningRequest,
     {
-        let (family, key_domain, request_identity, materialization, intent) = request.into_parts();
+        let (family, key_domain, request_identity, materialization, intent) =
+            match request.into_parts() {
+                AdmittedPlanningRequestParts::Materialized {
+                    family,
+                    key_domain,
+                    identity,
+                    materialization,
+                    intent,
+                } => (family, key_domain, identity, Some(materialization), intent),
+                AdmittedPlanningRequestParts::Mutation {
+                    family,
+                    key_domain,
+                    identity,
+                    intent,
+                } => (family, key_domain, identity, None, intent),
+            };
         issue_selection_outcome(decide_access_plan(
             family,
             key_domain,

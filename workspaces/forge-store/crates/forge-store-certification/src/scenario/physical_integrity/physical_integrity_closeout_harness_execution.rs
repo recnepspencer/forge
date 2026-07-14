@@ -1,85 +1,83 @@
 use crate::{
+    ExecutedCorruptionLocalizationEvidence, ExecutedIntegrityBoundaryDenialEvidence,
+    IntegrityCompositionEvidence, IntegrityRecoveryHandoffCloseoutEvidence,
     PhysicalIntegrityCloseoutDenial, PhysicalScenarioPlan, PhysicalStoryTranscript,
-    S3ExecutedBoundaryDenialEvidence, S3ExecutedCorruptionLocalizationEvidence,
-    S3LineCapCompositionEvidence, S3S4HandoffCloseoutEvidence,
     SyntheticCloseoutShortcutRejectionReport,
 };
-use crate::{S3AcceptanceSuiteKind, S3CloseoutEvidenceFamily};
+use crate::{IntegrityCloseoutEvidenceFamily, PhysicalIntegrityAcceptanceSuite};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S3CloseoutExecutedOutputKind {
+pub enum IntegrityCloseoutExecutedOutputKind {
     CorruptionLocalization,
     BoundaryDenial,
     HarnessTranscript,
     SyntheticShortcutRejection,
-    S4IntegrityHandoff,
+    RecoveryIntegrityHandoff,
     LineCapComposition,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S3CloseoutHarnessExecutionEvidence {
-    acceptance_suite: S3AcceptanceSuiteKind,
-    output_kind: S3CloseoutExecutedOutputKind,
+pub struct IntegrityHarnessExecutionEvidence {
+    acceptance_suite: PhysicalIntegrityAcceptanceSuite,
+    output_kind: IntegrityCloseoutExecutedOutputKind,
     output_count: u32,
 }
 
-impl S3CloseoutHarnessExecutionEvidence {
-    pub(crate) fn corruption_localization(
-        rows: &[S3ExecutedCorruptionLocalizationEvidence],
-    ) -> Self {
+impl IntegrityHarnessExecutionEvidence {
+    pub(crate) fn corruption_localization(rows: &[ExecutedCorruptionLocalizationEvidence]) -> Self {
         Self::new(
-            S3AcceptanceSuiteKind::CorruptionLocalization,
-            S3CloseoutExecutedOutputKind::CorruptionLocalization,
+            PhysicalIntegrityAcceptanceSuite::CorruptionLocalization,
+            IntegrityCloseoutExecutedOutputKind::CorruptionLocalization,
             rows.len(),
         )
     }
 
-    pub(crate) fn boundary_denial(rows: &[S3ExecutedBoundaryDenialEvidence]) -> Self {
+    pub(crate) fn boundary_denial(rows: &[ExecutedIntegrityBoundaryDenialEvidence]) -> Self {
         Self::new(
-            S3AcceptanceSuiteKind::BoundaryDenial,
-            S3CloseoutExecutedOutputKind::BoundaryDenial,
+            PhysicalIntegrityAcceptanceSuite::BoundaryDenial,
+            IntegrityCloseoutExecutedOutputKind::BoundaryDenial,
             rows.len(),
         )
     }
 
     pub(crate) const fn harness_transcript(output_count: usize) -> Self {
         Self::new(
-            S3AcceptanceSuiteKind::HarnessTranscript,
-            S3CloseoutExecutedOutputKind::HarnessTranscript,
+            PhysicalIntegrityAcceptanceSuite::HarnessTranscript,
+            IntegrityCloseoutExecutedOutputKind::HarnessTranscript,
             output_count,
         )
     }
 
     pub(crate) fn synthetic_rejection(rows: &[SyntheticCloseoutShortcutRejectionReport]) -> Self {
         Self::new(
-            S3AcceptanceSuiteKind::SyntheticShortcutRejection,
-            S3CloseoutExecutedOutputKind::SyntheticShortcutRejection,
+            PhysicalIntegrityAcceptanceSuite::SyntheticShortcutRejection,
+            IntegrityCloseoutExecutedOutputKind::SyntheticShortcutRejection,
             rows.len(),
         )
     }
 
-    pub(crate) fn recovery_handoff(evidence: &S3S4HandoffCloseoutEvidence) -> Self {
+    pub(crate) fn recovery_handoff(evidence: &IntegrityRecoveryHandoffCloseoutEvidence) -> Self {
         let output_count = usize::from(evidence.proves_no_raw_bytes_crossed());
         Self::new(
-            S3AcceptanceSuiteKind::S4IntegrityHandoff,
-            S3CloseoutExecutedOutputKind::S4IntegrityHandoff,
+            PhysicalIntegrityAcceptanceSuite::RecoveryIntegrityHandoff,
+            IntegrityCloseoutExecutedOutputKind::RecoveryIntegrityHandoff,
             output_count,
         )
     }
 
-    pub(crate) fn line_cap_composition(evidence: &S3LineCapCompositionEvidence) -> Self {
+    pub(crate) fn line_cap_composition(evidence: &IntegrityCompositionEvidence) -> Self {
         Self::new(
-            S3AcceptanceSuiteKind::LineCapComposition,
-            S3CloseoutExecutedOutputKind::LineCapComposition,
+            PhysicalIntegrityAcceptanceSuite::LineCapComposition,
+            IntegrityCloseoutExecutedOutputKind::LineCapComposition,
             evidence.checked_surface_count(),
         )
     }
 
-    pub const fn acceptance_suite(self) -> S3AcceptanceSuiteKind {
+    pub const fn acceptance_suite(self) -> PhysicalIntegrityAcceptanceSuite {
         self.acceptance_suite
     }
 
-    pub const fn output_kind(self) -> S3CloseoutExecutedOutputKind {
+    pub const fn output_kind(self) -> IntegrityCloseoutExecutedOutputKind {
         self.output_kind
     }
 
@@ -89,7 +87,7 @@ impl S3CloseoutHarnessExecutionEvidence {
 
     pub(crate) fn require_suite(
         self,
-        suite: S3AcceptanceSuiteKind,
+        suite: PhysicalIntegrityAcceptanceSuite,
     ) -> Result<(), PhysicalIntegrityCloseoutDenial> {
         if self.acceptance_suite != suite || self.output_count == 0 {
             Err(PhysicalIntegrityCloseoutDenial::MissingExecutedSuiteOutput(
@@ -101,8 +99,8 @@ impl S3CloseoutHarnessExecutionEvidence {
     }
 
     const fn new(
-        acceptance_suite: S3AcceptanceSuiteKind,
-        output_kind: S3CloseoutExecutedOutputKind,
+        acceptance_suite: PhysicalIntegrityAcceptanceSuite,
+        output_kind: IntegrityCloseoutExecutedOutputKind,
         output_count: usize,
     ) -> Self {
         Self {
@@ -114,19 +112,19 @@ impl S3CloseoutHarnessExecutionEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct S3ExecutedCloseoutHarnessRun {
-    acceptance_suite: S3AcceptanceSuiteKind,
+pub(crate) struct ExecutedIntegrityCloseoutHarnessRun {
+    acceptance_suite: PhysicalIntegrityAcceptanceSuite,
     plan: PhysicalScenarioPlan,
     transcript: PhysicalStoryTranscript,
-    executed_output: S3CloseoutHarnessExecutionEvidence,
+    executed_output: IntegrityHarnessExecutionEvidence,
 }
 
-impl S3ExecutedCloseoutHarnessRun {
+impl ExecutedIntegrityCloseoutHarnessRun {
     pub(crate) fn from_executed_output(
-        acceptance_suite: S3AcceptanceSuiteKind,
+        acceptance_suite: PhysicalIntegrityAcceptanceSuite,
         plan: PhysicalScenarioPlan,
         transcript: PhysicalStoryTranscript,
-        executed_output: S3CloseoutHarnessExecutionEvidence,
+        executed_output: IntegrityHarnessExecutionEvidence,
     ) -> Result<Self, PhysicalIntegrityCloseoutDenial> {
         executed_output.require_suite(acceptance_suite)?;
         if transcript.plan_identity() != plan.identity() {
@@ -142,7 +140,7 @@ impl S3ExecutedCloseoutHarnessRun {
         })
     }
 
-    pub const fn acceptance_suite(&self) -> S3AcceptanceSuiteKind {
+    pub const fn acceptance_suite(&self) -> PhysicalIntegrityAcceptanceSuite {
         self.acceptance_suite
     }
 
@@ -154,20 +152,26 @@ impl S3ExecutedCloseoutHarnessRun {
         &self.transcript
     }
 
-    pub const fn executed_output(&self) -> S3CloseoutHarnessExecutionEvidence {
+    pub const fn executed_output(&self) -> IntegrityHarnessExecutionEvidence {
         self.executed_output
     }
 }
 
-impl From<S3AcceptanceSuiteKind> for S3CloseoutEvidenceFamily {
-    fn from(kind: S3AcceptanceSuiteKind) -> Self {
+impl From<PhysicalIntegrityAcceptanceSuite> for IntegrityCloseoutEvidenceFamily {
+    fn from(kind: PhysicalIntegrityAcceptanceSuite) -> Self {
         match kind {
-            S3AcceptanceSuiteKind::CorruptionLocalization => Self::CorruptionLocalization,
-            S3AcceptanceSuiteKind::BoundaryDenial => Self::BoundaryDenial,
-            S3AcceptanceSuiteKind::HarnessTranscript => Self::HarnessTranscript,
-            S3AcceptanceSuiteKind::SyntheticShortcutRejection => Self::SyntheticShortcutRejection,
-            S3AcceptanceSuiteKind::S4IntegrityHandoff => Self::S4IntegrityHandoff,
-            S3AcceptanceSuiteKind::LineCapComposition => Self::LineCapComposition,
+            PhysicalIntegrityAcceptanceSuite::CorruptionLocalization => {
+                Self::CorruptionLocalization
+            }
+            PhysicalIntegrityAcceptanceSuite::BoundaryDenial => Self::BoundaryDenial,
+            PhysicalIntegrityAcceptanceSuite::HarnessTranscript => Self::HarnessTranscript,
+            PhysicalIntegrityAcceptanceSuite::SyntheticShortcutRejection => {
+                Self::SyntheticShortcutRejection
+            }
+            PhysicalIntegrityAcceptanceSuite::RecoveryIntegrityHandoff => {
+                Self::RecoveryIntegrityHandoff
+            }
+            PhysicalIntegrityAcceptanceSuite::LineCapComposition => Self::LineCapComposition,
         }
     }
 }

@@ -59,9 +59,9 @@ fn concrete_request_identity_changes_plan_binding_for_equal_shaped_page_reads() 
 
     assert_ne!(first.request_identity(), second.request_identity());
     assert_ne!(first.fingerprint(), second.fingerprint());
-    assert_eq!(first.materialization(), Some(&materialization));
+    assert_eq!(first.materialization(), &materialization);
     assert_eq!(
-        first.materialization().unwrap().coverage().source(),
+        first.materialization().coverage().source(),
         materialization.source(),
         "ordinary test selection retains the admitted physical source",
     );
@@ -77,18 +77,14 @@ fn concrete_request_identity_changes_plan_binding_for_equal_shaped_page_reads() 
         first.cost_estimate().exact_coverage(),
         Some(materialization.coverage()),
     );
-    let admitted_strategy = first
-        .admitted_strategy()
-        .expect("indexed selection retains admitted strategy authority");
+    let admitted_strategy = first.admitted_strategy();
     assert_eq!(admitted_strategy.admitted_family(), lifecycle);
     assert_eq!(admitted_strategy.admitted_key_domain(), key_domain);
     assert_eq!(
         first.fingerprint().admitted_strategy(),
         Some(admitted_strategy)
     );
-    let strategy_admission = first
-        .strategy_admission()
-        .expect("indexed selection retains its exact registry admission");
+    let strategy_admission = first.strategy_admission();
     assert_eq!(
         strategy_admission.request().exact_coverage(),
         Some(materialization.coverage())

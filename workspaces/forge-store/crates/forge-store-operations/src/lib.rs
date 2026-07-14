@@ -63,6 +63,8 @@
 mod backup;
 mod backup_export_custody_scheduler_demand;
 mod capsule_chunk_availability;
+#[cfg(feature = "certification-test-authority")]
+pub mod certification_test_authority;
 mod facade;
 pub mod layout_projection;
 mod recovery_posture;

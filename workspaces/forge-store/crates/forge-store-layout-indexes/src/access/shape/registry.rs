@@ -2,10 +2,10 @@ use super::append::{append_path, compaction_read};
 use super::contract::AccessShapeContract;
 use super::degraded::{explicit_degraded_exact_scan, DegradedExactScanRequest};
 use super::denial::AccessShapeUnsupportedDenial;
+use super::detail::FullDeclaredScanBasis;
 #[cfg(test)]
 use super::detail::{
-    BoundedScanBasis, FullDeclaredScanBasis, GroupedPrefixBasis, MultiRangeBasis,
-    StreamingContinuationBasis,
+    BoundedScanBasis, GroupedPrefixBasis, MultiRangeBasis, StreamingContinuationBasis,
 };
 use super::lane::AccessLaneClassification;
 use super::point::point_lookup_declaration;
@@ -22,8 +22,9 @@ use super::rebuild::rebuild_read;
 use super::rebuild::rebuild_read_declaration;
 #[cfg(test)]
 use super::repair::repair_read;
+use super::scan::full_declared_scan;
 #[cfg(test)]
-use super::scan::{bounded_scan, full_declared_scan, manifest_graph_walk};
+use super::scan::{bounded_scan, manifest_graph_walk};
 #[cfg(test)]
 use super::streaming::{
     chunk_tree_walk, coalesced_page_read, streaming_continuation_read, streaming_read,
@@ -101,7 +102,6 @@ impl AccessShapesFacade {
         bounded_scan(lane, basis)
     }
 
-    #[cfg(test)]
     pub fn full_declared_scan(
         &self,
         lane: AccessLaneClassification,

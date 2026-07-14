@@ -365,7 +365,7 @@ fn checkpoint_shortcut_scenario() -> forge_store_physical_certification::Certifi
 
 fn recovery_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s45.phase9.checkpoint-recovery-replay")
-        .family(PhysicalSimulationScenarioFamily::S4RecoveryDogfood)
+        .family(PhysicalSimulationScenarioFamily::RecoveryDogfood)
         .intent(PhysicalScenarioIntent::RecoveryReplayDogfood)
         .fixture(
             NativeStoreAspectFixture::segment_header("phase9-checkpoint-recovery", 9)

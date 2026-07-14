@@ -85,7 +85,7 @@ fn recovery_plan_produces_replay_evidence_without_physical_isolation_authority()
         .contains(OracleFamilyKind::TranscriptReplayEvidence));
     assert!(plan
         .oracle_families()
-        .contains(OracleFamilyKind::S4RecoveryDogfood));
+        .contains(OracleFamilyKind::RecoveryDogfood));
     assert!(!plan
         .oracle_families()
         .contains(OracleFamilyKind::PhysicalIsolationReadinessShape));
@@ -97,7 +97,7 @@ fn recovery_plan_produces_replay_evidence_without_physical_isolation_authority()
         .replay()
         .oracle_verdicts()
         .iter()
-        .any(|verdict| verdict.family() == OracleFamilyKind::S4RecoveryDogfood));
+        .any(|verdict| verdict.family() == OracleFamilyKind::RecoveryDogfood));
 }
 
 #[test]
@@ -151,7 +151,7 @@ fn lower_recovery_plan() -> PhysicalSimulationPlan {
 
 fn recovery_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s45.phase10.recovery.transcript")
-        .family(PhysicalSimulationScenarioFamily::S4RecoveryDogfood)
+        .family(PhysicalSimulationScenarioFamily::RecoveryDogfood)
         .intent(PhysicalScenarioIntent::RecoveryReplayDogfood)
         .fixture(
             NativeStoreAspectFixture::segment_header("phase10-recovery-transcript", 10)

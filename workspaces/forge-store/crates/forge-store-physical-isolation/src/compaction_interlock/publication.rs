@@ -12,18 +12,19 @@ pub struct CompactionRewritePublication {
 }
 
 impl CompactionRewritePublication {
-    const OWNER_CASE: super::CompactionOwnerCase = super::CompactionOwnerCase::issued_by_owner(
-        super::CompactionOwnerCaseId::owned("physical.compaction.publish_rewrite"),
-        super::CompactionCutoverState::RewriteLowered,
-        super::CompactionCutoverState::PublicationCommitted,
-    );
+    const OWNER_CASE: super::CompactionOwnerCaseDeclaration =
+        super::CompactionOwnerCaseDeclaration::declared_by_owner(
+            super::CompactionOwnerCaseId::owned("physical.compaction.publish_rewrite"),
+            super::CompactionCutoverState::RewriteLowered,
+            super::CompactionCutoverState::PublicationCommitted,
+        );
 
     pub const fn cutover_state(&self) -> super::CompactionCutoverState {
         super::CompactionCutoverState::PublicationCommitted
     }
 
-    pub const fn owner_case(&self) -> super::CompactionOwnerCase {
-        Self::OWNER_CASE
+    pub const fn owner_case_observation(&self) -> super::CompactionOwnerCaseObservation {
+        super::CompactionOwnerCaseObservation::issued_by_owner(Self::OWNER_CASE)
     }
 
     pub fn publish_rewrite(
@@ -56,14 +57,6 @@ impl CompactionRewritePublication {
     }
 }
 
-pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCase> {
+pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCaseDeclaration> {
     std::iter::once(CompactionRewritePublication::OWNER_CASE)
-}
-
-#[cfg(any(test, feature = "certification-authority"))]
-pub fn publish_compaction_rewrite_for_certification(
-    delta: super::CompactionCutoverDelta,
-    publication: PhysicalPublicationReceipt,
-) -> Result<CompactionRewritePublication, CompactionReadInterlockDenial> {
-    CompactionRewritePublication::publish_rewrite(delta, publication)
 }

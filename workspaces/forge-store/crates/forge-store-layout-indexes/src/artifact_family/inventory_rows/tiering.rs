@@ -53,7 +53,7 @@ pub(super) const PLACEMENT_PROJECTION_ROWS: &[ArtifactFamilyInventoryRow] = &[
         OFFLINE_ONLY,
     ),
     row(
-        Family::PlacementMilestone6LayoutFamily,
+        Family::PlacementLegacyLayoutFamily,
         Authority::Derived,
         Lifecycle::OperationalSupport,
         Lane::MaintenancePath,

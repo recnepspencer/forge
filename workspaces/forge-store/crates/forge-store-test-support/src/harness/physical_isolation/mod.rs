@@ -1,6 +1,9 @@
 mod boundary_fact;
+pub mod compaction;
 pub mod epoch_scope;
 pub mod interleaving_resources;
+#[cfg(test)]
+mod owner_case_tests;
 pub mod publication;
 pub mod read_plan;
 pub mod reclaim;

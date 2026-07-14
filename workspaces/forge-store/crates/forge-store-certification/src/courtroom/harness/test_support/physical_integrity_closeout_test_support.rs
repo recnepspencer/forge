@@ -24,11 +24,11 @@ use crate::{
     },
     courtroom::physical_integrity::scrub_execution_tests::resident_memory_over_budget_scrub_denial,
     BoundedMemoryCloseoutReport, BoundedMemoryResidencySuite, BufferPoolCertificationBundle,
-    PhysicalIntegrityCloseoutSuite, PhysicalIntegrityCloseoutSuiteEvidence, S2BoundaryDenialKind,
-    S3AcceptanceSuiteKind, S3CloseoutHarnessExecutionEvidence, S3ExecutedBoundaryDenialEvidence,
-    S3ExecutedCorruptionLocalizationEvidence, S3S4HandoffCloseoutEvidence,
-    SyntheticCloseoutShortcutAttempt, SyntheticCloseoutShortcutInput,
-    SyntheticCloseoutShortcutRejectionReport,
+    ExecutedCorruptionLocalizationEvidence, ExecutedIntegrityBoundaryDenialEvidence,
+    IntegrityHarnessExecutionEvidence, IntegrityRecoveryHandoffCloseoutEvidence,
+    MemoryBoundaryDenialKind, PhysicalIntegrityAcceptanceSuite, PhysicalIntegrityCloseoutSuite,
+    PhysicalIntegrityCloseoutSuiteEvidence, SyntheticCloseoutShortcutAttempt,
+    SyntheticCloseoutShortcutInput, SyntheticCloseoutShortcutRejectionReport,
 };
 use forge_store_contracts::StableDigest;
 use forge_store_physical_format::PhysicalFrameKind;
@@ -56,29 +56,29 @@ pub(crate) fn complete_physical_integrity_closeout_evidence(
     let synthetic_transcript = physical_integrity_synthetic_transcript();
     let synthetic_rejections = physical_integrity_synthetic_rejections(&synthetic_transcript);
     let synthetic_harness = physical_integrity_harness(
-        S3AcceptanceSuiteKind::SyntheticShortcutRejection,
-        S3CloseoutHarnessExecutionEvidence::synthetic_rejection(&synthetic_rejections),
+        PhysicalIntegrityAcceptanceSuite::SyntheticShortcutRejection,
+        IntegrityHarnessExecutionEvidence::synthetic_rejection(&synthetic_rejections),
     );
-    let recovery_handoff = S3S4HandoffCloseoutEvidence::from_readiness(s4_readiness);
+    let recovery_handoff = IntegrityRecoveryHandoffCloseoutEvidence::from_readiness(s4_readiness);
     let line_cap = line_cap_composition_evidence();
     vec![
         PhysicalIntegrityCloseoutSuiteEvidence::corruption_localization(
             physical_integrity_harness(
-                S3AcceptanceSuiteKind::CorruptionLocalization,
-                S3CloseoutHarnessExecutionEvidence::corruption_localization(&localization),
+                PhysicalIntegrityAcceptanceSuite::CorruptionLocalization,
+                IntegrityHarnessExecutionEvidence::corruption_localization(&localization),
             ),
             localization,
         ),
         PhysicalIntegrityCloseoutSuiteEvidence::boundary_denial(
             physical_integrity_harness(
-                S3AcceptanceSuiteKind::BoundaryDenial,
-                S3CloseoutHarnessExecutionEvidence::boundary_denial(&denials),
+                PhysicalIntegrityAcceptanceSuite::BoundaryDenial,
+                IntegrityHarnessExecutionEvidence::boundary_denial(&denials),
             ),
             denials,
         ),
         PhysicalIntegrityCloseoutSuiteEvidence::harness_transcript(physical_integrity_harness(
-            S3AcceptanceSuiteKind::HarnessTranscript,
-            S3CloseoutHarnessExecutionEvidence::harness_transcript(1),
+            PhysicalIntegrityAcceptanceSuite::HarnessTranscript,
+            IntegrityHarnessExecutionEvidence::harness_transcript(1),
         )),
         PhysicalIntegrityCloseoutSuiteEvidence::synthetic_rejection(
             synthetic_harness,
@@ -86,22 +86,22 @@ pub(crate) fn complete_physical_integrity_closeout_evidence(
         ),
         PhysicalIntegrityCloseoutSuiteEvidence::recovery_handoff(
             physical_integrity_harness(
-                S3AcceptanceSuiteKind::S4IntegrityHandoff,
-                S3CloseoutHarnessExecutionEvidence::recovery_handoff(&recovery_handoff),
+                PhysicalIntegrityAcceptanceSuite::RecoveryIntegrityHandoff,
+                IntegrityHarnessExecutionEvidence::recovery_handoff(&recovery_handoff),
             ),
             recovery_handoff,
         ),
         PhysicalIntegrityCloseoutSuiteEvidence::line_cap_composition(
             physical_integrity_harness(
-                S3AcceptanceSuiteKind::LineCapComposition,
-                S3CloseoutHarnessExecutionEvidence::line_cap_composition(&line_cap),
+                PhysicalIntegrityAcceptanceSuite::LineCapComposition,
+                IntegrityHarnessExecutionEvidence::line_cap_composition(&line_cap),
             ),
             line_cap,
         ),
     ]
 }
 
-pub(crate) fn executed_boundary_denial_evidence() -> Vec<S3ExecutedBoundaryDenialEvidence> {
+pub(crate) fn executed_boundary_denial_evidence() -> Vec<ExecutedIntegrityBoundaryDenialEvidence> {
     let forged_checksum = inspect_denial(wal_payload("crc32c", 4, "checksum-fail", b"DATA"));
     let digest = StableDigest::new("phase15-closeout-digest").unwrap();
     let digest_denial = ChecksumAlgorithmId::admit_claim(
@@ -117,14 +117,20 @@ pub(crate) fn executed_boundary_denial_evidence() -> Vec<S3ExecutedBoundaryDenia
     let scrub = resident_memory_over_budget_scrub_denial();
 
     vec![
-        S3ExecutedBoundaryDenialEvidence::from_forged_checksum_denial(&forged_checksum).unwrap(),
-        S3ExecutedBoundaryDenialEvidence::from_digest_as_checksum_denial(digest_denial).unwrap(),
-        S3ExecutedBoundaryDenialEvidence::from_checksum_authenticity_denial(authenticity_denial)
+        ExecutedIntegrityBoundaryDenialEvidence::from_forged_checksum_denial(&forged_checksum)
             .unwrap(),
-        S3ExecutedBoundaryDenialEvidence::from_raw_byte_entry_denial(raw_entry).unwrap(),
-        S3ExecutedBoundaryDenialEvidence::from_copied_quarantine_record_denial(copied_quarantine)
+        ExecutedIntegrityBoundaryDenialEvidence::from_digest_as_checksum_denial(digest_denial)
             .unwrap(),
-        S3ExecutedBoundaryDenialEvidence::from_over_budget_scrub_plan_denial(scrub).unwrap(),
+        ExecutedIntegrityBoundaryDenialEvidence::from_checksum_authenticity_denial(
+            authenticity_denial,
+        )
+        .unwrap(),
+        ExecutedIntegrityBoundaryDenialEvidence::from_raw_byte_entry_denial(raw_entry).unwrap(),
+        ExecutedIntegrityBoundaryDenialEvidence::from_copied_quarantine_record_denial(
+            copied_quarantine,
+        )
+        .unwrap(),
+        ExecutedIntegrityBoundaryDenialEvidence::from_over_budget_scrub_plan_denial(scrub).unwrap(),
     ]
 }
 
@@ -149,7 +155,7 @@ pub(crate) fn assert_synthetic_rejection(
     }));
 }
 
-pub(crate) fn executed_localization_evidence() -> Vec<S3ExecutedCorruptionLocalizationEvidence> {
+pub(crate) fn executed_localization_evidence() -> Vec<ExecutedCorruptionLocalizationEvidence> {
     let byte_flip = deny_checked_frame(
         b"byte-flip-source",
         b"byte-flip-sourcf",
@@ -167,14 +173,14 @@ pub(crate) fn executed_localization_evidence() -> Vec<S3ExecutedCorruptionLocali
     let chunk = inspect_chunk_denial("payload-damage", b"DATA", 1024);
 
     vec![
-        S3ExecutedCorruptionLocalizationEvidence::from_pre_decode_byte_flip(&byte_flip).unwrap(),
-        S3ExecutedCorruptionLocalizationEvidence::from_torn_frame_denial(&torn).unwrap(),
-        S3ExecutedCorruptionLocalizationEvidence::from_pre_decode_stale_generation(&stale).unwrap(),
-        S3ExecutedCorruptionLocalizationEvidence::from_manifest_denial(&manifest).unwrap(),
-        S3ExecutedCorruptionLocalizationEvidence::from_index_page_denial(&index).unwrap(),
-        S3ExecutedCorruptionLocalizationEvidence::from_wal_frame_denial(&wal).unwrap(),
-        S3ExecutedCorruptionLocalizationEvidence::from_extent_damage_denial(&extent).unwrap(),
-        S3ExecutedCorruptionLocalizationEvidence::from_chunk_damage_denial(&chunk).unwrap(),
+        ExecutedCorruptionLocalizationEvidence::from_pre_decode_byte_flip(&byte_flip).unwrap(),
+        ExecutedCorruptionLocalizationEvidence::from_torn_frame_denial(&torn).unwrap(),
+        ExecutedCorruptionLocalizationEvidence::from_pre_decode_stale_generation(&stale).unwrap(),
+        ExecutedCorruptionLocalizationEvidence::from_manifest_denial(&manifest).unwrap(),
+        ExecutedCorruptionLocalizationEvidence::from_index_page_denial(&index).unwrap(),
+        ExecutedCorruptionLocalizationEvidence::from_wal_frame_denial(&wal).unwrap(),
+        ExecutedCorruptionLocalizationEvidence::from_extent_damage_denial(&extent).unwrap(),
+        ExecutedCorruptionLocalizationEvidence::from_chunk_damage_denial(&chunk).unwrap(),
     ]
 }
 
@@ -225,7 +231,7 @@ fn bounded_memory_suite() -> BoundedMemoryResidencySuite {
     let background = background_bundle();
     BoundedMemoryResidencySuite::admit(
         operation_reports(&foundational_receipt(), &background),
-        &S2BoundaryDenialKind::ALL,
+        &MemoryBoundaryDenialKind::ALL,
         harness_evidence(),
     )
     .unwrap()

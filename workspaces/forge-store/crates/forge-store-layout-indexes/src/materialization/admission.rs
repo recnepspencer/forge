@@ -1,18 +1,64 @@
 use super::{
     AdmittedCoverageBasis, LayoutCoverageWitness, LayoutMaterializationSourceIdentity,
-    LayoutMaterializationState, MaterializationDenial, PhysicalCoverageBasis,
+    LayoutMaterializationState, MaterializationDenial, MaterializationDenialKind,
+    PhysicalCoverageBasis,
 };
 use crate::{AdmittedPhysicalArtifactFamily, BootstrapCatalogReadAdmission};
 
+#[macro_use]
+mod outcome;
+mod admitted_view;
+mod btree_admission;
+mod catalog_root_admission;
+mod import_admission;
+mod lsm_admission;
+mod restore_admission;
+
+pub use btree_admission::{
+    btree_lookup_materialization_admission_cases,
+    btree_publication_materialization_admission_cases,
+    btree_replay_materialization_admission_cases, BTreeLookupMaterializationAdmissionCaseId,
+    BTreeLookupMaterializationAdmissionOutcome, BTreeLookupMaterializationAdmissionView,
+    BTreePublicationMaterializationAdmissionCaseId,
+    BTreePublicationMaterializationAdmissionOutcome, BTreePublicationMaterializationAdmissionView,
+    BTreeReplayMaterializationAdmissionCaseId, BTreeReplayMaterializationAdmissionOutcome,
+    BTreeReplayMaterializationAdmissionView,
+};
+pub use catalog_root_admission::{
+    catalog_root_materialization_admission_cases, CatalogRootMaterializationAdmissionCaseId,
+    CatalogRootMaterializationAdmissionOutcome, CatalogRootMaterializationAdmissionView,
+};
+pub use import_admission::{
+    imported_blob_materialization_admission_cases, ImportedBlobMaterializationAdmissionCaseId,
+    ImportedBlobMaterializationAdmissionOutcome, ImportedBlobMaterializationAdmissionView,
+};
+pub use lsm_admission::{
+    lsm_lookup_materialization_admission_cases, lsm_publication_materialization_admission_cases,
+    lsm_replay_materialization_admission_cases, LsmLookupMaterializationAdmissionCaseId,
+    LsmLookupMaterializationAdmissionOutcome, LsmLookupMaterializationAdmissionView,
+    LsmPublicationMaterializationAdmissionCaseId, LsmPublicationMaterializationAdmissionOutcome,
+    LsmPublicationMaterializationAdmissionView, LsmReplayMaterializationAdmissionCaseId,
+    LsmReplayMaterializationAdmissionOutcome, LsmReplayMaterializationAdmissionView,
+};
+pub use restore_admission::{
+    restored_artifact_materialization_admission_cases,
+    RestoredArtifactMaterializationAdmissionCaseId,
+    RestoredArtifactMaterializationAdmissionOutcome, RestoredArtifactMaterializationAdmissionView,
+};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedLayoutMaterialization {
+    inner: std::sync::Arc<AdmittedLayoutMaterializationData>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct AdmittedLayoutMaterializationData {
     family: AdmittedPhysicalArtifactFamily,
     coverage: LayoutCoverageWitness,
-    source: LayoutMaterializationSourceIdentity,
 }
 
 impl AdmittedLayoutMaterialization {
-    pub(crate) fn admit_catalog_coverage(
+    fn admit_catalog_coverage(
         family: AdmittedPhysicalArtifactFamily,
         catalog: &BootstrapCatalogReadAdmission,
         coverage: LayoutCoverageWitness,
@@ -26,14 +72,10 @@ impl AdmittedLayoutMaterialization {
             return Err(MaterializationDenial::CoverageSourceMismatch);
         }
 
-        Ok(Self {
-            family,
-            coverage,
-            source,
-        })
+        Ok(Self::from_admitted_coverage(family, coverage))
     }
 
-    pub(crate) fn admit_current_catalog_root(
+    fn admit_current_catalog_root(
         family: AdmittedPhysicalArtifactFamily,
         catalog: &BootstrapCatalogReadAdmission,
     ) -> Result<Self, MaterializationDenial> {
@@ -55,7 +97,7 @@ impl AdmittedLayoutMaterialization {
         Self::admit_catalog_coverage(family, catalog, coverage)
     }
 
-    pub(crate) fn admit_btree_publication_exact(
+    fn admit_btree_publication_exact(
         family: AdmittedPhysicalArtifactFamily,
         catalog: &BootstrapCatalogReadAdmission,
         publication: forge_store_physical_format::RootPublicationValidationWitness,
@@ -73,7 +115,7 @@ impl AdmittedLayoutMaterialization {
         )
     }
 
-    pub(crate) fn admit_btree_lookup_exact(
+    fn admit_btree_lookup_exact(
         family: AdmittedPhysicalArtifactFamily,
         catalog: &BootstrapCatalogReadAdmission,
         source: &crate::BaselineBTreeReadSource,
@@ -95,7 +137,7 @@ impl AdmittedLayoutMaterialization {
         )
     }
 
-    pub(crate) fn admit_btree_replay_exact(
+    fn admit_btree_replay_exact(
         family: AdmittedPhysicalArtifactFamily,
         catalog: &BootstrapCatalogReadAdmission,
         source: &forge_store_recovery_physics::AdmittedBTreeReplayPhysicalSource,
@@ -114,7 +156,7 @@ impl AdmittedLayoutMaterialization {
         )
     }
 
-    pub(crate) fn admit_lsm_lookup_exact(
+    fn admit_lsm_lookup_exact(
         family: AdmittedPhysicalArtifactFamily,
         catalog: &BootstrapCatalogReadAdmission,
         source: &crate::strategy::BaselineLsmLookupSource,
@@ -128,7 +170,7 @@ impl AdmittedLayoutMaterialization {
         )
     }
 
-    pub(crate) fn admit_lsm_publication_exact(
+    fn admit_lsm_publication_exact(
         family: AdmittedPhysicalArtifactFamily,
         catalog: &BootstrapCatalogReadAdmission,
         execution: &crate::strategy::BaselineLsmManifestPublicationExecution,
@@ -159,7 +201,7 @@ impl AdmittedLayoutMaterialization {
         )
     }
 
-    pub(crate) fn admit_lsm_replay_exact(
+    fn admit_lsm_replay_exact(
         family: AdmittedPhysicalArtifactFamily,
         catalog: &BootstrapCatalogReadAdmission,
         source: &forge_store_lsm_authority::AdmittedLsmReplaySource,
@@ -191,7 +233,7 @@ impl AdmittedLayoutMaterialization {
         Ok(())
     }
 
-    pub(crate) fn admit_imported_blob_exact(
+    fn admit_imported_blob_exact(
         family: AdmittedPhysicalArtifactFamily,
         catalog: &BootstrapCatalogReadAdmission,
         witness: &forge_store_blob_chunks::ImportedBlobWitness,
@@ -216,11 +258,11 @@ impl AdmittedLayoutMaterialization {
         )
     }
 
-    pub(crate) fn admit_restored_artifact_exact(
+    fn admit_restored_artifact_exact(
         family: AdmittedPhysicalArtifactFamily,
         catalog: &BootstrapCatalogReadAdmission,
         readmission: crate::integrity::LayoutReadmissionWitness,
-        custody: forge_store_security::StoreReadmittedSecurityScope,
+        custody: &forge_store_security::StoreReadmittedSecurityScope,
     ) -> Result<Self, MaterializationDenial> {
         if readmission.family() != family.declaration().family()
             || readmission.source()
@@ -284,51 +326,6 @@ impl AdmittedLayoutMaterialization {
             admitted_basis,
             None,
         )?;
-        Ok(Self {
-            family,
-            coverage,
-            source,
-        })
-    }
-
-    pub const fn family(&self) -> AdmittedPhysicalArtifactFamily {
-        self.family
-    }
-
-    pub const fn coverage(&self) -> &LayoutCoverageWitness {
-        &self.coverage
-    }
-
-    pub const fn source(&self) -> &LayoutMaterializationSourceIdentity {
-        &self.source
-    }
-
-    pub const fn source_root_owner(&self) -> forge_store_physical_format::PhysicalGenerationOwner {
-        self.source.root_owner()
-    }
-
-    pub const fn source_format_version(
-        &self,
-    ) -> forge_store_physical_format::PhysicalFormatVersion {
-        self.source.format_version()
-    }
-
-    pub fn require_current_at(
-        self,
-        frontier: super::CurrentMaterializationFrontier,
-    ) -> Result<super::CurrentLayoutMaterialization, MaterializationDenial> {
-        match super::CurrentLayoutMaterialization::classify_at(self, frontier)? {
-            super::MaterializationFreshness::Current(current) => Ok(current),
-            super::MaterializationFreshness::Stale(_) => {
-                Err(MaterializationDenial::MaterializationFrontierMismatch)
-            }
-        }
-    }
-
-    pub fn classify_freshness_at(
-        self,
-        frontier: super::CurrentMaterializationFrontier,
-    ) -> Result<super::MaterializationFreshness, MaterializationDenial> {
-        super::CurrentLayoutMaterialization::classify_at(self, frontier)
+        Ok(Self::from_admitted_coverage(family, coverage))
     }
 }

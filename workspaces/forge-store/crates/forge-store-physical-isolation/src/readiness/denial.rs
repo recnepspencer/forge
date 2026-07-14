@@ -11,5 +11,5 @@ pub enum PhysicalIsolationEntryDenial {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalIsolationEntryRebindRequired {
-    S4RecoveryReadinessMustBeRebound,
+    RecoveryReadinessMustBeRebound,
 }

@@ -44,7 +44,7 @@ impl StablePhysicalReadExecutionCounters {
             hidden_latch_io_denials: 0,
             compact_footprint_checks: 0,
             broad_footprint_scans: 0,
-            plan_allocations: 0,
+            plan_allocations: plan.allocation_events(),
             diagnostic_materializations: 0,
         }
     }

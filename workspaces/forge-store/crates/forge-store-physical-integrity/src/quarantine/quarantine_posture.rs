@@ -26,8 +26,8 @@ impl QuarantineLifecyclePosture {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QuarantineHandoffPosture {
-    S4RecoveryOwnerRequired,
-    S10RepairOwnerRequired,
+    RecoveryOwnerRequired,
+    RepairOwnerRequired,
     AuditRetentionOwnerRequired,
     RootChangeRevalidationRequired,
 }

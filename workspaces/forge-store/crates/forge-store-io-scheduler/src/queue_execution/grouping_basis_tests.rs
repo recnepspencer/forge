@@ -10,10 +10,10 @@ use crate::foreground_reservation::{
     admitted_point_read_reservation_for_certification_test, ForegroundIoLaneKind,
 };
 use crate::{
-    admit_queue_execution_plan, group_ready_queue_pair, QueueExecutionAdmissionDenial,
-    QueueExecutionAdmissionRequest, QueueGroupingBasis, QueueGroupingDenial, QueueGroupingOutcome,
-    QueueRecoveryOrdering, QueueWorkClass, QueueWorkDeclaration, QueueWritebackPolicy,
-    S6QueueDurabilityClass,
+    admit_queue_execution_plan, group_ready_queue_pair, QueueDurabilityClass,
+    QueueExecutionAdmissionDenial, QueueExecutionAdmissionRequest, QueueGroupingBasis,
+    QueueGroupingDenial, QueueGroupingOutcome, QueueRecoveryOrdering, QueueWorkClass,
+    QueueWorkDeclaration, QueueWritebackPolicy,
 };
 
 #[test]
@@ -129,7 +129,7 @@ fn admit_plan_with_basis(
     let budget = point_read_budget();
     let work = QueueWorkDeclaration::foreground(
         reservation.execution_ready(),
-        S6QueueDurabilityClass::ReadOnly,
+        QueueDurabilityClass::ReadOnly,
         budget,
     )
     .with_grouping_basis(basis);
@@ -215,7 +215,7 @@ fn rebuild_basis(base: QueueGroupingBasis, axis: BasisAxis) -> QueueGroupingBasi
             base.authenticity_requirement()
         },
         if matches!(axis, BasisAxis::Durability) {
-            S6QueueDurabilityClass::PlatformDurable
+            QueueDurabilityClass::PlatformDurable
         } else {
             base.durability_class()
         },

@@ -1,9 +1,26 @@
 use crate::PhysicalArtifactFamilyDeclaration;
 
-use super::{LayoutPlanFingerprint, LayoutVersion};
+use super::{LayoutInterruptionFingerprint, LayoutVersion};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayoutEvolutionDenial {
+    CompatibilityAdmissionMismatch,
+    CompatibilityBindingVersionMismatch {
+        binding: LayoutVersion,
+        compatibility: forge_store_compatibility::ArtifactFormatVersion,
+    },
+    BindingSourceVersionNotDeclared {
+        bound: LayoutVersion,
+        declared_source: LayoutVersion,
+    },
+    StoreAuthorityMismatch {
+        family: forge_store_authority::StoreCurrentAuthorityIdentity,
+        binding: forge_store_authority::StoreCurrentAuthorityIdentity,
+    },
+    PhysicalSourceStoreAuthorityMismatch {
+        binding: forge_store_authority::StoreCurrentAuthorityIdentity,
+        physical_source: forge_store_authority::StoreCurrentAuthorityIdentity,
+    },
     FamilyMismatch {
         declared: &'static PhysicalArtifactFamilyDeclaration,
         binding: &'static PhysicalArtifactFamilyDeclaration,
@@ -25,7 +42,96 @@ pub enum LayoutEvolutionDenial {
         target: LayoutVersion,
     },
     InterruptStateDoesNotMatchPlan {
-        expected: LayoutPlanFingerprint,
-        actual: LayoutPlanFingerprint,
+        expected: Box<LayoutInterruptionFingerprint>,
+        actual: Box<LayoutInterruptionFingerprint>,
     },
+    RollbackInterruptStateDoesNotMatchExecution {
+        expected: Box<super::LayoutRollbackExecutionFingerprint>,
+        actual: Box<super::LayoutRollbackExecutionFingerprint>,
+    },
+    InterruptionBindingVersionNotDeclared {
+        observed: LayoutVersion,
+        source: LayoutVersion,
+        target: LayoutVersion,
+    },
+    PhysicalPublicationStoreAuthorityMismatch {
+        binding: forge_store_authority::StoreCurrentAuthorityIdentity,
+        publication: forge_store_authority::StoreCurrentAuthorityIdentity,
+    },
+    PhysicalPublicationSourceMismatch {
+        expected: super::LayoutBindingSourceIdentity,
+        actual: forge_store_physical_format::PhysicalReference,
+    },
+    PhysicalPublication(Box<forge_store_physical_isolation::PhysicalPublicationDenial>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum LayoutEvolutionDenialKind {
+    CompatibilityAdmissionMismatch,
+    CompatibilityBindingVersionMismatch,
+    BindingSourceVersionNotDeclared,
+    StoreAuthorityMismatch,
+    PhysicalSourceStoreAuthorityMismatch,
+    FamilyMismatch,
+    IncompatibleSourceVersion,
+    UndeclaredCompatibleLayoutVersion,
+    UnsupportedMigrationTarget,
+    UnsupportedRollbackTarget,
+    InterruptStateDoesNotMatchPlan,
+    RollbackInterruptStateDoesNotMatchExecution,
+    InterruptionBindingVersionNotDeclared,
+    PhysicalPublicationStoreAuthorityMismatch,
+    PhysicalPublicationSourceMismatch,
+    PhysicalPublication,
+}
+
+impl LayoutEvolutionDenial {
+    pub const fn kind(&self) -> LayoutEvolutionDenialKind {
+        match self {
+            Self::CompatibilityAdmissionMismatch => {
+                LayoutEvolutionDenialKind::CompatibilityAdmissionMismatch
+            }
+            Self::CompatibilityBindingVersionMismatch { .. } => {
+                LayoutEvolutionDenialKind::CompatibilityBindingVersionMismatch
+            }
+            Self::BindingSourceVersionNotDeclared { .. } => {
+                LayoutEvolutionDenialKind::BindingSourceVersionNotDeclared
+            }
+            Self::StoreAuthorityMismatch { .. } => {
+                LayoutEvolutionDenialKind::StoreAuthorityMismatch
+            }
+            Self::PhysicalSourceStoreAuthorityMismatch { .. } => {
+                LayoutEvolutionDenialKind::PhysicalSourceStoreAuthorityMismatch
+            }
+            Self::FamilyMismatch { .. } => LayoutEvolutionDenialKind::FamilyMismatch,
+            Self::IncompatibleSourceVersion { .. } => {
+                LayoutEvolutionDenialKind::IncompatibleSourceVersion
+            }
+            Self::UndeclaredCompatibleLayoutVersion { .. } => {
+                LayoutEvolutionDenialKind::UndeclaredCompatibleLayoutVersion
+            }
+            Self::UnsupportedMigrationTarget { .. } => {
+                LayoutEvolutionDenialKind::UnsupportedMigrationTarget
+            }
+            Self::UnsupportedRollbackTarget { .. } => {
+                LayoutEvolutionDenialKind::UnsupportedRollbackTarget
+            }
+            Self::InterruptStateDoesNotMatchPlan { .. } => {
+                LayoutEvolutionDenialKind::InterruptStateDoesNotMatchPlan
+            }
+            Self::RollbackInterruptStateDoesNotMatchExecution { .. } => {
+                LayoutEvolutionDenialKind::RollbackInterruptStateDoesNotMatchExecution
+            }
+            Self::InterruptionBindingVersionNotDeclared { .. } => {
+                LayoutEvolutionDenialKind::InterruptionBindingVersionNotDeclared
+            }
+            Self::PhysicalPublicationStoreAuthorityMismatch { .. } => {
+                LayoutEvolutionDenialKind::PhysicalPublicationStoreAuthorityMismatch
+            }
+            Self::PhysicalPublicationSourceMismatch { .. } => {
+                LayoutEvolutionDenialKind::PhysicalPublicationSourceMismatch
+            }
+            Self::PhysicalPublication(_) => LayoutEvolutionDenialKind::PhysicalPublication,
+        }
+    }
 }

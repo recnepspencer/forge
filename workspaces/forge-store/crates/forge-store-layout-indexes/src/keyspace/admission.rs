@@ -15,6 +15,132 @@ use crate::{
     AdmittedPhysicalArtifactFamily,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum PhysicalKeyDomainAdmissionCaseId {
+    Admitted,
+    Denied(crate::catalog::ArtifactFamilyDenialKind),
+}
+
+impl PhysicalKeyDomainAdmissionCaseId {
+    pub const fn as_str(self) -> &'static str {
+        use crate::catalog::ArtifactFamilyDenialKind as Denial;
+        match self {
+            Self::Admitted => "layout.key_domain.admission.admitted",
+            Self::Denied(Denial::SecurityAuthorityMismatch) => {
+                "layout.key_domain.admission.denied.security_authority"
+            }
+            Self::Denied(Denial::CrossTenantScopePartition) => {
+                "layout.key_domain.admission.denied.tenant_scope"
+            }
+            Self::Denied(Denial::CrossKeyScopePartition) => {
+                "layout.key_domain.admission.denied.key_scope"
+            }
+            Self::Denied(Denial::AuthenticityBoundary) => {
+                "layout.key_domain.admission.denied.authenticity"
+            }
+            Self::Denied(Denial::CustodyBoundary) => "layout.key_domain.admission.denied.custody",
+            Self::Denied(Denial::PhysicalKeyDomainNotDeclaredForFamily) => {
+                "layout.key_domain.admission.denied.domain_not_declared"
+            }
+            Self::Denied(_) => "layout.key_domain.admission.denied.unadvertised",
+        }
+    }
+}
+
+pub fn physical_key_domain_admission_cases(
+) -> impl Iterator<Item = PhysicalKeyDomainAdmissionCaseId> {
+    use crate::catalog::ArtifactFamilyDenialKind as Denial;
+    [
+        PhysicalKeyDomainAdmissionCaseId::Admitted,
+        PhysicalKeyDomainAdmissionCaseId::Denied(Denial::SecurityAuthorityMismatch),
+        PhysicalKeyDomainAdmissionCaseId::Denied(Denial::CrossTenantScopePartition),
+        PhysicalKeyDomainAdmissionCaseId::Denied(Denial::CrossKeyScopePartition),
+        PhysicalKeyDomainAdmissionCaseId::Denied(Denial::AuthenticityBoundary),
+        PhysicalKeyDomainAdmissionCaseId::Denied(Denial::CustodyBoundary),
+        PhysicalKeyDomainAdmissionCaseId::Denied(Denial::PhysicalKeyDomainNotDeclaredForFamily),
+    ]
+    .into_iter()
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum PhysicalKeyDomainAdmissionCase {
+    Admitted(Box<AdmittedPhysicalKeyDomain>),
+    Denied(ArtifactFamilyDenial),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct PhysicalKeyDomainAdmissionOutcome {
+    case: PhysicalKeyDomainAdmissionCase,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalKeyDomainAdmissionView<'a> {
+    Admitted(&'a AdmittedPhysicalKeyDomain),
+    Denied(&'a ArtifactFamilyDenial),
+}
+
+impl PhysicalKeyDomainAdmissionOutcome {
+    fn admit(
+        family: AdmittedPhysicalArtifactFamily,
+        security: &StoreCurrentSecurityScopeWitnessSet,
+    ) -> Self {
+        let case = match AdmittedPhysicalKeyDomain::admit(family, security) {
+            Ok(domain) => PhysicalKeyDomainAdmissionCase::Admitted(Box::new(domain)),
+            Err(denial) => PhysicalKeyDomainAdmissionCase::Denied(denial),
+        };
+        Self { case }
+    }
+
+    pub fn view(&self) -> PhysicalKeyDomainAdmissionView<'_> {
+        match &self.case {
+            PhysicalKeyDomainAdmissionCase::Admitted(domain) => {
+                PhysicalKeyDomainAdmissionView::Admitted(domain.as_ref())
+            }
+            PhysicalKeyDomainAdmissionCase::Denied(denial) => {
+                PhysicalKeyDomainAdmissionView::Denied(denial)
+            }
+        }
+    }
+
+    pub const fn case_id(&self) -> PhysicalKeyDomainAdmissionCaseId {
+        match &self.case {
+            PhysicalKeyDomainAdmissionCase::Admitted(_) => {
+                PhysicalKeyDomainAdmissionCaseId::Admitted
+            }
+            PhysicalKeyDomainAdmissionCase::Denied(denial) => {
+                PhysicalKeyDomainAdmissionCaseId::Denied(denial.kind())
+            }
+        }
+    }
+
+    pub fn into_result(self) -> Result<AdmittedPhysicalKeyDomain, ArtifactFamilyDenial> {
+        match self.case {
+            PhysicalKeyDomainAdmissionCase::Admitted(domain) => Ok(*domain),
+            PhysicalKeyDomainAdmissionCase::Denied(denial) => Err(denial),
+        }
+    }
+
+    pub fn unwrap(self) -> AdmittedPhysicalKeyDomain {
+        self.into_result().unwrap()
+    }
+
+    pub fn unwrap_err(self) -> ArtifactFamilyDenial {
+        self.into_result().unwrap_err()
+    }
+}
+
+impl PartialEq<Result<AdmittedPhysicalKeyDomain, ArtifactFamilyDenial>>
+    for PhysicalKeyDomainAdmissionOutcome
+{
+    fn eq(&self, other: &Result<AdmittedPhysicalKeyDomain, ArtifactFamilyDenial>) -> bool {
+        match (self.view(), other) {
+            (PhysicalKeyDomainAdmissionView::Admitted(left), Ok(right)) => left == right,
+            (PhysicalKeyDomainAdmissionView::Denied(left), Err(right)) => left == right,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AdmittedPhysicalKeyDomain {
     family: AdmittedPhysicalArtifactFamily,
@@ -29,7 +155,7 @@ pub struct AdmittedPhysicalKeyDomain {
 }
 
 impl AdmittedPhysicalKeyDomain {
-    pub(crate) fn admit(
+    fn admit(
         family: AdmittedPhysicalArtifactFamily,
         security: &StoreCurrentSecurityScopeWitnessSet,
     ) -> Result<Self, ArtifactFamilyDenial> {
@@ -96,5 +222,15 @@ impl AdmittedPhysicalKeyDomain {
 
     pub const fn tenant_partition(self) -> TenantScopedKeyDomain {
         self.tenant_partition
+    }
+}
+
+impl crate::catalog::LayoutDeclarationsFacade {
+    pub fn admit_physical_key_domain(
+        &self,
+        family: AdmittedPhysicalArtifactFamily,
+        security: &StoreCurrentSecurityScopeWitnessSet,
+    ) -> PhysicalKeyDomainAdmissionOutcome {
+        PhysicalKeyDomainAdmissionOutcome::admit(family, security)
     }
 }

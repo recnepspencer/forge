@@ -11,18 +11,19 @@ pub struct CompactionCutoverStabilityProof {
 }
 
 impl CompactionCutoverStabilityProof {
-    const OWNER_CASE: super::CompactionOwnerCase = super::CompactionOwnerCase::issued_by_owner(
-        super::CompactionOwnerCaseId::owned("physical.compaction.admit_recovery_visibility"),
-        super::CompactionCutoverState::PublicationCommitted,
-        super::CompactionCutoverState::RecoveryVisibilityAdmitted,
-    );
+    const OWNER_CASE: super::CompactionOwnerCaseDeclaration =
+        super::CompactionOwnerCaseDeclaration::declared_by_owner(
+            super::CompactionOwnerCaseId::owned("physical.compaction.admit_recovery_visibility"),
+            super::CompactionCutoverState::PublicationCommitted,
+            super::CompactionCutoverState::RecoveryVisibilityAdmitted,
+        );
 
     pub const fn cutover_state(&self) -> super::CompactionCutoverState {
         super::CompactionCutoverState::RecoveryVisibilityAdmitted
     }
 
-    pub const fn owner_case(&self) -> super::CompactionOwnerCase {
-        Self::OWNER_CASE
+    pub const fn owner_case_observation(&self) -> super::CompactionOwnerCaseObservation {
+        super::CompactionOwnerCaseObservation::issued_by_owner(Self::OWNER_CASE)
     }
 
     pub fn admit(
@@ -55,8 +56,31 @@ impl CompactionCutoverStabilityProof {
     pub const fn recovery_posture(&self) -> &CompactionCutoverRecoveryPosture {
         &self.recovery_posture
     }
+
+    pub fn plan_post_cutover_read(
+        &self,
+    ) -> Result<crate::StablePhysicalReadPlan, crate::PhysicalReadPlanAdmissionDenial> {
+        let authority = crate::admit_post_compaction_read_stability_authority(self)
+            .expect("sealed cutover stability proof issues read stability authority");
+        let candidates = self.publication.delta().plan().candidates();
+        let resident_bytes = self
+            .publication
+            .delta()
+            .plan()
+            .source_integrity()
+            .stable_read_receipt()
+            .map(|receipt| receipt.counters().guarded_bytes())
+            .unwrap_or(0);
+        crate::physical_read_plan::admit_known_footprint_read(
+            &authority,
+            self.post_cutover_root(),
+            candidates.references().iter().copied(),
+            resident_bytes,
+            candidates.references().len(),
+        )
+    }
 }
 
-pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCase> {
+pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCaseDeclaration> {
     std::iter::once(CompactionCutoverStabilityProof::OWNER_CASE)
 }

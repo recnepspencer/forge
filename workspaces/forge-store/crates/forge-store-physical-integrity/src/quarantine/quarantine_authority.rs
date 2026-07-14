@@ -1,5 +1,5 @@
 use crate::{
-    FoundationalQuarantineReceiptBasis, QuarantineReceipt, QuarantineRecord, QuarantineSealDenial,
+    FoundationalQuarantineReceiptBasis, QuarantineReceipt, QuarantineRecord, QuarantineSealOutcome,
     QuarantineSealRequest,
 };
 
@@ -7,8 +7,11 @@ use crate::{
 pub struct PhysicalQuarantineAuthority;
 
 impl PhysicalQuarantineAuthority {
-    pub fn seal(request: QuarantineSealRequest) -> Result<QuarantineRecord, QuarantineSealDenial> {
-        let (finding, lifecycle_posture, handoff_posture) = request.into_checked_parts()?;
+    pub fn seal(request: QuarantineSealRequest) -> QuarantineSealOutcome {
+        let (finding, lifecycle_posture, handoff_posture) = match request.into_checked_parts() {
+            Ok(parts) => parts,
+            Err(denial) => return QuarantineSealOutcome::denied(denial),
+        };
         let locality = finding.locality();
         let damage_classification = finding.damage_classification().clone();
         let receipt_basis = FoundationalQuarantineReceiptBasis::from_parts(
@@ -16,7 +19,7 @@ impl PhysicalQuarantineAuthority {
             &damage_classification,
             lifecycle_posture,
         );
-        Ok(QuarantineRecord::new(
+        QuarantineSealOutcome::sealed(QuarantineRecord::new(
             locality,
             damage_classification,
             QuarantineReceipt::new(receipt_basis),

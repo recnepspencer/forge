@@ -1,10 +1,10 @@
-use super::super::artifact::{
+use super::super::durable_artifact::{
     decode_key_scope, decode_kind, decode_tenant, key_scope_code, record_kind_code, tenant_code,
 };
 use super::super::model::{
     LsmCompactionMembership, LsmMembershipKey, LsmMembershipReadmissionAuthority,
 };
-use super::super::session::LsmMembershipDenial;
+use crate::membership::LsmMembershipDenial;
 use crate::{
     BlobWalRecordIdentity, CheckpointDurablePublicationScope, StoreCheckpointRecordIdentity,
     WalFrameDurablePublicationScope,

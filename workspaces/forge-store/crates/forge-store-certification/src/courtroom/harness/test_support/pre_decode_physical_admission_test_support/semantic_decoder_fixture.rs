@@ -1,4 +1,4 @@
-use forge_store_physical_integrity::{LogicalDecodeGate, S3LogicalDecoder};
+use forge_store_physical_integrity::{LogicalDecodeGate, LogicalDecoder};
 
 #[derive(Default)]
 pub(crate) struct CountingSemanticDecoder {
@@ -7,7 +7,7 @@ pub(crate) struct CountingSemanticDecoder {
     pub(crate) domain_constructors: u32,
 }
 
-impl<'a> S3LogicalDecoder<'a> for CountingSemanticDecoder {
+impl<'a> LogicalDecoder<'a> for CountingSemanticDecoder {
     type Output = ();
 
     fn decode(&mut self, _gate: LogicalDecodeGate<'a>) -> Self::Output {

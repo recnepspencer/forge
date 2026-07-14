@@ -1,9 +1,9 @@
-use super::super::artifact::{decode_key_scope, decode_tenant};
+use super::super::durable_artifact::{decode_key_scope, decode_tenant};
 use super::super::model::LsmMembershipKey;
 use super::super::model::LsmMembershipReadmissionAuthority;
-use super::super::session::LsmMembershipDenial;
 use super::event::PersistedMembershipActivation;
 use super::frame::{decode_activation, encode_activation, HEADER_BYTES};
+use crate::membership::LsmMembershipDenial;
 use crate::{
     BlobWalRecordIdentity, BlobWalRecordKind, CheckpointDurablePublicationScope,
     StoreCheckpointRecordIdentity, WalFrameDurablePublicationScope,

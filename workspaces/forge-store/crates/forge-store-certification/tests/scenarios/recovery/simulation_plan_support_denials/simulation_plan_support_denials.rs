@@ -44,7 +44,7 @@ fn scenario_support_cases() -> [ScenarioSupportCase; 3] {
             scenario: recovery_scenario,
             required_driver: PhysicalDriverKind::FreshRuntimeRecovery,
             required_observer: ObserverKind::RecoveryOutcomeObserver,
-            required_oracle: OracleFamilyKind::S4RecoveryDogfood,
+            required_oracle: OracleFamilyKind::RecoveryDogfood,
         },
         ScenarioSupportCase {
             name: "shortcut rejection dogfood",
@@ -163,7 +163,7 @@ fn physical_isolation_scenario() -> CertifiedPhysicalScenario {
 
 fn recovery_scenario() -> CertifiedPhysicalScenario {
     physical_scenario("store.physical.s4.recovery.support-denial")
-        .family(PhysicalSimulationScenarioFamily::S4RecoveryDogfood)
+        .family(PhysicalSimulationScenarioFamily::RecoveryDogfood)
         .intent(PhysicalScenarioIntent::RecoveryReplayDogfood)
         .fixture(
             NativeStoreAspectFixture::segment_header("s4", 4)

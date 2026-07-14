@@ -1,0 +1,26 @@
+//! Canonical access-shape vocabulary.
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AccessShape {
+    PointLookup,
+    BatchPointLookup,
+    SortedBatchLookup,
+    RangeLookup,
+    MultiRangeLookup,
+    PrefixLookup,
+    GroupedPrefixLookup,
+    CoalescedPageRead,
+    ChunkTreeWalk,
+    ManifestGraphWalk,
+    BoundedScan,
+    FullDeclaredScan,
+    StreamingRead,
+    StreamingContinuationRead,
+    Append,
+    CompactionRead,
+    RebuildRead,
+    VerifierRead,
+    RepairRead,
+    QuarantineRead,
+    DegradedExactScan,
+}

@@ -1,6 +1,6 @@
 use super::{
     BaselineBTreeExecutionDenial, BaselineBTreeExecutionWitness, BaselineBTreeLookupAdmission,
-    BaselineBTreeReadShape, StableBTreeLookupExecution,
+    BaselineBTreeReadShape, StableBTreeLookupExecution, StableReadBindings,
 };
 use forge_store_physical_format::PhysicalRecordSlot;
 use forge_store_physical_isolation::{
@@ -84,6 +84,7 @@ impl BaselineBTreeReadPreflight {
             receipt: BaselineBTreeReadSourceReceipt::issue(&self.witness),
             witness: self.witness,
             protected: CompactionProtectedReferenceSet::from_read_plan(&plan),
+            references: self.references,
             plan,
         })
     }
@@ -95,6 +96,7 @@ pub struct BaselineBTreeReadSource {
     witness: BaselineBTreeExecutionWitness,
     plan: StablePhysicalReadPlan,
     protected: CompactionProtectedReferenceSet,
+    references: [CurrentGenerationPhysicalReference; 3],
 }
 
 impl BaselineBTreeReadSource {
@@ -117,23 +119,27 @@ impl BaselineBTreeReadSource {
         shape: BaselineBTreeReadShape,
     ) -> Result<StableBTreeLookupExecution, BaselineBTreeExecutionDenial> {
         let handle = self.plan.into_execution_ready_handle();
-        for reference in self.witness.stable_read_references()? {
+        for reference in self.references {
             handle
                 .read_protected_reference(reference)
                 .map_err(BaselineBTreeExecutionDenial::StableReadPlan)?;
         }
         let observation = self
             .witness
-            .execute_separator_directed_read(admission, probe_slot, shape);
+            .execute_separator_directed_read(probe_slot, shape);
         let stable_read =
             StablePhysicalReadExecution::from_execution_ready_handle(handle).complete();
-        observation.map(|observation| {
-            StableBTreeLookupExecution::new(
+        observation.and_then(|observation| {
+            StableBTreeLookupExecution::issue(
                 observation,
-                stable_read,
-                self.protected,
+                admission.plan_binding(),
+                StableReadBindings {
+                    receipt: stable_read,
+                    protected: self.protected,
+                },
                 admission.current_materialization().clone(),
             )
+            .map_err(BaselineBTreeExecutionDenial::CounterEnvelope)
         })
     }
 }

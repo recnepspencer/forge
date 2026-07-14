@@ -1,25 +1,25 @@
-use crate::scenario::physical_integrity::physical_integrity_closeout_harness_execution::S3ExecutedCloseoutHarnessRun;
+use crate::scenario::physical_integrity::physical_integrity_closeout_harness_execution::ExecutedIntegrityCloseoutHarnessRun;
 use crate::{
+    IntegrityHarnessExecutionEvidence, PhysicalIntegrityAcceptanceSuite,
     PhysicalIntegrityCloseoutDenial, PhysicalOracleOutcome, PhysicalProofOracleKind,
     PhysicalScenarioDriverKind, PhysicalScenarioObserverKind, PhysicalScenarioPlan,
     PhysicalScenarioPlanIdentity, PhysicalStoryTranscript, RoadmapLaneFamily,
-    S3AcceptanceSuiteKind, S3CloseoutHarnessExecutionEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S3HarnessTranscriptEvidence {
-    acceptance_suite: S3AcceptanceSuiteKind,
+pub struct IntegrityHarnessTranscriptEvidence {
+    acceptance_suite: PhysicalIntegrityAcceptanceSuite,
     transcript_identity: PhysicalScenarioPlanIdentity,
     lane_family: RoadmapLaneFamily,
     driver_families: Vec<PhysicalScenarioDriverKind>,
     observer_families: Vec<PhysicalScenarioObserverKind>,
     oracle_families: Vec<PhysicalProofOracleKind>,
-    executed_output: S3CloseoutHarnessExecutionEvidence,
+    executed_output: IntegrityHarnessExecutionEvidence,
 }
 
-impl S3HarnessTranscriptEvidence {
+impl IntegrityHarnessTranscriptEvidence {
     pub(crate) fn from_executed_closeout_run(
-        executed: S3ExecutedCloseoutHarnessRun,
+        executed: ExecutedIntegrityCloseoutHarnessRun,
     ) -> Result<Self, PhysicalIntegrityCloseoutDenial> {
         Self::from_suite_plan_and_transcript(
             executed.acceptance_suite(),
@@ -30,10 +30,10 @@ impl S3HarnessTranscriptEvidence {
     }
 
     pub(crate) fn from_suite_plan_and_transcript(
-        acceptance_suite: S3AcceptanceSuiteKind,
+        acceptance_suite: PhysicalIntegrityAcceptanceSuite,
         plan: &PhysicalScenarioPlan,
         transcript: &PhysicalStoryTranscript,
-        executed_output: S3CloseoutHarnessExecutionEvidence,
+        executed_output: IntegrityHarnessExecutionEvidence,
     ) -> Result<Self, PhysicalIntegrityCloseoutDenial> {
         require_harness_identity(acceptance_suite, plan, transcript, executed_output)?;
         Ok(Self {
@@ -55,7 +55,7 @@ impl S3HarnessTranscriptEvidence {
         })
     }
 
-    pub const fn acceptance_suite(&self) -> S3AcceptanceSuiteKind {
+    pub const fn acceptance_suite(&self) -> PhysicalIntegrityAcceptanceSuite {
         self.acceptance_suite
     }
 
@@ -79,7 +79,7 @@ impl S3HarnessTranscriptEvidence {
         &self.oracle_families
     }
 
-    pub const fn executed_output(&self) -> S3CloseoutHarnessExecutionEvidence {
+    pub const fn executed_output(&self) -> IntegrityHarnessExecutionEvidence {
         self.executed_output
     }
 
@@ -92,10 +92,10 @@ impl S3HarnessTranscriptEvidence {
 }
 
 fn require_harness_identity(
-    suite: S3AcceptanceSuiteKind,
+    suite: PhysicalIntegrityAcceptanceSuite,
     plan: &PhysicalScenarioPlan,
     transcript: &PhysicalStoryTranscript,
-    executed_output: S3CloseoutHarnessExecutionEvidence,
+    executed_output: IntegrityHarnessExecutionEvidence,
 ) -> Result<(), PhysicalIntegrityCloseoutDenial> {
     executed_output.require_suite(suite)?;
     if transcript.plan_identity() != plan.identity() {
@@ -126,7 +126,7 @@ fn require_harness_identity(
 }
 
 fn require_suite_specific_families(
-    suite: S3AcceptanceSuiteKind,
+    suite: PhysicalIntegrityAcceptanceSuite,
     plan: &PhysicalScenarioPlan,
     transcript: &PhysicalStoryTranscript,
 ) -> Result<(), PhysicalIntegrityCloseoutDenial> {
@@ -151,61 +151,73 @@ fn require_suite_specific_families(
     Ok(())
 }
 
-const fn required_driver(suite: S3AcceptanceSuiteKind) -> PhysicalScenarioDriverKind {
+const fn required_driver(suite: PhysicalIntegrityAcceptanceSuite) -> PhysicalScenarioDriverKind {
     match suite {
-        S3AcceptanceSuiteKind::CorruptionLocalization => {
-            PhysicalScenarioDriverKind::S3ByteFlipInjection
+        PhysicalIntegrityAcceptanceSuite::CorruptionLocalization => {
+            PhysicalScenarioDriverKind::ByteFlipInjection
         }
-        S3AcceptanceSuiteKind::BoundaryDenial => PhysicalScenarioDriverKind::S3BoundaryDenialProbe,
-        S3AcceptanceSuiteKind::HarnessTranscript => PhysicalScenarioDriverKind::PersistedFileDevice,
-        S3AcceptanceSuiteKind::SyntheticShortcutRejection => {
-            PhysicalScenarioDriverKind::S3SyntheticShortcutAttempt
+        PhysicalIntegrityAcceptanceSuite::BoundaryDenial => {
+            PhysicalScenarioDriverKind::IntegrityBoundaryDenialProbe
         }
-        S3AcceptanceSuiteKind::S4IntegrityHandoff => {
-            PhysicalScenarioDriverKind::S3RecoveryHandoffProbe
+        PhysicalIntegrityAcceptanceSuite::HarnessTranscript => {
+            PhysicalScenarioDriverKind::PersistedFileDevice
         }
-        S3AcceptanceSuiteKind::LineCapComposition => PhysicalScenarioDriverKind::S3LineCapDiscovery,
+        PhysicalIntegrityAcceptanceSuite::SyntheticShortcutRejection => {
+            PhysicalScenarioDriverKind::SyntheticShortcutAttempt
+        }
+        PhysicalIntegrityAcceptanceSuite::RecoveryIntegrityHandoff => {
+            PhysicalScenarioDriverKind::RecoveryIntegrityHandoffProbe
+        }
+        PhysicalIntegrityAcceptanceSuite::LineCapComposition => {
+            PhysicalScenarioDriverKind::IntegrityCompositionDiscovery
+        }
     }
 }
 
-const fn required_observer(suite: S3AcceptanceSuiteKind) -> PhysicalScenarioObserverKind {
+const fn required_observer(
+    suite: PhysicalIntegrityAcceptanceSuite,
+) -> PhysicalScenarioObserverKind {
     match suite {
-        S3AcceptanceSuiteKind::CorruptionLocalization => {
-            PhysicalScenarioObserverKind::S3DamageClassification
+        PhysicalIntegrityAcceptanceSuite::CorruptionLocalization => {
+            PhysicalScenarioObserverKind::DamageClassification
         }
-        S3AcceptanceSuiteKind::BoundaryDenial => PhysicalScenarioObserverKind::S3PreDecodeAdmission,
-        S3AcceptanceSuiteKind::HarnessTranscript => PhysicalScenarioObserverKind::EvidenceExport,
-        S3AcceptanceSuiteKind::SyntheticShortcutRejection => {
+        PhysicalIntegrityAcceptanceSuite::BoundaryDenial => {
+            PhysicalScenarioObserverKind::PreDecodeIntegrityAdmission
+        }
+        PhysicalIntegrityAcceptanceSuite::HarnessTranscript => {
+            PhysicalScenarioObserverKind::EvidenceExport
+        }
+        PhysicalIntegrityAcceptanceSuite::SyntheticShortcutRejection => {
             PhysicalScenarioObserverKind::MaterializationShortcut
         }
-        S3AcceptanceSuiteKind::S4IntegrityHandoff => {
-            PhysicalScenarioObserverKind::S3RecoveryHandoff
+        PhysicalIntegrityAcceptanceSuite::RecoveryIntegrityHandoff => {
+            PhysicalScenarioObserverKind::RecoveryIntegrityHandoff
         }
-        S3AcceptanceSuiteKind::LineCapComposition => {
-            PhysicalScenarioObserverKind::S3LineCapComposition
+        PhysicalIntegrityAcceptanceSuite::LineCapComposition => {
+            PhysicalScenarioObserverKind::IntegrityComposition
         }
     }
 }
 
-const fn required_oracle(suite: S3AcceptanceSuiteKind) -> PhysicalProofOracleKind {
+const fn required_oracle(suite: PhysicalIntegrityAcceptanceSuite) -> PhysicalProofOracleKind {
     match suite {
-        S3AcceptanceSuiteKind::CorruptionLocalization => {
-            PhysicalProofOracleKind::S3DamageLocalizesToPhysicalBoundary
+        PhysicalIntegrityAcceptanceSuite::CorruptionLocalization => {
+            PhysicalProofOracleKind::DamageLocalizesToPhysicalBoundary
         }
-        S3AcceptanceSuiteKind::BoundaryDenial => {
-            PhysicalProofOracleKind::S3DamagedBytesDenyBeforeLogicalDecode
+        PhysicalIntegrityAcceptanceSuite::BoundaryDenial => {
+            PhysicalProofOracleKind::DamagedBytesDenyBeforeLogicalDecode
         }
-        S3AcceptanceSuiteKind::HarnessTranscript => {
+        PhysicalIntegrityAcceptanceSuite::HarnessTranscript => {
             PhysicalProofOracleKind::TranscriptPreservesEvidence
         }
-        S3AcceptanceSuiteKind::SyntheticShortcutRejection => {
-            PhysicalProofOracleKind::S3SyntheticShortcutRejected
+        PhysicalIntegrityAcceptanceSuite::SyntheticShortcutRejection => {
+            PhysicalProofOracleKind::SyntheticShortcutRejected
         }
-        S3AcceptanceSuiteKind::S4IntegrityHandoff => {
-            PhysicalProofOracleKind::S3RecoveryHandoffContainsOnlyIntegrityEvidence
+        PhysicalIntegrityAcceptanceSuite::RecoveryIntegrityHandoff => {
+            PhysicalProofOracleKind::RecoveryHandoffContainsOnlyIntegrityEvidence
         }
-        S3AcceptanceSuiteKind::LineCapComposition => {
-            PhysicalProofOracleKind::S3LineCapCompositionChecked
+        PhysicalIntegrityAcceptanceSuite::LineCapComposition => {
+            PhysicalProofOracleKind::IntegrityCompositionChecked
         }
     }
 }

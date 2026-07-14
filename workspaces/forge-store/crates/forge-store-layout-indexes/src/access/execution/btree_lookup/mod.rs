@@ -1,12 +1,13 @@
+mod authority;
 mod lowering;
-mod progression;
+mod operation;
 mod readiness;
-mod readiness_outcome;
 
-pub use lowering::{BTreeLookupLoweringBasis, LoweredBTreeLookup, StaleBTreeLookup};
-pub(in crate::access::execution) use progression::{admit_ready, lower};
-pub use readiness::BTreeLookupReady;
-pub use readiness_outcome::{
+pub(in crate::access::execution::btree_lookup) use lowering::lower;
+pub use lowering::{BTreeLookupLoweringBasis, LoweredBTreeLookup};
+pub(crate) use operation::{execute, prepare, BTreeLookupOperationDenied};
+pub(in crate::access::execution::btree_lookup) use readiness::admit_ready;
+pub use readiness::{
     btree_lookup_readiness_cases, BTreeLookupReadinessCaseId, BTreeLookupReadinessOutcome,
-    BTreeLookupReadinessView,
+    BTreeLookupReadinessView, BTreeLookupReady,
 };

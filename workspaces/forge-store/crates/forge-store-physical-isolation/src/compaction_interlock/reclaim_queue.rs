@@ -16,18 +16,19 @@ pub struct DrainedCompactionReclaim {
 }
 
 impl CompactionDeferredReclaimQueue {
-    const OWNER_CASE: super::CompactionOwnerCase = super::CompactionOwnerCase::issued_by_owner(
-        super::CompactionOwnerCaseId::owned("physical.compaction.defer_reclaim"),
-        super::CompactionCutoverState::PublicationCommitted,
-        super::CompactionCutoverState::ReclaimDeferred,
-    );
+    const OWNER_CASE: super::CompactionOwnerCaseDeclaration =
+        super::CompactionOwnerCaseDeclaration::declared_by_owner(
+            super::CompactionOwnerCaseId::owned("physical.compaction.defer_reclaim"),
+            super::CompactionCutoverState::PublicationCommitted,
+            super::CompactionCutoverState::ReclaimDeferred,
+        );
 
     pub const fn cutover_state(&self) -> super::CompactionCutoverState {
         super::CompactionCutoverState::ReclaimDeferred
     }
 
-    pub const fn owner_case(&self) -> super::CompactionOwnerCase {
-        Self::OWNER_CASE
+    pub const fn owner_case_observation(&self) -> super::CompactionOwnerCaseObservation {
+        super::CompactionOwnerCaseObservation::issued_by_owner(Self::OWNER_CASE)
     }
 
     pub fn admit(
@@ -98,18 +99,21 @@ impl CompactionDeferredReclaimQueue {
 }
 
 impl DrainedCompactionReclaim {
-    const OWNER_CASE: super::CompactionOwnerCase = super::CompactionOwnerCase::issued_by_owner(
-        super::CompactionOwnerCaseId::owned("physical.compaction.drain_reclaim_after_read_release"),
-        super::CompactionCutoverState::ReclaimDeferred,
-        super::CompactionCutoverState::Reclaimed,
-    );
+    const OWNER_CASE: super::CompactionOwnerCaseDeclaration =
+        super::CompactionOwnerCaseDeclaration::declared_by_owner(
+            super::CompactionOwnerCaseId::owned(
+                "physical.compaction.drain_reclaim_after_read_release",
+            ),
+            super::CompactionCutoverState::ReclaimDeferred,
+            super::CompactionCutoverState::Reclaimed,
+        );
 
     pub const fn cutover_state(&self) -> super::CompactionCutoverState {
         super::CompactionCutoverState::Reclaimed
     }
 
-    pub const fn owner_case(&self) -> super::CompactionOwnerCase {
-        Self::OWNER_CASE
+    pub const fn owner_case_observation(&self) -> super::CompactionOwnerCaseObservation {
+        super::CompactionOwnerCaseObservation::issued_by_owner(Self::OWNER_CASE)
     }
 
     pub const fn released(&self) -> ReleasedOldReachability {
@@ -121,7 +125,7 @@ impl DrainedCompactionReclaim {
     }
 }
 
-pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCase> {
+pub(super) fn owner_cases() -> impl Iterator<Item = super::CompactionOwnerCaseDeclaration> {
     [
         CompactionDeferredReclaimQueue::OWNER_CASE,
         DrainedCompactionReclaim::OWNER_CASE,

@@ -7,6 +7,7 @@ use forge_store_wal::StoreWalRecordIdentity;
 #[derive(Debug)]
 pub struct WalLookupRequest<'a> {
     pub(super) catalog: &'a crate::BootstrapCatalogReadAdmission,
+    pub(super) current_catalog: &'a crate::BootstrapCatalogReadAdmission,
     pub(super) security: &'a StoreCurrentSecurityScopeWitnessSet,
     pub(super) record_family: WalRecordFamily,
     pub(super) record_identity: StoreWalRecordIdentity,
@@ -28,6 +29,7 @@ impl<'a> WalLookupRequest<'a> {
     ) -> Self {
         Self {
             catalog,
+            current_catalog: catalog,
             security,
             record_family,
             record_identity,
@@ -36,11 +38,20 @@ impl<'a> WalLookupRequest<'a> {
             source,
         }
     }
+
+    pub fn against_current_catalog(
+        mut self,
+        current_catalog: &'a crate::BootstrapCatalogReadAdmission,
+    ) -> Self {
+        self.current_catalog = current_catalog;
+        self
+    }
 }
 
 #[derive(Debug)]
 pub struct PageLookupRequest<'a> {
     pub(super) catalog: &'a crate::BootstrapCatalogReadAdmission,
+    pub(super) current_catalog: &'a crate::BootstrapCatalogReadAdmission,
     pub(super) security: &'a StoreCurrentSecurityScopeWitnessSet,
     pub(super) segment: PhysicalSegmentId,
     pub(super) page: PhysicalPageId,
@@ -48,6 +59,7 @@ pub struct PageLookupRequest<'a> {
     pub(super) kind: PageLookupKind,
     pub(super) budget: PreExecutionBudgetEnvelope,
     pub(super) source: crate::BaselineBTreeReadSource,
+    pub(super) current_source: Option<crate::BaselineBTreeReadSource>,
 }
 
 impl<'a> PageLookupRequest<'a> {
@@ -130,6 +142,7 @@ impl<'a> PageLookupRequest<'a> {
     ) -> Self {
         Self {
             catalog,
+            current_catalog: catalog,
             security,
             segment,
             page,
@@ -137,7 +150,21 @@ impl<'a> PageLookupRequest<'a> {
             kind,
             budget,
             source,
+            current_source: None,
         }
+    }
+
+    pub fn against_current_catalog(
+        mut self,
+        current_catalog: &'a crate::BootstrapCatalogReadAdmission,
+    ) -> Self {
+        self.current_catalog = current_catalog;
+        self
+    }
+
+    pub fn against_current_source(mut self, source: crate::BaselineBTreeReadSource) -> Self {
+        self.current_source = Some(source);
+        self
     }
 }
 

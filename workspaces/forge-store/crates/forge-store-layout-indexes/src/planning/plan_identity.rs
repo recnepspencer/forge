@@ -1,160 +1,131 @@
 use crate::access::budget::PlannedCounterEnvelope;
-use crate::access::shape::{
-    AccessAuthorityPosture, AccessLaneClassification, AccessShapeDetail, AccessStaleDisposition,
-    ExpectedCounterClass,
-};
+use crate::access::shape::{AccessAuthorityPosture, AccessLaneClassification, AccessShapeDetail};
+use crate::access::AdmittedAccessIntent;
 use crate::artifact_family::AdmittedPhysicalArtifactFamily;
 use crate::catalog::ArtifactFamilyLifecycleAdmission;
 use crate::keyspace::{AdmittedPhysicalAccessIdentity, AdmittedPhysicalKeyDomain};
-use crate::maintenance::PhysicalMutationShape;
 use crate::materialization::AdmittedLayoutMaterialization;
 use crate::strategy::registry::LayoutStrategyRegistrySnapshot;
 use crate::strategy::{AdmittedLayoutStrategy, LayoutStrategyFamily};
 use forge_store_budgets::{PreExecutionBudgetEnvelope, PreExecutionBudgetRequest};
+use std::sync::Arc;
 
-use super::{AccessPlanCostEstimate, DeterministicSelectionRule};
+use super::{AccessPlanCostEstimate, DeterministicSelectionRule, SelectionCandidateAudit};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccessPlanIdentity {
-    admitted_family: AdmittedPhysicalArtifactFamily,
-    strategy_family: LayoutStrategyFamily,
-    detail: AccessShapeDetail,
-    lane: AccessLaneClassification,
-    authority_posture: AccessAuthorityPosture,
-    stale_disposition: AccessStaleDisposition,
-    key_domain: AdmittedPhysicalKeyDomain,
-    request_identity: AdmittedPhysicalAccessIdentity,
-    materialization: Option<AdmittedLayoutMaterialization>,
-    strategy_admission: Option<LayoutStrategyRegistrySnapshot>,
-    expected_counters: ExpectedCounterClass,
-    mutation_shape: Option<PhysicalMutationShape>,
-    budget_rows: Option<u64>,
-    planned_counter_envelope: PlannedCounterEnvelope,
-    selection_rule: DeterministicSelectionRule,
-    cost_estimate: AccessPlanCostEstimate,
-    budget_request: PreExecutionBudgetRequest,
-    budget_envelope: PreExecutionBudgetEnvelope,
+    basis: Arc<AccessPlanIdentityBasis>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(super) struct AccessPlanIdentityBasis {
+    pub(super) admitted_family: AdmittedPhysicalArtifactFamily,
+    pub(super) strategy_family: LayoutStrategyFamily,
+    pub(super) intent: AdmittedAccessIntent,
+    pub(super) key_domain: AdmittedPhysicalKeyDomain,
+    pub(super) request_identity: AdmittedPhysicalAccessIdentity,
+    pub(super) materialization: Option<AdmittedLayoutMaterialization>,
+    pub(super) strategy_admission: Option<LayoutStrategyRegistrySnapshot>,
+    pub(super) planned_counter_envelope: PlannedCounterEnvelope,
+    pub(super) selection_rule: DeterministicSelectionRule,
+    pub(super) primary_candidate: SelectionCandidateAudit,
+    pub(super) secondary_candidate: SelectionCandidateAudit,
+    pub(super) cost_estimate: AccessPlanCostEstimate,
+    pub(super) budget_request: PreExecutionBudgetRequest,
+    pub(super) budget_envelope: PreExecutionBudgetEnvelope,
 }
 
 impl AccessPlanIdentity {
-    pub(crate) const fn new(
-        admitted_family: AdmittedPhysicalArtifactFamily,
-        strategy_family: LayoutStrategyFamily,
-        detail: AccessShapeDetail,
-        lane: AccessLaneClassification,
-        authority_posture: AccessAuthorityPosture,
-        stale_disposition: AccessStaleDisposition,
-        key_domain: AdmittedPhysicalKeyDomain,
-        request_identity: AdmittedPhysicalAccessIdentity,
-        materialization: Option<AdmittedLayoutMaterialization>,
-        strategy_admission: Option<LayoutStrategyRegistrySnapshot>,
-        expected_counters: ExpectedCounterClass,
-        mutation_shape: Option<PhysicalMutationShape>,
-        budget_rows: Option<u64>,
-        planned_counter_envelope: PlannedCounterEnvelope,
-        selection_rule: DeterministicSelectionRule,
-        cost_estimate: AccessPlanCostEstimate,
-        budget_request: PreExecutionBudgetRequest,
-        budget_envelope: PreExecutionBudgetEnvelope,
-    ) -> Self {
+    pub(super) fn new(basis: AccessPlanIdentityBasis) -> Self {
         Self {
-            admitted_family,
-            strategy_family,
-            detail,
-            lane,
-            authority_posture,
-            stale_disposition,
-            key_domain,
-            request_identity,
-            materialization,
-            strategy_admission,
-            expected_counters,
-            mutation_shape,
-            budget_rows,
-            planned_counter_envelope,
-            selection_rule,
-            cost_estimate,
-            budget_request,
-            budget_envelope,
+            basis: Arc::new(basis),
         }
     }
 
-    pub const fn lifecycle(&self) -> ArtifactFamilyLifecycleAdmission {
-        self.admitted_family.lifecycle()
+    pub fn lifecycle(&self) -> ArtifactFamilyLifecycleAdmission {
+        self.basis.admitted_family.lifecycle()
     }
 
-    pub const fn admitted_family(&self) -> AdmittedPhysicalArtifactFamily {
-        self.admitted_family
+    pub fn admitted_family(&self) -> AdmittedPhysicalArtifactFamily {
+        self.basis.admitted_family
     }
 
-    pub const fn family(&self) -> LayoutStrategyFamily {
-        self.strategy_family
+    pub fn family(&self) -> LayoutStrategyFamily {
+        self.basis.strategy_family
     }
 
-    pub const fn detail(&self) -> AccessShapeDetail {
-        self.detail
+    pub fn detail(&self) -> AccessShapeDetail {
+        self.basis.intent.detail()
     }
 
-    pub const fn shape(&self) -> crate::access::shape::AccessShape {
-        self.detail.shape()
+    pub fn shape(&self) -> crate::access::shape::AccessShape {
+        self.basis.intent.detail().shape()
     }
 
-    pub const fn lane(&self) -> AccessLaneClassification {
-        self.lane
+    pub fn lane(&self) -> AccessLaneClassification {
+        self.basis.intent.lane()
     }
 
-    pub const fn authority_posture(&self) -> AccessAuthorityPosture {
-        self.authority_posture
+    pub fn authority_posture(&self) -> AccessAuthorityPosture {
+        self.basis.intent.authority_posture()
     }
 
-    pub const fn stale_disposition(&self) -> AccessStaleDisposition {
-        self.stale_disposition
+    pub fn intent(&self) -> AdmittedAccessIntent {
+        self.basis.intent
     }
 
-    pub const fn key_domain(&self) -> crate::PhysicalKeyDomainWitness {
-        self.key_domain.witness()
+    pub fn key_domain(&self) -> crate::PhysicalKeyDomainWitness {
+        self.basis.key_domain.witness()
     }
 
-    pub const fn admitted_key_domain(&self) -> AdmittedPhysicalKeyDomain {
-        self.key_domain
+    pub fn admitted_key_domain(&self) -> AdmittedPhysicalKeyDomain {
+        self.basis.key_domain
     }
 
-    pub const fn request_identity(&self) -> AdmittedPhysicalAccessIdentity {
-        self.request_identity
+    pub fn request_identity(&self) -> AdmittedPhysicalAccessIdentity {
+        self.basis.request_identity
     }
 
-    pub const fn materialization(&self) -> Option<&AdmittedLayoutMaterialization> {
-        self.materialization.as_ref()
+    pub fn materialization(&self) -> Option<&AdmittedLayoutMaterialization> {
+        self.basis.materialization.as_ref()
     }
 
-    pub const fn admitted_strategy(&self) -> Option<AdmittedLayoutStrategy> {
-        match &self.strategy_admission {
-            Some(admission) => Some(admission.admitted_strategy()),
-            None => None,
-        }
+    pub fn admitted_strategy(&self) -> Option<&AdmittedLayoutStrategy> {
+        self.basis
+            .strategy_admission
+            .as_ref()
+            .map(LayoutStrategyRegistrySnapshot::admitted_strategy)
     }
 
-    pub const fn strategy_admission(&self) -> Option<&LayoutStrategyRegistrySnapshot> {
-        self.strategy_admission.as_ref()
+    pub fn strategy_admission(&self) -> Option<&LayoutStrategyRegistrySnapshot> {
+        self.basis.strategy_admission.as_ref()
     }
 
-    pub const fn planned_counter_envelope(&self) -> PlannedCounterEnvelope {
-        self.planned_counter_envelope
+    pub fn planned_counter_envelope(&self) -> PlannedCounterEnvelope {
+        self.basis.planned_counter_envelope
     }
 
-    pub const fn selection_rule(&self) -> DeterministicSelectionRule {
-        self.selection_rule
+    pub fn selection_rule(&self) -> DeterministicSelectionRule {
+        self.basis.selection_rule
     }
 
-    pub const fn cost_estimate(&self) -> &AccessPlanCostEstimate {
-        &self.cost_estimate
+    pub fn primary_candidate(&self) -> &SelectionCandidateAudit {
+        &self.basis.primary_candidate
     }
 
-    pub const fn budget_request(&self) -> PreExecutionBudgetRequest {
-        self.budget_request
+    pub fn secondary_candidate(&self) -> &SelectionCandidateAudit {
+        &self.basis.secondary_candidate
     }
 
-    pub const fn budget_envelope(&self) -> PreExecutionBudgetEnvelope {
-        self.budget_envelope
+    pub fn cost_estimate(&self) -> &AccessPlanCostEstimate {
+        &self.basis.cost_estimate
+    }
+
+    pub fn budget_request(&self) -> PreExecutionBudgetRequest {
+        self.basis.budget_request
+    }
+
+    pub fn budget_envelope(&self) -> PreExecutionBudgetEnvelope {
+        self.basis.budget_envelope
     }
 }

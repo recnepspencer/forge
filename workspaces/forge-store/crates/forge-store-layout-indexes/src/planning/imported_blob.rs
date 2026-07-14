@@ -33,9 +33,10 @@ pub(super) fn admit_imported_blob_read_request(
     catalog: &crate::BootstrapCatalogReadAdmission,
     witness: &forge_store_blob_chunks::ImportedBlobWitness,
 ) -> ImportedBlobReadAdmissionOutcome {
-    let materialization = match crate::AdmittedLayoutMaterialization::admit_imported_blob_exact(
-        family, catalog, witness,
-    ) {
+    let materialization = match crate::access_planning()
+        .admit_imported_blob_materialization(family, catalog, witness)
+        .into_result()
+    {
         Ok(materialization) => materialization,
         Err(denial) => return ImportedBlobReadAdmissionOutcome::materialization_denied(denial),
     };
@@ -62,7 +63,7 @@ pub(super) fn admit_imported_blob_read_request(
 
 #[derive(Debug, PartialEq, Eq)]
 enum ImportedBlobReadAdmissionCase {
-    Admitted(super::AdmittedPhysicalReadRequest),
+    Admitted(Box<super::AdmittedPhysicalReadRequest>),
     MaterializationDenied(crate::MaterializationDenial),
     ConcreteKeyDenied(crate::ArtifactFamilyDenial),
     RequestDenied(super::PhysicalAccessRequestAdmissionDenied),
@@ -84,7 +85,7 @@ pub enum ImportedBlobReadAdmissionView<'a> {
 impl ImportedBlobReadAdmissionOutcome {
     pub(super) fn admitted(request: super::AdmittedPhysicalReadRequest) -> Self {
         Self {
-            case: ImportedBlobReadAdmissionCase::Admitted(request),
+            case: ImportedBlobReadAdmissionCase::Admitted(Box::new(request)),
         }
     }
 
@@ -134,7 +135,7 @@ impl ImportedBlobReadAdmissionOutcome {
 
     pub fn into_admitted(self) -> Result<super::AdmittedPhysicalReadRequest, Self> {
         match self.case {
-            ImportedBlobReadAdmissionCase::Admitted(value) => Ok(value),
+            ImportedBlobReadAdmissionCase::Admitted(value) => Ok(*value),
             case => Err(Self { case }),
         }
     }

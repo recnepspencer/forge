@@ -13,7 +13,7 @@ use forge_store_physical_certification::{
 use forge_store_physical_format::{
     physical_bootstrap_catalog, PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority,
     PhysicalPageId, PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId,
-    PlatformPhysicalAppendRequest, PlatformPhysicalFacade, PlatformPhysicalOpenRequest,
+    PhysicalStoreRuntime, PlatformPhysicalAppendRequest, PlatformPhysicalOpenRequest,
 };
 
 #[test]
@@ -26,13 +26,13 @@ fn bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access() {
         .discover_catalog(&open)
         .expect("physical bootstrap catalog should derive");
 
-    let (catalog, admission) = bootstrap_catalog()
-        .read_catalog(
-            BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
-            physical_catalog.clone(),
-            physical_catalog.current_root(),
-        )
-        .expect("bootstrap facade should admit catalog");
+    let outcome = bootstrap_catalog().read_catalog(
+        BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
+        physical_catalog.clone(),
+        physical_catalog.current_root(),
+    );
+    let counters = outcome.counters();
+    let (catalog, admission) = outcome.expect("bootstrap facade should admit catalog");
 
     assert_eq!(
         catalog.root_reference(),
@@ -53,6 +53,14 @@ fn bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access() {
     assert_eq!(catalog.allocation_class_count(), 2);
     assert_eq!(catalog.free_space_count(), 0);
     assert_eq!(catalog.layout_entry_count(), 5);
+    assert_eq!(counters.catalog_candidates_read(), 1);
+    assert_eq!(
+        counters.checksum_bytes_verified(),
+        physical_catalog.checksum().bytes_checked()
+    );
+    assert_eq!(counters.root_entries_read(), 4);
+    assert_eq!(counters.layout_entries_read(), 5);
+    assert_eq!(counters.admitted_catalogs(), 1);
 
     assert_eq!(
         admission.physical_format_version(),
@@ -66,14 +74,12 @@ fn bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access() {
 
 #[test]
 fn bootstrap_only_lane_denies_ordinary_family_access() {
-    let denial = bootstrap_catalog()
-        .deny_ordinary_family_access(
-            layout_declarations()
-                .declaration(DurableArtifactFamilyId::PhysicalPage)
-                .expect("physical page family must remain declared")
-                .family(),
-        )
-        .expect_err("bootstrap lane must not answer ordinary family access");
+    let denial = bootstrap_catalog().deny_ordinary_family_access(
+        layout_declarations()
+            .declaration(DurableArtifactFamilyId::PhysicalPage)
+            .expect("physical page family must remain declared")
+            .family(),
+    );
 
     assert!(matches!(
         denial,
@@ -176,7 +182,7 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
             published.replay_artifact(),
         )
         .expect("published layout should materialize for certification replay");
-    let fixture = PhysicalFixtureBuilder::production_backed("phase18-bootstrap-certification")
+    let fixture = PhysicalFixtureBuilder::production_backed("bootstrap-certification")
         .materialize_with(certification_materialization)
         .capability(FixtureCapabilityDeclaration::for_mutation_boundary(
             FixtureMutationBoundary::Manifest,
@@ -187,7 +193,7 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
         .replay_artifact()
         .expect("production-backed certification replay should preserve the native replay artifact")
         .clone();
-    let reopened = PlatformPhysicalFacade::reopen(
+    let reopened = PhysicalStoreRuntime::reopen(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
         certification_replay_artifact.clone(),
@@ -222,7 +228,7 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
 }
 
 fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
-    let mut facade = PlatformPhysicalFacade::open_physical_format(
+    let mut facade = PhysicalStoreRuntime::open_physical_format(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
     )
@@ -250,7 +256,7 @@ fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublic
 }
 
 fn republished_layout() -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
-    let mut facade = PlatformPhysicalFacade::open_physical_format(
+    let mut facade = PhysicalStoreRuntime::open_physical_format(
         readiness(),
         PlatformPhysicalOpenRequest::physical_format_canonical(),
     )

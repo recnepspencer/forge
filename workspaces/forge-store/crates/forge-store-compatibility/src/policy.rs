@@ -63,7 +63,7 @@ pub struct RollingWindowCompatibilityReceipt {
 }
 
 impl RollingWindowCompatibilityReceipt {
-    pub const fn new(plan: RollingUpgradeAdmissionPlan) -> Self {
+    pub(crate) const fn new(plan: RollingUpgradeAdmissionPlan) -> Self {
         Self { plan }
     }
 
@@ -104,7 +104,7 @@ pub struct RestoreCompatibilityReceipt {
 }
 
 impl RestoreCompatibilityReceipt {
-    pub const fn new(plan: RestoreCompatibilityPlan) -> Self {
+    pub(crate) const fn new(plan: RestoreCompatibilityPlan) -> Self {
         Self { plan }
     }
 

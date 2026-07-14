@@ -15,7 +15,7 @@ impl PhysicalIntegrityReadinessDenial {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalIntegrityReadinessDenialKind {
-    S2ReadinessNotSealed,
+    PhysicalSubstrateReadinessNotSealed,
     MissingProtectedViewCapability,
     MissingVerifierResidentEnvelope,
     MissingScrubAllocationEnvelope,

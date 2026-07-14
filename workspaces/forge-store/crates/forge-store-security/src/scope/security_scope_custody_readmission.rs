@@ -3,9 +3,9 @@ use forge_store_authority::StoreCurrentAuthorityWitness;
 use crate::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreRawSecurityScopeDeclaration,
-    StoreSecurityScopeAdmissionDenial, StoreSecurityScopeAdmissionRequest,
-    StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeDeclarationProvenance,
-    StoreTenantScope, StoreTrustBoundaryReadmissionTrigger,
+    StoreSecurityScopeAdmissionDenial, StoreSecurityScopeAdmissionExpectation,
+    StoreSecurityScopeAdmissionRequest, StoreSecurityScopeDeclarationProvenance, StoreTenantScope,
+    StoreTrustBoundaryReadmissionTrigger,
 };
 use forge_proof::TransitionOutcome;
 

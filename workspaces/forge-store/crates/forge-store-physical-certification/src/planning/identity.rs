@@ -335,7 +335,7 @@ fn plan_canonicalization_version() -> CanonicalizationRuleVersion {
 
 fn scenario_family_token(family: PhysicalSimulationScenarioFamily) -> &'static str {
     match family {
-        PhysicalSimulationScenarioFamily::S4RecoveryDogfood => "s4-recovery-dogfood",
+        PhysicalSimulationScenarioFamily::RecoveryDogfood => "s4-recovery-dogfood",
         PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe => {
             "s5-readiness-shape-probe"
         }

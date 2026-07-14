@@ -2,8 +2,8 @@ use super::counters::PhysicalLayoutAccessCounterSnapshot;
 use super::grammar::PhysicalLayoutAccessFamily;
 use super::page::locate_page_record;
 use crate::{
-    FramedRecordView, PhysicalReference, PhysicalReferenceAuthority, PlatformPhysicalFacade,
-    PlatformPhysicalFacadeDenial,
+    FramedRecordView, PhysicalReference, PhysicalReferenceAuthority, PhysicalStoreRuntime,
+    PhysicalStoreRuntimeDenial,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,17 +15,17 @@ pub struct PhysicalFrameLayoutReport<'a> {
 
 #[derive(Debug)]
 pub struct FrameAccess<'a> {
-    facade: &'a mut PlatformPhysicalFacade,
+    facade: &'a mut PhysicalStoreRuntime,
 }
 
 impl<'a> FrameAccess<'a> {
-    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+    pub(crate) fn new(facade: &'a mut PhysicalStoreRuntime) -> Self {
         Self { facade }
     }
     pub fn read_frame(
         &mut self,
         reference: PhysicalReference,
-    ) -> Result<PhysicalFrameLayoutReport<'_>, PlatformPhysicalFacadeDenial> {
+    ) -> Result<PhysicalFrameLayoutReport<'_>, PhysicalStoreRuntimeDenial> {
         self.facade.ensure_admitted_reference(reference)?;
         self.facade.mark_read();
         let located = locate_page_record(

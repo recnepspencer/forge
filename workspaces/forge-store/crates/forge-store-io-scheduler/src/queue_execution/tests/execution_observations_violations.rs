@@ -2,8 +2,8 @@ use super::super::execute_admitted_queue_plan;
 use super::super::test_support::{admitted_plan, completion_for_plan, speculative_scope};
 use super::super::QueueExecutionObservation;
 use crate::{
-    execute_ready_queue_plan, QueueExecutionOutcome, QueueExecutionProgression,
-    S6QueueDurabilityClass,
+    execute_ready_queue_plan, QueueDurabilityClass, QueueExecutionOutcome,
+    QueueExecutionProgression,
 };
 
 #[test]
@@ -12,7 +12,7 @@ fn mechanical_execution_cannot_reclassify_or_change_durability() {
     let outcome = execute_admitted_queue_plan(
         plan,
         QueueExecutionObservation::empty()
-            .with_attempted_durability_class(S6QueueDurabilityClass::PlatformDurable),
+            .with_attempted_durability_class(QueueDurabilityClass::PlatformDurable),
     );
 
     let QueueExecutionOutcome::Violation(violation) = outcome else {

@@ -1,3 +1,9 @@
+use super::{
+    accept_aspect_native_boundary_handoff, reconstruct_aspect_native_boundary_verdict,
+    reject_terminal_json_projection_as_boundary_handoff, AspectNativeBoundaryHandoff,
+    AspectNativeBoundaryHandoffDenial, AspectNativeBoundaryHandoffVerdict,
+    AspectNativeRejectedInputKind,
+};
 use forge_foundational::{
     boundary_evidence_api::common_path, materialize_diagnostic_support_report, performance,
     performance_api, prepare_canonical_basis_sequence, AdmissionReadinessProfile,
@@ -28,15 +34,9 @@ use forge_store_aspect_native::{
     StorePhysicalBoundaryWitness, StoreReadinessHandoffArtifact, StoreReadinessHandoffDenial,
 };
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
-use forge_store_readiness::{
-    accept_aspect_native_gate_handoff, reconstruct_aspect_native_handoff_verdict,
-    reject_terminal_json_projection_as_aspect_native_handoff, AspectNativeGateHandoff,
-    AspectNativeGateHandoffDenial,
-};
-use forge_store_s0_reclassification::S0HandoffDeniedInputKind;
 use forge_store_test_support::NativeStoreAspectFixture;
 
-use crate::certify_foundational_handoff_gate_proof_evidence;
+use crate::certify_aspect_native_boundary_audit;
 
 #[test]
 fn foundational_handoff_is_native_boundary_artifact() {
@@ -89,24 +89,20 @@ fn foundational_handoff_rejects_terminal_projection_as_handoff() {
     let fixture = NativeStoreAspectFixture::scalar_string("s0-terminal-denial");
     let projection = project_store_boundary_fact_to_terminal_json(fixture.boundary_fact()).unwrap();
 
-    let denial = reject_terminal_json_projection_as_aspect_native_handoff(projection);
+    let denial = reject_terminal_json_projection_as_boundary_handoff(projection);
 
     assert_eq!(
         denial,
-        AspectNativeGateHandoffDenial::TerminalJsonProjectionInput
+        AspectNativeBoundaryHandoffDenial::TerminalJsonProjectionInput
     );
 }
 
 #[test]
 fn foundational_handoff_replays_from_native_evidence() {
-    let handoff = AspectNativeGateHandoff::new(
-        native_handoff_artifact(),
-        certify_foundational_handoff_gate_proof_evidence().unwrap(),
-    )
-    .unwrap();
+    let handoff = native_boundary_handoff();
 
-    let direct = accept_aspect_native_gate_handoff(handoff.clone());
-    let replayed = reconstruct_aspect_native_handoff_verdict(&handoff);
+    let direct = accept_aspect_native_boundary_handoff(handoff.clone());
+    let replayed = reconstruct_aspect_native_boundary_verdict(&handoff);
 
     assert_eq!(direct, replayed);
     assert_eq!(replayed.canonical_basis_entry_count(), 3);
@@ -118,9 +114,22 @@ fn foundational_handoff_replays_from_native_evidence() {
     assert_eq!(replayed.foundational_adoption_family_count(), 6);
 }
 
+pub(crate) fn native_boundary_handoff_verdict() -> AspectNativeBoundaryHandoffVerdict {
+    accept_aspect_native_boundary_handoff(native_boundary_handoff())
+}
+
+fn native_boundary_handoff(
+) -> AspectNativeBoundaryHandoff<FoundationalAuthoritativePerformanceClaim> {
+    AspectNativeBoundaryHandoff::new(
+        native_handoff_artifact(),
+        certify_aspect_native_boundary_audit().unwrap(),
+    )
+    .unwrap()
+}
+
 #[test]
 fn foundational_handoff_uses_current_gate_proof_evidence_not_symbolic_labels() {
-    let evidence = certify_foundational_handoff_gate_proof_evidence().unwrap();
+    let evidence = certify_aspect_native_boundary_audit().unwrap();
 
     assert!(
         evidence
@@ -138,7 +147,7 @@ fn foundational_handoff_uses_current_gate_proof_evidence_not_symbolic_labels() {
     assert_eq!(evidence.public_facade().exported_surface_count(), 3);
     assert_eq!(evidence.native_harness().native_fixture_surface_count(), 2);
     assert_eq!(evidence.negative_proof_count(), 5);
-    for denied_input in S0HandoffDeniedInputKind::REQUIRED {
+    for denied_input in AspectNativeRejectedInputKind::REQUIRED {
         assert!(evidence.contains_negative_proof(denied_input));
     }
 }
@@ -154,7 +163,7 @@ fn foundational_handoff_tests_do_not_use_symbolic_required_negative_proof_shortc
     )
     .unwrap();
 
-    assert!(!source.contains(&["S0HandoffNegativeProofSet", "required"].join("::")));
+    assert!(!source.contains(&["AspectNativeRejectedInputProofSet", "required"].join("::")));
 }
 
 fn native_handoff_artifact(
@@ -202,7 +211,7 @@ fn performance_evidence(
 fn readiness_basis() -> forge_foundational::CanonicalBasisReadyArtifact {
     expect_success(
         prepare_canonical_basis_sequence(
-            CanonicalizationRuleVersion::new("store-s0-handoff-v1").unwrap(),
+            CanonicalizationRuleVersion::new("store-aspect-native-boundary-v1").unwrap(),
             CanonicalBasisDomain::Future("store.readiness.handoff"),
             [
                 basis_text_entry("canonical-basis", "native"),
@@ -218,7 +227,7 @@ fn basis_text_entry(locus: &'static str, value: &'static str) -> CanonicalBasisE
     CanonicalBasisEntry::new(
         CanonicalBasisDomain::Future("store.readiness.handoff"),
         CanonicalBasisLocus::Named(InternedString::from(locus)),
-        CanonicalBasisEntryKind::Future("store-s0-handoff-field"),
+        CanonicalBasisEntryKind::Future("store-aspect-native-boundary-field"),
         CanonicalBasisValue::ExactText(InternedString::from(value)),
     )
 }

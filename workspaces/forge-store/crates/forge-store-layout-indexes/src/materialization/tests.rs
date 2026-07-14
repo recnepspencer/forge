@@ -53,9 +53,16 @@ fn imported_blob_materialization_retains_content_bound_owner_identity() {
             "layout.import.materialization",
         );
     let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
-    let materialization = access_planning()
-        .admit_imported_blob_materialization(imported_blob_scope().0, &catalog, &witness)
-        .expect("readmitted blob witness should materialize");
+    let admission = access_planning().admit_imported_blob_materialization(
+        imported_blob_scope().0,
+        &catalog,
+        &witness,
+    );
+    assert!(matches!(
+        admission.view(),
+        crate::ImportedBlobMaterializationAdmissionView::Admitted(_)
+    ));
+    let materialization = admission.expect("readmitted blob witness should materialize");
 
     assert_eq!(
         materialization.coverage().upper_bound().basis_kind(),
@@ -89,8 +96,16 @@ fn imported_blob_materialization_rejects_wrong_family() {
     let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
     let page_family = crate::strategy::tests_support::admit_btree_page_strategy().admitted_family();
 
+    let admission =
+        access_planning().admit_imported_blob_materialization(page_family, &catalog, &witness);
+    assert!(matches!(
+        admission.view(),
+        crate::ImportedBlobMaterializationAdmissionView::Denied(
+            MaterializationDenial::ImportedBlobFamilyRequired
+        )
+    ));
     assert_eq!(
-        access_planning().admit_imported_blob_materialization(page_family, &catalog, &witness),
+        admission,
         Err(MaterializationDenial::ImportedBlobFamilyRequired)
     );
 }
@@ -145,11 +160,7 @@ fn imported_blob_witness_enters_read_planning_without_raw_identity_reconstructio
         .into_lsm_lookup()
         .expect("blob manifest point lookup should select its admitted indexed owner");
     assert!(matches!(
-        selected
-            .materialization()
-            .expect("selected blob lookup retains materialization")
-            .source()
-            .kind(),
+        selected.materialization().source().kind(),
         crate::LayoutMaterializationSourceKind::ImportedBlob(_)
     ));
 }

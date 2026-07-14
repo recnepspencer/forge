@@ -18,7 +18,7 @@ struct CompileFailFixture {
     expected_stderr: &'static [&'static str],
 }
 
-const fn fixtures() -> [CompileFailFixture; 2] {
+const fn fixtures() -> [CompileFailFixture; 6] {
     [
         CompileFailFixture {
             name: "layout_migration_plan_struct_literal_is_not_public.rs",
@@ -27,6 +27,22 @@ const fn fixtures() -> [CompileFailFixture; 2] {
         CompileFailFixture {
             name: "layout_rebind_required_struct_literal_is_not_public.rs",
             expected_stderr: &["private", "LayoutRebindRequired"],
+        },
+        CompileFailFixture {
+            name: "layout_migration_receipt_struct_literal_is_not_public.rs",
+            expected_stderr: &["private", "LayoutMigrationReceipt"],
+        },
+        CompileFailFixture {
+            name: "layout_rollback_receipt_struct_literal_is_not_public.rs",
+            expected_stderr: &["private", "LayoutRollbackReceipt"],
+        },
+        CompileFailFixture {
+            name: "layout_binding_transition_issuer_is_not_public.rs",
+            expected_stderr: &["private", "issue_transition"],
+        },
+        CompileFailFixture {
+            name: "raw_target_interruption_binding_lane_is_removed.rs",
+            expected_stderr: &["no method named `interruption_state_at`"],
         },
     ]
 }

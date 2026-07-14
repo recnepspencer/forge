@@ -101,7 +101,7 @@ impl SupportedOracleFamilySet {
             OracleFamilyKind::PhysicalIsolationReadinessShape,
             OracleFamilyKind::PhysicalIsolationInterleaving,
             OracleFamilyKind::IoPressureSimulation,
-            OracleFamilyKind::S4RecoveryDogfood,
+            OracleFamilyKind::RecoveryDogfood,
             OracleFamilyKind::BlobHarnessEvidence,
             OracleFamilyKind::BlobHeavyQualification,
             OracleFamilyKind::ForbiddenShortcutRejection,

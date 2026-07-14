@@ -1,6 +1,6 @@
 use crate::BackendFamily;
 use forge_store_contracts::RoadmapScope;
-use forge_store_physical_format::PlatformPhysicalFacadeEvidence;
+use forge_store_physical_format::PhysicalStoreRuntimeEvidence;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PlatformGradeClaimWitness {
@@ -10,13 +10,13 @@ pub struct PlatformGradeClaimWitness {
 
 impl PlatformGradeClaimWitness {
     pub fn from_facade_evidence(
-        evidence: &PlatformPhysicalFacadeEvidence,
+        evidence: &PhysicalStoreRuntimeEvidence,
     ) -> Result<Self, crate::ClaimPromotionRejection> {
         if !evidence.proves_platform_boundary() {
             return Err(crate::ClaimPromotionRejection::MissingPlatformGradeEvidence);
         }
         Ok(Self {
-            backend_family: BackendFamily::PlatformPhysicalFacade,
+            backend_family: BackendFamily::PhysicalStoreRuntime,
             scope: evidence.scope(),
         })
     }
@@ -38,13 +38,13 @@ mod tests {
     };
     use forge_store_physical_format::{
         PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
-        PhysicalSegmentId, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
+        PhysicalSegmentId, PhysicalStoreRuntime, PlatformPhysicalAppendRequest,
         PlatformPhysicalOpenRequest,
     };
 
     #[test]
     fn platform_grade_witness_requires_real_facade_evidence() {
-        let mut facade = PlatformPhysicalFacade::open_physical_format(
+        let mut facade = PhysicalStoreRuntime::open_physical_format(
             readiness(),
             PlatformPhysicalOpenRequest::physical_format_canonical(),
         )
@@ -67,14 +67,14 @@ mod tests {
 
         assert_eq!(
             witness.backend_family(),
-            BackendFamily::PlatformPhysicalFacade
+            BackendFamily::PhysicalStoreRuntime
         );
         assert_eq!(witness.scope(), ROADMAP_2_S1_SCOPE);
     }
 
     #[test]
     fn platform_grade_witness_rejects_incomplete_facade_evidence() {
-        let mut facade = PlatformPhysicalFacade::open_physical_format(
+        let mut facade = PhysicalStoreRuntime::open_physical_format(
             readiness(),
             PlatformPhysicalOpenRequest::physical_format_canonical(),
         )

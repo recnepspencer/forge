@@ -4,8 +4,8 @@ use crate::{
     ManifestDiscoveryAuthority, ManifestDiscoveryCounterSnapshot, ManifestDiscoveryReport,
     OfflineManifestCodec, OfflineVerifierCounterSnapshot, PhysicalBootstrapCatalogDenial,
     PhysicalHeaderAuthority, PhysicalReferenceAuthority, PhysicalRootManifest,
-    PhysicalRootReference, PlatformPhysicalFacade, PlatformPhysicalFacadeDenial,
-    PlatformPhysicalFacadeDenialKind,
+    PhysicalRootReference, PhysicalStoreRuntime, PhysicalStoreRuntimeDenial,
+    PhysicalStoreRuntimeDenialKind,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,7 +20,7 @@ pub struct RootManifestLayoutReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(in crate::access) struct CanonicalRootManifestAccess {
+pub(crate) struct CanonicalRootManifestAccess {
     root: PhysicalRootManifest,
     manifest_counters: ManifestDiscoveryCounterSnapshot,
     counters: PhysicalLayoutAccessCounterSnapshot,
@@ -28,17 +28,17 @@ pub(in crate::access) struct CanonicalRootManifestAccess {
 
 #[derive(Debug)]
 pub struct RootDiscoveryAccess<'a> {
-    facade: &'a mut PlatformPhysicalFacade,
+    facade: &'a mut PhysicalStoreRuntime,
 }
 
 impl<'a> RootDiscoveryAccess<'a> {
-    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+    pub(crate) fn new(facade: &'a mut PhysicalStoreRuntime) -> Self {
         Self { facade }
     }
 
     pub fn current_root_manifest(
         &mut self,
-    ) -> Result<RootManifestLayoutReport, PlatformPhysicalFacadeDenial> {
+    ) -> Result<RootManifestLayoutReport, PhysicalStoreRuntimeDenial> {
         let access = canonical_root_manifest(self.facade)?;
         let _ = self.facade.mark_read();
         Ok(RootManifestLayoutReport {
@@ -88,7 +88,7 @@ impl RootManifestLayoutReport {
 }
 
 impl CanonicalRootManifestAccess {
-    pub(in crate::access) const fn root(&self) -> &PhysicalRootManifest {
+    pub(crate) const fn root(&self) -> &PhysicalRootManifest {
         &self.root
     }
 
@@ -124,9 +124,9 @@ impl CanonicalRootManifestAccess {
     }
 }
 
-pub(in crate::access) fn canonical_root_manifest(
-    facade: &PlatformPhysicalFacade,
-) -> Result<CanonicalRootManifestAccess, PlatformPhysicalFacadeDenial> {
+pub(crate) fn canonical_root_manifest(
+    facade: &PhysicalStoreRuntime,
+) -> Result<CanonicalRootManifestAccess, PhysicalStoreRuntimeDenial> {
     let witness = facade
         .storage_ref()
         .admit_bootstrap_open_witness(&facade.headers_ref())
@@ -137,7 +137,7 @@ pub(in crate::access) fn canonical_root_manifest(
 fn decode_canonical_root_manifest(
     witness: &crate::PhysicalBootstrapCatalogOpenWitness,
     headers: &PhysicalHeaderAuthority,
-) -> Result<CanonicalRootManifestAccess, PlatformPhysicalFacadeDenial> {
+) -> Result<CanonicalRootManifestAccess, PhysicalStoreRuntimeDenial> {
     let mut decode_denial = None;
     let mut discovery_denial = None;
     for root_manifest in witness.root_manifest_candidates() {
@@ -188,8 +188,8 @@ fn decode_canonical_root_manifest(
     }
 
     if let Some(denial) = discovery_denial {
-        return Err(PlatformPhysicalFacadeDenial::new(
-            PlatformPhysicalFacadeDenialKind::ManifestDiscoveryDenied,
+        return Err(PhysicalStoreRuntimeDenial::new(
+            PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied,
         )
         .with_manifest_denial(denial));
     }
@@ -242,27 +242,23 @@ fn exact_manifest_counters(
     )
 }
 
-fn map_bootstrap_denial(denial: PhysicalBootstrapCatalogDenial) -> PlatformPhysicalFacadeDenial {
+fn map_bootstrap_denial(denial: PhysicalBootstrapCatalogDenial) -> PhysicalStoreRuntimeDenial {
     match denial {
         PhysicalBootstrapCatalogDenial::ManifestDecodeDenied(denial) => {
             let kind = match denial.kind() {
                 crate::OfflineVerifierDenialKind::MissingRootManifest => {
-                    PlatformPhysicalFacadeDenialKind::MissingPhysicalRoot
+                    PhysicalStoreRuntimeDenialKind::MissingPhysicalRoot
                 }
-                _ => PlatformPhysicalFacadeDenialKind::OfflineVerifierDenied,
+                _ => PhysicalStoreRuntimeDenialKind::OfflineVerifierDenied,
             };
-            PlatformPhysicalFacadeDenial::new(kind).with_verifier_denial(denial)
+            PhysicalStoreRuntimeDenial::new(kind).with_verifier_denial(denial)
         }
         PhysicalBootstrapCatalogDenial::ManifestDiscoveryDenied(denial) => {
-            PlatformPhysicalFacadeDenial::new(
-                PlatformPhysicalFacadeDenialKind::ManifestDiscoveryDenied,
-            )
-            .with_manifest_denial(denial)
+            PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied)
+                .with_manifest_denial(denial)
         }
         PhysicalBootstrapCatalogDenial::BootstrapChecksumDenied(_) => {
-            PlatformPhysicalFacadeDenial::new(
-                PlatformPhysicalFacadeDenialKind::OfflineVerifierDenied,
-            )
+            PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::OfflineVerifierDenied)
         }
     }
 }

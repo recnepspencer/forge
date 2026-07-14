@@ -185,50 +185,43 @@ fn lsm_mutation_and_recovery_intents_issue_exact_operation_capabilities() {
 }
 
 #[test]
-fn degraded_owner_readmission_preserves_the_selected_operation_identity() {
-    let ready = super::tests_support::readmitted_owner_degraded_scan();
+fn degraded_owner_rebind_preserves_the_selected_operation_identity() {
+    let ready = super::tests_support::rebound_owner_degraded_scan();
     assert_eq!(ready.basis().fingerprint(), ready.selected().fingerprint());
 }
 
 #[test]
-fn degraded_readmission_rejects_equal_coverage_from_another_store_authority() {
+fn degraded_rebind_rejects_replacement_from_another_store_authority() {
     let stale = super::tests_support::stale_owner_degraded_scan();
-    let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
-    let (foreign_family, _) = crate::strategy::tests_support::admit_strategy_scope_for_store(
-        DurableArtifactFamilyId::PhysicalPage,
-        StoreKeyScope::PageEnvelope,
-        StoreTenantScope::TenantPhysicalBoundary,
-        StoreAuthenticityRequirement::required(
-            StoreAuthenticityRequirementClass::AuthenticatedFrame,
-        ),
-        StoreCustodyPosture::InternalStoreCustody,
-        "store.foreign.degraded_readmission",
-    );
-    let foreign = access_planning()
-        .admit_current_catalog_root_materialization(foreign_family, &catalog)
-        .unwrap()
-        .require_current_at(access_planning().current_materialization_frontier(&catalog))
-        .unwrap();
+    let advanced = crate::bootstrap::test_support::advanced_bootstrap_catalog_read_admission();
+    let (foreign_family, foreign_domain) =
+        crate::strategy::tests_support::admit_strategy_scope_for_store(
+            DurableArtifactFamilyId::PhysicalPage,
+            StoreKeyScope::PageEnvelope,
+            StoreTenantScope::TenantPhysicalBoundary,
+            StoreAuthenticityRequirement::required(
+                StoreAuthenticityRequirementClass::AuthenticatedFrame,
+            ),
+            StoreCustodyPosture::InternalStoreCustody,
+            "store.foreign.degraded_readmission",
+        );
+    let foreign =
+        super::tests_support::selected_degraded_scan(foreign_family, foreign_domain, &advanced);
 
     assert!(matches!(
-        crate::degraded_scan_runtime().admit_stale_readmission(&stale, foreign),
-        Err(crate::DegradedScanAdmissionDenied::ArtifactFamilyAuthorityMismatch { .. })
+        crate::degraded_scan_runtime().admit_rebind(&stale, &foreign),
+        Err(crate::DegradedScanAdmissionDenied::ReplacementAuthorityMismatch { .. })
     ));
 }
 
 #[test]
-fn degraded_readmission_rejects_equal_family_coverage_from_another_source() {
+fn degraded_rebind_rejects_replacement_from_the_displaced_source() {
     let stale = super::tests_support::stale_owner_degraded_scan();
-    let advanced = crate::bootstrap::test_support::advanced_bootstrap_catalog_read_admission();
-    let other_source = access_planning()
-        .admit_current_catalog_root_materialization(stale.selected().admitted_family(), &advanced)
-        .unwrap()
-        .require_current_at(access_planning().current_materialization_frontier(&advanced))
-        .unwrap();
+    let (replacement, _) = super::tests_support::selected_owner_degraded_scan();
 
     assert!(matches!(
-        crate::degraded_scan_runtime().admit_stale_readmission(&stale, other_source),
-        Err(crate::DegradedScanAdmissionDenied::CurrentCoverageMismatch { .. })
+        crate::degraded_scan_runtime().admit_rebind(&stale, &replacement),
+        Err(crate::DegradedScanAdmissionDenied::ReplacementFrontierMismatch { .. })
     ));
 }
 
@@ -237,7 +230,7 @@ fn degraded_owner_current_readiness_retains_materialization_authority() {
     let ready = super::tests_support::ready_owner_degraded_scan();
     assert_eq!(
         ready.current_materialization().materialization(),
-        ready.selected().materialization().unwrap()
+        ready.selected().materialization()
     );
 }
 
@@ -275,19 +268,6 @@ fn degraded_readiness_declares_exactly_the_cases_ordinary_execution_observes() {
         .map(|case| case.name())
         .collect::<std::collections::BTreeSet<_>>();
     let observed = super::tests_support::observed_degraded_readiness_cases()
-        .into_iter()
-        .map(|case| case.name())
-        .collect::<std::collections::BTreeSet<_>>();
-
-    assert_eq!(declared, observed);
-}
-
-#[test]
-fn btree_lookup_readiness_declares_exactly_the_cases_ordinary_execution_observes() {
-    let declared = crate::btree_lookup_readiness_cases()
-        .map(|case| case.name())
-        .collect::<std::collections::BTreeSet<_>>();
-    let observed = super::tests_support::observed_btree_lookup_readiness_cases()
         .into_iter()
         .map(|case| case.name())
         .collect::<std::collections::BTreeSet<_>>();

@@ -25,7 +25,7 @@ fn wal_blob_and_physical_reference_domains_prove_real_hash_and_replay_behavior()
             StoreCustodyPosture::InternalStoreCustody,
         ),
     );
-    let wal_domain = layout_declarations()
+    let wal_domain = key_domain_law()
         .declare_physical_key_domain(wal_scope)
         .unwrap();
     let wal_encoding = layout_declarations().require_canonical_key_encoding(wal_domain);
@@ -87,7 +87,7 @@ fn wal_blob_and_physical_reference_domains_prove_real_hash_and_replay_behavior()
             StoreCustodyPosture::InternalStoreCustody,
         ),
     );
-    let blob_domain = layout_declarations()
+    let blob_domain = key_domain_law()
         .declare_physical_key_domain(blob_scope)
         .unwrap();
     let blob_encoding = layout_declarations().require_canonical_key_encoding(blob_domain);
@@ -345,7 +345,7 @@ fn wal_blob_and_physical_reference_domains_prove_real_hash_and_replay_behavior()
             StoreCustodyPosture::InternalStoreCustody,
         ),
     );
-    let reference_domain = layout_declarations()
+    let reference_domain = key_domain_law()
         .declare_physical_key_domain(reference_scope)
         .unwrap();
     let reference_encoding = layout_declarations().require_canonical_key_encoding(reference_domain);
@@ -375,3 +375,4 @@ fn wal_blob_and_physical_reference_domains_prove_real_hash_and_replay_behavior()
             .as_slice()
     );
 }
+use super::key_domain_law;

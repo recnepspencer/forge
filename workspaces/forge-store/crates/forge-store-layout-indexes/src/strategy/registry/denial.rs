@@ -59,19 +59,11 @@ pub enum LayoutAdmissionDenial {
         coverage_family: PhysicalArtifactFamily,
         strategy_family: PhysicalArtifactFamily,
     },
-    LiveExactMaintenanceWitnessDoesNotMatchStrategy {
-        witness_family: PhysicalArtifactFamily,
-        strategy_family: PhysicalArtifactFamily,
-    },
-    LiveExactMaintenanceCoverageDoesNotMatchRequest {
-        witness_coverage: crate::materialization::LayoutCoverageWitness,
-        requested_coverage: crate::materialization::LayoutCoverageWitness,
-    },
     ExactMaterializationRequired,
     ExactCoverageDenied(MaterializationDenial),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LayoutAdmissionDenialCase {
     StrategyVocabularyDenied,
     RequestedLaneDoesNotMatchFamilyLane,
@@ -86,14 +78,12 @@ pub enum LayoutAdmissionDenialCase {
     HashEqualityLawDoesNotMatchKeyDomain,
     CompositeOrderingLawDoesNotMatchKeyDomain,
     CoverageFamilyDoesNotMatchStrategy,
-    LiveExactMaintenanceWitnessDoesNotMatchStrategy,
-    LiveExactMaintenanceCoverageDoesNotMatchRequest,
     ExactMaterializationRequired,
     ExactCoverageDenied,
 }
 
 impl LayoutAdmissionDenialCase {
-    pub const ALL: [Self; 17] = [
+    pub const ALL: [Self; 15] = [
         Self::StrategyVocabularyDenied,
         Self::RequestedLaneDoesNotMatchFamilyLane,
         Self::RequestedScopeDoesNotMatchKeyDomain,
@@ -107,8 +97,6 @@ impl LayoutAdmissionDenialCase {
         Self::HashEqualityLawDoesNotMatchKeyDomain,
         Self::CompositeOrderingLawDoesNotMatchKeyDomain,
         Self::CoverageFamilyDoesNotMatchStrategy,
-        Self::LiveExactMaintenanceWitnessDoesNotMatchStrategy,
-        Self::LiveExactMaintenanceCoverageDoesNotMatchRequest,
         Self::ExactMaterializationRequired,
         Self::ExactCoverageDenied,
     ];
@@ -149,12 +137,6 @@ impl LayoutAdmissionDenial {
             }
             Self::CoverageFamilyDoesNotMatchStrategy { .. } => {
                 LayoutAdmissionDenialCase::CoverageFamilyDoesNotMatchStrategy
-            }
-            Self::LiveExactMaintenanceWitnessDoesNotMatchStrategy { .. } => {
-                LayoutAdmissionDenialCase::LiveExactMaintenanceWitnessDoesNotMatchStrategy
-            }
-            Self::LiveExactMaintenanceCoverageDoesNotMatchRequest { .. } => {
-                LayoutAdmissionDenialCase::LiveExactMaintenanceCoverageDoesNotMatchRequest
             }
             Self::ExactMaterializationRequired => {
                 LayoutAdmissionDenialCase::ExactMaterializationRequired

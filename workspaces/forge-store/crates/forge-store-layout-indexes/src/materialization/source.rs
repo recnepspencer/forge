@@ -63,7 +63,7 @@ enum LayoutMaterializationSourceAuthority {
     ImportedBlob(std::sync::Arc<forge_store_blob_chunks::ImportedBlobWitness>),
     RestoredArtifact {
         readmission: crate::integrity::LayoutReadmissionWitness,
-        custody: std::sync::Arc<forge_store_security::StoreReadmittedSecurityScope>,
+        custody_authority: std::sync::Arc<forge_store_authority::StoreCurrentAuthorityWitness>,
     },
 }
 
@@ -193,7 +193,7 @@ impl LayoutMaterializationSourceIdentity {
     pub(super) fn from_restored_artifact(
         catalog: &BootstrapCatalogReadAdmission,
         witness: crate::integrity::LayoutReadmissionWitness,
-        custody: forge_store_security::StoreReadmittedSecurityScope,
+        custody: &forge_store_security::StoreReadmittedSecurityScope,
     ) -> Self {
         Self {
             root_owner: catalog.root_owner(),
@@ -203,7 +203,7 @@ impl LayoutMaterializationSourceIdentity {
             ),
             authority: LayoutMaterializationSourceAuthority::RestoredArtifact {
                 readmission: witness,
-                custody: std::sync::Arc::new(custody),
+                custody_authority: std::sync::Arc::new(custody.current_authority().clone()),
             },
         }
     }
@@ -239,17 +239,6 @@ impl LayoutMaterializationSourceIdentity {
             &self.authority,
             LayoutMaterializationSourceAuthority::BTreeReplay(retained)
                 if retained.as_ref() == source
-        )
-    }
-
-    pub(crate) fn matches_btree_publication(
-        &self,
-        publication: forge_store_physical_format::RootPublicationValidationWitness,
-    ) -> bool {
-        matches!(
-            &self.authority,
-            LayoutMaterializationSourceAuthority::BTreePublication(retained)
-                if *retained == publication
         )
     }
 }

@@ -85,11 +85,12 @@ fn compaction_interlock_evidence() -> CompactionInterlockFoundationalEvidence {
         ),
         root_publication_validation(new_root.scope(), 2),
     );
-    let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
-        CompactionCutoverDelta::lower(plan, new_root).unwrap(),
-        receipt,
-    )
-    .unwrap();
+    let publication =
+        forge_store_physical_isolation::CompactionRewritePublication::publish_rewrite(
+            CompactionCutoverDelta::lower(plan, new_root).unwrap(),
+            receipt,
+        )
+        .unwrap();
     let proof = CompactionCutoverStabilityProof::admit(
         publication.clone(),
         CompactionCutoverRecoveryPosture::admit_visible_product(
@@ -169,7 +170,7 @@ fn publication_only_evidence() -> CompactionInterlockFoundationalEvidence {
         ),
         root_publication_validation(new_root.scope(), 2),
     );
-    forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
+    forge_store_physical_isolation::CompactionRewritePublication::publish_rewrite(
         CompactionCutoverDelta::lower(plan, new_root).unwrap(),
         receipt,
     )

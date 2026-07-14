@@ -98,6 +98,11 @@ impl PhysicalPublicationIntent {
         let old_reachability = self
             .old_reachability
             .ok_or(PhysicalPublicationDenial::MissingOldReachability)?;
+        if self.old_root.root().store_authority_identity()
+            != self.new_root.root().store_authority_identity()
+        {
+            return Err(PhysicalPublicationDenial::StoreAuthorityMismatch);
+        }
         let epochs =
             PublicationEpochPair::advance_from(self.old_root.root(), self.new_root.root())?;
         Ok(ValidatedPhysicalPublicationIntent {

@@ -25,6 +25,7 @@ pub use current_authority::{
     require_current_physical_authority, require_current_store_authority,
     StoreCurrentAuthorityWitness, StoreCurrentPhysicalAuthorityWitness,
 };
+pub use current_authority_identity::StoreCurrentAuthorityIdentity;
 pub use derived_authority_evidence::{
     report_derived_store_authority_evidence, StoreDerivedAuthorityEvidence,
     StoreDerivedAuthorityEvidenceRole,
@@ -36,4 +37,3 @@ pub use retained_authority_evidence::{
     compare_retained_store_authority_evidence, report_retained_store_authority_evidence,
     StoreRetainedAuthorityEvidence, StoreRetainedAuthorityEvidenceComparison,
 };
-pub use current_authority_identity::StoreCurrentAuthorityIdentity;

@@ -1,5 +1,5 @@
 use crate::{
-    pre_execution_budget_admission, PreExecutionBudgetAdmissionOutcome, PreExecutionBudgetDenial,
+    pre_execution_budget_admission, PreExecutionBudgetAdmissionView, PreExecutionBudgetDenial,
     PreExecutionBudgetEnvelope, PreExecutionBudgetRequest, PreExecutionBudgetScope,
 };
 
@@ -13,9 +13,9 @@ fn budget_admission_issues_resource_authority_without_plan_identity() {
         request(PreExecutionBudgetScope::Foreground),
         PreExecutionBudgetEnvelope::foreground_default(),
     );
-    let PreExecutionBudgetAdmissionOutcome::Admitted(receipt) = outcome else {
-        panic!("bounded foreground work must be admitted")
-    };
+    let receipt = outcome
+        .into_result()
+        .expect("bounded foreground work must be admitted");
     assert_eq!(receipt.scope(), PreExecutionBudgetScope::Foreground);
     assert_eq!(
         receipt.request(),
@@ -34,16 +34,17 @@ fn budget_admission_rejects_scope_and_exact_resource_overages() {
         PreExecutionBudgetEnvelope::foreground_default(),
     );
     assert!(matches!(
-        mismatch,
-        PreExecutionBudgetAdmissionOutcome::Denied(PreExecutionBudgetDenial::ScopeMismatch { .. })
+        mismatch.view(),
+        PreExecutionBudgetAdmissionView::Denied(PreExecutionBudgetDenial::ScopeMismatch { .. })
     ));
 
     let excessive =
         PreExecutionBudgetRequest::new(PreExecutionBudgetScope::Foreground, 1_024, 9, 0, 1, 4_096);
     assert!(matches!(
         pre_execution_budget_admission()
-            .admit(excessive, PreExecutionBudgetEnvelope::foreground_default(),),
-        PreExecutionBudgetAdmissionOutcome::Denied(PreExecutionBudgetDenial::PageReadsExceeded {
+            .admit(excessive, PreExecutionBudgetEnvelope::foreground_default(),)
+            .view(),
+        PreExecutionBudgetAdmissionView::Denied(PreExecutionBudgetDenial::PageReadsExceeded {
             estimated: 9,
             admitted: 8
         })
@@ -52,24 +53,22 @@ fn budget_admission_rejects_scope_and_exact_resource_overages() {
 
 #[test]
 fn admitted_resource_grants_preserve_scope_without_claiming_operation_authority() {
-    let PreExecutionBudgetAdmissionOutcome::Admitted(foreground) = pre_execution_budget_admission()
+    let foreground = pre_execution_budget_admission()
         .admit(
             request(PreExecutionBudgetScope::Foreground),
             PreExecutionBudgetEnvelope::foreground_default(),
         )
-    else {
-        unreachable!()
-    };
+        .into_result()
+        .expect("foreground budget");
     assert_eq!(foreground.scope(), PreExecutionBudgetScope::Foreground);
 
-    let PreExecutionBudgetAdmissionOutcome::Admitted(maintenance) =
-        pre_execution_budget_admission().admit(
+    let maintenance = pre_execution_budget_admission()
+        .admit(
             request(PreExecutionBudgetScope::Maintenance),
             PreExecutionBudgetEnvelope::maintenance_default(),
         )
-    else {
-        unreachable!()
-    };
+        .into_result()
+        .expect("maintenance budget");
     assert_eq!(maintenance.scope(), PreExecutionBudgetScope::Maintenance);
 }
 
@@ -79,11 +78,10 @@ fn budget_receipt_retains_the_exact_admitted_demand() {
         PreExecutionBudgetRequest::new(PreExecutionBudgetScope::Foreground, 2_048, 2, 0, 2, 8_192);
     let different =
         PreExecutionBudgetRequest::new(PreExecutionBudgetScope::Foreground, 1_024, 1, 0, 1, 4_096);
-    let PreExecutionBudgetAdmissionOutcome::Admitted(receipt) = pre_execution_budget_admission()
+    let receipt = pre_execution_budget_admission()
         .admit(exact, PreExecutionBudgetEnvelope::foreground_default())
-    else {
-        panic!("exact demand must fit the foreground envelope")
-    };
+        .into_result()
+        .expect("exact demand must fit the foreground envelope");
 
     assert_eq!(receipt.request(), exact);
     assert_ne!(receipt.request(), different);

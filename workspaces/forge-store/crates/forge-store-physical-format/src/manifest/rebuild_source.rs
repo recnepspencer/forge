@@ -1,20 +1,29 @@
 use crate::{
-    ManifestDiscoveryCounterSnapshot, PhysicalPageId, PhysicalRootManifest, PhysicalRootReference,
-    PhysicalSegmentId, SegmentPageManifestEntry,
+    ManifestDiscoveryCounterSnapshot, PhysicalPageId, PhysicalReference, PhysicalRootManifest,
+    PhysicalRootReference, PhysicalSegmentId, PhysicalStoreIdentity, SegmentPageManifestEntry,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalRootManifestRebuildRow {
     segment_id: PhysicalSegmentId,
     page_id: PhysicalPageId,
+    value_fingerprint: String,
 }
 
 impl PhysicalRootManifestRebuildRow {
-    fn new(entry: SegmentPageManifestEntry, _root_reference: PhysicalRootReference) -> Self {
+    fn new(entry: SegmentPageManifestEntry, root_reference: PhysicalRootReference) -> Self {
         let slot = entry.page_slot();
         Self {
             segment_id: slot.segment_id(),
             page_id: slot.page_id(),
+            value_fingerprint: format!(
+                "root:{}:segment:{}:page:{}:slot:{}:generation:{}",
+                root_reference.get(),
+                slot.segment_id().get(),
+                slot.page_id().get(),
+                slot.slot().get(),
+                slot.generation().get(),
+            ),
         }
     }
 
@@ -25,6 +34,10 @@ impl PhysicalRootManifestRebuildRow {
     pub const fn page_id(&self) -> PhysicalPageId {
         self.page_id
     }
+
+    pub fn value_fingerprint(&self) -> &str {
+        &self.value_fingerprint
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,6 +45,41 @@ pub struct PhysicalRootManifestRebuildWitness {
     manifest: PhysicalRootManifest,
     rows: Vec<PhysicalRootManifestRebuildRow>,
     counter_shape: Vec<u64>,
+}
+
+/// Store-issued source for rebuilding a derived index from the current root manifest.
+///
+/// The source can only be issued by an opened [`crate::PhysicalStoreRuntime`]. This keeps the
+/// decoded manifest and the physical Store identity on one authority path instead of allowing a
+/// caller to pair an independently built manifest witness with copied Store metadata.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PhysicalRootManifestRebuildSource {
+    witness: PhysicalRootManifestRebuildWitness,
+    store_identity: PhysicalStoreIdentity,
+}
+
+impl PhysicalRootManifestRebuildSource {
+    pub(crate) fn issue(
+        manifest: PhysicalRootManifest,
+        store_identity: PhysicalStoreIdentity,
+    ) -> Self {
+        Self {
+            witness: PhysicalRootManifestRebuildWitness::admit(manifest),
+            store_identity,
+        }
+    }
+
+    pub const fn witness(&self) -> &PhysicalRootManifestRebuildWitness {
+        &self.witness
+    }
+
+    pub const fn store_identity(&self) -> &PhysicalStoreIdentity {
+        &self.store_identity
+    }
+
+    pub fn store_authority_identity(&self) -> forge_store_authority::StoreCurrentAuthorityIdentity {
+        self.store_identity.authority_identity()
+    }
 }
 
 impl PhysicalRootManifestRebuildWitness {
@@ -63,6 +111,10 @@ impl PhysicalRootManifestRebuildWitness {
 
     pub const fn manifest(&self) -> &PhysicalRootManifest {
         &self.manifest
+    }
+
+    pub const fn root_reference(&self) -> PhysicalReference {
+        PhysicalReference::from_root_publication_cell(self.manifest.root_publication())
     }
 
     pub fn rows(&self) -> &[PhysicalRootManifestRebuildRow] {

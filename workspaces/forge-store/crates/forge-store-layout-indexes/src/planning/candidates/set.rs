@@ -37,8 +37,7 @@ impl PlanningAlternative {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::planning) struct PlanningAlternativeSet {
-    primary: Option<PlanningAlternative>,
-    secondary: Option<PlanningAlternative>,
+    selected: Option<PlanningAlternative>,
     primary_audit: SelectionCandidateAudit,
     secondary_audit: SelectionCandidateAudit,
 }
@@ -68,20 +67,25 @@ impl PlanningAlternativeSet {
             role,
         );
 
+        let selected = match key_domain.domain() {
+            crate::keyspace::PhysicalKeyDomain::PageAddressKey
+            | crate::keyspace::PhysicalKeyDomain::SegmentAddressKey
+            | crate::keyspace::PhysicalKeyDomain::ExtentAddressKey
+            | crate::keyspace::PhysicalKeyDomain::PhysicalReferenceKey => btree.0,
+            crate::keyspace::PhysicalKeyDomain::WalRecordKey
+            | crate::keyspace::PhysicalKeyDomain::BlobIdentityKey => lsm.0,
+            crate::keyspace::PhysicalKeyDomain::RootManifestKey => None,
+        };
+
         Self {
-            primary: btree.0,
-            secondary: lsm.0,
+            selected,
             primary_audit: btree.1,
             secondary_audit: lsm.1,
         }
     }
 
-    pub(in crate::planning) const fn primary(&self) -> Option<&PlanningAlternative> {
-        self.primary.as_ref()
-    }
-
-    pub(in crate::planning) const fn secondary(&self) -> Option<&PlanningAlternative> {
-        self.secondary.as_ref()
+    pub(in crate::planning) const fn selected(&self) -> Option<&PlanningAlternative> {
+        self.selected.as_ref()
     }
 
     pub(in crate::planning) const fn primary_audit(&self) -> &SelectionCandidateAudit {
@@ -132,7 +136,7 @@ fn derive_candidate(
                 strategy_family,
                 authority_role,
                 SelectionCandidateOutcome::Rejected(SelectionCandidateRejection::RegistryDenied(
-                    denial,
+                    Box::new(denial),
                 )),
             ),
         ),

@@ -56,11 +56,12 @@ fn read_during_compaction_keeps_old_reader_and_new_reader_stable() {
         inputs.new_validation,
         None,
     );
-    let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
-        CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
-        receipt,
-    )
-    .unwrap();
+    let publication =
+        forge_store_physical_isolation::CompactionRewritePublication::publish_rewrite(
+            CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
+            receipt,
+        )
+        .unwrap();
     assert_eq!(publication.counters().publication_swaps(), 1);
 
     let recovery_posture = CompactionCutoverRecoveryPosture::admit_visible_product(

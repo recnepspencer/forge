@@ -1,6 +1,5 @@
 mod admission;
 mod admission_operation;
-mod admission_outcome;
 mod blob_identity;
 #[cfg(test)]
 mod blob_replay_tests;
@@ -37,18 +36,21 @@ pub(crate) use range::{
     range_end_bytes_for_key, range_start_bytes_for_key, require_range_bound_law,
 };
 pub(crate) use tenant_partition::declare_tenant_scoped_key_domain;
+pub(crate) use value::admit_root_key;
+#[cfg(test)]
+pub(crate) use value::admit_segment_key;
 pub(crate) use value::{
     admit_blob_identity_key, admit_blob_key, admit_extent_address_key, admit_page_address_key,
     admit_page_key, admit_physical_reference_key, admit_root_manifest_key,
     admit_segment_address_key, admit_wal_key, admit_wal_record_key,
 };
-#[cfg(test)]
-pub(crate) use value::{admit_root_key, admit_segment_key};
 
-pub use admission::AdmittedPhysicalKeyDomain;
+pub use admission::{
+    physical_key_domain_admission_cases, AdmittedPhysicalKeyDomain,
+    PhysicalKeyDomainAdmissionCaseId, PhysicalKeyDomainAdmissionOutcome,
+    PhysicalKeyDomainAdmissionView,
+};
 pub use admission_operation::key_domain_law;
-pub(super) use admission_outcome::issue_key_domain_admission;
-pub use admission_outcome::KeyDomainAdmissionOutcome;
 pub use comparator::{ComparatorBehavior, ComparatorLaw};
 pub use composite::{CompositeKeyField, CompositeKeyOrderingLaw};
 pub use declaration::{PhysicalKeyDomain, PhysicalKeyDomainWitness};

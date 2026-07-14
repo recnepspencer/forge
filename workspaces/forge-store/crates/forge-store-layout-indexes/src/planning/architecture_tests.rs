@@ -55,9 +55,10 @@ fn raw_access_shape_stops_at_request_admission() {
     }
 
     let execution = [
-        include_str!("../access/execution/lowering_facade.rs"),
+        include_str!("../access/execution/btree_lookup/operation.rs"),
         include_str!("../access/execution/view.rs"),
-        include_str!("../access/execution/degraded_scan/readmission.rs"),
+        include_str!("../access/execution/degraded_scan/executed.rs"),
+        include_str!("../access/execution/degraded_scan/rebind.rs"),
     ];
     assert!(
         execution
@@ -98,7 +99,7 @@ fn selected_operations_retain_request_bound_strategy_admission() {
 fn selected_operation_is_classified_once_at_candidate_admission() {
     let candidate_operation = include_str!("candidates/operation.rs");
     let decision = include_str!("decision.rs");
-    let btree_execution = include_str!("../strategy/btree/execution/lookup_runtime.rs");
+    let btree_execution = include_str!("../strategy/btree/execution/lookup/operation.rs");
 
     assert!(!candidate_operation.contains("_ =>"));
     assert!(!decision.contains("plan.selected_family()"));
@@ -113,12 +114,16 @@ fn planning_does_not_advertise_an_unexecutable_ranking_policy() {
     let planning_root = include_str!("../planning.rs");
     let decision = include_str!("decision.rs");
     let basis = include_str!("selection_basis.rs");
+    let candidates = include_str!("candidates/set.rs");
 
     assert!(!planning_root.contains("selection_policy"));
     assert!(!decision.contains(".rank("));
     assert!(!basis.contains("PreferBTree"));
     assert!(!basis.contains("PreferLsm"));
-    assert!(decision.contains("OverlappingEligibleStrategyAuthority"));
+    assert!(candidates.contains("selected: Option<PlanningAlternative>"));
+    assert!(!candidates.contains("primary: Option<PlanningAlternative>"));
+    assert!(!candidates.contains("secondary: Option<PlanningAlternative>"));
+    assert!(!decision.contains("OverlappingEligibleStrategyAuthority"));
 }
 
 #[test]
@@ -169,6 +174,26 @@ fn plan_identity_is_native_complete_equivalence_not_digest_authority() {
     assert!(!identity.contains("hash"));
     assert!(selected.contains("budget_receipt.request()"));
     assert!(selected.contains("budget_receipt.admitted_envelope()"));
+}
+
+#[test]
+fn selected_read_authority_remains_a_compact_handle_to_complete_native_identity() {
+    use std::mem::size_of;
+
+    assert_eq!(size_of::<super::AccessPlanIdentity>(), size_of::<usize>());
+    for (name, size) in [
+        ("B-tree lookup", size_of::<super::SelectedBTreeLookup>()),
+        ("LSM lookup", size_of::<super::SelectedLsmLookup>()),
+        (
+            "degraded exact scan",
+            size_of::<super::SelectedDegradedExactScan>(),
+        ),
+    ] {
+        assert!(
+            size <= 256,
+            "{name} selected authority embedded {size} bytes instead of retaining a compact identity handle"
+        );
+    }
 }
 
 #[test]

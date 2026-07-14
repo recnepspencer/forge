@@ -6,6 +6,11 @@ pub use crate::keyspace::{
     PhysicalKeyDomainWitness, PrefixBoundaryBehavior, PrefixLawWitness, RangeBoundBehavior,
     RangeBoundLawWitness, TenantScopedKeyDomain,
 };
+pub use crate::strategy::registry::{
+    layout_admission_cases, layout_admission_registry, LayoutAdmissionCaseId,
+    LayoutAdmissionOutcome, LayoutAdmissionRequest, LayoutAdmissionView, LayoutRequestedCapability,
+    LayoutStrategyRegistrySnapshot,
+};
 pub use crate::strategy::{
     BTreeCorruptionRegion, BTreeInvariantSuite, BTreeLookupBranch, BTreeNodeFormatLaw,
     BTreeRebuildMigrationLaw, BTreeRootPublicationLaw, BTreeSearchPathLaw, BTreeSeparatorLaw,

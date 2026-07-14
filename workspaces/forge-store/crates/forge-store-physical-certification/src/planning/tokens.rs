@@ -54,7 +54,7 @@ pub(crate) fn oracle_family_token(oracle_family: OracleFamilyKind) -> &'static s
         OracleFamilyKind::PhysicalIsolationReadinessShape => "s5-readiness-shape",
         OracleFamilyKind::PhysicalIsolationInterleaving => "s5-physical-isolation-interleaving",
         OracleFamilyKind::IoPressureSimulation => "s6-io-pressure-simulation",
-        OracleFamilyKind::S4RecoveryDogfood => "s4-recovery-dogfood",
+        OracleFamilyKind::RecoveryDogfood => "s4-recovery-dogfood",
         OracleFamilyKind::BlobHarnessEvidence => "s7-blob-harness-evidence",
         OracleFamilyKind::BlobHeavyQualification => "s7-blob-heavy-qualification",
         OracleFamilyKind::ForbiddenShortcutRejection => "forbidden-shortcut-rejection",
@@ -65,7 +65,7 @@ pub(crate) fn oracle_family_token(oracle_family: OracleFamilyKind) -> &'static s
 pub(crate) fn fixture_class_token(fixture_class: FixtureClassKind) -> &'static str {
     match fixture_class {
         FixtureClassKind::AspectNativeBoundaryFact => "aspect-native-boundary-fact",
-        FixtureClassKind::S4RecoveryArtifacts => "s4-recovery-artifacts",
+        FixtureClassKind::RecoveryArtifacts => "s4-recovery-artifacts",
         FixtureClassKind::FutureExtensionSlot => "future-extension-slot",
     }
 }

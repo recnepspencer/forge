@@ -25,10 +25,7 @@ pub struct BlobHarnessScenarioMetadata {
 
 impl PhysicalScenarioExpectation {
     pub fn recovery_dogfood() -> Self {
-        Self::new(
-            PhysicalScenarioExpectationKind::S4RecoveryDogfood,
-            Vec::new(),
-        )
+        Self::new(PhysicalScenarioExpectationKind::RecoveryDogfood, Vec::new())
     }
 
     pub fn shortcut_rejection_dogfood() -> Self {
@@ -202,7 +199,7 @@ impl BlobHarnessScenarioMetadata {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PhysicalScenarioExpectationKind {
-    S4RecoveryDogfood,
+    RecoveryDogfood,
     PhysicalIsolationReadinessShapeProbe,
     PhysicalIsolationReadinessWithShortcutRejectionProbe,
     PhysicalIsolationCheckpointPublicationCrashReplay,

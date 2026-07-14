@@ -1,5 +1,5 @@
 use crate::{
-    ManifestTraversalReport, PhysicalReference, PlatformPhysicalFacadeCounterSnapshot,
+    ManifestTraversalReport, PhysicalReference, PhysicalStoreRuntimeCounterSnapshot,
     PlatformPhysicalScanReport,
 };
 
@@ -14,7 +14,7 @@ pub struct RuntimeLayoutObservation {
     discovered_references: Vec<PhysicalReference>,
     traversal: ManifestTraversalReport,
     semantic_decode_attempts: u32,
-    counters: PlatformPhysicalFacadeCounterSnapshot,
+    counters: PhysicalStoreRuntimeCounterSnapshot,
 }
 
 impl RuntimeLayoutObservation {
@@ -45,7 +45,7 @@ impl RuntimeLayoutObservation {
         self.semantic_decode_attempts
     }
 
-    pub const fn counters(&self) -> PlatformPhysicalFacadeCounterSnapshot {
+    pub const fn counters(&self) -> PhysicalStoreRuntimeCounterSnapshot {
         self.counters
     }
 }

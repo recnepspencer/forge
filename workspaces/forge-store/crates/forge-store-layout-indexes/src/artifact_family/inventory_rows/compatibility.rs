@@ -79,7 +79,7 @@ pub(super) const ROWS: &[ArtifactFamilyInventoryRow] = &[
         OFFLINE_ONLY,
     ),
     row(
-        Family::CompatibilityMilestone6LayoutBlockChunkRecord,
+        Family::CompatibilityLegacyLayoutBlockChunkRecord,
         Authority::Derived,
         Lifecycle::TransferBoundary,
         Lane::MaintenancePath,
@@ -89,7 +89,7 @@ pub(super) const ROWS: &[ArtifactFamilyInventoryRow] = &[
         OFFLINE_ONLY,
     ),
     row(
-        Family::CompatibilityMilestone8BasisContinuationDescriptor,
+        Family::CompatibilityLegacyBasisContinuationDescriptor,
         Authority::Derived,
         Lifecycle::TransferBoundary,
         Lane::MaintenancePath,
@@ -99,7 +99,7 @@ pub(super) const ROWS: &[ArtifactFamilyInventoryRow] = &[
         OFFLINE_ONLY,
     ),
     row(
-        Family::CompatibilityMilestone9BulkRecord,
+        Family::CompatibilityLegacyBulkRecord,
         Authority::Derived,
         Lifecycle::TransferBoundary,
         Lane::MaintenancePath,
@@ -109,7 +109,7 @@ pub(super) const ROWS: &[ArtifactFamilyInventoryRow] = &[
         OFFLINE_ONLY,
     ),
     row(
-        Family::CompatibilityMilestone10RetentionRebuildRecord,
+        Family::CompatibilityLegacyRetentionRebuildRecord,
         Authority::Derived,
         Lifecycle::TransferBoundary,
         Lane::MaintenancePath,
@@ -119,7 +119,7 @@ pub(super) const ROWS: &[ArtifactFamilyInventoryRow] = &[
         OFFLINE_ONLY,
     ),
     row(
-        Family::CompatibilityMilestone11MaintenanceRecord,
+        Family::CompatibilityLegacyMaintenanceRecord,
         Authority::Derived,
         Lifecycle::TransferBoundary,
         Lane::MaintenancePath,
@@ -129,7 +129,7 @@ pub(super) const ROWS: &[ArtifactFamilyInventoryRow] = &[
         OFFLINE_ONLY,
     ),
     row(
-        Family::CompatibilityMilestone13TieringRecord,
+        Family::CompatibilityLegacyTieringRecord,
         Authority::Derived,
         Lifecycle::TransferBoundary,
         Lane::MaintenancePath,

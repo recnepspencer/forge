@@ -1,7 +1,6 @@
 fn source(path: &str) -> String {
     std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap()
 }
-
 fn rust_sources_below(path: &std::path::Path, found: &mut Vec<std::path::PathBuf>) {
     for entry in std::fs::read_dir(path).unwrap() {
         let entry = entry.unwrap();
@@ -13,7 +12,6 @@ fn rust_sources_below(path: &std::path::Path, found: &mut Vec<std::path::PathBuf
         }
     }
 }
-
 fn source_tree(path: &str) -> String {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path);
     let mut sources = Vec::new();
@@ -25,18 +23,79 @@ fn source_tree(path: &str) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
-
+mod exact_source_authority_tests;
+mod owner_execution_surface_tests;
 #[test]
-fn btree_lookup_owns_lowering_readiness_and_cases() {
-    let owner = source("src/access/execution/btree_lookup/readiness_outcome.rs");
-    let facade = source("src/access/execution/runtime_owners.rs");
+fn btree_lookup_owns_lowering_and_source_bound_readiness() {
+    let owner = source("src/access/execution/btree_lookup/readiness.rs");
+    let operation = source("src/access/execution/btree_lookup/operation.rs");
+    let facade = source("src/read/page_lookup.rs");
+    let authority = source("src/access/execution/btree_lookup/authority.rs");
     let shared = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("src/access/execution/outcomes/readiness.rs");
-
-    assert!(owner.contains("enum BTreeLookupReadinessCase"));
+        .join("src/access/execution/transition_authority.rs");
+    assert!(owner.contains("pub struct BTreeLookupReady"));
     assert!(owner.contains("pub struct BTreeLookupReadinessOutcome"));
+    assert!(owner.contains("enum BTreeLookupReadinessCase"));
+    assert!(operation.contains("BTreeLookupReadinessView::Stale"));
+    assert!(operation.contains(".into_stale()"));
+    assert!(facade.contains("current_btree_materialization_frontier"));
+    assert!(facade.contains("request.current_catalog"));
+    assert!(facade.contains("request.current_source.as_ref().unwrap_or(&request.source)"));
+    assert!(!source_tree("src/access/execution/btree_lookup").contains("StaleBTreeLookup"));
+    assert!(authority.contains("BTreeLookupReadinessAuthority"));
+    assert!(authority.contains("pub(in crate::access::execution::btree_lookup)"));
     assert!(!shared.exists());
-    assert!(!facade.contains("indexed_access_runtime"));
+}
+#[test]
+fn read_operations_keep_forge_proof_issuance_inside_the_exact_owner() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let btree = source("src/access/execution/btree_lookup/authority.rs");
+    let degraded = source("src/access/execution/degraded_scan/authority.rs");
+    for (owner, source) in [
+        ("btree_lookup", btree.as_str()),
+        ("degraded_scan", degraded.as_str()),
+    ] {
+        assert!(
+            source.contains(&format!("pub(in crate::access::execution::{owner})")),
+            "{owner} issuance is not visibility-scoped to its operation owner"
+        );
+        assert!(!source.contains("pub(crate) fn"));
+        assert!(!source.contains("pub(super) fn"));
+    }
+
+    for removed in [
+        "src/access/execution/transition_authority.rs",
+        "src/access/execution/lowering_facade.rs",
+        "src/access/execution/physical_execution.rs",
+        "src/access/execution/runtime_owners.rs",
+        "src/access/execution/btree_lookup/progression.rs",
+        "src/access/execution/degraded_scan/coordinator.rs",
+    ] {
+        assert!(
+            !root.join(removed).exists(),
+            "shared read authority lane survived at {removed}"
+        );
+    }
+
+    for owner_outcome in [
+        "src/access/execution/btree_lookup/lowering.rs",
+        "src/access/execution/btree_lookup/readiness.rs",
+        "src/access/execution/degraded_scan/lowering.rs",
+        "src/access/execution/degraded_scan/readiness.rs",
+    ] {
+        let source = source(owner_outcome);
+        for sibling_visible_issuer in [
+            "pub(crate) fn issue(",
+            "pub(crate) const fn issue(",
+            "pub(super) fn issue(",
+            "pub(super) const fn issue(",
+        ] {
+            assert!(
+                !source.contains(sibling_visible_issuer),
+                "{owner_outcome} exposes sibling-visible raw issuance through {sibling_visible_issuer}",
+            );
+        }
+    }
 }
 
 #[test]
@@ -119,7 +178,7 @@ fn lsm_lookup_retains_publication_and_exposes_exhaustive_cases() {
 #[test]
 fn lsm_compaction_runtime_consumes_one_owner_admitted_demand() {
     let demand = source("src/strategy/lsm/execution/compaction_demand.rs");
-    let runtime = source("src/strategy/lsm/compaction_runtime.rs");
+    let runtime = source("src/strategy/lsm/compaction/preparation.rs");
     let old_request = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("src/strategy/lsm/execution/request.rs");
     let old_binding = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -130,6 +189,7 @@ fn lsm_compaction_runtime_consumes_one_owner_admitted_demand() {
     }
     assert!(demand.contains("admit_lsm_replacement_output"));
     assert!(runtime.contains("demand: AdmittedLsmCompactionDemand"));
+    assert!(runtime.contains("LsmCompactionPreparationOutcome::issue(prepare(demand))"));
     assert!(!runtime.contains("LsmPhysicalCompactionIntent"));
     assert!(!runtime.contains("LsmCompactionInputs"));
     assert!(!old_request.exists());
@@ -142,7 +202,7 @@ fn freshness_is_bound_to_the_exact_owner_source_not_a_coarse_root_projection() {
     let materialization_source = source("src/materialization/source.rs");
     let materialization_admission = source("src/materialization/admission.rs");
     let runtime = source_tree("src/read");
-    let lsm_admission = source("src/strategy/lsm/execution/admission.rs");
+    let lsm_admission = source_tree("src/strategy/lsm/execution/admission");
     let btree_witness = source("src/strategy/btree/execution/witness.rs");
 
     assert!(freshness.contains("if materialization.source() != frontier.source()"));
@@ -202,7 +262,7 @@ fn ordinary_operation_declarations_do_not_transport_coverage() {
 fn coverage_authority_always_retains_an_owner_source() {
     let coverage = source("src/materialization/coverage.rs");
     let planning_facade = source("src/planning/admission.rs");
-    let bootstrap_admission = source("src/bootstrap/catalog_read_admission.rs");
+    let bootstrap_admission = source("src/bootstrap/catalog_read_outcome.rs");
 
     assert!(coverage.contains("source: LayoutMaterializationSourceIdentity"));
     assert!(!coverage.contains("source: Option<LayoutMaterializationSourceIdentity>"));
@@ -234,9 +294,9 @@ fn materialization_rejects_scalar_sources_and_lsm_reopen_retains_store_lineage()
             .join("../forge-store-lsm-authority/src/membership/model.rs"),
     )
     .unwrap();
-    let lsm_session = std::fs::read_to_string(
+    let lsm_reopen_owner = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../forge-store-lsm-authority/src/membership/session.rs"),
+            .join("../forge-store-lsm-authority/src/membership/runtime/reopen/operation.rs"),
     )
     .unwrap();
 
@@ -255,135 +315,6 @@ fn materialization_rejects_scalar_sources_and_lsm_reopen_retains_store_lineage()
     assert!(lsm_key
         .contains("authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity"));
     assert!(lsm_key.contains("security_identity: forge_store_security::StoreSecurityScopeIdentity"));
-    assert!(lsm_session
+    assert!(lsm_reopen_owner
         .contains("current_scope: &forge_store_security::StoreCurrentSecurityScopeWitnessSet"));
-}
-
-#[test]
-fn certification_observes_owner_executions_without_a_generic_execution_receipt() {
-    let execution = source("src/access/execution/mod.rs");
-    let observation = source("src/access/execution/view.rs");
-    let facade = source("src/access/execution/lowering_facade.rs");
-
-    assert!(!execution.contains("ExecutedAccessReceipt"));
-    assert!(!facade.contains("execute_ready"));
-    for removed in [
-        "src/access/execution/executed_evidence.rs",
-        "src/access/execution/lowered_plan.rs",
-        "src/access/execution/ready_plan.rs",
-        "src/access/execution/outcomes/mod.rs",
-        "src/layout_counters.rs",
-        "src/layout_readmission.rs",
-        "src/compile_fail",
-    ] {
-        assert!(!std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join(removed)
-            .exists());
-    }
-    assert!(observation.contains("pub enum ExecutedLayoutOperation"));
-    assert!(observation.contains("BTreeLookup(crate::BaselineBTreeLookupExecution)"));
-    assert!(observation.contains("LsmLookup(crate::BaselineLsmLookupExecution)"));
-    assert!(observation.contains("DegradedScan(super::DegradedScanExecution)"));
-}
-
-#[test]
-fn selection_outcomes_expose_exact_capabilities_through_an_ordinary_owner_facade() {
-    let outcome = source("src/planning/selection_outcome.rs").replace('\r', "");
-    let runtime = source_tree("src/access/execution/degraded_scan/operation");
-    let request_declaration = source("src/access/execution/degraded_scan/operation/request.rs");
-
-    for extraction in [
-        "into_btree_lookup",
-        "into_btree_replay_recovery",
-        "into_lsm_lookup",
-        "into_lsm_run_publication",
-        "into_lsm_replay_recovery",
-        "into_lsm_compaction",
-        "into_degraded",
-    ] {
-        assert!(
-            outcome.contains(&format!("pub fn {extraction}")),
-            "selection outcome does not expose exact extraction {extraction}"
-        );
-    }
-    assert!(!outcome.contains("#[cfg(test)]\n    pub fn into_degraded"));
-    for required in [
-        "layout_declarations()",
-        "admit_physical_artifact_family",
-        "admit_physical_key_domain",
-        "admit_page_key",
-        "admit_current_catalog_root_materialization",
-        "AccessPlanSelector.select_admitted_with_budget",
-        ".into_degraded()",
-        "admit_degraded_ready",
-        "execute_physical_degraded_exact_scan",
-    ] {
-        assert!(
-            runtime.contains(required),
-            "ordinary degraded owner facade omits lifecycle step {required}"
-        );
-    }
-    for inaccessible_input in [
-        "AdmittedPhysicalArtifactFamily",
-        "AdmittedConcretePhysicalKey",
-        "AdmittedLayoutMaterialization",
-        "CurrentMaterializationFrontier",
-    ] {
-        assert!(
-            !request_declaration.contains(inaccessible_input),
-            "public degraded request requires inaccessible capability {inaccessible_input}"
-        );
-    }
-}
-
-#[test]
-fn btree_traversal_plan_and_replay_source_share_store_authority() {
-    let read_source = source("src/strategy/btree/execution/read_source.rs");
-    let physical_root = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../forge-store-physical-isolation/src/root_protocol/root_kinds.rs"),
-    )
-    .unwrap();
-    let isolation_request = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../forge-store-physical-isolation/src/readiness/request.rs"),
-    )
-    .unwrap();
-
-    assert!(read_source.contains(
-        "plan.root().store_authority_identity() != self.witness.store_authority_identity()"
-    ));
-    assert!(read_source.contains("PhysicalReadPlanAdmissionDenial::StoreAuthorityMismatch"));
-    assert!(physical_root.contains(
-        "store_authority_identity: forge_store_authority::StoreCurrentAuthorityIdentity"
-    ));
-    assert!(isolation_request.contains("pub fn for_store("));
-    assert!(isolation_request.contains("store_identity.authority_identity()"));
-}
-
-#[test]
-fn degraded_readmission_and_execution_retain_exact_source_authority() {
-    let readmission = source("src/access/execution/degraded_scan/readmission.rs");
-    let execution = source("src/access/execution/physical_execution.rs");
-
-    for required in [
-        "family.security_identity() != expected_authority",
-        "family.authority_identity() != expected_store",
-        "if exact != &expected",
-    ] {
-        assert!(
-            readmission.contains(required),
-            "degraded readmission omits source-binding check {required}"
-        );
-    }
-    for required in [
-        "selected.admitted_family().authority_identity()",
-        "physical.store_identity().authority_identity()",
-        "PhysicalDegradedExecutionDenial::StoreAuthorityMismatch",
-    ] {
-        assert!(
-            execution.contains(required),
-            "physical degraded execution omits Store binding {required}"
-        );
-    }
 }

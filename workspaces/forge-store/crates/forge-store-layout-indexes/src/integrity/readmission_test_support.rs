@@ -15,19 +15,22 @@ use forge_store_physical_integrity::{
     QuarantineRecord, QuarantineSealRequest,
 };
 use forge_store_recovery_physics::RecoveryLayoutReadmissionWitness;
+use forge_store_security::{
+    admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
+    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
+    StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
+};
 
 pub(super) fn import_witness(
     family: crate::PhysicalArtifactFamily,
     seed: &str,
 ) -> RecoveryLayoutReadmissionWitness {
     let record = unresolved_authority_record(seed);
-    let authority = current_authority("store.new.import", seed);
-    forge_store_recovery_physics::admit_record_backed_layout_readmission(
-        family.id(),
-        &record,
-        &authority,
-    )
-    .expect("record-backed import witness should admit")
+    let authority = current_authority("store.new.strategy", seed);
+    let security = current_security_scope("store.new.strategy", seed);
+    forge_store_recovery_physics::layout_readmission()
+        .admit_import(family.id(), &record, &authority, security.witnesses())
+        .expect("record-backed import witness should admit")
 }
 
 pub(super) fn quarantine_witness(
@@ -43,13 +46,38 @@ pub(super) fn record_backed_witness(
     record: &QuarantineRecord,
     seed: &str,
 ) -> RecoveryLayoutReadmissionWitness {
-    let authority = current_authority("store.new.corruption", seed);
-    forge_store_recovery_physics::admit_record_backed_layout_readmission(
-        family.id(),
+    record_backed_witness_for_store(family, record, "store.new.strategy", seed)
+}
+
+pub(super) fn record_backed_witness_for_store(
+    family: crate::PhysicalArtifactFamily,
+    record: &QuarantineRecord,
+    store_authority_key: &str,
+    seed: &str,
+) -> RecoveryLayoutReadmissionWitness {
+    record_backed_witness_for_scope(
+        family,
         record,
-        &authority,
+        store_authority_key,
+        seed,
+        StoreKeyScope::StoreManagedRoot,
+        StoreTenantScope::StoreInternal,
     )
-    .expect("record-backed quarantine witness should admit")
+}
+
+pub(super) fn record_backed_witness_for_scope(
+    family: crate::PhysicalArtifactFamily,
+    record: &QuarantineRecord,
+    store_authority_key: &str,
+    seed: &str,
+    key_scope: StoreKeyScope,
+    tenant_scope: StoreTenantScope,
+) -> RecoveryLayoutReadmissionWitness {
+    let authority = current_authority(store_authority_key, seed);
+    let security = current_security_scope_with(store_authority_key, seed, key_scope, tenant_scope);
+    forge_store_recovery_physics::layout_readmission()
+        .admit_quarantine(family.id(), record, &authority, security.witnesses())
+        .expect("record-backed quarantine witness should admit")
 }
 
 pub(super) fn offline_witness(
@@ -57,7 +85,9 @@ pub(super) fn offline_witness(
     seed: &str,
 ) -> forge_store_recovery_physics::RecoveryLayoutReadmissionWitness {
     let admission = super::tests::offline_admission(seed);
-    forge_store_recovery_physics::admit_offline_layout_readmission(family.id(), &admission)
+    forge_store_recovery_physics::layout_readmission()
+        .admit_offline(family.id(), &admission)
+        .expect("offline recovery admission issues readmission")
 }
 
 pub(super) fn authoritative_quarantine_record(seed: &str) -> QuarantineRecord {
@@ -68,6 +98,43 @@ pub(super) fn authoritative_quarantine_record(seed: &str) -> QuarantineRecord {
 
 pub(super) fn current_authority(identity_key: &str, value: &str) -> StoreCurrentAuthorityWitness {
     require_current_store_authority(boundary_fact(identity_key, value))
+}
+
+pub(super) fn current_security_scope(
+    identity_key: &str,
+    value: &str,
+) -> StoreAdmittedSecurityScope {
+    current_security_scope_with(
+        identity_key,
+        value,
+        StoreKeyScope::StoreManagedRoot,
+        StoreTenantScope::StoreInternal,
+    )
+}
+
+pub(super) fn current_security_scope_with(
+    identity_key: &str,
+    value: &str,
+    key_scope: StoreKeyScope,
+    tenant_scope: StoreTenantScope,
+) -> StoreAdmittedSecurityScope {
+    let authority = current_authority(identity_key, value);
+    let authenticity = StoreAuthenticityRequirement::not_required();
+    let custody = StoreCustodyPosture::InternalStoreCustody;
+    let expectation =
+        StoreSecurityScopeAdmissionExpectation::new(key_scope, tenant_scope, authenticity, custody);
+    match admit_store_security_scope(StoreSecurityScopeAdmissionRequest::new(
+        &authority,
+        key_scope,
+        StoreKeyVersionPosture::Current,
+        tenant_scope,
+        authenticity,
+        custody,
+        expectation,
+    )) {
+        TransitionOutcome::Success(admitted) => admitted,
+        outcome => panic!("current test security scope should admit: {outcome:?}"),
+    }
 }
 
 fn unresolved_authority_record(seed: &str) -> QuarantineRecord {

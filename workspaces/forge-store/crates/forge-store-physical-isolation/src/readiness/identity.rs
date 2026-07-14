@@ -83,6 +83,14 @@ impl PhysicalIsolationEntryIdentity {
 }
 
 impl PhysicalIsolationRootEpochBasis {
+    pub(crate) const fn from_current_root(root: crate::CurrentPhysicalRoot) -> Self {
+        Self {
+            root_epoch: root.epoch(),
+            manifest_epoch: root.manifest_epoch(),
+            store_authority_identity: root.store_authority_identity(),
+        }
+    }
+
     pub const fn epoch(&self) -> RootEpoch {
         self.root_epoch
     }

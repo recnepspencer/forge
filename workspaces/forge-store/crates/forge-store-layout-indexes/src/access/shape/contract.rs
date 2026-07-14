@@ -103,7 +103,7 @@ impl AccessShapeContract {
         }
     }
 
-    pub const fn shape(self) -> super::shape::AccessShape {
+    pub const fn shape(self) -> super::kind::AccessShape {
         self.detail.shape()
     }
 

@@ -26,6 +26,59 @@ pub struct SecurityScopeHarnessReplayExecution {
     transcript: SecurityScopeHarnessReplayTranscript,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SecurityScopeFixtureAuthority {
+    Current,
+    Foreign,
+}
+
+pub fn admit_security_scope_fixture(
+    authority: SecurityScopeFixtureAuthority,
+    key_scope: StoreKeyScope,
+    tenant_scope: StoreTenantScope,
+    authenticity_requirement: StoreAuthenticityRequirement,
+    custody_posture: StoreCustodyPosture,
+) -> StoreAdmittedSecurityScope {
+    if authority == SecurityScopeFixtureAuthority::Current {
+        let physical_witness =
+            forge_store_security::admitted_tenant_page_security_scope_for_layout_partition_test()
+                .identity()
+                .physical_witness();
+        let identity =
+            forge_store_security::StoreSecurityScopeIdentity::from_physical_security_scope(
+                physical_witness,
+                key_scope,
+                StoreKeyVersionPosture::Current,
+                tenant_scope,
+                authenticity_requirement,
+                custody_posture,
+            );
+        return forge_store_security::admitted_security_scope_for_identity_for_test(identity);
+    }
+
+    let fixture = SecurityScopeNativeHarnessFixture::new();
+    let current = fixture.drifted_authority();
+    let expectation = StoreSecurityScopeAdmissionExpectation::new(
+        key_scope,
+        tenant_scope,
+        authenticity_requirement,
+        custody_posture,
+    );
+    let request = StoreSecurityScopeAdmissionRequest::new(
+        current,
+        key_scope,
+        StoreKeyVersionPosture::Current,
+        tenant_scope,
+        authenticity_requirement,
+        custody_posture,
+        expectation,
+    );
+    match evaluate_store_security_scope_admission(request).into_outcome() {
+        TransitionOutcome::Success(admitted) => admitted,
+        outcome => panic!("security-scope fixture input must admit: {outcome:?}"),
+    }
+}
+
 pub fn execute_security_scope_harness_scenario(
     scenario: SecurityScopeHarnessScenario,
 ) -> SecurityScopeHarnessExecution {

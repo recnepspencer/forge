@@ -67,7 +67,7 @@ pub const fn store_native_basis_domain_for_family(
         StoreCanonicalBasisFamily::S2EntryBoundaryEvidence => {
             CanonicalBasisDomain::Future("store.s2.entry.boundary.evidence")
         }
-        StoreCanonicalBasisFamily::S3IntegrityCloseoutHandoff => {
+        StoreCanonicalBasisFamily::IntegrityCloseoutHandoff => {
             CanonicalBasisDomain::Future("store.new.integrity.closeout.handoff")
         }
         StoreCanonicalBasisFamily::PhysicalSourceManifest => {

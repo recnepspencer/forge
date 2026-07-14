@@ -1,8 +1,15 @@
 use forge_store_layout_indexes::{
-    evolution::migration::LayoutBindingWitness, maintenance::DerivedIndexParityWitness,
+    evolution::migration::LayoutBindingRequest, DerivedIndexParityWitness,
 };
 
 fn main() {
     let derived_projection: DerivedIndexParityWitness = todo!();
-    let _ = LayoutBindingWitness::new(todo!(), todo!(), todo!(), derived_projection);
+    let _ = LayoutBindingRequest::from_bootstrap_catalog(
+        todo!(),
+        todo!(),
+        derived_projection,
+        todo!(),
+        todo!(),
+        todo!(),
+    );
 }

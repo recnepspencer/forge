@@ -1,4 +1,6 @@
-use forge_store_lsm_authority::{LsmCompactionMembership, LsmMembershipSession};
+use forge_store_lsm_authority::{
+    replace_lsm_membership, LsmCompactionMembership, LsmMembershipSession,
+};
 use forge_store_wal::AdmittedCheckpointPublicationReceipt;
 
 fn bypass(
@@ -6,7 +8,7 @@ fn bypass(
     membership: &LsmCompactionMembership,
     checkpoint: &AdmittedCheckpointPublicationReceipt,
 ) {
-    let _ = session.replace(membership, checkpoint);
+    let _ = replace_lsm_membership(session, membership, checkpoint);
 }
 
 fn main() {}

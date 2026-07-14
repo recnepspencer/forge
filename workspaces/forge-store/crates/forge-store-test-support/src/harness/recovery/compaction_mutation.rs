@@ -197,7 +197,7 @@ fn compaction_publication_for(
         ),
         inputs.new_validation,
     );
-    forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
+    forge_store_physical_isolation::CompactionRewritePublication::publish_rewrite(
         CompactionCutoverDelta::lower(admitted_compaction_plan_for(reference), inputs.new_root)
             .unwrap(),
         receipt,

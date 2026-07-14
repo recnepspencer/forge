@@ -1,6 +1,6 @@
 use crate::{
-    CurrentPhysicalRoot, PhysicalReadProtectedFootprintBasis, ProtectedReferenceRangeSet,
-    StablePhysicalReadPlan,
+    CurrentGenerationPhysicalReference, CurrentPhysicalRoot, PhysicalReadProtectedFootprintBasis,
+    ProtectedReferenceRangeSet, StablePhysicalReadPlan,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -8,11 +8,19 @@ pub struct CompactionProtectedReferenceSet {
     root: CurrentPhysicalRoot,
     footprint_basis: PhysicalReadProtectedFootprintBasis,
     ranges: ProtectedReferenceRangeSet,
+    references: Vec<CurrentGenerationPhysicalReference>,
     owners: Vec<forge_store_physical_format::PhysicalGenerationOwner>,
 }
 
 impl CompactionProtectedReferenceSet {
     pub fn from_read_plan(plan: &StablePhysicalReadPlan) -> Self {
+        let references = plan
+            .footprint()
+            .protected()
+            .references()
+            .iter()
+            .map(|reference| reference.current_generation())
+            .collect::<Vec<_>>();
         let owners = plan
             .footprint()
             .protected()
@@ -24,6 +32,7 @@ impl CompactionProtectedReferenceSet {
             root: plan.root(),
             footprint_basis: plan.footprint().declared_footprint_basis(),
             ranges: plan.footprint().protected().ranges().clone(),
+            references,
             owners,
         }
     }
@@ -40,17 +49,14 @@ impl CompactionProtectedReferenceSet {
         &self.ranges
     }
 
+    pub fn references(&self) -> &[CurrentGenerationPhysicalReference] {
+        &self.references
+    }
+
     pub fn contains_owner(
         &self,
         owner: forge_store_physical_format::PhysicalGenerationOwner,
     ) -> bool {
         self.owners.contains(&owner)
-    }
-
-    #[cfg(any(test, feature = "certification-authority"))]
-    pub(super) fn first_owner(
-        &self,
-    ) -> Option<forge_store_physical_format::PhysicalGenerationOwner> {
-        self.owners.first().copied()
     }
 }

@@ -1,8 +1,9 @@
 use super::candidates::{EligibleStrategyOperation, PlanningAlternative, PlanningAlternativeSet};
+use super::selected_plan::SelectedAccessPlanBasis;
 use super::selected_plan::{admit_selected_plan_budget, PlanSelectionBasis};
 use super::{
-    AccessPlanSelectionDenied, DeterministicSelectionRule, SelectedAccessPlanBasis,
-    SelectionCandidateAudit, SelectionCandidateEligibility, SelectionCandidateOutcome,
+    AccessPlanSelectionDenied, DeterministicSelectionRule, SelectionCandidateAudit,
+    SelectionCandidateEligibility, SelectionCandidateOutcome,
 };
 use crate::access::budget::PlannedCounterEnvelope;
 use crate::access::execution::AccessPathCounterSnapshot;
@@ -54,9 +55,8 @@ define_selection_grant!(LsmReplaySelectionGrant);
 define_selection_grant!(LsmCompactionSelectionGrant);
 define_selection_grant!(DegradedScanSelectionGrant);
 
-#[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) enum AccessPlanSelectionCase {
+pub enum AccessPlanSelectionCaseId {
     BTreePointLookup,
     BTreeRangeLookup,
     BTreePrefixLookup,
@@ -66,12 +66,13 @@ pub(crate) enum AccessPlanSelectionCase {
     LsmReplayRecovery,
     LsmCompaction,
     DegradedExactScan,
-    Denied,
+    NoEligibleAlternative,
+    CostDenied,
+    BudgetDenied,
 }
 
-#[cfg(test)]
-impl AccessPlanSelectionCase {
-    pub const ALL: [Self; 10] = [
+impl AccessPlanSelectionCaseId {
+    pub const ALL: [Self; 12] = [
         Self::BTreePointLookup,
         Self::BTreeRangeLookup,
         Self::BTreePrefixLookup,
@@ -81,8 +82,27 @@ impl AccessPlanSelectionCase {
         Self::LsmReplayRecovery,
         Self::LsmCompaction,
         Self::DegradedExactScan,
-        Self::Denied,
+        Self::NoEligibleAlternative,
+        Self::CostDenied,
+        Self::BudgetDenied,
     ];
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::BTreePointLookup => "layout.selection.btree.point",
+            Self::BTreeRangeLookup => "layout.selection.btree.range",
+            Self::BTreePrefixLookup => "layout.selection.btree.prefix",
+            Self::BTreeReplayRecovery => "layout.selection.btree.replay",
+            Self::LsmLookup => "layout.selection.lsm.lookup",
+            Self::LsmRunPublication => "layout.selection.lsm.publication",
+            Self::LsmReplayRecovery => "layout.selection.lsm.replay",
+            Self::LsmCompaction => "layout.selection.lsm.compaction",
+            Self::DegradedExactScan => "layout.selection.degraded_exact_scan",
+            Self::NoEligibleAlternative => "layout.selection.denied.no_eligible_alternative",
+            Self::CostDenied => "layout.selection.denied.cost",
+            Self::BudgetDenied => "layout.selection.denied.budget",
+        }
+    }
 }
 
 pub(super) fn decide_access_plan(
@@ -197,8 +217,37 @@ fn decide_degraded_plan(
     intent: AdmittedAccessIntent,
     admitted_budget: PreExecutionBudgetEnvelope,
 ) -> Result<SelectedAccessPlanBasis, AccessPlanSelectionDenied> {
+    let requested_rows = intent.budget_rows().unwrap_or(0);
+    let planned_rows = u16::try_from(requested_rows).map_err(|_| {
+        AccessPlanSelectionDenied::CostDenied(
+            super::AccessPlanCostDenial::DegradedRowDemandNotRepresentable {
+                requested_rows,
+                maximum: u16::MAX as u64,
+            },
+        )
+    })?;
     let planned_counter_envelope = PlannedCounterEnvelope::new(
-        AccessPathCounterSnapshot::exact(0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 4_096, 0, 0, 1, 0),
+        AccessPathCounterSnapshot::exact(
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            planned_rows,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+        )
+        .with_allocation_events(2)
+        .with_selected_plan_authority_allocation(),
         zero_counters(),
         zero_counters(),
     );
@@ -220,7 +269,7 @@ fn decide_degraded_plan(
                 SelectionCandidateOutcome::Eligible(
                     SelectionCandidateEligibility::ExplicitDegradedExactScan {
                         planned_counter_envelope,
-                        budget_rows: intent.budget_rows().unwrap_or(0),
+                        budget_rows: requested_rows,
                     },
                 ),
             ),
@@ -239,19 +288,11 @@ fn decide_degraded_plan(
 fn select_alternative(
     alternatives: &PlanningAlternativeSet,
 ) -> Result<(PlanningAlternative, DeterministicSelectionRule), AccessPlanSelectionDenied> {
-    match (alternatives.primary(), alternatives.secondary()) {
-        (Some(primary), None) | (None, Some(primary)) => Ok((
-            primary.clone(),
-            DeterministicSelectionRule::SoleEligibleCandidate,
-        )),
-        (None, None) => Err(AccessPlanSelectionDenied::NoEligibleAlternative),
-        (Some(primary), Some(secondary)) => Err(
-            AccessPlanSelectionDenied::OverlappingEligibleStrategyAuthority {
-                first_family: primary.snapshot().admitted_strategy().family(),
-                second_family: secondary.snapshot().admitted_strategy().family(),
-            },
-        ),
-    }
+    alternatives
+        .selected()
+        .cloned()
+        .map(|selected| (selected, DeterministicSelectionRule::SoleEligibleCandidate))
+        .ok_or(AccessPlanSelectionDenied::NoEligibleAlternative)
 }
 
 fn admit_budget_for_plan(

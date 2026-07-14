@@ -133,7 +133,7 @@ fn public_scenario_composes_multiple_reusable_oracle_families() {
     assert_eq!(
         not_required,
         OracleDenial::OracleFamilyNotRequired {
-            family: OracleFamilyKind::S4RecoveryDogfood,
+            family: OracleFamilyKind::RecoveryDogfood,
         }
     );
 }

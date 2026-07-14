@@ -4,7 +4,6 @@ use super::state::{LayoutMaterializationState, MaterializationStateClass};
 use super::watermark::LayoutWatermark;
 use super::LayoutMaterializationSourceIdentity;
 use crate::catalog::PhysicalArtifactFamily;
-use crate::integrity::{layout_corruption, LayoutCorruptionInput};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LayoutCoverageWitness {
@@ -148,63 +147,45 @@ impl LayoutCoverageWitness {
             }
         }
 
-        let outcome =
-            layout_corruption().classify(LayoutCorruptionInput::Materialization(self.clone()));
-        match outcome.view() {
-            crate::LayoutCorruptionView::Clean(coverage) => Ok(coverage.clone()),
-            crate::LayoutCorruptionView::StaleBinding(coverage) => {
-                Err(MaterializationDenial::LayoutCoverageIsStale {
-                    family: coverage.family(),
-                    basis_kind: coverage.upper_bound().basis_kind(),
-                })
-            }
-            crate::LayoutCorruptionView::Quarantined(quarantine) => {
-                let coverage = quarantine
-                    .coverage()
-                    .expect("materialization-backed quarantine retains its coverage");
-                let gap = coverage.gap().unwrap_or_else(|| {
+        match self.state.class() {
+            MaterializationStateClass::Exact
+            | MaterializationStateClass::ExactThroughPhysicalBasis
+            | MaterializationStateClass::EmptyInitialized => Ok(self.clone()),
+            MaterializationStateClass::Stale => Err(MaterializationDenial::LayoutCoverageIsStale {
+                family: self.family,
+                basis_kind: self.upper_bound.basis_kind(),
+            }),
+            MaterializationStateClass::Quarantined => {
+                let gap = self.gap.unwrap_or_else(|| {
                     CoverageGapWitness::physical_range(
-                        coverage.family(),
-                        coverage.upper_bound().basis_kind(),
-                        coverage.lower_bound().value(),
-                        coverage.upper_bound().value(),
+                        self.family,
+                        self.upper_bound.basis_kind(),
+                        self.lower_bound.value(),
+                        self.upper_bound.value(),
                     )
                 });
                 Err(MaterializationDenial::LayoutRangeIsQuarantined { gap })
             }
-            crate::LayoutCorruptionView::RebuildRequired(_) => {
+            MaterializationStateClass::RebuildRequired => {
                 Err(MaterializationDenial::LayoutRequiresRebuild {
                     family: self.family,
                 })
             }
-            crate::LayoutCorruptionView::MigrationRequired(family) => {
-                Err(MaterializationDenial::LayoutIsMigrating { family: *family })
-            }
-            crate::LayoutCorruptionView::Unsupported(unsupported)
-                if unsupported.state() == MaterializationStateClass::Lagged =>
-            {
+            MaterializationStateClass::Migrating => Err(MaterializationDenial::LayoutIsMigrating {
+                family: self.family,
+            }),
+            MaterializationStateClass::Lagged => {
                 Err(MaterializationDenial::LayoutCoverageIsLagged {
-                    family: unsupported.family(),
+                    family: self.family,
                     basis_kind: self.upper_bound.basis_kind(),
                 })
             }
-            crate::LayoutCorruptionView::NotFound(family) => Err(
+            state => Err(
                 MaterializationDenial::MaterializationStateDoesNotSupportExactAccess {
-                    family: *family,
-                    state: MaterializationStateClass::Absent,
+                    family: self.family,
+                    state,
                 },
             ),
-            crate::LayoutCorruptionView::Unsupported(unsupported) => Err(
-                MaterializationDenial::MaterializationStateDoesNotSupportExactAccess {
-                    family: unsupported.family(),
-                    state: unsupported.state(),
-                },
-            ),
-            crate::LayoutCorruptionView::QuarantineReadmissionRequired(_)
-            | crate::LayoutCorruptionView::OfflineReadmissionRequired(_)
-            | crate::LayoutCorruptionView::ImportReadmissionRequired(_) => {
-                unreachable!("materialization classification does not emit readmission outcomes")
-            }
         }
     }
 }

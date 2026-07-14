@@ -17,7 +17,7 @@ pub mod evolution;
 mod facade;
 pub mod integrity;
 mod keyspace;
-pub mod maintenance;
+mod maintenance;
 pub mod materialization;
 pub mod observation;
 mod planning;
@@ -28,15 +28,15 @@ pub mod strategy_declarations;
 #[cfg(test)]
 mod topology_residue_tests;
 
-#[cfg(test)]
-pub(crate) use access::execution::access_lowering;
 pub use access::execution::{
-    btree_lookup_readiness_cases, degraded_scan_readiness_cases, degraded_scan_runtime,
-    BTreeLookupReadinessCaseId, BTreeLookupReadinessOutcome, BTreeLookupReady,
-    DegradedScanAdmissionDenied, DegradedScanExecution, DegradedScanLoweringBasis,
+    btree_lookup_readiness_cases, degraded_scan_readiness_cases, AccessPathCounterSnapshot,
+    BTreeLookupReadinessCaseId, BTreeLookupReadinessOutcome, BTreeLookupReadinessView,
+    BTreeLookupReady, CounterEnvelopeViolation, DegradedScanAdmissionDenied,
+    DegradedScanCounterReceipt, DegradedScanExecution, DegradedScanLoweringBasis,
     DegradedScanReadinessCaseId, DegradedScanReadinessOutcome, DegradedScanReadinessView,
-    DegradedScanReadmission, DegradedScanReady, DegradedScanRuntime, ExecutedLayoutOperation,
-    LoweredDegradedExactScan, PhysicalDegradedExecutionDenial,
+    DegradedScanReady, DegradedScanRebindAdmission, DegradedScanRebindTrace,
+    ExecutedLayoutOperation, LoweredBTreeLookup, LoweredDegradedExactScan,
+    PhysicalDegradedExecutionDenial, PlannedCounterObservation, StaleDegradedExactScan,
 };
 pub use access::execution::{
     layout_degraded_scan_runtime, DegradedExactScanExecutionDenied,
@@ -44,10 +44,14 @@ pub use access::execution::{
 };
 pub use access::shape::DegradedExactScanRequest;
 pub use access::AdmittedAccessIntent;
-pub use artifact_family::AdmittedPhysicalArtifactFamily;
+pub use artifact_family::{
+    artifact_family_admission_cases, AdmittedPhysicalArtifactFamily, ArtifactFamilyAdmissionCaseId,
+    ArtifactFamilyAdmissionOutcome, ArtifactFamilyAdmissionView,
+};
 pub use blob_basis::{BlobGenerationBasis, BlobIdentityKeyBasis};
 pub use bootstrap::{
-    bootstrap_catalog, BootstrapCatalogFacade, BootstrapCatalogReadAdmission,
+    bootstrap_catalog, bootstrap_catalog_read_cases, BootstrapCatalogAccess,
+    BootstrapCatalogReadAdmission, BootstrapCatalogReadCaseId, BootstrapCatalogReadCounterSnapshot,
     BootstrapCatalogReadOutcome, BootstrapCatalogReadOutcomeView, BootstrapLayoutCatalog,
     BootstrapOnlyAccessDenied, BootstrapOnlyAccessPath, MinimalRootDiscoveryLayout,
 };
@@ -65,77 +69,140 @@ pub use catalog::system_families::offline_verifier::{
 };
 pub use facade::access_planning;
 pub use keyspace::AdmittedConcretePhysicalKey;
-pub use keyspace::AdmittedPhysicalKeyDomain;
+pub use keyspace::{
+    physical_key_domain_admission_cases, AdmittedPhysicalKeyDomain,
+    PhysicalKeyDomainAdmissionCaseId, PhysicalKeyDomainAdmissionOutcome,
+    PhysicalKeyDomainAdmissionView,
+};
 pub use maintenance::{
-    layout_lsm_maintenance, LayoutLsmMaintenance, LsmCompactionAdmissionRequest,
-    LsmMaintenanceAdmissionDenied, LsmReplayAdmissionRequest, LsmRunPublicationAdmissionRequest,
+    copy_on_write_layout_mutation_execution, copy_on_write_layout_mutation_execution_cases,
+    derived_index_parity_cases, derived_index_rebuild_admission_cases,
+    derived_index_rebuild_execution_cases, exact_btree_publication_cases, layout_exact_publication,
+    layout_lsm_maintenance, layout_mutation_admission, layout_mutation_admission_cases,
+    layout_parity_verification, layout_rebuild_admission, layout_rebuild_candidate_readmission,
+    layout_rebuild_execution, live_exact_maintenance, live_exact_maintenance_cases,
+    live_maintenance_posture, live_maintenance_posture_cases, lsm_maintenance_owner_case_inventory,
+    AdvisoryMaintenanceCapability, CopyOnWriteLayoutMutationExecution,
+    CopyOnWriteLayoutMutationExecutionCaseId, CopyOnWriteLayoutMutationExecutionOutcome,
+    CopyOnWriteLayoutMutationExecutionView, CopyOnWriteLayoutMutationPlan,
+    CopyOnWriteLayoutMutationReceipt, CopyOnWriteLayoutMutationRequest, DeferredMaintenanceWitness,
+    DerivedIndexCandidateDeclaration, DerivedIndexCandidateReadmissionReceipt,
+    DerivedIndexCostEnvelopeParity, DerivedIndexCounterShapeParity, DerivedIndexCoverageParity,
+    DerivedIndexIdentityParity, DerivedIndexOrderingParity, DerivedIndexParityBasis,
+    DerivedIndexParityCaseId, DerivedIndexParityCounterSnapshot, DerivedIndexParityDenied,
+    DerivedIndexParityOutcome, DerivedIndexParityRow, DerivedIndexParityWitness,
+    DerivedIndexPartialKeySpace, DerivedIndexRebuildAdmissionCaseId,
+    DerivedIndexRebuildAdmissionOutcome, DerivedIndexRebuildAdmissionView,
+    DerivedIndexRebuildCounterSnapshot, DerivedIndexRebuildDenied,
+    DerivedIndexRebuildExecutionCaseId, DerivedIndexRebuildOutcome, DerivedIndexRebuildPlan,
+    DerivedIndexRebuildReceipt, DerivedIndexRebuildRequest, DerivedIndexRebuildScope,
+    DerivedIndexRebuildSourceInput, DerivedIndexResultIdentity, ExactBTreePublicationCaseId,
+    ExactBTreePublicationDenied, ExactBTreePublicationEvidence, ExactBTreePublicationOutcome,
+    ExactBTreePublicationRequest, ExactBTreePublicationView, IndexLagWitness,
+    IndexMaintenanceFailureOutcome, IndexMaintenanceMode, IndexPublicationProtocol,
+    LayoutExactPublication, LayoutLsmMaintenance, LayoutMutationAdmission,
+    LayoutMutationAdmissionCaseId, LayoutMutationAdmissionOutcome, LayoutMutationAdmissionView,
+    LayoutMutationPlan, LayoutParityVerification, LayoutRebuildAdmission,
+    LayoutRebuildCandidateReadmission, LayoutRebuildExecution, LazyMaintenanceCapability,
+    LiveExactMaintenance, LiveExactMaintenanceCaseId, LiveExactMaintenanceOutcome,
+    LiveExactMaintenanceRequest, LiveExactMaintenanceView, LiveExactMaintenanceWitness,
+    LiveMaintenancePosture, LiveMaintenancePostureAdmission, LiveMaintenancePostureCaseId,
+    LiveMaintenancePostureOutcome, LiveMaintenancePostureView, LiveMaintenanceRequest,
+    LsmCompactionAdmissionRequest, LsmCompactionMaintenanceAdmissionOutcome,
+    LsmCompactionMaintenanceAdmissionView, LsmMaintenanceAdmissionDenialKind,
+    LsmMaintenanceAdmissionDenied, LsmMaintenanceDisposition, LsmMaintenanceOperation,
+    LsmMaintenanceOwnerCaseDeclaration, LsmMaintenanceOwnerCaseId,
+    LsmMaintenanceOwnerCaseObservation, LsmReplayAdmissionRequest,
+    LsmReplayMaintenanceAdmissionOutcome, LsmReplayMaintenanceAdmissionView,
+    LsmRunPublicationAdmissionOutcome, LsmRunPublicationAdmissionRequest,
+    LsmRunPublicationAdmissionView, MigrationMaintenanceCapability,
+    RebuildOnlyMaintenanceCapability, VerifierMaintenanceCapability,
 };
 pub use materialization::{
-    AdmittedCoverageBasis, AdmittedLayoutMaterialization, CurrentLayoutMaterialization,
-    CurrentMaterializationFrontier, ImportedBlobMaterializationSourceIdentity,
-    LayoutMaterializationSourceIdentity, LayoutMaterializationSourceKind, MaterializationDenial,
-    MaterializationFreshness, RestoredArtifactMaterializationSourceIdentity,
-    StaleLayoutMaterialization,
+    AdmittedCoverageBasis, AdmittedLayoutMaterialization,
+    BTreeLookupMaterializationAdmissionOutcome, BTreeLookupMaterializationAdmissionView,
+    BTreePublicationMaterializationAdmissionOutcome, BTreePublicationMaterializationAdmissionView,
+    BTreeReplayMaterializationAdmissionOutcome, BTreeReplayMaterializationAdmissionView,
+    CatalogRootMaterializationAdmissionOutcome, CatalogRootMaterializationAdmissionView,
+    CurrentLayoutMaterialization, CurrentMaterializationFrontier,
+    ImportedBlobMaterializationAdmissionOutcome, ImportedBlobMaterializationAdmissionView,
+    ImportedBlobMaterializationSourceIdentity, LayoutMaterializationSourceIdentity,
+    LayoutMaterializationSourceKind, LsmLookupMaterializationAdmissionOutcome,
+    LsmLookupMaterializationAdmissionView, LsmPublicationMaterializationAdmissionOutcome,
+    LsmPublicationMaterializationAdmissionView, LsmReplayMaterializationAdmissionOutcome,
+    LsmReplayMaterializationAdmissionView, MaterializationDenial, MaterializationFreshness,
+    RestoredArtifactMaterializationAdmissionOutcome, RestoredArtifactMaterializationAdmissionView,
+    RestoredArtifactMaterializationSourceIdentity, StaleLayoutMaterialization,
 };
+pub use observation::{LayoutAccessPerformanceReceipt, ObserveOwnerCase, OwnerCaseObservation};
 pub use planning::{
-    imported_blob_read_admission_cases, AccessPlanCostClass, AccessPlanCostDenial,
-    AccessPlanCostEstimate, AccessPlanIdentity, AccessPlanSelectionDenied,
-    AccessPlanSelectionOutcome, AccessPlanSelectionView, AdmittedPhysicalMutationRequest,
-    AdmittedPhysicalReadRequest, AdmittedPhysicalRecoveryRequest, BTreeLookupOperation,
-    ImportedBlobReadAdmissionCaseId, ImportedBlobReadAdmissionOutcome,
-    ImportedBlobReadAdmissionView, PhysicalAccessRequestAdmissionDenied, SelectedBTreeLookup,
-    SelectedBTreeReplayRecovery, SelectedDegradedExactScan, SelectedLsmCompaction,
-    SelectedLsmLookup, SelectedLsmReplayRecovery, SelectedLsmRunPublication,
-    SelectionCandidateAudit, SelectionCandidateOutcome, SelectionCandidateRejection,
-    SelectionCandidateRejectionCase,
+    access_plan_selection_cases, imported_blob_read_admission_cases, AccessPlanCostClass,
+    AccessPlanCostDenial, AccessPlanCostEstimate, AccessPlanIdentity, AccessPlanSelectionCaseId,
+    AccessPlanSelectionDenied, AccessPlanSelectionOutcome, AccessPlanSelectionView,
+    AccessPlanSelector, AdmittedPhysicalMutationRequest, AdmittedPhysicalReadRequest,
+    AdmittedPhysicalRecoveryRequest, BTreeLookupOperation, ImportedBlobReadAdmissionCaseId,
+    ImportedBlobReadAdmissionOutcome, ImportedBlobReadAdmissionView,
+    PhysicalAccessRequestAdmissionDenied, SelectedBTreeLookup, SelectedBTreeReplayRecovery,
+    SelectedDegradedExactScan, SelectedLsmCompaction, SelectedLsmLookup, SelectedLsmReplayRecovery,
+    SelectedLsmRunPublication, SelectionCandidateAudit, SelectionCandidateOutcome,
+    SelectionCandidateRejection, SelectionCandidateRejectionCase,
 };
 pub use read::{
     layout_read_runtime, LayoutReadAdmissionDenied, LayoutReadRuntime, PageLookupRequest,
     WalLookupRequest,
 };
 pub use recovery::{
-    layout_btree_recovery, BTreeReplayDenied, BTreeReplayLocation, BTreeReplayPhysicalSource,
-    BTreeReplayRequest, LayoutBTreeRecovery,
+    btree_replay_cases, layout_btree_recovery, BTreeReplayCaseId, BTreeReplayDenialKind,
+    BTreeReplayDenied, BTreeReplayLocation, BTreeReplayOutcome, BTreeReplayPhysicalSource,
+    BTreeReplayRequest, BTreeReplayView, LayoutBTreeRecovery,
 };
 pub use strategy::btree::execution::{
-    btree_lookup_execution_cases, btree_lookup_runtime, btree_replay_runtime,
+    btree_lookup_execution_cases, btree_replay_runtime,
     decode_leaf_record as decode_baseline_btree_leaf_record,
     decode_root_record as decode_baseline_btree_root_record,
     encode_leaf_record as encode_baseline_btree_leaf_record,
     encode_root_record as encode_baseline_btree_root_record, BTreeLookupExecutionCaseId,
-    BTreeLookupExecutionView, BTreeLookupRuntime, BTreeReplayReady, BTreeReplayRuntime,
-    BaselineBTreeCorruptionMarker, BaselineBTreeExactCounterWitness, BaselineBTreeExecutionDenial,
-    BaselineBTreeExecutionWitness, BaselineBTreeLeafRecord, BaselineBTreeLookupAbsence,
-    BaselineBTreeLookupAdmission, BaselineBTreeLookupBranch, BaselineBTreeLookupExecution,
+    BTreeLookupExecutionOutcome, BTreeLookupExecutionView, BTreeReplayReady, BTreeReplayRuntime,
+    BTreeSeparatorPartitionDenial, BaselineBTreeCorruptionMarker, BaselineBTreeExactCounterWitness,
+    BaselineBTreeExecutionDenial, BaselineBTreeExecutionDenialKind, BaselineBTreeExecutionWitness,
+    BaselineBTreeLeafRecord, BaselineBTreeLookupAbsence, BaselineBTreeLookupAdmission,
+    BaselineBTreeLookupBranch, BaselineBTreeLookupCounterReceipt, BaselineBTreeLookupExecution,
     BaselineBTreeReadPreflight, BaselineBTreeReadShape, BaselineBTreeReadSource,
     BaselineBTreeReplayAdmission, BaselineBTreeReplayRecoveryExecution, BaselineBTreeRootNode,
     StableBTreeLookupExecution,
 };
 
-pub(crate) use access::shape::{access_shapes, AccessLaneClassification};
+#[cfg(test)]
+pub(crate) use access::execution::degraded_scan_runtime;
+pub use access::shape::{
+    access_shapes, full_declared_scan_cases, AccessLaneClassification, AccessShapeContract,
+    AccessShapeUnsupportedDenial, FullDeclaredScanBasis, FullDeclaredScanCaseId,
+    FullDeclaredScanOutcome, FullDeclaredScanView,
+};
 pub(crate) use catalog::{
     ArtifactFamilyAuthorityWitness, ArtifactFamilyDenial, ArtifactFamilyLifecycleAdmission,
     PhysicalArtifactFamily, PhysicalArtifactFamilyDeclaration,
 };
-pub(crate) use integrity::{
-    LayoutCorruptionOutcome, LayoutCorruptionView, LayoutQuarantineWitness,
-};
+#[cfg(test)]
+pub(crate) use integrity::LayoutCorruptionView;
 pub(crate) use keyspace::{CanonicalKeyBytes, PhysicalKeyDomain, PhysicalKeyDomainWitness};
-pub(crate) use maintenance::{LayoutCorruptionClassification, PhysicalMutationShape};
+pub(crate) use maintenance::LayoutCorruptionClassification;
+pub use maintenance::PhysicalMutationShape;
+pub(crate) use materialization::LayoutCoverageWitness;
 #[cfg(test)]
 pub(crate) use materialization::LayoutMaterializationState;
-pub(crate) use materialization::{LayoutCoverageWitness, MaterializationStateClass};
-pub(crate) use planning::AccessPlanSelector;
+#[cfg(test)]
+pub(crate) use materialization::MaterializationStateClass;
+pub(crate) use strategy::btree::execution::btree_lookup_runtime;
 
 // Unit tests live beside their owners but compile as one crate. Keep this
 // convenience vocabulary crate-private and absent from production builds.
 #[cfg(test)]
 pub(crate) use access::shape::{
-    AccessAuthorityPosture, AccessShapeDetail, AccessShapeUnsupportedDenial,
-    AccessStaleDisposition, BoundedScanBasis, DegradedExactScanBasis, ExpectedCounterClass,
-    FullDeclaredScanBasis, GroupedPrefixBasis, MaintenanceReadBasis, ManifestGraphWalkBasis,
-    MultiRangeBasis, MutationAccessBasis, PrefixBasis, RangeBasis, StreamingContinuationBasis,
-    StreamingReadBasis,
+    AccessAuthorityPosture, AccessShapeDetail, AccessStaleDisposition, BoundedScanBasis,
+    DegradedExactScanBasis, ExpectedCounterClass, GroupedPrefixBasis, MaintenanceReadBasis,
+    ManifestGraphWalkBasis, MultiRangeBasis, MutationAccessBasis, PrefixBasis, RangeBasis,
+    StreamingContinuationBasis, StreamingReadBasis,
 };
 #[cfg(test)]
 pub(crate) use catalog::ArtifactFamilyAccessLane;
@@ -149,30 +216,29 @@ pub(crate) use evolution::{
 };
 #[cfg(test)]
 pub(crate) use keyspace::{CompositeKeyField, HashCollisionBehavior};
-#[cfg(test)]
-pub(crate) use maintenance::{
-    DerivedIndexCostEnvelopeParity, DerivedIndexCounterShapeParity, DerivedIndexParityBasis,
-    DerivedIndexParityRow, DerivedIndexRebuildDenied, DerivedIndexRebuildRequest,
-    DerivedIndexRebuildSourceInput, DerivedIndexResultIdentity, ExactPublicationAuthoritySource,
-    IndexLagOutcome, IndexLagWitness, IndexMaintenanceFailureOutcome, IndexMaintenanceMode,
-    LagReason, LiveMaintenanceRequest,
-};
 pub use strategy::{
     baseline_lsm_lookup_admission_cases, baseline_lsm_lookup_cases, lsm_compaction_runtime,
-    lsm_lookup_runtime, lsm_physical_compaction_runtime, lsm_publication_runtime,
-    lsm_replay_runtime, lsm_strategy, AdmittedLsmCompactionDemand, BaselineLsmCompactionAdmission,
-    BaselineLsmCompactionKeyIdentity, BaselineLsmCompactionPlan,
+    lsm_execution_owner_case_inventory, lsm_lookup_runtime, lsm_physical_compaction_runtime,
+    lsm_publication_runtime, lsm_replay_runtime, lsm_strategy, AdmittedLsmCompactionDemand,
+    BaselineLsmCompactionAdmission, BaselineLsmCompactionKeyIdentity, BaselineLsmCompactionPlan,
     BaselineLsmCompactionPublicationReceipt, BaselineLsmCompactionRecordIdentity,
     BaselineLsmCompactionRecordKind, BaselineLsmCompactionTransition,
-    BaselineLsmCounterObservation, BaselineLsmExecutionAdmissionDenial, BaselineLsmLookupAbsence,
-    BaselineLsmLookupAdmission, BaselineLsmLookupAdmissionCaseId,
-    BaselineLsmLookupAdmissionOutcome, BaselineLsmLookupAdmissionView, BaselineLsmLookupCaseId,
+    BaselineLsmCounterObservation, BaselineLsmExecutionAdmissionDenial,
+    BaselineLsmExecutionAdmissionDenialKind, BaselineLsmLookupAbsence, BaselineLsmLookupAdmission,
+    BaselineLsmLookupAdmissionCaseId, BaselineLsmLookupAdmissionOutcome,
+    BaselineLsmLookupAdmissionView, BaselineLsmLookupCaseId, BaselineLsmLookupCounterReceipt,
     BaselineLsmLookupDisposition, BaselineLsmLookupExecution, BaselineLsmLookupSource,
     BaselineLsmLookupView, BaselineLsmManifestPublicationExecution,
     BaselineLsmMembershipObservation, BaselineLsmReplayAdmission, BaselineLsmReplayExecution,
     BaselineLsmRunIdentity, BaselineLsmRunPublicationAdmission, InterlockedLsmCompaction,
-    LsmCompactionRuntime, LsmLookupRuntime, LsmPhysicalCompactionIntent,
-    LsmPhysicalCompactionRuntime, LsmPublicationRuntime, LsmReplayRuntime, LsmStrategy,
+    LayoutStrategyRegistrySnapshot, LsmCompactionPreparationOutcome, LsmCompactionPreparationView,
+    LsmCompactionPublicationOutcome, LsmCompactionPublicationView, LsmCompactionRuntime,
+    LsmExecutionDisposition, LsmExecutionOperation, LsmExecutionOwnerCaseDeclaration,
+    LsmExecutionOwnerCaseId, LsmExecutionOwnerCaseObservation, LsmLookupRuntime,
+    LsmMembershipActivationOutcome, LsmMembershipActivationView,
+    LsmPhysicalCompactionBindingOutcome, LsmPhysicalCompactionBindingView,
+    LsmPhysicalCompactionIntent, LsmPhysicalCompactionRuntime, LsmPublicationRuntime,
+    LsmReplayExecutionOutcome, LsmReplayExecutionView, LsmReplayRuntime, LsmStrategy,
     PreparedLsmCompaction, PublishedLsmCompaction,
 };
 #[cfg(test)]
