@@ -145,12 +145,19 @@ impl WorthQueryDomainInstallationRegistry {
         &self,
         handle: &WorthQueryInstalledDomainHandle<D>,
     ) -> Result<(), WorthQueryDomainHandleDenial> {
-        if handle.authority.runtime_authority() != self.runtime_authority {
+        self.validate_authority::<D>(&handle.authority)
+    }
+
+    pub(crate) fn validate_authority<D: 'static>(
+        &self,
+        authority: &WorthQueryInstalledDomainAuthority,
+    ) -> Result<(), WorthQueryDomainHandleDenial> {
+        if authority.runtime_authority() != self.runtime_authority {
             return Err(WorthQueryDomainHandleDenial::new(
                 WorthQueryDomainHandleDenialKind::ForeignRuntime,
             ));
         }
-        if handle.authority.installation_generation() != self.generation {
+        if authority.installation_generation() != self.generation {
             return Err(WorthQueryDomainHandleDenial::new(
                 WorthQueryDomainHandleDenialKind::StaleInstallationGeneration,
             ));
@@ -158,7 +165,7 @@ impl WorthQueryDomainInstallationRegistry {
         let record = self.record::<D>().ok_or_else(|| {
             WorthQueryDomainHandleDenial::new(WorthQueryDomainHandleDenialKind::DomainNotInstalled)
         })?;
-        if handle.authority.package_identity() != &record.artifact.package_identity {
+        if authority.package_identity() != &record.artifact.package_identity {
             return Err(WorthQueryDomainHandleDenial::new(
                 WorthQueryDomainHandleDenialKind::PackageIdentityChanged,
             ));

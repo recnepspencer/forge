@@ -169,24 +169,33 @@ fn grammar_inspection_journey_executes() {
 #[test]
 fn grammar_domain_journey_executes() {
     use worth_query::facade::domain::{
-        declare, preview, WorthQueryDomainWorkflowContribution, WorthQueryDomainWorkflowOutcome,
-        WorthQueryMutationDeclaration, WorthQueryMutationDeclarationStop, WorthQuerySessionLabel,
+        preview, WorthQueryInstalledDomainWorkflowOutcome, WorthQuerySessionLabel,
         WorthQueryWorkflowNextAction, WorthQueryWorkflowStop,
     };
-    struct Contribution;
-    impl WorthQueryDomainWorkflowContribution for Contribution {
-        type Error = WorthQueryMutationDeclarationStop;
-        fn contribute(&self) -> Result<WorthQueryMutationDeclaration, Self::Error> {
-            fixture::contributed_mutation("grammar-domain")
-        }
-    }
-    let mut workspace = fixture::workspace("grammar-domain");
+    let mut workspace = crate::support::installed_domain::workspace("grammar-domain");
+    let handle = workspace
+        .domain(crate::support::installed_domain::PublicInstalledDomain)
+        .unwrap();
     let label = WorthQuerySessionLabel::scoped_strs("grammar", ["domain"]).unwrap();
     let context = preview(&workspace, label.clone()).expect("domain context should admit");
-    let outcome: WorthQueryDomainWorkflowOutcome = declare(label, Contribution)
-        .expect("domain contribution should declare")
+    let outcome: WorthQueryInstalledDomainWorkflowOutcome = handle
+        .mutation(|mutation| {
+            mutation
+                .set_aspect(
+                    worth_query::facade::domain::WorthQueryAspectTouch::from_authoring_ingress_text(
+                        "identity.id",
+                    )?,
+                    worth_query::facade::domain::WorthQueryAuthoredAspectValue::string(
+                        "grammar-domain",
+                    ),
+                )
+                .build_insert("Task")
+        })
+        .unwrap()
+        .workflow(label)
         .using(context)
-        .run(&mut workspace);
+        .run(&mut workspace)
+        .unwrap();
     assert!(outcome.completed().is_some());
     type_exists::<WorthQueryWorkflowStop>();
     type_exists::<WorthQueryWorkflowNextAction>();

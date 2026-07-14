@@ -11,8 +11,11 @@ use worth_query::facade::runtime::{WorthQueryAspectMutationBuilder, WorthQueryAs
 use worth_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
 };
+#[path = "research_graph_invariants/installed_domain.rs"]
+mod installed_domain;
 #[path = "research_graph_invariants/registration.rs"]
 mod registration;
+use installed_domain::materialize_installed_domain_denial;
 fn handle() -> HadwigerResearchHandle {
     admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
         .expect("Hadwiger handle should admit")
@@ -288,8 +291,7 @@ fn denial_materialization_requires_real_lower_runtime_envelope() {
     let catalog = draft_research_graph_invariant_catalog(&handle, &corpus, &frontier).unwrap();
     let violation = suppression_violation(&handle, &catalog, &corpus);
 
-    let error = materialize_research_graph_invariant_denial(
-        &handle,
+    let error = materialize_installed_domain_denial(
         ResearchGraphInvariantDenialRequest::from_violation(&catalog, &violation),
     )
     .expect_err("Phase 8 must not fabricate lower-runtime envelopes");
@@ -307,8 +309,7 @@ fn denial_materializes_from_query_boundary_source_and_retains_source_basis() {
     let violation = suppression_violation(&handle, &catalog, &corpus);
     let source = phase8_boundary_source("phase8-boundary-source-a");
 
-    let denial = materialize_research_graph_invariant_denial(
-        &handle,
+    let denial = materialize_installed_domain_denial(
         ResearchGraphInvariantDenialRequest::from_violation(&catalog, &violation)
             .for_lower_runtime_boundary_source(&source),
     )
@@ -343,14 +344,12 @@ fn boundary_source_and_envelope_compatibility_paths_converge() {
     let violation = suppression_violation(&handle, &catalog, &corpus);
     let source = phase8_boundary_source("phase8-boundary-source-b");
 
-    let from_source = materialize_research_graph_invariant_denial(
-        &handle,
+    let from_source = materialize_installed_domain_denial(
         ResearchGraphInvariantDenialRequest::from_violation(&catalog, &violation)
             .for_lower_runtime_boundary_source(source.boundary_envelope()),
     )
     .unwrap();
-    let from_envelope = materialize_research_graph_invariant_denial(
-        &handle,
+    let from_envelope = materialize_installed_domain_denial(
         ResearchGraphInvariantDenialRequest::from_violation(&catalog, &violation)
             .for_lower_runtime_boundary_envelope(source.boundary_envelope()),
     )
@@ -374,14 +373,12 @@ fn changed_boundary_source_digest_changes_hadwiger_denial_digest() {
     let first_source = phase8_boundary_source("phase8-boundary-source-c1");
     let second_source = phase8_boundary_source("phase8-boundary-source-c2");
 
-    let first = materialize_research_graph_invariant_denial(
-        &handle,
+    let first = materialize_installed_domain_denial(
         ResearchGraphInvariantDenialRequest::from_violation(&catalog, &violation)
             .for_lower_runtime_boundary_source(&first_source),
     )
     .unwrap();
-    let second = materialize_research_graph_invariant_denial(
-        &handle,
+    let second = materialize_installed_domain_denial(
         ResearchGraphInvariantDenialRequest::from_violation(&catalog, &violation)
             .for_lower_runtime_boundary_source(&second_source),
     )

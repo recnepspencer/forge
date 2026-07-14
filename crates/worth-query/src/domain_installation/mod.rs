@@ -1,5 +1,6 @@
 mod admission;
 mod canonical_identity;
+mod capabilities;
 mod definitions;
 mod denial;
 mod execution;
@@ -14,6 +15,7 @@ mod receipt;
 mod validation;
 
 pub use admission::WorthQueryAdmittedDomainPackage;
+pub use capabilities::*;
 pub use definitions::{
     WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphReadOperationDefinition,
     WorthQueryDomainInvariantDefinition, WorthQueryDomainInvariantPredicate,
@@ -25,9 +27,9 @@ pub use denial::{
     WorthQueryDomainPackageValidationDenialKind,
 };
 pub use execution::{
-    WorthQueryInstalledDomainExecutionDrift, WorthQueryInstalledDomainExecutionDriftKind,
-    WorthQueryInstalledDomainExecutionNextAction, WorthQueryInstalledDomainExecutionReceipt,
-    WorthQueryInstalledDomainReadAdmission, WorthQueryInstalledDomainReadAdmissionError,
+    WorthQueryInstalledDomainCapabilityKind, WorthQueryInstalledDomainExecutionDrift,
+    WorthQueryInstalledDomainExecutionDriftKind, WorthQueryInstalledDomainExecutionNextAction,
+    WorthQueryInstalledDomainExecutionReceipt,
 };
 pub use identity::{
     WorthQueryDomainIdentityDeclaration, WorthQueryDomainIdentityName,

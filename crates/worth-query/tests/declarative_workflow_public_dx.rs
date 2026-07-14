@@ -173,42 +173,34 @@ fn branch_merge_journey_uses_only_workflow_capability_vocabulary() {
 #[test]
 fn domain_journey_lowers_contributed_vocabulary_through_query() {
     use worth_query::facade::domain::{
-        declare, declare_mutation, preview, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
-        WorthQueryDomainWorkflowContribution, WorthQueryMutationDeclaration,
-        WorthQueryMutationDeclarationStop, WorthQueryPreviewCloseoutKind, WorthQuerySessionLabel,
+        preview, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
+        WorthQueryPreviewCloseoutKind, WorthQuerySessionLabel,
     };
-
-    struct TaskContribution;
-
-    impl WorthQueryDomainWorkflowContribution for TaskContribution {
-        type Error = WorthQueryMutationDeclarationStop;
-
-        fn contribute(&self) -> Result<WorthQueryMutationDeclaration, Self::Error> {
-            declare_mutation(|mutation| {
-                mutation
-                    .set_aspect(
-                        WorthQueryAspectTouch::from_authoring_ingress_text("identity.id")?,
-                        WorthQueryAuthoredAspectValue::string("domain-dx"),
-                    )
-                    .build_insert("Task")
-            })
-        }
-    }
 
     let label = WorthQuerySessionLabel::scoped_strs("public-domain", ["promotion"])
         .expect("label should build");
-    let declaration = declare(label.clone(), TaskContribution).expect("domain should contribute");
-    let mut workspace = PublicBridgeRuntimeHarness::new()
-        .bridge_backed_runtime()
-        .workspace("public-domain-dx")
-        .expect("workspace should open");
+    let mut workspace = support::installed_domain::workspace("public-domain-dx");
+    let handle = workspace
+        .domain(support::installed_domain::PublicInstalledDomain)
+        .unwrap();
+    let declaration = handle
+        .mutation(|mutation| {
+            mutation
+                .set_aspect(
+                    WorthQueryAspectTouch::from_authoring_ingress_text("identity.id")?,
+                    WorthQueryAuthoredAspectValue::string("domain-dx"),
+                )
+                .build_insert("Task")
+        })
+        .expect("domain mutation should declare")
+        .workflow(label.clone());
     let context = preview(&workspace, label).expect("context should admit");
-    let outcome = declaration.using(context).run(&mut workspace);
+    let outcome = declaration.using(context).run(&mut workspace).unwrap();
     assert_eq!(
         outcome
             .completed()
             .expect("domain workflow should complete")
-            .workflow()
+            .completion()
             .aftermath()
             .closeout_kind(),
         WorthQueryPreviewCloseoutKind::Promoted

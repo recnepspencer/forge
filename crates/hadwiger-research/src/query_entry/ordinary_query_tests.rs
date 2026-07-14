@@ -1,51 +1,82 @@
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
-use worth_query::facade::{domain, read};
+use worth_query::facade::domain;
 
-use super::{declare_candidate_promotion, declare_candidate_search};
+use super::{
+    hadwiger_research_domain_package, HadwigerCandidateContribution, HadwigerResearchDomainEntry,
+    HadwigerResearchQueryExt,
+};
 
 #[test]
-fn hadwiger_candidate_search_uses_the_ordinary_read_journey() {
+fn hadwiger_candidate_search_uses_the_installed_domain_read_journey() {
     let mut workspace = candidate_workspace("hadwiger-reference-read");
-    let outcome = declare_candidate_search()
+    let handle = workspace.domain(HadwigerResearchDomainEntry).unwrap();
+    let completion = handle
+        .candidate_search()
         .expect("Hadwiger candidate search should declare")
-        .using(read::current())
-        .run(&mut workspace);
-    let completion = outcome
-        .completed()
+        .using(domain::current())
+        .run(&mut workspace)
+        .unwrap()
+        .into_result()
         .expect("candidate search should complete");
 
-    assert_eq!(completion.journey_counters().planning_attempt_count(), 1);
     assert_eq!(
         completion
+            .completion()
+            .journey_counters()
+            .planning_attempt_count(),
+        1
+    );
+    assert_eq!(
+        completion
+            .completion()
             .journey_counters()
             .lower_runtime_execution_completed_count(),
         1
     );
+    assert_eq!(
+        completion
+            .receipt()
+            .installed_authority()
+            .package_identity(),
+        handle.package_identity()
+    );
 }
 
 #[test]
-fn hadwiger_contribution_lowers_through_query_owned_workflow() {
+fn hadwiger_contribution_lowers_through_the_installed_handle() {
     let mut workspace = candidate_workspace("hadwiger-reference-workflow");
+    let handle = workspace.domain(HadwigerResearchDomainEntry).unwrap();
     let label = domain::WorthQuerySessionLabel::scoped_strs("hadwiger", ["candidate-17"])
         .expect("candidate label should admit");
-    let declaration = declare_candidate_promotion(label.clone(), "candidate-17")
+    let declaration = handle
+        .candidate_promotion(
+            label.clone(),
+            HadwigerCandidateContribution::new("candidate-17"),
+        )
         .expect("Hadwiger contribution should declare");
     let context = domain::preview(&workspace, label).expect("preview context should admit");
-    let outcome = declaration.using(context).run(&mut workspace);
+    let outcome = declaration.using(context).run(&mut workspace).unwrap();
     let completion = outcome
         .completed()
         .expect("Hadwiger workflow should complete");
 
     assert_eq!(
-        completion.workflow().aftermath().closeout_kind(),
+        completion.completion().aftermath().closeout_kind(),
         domain::WorthQueryPreviewCloseoutKind::Promoted
     );
     assert_eq!(
         completion
-            .workflow()
+            .completion()
             .counters()
             .lower_runtime_execution_completed_count(),
         1
+    );
+    assert_eq!(
+        completion
+            .receipt()
+            .installed_authority()
+            .package_identity(),
+        handle.package_identity()
     );
 }
 
@@ -55,8 +86,14 @@ fn candidate_workspace(name: &str) -> worth_query::facade::runtime::WorthQueryWo
         .expect("identity aspect should build")
         .aspect("colorability.lower_bound", "colorability.lower_bound")
         .expect("colorability aspect should build");
+    let package = hadwiger_research_domain_package()
+        .validate()
+        .unwrap()
+        .admit(&domain::WorthQueryApplicationFacade::runtime_backed_default())
+        .unwrap();
     in_memory_test_runtime()
         .with_schema(schema)
+        .domain_package(package)
         .workspace(name)
         .expect("Hadwiger reference workspace should build")
 }

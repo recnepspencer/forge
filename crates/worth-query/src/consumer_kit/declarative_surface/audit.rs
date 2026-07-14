@@ -241,7 +241,6 @@ fn current_sources() -> Vec<WorthQueryDeclarativeSurfaceSource> {
             "src/ordinary/comparison/execution.rs",
             include_str!("../../ordinary/comparison/execution.rs"),
         ),
-        ordinary_source!("domain/mod.rs"),
         ordinary_source!("inspection/mod.rs"),
         ordinary_source!("inspection/context.rs"),
         ordinary_source!("inspection/declaration.rs"),

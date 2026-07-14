@@ -209,11 +209,11 @@ pub use crate::proof_claims::{
     PlaneLowerBoundClaimRequest, PlaneUpperBoundClaimRequest,
 };
 pub use crate::query_entry::{
-    admit_hadwiger_research_handle, declare_candidate_promotion, declare_candidate_search,
+    admit_hadwiger_research_handle, hadwiger_research_domain_package,
     HadwigerCandidateContribution, HadwigerResearchAdmissionError,
     HadwigerResearchAssumptionRegime, HadwigerResearchCheckerSupportRegime,
     HadwigerResearchDomainEntry, HadwigerResearchHandle, HadwigerResearchInvalidationRegime,
-    HadwigerResearchOperatingContext,
+    HadwigerResearchOperatingContext, HadwigerResearchQueryExt,
 };
 pub use crate::research_cockpit::{
     assemble_research_cockpit_session_checked, certify_hadwiger_milestone_one_bundle_checked,

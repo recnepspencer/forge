@@ -102,7 +102,7 @@ impl WorthQueryCapabilityOutcomeContract {
             Self::Mutation => "WorthQueryMutationOutcome",
             Self::Workflow => "WorthQueryWorkflowOutcome",
             Self::Inspection => "WorthQueryInspectionOutcome",
-            Self::Domain => "WorthQueryDomainWorkflowOutcome",
+            Self::Domain => "WorthQueryInstalledDomainWorkflowOutcome",
         }
     }
 

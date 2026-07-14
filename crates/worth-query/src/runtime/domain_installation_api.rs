@@ -2,7 +2,8 @@ use crate::domain_installation::{
     WorthQueryDomainExecutionIndexRebuildReport, WorthQueryDomainHandleDenial,
     WorthQueryDomainInstallationLookupCounters, WorthQueryDomainInstallationReceipt,
     WorthQueryDomainRebindDenial, WorthQueryDomainRebindReceipt, WorthQueryDomainRebindRequest,
-    WorthQueryInstalledDomainHandle, WorthQueryReboundDomainHandle,
+    WorthQueryInstalledDomainAuthorityWitness, WorthQueryInstalledDomainHandle,
+    WorthQueryReboundDomainHandle,
 };
 
 use super::WorthQueryRuntime;
@@ -33,6 +34,14 @@ impl WorthQueryRuntime {
         handle: &WorthQueryInstalledDomainHandle<D>,
     ) -> Result<(), WorthQueryDomainHandleDenial> {
         self.domain_installation_registry.validate(handle)
+    }
+
+    pub(crate) fn validate_installed_domain_witness<D: 'static>(
+        &self,
+        witness: &WorthQueryInstalledDomainAuthorityWitness,
+    ) -> Result<(), WorthQueryDomainHandleDenial> {
+        self.domain_installation_registry
+            .validate_authority::<D>(witness.authority())
     }
 
     pub fn domain_installation_lookup_counters(

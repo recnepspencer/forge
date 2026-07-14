@@ -1,6 +1,4 @@
-use super::{
-    comparison, count, domain, history, inspection, live, mutation, preview, read, workflow,
-};
+use super::{comparison, count, history, inspection, live, mutation, preview, read, workflow};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryOutcomePosture {
@@ -211,10 +209,12 @@ impl WorthQueryOutcomeNavigation for workflow::WorthQueryBranchMergeOutcome {
     }
 }
 
-impl WorthQueryOutcomeNavigation for domain::WorthQueryDomainWorkflowOutcome {
+impl WorthQueryOutcomeNavigation
+    for crate::domain_installation::WorthQueryInstalledDomainWorkflowOutcome
+{
     fn posture(&self) -> WorthQueryOutcomePosture {
         match self {
-            Self::Completed(completion) => workflow_completion_posture(completion.workflow()),
+            Self::Completed(completion) => workflow_completion_posture(completion.completion()),
             Self::Stopped(stop) => workflow_stop_posture(stop),
         }
     }

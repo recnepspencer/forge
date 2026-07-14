@@ -57,7 +57,9 @@ fn inspection_journey_uses_only_ordinary_facade_vocabulary() {
     assert_navigation::<worth_query::facade::workflow::WorthQueryWorkflowOutcome>();
     assert_navigation::<worth_query::facade::workflow::WorthQueryWritebackOutcome>();
     assert_navigation::<worth_query::facade::workflow::WorthQueryBranchMergeOutcome>();
-    assert_navigation::<worth_query::facade::domain::WorthQueryDomainWorkflowOutcome>();
+    assert_navigation::<
+        worth_query::facade::domain::WorthQueryInstalledDomainWorkflowOutcome,
+    >();
     assert_navigation::<WorthQueryInspectionOutcome>();
 }
 
