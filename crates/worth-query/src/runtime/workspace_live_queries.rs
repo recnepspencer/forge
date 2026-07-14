@@ -35,7 +35,7 @@ impl WorthQueryWorkspace {
         &mut self,
         view: &super::WorthQueryLiveView<T>,
         capability: &std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability>,
-    ) -> Result<WorthQueryPatchBatch, WorthQueryRuntimeError> {
+    ) -> Result<super::WorthQueryManagedLiveRuntimeDelivery, WorthQueryRuntimeError> {
         self.admit_managed_live_capability(capability, view.name())?;
         self.runtime.reap_abandoned_managed_live_resources()?;
         let target = self.resolve_live_artifact_target(view.name())?;
@@ -44,7 +44,10 @@ impl WorthQueryWorkspace {
                 view.name().to_string(),
             ));
         }
-        Ok(self.runtime.drain_patches(view))
+        Ok(super::WorthQueryManagedLiveRuntimeDelivery::new(
+            view.name(),
+            self.runtime.drain_live_delivery_batches(view),
+        ))
     }
 
     pub(crate) fn observe_managed_live_view<T>(

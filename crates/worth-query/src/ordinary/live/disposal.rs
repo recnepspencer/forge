@@ -15,6 +15,7 @@ pub struct WorthQueryManagedLiveCloseReceipt {
     resource_name: String,
     closeout_identity: WorthQueryEvidenceIdentity,
     lane_terminal: bool,
+    disposal_work: WorthQueryManagedLiveDisposalWork,
 }
 
 impl WorthQueryManagedLiveCloseReceipt {
@@ -28,6 +29,52 @@ impl WorthQueryManagedLiveCloseReceipt {
 
     pub fn lane_terminal(&self) -> bool {
         self.lane_terminal
+    }
+
+    pub fn disposal_work(&self) -> &WorthQueryManagedLiveDisposalWork {
+        &self.disposal_work
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryManagedLiveDisposalWork {
+    consumer_attachment_close_count: u64,
+    active_lane_close_count: u64,
+    lifecycle_closeout_count: u64,
+    budget_consumption_width: u64,
+    budget_remaining_width: u64,
+}
+
+impl WorthQueryManagedLiveDisposalWork {
+    fn from_closeout(closeout: &crate::subscription::SubscriptionLifecycleCloseout) -> Self {
+        let counters = closeout.counters();
+        Self {
+            consumer_attachment_close_count: counters.consumer_attachment_close_count(),
+            active_lane_close_count: counters.active_lane_close_count(),
+            lifecycle_closeout_count: counters.subscription_lifecycle_closeout_count(),
+            budget_consumption_width: counters.subscription_budget_consumption_width(),
+            budget_remaining_width: counters.subscription_budget_remaining_width(),
+        }
+    }
+
+    pub fn consumer_attachment_close_count(&self) -> u64 {
+        self.consumer_attachment_close_count
+    }
+
+    pub fn active_lane_close_count(&self) -> u64 {
+        self.active_lane_close_count
+    }
+
+    pub fn lifecycle_closeout_count(&self) -> u64 {
+        self.lifecycle_closeout_count
+    }
+
+    pub fn budget_consumption_width(&self) -> u64 {
+        self.budget_consumption_width
+    }
+
+    pub fn budget_remaining_width(&self) -> u64 {
+        self.budget_remaining_width
     }
 }
 
@@ -58,6 +105,7 @@ impl WorthQueryManagedLiveHandle {
                     resource_name: self.name().to_string(),
                     closeout_identity: closeout.evidence_identity().clone(),
                     lane_terminal: closeout.lane_terminal(),
+                    disposal_work: WorthQueryManagedLiveDisposalWork::from_closeout(&closeout),
                 };
                 self.disarm();
                 WorthQueryManagedLiveCloseOutcome::Closed(receipt)

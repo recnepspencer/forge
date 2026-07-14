@@ -29,6 +29,7 @@ impl WorthQueryManagedLiveHandle {
             observation.resource_name(),
             observation.installation_identity(),
             observation.basis_binding_identity(),
+            observation.pending_delivery_batch_count(),
             observation.last_delivery_sequence(),
         );
         let (view, capability) = self.into_resource_parts();
@@ -101,6 +102,7 @@ impl WorthQueryManagedLiveContinuation {
         let receipt = WorthQueryManagedLiveResumeReceipt::new(
             self.checkpoint(),
             observation.last_delivery_sequence(),
+            observation.pending_delivery_batch_count(),
         );
         let (view, capability) = self.into_resource_parts();
         WorthQueryManagedLiveResumeOutcome::Resumed(WorthQueryManagedLiveResumeCompletion::new(

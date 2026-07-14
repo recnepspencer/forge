@@ -17,23 +17,30 @@ impl WorthQueryRuntime {
     }
 
     pub fn drain_patches<T>(&mut self, view: &WorthQueryLiveView<T>) -> WorthQueryPatchBatch {
+        let query_delivery_batches = self.drain_live_delivery_batches(view);
+        WorthQueryPatchBatch {
+            view_name: view.name().to_string(),
+            live_patches: Vec::new(),
+            query_delivery_batches,
+            derived_patch_notes: Vec::new(),
+            derived_patches: Vec::new(),
+        }
+    }
+
+    pub(crate) fn drain_live_delivery_batches<T>(
+        &mut self,
+        view: &WorthQueryLiveView<T>,
+    ) -> Vec<WorthQueryRuntimeDeliveryBatch> {
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Live)
             .expect("live support was admitted before patch draining");
         let live_target = WorthQueryLiveArtifactTarget::from_subscription_installation(
             view.subscription_installation(),
         );
         let _legacy_patch_buffer = self.backend.drain_live_patches_for_target(&live_target);
-        WorthQueryPatchBatch {
-            view_name: view.name().to_string(),
-            live_patches: Vec::new(),
-            query_delivery_batches: self
-                .live_subscriptions
-                .get_mut(&live_target)
-                .map(|state| std::mem::take(&mut state.delivery_batches))
-                .unwrap_or_default(),
-            derived_patch_notes: Vec::new(),
-            derived_patches: Vec::new(),
-        }
+        self.live_subscriptions
+            .get_mut(&live_target)
+            .map(|state| std::mem::take(&mut state.delivery_batches))
+            .unwrap_or_default()
     }
 
     pub fn drain_derived_patches<T>(

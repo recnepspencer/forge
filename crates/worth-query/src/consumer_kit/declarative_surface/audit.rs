@@ -166,6 +166,10 @@ fn current_sources() -> Vec<WorthQueryDeclarativeSurfaceSource> {
             include_str!("../../ordinary/live/request.rs"),
         ),
         WorthQueryDeclarativeSurfaceSource::new(
+            "src/ordinary/live/continuation/outcome.rs",
+            include_str!("../../ordinary/live/continuation/outcome.rs"),
+        ),
+        WorthQueryDeclarativeSurfaceSource::new(
             "src/ordinary/read/mod.rs",
             include_str!("../../ordinary/read/mod.rs"),
         ),
@@ -282,6 +286,7 @@ fn current_sources() -> Vec<WorthQueryDeclarativeSurfaceSource> {
         WorthQueryDeclarativeSurfaceSource::new("src/facade/exports_application.rs", include_str!("../../facade/exports_application.rs")),
         WorthQueryDeclarativeSurfaceSource::new("src/facade/exports_certification.rs", include_str!("../../facade/exports_certification.rs")),
         WorthQueryDeclarativeSurfaceSource::new("src/facade/exports_foundation.rs", include_str!("../../facade/exports_foundation.rs")),
+        WorthQueryDeclarativeSurfaceSource::new("src/facade/exports_live_capability.rs", include_str!("../../facade/exports_live_capability.rs")),
         WorthQueryDeclarativeSurfaceSource::new("src/facade/exports_policy.rs", include_str!("../../facade/exports_policy.rs")),
         WorthQueryDeclarativeSurfaceSource::new("src/facade/exports_read.rs", include_str!("../../facade/exports_read.rs")),
         WorthQueryDeclarativeSurfaceSource::new("src/facade/exports_runtime.rs", include_str!("../../facade/exports_runtime.rs")),
@@ -339,6 +344,7 @@ pub(super) fn workspace_declarative_surface_audit() -> WorthQueryDeclarativeSurf
         "src/facade/exports_application.rs",
         "src/facade/exports_certification.rs",
         "src/facade/exports_foundation.rs",
+        "src/facade/exports_live_capability.rs",
         "src/facade/exports_policy.rs",
         "src/facade/exports_read.rs",
         "src/facade/exports_runtime.rs",

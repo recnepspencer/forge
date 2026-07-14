@@ -20,6 +20,7 @@ const ORDINARY_LIVE_DECLARATION: &str = "src/ordinary/live/declaration.rs";
 const ORDINARY_LIVE_DISPOSAL: &str = "src/ordinary/live/disposal.rs";
 const ORDINARY_LIVE_EXECUTION: &str = "src/ordinary/live/execution.rs";
 const ORDINARY_LIVE_REQUEST: &str = "src/ordinary/live/request.rs";
+const ORDINARY_LIVE_CONTINUATION_OUTCOME: &str = "src/ordinary/live/continuation/outcome.rs";
 const WORKSPACE_QUERIES: &str = "src/runtime/workspace_queries.rs";
 const DECLARATION_ORCHESTRATION: &str =
     "src/application/domain_handle/admitted_handle/declaration_entry/orchestration.rs";
@@ -150,7 +151,7 @@ const DECLARATIVE_SURFACE_ROWS: &[Row] = &[
         Class::OrdinaryDeclaration,
         Class::OrdinaryDeclaration,
         "ordinary live consumer",
-        "facade::read::declare_live",
+        "facade::live::declare",
     ),
     Row::new(
         ORDINARY_LIVE_EXECUTION,
@@ -171,6 +172,16 @@ const DECLARATIVE_SURFACE_ROWS: &[Row] = &[
         Class::OrdinaryDeclaration,
         "ordinary live consumer",
         "WorthQueryManagedLiveHandle::close",
+    ),
+    Row::new(
+        ORDINARY_LIVE_CONTINUATION_OUTCOME,
+        "close",
+        Family::Live,
+        Phase::Dispose,
+        Class::OrdinaryOutcome,
+        Class::OrdinaryOutcome,
+        "ordinary live consumer recovering from a stopped resume",
+        "WorthQueryManagedLiveResumeStop::close",
     ),
     read_mechanism("compose_read", Phase::Declare),
     read_mechanism("compose_read_with_invariant_pack", Phase::Declare),

@@ -133,6 +133,13 @@ fn managed_live_resource_routes_admitted_deltas_and_suppresses_irrelevant_update
         .expect("projected delivery should drain");
     assert_eq!(delivery.batches().len(), 1);
     assert_eq!(delivery.batches()[0].sequence(), 2);
+    assert_eq!(delivery.batches()[0].patch_group_width(), 1);
+    let maintenance_work = delivery.batches()[0]
+        .maintenance_work()
+        .expect("relational delivery should disclose maintenance work");
+    assert_eq!(maintenance_work.mutation_delta_count(), 1);
+    assert_eq!(maintenance_work.index_update_count(), 1);
+    assert_eq!(maintenance_work.live_view_update_count(), 1);
     assert_eq!(
         handle
             .read(&mut workspace)
@@ -150,12 +157,25 @@ fn managed_live_close_detaches_shared_consumers_and_removes_final_resource() {
 
     let first_close = closed(first.close(&mut workspace));
     assert!(!first_close.lane_terminal());
+    assert_eq!(
+        first_close
+            .disposal_work()
+            .consumer_attachment_close_count(),
+        1
+    );
+    assert_eq!(first_close.disposal_work().active_lane_close_count(), 0);
+    assert_eq!(first_close.disposal_work().budget_consumption_width(), 1);
+    assert_eq!(first_close.disposal_work().budget_remaining_width(), 1);
     assert!(workspace
         .resolve_live_artifact_target("tasks.first")
         .is_err());
 
     let second_close = closed(second.close(&mut workspace));
     assert!(second_close.lane_terminal());
+    assert_eq!(second_close.disposal_work().active_lane_close_count(), 1);
+    assert_eq!(second_close.disposal_work().lifecycle_closeout_count(), 1);
+    assert_eq!(second_close.disposal_work().budget_consumption_width(), 2);
+    assert_eq!(second_close.disposal_work().budget_remaining_width(), 0);
     assert!(workspace
         .resolve_live_artifact_target("tasks.second")
         .is_err());

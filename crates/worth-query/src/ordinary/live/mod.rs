@@ -9,15 +9,16 @@ mod outcome;
 mod request;
 
 pub use crate::runtime::{
-    WorthQueryManagedLiveLifecycleObservation, WorthQueryManagedLiveLifecyclePosture,
+    WorthQueryManagedLiveActivationWork, WorthQueryManagedLiveLifecycleObservation,
+    WorthQueryManagedLiveLifecyclePosture, WorthQueryManagedLiveSubscriptionFamily,
 };
 pub use continuation::{
     WorthQueryManagedLiveCheckpointCompletion, WorthQueryManagedLiveCheckpointOutcome,
     WorthQueryManagedLiveCheckpointReceipt, WorthQueryManagedLiveCheckpointStop,
-    WorthQueryManagedLiveContinuation, WorthQueryManagedLiveResumeCompletion,
-    WorthQueryManagedLiveResumeNextAction, WorthQueryManagedLiveResumeOutcome,
-    WorthQueryManagedLiveResumeReceipt, WorthQueryManagedLiveResumeStop,
-    WorthQueryManagedLiveResumeStopKind,
+    WorthQueryManagedLiveContinuation, WorthQueryManagedLiveContinuationDurability,
+    WorthQueryManagedLiveResumeCompletion, WorthQueryManagedLiveResumeNextAction,
+    WorthQueryManagedLiveResumeOutcome, WorthQueryManagedLiveResumeReceipt,
+    WorthQueryManagedLiveResumeStop, WorthQueryManagedLiveResumeStopKind,
 };
 pub use declaration::{
     declare_live, WorthQueryLiveDeclaration, WorthQueryLiveDeclarationIdentity,
@@ -25,11 +26,11 @@ pub use declaration::{
 };
 pub use delivery::{
     WorthQueryManagedLiveDelivery, WorthQueryManagedLiveDeliveryBatch,
-    WorthQueryManagedLiveDeliveryCauseKind,
+    WorthQueryManagedLiveDeliveryCauseKind, WorthQueryManagedLiveMaintenanceWork,
 };
 pub use disposal::{
     WorthQueryManagedLiveCloseOutcome, WorthQueryManagedLiveCloseReceipt,
-    WorthQueryManagedLiveCloseStop,
+    WorthQueryManagedLiveCloseStop, WorthQueryManagedLiveDisposalWork,
 };
 pub use handle::WorthQueryManagedLiveHandle;
 pub use outcome::{

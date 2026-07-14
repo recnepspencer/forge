@@ -8,16 +8,19 @@ pub use crate::ordinary::live::{
     declare_live as declare, WorthQueryLiveDeclaration, WorthQueryLiveDeclarationIdentity,
     WorthQueryLiveDeclarationStop, WorthQueryLiveDeclarationStopKind, WorthQueryLiveOpenCompletion,
     WorthQueryLiveOpenOutcome, WorthQueryLiveOpenStop, WorthQueryLiveRequest,
-    WorthQueryManagedLiveCheckpointCompletion, WorthQueryManagedLiveCheckpointOutcome,
-    WorthQueryManagedLiveCheckpointReceipt, WorthQueryManagedLiveCheckpointStop,
-    WorthQueryManagedLiveCloseOutcome, WorthQueryManagedLiveCloseReceipt,
-    WorthQueryManagedLiveCloseStop, WorthQueryManagedLiveContinuation,
+    WorthQueryManagedLiveActivationWork, WorthQueryManagedLiveCheckpointCompletion,
+    WorthQueryManagedLiveCheckpointOutcome, WorthQueryManagedLiveCheckpointReceipt,
+    WorthQueryManagedLiveCheckpointStop, WorthQueryManagedLiveCloseOutcome,
+    WorthQueryManagedLiveCloseReceipt, WorthQueryManagedLiveCloseStop,
+    WorthQueryManagedLiveContinuation, WorthQueryManagedLiveContinuationDurability,
     WorthQueryManagedLiveDelivery, WorthQueryManagedLiveDeliveryBatch,
-    WorthQueryManagedLiveDeliveryCauseKind, WorthQueryManagedLiveHandle,
-    WorthQueryManagedLiveLifecycleObservation, WorthQueryManagedLiveLifecyclePosture,
+    WorthQueryManagedLiveDeliveryCauseKind, WorthQueryManagedLiveDisposalWork,
+    WorthQueryManagedLiveHandle, WorthQueryManagedLiveLifecycleObservation,
+    WorthQueryManagedLiveLifecyclePosture, WorthQueryManagedLiveMaintenanceWork,
     WorthQueryManagedLiveResumeCompletion, WorthQueryManagedLiveResumeNextAction,
     WorthQueryManagedLiveResumeOutcome, WorthQueryManagedLiveResumeReceipt,
     WorthQueryManagedLiveResumeStop, WorthQueryManagedLiveResumeStopKind,
+    WorthQueryManagedLiveSubscriptionFamily,
 };
 pub use crate::ordinary::read::{
     current, WorthQueryCurrentPolicyTenantReadContext, WorthQueryCurrentReadContext,
@@ -33,7 +36,7 @@ pub use crate::ordinary_outcome::{
 };
 pub use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
 pub use crate::runtime::{
-    WorthQueryReadBreadth, WorthQueryReadDenial, WorthQueryReadDenialKind,
+    WorthQueryAuthorityLane, WorthQueryReadBreadth, WorthQueryReadDenial, WorthQueryReadDenialKind,
     WorthQueryReadGraphFamily, WorthQueryReadOperatorFamily, WorthQueryReadReceipt,
     WorthQueryReadScopeClass,
 };

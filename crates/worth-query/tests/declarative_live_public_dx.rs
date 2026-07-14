@@ -5,8 +5,9 @@ use worth_query::facade::runtime::WorthQueryWorkspace;
 mod live_journey {
     use worth_query::facade::live::{
         current, declare, AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName,
-        QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryManagedLiveCloseOutcome,
-        WorthQueryManagedLiveDeliveryCauseKind, WorthQueryManagedLiveLifecyclePosture,
+        QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryAuthorityLane,
+        WorthQueryManagedLiveCloseOutcome, WorthQueryManagedLiveDeliveryCauseKind,
+        WorthQueryManagedLiveLifecyclePosture, WorthQueryManagedLiveSubscriptionFamily,
         WorthQueryOrdinaryRuntimePostureKind,
     };
 
@@ -58,9 +59,27 @@ mod live_journey {
             WorthQueryManagedLiveLifecyclePosture::Active
         );
         assert_eq!(
+            observation.authority_lane(),
+            WorthQueryAuthorityLane::AuthoritativeTruth
+        );
+        assert_eq!(
             observation.runtime_posture().kind(),
             WorthQueryOrdinaryRuntimePostureKind::Current
         );
+        assert_eq!(
+            observation.subscription_family(),
+            WorthQueryManagedLiveSubscriptionFamily::CollectionMembership
+        );
+        assert_eq!(observation.activation_work().family_selection_count(), 1);
+        assert_eq!(observation.activation_work().declaration_count(), 1);
+        assert_eq!(observation.activation_work().admission_count(), 1);
+        assert_eq!(observation.activation_work().activation_input_count(), 1);
+        assert_eq!(
+            observation.activation_work().active_lane_creation_count(),
+            1
+        );
+        assert_eq!(observation.activation_work().active_lane_join_count(), 0);
+        assert_eq!(observation.activation_work().consumer_attachment_count(), 1);
         super::insert_task(&mut workspace);
         let delivery = handle
             .drain(&mut workspace)
@@ -70,11 +89,27 @@ mod live_journey {
             delivery.batches()[0].cause_kind(),
             WorthQueryManagedLiveDeliveryCauseKind::RelationalChange
         );
+        assert_eq!(delivery.batches()[0].patch_group_width(), 1);
+        assert_ne!(
+            delivery.batches()[0].delivery_batch_identity(),
+            delivery.batches()[0].cause_identity()
+        );
+        let maintenance_work = delivery.batches()[0]
+            .maintenance_work()
+            .expect("relational delivery should disclose bounded maintenance work");
+        assert_eq!(maintenance_work.mutation_delta_count(), 1);
+        assert_eq!(maintenance_work.index_update_count(), 1);
+        assert_eq!(maintenance_work.live_view_update_count(), 1);
 
         match handle.close(&mut workspace) {
             WorthQueryManagedLiveCloseOutcome::Closed(receipt) => {
                 assert_eq!(receipt.resource_name(), "tasks.public");
                 assert!(receipt.lane_terminal());
+                assert_eq!(receipt.disposal_work().consumer_attachment_close_count(), 1);
+                assert_eq!(receipt.disposal_work().active_lane_close_count(), 1);
+                assert_eq!(receipt.disposal_work().lifecycle_closeout_count(), 1);
+                assert_eq!(receipt.disposal_work().budget_consumption_width(), 2);
+                assert_eq!(receipt.disposal_work().budget_remaining_width(), 0);
             }
             WorthQueryManagedLiveCloseOutcome::Stopped(stop) => {
                 panic!("public live close unexpectedly stopped: {:?}", stop.error())

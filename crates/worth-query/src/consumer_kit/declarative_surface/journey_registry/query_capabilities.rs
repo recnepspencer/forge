@@ -53,8 +53,8 @@ const QUERY_CAPABILITY_JOURNEYS: &[Row] = &[
             counters: "live admission, maintenance, and disposal counters",
         },
         cutover: JourneyCutover {
-            local_ceremony: "declare_live -> using(context) -> open(workspace); handle.close(workspace)",
-            replacement: "facade::read::declare_live",
+            local_ceremony: "declare -> using(context) -> open(workspace); handle.close(workspace)",
+            replacement: "facade::live::declare",
         },
     }),
     row(JourneyEntry {

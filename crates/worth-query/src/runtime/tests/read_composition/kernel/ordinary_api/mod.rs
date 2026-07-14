@@ -7,6 +7,7 @@ mod fixtures;
 mod journey_counters;
 mod live;
 mod live_continuation;
+mod live_delivery;
 mod live_lifecycle;
 mod parity;
 mod policy_narrowing;

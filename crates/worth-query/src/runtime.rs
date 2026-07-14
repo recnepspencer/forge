@@ -639,9 +639,12 @@ pub use live_subscription::{
     WorthQueryRuntimeLiveSubscriptionInstallation,
 };
 use live_subscription_delivery_routing::route_live_subscription_delivery;
-pub(crate) use managed_live_resource::WorthQueryManagedLiveWorkspaceCapability;
 pub use managed_live_resource::{
-    WorthQueryManagedLiveLifecycleObservation, WorthQueryManagedLiveLifecyclePosture,
+    WorthQueryManagedLiveActivationWork, WorthQueryManagedLiveLifecycleObservation,
+    WorthQueryManagedLiveLifecyclePosture, WorthQueryManagedLiveSubscriptionFamily,
+};
+pub(crate) use managed_live_resource::{
+    WorthQueryManagedLiveRuntimeDelivery, WorthQueryManagedLiveWorkspaceCapability,
 };
 #[allow(unused_imports)]
 pub use mixed_cause_delivery::{

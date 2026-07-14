@@ -103,18 +103,25 @@ fn query_enforces_authorized_projection_against_a_permissive_source_adapter() {
 
 #[test]
 fn managed_live_promotion_preserves_the_policy_narrowed_read_graph() {
-    let context = narrowed_context(narrowing_policy_tenant_inputs(
-        1,
-        PolicyAspectMask::allow_all()
-            .with_masked(display_name_field().source_field_key().clone())
-            .with_masked(handle_field().source_field_key().clone()),
-    ));
     let mut workspace = read_runtime_with_permissive_policy_row()
         .workspace("managed-live-policy-narrowing")
         .expect("managed policy workspace should open");
+    let one_shot = declare(local_policy_projection_read)
+        .expect("one-shot policy parity read should declare")
+        .using(narrowed_context(narrowing_policy_tenant_inputs(
+            1,
+            live_policy_narrowing_mask(),
+        )))
+        .run(&mut workspace)
+        .into_result()
+        .expect("one-shot policy parity read should execute")
+        .into_result();
     let opened = match declare_live("users.narrowed", local_policy_projection_read)
         .expect("managed policy read should declare")
-        .using(context)
+        .using(narrowed_context(narrowing_policy_tenant_inputs(
+            1,
+            live_policy_narrowing_mask(),
+        )))
         .open(&mut workspace)
     {
         WorthQueryLiveOpenOutcome::Opened(opened) => opened,
@@ -132,11 +139,22 @@ fn managed_live_promotion_preserves_the_policy_narrowed_read_graph() {
         .collect::<Vec<_>>();
 
     assert_eq!(delivered_fields, ["identity.id"]);
+    assert_eq!(read.rows(), one_shot.rows());
+    assert_eq!(
+        read.receipt().snapshot_identity(),
+        one_shot.receipt().snapshot_identity()
+    );
     assert!(opened.context_receipt().policy_narrowing_digest().is_some());
     assert!(matches!(
         opened.into_handle().close(&mut workspace),
         WorthQueryManagedLiveCloseOutcome::Closed(_)
     ));
+}
+
+fn live_policy_narrowing_mask() -> PolicyAspectMask {
+    PolicyAspectMask::allow_all()
+        .with_masked(display_name_field().source_field_key().clone())
+        .with_masked(handle_field().source_field_key().clone())
 }
 
 #[test]

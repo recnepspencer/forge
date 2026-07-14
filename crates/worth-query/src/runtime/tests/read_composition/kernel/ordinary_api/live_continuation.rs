@@ -1,8 +1,8 @@
 use super::live::{closed, one_shot_task_result, open_task_resource, task_workspace};
 use crate::ordinary::live::{
-    WorthQueryManagedLiveCheckpointOutcome, WorthQueryManagedLiveDeliveryCauseKind,
-    WorthQueryManagedLiveResumeNextAction, WorthQueryManagedLiveResumeOutcome,
-    WorthQueryManagedLiveResumeStopKind,
+    WorthQueryManagedLiveCheckpointOutcome, WorthQueryManagedLiveContinuationDurability,
+    WorthQueryManagedLiveDeliveryCauseKind, WorthQueryManagedLiveResumeNextAction,
+    WorthQueryManagedLiveResumeOutcome, WorthQueryManagedLiveResumeStopKind,
 };
 use crate::ordinary_outcome::{
     WorthQueryOrdinaryRuntimeAsyncPostureKind, WorthQueryOrdinaryRuntimeBasisPostureKind,
@@ -23,7 +23,7 @@ fn checkpoint_resume_replays_queued_delivery_and_preserves_one_shot_meaning() {
         .expect("write should remain Query-routed while the continuation owns the resource");
 
     let resumed = resumed(checkpoint.resume(&mut workspace));
-    assert_eq!(resumed.receipt().queued_delivery_count(), 1);
+    assert_eq!(resumed.receipt().pending_delivery_batch_count(), 1);
     assert_eq!(resumed.receipt().resumed_delivery_sequence(), Some(1));
     let handle = resumed.into_handle();
     let live = handle
@@ -39,6 +39,37 @@ fn checkpoint_resume_replays_queued_delivery_and_preserves_one_shot_meaning() {
     assert_eq!(
         delivery.batches()[0].cause_kind(),
         WorthQueryManagedLiveDeliveryCauseKind::RelationalChange
+    );
+    assert!(closed(handle.close(&mut workspace)).lane_terminal());
+}
+
+#[test]
+fn checkpoint_and_resume_receipts_preserve_delivery_already_waiting_at_checkpoint() {
+    let mut workspace = task_workspace("managed-live-checkpoint-pending-delivery");
+    let handle = open_task_resource(&mut workspace, "tasks.checkpoint-pending-delivery");
+    workspace
+        .write(task_insert("Queued before checkpoint"))
+        .expect("write should queue a delivery before checkpoint");
+
+    let continuation = checkpointed(handle.checkpoint(&mut workspace));
+    assert_eq!(continuation.checkpoint().pending_delivery_batch_count(), 1);
+    assert_eq!(continuation.checkpoint().last_delivery_sequence(), Some(1));
+    assert_eq!(
+        continuation.checkpoint().durability(),
+        WorthQueryManagedLiveContinuationDurability::RuntimeBound
+    );
+
+    let resumed = resumed(continuation.resume(&mut workspace));
+    assert_eq!(resumed.receipt().pending_delivery_batch_count(), 1);
+    assert_eq!(resumed.receipt().resumed_delivery_sequence(), Some(1));
+    let handle = resumed.into_handle();
+    assert_eq!(
+        handle
+            .drain(&mut workspace)
+            .expect("pre-checkpoint delivery should remain drainable")
+            .batches()
+            .len(),
+        1
     );
     assert!(closed(handle.close(&mut workspace)).lane_terminal());
 }
