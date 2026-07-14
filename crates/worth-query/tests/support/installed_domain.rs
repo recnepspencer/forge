@@ -4,6 +4,20 @@ use worth_query::facade::{domain, runtime};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PublicInstalledDomain;
 
+impl domain::WorthQueryDomainEntryMarker for PublicInstalledDomain {
+    fn domain_key(&self) -> &'static str {
+        "WORTH.tests.public-installed-domain"
+    }
+
+    fn display_name(&self) -> &'static str {
+        "PublicInstalledDomain"
+    }
+
+    fn required_capability_families(&self) -> &'static [domain::WorthQueryCapabilityFamily] {
+        &[]
+    }
+}
+
 pub fn workspace(name: &str) -> runtime::WorthQueryWorkspace {
     let package = domain::WorthQueryDomainPackage::declare(
         PublicInstalledDomain,
@@ -15,11 +29,7 @@ pub fn workspace(name: &str) -> runtime::WorthQueryWorkspace {
     )
     .requires_capability(domain::WorthQueryCapabilityFamily::QueryRead)
     .requires_capability(domain::WorthQueryCapabilityFamily::WorkflowOrchestration)
-    .requires_configuration(domain::WorthQueryConfigSectionFamily::Query)
-    .validate()
-    .unwrap()
-    .admit(&domain::WorthQueryApplicationFacade::runtime_backed_default())
-    .unwrap();
+    .requires_configuration(domain::WorthQueryConfigSectionFamily::Query);
     let schema = WorthQueryTestBackendSchema::single_collection("Task")
         .aspect("identity.id", "identity.id")
         .unwrap();

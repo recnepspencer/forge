@@ -1,6 +1,6 @@
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationEntryContributionCategoryFamily,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
+    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainEntryMarker,
 };
 use crate::authoring::RelationName;
 use crate::runtime::WorthQueryGraphReadTraversalOperator;
@@ -9,6 +9,37 @@ use super::*;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct TestDomain;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct CapabilityDomain;
+
+impl WorthQueryDomainEntryMarker for TestDomain {
+    fn domain_key(&self) -> &'static str {
+        "WORTH.tests.installed-domain"
+    }
+
+    fn display_name(&self) -> &'static str {
+        "TestDomain"
+    }
+
+    fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
+        &[]
+    }
+}
+
+impl WorthQueryDomainEntryMarker for CapabilityDomain {
+    fn domain_key(&self) -> &'static str {
+        "WORTH.tests.capability-domain"
+    }
+
+    fn display_name(&self) -> &'static str {
+        "CapabilityDomain"
+    }
+
+    fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
+        &[WorthQueryCapabilityFamily::QueryRead]
+    }
+}
 
 fn identity() -> WorthQueryDomainIdentityDeclaration<TestDomain> {
     WorthQueryDomainIdentityDeclaration::new(
@@ -68,14 +99,52 @@ fn conflicting_operation_slot_denies_without_validated_successor() {
 
 #[test]
 fn admitted_package_retains_canonical_identity_and_support_proof() {
-    let admitted = package(false)
-        .validate()
-        .unwrap()
-        .admit(&WorthQueryApplicationFacade::runtime_backed_default())
-        .unwrap();
-    assert_eq!(admitted.graph_read_operation_count(), 2);
-    assert!(!admitted.identity().as_str().is_empty());
-    assert!(!admitted.admission_identity().is_empty());
+    let admitted = admit_domain_package(package(false).validate().unwrap()).unwrap();
+    assert_eq!(admitted.graph_read_operations.len(), 2);
+    assert!(!admitted.package_identity.as_str().is_empty());
+    assert!(!admitted.admission_identity.as_str().is_empty());
+}
+
+#[test]
+fn marker_identity_mismatch_denies_before_package_identity_is_minted() {
+    let mismatched = WorthQueryDomainPackage::declare(
+        TestDomain,
+        WorthQueryDomainIdentityDeclaration::new(
+            WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
+            WorthQueryDomainIdentityName::new("different-domain").unwrap(),
+            WorthQueryDomainSemanticVersion::new(1, 0),
+        ),
+    )
+    .validate()
+    .err()
+    .expect("typed marker and canonical identity must describe one domain");
+
+    assert_eq!(
+        mismatched.kind(),
+        WorthQueryDomainPackageValidationDenialKind::MarkerIdentityMismatch
+    );
+    assert!(mismatched.detail().contains(TestDomain.domain_key()));
+}
+
+#[test]
+fn marker_required_capability_must_be_declared_by_the_package() {
+    let denial = WorthQueryDomainPackage::declare(
+        CapabilityDomain,
+        WorthQueryDomainIdentityDeclaration::new(
+            WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
+            WorthQueryDomainIdentityName::new("capability-domain").unwrap(),
+            WorthQueryDomainSemanticVersion::new(1, 0),
+        ),
+    )
+    .validate()
+    .err()
+    .expect("package cannot omit capability meaning declared by its typed marker");
+
+    assert_eq!(
+        denial.kind(),
+        WorthQueryDomainPackageValidationDenialKind::MissingMarkerCapability
+    );
+    assert!(denial.detail().contains("query_read"));
 }
 
 #[test]

@@ -51,9 +51,9 @@ impl WorthQueryInMemoryTestRuntimeBuilder {
         self
     }
 
-    pub fn domain_package<D: 'static>(
+    pub fn domain_package<D: crate::application::WorthQueryDomainEntryMarker + 'static>(
         mut self,
-        package: crate::domain_installation::WorthQueryAdmittedDomainPackage<D>,
+        package: crate::domain_installation::WorthQueryDomainPackage<D>,
     ) -> Self {
         self.domain_installers.push(Box::new(move |builder| {
             builder.domain_package(package).map_err(|error| {

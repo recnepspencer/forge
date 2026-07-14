@@ -1,0 +1,12 @@
+error[E0624]: method `validate` is private
+  --> tests/ui/installed_domain/boundaries/package_admission_is_not_consumer_callable.rs:35:6
+   |
+35 |       .validate()
+   |        ^^^^^^^^ private method
+   |
+  ::: src/domain_installation/package.rs
+   |
+   | /     pub(crate) fn validate(
+   | |         self,
+   | |     ) -> Result<WorthQueryValidatedDomainPackage<D>, WorthQueryDomainPackageValidationDenial> {
+   | |_____________________________________________________________________________________________- private method defined here

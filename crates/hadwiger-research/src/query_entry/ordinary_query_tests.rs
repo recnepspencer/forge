@@ -86,14 +86,9 @@ fn candidate_workspace(name: &str) -> worth_query::facade::runtime::WorthQueryWo
         .expect("identity aspect should build")
         .aspect("colorability.lower_bound", "colorability.lower_bound")
         .expect("colorability aspect should build");
-    let package = hadwiger_research_domain_package()
-        .validate()
-        .unwrap()
-        .admit(&domain::WorthQueryApplicationFacade::runtime_backed_default())
-        .unwrap();
     in_memory_test_runtime()
         .with_schema(schema)
-        .domain_package(package)
+        .domain_package(hadwiger_research_domain_package())
         .workspace(name)
         .expect("Hadwiger reference workspace should build")
 }

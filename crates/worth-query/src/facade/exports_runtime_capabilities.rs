@@ -1,5 +1,5 @@
 pub(crate) use crate::domain_capabilities::admit_eligible_domain_capability_contribution;
-pub use crate::domain_capabilities::{
+pub(crate) use crate::domain_capabilities::{
     evaluate_requested_domain_capability_contribution, materialize_admission_explanation_bundle,
     materialize_admission_summary, materialize_admission_support_report,
     materialize_admission_trace_artifact, materialize_admitted_preview_workflow_foundation,
@@ -36,6 +36,8 @@ pub use crate::domain_capabilities::{
     materialize_workflow_summary, materialize_workflow_support_report,
     materialize_workflow_trace_artifact,
     prepare_admitted_domain_capability_contribution_for_materialization,
+};
+pub use crate::domain_capabilities::{
     WorthQueryAdmissionContributionAuthoring, WorthQueryAdmissionContributionExplanationBundle,
     WorthQueryAdmissionContributionPayload, WorthQueryAdmissionContributionPosture,
     WorthQueryAdmissionContributionSummary, WorthQueryAdmissionContributionSupportReport,

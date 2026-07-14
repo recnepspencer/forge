@@ -270,6 +270,10 @@ internal_suite!(
     "../tests/phase_boundaries_domain_handle_compile_fail.rs"
 );
 internal_suite!(
+    phase_boundaries_installed_domain_compile_fail,
+    "../tests/phase_boundaries_installed_domain_compile_fail.rs"
+);
+internal_suite!(
     phase_boundaries_effect_lifecycle_compile_fail,
     "../tests/phase_boundaries_effect_lifecycle_compile_fail.rs"
 );

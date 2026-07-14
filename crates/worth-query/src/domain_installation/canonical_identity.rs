@@ -1,10 +1,11 @@
+use crate::application::WorthQueryDomainEntryMarker;
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
 
 use super::{WorthQueryDomainPackageIdentity, WorthQueryValidatedDomainPackage};
 
-pub(super) fn canonical_package_identity<D>(
+pub(super) fn canonical_package_identity<D: WorthQueryDomainEntryMarker>(
     package: &WorthQueryValidatedDomainPackage<D>,
 ) -> WorthQueryDomainPackageIdentity {
     let capability_parts = package

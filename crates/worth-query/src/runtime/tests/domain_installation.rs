@@ -1,7 +1,7 @@
 use super::support::*;
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationEntryContributionCategoryFamily,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
+    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainEntryMarker,
 };
 use crate::authoring::{
     AspectFieldSelector, DetailQueryBuilder, DetailResultShapeBuilder, RelationName,
@@ -22,7 +22,7 @@ use crate::domain_installation::{
 };
 use crate::runtime::{
     WorthQueryIntentDeclaration, WorthQueryIntentInput, WorthQueryReadBuilder,
-    WorthQueryReadFamily, WorthQueryRuntime,
+    WorthQueryReadFamily, WorthQueryRuntime, WorthQueryRuntimeBuilder,
 };
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
 
@@ -36,6 +36,27 @@ struct InstalledDomain;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct OtherInstalledDomain;
 
+macro_rules! installed_domain_marker {
+    ($marker:ty, $display:literal) => {
+        impl WorthQueryDomainEntryMarker for $marker {
+            fn domain_key(&self) -> &'static str {
+                "WORTH.tests.installed-domain"
+            }
+
+            fn display_name(&self) -> &'static str {
+                $display
+            }
+
+            fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
+                &[]
+            }
+        }
+    };
+}
+
+installed_domain_marker!(InstalledDomain, "InstalledDomain");
+installed_domain_marker!(OtherInstalledDomain, "OtherInstalledDomain");
+
 fn identity<D>() -> WorthQueryDomainIdentityDeclaration<D> {
     identity_version(0)
 }
@@ -48,7 +69,7 @@ fn identity_version<D>(minor: u32) -> WorthQueryDomainIdentityDeclaration<D> {
     )
 }
 
-fn package<D>(marker: D) -> WorthQueryDomainPackage<D> {
+fn package<D: WorthQueryDomainEntryMarker>(marker: D) -> WorthQueryDomainPackage<D> {
     WorthQueryDomainPackage::declare(marker, identity())
         .requires_capability(WorthQueryCapabilityFamily::QueryRead)
         .requires_configuration(WorthQueryConfigSectionFamily::Query)
@@ -62,17 +83,9 @@ fn package<D>(marker: D) -> WorthQueryDomainPackage<D> {
         .permits_contribution(WorthQueryDeclarationEntryContributionCategoryFamily::Admission)
 }
 
-fn admitted<D>(marker: D) -> crate::domain_installation::WorthQueryAdmittedDomainPackage<D> {
-    package(marker)
-        .validate()
-        .unwrap()
-        .admit(&WorthQueryApplicationFacade::runtime_backed_default())
-        .unwrap()
-}
-
 fn installed_runtime() -> WorthQueryRuntime {
     complete_backend_from_parts_builder()
-        .domain_package(admitted(InstalledDomain))
+        .domain_package(package(InstalledDomain))
         .unwrap()
         .build_backend_from_parts()
         .build()
@@ -83,11 +96,7 @@ fn changed_package_runtime() -> WorthQueryRuntime {
     let changed = WorthQueryDomainPackage::declare(InstalledDomain, identity_version(1))
         .requires_capability(WorthQueryCapabilityFamily::QueryRead)
         .requires_configuration(WorthQueryConfigSectionFamily::Query)
-        .permits_contribution(WorthQueryDeclarationEntryContributionCategoryFamily::Admission)
-        .validate()
-        .unwrap()
-        .admit(&WorthQueryApplicationFacade::runtime_backed_default())
-        .unwrap();
+        .permits_contribution(WorthQueryDeclarationEntryContributionCategoryFamily::Admission);
     complete_backend_from_parts_builder()
         .domain_package(changed)
         .unwrap()
@@ -124,16 +133,66 @@ fn equivalent_packages_mint_semantically_equal_but_runtime_affine_handles() {
 #[test]
 fn duplicate_semantic_package_denies_before_a_runtime_can_be_published() {
     let builder = complete_backend_from_parts_builder()
-        .domain_package(admitted(InstalledDomain))
+        .domain_package(package(InstalledDomain))
         .unwrap();
     let denial = builder
-        .domain_package(admitted(OtherInstalledDomain))
+        .domain_package(package(OtherInstalledDomain))
         .err()
         .expect("equivalent package identity must deny atomically");
     assert_eq!(
-        denial.kind(),
+        denial
+            .installation_denial()
+            .expect("equivalent package conflict is an installation denial")
+            .kind(),
         WorthQueryDomainInstallationDenialKind::DuplicatePackageIdentity
     );
+}
+
+#[test]
+fn runtime_installation_reports_package_validation_before_admission() {
+    let invalid = WorthQueryDomainPackage::declare(InstalledDomain, identity())
+        .graph_read_operation(
+            WorthQueryDomainGraphReadOperationDefinition::new(
+                WorthQueryDomainIdentityName::new("neighbors").unwrap(),
+                1,
+            )
+            .accepts_relation(RelationName::new("manager").unwrap()),
+        )
+        .graph_read_operation(
+            WorthQueryDomainGraphReadOperationDefinition::new(
+                WorthQueryDomainIdentityName::new("neighbors").unwrap(),
+                1,
+            )
+            .accepts_relation(RelationName::new("mentor").unwrap()),
+        );
+
+    let error = WorthQueryRuntimeBuilder::new()
+        .domain_package(invalid)
+        .err()
+        .expect("conflicting package meaning must not reach admission");
+    assert_eq!(
+        error.validation_denial().unwrap().kind(),
+        crate::domain_installation::WorthQueryDomainPackageValidationDenialKind::ConflictingGraphReadOperation
+    );
+    assert!(error.admission_denial().is_none());
+    assert!(error.installation_denial().is_none());
+}
+
+#[test]
+fn runtime_installation_reports_platform_support_admission_before_compilation() {
+    let unsupported = WorthQueryDomainPackage::declare(InstalledDomain, identity())
+        .requires_capability(WorthQueryCapabilityFamily::DurableArtifacts);
+
+    let error = WorthQueryRuntimeBuilder::new()
+        .domain_package(unsupported)
+        .err()
+        .expect("deferred platform capability must not reach package compilation");
+    assert_eq!(
+        error.admission_denial().unwrap().kind(),
+        crate::domain_installation::WorthQueryDomainPackageAdmissionDenialKind::DeferredCapability
+    );
+    assert!(error.validation_denial().is_none());
+    assert!(error.installation_denial().is_none());
 }
 
 #[test]
@@ -157,6 +216,9 @@ fn ordinary_explanation_and_admission_resolve_installed_operation_by_index() {
 #[test]
 fn handle_lookup_is_constant_width_and_installation_is_self_describing() {
     let runtime = installed_runtime();
+    let handle = runtime.domain(InstalledDomain).unwrap();
+    assert_eq!(handle.domain_key(), "WORTH.tests.installed-domain");
+    assert_eq!(handle.display_name(), "InstalledDomain");
     let receipt = runtime
         .domain_installation_receipt(InstalledDomain)
         .unwrap();
@@ -175,7 +237,6 @@ fn handle_lookup_is_constant_width_and_installation_is_self_describing() {
     assert!(rebuild.is_equivalent());
     assert_eq!(rebuild.operation_count(), 1);
 
-    runtime.domain(InstalledDomain).unwrap();
     runtime.domain(InstalledDomain).unwrap();
     let counters = runtime.domain_installation_lookup_counters();
     assert_eq!(counters.handle_lookups(), 2);

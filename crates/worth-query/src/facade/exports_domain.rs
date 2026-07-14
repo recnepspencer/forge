@@ -1,6 +1,7 @@
 pub use crate::application::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainOperatingRequirement,
+    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingRequirement,
 };
 pub use crate::domain_capabilities::{
     WorthQueryInstalledAdmittedPlanContributionTarget,
@@ -8,18 +9,18 @@ pub use crate::domain_capabilities::{
     WorthQueryInstalledLowerRuntimeContributionTarget,
 };
 pub use crate::domain_installation::{
-    WorthQueryAdmittedDomainPackage, WorthQueryDomainDeclarationFamilyDefinition,
-    WorthQueryDomainExecutionIndexRebuildReport, WorthQueryDomainGraphReadOperationDefinition,
-    WorthQueryDomainHandleDenial, WorthQueryDomainHandleDenialKind,
-    WorthQueryDomainIdentityComponentError, WorthQueryDomainIdentityDeclaration,
-    WorthQueryDomainIdentityName, WorthQueryDomainIdentityNamespace,
-    WorthQueryDomainInstallationConstructionCounters, WorthQueryDomainInstallationDenial,
-    WorthQueryDomainInstallationDenialKind, WorthQueryDomainInstallationGeneration,
-    WorthQueryDomainInstallationLookupCounters, WorthQueryDomainInstallationReceipt,
-    WorthQueryDomainInstalledDefinitionCounts, WorthQueryDomainInvariantDefinition,
-    WorthQueryDomainInvariantPredicate, WorthQueryDomainPackage,
-    WorthQueryDomainPackageAdmissionDenial, WorthQueryDomainPackageAdmissionDenialKind,
-    WorthQueryDomainPackageIdentity, WorthQueryDomainPackageValidationDenial,
+    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainExecutionIndexRebuildReport,
+    WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainHandleDenial,
+    WorthQueryDomainHandleDenialKind, WorthQueryDomainIdentityComponentError,
+    WorthQueryDomainIdentityDeclaration, WorthQueryDomainIdentityName,
+    WorthQueryDomainIdentityNamespace, WorthQueryDomainInstallationConstructionCounters,
+    WorthQueryDomainInstallationDenial, WorthQueryDomainInstallationDenialKind,
+    WorthQueryDomainInstallationGeneration, WorthQueryDomainInstallationLookupCounters,
+    WorthQueryDomainInstallationReceipt, WorthQueryDomainInstalledDefinitionCounts,
+    WorthQueryDomainInvariantDefinition, WorthQueryDomainInvariantPredicate,
+    WorthQueryDomainPackage, WorthQueryDomainPackageAdmissionDenial,
+    WorthQueryDomainPackageAdmissionDenialKind, WorthQueryDomainPackageIdentity,
+    WorthQueryDomainPackageInstallationError, WorthQueryDomainPackageValidationDenial,
     WorthQueryDomainPackageValidationDenialKind, WorthQueryDomainRebindDenial,
     WorthQueryDomainRebindDenialKind, WorthQueryDomainRebindNextAction,
     WorthQueryDomainRebindReceipt, WorthQueryDomainRebindRequest, WorthQueryDomainSemanticVersion,
@@ -44,7 +45,6 @@ pub use crate::domain_installation::{
     WorthQueryInstalledDomainReadRequest, WorthQueryInstalledDomainWorkflowCompletion,
     WorthQueryInstalledDomainWorkflowDeclaration, WorthQueryInstalledDomainWorkflowOutcome,
     WorthQueryInstalledDomainWorkflowRequest, WorthQueryReboundDomainHandle,
-    WorthQueryValidatedDomainPackage,
 };
 pub use crate::ordinary::inspection::{inspection_basis, WorthQueryInspectionContext};
 pub use crate::ordinary::mutation::{

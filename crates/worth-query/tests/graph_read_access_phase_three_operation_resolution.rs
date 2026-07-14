@@ -6,11 +6,12 @@ use worth_query::facade::runtime::{
     explain_graph_read_access_shape_for_family_with_operation_registry,
     resolve_graph_read_operations_for_family_with_registry, QuerySchemaView, SchemaFieldKind,
     SchemaFieldView, SchemaRelationView, WorthQueryGraphReadOperationOutcome,
-    WorthQueryGraphReadOperationRegistration, WorthQueryGraphReadOperationRegistry,
+    WorthQueryGraphReadOperationRegistration,
     WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
     WorthQueryGraphReadResolvedOperationFamily, WorthQueryGraphReadResolvedOperationKind,
     WorthQueryGraphReadTraversalOperator,
 };
+use crate::runtime::WorthQueryGraphReadOperationRegistry;
 
 mod support;
 

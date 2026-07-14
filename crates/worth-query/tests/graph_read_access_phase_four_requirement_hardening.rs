@@ -12,9 +12,10 @@ use worth_query::facade::runtime::{
     SchemaRelationView, WorthQueryGraphReadAccessRequirementDerivationError,
     WorthQueryGraphReadAccessRequirementExplanationOutcome,
     WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadOperationRegistration,
-    WorthQueryGraphReadOperationRegistry, WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
+    WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
     WorthQueryGraphReadTraversalOperator,
 };
+use crate::runtime::WorthQueryGraphReadOperationRegistry;
 
 mod support;
 

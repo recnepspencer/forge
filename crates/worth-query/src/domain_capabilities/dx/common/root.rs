@@ -176,6 +176,8 @@ pub(crate) fn worth_query_certification_domain(
         WorthQueryInstalledDomainAuthority::new(
             crate::runtime::WorthQueryRuntimeAuthorityIdentity::mint(),
             WorthQueryDomainInstallationGeneration::initial(),
+            "WORTH.certification.domain",
+            "WorthQueryCertificationDomain",
             domain,
             package_identity,
             installation_identity,

@@ -97,6 +97,8 @@ impl WorthQueryDomainInstallationRegistry {
                 let authority = Arc::new(WorthQueryInstalledDomainAuthority::new(
                     runtime_authority,
                     generation,
+                    artifact.marker_domain_key,
+                    artifact.marker_display_name,
                     artifact.domain_owner.clone(),
                     artifact.package_identity.clone(),
                     installation_identity,
