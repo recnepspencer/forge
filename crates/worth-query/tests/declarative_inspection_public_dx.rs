@@ -1,15 +1,16 @@
 use worth_query::facade::inspection::{
-    inspect, inspection_basis, ScopedInspectionBasis, WorthQueryInspectionOutcome,
+    declare, inspection_basis, ScopedInspectionBasis, WorthQueryInspectionOutcome,
     WorthQueryOutcomeNavigation, WorthQueryOutcomePosture, WorthQueryWorkspace,
 };
 use worth_query::facade::read::WorthQueryReadCompletion;
+use worth_query::facade::read::{project_facts, WorthQueryProjectionOutcome};
 
 fn ordinary_inspection_journey(
     completion: &WorthQueryReadCompletion,
     basis: ScopedInspectionBasis,
     workspace: &WorthQueryWorkspace,
 ) -> WorthQueryInspectionOutcome {
-    inspect(completion)
+    declare(completion)
         .with_rich_inspection()
         .using(inspection_basis(basis))
         .run(workspace)
@@ -27,6 +28,12 @@ fn common_outcome_navigation(outcome: &WorthQueryInspectionOutcome) {
     ));
 }
 
+fn ordinary_projection_journey(
+    completion: &WorthQueryReadCompletion,
+) -> WorthQueryProjectionOutcome {
+    completion.consume_projection(project_facts().entity_identities())
+}
+
 #[test]
 fn inspection_journey_uses_only_ordinary_facade_vocabulary() {
     let _ = ordinary_inspection_journey
@@ -36,8 +43,11 @@ fn inspection_journey_uses_only_ordinary_facade_vocabulary() {
             &WorthQueryWorkspace,
         ) -> WorthQueryInspectionOutcome;
     let _ = common_outcome_navigation as fn(&WorthQueryInspectionOutcome);
+    let _ =
+        ordinary_projection_journey as fn(&WorthQueryReadCompletion) -> WorthQueryProjectionOutcome;
 
     assert_navigation::<worth_query::facade::read::WorthQueryReadOutcome>();
+    assert_navigation::<WorthQueryProjectionOutcome>();
     assert_navigation::<worth_query::facade::aggregate::WorthQueryCountOutcome>();
     assert_navigation::<worth_query::facade::live::WorthQueryLiveOpenOutcome>();
     assert_navigation::<worth_query::facade::history::WorthQueryHistoricalOutcome>();

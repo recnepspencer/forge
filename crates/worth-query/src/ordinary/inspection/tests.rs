@@ -1,18 +1,18 @@
 use crate::authoring::{AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName};
 use crate::basis_lifecycle::basis_lifecycle;
-use crate::ordinary::read::{current, declare};
+use crate::ordinary::read::{current, declare as declare_read};
 use crate::ordinary::{WorthQueryOutcomeNavigation, WorthQueryOutcomePosture};
 use crate::runtime::tests::support::stateful_bridge_task_runtime;
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
 
-use super::{inspect, inspection_basis, WorthQueryInspectionOutcome};
+use super::{declare, inspection_basis, WorthQueryInspectionOutcome};
 
 #[test]
 fn operational_and_rich_inspection_preserve_the_same_receipt_and_operational_posture() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("ordinary-inspection")
         .expect("workspace should open");
-    let completion = declare(identity_read)
+    let completion = declare_read(identity_read)
         .expect("read should declare")
         .using(current())
         .run(&mut workspace)
@@ -20,10 +20,10 @@ fn operational_and_rich_inspection_preserve_the_same_receipt_and_operational_pos
         .expect("read should complete");
 
     let basis = scoped_inspection_basis("policy-equivalence");
-    let operational = inspect(&completion)
+    let operational = declare(&completion)
         .using(inspection_basis(basis.clone()))
         .run(&workspace);
-    let rich = inspect(&completion)
+    let rich = declare(&completion)
         .with_rich_inspection()
         .using(inspection_basis(basis))
         .run(&workspace);
@@ -50,13 +50,13 @@ fn ordinary_inspection_implements_common_outcome_navigation() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("ordinary-inspection-navigation")
         .expect("workspace should open");
-    let completion = declare(identity_read)
+    let completion = declare_read(identity_read)
         .expect("read should declare")
         .using(current())
         .run(&mut workspace)
         .into_result()
         .expect("read should complete");
-    let outcome = inspect(&completion)
+    let outcome = declare(&completion)
         .using(inspection_basis(scoped_inspection_basis("navigation")))
         .run(&workspace);
 
@@ -117,5 +117,5 @@ fn completion_or_panic(
             unavailable.message()
         );
     }
-    outcome.completion().expect("inspection should complete")
+    outcome.settled().expect("inspection should settle")
 }

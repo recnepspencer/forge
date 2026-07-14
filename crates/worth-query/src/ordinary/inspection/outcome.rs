@@ -4,54 +4,14 @@ use crate::runtime::{
 };
 use crate::WorthQueryEvidenceIdentity;
 
+use super::WorthQueryInspectionCost;
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryInspectionCounters {
     context_handoff_count: usize,
     planning_attempt_count: usize,
     materialization_attempt_count: usize,
     materialization_completed_count: usize,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct WorthQueryInspectionCost {
-    anchor_derivation_count: usize,
-    evidence_reference_resolution_count: usize,
-    admission_count: usize,
-    bridge_envelope_assembly_count: usize,
-    evidence_reference_count: usize,
-}
-
-impl WorthQueryInspectionCost {
-    pub fn anchor_derivation_count(&self) -> usize {
-        self.anchor_derivation_count
-    }
-
-    pub fn evidence_reference_resolution_count(&self) -> usize {
-        self.evidence_reference_resolution_count
-    }
-
-    pub fn admission_count(&self) -> usize {
-        self.admission_count
-    }
-
-    pub fn bridge_envelope_assembly_count(&self) -> usize {
-        self.bridge_envelope_assembly_count
-    }
-
-    pub fn evidence_reference_count(&self) -> usize {
-        self.evidence_reference_count
-    }
-
-    pub(crate) fn from_plan(plan: &CausalInspectionPlan, materialize: bool) -> Self {
-        let estimated = plan.estimated_cost();
-        Self {
-            anchor_derivation_count: estimated.anchor_derivation_count(),
-            evidence_reference_resolution_count: estimated.evidence_reference_resolution_count(),
-            admission_count: estimated.admission_count(),
-            bridge_envelope_assembly_count: usize::from(materialize),
-            evidence_reference_count: estimated.evidence_reference_count(),
-        }
-    }
 }
 
 impl WorthQueryInspectionCounters {
@@ -355,7 +315,28 @@ pub enum WorthQueryInspectionOutcome {
 }
 
 impl WorthQueryInspectionOutcome {
-    pub fn completion(&self) -> Option<&WorthQueryInspectionCompletion> {
+    pub fn completed(&self) -> Option<&WorthQueryInspectionCompletion> {
+        match self {
+            Self::Completed(completion) => Some(completion),
+            _ => None,
+        }
+    }
+
+    pub fn advisory(&self) -> Option<&WorthQueryInspectionCompletion> {
+        match self {
+            Self::Advisory(advisory) => Some(advisory),
+            _ => None,
+        }
+    }
+
+    pub fn violation(&self) -> Option<&WorthQueryInspectionCompletion> {
+        match self {
+            Self::Violation(violation) => Some(violation),
+            _ => None,
+        }
+    }
+
+    pub fn settled(&self) -> Option<&WorthQueryInspectionCompletion> {
         match self {
             Self::Completed(completion)
             | Self::Advisory(completion)

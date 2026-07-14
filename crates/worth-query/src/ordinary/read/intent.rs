@@ -174,23 +174,26 @@ impl WorthQueryDeclaredReadIntent {
         basis_intent: ExecutionBasisIntent,
     ) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
         let mut declarative_request = self.declarative_request;
-        let (relationship_proof_admission, policy_aware_plan) = match authority {
-            WorthQueryReadPlanningAuthority::Canonical { relationship_proof } => {
-                (relationship_proof, None)
-            }
-            WorthQueryReadPlanningAuthority::PolicyNarrowed(artifact) => {
-                let authorized_request_projection = reconcile_authorized_declarative_projection(
-                    &declarative_request,
-                    artifact.authorized_projection(),
-                )
-                .map_err(planning_denial)?;
-                declarative_request = declarative_request
-                    .with_authorized_query_projection(authorized_request_projection);
-                let relationship_proof = Some(artifact.relationship_proof().clone());
-                let plan = Some(lower_policy_aware_current_plan(&artifact));
-                (relationship_proof, plan)
-            }
-        };
+        let (relationship_proof_admission, policy_aware_plan, authorized_projection) =
+            match authority {
+                WorthQueryReadPlanningAuthority::Canonical { relationship_proof } => {
+                    (relationship_proof, None, None)
+                }
+                WorthQueryReadPlanningAuthority::PolicyNarrowed(artifact) => {
+                    let authorized_request_projection =
+                        reconcile_authorized_declarative_projection(
+                            &declarative_request,
+                            artifact.authorized_projection(),
+                        )
+                        .map_err(planning_denial)?;
+                    declarative_request = declarative_request
+                        .with_authorized_query_projection(authorized_request_projection);
+                    let relationship_proof = Some(artifact.relationship_proof().clone());
+                    let plan = Some(lower_policy_aware_current_plan(&artifact));
+                    let authorized_projection = Some(artifact.authorized_projection().clone());
+                    (relationship_proof, plan, authorized_projection)
+                }
+            };
         let request_context = planning_request_context_for_direct(&self.validated, basis_intent)
             .map_err(planning_denial)?;
         let execution_plan = match (result_family, policy_aware_plan.as_ref()) {
@@ -226,6 +229,7 @@ impl WorthQueryDeclaredReadIntent {
             self.declared_traversal_depth_limit,
             relationship_proof_admission,
             policy_aware_plan,
+            authorized_projection,
             self.canonical,
             self.validated,
             declarative_request,

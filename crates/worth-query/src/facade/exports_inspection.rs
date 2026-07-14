@@ -1,6 +1,6 @@
 pub use crate::basis_lifecycle::ScopedInspectionBasis;
 pub use crate::ordinary::inspection::{
-    inspect, inspection_basis, WorthQueryInspectionCompletion, WorthQueryInspectionContext,
+    declare, inspection_basis, WorthQueryInspectionCompletion, WorthQueryInspectionContext,
     WorthQueryInspectionCost, WorthQueryInspectionCounters, WorthQueryInspectionDeclaration,
     WorthQueryInspectionMaterialization, WorthQueryInspectionMaterializationKind,
     WorthQueryInspectionNextAction, WorthQueryInspectionOutcome, WorthQueryInspectionReceipt,

@@ -126,6 +126,15 @@ fn row_matches_site(
     }
 }
 
+macro_rules! ordinary_source {
+    ($path:literal) => {
+        WorthQueryDeclarativeSurfaceSource::new(
+            concat!("src/ordinary/", $path),
+            include_str!(concat!("../../ordinary/", $path)),
+        )
+    };
+}
+
 #[rustfmt::skip]
 fn current_sources() -> Vec<WorthQueryDeclarativeSurfaceSource> {
     vec![
@@ -217,6 +226,28 @@ fn current_sources() -> Vec<WorthQueryDeclarativeSurfaceSource> {
             "src/ordinary/comparison/execution.rs",
             include_str!("../../ordinary/comparison/execution.rs"),
         ),
+        ordinary_source!("domain/mod.rs"),
+        ordinary_source!("inspection/mod.rs"),
+        ordinary_source!("inspection/context.rs"),
+        ordinary_source!("inspection/declaration.rs"),
+        ordinary_source!("inspection/execution.rs"),
+        ordinary_source!("mutation/mod.rs"),
+        ordinary_source!("mutation/declaration.rs"),
+        ordinary_source!("mutation/request.rs"),
+        ordinary_source!("mutation/execution.rs"),
+        ordinary_source!("preview/mod.rs"),
+        ordinary_source!("preview/declaration.rs"),
+        ordinary_source!("preview/request.rs"),
+        ordinary_source!("workflow/mod.rs"),
+        ordinary_source!("workflow/declaration.rs"),
+        ordinary_source!("workflow/request.rs"),
+        ordinary_source!("workflow/execution.rs"),
+        ordinary_source!("workflow/branch_merge/mod.rs"),
+        ordinary_source!("workflow/branch_merge/declaration.rs"),
+        ordinary_source!("workflow/branch_merge/execution.rs"),
+        ordinary_source!("workflow/writeback/mod.rs"),
+        ordinary_source!("workflow/writeback/declaration.rs"),
+        ordinary_source!("workflow/writeback/execution.rs"),
         WorthQueryDeclarativeSurfaceSource::new(
             "src/runtime/workspace_queries.rs",
             include_str!("../../runtime/workspace_queries.rs"),

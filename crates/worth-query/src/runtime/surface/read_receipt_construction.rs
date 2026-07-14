@@ -61,7 +61,6 @@ impl WorthQueryReadReceipt {
         .to_string();
         Self::from_parts(
             read_graph,
-            execution.report().query_digest().as_str(),
             execution.report().basis_digest().as_str(),
             snapshot_identity,
             execution_engine_for_planned_route(read_graph),
@@ -92,7 +91,6 @@ impl WorthQueryReadReceipt {
         .to_string();
         Self::from_parts(
             read_graph,
-            execution.report().query_digest().as_str(),
             execution.report().basis_digest().as_str(),
             snapshot_identity,
             execution_engine_for_planned_route(read_graph),
@@ -149,7 +147,6 @@ impl WorthQueryReadReceipt {
         .to_string();
         let mut receipt = Self::from_parts(
             read_graph,
-            context_execution.query_digest(),
             context_execution.basis_digest(),
             snapshot_identity,
             execution_engine_for_query_context(context_execution.family()),
@@ -196,7 +193,6 @@ impl WorthQueryReadReceipt {
 
     fn from_parts(
         read_graph: &WorthQueryReadGraph,
-        query_digest: &str,
         basis_digest: &str,
         snapshot_identity: WorthQuerySnapshotIdentity,
         execution_engine: WorthQueryReadExecutionEngine,
@@ -223,7 +219,7 @@ impl WorthQueryReadReceipt {
                 .plan_digest()
                 .as_str()
                 .to_string(),
-            query_digest: query_digest.to_string(),
+            query_digest: read_graph.canonical().query().digest().as_str().to_string(),
             basis_digest: basis_digest.to_string(),
             result_digest,
             snapshot_identity,

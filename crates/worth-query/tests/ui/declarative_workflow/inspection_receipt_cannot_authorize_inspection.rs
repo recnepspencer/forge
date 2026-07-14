@@ -1,7 +1,7 @@
-use worth_query::facade::inspection::{inspect, WorthQueryInspectionReceipt};
+use worth_query::facade::inspection::{declare, WorthQueryInspectionReceipt};
 
 fn cannot_inspect_receipt(receipt: &WorthQueryInspectionReceipt) {
-    let _declaration = inspect(receipt);
+    let _declaration = declare(receipt);
 }
 
 fn main() {}

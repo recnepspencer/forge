@@ -49,6 +49,18 @@ impl WorthQueryOutcomeNavigation for read::WorthQueryReadOutcome {
     }
 }
 
+impl WorthQueryOutcomeNavigation for read::WorthQueryProjectionOutcome {
+    fn posture(&self) -> WorthQueryOutcomePosture {
+        match self {
+            Self::Completed(_) => WorthQueryOutcomePosture::Completed,
+            Self::Advisory(_) => WorthQueryOutcomePosture::Advisory,
+            Self::Violation(_) => WorthQueryOutcomePosture::Violation,
+            Self::Deferred(_) => WorthQueryOutcomePosture::Deferred,
+            Self::Unavailable(_) => WorthQueryOutcomePosture::Unavailable,
+        }
+    }
+}
+
 impl WorthQueryOutcomeNavigation for count::WorthQueryCountOutcome {
     fn posture(&self) -> WorthQueryOutcomePosture {
         match self {

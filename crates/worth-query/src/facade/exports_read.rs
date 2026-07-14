@@ -15,8 +15,10 @@ pub use crate::ordinary::count::{
     WorthQueryCountRequest,
 };
 pub use crate::ordinary::read::{
-    current, declare, WorthQueryCurrentPolicyTenantReadContext, WorthQueryCurrentReadContext,
-    WorthQueryCurrentRelationshipReadContext, WorthQueryReadCompletion,
+    current, declare, project_facts, WorthQueryCurrentPolicyTenantReadContext,
+    WorthQueryCurrentReadContext, WorthQueryCurrentRelationshipReadContext,
+    WorthQueryProjectionAdvisory, WorthQueryProjectionDeclaration, WorthQueryProjectionOutcome,
+    WorthQueryProjectionUnavailable, WorthQueryProjectionViolation, WorthQueryReadCompletion,
     WorthQueryReadContextAdmissionCounters, WorthQueryReadContextDeclaration,
     WorthQueryReadContextDenial, WorthQueryReadContextDenialSource, WorthQueryReadContextKind,
     WorthQueryReadContextReceipt, WorthQueryReadDeclaration, WorthQueryReadDeclarationIdentity,
@@ -26,6 +28,12 @@ pub use crate::ordinary::read::{
     WorthQueryReadRequest, WorthQueryReadStop, WorthQueryReadStopSource,
 };
 pub use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
+pub use crate::projection_consumption::{
+    ConsumedProjectionAuthorityDenial, DeferredProjectionConsumption, DeniedProjectionConsumption,
+    ProjectionConsumptionDeclarationError, ProjectionConsumptionWarnings,
+    ProjectionFactExtractionError, ProjectionFactFieldPath, SourceMismatchedProjectionConsumption,
+    WorthQueryConsumedProjectionAuthority,
+};
 pub use crate::runtime::{
     WorthQueryCountResult, WorthQueryReadBreadth, WorthQueryReadDenial, WorthQueryReadDenialKind,
     WorthQueryReadGraphFamily, WorthQueryReadOperatorFamily, WorthQueryReadReceipt,

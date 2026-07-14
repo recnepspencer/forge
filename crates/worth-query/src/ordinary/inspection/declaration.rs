@@ -23,7 +23,7 @@ impl WorthQueryInspectionDeclaration {
     }
 }
 
-pub fn inspect(completion: &WorthQueryReadCompletion) -> WorthQueryInspectionDeclaration {
+pub fn declare(completion: &WorthQueryReadCompletion) -> WorthQueryInspectionDeclaration {
     WorthQueryInspectionDeclaration {
         source_receipt: completion.result().receipt().clone(),
         inspection_policy: WorthQueryOrdinaryInspectionPolicy::OperationalOnly,

@@ -1,4 +1,5 @@
 use crate::authoring::WorthQueryGraphReadDomainOperationDeclaration;
+use crate::authorized_projection::AuthorizedProjectionArtifact;
 use crate::basis::QuerySchemaBasisAuthority;
 use crate::canonicalization::CanonicalQueryBundle;
 use crate::declarative_live::DeclarativeLiveQueryRequest;
@@ -95,6 +96,7 @@ pub struct WorthQueryReadGraph {
     declared_traversal_depth_limit: usize,
     relationship_proof_admission: Option<RelationshipProofAdmission>,
     policy_aware_plan: Option<PolicyAwareCurrentPlan>,
+    authorized_projection: Option<AuthorizedProjectionArtifact>,
     canonical: CanonicalQueryBundle,
     validated: ValidatedQueryBundle,
     declarative_request: DeclarativeLiveQueryRequest,
@@ -170,6 +172,10 @@ impl WorthQueryReadGraph {
         self.policy_aware_plan.as_ref()
     }
 
+    pub(crate) fn authorized_projection(&self) -> Option<&AuthorizedProjectionArtifact> {
+        self.authorized_projection.as_ref()
+    }
+
     pub fn schema_view(&self) -> &QuerySchemaView {
         &self.schema_view
     }
@@ -202,6 +208,7 @@ impl WorthQueryReadGraph {
         declared_traversal_depth_limit: usize,
         relationship_proof_admission: Option<RelationshipProofAdmission>,
         policy_aware_plan: Option<PolicyAwareCurrentPlan>,
+        authorized_projection: Option<AuthorizedProjectionArtifact>,
         canonical: CanonicalQueryBundle,
         validated: ValidatedQueryBundle,
         declarative_request: DeclarativeLiveQueryRequest,
@@ -265,6 +272,7 @@ impl WorthQueryReadGraph {
             declared_traversal_depth_limit,
             relationship_proof_admission,
             policy_aware_plan,
+            authorized_projection,
             canonical,
             validated,
             declarative_request,

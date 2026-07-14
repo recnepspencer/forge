@@ -1,12 +1,14 @@
 mod context;
+mod cost;
 mod declaration;
 mod execution;
 mod outcome;
 
 pub use context::{inspection_basis, WorthQueryInspectionContext};
-pub use declaration::{inspect, WorthQueryInspectionDeclaration};
+pub use cost::WorthQueryInspectionCost;
+pub use declaration::{declare, WorthQueryInspectionDeclaration};
 pub use outcome::{
-    WorthQueryInspectionCompletion, WorthQueryInspectionCost, WorthQueryInspectionCounters,
+    WorthQueryInspectionCompletion, WorthQueryInspectionCounters,
     WorthQueryInspectionMaterialization, WorthQueryInspectionMaterializationKind,
     WorthQueryInspectionNextAction, WorthQueryInspectionOutcome, WorthQueryInspectionReceipt,
     WorthQueryInspectionStop, WorthQueryInspectionStopSource, WorthQueryInspectionUnavailable,

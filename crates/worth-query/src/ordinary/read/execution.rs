@@ -1,6 +1,7 @@
 use super::{
     admit_read_context_declaration, WorthQueryReadCompletion, WorthQueryReadJourneyCounters,
-    WorthQueryReadOutcome, WorthQueryReadRequest, WorthQueryReadStop,
+    WorthQueryReadOutcome, WorthQueryReadProjectionBinding, WorthQueryReadRequest,
+    WorthQueryReadStop,
 };
 use crate::runtime::WorthQueryWorkspace;
 
@@ -33,6 +34,7 @@ impl WorthQueryReadRequest {
             }
         };
         let journey_counters = journey_counters.record_planning_completed();
+        let projection_binding = WorthQueryReadProjectionBinding::from_graph(&read_graph);
         let journey_counters = journey_counters.record_lower_runtime_execution_attempt();
         let runtime_result =
             workspace.execute_declared_read_graph_in_authority(read_graph, &authority);
@@ -41,6 +43,7 @@ impl WorthQueryReadRequest {
                 result,
                 context_receipt,
                 journey_counters.record_lower_runtime_execution_completed(),
+                projection_binding,
             )),
             Err(error) => WorthQueryReadOutcome::Stopped(WorthQueryReadStop::runtime(
                 error,
