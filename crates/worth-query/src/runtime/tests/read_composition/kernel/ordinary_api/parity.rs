@@ -1,4 +1,7 @@
 use super::super::super::support::*;
+use super::composed_fixtures::{
+    local_named_direct_read, local_named_scoped_read, local_named_template_read,
+};
 use super::fixtures::{
     anchored_manager_graph_read, current_bounded_manager_relationship_context,
     current_manager_relationship_context, local_identity_collection_read, local_identity_read,
@@ -132,6 +135,36 @@ fn ordinary_composed_read_matches_internal_phase_chain_without_scalarizing_evide
     assert_eq!(
         result.receipt().breadth().planned_traversal_clause_count(),
         1
+    );
+}
+
+#[test]
+fn scope_and_template_composition_execute_through_the_same_admitted_chain() {
+    let direct = assert_ordinary_internal_parity!(
+        local_named_direct_read,
+        current(),
+        "ordinary-read-declarative-composition-parity"
+    );
+    let scoped = assert_ordinary_internal_parity!(
+        local_named_scoped_read,
+        current(),
+        "ordinary-read-declarative-composition-parity"
+    );
+    let templated = assert_ordinary_internal_parity!(
+        local_named_template_read,
+        current(),
+        "ordinary-read-declarative-composition-parity"
+    );
+
+    assert_eq!(direct, scoped);
+    assert_eq!(direct, templated);
+    assert_eq!(
+        direct.receipt().execution_plan_digest(),
+        scoped.receipt().execution_plan_digest()
+    );
+    assert_eq!(
+        direct.receipt().execution_plan_digest(),
+        templated.receipt().execution_plan_digest()
     );
 }
 

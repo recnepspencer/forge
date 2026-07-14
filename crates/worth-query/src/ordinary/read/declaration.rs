@@ -6,15 +6,34 @@ use crate::runtime::{WorthQueryReadBuilder, WorthQueryReadDenial};
 /// This is an observation of Query-owned canonical meaning, not execution or
 /// basis authority.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct WorthQueryReadDeclarationIdentity(String);
+pub struct WorthQueryReadDeclarationIdentity {
+    declaration_digest: String,
+    canonical_query_digest: String,
+    canonical_result_shape_digest: String,
+}
 
 impl WorthQueryReadDeclarationIdentity {
     pub fn as_str(&self) -> &str {
-        &self.0
+        &self.declaration_digest
+    }
+
+    pub fn canonical_query_digest(&self) -> &str {
+        &self.canonical_query_digest
+    }
+
+    pub fn canonical_result_shape_digest(&self) -> &str {
+        &self.canonical_result_shape_digest
     }
 
     fn from_declared_intent(intent: &WorthQueryDeclaredReadIntent) -> Self {
-        Self(intent.digest().to_string())
+        Self {
+            declaration_digest: intent.digest().to_string(),
+            canonical_query_digest: intent.canonical_query_digest().as_str().to_string(),
+            canonical_result_shape_digest: intent
+                .canonical_result_shape_digest()
+                .as_str()
+                .to_string(),
+        }
     }
 }
 

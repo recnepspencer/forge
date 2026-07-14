@@ -1,8 +1,13 @@
 pub use crate::authoring::{
-    AspectFieldSelector, AspectName, AuthoredResultShapeField, CollectionQueryBuilder,
-    CollectionResultShapeBuilder, DetailQueryBuilder, DetailResultShapeBuilder, EqualityPredicate,
-    FieldName, OrderingSelector, PresencePredicate, RelationName, RootEntityKey,
-    ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate, TraversalSelector,
+    AspectFieldSelector, AspectName, AuthoredResultShapeField, CollectionAuthoredQuery,
+    CollectionAuthoredResultShape, CollectionQueryBuilder, CollectionResultShapeBuilder,
+    DetailAuthoredQuery, DetailAuthoredResultShape, DetailQueryBuilder, DetailResultShapeBuilder,
+    EqualityPredicate, FieldName, IntegerComparisonPredicate, OrderingSelector, PredicateSelector,
+    PresencePredicate, RelationName, RootEntityKey, ScalarPredicateValue, SetMembershipPredicate,
+    StringContainsPredicate, TraversalSelector,
+};
+pub use crate::composition::{
+    QueryScopeDescriptor, QueryTemplateDescriptor, TemplateBindingSet, TemplateParameterSlot,
 };
 pub use crate::ordinary::count::{
     declare_count, WorthQueryCountCompletion, WorthQueryCountDeclaration,

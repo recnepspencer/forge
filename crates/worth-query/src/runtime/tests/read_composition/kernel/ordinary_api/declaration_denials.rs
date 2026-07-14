@@ -1,5 +1,8 @@
 use super::super::super::support::*;
-use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField, TraversalSelector};
+use crate::authoring::{
+    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, ScalarPredicateValue,
+    TraversalSelector,
+};
 use crate::ordinary::read::declare;
 use crate::runtime::WorthQueryReadDenialKind;
 
@@ -51,7 +54,70 @@ fn invalid_result_shape_is_denied_before_a_runnable_capability_exists() {
 
     assert_eq!(
         stop.denial().kind(),
-        &WorthQueryReadDenialKind::CanonicalizationDenied
+        &WorthQueryReadDenialKind::AuthoringDenied
+    );
+    assert_eq!(
+        stop.next_action(),
+        crate::ordinary::read::WorthQueryReadNextAction::ReviseDeclaration
+    );
+}
+
+#[test]
+fn unknown_field_is_denied_during_declaration() {
+    let stop = declare(|read| {
+        read.local_detail(
+            "user",
+            manager_schema(),
+            |query| {
+                query.project(
+                    AspectFieldSelector::new("profile", "unknown")
+                        .expect("field selector syntax should author"),
+                )
+            },
+            |shape| {
+                shape.field(
+                    AuthoredResultShapeField::new("profile", "unknown", "unknown")
+                        .expect("result field syntax should author"),
+                )
+            },
+        )
+    })
+    .expect_err("unknown schema field must not mint a declaration");
+
+    assert_eq!(
+        stop.denial().kind(),
+        &WorthQueryReadDenialKind::ValidationDenied
+    );
+    assert_eq!(
+        stop.next_action(),
+        crate::ordinary::read::WorthQueryReadNextAction::ReviseDeclaration
+    );
+}
+
+#[test]
+fn predicate_type_mismatch_is_denied_during_declaration() {
+    let stop = declare(|read| {
+        read.local_detail(
+            "user",
+            manager_schema(),
+            |query| {
+                query.project(identity_field()).where_equal(
+                    EqualityPredicate::new(
+                        "profile",
+                        "display_name",
+                        ScalarPredicateValue::Integer(42),
+                    )
+                    .expect("predicate syntax should author"),
+                )
+            },
+            |shape| shape.field(identity_result_field()),
+        )
+    })
+    .expect_err("predicate kind mismatch must not mint a declaration");
+
+    assert_eq!(
+        stop.denial().kind(),
+        &WorthQueryReadDenialKind::ValidationDenied
     );
     assert_eq!(
         stop.next_action(),

@@ -1,6 +1,6 @@
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath, RawAuthoredQuery,
-    RawAuthoredResultShape, RootEntityKey,
+    RawAuthoredResultShape, RootEntityKey, TraversalSelector,
 };
 use crate::policy_basis::{
     admit_policy_tenant_context, BranchAccessGrant, PolicyEpoch, PolicyExecutionModeRequest,
@@ -54,7 +54,16 @@ fn admitted(
 
 #[test]
 fn direct_edge_descriptor_admits_without_truth_touch() {
-    let canonical = canonical_query();
+    let query = RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
+        .project(AspectFieldSelector::new("identity", "id").unwrap())
+        .traverse(TraversalSelector::bounded("manager", 1).unwrap())
+        .build()
+        .unwrap();
+    let result_shape = RawAuthoredResultShape::detail_builder()
+        .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+        .build()
+        .unwrap();
+    let canonical = GuidedAuthoringPath::canonicalize_detail(query, result_shape).unwrap();
     let admitted = admitted(&canonical);
     let descriptors = RelationshipProofDescriptorSet::new(
         vec![RelationshipProofDescriptor::direct_edge(
@@ -137,6 +146,37 @@ fn query_shape_mismatch_denies_before_truth_touch() {
             "different-query-digest",
         )],
         RelationshipProofBudget::bounded(1, 1),
+    );
+
+    let error = admit_relationship_proofs(canonical.query(), &admitted, &descriptors).unwrap_err();
+
+    assert_eq!(
+        error.failure_class(),
+        RelationshipProofFailureClass::QueryShapeMismatch
+    );
+    assert_eq!(error.counters().truth_touch_count(), 0);
+}
+
+#[test]
+fn duplicate_proof_cannot_cover_two_distinct_traversals() {
+    let query = RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
+        .project(AspectFieldSelector::new("identity", "id").unwrap())
+        .traverse(TraversalSelector::bounded("manager", 1).unwrap())
+        .traverse(TraversalSelector::bounded("owner", 1).unwrap())
+        .build()
+        .unwrap();
+    let result_shape = RawAuthoredResultShape::detail_builder()
+        .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+        .build()
+        .unwrap();
+    let canonical = GuidedAuthoringPath::canonicalize_detail(query, result_shape).unwrap();
+    let admitted = admitted(&canonical);
+    let descriptors = RelationshipProofDescriptorSet::new(
+        vec![
+            RelationshipProofDescriptor::direct_edge("manager", admitted.bundle().policy_digest()),
+            RelationshipProofDescriptor::direct_edge("manager", admitted.bundle().policy_digest()),
+        ],
+        RelationshipProofBudget::bounded(2, 2),
     );
 
     let error = admit_relationship_proofs(canonical.query(), &admitted, &descriptors).unwrap_err();

@@ -1,4 +1,4 @@
-use crate::authoring::{RawAuthoredQuery, RawAuthoredResultShape};
+use crate::authoring::{OrderingSelector, QueryFamily, RawAuthoredQuery, RawAuthoredResultShape};
 use crate::binding::QueryBindingDescriptor;
 
 use super::compatibility::{enforce_family_match, enforce_shape_projection_compatibility};
@@ -26,6 +26,20 @@ impl AuthoredQueryBundleRequest {
             bindings,
             helper_residue_marker: None,
         })
+    }
+
+    pub(crate) fn for_ordinary_read(
+        mut query: RawAuthoredQuery,
+        result_shape: RawAuthoredResultShape,
+        bindings: QueryBindingDescriptor,
+    ) -> Result<Self, AuthoredBundleError> {
+        if query.family() == QueryFamily::Collection && query.ordering().is_empty() {
+            query = query.with_ordering(
+                OrderingSelector::ascending("identity", "id")
+                    .expect("ordinary collection cursor vocabulary is a valid selector"),
+            );
+        }
+        Self::new(query, result_shape, bindings)
     }
 
     pub fn query(&self) -> &RawAuthoredQuery {

@@ -4,9 +4,12 @@ use super::PolicyTenantAdmissionCounters;
 pub enum PolicyTenantAdmissionFailureClass {
     PolicyQueryFamilyDenied,
     BranchAccessDenied,
+    BasisMismatch,
+    CrossTenant,
     TenantAdmissionDenied,
     UnsupportedExecutionMode,
     RawMiddlewarePolicySourceForbidden,
+    StalePolicyAuthority,
     PolicyWorkBudgetDenied,
     SavedQueryPolicyTenantBypassForbidden,
 }
@@ -16,9 +19,12 @@ impl PolicyTenantAdmissionFailureClass {
         match self {
             Self::PolicyQueryFamilyDenied => "policy_query_family_denied",
             Self::BranchAccessDenied => "branch_access_denied",
+            Self::BasisMismatch => "basis_mismatch",
+            Self::CrossTenant => "cross_tenant",
             Self::TenantAdmissionDenied => "tenant_admission_denied",
             Self::UnsupportedExecutionMode => "unsupported_execution_mode",
             Self::RawMiddlewarePolicySourceForbidden => "raw_middleware_policy_source_forbidden",
+            Self::StalePolicyAuthority => "stale_policy_authority",
             Self::PolicyWorkBudgetDenied => "policy_work_budget_denied",
             Self::SavedQueryPolicyTenantBypassForbidden => {
                 "saved_query_policy_tenant_bypass_forbidden"

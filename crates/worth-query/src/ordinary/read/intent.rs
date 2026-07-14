@@ -6,7 +6,7 @@ use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
-use crate::identity::{CanonicalQueryDigest, SchemaBasisDigest};
+use crate::identity::{CanonicalQueryDigest, CanonicalResultShapeDigest, SchemaBasisDigest};
 use crate::planning::{
     plan_validated_bundle, plan_validated_bundle_for_count_aggregate,
     plan_validated_bundle_for_count_aggregate_with_policy_authority,
@@ -44,12 +44,35 @@ pub struct WorthQueryDeclaredReadIntent {
     validated: ValidatedQueryBundle,
 }
 
+pub(crate) struct WorthQueryDeclaredReadMeaning {
+    pub(crate) family: WorthQueryReadGraphFamily,
+    pub(crate) scope_class: WorthQueryReadScopeClass,
+    pub(crate) schema_basis: SchemaBasisDigest,
+}
+
+pub(crate) struct WorthQueryDeclaredReadOperations {
+    pub(crate) built_in: Vec<WorthQueryReadBuiltInOperator>,
+    pub(crate) domain: Vec<WorthQueryGraphReadDomainOperationDeclaration>,
+}
+
+pub(crate) struct WorthQueryDeclaredTraversalContract {
+    pub(crate) clause_count: usize,
+    pub(crate) depth_limit: usize,
+}
+
+pub(crate) struct WorthQueryDeclaredReadArtifacts {
+    pub(crate) request: DeclarativeLiveQueryRequest,
+    pub(crate) schema_view: QuerySchemaView,
+    pub(crate) canonical: CanonicalQueryBundle,
+    pub(crate) validated: ValidatedQueryBundle,
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) enum WorthQueryReadPlanningAuthority {
     Canonical {
         relationship_proof: Option<RelationshipProofAdmission>,
     },
-    PolicyNarrowed(NarrowedPolicyQueryArtifact),
+    PolicyNarrowed(Box<NarrowedPolicyQueryArtifact>),
 }
 
 impl WorthQueryReadPlanningAuthority {
@@ -58,7 +81,7 @@ impl WorthQueryReadPlanningAuthority {
     }
 
     pub(crate) fn policy_narrowed(artifact: NarrowedPolicyQueryArtifact) -> Self {
-        Self::PolicyNarrowed(artifact)
+        Self::PolicyNarrowed(Box::new(artifact))
     }
 }
 
@@ -69,6 +92,10 @@ impl WorthQueryDeclaredReadIntent {
 
     pub(crate) fn canonical_query_digest(&self) -> &CanonicalQueryDigest {
         self.canonical.query().digest()
+    }
+
+    pub(crate) fn canonical_result_shape_digest(&self) -> &CanonicalResultShapeDigest {
+        self.canonical.result_shape().digest()
     }
 
     pub(crate) fn family(&self) -> &WorthQueryReadGraphFamily {
@@ -176,34 +203,30 @@ impl WorthQueryDeclaredReadIntent {
         ))
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
-        family: WorthQueryReadGraphFamily,
-        scope_class: WorthQueryReadScopeClass,
-        schema_basis: SchemaBasisDigest,
-        built_in_operators: Vec<WorthQueryReadBuiltInOperator>,
-        domain_graph_operations: Vec<WorthQueryGraphReadDomainOperationDeclaration>,
-        declared_traversal_clause_count: usize,
-        declared_traversal_depth_limit: usize,
-        declarative_request: DeclarativeLiveQueryRequest,
-        schema_view: QuerySchemaView,
-        canonical: CanonicalQueryBundle,
-        validated: ValidatedQueryBundle,
+        meaning: WorthQueryDeclaredReadMeaning,
+        operations: WorthQueryDeclaredReadOperations,
+        traversal: WorthQueryDeclaredTraversalContract,
+        artifacts: WorthQueryDeclaredReadArtifacts,
     ) -> Self {
         let digest = worth_query_evidence_identity(WorthQueryEvidenceScope::ReadGraphDigest)
             .field_shape(WorthQueryEvidenceTag::new("stage"), "declared_read_intent")
             .field_value(
                 WorthQueryEvidenceTag::new("canonical_query"),
-                canonical.query().digest().as_str(),
+                artifacts.canonical.query().digest().as_str(),
             )
             .field_value(
                 WorthQueryEvidenceTag::new("canonical_result_shape"),
-                canonical.result_shape().digest().as_str(),
+                artifacts.canonical.result_shape().digest().as_str(),
             )
-            .field_shape(WorthQueryEvidenceTag::new("scope"), scope_class.as_str())
+            .field_shape(
+                WorthQueryEvidenceTag::new("scope"),
+                meaning.scope_class.as_str(),
+            )
             .field_value_sequence(
                 WorthQueryEvidenceTag::new("built_in_operator"),
-                built_in_operators
+                operations
+                    .built_in
                     .iter()
                     .map(WorthQueryReadBuiltInOperator::as_str),
             )
@@ -212,17 +235,17 @@ impl WorthQueryDeclaredReadIntent {
             .to_string();
         Self {
             digest,
-            family,
-            scope_class,
-            schema_basis,
-            built_in_operators,
-            domain_graph_operations,
-            declared_traversal_clause_count,
-            declared_traversal_depth_limit,
-            declarative_request,
-            schema_view,
-            canonical,
-            validated,
+            family: meaning.family,
+            scope_class: meaning.scope_class,
+            schema_basis: meaning.schema_basis,
+            built_in_operators: operations.built_in,
+            domain_graph_operations: operations.domain,
+            declared_traversal_clause_count: traversal.clause_count,
+            declared_traversal_depth_limit: traversal.depth_limit,
+            declarative_request: artifacts.request,
+            schema_view: artifacts.schema_view,
+            canonical: artifacts.canonical,
+            validated: artifacts.validated,
         }
     }
 }

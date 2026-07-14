@@ -57,12 +57,16 @@ pub(super) fn classify_context_next_action(
         }
         WorthQueryReadContextDenialSource::PolicyTenant(error) => match error.failure_class() {
             PolicyFailure::BranchAccessDenied => WorthQueryReadNextAction::SupplyBranchAuthority,
-            PolicyFailure::TenantAdmissionDenied => WorthQueryReadNextAction::SupplyTenantAuthority,
+            PolicyFailure::BasisMismatch => WorthQueryReadNextAction::SupplyFreshBasis,
+            PolicyFailure::CrossTenant | PolicyFailure::TenantAdmissionDenied => {
+                WorthQueryReadNextAction::SupplyTenantAuthority
+            }
             PolicyFailure::UnsupportedExecutionMode => {
                 WorthQueryReadNextAction::SelectSupportedCapability
             }
             PolicyFailure::PolicyQueryFamilyDenied
             | PolicyFailure::RawMiddlewarePolicySourceForbidden
+            | PolicyFailure::StalePolicyAuthority
             | PolicyFailure::PolicyWorkBudgetDenied
             | PolicyFailure::SavedQueryPolicyTenantBypassForbidden => {
                 WorthQueryReadNextAction::SupplyPolicyAuthority

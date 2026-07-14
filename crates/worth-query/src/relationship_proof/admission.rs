@@ -13,7 +13,76 @@ pub fn admit_relationship_proofs(
     admitted: &AdmittedPolicyTenantContext,
     descriptor_set: &RelationshipProofDescriptorSet,
 ) -> Result<(RelationshipProofAdmission, RelationshipProofCounters), RelationshipProofError> {
+    validate_topology_matches_query(query, descriptor_set)?;
     admit_relationship_proofs_for_query_identity(query.digest(), admitted, descriptor_set)
+}
+
+fn validate_topology_matches_query(
+    query: &CanonicalQueryArtifact,
+    descriptor_set: &RelationshipProofDescriptorSet,
+) -> Result<(), RelationshipProofError> {
+    let topology_descriptors = descriptor_set
+        .descriptors()
+        .iter()
+        .filter(|descriptor| {
+            matches!(
+                descriptor,
+                RelationshipProofDescriptor::DirectEdge { .. }
+                    | RelationshipProofDescriptor::BoundedAncestor { .. }
+                    | RelationshipProofDescriptor::BoundedDescendant { .. }
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let descriptor_matches =
+        |descriptor: &RelationshipProofDescriptor, relation: &str, depth: u8| match descriptor {
+            RelationshipProofDescriptor::DirectEdge {
+                relation: admitted_relation,
+                ..
+            } => admitted_relation == relation && depth == 1,
+            RelationshipProofDescriptor::BoundedAncestor {
+                relation: admitted_relation,
+                max_depth,
+                ..
+            }
+            | RelationshipProofDescriptor::BoundedDescendant {
+                relation: admitted_relation,
+                max_depth,
+                ..
+            } => admitted_relation == relation && *max_depth >= depth,
+            _ => false,
+        };
+
+    let mut used_descriptors = vec![false; topology_descriptors.len()];
+    let every_traversal_is_covered = query.traversal().iter().all(|entry| {
+        let matching_index = topology_descriptors
+            .iter()
+            .enumerate()
+            .find(|(index, descriptor)| {
+                !used_descriptors[*index]
+                    && descriptor_matches(descriptor, entry.relation.as_str(), entry.depth)
+            })
+            .map(|(index, _)| index);
+        if let Some(index) = matching_index {
+            used_descriptors[index] = true;
+            true
+        } else {
+            false
+        }
+    });
+    let every_topology_proof_is_requested = used_descriptors.into_iter().all(|used| used);
+
+    if every_traversal_is_covered && every_topology_proof_is_requested {
+        return Ok(());
+    }
+
+    let mut counters = RelationshipProofCounters::default();
+    counters.deny();
+    Err(RelationshipProofError::new(
+        RelationshipProofFailureClass::QueryShapeMismatch,
+        "relationship proof topology must exactly cover the canonical query traversal",
+        counters,
+    ))
 }
 
 pub(crate) fn admit_relationship_proofs_for_query_identity(

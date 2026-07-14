@@ -8,12 +8,12 @@ use crate::policy_narrowing::{
     narrow_policy_query, NarrowedPolicyQueryArtifact, PolicyNarrowingFailureClass,
 };
 use crate::relationship_proof::{
-    admit_relationship_proofs_for_query_identity, RelationshipProofAdmission,
-    RelationshipProofDescriptorSet,
+    admit_relationship_proofs, RelationshipProofAdmission, RelationshipProofCounters,
+    RelationshipProofDescriptorSet, RelationshipProofError, RelationshipProofFailureClass,
 };
 use crate::runtime::{
     admit_graph_read_access_authority, WorthQueryGraphReadAccessAuthorityContext,
-    WorthQueryGraphReadAccessAuthorityRequest,
+    WorthQueryGraphReadAccessAuthorityRequest, WorthQueryReadBuiltInOperator,
 };
 
 use super::{
@@ -121,15 +121,20 @@ fn admit_policy_context(
 ) -> Result<AdmittedContextParts, WorthQueryReadContextDenial> {
     let admitted =
         admit_policy_tenant_authority(intent.canonical_query_digest(), context, counters)?;
+    if let Some(proofs) = relationship_proofs.as_ref() {
+        if let Err(error) = validate_relationship_proof_topology(intent, proofs) {
+            counters.record_relationship_proof_admission_attempt();
+            return Err(WorthQueryReadContextDenial::relationship_proof(
+                error,
+                counters.clone(),
+            ));
+        }
+    }
     if admitted.bundle().admission_disposition() == PolicyAdmissionDisposition::AdmittedUnchanged {
         return match relationship_proofs {
             Some(proofs) => {
-                let relationship_proof = admit_relationship_proof(
-                    intent.canonical_query_digest(),
-                    &admitted,
-                    proofs,
-                    counters,
-                )?;
+                let relationship_proof =
+                    admit_relationship_proof(intent, &admitted, proofs, counters)?;
                 context_parts_with_relationship(admitted, relationship_proof)
             }
             None => {
@@ -167,6 +172,84 @@ fn admit_policy_context(
         relationship_proof_digest: Some(relationship_proof_digest),
         planning_authority: WorthQueryReadPlanningAuthority::policy_narrowed(narrowed),
     })
+}
+
+fn validate_relationship_proof_topology(
+    intent: &WorthQueryDeclaredReadIntent,
+    proofs: &WorthQueryReadRelationshipProofs,
+) -> Result<(), RelationshipProofError> {
+    let expects_descendant = intent
+        .built_in_operators()
+        .contains(&WorthQueryReadBuiltInOperator::BoundedDescendant);
+    let topology_proofs = proofs
+        .proofs()
+        .iter()
+        .filter(|proof| {
+            !matches!(
+                proof,
+                super::WorthQueryReadRelationshipProof::TenantMembership
+            )
+        })
+        .collect::<Vec<_>>();
+    let mut used_proofs = vec![false; topology_proofs.len()];
+    let every_traversal_is_covered = intent.canonical().query().traversal().iter().all(|entry| {
+        let matching_index = topology_proofs
+            .iter()
+            .enumerate()
+            .find(|(index, proof)| {
+                !used_proofs[*index] && proof_matches_traversal(proof, entry, expects_descendant)
+            })
+            .map(|(index, _)| index);
+        if let Some(index) = matching_index {
+            used_proofs[index] = true;
+            true
+        } else {
+            false
+        }
+    });
+
+    if every_traversal_is_covered && used_proofs.into_iter().all(|used| used) {
+        return Ok(());
+    }
+
+    let mut proof_counters = RelationshipProofCounters::default();
+    proof_counters.deny();
+    Err(RelationshipProofError::new(
+        RelationshipProofFailureClass::QueryShapeMismatch,
+        "relationship proof direction and bounds must exactly cover the declared traversal",
+        proof_counters,
+    ))
+}
+
+fn proof_matches_traversal(
+    proof: &&super::WorthQueryReadRelationshipProof,
+    traversal: &crate::canonicalization::CanonicalTraversalEntry,
+    expects_descendant: bool,
+) -> bool {
+    match proof {
+        super::WorthQueryReadRelationshipProof::DirectEdge { relation } => {
+            relation == &traversal.relation && traversal.depth == 1
+        }
+        super::WorthQueryReadRelationshipProof::BoundedAncestor {
+            relation,
+            max_depth,
+        } => {
+            relation == &traversal.relation
+                && traversal.depth > 1
+                && !expects_descendant
+                && max_depth.get() >= traversal.depth
+        }
+        super::WorthQueryReadRelationshipProof::BoundedDescendant {
+            relation,
+            max_depth,
+        } => {
+            relation == &traversal.relation
+                && traversal.depth > 1
+                && expects_descendant
+                && max_depth.get() >= traversal.depth
+        }
+        super::WorthQueryReadRelationshipProof::TenantMembership => false,
+    }
 }
 
 fn narrow_policy_context(
@@ -238,7 +321,7 @@ fn context_parts_with_relationship(
 }
 
 fn admit_relationship_proof(
-    canonical_query_digest: &crate::identity::CanonicalQueryDigest,
+    intent: &WorthQueryDeclaredReadIntent,
     admitted_policy_tenant: &AdmittedPolicyTenantContext,
     relationship_proofs: WorthQueryReadRelationshipProofs,
     counters: &mut WorthQueryReadContextAdmissionCounters,
@@ -248,8 +331,8 @@ fn admit_relationship_proof(
         admitted_policy_tenant.bundle().policy_digest(),
         admitted_policy_tenant.bundle().tenant_schema_basis_digest(),
     );
-    let admitted = admit_relationship_proofs_for_query_identity(
-        canonical_query_digest,
+    let admitted = admit_relationship_proofs(
+        intent.canonical().query(),
         admitted_policy_tenant,
         &relationship_proofs,
     )

@@ -25,6 +25,9 @@ use crate::authoring::{
 };
 use crate::ordinary::read::WorthQueryDeclaredReadIntent;
 
+#[path = "read_composition_builder_declarative.rs"]
+mod declarative_builder;
+
 pub struct WorthQueryReadBuilder<Output = WorthQueryReadGraph> {
     finish: fn(WorthQueryDeclaredReadIntent) -> Result<Output, WorthQueryReadDenial>,
 }

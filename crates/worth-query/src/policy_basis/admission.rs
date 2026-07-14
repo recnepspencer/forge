@@ -40,12 +40,22 @@ pub(crate) fn admit_policy_tenant_context_for_query_identity(
     mode: PolicyExecutionModeRequest,
 ) -> Result<AdmittedPolicyTenantContext, PolicyTenantAdmissionError> {
     let policy_basis = admit_policy_basis(&policy, &branch, mode)?;
+    if tenant.tenant_identity() != schema.tenant_identity() {
+        return Err(PolicyTenantAdmissionError::new(
+            PolicyTenantAdmissionFailureClass::CrossTenant,
+            "tenant binding and schema authority must name the same tenant",
+            PolicyTenantAdmissionCounters::admitted(
+                PolicyBasisCounters::admitted(),
+                crate::tenant_basis::TenantBasisCounters::denied_missing_schema(),
+            ),
+        ));
+    }
     let (tenant_truth_basis, tenant_schema_basis, tenant_counters) =
         admit_tenant_bases(&tenant, &schema)?;
 
     if branch.branch_identity() != tenant_truth_basis.branch_identity() {
         return Err(PolicyTenantAdmissionError::new(
-            PolicyTenantAdmissionFailureClass::TenantAdmissionDenied,
+            PolicyTenantAdmissionFailureClass::BasisMismatch,
             "branch access grant must match tenant truth branch",
             PolicyTenantAdmissionCounters::admitted(
                 PolicyBasisCounters::admitted(),
@@ -115,7 +125,7 @@ fn admit_policy_basis(
 
     if branch.policy_digest() != policy.digest() {
         return Err(PolicyTenantAdmissionError::new(
-            PolicyTenantAdmissionFailureClass::RawMiddlewarePolicySourceForbidden,
+            PolicyTenantAdmissionFailureClass::StalePolicyAuthority,
             "branch grant policy digest must match the policy snapshot",
             PolicyTenantAdmissionCounters::admitted(
                 PolicyBasisCounters::denied_middleware(),

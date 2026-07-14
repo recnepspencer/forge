@@ -100,6 +100,29 @@ pub(super) fn local_manager_relationship_read<Output>(
     )
 }
 
+pub(super) fn bounded_descendant_manager_read<Output>(
+    read: crate::runtime::WorthQueryReadBuilder<Output>,
+) -> Result<Output, crate::runtime::WorthQueryReadDenial> {
+    read.anchored_bounded_descendant_detail(
+        "user",
+        expanded_manager_schema(),
+        manager_relation_name(),
+        2,
+        |query| {
+            query.project(
+                AspectFieldSelector::new("identity", "id")
+                    .expect("identity projection should build"),
+            )
+        },
+        |shape| {
+            shape.field(
+                AuthoredResultShapeField::new("identity", "id", "id")
+                    .expect("identity result field should build"),
+            )
+        },
+    )
+}
+
 pub(super) fn local_policy_projection_read<Output>(
     read: crate::runtime::WorthQueryReadBuilder<Output>,
 ) -> Result<Output, crate::runtime::WorthQueryReadDenial> {

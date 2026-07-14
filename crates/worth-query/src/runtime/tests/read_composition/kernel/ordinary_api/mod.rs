@@ -1,4 +1,6 @@
 mod authority_context;
+mod composed_fixtures;
+mod context_mismatch;
 mod count;
 mod declaration_denials;
 mod fixtures;
