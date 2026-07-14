@@ -7,6 +7,8 @@ use crate::ordinary::read::{
     current, declare, WorthQueryReadNextAction, WorthQueryReadRelationshipProof,
     WorthQueryReadRelationshipProofs,
 };
+use crate::policy_basis::BranchAccessGrant;
+use crate::tenant_basis::{TenantBasisEpoch, TenantBindingSnapshot};
 
 #[test]
 fn ordinary_read_lowers_policy_tenant_and_relationship_authority_once() {
@@ -135,6 +137,81 @@ fn denied_policy_stops_before_graph_authority_admission() {
     assert_eq!(stop.journey_counters().planning_attempt_count(), 0);
     assert_eq!(stop.journey_counters().planning_completed_count(), 0);
     assert!(stop.context_receipt().is_none());
+}
+
+#[test]
+fn denied_branch_names_the_branch_authority_as_the_next_action() {
+    let declaration = declare(local_identity_read).expect("read declaration should canonicalize");
+    let policy_tenant = admitted_policy_tenant_inputs(1, true);
+    let branch = BranchAccessGrant::synthetic_denied(
+        "main",
+        "seeded branch authority denial",
+        &policy_tenant.policy,
+    );
+    let context = current().under_policy_tenant(
+        policy_tenant.policy,
+        policy_tenant.tenant,
+        branch,
+        policy_tenant.schema,
+    );
+    let mut workspace = read_runtime()
+        .workspace("ordinary-read-branch-denied")
+        .expect("ordinary workspace should open");
+
+    let stop = declaration
+        .using(context)
+        .run(&mut workspace)
+        .into_result()
+        .expect_err("denied branch must stop the read");
+
+    assert_eq!(
+        stop.next_action(),
+        WorthQueryReadNextAction::SupplyBranchAuthority
+    );
+    assert_eq!(stop.journey_counters().planning_attempt_count(), 0);
+    assert_eq!(
+        stop.journey_counters()
+            .lower_runtime_execution_attempt_count(),
+        0
+    );
+}
+
+#[test]
+fn hidden_tenant_filter_names_tenant_authority_as_the_next_action() {
+    let declaration = declare(local_identity_read).expect("read declaration should canonicalize");
+    let policy_tenant = admitted_policy_tenant_inputs(1, true);
+    let tenant = TenantBindingSnapshot::synthetic_hidden_filter(
+        "tenant-a",
+        "main",
+        "schema-a",
+        TenantBasisEpoch::Synthetic(7),
+    );
+    let context = current().under_policy_tenant(
+        policy_tenant.policy,
+        tenant,
+        policy_tenant.branch,
+        policy_tenant.schema,
+    );
+    let mut workspace = read_runtime()
+        .workspace("ordinary-read-tenant-denied")
+        .expect("ordinary workspace should open");
+
+    let stop = declaration
+        .using(context)
+        .run(&mut workspace)
+        .into_result()
+        .expect_err("hidden tenant authority must stop the read");
+
+    assert_eq!(
+        stop.next_action(),
+        WorthQueryReadNextAction::SupplyTenantAuthority
+    );
+    assert_eq!(stop.journey_counters().planning_attempt_count(), 0);
+    assert_eq!(
+        stop.journey_counters()
+            .lower_runtime_execution_attempt_count(),
+        0
+    );
 }
 
 #[test]

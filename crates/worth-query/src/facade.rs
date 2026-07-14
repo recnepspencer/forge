@@ -2,9 +2,11 @@
 //! External crates should import through this module rather than reaching into
 //! internal crate structure directly.
 
+mod exports_aggregate;
 mod exports_application;
 mod exports_certification;
 mod exports_foundation;
+mod exports_live_capability;
 mod exports_policy;
 mod exports_read;
 mod exports_runtime;
@@ -134,6 +136,16 @@ pub mod policy {
 /// construction.
 pub mod read {
     pub use super::exports_read::*;
+}
+
+/// Declarative bounded aggregate capability.
+pub mod aggregate {
+    pub use super::exports_aggregate::*;
+}
+
+/// Declarative framework-owned live capability.
+pub mod live {
+    pub use super::exports_live_capability::*;
 }
 
 pub mod runtime {

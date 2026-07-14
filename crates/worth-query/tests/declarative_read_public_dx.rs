@@ -1,7 +1,8 @@
+use worth_query::facade::aggregate::declare as declare_aggregate;
+use worth_query::facade::live::declare as declare_live;
 use worth_query::facade::read::{
-    current, declare, declare_count, declare_live, AspectFieldSelector, AspectName,
-    AuthoredResultShapeField, FieldName, QuerySchemaView, SchemaFieldKind, SchemaFieldView,
-    WorthQueryReadContextKind,
+    current, declare, AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName,
+    QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryReadContextKind,
 };
 
 #[test]
@@ -40,7 +41,7 @@ fn read_declaration_uses_only_the_read_capability_namespace() {
 
 #[test]
 fn count_declaration_is_a_typed_collection_capability() {
-    let declaration = declare_count(|read| {
+    let declaration = declare_aggregate(|read| {
         read.local_collection(
             "user",
             QuerySchemaView::new(

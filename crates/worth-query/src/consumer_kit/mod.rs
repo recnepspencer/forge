@@ -1,4 +1,5 @@
 pub(crate) mod boundary_audit;
+pub(crate) mod capability_grammar;
 pub(crate) mod consumer_residue;
 pub(crate) mod declarative_surface;
 pub(crate) mod downstream_authority_adoption;
@@ -25,6 +26,11 @@ pub use boundary_audit::{
     WorthQueryBoundaryAuditSourceInventoryFile, WorthQueryBoundaryAuditSourceSet,
     WorthQueryBoundaryAuditSourceSite, WorthQueryBoundaryAuditSyntaxClass,
     WorthQueryHardProhibitionBoundaryAudit,
+};
+pub use capability_grammar::{
+    current_capability_grammar_audit, worth_query_capability_grammar, WorthQueryCapabilityCeremony,
+    WorthQueryCapabilityGrammarAudit, WorthQueryCapabilityGrammarFinding,
+    WorthQueryCapabilityGrammarFindingKind, WorthQueryCapabilityGrammarRow,
 };
 pub use consumer_residue::{
     query_consumer_residue_audit, worth_query_consumer_residue_certification_evidence,
