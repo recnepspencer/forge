@@ -97,11 +97,12 @@ pub(super) fn admitted_handle(
     regime: &'static str,
 ) -> crate::application::WorthQueryInstalledDomainDeclarationContext<CloseoutDomain, CloseoutWorld>
 {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(CloseoutDomain)
-        .with_operating_context(CloseoutWorld(regime))
-        .validate()
-        .expect("closeout world should validate")
-        .admit()
-        .expect("closeout world should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        CloseoutDomain,
+        CloseoutWorld(regime),
+        [crate::application::domain_test_support::family::<
+            CloseoutDomain,
+            IntentRequiredFamily,
+        >()],
+    )
 }

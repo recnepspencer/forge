@@ -1,3 +1,4 @@
+use super::{families::*, future_families::*};
 use crate::application::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
     WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
@@ -52,13 +53,29 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for GeometryWorld {
 pub fn handle(
     regime: &'static str,
 ) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld> {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(GeometryDomain)
-        .with_operating_context(GeometryWorld(regime))
-        .validate()
-        .expect("signal compatibility world should validate")
-        .admit()
-        .expect("signal compatibility world should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        GeometryWorld(regime),
+        [
+            crate::application::domain_test_support::family::<GeometryDomain, RuntimeFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, HistoricalFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, PreviewFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, DeferredFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, IncompatibleFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, MixedFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, MissingAspectFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                ConflictingAspectFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, ExpandedAspectFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, TemporalRuntimeFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, AsyncRuntimeFamily>(),
+        ],
+    )
 }
 
 pub(crate) fn signal_aspect_contract() -> WorthQueryDeclarationAspectContract {

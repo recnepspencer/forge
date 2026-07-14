@@ -242,13 +242,22 @@ pub(super) fn admitted_handle() -> crate::application::WorthQueryInstalledDomain
     ContributionDomain,
     ContributionWorld,
 > {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(ContributionDomain)
-        .with_operating_context(ContributionWorld("main"))
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap()
+    crate::application::domain_test_support::installed_declaration_context(
+        ContributionDomain,
+        ContributionWorld("main"),
+        [
+            crate::application::domain_test_support::family::<ContributionDomain, ContributionFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                ContributionDomain,
+                DeferredAdmissionContributionFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                ContributionDomain,
+                DeferredContributionFamily,
+            >(),
+        ],
+    )
 }
 
 pub(super) fn target_for_envelope(

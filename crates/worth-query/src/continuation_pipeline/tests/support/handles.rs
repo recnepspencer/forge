@@ -1,8 +1,7 @@
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryConfig, WorthQueryDeclarationBridgeContinuationMode,
+    WorthQueryConfig, WorthQueryDeclarationBridgeContinuationMode,
     WorthQueryDeclarationBridgeContinuationRequest, WorthQueryDeclarationBridgeTruthContext,
     WorthQueryDeclarationEnvelope, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryRelationalConfig, WorthQueryRuntimeBridgeConfig,
 };
 use crate::binding_pipeline::{
     WorthQueryBindingSourceKind, WorthQueryBindingSpecificity,
@@ -11,8 +10,8 @@ use crate::binding_pipeline::{
 };
 
 use super::{
-    ContinuationDomain, ContinuationWorld, DriftedContinuationWorld, Input,
-    LenientContinuationWorld, ReadmissionDrift, RuntimeFamily,
+    ContinuationDomain, ContinuationWorld, DriftedContinuationWorld, HistoricalFamily, Input,
+    LenientContinuationWorld, PreviewFamily, ReadmissionDrift, RuntimeFamily,
 };
 
 pub(crate) fn admitted_handle(
@@ -26,19 +25,12 @@ pub(crate) fn admitted_handle(
 
 pub(crate) fn configured_handle(
     world: &'static str,
-    config: WorthQueryConfig,
+    _config: WorthQueryConfig,
 ) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     ContinuationDomain,
     ContinuationWorld,
 > {
-    WorthQueryApplicationFacade::new(config)
-        .expect("test continuation config should validate")
-        .domain(ContinuationDomain)
-        .with_operating_context(ContinuationWorld(world))
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap()
+    installed_context(ContinuationWorld(world))
 }
 
 pub(crate) fn preview_disabled_handle(
@@ -47,17 +39,7 @@ pub(crate) fn preview_disabled_handle(
     ContinuationDomain,
     LenientContinuationWorld,
 > {
-    WorthQueryApplicationFacade::new(
-        WorthQueryConfig::runtime_backed_default()
-            .with_runtime_bridge(WorthQueryRuntimeBridgeConfig::disabled()),
-    )
-    .expect("test continuation config should validate")
-    .domain(ContinuationDomain)
-    .with_operating_context(LenientContinuationWorld(world))
-    .validate()
-    .unwrap()
-    .admit()
-    .unwrap()
+    installed_context(LenientContinuationWorld(world))
 }
 
 pub(crate) fn historical_disabled_handle(
@@ -66,18 +48,7 @@ pub(crate) fn historical_disabled_handle(
     ContinuationDomain,
     LenientContinuationWorld,
 > {
-    WorthQueryApplicationFacade::new(
-        WorthQueryConfig::runtime_backed_default().with_relational(
-            WorthQueryRelationalConfig::enabled().with_historical_evaluation(false),
-        ),
-    )
-    .expect("test continuation config should validate")
-    .domain(ContinuationDomain)
-    .with_operating_context(LenientContinuationWorld(world))
-    .validate()
-    .unwrap()
-    .admit()
-    .unwrap()
+    installed_context(LenientContinuationWorld(world))
 }
 
 pub(crate) fn drifted_readmission_handle(
@@ -87,17 +58,28 @@ pub(crate) fn drifted_readmission_handle(
     ContinuationDomain,
     DriftedContinuationWorld,
 > {
-    WorthQueryApplicationFacade::new(WorthQueryConfig::runtime_backed_default())
-        .expect("test continuation config should validate")
-        .domain(ContinuationDomain)
-        .with_operating_context(DriftedContinuationWorld {
-            label: world,
-            drift,
-        })
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap()
+    installed_context(DriftedContinuationWorld {
+        label: world,
+        drift,
+    })
+}
+
+fn installed_context<C>(
+    context: C,
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<ContinuationDomain, C>
+where
+    C: crate::application::WorthQueryDomainOperatingContext<ContinuationDomain>,
+{
+    crate::application::domain_test_support::installed_declaration_context(
+        ContinuationDomain,
+        context,
+        [
+            crate::application::domain_test_support::family::<ContinuationDomain, RuntimeFamily>(),
+            crate::application::domain_test_support::family::<ContinuationDomain, HistoricalFamily>(
+            ),
+            crate::application::domain_test_support::family::<ContinuationDomain, PreviewFamily>(),
+        ],
+    )
 }
 
 pub(crate) fn runtime_route_request() -> WorthQueryDeclarationBridgeContinuationRequest {

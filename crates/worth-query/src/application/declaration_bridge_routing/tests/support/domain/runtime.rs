@@ -1,3 +1,4 @@
+use super::families::*;
 use crate::application::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
     WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
@@ -60,13 +61,58 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for GeometryWorld {
 pub(crate) fn admitted_handle(
     regime: &'static str,
 ) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld> {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(GeometryDomain)
-        .with_operating_context(GeometryWorld::named(regime))
-        .validate()
-        .expect("bridge-routing world should validate")
-        .admit()
-        .expect("bridge-routing world should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        GeometryWorld::named(regime),
+        [
+            crate::application::domain_test_support::family::<GeometryDomain, RuntimeRouteFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, TruthViewCurrentFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                TruthViewHistoricalFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, PreviewSessionFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, PreviewPromotionFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                SubscriptionPreparationFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                WritebackPreparationFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, SignalOnlyFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, MixedAuthorityFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, RelationalOnlyFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, MissingAspectFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                ConflictingAspectFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, ExpandedAspectFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                TemporalRuntimeRouteFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                AsyncRuntimeRouteFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                TemporalSignalOnlyFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, AsyncSignalOnlyFamily>(
+            ),
+        ],
+    )
 }
 
 pub(crate) fn bridge_aspect_contract() -> WorthQueryDeclarationAspectContract {

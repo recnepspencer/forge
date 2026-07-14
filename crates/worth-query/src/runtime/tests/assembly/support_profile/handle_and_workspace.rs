@@ -1,6 +1,7 @@
 use super::super::super::support::*;
 use crate::application::{
-    WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext,
 };
 use crate::domain_installation::{
     WorthQueryDomainIdentityDeclaration, WorthQueryDomainIdentityName,
@@ -33,6 +34,14 @@ impl WorthQueryDomainEntryMarker for TestRuntimeBasisDomain {
 struct TestRuntimeBasisContext;
 
 impl WorthQueryDomainOperatingContext<TestRuntimeBasisDomain> for TestRuntimeBasisContext {
+    fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
+        &[]
+    }
+
+    fn required_config_sections(&self) -> &'static [WorthQueryConfigSectionFamily] {
+        &[]
+    }
+
     fn context_identity_digest(&self) -> String {
         "operating:runtime-basis".to_string()
     }
@@ -42,8 +51,8 @@ fn test_runtime_basis_package() -> WorthQueryDomainPackage<TestRuntimeBasisDomai
     WorthQueryDomainPackage::declare(
         TestRuntimeBasisDomain,
         WorthQueryDomainIdentityDeclaration::new(
-            WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
-            WorthQueryDomainIdentityName::new("runtime-basis").unwrap(),
+            WorthQueryDomainIdentityNamespace::new("test.runtime").unwrap(),
+            WorthQueryDomainIdentityName::new("basis").unwrap(),
             WorthQueryDomainSemanticVersion::new(1, 0),
         ),
     )

@@ -207,15 +207,33 @@ impl WorthQueryDeclarationInput<ContributionDomain> for AdvisoryContributionInpu
     }
 }
 
+fn orchestration_handle() -> crate::application::WorthQueryInstalledDomainDeclarationContext<
+    ContributionDomain,
+    ContributionWorld,
+> {
+    crate::application::domain_test_support::installed_declaration_context(
+        ContributionDomain,
+        ContributionWorld("main"),
+        [
+            crate::application::domain_test_support::family::<
+                ContributionDomain,
+                BlockingContributionFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                ContributionDomain,
+                MissingTouchContributionFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                ContributionDomain,
+                AdvisoryContributionFamily,
+            >(),
+        ],
+    )
+}
+
 #[test]
 fn contribution_orchestration_dispatch_denies_before_contributions_materialize() {
-    let handle = WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(ContributionDomain)
-        .with_operating_context(ContributionWorld("main"))
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap();
+    let handle = orchestration_handle();
     let proof = handle.orchestrate_declaration_with_contributions_proof(
         WorthQueryContributionComposedOrchestrationInput::new(BlockingContributionInput::new(
             "face-blocked",
@@ -266,13 +284,7 @@ fn contribution_orchestration_dispatch_denies_before_contributions_materialize()
 
 #[test]
 fn registration_without_orchestration_touch_collection_fails_typed() {
-    let handle = WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(ContributionDomain)
-        .with_operating_context(ContributionWorld("main"))
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap();
+    let handle = orchestration_handle();
     let proof = handle.orchestrate_declaration_with_contributions_proof(
         WorthQueryContributionComposedOrchestrationInput::new(MissingTouchContributionInput::new(
             "face-missing-touch",
@@ -304,13 +316,7 @@ fn registration_without_orchestration_touch_collection_fails_typed() {
 
 #[test]
 fn non_blocking_orchestration_dispatch_survives_bound_contribution_artifact() {
-    let handle = WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(ContributionDomain)
-        .with_operating_context(ContributionWorld("main"))
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap();
+    let handle = orchestration_handle();
     let proof = handle.orchestrate_declaration_with_contributions_proof(
         WorthQueryContributionComposedOrchestrationInput::new(AdvisoryContributionInput::new(
             "face-advisory",

@@ -384,13 +384,38 @@ impl WorthQueryDeclarationInput<GeometryDomain> for RouteInput<AsyncBridgeRouteF
 pub(super) fn admitted_handle(
     regime: &'static str,
 ) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld> {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(GeometryDomain)
-        .with_operating_context(GeometryWorld::named(regime))
-        .validate()
-        .expect("route-plan world should validate")
-        .admit()
-        .expect("route-plan world should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        GeometryWorld::named(regime),
+        [
+            crate::application::domain_test_support::family::<GeometryDomain, RelationalRouteFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, MixedRouteFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, RequiredIntentFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, ForbiddenIntentFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, DeferredRouteFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, FailedRouteFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, AspectRichRouteFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                MissingAspectRouteFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                ConflictAspectRouteFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                GeometryDomain,
+                TemporalBridgeRouteFamily,
+            >(),
+            crate::application::domain_test_support::family::<GeometryDomain, AsyncBridgeRouteFamily>(
+            ),
+        ],
+    )
 }
 
 pub(super) fn progressed<F>(

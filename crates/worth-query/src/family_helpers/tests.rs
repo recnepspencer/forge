@@ -135,13 +135,14 @@ fn admitted_handle(
     world: &'static str,
 ) -> crate::application::WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>
 {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(GeometryDomain)
-        .with_operating_context(GeometryWorld(world))
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap()
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        GeometryWorld(world),
+        [crate::application::domain_test_support::family::<
+            GeometryDomain,
+            GeometryFamily,
+        >()],
+    )
 }
 
 fn preview_request() -> crate::application::WorthQueryDeclarationBridgeContinuationRequest {

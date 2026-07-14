@@ -21,6 +21,8 @@ mod declaration_route_plan;
 mod declaration_signal_compatibility;
 mod domain_entry;
 mod domain_handle;
+#[cfg(test)]
+pub(crate) mod domain_test_support;
 mod graph_obligation_orchestration;
 mod support;
 
@@ -235,24 +237,12 @@ pub use declaration_signal_compatibility::{
     WorthQueryDeclarationSignalCompatibilityTerminalError,
     WorthQueryDeclarationSignalExecutionFamily,
 };
-#[cfg(test)]
-pub use domain_entry::{
-    WorthQueryDomainEntryChecked, WorthQueryDomainEntryDeferred, WorthQueryDomainEntryProofRoot,
-    WorthQueryDomainEntryRoot, WorthQueryDomainEntryUnsupported,
-};
 pub use domain_entry::{WorthQueryDomainEntryMarker, WorthQueryDomainEntrySupportSnapshot};
 pub(crate) use domain_handle::compose_basis_lifecycle_support_identity;
 pub use domain_handle::{
     WorthQueryAdmittedWorldBasis, WorthQueryContinuationExecutionReadmissionObservation,
     WorthQueryDeclarationEntryProgressionError, WorthQueryDomainOperatingContext,
     WorthQueryDomainOperatingRequirement, WorthQueryInstalledDomainDeclarationContext,
-};
-#[cfg(test)]
-pub use domain_handle::{
-    WorthQueryConfiguredDomainHandleAdmissionError, WorthQueryConfiguredDomainHandleChecked,
-    WorthQueryConfiguredDomainHandleDeferred, WorthQueryConfiguredDomainHandleDraft,
-    WorthQueryConfiguredDomainHandleInvalidContext, WorthQueryConfiguredDomainHandleUnsupported,
-    WorthQueryValidatedConfiguredDomainHandle,
 };
 #[allow(unused_imports)]
 pub use graph_obligation_orchestration::{

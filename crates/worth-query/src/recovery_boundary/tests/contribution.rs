@@ -122,13 +122,14 @@ fn contribution_handle() -> crate::application::WorthQueryInstalledDomainDeclara
     ContributionRecoveryDomain,
     ContributionRecoveryWorld,
 > {
-    WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(ContributionRecoveryDomain)
-        .with_operating_context(ContributionRecoveryWorld)
-        .validate()
-        .expect("contribution recovery world should validate")
-        .admit()
-        .expect("contribution recovery world should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        ContributionRecoveryDomain,
+        ContributionRecoveryWorld,
+        [crate::application::domain_test_support::family::<
+            ContributionRecoveryDomain,
+            ContributionRecoveryFamily,
+        >()],
+    )
 }
 
 fn denied_traceability_input() -> WorthQueryContributionComposedOrchestrationInput<

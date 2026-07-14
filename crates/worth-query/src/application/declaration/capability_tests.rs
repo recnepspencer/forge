@@ -162,17 +162,19 @@ impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for MaskedCoverageFamily 
 }
 
 fn admitted_query_only_handle(
-    config: WorthQueryConfig,
+    _config: WorthQueryConfig,
 ) -> crate::application::WorthQueryInstalledDomainDeclarationContext<GeometryDomain, QueryOnlyWorld>
 {
-    WorthQueryApplicationFacade::new(config)
-        .expect("config should construct a facade")
-        .domain(GeometryDomain)
-        .with_operating_context(QueryOnlyWorld)
-        .validate()
-        .expect("query-only context should validate")
-        .admit()
-        .expect("query-only context should admit")
+    crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomain,
+        QueryOnlyWorld,
+        [
+            crate::application::domain_test_support::family::<GeometryDomain, DurableFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, HistoricalFamily>(),
+            crate::application::domain_test_support::family::<GeometryDomain, MaskedCoverageFamily>(
+            ),
+        ],
+    )
 }
 
 #[test]

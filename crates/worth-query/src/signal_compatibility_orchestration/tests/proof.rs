@@ -15,11 +15,39 @@ use crate::ordinary_outcome::{
     WorthQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };
 
-use super::support::{admitted_handle, orchestration_input, SignalDomain, SignalWorld};
+use super::support::{orchestration_input, SignalDomain, SignalFamily, SignalWorld};
+
+fn proof_handle(
+    world: &'static str,
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<SignalDomain, SignalWorld> {
+    proof_signal_context(SignalWorld(world))
+}
+
+fn proof_signal_context<C>(
+    context: C,
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<SignalDomain, C>
+where
+    C: WorthQueryDomainOperatingContext<SignalDomain>,
+{
+    crate::application::domain_test_support::installed_declaration_context(
+        SignalDomain,
+        context,
+        [
+            crate::application::domain_test_support::family::<SignalDomain, SignalFamily>(),
+            crate::application::domain_test_support::family::<SignalDomain, DeferredSignalFamily>(),
+            crate::application::domain_test_support::family::<
+                SignalDomain,
+                HistoricalBasisSignalFamily,
+            >(),
+            crate::application::domain_test_support::family::<SignalDomain, UnsupportedSignalFamily>(
+            ),
+        ],
+    )
+}
 
 #[test]
 fn proof_stops_at_compatibility_when_no_bridge_request_is_supplied() {
-    let handle = admitted_handle("main");
+    let handle = proof_handle("main");
     let proof =
         handle.orchestrate_signal_compatibility_proof(orchestration_input(&handle, "face-a"));
 
@@ -38,8 +66,8 @@ fn proof_stops_at_compatibility_when_no_bridge_request_is_supplied() {
 
 #[test]
 fn wrong_world_is_preserved_through_signal_orchestration() {
-    let left = admitted_handle("left");
-    let right = admitted_handle("right");
+    let left = proof_handle("left");
+    let right = proof_handle("right");
     let outcome = right.orchestrate_signal_compatibility(orchestration_input(&left, "face-a"));
     assert!(matches!(
         outcome,
@@ -49,8 +77,8 @@ fn wrong_world_is_preserved_through_signal_orchestration() {
 
 #[test]
 fn ordinary_outcome_keeps_signal_checked_topology_visible() {
-    let left = admitted_handle("left");
-    let right = admitted_handle("right");
+    let left = proof_handle("left");
+    let right = proof_handle("right");
     match right.orchestrate_signal_compatibility_outcome(orchestration_input(&left, "face-a")) {
         WorthQueryOrdinaryOutcome::WrongWorld(posture) => {
             assert_eq!(
@@ -72,7 +100,7 @@ fn ordinary_outcome_keeps_signal_checked_topology_visible() {
 
 #[test]
 fn ordinary_outcome_keeps_deferred_distinct() {
-    let handle = admitted_handle("main");
+    let handle = proof_handle("main");
 
     match handle.orchestrate_signal_compatibility_outcome(local_input::<DeferredSignalInput>(
         &handle,
@@ -85,7 +113,7 @@ fn ordinary_outcome_keeps_deferred_distinct() {
 
 #[test]
 fn ordinary_outcome_keeps_unsupported_distinct() {
-    let handle = admitted_handle("main");
+    let handle = proof_handle("main");
 
     match handle.orchestrate_signal_compatibility_outcome(local_input::<UnsupportedSignalInput>(
         &handle,
@@ -110,7 +138,7 @@ fn ordinary_outcome_keeps_basis_mismatch_distinct() {
 
 #[test]
 fn ordinary_outcome_keeps_wrong_handle_distinct() {
-    let left = admitted_handle("shared");
+    let left = proof_handle("shared");
     let right = admitted_same_world_different_handle();
 
     match right.orchestrate_signal_compatibility_outcome(orchestration_input(&left, "face-handle"))
@@ -338,18 +366,7 @@ impl WorthQueryDeclarationInput<SignalDomain> for HistoricalBasisSignalInput {
 fn admitted_basis_mismatch_handle(
 ) -> crate::application::WorthQueryInstalledDomainDeclarationContext<SignalDomain, BasisMismatchWorld>
 {
-    WorthQueryApplicationFacade::new(
-        WorthQueryConfig::runtime_backed_default().with_relational(
-            WorthQueryRelationalConfig::enabled().with_historical_evaluation(false),
-        ),
-    )
-    .unwrap()
-    .domain(SignalDomain)
-    .with_operating_context(BasisMismatchWorld)
-    .validate()
-    .unwrap()
-    .admit()
-    .unwrap()
+    proof_signal_context(BasisMismatchWorld)
 }
 
 fn admitted_same_world_different_handle(
@@ -357,16 +374,7 @@ fn admitted_same_world_different_handle(
     SignalDomain,
     SharedIdentityDifferentHandleWorld,
 > {
-    WorthQueryApplicationFacade::new(
-        WorthQueryConfig::runtime_backed_default().with_query(WorthQueryQueryConfig::enabled()),
-    )
-    .unwrap()
-    .domain(SignalDomain)
-    .with_operating_context(SharedIdentityDifferentHandleWorld)
-    .validate()
-    .unwrap()
-    .admit()
-    .unwrap()
+    proof_signal_context(SharedIdentityDifferentHandleWorld)
 }
 
 fn local_input<I: WorthQueryDeclarationInput<SignalDomain>>(

@@ -268,14 +268,20 @@ impl WorthQueryDeclarationInput<FutureSignalDomain> for FutureSignalInput<AsyncF
 pub(crate) fn future_signal_admitted_handle(
     world: &'static str,
 ) -> WorthQueryInstalledDomainDeclarationContext<FutureSignalDomain, FutureSignalWorld> {
-    WorthQueryApplicationFacade::new(WorthQueryConfig::runtime_backed_default())
-        .unwrap()
-        .domain(FutureSignalDomain)
-        .with_operating_context(FutureSignalWorld(world))
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap()
+    crate::application::domain_test_support::installed_declaration_context(
+        FutureSignalDomain,
+        FutureSignalWorld(world),
+        [
+            crate::application::domain_test_support::family::<
+                FutureSignalDomain,
+                TemporalFutureSignalFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                FutureSignalDomain,
+                AsyncFutureSignalFamily,
+            >(),
+        ],
+    )
 }
 
 pub(crate) fn future_signal_bridge_request() -> WorthQueryDeclarationBridgeContinuationRequest {
