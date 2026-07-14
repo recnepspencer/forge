@@ -22,8 +22,8 @@ artifact, orchestration, grouping, and recovery model.
   Runtime posture, support, operating modes, consumer proof, policy/tenant
   narrowing, workspace, and preview or branch context.
 - `authoring/`
-  Query authoring, read composition, collections/cursors, parallel admission,
-  templates, and reusable shapes.
+  Query authoring, read composition, collections, ordering, aggregates, cursor
+  boundaries, parallel admission, templates, and reusable shapes.
 - `runtime-surfaces/`
   Live views, region-scoped live, computed reads, and retained read or
   materialize surfaces.
@@ -81,12 +81,11 @@ artifact, orchestration, grouping, and recovery model.
 
 ## Authoring (feature docs)
 
-- [Collections, cursors, ordering, and aggregations](./authoring/collections-cursors-ordering-and-aggregations.md)
+- [Collections, ordering, aggregates, and cursors](./authoring/collections-cursors-ordering-and-aggregations.md)
 - [Graph Composition Authoring](./authoring/graph-composition-authoring.md)
 - [Graph Read Access Planning](./authoring/graph-read-access-planning.md)
 - [Graph Touch Obligation Authority](./authoring/graph-touch-obligation-authority.md)
 - [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
-- [Planner parallel admission and scale posture](./authoring/planner-parallel-admission-and-scale-posture.md)
 
 ## Execution (feature docs)
 

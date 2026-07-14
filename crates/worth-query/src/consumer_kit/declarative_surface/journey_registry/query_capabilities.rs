@@ -30,8 +30,8 @@ const QUERY_CAPABILITY_JOURNEYS: &[Row] = &[
             counters: "WorthQueryReadJourneyCounters",
         },
         cutover: JourneyCutover {
-            local_ceremony: "declare_count -> using(context) -> run(workspace)",
-            replacement: "facade::read::declare_count",
+            local_ceremony: "aggregate::declare -> using(context) -> run(workspace)",
+            replacement: "facade::aggregate::declare",
         },
     }),
     row(JourneyEntry {

@@ -2,10 +2,12 @@
 
 ## What This Feature Is
 
-Intent admission is the public front door for Query operations that need an
-eligibility decision before execution. You author the desired operation from a
-runtime, workspace, or family-owned method; Query either executes it through a
-sealed handoff or returns a typed stop that explains why it could not proceed.
+Intent admission is the advanced runtime surface for Query operations that
+need an inspectable eligibility decision before execution. Ordinary product
+journeys begin in a capability namespace such as `facade::read`,
+`facade::aggregate`, `facade::live`, or `facade::mutation`. Use the intent
+surface when a runtime-owned family specifically exposes it and the consumer
+needs its decision trace or sealed handoff.
 
 ## Why You Use It
 
@@ -41,9 +43,9 @@ Coverage is family-specific. Check the support matrix before treating a nearby
 intent-shaped type as an admitted runtime feature.
 
 Basis admission and projection authority have their own public surfaces. Use
-`facade::foundation::basis_lifecycle()` for basis capabilities and
-`ProjectionAuthorityContract` plus `consume_projection_authority(...)` for
-facts crossing into another runtime.
+`facade::foundation::basis_lifecycle()` for advanced basis capabilities. For
+an ordinary read, consume projection facts from the completed read with
+`completion.consume_projection(read::project_facts()...)`.
 
 ## Core Mental Model
 
@@ -159,9 +161,12 @@ let scoped_basis = basis_lifecycle()
     .current_head()
     .observe()?;
 
-let contract = ProjectionAuthorityContract::declare()
-    .require_entity_identities()
-    .build();
+let read_completion = read_declaration
+    .using(read::current())
+    .run(&mut workspace)
+    .into_result()?;
+let projection = read_completion
+    .consume_projection(read::project_facts().entity_identities());
 
 let read_result = workspace.read_family_intent(&family).execute()?;
 let basis_result = workspace
@@ -190,9 +195,9 @@ let batch_review = runtime.write_batch_intent(commands).review()?;
 let scoped_inspection_basis = basis_lifecycle()
     .current_head()
     .inspect()?;
-let authority = read_result
-    .consume_projection_authority(&shape, &authorized_projection, contract)?
-    .into_admitted()?;
+let (authority, projection_warnings) = projection
+    .into_admitted()
+    .map_err(handle_projection_stop)?;
 let write_review = runtime.write_intent(command).review()?;
 let live_review = workspace.read_live_intent(&view).review()?;
 let inspection_review = workspace.inspect_intent(&view).review()?;
@@ -201,7 +206,11 @@ let probe_review = runtime.probe_existing_intent(request).review()?;
 
 The scoped basis and consumed projection authority are neighboring authority
 surfaces, not intent receipts. They appear here because intent execution may
-consume them; intent admission does not mint or replace them.
+consume them; intent admission does not mint or replace them. Advanced
+substrate sources such as retained artifacts or write receipts keep their
+source-specific projection-consumption operations, but ordinary read code must
+not reconstruct result-shape or authorization inputs that its completion
+already owns.
 
 ## How It Relates To Other Features
 

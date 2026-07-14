@@ -144,9 +144,10 @@ Use the intent lattice only when the family genuinely belongs on the admitted
 intent path. Do not treat every surface with `intent` in the name as the
 default way to do ordinary work.
 
-Projection authority is deliberately not a second intent family. Declare a
-`ProjectionAuthorityContract` and ask the producing result or receipt to seal
-the corresponding authority directly.
+Projection authority is deliberately not a second intent family. For an
+ordinary read, ask the completed read to consume a `read::project_facts()`
+declaration. The completion already owns the result-shape, authorized
+projection, basis, source, and settlement binding.
 
 ### Basis capabilities
 
@@ -162,13 +163,15 @@ digest projection.
 
 ### Typed fact extraction
 
-- `ProjectionAuthorityContract::declare()`
-- `consume_projection_authority(...)`
-- `ProjectionAuthorityOutcome::into_admitted()`
+- `completion.consume_projection(read::project_facts()...)`
+- `WorthQueryProjectionOutcome::into_admitted()`
+- `WorthQueryConsumedProjectionAuthority`
 
-Use Projection Consumption when the caller needs typed identities, memberships,
-targets, source references, provenance, or continuity facts from a read
-result, write receipt, or query-context artifact.
+Use Projection Consumption when the caller needs typed identities,
+memberships, targets, source references, provenance, or continuity facts from
+a completed ordinary read. Retained derived artifacts, live artifact bindings,
+write receipts, and query-context artifacts use their source-specific advanced
+substrate operations; do not make ordinary callers reconstruct their inputs.
 
 Do not re-parse payload bags, invoke the crate-internal decomposed lifecycle,
 or reconstruct the same meaning in caller code.

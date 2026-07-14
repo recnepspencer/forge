@@ -92,7 +92,8 @@ const EXPOSURES: &[Exposure] = &[
     exposure("src/facade/exports_policy.rs", "admit_relationship_proofs"),
     exposure("src/facade/exports_live_capability.rs", "declare"),
     exposure("src/facade/exports_live_capability.rs", "current"),
-    exposure("src/facade/exports_read.rs", "declare_count"),
+    exposure("src/facade/exports_aggregate.rs", "declare"),
+    exposure("src/facade/exports_aggregate.rs", "current"),
     exposure("src/facade/exports_read.rs", "current"),
     exposure("src/facade/exports_read.rs", "declare"),
     exposure("src/facade/exports_runtime.rs", "admit_causal_inspection"),
@@ -159,7 +160,9 @@ const fn exposure(source: &'static str, function: &'static str) -> Exposure {
 fn exposure_row(source: &'static str, function: &'static str) -> Row {
     let ordinary = matches!(
         source,
-        "src/facade/exports_live_capability.rs" | "src/facade/exports_read.rs"
+        "src/facade/exports_aggregate.rs"
+            | "src/facade/exports_live_capability.rs"
+            | "src/facade/exports_read.rs"
     ) || source.starts_with("src/ordinary/");
     let certification = source == "src/facade/exports_certification.rs";
     let (current_class, target_class, consumer) = if ordinary {

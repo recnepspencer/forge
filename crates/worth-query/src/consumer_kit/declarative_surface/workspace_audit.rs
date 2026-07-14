@@ -90,6 +90,7 @@ const DECLARATIVE_MECHANISM_SOURCES: &[&str] = &[
     "src/preview/mod.rs",
     "src/validation/pipeline.rs",
     "src/facade/exports_application.rs",
+    "src/facade/exports_aggregate.rs",
     "src/facade/exports_certification.rs",
     "src/facade/exports_foundation.rs",
     "src/facade/exports_live_capability.rs",

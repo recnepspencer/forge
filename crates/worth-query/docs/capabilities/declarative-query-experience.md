@@ -2,10 +2,10 @@
 
 ## What This Feature Is
 
-The declarative Query experience is the ordinary product API for reads, live
-resources, history, comparisons, previews, mutations, workflows, and
-inspection. You declare domain meaning in a capability namespace, attach the
-required context, and ask Query to run or open it. Query owns
+The declarative Query experience is the ordinary product API for reads,
+aggregates, live resources, history, comparisons, previews, mutations,
+workflows, and inspection. You declare domain meaning in a capability
+namespace, attach the required context, and ask Query to run or open it. Query owns
 canonicalization, authority admission, planning, lower-runtime selection,
 execution, lifecycle, receipts, and typed outcomes.
 
@@ -24,6 +24,7 @@ execution, lifecycle, receipts, and typed outcomes.
 Choose the namespace that names the job:
 
 - `worth_query::facade::read` for one-shot reads and projection facts
+- `worth_query::facade::aggregate` for count aggregates over collection reads
 - `worth_query::facade::live` for managed live resources
 - `worth_query::facade::history` for retained historical reads
 - `worth_query::facade::comparison` for diff and correspondence journeys
@@ -213,6 +214,7 @@ subscription lifecycle assembly.
 ## Related Docs
 
 - [Read Composition](../authoring/read-composition.md)
+- [Collections, Ordering, Aggregates, And Cursors](../authoring/collections-cursors-ordering-and-aggregations.md)
 - [Live Views](../runtime-surfaces/live-views.md)
 - [Historical Diff And Basis](historical-diff-and-basis.md)
 - [Projection Consumption](projection-consumption.md)

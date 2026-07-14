@@ -125,7 +125,7 @@ const DECLARATIVE_SURFACE_ROWS: &[Row] = &[
         Class::OrdinaryDeclaration,
         Class::OrdinaryDeclaration,
         "ordinary aggregate consumer",
-        "facade::read::declare_count",
+        "facade::aggregate::declare",
     ),
     Row::new(
         ORDINARY_COUNT_EXECUTION,

@@ -52,8 +52,8 @@ fn intent_admission_doc_teaches_the_runtime_floor_with_final_public_names() {
         "`workspace.inspect_derived_intent(&view)`",
         "`runtime.probe_existing_intent(request)`",
         "`workspace.probe_existing_intent(request)`",
-        "ProjectionAuthorityContract::declare()",
-        ".consume_projection_authority(&shape, &authorized_projection, contract)?",
+        "completion.consume_projection(read::project_facts()...)",
+        ".consume_projection(read::project_facts().entity_identities())",
         "`decision_trace_envelope()`",
         "`consumer_inspection()`",
     ] {

@@ -103,8 +103,8 @@ const EXPECTED_SNAPSHOTS: &[ExpectedSnapshot] = &[
     expected_snapshot!(
         "read",
         "exports_read.rs",
-        93,
-        "0ea14c9e54c33ec300997d95aba41d5338a7c303dc4b4f4f6e07674159464d00"
+        86,
+        "0d08ebdad81d79eee0977f05d906ed1ec9d5e023df49b2fca0fb89c61dbb06c7"
     ),
     expected_snapshot!(
         "aggregate",

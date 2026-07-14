@@ -119,10 +119,12 @@ Ordinary product code starts in a capability namespace and follows one grammar:
 declare intent -> refine it -> using(context) -> run(...) or open(...) -> typed outcome
 ```
 
-Choose `facade::read`, `live`, `history`, `comparison`, `preview`, `mutation`,
-`workflow`, `inspection`, or `domain` based on the job. Query owns the
-canonicalization, authority admission, planning, lower-runtime selection,
-execution, lifecycle, receipts, and stops behind that declaration.
+Choose `facade::read`, `facade::aggregate`, `facade::live`, `facade::history`,
+`facade::comparison`, `facade::preview`, `facade::mutation`,
+`facade::workflow`, `facade::inspection`, or `facade::domain` based on the
+job. Query owns the canonicalization, authority admission, planning,
+lower-runtime selection, execution, lifecycle, receipts, and stops behind that
+declaration.
 
 Use this category whenever a consumer is tempted to import phase artifacts,
 choose a backend, pair basis digests with receipts, or split live activation,
@@ -142,8 +144,8 @@ Read next:
 The public facade is a set of explicit capability namespaces, not one barrel
 that mirrors Query's implementation tree:
 
-- `worth_query::facade::{read, live, history, comparison}` owns query-shaped
-  observation.
+- `worth_query::facade::{read, aggregate, live, history, comparison}` owns
+  query-shaped observation.
 - `worth_query::facade::{preview, mutation, workflow, domain}` owns declared
   change and promotion journeys.
 - `worth_query::facade::inspection` owns outcome-attached inspection.
@@ -714,9 +716,9 @@ Read next:
 ## Declarations, Contexts, Outcomes, And Managed Resources
 
 The ordinary Query experience starts in a capability namespace: `facade::read`,
-`facade::live`, `facade::history`, `facade::comparison`, `facade::preview`,
-`facade::mutation`, `facade::workflow`, `facade::inspection`, or
-`facade::domain`.
+`facade::aggregate`, `facade::live`, `facade::history`, `facade::comparison`,
+`facade::preview`, `facade::mutation`, `facade::workflow`,
+`facade::inspection`, or `facade::domain`.
 
 Declare what the application wants, attach explicit authority with `using(...)`,
 then call `run(...)` for one-shot work or `open(...)` for a managed resource.
@@ -1095,7 +1097,7 @@ Read next:
 
 - [Declarative Query Experience](./capabilities/declarative-query-experience.md)
 - [Branches And Previews](./foundations/branches-and-previews.md)
-- [Subscriptions](./capabilities/subscriptions.md)
+- [Subscription Selection And Diagnostics](./capabilities/subscription-selection-and-diagnostics.md)
 
 ## Relational Truth And Invariants Through Query
 
@@ -1183,26 +1185,6 @@ Read next:
 - [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
 - [Query Expressions And Result Shapes](./authoring/query-expressions-and-result-shapes.md)
 - [Registering Domain Invariants Through Query](./domain-capabilities/invariants/registering-domain-invariants-through-query.md)
-
-## Frontier-Aware Planning And Parallel Admission
-
-Planning can consume frontier and cost posture so bulk queries, live
-maintenance, and multi-query bundles admit parallel preparation only where
-legality and canonical meaning stay explicit.
-
-Serial and admitted-parallel paths must remain parity-safe: parallelism changes
-dispatch, not query semantics.
-
-Use this category when scale pressure risks opaque planner heuristics or
-executor rediscovery of planning decisions.
-
-The mistake to avoid is treating parallel admission as a host thread-pool concern
-outside proof-carrying plan artifacts.
-
-Read next:
-
-- [Planner Parallel Admission And Scale Posture](./authoring/planner-parallel-admission-and-scale-posture.md)
-- [Read Composition](./authoring/read-composition.md)
 
 ## Structural Correspondence And Historical Materialization
 

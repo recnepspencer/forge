@@ -17,7 +17,7 @@ const CONSUMER_SNIPPET: &str =
 const BASIS_COMMON_PATH_SNIPPET: &str =
     "let scoped_basis = basis_lifecycle()\n    .current_head()\n    .observe()?;";
 const PROJECTION_COMMON_PATH_SNIPPET: &str =
-    "let contract = ProjectionAuthorityContract::declare()\n    .require_entity_identities()\n    .build();";
+    "let read_completion = read_declaration\n    .using(read::current())\n    .run(&mut workspace)\n    .into_result()?;\nlet projection = read_completion\n    .consume_projection(read::project_facts().entity_identities());";
 const READ_COMMON_PATH_SNIPPET: &str =
     "let read_result = workspace.read_family_intent(&family).execute()?;";
 const READ_BASIS_COMMON_PATH_SNIPPET: &str =
@@ -43,7 +43,7 @@ const ROUTING_CONVENIENCE_SNIPPET: &str =
 const BASIS_ADVANCED_PATH_SNIPPET: &str =
     "let scoped_inspection_basis = basis_lifecycle()\n    .current_head()\n    .inspect()?;";
 const PROJECTION_ADVANCED_PATH_SNIPPET: &str =
-    "let authority = read_result\n    .consume_projection_authority(&shape, &authorized_projection, contract)?\n    .into_admitted()?;";
+    "let (authority, projection_warnings) = projection\n    .into_admitted()\n    .map_err(handle_projection_stop)?;";
 const MUTATION_ADVANCED_PATH_SNIPPET: &str =
     "let write_review = runtime.write_intent(command).review()?;";
 const LIVE_READ_ADVANCED_PATH_SNIPPET: &str =

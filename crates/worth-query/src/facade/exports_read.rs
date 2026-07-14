@@ -9,11 +9,6 @@ pub use crate::authoring::{
 pub use crate::composition::{
     QueryScopeDescriptor, QueryTemplateDescriptor, TemplateBindingSet, TemplateParameterSlot,
 };
-pub use crate::ordinary::count::{
-    declare_count, WorthQueryCountCompletion, WorthQueryCountDeclaration,
-    WorthQueryCountDeclarationIdentity, WorthQueryCountDeclarationStop, WorthQueryCountOutcome,
-    WorthQueryCountRequest,
-};
 pub use crate::ordinary::read::{
     current, declare, project_facts, WorthQueryCurrentPolicyTenantReadContext,
     WorthQueryCurrentReadContext, WorthQueryCurrentRelationshipReadContext,

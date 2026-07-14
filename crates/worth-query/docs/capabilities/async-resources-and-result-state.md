@@ -50,8 +50,8 @@ Runtime-backed observation and explanation:
 
 Materialized fact and recovery surfaces:
 
-- `WorthQueryReadResult::consume_projection_authority(...)`
-- `QueryContextExecutionArtifact::consume_projection_authority(...)`
+- `WorthQueryReadCompletion::consume_projection(...)`
+- `read::project_facts()`
 - `ProjectionConsumptionReceipt::materialized_fact_posture()`
 - `execute_prepared_continuation(...)`
 - `execute_prepared_continuation_outcome(...)`
@@ -273,20 +273,15 @@ match inspection {
 }
 ```
 
-If you later materialize and consume facts from a read or query-context
-execution built on the same lower declaration, Query keeps the async-backed
-posture on the consumption receipt:
+If an ordinary read completes over the same async-backed declaration, consume
+facts from the completion. Query owns the result-shape and authorization
+binding and keeps the async-backed posture on the consumption receipt:
 
 ```rust
-let outcome = read_result
-    .consume_projection_authority(
-        &result_shape,
-        &authorized_projection,
-        ProjectionAuthorityContract::declare()
-            .require_settled_consumption()
-            .require_source_authority()
-            .require_display_field(profile_display_name_field_path()),
-    )?;
+let outcome = completion.consume_projection(
+    read::project_facts()
+        .display_field(profile_display_name_field_path()),
+);
 let (authority, _) = outcome
     .into_admitted()
     .expect("thermal read should stay admitted");

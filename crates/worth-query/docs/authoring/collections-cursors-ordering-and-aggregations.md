@@ -1,80 +1,230 @@
-# Collections, Cursors, Ordering, and Aggregations
+# Collections, Ordering, Aggregates, And Cursors
 
 ## What This Feature Is
 
-Collection planning covers **how validated query bundles become collection plans**: opaque cursors, ordering keys, CDC-shaped collection modes, and requested aggregate/derived-field families. Cursors are **basis-bound opaque** boundaries—not HTTP offset/limit pages. On the runtime-backed application support profile, core view-family support rows are already closed for `table`, `detail`, inspector-detail, and `kanban_grouped` surfaces, and grouped reusable composition/template support now ships as an admitted runtime-backed lane instead of explicit debt.
+WORTH Query exposes collection reads and count aggregates as ordinary
+declarative capabilities. Product code describes collection meaning, ordering,
+projection, and context; Query owns validation, admission, planning, execution,
+and receipt construction.
+
+Opaque cursor artifacts also exist in the collection and graph-access
+substrate. They are not currently a general continuation argument or paged
+result on the ordinary `facade::read` journey. Do not treat an internal
+basis-bound cursor contract as a shipped ordinary pagination API.
 
 ## Why You Use It
 
-- page collection results with `OpaquePageCursor` and `CursorAdvanceContract::BasisBoundOpaque`
-- plan ascending/descending order via `OrderingKeyPath` and `CollectionOrderingDirection`
-- request aggregate or derived-field families through dedicated planners
-- keep CDC-shaped output **query-shaped** (projected deltas), not raw changefeed semantics
+- read a projected collection through `worth_query::facade::read`
+- declare stable ascending or descending ordering as part of query meaning
+- count the admitted rows of a collection through
+  `worth_query::facade::aggregate`
+- inspect the result receipt for basis, plan, breadth, and aggregate evidence
+- keep cursor and persistence claims within the support actually exposed by
+  the selected capability
+
+## Stable Entry Points
+
+Ordinary collection reads use:
+
+- `read::declare(...)`
+- collection authoring such as `local_collection(...)`
+- `read::OrderingSelector::{ascending, descending}`
+- `declaration.using(read::current()).run(workspace)`
+- `WorthQueryReadOutcome`
+
+Ordinary count aggregates use:
+
+- `aggregate::declare(...)`
+- the same collection authoring vocabulary
+- `declaration.using(aggregate::current()).run(workspace)`
+- `WorthQueryCountOutcome`
+- `WorthQueryCountResult::{count, receipt}`
+
+The collection plan, cursor boundary, requested aggregate family, and planner
+functions are foundation or internal topology. They are not application
+authoring entry points.
 
 ## Core Mental Model
 
-`collection/mod.rs` + `planning/mod.rs`:
+```text
+collection meaning + result shape + ordering
+-> read::declare(...) or aggregate::declare(...)
+-> using(authority-bearing context)
+-> run(workspace)
+-> typed completion or typed stop
+```
 
-| Mode / API | Role |
-|------------|------|
-| `CollectionPlanningMode::Ordinary` | Standard collection plan |
-| `Cdc` | CDC-shaped collection family (still query-planned) |
-| `plan_validated_bundle` | Core planner entry |
-| `plan_validated_bundle_for_requested_aggregate_family` | Aggregate admission |
-| `plan_validated_bundle_for_collection_family` | Collection-family-specific (incl. CDC) |
+Ordering is semantic input to the declaration. Query canonicalizes it and the
+receipt reports the admitted execution plan. A count is a separate aggregate
+outcome, not a collection row whose payload happens to contain a number.
 
-Cursors carry `CursorBoundaryDigest`—advance contracts are opaque strings tied to basis, not skippable numeric offsets.
+The result receipt is evidence of what Query executed. Its digests and cursor
+evidence are not reusable authority and do not authorize a caller to assemble
+the next planning phase.
 
-## Main Entry Points
+## How It Executes
 
-- `OpaquePageCursor`, `CursorBoundaryDigest`, `CursorAdvanceContract`
-- `OrderingKeyPath`, `CollectionOrderingDirection`
-- `plan_validated_bundle`, `plan_validated_bundle_for_requested_aggregate_family`
-- `plan_validated_bundle_for_requested_derived_field_family`
-- Read composition operator tests: `runtime/tests/read_composition/operator_owned/collections.rs`
-- Harness: `harness/planning.rs`
-- Composition debts: `composition/report.rs` profile rows
+1. The declaration closure builds a collection query and typed result shape.
+2. `using(...)` attaches the current, policy/tenant, or relationship-proof
+   context required by the capability.
+3. Query validates ordering and projection, admits the context, builds the
+   collection or aggregate plan, and executes it against the selected runtime.
+4. A read completion exposes rows and a receipt. A count completion exposes a
+   scalar count, the same context evidence, journey counters, and a read
+   receipt whose collection result family is the count aggregate.
+5. Invalid detail-to-count declarations stop during authoring. Context,
+   planning, and runtime failures retain typed stop sources and next actions.
 
-## Typical Flow
+## Small Example
 
-1. Validate query bundle for collection family.
-2. `plan_validated_bundle` (or aggregate/derived specialized planner) with request context.
-3. Execute read composition with collection operators; receive cursor boundary in receipt.
-4. Advance with opaque cursor contract on next request—same basis binding required.
-5. For aggregates: use `RequestedAggregateFamily` path; check the composition support profile for admitted grouped-template posture.
+```rust
+use worth_query::facade::{aggregate, runtime::WorthQueryWorkspace};
 
-## How It Relates
+fn task_count(workspace: &mut WorthQueryWorkspace) -> u64 {
+    aggregate::declare(|query| {
+        query.local_collection(
+            "Task",
+            task_schema(),
+            |tasks| {
+                tasks.project(
+                    aggregate::AspectFieldSelector::new("identity", "id")
+                        .expect("static identity selector"),
+                )
+            },
+            |shape| {
+                shape.field(
+                    aggregate::AuthoredResultShapeField::new(
+                        "identity",
+                        "id",
+                        "identity.id",
+                    )
+                    .expect("static result field"),
+                )
+            },
+        )
+    })
+    .expect("static collection count should declare")
+    .using(aggregate::current())
+    .run(workspace)
+    .into_result()
+    .expect("task count should complete")
+    .into_result()
+    .count()
+}
+```
 
-- [Read composition](read-composition.md) — compose/execute; collection detail lives here
-- [Region-scoped live](../runtime-surfaces/region-scoped-live-invalidation-and-stream-contracts.md) — ordered collection partition locality
-- [Planner parallel admission](planner-parallel-admission-and-scale-posture.md) — dispatch scale, not cursor semantics
-- [Structural correspondence](../capabilities/structural-correspondence-and-historical-materialization.md) — identity/materialization neighbors
+`task_schema()` is the same `QuerySchemaView` used by an equivalent ordinary
+collection read.
 
-## Good to Know
+## Real Example
 
-- Kanban/table view shapes call `plan_validated_bundle_for_collection_family` from `view_shape/planning.rs`.
-- Harness tests contrast ordinary vs CDC vs aggregate vs derived plans—use as behavior proof.
-- `composition/report.rs` and the application support report now publish grouped reusable composition/template support directly, so grouped collection planning no longer depends on a deferred composition neighbor.
+Ordering belongs inside the collection declaration:
+
+```rust
+use worth_query::facade::read;
+
+let declaration = read::declare(|query| {
+    query.local_collection(
+        "Task",
+        task_schema(),
+        |tasks| {
+            tasks
+                .project(
+                    read::AspectFieldSelector::new("identity", "id")
+                        .expect("static identity selector"),
+                )
+                .project(
+                    read::AspectFieldSelector::new("title", "value")
+                        .expect("static title selector"),
+                )
+                .order_by(
+                    read::OrderingSelector::ascending("title", "value")
+                        .expect("static ordering selector"),
+                )
+        },
+        |shape| {
+            shape
+                .field(
+                    read::AuthoredResultShapeField::new(
+                        "identity",
+                        "id",
+                        "identity.id",
+                    )
+                    .expect("static identity field"),
+                )
+                .field(
+                    read::AuthoredResultShapeField::new(
+                        "title",
+                        "value",
+                        "title.value",
+                    )
+                    .expect("static title field"),
+                )
+        },
+    )
+})?;
+
+let outcome = declaration
+    .using(read::current())
+    .run(&mut workspace);
+
+if let Some(completion) = outcome.completed() {
+    let receipt = completion.result().receipt();
+    assert_eq!(receipt.breadth().execution_records_emitted_count(),
+               completion.result().rows().len());
+} else if let Some(stop) = outcome.stop() {
+    eprintln!("collection read stopped at {:?}: {:?}",
+              stop.source(), stop.next_action());
+}
+```
+
+## How It Relates To Other Features
+
+- [Read Composition](read-composition.md) describes collection predicates,
+  projections, and traversal meaning.
+- [Graph Read Access Planning](graph-read-access-planning.md) covers bounded
+  streaming and graph-frontier cursor sessions for admitted graph shapes.
+- [Live Views](../runtime-surfaces/live-views.md) covers managed query-shaped
+  collection maintenance.
+- [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
+  is the authority for admitted, deferred, and unsupported neighbors.
+
+## Inspection And Debugging
+
+Use the completion's result receipt and journey counters. The receipt exposes
+the canonical query, execution plan, basis, result digest, collection result
+family, breadth counters, fallback posture, and execution engine without
+exposing planner construction authority.
+
+For count aggregates, `execution_aggregate_input_count()` reports the admitted
+input breadth and `execution_records_emitted_count()` is one for the scalar
+result. These counters are evidence; they are not knobs for choosing a route.
 
 ## Anti-Patterns
 
-- Implementing offset/limit pagination by parsing opaque cursor digests.
-- Treating CDC collection mode as permission to expose raw database CDC streams.
-- Assuming every aggregate family is admitted without `plan_validated_bundle_for_requested_aggregate_family` success.
+- importing planner modules or calling planner functions from product code
+- parsing a cursor digest into an offset or using it as basis authority
+- documenting foundation cursor types as an ordinary continuation API
+- counting rows in host code when `facade::aggregate` expresses the operation
+- treating a stopped count as zero or a stopped collection read as empty
+- exposing raw CDC as though it were a query-shaped collection result
 
 ## Current Limits
 
-| Concern | Status |
-|---------|--------|
-| Basis-bound opaque cursors | **Verified** on ordinary paths |
-| CDC-shaped collection planning | **Verified** as query-shaped |
-| Core view-family support rows (`table`, `detail`, inspector detail, `kanban_grouped`) | **Verified** — see application support/profile publication |
-| Grouped template / grouped composition support | **Verified** — see `composition/report.rs` and the application support report |
-| Store-backed cursor durability | **Deferred** (operating modes / matrix) |
+- Ordinary runtime-backed collection reads and count aggregates are shipped.
+- Ordinary ordering is shipped through `OrderingSelector`.
+- The ordinary read/count journey does not currently expose a general page
+  size, continuation cursor argument, or paged collection result.
+- Graph-access streaming has its own admitted cursor session and typed denial
+  model; it is not interchangeable with ordinary collection pagination.
+- Restart-stable cursor persistence and durable continuation remain Milestone
+  11 work.
+- Store-backed collection execution and pushdown parity remain Milestone 10
+  work.
 
 ## Related Docs
 
-- [Read composition](read-composition.md)
-- [Support matrix and admission](../foundations/support-matrix-and-admission.md)
-- [Region-scoped live invalidation](../runtime-surfaces/region-scoped-live-invalidation-and-stream-contracts.md)
-- [Lineage and correspondence](../capabilities/lineage-and-correspondence.md)
+- [Declarative Query Experience](../capabilities/declarative-query-experience.md)
+- [Read Composition](read-composition.md)
+- [Graph Read Access Planning](graph-read-access-planning.md)
+- [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)

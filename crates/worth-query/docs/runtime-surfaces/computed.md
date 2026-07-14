@@ -106,9 +106,11 @@ archaeology, the admitted materialization lane is the stronger floor:
   `materialize_derived_artifact_bundle(...).bind_retained_artifact(...)`
   manually
 - when the next step needs typed identity, membership, provenance, continuity,
-  or view-shape-qualified facts from that retained artifact, use
-  `consume_projection_authority(...)` on the retained artifact binding and
-  inspect the admitted authority instead of reopening older helper seams
+  or view-shape-qualified facts from that retained artifact, use the retained
+  artifact binding's source-specific projection-consumption operation and
+  inspect the admitted authority; this is an advanced substrate source, while
+  ordinary read completions use
+  `completion.consume_projection(read::project_facts()...)`
 - when one mutation step already has a retained batch-write receipt and needs
   the matching inspection plus one exact retained derived artifact as the next
   authoritative package, use `materialize_batch_write_artifact_binding(...)`

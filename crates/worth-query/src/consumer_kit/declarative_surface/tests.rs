@@ -215,6 +215,7 @@ fn facade_reexport_and_deep_definition_remain_distinct_inventory_rows() {
         .collect::<BTreeSet<_>>();
 
     assert!(declare_rows.contains("src/facade/exports_read.rs"));
+    assert!(declare_rows.contains("src/facade/exports_aggregate.rs"));
     assert!(declare_rows.contains("src/ordinary/read/declaration.rs"));
 }
 

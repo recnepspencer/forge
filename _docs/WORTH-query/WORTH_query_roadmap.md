@@ -274,9 +274,14 @@ cross-feature proof gates before final certification:
   engine, assert subscription posture, or carry unscoped preview/inspection
   artifacts into operational work
 - `Milestone 9.13` must prove ordinary Query usage is capability-oriented and
-  declarative: consumers describe desired read, live, historical, workflow,
-  and inspection outcomes while Query owns canonicalization, admission,
-  planning, lowering, execution routing, lifecycle, and receipt assembly
+  declarative, then prove serious domain setup is installed into one concrete
+  Query runtime, and finally prove exact Foundational-native aspect value
+  meaning survives the complete consumer journey: consumers describe desired
+  read, live, historical, workflow, inspection, and domain-extension outcomes
+  while Query owns canonicalization, admission, planning, lowering, execution
+  routing, lifecycle, receipt assembly, canonical domain identity, runtime
+  installation, derived operation registries, and proof-bearing value DX
+  without creating a second scalar or struct authority
 - `Milestone 10` must prove store-backed execution and historical parity for
   admitted shared capability families
 - `Milestone 11` must prove durable saved-query, cursor, and artifact reload
@@ -416,9 +421,12 @@ Store-gated completion tracks:
 - `Milestone 9.12` closes remaining runtime-backed public authority minting,
   parallel lifecycle entrypoints, raw admission access, and facade leakage so
   store-backed execution inherits one sealed capability surface
-- `Milestone 9.13` closes consumer-authored Query phase orchestration and
-  freezes the capability-oriented ordinary experience inherited by runtime and
-  future store-backed execution
+- `Milestone 9.13` closes consumer-authored Query phase orchestration, freezes
+  the capability-oriented ordinary experience, and then closes the remaining
+  split between configured handles, raw-string contributions, manual graph-
+  operation registries, and actual runtime authority. It also closes the coarse
+  Query-owned value, predicate, schema, row, and projection seams so future
+  store-backed execution inherits exact Foundational-native semantics
 - `Milestone 10` is the first intentionally store-gated execution milestone
 - `Milestone 11` is the intentionally store-gated durable artifact milestone
 - `Milestone 12` is the intentionally store-gated blob/media milestone
@@ -3913,11 +3921,29 @@ This milestone is not blocked on `worth-store`.
 
 ## Milestone 9.13: Declarative Query Experience And Phase-Surface Cutover
 
+Status: Core Phases 1-12 closed on 2026-07-14 for the runtime-backed
+declarative product boundary. Add-on Phases 13-26 are open. Phases 13-20 close
+runtime-installed domain packages and single domain-capability authority;
+Phases 21-26 close Foundational-native aspect value authority and consumer DX.
+The ten-family grammar, ordinary/internal parity, managed lifecycle,
+facade/prohibition/residue enforcement, and reference-consumer adoption remain
+certified at the original boundary. Store-backed execution and durable
+artifact/continuation claims remain Milestones 10 and 11. See
+[milestone-9.13-closeout.md](./milestone-9.13-closeout.md) for the historical
+Phases 1-12 evidence and [milestone-9.13.md](./milestone-9.13.md) for the open
+add-on phase contract.
+
 ### Goal
 
 Make ordinary Query usage capability-oriented and declarative so consumers
 describe desired outcomes while Query owns its proof-preserving internal phase
 progression, managed lifecycles, backend routing, receipts, and diagnostics.
+Extend that product boundary so a typed domain package is installed into one
+concrete runtime, which alone mints runtime-affine domain handles and derives
+operation, invariant, obligation, declaration-family, and contribution indexes.
+Complete the boundary by carrying Foundational's exact scalar and struct aspect
+meaning through authoring, predicates, schema capability, materialization,
+projection consumption, identity, and typed consumer refinement.
 
 ### Adversarial Constraint
 
@@ -3927,6 +3953,18 @@ lowering, execution, maintenance, or envelope phases. Equivalent declarations
 must converge on the same canonical meaning and outcome without guessing basis,
 policy, tenant, bound, lifecycle, or backend decisions.
 
+Equivalent domain packages must install to the same semantic meaning regardless
+of declaration order. Raw domain strings, consumer-authored identity digests,
+foreign-runtime handles, stale installation generations, independent operation
+registries, and public materializers must be unable to create competing domain
+authority or reach lower-runtime work.
+
+Every Foundational scalar family and admitted struct aspect must survive the
+complete Query journey without a coarse Query-owned enum, generic integer
+collapse, local string encoder, scalar-only bridge path, or misleading row
+marker becoming competing value authority. Invalid value/operator/contract
+combinations must deny before planning or lower-runtime work.
+
 ### Why This Milestone Exists
 
 Milestone 9.12 makes authority-preserving phase artifacts safe, but the public
@@ -3934,6 +3972,17 @@ surface can still require consumers to assemble safe low-level stages into
 local Query coordinators. That is both poor DX and an architectural fork point.
 The ordinary experience must close before store-backed execution would
 otherwise multiply phase-shaped journeys across backends.
+
+The core closeout also revealed that typed configured handles, string-authored
+contributions, graph-operation registries, and actual runtime construction do
+not yet share one mechanical authority. The add-on phases close that fork before
+store-backed execution can multiply it.
+
+The native substrate also retains Foundational values internally while ordinary
+mutation, predicate, schema, struct, row, and refinement surfaces expose a
+smaller or inconsistent language. Closing only JSON residue would let
+Milestone 10 inherit a second value ontology. The final add-on phases close that
+fork at the consumer boundary.
 
 ### Specification
 
@@ -3952,6 +4001,25 @@ The governing milestone spec is
 - internalized phase transitions and contracted ordinary facade
 - reference-consumer cutover, DX measurements, permanent prohibitions,
   residue enforcement, and hostile certification
+- canonical typed domain package and Query-owned domain identity encoding
+- atomic pre-runtime domain installation and runtime-affine installed handles
+- package-compiled invariant, graph-obligation, graph-read operation,
+  declaration-family, and contribution substrates
+- installed-handle contribution, continuation, recovery, receipt, and
+  inspection authority
+- removal of raw-string contribution entry, manual operation registries,
+  executable application-facade handles, and Query-owned product-domain helpers
+- downstream extension DX, consumer recutover, and hostile single-authority
+  certification
+- full native authoring for every Foundational scalar family and representative
+  admitted struct aspects through ordinary mutation and workflow journeys
+- contract-derived schema and predicate capability with exact native operands
+  rather than coarse Query-owned value or field-kind authority
+- native scalar/struct retained results, projection facts, typed refinement,
+  and an honest row product or explicitly internal marker
+- one Foundational canonical value identity basis, Query-specific typed domain
+  separation, duplicate-encoder deletion, facade contraction, consumer cutover,
+  and hostile native-value certification
 
 ### Must Preserve
 
@@ -3960,6 +4028,15 @@ The governing milestone spec is
 - explicit basis, policy, tenant, branch, preview, and relationship authority
 - backend-independent canonical meaning and ordinary outcomes
 - advanced domain contribution without public internal-pipeline access
+- semantic domain setup remains distinct from physical storage, schema, source,
+  signal, and transport adapters
+- installed domain artifacts remain authoritative while runtime lookup indexes,
+  support views, and diagnostics remain derived and rebuildable
+- Foundational remains the sole authority for aspect value families, structs,
+  contracts, canonical wrappers, validation, and canonical value identity;
+  Query adds proof-bearing intent, capability, result shaping, and DX
+- struct meaning survives until an explicit projection selects native leaves,
+  and raw authored values cannot promote into stronger Query proof states
 
 ### Complexity / Proof Obligations
 
@@ -3970,6 +4047,16 @@ The governing milestone spec is
   identity, results, receipts, diagnostics, and counters
 - facade snapshots, compile-fail, prohibition, residue, sabotage, lifecycle,
   and reference-consumer suites prove phase machinery cannot reappear
+- installed handle lookup and operation resolution remain bounded indexed work
+  as unrelated package and operation counts grow
+- invalid, foreign, or stale installed authority performs exact zero planning,
+  lower-runtime, and execution work
+- native refinement is constant time per selected value; predicate admission is
+  proportional to declared predicates and contract fields; invalid native
+  values perform exact zero planning and lower-runtime work
+- complete scalar-family and representative-struct parity, canonical identity,
+  facade, residue, sabotage, and reference-consumer suites prove a second value
+  authority cannot reappear
 
 ### Allowed Debt
 
@@ -3977,6 +4064,12 @@ The governing milestone spec is
   continuation remain Milestones 10 and 11
 - no callable ordinary phase transition, backend-shaped ordinary API,
   compatibility alias, or consumer-local Query coordinator may remain debt
+- no raw-string domain entry, consumer-authored identity digest, independent
+  operation registry parameter, public contribution materializer, or executable
+  application-facade handle may remain debt
+- no coarse Query-owned scalar/schema enum acting as value authority, duplicate
+  production value encoder, scalar-only struct rejection, raw-to-proof
+  conversion, or phantom native-row teaching may remain debt
 
 ### Sequencing Notes
 
@@ -3985,9 +4078,20 @@ before its internal transitions are hidden behind a simpler product surface.
 It belongs before 10 because runtime-backed and store-backed execution must
 implement the same admitted capability contract and ordinary journey.
 
+Add-on Phases 13-20 follow the closed core because they install domain
+extensions into the already-frozen ordinary capability grammar. Phases 21-26
+then close exact native value semantics across those installed and ordinary
+journeys. All remain before Milestone 10 because runtime domain authority,
+registry ownership, native predicate meaning, and native result/materialization
+contracts are runtime-semantic foundations, not store implementation details.
+
 ### Store Dependency
 
-This milestone is not blocked on `worth-store`.
+This milestone is not blocked on `worth-store`. Add-on closure requires atomic
+in-process runtime installation, generation-safe handles, Foundational-native
+contracts, and the existing runtime-backed materialization/projection substrate,
+not durable package reload or cross-process restoration. Milestone 10 must reuse
+the resulting value, predicate, row, and projection contracts unchanged.
 
 ### Acceptance Evidence
 
@@ -4000,6 +4104,18 @@ This milestone is not blocked on `worth-store`.
   canonical outcomes
 - ordinary facade, docs, support posture, prohibitions, residue audits, and
   hostile certification agree
+- equivalent packages install identically while conflicts fail atomically
+- only the installing runtime can mint and accept an installed domain handle
+- operations and contributions resolve from installed authority without raw
+  strings, manual registries, semantic adapters, or public phase materializers
+- derived installation indexes rebuild from installed artifacts without
+  changing resolution, denial, receipt, or diagnostic identity
+- every Foundational scalar family and representative struct value round-trips
+  through admitted public authoring, runtime-backed execution, materialization,
+  projection consumption, typed refinement, receipt identity, and inspection
+- schema/operator admission derives from Foundational contracts, native value
+  identity has one canonical basis, and consumer/facade/residue/sabotage proof
+  reports zero competing value authorities
 
 ## Milestone 10: Store-Backed Execution, Pushdown, And Historical Parity
 
@@ -4435,6 +4551,10 @@ would be dishonest without durable storage support.
   composition, policy-aware narrowing, temporal query basis semantics, async
   resource query families, mixed truth/time/async delivery semantics, and
   temporal/async query certification are all shipped
+- Foundational-native scalar and struct meaning survives Query authoring,
+  predicate/schema admission, execution, materialization, projection
+  consumption, typed refinement, receipt identity, and inspection without a
+  competing Query-owned value algebra or semantic encoder
 - every store-gated completion item is either shipped through `Milestone 12`
   or still explicitly marked as blocked rather than implied
 - runtime-backed and store-backed query execution remain parity-safe for every
@@ -4468,6 +4588,8 @@ answer is "store-gated" or "shared with another subsystem."
 | Declarative downstream basis authority and consumer DX | Milestone 9.11 | Consumed projection authority artifacts, declarative authority contracts, typed authority denials, DX transcripts, consumer adoption receipts | Downstream runtimes consume one Query-owned basis/projection authority product and cannot reconstruct or recombine authority from receipts, facts, labels, or digests | Milestone 9.11 cross-basis, facade-DX, consumer-residue, and Worth UI adoption certification + Milestone 13 projection/domain parity |
 | Query public authority surface cutover | Milestone 9.12 | Sealed identity handles, scoped basis and follow-on proofs, declarative admission handoffs, contracted facade snapshots, prohibition and residue artifacts | Ordinary consumers cannot mint authority from representation, skip Query lifecycles, invoke raw admission machinery, assert operational posture, or import certification internals as product APIs | Milestone 9.12 collision, phase-skipping, compile-fail, facade-snapshot, prohibition, residue, sabotage, and reference-consumer certification + Milestone 13 authority-boundary parity |
 | Declarative Query experience and phase-surface cutover | Milestone 9.13 | Capability declarations, admitted-query handles, managed live resources, typed outcomes and next-action stops, DX transcripts, contracted facade and residue artifacts | Ordinary consumers describe desired outcomes while Query exclusively owns canonicalization, binding, validation, admission, planning, lowering, execution routing, lifecycle, receipt assembly, and derived diagnostics | Milestone 9.13 ordinary/internal parity, compile-fail, facade-snapshot, prohibition, residue, lifecycle, bounded-work, and reference-consumer certification + Milestone 13 product-surface parity |
+| Runtime-installed domain capability authority | Milestone 9.13 add-on Phases 13-20 | Canonical domain packages, admitted package artifacts, runtime installation registry, runtime-affine installed handles, package-compiled operation/invariant/obligation indexes, installation and execution receipts | Equivalent packages install identically; conflicting packages fail atomically; only the installing runtime can mint usable handles; registered operations and contributions resolve without raw strings, manual registries, or semantic adapters | Milestone 9.13 package convergence, installation atomicity, runtime-affinity, derived-index rebuild, facade/residue/sabotage, bounded-lookup, and reference-consumer certification + Milestone 13 domain parity |
+| Foundational-native aspect value authority and consumer DX | Milestone 9.13 add-on Phases 21-26 | Foundational scalar and struct values, contract-derived operator capabilities, proof-bearing mutation/result/consumption artifacts, native retained rows or honest internal markers, typed refinement denials, canonical value identity basis | Every native scalar family and representative struct round-trips through authoring, validation, execution, materialization, projection, refinement, receipts, and inspection; incompatible operators and weaker-proof promotion fail before work; Query owns no competing value algebra or semantic encoder | Milestone 9.13 native-family/struct matrix, canonical identity parity, facade/compile-fail/prohibition/residue/sabotage, bounded-work, and reference-consumer deletion certification + Milestone 13 schema, execution, projection, and domain parity |
 | Aggregation queries | Milestone 4 | Aggregation descriptors, grouping metadata | Aggregates stay tied to declared basis | Milestone 13 execution parity |
 | Tolerance-aware aggregation | Milestones 4 and 5 | Tolerance policy metadata, live suppression metadata | Suppression does not change aggregate meaning | Milestone 13 live + policy masking parity and aggregation cases |
 | Relational rollups | Milestone 4 | Rollup descriptors over relation edges | Rollups remain derived from declared truth basis | Milestone 13 execution parity + domain suites |
@@ -4559,6 +4681,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.11-closeout.md](./milestone-9.11-closeout.md)
 - [milestone-9.12.md](./milestone-9.12.md)
 - [milestone-9.13.md](./milestone-9.13.md)
+- [milestone-9.13-closeout.md](./milestone-9.13-closeout.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/runtime-authoritative-mutation-evidence-plan.md)
 - [worth_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-runtime-bridge/worth_runtime_bridge_roadmap.md)

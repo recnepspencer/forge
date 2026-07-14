@@ -354,6 +354,7 @@ fn current_sources() -> Vec<WorthQueryDeclarativeSurfaceSource> {
         WorthQueryDeclarativeSurfaceSource::new("src/preview/mod.rs", include_str!("../../preview/mod.rs")),
         WorthQueryDeclarativeSurfaceSource::new("src/validation/pipeline.rs", include_str!("../../validation/pipeline.rs")),
         WorthQueryDeclarativeSurfaceSource::new("src/facade/exports_application.rs", include_str!("../../facade/exports_application.rs")),
+        WorthQueryDeclarativeSurfaceSource::new("src/facade/exports_aggregate.rs", include_str!("../../facade/exports_aggregate.rs")),
         WorthQueryDeclarativeSurfaceSource::new("src/facade/exports_certification.rs", include_str!("../../facade/exports_certification.rs")),
         WorthQueryDeclarativeSurfaceSource::new("src/facade/exports_foundation.rs", include_str!("../../facade/exports_foundation.rs")),
         WorthQueryDeclarativeSurfaceSource::new("src/facade/exports_live_capability.rs", include_str!("../../facade/exports_live_capability.rs")),
