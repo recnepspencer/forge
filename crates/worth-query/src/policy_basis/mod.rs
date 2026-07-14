@@ -8,7 +8,7 @@ mod projection;
 mod saved_reuse;
 mod support;
 
-pub use admission::admit_policy_tenant_context;
+pub(crate) use admission::admit_policy_tenant_context;
 pub(crate) use admission::admit_policy_tenant_context_for_query_identity;
 pub(crate) use artifacts::{tenant_schema_identity, tenant_truth_identity};
 pub use artifacts::{

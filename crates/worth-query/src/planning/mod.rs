@@ -859,7 +859,7 @@ fn reject_unsupported_collection_shape(
     Ok(())
 }
 
-pub fn plan_validated_bundle(
+pub(crate) fn plan_validated_bundle(
     bundle: &ValidatedQueryBundle,
     request_context: PlanningRequestContext,
 ) -> Result<ExecutionPlanBundle, PlanningError> {
@@ -908,7 +908,7 @@ pub(crate) fn plan_validated_bundle_for_count_aggregate_with_policy_authority(
     )
 }
 
-pub fn plan_validated_bundle_for_collection_family(
+pub(crate) fn plan_validated_bundle_for_collection_family(
     bundle: &ValidatedQueryBundle,
     request_context: PlanningRequestContext,
     collection_result_family: CollectionResultFamily,
@@ -982,7 +982,7 @@ pub(crate) fn lower_frontier_planning_bundle(
 }
 
 #[cfg(test)]
-pub fn lower_preflight_to_parallel_admission_route(
+pub(crate) fn lower_preflight_to_parallel_admission_route(
     preflight: &OrderedCollectionFrontierPreflight,
     evidence: &ParallelAdmissionEvidence,
 ) -> Result<ParallelAdmissionRoute, FrontierRoutePlanningError> {
@@ -990,7 +990,7 @@ pub fn lower_preflight_to_parallel_admission_route(
 }
 
 #[cfg(test)]
-pub fn lower_preflight_to_serial_fallback_route(
+pub(crate) fn lower_preflight_to_serial_fallback_route(
     preflight: &BoundedMaterializationFrontierPreflight,
     evidence: &SerialFallbackEvidence,
 ) -> Result<SerialFallbackRoute, FrontierRoutePlanningError> {
@@ -998,7 +998,7 @@ pub fn lower_preflight_to_serial_fallback_route(
 }
 
 #[cfg(test)]
-pub fn lower_preflight_bundle_to_parallel_admission_routes(
+pub(crate) fn lower_preflight_bundle_to_parallel_admission_routes(
     preflights: &[OrderedCollectionFrontierPreflight],
     evidences: &crate::frontier_planning::ParallelAdmissionBundleEvidence,
 ) -> Result<ParallelAdmissionRouteSet, FrontierBundleRoutePlanningError> {
@@ -1008,7 +1008,7 @@ pub fn lower_preflight_bundle_to_parallel_admission_routes(
 }
 
 #[cfg(test)]
-pub fn lower_preflight_bundle_to_serial_fallback_routes(
+pub(crate) fn lower_preflight_bundle_to_serial_fallback_routes(
     preflights: &[BoundedMaterializationFrontierPreflight],
     evidences: &crate::frontier_planning::SerialFallbackBundleEvidence,
 ) -> Result<SerialFallbackBundleRoutes, FrontierBundleRoutePlanningError> {
@@ -1018,14 +1018,14 @@ pub fn lower_preflight_bundle_to_serial_fallback_routes(
 }
 
 #[cfg(test)]
-pub fn admit_ordered_collection_frontier_preflight(
+pub(crate) fn admit_ordered_collection_frontier_preflight(
     preflight: crate::basis::ExecutionPreflightBundle,
 ) -> Result<OrderedCollectionFrontierPreflight, FrontierPreflightAdmissionError> {
     crate::frontier_planning::admit_ordered_collection_frontier_preflight(preflight)
 }
 
 #[cfg(test)]
-pub fn admit_bounded_materialization_frontier_preflight(
+pub(crate) fn admit_bounded_materialization_frontier_preflight(
     preflight: crate::basis::ExecutionPreflightBundle,
 ) -> Result<BoundedMaterializationFrontierPreflight, FrontierPreflightAdmissionError> {
     crate::frontier_planning::admit_bounded_materialization_frontier_preflight(preflight)

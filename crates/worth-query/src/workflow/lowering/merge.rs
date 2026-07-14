@@ -68,7 +68,7 @@ impl LoweredMergeWorkflowDeclaration {
     }
 }
 
-pub fn lower_merge_workflow_declaration(
+pub(crate) fn lower_merge_workflow_declaration(
     declaration: &QueryWorkflowDeclaration,
     input: MergeLoweringInput,
 ) -> Result<LoweredMergeWorkflowDeclaration, WorkflowLoweringError> {

@@ -8,7 +8,7 @@ use worth_query::facade::consumer_kit::{
     WorthQueryConsumerResidueClass, WorthQueryConsumerResidueDetection,
     WorthQueryConsumerResidueReport,
 };
-use worth_query::WorthQueryEvidenceScope;
+use worth_query::facade::runtime::WorthQueryEvidenceScope;
 
 #[path = "consumer_residue_audit_support/fixtures.rs"]
 mod consumer_residue_audit_fixtures;

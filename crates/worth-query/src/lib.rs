@@ -179,7 +179,8 @@ pub(crate) use consumer_kit::{
     WorthQueryTestBackendResidueFinding, WorthQueryTestBackendResidueReport,
     WorthQueryTestBackendSchema,
 };
-pub use continuation_pipeline::{
+#[allow(unused_imports)]
+pub(crate) use continuation_pipeline::{
     WorthQueryContinuationBasisPosture, WorthQueryContinuationExecution,
     WorthQueryContinuationExecutionChecked, WorthQueryContinuationExecutionOutcome,
     WorthQueryContinuationExecutionTranscript, WorthQueryContinuationRuntimeContract,
@@ -193,7 +194,8 @@ pub use continuation_pipeline::{
     WorthQueryPreparedContinuationRequest, WorthQueryPreparedContinuationSignalPosture,
     WorthQueryPreparedContinuationTranscript,
 };
-pub use contribution_composed_orchestration::{
+#[allow(unused_imports)]
+pub(crate) use contribution_composed_orchestration::{
     WorthQueryContributionComposedClassification, WorthQueryContributionComposedComposition,
     WorthQueryContributionComposedContribution, WorthQueryContributionComposedDeclarationRecord,
     WorthQueryContributionComposedIntentClassification,
@@ -209,16 +211,19 @@ pub use contribution_composed_orchestration::{
     WorthQueryContributionComposedOrchestrationTranscript, WorthQueryContributionComposedStop,
     WorthQueryContributionComposedSummary, WorthQueryContributionIntent,
 };
-pub use evidence_identity::{
+#[allow(unused_imports)]
+pub(crate) use evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceIdentityComparisonError,
     WorthQueryEvidenceIdentityScheme, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
-pub use family_helpers::{
+#[allow(unused_imports)]
+pub(crate) use family_helpers::{
     WorthQueryFamilyHelpers, WorthQueryGeometryActiveFaceSelectionHelperFamily,
     WorthQueryGeometryFamilyHelpers, WorthQueryGeometryMaterialAttachmentHelperFamily,
     WorthQueryGeometryMaterialAttachmentInput, WorthQueryGeometryNeighborhoodHelperFamily,
 };
-pub use grouped_authoring::{
+#[allow(unused_imports)]
+pub(crate) use grouped_authoring::{
     WorthQueryGroupedAspectParticipationSummary, WorthQueryGroupedAtomicity,
     WorthQueryGroupedContinuityAssumption, WorthQueryGroupedContributionAssignment,
     WorthQueryGroupedContributionComposition, WorthQueryGroupedContributionInput,
@@ -237,7 +242,8 @@ pub use grouped_authoring::{
     WorthQueryGroupedSharedPostureClaim, WorthQueryGroupedSupportFeature,
     WorthQueryGroupedSupportReport, WorthQueryGroupedSupportStatus,
 };
-pub use orchestration_inventory::{
+#[allow(unused_imports)]
+pub(crate) use orchestration_inventory::{
     WorthQueryOrchestrationAspectPosture, WorthQueryOrchestrationBasisPosture,
     WorthQueryOrchestrationBindingProjection, WorthQueryOrchestrationCheckedTopologyKind,
     WorthQueryOrchestrationCollaborativeExtensionPosture,
@@ -251,7 +257,8 @@ pub use orchestration_inventory::{
     WorthQueryOrchestrationSurfaceInventory, WorthQueryOrchestrationSurfaceRow,
     WorthQueryOrchestrationSurfaceVisibility, WorthQueryOrchestrationTranscriptFamily,
 };
-pub use ordinary_outcome::{
+#[allow(unused_imports)]
+pub(crate) use ordinary_outcome::{
     WorthQueryOrdinaryBindingCheckedTopologyKind, WorthQueryOrdinaryCheckedTopology,
     WorthQueryOrdinaryContinuationCheckedTopologyKind,
     WorthQueryOrdinaryContributionComposedCheckedTopologyKind, WorthQueryOrdinaryNextStep,
@@ -261,7 +268,8 @@ pub use ordinary_outcome::{
     WorthQueryOrdinaryRuntimePostureKind,
     WorthQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };
-pub use platform_entry_closeout::{
+#[allow(unused_imports)]
+pub(crate) use platform_entry_closeout::{
     certify_platform_entry_closeout, worth_query_platform_entry_closeout_surface,
     worth_query_platform_entry_compile_fail_boundary_digest,
     worth_query_platform_entry_compile_fail_manifest, worth_query_platform_entry_hostile_manifest,
@@ -275,14 +283,16 @@ pub use platform_entry_closeout::{
     WorthQueryPlatformEntryParityManifest, WorthQueryPlatformEntryParityRow,
     WorthQueryPlatformEntryUiProofKind, WorthQueryPlatformEntryUiProofRow,
 };
-pub use public_doc_coverage::{
+#[allow(unused_imports)]
+pub(crate) use public_doc_coverage::{
     worth_query_public_doc_coverage_golden_transcript_digest,
     worth_query_public_doc_coverage_golden_transcripts, WorthQueryPublicDocCoverageAudit,
     WorthQueryPublicDocCoverageInventory, WorthQueryPublicDocCoverageRow,
     WorthQueryPublicDocReference, WorthQueryPublicGoldenTranscript,
     WorthQueryPublicGoldenTranscriptKind, WorthQueryPublicJourneyKind,
 };
-pub use recovery_boundary::{
+#[allow(unused_imports)]
+pub(crate) use recovery_boundary::{
     worth_query_recovery_brief_from_continuation_execution_checked,
     worth_query_recovery_brief_from_continuation_execution_proof,
     worth_query_recovery_brief_from_contribution_composed_checked,
@@ -304,16 +314,19 @@ pub use recovery_boundary::{
     WorthQueryRecoveryRequest, WorthQueryRecoveryRequestKind, WorthQueryRecoverySourceFamily,
     WorthQueryRecoveryStopFamily, WorthQueryRecoveryStopKind,
 };
-pub use runtime::{
+#[allow(unused_imports)]
+pub(crate) use runtime::{
     WorthQueryConcurrentHostileMatrixCounterSnapshot, WorthQueryConcurrentHostileMatrixTopology,
     WorthQueryConcurrentSubmissionIntake, WorthQueryConcurrentSubmissionLane,
     WorthQueryConcurrentSubmissionRecord,
 };
-pub use session_label::{
+#[allow(unused_imports)]
+pub(crate) use session_label::{
     WorthQuerySessionLabel, WorthQuerySessionLabelError, WorthQuerySessionLabelSegment,
     WorthQuerySessionNamespace,
 };
-pub use signal_compatibility_orchestration::{
+#[allow(unused_imports)]
+pub(crate) use signal_compatibility_orchestration::{
     WorthQuerySignalCompatibilityOrchestration, WorthQuerySignalCompatibilityOrchestrationChecked,
     WorthQuerySignalCompatibilityOrchestrationClass,
     WorthQuerySignalCompatibilityOrchestrationInput,

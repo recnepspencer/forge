@@ -116,7 +116,7 @@ impl QueryWritebackDeclaration {
     }
 }
 
-pub fn lower_query_writeback_declaration(
+pub(crate) fn lower_query_writeback_declaration(
     declaration: &QueryWorkflowDeclaration,
     input: WritebackLoweringInput,
 ) -> Result<QueryWritebackDeclaration, WorkflowLoweringError> {

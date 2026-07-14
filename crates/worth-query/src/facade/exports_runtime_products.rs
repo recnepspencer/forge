@@ -19,26 +19,27 @@ pub use crate::session_label::{
     WorthQuerySessionNamespace,
 };
 pub use crate::subscription::PreviewSubscriptionDiscardCloseout;
-pub use crate::subscription::{
+pub(crate) use crate::subscription::{
     admit_active_subscription_lane, admit_preview_subscription_isolation, admit_query_subscription,
-    admit_subscription_continuation_evidence, advance_subscription_acknowledgement,
-    apply_active_subscription_continuation, apply_subscription_continuation,
-    attach_subscription_consumer, build_active_delivery_work_packet,
-    build_query_subscription_family_coverage_matrix,
+    admit_subscription_continuation_evidence, declare_query_subscription,
+    explain_query_subscription_bridge_parity, lower_query_subscription_maintenance_delta,
+    lower_query_subscription_to_bridge,
+};
+pub use crate::subscription::{
+    advance_subscription_acknowledgement, apply_active_subscription_continuation,
+    apply_subscription_continuation, attach_subscription_consumer,
+    build_active_delivery_work_packet, build_query_subscription_family_coverage_matrix,
     build_query_subscription_manual_bridge_witness, bundle_admitted_query_subscription_diagnostics,
     bundle_denied_query_subscription_diagnostics, close_subscription_lifecycle,
-    declare_query_subscription, deny_preview_authoritative_sharing,
-    deny_raw_bridge_invalidation_delivery, deny_raw_cdc_delivery_fallback,
-    discard_preview_subscription, emit_query_delivery_batch,
-    explain_query_subscription_bridge_parity, join_active_subscription_lane,
-    lower_query_subscription_maintenance_delta, lower_query_subscription_to_bridge,
-    lower_subscription_continuation_report, measure_preview_subscription_residue,
-    open_active_subscription_lane, open_query_delivery_window, prepare_subscription_activation,
-    promote_preview_subscription, report_query_subscription_support,
-    select_query_subscription_family, trace_admitted_query_subscription_diagnostics,
-    trace_denied_query_subscription_diagnostics, ActiveAllocationScopeWidth,
-    ActiveDeliveryAffectedAttachmentWidth, ActiveDeliveryAffectedLaneWidth,
-    ActiveDeliveryContinuationWidth, ActiveDeliveryDensityPosture,
+    deny_preview_authoritative_sharing, deny_raw_bridge_invalidation_delivery,
+    deny_raw_cdc_delivery_fallback, discard_preview_subscription, emit_query_delivery_batch,
+    join_active_subscription_lane, lower_subscription_continuation_report,
+    measure_preview_subscription_residue, open_active_subscription_lane,
+    open_query_delivery_window, prepare_subscription_activation, promote_preview_subscription,
+    report_query_subscription_support, select_query_subscription_family,
+    trace_admitted_query_subscription_diagnostics, trace_denied_query_subscription_diagnostics,
+    ActiveAllocationScopeWidth, ActiveDeliveryAffectedAttachmentWidth,
+    ActiveDeliveryAffectedLaneWidth, ActiveDeliveryContinuationWidth, ActiveDeliveryDensityPosture,
     ActiveDeliveryPreviewResidueWidth, ActiveDeliveryWorkPacket, ActiveFanoutWidth,
     ActiveLaneLookupClass, ActiveRegistryLookupWidth, ActiveSubscriptionAllocationPolicy,
     ActiveSubscriptionAllocationPosture, ActiveSubscriptionCounters,
@@ -134,16 +135,19 @@ pub use crate::typed::{
     TypedOrderableField, TypedPresenceField, TypedProjectableField, TypedSchemaField,
     TypedSchemaRoot, TypedStringContainsField, TypedTraversalRelation,
 };
+pub(crate) use crate::validation::validate_canonical_bundle;
 pub use crate::validation::{
-    validate_canonical_bundle, QueryValidationCounters, QueryValidationError,
-    QueryValidationReport, ValidatedOrderingEntry, ValidatedOrderingSet, ValidatedPredicateEntry,
-    ValidatedPredicateSet, ValidatedProjectionEntry, ValidatedQueryArtifact, ValidatedQueryBundle,
-    ValidatedResultShapeArtifact, ValidatedResultShapeBinding, ValidatedTraversalEntry,
-    ValidationEvent, ValidationFailureClass, ValidationRejectionMatrix, ValidationWarning,
+    QueryValidationCounters, QueryValidationError, QueryValidationReport, ValidatedOrderingEntry,
+    ValidatedOrderingSet, ValidatedPredicateEntry, ValidatedPredicateSet, ValidatedProjectionEntry,
+    ValidatedQueryArtifact, ValidatedQueryBundle, ValidatedResultShapeArtifact,
+    ValidatedResultShapeBinding, ValidatedTraversalEntry, ValidationEvent, ValidationFailureClass,
+    ValidationRejectionMatrix, ValidationWarning,
+};
+pub(crate) use crate::view_shape::{
+    admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
 };
 pub use crate::view_shape::{
-    admit_view_shape, plan_admitted_view_shape, runtime_backed_view_shape_support_profile,
-    validate_canonical_bundle_for_admitted_view_shape, AdmittedViewShape,
+    runtime_backed_view_shape_support_profile, AdmittedViewShape,
     GroupedBaselineMaterializationContract, GroupedDeltaAdmissionPolicy,
     GroupedReplayDeliveryPosture, GroupedViewPlanningArtifact, KanbanGroupedLiveContract,
     QueryResultBindingProof, ViewShapeCompatibilityMatrixArtifact, ViewShapeComplexityReport,
@@ -153,9 +157,11 @@ pub use crate::view_shape::{
     ViewShapeMaintenanceContract, ViewShapePatchPosture, ViewShapePlanArtifact,
     ViewShapePlanDigest, ViewShapeValidatedBundle,
 };
-pub use crate::view_shape_live::{
+pub(crate) use crate::view_shape_live::{
     admit_grouped_live_view, execute_grouped_live_view_shape_change,
     execute_live_view_shape_change, lower_view_shape_plan_to_live,
+};
+pub use crate::view_shape_live::{
     materialize_grouped_execution_surface_from_truth_view, AuthoritativeGroupedBaselineArtifact,
     DetailFieldPatchArtifact, FocusedInspectorAspectPatchArtifact, GroupedDeltaArtifact,
     GroupedDeltaInvariantFailure, GroupedDesiredStateArtifact, GroupedExecutionLaneValue,
@@ -168,11 +174,13 @@ pub use crate::view_shape_live::{
     ViewShapePatchPayload, ViewShapeRefreshDisposition, ViewShapeReplayBundle,
     ViewShapeSuppressionDisposition, WorthQueryGroupedBaselineMember,
 };
-pub use crate::workflow::{
-    admit_query_workflow_declaration, bind_workflow_context, build_workflow_replay_bundle,
-    inspect_merge_conflicts, inspect_post_merge_outcome, lower_merge_workflow_declaration,
+pub(crate) use crate::workflow::{
+    admit_query_workflow_declaration, bind_workflow_context, inspect_merge_conflicts,
+    inspect_post_merge_outcome, lower_merge_workflow_declaration,
     lower_mutation_intent_declaration, lower_query_writeback_declaration,
-    shape_merge_authority_outcome, shape_mutation_authority_outcome,
+};
+pub use crate::workflow::{
+    build_workflow_replay_bundle, shape_merge_authority_outcome, shape_mutation_authority_outcome,
     shape_writeback_authority_outcome, ConflictInspectionFamily, ConflictInspectionRow,
     LoweredMergeWorkflowDeclaration, LoweredMutationIntentDeclaration, MergeAuthorityTarget,
     MergeClassAdmission, MergeLoweringInput, MergeWorkflowIntent, MutationAuthorityBinding,

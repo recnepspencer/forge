@@ -5,7 +5,7 @@ use crate::planning::{ParallelAdmissionRoute, SerialFallbackRoute};
 
 use super::{ExecutionCounters, ExecutionError, ExecutionReport, ExecutionResultEnvelope};
 
-pub fn execute_preflight_bundle(
+pub(crate) fn execute_preflight_bundle(
     preflight: &ExecutionPreflightBundle,
 ) -> Result<ExecutionResultEnvelope, ExecutionError> {
     let collection = preflight.plan().collection();
@@ -112,14 +112,14 @@ pub fn execute_preflight_bundle(
 }
 
 #[cfg(test)]
-pub fn execute_parallel_admission_route(
+pub(crate) fn execute_parallel_admission_route(
     route: &ParallelAdmissionRoute,
 ) -> Result<ExecutionResultEnvelope, ExecutionError> {
     execute_preflight_bundle(route.preflight())
 }
 
 #[cfg(test)]
-pub fn execute_serial_fallback_route(
+pub(crate) fn execute_serial_fallback_route(
     route: &SerialFallbackRoute,
 ) -> Result<ExecutionResultEnvelope, ExecutionError> {
     execute_preflight_bundle(route.preflight())

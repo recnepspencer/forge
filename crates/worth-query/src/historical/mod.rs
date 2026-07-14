@@ -34,7 +34,7 @@ pub use path_classes::{
     AdmittedHistoricalPathClass, HistoricalPathCompatibilityOutcome, RequestedHistoricalPathClass,
     ResolvedHistoricalPathClass,
 };
-pub use planner::{
+pub(crate) use planner::{
     admit_historical_evaluation_path, materialization_metadata_from_resolved,
     resolve_historical_materialization_path,
 };

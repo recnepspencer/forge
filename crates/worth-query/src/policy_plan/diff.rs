@@ -87,7 +87,7 @@ impl PolicyAwareDiffPlan {
     }
 }
 
-pub fn lower_policy_aware_diff_plan(
+pub(crate) fn lower_policy_aware_diff_plan(
     artifact: &NarrowedPolicyQueryArtifact,
     basis_pair: PolicyAwareDiffBasisPair,
 ) -> Result<PolicyAwareDiffPlan, PolicyAwareExecutionSeamError> {

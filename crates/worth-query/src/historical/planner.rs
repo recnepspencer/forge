@@ -11,7 +11,7 @@ use super::request::{
 };
 use super::resolution::{HistoricalMaterializationPathMetadata, HistoricalPathResolved};
 
-pub fn admit_historical_evaluation_path(
+pub(crate) fn admit_historical_evaluation_path(
     request: HistoricalEvaluationRequest,
     capability: HistoricalCapabilityDescriptor,
 ) -> Result<HistoricalEvaluationAdmission, HistoricalEvaluationError> {
@@ -56,7 +56,7 @@ pub fn admit_historical_evaluation_path(
     ))
 }
 
-pub fn resolve_historical_materialization_path(
+pub(crate) fn resolve_historical_materialization_path(
     admission: HistoricalEvaluationAdmission,
     materialization: HistoricalMaterializationDescriptor,
 ) -> Result<HistoricalPathResolved, HistoricalEvaluationError> {
@@ -104,7 +104,7 @@ pub fn resolve_historical_materialization_path(
     ))
 }
 
-pub fn materialization_metadata_from_resolved(
+pub(crate) fn materialization_metadata_from_resolved(
     resolved: HistoricalPathResolved,
 ) -> HistoricalMaterializationPathMetadata {
     HistoricalMaterializationPathMetadata::from_resolved(resolved)

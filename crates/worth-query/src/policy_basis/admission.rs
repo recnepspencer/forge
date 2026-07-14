@@ -13,7 +13,7 @@ use super::{
     PolicyTenantAdmissionError, PolicyTenantAdmissionFailureClass,
 };
 
-pub fn admit_policy_tenant_context(
+pub(crate) fn admit_policy_tenant_context(
     query: &CanonicalQueryArtifact,
     policy: PolicyRuleSnapshot,
     tenant: TenantBindingSnapshot,

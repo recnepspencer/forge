@@ -31,4 +31,5 @@ pub use outcome::{
 };
 pub use report::CorrespondenceVocabularyReport;
 pub use request::CorrespondenceEvaluationRequest;
-pub use resolution::{resolve_correspondence_evidence, CorrespondenceEvidenceResolved};
+pub(crate) use resolution::resolve_correspondence_evidence;
+pub use resolution::CorrespondenceEvidenceResolved;

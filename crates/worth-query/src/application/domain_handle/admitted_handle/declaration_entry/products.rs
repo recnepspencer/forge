@@ -24,7 +24,7 @@ use crate::application::WorthQueryDomainOperatingContext;
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
     WorthQueryAdmittedConfiguredDomainHandle<D, C>
 {
-    pub fn orchestrate_routes_from_progressed<I>(
+    pub(crate) fn orchestrate_routes_from_progressed<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     ) -> Result<
@@ -39,7 +39,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_routes_from_progressed_with_intent<I>(
+    pub(crate) fn orchestrate_routes_from_progressed_with_intent<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
         intent: WorthQueryDeclarationRouteIntent,
@@ -57,7 +57,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_routes_from_progressed_checked<I>(
+    pub(crate) fn orchestrate_routes_from_progressed_checked<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     ) -> WorthQueryDeclarationRoutePlanChecked<D, I>
@@ -69,7 +69,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_routes_from_progressed_checked_with_intent<I>(
+    pub(crate) fn orchestrate_routes_from_progressed_checked_with_intent<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
         intent: WorthQueryDeclarationRouteIntent,
@@ -84,7 +84,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_routes_from_progressed_proof<I>(
+    pub(crate) fn orchestrate_routes_from_progressed_proof<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     ) -> WorthQueryDeclarationRouteOrchestrationTranscript<D, I>
@@ -96,7 +96,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_routes_from_progressed_proof_with_intent<I>(
+    pub(crate) fn orchestrate_routes_from_progressed_proof_with_intent<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
         intent: WorthQueryDeclarationRouteIntent,
@@ -111,7 +111,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_receipt_from_progressed<I>(
+    pub(crate) fn orchestrate_receipt_from_progressed<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     ) -> Result<WorthQueryDeclarationReceipt<D, I>, WorthQueryDeclarationReceiptTerminalError<D, I>>
@@ -123,7 +123,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_receipt_from_progressed_with_intent<I>(
+    pub(crate) fn orchestrate_receipt_from_progressed_with_intent<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
         intent: WorthQueryDeclarationRouteIntent,
@@ -138,7 +138,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_receipt_from_progressed_checked<I>(
+    pub(crate) fn orchestrate_receipt_from_progressed_checked<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     ) -> WorthQueryDeclarationReceiptChecked<D, I>
@@ -150,7 +150,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_receipt_from_progressed_checked_with_intent<I>(
+    pub(crate) fn orchestrate_receipt_from_progressed_checked_with_intent<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
         intent: WorthQueryDeclarationRouteIntent,
@@ -165,7 +165,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_receipt_from_progressed_proof<I>(
+    pub(crate) fn orchestrate_receipt_from_progressed_proof<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     ) -> WorthQueryDeclarationReceiptOrchestrationTranscript<D, I>
@@ -177,7 +177,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_receipt_from_progressed_proof_with_intent<I>(
+    pub(crate) fn orchestrate_receipt_from_progressed_proof_with_intent<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
         intent: WorthQueryDeclarationRouteIntent,
@@ -192,7 +192,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_envelope_from_progressed<I>(
+    pub(crate) fn orchestrate_envelope_from_progressed<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     ) -> Result<WorthQueryDeclarationEnvelope<D, I>, WorthQueryDeclarationEnvelopeTerminalError<D, I>>
@@ -204,7 +204,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_envelope_from_progressed_with_intent<I>(
+    pub(crate) fn orchestrate_envelope_from_progressed_with_intent<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
         intent: WorthQueryDeclarationRouteIntent,
@@ -219,7 +219,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_envelope_from_progressed_checked<I>(
+    pub(crate) fn orchestrate_envelope_from_progressed_checked<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     ) -> WorthQueryDeclarationEnvelopeChecked<D, I>
@@ -231,7 +231,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_envelope_from_progressed_checked_with_intent<I>(
+    pub(crate) fn orchestrate_envelope_from_progressed_checked_with_intent<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
         intent: WorthQueryDeclarationRouteIntent,
@@ -246,7 +246,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_envelope_from_progressed_proof<I>(
+    pub(crate) fn orchestrate_envelope_from_progressed_proof<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     ) -> WorthQueryDeclarationEnvelopeOrchestrationTranscript<D, I>
@@ -258,7 +258,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn orchestrate_envelope_from_progressed_proof_with_intent<I>(
+    pub(crate) fn orchestrate_envelope_from_progressed_proof_with_intent<I>(
         &self,
         progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
         intent: WorthQueryDeclarationRouteIntent,

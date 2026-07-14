@@ -56,7 +56,7 @@ impl ScopedPreviewLiveSessionPlanBinding {
     }
 }
 
-pub fn admit_scoped_preview_session_plan_binding(
+pub(crate) fn admit_scoped_preview_session_plan_binding(
     scoped_basis: ScopedObservationBasis,
     preview_binding: PreviewSessionPlanBinding,
 ) -> Result<ScopedPreviewSessionPlanBinding, PreviewLiveError> {
@@ -67,14 +67,14 @@ pub fn admit_scoped_preview_session_plan_binding(
     })
 }
 
-pub fn admit_scoped_preview_session_plan_binding_from_preview_binding(
+pub(crate) fn admit_scoped_preview_session_plan_binding_from_preview_binding(
     preview_binding: PreviewSessionPlanBinding,
 ) -> Result<ScopedPreviewSessionPlanBinding, PreviewLiveError> {
     let scoped_basis = scoped_observation_basis_for_preview_binding(&preview_binding)?;
     admit_scoped_preview_session_plan_binding(scoped_basis, preview_binding)
 }
 
-pub fn admit_scoped_preview_live_session_plan(
+pub(crate) fn admit_scoped_preview_live_session_plan(
     scoped_binding: ScopedPreviewSessionPlanBinding,
     live_plan: LiveQueryPlan,
 ) -> Result<ScopedPreviewLiveSessionPlanBinding, PreviewLiveError> {
@@ -104,7 +104,7 @@ pub fn admit_scoped_preview_live_session_plan(
     })
 }
 
-pub fn execute_scoped_preview_live_session_plan(
+pub(crate) fn execute_scoped_preview_live_session_plan(
     preview_live: &ScopedPreviewLiveSessionPlanBinding,
 ) -> Result<super::PreviewLiveExecutionEnvelope, PreviewExecutionError> {
     let envelope = super::PreviewLiveExecutionEnvelope {
@@ -115,7 +115,7 @@ pub fn execute_scoped_preview_live_session_plan(
     Ok(envelope)
 }
 
-pub fn scoped_observation_basis_for_preview_binding(
+pub(crate) fn scoped_observation_basis_for_preview_binding(
     preview_binding: &PreviewSessionPlanBinding,
 ) -> Result<ScopedObservationBasis, PreviewLiveError> {
     let declaration = match preview_binding

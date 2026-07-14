@@ -115,7 +115,7 @@ impl MutationAuthorityBinding {
     }
 }
 
-pub fn lower_mutation_intent_declaration(
+pub(crate) fn lower_mutation_intent_declaration(
     declaration: &QueryWorkflowDeclaration,
     authority_binding_identity: &WorthQueryEvidenceIdentity,
     input: MutationLoweringInput,

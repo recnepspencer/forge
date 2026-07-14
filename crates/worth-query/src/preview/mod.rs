@@ -34,12 +34,12 @@ pub(crate) use domain_capability::{
     admit_contributed_preview_workflow_foundation,
     materialize_contributed_preview_workflow_foundation_artifact,
 };
-pub use scoped::{
+pub(crate) use scoped::{
     admit_scoped_preview_live_session_plan, admit_scoped_preview_session_plan_binding,
     admit_scoped_preview_session_plan_binding_from_preview_binding,
     execute_scoped_preview_live_session_plan, scoped_observation_basis_for_preview_binding,
-    ScopedPreviewLiveSessionPlanBinding, ScopedPreviewSessionPlanBinding,
 };
+pub use scoped::{ScopedPreviewLiveSessionPlanBinding, ScopedPreviewSessionPlanBinding};
 pub(crate) use workflow_context_identity::preview_lifecycle_state_label;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -2266,7 +2266,7 @@ fn derive_preview_workflow_foundation(
     }
 }
 
-pub fn admit_preview_workflow_foundation(
+pub(crate) fn admit_preview_workflow_foundation(
     binding: &PreviewSessionPlanBinding,
 ) -> Result<AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationError> {
     admit_preview_workflow_foundation_request(
@@ -2275,7 +2275,7 @@ pub fn admit_preview_workflow_foundation(
     )
 }
 
-pub fn admit_preview_workflow_foundation_request(
+pub(crate) fn admit_preview_workflow_foundation_request(
     binding: &PreviewSessionPlanBinding,
     request: PreviewWorkflowFoundationRequest,
 ) -> Result<AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationError> {
@@ -2363,7 +2363,7 @@ fn derive_preview_comparison_candidate(
     }
 }
 
-pub fn admit_authoritative_preview_comparison_candidate(
+pub(crate) fn admit_authoritative_preview_comparison_candidate(
     candidate_preflight: &ExecutionPreflightBundle,
     candidate_execution: &ExecutionResultEnvelope,
 ) -> Result<AuthoritativePreviewComparisonCandidate, PreviewComparisonError> {
@@ -2535,7 +2535,7 @@ fn admit_preview_execution_comparison(
     })
 }
 
-pub fn admit_preview_promotion_parity_comparison(
+pub(crate) fn admit_preview_promotion_parity_comparison(
     preview_execution: &PromotionEligiblePreviewExecutionEnvelope,
     candidate: &AuthoritativePreviewComparisonCandidate,
 ) -> Result<PromotionParityPreviewComparisonAdmission, PreviewComparisonError> {
@@ -2620,7 +2620,7 @@ pub(crate) fn execute_preview_session_plan(
     Ok(envelope)
 }
 
-pub fn admit_read_only_preview_session_plan_binding(
+pub(crate) fn admit_read_only_preview_session_plan_binding(
     binding: PreviewSessionPlanBinding,
 ) -> Result<ReadOnlyPreviewSessionPlanBinding, PreviewExecutionError> {
     if !matches!(
@@ -2636,7 +2636,7 @@ pub fn admit_read_only_preview_session_plan_binding(
     Ok(ReadOnlyPreviewSessionPlanBinding { inner: binding })
 }
 
-pub fn admit_promotion_eligible_preview_session_plan_binding(
+pub(crate) fn admit_promotion_eligible_preview_session_plan_binding(
     binding: PreviewSessionPlanBinding,
 ) -> Result<PromotionEligiblePreviewSessionPlanBinding, PreviewExecutionError> {
     if !matches!(
@@ -2652,7 +2652,7 @@ pub fn admit_promotion_eligible_preview_session_plan_binding(
     Ok(PromotionEligiblePreviewSessionPlanBinding { inner: binding })
 }
 
-pub fn execute_read_only_preview_session_plan(
+pub(crate) fn execute_read_only_preview_session_plan(
     binding: &ReadOnlyPreviewSessionPlanBinding,
 ) -> Result<ReadOnlyPreviewExecutionEnvelope, PreviewExecutionError> {
     Ok(ReadOnlyPreviewExecutionEnvelope {
@@ -2660,7 +2660,7 @@ pub fn execute_read_only_preview_session_plan(
     })
 }
 
-pub fn execute_promotion_eligible_preview_session_plan(
+pub(crate) fn execute_promotion_eligible_preview_session_plan(
     binding: &PromotionEligiblePreviewSessionPlanBinding,
 ) -> Result<PromotionEligiblePreviewExecutionEnvelope, PreviewExecutionError> {
     Ok(PromotionEligiblePreviewExecutionEnvelope {
@@ -2895,7 +2895,7 @@ pub fn assess_preview_live_drift(
     })
 }
 
-pub fn bind_preflight_to_preview_session(
+pub(crate) fn bind_preflight_to_preview_session(
     preflight: ExecutionPreflightBundle,
     query_context: PreviewSessionQueryContext,
 ) -> Result<PreviewSessionPlanBinding, PreviewBindingError> {

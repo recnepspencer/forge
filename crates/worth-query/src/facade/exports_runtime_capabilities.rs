@@ -1,5 +1,5 @@
+pub(crate) use crate::domain_capabilities::admit_eligible_domain_capability_contribution;
 pub use crate::domain_capabilities::{
-    admit_eligible_domain_capability_contribution,
     evaluate_requested_domain_capability_contribution, materialize_admission_explanation_bundle,
     materialize_admission_summary, materialize_admission_support_report,
     materialize_admission_trace_artifact, materialize_admitted_preview_workflow_foundation,

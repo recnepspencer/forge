@@ -3,7 +3,7 @@ use crate::policy_narrowing::{
     PolicyAwareOptimizerInput,
 };
 
-pub fn lower_policy_aware_optimizer_input(
+pub(crate) fn lower_policy_aware_optimizer_input(
     artifact: &NarrowedPolicyQueryArtifact,
 ) -> PolicyAwareOptimizerInput {
     optimizer_input_from_narrowed_policy_query(artifact)

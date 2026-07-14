@@ -14,7 +14,7 @@ impl PolicyAwareCurrentPlan {
     }
 }
 
-pub fn lower_policy_aware_current_plan(
+pub(crate) fn lower_policy_aware_current_plan(
     artifact: &NarrowedPolicyQueryArtifact,
 ) -> PolicyAwareCurrentPlan {
     PolicyAwareCurrentPlan {

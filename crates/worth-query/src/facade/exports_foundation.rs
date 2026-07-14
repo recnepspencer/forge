@@ -21,13 +21,16 @@ pub use crate::authorized_projection::{
     PolicyFieldInfluenceSet, PolicyInfluenceEntry, PolicyInfluencePurpose, PolicyInfluenceSet,
     PolicyMaskSnapshot, ProjectionVisibility,
 };
+pub(crate) use crate::basis::{
+    admit_runtime_current_snapshot_basis, resolve_runtime_current_snapshot_basis,
+    resolve_snapshot_basis,
+};
 pub use crate::basis::{
-    admit_runtime_current_snapshot_basis, preflight_execution_basis,
-    resolve_runtime_current_snapshot_basis, resolve_snapshot_basis, snapshot_resolution_report,
-    BasisAuthorityFamily, BasisPreflightError, BasisResolutionError, BasisResolutionMode,
-    ExecutionBasisIntent, ExecutionPreflightBundle, QueryExternalSchemaBasisToken,
-    QuerySchemaBasisAuthority, ResolvedBasisProof, ResolvedSnapshotBasis, ResolvedSnapshotIdentity,
-    SnapshotLineageClass, SnapshotResolutionReport,
+    preflight_execution_basis, snapshot_resolution_report, BasisAuthorityFamily,
+    BasisPreflightError, BasisResolutionError, BasisResolutionMode, ExecutionBasisIntent,
+    ExecutionPreflightBundle, QueryExternalSchemaBasisToken, QuerySchemaBasisAuthority,
+    ResolvedBasisProof, ResolvedSnapshotBasis, ResolvedSnapshotIdentity, SnapshotLineageClass,
+    SnapshotResolutionReport,
 };
 pub use crate::basis_lifecycle::{
     activate_subscription_basis, basis_lifecycle, discover_basis_lifecycle_support,
@@ -61,17 +64,19 @@ pub use crate::basis_lifecycle::{
     emit_preview_closeout_basis_receipt, PreviewCloseoutBasisAdmissionPath,
     PreviewCloseoutBasisUsePath, PreviewCloseoutLaneWitness, ScopedPreviewCloseoutBasis,
 };
+pub(crate) use crate::binding::resolve_bindings;
 pub use crate::binding::{
-    derive_binding_requirements, resolve_bindings, BindingError, BindingFailureClass,
-    BindingRequirement, BindingRequirements, BindingResolution, BindingResolutionError,
-    BoundBinding, BoundBindings, IdentityBindingDescriptor, NonIdentityBindingMetadata,
-    NonIdentityBindingMetadataKey, QueryBindingDescriptor, QueryBindingSlot, QueryBindingSubject,
+    derive_binding_requirements, BindingError, BindingFailureClass, BindingRequirement,
+    BindingRequirements, BindingResolution, BindingResolutionError, BoundBinding, BoundBindings,
+    IdentityBindingDescriptor, NonIdentityBindingMetadata, NonIdentityBindingMetadataKey,
+    QueryBindingDescriptor, QueryBindingSlot, QueryBindingSubject,
 };
+pub(crate) use crate::canonicalization::canonicalize_request;
 pub use crate::canonicalization::{
-    canonicalize_request, CanonicalOrderingEntry, CanonicalPredicateEntry,
-    CanonicalPredicateFamily, CanonicalProjectionEntry, CanonicalQueryArtifact,
-    CanonicalQueryBundle, CanonicalResultField, CanonicalResultShapeArtifact,
-    CanonicalTraversalEntry, CanonicalizationFailureClass, QueryCanonicalizationError,
+    CanonicalOrderingEntry, CanonicalPredicateEntry, CanonicalPredicateFamily,
+    CanonicalProjectionEntry, CanonicalQueryArtifact, CanonicalQueryBundle, CanonicalResultField,
+    CanonicalResultShapeArtifact, CanonicalTraversalEntry, CanonicalizationFailureClass,
+    QueryCanonicalizationError,
 };
 pub use crate::collection::{
     AggregateFunctionFamily, AggregateGroupingShape, AggregateInputBreadth, AggregateShapeArtifact,
@@ -92,32 +97,36 @@ pub use crate::composition::{
     ScopeLineageDigest, TemplateBindingDigest, TemplateBindingSet, TemplateFamily,
     TemplateInstantiationArtifact, TemplateParameterSlot, TemplateParameterSlotKind,
 };
+pub(crate) use crate::correspondence::resolve_correspondence_evidence;
 pub use crate::correspondence::{
-    resolve_correspondence_evidence, AdvisoryStructuralAmbiguous, AdvisoryStructuralUnique,
-    CorrespondenceAmbiguityEnvelope, CorrespondenceCandidateSet, CorrespondenceComplexityContract,
-    CorrespondenceCostPosture, CorrespondenceCounterSnapshot, CorrespondenceDenied,
-    CorrespondenceDisagreementEnvelope, CorrespondenceEvaluationError,
-    CorrespondenceEvaluationFailureClass, CorrespondenceEvaluationRequest,
-    CorrespondenceEvidenceResolved, CorrespondenceOutcome, CorrespondencePerformanceStatusMarker,
-    CorrespondenceVocabularyReport, LineageContinuity, LineageStructuralDisagreement,
-    StructuralCandidateBudget, StructuralCandidateDiscoveryPlan,
+    AdvisoryStructuralAmbiguous, AdvisoryStructuralUnique, CorrespondenceAmbiguityEnvelope,
+    CorrespondenceCandidateSet, CorrespondenceComplexityContract, CorrespondenceCostPosture,
+    CorrespondenceCounterSnapshot, CorrespondenceDenied, CorrespondenceDisagreementEnvelope,
+    CorrespondenceEvaluationError, CorrespondenceEvaluationFailureClass,
+    CorrespondenceEvaluationRequest, CorrespondenceEvidenceResolved, CorrespondenceOutcome,
+    CorrespondencePerformanceStatusMarker, CorrespondenceVocabularyReport, LineageContinuity,
+    LineageStructuralDisagreement, StructuralCandidateBudget, StructuralCandidateDiscoveryPlan,
     StructuralCandidateOrderingContract, UniqueStructuralCorrespondenceWitness,
 };
-pub use crate::correspondence_history::{
+pub(crate) use crate::correspondence_history::{
     compose_correspondence_historical_envelope, compose_historical_admission_denied_envelope,
-    compose_historical_path_denied_envelope, CorrespondenceHistoricalAmbiguityEnvelope,
-    CorrespondenceHistoricalDeniedEnvelope, CorrespondenceHistoricalDisagreementEnvelope,
-    CorrespondenceHistoricalEnvelope, CorrespondenceHistoricalSuccessEnvelope,
-    HistoricalPathAdmissionDeniedEnvelope, HistoricalPathDeniedEnvelope,
-    MetadataPreservingHistoricalResultView,
+    compose_historical_path_denied_envelope,
+};
+pub use crate::correspondence_history::{
+    CorrespondenceHistoricalAmbiguityEnvelope, CorrespondenceHistoricalDeniedEnvelope,
+    CorrespondenceHistoricalDisagreementEnvelope, CorrespondenceHistoricalEnvelope,
+    CorrespondenceHistoricalSuccessEnvelope, HistoricalPathAdmissionDeniedEnvelope,
+    HistoricalPathDeniedEnvelope, MetadataPreservingHistoricalResultView,
 };
 pub use crate::correspondence_history_parity::{
     build_correspondence_historical_parity_bundle, CorrespondenceHistoricalParityBundle,
     CorrespondenceHistoricalParityBundleError, CorrespondenceHistoricalParityVariant,
 };
-pub use crate::declarative_live::{
+pub(crate) use crate::declarative_live::{
     declare_branch_compare_from_live_sessions, declare_live_query_session,
     declare_runtime_live_query_session, declare_writeback_from_live_session,
+};
+pub use crate::declarative_live::{
     DeclarativeBranchCompareArtifact, DeclarativeBranchCompareChangeFamily,
     DeclarativeBranchCompareFieldDelta, DeclarativeBranchCompareIdentityClass,
     DeclarativeBranchCompareInputRow, DeclarativeBranchCompareRow, DeclarativeBranchCompareValue,
@@ -132,11 +141,14 @@ pub use crate::diagnostics::{
     CanonicalizationCounters, CanonicalizationReport, CanonicalizationWarning,
     CompatibilityEvidence, IdentityFreezeEvidence, NormalizationEvent,
 };
+pub(crate) use crate::effect_lifecycle::{
+    admit_effect_batch_components, admit_effect_intent, execute_lowered_effect_plan,
+    lower_authority_scoped_effect_plan,
+};
 pub use crate::effect_lifecycle::{
-    admit_effect_batch_components, admit_effect_intent, discover_effect_lifecycle_support,
-    effect_batch, effect_lifecycle_family_inventory, effect_lifecycle_family_row_for_key,
-    effect_lifecycle_support_row_matches_inventory, effect_lifecycle_supported_basis_families,
-    evaluate_effect_eligibility, execute_lowered_effect_plan, lower_authority_scoped_effect_plan,
+    discover_effect_lifecycle_support, effect_batch, effect_lifecycle_family_inventory,
+    effect_lifecycle_family_row_for_key, effect_lifecycle_support_row_matches_inventory,
+    effect_lifecycle_supported_basis_families, evaluate_effect_eligibility,
     normalize_raw_effect_intent, scope_admitted_effect_plan, AdmittedEffectBatch,
     AdmittedEffectIntent, AdvisoryEffectEligibility, AuthorityScopedEffectPlan,
     BridgeExecutionOracle, DeferredEffectEligibility, DeniedEffectEligibility,
@@ -166,11 +178,14 @@ pub use crate::effect_lifecycle::{
     LoweredRelationalMutationBatchExecutionArtifact, NormalizedEffectIntent, RawEffectIntent,
     RebindRequiredEffectEligibility, RelationalExecutionOracle, SelfDescribingEffectEnvelope,
 };
+pub(crate) use crate::execution::execute_preflight_bundle;
 #[cfg(test)]
-pub use crate::execution::{execute_parallel_admission_route, execute_serial_fallback_route};
+pub(crate) use crate::execution::{
+    execute_parallel_admission_route, execute_serial_fallback_route,
+};
 pub use crate::execution::{
-    execute_preflight_bundle, ExecutionCounters, ExecutionError, ExecutionFailureClass,
-    ExecutionReport, ExecutionResultEnvelope,
+    ExecutionCounters, ExecutionError, ExecutionFailureClass, ExecutionReport,
+    ExecutionResultEnvelope,
 };
 #[cfg(not(test))]
 pub use crate::frontier_planning::FrontierSurfaceDigest;
@@ -190,13 +205,16 @@ pub use crate::frontier_planning::{
 pub use crate::frontier_signal_adapter::{
     SignalAdmissionEvidenceError, SignalFrontierSurfaceEvidence,
 };
-pub use crate::historical::{
+pub(crate) use crate::historical::{
     admit_historical_evaluation_path, materialization_metadata_from_resolved,
-    resolve_historical_materialization_path, AdmittedHistoricalPathClass,
-    HistoricalCapabilityDescriptor, HistoricalCounterSnapshot, HistoricalEvaluationAdmission,
-    HistoricalEvaluationError, HistoricalEvaluationFailureClass, HistoricalEvaluationRequest,
-    HistoricalMaterializationDescriptor, HistoricalMaterializationPathMetadata,
-    HistoricalPathAdmitted, HistoricalPathCompatibilityOutcome, HistoricalPathComplexityContract,
+    resolve_historical_materialization_path,
+};
+pub use crate::historical::{
+    AdmittedHistoricalPathClass, HistoricalCapabilityDescriptor, HistoricalCounterSnapshot,
+    HistoricalEvaluationAdmission, HistoricalEvaluationError, HistoricalEvaluationFailureClass,
+    HistoricalEvaluationRequest, HistoricalMaterializationDescriptor,
+    HistoricalMaterializationPathMetadata, HistoricalPathAdmitted,
+    HistoricalPathCompatibilityOutcome, HistoricalPathComplexityContract,
     HistoricalPathCostPosture, HistoricalPathRequested, HistoricalPathResolved,
     HistoricalPathReuseDescriptor, HistoricalPathSubstitutionDenied,
     HistoricalPathVocabularyReport, HistoricalPerformanceStatusMarker,
@@ -212,10 +230,12 @@ pub use crate::identity::{
     ValidatedQueryDigest, ValidatedResultShapeDigest,
 };
 pub use crate::identity_authority::{QueryCanonicalAuthority, QueryExternalIdentityToken};
+pub(crate) use crate::identity_evolution::{
+    admit_identity_evolution_query, execute_admitted_identity_evolution_query,
+};
 pub use crate::identity_evolution::{
-    admit_identity_evolution_query, compare_identity_evolution_denial_classification,
-    compare_identity_evolution_denial_replay, compare_identity_evolution_result_classification,
-    compare_identity_evolution_result_replay, execute_admitted_identity_evolution_query,
+    compare_identity_evolution_denial_classification, compare_identity_evolution_denial_replay,
+    compare_identity_evolution_result_classification, compare_identity_evolution_result_replay,
     runtime_backed_direct_identity_evolution_support_profile, AdmittedIdentityEvolutionQuery,
     AdvisoryIdentityCandidateSet, BranchLocalityClass, CorrespondenceIdentityComparison,
     IdentityComparisonIntent, IdentityEvolutionAdmissionError,
@@ -239,11 +259,13 @@ pub use crate::intent_admission::{
     worth_query_basis_observation_intent, WorthQueryBasisObservationAdmittedIntent,
     WorthQueryBasisObservationIntentAuthoring, WorthQueryBasisObservationIntentReview,
 };
+pub(crate) use crate::live::{
+    admit_region_scoped_live_plan, execute_live_change, execute_region_scoped_live_change,
+    lower_region_scoped_execution_to_stream_contract,
+};
 pub use crate::live::{
-    admit_region_scoped_live_plan, build_milestone_five_live_artifact, execute_live_change,
-    execute_region_scoped_live_change, lower_region_scoped_execution_to_stream_contract,
-    promote_preflight_bundle_to_live, replay_live_sequence, AdmittedStreamConsumerContract,
-    BoundedMaterializationLiveOutcome, BoundedMaterializationPatch,
+    build_milestone_five_live_artifact, promote_preflight_bundle_to_live, replay_live_sequence,
+    AdmittedStreamConsumerContract, BoundedMaterializationLiveOutcome, BoundedMaterializationPatch,
     BoundedMaterializationPatchKind, BridgeChangeSummary, BridgeFieldDelta, BridgeLocalitySlice,
     BridgeRelationDelta, BridgeSliceCategory, ChangeRelevance, CoalescingDecision,
     CollectionMembershipChange, CollectionOrderingChange, DeliveryContractLowering,
@@ -280,8 +302,10 @@ pub use crate::live_performance::{
     PatchWidthUnit, PerformanceStatus, PerformanceStatusMarker, RefreshAdmissionStatus,
     RefreshCostClass, VerifiedPerformance,
 };
-pub use crate::memory_workspace::{
+pub(crate) use crate::memory_workspace::{
     admit_authored_entity_token, admit_external_commit_token, admit_external_snapshot_token,
+};
+pub use crate::memory_workspace::{
     WorthQueryAspect, WorthQueryCommitIdentity, WorthQueryEntity, WorthQueryEntityIdentity,
     WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQueryMemoryWorkspace,
     WorthQueryMutationDelta, WorthQueryMutationKind, WorthQueryMutationReceipt,
