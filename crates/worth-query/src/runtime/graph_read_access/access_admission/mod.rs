@@ -31,6 +31,7 @@ pub use planner::{
 };
 pub(crate) use planner::{
     admit_graph_read_access_for_family_in_authority_with_inventory,
+    admit_graph_read_access_for_family_in_authority_with_inventory_and_lookup,
     admit_graph_read_access_for_family_with_inventory,
 };
 pub use posture::WorthQueryGraphReadAccessAdmissionPosture;

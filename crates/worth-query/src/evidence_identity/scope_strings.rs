@@ -3,6 +3,7 @@ use super::graph_application_scope_strings::graph_application_evidence_scope_as_
 use super::scope::WorthQueryEvidenceScope;
 
 pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static str {
+    use WorthQueryEvidenceScope as S;
     match scope {
         WorthQueryEvidenceScope::RuntimePublicSupportMatrixRow => {
             "runtime-public-support-matrix-row"
@@ -114,10 +115,15 @@ pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static 
         WorthQueryEvidenceScope::ProjectionConsumptionCertificationIdentity => {
             "projection-consumption-certification-identity"
         }
-        WorthQueryEvidenceScope::DomainCapabilityIdentity => "domain-capability-identity",
-        WorthQueryEvidenceScope::DomainCapabilityCertificationIdentity => {
-            "domain-capability-certification-identity"
-        }
+        S::DomainCapabilityIdentity => "domain-capability-identity",
+        S::DomainCapabilityCertificationIdentity => "domain-capability-certification-identity",
+        S::DomainPackageIdentity => "domain-package-identity",
+        S::DomainPackageValidation => "domain-package-validation",
+        S::DomainPackageAdmission => "domain-package-admission",
+        S::DomainInstallation => "domain-installation",
+        S::InstalledDomainHandle => "installed-domain-handle",
+        S::InstalledDomainExecutionIndex => "installed-domain-execution-index",
+        S::InstalledDomainRebind => "installed-domain-rebind",
         WorthQueryEvidenceScope::ProjectionConsumedContinuityAuthorityIdentity => {
             "projection-consumed-continuity-authority-identity"
         }

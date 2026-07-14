@@ -10,6 +10,7 @@ mod cost_model;
 mod ephemeral_index_provisioning;
 mod explanation_api;
 mod graph_index_inventory;
+mod installed_explanation;
 mod live_maintenance;
 mod operation_resolution;
 mod persistent_index_requirement;
@@ -25,11 +26,18 @@ mod vocabulary;
 
 pub(crate) use access_admission::{
     admit_graph_read_access_for_family_in_authority_with_inventory,
+    admit_graph_read_access_for_family_in_authority_with_inventory_and_lookup,
     admit_graph_read_access_for_family_with_inventory,
 };
 pub(crate) use boolean_expression::admit_boolean_predicate_expression_for_read_graph;
 pub(crate) use graph_index_inventory::match_graph_index_inventory_for_requirements;
+pub(crate) use installed_explanation::{
+    explain_boolean_selectivity_shape_for_family_in_authority_with_lookup,
+    explain_graph_read_access_requirements_for_family_in_authority_with_lookup,
+    explain_graph_read_access_shape_for_family_in_authority_with_lookup,
+};
 pub(crate) use operation_resolution::resolve_graph_read_operations_for_read_graph;
+pub(crate) use operation_resolution::WorthQueryGraphReadOperationLookup;
 pub(crate) use schema_reference_admission::admit_query_schema_references_for_read_graph;
 pub(crate) use selectivity_normalization::normalize_boolean_selectivity_for_access_shape;
 pub(crate) use shape_derivation::derive_graph_read_access_shape;
