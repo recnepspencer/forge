@@ -1,9 +1,9 @@
 #[cfg(test)]
 use crate::application::WorthQueryContinuationExecutionReadmissionObservation;
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationBridgeBinding,
-    WorthQueryDeclarationBridgeContinuationRequest, WorthQueryDeclarationBridgeRouting,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationBridgeBinding, WorthQueryDeclarationBridgeContinuationRequest,
+    WorthQueryDeclarationBridgeRouting, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::basis_lifecycle::LowerRuntimeEvidenceAuthority;
 use crate::evidence_identity::{
@@ -87,7 +87,7 @@ pub(crate) fn current_readmission_evidence_from_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     prepared: &WorthQueryPreparedContinuation<D, I>,
 ) -> WorthQueryPreparedContinuationCurrentReadmissionEvidence {
     let retained = prepared.execution_readmission();

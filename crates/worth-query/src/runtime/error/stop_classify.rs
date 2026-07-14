@@ -6,6 +6,9 @@ use super::*;
 
 pub(super) fn classify_stop_class(error: &WorthQueryRuntimeError) -> WorthQueryStopClass<'_> {
     match error {
+        WorthQueryRuntimeError::InstalledDomainAuthorityDenied(denial) => {
+            WorthQueryStopClass::InstalledDomainAuthorityDenied { denial }
+        }
         WorthQueryRuntimeError::MissingBackend => WorthQueryStopClass::MissingRuntimeComponent {
             component: WorthQueryRuntimeMissingComponent::Backend,
         },

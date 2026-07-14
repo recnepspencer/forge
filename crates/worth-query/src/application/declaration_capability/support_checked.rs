@@ -3,8 +3,8 @@ use super::support::{
     WorthQueryDeclarationFamilySupportReport,
 };
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -23,12 +23,15 @@ pub(crate) fn worth_query_checked_family_support<
     C: WorthQueryDomainOperatingContext<D>,
     F: WorthQueryDeclarationFamilyMarker<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> WorthQueryDeclarationFamilySupportChecked<D, F> {
     let report = derive_family_support_report::<D, C, F>(handle);
     match report.declare_status() {
         WorthQueryDeclarationCapabilityStatus::Admitted => {
             WorthQueryDeclarationFamilySupportChecked::Admitted(report)
+        }
+        WorthQueryDeclarationCapabilityStatus::NotInstalled => {
+            WorthQueryDeclarationFamilySupportChecked::Unsupported(report)
         }
         WorthQueryDeclarationCapabilityStatus::DeferredDebt => {
             WorthQueryDeclarationFamilySupportChecked::Deferred(report)

@@ -1,6 +1,6 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::{WorthQueryBindingRequestDescriptor, WorthQueryBindingWitnessCheck};
 use crate::evidence_identity::{
@@ -22,7 +22,7 @@ fn missing_required_capability<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     prepared: &super::WorthQueryPreparedContinuation<D, I>,
 ) -> Option<crate::application::WorthQueryCapabilityFamily> {
     prepared
@@ -40,7 +40,7 @@ pub(crate) fn execute_prepared_continuation_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     request: WorthQueryExecutePreparedContinuationRequest<D, I>,
 ) -> WorthQueryContinuationExecutionTranscript<D, I> {
     let prepared = request.into_prepared();

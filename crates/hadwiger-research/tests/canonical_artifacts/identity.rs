@@ -1,9 +1,8 @@
 use hadwiger_research::facade::*;
 
 fn query_source(graph_id: &str, graph_version: &str) -> HadwigerQueryDeclarationReference {
-    let handle =
-        admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
-            .expect("default Hadwiger research handle should admit");
+    let handle = crate::installed_support::installed_hadwiger_research_handle()
+        .expect("default Hadwiger research handle should admit");
     let checked = declare_research_request_checked(
         &handle,
         CandidateGraphDeclaration::new(graph_id).with_graph_version(graph_version),
@@ -166,9 +165,8 @@ fn graph_version_builder_rejects_shape_errors_without_math_claims() {
 
 #[test]
 fn query_declaration_references_are_self_describing() {
-    let handle =
-        admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
-            .expect("default Hadwiger research handle should admit");
+    let handle = crate::installed_support::installed_hadwiger_research_handle()
+        .expect("default Hadwiger research handle should admit");
     let declaration = declare_research_request_checked(
         &handle,
         CandidateGraphDeclaration::new("candidate-a").with_graph_version("v1"),

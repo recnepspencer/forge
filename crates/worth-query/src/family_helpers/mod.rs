@@ -7,8 +7,8 @@ pub use geometry::{
 };
 
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 
 pub struct WorthQueryFamilyHelpers<
@@ -16,13 +16,13 @@ pub struct WorthQueryFamilyHelpers<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,
 > {
-    handle: &'a WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &'a WorthQueryInstalledDomainDeclarationContext<D, C>,
 }
 
 impl<'a, D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
     WorthQueryFamilyHelpers<'a, D, C>
 {
-    pub(crate) fn new(handle: &'a WorthQueryAdmittedConfiguredDomainHandle<D, C>) -> Self {
+    pub(crate) fn new(handle: &'a WorthQueryInstalledDomainDeclarationContext<D, C>) -> Self {
         Self { handle }
     }
 

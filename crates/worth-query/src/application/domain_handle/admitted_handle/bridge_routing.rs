@@ -1,19 +1,19 @@
 use crate::application::{
     derive_bridge_routing_support_report, worth_query_checked_declaration_bridge_routing_on_handle,
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationAspectFit,
-    WorthQueryDeclarationAuthorityAspectMismatch, WorthQueryDeclarationBridgeRouting,
-    WorthQueryDeclarationBridgeRoutingChecked, WorthQueryDeclarationBridgeRoutingInput,
-    WorthQueryDeclarationBridgeRoutingSupportReport,
+    WorthQueryDeclarationAspectFit, WorthQueryDeclarationAuthorityAspectMismatch,
+    WorthQueryDeclarationBridgeRouting, WorthQueryDeclarationBridgeRoutingChecked,
+    WorthQueryDeclarationBridgeRoutingInput, WorthQueryDeclarationBridgeRoutingSupportReport,
     WorthQueryDeclarationBridgeRoutingSupportStatus,
     WorthQueryDeclarationBridgeRoutingTerminalError, WorthQueryDeclarationEnvelopeInput,
     WorthQueryDeclarationFoundationalEvidenceInput, WorthQueryDeclarationInput,
     WorthQueryDeclarationReceiptInput, WorthQueryDeclarationRouteIntent,
     WorthQueryDeclarationRoutePlanInput, WorthQueryDeclarationSupportsBridgeContinuation,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn route_bridge_continuation<I: WorthQueryDeclarationInput<D>>(
         &self,
@@ -82,7 +82,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
 }
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn route_bridge_continuation_from_progressed<I>(
         &self,

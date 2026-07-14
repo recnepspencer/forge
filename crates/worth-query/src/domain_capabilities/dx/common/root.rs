@@ -1,3 +1,4 @@
+use std::any::TypeId;
 use std::sync::Arc;
 
 use crate::domain_capabilities::{
@@ -23,6 +24,8 @@ use crate::runtime::{
 use super::admitted_plan::WorthQueryAdmittedPlanDomainContributionSurface;
 use super::intent::WorthQueryIntentDomainContributionSurface;
 use super::lower_runtime::WorthQueryLowerRuntimeDomainContributionSurface;
+
+struct WorthQueryCertificationDomain;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryInstalledDomainContributionSurface {
@@ -176,11 +179,20 @@ pub(crate) fn worth_query_certification_domain(
         WorthQueryInstalledDomainAuthority::new(
             crate::runtime::WorthQueryRuntimeAuthorityIdentity::mint(),
             WorthQueryDomainInstallationGeneration::initial(),
+            TypeId::of::<WorthQueryCertificationDomain>(),
             "WORTH.certification.domain",
             "WorthQueryCertificationDomain",
             domain,
             package_identity,
             installation_identity,
+            crate::application::WorthQueryDomainEntrySupportSnapshot::from_support_report(
+                crate::application::WorthQueryApplicationFacade::runtime_backed_default()
+                    .support_report(),
+            ),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
             policy,
         ),
     ))

@@ -44,8 +44,7 @@ fn closed_tile(tile_id: &str, color_id: &str, x_min: i128, x_max: i128) -> Recta
 }
 
 fn handle() -> HadwigerResearchHandle {
-    admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
-        .unwrap()
+    crate::installed_support::installed_hadwiger_research_handle().unwrap()
 }
 
 #[test]

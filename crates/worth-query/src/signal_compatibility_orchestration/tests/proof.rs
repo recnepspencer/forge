@@ -336,7 +336,7 @@ impl WorthQueryDeclarationInput<SignalDomain> for HistoricalBasisSignalInput {
 }
 
 fn admitted_basis_mismatch_handle(
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<SignalDomain, BasisMismatchWorld>
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<SignalDomain, BasisMismatchWorld>
 {
     WorthQueryApplicationFacade::new(
         WorthQueryConfig::runtime_backed_default().with_relational(
@@ -353,7 +353,7 @@ fn admitted_basis_mismatch_handle(
 }
 
 fn admitted_same_world_different_handle(
-) -> crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     SignalDomain,
     SharedIdentityDifferentHandleWorld,
 > {
@@ -370,7 +370,7 @@ fn admitted_same_world_different_handle(
 }
 
 fn local_input<I: WorthQueryDeclarationInput<SignalDomain>>(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         SignalDomain,
         SignalWorld,
     >,
@@ -407,7 +407,7 @@ impl LocalSignalInput for UnsupportedSignalInput {
 }
 
 fn basis_mismatch_input(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<
         SignalDomain,
         BasisMismatchWorld,
     >,

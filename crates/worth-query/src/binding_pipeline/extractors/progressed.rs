@@ -1,6 +1,6 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::{
     bind_envelope_from_target_on_handle, bind_receipt_from_target_on_handle,
@@ -20,7 +20,7 @@ macro_rules! bind_from_progression_context {
             C: WorthQueryDomainOperatingContext<D>,
             I: WorthQueryDeclarationInput<D>,
         >(
-            handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+            handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
             request: $request_ty<D, I>,
         ) -> crate::binding_pipeline::WorthQueryBindingTranscript<$out> {
             let (candidates, contract, allowed_sources, allow_superset, partial_narrowing, route_intent) =

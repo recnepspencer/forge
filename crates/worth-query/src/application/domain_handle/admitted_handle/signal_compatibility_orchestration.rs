@@ -1,6 +1,6 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationInput,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::ordinary_outcome::WorthQueryOrdinaryOutcome;
 use crate::signal_compatibility_orchestration::{
@@ -13,7 +13,7 @@ use crate::signal_compatibility_orchestration::{
 };
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn orchestrate_signal_compatibility<I: WorthQueryDeclarationInput<D>>(
         &self,

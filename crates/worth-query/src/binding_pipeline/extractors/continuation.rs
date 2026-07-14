@@ -1,7 +1,7 @@
 use crate::application::{
-    aspect_coverage_from_publication, WorthQueryAdmittedConfiguredDomainHandle,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    aspect_coverage_from_publication, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::{
     bind_continuation_from_target_on_handle, WorthQueryBindingCandidateRecord,
@@ -19,7 +19,7 @@ pub(crate) fn bind_continuation_request_from_context_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     request: WorthQueryContinuationBindingRequest<D, I>,
 ) -> WorthQueryBindingTranscript<WorthQueryContinuationBindingInput<D, I>> {
     let (candidates, contract, allowed_sources, allow_superset, partial_narrowing, bridge_request) =

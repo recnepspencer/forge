@@ -1,57 +1,36 @@
 use hadwiger_research::facade::*;
 use worth_query::facade::foundation::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
     WorthQueryDeclarationEntryCrossingSurface, WorthQueryDeclaredFamilyChecked,
     WorthQueryDomainOperatingContext,
 };
 
 fn handle() -> HadwigerResearchHandle {
-    admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
+    crate::installed_support::installed_hadwiger_research_handle()
         .expect("default Hadwiger research handle should admit")
 }
 
 #[test]
-fn handle_admission_helper_matches_direct_query_path() {
-    let context = HadwigerResearchOperatingContext::finite_lower_bound_real();
-    let helper = admit_hadwiger_research_handle(context)
-        .expect("helper admission should use the runtime-backed Query path");
-    let direct = WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(HadwigerResearchDomainEntry)
-        .with_operating_context(context)
-        .validate()
-        .expect("direct Query validation should admit")
-        .admit()
-        .expect("direct Query handle should admit");
+fn installed_package_drives_the_domain_declaration_context() {
+    let installed = handle();
 
-    assert_eq!(helper.domain_key(), direct.domain_key());
-    assert_eq!(helper.display_name(), direct.display_name());
+    assert_eq!(installed.domain_key(), "WORTH.hadwiger.research");
+    assert_eq!(installed.display_name(), "HadwigerResearchDomainEntry");
     assert_eq!(
-        helper.handle_identity_digest(),
-        direct.handle_identity_digest()
-    );
-    assert_eq!(
-        helper.operating_context_identity_digest(),
-        direct.operating_context_identity_digest()
-    );
-    assert!(!helper.required_capability_families().is_empty());
-    assert_eq!(
-        helper.required_capability_families(),
+        installed.required_capability_families(),
         &[
+            WorthQueryCapabilityFamily::QueryRead,
             WorthQueryCapabilityFamily::QueryComposition,
             WorthQueryCapabilityFamily::WorkflowOrchestration,
             WorthQueryCapabilityFamily::HistoricalEvaluation,
         ]
     );
     assert_eq!(
-        helper.required_config_sections(),
+        installed.required_config_sections(),
         &[
             WorthQueryConfigSectionFamily::Query,
             WorthQueryConfigSectionFamily::Relational
         ]
-    );
-    assert_eq!(
-        helper.required_config_sections(),
-        direct.required_config_sections()
     );
 }
 

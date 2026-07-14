@@ -1,8 +1,8 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationEnvelopeChecked,
-    WorthQueryDeclarationEnvelopeInput, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDeclarationRouteIntent,
-    WorthQueryDeclarationRoutePlanChecked, WorthQueryDeclarationRoutePlanInput,
+    WorthQueryDeclarationEnvelopeChecked, WorthQueryDeclarationEnvelopeInput,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
+    WorthQueryDeclarationRouteIntent, WorthQueryDeclarationRoutePlanChecked,
+    WorthQueryDeclarationRoutePlanInput, WorthQueryInstalledDomainDeclarationContext,
 };
 
 use super::domain::{EnvelopeInput, GeometryDomain, GeometryWorld};
@@ -10,7 +10,7 @@ use super::domain::{EnvelopeInput, GeometryDomain, GeometryWorld};
 pub(crate) use super::domain::DeferredEnvelopeFamily;
 
 pub(crate) fn progressed<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: EnvelopeInput<F>,
 ) -> crate::application::WorthQueryAdmittedDeclarationProgression<GeometryDomain, EnvelopeInput<F>>
 where
@@ -23,7 +23,7 @@ where
 }
 
 pub(crate) fn route_checked_with_intent<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: EnvelopeInput<F>,
     intent: WorthQueryDeclarationRouteIntent,
 ) -> WorthQueryDeclarationRoutePlanChecked<GeometryDomain, EnvelopeInput<F>>
@@ -47,7 +47,7 @@ where
 }
 
 pub(crate) fn route_checked_from_input<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: EnvelopeInput<F>,
 ) -> WorthQueryDeclarationRoutePlanChecked<GeometryDomain, EnvelopeInput<F>>
 where
@@ -69,7 +69,7 @@ where
 }
 
 pub(crate) fn envelope_checked_from_receipt<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: EnvelopeInput<F>,
 ) -> WorthQueryDeclarationEnvelopeChecked<GeometryDomain, EnvelopeInput<F>>
 where

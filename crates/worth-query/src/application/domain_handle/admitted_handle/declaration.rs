@@ -10,12 +10,12 @@ use crate::application::{
     WorthQueryDomainEntryMarker,
 };
 
-use super::WorthQueryAdmittedConfiguredDomainHandle;
+use super::WorthQueryInstalledDomainDeclarationContext;
 use crate::application::WorthQueryDomainOperatingContext;
 use crate::runtime::WorthQueryRuntimeFacadeFamily;
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn family_support<F>(&self) -> WorthQueryDeclarationFamilySupportReport<D, F>
     where

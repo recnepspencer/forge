@@ -4,7 +4,7 @@ use worth_query::facade::foundation::{
 };
 
 fn handle() -> HadwigerResearchHandle {
-    admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
+    crate::installed_support::installed_hadwiger_research_handle()
         .expect("Hadwiger handle should admit")
 }
 
@@ -252,19 +252,12 @@ fn explanation_digest_changes_when_repair_obligation_changes() {
 #[test]
 fn query_owned_recovery_brief_is_retained_without_local_translation() {
     let hadwiger_handle = handle();
-    let query_handle = WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(HadwigerResearchDomainEntry)
-        .with_operating_context(HadwigerResearchOperatingContext::finite_lower_bound_real())
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap();
-    let checked = query_handle.orchestrate_declaration_with_contributions_checked(
+    let checked = hadwiger_handle.orchestrate_declaration_with_contributions_checked(
         WorthQueryContributionComposedOrchestrationInput::new(
             RejectionExplanationDeclaration::new("candidate-a", "bad-edge"),
         ),
     );
-    let recovery = query_handle
+    let recovery = hadwiger_handle
         .recover_from_contribution_composed_checked(checked)
         .expect("empty contribution composed request should recover through Query");
 

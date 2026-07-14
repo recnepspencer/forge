@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 
 use crate::application::{
-    dispatch_graph_obligations_for_orchestration, WorthQueryAdmittedConfiguredDomainHandle,
-    WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationAspectCoverageBasis,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext, WorthQueryGraphObligationOrchestrationBoundary,
+    dispatch_graph_obligations_for_orchestration, WorthQueryDeclarationAspectCoverage,
+    WorthQueryDeclarationAspectCoverageBasis, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryGraphObligationOrchestrationBoundary, WorthQueryInstalledDomainDeclarationContext,
 };
 
 use super::artifact::{
@@ -28,7 +28,7 @@ pub(crate) fn worth_query_grouped_declaration_checked_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     input: WorthQueryGroupedDeclarationInput<D, I>,
 ) -> WorthQueryGroupedDeclarationChecked<D, I> {
     let (

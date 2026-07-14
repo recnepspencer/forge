@@ -1,12 +1,13 @@
 use hadwiger_research::facade::{
-    admit_hadwiger_research_handle, declare_research_request_checked, CandidateGraphDeclaration,
+    declare_research_request_checked, hadwiger_research_domain_package, CandidateGraphDeclaration,
     GraphIdentity, GraphVersion, HadwigerCanonicalArtifact, HadwigerDeclaredFamilyCheckedExt,
-    HadwigerResearchAdmissionError, HadwigerResearchOperatingContext,
+    HadwigerResearchDomainEntry, HadwigerResearchHandle, HadwigerResearchOperatingContext,
+    HadwigerResearchQueryExt,
 };
+use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 
-fn graph_artifact_dx() -> Result<(), HadwigerResearchAdmissionError> {
-    let handle =
-        admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())?;
+fn graph_artifact_dx() -> Result<(), String> {
+    let handle = installed_declarations()?;
 
     let checked = declare_research_request_checked(
         &handle,
@@ -36,5 +37,16 @@ fn graph_artifact_dx() -> Result<(), HadwigerResearchAdmissionError> {
 }
 
 fn main() {
-    let _ = graph_artifact_dx as fn() -> Result<(), HadwigerResearchAdmissionError>;
+    let _ = graph_artifact_dx as fn() -> Result<(), String>;
+}
+
+fn installed_declarations() -> Result<HadwigerResearchHandle, String> {
+    let schema = WorthQueryTestBackendSchema::single_collection("HadwigerCandidate")
+        .aspect("identity.id", "identity.id").map_err(|error| error.to_string())?;
+    let workspace = in_memory_test_runtime().with_schema(schema)
+        .domain_package(hadwiger_research_domain_package())
+        .workspace("hadwiger-graph-artifact-dx").map_err(|error| error.to_string())?;
+    let installed = workspace.domain(HadwigerResearchDomainEntry).map_err(|error| error.to_string())?;
+    installed.research_declarations(&workspace, HadwigerResearchOperatingContext::default())
+        .map_err(|error| error.to_string())
 }

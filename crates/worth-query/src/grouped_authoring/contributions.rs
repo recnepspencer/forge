@@ -127,7 +127,7 @@ pub(crate) fn worth_query_grouped_contribution_checked_on_handle<
     C: crate::application::WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<D, C>,
     input: WorthQueryGroupedContributionInput<D, I>,
 ) -> Result<WorthQueryGroupedContributionComposition<D, I>, WorthQueryGroupedContributionStop<D, I>>
 {
@@ -175,7 +175,7 @@ fn lower_grouped_contributions_on_handle<
     C: crate::application::WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
     shared_contributions: Vec<WorthQueryContributionIntent>,
     member_contributions: Vec<WorthQueryGroupedContributionAssignment>,

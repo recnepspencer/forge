@@ -1,4 +1,4 @@
-use super::admitted_handle::WorthQueryAdmittedConfiguredDomainHandle;
+use super::admitted_handle::WorthQueryInstalledDomainDeclarationContext;
 use super::checked_outcome::{
     WorthQueryConfiguredDomainHandleAdmissionError, WorthQueryConfiguredDomainHandleChecked,
     WorthQueryConfiguredDomainHandleDeferred, WorthQueryConfiguredDomainHandleInvalidContext,
@@ -20,7 +20,7 @@ pub(crate) fn admit_configured_domain_handle<
 >(
     validated_handle: WorthQueryValidatedConfiguredDomainHandle<D, C>,
 ) -> Result<
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    WorthQueryInstalledDomainDeclarationContext<D, C>,
     WorthQueryConfiguredDomainHandleAdmissionError<D, C>,
 > {
     match checked_from_validated_handle(validated_handle) {
@@ -99,7 +99,7 @@ pub(crate) fn checked_from_validated_handle<
         handle_identity_digest,
     ) = validated_handle.into_parts();
     WorthQueryConfiguredDomainHandleChecked::Admitted(
-        WorthQueryAdmittedConfiguredDomainHandle::new(
+        WorthQueryInstalledDomainDeclarationContext::new(
             marker,
             operating_context,
             support_snapshot,

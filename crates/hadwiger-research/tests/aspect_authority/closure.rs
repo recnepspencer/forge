@@ -1,9 +1,8 @@
 use hadwiger_research::facade::*;
 
 fn graph_version() -> GraphVersion {
-    let handle =
-        admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
-            .expect("default Hadwiger research handle should admit");
+    let handle = crate::installed_support::installed_hadwiger_research_handle()
+        .expect("default Hadwiger research handle should admit");
     let declaration = declare_research_request_checked(
         &handle,
         CandidateGraphDeclaration::new("candidate-a").with_graph_version("v1"),

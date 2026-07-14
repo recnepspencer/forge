@@ -1,19 +1,19 @@
 use crate::application::{
     worth_query_checked_declaration_relational_routing_on_handle,
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationAuthorityAspectMismatch,
-    WorthQueryDeclarationEnvelopeInput, WorthQueryDeclarationFoundationalEvidenceInput,
-    WorthQueryDeclarationInput, WorthQueryDeclarationReceiptInput,
-    WorthQueryDeclarationRelationalRouting, WorthQueryDeclarationRelationalRoutingChecked,
-    WorthQueryDeclarationRelationalRoutingInput,
+    WorthQueryDeclarationAuthorityAspectMismatch, WorthQueryDeclarationEnvelopeInput,
+    WorthQueryDeclarationFoundationalEvidenceInput, WorthQueryDeclarationInput,
+    WorthQueryDeclarationReceiptInput, WorthQueryDeclarationRelationalRouting,
+    WorthQueryDeclarationRelationalRoutingChecked, WorthQueryDeclarationRelationalRoutingInput,
     WorthQueryDeclarationRelationalRoutingSupportReport,
     WorthQueryDeclarationRelationalRoutingTerminalError,
     WorthQueryDeclarationRelationalTruthRoutingSupportStatus, WorthQueryDeclarationRouteIntent,
     WorthQueryDeclarationRoutePlanInput, WorthQueryDeclarationSupportsRelationalTruth,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn route_relational_truth<I: WorthQueryDeclarationInput<D>>(
         &self,
@@ -78,7 +78,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
 }
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn route_relational_truth_from_progressed<I>(
         &self,

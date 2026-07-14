@@ -1,9 +1,9 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationBridgeContinuationRequest,
-    WorthQueryDeclarationBridgeRoutingInput, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDeclarationSignalCompatibilityChecked,
-    WorthQueryDeclarationSignalExecutionFamily, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationBridgeContinuationRequest, WorthQueryDeclarationBridgeRoutingInput,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
+    WorthQueryDeclarationSignalCompatibilityChecked, WorthQueryDeclarationSignalExecutionFamily,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::basis_lifecycle::BasisFamily;
 use crate::binding_pipeline::WorthQueryBindingLinkedArtifacts;
@@ -226,7 +226,7 @@ pub(super) fn prepared_digest<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     bridge_request: &WorthQueryDeclarationBridgeContinuationRequest,
     required_contract: &crate::application::WorthQueryDeclarationAspectContract,
     linked: &WorthQueryBindingLinkedArtifacts,

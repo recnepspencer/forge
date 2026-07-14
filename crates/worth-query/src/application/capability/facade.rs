@@ -11,6 +11,7 @@ use crate::application::config::{
     ConfigurationAdmissionError, ValidatedWorthQueryConfig, WorthQueryConfig,
     WorthQueryConfigSectionFamily, WorthQueryConfigSectionResolution,
 };
+#[cfg(test)]
 use crate::application::domain_entry::{
     worth_query_checked_domain_entry, worth_query_domain_entry,
     worth_query_domain_entry_support_snapshot, worth_query_domain_proof_root,
@@ -70,10 +71,12 @@ impl WorthQueryApplicationFacade {
         )
     }
 
+    #[cfg(test)]
     pub fn domain_entry_support_snapshot(&self) -> WorthQueryDomainEntrySupportSnapshot {
         worth_query_domain_entry_support_snapshot(self)
     }
 
+    #[cfg(test)]
     pub fn domain<D: WorthQueryDomainEntryMarker>(
         &self,
         marker: D,
@@ -81,6 +84,7 @@ impl WorthQueryApplicationFacade {
         worth_query_domain_entry(self, marker)
     }
 
+    #[cfg(test)]
     pub fn domain_checked<D: WorthQueryDomainEntryMarker>(
         &self,
         marker: D,
@@ -88,6 +92,7 @@ impl WorthQueryApplicationFacade {
         worth_query_checked_domain_entry(self, marker)
     }
 
+    #[cfg(test)]
     pub fn domain_proof_root<D: WorthQueryDomainEntryMarker>(
         &self,
         marker: D,

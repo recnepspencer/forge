@@ -29,7 +29,7 @@ pub(crate) fn worth_query_declaration_entry_inspection_on_handle<
     C: crate::application::WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<D, C>,
     subject: WorthQueryDeclarationEntryInspectionInput<D, I>,
 ) -> Result<
     WorthQueryDeclarationEntryInspection<D, I>,

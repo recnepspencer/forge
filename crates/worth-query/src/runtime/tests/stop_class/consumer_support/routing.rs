@@ -2,6 +2,7 @@ use super::super::super::support::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in super::super) enum ConsumerStopRoute<'a> {
+    InstalledDomainAuthorityDenied(WorthQueryDomainHandleDenialKind),
     MissingRuntimeComponent(WorthQueryRuntimeMissingComponent),
     ExistingTruthAssertionDenied(WorthQueryExistingTruthAssertionDenialKind),
     ExistingTruthProbeDenied(WorthQueryExistingTruthProbeDenialKind),
@@ -58,6 +59,9 @@ pub(in super::super) fn route_consumer_stop_class(
     error: &WorthQueryRuntimeError,
 ) -> ConsumerStopRoute<'_> {
     match error.stop_class() {
+        WorthQueryStopClass::InstalledDomainAuthorityDenied { denial } => {
+            ConsumerStopRoute::InstalledDomainAuthorityDenied(denial.kind())
+        }
         WorthQueryStopClass::MissingRuntimeComponent { component } => {
             ConsumerStopRoute::MissingRuntimeComponent(component)
         }

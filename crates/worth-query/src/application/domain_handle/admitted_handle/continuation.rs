@@ -15,10 +15,10 @@ use crate::continuation_pipeline::{
 };
 use crate::ordinary_outcome::WorthQueryOrdinaryOutcome;
 
-use super::WorthQueryAdmittedConfiguredDomainHandle;
+use super::WorthQueryInstalledDomainDeclarationContext;
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn prepare_continuation_from_target<I>(
         &self,

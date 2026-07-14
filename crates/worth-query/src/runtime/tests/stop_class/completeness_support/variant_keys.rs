@@ -4,6 +4,9 @@ pub(in crate::runtime::tests::stop_class) fn runtime_error_variant_key(
     error: &WorthQueryRuntimeError,
 ) -> &'static str {
     match error {
+        WorthQueryRuntimeError::InstalledDomainAuthorityDenied(_) => {
+            "installed_domain_authority_denied"
+        }
         WorthQueryRuntimeError::MissingBackend => "missing_backend",
         WorthQueryRuntimeError::MissingRuntimeBridge => "missing_runtime_bridge",
         WorthQueryRuntimeError::MissingSchemaAdapter => "missing_schema_adapter",
@@ -102,6 +105,9 @@ pub(in crate::runtime::tests::stop_class) fn stop_class_variant_key(
     stop_class: WorthQueryStopClass<'_>,
 ) -> &'static str {
     match stop_class {
+        WorthQueryStopClass::InstalledDomainAuthorityDenied { .. } => {
+            "installed_domain_authority_denied"
+        }
         WorthQueryStopClass::MissingRuntimeComponent { .. } => "missing_runtime_component",
         WorthQueryStopClass::ExistingTruthAssertionDenied { .. } => {
             "existing_truth_assertion_denied"

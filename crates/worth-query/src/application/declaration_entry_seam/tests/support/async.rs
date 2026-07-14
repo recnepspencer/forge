@@ -1,15 +1,16 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryAsyncDeclarationClause,
-    WorthQueryAsyncDeclarationSupport, WorthQueryAsyncFailurePosture,
-    WorthQueryAsyncLoadingPosture, WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncSourceFamily,
+    WorthQueryAsyncDeclarationClause, WorthQueryAsyncDeclarationSupport,
+    WorthQueryAsyncFailurePosture, WorthQueryAsyncLoadingPosture,
+    WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncSourceFamily,
     WorthQueryBridgeContinuationAuthority, WorthQueryDeclarationBridgeContinuationContract,
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationEnvelope,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
     WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRouteContract,
     WorthQueryDeclarationSignalCompatibilityContract, WorthQueryDomainOperatingContext,
-    WorthQueryNeighborhoodCapableGrouping, WorthQuerySignalCompatiblePosture,
+    WorthQueryInstalledDomainDeclarationContext, WorthQueryNeighborhoodCapableGrouping,
+    WorthQuerySignalCompatiblePosture,
 };
 
 use super::domain::GeometryDomain;
@@ -171,7 +172,7 @@ macro_rules! impl_async_input {
 impl_async_input!(AsyncCurrentFamily, AsyncPreviewFamily, DeferredAsyncFamily);
 
 pub fn async_current_envelope<C: WorthQueryDomainOperatingContext<GeometryDomain>>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, C>,
     input: AsyncInput<AsyncCurrentFamily>,
 ) -> WorthQueryDeclarationEnvelope<GeometryDomain, AsyncInput<AsyncCurrentFamily>> {
     let progressed = match handle.declare_review_and_progress(input) {

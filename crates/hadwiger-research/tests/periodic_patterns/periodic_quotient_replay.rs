@@ -1,8 +1,7 @@
 use hadwiger_research::facade::*;
 
 fn handle() -> HadwigerResearchHandle {
-    admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
-        .unwrap()
+    crate::installed_support::installed_hadwiger_research_handle().unwrap()
 }
 
 fn rational(value: i128) -> ExactRational {

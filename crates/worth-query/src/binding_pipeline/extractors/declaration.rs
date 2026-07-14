@@ -1,6 +1,6 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::{
     WorthQueryBindingAspectFitReport, WorthQueryBindingNarrowingDecision, WorthQueryBindingOutcome,
@@ -15,7 +15,7 @@ pub(crate) fn bind_declaration_from_context_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     request: WorthQueryDeclarationBindingRequest<I>,
 ) -> WorthQueryBindingTranscript<crate::application::WorthQueryCanonicalDeclarationArtifact<D, I>> {
     let (candidates, contract, allowed_sources, allow_superset, partial_narrowing) =

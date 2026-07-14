@@ -11,11 +11,11 @@ use crate::ordinary_outcome::{
     ordinary_outcome_from_orchestration_terminal, WorthQueryOrdinaryOutcome,
 };
 
-use super::super::WorthQueryAdmittedConfiguredDomainHandle;
+use super::super::WorthQueryInstalledDomainDeclarationContext;
 use crate::application::WorthQueryDomainOperatingContext;
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub(crate) fn orchestrate_declaration_entry<I>(
         &self,

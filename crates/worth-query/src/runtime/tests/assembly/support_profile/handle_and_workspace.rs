@@ -1,6 +1,10 @@
 use super::super::super::support::*;
-use crate::evidence_identity::{
-    worth_query_evidence_identity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
+use crate::application::{
+    WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+};
+use crate::domain_installation::{
+    WorthQueryDomainIdentityDeclaration, WorthQueryDomainIdentityName,
+    WorthQueryDomainIdentityNamespace, WorthQueryDomainPackage, WorthQueryDomainSemanticVersion,
 };
 use crate::runtime::evidence_identities::{
     runtime_state_snapshot_basis_label_identity,
@@ -8,20 +12,39 @@ use crate::runtime::evidence_identities::{
     runtime_state_snapshot_test_subject_identity,
 };
 
-fn test_runtime_world_basis() -> crate::application::WorthQueryAdmittedWorldBasis {
-    crate::application::WorthQueryAdmittedWorldBasis::new(
-        "test.runtime.basis",
-        "TestRuntimeBasis",
-        "operating:runtime-basis".to_string(),
-        worth_query_evidence_identity(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-            .field_shape(
-                WorthQueryEvidenceTag::new("test_handle"),
-                "handle:runtime-basis",
-            )
-            .seal(),
-        "support:snapshot".to_string(),
-        crate::application::compose_basis_lifecycle_support_identity(
-            crate::basis_lifecycle::basis_lifecycle_support_matrix().matrix_digest(),
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct TestRuntimeBasisDomain;
+
+impl WorthQueryDomainEntryMarker for TestRuntimeBasisDomain {
+    fn domain_key(&self) -> &'static str {
+        "test.runtime.basis"
+    }
+
+    fn display_name(&self) -> &'static str {
+        "TestRuntimeBasis"
+    }
+
+    fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
+        &[]
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct TestRuntimeBasisContext;
+
+impl WorthQueryDomainOperatingContext<TestRuntimeBasisDomain> for TestRuntimeBasisContext {
+    fn context_identity_digest(&self) -> String {
+        "operating:runtime-basis".to_string()
+    }
+}
+
+fn test_runtime_basis_package() -> WorthQueryDomainPackage<TestRuntimeBasisDomain> {
+    WorthQueryDomainPackage::declare(
+        TestRuntimeBasisDomain,
+        WorthQueryDomainIdentityDeclaration::new(
+            WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
+            WorthQueryDomainIdentityName::new("runtime-basis").unwrap(),
+            WorthQueryDomainSemanticVersion::new(1, 0),
         ),
     )
 }
@@ -326,15 +349,21 @@ fn runtime_workspace_states_basis_lifecycle_surfaces() {
 
 #[test]
 fn runtime_workspace_inspection_surfaces_basis_lifecycle_artifacts() {
-    let workspace = stateful_bridge_task_runtime()
+    let runtime = stateful_bridge_task_runtime_with_domain(test_runtime_basis_package());
+    let installed = runtime
+        .domain(TestRuntimeBasisDomain)
+        .expect("test basis domain should be installed");
+    let world_basis = installed
+        .declarations(&runtime, TestRuntimeBasisContext)
+        .expect("installed test basis context should admit")
+        .retained_world_basis();
+    let workspace = runtime
         .workspace("task.basis-inspection-workspace")
         .expect("task runtime should open a named workspace");
     let current = crate::basis_lifecycle::basis_lifecycle()
         .current_head()
         .observe()
         .expect("current-head observation should admit");
-    let world_basis = test_runtime_world_basis();
-
     let capability_inspection = workspace
         .inspect(&current)
         .expect("basis capability should inspect");

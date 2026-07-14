@@ -78,7 +78,7 @@ impl WorthQueryDeclarationInput<GeometryDomain> for TrimSegmentAtIntersection {
 }
 
 fn accepts_orchestration_surface(
-    handle: &worth_query::facade::foundation::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &worth_query::facade::foundation::WorthQueryInstalledDomainDeclarationContext<
         GeometryDomain,
         GeometryOperatingContext,
     >,

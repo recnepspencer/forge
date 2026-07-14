@@ -20,6 +20,26 @@ pub(crate) fn stateful_bridge_task_runtime() -> WorthQueryRuntime {
     stateful_bridge_runtime_via_custom_backend(["Task"], graph_test_support_profile())
 }
 
+pub(in crate::runtime::tests) fn stateful_bridge_task_runtime_with_domain<D>(
+    package: crate::domain_installation::WorthQueryDomainPackage<D>,
+) -> WorthQueryRuntime
+where
+    D: crate::application::WorthQueryDomainEntryMarker + 'static,
+{
+    let state = Rc::new(RefCell::new(StatefulBridgeState::new(
+        ["Task".to_string()].into_iter().collect(),
+    )));
+    WorthQueryRuntime::builder()
+        .backend(StatefulBridgeRuntimeBackend::new(
+            state,
+            graph_test_support_profile(),
+        ))
+        .domain_package(package)
+        .expect("test domain package should admit")
+        .build()
+        .expect("stateful bridge runtime with domain should build")
+}
+
 pub(crate) fn stateful_bridge_task_runtime_with_merge() -> WorthQueryRuntime {
     let mut relational =
         crate::harness::fixtures::effect_authorities::relational_runtime_with_intent_strategy();

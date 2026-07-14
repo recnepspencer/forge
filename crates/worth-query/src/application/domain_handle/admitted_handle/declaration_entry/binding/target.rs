@@ -12,11 +12,11 @@ use crate::binding_pipeline::{
 };
 use crate::ordinary_outcome::{ordinary_outcome_from_binding_outcome, WorthQueryOrdinaryOutcome};
 
-use super::super::super::WorthQueryAdmittedConfiguredDomainHandle;
+use super::super::super::WorthQueryInstalledDomainDeclarationContext;
 use crate::application::WorthQueryDomainOperatingContext;
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub(crate) fn bind_route_from_target<I>(
         &self,

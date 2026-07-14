@@ -1,6 +1,6 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 
 use super::row::{crossing_rows_for_family, WorthQueryDeclarationEntryCrossingRow};
@@ -48,7 +48,7 @@ pub(crate) fn worth_query_declaration_entry_crossing_inventory<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> WorthQueryDeclarationEntryCrossingInventory<D, I> {
     let rows = crossing_rows_for_family::<D, C, I>(handle);
     let inventory_digest = crate::identity::hash_parts(

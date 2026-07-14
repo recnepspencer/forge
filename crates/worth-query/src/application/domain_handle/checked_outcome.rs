@@ -1,4 +1,4 @@
-use super::admitted_handle::WorthQueryAdmittedConfiguredDomainHandle;
+use super::admitted_handle::WorthQueryInstalledDomainDeclarationContext;
 use super::draft::WorthQueryConfiguredDomainHandleDraft;
 use super::operating_context::{
     WorthQueryDomainOperatingContext, WorthQueryDomainOperatingRequirement,
@@ -15,7 +15,7 @@ pub enum WorthQueryConfiguredDomainHandleChecked<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,
 > {
-    Admitted(WorthQueryAdmittedConfiguredDomainHandle<D, C>),
+    Admitted(WorthQueryInstalledDomainDeclarationContext<D, C>),
     Deferred(WorthQueryConfiguredDomainHandleDeferred<D, C>),
     Unsupported(WorthQueryConfiguredDomainHandleUnsupported<D, C>),
     InvalidContext(WorthQueryConfiguredDomainHandleInvalidContext<D, C>),

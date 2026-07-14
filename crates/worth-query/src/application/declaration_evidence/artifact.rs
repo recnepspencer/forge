@@ -253,12 +253,13 @@ pub(crate) fn worth_query_declaration_foundational_evidence<
     let retained_world_basis = WorthQueryAdmittedWorldBasis::new(
         expected_world_basis.domain_key(),
         expected_world_basis.display_name(),
-        subject.operating_context_identity_digest().to_string(),
+        expected_world_basis.operating_context_identity().clone(),
         expected_world_basis.handle_identity().clone(),
         expected_world_basis.support_snapshot_digest().to_string(),
         expected_world_basis
             .basis_lifecycle_support_identity()
             .clone(),
+        expected_world_basis.installed_authority().clone(),
     );
     let aspect_contract = subject.aspect_contract().clone();
     let aspect_coverage = subject.aspect_coverage();

@@ -1,9 +1,9 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryCapabilityFamily,
-    WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationAspectFit,
     WorthQueryDeclarationAuthorityAspectMismatch, WorthQueryDeclarationInput,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 
 const WORKFLOW_ONLY: &[WorthQueryCapabilityFamily] =
@@ -288,7 +288,7 @@ pub(crate) fn derive_relational_routing_support_report<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> WorthQueryDeclarationRelationalRoutingSupportReport<D, I> {
     crate::application::worth_query_relational_routing_support_from_entry_readiness::<D, C, I>(
         handle,

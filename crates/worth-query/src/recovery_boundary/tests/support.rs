@@ -1,10 +1,10 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
-    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
-    WorthQueryDeclarationRouteContract, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext, WorthQueryNeighborhoodCapableGrouping,
+    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
+    WorthQueryDeclarationAspectContract, WorthQueryDeclarationCanonicalEntry,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
+    WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRouteContract,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext, WorthQueryNeighborhoodCapableGrouping,
     WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
 };
 
@@ -134,7 +134,7 @@ impl WorthQueryDeclarationInput<RecoveryDomain> for RecoveryInput<SignalReceiptF
 
 pub(super) fn recovery_admitted_handle(
     regime: &'static str,
-) -> WorthQueryAdmittedConfiguredDomainHandle<RecoveryDomain, RecoveryWorld> {
+) -> WorthQueryInstalledDomainDeclarationContext<RecoveryDomain, RecoveryWorld> {
     WorthQueryApplicationFacade::runtime_backed_default()
         .domain(RecoveryDomain)
         .with_operating_context(RecoveryWorld::named(regime))
@@ -155,7 +155,7 @@ pub(super) fn standard_aspect_contract() -> WorthQueryDeclarationAspectContract 
 }
 
 pub(super) fn recovery_progressed<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<RecoveryDomain, RecoveryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<RecoveryDomain, RecoveryWorld>,
     declaration: RecoveryInput<F>,
 ) -> crate::application::WorthQueryAdmittedDeclarationProgression<RecoveryDomain, RecoveryInput<F>>
 where
@@ -168,7 +168,7 @@ where
 }
 
 pub(super) fn recovery_foundational<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<RecoveryDomain, RecoveryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<RecoveryDomain, RecoveryWorld>,
     progression: crate::application::WorthQueryAdmittedDeclarationProgression<
         RecoveryDomain,
         RecoveryInput<F>,

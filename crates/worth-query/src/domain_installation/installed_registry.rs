@@ -97,11 +97,17 @@ impl WorthQueryDomainInstallationRegistry {
                 let authority = Arc::new(WorthQueryInstalledDomainAuthority::new(
                     runtime_authority,
                     generation,
+                    artifact.marker_type,
                     artifact.marker_domain_key,
                     artifact.marker_display_name,
                     artifact.domain_owner.clone(),
                     artifact.package_identity.clone(),
                     installation_identity,
+                    artifact.support_snapshot.clone(),
+                    artifact.required_capabilities.clone(),
+                    artifact.required_configuration.clone(),
+                    artifact.operating_requirements.clone(),
+                    artifact.declaration_families.clone(),
                     artifact.contribution_policy.clone(),
                 ));
                 WorthQueryInstalledDomainRecord {
@@ -154,6 +160,27 @@ impl WorthQueryDomainInstallationRegistry {
         &self,
         authority: &WorthQueryInstalledDomainAuthority,
     ) -> Result<(), WorthQueryDomainHandleDenial> {
+        if authority.marker_type() != TypeId::of::<D>() {
+            return Err(WorthQueryDomainHandleDenial::new(
+                WorthQueryDomainHandleDenialKind::DomainNotInstalled,
+            ));
+        }
+        self.validate_erased_authority(authority)?;
+        let record = self.record::<D>().ok_or_else(|| {
+            WorthQueryDomainHandleDenial::new(WorthQueryDomainHandleDenialKind::DomainNotInstalled)
+        })?;
+        if authority.package_identity() != &record.artifact.package_identity {
+            return Err(WorthQueryDomainHandleDenial::new(
+                WorthQueryDomainHandleDenialKind::PackageIdentityChanged,
+            ));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn validate_erased_authority(
+        &self,
+        authority: &WorthQueryInstalledDomainAuthority,
+    ) -> Result<(), WorthQueryDomainHandleDenial> {
         if authority.runtime_authority() != self.runtime_authority {
             return Err(WorthQueryDomainHandleDenial::new(
                 WorthQueryDomainHandleDenialKind::ForeignRuntime,
@@ -164,9 +191,15 @@ impl WorthQueryDomainInstallationRegistry {
                 WorthQueryDomainHandleDenialKind::StaleInstallationGeneration,
             ));
         }
-        let record = self.record::<D>().ok_or_else(|| {
-            WorthQueryDomainHandleDenial::new(WorthQueryDomainHandleDenialKind::DomainNotInstalled)
-        })?;
+        let record = self
+            .by_marker_type
+            .get(&authority.marker_type())
+            .and_then(|index| self.records.get(*index))
+            .ok_or_else(|| {
+                WorthQueryDomainHandleDenial::new(
+                    WorthQueryDomainHandleDenialKind::DomainNotInstalled,
+                )
+            })?;
         if authority.package_identity() != &record.artifact.package_identity {
             return Err(WorthQueryDomainHandleDenial::new(
                 WorthQueryDomainHandleDenialKind::PackageIdentityChanged,
@@ -228,7 +261,7 @@ impl WorthQueryInstalledDomainExecutionIndex {
             }
             for family in &artifact.declaration_families {
                 declaration_families.insert(
-                    format!("{}:{}", artifact.domain_owner, family.name().as_str()),
+                    format!("{}:{}", artifact.domain_owner, family.family_key()),
                     family.canonical_part(),
                 );
             }

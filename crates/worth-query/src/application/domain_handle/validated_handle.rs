@@ -4,9 +4,8 @@ use super::operating_context::{
     WorthQueryDomainOperatingContext, WorthQueryDomainOperatingRequirement,
 };
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryCapabilityFamily,
-    WorthQueryConfigSectionFamily, WorthQueryDomainEntryMarker,
-    WorthQueryDomainEntrySupportSnapshot,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDomainEntryMarker,
+    WorthQueryDomainEntrySupportSnapshot, WorthQueryInstalledDomainDeclarationContext,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -92,7 +91,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
     pub fn admit(
         self,
     ) -> Result<
-        WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+        WorthQueryInstalledDomainDeclarationContext<D, C>,
         WorthQueryConfiguredDomainHandleAdmissionError<D, C>,
     > {
         admit_configured_domain_handle(self)

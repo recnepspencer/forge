@@ -1,10 +1,10 @@
 use super::{batch_row, bridge_row, neighborhood_row, relational_row, row, signal_row};
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryCapabilityFamily,
-    WorthQueryCapabilityStatus, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
-    WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationAspectFit,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationFamilyTaxonomy,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryCapabilityFamily, WorthQueryCapabilityStatus, WorthQueryConfigSectionFamily,
+    WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
+    WorthQueryDeclarationAspectFit, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationFamilyTaxonomy, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::identity::hash_parts;
 
@@ -34,6 +34,7 @@ impl WorthQueryDeclarationCapabilityVerb {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum WorthQueryDeclarationCapabilityStatus {
     Admitted,
+    NotInstalled,
     DeferredDebt,
     Unsupported,
     InvalidContext,
@@ -43,6 +44,7 @@ impl WorthQueryDeclarationCapabilityStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Admitted => "admitted",
+            Self::NotInstalled => "not_installed",
             Self::DeferredDebt => "deferred_debt",
             Self::Unsupported => "unsupported",
             Self::InvalidContext => "invalid_context",
@@ -201,7 +203,7 @@ pub(crate) fn derive_family_support_report<
     C: WorthQueryDomainOperatingContext<D>,
     F: WorthQueryDeclarationFamilyMarker<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> WorthQueryDeclarationFamilySupportReport<D, F> {
     let taxonomy = F::taxonomy();
     let family_status = family_status::<D, C, F>(handle);
@@ -276,8 +278,14 @@ fn family_status<
     C: WorthQueryDomainOperatingContext<D>,
     F: WorthQueryDeclarationFamilyMarker<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> WorthQueryDeclarationCapabilityStatus {
+    if handle
+        .declaration_family_version(F::semantic_family_key())
+        .is_none()
+    {
+        return WorthQueryDeclarationCapabilityStatus::NotInstalled;
+    }
     if F::required_capability_families()
         .iter()
         .copied()

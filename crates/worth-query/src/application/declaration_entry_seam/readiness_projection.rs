@@ -1,10 +1,11 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryCapabilityFamily,
-    WorthQueryCapabilityStatus, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectFit,
-    WorthQueryDeclarationAuthorityAspectMismatch, WorthQueryDeclarationCapabilityStatus,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationFamilySupportReport,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryLowerAuthorityRouteFamily, WorthQuerySignalCompatibilityPosture,
+    WorthQueryCapabilityFamily, WorthQueryCapabilityStatus, WorthQueryConfigSectionFamily,
+    WorthQueryDeclarationAspectFit, WorthQueryDeclarationAuthorityAspectMismatch,
+    WorthQueryDeclarationCapabilityStatus, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationFamilySupportReport, WorthQueryDeclarationInput,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext, WorthQueryLowerAuthorityRouteFamily,
+    WorthQuerySignalCompatibilityPosture,
 };
 
 use super::{
@@ -21,7 +22,7 @@ pub(crate) fn readiness_row_for_crossing<
     I: WorthQueryDeclarationInput<D>,
 >(
     row: WorthQueryDeclarationEntryCrossingRow,
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     retained_posture: Option<&ReadinessRetainedPosture>,
 ) -> WorthQueryDeclarationEntryReadinessRow {
     let family_support = handle.family_support::<I::Family>();
@@ -139,6 +140,9 @@ fn envelope_row<D: WorthQueryDomainEntryMarker, F: WorthQueryDeclarationFamilyMa
         WorthQueryDeclarationCapabilityStatus::Admitted => {
             WorthQueryDeclarationEntryReadinessStatus::Admitted
         }
+        WorthQueryDeclarationCapabilityStatus::NotInstalled => {
+            WorthQueryDeclarationEntryReadinessStatus::Unsupported
+        }
         WorthQueryDeclarationCapabilityStatus::DeferredDebt => {
             WorthQueryDeclarationEntryReadinessStatus::Deferred
         }
@@ -165,7 +169,7 @@ fn envelope_row<D: WorthQueryDomainEntryMarker, F: WorthQueryDeclarationFamilyMa
 }
 
 #[rustfmt::skip]
-fn relational_status<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>, I: WorthQueryDeclarationInput<D>>(handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>) -> (WorthQueryDeclarationEntryReadinessStatus, &'static str) {
+fn relational_status<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>, I: WorthQueryDeclarationInput<D>>(handle: &WorthQueryInstalledDomainDeclarationContext<D, C>) -> (WorthQueryDeclarationEntryReadinessStatus, &'static str) {
     match I::Family::relational_truth_contract() {
         Some(contract) => {
             if !I::Family::route_contract().allowed_route_families().contains(&WorthQueryLowerAuthorityRouteFamily::Relational) { return (WorthQueryDeclarationEntryReadinessStatus::Unsupported, "route planning does not currently admit a relational slice for this family"); }
@@ -178,7 +182,7 @@ fn relational_status<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatin
 }
 
 #[rustfmt::skip]
-fn bridge_status<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>, I: WorthQueryDeclarationInput<D>>(handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>) -> (WorthQueryDeclarationEntryReadinessStatus, &'static str) {
+fn bridge_status<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>, I: WorthQueryDeclarationInput<D>>(handle: &WorthQueryInstalledDomainDeclarationContext<D, C>) -> (WorthQueryDeclarationEntryReadinessStatus, &'static str) {
     match I::Family::bridge_continuation_contract() {
         Some(contract) => {
             if !I::Family::route_contract().allowed_route_families().contains(&WorthQueryLowerAuthorityRouteFamily::Bridge) { return (WorthQueryDeclarationEntryReadinessStatus::Unsupported, "route planning does not currently admit a bridge slice for this family"); }
@@ -191,7 +195,7 @@ fn bridge_status<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingCon
 }
 
 #[rustfmt::skip]
-fn signal_status<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>, I: WorthQueryDeclarationInput<D>>(handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>) -> (WorthQueryDeclarationEntryReadinessStatus, &'static str) {
+fn signal_status<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>, I: WorthQueryDeclarationInput<D>>(handle: &WorthQueryInstalledDomainDeclarationContext<D, C>) -> (WorthQueryDeclarationEntryReadinessStatus, &'static str) {
     match I::Family::taxonomy().signal_compatibility() {
         WorthQuerySignalCompatibilityPosture::Compatible => match I::Family::signal_compatibility_contract() {
             Some(contract) => {
@@ -207,7 +211,7 @@ fn signal_status<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingCon
 }
 
 fn capabilities_admitted<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     required: &'static [WorthQueryCapabilityFamily],
 ) -> bool {
     required.iter().copied().all(|family| {
@@ -220,7 +224,7 @@ fn config_sections_enabled<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     required: &'static [WorthQueryConfigSectionFamily],
 ) -> bool {
     required.iter().copied().all(|section| {

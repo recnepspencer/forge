@@ -1,7 +1,7 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationInput,
-    WorthQueryDeclarationSignalCompatibilityChecked, WorthQueryDeclarationSignalCompatibilityInput,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationInput, WorthQueryDeclarationSignalCompatibilityChecked,
+    WorthQueryDeclarationSignalCompatibilityInput, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::WorthQueryBindingLinkedArtifacts;
 use crate::identity::hash_parts;
@@ -14,7 +14,7 @@ pub(super) fn checked_and_linked_from_subject<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     subject: WorthQueryDeclarationSignalCompatibilityInput<D, I>,
 ) -> (
     WorthQueryDeclarationSignalCompatibilityChecked<D, I>,
@@ -29,7 +29,7 @@ pub(super) fn handle_alignment_outcome<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     subject: &WorthQueryDeclarationSignalCompatibilityInput<D, I>,
 ) -> Option<WorthQuerySignalCompatibilityOrchestrationOutcome<D, I>> {
     let envelope = subject_envelope(subject);

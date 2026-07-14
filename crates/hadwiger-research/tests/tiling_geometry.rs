@@ -3,3 +3,4 @@ mod tiling_geometry {
     mod contact_replay;
     mod rectangular_cell_artifacts;
 }
+mod installed_support;

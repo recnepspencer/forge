@@ -1,7 +1,7 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationBridgeTruthContext,
-    WorthQueryDeclarationEntryReadinessStatus, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationBridgeTruthContext, WorthQueryDeclarationEntryReadinessStatus,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
     WorthQueryTemporalDeclarationSupport,
 };
 use crate::basis_lifecycle::BasisFamily;
@@ -14,7 +14,7 @@ pub(crate) fn temporal_bridge_readiness_override<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     retained_posture: Option<&ReadinessRetainedPosture>,
 ) -> Option<(WorthQueryDeclarationEntryReadinessStatus, &'static str)> {
     if !temporal_readiness_applies::<D, I>(retained_posture) {
@@ -47,7 +47,7 @@ pub(crate) fn temporal_signal_readiness_override<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     retained_posture: Option<&ReadinessRetainedPosture>,
 ) -> Option<(WorthQueryDeclarationEntryReadinessStatus, &'static str)> {
     if !temporal_readiness_applies::<D, I>(retained_posture) {
@@ -96,7 +96,7 @@ fn temporal_runtime_readiness<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> Option<(WorthQueryDeclarationEntryReadinessStatus, &'static str)> {
     match handle
         .support_snapshot()

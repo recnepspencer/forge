@@ -1,7 +1,7 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationInput,
-    WorthQueryDeclarationSupportsNeighborhoodGrouping, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationInput, WorthQueryDeclarationSupportsNeighborhoodGrouping,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::grouped_authoring::{
     ordinary_outcome_from_grouped_orchestration_checked,
@@ -214,7 +214,7 @@ pub(super) fn declare_local_neighborhood_for_active_face_selection<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     input: WorthQueryGroupedDeclarationInput<D, I>,
 ) -> Result<WorthQueryGroupedDeclarationArtifact<D, I>, WorthQueryGroupedDeclarationStop>
 where
@@ -232,7 +232,7 @@ pub(super) fn declare_local_neighborhood_for_active_face_selection_checked<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     input: WorthQueryGroupedDeclarationInput<D, I>,
 ) -> WorthQueryGroupedDeclarationChecked<D, I>
 where
@@ -247,7 +247,7 @@ pub(super) fn orchestrate_local_neighborhood_for_active_face_selection<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
 ) -> Result<WorthQueryGroupedOrchestration<D, I>, WorthQueryGroupedOrchestrationStop<D, I>>
 where
@@ -273,7 +273,7 @@ pub(super) fn orchestrate_local_neighborhood_for_active_face_selection_outcome<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
 ) -> WorthQueryOrdinaryOutcome<WorthQueryGroupedOrchestration<D, I>>
 where
@@ -290,7 +290,7 @@ pub(super) fn orchestrate_local_neighborhood_for_active_face_selection_checked<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
 ) -> WorthQueryGroupedOrchestrationChecked<D, I>
 where
@@ -305,7 +305,7 @@ pub(super) fn orchestrate_local_neighborhood_for_active_face_selection_proof<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
 ) -> WorthQueryGroupedOrchestrationTranscript<D, I>
 where

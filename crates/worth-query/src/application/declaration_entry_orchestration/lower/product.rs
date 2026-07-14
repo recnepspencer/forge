@@ -41,7 +41,7 @@ pub(crate) fn worth_query_lower_declaration_entry_product_orchestration_from_pro
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &crate::application::WorthQueryInstalledDomainDeclarationContext<D, C>,
     progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     exposure_level: WorthQueryDeclarationEntryOrchestrationExposureLevel,
     artifact_policy: WorthQueryDeclarationEntryOrchestrationArtifactPolicy,

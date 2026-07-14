@@ -1,20 +1,20 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryApplicationFacade,
-    WorthQueryAsyncDeclarationClause, WorthQueryAsyncDeclarationSupport,
-    WorthQueryAsyncFailurePosture, WorthQueryAsyncLoadingPosture,
-    WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncSourceFamily, WorthQueryCapabilityFamily,
-    WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    WorthQueryApplicationFacade, WorthQueryAsyncDeclarationClause,
+    WorthQueryAsyncDeclarationSupport, WorthQueryAsyncFailurePosture,
+    WorthQueryAsyncLoadingPosture, WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncSourceFamily,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationCanonicalEntry,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationFoundationalEvidenceInput,
     WorthQueryDeclarationInput, WorthQueryDeclarationLegalityChecked,
     WorthQueryDeclarationLegalityContract, WorthQueryDeclarationLegalityInput,
     WorthQueryDeclarationRouteContract, WorthQueryDeclarationRoutePlanInput,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
-    WorthQuerySignalCompatiblePosture, WorthQueryTemporalDeclarationClause,
-    WorthQueryTemporalDeclarationSupport, WorthQueryTemporalDuration,
+    WorthQueryInstalledDomainDeclarationContext, WorthQueryNeighborhoodCapableGrouping,
+    WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
+    WorthQueryTemporalDeclarationClause, WorthQueryTemporalDeclarationSupport,
+    WorthQueryTemporalDuration,
 };
 use crate::runtime::WorthQueryRuntimeFamilySupportStatus;
 
@@ -383,7 +383,7 @@ impl WorthQueryDeclarationInput<GeometryDomain> for RouteInput<AsyncBridgeRouteF
 
 pub(super) fn admitted_handle(
     regime: &'static str,
-) -> WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld> {
+) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld> {
     WorthQueryApplicationFacade::runtime_backed_default()
         .domain(GeometryDomain)
         .with_operating_context(GeometryWorld::named(regime))
@@ -394,7 +394,7 @@ pub(super) fn admitted_handle(
 }
 
 pub(super) fn progressed<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: RouteInput<F>,
 ) -> crate::application::WorthQueryAdmittedDeclarationProgression<GeometryDomain, RouteInput<F>>
 where
@@ -407,7 +407,7 @@ where
 }
 
 pub(super) fn route_input<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: RouteInput<F>,
 ) -> WorthQueryDeclarationRoutePlanInput<GeometryDomain, RouteInput<F>>
 where
@@ -426,7 +426,7 @@ where
 }
 
 pub(super) fn future_supported_route_input<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: RouteInput<F>,
 ) -> WorthQueryDeclarationRoutePlanInput<GeometryDomain, RouteInput<F>>
 where

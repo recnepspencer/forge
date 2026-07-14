@@ -1,12 +1,12 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryAsyncDeclarationClause,
-    WorthQueryDeclarationAspectPublication, WorthQueryDeclarationBridgeAuthorityAspectSummary,
+    WorthQueryAsyncDeclarationClause, WorthQueryDeclarationAspectPublication,
+    WorthQueryDeclarationBridgeAuthorityAspectSummary,
     WorthQueryDeclarationEntryContributionCompositionError,
     WorthQueryDeclarationEntryContributionCompositionFailureClass,
     WorthQueryDeclarationEntryRetainedSubjectInput, WorthQueryDeclarationInput,
     WorthQueryDeclarationRelationalAuthorityAspectSummary,
     WorthQueryDeclarationSignalAuthorityAspectSummary, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 
 use super::contribution::WorthQueryDeclarationEntryRetainedSubjectStrength;
@@ -37,7 +37,7 @@ pub(crate) fn readiness_reconciliation_context<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     retained_subject: Option<WorthQueryDeclarationEntryRetainedSubjectInput<D, I>>,
 ) -> Result<ReadinessReconciliation, WorthQueryDeclarationEntryContributionCompositionError<D, I>> {
     let Some(retained_subject) = retained_subject else {

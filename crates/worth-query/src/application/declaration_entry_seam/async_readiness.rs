@@ -1,10 +1,9 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryAsyncDeclarationClause,
-    WorthQueryAsyncDeclarationSupport, WorthQueryAsyncFailurePosture,
-    WorthQueryAsyncLoadingPosture, WorthQueryAsyncSourceFamily,
+    WorthQueryAsyncDeclarationClause, WorthQueryAsyncDeclarationSupport,
+    WorthQueryAsyncFailurePosture, WorthQueryAsyncLoadingPosture, WorthQueryAsyncSourceFamily,
     WorthQueryDeclarationBridgeTruthContext, WorthQueryDeclarationEntryReadinessStatus,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::basis_lifecycle::BasisFamily;
 use crate::runtime::{WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupportStatus};
@@ -16,7 +15,7 @@ pub(crate) fn async_bridge_readiness_override<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     retained_posture: Option<&ReadinessRetainedPosture>,
 ) -> Option<(WorthQueryDeclarationEntryReadinessStatus, &'static str)> {
     if !async_readiness_applies::<D, I>(retained_posture) {
@@ -57,7 +56,7 @@ pub(crate) fn async_signal_readiness_override<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     retained_posture: Option<&ReadinessRetainedPosture>,
 ) -> Option<(WorthQueryDeclarationEntryReadinessStatus, &'static str)> {
     if !async_readiness_applies::<D, I>(retained_posture) {
@@ -168,7 +167,7 @@ fn async_runtime_readiness<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> Option<(WorthQueryDeclarationEntryReadinessStatus, &'static str)> {
     match handle
         .support_snapshot()

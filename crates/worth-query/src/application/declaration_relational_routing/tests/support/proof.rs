@@ -1,14 +1,14 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationEnvelopeInput,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationReceiptInput, WorthQueryDeclarationRelationalRoutingChecked,
-    WorthQueryDeclarationRelationalRoutingInput,
+    WorthQueryDeclarationEnvelopeInput, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationInput, WorthQueryDeclarationReceiptInput,
+    WorthQueryDeclarationRelationalRoutingChecked, WorthQueryDeclarationRelationalRoutingInput,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 
 use super::domain::{GeometryDomain, GeometryWorld, RoutingInput};
 
 pub(crate) fn checked_from_progressed<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: RoutingInput<F>,
 ) -> WorthQueryDeclarationRelationalRoutingChecked<GeometryDomain, RoutingInput<F>>
 where

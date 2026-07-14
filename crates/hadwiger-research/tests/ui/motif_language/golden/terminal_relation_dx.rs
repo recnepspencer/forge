@@ -1,16 +1,16 @@
 use hadwiger_research::facade::{
-    admit_hadwiger_research_handle, certify_terminal_forcing_relation_checked,
-    declare_research_request_checked, verify_k_colorability_checked, CandidateGraphDeclaration,
+    certify_terminal_forcing_relation_checked, declare_research_request_checked,
+    hadwiger_research_domain_package, verify_k_colorability_checked, CandidateGraphDeclaration,
     GraphIdentity, GraphVersion, HadwigerCanonicalArtifact, HadwigerDeclaredFamilyCheckedExt,
-    HadwigerResearchOperatingContext, MotifArtifact, MotifSeedDeclaration, MotifTerminal,
+    HadwigerResearchDomainEntry, HadwigerResearchHandle, HadwigerResearchOperatingContext,
+    HadwigerResearchQueryExt, MotifArtifact, MotifSeedDeclaration, MotifTerminal,
     TerminalForcingRelationCertificate, TerminalForcingRelationKind,
     TerminalForcingStudyDeclaration,
 };
+use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 
 fn main() {
-    let handle =
-        admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
-            .expect("handle admits");
+    let handle = installed_declarations().expect("handle admits");
     let motif_declaration =
         declare_research_request_checked(&handle, MotifSeedDeclaration::new("terminal-motif"))
             .admitted()
@@ -66,4 +66,15 @@ fn main() {
     assert!(relation.is_checked());
     assert!(relation.satisfies_terminal_relation_dependency());
     assert!(!relation.admits_theorem_authority());
+}
+
+fn installed_declarations() -> Result<HadwigerResearchHandle, String> {
+    let schema = WorthQueryTestBackendSchema::single_collection("HadwigerCandidate")
+        .aspect("identity.id", "identity.id").map_err(|error| error.to_string())?;
+    let workspace = in_memory_test_runtime().with_schema(schema)
+        .domain_package(hadwiger_research_domain_package())
+        .workspace("hadwiger-terminal-relation-dx").map_err(|error| error.to_string())?;
+    let installed = workspace.domain(HadwigerResearchDomainEntry).map_err(|error| error.to_string())?;
+    installed.research_declarations(&workspace, HadwigerResearchOperatingContext::default())
+        .map_err(|error| error.to_string())
 }

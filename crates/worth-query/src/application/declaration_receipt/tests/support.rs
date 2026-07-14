@@ -1,13 +1,13 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
-    WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationCanonicalEntry,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRouteContract,
-    WorthQueryDeclarationRouteIntent, WorthQueryDeclarationRoutePlanInput,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
+    WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
+    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
+    WorthQueryDeclarationRouteContract, WorthQueryDeclarationRouteIntent,
+    WorthQueryDeclarationRoutePlanInput, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
     WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
     WorthQuerySignalCompatiblePosture,
 };
@@ -297,7 +297,7 @@ impl_declaration_input!(
 
 pub(super) fn admitted_handle(
     regime: &'static str,
-) -> WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld> {
+) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld> {
     WorthQueryApplicationFacade::runtime_backed_default()
         .domain(GeometryDomain)
         .with_operating_context(GeometryWorld::named(regime))
@@ -308,7 +308,7 @@ pub(super) fn admitted_handle(
 }
 
 pub(super) fn progressed<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: ReceiptInput<F>,
 ) -> crate::application::WorthQueryAdmittedDeclarationProgression<GeometryDomain, ReceiptInput<F>>
 where
@@ -321,7 +321,7 @@ where
 }
 
 pub(super) fn foundational_from_progressed<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     progression: crate::application::WorthQueryAdmittedDeclarationProgression<
         GeometryDomain,
         ReceiptInput<F>,
@@ -341,7 +341,7 @@ where
 }
 
 pub(super) fn route_checked_from_input<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: ReceiptInput<F>,
 ) -> crate::application::WorthQueryDeclarationRoutePlanChecked<GeometryDomain, ReceiptInput<F>>
 where
@@ -357,7 +357,7 @@ where
 }
 
 pub(super) fn route_checked_with_intent<F>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>,
     declaration: ReceiptInput<F>,
     intent: WorthQueryDeclarationRouteIntent,
 ) -> crate::application::WorthQueryDeclarationRoutePlanChecked<GeometryDomain, ReceiptInput<F>>

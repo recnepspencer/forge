@@ -21,11 +21,11 @@ use crate::grouped_authoring::{
 };
 use crate::ordinary_outcome::WorthQueryOrdinaryOutcome;
 
-use super::WorthQueryAdmittedConfiguredDomainHandle;
+use super::WorthQueryInstalledDomainDeclarationContext;
 use crate::application::WorthQueryDomainOperatingContext;
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn declare_grouped_checked<I>(
         &self,

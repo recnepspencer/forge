@@ -1,9 +1,9 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryAdmittedDeclarationProgression,
-    WorthQueryDeclarationBridgeContinuationMode, WorthQueryDeclarationBridgeContinuationRequest,
-    WorthQueryDeclarationBridgeTruthContext, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDeclarationSignalCompatibilityInput,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryAdmittedDeclarationProgression, WorthQueryDeclarationBridgeContinuationMode,
+    WorthQueryDeclarationBridgeContinuationRequest, WorthQueryDeclarationBridgeTruthContext,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
+    WorthQueryDeclarationSignalCompatibilityInput, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::ordinary_outcome::WorthQueryOrdinaryOutcome;
 use crate::signal_compatibility_orchestration::{
@@ -18,7 +18,7 @@ pub(super) fn prepare_preview_for_active_face_selection<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationOutcome<D, I> {
     handle.orchestrate_signal_compatibility(continuation_input(
@@ -33,7 +33,7 @@ pub(super) fn prepare_preview_for_active_face_selection_outcome<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQueryOrdinaryOutcome<WorthQuerySignalCompatibilityOrchestration<D, I>> {
     handle.orchestrate_signal_compatibility_outcome(continuation_input(
@@ -48,7 +48,7 @@ pub(super) fn prepare_preview_for_active_face_selection_checked<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationChecked<D, I> {
     handle.orchestrate_signal_compatibility_checked(continuation_input(
@@ -63,7 +63,7 @@ pub(super) fn prepare_preview_for_active_face_selection_proof<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationTranscript<D, I> {
     handle.orchestrate_signal_compatibility_proof(continuation_input(
@@ -78,7 +78,7 @@ pub(super) fn prepare_runtime_route_for_active_face_selection<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationOutcome<D, I> {
     handle.orchestrate_signal_compatibility(continuation_input(
@@ -93,7 +93,7 @@ pub(super) fn prepare_runtime_route_for_active_face_selection_outcome<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQueryOrdinaryOutcome<WorthQuerySignalCompatibilityOrchestration<D, I>> {
     handle.orchestrate_signal_compatibility_outcome(continuation_input(
@@ -108,7 +108,7 @@ pub(super) fn prepare_runtime_route_for_active_face_selection_checked<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationChecked<D, I> {
     handle.orchestrate_signal_compatibility_checked(continuation_input(
@@ -123,7 +123,7 @@ pub(super) fn prepare_runtime_route_for_active_face_selection_proof<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationTranscript<D, I> {
     handle.orchestrate_signal_compatibility_proof(continuation_input(
@@ -138,7 +138,7 @@ pub(super) fn prepare_current_truth_view_for_active_face_selection<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationOutcome<D, I> {
     handle.orchestrate_signal_compatibility(continuation_input(
@@ -153,7 +153,7 @@ pub(super) fn prepare_current_truth_view_for_active_face_selection_outcome<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQueryOrdinaryOutcome<WorthQuerySignalCompatibilityOrchestration<D, I>> {
     handle.orchestrate_signal_compatibility_outcome(continuation_input(
@@ -168,7 +168,7 @@ pub(super) fn prepare_current_truth_view_for_active_face_selection_checked<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationChecked<D, I> {
     handle.orchestrate_signal_compatibility_checked(continuation_input(
@@ -183,7 +183,7 @@ pub(super) fn prepare_current_truth_view_for_active_face_selection_proof<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationTranscript<D, I> {
     handle.orchestrate_signal_compatibility_proof(continuation_input(
@@ -198,7 +198,7 @@ pub(super) fn prepare_historical_truth_view_for_active_face_selection<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationOutcome<D, I> {
     handle.orchestrate_signal_compatibility(continuation_input(
@@ -213,7 +213,7 @@ pub(super) fn prepare_historical_truth_view_for_active_face_selection_outcome<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQueryOrdinaryOutcome<WorthQuerySignalCompatibilityOrchestration<D, I>> {
     handle.orchestrate_signal_compatibility_outcome(continuation_input(
@@ -228,7 +228,7 @@ pub(super) fn prepare_historical_truth_view_for_active_face_selection_checked<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationChecked<D, I> {
     handle.orchestrate_signal_compatibility_checked(continuation_input(
@@ -243,7 +243,7 @@ pub(super) fn prepare_historical_truth_view_for_active_face_selection_proof<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQuerySignalCompatibilityOrchestrationTranscript<D, I> {
     handle.orchestrate_signal_compatibility_proof(continuation_input(
@@ -254,7 +254,10 @@ pub(super) fn prepare_historical_truth_view_for_active_face_selection_proof<
 }
 
 fn continuation_input<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, impl WorthQueryDomainOperatingContext<D>>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<
+        D,
+        impl WorthQueryDomainOperatingContext<D>,
+    >,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
     bridge_request: WorthQueryDeclarationBridgeContinuationRequest,
 ) -> WorthQuerySignalCompatibilityOrchestrationInput<D, I> {
@@ -270,7 +273,10 @@ fn signal_subject_from_progressed<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, impl WorthQueryDomainOperatingContext<D>>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<
+        D,
+        impl WorthQueryDomainOperatingContext<D>,
+    >,
     progression: WorthQueryAdmittedDeclarationProgression<D, I>,
 ) -> WorthQueryDeclarationSignalCompatibilityInput<D, I> {
     let envelope_checked = handle.orchestrate_envelope_from_progressed_checked(progression);

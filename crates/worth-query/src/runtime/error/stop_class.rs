@@ -41,6 +41,9 @@ pub enum WorthQueryRuntimeDeclarationFailureKind {
 
 #[derive(Clone, Copy, Debug)]
 pub enum WorthQueryStopClass<'a> {
+    InstalledDomainAuthorityDenied {
+        denial: &'a crate::domain_installation::WorthQueryDomainHandleDenial,
+    },
     MissingRuntimeComponent {
         component: WorthQueryRuntimeMissingComponent,
     },

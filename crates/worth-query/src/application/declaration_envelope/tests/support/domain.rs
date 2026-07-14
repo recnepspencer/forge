@@ -1,12 +1,12 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
-    WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationCanonicalEntry,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRouteContract,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
+    WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
+    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
+    WorthQueryDeclarationRouteContract, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
     WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
     WorthQuerySignalCompatiblePosture,
 };
@@ -201,7 +201,7 @@ impl_declaration_input!(
 
 pub(crate) fn admitted_handle(
     regime: &'static str,
-) -> WorthQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld> {
+) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld> {
     WorthQueryApplicationFacade::runtime_backed_default()
         .domain(GeometryDomain)
         .with_operating_context(GeometryWorld::named(regime))

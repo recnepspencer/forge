@@ -1,7 +1,7 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationBridgeRoutingChecked,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext,
+    WorthQueryDeclarationBridgeRoutingChecked, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::{
     WorthQueryBindingNarrowingDecision, WorthQueryBindingRequestDescriptor,
@@ -35,7 +35,7 @@ pub(crate) fn prepare_continuation_from_target_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     request: WorthQueryResolveContinuationFromTargetRequest<D, I>,
 ) -> WorthQueryPreparedContinuationTranscript<D, I> {
     let binding = handle.bind_continuation_from_target_proof(request);
@@ -47,7 +47,7 @@ pub(crate) fn prepare_continuation_from_context_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     request: WorthQueryContinuationBindingRequest<D, I>,
 ) -> WorthQueryPreparedContinuationTranscript<D, I> {
     let binding = handle.bind_continuation_request_from_context_proof(request);
@@ -59,7 +59,7 @@ pub(crate) fn prepare_continuation_from_signal_checked_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     checked: crate::application::WorthQueryDeclarationSignalCompatibilityChecked<D, I>,
     bridge_request: crate::application::WorthQueryDeclarationBridgeContinuationRequest,
     required_contract: crate::application::WorthQueryDeclarationAspectContract,
@@ -87,7 +87,7 @@ fn prepare_continuation_from_input_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     request: WorthQueryPreparedContinuationRequest<D, I>,
 ) -> WorthQueryPreparedContinuationTranscript<D, I> {
     let (input, request_contract) = request.into_parts();
@@ -119,7 +119,7 @@ fn prepare_from_resolved_signal_truth<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     request_descriptor: WorthQueryBindingRequestDescriptor,
     linked: crate::binding_pipeline::WorthQueryBindingLinkedArtifacts,
     signal_truth: super::support::ResolvedSignalContinuationTruth,
@@ -192,7 +192,7 @@ fn prepared_outcome_from_bridge_checked<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     bridge_request: &crate::application::WorthQueryDeclarationBridgeContinuationRequest,
     required_contract: &crate::application::WorthQueryDeclarationAspectContract,
     linked: &crate::binding_pipeline::WorthQueryBindingLinkedArtifacts,
@@ -266,7 +266,7 @@ fn prepare_from_binding_transcript<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     binding: WorthQueryBindingTranscript<WorthQueryContinuationBindingInput<D, I>>,
 ) -> WorthQueryPreparedContinuationTranscript<D, I> {
     let required_contract = binding.request().required_aspect_contract().clone();

@@ -3,7 +3,7 @@ use worth_query::facade::foundation::WorthQueryGroupedDeclarationInput;
 use worth_query::facade::runtime::WorthQuerySupportContributionAuthoring;
 
 fn handle() -> HadwigerResearchHandle {
-    admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
+    crate::installed_support::installed_hadwiger_research_handle()
         .expect("Hadwiger handle should admit")
 }
 
@@ -281,3 +281,4 @@ fn experiment_proposals_remain_advisory_until_screened() {
     );
     assert!(!screening.admits_theorem_authority());
 }
+mod installed_support;

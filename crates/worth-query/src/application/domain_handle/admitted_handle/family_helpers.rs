@@ -1,10 +1,10 @@
 use crate::family_helpers::{WorthQueryFamilyHelpers, WorthQueryGeometryFamilyHelpers};
 
-use super::WorthQueryAdmittedConfiguredDomainHandle;
+use super::WorthQueryInstalledDomainDeclarationContext;
 use crate::application::{WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext};
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn family_helpers(&self) -> WorthQueryFamilyHelpers<'_, D, C> {
         WorthQueryFamilyHelpers::new(self)

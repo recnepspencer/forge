@@ -1,14 +1,14 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryApplicationFacade,
-    WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
+    WorthQueryApplicationFacade, WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
     WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
     WorthQueryDeclarationRouteContract, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext, WorthQueryNeighborhoodCapableGrouping,
-    WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
+    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
+    WorthQuerySignalCompatiblePosture,
 };
 use crate::binding_pipeline::{
     WorthQueryBindingOutcome, WorthQueryBindingSourceKind, WorthQueryBindingSpecificity,
@@ -165,7 +165,7 @@ impl WorthQueryDeclarationInput<BindingDomain> for Input<StrictBridgeFamily> {
 
 fn admitted_handle(
     world: &'static str,
-) -> WorthQueryAdmittedConfiguredDomainHandle<BindingDomain, BindingWorld> {
+) -> WorthQueryInstalledDomainDeclarationContext<BindingDomain, BindingWorld> {
     WorthQueryApplicationFacade::runtime_backed_default()
         .domain(BindingDomain)
         .with_operating_context(BindingWorld(world))
@@ -176,7 +176,7 @@ fn admitted_handle(
 }
 
 fn progressed_route(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<BindingDomain, BindingWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<BindingDomain, BindingWorld>,
     id: &'static str,
 ) -> crate::application::WorthQueryAdmittedDeclarationProgression<BindingDomain, Input<RouteFamily>>
 {
@@ -187,7 +187,7 @@ fn progressed_route(
 }
 
 fn progressed_bridge(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<BindingDomain, BindingWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<BindingDomain, BindingWorld>,
     id: &'static str,
 ) -> crate::application::WorthQueryAdmittedDeclarationProgression<BindingDomain, Input<BridgeFamily>>
 {
@@ -198,7 +198,7 @@ fn progressed_bridge(
 }
 
 fn progressed_strict_bridge(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<BindingDomain, BindingWorld>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<BindingDomain, BindingWorld>,
     id: &'static str,
 ) -> crate::application::WorthQueryAdmittedDeclarationProgression<
     BindingDomain,

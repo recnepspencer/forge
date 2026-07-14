@@ -49,9 +49,7 @@ fn cockpit_inputs(
     HadwigerResearchInvariantCatalog,
     AgentExplorationAdmissionChecked,
 ) {
-    let handle =
-        admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
-            .unwrap();
+    let handle = crate::installed_support::installed_hadwiger_research_handle().unwrap();
     let version = graph_version(&handle, label);
     let rejection = checker_rejection(&handle, &version, label);
     let corpus = retained_corpus(&handle, &version, rejection, label);

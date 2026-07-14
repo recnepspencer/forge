@@ -9,9 +9,9 @@ use worth_foundational::facade::{
 use worth_proof::TransitionOutcome;
 
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationFamilyTaxonomy,
-    WorthQueryDeclarationPrimaryAuthorityFamily, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext, WorthQueryGroupedDeclarationPosture,
+    WorthQueryDeclarationFamilyTaxonomy, WorthQueryDeclarationPrimaryAuthorityFamily,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryGroupedDeclarationPosture, WorthQueryInstalledDomainDeclarationContext,
     WorthQuerySignalCompatibilityPosture,
 };
 
@@ -185,7 +185,7 @@ where
 }
 
 pub(crate) fn worth_query_canonical_declaration<D, C, I>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     input: I,
     version: WorthQueryDeclarationCanonicalizationVersion,
 ) -> Result<WorthQueryCanonicalDeclarationArtifact<D, I>, WorthQueryDeclarationCanonicalizationError>
@@ -270,7 +270,10 @@ fn canonical_basis_bundle_from_entries(
 }
 
 fn declaration_entries<D, I>(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, impl WorthQueryDomainOperatingContext<D>>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<
+        D,
+        impl WorthQueryDomainOperatingContext<D>,
+    >,
     raw: &WorthQueryRawDeclarationInput<D, I>,
 ) -> Vec<CanonicalBasisEntry>
 where

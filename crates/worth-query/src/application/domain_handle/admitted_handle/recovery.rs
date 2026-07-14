@@ -36,10 +36,10 @@ use crate::signal_compatibility_orchestration::{
     WorthQuerySignalCompatibilityOrchestrationTranscript,
 };
 
-use super::WorthQueryAdmittedConfiguredDomainHandle;
+use super::WorthQueryInstalledDomainDeclarationContext;
 
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
-    WorthQueryAdmittedConfiguredDomainHandle<D, C>
+    WorthQueryInstalledDomainDeclarationContext<D, C>
 {
     pub fn recover_from_outcome<T>(
         &self,

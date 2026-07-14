@@ -1,9 +1,10 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationEnvelopeChecked,
-    WorthQueryDeclarationEnvelopeOrchestrationTranscript, WorthQueryDeclarationInput,
-    WorthQueryDeclarationReceiptChecked, WorthQueryDeclarationReceiptOrchestrationTranscript,
+    WorthQueryDeclarationEnvelopeChecked, WorthQueryDeclarationEnvelopeOrchestrationTranscript,
+    WorthQueryDeclarationInput, WorthQueryDeclarationReceiptChecked,
+    WorthQueryDeclarationReceiptOrchestrationTranscript,
     WorthQueryDeclarationRouteOrchestrationTranscript, WorthQueryDeclarationRoutePlanChecked,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 
 use super::artifact::{
@@ -119,7 +120,7 @@ pub(crate) fn worth_query_grouped_route_checked_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
 ) -> WorthQueryGroupedRouteChecked<D, I> {
     WorthQueryGroupedRouteChecked::new(
@@ -144,7 +145,7 @@ pub(crate) fn worth_query_grouped_route_proof_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
 ) -> WorthQueryGroupedRouteTranscript<D, I> {
     WorthQueryGroupedRouteTranscript::new(
@@ -169,7 +170,7 @@ pub(crate) fn worth_query_grouped_receipt_checked_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
 ) -> WorthQueryGroupedReceiptChecked<D, I> {
     WorthQueryGroupedReceiptChecked::new(
@@ -195,7 +196,7 @@ pub(crate) fn worth_query_grouped_receipt_proof_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
 ) -> WorthQueryGroupedReceiptTranscript<D, I> {
     WorthQueryGroupedReceiptTranscript::new(
@@ -220,7 +221,7 @@ pub(crate) fn worth_query_grouped_envelope_checked_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
 ) -> WorthQueryGroupedEnvelopeChecked<D, I> {
     WorthQueryGroupedEnvelopeChecked::new(
@@ -246,7 +247,7 @@ pub(crate) fn worth_query_grouped_envelope_proof_on_handle<
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D> + Clone,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     declaration: WorthQueryGroupedDeclarationArtifact<D, I>,
 ) -> WorthQueryGroupedEnvelopeTranscript<D, I> {
     WorthQueryGroupedEnvelopeTranscript::new(

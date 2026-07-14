@@ -17,7 +17,7 @@ mod installed_domain;
 mod registration;
 use installed_domain::materialize_installed_domain_denial;
 fn handle() -> HadwigerResearchHandle {
-    admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
+    crate::installed_support::installed_hadwiger_research_handle()
         .expect("Hadwiger handle should admit")
 }
 
@@ -89,19 +89,12 @@ fn partial_explanation(
 }
 
 fn query_recovery_explanation(handle: &HadwigerResearchHandle) -> HadwigerQueryRecoveryExplanation {
-    let query_handle = WorthQueryApplicationFacade::runtime_backed_default()
-        .domain(HadwigerResearchDomainEntry)
-        .with_operating_context(HadwigerResearchOperatingContext::finite_lower_bound_real())
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap();
-    let checked = query_handle.orchestrate_declaration_with_contributions_checked(
+    let checked = handle.orchestrate_declaration_with_contributions_checked(
         WorthQueryContributionComposedOrchestrationInput::new(
             RejectionExplanationDeclaration::new("candidate-a", "bad-edge"),
         ),
     );
-    let recovery = query_handle
+    let recovery = handle
         .recover_from_contribution_composed_checked(checked)
         .expect("empty contribution composition should recover");
     explain_query_recovery_brief(
@@ -390,3 +383,4 @@ fn changed_boundary_source_digest_changes_hadwiger_denial_digest() {
     );
     assert_ne!(first.artifact_digest(), second.artifact_digest());
 }
+mod installed_support;

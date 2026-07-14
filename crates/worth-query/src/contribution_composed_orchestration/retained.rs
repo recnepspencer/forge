@@ -1,7 +1,7 @@
 use crate::application::{
-    WorthQueryAdmittedConfiguredDomainHandle, WorthQueryAdmittedDeclarationProgression,
-    WorthQueryDeclarationEntryOrchestrationStage, WorthQueryDeclarationInput,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryAdmittedDeclarationProgression, WorthQueryDeclarationEntryOrchestrationStage,
+    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::WorthQueryBindingLinkedArtifacts;
 
@@ -27,7 +27,7 @@ pub(crate) fn orchestrate_progressed_declaration_with_contributions_checked_on_h
     C: WorthQueryDomainOperatingContext<D>,
     I: WorthQueryDeclarationInput<D>,
 >(
-    handle: &WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     progressed: WorthQueryAdmittedDeclarationProgression<D, I>,
     contributions: Vec<WorthQueryContributionIntent>,
     materialization_policy: WorthQueryContributionComposedMaterializationPolicy,
