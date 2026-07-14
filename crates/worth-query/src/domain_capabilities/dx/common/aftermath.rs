@@ -33,7 +33,6 @@ impl WorthQueryAdmittedPlanDomainContributionSurface {
     ) -> WorthQueryAdmittedPlanAftermathDraft {
         let (source, binding, requested_facts) = request.into_parts();
         WorthQueryAdmittedPlanAftermathDraft::new(
-            self.domain,
             self.target,
             WorthQueryAftermathContributionPosture::EstablishesFact,
             semantic_code,
@@ -50,7 +49,6 @@ impl WorthQueryAdmittedPlanDomainContributionSurface {
     ) -> WorthQueryAdmittedPlanAftermathDraft {
         let (source, binding, requested_facts) = request.into_parts();
         WorthQueryAdmittedPlanAftermathDraft::new(
-            self.domain,
             self.target,
             WorthQueryAftermathContributionPosture::ConsumesFact,
             semantic_code,
@@ -67,7 +65,6 @@ impl WorthQueryAdmittedPlanDomainContributionSurface {
     ) -> WorthQueryAdmittedPlanAftermathDraft {
         let (source, binding, requested_facts) = request.into_parts();
         WorthQueryAdmittedPlanAftermathDraft::new(
-            self.domain,
             self.target,
             WorthQueryAftermathContributionPosture::DeclaresResidue,
             semantic_code,
@@ -80,8 +77,7 @@ impl WorthQueryAdmittedPlanDomainContributionSurface {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryAdmittedPlanAftermathDraft {
-    domain: String,
-    target: crate::domain_capabilities::WorthQueryAdmittedPlanBoundContributionTarget,
+    target: crate::domain_capabilities::WorthQueryInstalledAdmittedPlanContributionTarget,
     posture: WorthQueryAftermathContributionPosture,
     semantic_code: String,
     source: ProjectionConsumptionSource,
@@ -91,8 +87,7 @@ pub struct WorthQueryAdmittedPlanAftermathDraft {
 
 impl WorthQueryAdmittedPlanAftermathDraft {
     fn new(
-        domain: String,
-        target: crate::domain_capabilities::WorthQueryAdmittedPlanBoundContributionTarget,
+        target: crate::domain_capabilities::WorthQueryInstalledAdmittedPlanContributionTarget,
         posture: WorthQueryAftermathContributionPosture,
         semantic_code: impl Into<String>,
         source: ProjectionConsumptionSource,
@@ -100,7 +95,6 @@ impl WorthQueryAdmittedPlanAftermathDraft {
         requested_facts: ProjectMaterializedFacts,
     ) -> Self {
         Self {
-            domain,
             target,
             posture,
             semantic_code: semantic_code.into(),
@@ -112,7 +106,6 @@ impl WorthQueryAdmittedPlanAftermathDraft {
 
     pub fn because(self, detail: impl Into<String>) -> WorthQueryAdmittedPlanAftermathContribution {
         WorthQueryAdmittedPlanAftermathContribution {
-            domain: self.domain,
             target: self.target,
             posture: self.posture,
             semantic_code: self.semantic_code,
@@ -126,8 +119,7 @@ impl WorthQueryAdmittedPlanAftermathDraft {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryAdmittedPlanAftermathContribution {
-    domain: String,
-    target: crate::domain_capabilities::WorthQueryAdmittedPlanBoundContributionTarget,
+    target: crate::domain_capabilities::WorthQueryInstalledAdmittedPlanContributionTarget,
     posture: WorthQueryAftermathContributionPosture,
     semantic_code: String,
     source: ProjectionConsumptionSource,
@@ -207,9 +199,9 @@ impl WorthQueryAdmittedPlanAftermathContribution {
     fn into_requested(
         self,
     ) -> crate::domain_capabilities::WorthQueryRequestedAftermathContribution<
-        crate::domain_capabilities::WorthQueryAdmittedPlanBoundContributionTarget,
+        crate::domain_capabilities::WorthQueryInstalledAdmittedPlanContributionTarget,
     > {
-        let semantic_code = qualify_semantic_code(&self.domain, &self.semantic_code);
+        let semantic_code = qualify_semantic_code(self.target.authority(), &self.semantic_code);
         match self.posture {
             WorthQueryAftermathContributionPosture::EstablishesFact => {
                 WorthQueryAftermathContributionAuthoring::establishes_projection_contract(
@@ -219,7 +211,7 @@ impl WorthQueryAdmittedPlanAftermathContribution {
                     self.binding,
                     self.requested_facts,
                 )
-                .bind_to_admitted_plan_target(self.target)
+                .bind_to_installed_target(self.target)
             }
             WorthQueryAftermathContributionPosture::ConsumesFact => {
                 WorthQueryAftermathContributionAuthoring::consumes_projection_contract(
@@ -229,7 +221,7 @@ impl WorthQueryAdmittedPlanAftermathContribution {
                     self.binding,
                     self.requested_facts,
                 )
-                .bind_to_admitted_plan_target(self.target)
+                .bind_to_installed_target(self.target)
             }
             WorthQueryAftermathContributionPosture::DeclaresResidue => {
                 WorthQueryAftermathContributionAuthoring::declares_projection_residue(
@@ -239,7 +231,7 @@ impl WorthQueryAdmittedPlanAftermathContribution {
                     self.binding,
                     self.requested_facts,
                 )
-                .bind_to_admitted_plan_target(self.target)
+                .bind_to_installed_target(self.target)
             }
         }
     }
@@ -248,7 +240,7 @@ impl WorthQueryAdmittedPlanAftermathContribution {
         self,
         materialize: impl FnOnce(
             crate::domain_capabilities::WorthQueryMaterializationReadyAftermathContribution<
-                crate::domain_capabilities::WorthQueryAdmittedPlanBoundContributionTarget,
+                crate::domain_capabilities::WorthQueryInstalledAdmittedPlanContributionTarget,
             >,
         ) -> crate::domain_capabilities::WorthQueryDomainCapabilityTransitionOutcome<Success>,
     ) -> WorthQueryCheckedDomainCapabilityOutcome<Success> {

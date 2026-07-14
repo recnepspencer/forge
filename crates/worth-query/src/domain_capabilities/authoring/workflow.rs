@@ -374,6 +374,26 @@ impl WorthQueryWorkflowContributionAuthoring {
         bind_requested(self.payload, target)
     }
 
+    pub(crate) fn bind_to_installed_target<T>(
+        self,
+        target: crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>,
+    ) -> WorthQueryRequestedWorkflowContribution<
+        crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>,
+    >
+    where
+        T: crate::domain_capabilities::WorthQueryDomainCapabilityTargetBinding,
+        (WorthQueryWorkflowContributionPayload, T):
+            crate::domain_capabilities::proof_integration::AllowedContributionBinding<
+                WorthQueryWorkflowContributionPayload,
+                T,
+            >,
+    {
+        bind_requested::<
+            WorthQueryWorkflowContributionPayload,
+            crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>,
+        >(self.payload, target)
+    }
+
     fn new(
         posture: WorthQueryWorkflowContributionPosture,
         semantic_code: impl Into<String>,

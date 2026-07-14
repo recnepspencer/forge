@@ -6,11 +6,11 @@ use super::{
 };
 use crate::runtime::{
     derive_graph_read_cost_evidence, estimate_graph_read_access_cost,
-    explain_graph_read_access_requirements_for_family_in_authority,
+    explain_graph_read_access_requirements_for_family_in_authority_with_lookup,
     match_graph_index_inventory_for_requirements, worth_query_graph_index_inventory,
     WorthQueryGraphIndexInventory, WorthQueryGraphReadAccessAuthorityContext,
     WorthQueryGraphReadAccessShapeExplanationError, WorthQueryGraphReadBudget,
-    WorthQueryGraphReadBudgetClassKind, WorthQueryReadFamily,
+    WorthQueryGraphReadBudgetClassKind, WorthQueryGraphReadOperationLookup, WorthQueryReadFamily,
 };
 
 pub fn admit_graph_read_access_for_family(
@@ -49,8 +49,23 @@ pub(crate) fn admit_graph_read_access_for_family_in_authority_with_inventory(
     authority: &WorthQueryGraphReadAccessAuthorityContext,
     graph_index_inventory: WorthQueryGraphIndexInventory,
 ) -> Result<WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessShapeExplanationError> {
-    let requirements =
-        explain_graph_read_access_requirements_for_family_in_authority(family, authority)?;
+    admit_graph_read_access_for_family_in_authority_with_inventory_and_lookup(
+        family,
+        authority,
+        graph_index_inventory,
+        &crate::runtime::WorthQueryGraphReadOperationRegistry::empty(),
+    )
+}
+
+pub(crate) fn admit_graph_read_access_for_family_in_authority_with_inventory_and_lookup(
+    family: &WorthQueryReadFamily,
+    authority: &WorthQueryGraphReadAccessAuthorityContext,
+    graph_index_inventory: WorthQueryGraphIndexInventory,
+    lookup: &impl WorthQueryGraphReadOperationLookup,
+) -> Result<WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessShapeExplanationError> {
+    let requirements = explain_graph_read_access_requirements_for_family_in_authority_with_lookup(
+        family, authority, lookup,
+    )?;
     let evidence = derive_graph_read_cost_evidence(&requirements);
     let estimate = estimate_graph_read_access_cost(&requirements, evidence);
     let budget = WorthQueryGraphReadBudget::inline_ephemeral_default();

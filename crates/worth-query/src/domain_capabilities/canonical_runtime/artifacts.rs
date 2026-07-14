@@ -111,6 +111,17 @@ where
     pub fn materialization_digest(&self) -> &str {
         self.materialization_identity.as_str()
     }
+
+    pub fn installed_authority(
+        &self,
+    ) -> Option<&crate::domain_installation::WorthQueryInstalledDomainAuthority> {
+        self.contribution.payload().installed_authority()
+    }
+
+    pub fn installed_world_identity(&self) -> Option<&WorthQueryEvidenceIdentity> {
+        self.installed_authority()
+            .map(crate::domain_installation::WorthQueryInstalledDomainAuthority::world_identity)
+    }
 }
 
 fn canonical_runtime_semantic_identity(

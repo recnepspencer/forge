@@ -33,6 +33,7 @@ mod correspondence_history_parity;
 mod declarative_live;
 mod diagnostics;
 mod domain_capabilities;
+mod domain_installation;
 mod effect_lifecycle;
 mod evidence_identity;
 mod execution;

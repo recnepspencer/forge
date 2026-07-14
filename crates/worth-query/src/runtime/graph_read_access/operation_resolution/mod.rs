@@ -30,4 +30,5 @@ pub use unsupported_denial::{
     WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
 };
 
+pub(crate) use registry::WorthQueryGraphReadOperationLookup;
 pub(crate) use resolver::resolve_graph_read_operations_for_read_graph;

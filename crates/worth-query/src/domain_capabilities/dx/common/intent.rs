@@ -21,15 +21,14 @@ use crate::domain_capabilities::payloads::{
     WorthQueryInvariantCapabilityContributionPosture, WorthQuerySupportContributionPosture,
 };
 use crate::domain_capabilities::{
-    WorthQueryDeclarationBoundContributionTarget, WorthQueryDomainCapabilityTargetKind,
+    WorthQueryDomainCapabilityTargetKind, WorthQueryInstalledDeclarationContributionTarget,
 };
 
 use super::shared::{materialize_common_lane, qualify_semantic_code};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryIntentDomainContributionSurface {
-    pub(crate) domain: String,
-    pub(crate) target: WorthQueryDeclarationBoundContributionTarget,
+    pub(crate) target: WorthQueryInstalledDeclarationContributionTarget,
 }
 
 impl WorthQueryIntentDomainContributionSurface {
@@ -38,7 +37,6 @@ impl WorthQueryIntentDomainContributionSurface {
         semantic_code: impl Into<String>,
     ) -> WorthQueryIntentSupportDraft {
         WorthQueryIntentSupportDraft::new(
-            self.domain,
             self.target,
             crate::domain_capabilities::payloads::WorthQuerySupportContributionPosture::DeclarationSupport,
             semantic_code,
@@ -50,7 +48,6 @@ impl WorthQueryIntentDomainContributionSurface {
         semantic_code: impl Into<String>,
     ) -> WorthQueryIntentSupportDraft {
         WorthQueryIntentSupportDraft::new(
-            self.domain,
             self.target,
             crate::domain_capabilities::payloads::WorthQuerySupportContributionPosture::DeclarationTraceability,
             semantic_code,
@@ -63,7 +60,6 @@ impl WorthQueryIntentDomainContributionSurface {
         invariant_catalog: InvariantCatalog,
     ) -> WorthQueryIntentInvariantRegistrationDraft {
         WorthQueryIntentInvariantRegistrationDraft {
-            domain: self.domain,
             target: self.target,
             semantic_code: semantic_code.into(),
             invariant_catalog,
@@ -73,21 +69,18 @@ impl WorthQueryIntentDomainContributionSurface {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryIntentSupportDraft {
-    domain: String,
-    target: WorthQueryDeclarationBoundContributionTarget,
+    target: WorthQueryInstalledDeclarationContributionTarget,
     posture: WorthQuerySupportContributionPosture,
     semantic_code: String,
 }
 
 impl WorthQueryIntentSupportDraft {
     pub(crate) fn new(
-        domain: String,
-        target: WorthQueryDeclarationBoundContributionTarget,
+        target: WorthQueryInstalledDeclarationContributionTarget,
         posture: WorthQuerySupportContributionPosture,
         semantic_code: impl Into<String>,
     ) -> Self {
         Self {
-            domain,
             target,
             posture,
             semantic_code: semantic_code.into(),
@@ -96,7 +89,6 @@ impl WorthQueryIntentSupportDraft {
 
     pub fn because(self, detail: impl Into<String>) -> WorthQueryIntentSupportContribution {
         WorthQueryIntentSupportContribution {
-            domain: self.domain,
             target: self.target,
             posture: self.posture,
             semantic_code: self.semantic_code,
@@ -107,8 +99,7 @@ impl WorthQueryIntentSupportDraft {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryIntentSupportContribution {
-    domain: String,
-    target: WorthQueryDeclarationBoundContributionTarget,
+    target: WorthQueryInstalledDeclarationContributionTarget,
     posture: WorthQuerySupportContributionPosture,
     semantic_code: String,
     detail: String,
@@ -120,7 +111,7 @@ impl WorthQueryIntentSupportContribution {
     ) -> WorthQueryCheckedDomainCapabilityOutcome<
         WorthQueryIntentDeclarationSupportTraceabilityArtifact,
     > {
-        let semantic_code = qualify_semantic_code(&self.domain, &self.semantic_code);
+        let semantic_code = qualify_semantic_code(self.target.authority(), &self.semantic_code);
         let target = self.target.clone();
         let requested = match self.posture {
             WorthQuerySupportContributionPosture::DeclarationSupport => {
@@ -128,14 +119,14 @@ impl WorthQueryIntentSupportContribution {
                     semantic_code,
                     self.detail,
                 )
-                .bind_to_declaration_target(self.target)
+                .bind_to_installed_target(self.target)
             }
             WorthQuerySupportContributionPosture::DeclarationTraceability => {
                 WorthQuerySupportContributionAuthoring::declaration_traceability(
                     semantic_code,
                     self.detail,
                 )
-                .bind_to_declaration_target(self.target)
+                .bind_to_installed_target(self.target)
             }
             WorthQuerySupportContributionPosture::NarrowedSupport => unreachable!(),
         };
@@ -168,8 +159,7 @@ impl WorthQueryIntentSupportContribution {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryIntentInvariantRegistrationDraft {
-    pub(crate) domain: String,
-    pub(crate) target: WorthQueryDeclarationBoundContributionTarget,
+    pub(crate) target: WorthQueryInstalledDeclarationContributionTarget,
     pub(crate) semantic_code: String,
     pub(crate) invariant_catalog: InvariantCatalog,
 }
@@ -180,7 +170,6 @@ impl WorthQueryIntentInvariantRegistrationDraft {
         detail: impl Into<String>,
     ) -> WorthQueryIntentInvariantRegistrationContribution {
         WorthQueryIntentInvariantRegistrationContribution {
-            domain: self.domain,
             target: self.target,
             semantic_code: self.semantic_code,
             invariant_catalog: self.invariant_catalog,
@@ -191,8 +180,7 @@ impl WorthQueryIntentInvariantRegistrationDraft {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryIntentInvariantRegistrationContribution {
-    domain: String,
-    target: WorthQueryDeclarationBoundContributionTarget,
+    target: WorthQueryInstalledDeclarationContributionTarget,
     semantic_code: String,
     invariant_catalog: InvariantCatalog,
     detail: String,
@@ -206,10 +194,10 @@ impl WorthQueryIntentInvariantRegistrationContribution {
         let target = self.target.clone();
         let requested = WorthQueryInvariantCapabilityContributionAuthoring::invariant_registration(
             self.invariant_catalog,
-            qualify_semantic_code(&self.domain, &self.semantic_code),
+            qualify_semantic_code(self.target.authority(), &self.semantic_code),
             self.detail,
         )
-        .bind_to_declaration_target(self.target);
+        .bind_to_installed_target(self.target);
 
         materialize_common_lane(
             "invariant-capability",

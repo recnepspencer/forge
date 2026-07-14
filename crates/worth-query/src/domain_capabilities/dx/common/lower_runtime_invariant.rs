@@ -10,7 +10,7 @@ use crate::domain_capabilities::eligibility::{
 };
 use crate::domain_capabilities::payloads::WorthQueryInvariantCapabilityContributionPosture;
 use crate::domain_capabilities::{
-    WorthQueryDomainCapabilityTargetKind, WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    WorthQueryDomainCapabilityTargetKind, WorthQueryInstalledLowerRuntimeContributionTarget,
     WorthQueryRequestedInvariantCapabilityContribution,
 };
 use crate::runtime::WorthQueryGraphCompositionDomainInvariantDenial;
@@ -43,19 +43,19 @@ impl WorthQueryLowerRuntimeDomainContributionSurface {
             program_digest,
             breadth_digest,
             counter_snapshot,
-            qualify_semantic_code(&self.domain, semantic_code.as_ref()),
+            qualify_semantic_code(target.authority(), semantic_code.as_ref()),
             detail,
         )
-        .bind_to_lower_runtime_boundary_target(target.clone());
+        .bind_to_installed_target(target.clone());
         WorthQueryLowerRuntimeGraphInvariantDenialContribution { requested, target }
     }
 }
 
 pub struct WorthQueryLowerRuntimeGraphInvariantDenialContribution {
     requested: WorthQueryRequestedInvariantCapabilityContribution<
-        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+        WorthQueryInstalledLowerRuntimeContributionTarget,
     >,
-    target: WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    target: WorthQueryInstalledLowerRuntimeContributionTarget,
 }
 
 impl WorthQueryLowerRuntimeGraphInvariantDenialContribution {

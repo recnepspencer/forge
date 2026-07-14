@@ -91,6 +91,34 @@ mod allowed_bindings {
             WorthQueryLowerRuntimeBoundaryBoundContributionTarget
         ]
     );
+
+    impl<P, T> Sealed
+        for (
+            P,
+            crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>,
+        )
+    where
+        P: WorthQueryDomainCapabilityPayload,
+        T: WorthQueryDomainCapabilityTargetBinding,
+        (P, T): AllowedContributionBinding<P, T>,
+    {
+    }
+
+    impl<P, T>
+        AllowedContributionBinding<
+            P,
+            crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>,
+        >
+        for (
+            P,
+            crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>,
+        )
+    where
+        P: WorthQueryDomainCapabilityPayload,
+        T: WorthQueryDomainCapabilityTargetBinding,
+        (P, T): AllowedContributionBinding<P, T>,
+    {
+    }
 }
 
 pub(crate) use allowed_bindings::AllowedContributionBinding;
@@ -131,6 +159,12 @@ where
         self.request_identity.as_str()
     }
 
+    pub fn installed_authority(
+        &self,
+    ) -> Option<&crate::domain_installation::WorthQueryInstalledDomainAuthority> {
+        self.target.installed_authority()
+    }
+
     fn new(target: T, payload: P) -> Self {
         let request_identity = compose_domain_capability_request_identity(&target, &payload);
         Self {
@@ -150,7 +184,7 @@ where
     T: WorthQueryDomainCapabilityTargetBinding,
 {
     let binding_identity = target.binding_identity();
-    domain_capability_scope_encoder("worth_query_domain_capability_request_v1")
+    let mut identity = domain_capability_scope_encoder("worth_query_domain_capability_request_v2")
         .field_shape(
             WorthQueryEvidenceTag::new("category"),
             payload.category().as_str(),
@@ -159,8 +193,27 @@ where
         .field_evidence_identity(
             WorthQueryEvidenceTag::new("payload"),
             payload.payload_identity(),
-        )
-        .seal()
+        );
+    if let Some(authority) = target.installed_authority() {
+        identity = identity
+            .field_evidence_identity(
+                WorthQueryEvidenceTag::new("installed_authority"),
+                authority.authority_identity(),
+            )
+            .field_evidence_identity(
+                WorthQueryEvidenceTag::new("installed_world"),
+                authority.world_identity(),
+            )
+            .field_evidence_identity(
+                WorthQueryEvidenceTag::new("installed_package"),
+                authority.package_identity().evidence_identity(),
+            )
+            .field_usize(
+                WorthQueryEvidenceTag::new("installed_generation"),
+                authority.installation_generation().ordinal() as usize,
+            );
+    }
+    identity.seal()
 }
 
 type RequestedContributionArtifact<P, T> = Artifact<

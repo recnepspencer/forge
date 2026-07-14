@@ -2,6 +2,7 @@ pub(crate) mod boundary_audit;
 pub(crate) mod capability_grammar;
 pub(crate) mod consumer_residue;
 pub(crate) mod declarative_surface;
+pub(crate) mod domain_authority_inventory;
 pub(crate) mod downstream_authority_adoption;
 pub(crate) mod evidence_report;
 pub(crate) mod evidence_report_adoption;
@@ -66,6 +67,15 @@ pub use declarative_surface::{
     WorthQueryReferenceConsumerAdoptionFindingKind, WorthQueryReferenceConsumerAdoptionRow,
     WorthQueryReferenceConsumerDeletedResidue, WorthQueryReferenceConsumerDxCounters,
     WorthQueryReferenceConsumerResidueKind, WorthQueryReferenceConsumerSource,
+};
+pub use domain_authority_inventory::{
+    audit_domain_authority_sources, current_domain_authority_inventory_audit,
+    worth_query_domain_authority_inventory_rows, worth_query_domain_installation_grammar,
+    WorthQueryDomainAuthorityClass, WorthQueryDomainAuthorityFinding,
+    WorthQueryDomainAuthorityFindingKind, WorthQueryDomainAuthorityInventoryAudit,
+    WorthQueryDomainAuthorityInventoryRow, WorthQueryDomainAuthoritySource,
+    WorthQueryDomainAuthoritySourceSite, WorthQueryDomainInstallationGrammar,
+    WorthQueryDomainInstallationGrammarStage,
 };
 pub use downstream_authority_adoption::{
     downstream_authority_adoption, WorthQueryDownstreamAuthorityAdoption,

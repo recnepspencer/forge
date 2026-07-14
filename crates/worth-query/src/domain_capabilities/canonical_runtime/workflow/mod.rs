@@ -163,12 +163,25 @@ impl WorthQueryWorkflowDeclarationMaterializationTarget
 {
 }
 
+impl<T> WorthQueryWorkflowDeclarationMaterializationTarget
+    for crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>
+where
+    T: WorthQueryWorkflowDeclarationMaterializationTarget,
+{
+}
+
 mod private {
     pub trait Sealed {}
 }
 
 impl private::Sealed for WorthQueryDeclarationBoundContributionTarget {}
 impl private::Sealed for WorthQueryAdmittedPlanBoundContributionTarget {}
+impl<T> private::Sealed
+    for crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>
+where
+    T: WorthQueryWorkflowDeclarationMaterializationTarget,
+{
+}
 
 mod inspection;
 mod lowering;

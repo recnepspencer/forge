@@ -166,9 +166,12 @@ impl WorthQueryRuntime {
         family: &WorthQueryReadFamily,
     ) -> Result<WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessShapeExplanationError>
     {
-        crate::runtime::admit_graph_read_access_for_family_with_inventory(
+        let authority = WorthQueryGraphReadAccessAuthorityContext::runtime_current_compatibility();
+        crate::runtime::admit_graph_read_access_for_family_in_authority_with_inventory_and_lookup(
             family,
+            &authority,
             self.graph_index_inventory(),
+            self.installed_domain_execution_index(),
         )
     }
 
@@ -178,10 +181,11 @@ impl WorthQueryRuntime {
         authority: &WorthQueryGraphReadAccessAuthorityContext,
     ) -> Result<WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessShapeExplanationError>
     {
-        crate::runtime::admit_graph_read_access_for_family_in_authority_with_inventory(
+        crate::runtime::admit_graph_read_access_for_family_in_authority_with_inventory_and_lookup(
             family,
             authority,
             self.graph_index_inventory(),
+            self.installed_domain_execution_index(),
         )
     }
 
