@@ -1,8 +1,15 @@
 use hadwiger_research::facade::*;
 use worth_query::facade::foundation::{
-    WorthQueryBindingAspectConflict, WorthQueryBindingMissingRequiredAspect,
+    AspectFieldKey, WorthQueryBindingAspectConflict, WorthQueryBindingMissingRequiredAspect,
     WorthQueryBindingRebindRequired, WorthQueryBindingStale,
 };
+
+fn aspect_field(path: &str) -> AspectFieldKey {
+    let (aspect, field) = path
+        .rsplit_once('.')
+        .expect("test aspect paths include an aspect and field");
+    AspectFieldKey::from_authoring_parts(aspect, field).expect("test aspect field should admit")
+}
 
 #[test]
 fn query_aspect_contract_mapping_uses_exact_hadwiger_paths() {
@@ -14,25 +21,28 @@ fn query_aspect_contract_mapping_uses_exact_hadwiger_paths() {
 
     assert_eq!(
         unit_distance.required(),
-        &["hadwiger.embedding.unit_distance".to_string()]
+        &[aspect_field("hadwiger.embedding.unit_distance")]
     );
     assert_eq!(
         lower_bound.required(),
-        &["hadwiger.lower_bound.witness".to_string()]
+        &[aspect_field("hadwiger.lower_bound.witness")]
     );
     assert_eq!(
         lower_bound.preserved(),
         &[
-            "hadwiger.colorability.not_k_colorable".to_string(),
-            "hadwiger.embedding.unit_distance".to_string(),
+            aspect_field("hadwiger.colorability.not_k_colorable"),
+            aspect_field("hadwiger.embedding.unit_distance"),
         ]
     );
     assert_eq!(
         lower_bound.incompatible(),
-        &["hadwiger.ai.advisory".to_string()]
+        &[aspect_field("hadwiger.ai.advisory")]
     );
-    assert_eq!(advisory.required(), &[] as &[String]);
-    assert_eq!(advisory.published(), &["hadwiger.ai.advisory".to_string()]);
+    assert_eq!(advisory.required(), &[] as &[AspectFieldKey]);
+    assert_eq!(
+        advisory.published(),
+        &[aspect_field("hadwiger.ai.advisory")]
+    );
 }
 
 #[test]
@@ -95,9 +105,10 @@ fn all_hadwiger_aspect_kinds_have_stable_query_contract_paths() {
 
     for (aspect_kind, expected_path) in exact_paths {
         let contract = query_aspect_contract_for_hadwiger_kind(aspect_kind);
+        let expected_field = aspect_field(expected_path);
         assert!(
-            contract.required().contains(&expected_path.to_string())
-                || contract.published().contains(&expected_path.to_string()),
+            contract.required().contains(&expected_field)
+                || contract.published().contains(&expected_field),
             "{aspect_kind:?} should expose {expected_path}"
         );
     }
@@ -122,19 +133,19 @@ fn query_coverage_and_publication_reflect_aspect_posture() {
 
     assert_eq!(
         admitted.present(),
-        &["hadwiger.graph.version_shape".to_string()]
+        &[aspect_field("hadwiger.graph.version_shape")]
     );
     assert_eq!(
         stale.masked(),
-        &["hadwiger.graph.version_shape".to_string()]
+        &[aspect_field("hadwiger.graph.version_shape")]
     );
     assert_eq!(
         conflict.conflicting(),
-        &["hadwiger.graph.version_shape".to_string()]
+        &[aspect_field("hadwiger.graph.version_shape")]
     );
     assert_eq!(
         publication.present(),
-        &["hadwiger.graph.version_shape".to_string()]
+        &[aspect_field("hadwiger.graph.version_shape")]
     );
 }
 

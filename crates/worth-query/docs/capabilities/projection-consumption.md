@@ -2,248 +2,160 @@
 
 ## What This Feature Is
 
-Projection consumption lets application code carry facts produced by Query
-without rebuilding their authority from IDs, digests, or rows. When another
-runtime needs those facts, Query returns one sealed authority object that keeps
-the basis, source lineage, consumed facts, receipt, and consumer requirements
-together.
+Projection consumption lets application code move selected facts from a
+completed Query read into another subsystem without treating raw IDs, rows, or
+digests as authority. The completed read already knows its source, basis, and
+authorized result shape. You declare which facts you need, and Query returns a
+sealed authority object or a typed non-admitted outcome.
 
 ## Why You Use It
 
-- Carry Query-derived identities, labels, memberships, or source references
-  into another runtime.
-- Reject stale, mismatched, partial, or unsupported consumption before it can
-  become downstream authority.
-- Inspect typed facts without parsing raw result payloads.
-- Keep compatibility and lineage checks in Query instead of duplicating them
-  in each consumer.
+- Carry entity identities, memberships, relation endpoints, or display fields
+  into UI, workflow, and other downstream runtimes.
+- Reject stale, mismatched, partial, or unavailable facts before they become
+  downstream authority.
+- Keep fact extraction and source-lineage checks inside Query.
+- Avoid parallel consumer-side structs that can accidentally pair facts from
+  one read with authority from another.
 
 ## Stable Entry Points
 
-### Ordinary fluent path
+Import the ordinary surface from `worth_query::facade::read`:
 
-The ordinary path is result-attached:
+- `project_facts()` begins a fact declaration.
+- `WorthQueryReadCompletion::consume_projection(...)` consumes it against the
+  completed read.
+- `WorthQueryProjectionOutcome` preserves completed, advisory, violation,
+  deferred, and unavailable postures.
+- `WorthQueryProjectionOutcome::into_admitted()` moves admitted authority to a
+  downstream owner.
+- `WorthQueryConsumedProjectionAuthority` is the sealed admitted product.
 
-- `WorthQueryReadResult::consume_projection_authority(...)`
-- `WorthQueryWriteReceipt::consume_projection_authority(...)`
-- `QueryContextExecutionArtifact::consume_projection_authority(...)`
-- `WorthQueryDerivedArtifactBinding::consume_projection_authority(...)`
-- `WorthQueryLiveArtifactBinding::consume_projection_authority(...)`
-- `ProjectionAuthorityContract::declare()`
-- `ProjectionAuthorityOutcome`
-- `ProjectionAuthorityOutcome::into_admitted()`
-- `WorthQueryConsumedProjectionAuthority`
-
-### Contract reference
-
-Build a `ProjectionAuthorityContract` with only the guarantees the consumer
-actually requires: settled consumption, source authority, target identity, and
-source references. Query checks those requirements during the one canonical
-transition. For a durable handoff, serialize the declaration with
-`to_terminal_json_document()` and reload it with
-`load_projection_authority_contract_document(...)`; replay still enters the
-same transition and unknown schemas fail closed. Persist the contract document,
-not `WorthQueryConsumedProjectionAuthority`: the authority is operational proof
-for one admitted consumption and is intentionally not a serialization DTO.
-
-### Denial and inspection
-
-`ProjectionAuthorityOutcome` distinguishes admitted authority, admitted
-authority with warnings, authority denial, consumption denial, deferral, and
-source mismatch. Inspect the typed outcome; never recover by assembling raw
-parts.
-
-### Advanced lifecycle
-
-There is no public explicit lifecycle. `consume_projection_facts(...)`,
-`declare_projection_fact_consumption(...)`, and eligibility-to-extraction
-choreography are crate-internal implementation details. They are unavailable
-even for immediate inspection because their intermediate values can be paired
-outside the canonical authority transition.
-
-For typed inspection, call `consume_projection_authority(...)` and inspect the
-admitted authority's `facts()` or `receipt()`. This keeps inspection on the same
-sealed path as every downstream use.
-
-Support discovery is available through source-local
-`discover_projection_fact_consumption_support(...)` methods and
-`consumed_projection_authority_support_matrix()`.
+Available fact declarations include `entity_identities()`,
+`view_local_identities()`, `target_identity()`, `source_references()`,
+`effect_continuity_facts()`, `memberships()`, `relation_endpoints()`,
+`display_field(...)`, and `derived_scalar_field(...)`.
 
 ## Core Mental Model
 
-A **basis** is the admitted world of truth used by the Query operation. A
-projection authority is Query's sealed proof that requested facts were
-consumed from one source in that world and satisfy one declared downstream
-contract.
+A **basis** is the admitted world of truth used by the read. Projection
+consumption does not rediscover that world from an identifier. It uses the
+authority already sealed into `WorthQueryReadCompletion`.
 
-Source runtimes still own their underlying truth. Query does not promote a
-rendered source ID or receipt digest into that truth. It binds the source
-runtime's evidence to the Query basis and consumption receipt, then exposes one
-non-cloneable authority product. Getters are for indexing and inspection; they
-cannot recreate the product.
+The projection declaration names facts, not safety switches. Query always
+requires settled consumption, source authority, and matching basis generation.
+The caller cannot opt out of those checks. The resulting authority keeps the
+source lineage, facts, receipt, and requirements together as one product.
 
 ## How It Executes
 
-1. Declare the facts and guarantees the consumer requires.
-2. Call `consume_projection_authority(...)` on the source result or binding.
-3. Query performs source extraction and the canonical authority transition.
-4. Receive one `ProjectionAuthorityOutcome`.
-5. Move admitted authority into the downstream owner with `into_admitted()`;
-   otherwise handle the typed denial, deferral, or source mismatch.
+1. Build and run an ordinary read with `read::declare(...).using(...).run(...)`.
+2. Keep the `WorthQueryReadCompletion`, not just its row payload.
+3. Declare the facts with `read::project_facts()`.
+4. Call `completion.consume_projection(...)`.
+5. Move completed or advisory authority with `into_admitted()`, or handle the
+   typed non-admitted outcome.
 
-Source adapters may extract from different artifacts, but only the public
-authority path may cross the crate boundary.
+Extraction and authority binding happen inside Query. No consumer-visible
+canonicalization, planning, extraction, or success-envelope step exists.
 
 ## Small Example
 
 ```rust
-use worth_query::facade::{
-    foundation::{
-        AuthorizedProjectionArtifact, ProjectionAuthorityContract,
-        ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError,
-    },
-    runtime::WorthQueryWriteReceipt,
+use worth_query::facade::read::{
+    project_facts, WorthQueryProjectionOutcome, WorthQueryReadCompletion,
 };
 
-fn consume_write_authority(
-    receipt: &WorthQueryWriteReceipt,
-    projection: &AuthorizedProjectionArtifact,
-) -> Result<ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError> {
-    receipt.consume_projection_authority(
-        "result-shape:profile",
-        projection,
-        ProjectionAuthorityContract::declare()
-            .require_settled_consumption()
-            .require_source_authority()
-            .require_target_identity()
-            .require_source_references(),
-    )
+fn identity_authority(
+    completion: &WorthQueryReadCompletion,
+) -> WorthQueryProjectionOutcome {
+    completion.consume_projection(project_facts().entity_identities())
 }
 ```
 
-This is the smallest honest path because the consumer states its requirements
-and receives the indivisible authority product directly.
+This is the smallest honest example because the completed read supplies source
+and basis authority while the consumer supplies only its requested facts.
 
 ## Real Example
 
 ```rust
-use worth_query::facade::{
-    foundation::{
-        AuthorizedProjectionArtifact, ProjectionAuthorityContract,
-        ProjectionAuthorityOutcome, WorthQueryConsumedProjectionAuthority,
-    },
-    runtime::WorthQueryWriteReceipt,
+use worth_query::facade::read::{
+    project_facts, ProjectionFactFieldPath,
+    WorthQueryConsumedProjectionAuthority, WorthQueryProjectionOutcome,
+    WorthQueryReadCompletion,
 };
 
-fn admitted_authority(
-    receipt: &WorthQueryWriteReceipt,
-    projection: &AuthorizedProjectionArtifact,
-) -> Result<WorthQueryConsumedProjectionAuthority, String> {
-    let outcome = receipt
-        .consume_projection_authority(
-            "result-shape:profile",
-            projection,
-            ProjectionAuthorityContract::declare()
-                .require_settled_consumption()
-                .require_source_authority()
-                .require_target_identity()
-                .require_source_references(),
+fn ui_measurement_authority(
+    completion: &WorthQueryReadCompletion,
+    display_field: ProjectionFactFieldPath,
+) -> Result<Box<WorthQueryConsumedProjectionAuthority>, WorthQueryProjectionOutcome> {
+    completion
+        .consume_projection(
+            project_facts()
+                .entity_identities()
+                .display_field(display_field),
         )
-        .map_err(|error| error.to_string())?;
-
-    match outcome {
-        ProjectionAuthorityOutcome::Admitted(authority)
-        | ProjectionAuthorityOutcome::AdmittedWithWarnings(authority, _) => Ok(*authority),
-        ProjectionAuthorityOutcome::AuthorityDenied(denial) => {
-            Err(format!("authority denied: {:?}", denial.kind()))
-        }
-        ProjectionAuthorityOutcome::ConsumptionDenied(denial) => {
-            Err(format!("consumption denied: {:?}", denial.reason()))
-        }
-        ProjectionAuthorityOutcome::Deferred(deferred) => {
-            Err(format!("deferred: {:?}", deferred.reason()))
-        }
-        ProjectionAuthorityOutcome::SourceMismatch(mismatch) => {
-            Err(format!("source mismatch: {:?}", mismatch.source_family()))
-        }
-    }
+        .into_admitted()
+        .map(|(authority, _warnings)| authority)
 }
 ```
 
-The returned object retains the authoritative relationship. A downstream
-runtime may inspect its basis, receipt, facts, source identity, requirements,
-and counters, but should store or pass the authority object itself whenever a
-later operation depends on that relationship.
+The UI receives a sealed authority that proves both identity and display-field
+facts came from the same completed read. Advisory warnings remain attached to
+the admission result. A violation, deferral, or unavailable source stays typed
+and cannot be converted into authority by extracting its evidence.
 
 ## How It Relates To Other Features
 
-- Use [Read Composition](../authoring/read-composition.md) to produce the read
-  result whose facts are consumed.
-- Use [Basis Capability Lifecycle](basis-capability-lifecycle.md) when you need
-  to author or inspect the operation's truth-world capability itself.
+- Use [Read Composition](../authoring/read-composition.md) to define the read and
+  result shape that make facts available.
+- Use [Declarative Query Experience](declarative-query-experience.md) for the
+  complete declaration/context/execution flow.
+- Use [Basis Capability Lifecycle](basis-capability-lifecycle.md) when the
+  operation needs an explicit historical, preview, policy, or tenant world.
 - Use [Inspection](inspection.md) when explanation is the goal rather than
   carrying operational authority.
-- Use [Async Resources And Result State](async-resources-and-result-state.md)
-  for the surrounding retained or async state model.
-- Use [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
-  to distinguish admitted, deferred, and unsupported source families.
 
 ## Inspection And Debugging
 
-On an admitted authority, inspect:
+Before moving authority, inspect the outcome category:
 
-- `basis()` and `source_identity()` for lineage
-- `contract()` for consumer requirements
-- `facts()` and `receipt()` for what was consumed
-- `evidence()` for a derived diagnostic projection
-- `counters()` for bounded-work evidence
+- `authority()` is present for completed and advisory outcomes.
+- `advisory()` exposes non-fatal warnings.
+- `violation()` preserves authority, consumption, source-mismatch, and
+  declaration violations.
+- `deferred()` means the declared work cannot proceed yet.
+- `unavailable()` preserves authority-binding or fact-extraction failure.
 
-For ongoing adoption audits, Consumer Kit exposes
-`WorthQueryDownstreamAuthorityAdoptionProof`. A zero-residue audit carries a
-`WorthQueryDownstreamAuthorityDeletionReceipt` whose rows prove the closure
-contract's four authority-reconstruction families are absent from the audited
-source inventory. This is compliance evidence; it is not a way to mint
-projection authority.
-
-Before consumption, inspect
-`consumed_projection_authority_support_matrix()` when source support is
-unclear. A denial, deferral, or mismatch is a terminal typed outcome; do not
-fall back to raw facts.
+After admission, inspect the authority's facts, receipt, source identity, basis,
+and counters. These accessors explain an authority; they cannot recreate one.
 
 ## Anti-Patterns
 
 - Passing a basis digest, receipt digest, source label, and fact list as an
   authority tuple.
-- Comparing consumer-local digests to decide whether Query authority is valid.
-- Persisting or serializing the authority object instead of the declarative
-  contract.
-- Reconstructing a projection contract or source identity in downstream code.
-- Importing Query's internal `projection_consumption` module.
-- Building a parallel fact-consumption or declaration pipeline, including for
-  tests or one-shot inspection.
-- Treating evidence getters as constructors or promotion inputs.
-- Falling back to raw rows after a typed denial or unsupported posture.
+- Calling `into_result()` before projection facts have been consumed.
+- Rebuilding projection facts from rows in consumer code.
+- Comparing local digests to decide whether Query authority is valid.
+- Importing internal projection-consumption or lower-runtime modules.
+- Falling back to raw IDs after a typed violation or unavailable outcome.
+- Creating a consumer-local extraction, planning, or success-envelope layer.
 
 ## Current Limits
 
-- Read results, write receipts, Query-context executions, derived bindings,
-  and live bindings are the supported ordinary source families; exact posture
-  depends on the requested facts and source evidence.
-- Store-backed and durable neighbors remain deferred or unsupported where the
-  support matrix says so. Query does not guess missing lineage.
-- Authority admission work is certified across requirement width, fact width,
-  unrelated workspace growth, historical basis growth, and consumer graph
-  growth. Only declared requirements and consumed facts may grow the Query
-  transition's work.
-- Typed-fact inspection goes through admitted projection authority. There is no
-  public decomposed-result exception.
-- Projection authority does not replace `read`, `observe`, or `materialize`.
-  Use those when rows are the actual product.
+- The ordinary projection journey starts from a completed ordinary read.
+- Fact availability depends on the read's result shape and retained source
+  evidence; Query returns a typed non-admitted outcome when either is missing.
+- Projection authority is operational proof, not a persistence DTO.
+- Store-backed durable restore remains governed by the support matrix and must
+  enter through the same ordinary declaration and outcome contracts.
+- Projection consumption does not replace reading rows or rich inspection. Use
+  it only when another operation depends on the authority of selected facts.
 
 ## Related Docs
 
+- [Declarative Query Experience](declarative-query-experience.md)
 - [Downstream Runtime Integration](../foundations/downstream-runtime-integration.md)
 - [Consumer Kit](../foundations/consumer-kit.md)
 - [Basis Capability Lifecycle](basis-capability-lifecycle.md)
-- [Projection Consumption Vs Inspection](../domain-capabilities/choosing/projection-consumption-vs-inspection.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)

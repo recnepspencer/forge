@@ -1,4 +1,5 @@
 use hadwiger_research::facade::*;
+use worth_query::facade::certification::write_authority_execution_receipt_for_certification;
 use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCommitIdentity,
     WorthQueryContributionComposedOrchestrationInput, WorthQueryEntityIdentity,
@@ -6,9 +7,7 @@ use worth_query::facade::foundation::{
     WorthQuerySnapshotIdentity,
 };
 use worth_query::facade::runtime::WriteAuthorityExecutionReceipt;
-use worth_query::facade::runtime::{
-    WorthQueryAspectMutationBuilder, WorthQueryRuntimeWriteAuthorityAdapter,
-};
+use worth_query::facade::runtime::{WorthQueryAspectMutationBuilder, WorthQueryAspectTouch};
 use worth_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
 };
@@ -168,33 +167,15 @@ fn suppression_violation(
     .unwrap()
 }
 
-#[derive(Clone, Copy, Debug)]
-struct Phase8BoundaryReceiptBuilder;
-
-impl WorthQueryRuntimeWriteAuthorityAdapter for Phase8BoundaryReceiptBuilder {
-    fn write(
-        &mut self,
-        _bridge: &worth_runtime_bridge::facade::RuntimeBridge,
-        _relational_runtime: Option<&mut worth_relational::facade::runtime::RelationalRuntime>,
-        command: worth_query::facade::runtime::WorthQueryWriteCommand,
-    ) -> Result<
-        WriteAuthorityExecutionReceipt,
-        worth_query::facade::foundation::WorthQueryWorkspaceError,
-    > {
-        Ok(self.build_write_authority_execution_receipt(
-            &command,
-            phase8_mutation_receipt("phase8-runtime-commit"),
-        ))
-    }
-}
-
 fn phase8_boundary_source(commit_identity: &str) -> WriteAuthorityExecutionReceipt {
     let command = WorthQueryAspectMutationBuilder::new()
         .aspect("hadwiger.research_graph.invariant", commit_identity)
         .build_insert("hadwiger_research_graph")
         .expect("phase8 boundary command should build");
-    Phase8BoundaryReceiptBuilder
-        .build_write_authority_execution_receipt(&command, phase8_mutation_receipt(commit_identity))
+    write_authority_execution_receipt_for_certification(
+        &command,
+        phase8_mutation_receipt(commit_identity),
+    )
 }
 
 fn phase8_mutation_receipt(commit_identity: &str) -> WorthQueryMutationReceipt {
@@ -204,13 +185,16 @@ fn phase8_mutation_receipt(commit_identity: &str) -> WorthQueryMutationReceipt {
         WorthQuerySnapshotIdentity::from_relational_snapshot(
             RelationalBridgeSnapshotIdentityParts::new(commit_position, commit_position),
         ),
-        vec![WorthQueryMutationDelta::new(
+        vec![WorthQueryMutationDelta::from_touched_aspects(
             "hadwiger_research_graph",
             WorthQueryEntityIdentity::from_relational_record(
                 RelationalBridgeRecordIdentityParts::entity(8, commit_position, 0),
             ),
             WorthQueryMutationKind::Updated,
-            vec!["hadwiger.research_graph.invariant".to_string()],
+            vec![WorthQueryAspectTouch::from_authoring_ingress_text(
+                "hadwiger.research_graph.invariant",
+            )
+            .expect("phase8 aspect touch should admit")],
         )],
     )
 }

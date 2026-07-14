@@ -711,167 +711,34 @@ Read next:
 - [Read Composition](./authoring/read-composition.md)
 - [Basis Capability Lifecycle](./capabilities/basis-capability-lifecycle.md)
 
-## Platform Entry For Serious Downstream Work
+## Declarations, Contexts, Outcomes, And Managed Resources
 
-Platform entry is the Query-as-beginning seam for serious downstream domains:
-one public boundary where declaration, progression, authority routing,
-preparation, continuation, inspection, and ordinary product work start inside
-Query instead of above it in local pseudo-Query layers.
+The ordinary Query experience starts in a capability namespace: `facade::read`,
+`facade::live`, `facade::history`, `facade::comparison`, `facade::preview`,
+`facade::mutation`, `facade::workflow`, `facade::inspection`, or
+`facade::domain`.
 
-Configured domain handles are the typed operating world you get after entry.
-Platform entry is the broader “enter Query honestly” contract that those handles
-assume.
+Declare what the application wants, attach explicit authority with `using(...)`,
+then call `run(...)` for one-shot work or `open(...)` for a managed resource.
+Query owns canonicalization, admission, planning, lower-runtime handoff, and
+outcome shaping. Consumer code does not recreate those steps locally.
 
-Use this category when the product layer should treat Query as the daily-driver
-runtime, not as a late adapter over relational, bridge, or signal crates.
-
-The mistake to avoid is rebuilding declaration, preparation, or handoff
-worlds locally while only calling Query for the final read or write.
-
-Read next:
-
-- [Platform Entry](./domain-capabilities/platform-entry.md)
-- [Configured Domain Handles](./domain-capabilities/configured-domain-handles.md)
-- [Canonical Domain Declarations](./domain-capabilities/canonical-domain-declarations.md)
-- [Declaration Entry Orchestration](./domain-capabilities/declaration-entry-orchestration.md)
-
-## Domain Entry And Configured Handles
-
-Configured domain handles are the typed operating world you work in after Query
-entry: one admitted handle with support posture attached, rather than raw
-strings or ad hoc bootstrapping.
-
-Platform entry (see the section above) is the broader serious-downstream boundary;
-configured handles are the concrete handle your app or domain crate holds day to
-day.
-
-Use this category when the question is “which admitted handle should this product
-layer hold for ordinary work?”
-
-The mistake to avoid is expecting the handle alone to replace declarations,
-basis, orchestration, or recovery lanes.
-
-For runtime-backed read bring-up specifically, Query provides one simple
-public bridge-backed bootstrap lane for obtaining a valid read runtime without
-custom minimal assembly folklore. Use that ordinary builder-owned path for
-hostile tests and downstream examples instead of rebuilding one-off bridge
-fixtures above Query.
+Outcomes retain distinct completed, advisory, stopped, denied, deferred, and
+unavailable postures. Live handles own activation, maintenance, and close; the
+consumer holds the handle instead of assembling subscription lifecycle calls.
+Domain integrations contribute typed meaning through `facade::domain`, while
+Query remains the owner of canonical execution artifacts.
 
 Read next:
 
-- [Configured Domain Handles](./domain-capabilities/configured-domain-handles.md)
-- [Platform Entry](./domain-capabilities/platform-entry.md)
+- [Declarative Query Experience](./capabilities/declarative-query-experience.md)
+- [Read Composition](./authoring/read-composition.md)
+- [Inspection](./capabilities/inspection.md)
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
-
-## Declarations And Family Contracts
-
-Declarations are how Query gives domain work stable identity and stable family
-meaning.
-
-If a request can be repeated, checked, routed, denied, deferred, grouped,
-inspected, or used to avoid future dead ends, it needs canonical declaration
-identity instead of a display string or host-local hash. Declaration family
-contracts then describe what sort of thing the work is: relational,
-descriptive, grouped, signal-compatible, legality-constrained, route-sensitive,
-and so on.
-
-Use this category when the problem is “define the work honestly.” That means
-new request families, canonical identity, declaration family taxonomy, or any
-place where lower-runtime posture should be part of declared meaning rather than
-buried in local branching logic.
-
-The mistake to avoid is treating declarations like passive DTOs. In Query they
-are the stable identity boundary for runtime work the system can reason about
-later.
-
-Read next:
-
-- [Canonical Domain Declarations](./domain-capabilities/canonical-domain-declarations.md)
-- [Declaration Family Taxonomy](./domain-capabilities/declaration-family-taxonomy.md)
-- [Declaration Family Capability Matrix](./domain-capabilities/declaration-family-capability-matrix.md)
-- [Declaration Legality](./domain-capabilities/declaration-legality.md)
-- [Declaration Progression](./domain-capabilities/declaration-progression.md)
-- [Declaration Entry Inspection](./domain-capabilities/declaration-entry-inspection.md)
-- [Declaration Foundational Evidence](./domain-capabilities/declaration-foundational-evidence.md)
-
-## Readiness, Orchestration, Route, Receipt, And Envelope
-
-This category answers the question: what happens after I have a declaration?
-
-Query separates several concerns here on purpose. Readiness tells you whether a
-runtime seam is actually available before you pretend it is. Orchestration gives
-you a public lowering path from declaration work into route, receipt, and
-envelope truth. Receipts and envelopes retain what happened so later code does
-not need to reverse-engineer the path from side effects and logs.
-
-Use this category when the problem is “I have declaration-shaped work and need
-to know what Query can do with it now.” Use readiness for seam posture before
-execution. Use orchestration when you want Query to lower the work through its
-public path. Use route/receipt/envelope artifacts when you need the result to
-stay structured and inspectable.
-
-The mistake to avoid is treating readiness as a debug extra or receipts as
-optional output. In Query they are part of the public knowledge model.
-
-Read next:
-
-- [Declaration Entry Readiness](./domain-capabilities/declaration-entry-readiness.md)
-- [Declaration Entry Orchestration](./domain-capabilities/declaration-entry-orchestration.md)
-- [Declaration Route Plan](./domain-capabilities/declaration-route-plan.md)
-- [Declaration Boundary Receipts](./domain-capabilities/declaration-boundary-receipts.md)
-- [Declaration Boundary Envelopes](./domain-capabilities/declaration-boundary-envelopes.md)
-- [Declaration Bridge Continuation Routing](./domain-capabilities/declaration-bridge-continuation-routing.md)
-
-## Ordinary Outcomes
-
-Ordinary outcomes are the compact public result vocabulary for binding,
-declaration-entry orchestration, continuation preparation, and signal-
-compatibility orchestration.
-
-They keep non-success categories distinct—denied, refused, stale, rebind-
-required, wrong-world, wrong-handle, basis mismatch, authority mismatch,
-unsupported, ambiguous—without collapsing into one local `Result` or string.
-
-Use this category when you need one concise outcome value that still links back
-to the checked topology underneath, especially before handing a stop to recovery.
-
-The mistake to avoid is flattening ordinary outcomes into booleans or inventing
-a parallel status enum Query already represents elsewhere.
-
-Read next:
-
-- [Ordinary Outcomes](./domain-capabilities/ordinary-outcomes.md)
-- [Typed Binding Pipeline](./domain-capabilities/typed-binding-pipeline.md)
-- [Recovery Boundary](./domain-capabilities/recovery-boundary.md)
-
-## Typed Binding And Retained Artifact Reuse
-
-This category exists for the moment when the next explicit step should come from
-an already-retained Query artifact.
-
-Without a real binding pipeline, this is where callers start inventing ambient
-recovery: they pull route meaning, receipt meaning, workspace meaning, or basis
-meaning out of host context or object relationships. Query instead makes that
-reuse explicit and typed, with stale, rebind-required, wrong-world, and
-wrong-handle posture built into the public lane.
-
-Use this category when the next step starts from a retained route, receipt,
-envelope, continuation, or other artifact rather than from a fresh declaration.
-If your instinct is “I can probably infer the next input from this object,” that
-usually means you should look here first.
-
-The mistake to avoid is hidden dependency injection. Query wants reuse to stay
-auditable and machine-checkable.
-
-Read next:
-
-- [Typed Binding Pipeline](./domain-capabilities/typed-binding-pipeline.md)
-- [Retained Artifact To Next Step](./domain-capabilities/workflow/retained-artifact-to-next-step.md)
-- [Binding Vs Orchestration Vs Helpers](./domain-capabilities/choosing/binding-vs-orchestration-vs-helpers.md)
 
 ## Basis Capability Lifecycle
 
-A Query basis is a phase-typed capability lifecycle, not a raw branch head,
+A Query basis is a typed capability lifecycle, not a raw branch head,
 snapshot id, preview handle, or tenant label passed through host context.
 
 Basis intent normalizes, becomes eligible or denied, admits as a capability,
@@ -902,15 +769,11 @@ Read next:
 
 If another runtime must carry Query-consumed meaning forward, do not hand it a
 basis digest, projection receipt, extracted facts, and source labels as separate
-authority inputs. Declare a `ProjectionAuthorityContract` and use the
-result-attached `consume_projection_authority(...)` path. Query mints one sealed
-`WorthQueryConsumedProjectionAuthority`; evidence projections and getters are
-for observation and cannot recreate it. Move admitted proof with
-`ProjectionAuthorityOutcome::into_admitted()`. If the
-declaration must cross a terminal boundary, serialize
-`ProjectionAuthorityContract` with `to_terminal_json_document()` and reload it
-with `load_projection_authority_contract_document(...)`; never serialize or
-reconstruct the authority object itself.
+authority inputs. On a completed ordinary read, call
+`completion.consume_projection(read::project_facts()...)`. Query returns one
+`WorthQueryProjectionOutcome`; move its sealed authority with `into_admitted()`.
+Evidence projections and getters are observation only and cannot recreate that
+authority.
 
 Read next:
 
@@ -926,13 +789,8 @@ normal ready lane. Inspection answers richer **per-target retained evidence**
 after work has run. Cross-runtime causal explanation is a separate lane—see
 [Cross-Runtime Causal Inspection](./capabilities/cross-runtime-causal-inspection.md).
 
-Declaration entry readiness is a third neighbor: it tells you whether a
-declaration seam is available before you orchestrate, not what a live handle’s
-runtime posture is right now.
-
 Use state when you need a digest-bound posture snapshot without full
-explanation. Use inspection when you need why. Use declaration readiness before
-you lower new declaration work.
+running work that requires optional support.
 
 The mistake to avoid is guessing support from handle behavior, or using
 inspection when you only needed readiness—or the reverse.
@@ -941,59 +799,25 @@ Read next:
 
 - [State And Readiness Surfaces](./foundations/state.md)
 - [Inspection](./capabilities/inspection.md)
-- [Declaration Entry Readiness](./domain-capabilities/declaration-entry-readiness.md)
-- [Inspection Vs Readiness Vs Recovery](./domain-capabilities/choosing/inspection-vs-readiness-vs-recovery.md)
+- [Declarative Query Experience](./capabilities/declarative-query-experience.md)
 
-## Recovery
+## Typed Stops And Next Actions
 
-This category is for paths that stopped or narrowed instead of simply
-continuing. For explanation **contributions** (domain declaration posture), see
-[Explanation Contributions](./domain-capabilities/explanation/lower-runtime-explanation-contributions.md)—not this section.
+Ordinary outcomes preserve why work did not complete. Stale context, foreign
+authority, unsupported capability, policy denial, ambiguity, deferral, and
+lower-runtime failure remain distinct typed postures with explicit next actions.
+Handle those outcomes in the capability namespace that produced them; do not
+flatten them into a consumer-local boolean, string, or generic status enum.
 
-Query uses recovery surfaces so stop states do not collapse into one vague local
-error. Denied, deferred, stale, rebind-required, unsupported, and other stop
-classes are part of the runtime’s knowledge model. Recovery turns those stops
-into typed next-step posture instead of leaving them as comments, strings, or
-host-local exception handling.
-
-Use this category when you need to explain why a path stopped, or when the next
-step is a repair action instead of a normal continuation.
-
-The mistake to avoid is inventing one local error family that erases the
-runtime’s distinctions.
+Use `facade::inspection` when you need richer explanation for a retained result
+or managed resource. Inspection is observational and cannot promote a stop or
+diagnostic into authority.
 
 Read next:
 
-- [Recovery Boundary](./domain-capabilities/recovery-boundary.md)
-- [Recovery Requests And Next-Step Actions](./domain-capabilities/recovery/recovery-requests-and-next-step-actions.md)
-- [Stop To Recovery](./domain-capabilities/workflow/stop-to-recovery.md)
-- [Inspection Vs Readiness Vs Recovery](./domain-capabilities/choosing/inspection-vs-readiness-vs-recovery.md)
-
-## Grouped And Neighborhood Work
-
-This category exists because some operations are grouped by meaning, not by
-iteration convenience.
-
-Sometimes the correct abstraction is not “many isolated declarations,” but one
-grouped or neighborhood-shaped operation whose members, outputs, contributions,
-and support posture belong together semantically. Query treats that as a real
-category instead of letting it dissolve into loops and caller-owned grouping
-folklore.
-
-Use this category when grouped shape affects support, orchestration, products,
-or contributions. If removing the grouped shape changes the meaning of the
-operation, this is probably the right category.
-
-The mistake to avoid is pretending grouped work is only a batching helper. In
-Query it is a semantic category.
-
-Read next:
-
-- [Grouped Authoring](./domain-capabilities/grouped-authoring.md)
-- [Grouped Products](./domain-capabilities/grouped-products.md)
-- [Grouped Contributions](./domain-capabilities/grouped-contributions.md)
-- [Grouped Support And Readiness](./domain-capabilities/grouped-support-readiness.md)
-- [Grouped Neighborhood Workflow](./domain-capabilities/workflow/grouped-neighborhood-workflow.md)
+- [Declarative Query Experience](./capabilities/declarative-query-experience.md)
+- [Inspection](./capabilities/inspection.md)
+- [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 
 ## Domain Capability Contributions
 
@@ -1006,13 +830,6 @@ evidence. Query materializes canonical artifacts. This prevents downstream
 domains from solving contribution problems by minting local pseudo-Query
 artifacts or by exposing canonical constructors directly.
 
-This category is proof-bearing from the start. The progression from request to
-eligibility to admitted contribution to materialization-ready contribution to
-canonical runtime materialization is a real typed lifecycle. On top of that,
-Query documents contribution lanes across admission, support/traceability,
-invariant/capability posture, workflow, continuity, aftermath, and explanation—
-**not every orchestration row is fully closed**; check per-lane support reports.
-
 Use this category when the domain needs to add semantic posture to Query-owned
 runtime truth. If the problem is “the domain needs to say something important
 about runtime posture, but Query should still own the final artifact,” this is
@@ -1024,10 +841,8 @@ strings.
 
 Read next:
 
-- [Contributions Hub](./domain-capabilities/contributions/README.md)
-- [Contribution-Composed Orchestration](./domain-capabilities/contribution-composed-orchestration.md)
-- [Invariant And Capability Contributions](./domain-capabilities/invariants/invariant-and-capability-contributions.md)
-- [Registering Domain Invariants Through Query](./domain-capabilities/invariants/registering-domain-invariants-through-query.md)
+- [Declarative Query Experience](./capabilities/declarative-query-experience.md)
+- [Relational Truth And Invariants Through Query](#relational-truth-and-invariants-through-query)
 
 ## Lower-Runtime Capability Routing
 
@@ -1263,68 +1078,24 @@ Read next:
 - [Writes And Intent Boundaries](./execution/writes-and-intents.md)
 - [Inspection](./capabilities/inspection.md)
 
-## Signal Compatibility And Continuation
+## Workflow, Live Continuation, Merge, And Writeback
 
-This category is for the work that sits between declared Query meaning and lower
-reactive execution.
+Use `facade::workflow` for a domain contribution that must become an admitted
+mutation under explicit authority. Use `facade::live` when the application needs
+a framework-owned resource that remains active, receives updates, and closes
+deterministically. Use `facade::preview` and `facade::comparison` for branch or
+historical work without blurring those truth worlds into a current read.
 
-Its job is to make signal-facing posture explicit before execution and to
-provide a continuation pipeline instead of local callback folklore. Rather than
-assuming “reactive behavior exists somewhere below,” Query gives public,
-retained artifacts that say whether a path is compatible, prepared, denied, or
-still stopped.
-
-Use this category when the feature needs invalidation, recomputation, signal
-compatibility review, prepared continuation artifacts, or the next-step move
-from envelope truth into signal-facing execution.
-
-The mistake to avoid is treating signal compatibility as something the caller
-can safely infer from lower behavior without using Query’s public posture.
+Query owns the public declaration, context handoff, planning, and outcome. The
+bridge, relational runtime, and signal runtime retain their lower truth,
+mutation, merge, and scheduling authority. `WorthQuerySessionLabel` names a
+runtime session; it is not a substitute for retained preview or merge authority.
 
 Read next:
 
-- [Declaration Signal Compatibility](./domain-capabilities/declaration-signal-compatibility.md)
-- [Signal Compatibility Orchestration](./domain-capabilities/signal-compatibility-orchestration.md)
-- [Continuation Pipeline](./domain-capabilities/continuation-pipeline.md)
-- [Envelope To Signal Or Continuation](./domain-capabilities/workflow/envelope-to-signal-or-continuation.md)
-
-## Bridge-Facing Workflow, Merge, And Writeback
-
-This category covers the point where Query-authored domain work needs preview,
-workflow, mutation planning, merge inspection, or writeback lowering into lower
-authority lanes.
-
-The important distinction here is that Query may own the public planning and
-inspection lane without owning lower truth mutation, merge semantics, or
-writeback execution themselves. This is why workflow declarations, mutation
-lowering, merge inspection, and writeback declarations can be public Query
-surfaces without turning Query into the owner of all lower bridge semantics.
-
-There is also an important identity split inside this category:
-
-- preview session entry on the workspace runtime surface uses
-  `WorthQuerySessionLabel`
-- preview-bound workflow inspection and mutation planning use
-  `BridgePreviewSessionIdentity`
-
-The first names the opened runtime session. The second names the retained
-preview foundation artifact used by workflow-capability binding. Treating them
-as interchangeable loses the authority boundary between a runtime session and
-a retained workflow foundation artifact.
-
-Use this category when the job sounds like workflow declaration, preview-bound
-inspection, mutation lowering, merge analysis, or writeback planning.
-
-The mistake to avoid is either bypassing Query for bridge semantics or
-pretending Query now owns lower truth mutation just because it owns the planning
-surface.
-
-Read next:
-
-- [Workflow README](./domain-capabilities/workflow/README.md)
-- [Preview Inspection And Mutation Planning](./domain-capabilities/workflow/preview-inspection-and-mutation-planning.md)
-- [Runtime-Preflight Workflow Contributions](./domain-capabilities/workflow/runtime-preflight-workflow-contributions.md)
+- [Declarative Query Experience](./capabilities/declarative-query-experience.md)
 - [Branches And Previews](./foundations/branches-and-previews.md)
+- [Subscriptions](./capabilities/subscriptions.md)
 
 ## Relational Truth And Invariants Through Query
 
@@ -1487,33 +1258,19 @@ Read next:
 
 ## Projection Consumption And Downstream Authority
 
-Projection consumption is the declared lane for carrying materialized Query
-facts without reopening source authority. When another runtime depends on the
-relationship, the ordinary path is a `ProjectionAuthorityContract` plus the
-result-attached `consume_projection_authority(...)` method.
+Projection consumption carries materialized Query facts without reopening
+source authority. On `WorthQueryReadCompletion`, declare the facts with
+`read::project_facts()` and call `consume_projection(...)`.
 
-Query returns one sealed `WorthQueryConsumedProjectionAuthority` or one typed
-non-admitted outcome. The authority keeps basis, source lineage, consumed
-facts, receipt, and downstream requirements together; its getters are
-inspection surfaces, not ingredients for reconstructing authority.
-
-Use `ProjectionAuthorityOutcome::into_admitted()` to transfer admitted proof to
-its downstream owner. Persist a terminal JSON `ProjectionAuthorityContract`
-when declarations must replay across a process boundary. The loaded declaration
-must still pass the canonical authority transition against a real source; a
-serialized declaration is not serialized authority.
-
-Typed inspection also goes through `consume_projection_authority(...)`, then
-reads `facts()` or `receipt()` from admitted authority.
+Query returns `WorthQueryProjectionOutcome`. Completed and advisory outcomes
+carry one sealed authority that retains basis, source lineage, facts, receipt,
+and requirements. Call `into_admitted()` to move it into the downstream owner.
+Violation, deferred, and unavailable outcomes remain typed and cannot be
+promoted from receipts, IDs, or digests.
 
 The mistakes to avoid are fishing in lower-runtime truth for IDs or passing a
 basis digest, receipt digest, source label, and fact list as a replacement
 authority tuple.
-
-Retained derived-artifact bindings and live-artifact bindings participate as
-first-class projection-consumption declaration, support-discovery, and
-authority sources. Ordinary downstream callers should use their
-`consume_projection_authority(...)` methods.
 
 Read next:
 
@@ -1522,28 +1279,21 @@ Read next:
 - [Projection Consumption Vs Inspection](./domain-capabilities/choosing/projection-consumption-vs-inspection.md)
 - [Policy, Tenant, And Relationship-Proof Narrowing](./foundations/policy-tenant-and-relationship-proof-narrowing.md)
 
-## Family Helpers And Declaration Progression
+## Consumer Extensions
 
-Family helpers expose family-native ergonomics over the same canonical
-declaration, orchestration, binding, and recovery surfaces—they are not a second
-execution engine.
+Downstream crates extend Query through typed `facade::domain` contribution
+contracts. A contribution declares domain meaning; Query still owns canonical
+admission, execution, receipts, and outcomes. Keep family-specific ergonomic
+helpers as thin declaration builders over that same ordinary facade.
 
-Declaration progression moves declaration work forward through typed phases
-without rebuilding earlier identity or re-deriving route meaning from host state.
-
-Use helpers when the honest fit is ergonomic composition over an admitted family.
-Use progression when you already have declaration identity and need the next
-phase in the public pipeline.
-
-The mistake to avoid is helpers that smuggle alternate semantics, or progression
-that skips readiness, receipts, or envelopes when the pipeline requires them.
+Do not add consumer-local coordinators, backend selectors, canonicalizers,
+planners, executors, success-envelope builders, or subscription lifecycle
+managers.
 
 Read next:
 
-- [Family Helpers](./domain-capabilities/family-helpers.md)
-- [Declaration Progression](./domain-capabilities/declaration-progression.md)
-- [Orchestration Inventory](./domain-capabilities/orchestration-inventory.md)
-- [Binding Vs Orchestration Vs Helpers](./domain-capabilities/choosing/binding-vs-orchestration-vs-helpers.md)
+- [Declarative Query Experience](./capabilities/declarative-query-experience.md)
+- [Consumer Kit](./foundations/consumer-kit.md)
 
 ## Temporal And Time-Aware Live Queries
 
@@ -1613,12 +1363,12 @@ Read next:
 
 Need the shortest path between close surfaces:
 
-- use choosing guides, then workflow guides, then recipes
+- start with the declarative capability guide, then open the owning feature doc
 
 Need platform entry or operating world:
 
-- use platform entry, configured domain handles, support snapshot, and
-  operating-mode honesty
+- use the ordinary capability namespace plus a Query-owned workspace and
+  explicit context
 
 Need typed query read meaning:
 
@@ -1632,8 +1382,8 @@ Need policy, tenant, or proof-gated access:
 
 Need domain work/request:
 
-- use typed Query declaration input, family marker, progression, and helpers only
-  over the same canonical surfaces
+- implement a typed `facade::domain` contribution and let Query own admission,
+  execution, receipt, and outcome shaping
 
 Need identity/deduplication:
 
@@ -1656,12 +1406,8 @@ Need basis for read, mutate, replay, inspect, or materialize:
 
 Need posture before or after a run:
 
-- use state/readiness before guessing; use inspection after; use declaration
-  entry readiness before orchestration
-
-Need compact orchestration/binding/continuation result:
-
-- use ordinary outcomes before flattening to local errors
+- use state/readiness before guessing and `facade::inspection` after execution;
+  preserve the capability namespace's typed outcome and next action
 
 Need relational invariants/truth:
 
@@ -1685,7 +1431,8 @@ Need submission order or replay:
 
 Need signal/reactive behavior:
 
-- use signal compatibility, continuation, and subscription surfaces first
+- use `facade::live`; hold the managed handle and let Query own maintenance and
+  close
 
 Need async/resource-backed declaration meaning or retained async runtime state:
 
@@ -1699,8 +1446,8 @@ Need effects or staged delivery:
 
 Need graph mutation/writeback/bridge routing:
 
-- use workflow, bridge routing, writeback lowering, lower-runtime capability
-  routing, and receipt/envelope surfaces first
+- use `facade::mutation` or `facade::workflow` with explicit authority; do not
+  choose or invoke a lower backend in consumer code
 
 Need intent admission or mutation evidence:
 
@@ -1716,18 +1463,9 @@ Need serious runtime-backed product work:
 
 - use the workspace facade and support/admission contract **per admitted family row**
 
-Need retained artifact to become next input:
-
-- use typed binding/resolver surfaces
-
 Need failure/recovery:
 
-- use ordinary outcomes, checked stops, recovery brief, and recovery boundary
-
-Need grouped/neighborhood semantics:
-
-- use grouped authoring/products/contribution surfaces, not local loops over
-  isolated declarations
+- use the typed stop and next action returned by the owning ordinary namespace
 
 Need cross-runtime why:
 
@@ -1735,8 +1473,8 @@ Need cross-runtime why:
 
 Need materialized facts without reopening authority:
 
-- declare a `ProjectionAuthorityContract` and consume one sealed projection
-  authority from the result or receipt that owns the facts
+- call `completion.consume_projection(read::project_facts()...)` and move the
+  sealed authority from `WorthQueryProjectionOutcome::into_admitted()`
 
 Need public-bridge read certification:
 

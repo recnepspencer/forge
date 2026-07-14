@@ -271,3 +271,13 @@ pub fn consume_projection_contract_for_certification(
 ) -> crate::ordinary::read::WorthQueryProjectionOutcome {
     completion.consume_projection_contract_for_certification(contract)
 }
+
+/// Reconstruct the typed write-boundary receipt used by explicit downstream
+/// certification fixtures. Ordinary consumers receive the cohesive mutation
+/// outcome and do not assemble this lower-runtime artifact themselves.
+pub fn write_authority_execution_receipt_for_certification(
+    command: &crate::runtime::WorthQueryWriteCommand,
+    receipt: crate::memory_workspace::WorthQueryMutationReceipt,
+) -> crate::lower_runtime_routing::WriteAuthorityExecutionReceipt {
+    crate::lower_runtime_routing::WriteAuthorityExecutionReceipt::from_command(command, receipt)
+}

@@ -1,7 +1,7 @@
 #[path = "measurement_basis_projection_support.rs"]
 mod projection_consumption_support;
 
-use worth_query::facade::foundation::ProjectionAuthorityContract;
+use worth_query::facade::read::{project_facts, WorthQueryProjectionOutcome};
 use worth_query::facade::runtime::WorthQueryAuthoredAspectValue;
 use worth_ui::facade::admission::{UiAdmissionTarget, UiAdmissionWorld};
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
@@ -61,11 +61,11 @@ pub fn target_bound_to_projection_consumption(
 pub fn display_field_projection_consumption(
     lane_label: &str,
 ) -> (UiGraphWorldProfile, WorthUiQueryAuthorityHandle) {
-    let (mut workspace, family, _) = measurement_projection_workspace(lane_label);
+    let (mut workspace, schema_basis_authority, _) = measurement_projection_workspace(lane_label);
     query_authority(projection_consumption_attempt(
         &mut workspace,
-        &family,
-        authority_contract().require_display_field(title_value_field_path()),
+        schema_basis_authority,
+        project_facts().display_field(title_value_field_path()),
     ))
 }
 
@@ -75,11 +75,12 @@ pub fn display_projection_consumptions_across_basis_generations(
     (UiGraphWorldProfile, WorthUiQueryAuthorityHandle),
     (UiGraphWorldProfile, WorthUiQueryAuthorityHandle),
 ) {
-    let (mut workspace, family, entity_identity) = measurement_projection_workspace(lane_label);
+    let (mut workspace, schema_basis_authority, entity_identity) =
+        measurement_projection_workspace(lane_label);
     let current = projection_consumption_attempt(
         &mut workspace,
-        &family,
-        authority_contract().require_display_field(title_value_field_path()),
+        schema_basis_authority.clone(),
+        project_facts().display_field(title_value_field_path()),
     );
     workspace
         .update(entity_identity, |task| {
@@ -91,23 +92,14 @@ pub fn display_projection_consumptions_across_basis_generations(
         .expect("fixture workspace should admit the follow-up size update");
     let next = projection_consumption_attempt(
         &mut workspace,
-        &family,
-        authority_contract().require_display_field(title_value_field_path()),
+        schema_basis_authority,
+        project_facts().display_field(title_value_field_path()),
     );
     (query_authority(current), query_authority(next))
 }
 
-fn authority_contract() -> ProjectionAuthorityContract {
-    ProjectionAuthorityContract::declare()
-        .require_settled_consumption()
-        .require_source_authority()
-}
-
 fn query_authority(
-    (world, outcome): (
-        UiGraphWorldProfile,
-        worth_query::facade::foundation::ProjectionAuthorityOutcome,
-    ),
+    (world, outcome): (UiGraphWorldProfile, WorthQueryProjectionOutcome),
 ) -> (UiGraphWorldProfile, WorthUiQueryAuthorityHandle) {
     let (authority, _) = WorthUiQueryAuthorityHandle::from_outcome(outcome)
         .expect("certification fixture must mint authority through Query");

@@ -55,7 +55,7 @@ fn graph_identity_and_version_keep_query_source_and_parent_links() {
             assert!(!reference.declaration_digest().is_empty());
             assert_eq!(
                 reference.canonicalization_version(),
-                "WORTH.query.declaration.v1"
+                "worth.query.declaration.v1"
             );
         }
         other => panic!("expected query declaration source, got {other:?}"),
@@ -186,6 +186,6 @@ fn query_declaration_references_are_self_describing() {
     assert!(!reference.declaration_digest().is_empty());
     assert_eq!(
         reference.canonicalization_version(),
-        "WORTH.query.declaration.v1"
+        "worth.query.declaration.v1"
     );
 }

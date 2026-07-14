@@ -1,22 +1,27 @@
 const FEATURE_DOC: &str = include_str!("../docs/capabilities/projection-consumption.md");
+const DECLARATIVE_DOC: &str =
+    include_str!("../docs/capabilities/declarative-query-experience.md");
 const AI_ORIENTATION: &str = include_str!("../docs/AI_README.md");
-const RECIPE: &str = include_str!(
-    "../docs/domain-capabilities/recipes/carry-query-facts-into-a-downstream-runtime.md"
-);
-const FACADE_EXPORTS: &str = include_str!("../src/facade/exports_foundation.rs");
-const FLUENT_GOLDEN: &str =
-    include_str!("ui/projection_consumption/golden/projection_authority_fluent_path_compiles.rs");
+const READ_FACADE: &str = include_str!("../src/facade/exports_read.rs");
+const ORDINARY_PROJECTION: &str = include_str!("../src/ordinary/read/projection.rs");
+const COMPILED_EXAMPLE: &str = include_str!("declarative_facade_docs.rs");
 const CLOSEOUT: &str = include_str!("../../../_docs/WORTH-query/milestone-9.11-closeout.md");
 
 #[test]
-fn docs_lead_from_ordinary_authority_to_execution_in_required_order() {
+fn projection_feature_doc_follows_the_current_usage_shape() {
     let headings = [
-        "### Ordinary fluent path",
-        "### Contract reference",
-        "### Denial and inspection",
-        "### Advanced lifecycle",
+        "## What This Feature Is",
+        "## Why You Use It",
+        "## Stable Entry Points",
         "## Core Mental Model",
         "## How It Executes",
+        "## Small Example",
+        "## Real Example",
+        "## How It Relates To Other Features",
+        "## Inspection And Debugging",
+        "## Anti-Patterns",
+        "## Current Limits",
+        "## Related Docs",
     ];
     let positions =
         headings.map(|heading| FEATURE_DOC.find(heading).expect("required docs section"));
@@ -24,17 +29,37 @@ fn docs_lead_from_ordinary_authority_to_execution_in_required_order() {
 }
 
 #[test]
-fn docs_ai_orientation_and_compile_golden_teach_the_same_facade_path() {
-    for source in [FEATURE_DOC, AI_ORIENTATION, RECIPE, FLUENT_GOLDEN] {
-        assert!(source.contains("ProjectionAuthorityContract"));
-        assert!(source.contains("consume_projection_authority"));
+fn docs_examples_and_facade_teach_the_same_ordinary_projection_path() {
+    for source in [FEATURE_DOC, DECLARATIVE_DOC, AI_ORIENTATION, COMPILED_EXAMPLE] {
+        assert!(source.contains("project_facts"));
+        assert!(source.contains("consume_projection"));
+        assert!(source.contains("into_admitted"));
     }
-    assert!(FEATURE_DOC.contains("WorthQueryConsumedProjectionAuthority"));
-    assert!(FEATURE_DOC.contains("load_projection_authority_contract_document"));
-    assert!(FEATURE_DOC.contains("ProjectionAuthorityOutcome::into_admitted()"));
-    assert!(AI_ORIENTATION.contains("WorthQueryConsumedProjectionAuthority"));
-    assert!(AI_ORIENTATION.contains("to_terminal_json_document()"));
-    assert!(FLUENT_GOLDEN.contains("use worth_query::facade::"));
+    for source in [FEATURE_DOC, DECLARATIVE_DOC, AI_ORIENTATION] {
+        assert!(source.contains("WorthQueryProjectionOutcome"));
+    }
+    for symbol in [
+        "project_facts",
+        "WorthQueryProjectionOutcome",
+        "WorthQueryConsumedProjectionAuthority",
+    ] {
+        assert!(READ_FACADE.contains(symbol), "missing read facade symbol {symbol}");
+        assert!(ORDINARY_PROJECTION.contains(symbol), "missing implementation symbol {symbol}");
+    }
+}
+
+#[test]
+fn discovery_docs_do_not_teach_the_displaced_projection_assembly_path() {
+    for source in [FEATURE_DOC, DECLARATIVE_DOC, AI_ORIENTATION] {
+        for displaced in [
+            "ProjectionAuthorityContract::declare",
+            "consume_projection_authority",
+            "to_terminal_json_document",
+            "load_projection_authority_contract_document",
+        ] {
+            assert!(!source.contains(displaced), "displaced docs path: {displaced}");
+        }
+    }
 }
 
 #[test]
@@ -49,30 +74,18 @@ fn closeout_records_authority_deletion_complexity_and_consumer_proof() {
         "downstream consumer graph growth",
         "Worth UI",
     ] {
-        assert!(
-            CLOSEOUT.contains(required),
-            "missing closeout proof: {required}"
-        );
+        assert!(CLOSEOUT.contains(required), "missing closeout proof: {required}");
     }
 }
 
 #[test]
-fn curated_facade_and_docs_exclude_independently_pairable_legacy_types() {
+fn ordinary_facade_and_docs_exclude_independently_pairable_legacy_types() {
     for legacy in [
         "CompletedProjectionFactConsumption",
         "ProjectionFactConsumptionAttempt",
     ] {
-        assert!(
-            !FACADE_EXPORTS.contains(legacy),
-            "legacy facade export: {legacy}"
-        );
-        assert!(
-            !FEATURE_DOC.contains(legacy),
-            "legacy type taught in docs: {legacy}"
-        );
-        assert!(
-            !AI_ORIENTATION.contains(legacy),
-            "legacy type taught to AI: {legacy}"
-        );
+        assert!(!READ_FACADE.contains(legacy), "legacy facade export: {legacy}");
+        assert!(!FEATURE_DOC.contains(legacy), "legacy type taught in docs: {legacy}");
+        assert!(!AI_ORIENTATION.contains(legacy), "legacy type taught to AI: {legacy}");
     }
 }

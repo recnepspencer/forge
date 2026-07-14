@@ -61,6 +61,10 @@ inspection contexts refine that choice without exposing phase transitions.
 Managed live handles own activation, observation, update continuity, and
 closeout.
 
+Projection consumption returns `WorthQueryProjectionOutcome`; completed and
+advisory authority moves through `into_admitted()`, while violations, deferral,
+and unavailability remain typed.
+
 ## How It Executes
 
 1. The capability namespace admits the declaration and preserves its typed

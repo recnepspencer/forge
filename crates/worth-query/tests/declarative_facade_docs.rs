@@ -84,6 +84,25 @@ fn discovery_links_resolve_to_each_current_ordinary_capability() {
     assert!(root.join("docs/capabilities/declarative-query-experience.md").is_file());
 }
 
+#[test]
+fn ai_discovery_excludes_displaced_phase_assembly_guidance() {
+    for displaced in [
+        "## Platform Entry For Serious Downstream Work",
+        "## Domain Entry And Configured Handles",
+        "## Readiness, Orchestration, Route, Receipt, And Envelope",
+        "## Family Helpers And Declaration Progression",
+        "Declaration Entry Orchestration",
+        "Binding Vs Orchestration Vs Helpers",
+        "consume_projection_authority",
+        "ProjectionAuthorityContract::declare",
+    ] {
+        assert!(
+            !AI_README.contains(displaced),
+            "AI discovery still teaches displaced path: {displaced}"
+        );
+    }
+}
+
 fn task_declaration() -> read::WorthQueryReadDeclaration {
     read::declare(|read| {
         read.local_collection(
