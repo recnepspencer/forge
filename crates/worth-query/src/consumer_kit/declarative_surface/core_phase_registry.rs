@@ -64,7 +64,7 @@ const fn certification(source: &'static str, function: &'static str, phase: Phas
         Family::Read,
         phase,
         Class::Certification,
-        Class::Certification,
+        Class::InternalMechanism,
         "Query certification",
         "internal phase-chain oracle",
     )

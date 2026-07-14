@@ -21,6 +21,11 @@ pub enum WorthQueryProhibitedSeam {
     LegacyPreviewExecution,
     DeepFacadeToolingImport,
     LegacyQueryBasisLifecycle,
+    CrateRootPhaseMirror,
+    DeepPhaseModuleImport,
+    OrdinaryFacadePhaseReexport,
+    PhaseArtifactAlias,
+    GenericPhaseConversion,
 }
 
 impl WorthQueryProhibitedSeam {
@@ -51,6 +56,11 @@ impl WorthQueryProhibitedSeam {
             Self::LegacyPreviewExecution => "query.legacy-preview-execution",
             Self::DeepFacadeToolingImport => "query.deep-facade-tooling-import",
             Self::LegacyQueryBasisLifecycle => "query.legacy-basis-lifecycle",
+            Self::CrateRootPhaseMirror => "query.phase-api.crate-root-mirror",
+            Self::DeepPhaseModuleImport => "query.phase-api.deep-module-import",
+            Self::OrdinaryFacadePhaseReexport => "query.phase-api.ordinary-facade-reexport",
+            Self::PhaseArtifactAlias => "query.phase-api.alias",
+            Self::GenericPhaseConversion => "query.phase-api.generic-conversion",
         }
     }
 
@@ -85,6 +95,13 @@ impl WorthQueryProhibitedSeam {
                 "facade::certification tooling through ordinary facade"
             }
             Self::LegacyQueryBasisLifecycle => "query_basis_lifecycle",
+            Self::CrateRootPhaseMirror => "worth_query::WorthQueryPreparedContinuation",
+            Self::DeepPhaseModuleImport => "worth_query::planning::plan_validated_bundle",
+            Self::OrdinaryFacadePhaseReexport => "worth_query::facade::read::plan_validated_bundle",
+            Self::PhaseArtifactAlias => {
+                "worth_query::WorthQueryPreparedContinuation as PreparedContinuation"
+            }
+            Self::GenericPhaseConversion => "WorthQueryReadRequest: Into<ExecutionPlanBundle>",
         }
     }
 }

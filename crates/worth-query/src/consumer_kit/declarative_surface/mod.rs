@@ -6,6 +6,7 @@ mod journey;
 mod journey_audit;
 mod journey_registry;
 mod model;
+mod ordinary_api_snapshot;
 mod phase_eight_nine_registry;
 mod phase_graph_registry;
 mod phase_seven_registry;
@@ -34,6 +35,10 @@ pub use journey_registry::worth_query_consumer_journey_rows;
 pub use model::{
     WorthQueryDeclarativeCapabilityFamily, WorthQueryDeclarativePhaseResponsibility,
     WorthQueryDeclarativeSurfaceClass, WorthQueryDeclarativeSurfaceRow,
+};
+pub use ordinary_api_snapshot::{
+    current_ordinary_api_snapshot_audit, WorthQueryOrdinaryApiSnapshot,
+    WorthQueryOrdinaryApiSnapshotAudit, WorthQueryOrdinaryApiSnapshotFinding,
 };
 pub use registry::worth_query_declarative_surface_rows;
 pub use source::{

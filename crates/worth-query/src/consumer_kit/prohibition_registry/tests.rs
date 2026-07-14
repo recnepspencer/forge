@@ -126,6 +126,11 @@ fn direct_workspace_write_and_existing_truth_bypass_seams_are_registry_owned() {
         WorthQueryProhibitedSeam::LegacyPreviewExecution,
         WorthQueryProhibitedSeam::DeepFacadeToolingImport,
         WorthQueryProhibitedSeam::LegacyQueryBasisLifecycle,
+        WorthQueryProhibitedSeam::CrateRootPhaseMirror,
+        WorthQueryProhibitedSeam::DeepPhaseModuleImport,
+        WorthQueryProhibitedSeam::OrdinaryFacadePhaseReexport,
+        WorthQueryProhibitedSeam::PhaseArtifactAlias,
+        WorthQueryProhibitedSeam::GenericPhaseConversion,
     ] {
         assert!(
             registry.contains_seam(seam),

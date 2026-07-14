@@ -10,6 +10,9 @@
 
 #![forbid(unsafe_code)]
 
+#[cfg(test)]
+extern crate self as worth_query;
+
 mod application;
 mod aspect_field_authoring;
 mod authoring;
@@ -335,4 +338,12 @@ pub(crate) use signal_compatibility_orchestration::{
 };
 
 #[cfg(test)]
+#[path = "../tests/graph_read_access_cost_model_support.rs"]
+mod graph_read_access_cost_model_support;
+#[cfg(test)]
 mod harness;
+#[cfg(test)]
+mod integration_tests;
+#[cfg(test)]
+#[path = "../tests/support/mod.rs"]
+mod support;

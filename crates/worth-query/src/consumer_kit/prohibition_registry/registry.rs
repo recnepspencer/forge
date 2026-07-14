@@ -135,6 +135,36 @@ static HARD_PROHIBITION_ROWS: &[WorthQueryProhibitionRegistryRow] = &[
         "facade::foundation::basis_lifecycle",
         "the deleted parallel lifecycle cannot be restored as competing authority",
     ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::CrateRootPhaseMirror,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "capability-oriented facade declaration and returned evidence",
+        "crate-root mirrors cannot expose Query's internal phase artifacts",
+    ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::DeepPhaseModuleImport,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "ordinary facade capability journey",
+        "moving a transition into a deep module is not phase quarantine",
+    ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::OrdinaryFacadePhaseReexport,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "facade::read declaration and outcome navigation",
+        "ordinary namespaces expose desired capabilities rather than phase advancement",
+    ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::PhaseArtifactAlias,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "sealed proof returned by an ordinary capability journey",
+        "renaming a phase artifact cannot restore downstream access",
+    ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::GenericPhaseConversion,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "Query-owned phase progression",
+        "generic conversion traits cannot mint or advance internal phase artifacts",
+    ),
 ];
 
 #[derive(Clone, Copy, Debug)]

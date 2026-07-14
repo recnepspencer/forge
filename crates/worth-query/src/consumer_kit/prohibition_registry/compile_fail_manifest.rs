@@ -113,6 +113,26 @@ static HARD_PROHIBITION_COMPILE_FAIL_FIXTURES: &[WorthQueryProhibitionCompileFai
         WorthQueryProhibitedSeam::LegacyQueryBasisLifecycle,
         "tests/ui/prohibition_registry/legacy_query_basis_lifecycle_forbidden.rs",
     ),
+    WorthQueryProhibitionCompileFailFixture::new(
+        WorthQueryProhibitedSeam::CrateRootPhaseMirror,
+        "tests/ui/prohibition_registry/crate_root_phase_mirror_forbidden.rs",
+    ),
+    WorthQueryProhibitionCompileFailFixture::new(
+        WorthQueryProhibitedSeam::DeepPhaseModuleImport,
+        "tests/ui/prohibition_registry/deep_phase_module_import_forbidden.rs",
+    ),
+    WorthQueryProhibitionCompileFailFixture::new(
+        WorthQueryProhibitedSeam::OrdinaryFacadePhaseReexport,
+        "tests/ui/prohibition_registry/ordinary_facade_phase_reexport_forbidden.rs",
+    ),
+    WorthQueryProhibitionCompileFailFixture::new(
+        WorthQueryProhibitedSeam::PhaseArtifactAlias,
+        "tests/ui/prohibition_registry/phase_artifact_alias_forbidden.rs",
+    ),
+    WorthQueryProhibitionCompileFailFixture::new(
+        WorthQueryProhibitedSeam::GenericPhaseConversion,
+        "tests/ui/prohibition_registry/generic_phase_conversion_forbidden.rs",
+    ),
 ];
 
 pub fn hard_prohibition_compile_fail_fixtures() -> &'static [WorthQueryProhibitionCompileFailFixture]

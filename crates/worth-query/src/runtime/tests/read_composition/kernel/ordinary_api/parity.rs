@@ -21,18 +21,21 @@ macro_rules! assert_ordinary_internal_parity {
         let mut workspace = read_runtime()
             .workspace($workspace_name)
             .expect("ordinary workspace should open");
-        let ordinary = declaration
+        let completion = declaration
             .using($context)
             .run(&mut workspace)
             .into_result()
-            .expect("ordinary read should execute")
-            .into_result();
+            .expect("ordinary read should execute");
+        let ordinary_context_receipt = completion.context_receipt().clone();
+        let ordinary_journey_counters = *completion.journey_counters();
+        let ordinary = completion.into_result();
 
         let oracle_intent = $author(WorthQueryReadBuilder::declaration())
             .expect("internal oracle declaration should build");
         let admitted_context = admit_read_context_declaration(&oracle_intent, $context.into())
             .expect("internal oracle context should admit");
-        let (oracle_authority, oracle_planning_authority, _) = admitted_context.into_parts();
+        let (oracle_authority, oracle_planning_authority, oracle_context_receipt) =
+            admitted_context.into_parts();
         let oracle_read_graph = oracle_intent
             .plan(oracle_planning_authority)
             .expect("internal oracle should plan");
@@ -52,6 +55,21 @@ macro_rules! assert_ordinary_internal_parity {
         assert_eq!(
             ordinary.receipt().execution_plan_digest(),
             oracle_plan_digest
+        );
+        assert_eq!(ordinary_context_receipt, oracle_context_receipt);
+        assert_eq!(
+            ordinary_journey_counters.context_admission_attempt_count(),
+            1
+        );
+        assert_eq!(ordinary_journey_counters.planning_attempt_count(), 1);
+        assert_eq!(ordinary_journey_counters.planning_completed_count(), 1);
+        assert_eq!(
+            ordinary_journey_counters.lower_runtime_execution_attempt_count(),
+            1
+        );
+        assert_eq!(
+            ordinary_journey_counters.lower_runtime_execution_completed_count(),
+            1
         );
         assert_eq!(ordinary.receipt(), oracle.receipt());
         assert_eq!(ordinary, oracle);

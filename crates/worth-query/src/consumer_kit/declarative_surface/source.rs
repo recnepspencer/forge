@@ -69,6 +69,7 @@ impl WorthQueryDeclarativeSurfaceSourceSite {
 pub enum WorthQueryDeclarativeSurfaceFindingKind {
     InvalidRustSource,
     UnclassifiedPublicPhaseSurface,
+    QuarantinedPhaseSurfaceStillPublic,
     MissingRegisteredSurface,
     DuplicatePublicPhaseSurface,
 }

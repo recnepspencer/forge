@@ -23,6 +23,28 @@ fn current_phase_surface_is_source_backed_and_fully_classified() {
 }
 
 #[test]
+fn registered_internal_mechanism_is_complete_only_when_no_longer_public() {
+    let source = WorthQueryDeclarativeSurfaceSource::new(
+        "src/planning/mod.rs",
+        "pub fn plan_validated_bundle() {}\n",
+    );
+    let audit = audit_declarative_surface_sources(&[source]);
+    let finding = audit
+        .findings()
+        .iter()
+        .find(|finding| {
+            finding.kind()
+                == WorthQueryDeclarativeSurfaceFindingKind::QuarantinedPhaseSurfaceStillPublic
+        })
+        .expect("registered internal mechanism must fail while publicly callable");
+
+    assert_eq!(finding.site().path(), "src/planning/mod.rs");
+    assert_eq!(finding.site().line(), 1);
+    assert_eq!(finding.site().function_name(), "plan_validated_bundle");
+    assert_eq!(audit.classified_surface_count(), 0);
+}
+
+#[test]
 fn ordinary_source_tree_is_discovered_and_fully_classified() {
     let audit = workspace_declarative_surface_audit();
 

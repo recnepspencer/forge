@@ -7,6 +7,7 @@ use super::source::{
     WorthQueryDeclarativeSurfaceSourceSite,
 };
 use super::surface_syntax::public_phase_surface_sites;
+use super::WorthQueryDeclarativeSurfaceClass;
 
 pub fn current_declarative_surface_audit() -> WorthQueryDeclarativeSurfaceAudit {
     audit_declarative_surface_sources(&current_sources())
@@ -46,12 +47,21 @@ pub fn audit_declarative_surface_sources(
             .filter(|row| row.source_path() == path && row.function_name() == function_name)
             .collect::<Vec<_>>();
         for site in sites {
-            if !matching_rows
+            let matching_site_rows = matching_rows
                 .iter()
-                .any(|row| row_matches_site(row, sites.len(), site))
-            {
+                .copied()
+                .filter(|row| row_matches_site(row, sites.len(), site))
+                .collect::<Vec<_>>();
+            if matching_site_rows.is_empty() {
                 findings.push(WorthQueryDeclarativeSurfaceFinding::new(
                     WorthQueryDeclarativeSurfaceFindingKind::UnclassifiedPublicPhaseSurface,
+                    site.clone(),
+                ));
+            } else if matching_site_rows.iter().any(|row| {
+                row.target_class() == WorthQueryDeclarativeSurfaceClass::InternalMechanism
+            }) {
+                findings.push(WorthQueryDeclarativeSurfaceFinding::new(
+                    WorthQueryDeclarativeSurfaceFindingKind::QuarantinedPhaseSurfaceStillPublic,
                     site.clone(),
                 ));
             }
@@ -72,11 +82,14 @@ pub fn audit_declarative_surface_sources(
             row.source_path().to_string(),
             row.function_name().to_string(),
         ));
-        if !sites.is_some_and(|sites| {
+        let is_observed = sites.is_some_and(|sites| {
             sites
                 .iter()
                 .any(|site| row_matches_site(row, sites.len(), site))
-        }) {
+        });
+        if row.target_class() != WorthQueryDeclarativeSurfaceClass::InternalMechanism
+            && !is_observed
+        {
             let site = match row.owner() {
                 Some(owner) => WorthQueryDeclarativeSurfaceSourceSite::method(
                     row.source_path(),
@@ -108,6 +121,8 @@ pub fn audit_declarative_surface_sources(
                     row.source_path() == site.path()
                         && row.function_name() == site.function_name()
                         && row_matches_site(row, *site_count, site)
+                        && row.target_class()
+                            != WorthQueryDeclarativeSurfaceClass::InternalMechanism
                 })
             })
             .count(),

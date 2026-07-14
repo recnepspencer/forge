@@ -107,7 +107,7 @@ const QUERY_CAPABILITY_JOURNEYS: &[Row] = &[
         id: "query-preview",
         consumer: "advanced preview consumer",
         source: "crates/worth-query/src/preview/scoped.rs",
-        probe: "pub fn admit_scoped_preview_session_plan_binding(",
+        probe: "pub(crate) fn admit_scoped_preview_session_plan_binding(",
         family: Family::Preview,
         meaning: JourneyMeaning {
             intent: "preview intent and lifecycle posture",
@@ -130,7 +130,7 @@ const QUERY_CAPABILITY_JOURNEYS: &[Row] = &[
         id: "query-mutation",
         consumer: "advanced mutation consumer",
         source: "crates/worth-query/src/workflow/lowering/mutation.rs",
-        probe: "pub fn lower_mutation_intent_declaration(",
+        probe: "pub(crate) fn lower_mutation_intent_declaration(",
         family: Family::Mutation,
         meaning: JourneyMeaning {
             intent: "typed mutation intent declaration",
@@ -153,7 +153,7 @@ const QUERY_CAPABILITY_JOURNEYS: &[Row] = &[
         id: "query-workflow",
         consumer: "advanced workflow consumer",
         source: "crates/worth-query/src/workflow/foundation.rs",
-        probe: "pub fn bind_workflow_context(",
+        probe: "pub(crate) fn bind_workflow_context(",
         family: Family::Workflow,
         meaning: JourneyMeaning {
             intent: "mutation, merge, or writeback workflow declaration",
@@ -176,7 +176,7 @@ const QUERY_CAPABILITY_JOURNEYS: &[Row] = &[
         id: "query-inspection",
         consumer: "advanced inspection consumer",
         source: "crates/worth-query/src/runtime/workspace_queries.rs",
-        probe: "pub fn inspect<'a, T>(",
+        probe: "pub(crate) fn inspect<'a, T>(",
         family: Family::Inspection,
         meaning: JourneyMeaning {
             intent: "typed inspection request",
