@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use super::audit::workspace_declarative_surface_audit;
+use super::workspace_audit::workspace_declarative_surface_audit;
 use super::{
     audit_declarative_surface_sources, current_declarative_surface_audit,
     worth_query_declarative_surface_rows, WorthQueryDeclarativeSurfaceClass,

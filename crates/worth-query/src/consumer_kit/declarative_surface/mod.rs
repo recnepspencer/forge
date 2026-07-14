@@ -7,11 +7,14 @@ mod journey_audit;
 mod journey_registry;
 mod model;
 mod phase_graph_registry;
+mod phase_seven_registry;
 mod policy_phase_registry;
 mod preview_phase_registry;
 mod registry;
 mod source;
 mod surface_syntax;
+#[cfg(test)]
+mod workspace_audit;
 
 pub use audit::{audit_declarative_surface_sources, current_declarative_surface_audit};
 pub use consumer_orchestration::{

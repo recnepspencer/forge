@@ -5,7 +5,9 @@
 mod exports_aggregate;
 mod exports_application;
 mod exports_certification;
+mod exports_comparison;
 mod exports_foundation;
+mod exports_history;
 mod exports_live_capability;
 mod exports_policy;
 mod exports_read;
@@ -146,6 +148,16 @@ pub mod aggregate {
 /// Declarative framework-owned live capability.
 pub mod live {
     pub use super::exports_live_capability::*;
+}
+
+/// Declarative historical read capability.
+pub mod history {
+    pub use super::exports_history::*;
+}
+
+/// Declarative diff, lineage, and correspondence capability.
+pub mod comparison {
+    pub use super::exports_comparison::*;
 }
 
 pub mod runtime {

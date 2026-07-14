@@ -6,6 +6,7 @@ use super::model::{
     WorthQueryDeclarativeSurfaceRow as Row,
 };
 use super::phase_graph_registry::phase_graph_surface_rows;
+use super::phase_seven_registry::phase_seven_surface_rows;
 use super::policy_phase_registry::policy_phase_surface_rows;
 use super::preview_phase_registry::preview_phase_surface_rows;
 
@@ -35,6 +36,7 @@ pub fn worth_query_declarative_surface_rows() -> &'static [Row] {
             .chain(core_phase_surface_rows())
             .chain(public_phase_exposure_rows())
             .chain(phase_graph_surface_rows())
+            .chain(phase_seven_surface_rows())
             .chain(policy_phase_surface_rows())
             .chain(preview_phase_surface_rows())
             .copied()

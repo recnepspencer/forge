@@ -1,9 +1,11 @@
 mod authority_context;
+mod comparison;
 mod composed_fixtures;
 mod context_mismatch;
 mod count;
 mod declaration_denials;
 mod fixtures;
+mod history;
 mod journey_counters;
 mod live;
 mod live_continuation;

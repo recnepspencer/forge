@@ -41,7 +41,7 @@ impl WorthQueryReadDeclarationIdentity {
 ///
 /// Its fields are private so consumers can inspect canonical identity without
 /// manufacturing or replacing the graph Query admitted during authoring.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryReadDeclaration {
     identity: WorthQueryReadDeclarationIdentity,
     intent: WorthQueryDeclaredReadIntent,

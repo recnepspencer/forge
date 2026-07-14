@@ -1,0 +1,20 @@
+warning: unreachable expression
+ --> tests/ui/declarative_history_comparison/comparison_context_cannot_be_constructed.rs:6:19
+  |
+5 |         current_snapshot: todo!(),
+  |                           ------- any code following this expression is unreachable
+6 |         retained: todo!(),
+  |                   ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `current_snapshot` and `retained` of struct `WorthQueryComparisonContext` are private
+ --> tests/ui/declarative_history_comparison/comparison_context_cannot_be_constructed.rs:5:9
+  |
+4 |     let _context = WorthQueryComparisonContext {
+  |                    --------------------------- in this type
+5 |         current_snapshot: todo!(),
+  |         ^^^^^^^^^^^^^^^^ private field
+6 |         retained: todo!(),
+  |         ^^^^^^^^ private field

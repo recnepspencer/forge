@@ -102,6 +102,10 @@ impl WorthQueryDeclaredReadIntent {
         &self.family
     }
 
+    pub(crate) fn schema_basis(&self) -> &SchemaBasisDigest {
+        &self.schema_basis
+    }
+
     pub(crate) fn canonical(&self) -> &CanonicalQueryBundle {
         &self.canonical
     }
