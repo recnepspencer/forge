@@ -2,22 +2,21 @@ use std::collections::BTreeMap;
 
 use crate::application::{
     WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainOperatingRequirement,
+    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingRequirement,
 };
 use crate::runtime::{
     WorthQueryGraphObligationRegistration, WorthQueryGraphObligationRegistrationCatalog,
 };
 
 use super::{
-    WorthQueryAdmittedDomainPackage, WorthQueryDomainDeclarationFamilyDefinition,
-    WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainIdentityDeclaration,
-    WorthQueryDomainInvariantDefinition, WorthQueryDomainPackage,
-    WorthQueryDomainPackageAdmissionDenial, WorthQueryDomainPackageIdentity,
+    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphReadOperationDefinition,
+    WorthQueryDomainIdentityDeclaration, WorthQueryDomainInvariantDefinition,
+    WorthQueryDomainPackage, WorthQueryDomainPackageIdentity,
     WorthQueryDomainPackageValidationDenial, WorthQueryDomainPackageValidationDenialKind,
 };
-use crate::application::WorthQueryApplicationFacade;
 
-pub struct WorthQueryValidatedDomainPackage<D> {
+pub(crate) struct WorthQueryValidatedDomainPackage<D: WorthQueryDomainEntryMarker> {
     pub(crate) marker: D,
     pub(crate) identity: WorthQueryDomainIdentityDeclaration<D>,
     pub(crate) package_identity: WorthQueryDomainPackageIdentity,
@@ -31,7 +30,7 @@ pub struct WorthQueryValidatedDomainPackage<D> {
     pub(crate) contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
 }
 
-impl<D> WorthQueryValidatedDomainPackage<D> {
+impl<D: WorthQueryDomainEntryMarker> WorthQueryValidatedDomainPackage<D> {
     pub fn identity(&self) -> &WorthQueryDomainPackageIdentity {
         &self.package_identity
     }
@@ -53,18 +52,35 @@ impl<D> WorthQueryValidatedDomainPackage<D> {
     pub fn contribution_category_count(&self) -> usize {
         self.contribution_policy.len()
     }
-
-    pub fn admit(
-        self,
-        facade: &WorthQueryApplicationFacade,
-    ) -> Result<WorthQueryAdmittedDomainPackage<D>, WorthQueryDomainPackageAdmissionDenial> {
-        super::admission::admit_domain_package(self, facade)
-    }
 }
 
-pub(super) fn validate_domain_package<D>(
+pub(super) fn validate_domain_package<D: WorthQueryDomainEntryMarker>(
     package: WorthQueryDomainPackage<D>,
 ) -> Result<WorthQueryValidatedDomainPackage<D>, WorthQueryDomainPackageValidationDenial> {
+    let marker_owner = package.marker.domain_key();
+    let identity_owner = package.identity.canonical_owner();
+    if marker_owner != identity_owner {
+        return Err(WorthQueryDomainPackageValidationDenial::new(
+            WorthQueryDomainPackageValidationDenialKind::MarkerIdentityMismatch,
+            format!(
+                "domain marker `{marker_owner}` does not match package identity `{identity_owner}`"
+            ),
+        ));
+    }
+    if let Some(missing) = package
+        .marker
+        .required_capability_families()
+        .iter()
+        .find(|family| !package.required_capabilities.contains(family))
+    {
+        return Err(WorthQueryDomainPackageValidationDenial::new(
+            WorthQueryDomainPackageValidationDenialKind::MissingMarkerCapability,
+            format!(
+                "domain marker `{marker_owner}` requires package capability `{}`",
+                missing.as_str()
+            ),
+        ));
+    }
     let mut validated = WorthQueryValidatedDomainPackage {
         marker: package.marker,
         identity: package.identity,

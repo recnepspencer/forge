@@ -33,6 +33,8 @@ pub struct WorthQueryInstalledDomainHandle<D> {
 pub struct WorthQueryInstalledDomainAuthority {
     runtime_authority: WorthQueryRuntimeAuthorityIdentity,
     generation: WorthQueryDomainInstallationGeneration,
+    domain_key: &'static str,
+    display_name: &'static str,
     domain_owner: String,
     package_identity: WorthQueryDomainPackageIdentity,
     installation_identity: WorthQueryEvidenceIdentity,
@@ -45,6 +47,8 @@ impl WorthQueryInstalledDomainAuthority {
     pub(crate) fn new(
         runtime_authority: WorthQueryRuntimeAuthorityIdentity,
         generation: WorthQueryDomainInstallationGeneration,
+        domain_key: &'static str,
+        display_name: &'static str,
         domain_owner: String,
         package_identity: WorthQueryDomainPackageIdentity,
         installation_identity: WorthQueryEvidenceIdentity,
@@ -79,6 +83,8 @@ impl WorthQueryInstalledDomainAuthority {
         Self {
             runtime_authority,
             generation,
+            domain_key,
+            display_name,
             domain_owner,
             package_identity,
             installation_identity,
@@ -90,6 +96,12 @@ impl WorthQueryInstalledDomainAuthority {
 
     pub fn domain_owner(&self) -> &str {
         &self.domain_owner
+    }
+    pub fn domain_key(&self) -> &'static str {
+        self.domain_key
+    }
+    pub fn display_name(&self) -> &'static str {
+        self.display_name
     }
     pub fn package_identity(&self) -> &WorthQueryDomainPackageIdentity {
         &self.package_identity
@@ -172,6 +184,14 @@ impl<D> WorthQueryInstalledDomainHandle<D> {
 
     pub fn package_identity(&self) -> &WorthQueryDomainPackageIdentity {
         self.authority.package_identity()
+    }
+
+    pub fn domain_key(&self) -> &'static str {
+        self.authority.domain_key()
+    }
+
+    pub fn display_name(&self) -> &'static str {
+        self.authority.display_name()
     }
 
     pub fn installation_generation(&self) -> WorthQueryDomainInstallationGeneration {

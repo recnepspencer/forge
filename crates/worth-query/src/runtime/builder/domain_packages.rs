@@ -1,15 +1,24 @@
+use crate::application::WorthQueryDomainEntryMarker;
 use crate::domain_installation::{
-    WorthQueryAdmittedDomainPackage, WorthQueryDomainInstallationDenial,
+    WorthQueryDomainPackage, WorthQueryDomainPackageInstallationError,
 };
 
 use super::WorthQueryRuntimeBuilder;
 
 impl WorthQueryRuntimeBuilder {
-    pub fn domain_package<D: 'static>(
+    pub fn domain_package<D: WorthQueryDomainEntryMarker + 'static>(
         mut self,
-        package: WorthQueryAdmittedDomainPackage<D>,
-    ) -> Result<Self, WorthQueryDomainInstallationDenial> {
-        let compiled = self.pending_domain_installations.install(package)?;
+        package: WorthQueryDomainPackage<D>,
+    ) -> Result<Self, WorthQueryDomainPackageInstallationError> {
+        let validated = package
+            .validate()
+            .map_err(WorthQueryDomainPackageInstallationError::Validation)?;
+        let admitted = crate::domain_installation::admit_domain_package(validated)
+            .map_err(WorthQueryDomainPackageInstallationError::Admission)?;
+        let compiled = self
+            .pending_domain_installations
+            .install(admitted)
+            .map_err(WorthQueryDomainPackageInstallationError::Installation)?;
         self.queued_invariant_registrations
             .custom_invariants
             .extend(compiled.custom_invariants);

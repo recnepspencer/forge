@@ -1,6 +1,6 @@
 use crate::application::{
     WorthQueryApplicationFacade, WorthQueryCapabilityStatus,
-    WorthQueryDeclarationEntryContributionCategoryFamily,
+    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainEntryMarker,
 };
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
@@ -18,7 +18,7 @@ use crate::application::{
 };
 use crate::runtime::WorthQueryGraphObligationRegistration;
 
-pub struct WorthQueryAdmittedDomainPackage<D> {
+pub(crate) struct WorthQueryAdmittedDomainPackage<D: WorthQueryDomainEntryMarker> {
     pub(crate) marker: D,
     pub(crate) identity: WorthQueryDomainIdentityDeclaration<D>,
     pub(crate) package_identity: WorthQueryDomainPackageIdentity,
@@ -33,37 +33,10 @@ pub struct WorthQueryAdmittedDomainPackage<D> {
     pub(crate) contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
 }
 
-impl<D> WorthQueryAdmittedDomainPackage<D> {
-    pub fn identity(&self) -> &WorthQueryDomainPackageIdentity {
-        &self.package_identity
-    }
-    pub fn admission_identity(&self) -> &str {
-        self.admission_identity.as_str()
-    }
-    pub fn domain_identity(&self) -> &WorthQueryDomainIdentityDeclaration<D> {
-        &self.identity
-    }
-    pub fn invariant_count(&self) -> usize {
-        self.invariant_definitions.len()
-    }
-    pub fn graph_obligation_count(&self) -> usize {
-        self.graph_obligations.len()
-    }
-    pub fn graph_read_operation_count(&self) -> usize {
-        self.graph_read_operations.len()
-    }
-    pub fn declaration_family_count(&self) -> usize {
-        self.declaration_families.len()
-    }
-    pub fn contribution_category_count(&self) -> usize {
-        self.contribution_policy.len()
-    }
-}
-
-pub(super) fn admit_domain_package<D>(
+pub(crate) fn admit_domain_package<D: WorthQueryDomainEntryMarker>(
     package: WorthQueryValidatedDomainPackage<D>,
-    facade: &WorthQueryApplicationFacade,
 ) -> Result<WorthQueryAdmittedDomainPackage<D>, WorthQueryDomainPackageAdmissionDenial> {
+    let facade = WorthQueryApplicationFacade::runtime_backed_default();
     let support_matrix = facade.support_matrix();
     for family in &package.required_capabilities {
         let status = support_matrix

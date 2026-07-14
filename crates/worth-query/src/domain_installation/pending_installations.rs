@@ -5,7 +5,8 @@ use worth_relational::facade::runtime::CustomInvariantRegistration;
 
 use crate::application::{
     WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainOperatingRequirement,
+    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingRequirement,
 };
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::runtime::{
@@ -29,6 +30,8 @@ pub(crate) struct WorthQueryCompiledDomainPackage {
 #[derive(Clone)]
 pub(crate) struct WorthQueryInstalledDomainArtifact {
     pub(crate) marker_type: TypeId,
+    pub(crate) marker_domain_key: &'static str,
+    pub(crate) marker_display_name: &'static str,
     pub(crate) domain_owner: String,
     pub(crate) semantic_version: WorthQueryDomainSemanticVersion,
     pub(crate) package_identity: WorthQueryDomainPackageIdentity,
@@ -57,7 +60,10 @@ impl WorthQueryPendingDomainInstallations {
     pub(crate) fn install<D: 'static>(
         &mut self,
         package: WorthQueryAdmittedDomainPackage<D>,
-    ) -> Result<WorthQueryCompiledDomainPackage, WorthQueryDomainInstallationDenial> {
+    ) -> Result<WorthQueryCompiledDomainPackage, WorthQueryDomainInstallationDenial>
+    where
+        D: WorthQueryDomainEntryMarker,
+    {
         let marker_type = TypeId::of::<D>();
         let package_identity = package.package_identity.as_str().to_string();
         let domain_owner = package.identity.canonical_owner();
@@ -100,6 +106,8 @@ impl WorthQueryPendingDomainInstallations {
         let graph_obligations = package.graph_obligations.clone();
         let artifact = WorthQueryInstalledDomainArtifact {
             marker_type,
+            marker_domain_key: package.marker.domain_key(),
+            marker_display_name: package.marker.display_name(),
             domain_owner: domain_owner.clone(),
             semantic_version: package.identity.semantic_version(),
             package_identity: package.package_identity,

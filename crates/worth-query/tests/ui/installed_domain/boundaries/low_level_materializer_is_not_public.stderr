@@ -1,0 +1,16 @@
+error[E0603]: function `materialize_canonical_admission_artifact` is private
+ --> tests/ui/installed_domain/boundaries/low_level_materializer_is_not_public.rs:1:35
+  |
+1 | use worth_query::facade::runtime::materialize_canonical_admission_artifact;
+  |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private function
+  |
+note: the function `materialize_canonical_admission_artifact` is defined here
+ --> src/facade.rs
+  |
+  |     pub use super::exports_runtime_capabilities::*;
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: import `materialize_canonical_admission_artifact` directly
+  |
+1 - use worth_query::facade::runtime::materialize_canonical_admission_artifact;
+1 + use worth_query::domain_capabilities::canonical_runtime::admission::materialize_canonical_admission_artifact;
+  |

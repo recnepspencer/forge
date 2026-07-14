@@ -13,8 +13,9 @@ use worth_query::facade::runtime::{
     WorthQueryGraphReadAccessInvalidationBasis, WorthQueryGraphReadAccessMemoryEstimateBasis,
     WorthQueryGraphReadAccessRebuildBasis, WorthQueryGraphReadAccessRequirementKind,
     WorthQueryGraphReadFanoutPosture, WorthQueryGraphReadOperationRegistration,
-    WorthQueryGraphReadOperationRegistry, WorthQueryGraphReadTraversalOperator,
+    WorthQueryGraphReadTraversalOperator,
 };
+use crate::runtime::WorthQueryGraphReadOperationRegistry;
 
 mod support;
 

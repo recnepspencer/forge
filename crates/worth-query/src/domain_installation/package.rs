@@ -1,6 +1,7 @@
 use crate::application::{
     WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainOperatingRequirement,
+    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingRequirement,
 };
 use crate::runtime::WorthQueryGraphObligationRegistration;
 
@@ -10,7 +11,7 @@ use super::{
     WorthQueryDomainPackageValidationDenial, WorthQueryValidatedDomainPackage,
 };
 
-pub struct WorthQueryDomainPackage<D> {
+pub struct WorthQueryDomainPackage<D: WorthQueryDomainEntryMarker> {
     pub(crate) marker: D,
     pub(crate) identity: WorthQueryDomainIdentityDeclaration<D>,
     pub(crate) required_capabilities: Vec<WorthQueryCapabilityFamily>,
@@ -23,7 +24,7 @@ pub struct WorthQueryDomainPackage<D> {
     pub(crate) contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
 }
 
-impl<D> WorthQueryDomainPackage<D> {
+impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
     pub fn declare(marker: D, identity: WorthQueryDomainIdentityDeclaration<D>) -> Self {
         Self {
             marker,
@@ -99,7 +100,7 @@ impl<D> WorthQueryDomainPackage<D> {
         self
     }
 
-    pub fn validate(
+    pub(crate) fn validate(
         self,
     ) -> Result<WorthQueryValidatedDomainPackage<D>, WorthQueryDomainPackageValidationDenial> {
         super::validation::validate_domain_package(self)

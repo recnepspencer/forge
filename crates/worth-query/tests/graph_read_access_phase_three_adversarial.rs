@@ -5,11 +5,12 @@ use worth_query::facade::foundation::{
 use worth_query::facade::runtime::{
     resolve_graph_read_operations_for_family_with_registry, QuerySchemaView, SchemaFieldKind,
     SchemaFieldView, SchemaRelationView, WorthQueryGraphReadOperationRegistration,
-    WorthQueryGraphReadOperationRegistry, WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
+    WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
     WorthQueryGraphReadRegistryAdmissionError, WorthQueryGraphReadResolvedOperationFamily,
     WorthQueryGraphReadResolvedOperationKind, WorthQueryGraphReadTraversalOperator,
     WorthQueryReadBuiltInOperator,
 };
+use crate::runtime::WorthQueryGraphReadOperationRegistry;
 
 mod support;
 

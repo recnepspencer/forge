@@ -14,7 +14,7 @@ mod rebind;
 mod receipt;
 mod validation;
 
-pub use admission::WorthQueryAdmittedDomainPackage;
+pub(crate) use admission::{admit_domain_package, WorthQueryAdmittedDomainPackage};
 pub use capabilities::*;
 pub use definitions::{
     WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphReadOperationDefinition,
@@ -23,8 +23,8 @@ pub use definitions::{
 pub use denial::{
     WorthQueryDomainIdentityComponentError, WorthQueryDomainInstallationDenial,
     WorthQueryDomainInstallationDenialKind, WorthQueryDomainPackageAdmissionDenial,
-    WorthQueryDomainPackageAdmissionDenialKind, WorthQueryDomainPackageValidationDenial,
-    WorthQueryDomainPackageValidationDenialKind,
+    WorthQueryDomainPackageAdmissionDenialKind, WorthQueryDomainPackageInstallationError,
+    WorthQueryDomainPackageValidationDenial, WorthQueryDomainPackageValidationDenialKind,
 };
 pub use execution::{
     WorthQueryInstalledDomainCapabilityKind, WorthQueryInstalledDomainCapabilityStop,
@@ -41,7 +41,11 @@ pub use installed_handle::{
     WorthQueryDomainInstallationGeneration, WorthQueryInstalledDomainAuthority,
     WorthQueryInstalledDomainHandle,
 };
+pub(crate) use installed_registry::{
+    WorthQueryDomainInstallationRegistry, WorthQueryInstalledDomainExecutionIndex,
+};
 pub use package::WorthQueryDomainPackage;
+pub(crate) use pending_installations::WorthQueryPendingDomainInstallations;
 pub use rebind::{
     WorthQueryDomainRebindDenial, WorthQueryDomainRebindDenialKind,
     WorthQueryDomainRebindNextAction, WorthQueryDomainRebindReceipt, WorthQueryDomainRebindRequest,
@@ -52,12 +56,7 @@ pub use receipt::{
     WorthQueryDomainInstallationLookupCounters, WorthQueryDomainInstallationReceipt,
     WorthQueryDomainInstalledDefinitionCounts,
 };
-pub use validation::WorthQueryValidatedDomainPackage;
-
-pub(crate) use installed_registry::{
-    WorthQueryDomainInstallationRegistry, WorthQueryInstalledDomainExecutionIndex,
-};
-pub(crate) use pending_installations::WorthQueryPendingDomainInstallations;
+pub(crate) use validation::WorthQueryValidatedDomainPackage;
 
 #[cfg(test)]
 mod tests;
