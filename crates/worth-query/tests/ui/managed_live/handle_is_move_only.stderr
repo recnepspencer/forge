@@ -7,5 +7,8 @@ error[E0599]: no method named `clone` found for struct `WorthQueryManagedLiveHan
 help: there is a method `close` with a similar name, but with different arguments
  --> src/ordinary/live/disposal.rs
   |
-  |     pub fn close(self, workspace: &mut WorthQueryWorkspace) -> WorthQueryManagedLiveCloseOutcome {
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  | /     pub fn close(
+  | |         mut self,
+  | |         workspace: &mut WorthQueryWorkspace,
+  | |     ) -> WorthQueryManagedLiveCloseOutcome {
+  | |__________________________________________^

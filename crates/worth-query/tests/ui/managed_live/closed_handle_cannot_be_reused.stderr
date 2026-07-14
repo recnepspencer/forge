@@ -11,5 +11,5 @@ error[E0382]: use of moved value: `handle`
 note: `worth_query::ordinary::live::disposal::<impl WorthQueryManagedLiveHandle>::close` takes ownership of the receiver `self`, which moves `handle`
  --> src/ordinary/live/disposal.rs
   |
-  |     pub fn close(self, workspace: &mut WorthQueryWorkspace) -> WorthQueryManagedLiveCloseOutcome {
-  |                  ^^^^
+  |         mut self,
+  |             ^^^^

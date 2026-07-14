@@ -169,6 +169,7 @@ fn managed_live_handle_cannot_close_a_resource_in_another_workspace() {
 
     assert!(handle.read(&mut unrelated).is_err());
     assert!(handle.drain(&mut unrelated).is_err());
+    assert!(handle.observe(&mut unrelated).is_err());
     let handle = match handle.close(&mut unrelated) {
         WorthQueryManagedLiveCloseOutcome::Stopped(stop) => stop.into_handle(),
         WorthQueryManagedLiveCloseOutcome::Closed(_) => {
@@ -232,7 +233,7 @@ fn failed_backend_close_preserves_the_managed_resource_for_retry() {
         .is_ok());
 }
 
-fn task_collection_read<Output>(
+pub(super) fn task_collection_read<Output>(
     read: WorthQueryReadBuilder<Output>,
 ) -> Result<Output, WorthQueryReadDenial> {
     read.local_collection(
@@ -263,13 +264,13 @@ fn task_collection_read<Output>(
     )
 }
 
-fn task_workspace(name: &str) -> WorthQueryWorkspace {
+pub(super) fn task_workspace(name: &str) -> WorthQueryWorkspace {
     stateful_bridge_task_runtime()
         .workspace(name)
         .expect("task workspace should open")
 }
 
-fn open_task_resource(
+pub(super) fn open_task_resource(
     workspace: &mut WorthQueryWorkspace,
     name: &str,
 ) -> WorthQueryManagedLiveHandle {
@@ -288,7 +289,7 @@ fn open_task_resource(
     }
 }
 
-fn closed(
+pub(super) fn closed(
     outcome: WorthQueryManagedLiveCloseOutcome,
 ) -> crate::ordinary::live::WorthQueryManagedLiveCloseReceipt {
     match outcome {

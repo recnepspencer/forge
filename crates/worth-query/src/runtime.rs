@@ -226,10 +226,10 @@ mod inspection;
 mod intent;
 mod journal_position;
 mod journal_replay;
-mod live_resource_disposal;
 mod live_subscription;
 mod live_subscription_accessors;
 mod live_subscription_delivery_routing;
+mod managed_live_resource;
 mod materialized_fact_posture;
 mod mixed_cause_delivery;
 mod mixed_cause_emission;
@@ -639,6 +639,10 @@ pub use live_subscription::{
     WorthQueryRuntimeLiveSubscriptionInstallation,
 };
 use live_subscription_delivery_routing::route_live_subscription_delivery;
+pub(crate) use managed_live_resource::WorthQueryManagedLiveWorkspaceCapability;
+pub use managed_live_resource::{
+    WorthQueryManagedLiveLifecycleObservation, WorthQueryManagedLiveLifecyclePosture,
+};
 #[allow(unused_imports)]
 pub use mixed_cause_delivery::{
     WorthQueryRuntimeDeliveryCoalescingKind, WorthQueryRuntimeMixedCauseDelivery,
@@ -859,7 +863,6 @@ pub use surface::{
     WorthQueryUnifiedInspectionResult, WorthQueryVerificationReadSetBreadth,
     WorthQueryVerifiedAssumptionSet, WorthQueryWriteCommand, WorthQueryWriteReceipt,
 };
-pub(crate) use workspace::WorthQueryManagedLiveWorkspaceCapability;
 pub use workspace::WorthQueryWorkspace;
 pub use workspace_declaration::{
     WorthQueryComputedBuilder, WorthQueryEffectBuilder, WorthQueryLiveViewBuilder,
@@ -888,6 +891,7 @@ pub struct WorthQueryRuntime {
     effect_index: WorthQueryEffectIndex,
     graph_obligation_registration_catalog: WorthQueryGraphObligationRegistrationCatalog,
     graph_obligation_index: WorthQueryGraphObligationIndex,
+    managed_live_resource_capability: std::sync::Arc<WorthQueryManagedLiveWorkspaceCapability>,
     next_run_id: u64,
 }
 

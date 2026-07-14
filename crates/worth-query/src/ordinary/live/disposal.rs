@@ -48,14 +48,19 @@ impl WorthQueryManagedLiveCloseStop {
 }
 
 impl WorthQueryManagedLiveHandle {
-    pub fn close(self, workspace: &mut WorthQueryWorkspace) -> WorthQueryManagedLiveCloseOutcome {
+    pub fn close(
+        mut self,
+        workspace: &mut WorthQueryWorkspace,
+    ) -> WorthQueryManagedLiveCloseOutcome {
         match workspace.close_managed_live_view(self.view(), self.workspace_capability()) {
             Ok(closeout) => {
-                WorthQueryManagedLiveCloseOutcome::Closed(WorthQueryManagedLiveCloseReceipt {
+                let receipt = WorthQueryManagedLiveCloseReceipt {
                     resource_name: self.name().to_string(),
                     closeout_identity: closeout.evidence_identity().clone(),
                     lane_terminal: closeout.lane_terminal(),
-                })
+                };
+                self.disarm();
+                WorthQueryManagedLiveCloseOutcome::Closed(receipt)
             }
             Err(error) => {
                 WorthQueryManagedLiveCloseOutcome::Stopped(WorthQueryManagedLiveCloseStop {

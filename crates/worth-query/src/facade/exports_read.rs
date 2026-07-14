@@ -15,6 +15,7 @@ pub use crate::ordinary::live::{
     WorthQueryLiveOpenOutcome, WorthQueryLiveOpenStop, WorthQueryLiveRequest,
     WorthQueryManagedLiveCloseOutcome, WorthQueryManagedLiveCloseReceipt,
     WorthQueryManagedLiveCloseStop, WorthQueryManagedLiveHandle,
+    WorthQueryManagedLiveLifecycleObservation, WorthQueryManagedLiveLifecyclePosture,
 };
 pub use crate::ordinary::read::{
     current, declare, WorthQueryCurrentPolicyTenantReadContext, WorthQueryCurrentReadContext,

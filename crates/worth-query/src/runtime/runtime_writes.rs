@@ -145,6 +145,7 @@ impl WorthQueryRuntime {
         verified_existing_truth_assertion: Option<WorthQueryVerifiedExistingTruthAssertion>,
         shared_admission: Option<WorthQueryWriteAdmissionExecutionRecord>,
     ) -> Result<WorthQueryWriteReceipt, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
         let mutation_family = command.mutation_family();
         let declared_collection_identity = command.declared_collection_identity();
         let declared_entity_identity = command.declared_entity_identity();

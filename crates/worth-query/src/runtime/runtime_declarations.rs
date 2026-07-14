@@ -14,6 +14,7 @@ impl WorthQueryRuntime {
         request: DeclarativeLiveQueryRequest,
         schema_view: QuerySchemaView,
     ) -> Result<WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Live)?;
         let name = name.into();
         admit_live_view_declaration_receipt(&*self.backend, &name, &request, &schema_view)?;
@@ -27,6 +28,7 @@ impl WorthQueryRuntime {
         name: impl Into<String>,
         binding: WorthQueryReadExecutionBinding,
     ) -> Result<WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Live)?;
         let name = name.into();
         if self
@@ -116,6 +118,7 @@ impl WorthQueryRuntime {
         &mut self,
         view: WorthQueryDerivedView,
     ) -> Result<WorthQueryDerivedView, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Computed)?;
         self.admit_derived_view_declaration(&view)?;
         insert_derived_runtime(
@@ -132,6 +135,7 @@ impl WorthQueryRuntime {
         view: WorthQueryDerivedView,
         maintainer: impl WorthQueryDerivedViewMaintainer + 'static,
     ) -> Result<WorthQueryDerivedViewHandle<T>, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Computed)?;
         self.admit_derived_view_declaration(&view)?;
         let name = view.name().to_string();
@@ -163,6 +167,7 @@ impl WorthQueryRuntime {
         &mut self,
         declaration: WorthQueryEffectDeclaration,
     ) -> Result<WorthQueryEffectHandle<T>, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Effect)?;
         let live_view_targets = self
             .live_subscriptions

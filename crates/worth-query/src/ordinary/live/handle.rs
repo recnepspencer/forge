@@ -7,31 +7,33 @@ use std::sync::Arc;
 #[derive(Debug)]
 #[must_use = "managed live resources remain active until the handle is explicitly closed"]
 pub struct WorthQueryManagedLiveHandle {
-    view: WorthQueryLiveView<WorthQueryNativeRow>,
+    view: Option<WorthQueryLiveView<WorthQueryNativeRow>>,
     workspace_capability: Arc<WorthQueryManagedLiveWorkspaceCapability>,
 }
 
 impl WorthQueryManagedLiveHandle {
     pub fn name(&self) -> &str {
-        self.view.name()
+        self.view().name()
     }
 
     pub fn read(
         &self,
         workspace: &mut WorthQueryWorkspace,
     ) -> Result<WorthQueryLiveReadResult, WorthQueryRuntimeError> {
-        workspace.read_managed_live_view(&self.view, &self.workspace_capability)
+        workspace.read_managed_live_view(self.view(), &self.workspace_capability)
     }
 
     pub fn drain(
         &self,
         workspace: &mut WorthQueryWorkspace,
     ) -> Result<WorthQueryPatchBatch, WorthQueryRuntimeError> {
-        workspace.drain_managed_live_view(&self.view, &self.workspace_capability)
+        workspace.drain_managed_live_view(self.view(), &self.workspace_capability)
     }
 
     pub(crate) fn view(&self) -> &WorthQueryLiveView<WorthQueryNativeRow> {
-        &self.view
+        self.view
+            .as_ref()
+            .expect("active managed live handle must retain its resource view")
     }
 
     pub(crate) fn workspace_capability(&self) -> &Arc<WorthQueryManagedLiveWorkspaceCapability> {
@@ -43,8 +45,20 @@ impl WorthQueryManagedLiveHandle {
         workspace_capability: Arc<WorthQueryManagedLiveWorkspaceCapability>,
     ) -> Self {
         Self {
-            view,
+            view: Some(view),
             workspace_capability,
+        }
+    }
+
+    pub(crate) fn disarm(&mut self) {
+        self.view = None;
+    }
+}
+
+impl Drop for WorthQueryManagedLiveHandle {
+    fn drop(&mut self) {
+        if let Some(view) = self.view.take() {
+            self.workspace_capability.abandon(view);
         }
     }
 }

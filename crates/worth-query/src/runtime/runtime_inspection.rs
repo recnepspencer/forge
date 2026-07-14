@@ -5,6 +5,11 @@ impl WorthQueryRuntime {
         &self,
         view_name: &str,
     ) -> Result<WorthQueryLiveArtifactTarget, WorthQueryRuntimeError> {
+        if self.managed_live_resource_is_abandoned(view_name) {
+            return Err(WorthQueryRuntimeError::MissingLiveSubscription(
+                view_name.to_string(),
+            ));
+        }
         let target = WorthQueryLiveArtifactTarget::from_view_name(view_name);
         let state = self.live_subscriptions.get(&target).ok_or_else(|| {
             WorthQueryRuntimeError::MissingLiveSubscription(view_name.to_string())
@@ -17,6 +22,11 @@ impl WorthQueryRuntime {
         view_name: &str,
     ) -> Result<&WorthQueryRuntimeLiveSubscriptionInstallation, WorthQueryRuntimeError> {
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Inspect)?;
+        if self.managed_live_resource_is_abandoned(view_name) {
+            return Err(WorthQueryRuntimeError::MissingLiveSubscription(
+                view_name.to_string(),
+            ));
+        }
         let target = WorthQueryLiveArtifactTarget::from_view_name(view_name);
         self.live_subscriptions
             .get(&target)

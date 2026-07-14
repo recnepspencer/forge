@@ -31,6 +31,7 @@ impl WorthQueryRuntime {
         graph_composition_program: WorthQueryGraphCompositionProgram,
         shared_admission: Option<WorthQueryWriteAdmissionExecutionRecord>,
     ) -> Result<WorthQueryBatchWriteReceipt, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Write)?;
         if commands.is_empty() {
             return Err(WorthQueryRuntimeError::Workspace(

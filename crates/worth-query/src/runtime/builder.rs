@@ -310,6 +310,7 @@ impl WorthQueryRuntimeBuilder {
             effect_index: WorthQueryEffectIndex::default(),
             graph_obligation_registration_catalog,
             graph_obligation_index,
+            managed_live_resource_capability: WorthQueryManagedLiveWorkspaceCapability::shared(),
             next_run_id: 0,
         })
     }

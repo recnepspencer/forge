@@ -321,6 +321,12 @@ impl WorthQueryRuntime {
         &mut self,
         installation: WorthQueryRuntimeLiveSubscriptionInstallation,
     ) -> Result<WorthQueryLiveReadResult, WorthQueryRuntimeError> {
+        if self.managed_live_resource_is_abandoned(installation.view_name()) {
+            return Err(WorthQueryRuntimeError::MissingLiveSubscription(
+                installation.view_name().to_string(),
+            ));
+        }
+        self.reap_abandoned_managed_live_resources()?;
         let review = self.review_runtime_live_read_execution(installation)?;
         let handoff = self.resolve_reviewed_admitted_live_read_execution_handoff(review)?;
         let binding = self.prepare_live_read_execution_binding(handoff)?;

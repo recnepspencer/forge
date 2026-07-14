@@ -144,6 +144,8 @@ impl WorthQueryRuntimeSourceAdapter for TestSourceAdapter {
 
 pub(in crate::runtime::tests) struct CountingSourceAdapter {
     pub(in crate::runtime::tests) declared_live_views: std::rc::Rc<std::cell::Cell<usize>>,
+    closed_live_views: Option<std::rc::Rc<std::cell::Cell<usize>>>,
+    close_denied: Option<std::rc::Rc<std::cell::Cell<bool>>>,
     inner: TestSourceAdapter,
 }
 
@@ -153,6 +155,21 @@ impl CountingSourceAdapter {
     ) -> Self {
         Self {
             declared_live_views,
+            closed_live_views: None,
+            close_denied: None,
+            inner: TestSourceAdapter::default(),
+        }
+    }
+
+    pub(in crate::runtime::tests) fn lifecycle_counting(
+        declared_live_views: std::rc::Rc<std::cell::Cell<usize>>,
+        closed_live_views: std::rc::Rc<std::cell::Cell<usize>>,
+        close_denied: std::rc::Rc<std::cell::Cell<bool>>,
+    ) -> Self {
+        Self {
+            declared_live_views,
+            closed_live_views: Some(closed_live_views),
+            close_denied: Some(close_denied),
             inner: TestSourceAdapter::default(),
         }
     }
@@ -171,6 +188,18 @@ impl WorthQueryRuntimeSourceAdapter for CountingSourceAdapter {
     }
 
     fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        if self
+            .close_denied
+            .as_ref()
+            .is_some_and(|denied| denied.get())
+        {
+            return Err(WorthQueryWorkspaceError::new(
+                "source close denied by lifecycle counting adapter",
+            ));
+        }
+        if let Some(closed_live_views) = self.closed_live_views.as_ref() {
+            closed_live_views.set(closed_live_views.get().saturating_add(1));
+        }
         self.inner.close_live_view(name)
     }
 
