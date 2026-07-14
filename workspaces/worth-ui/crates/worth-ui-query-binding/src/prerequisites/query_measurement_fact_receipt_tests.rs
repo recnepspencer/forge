@@ -1,24 +1,16 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
-use worth_query::facade::runtime::{
-    QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryReadBuilder, WorthQueryReadDenial,
-    WorthQueryReadFamily, WorthQueryReadGraph, WorthQueryWorkspace,
-};
-use worth_query::facade::certification::public_bridge_projection_artifacts_for_read_graph;
+use worth_query::facade::certification::resolve_runtime_current_snapshot_basis_for_certification;
 use worth_query::facade::foundation::{
-    resolve_runtime_current_snapshot_basis,
-    snapshot_resolution_report,
-    AspectFieldSelector,
-    AuthoredResultShapeField,
-    EqualityPredicate,
-    ProjectionAuthorityContract,
-    ProjectionAuthorityOutcome,
-    ProjectionFactFieldPath,
-    ScalarPredicateValue,
+    snapshot_resolution_report, ProjectionFactFieldPath, QuerySchemaBasisAuthority,
+};
+use worth_query::facade::read::{
+    current, declare, project_facts, AspectFieldSelector, AuthoredResultShapeField,
+    EqualityPredicate, QuerySchemaView, ScalarPredicateValue, SchemaFieldKind, SchemaFieldView,
+    WorthQueryProjectionOutcome,
 };
 use worth_query::facade::runtime::{
-    WorthQueryAspectTouch,
-    WorthQueryAuthoredAspectValue,
+    WorthQueryAspectTouch, WorthQueryAuthoredAspectValue, WorthQueryWorkspace,
 };
 
 use crate::{
@@ -148,7 +140,7 @@ fn measurement_fact_receipts_follow_real_projection_consumption_and_preserve_ide
         .prerequisites()
         .measurement_fact_receipt_from_query_authority(
             prerequisites,
-            super::WorthUiQueryAuthorityHandle::retain(authority),
+            super::WorthUiQueryAuthorityHandle::retain(*authority),
         )
         .expect(
             "display-field projection consumption should admit a query measurement fact receipt",
@@ -192,7 +184,7 @@ fn equivalent_projection_consumption_paths_yield_equivalent_measurement_fact_rec
         .prerequisites()
         .measurement_fact_receipt_from_query_authority(
             left_prerequisites,
-            super::WorthUiQueryAuthorityHandle::retain(left_authority),
+            super::WorthUiQueryAuthorityHandle::retain(*left_authority),
         )
         .expect("left display consumption should admit");
     let (right_authority, _) = right_attempt
@@ -202,7 +194,7 @@ fn equivalent_projection_consumption_paths_yield_equivalent_measurement_fact_rec
         .prerequisites()
         .measurement_fact_receipt_from_query_authority(
             right_prerequisites,
-            super::WorthUiQueryAuthorityHandle::retain(right_authority),
+            super::WorthUiQueryAuthorityHandle::retain(*right_authority),
         )
         .expect("right display consumption should admit");
 
@@ -231,33 +223,46 @@ fn foreign_query_basis_denies_before_worth_ui_settlement_exists() {
 
 fn display_field_projection_consumption(
     lane_label: &str,
-) -> (WorthUiQueryPrerequisiteEvidence, ProjectionAuthorityOutcome) {
+) -> (WorthUiQueryPrerequisiteEvidence, WorthQueryProjectionOutcome) {
     display_field_projection_consumption_with_extent(lane_label, "240")
 }
 
 fn display_field_projection_consumption_with_extent(
     lane_label: &str,
     extent: &str,
-) -> (WorthUiQueryPrerequisiteEvidence, ProjectionAuthorityOutcome) {
-    let (mut workspace, family) = measurement_projection_workspace(lane_label, extent);
-    let read_result = workspace
-        .execute_read_family(&family)
-        .expect("query read family should execute");
-    let (result_shape, authorized_projection) =
-        public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let outcome = read_result
-        .consume_projection_authority(
-            &result_shape,
-            &authorized_projection,
-            ProjectionAuthorityContract::declare()
-                .require_settled_consumption()
-                .require_source_authority()
-                .require_display_field(size_value_field_path()),
+) -> (WorthUiQueryPrerequisiteEvidence, WorthQueryProjectionOutcome) {
+    let (mut workspace, schema_basis_authority) =
+        measurement_projection_workspace(lane_label, extent);
+    let completion = declare(|read| {
+        read.local_detail(
+            "task",
+            task_query_schema(),
+            |query| {
+                query
+                    .where_equal(
+                        EqualityPredicate::new(
+                            "identity",
+                            "id",
+                            ScalarPredicateValue::String("task".to_string()),
+                        )
+                        .expect("identity anchor predicate should build"),
+                    )
+                    .project(field("size", "value"))
+            },
+            |shape| shape.field(result_field("size", "value", "size.value")),
         )
-        .expect("real query read should consume projection authority");
-    let basis = resolve_runtime_current_snapshot_basis(
-        workspace.snapshot_identity().evidence_identity(),
-        family.read_graph().schema_basis_authority(),
+    })
+    .expect("ordinary query declaration should admit")
+    .using(current())
+    .run(&mut workspace)
+    .into_result()
+    .expect("ordinary query read should execute");
+    let outcome = completion.consume_projection(project_facts().display_field(
+        size_value_field_path(),
+    ));
+    let basis = resolve_runtime_current_snapshot_basis_for_certification(
+        &workspace.snapshot_identity().evidence_identity(),
+        schema_basis_authority,
     )
     .expect("runtime current snapshot basis should resolve");
     let prerequisites = WorthUiQueryBindingSubsystem::bootstrap()
@@ -270,7 +275,7 @@ fn display_field_projection_consumption_with_extent(
 fn measurement_projection_workspace(
     lane_label: &str,
     extent: &str,
-) -> (WorthQueryWorkspace, WorthQueryReadFamily) {
+) -> (WorthQueryWorkspace, QuerySchemaBasisAuthority) {
     let schema = WorthQueryTestBackendSchema::single_collection("task")
         .aspect("identity.id", "identity.id")
         .expect("identity aspect should admit")
@@ -306,35 +311,7 @@ fn measurement_projection_workspace(
             })
             .expect("generation-drift fixture insert should admit");
     }
-    let family = workspace
-        .define_read_family(
-            &format!("worth-ui.phase8.query-fact-receipt.{lane_label}"),
-            size_family_graph,
-        )
-        .expect("query read family should admit");
-    (workspace, family)
-}
-
-fn size_family_graph(
-    read: WorthQueryReadBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
-    read.local_detail(
-        "task",
-        task_query_schema(),
-        |query| {
-            query
-                .where_equal(
-                    EqualityPredicate::new(
-                        "identity",
-                        "id",
-                        ScalarPredicateValue::String("task".to_string()),
-                    )
-                    .expect("identity anchor predicate should build"),
-                )
-                .project(field("size", "value"))
-        },
-        |shape| shape.field(result_field("size", "value", "size.value")),
-    )
+    (workspace, task_query_schema().basis_authority())
 }
 
 fn task_query_schema() -> QuerySchemaView {

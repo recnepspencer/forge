@@ -1,6 +1,6 @@
 use worth_foundational::facade::CanonicalDerivedDigest;
 
-use super::query_references::{HadwigerQueryDeclarationReference, HadwigerQueryEnvelopeReference};
+use super::query_references::HadwigerQueryDeclarationReference;
 
 mod artifact_kinds;
 
@@ -18,7 +18,6 @@ pub enum HadwigerArtifactShapeError {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HadwigerArtifactAuthorityOwner {
     QueryDeclaration,
-    QueryEnvelope,
     HadwigerArtifactBuilder,
     Checker,
     AIAdvisory,
@@ -31,7 +30,6 @@ impl HadwigerArtifactAuthorityOwner {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::QueryDeclaration => "query_declaration",
-            Self::QueryEnvelope => "query_envelope",
             Self::HadwigerArtifactBuilder => "hadwiger_artifact_builder",
             Self::Checker => "checker",
             Self::AIAdvisory => "ai_advisory",
@@ -45,7 +43,6 @@ impl HadwigerArtifactAuthorityOwner {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HadwigerArtifactSourceReference {
     QueryDeclaration(HadwigerQueryDeclarationReference),
-    QueryEnvelope(HadwigerQueryEnvelopeReference),
     ArtifactConstruction {
         operation: String,
     },
@@ -66,9 +63,6 @@ impl HadwigerArtifactSourceReference {
         match self {
             Self::QueryDeclaration(reference) => {
                 format!("query_declaration:{}", reference.stable_token())
-            }
-            Self::QueryEnvelope(reference) => {
-                format!("query_envelope:{}", reference.stable_token())
             }
             Self::ArtifactConstruction { operation } => {
                 format!("artifact_construction:{operation}")

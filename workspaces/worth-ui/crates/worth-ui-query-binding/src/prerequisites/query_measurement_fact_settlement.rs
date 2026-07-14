@@ -1,9 +1,8 @@
 use std::sync::Arc;
 use worth_query::facade::foundation::{
-    ProjectionAuthorityOutcome,
-    ProjectionConsumptionWarningKind,
-    ProjectionSourceBasisAuthority,
+    ProjectionConsumptionWarningKind, ProjectionSourceBasisAuthority,
 };
+use worth_query::facade::read::{WorthQueryProjectionOutcome, WorthQueryProjectionViolation};
 
 use super::{
     WorthUiQueryAuthorityHandle, WorthUiQueryMeasurementFactReceipt,
@@ -15,6 +14,7 @@ pub enum WorthUiQueryMeasurementFactSettlementDenial {
     Denied,
     Deferred,
     SourceMismatch,
+    Unavailable,
     Receipt(WorthUiQueryMeasurementFactReceiptError),
     SourceOrderExhausted,
     SourceGenerationExhausted,
@@ -66,7 +66,7 @@ impl WorthUiQueryAllocationSourceAuthority {
     pub(crate) fn admit(
         &mut self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        outcome: ProjectionAuthorityOutcome,
+        outcome: WorthQueryProjectionOutcome,
     ) -> Result<WorthUiQueryMeasurementFactSettlement, WorthUiQueryMeasurementFactSettlementDenial>
     {
         let (query_authority, warnings) =
@@ -116,21 +116,24 @@ impl WorthUiQueryAllocationSourceAuthority {
 }
 
 fn map_authority_denial(
-    outcome: ProjectionAuthorityOutcome,
+    outcome: WorthQueryProjectionOutcome,
 ) -> WorthUiQueryMeasurementFactSettlementDenial {
     match outcome {
-        ProjectionAuthorityOutcome::AuthorityDenied(_)
-        | ProjectionAuthorityOutcome::ConsumptionDenied(_) => {
+        WorthQueryProjectionOutcome::Violation(WorthQueryProjectionViolation::SourceMismatch(
+            _,
+        )) => WorthUiQueryMeasurementFactSettlementDenial::SourceMismatch,
+        WorthQueryProjectionOutcome::Violation(_) => {
             WorthUiQueryMeasurementFactSettlementDenial::Denied
         }
-        ProjectionAuthorityOutcome::Deferred(_) => {
+        WorthQueryProjectionOutcome::Deferred(_) => {
             WorthUiQueryMeasurementFactSettlementDenial::Deferred
         }
-        ProjectionAuthorityOutcome::SourceMismatch(_) => {
-            WorthUiQueryMeasurementFactSettlementDenial::SourceMismatch
+        WorthQueryProjectionOutcome::Unavailable(_) => {
+            WorthUiQueryMeasurementFactSettlementDenial::Unavailable
         }
-        ProjectionAuthorityOutcome::Admitted(_)
-        | ProjectionAuthorityOutcome::AdmittedWithWarnings(_, _) => unreachable!(),
+        WorthQueryProjectionOutcome::Completed(_) | WorthQueryProjectionOutcome::Advisory(_) => {
+            unreachable!()
+        }
     }
 }
 

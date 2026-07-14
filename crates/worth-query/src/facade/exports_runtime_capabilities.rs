@@ -113,6 +113,7 @@ pub use crate::domain_capabilities::{
     WorthQueryLowerRuntimeBoundarySupportTraceabilityArtifact,
     WorthQueryLowerRuntimeDomainContributionSurface, WorthQueryLowerRuntimeExplanationContribution,
     WorthQueryLowerRuntimeExplanationDraft, WorthQueryLowerRuntimeExplanationRequest,
+    WorthQueryLowerRuntimeGraphInvariantDenialContribution,
     WorthQueryLowerRuntimeSupportContribution, WorthQueryLowerRuntimeSupportDraft,
     WorthQueryMaterializationReadyAdmissionContribution,
     WorthQueryMaterializationReadyAftermathContribution,

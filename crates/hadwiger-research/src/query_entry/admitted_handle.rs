@@ -6,11 +6,10 @@ use worth_query::facade::foundation::{
     WorthQueryContributionComposedOrchestrationInput,
     WorthQueryContributionComposedOrchestrationTranscript,
     WorthQueryDeclarationEntryCrossingInventory, WorthQueryDeclarationEntryOrchestrationChecked,
-    WorthQueryDeclarationEntryReadinessReport, WorthQueryDeclarationEnvelope,
-    WorthQueryDeclaredFamilyChecked, WorthQueryGroupedContributionComposition,
-    WorthQueryGroupedContributionInput, WorthQueryGroupedContributionStop,
-    WorthQueryGroupedOrchestrationChecked, WorthQueryGroupedOrchestrationTranscript,
-    WorthQueryOrdinaryOutcome, WorthQueryRecoveryBrief,
+    WorthQueryDeclarationEntryReadinessReport, WorthQueryDeclaredFamilyChecked,
+    WorthQueryGroupedContributionComposition, WorthQueryGroupedContributionInput,
+    WorthQueryGroupedContributionStop, WorthQueryGroupedOrchestrationChecked,
+    WorthQueryGroupedOrchestrationTranscript, WorthQueryOrdinaryOutcome, WorthQueryRecoveryBrief,
 };
 
 use crate::domain_declarations::HadwigerResearchDeclarationInput;
@@ -82,17 +81,6 @@ impl HadwigerResearchHandle {
         I: HadwigerResearchDeclarationInput,
     {
         self.query_handle.declare_checked(input)
-    }
-
-    pub fn orchestrate_declaration_entry_outcome<I>(
-        &self,
-        input: I,
-    ) -> WorthQueryOrdinaryOutcome<WorthQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>>
-    where
-        I: HadwigerResearchDeclarationInput,
-    {
-        self.query_handle
-            .orchestrate_declaration_entry_outcome(input)
     }
 
     pub fn declaration_entry_crossing_inventory<I>(

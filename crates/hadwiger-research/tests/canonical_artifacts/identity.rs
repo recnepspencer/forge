@@ -1,5 +1,4 @@
 use hadwiger_research::facade::*;
-use worth_query::facade::foundation::WorthQueryOrdinaryOutcome;
 
 fn query_source(graph_id: &str, graph_version: &str) -> HadwigerQueryDeclarationReference {
     let handle =
@@ -166,18 +165,17 @@ fn graph_version_builder_rejects_shape_errors_without_math_claims() {
 }
 
 #[test]
-fn query_envelope_references_are_self_describing() {
+fn query_declaration_references_are_self_describing() {
     let handle =
         admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
             .expect("default Hadwiger research handle should admit");
-    let envelope = match orchestrate_research_request_entry(
+    let declaration = declare_research_request_checked(
         &handle,
         CandidateGraphDeclaration::new("candidate-a").with_graph_version("v1"),
-    ) {
-        WorthQueryOrdinaryOutcome::Bound(envelope) => envelope,
-        _ => panic!("expected bound declaration envelope"),
-    };
-    let reference: HadwigerQueryEnvelopeReference = envelope.into();
+    )
+    .admitted()
+    .expect("candidate declaration should admit");
+    let reference: HadwigerQueryDeclarationReference = declaration.into();
 
     assert_eq!(reference.domain_key(), "WORTH.hadwiger.research");
     assert_eq!(
@@ -185,10 +183,9 @@ fn query_envelope_references_are_self_describing() {
         "hadwiger.candidate_graph"
     );
     assert!(!reference.handle_identity_digest().is_empty());
-    assert!(!reference.operating_context_identity_digest().is_empty());
     assert!(!reference.declaration_digest().is_empty());
-    assert!(reference.progression_digest().is_some());
-    assert!(reference.route_plan_digest().is_some());
-    assert!(!reference.receipt_digest().is_empty());
-    assert!(!reference.envelope_digest().is_empty());
+    assert_eq!(
+        reference.canonicalization_version(),
+        "WORTH.query.declaration.v1"
+    );
 }

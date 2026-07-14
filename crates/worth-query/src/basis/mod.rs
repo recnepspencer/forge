@@ -222,7 +222,7 @@ pub fn resolve_snapshot_basis(
     ))
 }
 
-pub fn resolve_runtime_current_snapshot_basis(
+pub(crate) fn resolve_runtime_current_snapshot_basis(
     snapshot_identity: WorthQueryEvidenceIdentity,
     schema_basis: QuerySchemaBasisAuthority,
 ) -> Result<ResolvedSnapshotBasis, BasisResolutionError> {

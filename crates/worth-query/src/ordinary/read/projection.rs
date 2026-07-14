@@ -154,6 +154,27 @@ impl WorthQueryProjectionOutcome {
             _ => None,
         }
     }
+
+    /// Transfer the sealed projection authority into a downstream consumer.
+    ///
+    /// This preserves advisory warnings without exposing the decomposed
+    /// projection-consumption lifecycle or allowing a receipt/digest to be
+    /// promoted back into authority.
+    pub fn into_admitted(
+        self,
+    ) -> Result<
+        (
+            Box<WorthQueryConsumedProjectionAuthority>,
+            Option<ProjectionConsumptionWarnings>,
+        ),
+        Self,
+    > {
+        match self {
+            Self::Completed(authority) => Ok((authority, None)),
+            Self::Advisory(advisory) => Ok((advisory.authority, Some(advisory.warnings))),
+            other => Err(other),
+        }
+    }
 }
 
 #[derive(Debug)]

@@ -1,7 +1,6 @@
 use worth_query::facade::foundation::{
     WorthQueryDeclarationEntryCrossingInventory, WorthQueryDeclarationEntryReadinessReport,
-    WorthQueryDeclarationEnvelope, WorthQueryDeclarationInput, WorthQueryDeclaredFamilyChecked,
-    WorthQueryOrdinaryOutcome,
+    WorthQueryDeclarationInput, WorthQueryDeclaredFamilyChecked,
 };
 
 use super::geometry_screening_request_types::{
@@ -116,16 +115,6 @@ where
     I: HadwigerResearchDeclarationInput,
 {
     handle.declare_checked(input)
-}
-
-pub fn orchestrate_research_request_entry<I>(
-    handle: &HadwigerResearchHandle,
-    input: I,
-) -> WorthQueryOrdinaryOutcome<WorthQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>>
-where
-    I: HadwigerResearchDeclarationInput,
-{
-    handle.orchestrate_declaration_entry_outcome(input)
 }
 
 pub fn research_declaration_entry_inventory<I>(

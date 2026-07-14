@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use worth_query::facade::foundation::{
-    ProjectionAuthorityOutcome,
     ProjectionConsumptionWarnings,
     WorthQueryConsumedProjectionAuthority,
 };
+use worth_query::facade::read::WorthQueryProjectionOutcome;
 
 /// Opaque shared retention of the exact Query-minted authority.
 ///
@@ -27,11 +27,11 @@ impl WorthUiQueryAuthorityHandle {
     }
 
     pub fn from_outcome(
-        outcome: ProjectionAuthorityOutcome,
-    ) -> Result<(Self, Option<ProjectionConsumptionWarnings>), ProjectionAuthorityOutcome> {
+        outcome: WorthQueryProjectionOutcome,
+    ) -> Result<(Self, Option<ProjectionConsumptionWarnings>), WorthQueryProjectionOutcome> {
         outcome
             .into_admitted()
-            .map(|(authority, warnings)| (Self::retain(authority), warnings))
+            .map(|(authority, warnings)| (Self::retain(*authority), warnings))
     }
 
     pub fn authority(&self) -> &WorthQueryConsumedProjectionAuthority {

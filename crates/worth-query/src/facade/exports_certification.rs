@@ -219,3 +219,15 @@ pub use crate::subscription::{
     WORTH_QUERY_SUBSCRIPTION_PHASE_SEVEN_COMPILE_FAIL_TARGET_COUNT,
     WORTH_QUERY_SUBSCRIPTION_PHASE_SEVEN_GOLDEN_PATH_COUNT,
 };
+
+/// Certification-only constructor for fixtures that compare a retained basis
+/// with authority returned by an ordinary consumer journey.
+pub fn resolve_runtime_current_snapshot_basis_for_certification(
+    snapshot_identity: &crate::WorthQueryEvidenceIdentity,
+    schema_basis_authority: crate::basis::QuerySchemaBasisAuthority,
+) -> Result<crate::basis::ResolvedSnapshotBasis, crate::basis::BasisResolutionError> {
+    crate::basis::resolve_runtime_current_snapshot_basis(
+        snapshot_identity.clone(),
+        schema_basis_authority,
+    )
+}

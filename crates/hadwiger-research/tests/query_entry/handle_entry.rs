@@ -2,7 +2,7 @@ use hadwiger_research::facade::*;
 use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
     WorthQueryDeclarationEntryCrossingSurface, WorthQueryDeclaredFamilyChecked,
-    WorthQueryDomainOperatingContext, WorthQueryOrdinaryOutcome,
+    WorthQueryDomainOperatingContext,
 };
 
 fn handle() -> HadwigerResearchHandle {
@@ -95,22 +95,17 @@ fn helper_declaration_path_is_thin_over_direct_query_declaration() {
 }
 
 #[test]
-fn orchestration_helper_returns_query_ordinary_outcome() {
+fn declaration_helper_returns_query_owned_declaration() {
     let handle = handle();
-    let outcome = orchestrate_research_request_entry(
+    let declaration = admitted_declaration(declare_research_request_checked(
         &handle,
         CandidateGraphDeclaration::new("candidate-a").with_graph_version("v1"),
-    );
+    ));
 
-    match outcome {
-        WorthQueryOrdinaryOutcome::Bound(envelope) => {
-            assert_eq!(
-                envelope.declaration_family_key(),
-                "hadwiger.candidate_graph"
-            );
-        }
-        _ => panic!("expected bound Query ordinary outcome"),
-    }
+    assert_eq!(
+        declaration.declaration_family_key(),
+        "hadwiger.candidate_graph"
+    );
 }
 
 #[test]
