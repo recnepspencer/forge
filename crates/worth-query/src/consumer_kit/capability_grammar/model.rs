@@ -58,6 +58,8 @@ pub struct WorthQueryCapabilityGrammarRow {
     terminal: WorthQueryCapabilityTerminalVocabulary,
     outcome: WorthQueryCapabilityOutcomeContract,
     transcript_owner: WorthQueryCapabilityTranscriptOwner,
+    transcript_path: &'static str,
+    transcript_probe: &'static str,
     explicit_context: &'static str,
     cost_disclosure: &'static str,
     baseline: WorthQueryCapabilityCeremony,
@@ -79,6 +81,8 @@ pub(super) struct WorthQueryCapabilityGrammarWords {
 pub(super) struct WorthQueryCapabilityGrammarBoundary {
     pub(super) outcome: WorthQueryCapabilityOutcomeContract,
     pub(super) transcript_owner: WorthQueryCapabilityTranscriptOwner,
+    pub(super) transcript_path: &'static str,
+    pub(super) transcript_probe: &'static str,
     pub(super) explicit_context: &'static str,
     pub(super) cost_disclosure: &'static str,
 }
@@ -104,6 +108,8 @@ impl WorthQueryCapabilityGrammarRow {
             terminal: words.terminal,
             outcome: boundary.outcome,
             transcript_owner: boundary.transcript_owner,
+            transcript_path: boundary.transcript_path,
+            transcript_probe: boundary.transcript_probe,
             explicit_context: boundary.explicit_context,
             cost_disclosure: boundary.cost_disclosure,
             baseline: ceremony.baseline,
@@ -149,6 +155,12 @@ impl WorthQueryCapabilityGrammarRow {
     }
     pub fn transcript_owner(&self) -> WorthQueryCapabilityTranscriptOwner {
         self.transcript_owner
+    }
+    pub fn transcript_path(&self) -> &'static str {
+        self.transcript_path
+    }
+    pub fn transcript_probe(&self) -> &'static str {
+        self.transcript_probe
     }
     pub fn explicit_context(&self) -> &'static str {
         self.explicit_context
@@ -198,6 +210,8 @@ pub enum WorthQueryCapabilityGrammarFindingKind {
     NamespaceFamilyMismatch,
     OutcomeFamilyMismatch,
     TranscriptOwnerMismatch,
+    MissingExecutableTranscript,
+    AmbiguousExecutableTranscript,
     CeremonyRegression,
 }
 

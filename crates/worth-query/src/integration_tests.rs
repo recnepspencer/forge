@@ -46,6 +46,14 @@ internal_suite!(
     "../tests/declarative_live_public_dx.rs"
 );
 internal_suite!(
+    declarative_product_boundary_certification,
+    "../tests/declarative_product_boundary_certification.rs"
+);
+internal_suite!(
+    declarative_product_boundary_compile_fail,
+    "../tests/declarative_product_boundary_compile_fail.rs"
+);
+internal_suite!(
     declarative_read_compile_fail,
     "../tests/declarative_read_compile_fail.rs"
 );

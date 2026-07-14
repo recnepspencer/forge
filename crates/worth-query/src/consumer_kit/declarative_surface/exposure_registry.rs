@@ -27,6 +27,8 @@ const EXPOSURES: &[Exposure] = &[
     exposure("src/ordinary/read/mod.rs", "*"),
     exposure("src/ordinary/read/mod.rs", "declare"),
     exposure("src/facade/exports_certification.rs", "inspect_lower_runtime_closeout"),
+    exposure("src/facade/exports_certification.rs", "admit_runtime_current_snapshot_basis_for_certification"),
+    exposure("src/facade/exports_certification.rs", "resolve_runtime_current_snapshot_basis_for_certification"),
     exposure("src/facade/exports_foundation.rs", "admit_runtime_current_snapshot_basis"),
     exposure("src/facade/exports_foundation.rs", "resolve_runtime_current_snapshot_basis"),
     exposure("src/facade/exports_foundation.rs", "resolve_snapshot_basis"),

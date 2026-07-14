@@ -49,6 +49,19 @@ pub(super) fn audit_capability_grammar(
                 grammar.reference_journey(),
             ));
         }
+        match transcript_source(grammar.transcript_path())
+            .map(|source| source.match_indices(grammar.transcript_probe()).count())
+        {
+            None | Some(0) => findings.push(WorthQueryCapabilityGrammarFinding::new(
+                FindingKind::MissingExecutableTranscript,
+                grammar.reference_journey(),
+            )),
+            Some(1) => {}
+            Some(_) => findings.push(WorthQueryCapabilityGrammarFinding::new(
+                FindingKind::AmbiguousExecutableTranscript,
+                grammar.reference_journey(),
+            )),
+        }
         if grammar.target().total() > grammar.baseline().total() {
             findings.push(WorthQueryCapabilityGrammarFinding::new(
                 FindingKind::CeremonyRegression,
@@ -58,4 +71,13 @@ pub(super) fn audit_capability_grammar(
     }
 
     WorthQueryCapabilityGrammarAudit::new(findings)
+}
+
+fn transcript_source(path: &str) -> Option<&'static str> {
+    match path {
+        "tests/declarative_product_boundary_certification/grammar_matrix.rs" => Some(include_str!(
+            "../../../tests/declarative_product_boundary_certification/grammar_matrix.rs"
+        )),
+        _ => None,
+    }
 }

@@ -38,6 +38,8 @@ fn every_declared_capability_family_has_one_complete_grammar() {
             row.outcome(),
             row.stop(),
             row.next_action(),
+            row.transcript_path(),
+            row.transcript_probe(),
             row.explicit_context(),
             row.cost_disclosure(),
         ] {

@@ -38,8 +38,9 @@ pub use model::{
     WorthQueryDeclarativeSurfaceClass, WorthQueryDeclarativeSurfaceRow,
 };
 pub use ordinary_api_snapshot::{
-    current_ordinary_api_snapshot_audit, WorthQueryOrdinaryApiSnapshot,
-    WorthQueryOrdinaryApiSnapshotAudit, WorthQueryOrdinaryApiSnapshotFinding,
+    audit_ordinary_api_snapshot_source_for_certification, current_ordinary_api_snapshot_audit,
+    WorthQueryOrdinaryApiSnapshot, WorthQueryOrdinaryApiSnapshotAudit,
+    WorthQueryOrdinaryApiSnapshotFinding,
 };
 pub use reference_consumer_adoption::{
     audit_reference_consumer_adoption_sources, worth_query_reference_consumer_adoption_rows,

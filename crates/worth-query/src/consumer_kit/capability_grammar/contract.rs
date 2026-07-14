@@ -98,11 +98,11 @@ impl WorthQueryCapabilityOutcomeContract {
             Self::Live => "WorthQueryLiveOpenOutcome / WorthQueryManagedLiveCloseOutcome",
             Self::Historical => "WorthQueryHistoricalOutcome",
             Self::Comparison => "WorthQueryComparisonOutcome",
-            Self::Preview => "WorthQueryPreviewOutcome",
+            Self::Preview => "WorthQueryPreviewJourneyOutcome",
             Self::Mutation => "WorthQueryMutationOutcome",
             Self::Workflow => "WorthQueryWorkflowOutcome",
             Self::Inspection => "WorthQueryInspectionOutcome",
-            Self::Domain => "WorthQueryDomainOutcome",
+            Self::Domain => "WorthQueryDomainWorkflowOutcome",
         }
     }
 
@@ -113,11 +113,11 @@ impl WorthQueryCapabilityOutcomeContract {
             Self::Live => "WorthQueryLiveDeclarationStop / WorthQueryLiveOpenStop",
             Self::Historical => "WorthQueryHistoricalStop",
             Self::Comparison => "WorthQueryComparisonStop",
-            Self::Preview => "WorthQueryPreviewStop",
+            Self::Preview => "WorthQueryWorkflowStop",
             Self::Mutation => "WorthQueryMutationStop",
             Self::Workflow => "WorthQueryWorkflowStop",
             Self::Inspection => "WorthQueryInspectionStop",
-            Self::Domain => "WorthQueryDomainStop",
+            Self::Domain => "WorthQueryWorkflowStop",
         }
     }
 
@@ -126,11 +126,11 @@ impl WorthQueryCapabilityOutcomeContract {
             Self::Read | Self::Aggregate | Self::Live => "WorthQueryReadNextAction",
             Self::Historical => "WorthQueryHistoricalNextAction",
             Self::Comparison => "WorthQueryComparisonNextAction",
-            Self::Preview => "WorthQueryPreviewNextAction",
+            Self::Preview => "WorthQueryWorkflowNextAction",
             Self::Mutation => "WorthQueryMutationNextAction",
             Self::Workflow => "WorthQueryWorkflowNextAction",
             Self::Inspection => "WorthQueryInspectionNextAction",
-            Self::Domain => "WorthQueryDomainNextAction",
+            Self::Domain => "WorthQueryWorkflowNextAction",
         }
     }
 }

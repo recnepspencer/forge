@@ -33,11 +33,13 @@ impl WorthQueryHistoricalRequest {
             );
         }
         let counters = counters.admit_path();
-        if self.context.snapshot_identity() != &workspace.snapshot_identity() {
+        if self.context.workspace_name() != workspace.name()
+            || self.context.snapshot_identity() != &workspace.snapshot_identity()
+        {
             return stopped(
                 WorthQueryHistoricalStopSource::StaleContext,
                 WorthQueryHistoricalNextAction::RefreshContext,
-                "the captured retained snapshot is no longer the workspace truth basis",
+                "the captured retained snapshot does not belong to the current workspace truth basis",
                 counters,
             );
         }

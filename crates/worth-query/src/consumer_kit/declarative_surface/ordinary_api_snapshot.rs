@@ -166,6 +166,32 @@ pub fn current_ordinary_api_snapshot_audit() -> WorthQueryOrdinaryApiSnapshotAud
     audit_expected_snapshots(EXPECTED_SNAPSHOTS)
 }
 
+pub fn audit_ordinary_api_snapshot_source_for_certification(
+    namespace: &'static str,
+    source_path: &'static str,
+    source: &str,
+) -> Option<WorthQueryOrdinaryApiSnapshotAudit> {
+    let expected = EXPECTED_SNAPSHOTS
+        .iter()
+        .find(|row| row.namespace == namespace)?;
+    let snapshot = snapshot_source(namespace, source_path, source);
+    let findings = (snapshot.symbol_count != expected.symbol_count
+        || snapshot.symbol_digest != expected.symbol_digest)
+        .then(|| WorthQueryOrdinaryApiSnapshotFinding {
+            namespace,
+            expected_symbol_count: expected.symbol_count,
+            actual_symbol_count: snapshot.symbol_count,
+            expected_symbol_digest: expected.symbol_digest,
+            actual_symbol_digest: snapshot.symbol_digest.clone(),
+        })
+        .into_iter()
+        .collect();
+    Some(WorthQueryOrdinaryApiSnapshotAudit {
+        snapshots: vec![snapshot],
+        findings,
+    })
+}
+
 fn audit_expected_snapshots(expected: &[ExpectedSnapshot]) -> WorthQueryOrdinaryApiSnapshotAudit {
     let mut snapshots = Vec::with_capacity(expected.len());
     let mut findings = Vec::new();

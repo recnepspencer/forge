@@ -7,6 +7,7 @@ pub(crate) mod evidence_report;
 pub(crate) mod evidence_report_adoption;
 pub(crate) mod graph_obligation_adoption;
 pub(crate) mod graph_read_bypass_audit;
+pub(crate) mod product_boundary_certification;
 pub(crate) mod prohibition_registry;
 pub(crate) mod public_authority_surface;
 pub(crate) mod support_pinning;
@@ -45,8 +46,9 @@ pub use consumer_residue::{
 };
 pub use declarative_surface::{
     audit_consumer_journey_sources, audit_consumer_orchestration_sources,
-    audit_declarative_surface_sources, audit_reference_consumer_adoption_sources,
-    current_declarative_surface_audit, worth_query_consumer_journey_rows,
+    audit_declarative_surface_sources, audit_ordinary_api_snapshot_source_for_certification,
+    audit_reference_consumer_adoption_sources, current_declarative_surface_audit,
+    current_ordinary_api_snapshot_audit, worth_query_consumer_journey_rows,
     worth_query_declarative_surface_rows, worth_query_reference_consumer_adoption_rows,
     worth_query_reference_consumer_deleted_residue, WorthQueryConsumerJourneyAudit,
     WorthQueryConsumerJourneyFinding, WorthQueryConsumerJourneyFindingKind,
@@ -58,11 +60,12 @@ pub use declarative_surface::{
     WorthQueryDeclarativeSurfaceAudit, WorthQueryDeclarativeSurfaceClass,
     WorthQueryDeclarativeSurfaceFinding, WorthQueryDeclarativeSurfaceFindingKind,
     WorthQueryDeclarativeSurfaceRow, WorthQueryDeclarativeSurfaceSource,
-    WorthQueryDeclarativeSurfaceSourceSite, WorthQueryReferenceConsumerAdoptionAudit,
-    WorthQueryReferenceConsumerAdoptionFinding, WorthQueryReferenceConsumerAdoptionFindingKind,
-    WorthQueryReferenceConsumerAdoptionRow, WorthQueryReferenceConsumerDeletedResidue,
-    WorthQueryReferenceConsumerDxCounters, WorthQueryReferenceConsumerResidueKind,
-    WorthQueryReferenceConsumerSource,
+    WorthQueryDeclarativeSurfaceSourceSite, WorthQueryOrdinaryApiSnapshot,
+    WorthQueryOrdinaryApiSnapshotAudit, WorthQueryOrdinaryApiSnapshotFinding,
+    WorthQueryReferenceConsumerAdoptionAudit, WorthQueryReferenceConsumerAdoptionFinding,
+    WorthQueryReferenceConsumerAdoptionFindingKind, WorthQueryReferenceConsumerAdoptionRow,
+    WorthQueryReferenceConsumerDeletedResidue, WorthQueryReferenceConsumerDxCounters,
+    WorthQueryReferenceConsumerResidueKind, WorthQueryReferenceConsumerSource,
 };
 pub use downstream_authority_adoption::{
     downstream_authority_adoption, WorthQueryDownstreamAuthorityAdoption,
@@ -110,6 +113,12 @@ pub use graph_read_bypass_audit::{
     WorthQueryGraphReadBypassResidueCertification, WorthQueryGraphReadBypassResidueError,
     WorthQueryGraphReadBypassResidueErrorKind, WorthQueryGraphReadBypassResidueManifest,
     WorthQueryGraphReadBypassResidueRow,
+};
+pub use product_boundary_certification::{
+    certify_declarative_product_boundary, worth_query_product_boundary_evidence_rows,
+    WorthQueryProductBoundaryCertificationBundle, WorthQueryProductBoundaryCertificationError,
+    WorthQueryProductBoundaryEvidenceKind, WorthQueryProductBoundaryEvidenceRow,
+    WorthQueryProductBoundaryHostileCase, WorthQueryProductBoundarySabotageCase,
 };
 pub use prohibition_registry::{
     hard_prohibition_compile_fail_fixtures, hard_prohibition_documentation_rows,
