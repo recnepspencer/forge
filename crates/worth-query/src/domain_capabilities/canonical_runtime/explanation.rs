@@ -63,11 +63,12 @@ where
     super::artifacts::materialize_domain_capability_canonical_runtime_artifact(contribution)
 }
 
-pub fn materialize_query_causal_inspection_artifact(
-    contribution: WorthQueryMaterializationReadyExplanationContribution<
-        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<QueryCausalInspectionArtifact> {
+pub(crate) fn materialize_query_causal_inspection_artifact<T>(
+    contribution: WorthQueryMaterializationReadyExplanationContribution<T>,
+) -> WorthQueryDomainCapabilityTransitionOutcome<QueryCausalInspectionArtifact>
+where
+    T: crate::domain_capabilities::WorthQueryLowerRuntimeContributionTargetBinding,
+{
     let review = match materialize_query_causal_inspection_review(contribution) {
         TransitionOutcome::Success(review) => review,
         TransitionOutcome::Denied(denial) => return TransitionOutcome::Denied(denial),
@@ -155,11 +156,12 @@ pub fn materialize_query_causal_inspection_artifact(
     }
 }
 
-pub fn materialize_query_causal_inspection_review(
-    contribution: WorthQueryMaterializationReadyExplanationContribution<
-        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryExplanationInspectionReview> {
+pub(crate) fn materialize_query_causal_inspection_review<T>(
+    contribution: WorthQueryMaterializationReadyExplanationContribution<T>,
+) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryExplanationInspectionReview>
+where
+    T: crate::domain_capabilities::WorthQueryLowerRuntimeContributionTargetBinding,
+{
     let domain_contribution = contribution.payload();
     let payload = domain_contribution.payload();
     let Some(runtime_semantics) = payload.runtime_semantics() else {

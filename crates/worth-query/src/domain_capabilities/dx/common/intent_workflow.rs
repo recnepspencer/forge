@@ -11,7 +11,7 @@ use crate::domain_capabilities::eligibility::{
     prepare_admitted_domain_capability_contribution_for_materialization,
 };
 use crate::domain_capabilities::{
-    WorthQueryDeclarationBoundContributionTarget, WorthQueryDomainCapabilityTargetKind,
+    WorthQueryDomainCapabilityTargetKind, WorthQueryInstalledDeclarationContributionTarget,
 };
 use crate::preview::PreviewWorkflowFoundationArtifact;
 use crate::workflow::QueryWorkflowDeclaration;
@@ -22,8 +22,7 @@ use super::shared::{materialize_common_lane, qualify_semantic_code};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryIntentPreviewInspectionDraft {
-    pub(crate) domain: String,
-    pub(crate) target: WorthQueryDeclarationBoundContributionTarget,
+    pub(crate) target: WorthQueryInstalledDeclarationContributionTarget,
     pub(crate) semantic_code: String,
     pub(crate) preview_session_identity: BridgePreviewSessionIdentity,
 }
@@ -35,7 +34,6 @@ impl WorthQueryIntentDomainContributionSurface {
         preview_session_identity: BridgePreviewSessionIdentity,
     ) -> WorthQueryIntentPreviewInspectionDraft {
         WorthQueryIntentPreviewInspectionDraft {
-            domain: self.domain,
             target: self.target,
             semantic_code: semantic_code.into(),
             preview_session_identity,
@@ -48,7 +46,6 @@ impl WorthQueryIntentDomainContributionSurface {
         preview_session_identity: BridgePreviewSessionIdentity,
     ) -> WorthQueryIntentPreviewMutationDraft {
         WorthQueryIntentPreviewMutationDraft {
-            domain: self.domain,
             target: self.target,
             semantic_code: semantic_code.into(),
             preview_session_identity,
@@ -62,7 +59,6 @@ impl WorthQueryIntentPreviewInspectionDraft {
         detail: impl Into<String>,
     ) -> WorthQueryIntentPreviewInspectionContribution {
         WorthQueryIntentPreviewInspectionContribution {
-            domain: self.domain,
             target: self.target,
             semantic_code: self.semantic_code,
             preview_session_identity: self.preview_session_identity,
@@ -73,8 +69,7 @@ impl WorthQueryIntentPreviewInspectionDraft {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryIntentPreviewInspectionContribution {
-    domain: String,
-    target: WorthQueryDeclarationBoundContributionTarget,
+    target: WorthQueryInstalledDeclarationContributionTarget,
     semantic_code: String,
     preview_session_identity: BridgePreviewSessionIdentity,
     detail: String,
@@ -86,11 +81,11 @@ impl WorthQueryIntentPreviewInspectionContribution {
     ) -> WorthQueryCheckedDomainCapabilityOutcome<PreviewWorkflowFoundationArtifact> {
         let target = self.target.clone();
         let requested = WorthQueryWorkflowContributionAuthoring::preview_only_query_inspection(
-            qualify_semantic_code(&self.domain, &self.semantic_code),
+            qualify_semantic_code(self.target.authority(), &self.semantic_code),
             self.detail,
             self.preview_session_identity,
         )
-        .bind_to_declaration_target(self.target);
+        .bind_to_installed_target(self.target);
 
         materialize_common_lane(
             "workflow-preview",
@@ -119,8 +114,7 @@ impl WorthQueryIntentPreviewInspectionContribution {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryIntentPreviewMutationDraft {
-    pub(crate) domain: String,
-    pub(crate) target: WorthQueryDeclarationBoundContributionTarget,
+    pub(crate) target: WorthQueryInstalledDeclarationContributionTarget,
     pub(crate) semantic_code: String,
     pub(crate) preview_session_identity: BridgePreviewSessionIdentity,
 }
@@ -128,7 +122,6 @@ pub struct WorthQueryIntentPreviewMutationDraft {
 impl WorthQueryIntentPreviewMutationDraft {
     pub fn because(self, detail: impl Into<String>) -> WorthQueryIntentPreviewMutationContribution {
         WorthQueryIntentPreviewMutationContribution {
-            domain: self.domain,
             target: self.target,
             semantic_code: self.semantic_code,
             preview_session_identity: self.preview_session_identity,
@@ -139,8 +132,7 @@ impl WorthQueryIntentPreviewMutationDraft {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryIntentPreviewMutationContribution {
-    domain: String,
-    target: WorthQueryDeclarationBoundContributionTarget,
+    target: WorthQueryInstalledDeclarationContributionTarget,
     semantic_code: String,
     preview_session_identity: BridgePreviewSessionIdentity,
     detail: String,
@@ -168,11 +160,11 @@ impl WorthQueryIntentPreviewMutationContribution {
         let target = self.target.clone();
         let requested =
             WorthQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
-                qualify_semantic_code(&self.domain, &self.semantic_code),
+                qualify_semantic_code(self.target.authority(), &self.semantic_code),
                 self.detail,
                 self.preview_session_identity,
             )
-            .bind_to_declaration_target(self.target);
+            .bind_to_installed_target(self.target);
 
         materialize_common_lane(
             "workflow-preview",

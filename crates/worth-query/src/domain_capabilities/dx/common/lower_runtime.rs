@@ -19,7 +19,7 @@ use crate::domain_capabilities::payloads::{
     WorthQueryExplanationContributionPosture, WorthQuerySupportContributionPosture,
 };
 use crate::domain_capabilities::{
-    WorthQueryDomainCapabilityTargetKind, WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    WorthQueryDomainCapabilityTargetKind, WorthQueryInstalledLowerRuntimeContributionTarget,
 };
 use crate::runtime::QueryCausalInspectionArtifact;
 
@@ -30,8 +30,7 @@ use super::shared::{materialize_common_lane, qualify_semantic_code};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryLowerRuntimeDomainContributionSurface {
-    pub(crate) domain: String,
-    pub(crate) target: WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    pub(crate) target: WorthQueryInstalledLowerRuntimeContributionTarget,
 }
 
 impl WorthQueryLowerRuntimeDomainContributionSurface {
@@ -40,7 +39,6 @@ impl WorthQueryLowerRuntimeDomainContributionSurface {
         semantic_code: impl Into<String>,
     ) -> WorthQueryLowerRuntimeSupportDraft {
         WorthQueryLowerRuntimeSupportDraft {
-            domain: self.domain,
             target: self.target,
             semantic_code: semantic_code.into(),
         }
@@ -51,12 +49,7 @@ impl WorthQueryLowerRuntimeDomainContributionSurface {
         semantic_code: impl Into<String>,
         request: WorthQueryLowerRuntimeExplanationRequest,
     ) -> WorthQueryLowerRuntimeExplanationDraft {
-        WorthQueryLowerRuntimeExplanationDraft::new(
-            self.domain,
-            self.target,
-            semantic_code,
-            request.kind(),
-        )
+        WorthQueryLowerRuntimeExplanationDraft::new(self.target, semantic_code, request.kind())
     }
 
     pub fn explains_cross_runtime_fallback(
@@ -64,12 +57,7 @@ impl WorthQueryLowerRuntimeDomainContributionSurface {
         semantic_code: impl Into<String>,
         request: WorthQueryLowerRuntimeExplanationRequest,
     ) -> WorthQueryLowerRuntimeExplanationDraft {
-        WorthQueryLowerRuntimeExplanationDraft::new(
-            self.domain,
-            self.target,
-            semantic_code,
-            request.kind(),
-        )
+        WorthQueryLowerRuntimeExplanationDraft::new(self.target, semantic_code, request.kind())
     }
 
     pub fn explains_store_backed_replay_gap(
@@ -77,26 +65,19 @@ impl WorthQueryLowerRuntimeDomainContributionSurface {
         semantic_code: impl Into<String>,
         request: WorthQueryLowerRuntimeExplanationRequest,
     ) -> WorthQueryLowerRuntimeExplanationDraft {
-        WorthQueryLowerRuntimeExplanationDraft::new(
-            self.domain,
-            self.target,
-            semantic_code,
-            request.kind(),
-        )
+        WorthQueryLowerRuntimeExplanationDraft::new(self.target, semantic_code, request.kind())
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryLowerRuntimeSupportDraft {
-    domain: String,
-    target: WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    target: WorthQueryInstalledLowerRuntimeContributionTarget,
     semantic_code: String,
 }
 
 impl WorthQueryLowerRuntimeSupportDraft {
     pub fn because(self, detail: impl Into<String>) -> WorthQueryLowerRuntimeSupportContribution {
         WorthQueryLowerRuntimeSupportContribution {
-            domain: self.domain,
             target: self.target,
             semantic_code: self.semantic_code,
             detail: detail.into(),
@@ -106,8 +87,7 @@ impl WorthQueryLowerRuntimeSupportDraft {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryLowerRuntimeSupportContribution {
-    domain: String,
-    target: WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    target: WorthQueryInstalledLowerRuntimeContributionTarget,
     semantic_code: String,
     detail: String,
 }
@@ -120,10 +100,10 @@ impl WorthQueryLowerRuntimeSupportContribution {
     > {
         let target = self.target.clone();
         let requested = WorthQuerySupportContributionAuthoring::narrowed_support(
-            qualify_semantic_code(&self.domain, &self.semantic_code),
+            qualify_semantic_code(self.target.authority(), &self.semantic_code),
             self.detail,
         )
-        .bind_to_lower_runtime_boundary_target(self.target);
+        .bind_to_installed_target(self.target);
 
         materialize_common_lane(
             "support-traceability",
@@ -153,21 +133,18 @@ impl WorthQueryLowerRuntimeSupportContribution {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryLowerRuntimeExplanationDraft {
-    domain: String,
-    target: WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    target: WorthQueryInstalledLowerRuntimeContributionTarget,
     semantic_code: String,
     kind: WorthQueryLowerRuntimeExplanationRequestKind,
 }
 
 impl WorthQueryLowerRuntimeExplanationDraft {
     fn new(
-        domain: String,
-        target: WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+        target: WorthQueryInstalledLowerRuntimeContributionTarget,
         semantic_code: impl Into<String>,
         kind: WorthQueryLowerRuntimeExplanationRequestKind,
     ) -> Self {
         Self {
-            domain,
             target,
             semantic_code: semantic_code.into(),
             kind,
@@ -179,7 +156,6 @@ impl WorthQueryLowerRuntimeExplanationDraft {
         detail: impl Into<String>,
     ) -> WorthQueryLowerRuntimeExplanationContribution {
         WorthQueryLowerRuntimeExplanationContribution {
-            domain: self.domain,
             target: self.target,
             semantic_code: self.semantic_code,
             detail: detail.into(),
@@ -190,8 +166,7 @@ impl WorthQueryLowerRuntimeExplanationDraft {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryLowerRuntimeExplanationContribution {
-    domain: String,
-    target: WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    target: WorthQueryInstalledLowerRuntimeContributionTarget,
     semantic_code: String,
     detail: String,
     kind: WorthQueryLowerRuntimeExplanationRequestKind,
@@ -274,9 +249,9 @@ impl WorthQueryLowerRuntimeExplanationContribution {
     fn into_requested(
         self,
     ) -> crate::domain_capabilities::WorthQueryRequestedExplanationContribution<
-        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+        WorthQueryInstalledLowerRuntimeContributionTarget,
     > {
-        let semantic_code = qualify_semantic_code(&self.domain, &self.semantic_code);
+        let semantic_code = qualify_semantic_code(self.target.authority(), &self.semantic_code);
         match self.kind {
             WorthQueryLowerRuntimeExplanationRequestKind::CrossRuntimeContext {
                 reference_set,
@@ -295,7 +270,7 @@ impl WorthQueryLowerRuntimeExplanationContribution {
                 redaction_policy,
                 materialization_policy,
             )
-            .bind_to_lower_runtime_boundary_target(self.target),
+            .bind_to_installed_target(self.target),
             WorthQueryLowerRuntimeExplanationRequestKind::CrossRuntimeFallback {
                 reference_set,
                 target,
@@ -313,7 +288,7 @@ impl WorthQueryLowerRuntimeExplanationContribution {
                 redaction_policy,
                 materialization_policy,
             )
-            .bind_to_lower_runtime_boundary_target(self.target),
+            .bind_to_installed_target(self.target),
             WorthQueryLowerRuntimeExplanationRequestKind::StoreBackedReplayGap {
                 reference_set,
                 target,
@@ -329,7 +304,7 @@ impl WorthQueryLowerRuntimeExplanationContribution {
                 redaction_policy,
                 materialization_policy,
             )
-            .bind_to_lower_runtime_boundary_target(self.target),
+            .bind_to_installed_target(self.target),
         }
     }
 }

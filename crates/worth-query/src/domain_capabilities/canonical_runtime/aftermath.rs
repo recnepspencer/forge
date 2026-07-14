@@ -69,11 +69,12 @@ where
     super::artifacts::materialize_domain_capability_canonical_runtime_artifact(contribution)
 }
 
-pub fn materialize_projection_consumption_eligibility(
-    contribution: WorthQueryMaterializationReadyAftermathContribution<
-        WorthQueryAdmittedPlanBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<ProjectionConsumptionEligibility> {
+pub(crate) fn materialize_projection_consumption_eligibility<T>(
+    contribution: WorthQueryMaterializationReadyAftermathContribution<T>,
+) -> WorthQueryDomainCapabilityTransitionOutcome<ProjectionConsumptionEligibility>
+where
+    T: WorthQueryAftermathProjectionTarget,
+{
     match materialize_projection_consumption_review(contribution) {
         TransitionOutcome::Success(review) => {
             TransitionOutcome::Success(review.eligibility().clone())
@@ -86,11 +87,12 @@ pub fn materialize_projection_consumption_eligibility(
     }
 }
 
-pub fn materialize_projection_consumption_support_report(
-    contribution: WorthQueryMaterializationReadyAftermathContribution<
-        WorthQueryAdmittedPlanBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<ProjectionConsumptionSupportReport> {
+pub(crate) fn materialize_projection_consumption_support_report<T>(
+    contribution: WorthQueryMaterializationReadyAftermathContribution<T>,
+) -> WorthQueryDomainCapabilityTransitionOutcome<ProjectionConsumptionSupportReport>
+where
+    T: WorthQueryAftermathProjectionTarget,
+{
     match materialize_projection_consumption_review(contribution) {
         TransitionOutcome::Success(review) => {
             TransitionOutcome::Success(review.support_report().clone())
@@ -103,11 +105,12 @@ pub fn materialize_projection_consumption_support_report(
     }
 }
 
-pub fn materialize_projection_consumption_review(
-    contribution: WorthQueryMaterializationReadyAftermathContribution<
-        WorthQueryAdmittedPlanBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryAftermathProjectionConsumptionReview> {
+pub(crate) fn materialize_projection_consumption_review<T>(
+    contribution: WorthQueryMaterializationReadyAftermathContribution<T>,
+) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryAftermathProjectionConsumptionReview>
+where
+    T: WorthQueryAftermathProjectionTarget,
+{
     let domain_contribution = contribution.payload();
     let payload = domain_contribution.payload();
     let Some(runtime_semantics) = payload.runtime_semantics() else {
@@ -151,11 +154,12 @@ pub fn materialize_projection_consumption_review(
     })
 }
 
-pub fn materialize_admitted_projection_consumption(
-    contribution: WorthQueryMaterializationReadyAftermathContribution<
-        WorthQueryAdmittedPlanBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<AdmittedProjectionConsumption> {
+pub(crate) fn materialize_admitted_projection_consumption<T>(
+    contribution: WorthQueryMaterializationReadyAftermathContribution<T>,
+) -> WorthQueryDomainCapabilityTransitionOutcome<AdmittedProjectionConsumption>
+where
+    T: WorthQueryAftermathProjectionTarget,
+{
     match materialize_projection_consumption_review(contribution) {
         TransitionOutcome::Success(review) => match review.eligibility() {
             ProjectionConsumptionEligibility::Admitted(admitted) => {
@@ -213,11 +217,12 @@ pub fn materialize_admitted_projection_consumption(
     }
 }
 
-pub fn materialize_projection_consumption_contract(
-    contribution: WorthQueryMaterializationReadyAftermathContribution<
-        WorthQueryAdmittedPlanBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<MaterializedProjectionContract> {
+pub(crate) fn materialize_projection_consumption_contract<T>(
+    contribution: WorthQueryMaterializationReadyAftermathContribution<T>,
+) -> WorthQueryDomainCapabilityTransitionOutcome<MaterializedProjectionContract>
+where
+    T: WorthQueryAftermathProjectionTarget,
+{
     match materialize_admitted_projection_consumption(contribution) {
         TransitionOutcome::Success(admitted) => {
             TransitionOutcome::Success(admitted.bind_contract())
@@ -228,6 +233,18 @@ pub fn materialize_projection_consumption_contract(
         TransitionOutcome::Failed(failure) => TransitionOutcome::Failed(failure),
         TransitionOutcome::Deferred(never) => match never {},
     }
+}
+
+pub(crate) trait WorthQueryAftermathProjectionTarget:
+    WorthQueryDomainCapabilityTargetBinding
+{
+}
+
+impl WorthQueryAftermathProjectionTarget for WorthQueryAdmittedPlanBoundContributionTarget {}
+
+impl WorthQueryAftermathProjectionTarget
+    for crate::domain_capabilities::WorthQueryInstalledAdmittedPlanContributionTarget
+{
 }
 
 fn missing_runtime_semantics_denial(

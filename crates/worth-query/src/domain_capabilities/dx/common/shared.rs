@@ -67,6 +67,9 @@ pub(super) fn materialize_common_lane<Request, Eligible, Admitted, Ready, Succes
     )
 }
 
-pub(super) fn qualify_semantic_code(domain: &str, semantic_code: &str) -> String {
-    format!("{domain}.{semantic_code}")
+pub(super) fn qualify_semantic_code(
+    authority: &crate::domain_installation::WorthQueryInstalledDomainAuthority,
+    semantic_code: &str,
+) -> String {
+    format!("{}.{}", authority.domain_owner(), semantic_code)
 }

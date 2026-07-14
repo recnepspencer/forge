@@ -199,6 +199,26 @@ impl WorthQueryExplanationContributionAuthoring {
         bind_requested(self.payload, target)
     }
 
+    pub(crate) fn bind_to_installed_target<T>(
+        self,
+        target: crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>,
+    ) -> WorthQueryRequestedExplanationContribution<
+        crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>,
+    >
+    where
+        T: crate::domain_capabilities::WorthQueryDomainCapabilityTargetBinding,
+        (WorthQueryExplanationContributionPayload, T):
+            crate::domain_capabilities::proof_integration::AllowedContributionBinding<
+                WorthQueryExplanationContributionPayload,
+                T,
+            >,
+    {
+        bind_requested::<
+            WorthQueryExplanationContributionPayload,
+            crate::domain_capabilities::WorthQueryInstalledDomainContributionTarget<T>,
+        >(self.payload, target)
+    }
+
     fn new(
         posture: WorthQueryExplanationContributionPosture,
         semantic_code: impl Into<String>,

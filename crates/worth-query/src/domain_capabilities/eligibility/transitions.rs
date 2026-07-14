@@ -26,6 +26,19 @@ where
 {
     if requested
         .payload()
+        .installed_authority()
+        .is_some_and(|authority| {
+            !authority.permits_domain_capability_category(requested.payload().category())
+        })
+    {
+        return TransitionOutcome::Denied(denial_for(
+            requested.payload(),
+            WorthQueryDomainCapabilityProgressionDenialKind::ContributionCategoryNotInstalled,
+            "the installed domain package does not admit this contribution category",
+        ));
+    }
+    if requested
+        .payload()
         .payload()
         .semantic_code()
         .trim()

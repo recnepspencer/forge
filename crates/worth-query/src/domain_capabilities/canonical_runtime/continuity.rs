@@ -28,11 +28,12 @@ where
     super::artifacts::materialize_domain_capability_canonical_runtime_artifact(contribution)
 }
 
-pub fn materialize_runtime_continuity_evidence(
-    contribution: WorthQueryMaterializationReadyContinuityContribution<
-        WorthQueryAdmittedPlanBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryContinuityMutationEvidence> {
+pub(crate) fn materialize_runtime_continuity_evidence<T>(
+    contribution: WorthQueryMaterializationReadyContinuityContribution<T>,
+) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryContinuityMutationEvidence>
+where
+    T: crate::domain_capabilities::WorthQueryAdmittedPlanContributionTargetBinding,
+{
     let domain_contribution = contribution.payload();
     let payload = domain_contribution.payload();
     let binding_identity = domain_capability_continuity_binding_identity(

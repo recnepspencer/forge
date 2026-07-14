@@ -2,12 +2,14 @@ mod admission;
 mod canonical_identity;
 mod definitions;
 mod denial;
+mod execution;
 mod identity;
 mod installed_handle;
 mod installed_registry;
 mod invariant_rule;
 mod package;
 mod pending_installations;
+mod rebind;
 mod receipt;
 mod validation;
 
@@ -22,6 +24,11 @@ pub use denial::{
     WorthQueryDomainPackageAdmissionDenialKind, WorthQueryDomainPackageValidationDenial,
     WorthQueryDomainPackageValidationDenialKind,
 };
+pub use execution::{
+    WorthQueryInstalledDomainExecutionDrift, WorthQueryInstalledDomainExecutionDriftKind,
+    WorthQueryInstalledDomainExecutionNextAction, WorthQueryInstalledDomainExecutionReceipt,
+    WorthQueryInstalledDomainReadAdmission, WorthQueryInstalledDomainReadAdmissionError,
+};
 pub use identity::{
     WorthQueryDomainIdentityDeclaration, WorthQueryDomainIdentityName,
     WorthQueryDomainIdentityNamespace, WorthQueryDomainPackageIdentity,
@@ -33,6 +40,11 @@ pub use installed_handle::{
     WorthQueryInstalledDomainHandle,
 };
 pub use package::WorthQueryDomainPackage;
+pub use rebind::{
+    WorthQueryDomainRebindDenial, WorthQueryDomainRebindDenialKind,
+    WorthQueryDomainRebindNextAction, WorthQueryDomainRebindReceipt, WorthQueryDomainRebindRequest,
+    WorthQueryInstalledDomainAuthorityWitness, WorthQueryReboundDomainHandle,
+};
 pub use receipt::{
     WorthQueryDomainExecutionIndexRebuildReport, WorthQueryDomainInstallationConstructionCounters,
     WorthQueryDomainInstallationLookupCounters, WorthQueryDomainInstallationReceipt,

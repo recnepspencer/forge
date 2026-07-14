@@ -16,7 +16,7 @@ use crate::domain_capabilities::payloads::{
     WorthQueryAdmissionContributionPosture, WorthQueryContinuityContributionPosture,
 };
 use crate::domain_capabilities::{
-    WorthQueryAdmittedPlanBoundContributionTarget, WorthQueryDomainCapabilityTargetKind,
+    WorthQueryDomainCapabilityTargetKind, WorthQueryInstalledAdmittedPlanContributionTarget,
 };
 use crate::intent_admission::WorthQueryIntentAdmissionDecision;
 use crate::runtime::WorthQueryContinuityMutationEvidence;
@@ -25,14 +25,12 @@ use super::shared::{materialize_common_lane, qualify_semantic_code};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryAdmittedPlanDomainContributionSurface {
-    pub(crate) domain: String,
-    pub(crate) target: WorthQueryAdmittedPlanBoundContributionTarget,
+    pub(crate) target: WorthQueryInstalledAdmittedPlanContributionTarget,
 }
 
 impl WorthQueryAdmittedPlanDomainContributionSurface {
     pub fn advises(self, semantic_code: impl Into<String>) -> WorthQueryAdmittedPlanAdmissionDraft {
         WorthQueryAdmittedPlanAdmissionDraft::new(
-            self.domain,
             self.target,
             crate::domain_capabilities::payloads::WorthQueryAdmissionContributionPosture::Advisory,
             semantic_code,
@@ -44,7 +42,6 @@ impl WorthQueryAdmittedPlanDomainContributionSurface {
         semantic_code: impl Into<String>,
     ) -> WorthQueryAdmittedPlanAdmissionDraft {
         WorthQueryAdmittedPlanAdmissionDraft::new(
-            self.domain,
             self.target,
             crate::domain_capabilities::payloads::WorthQueryAdmissionContributionPosture::Violation,
             semantic_code,
@@ -58,7 +55,6 @@ impl WorthQueryAdmittedPlanDomainContributionSurface {
         successor_authoritative_identity: impl Into<String>,
     ) -> WorthQueryAdmittedPlanContinuityDraft {
         WorthQueryAdmittedPlanContinuityDraft {
-            domain: self.domain,
             target: self.target,
             semantic_code: semantic_code.into(),
             prior_authoritative_identity: prior_authoritative_identity.into(),
@@ -69,21 +65,18 @@ impl WorthQueryAdmittedPlanDomainContributionSurface {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryAdmittedPlanAdmissionDraft {
-    domain: String,
-    target: WorthQueryAdmittedPlanBoundContributionTarget,
+    target: WorthQueryInstalledAdmittedPlanContributionTarget,
     posture: WorthQueryAdmissionContributionPosture,
     semantic_code: String,
 }
 
 impl WorthQueryAdmittedPlanAdmissionDraft {
     pub(crate) fn new(
-        domain: String,
-        target: WorthQueryAdmittedPlanBoundContributionTarget,
+        target: WorthQueryInstalledAdmittedPlanContributionTarget,
         posture: WorthQueryAdmissionContributionPosture,
         semantic_code: impl Into<String>,
     ) -> Self {
         Self {
-            domain,
             target,
             posture,
             semantic_code: semantic_code.into(),
@@ -92,7 +85,6 @@ impl WorthQueryAdmittedPlanAdmissionDraft {
 
     pub fn because(self, detail: impl Into<String>) -> WorthQueryAdmittedPlanAdmissionContribution {
         WorthQueryAdmittedPlanAdmissionContribution {
-            domain: self.domain,
             target: self.target,
             posture: self.posture,
             semantic_code: self.semantic_code,
@@ -103,8 +95,7 @@ impl WorthQueryAdmittedPlanAdmissionDraft {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryAdmittedPlanAdmissionContribution {
-    domain: String,
-    target: WorthQueryAdmittedPlanBoundContributionTarget,
+    target: WorthQueryInstalledAdmittedPlanContributionTarget,
     posture: WorthQueryAdmissionContributionPosture,
     semantic_code: String,
     detail: String,
@@ -118,17 +109,17 @@ impl WorthQueryAdmittedPlanAdmissionContribution {
         let requested = match self.posture {
             WorthQueryAdmissionContributionPosture::Advisory => {
                 WorthQueryAdmissionContributionAuthoring::advisory(
-                    qualify_semantic_code(&self.domain, &self.semantic_code),
+                    qualify_semantic_code(self.target.authority(), &self.semantic_code),
                     self.detail,
                 )
-                .bind_to_admitted_plan_target(self.target)
+                .bind_to_installed_target(self.target)
             }
             WorthQueryAdmissionContributionPosture::Violation => {
                 WorthQueryAdmissionContributionAuthoring::violation(
-                    qualify_semantic_code(&self.domain, &self.semantic_code),
+                    qualify_semantic_code(self.target.authority(), &self.semantic_code),
                     self.detail,
                 )
-                .bind_to_admitted_plan_target(self.target)
+                .bind_to_installed_target(self.target)
             }
             WorthQueryAdmissionContributionPosture::SupportOnly => unreachable!(),
         };
@@ -159,8 +150,7 @@ impl WorthQueryAdmittedPlanAdmissionContribution {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryAdmittedPlanContinuityDraft {
-    pub(crate) domain: String,
-    pub(crate) target: WorthQueryAdmittedPlanBoundContributionTarget,
+    pub(crate) target: WorthQueryInstalledAdmittedPlanContributionTarget,
     pub(crate) semantic_code: String,
     pub(crate) prior_authoritative_identity: String,
     pub(crate) successor_authoritative_identity: String,
@@ -172,7 +162,6 @@ impl WorthQueryAdmittedPlanContinuityDraft {
         detail: impl Into<String>,
     ) -> WorthQueryAdmittedPlanContinuityContribution {
         WorthQueryAdmittedPlanContinuityContribution {
-            domain: self.domain,
             target: self.target,
             semantic_code: self.semantic_code,
             prior_authoritative_identity: self.prior_authoritative_identity,
@@ -184,8 +173,7 @@ impl WorthQueryAdmittedPlanContinuityDraft {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryAdmittedPlanContinuityContribution {
-    domain: String,
-    target: WorthQueryAdmittedPlanBoundContributionTarget,
+    target: WorthQueryInstalledAdmittedPlanContributionTarget,
     semantic_code: String,
     prior_authoritative_identity: String,
     successor_authoritative_identity: String,
@@ -200,10 +188,10 @@ impl WorthQueryAdmittedPlanContinuityContribution {
         let requested = WorthQueryContinuityContributionAuthoring::preserved_rebind(
             self.prior_authoritative_identity,
             self.successor_authoritative_identity,
-            qualify_semantic_code(&self.domain, &self.semantic_code),
+            qualify_semantic_code(self.target.authority(), &self.semantic_code),
             self.detail,
         )
-        .bind_to_admitted_plan_target(self.target);
+        .bind_to_installed_target(self.target);
 
         materialize_common_lane(
             "continuity-lineage",

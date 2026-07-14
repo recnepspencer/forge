@@ -122,6 +122,10 @@ pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static 
         S::DomainPackageAdmission => "domain-package-admission",
         S::DomainInstallation => "domain-installation",
         S::InstalledDomainHandle => "installed-domain-handle",
+        S::InstalledDomainWorld => "installed-domain-world",
+        S::InstalledDomainContributionTarget => "installed-domain-contribution-target",
+        S::InstalledDomainContribution => "installed-domain-contribution",
+        S::InstalledDomainExecution => "installed-domain-execution",
         S::InstalledDomainExecutionIndex => "installed-domain-execution-index",
         S::InstalledDomainRebind => "installed-domain-rebind",
         WorthQueryEvidenceScope::ProjectionConsumedContinuityAuthorityIdentity => {

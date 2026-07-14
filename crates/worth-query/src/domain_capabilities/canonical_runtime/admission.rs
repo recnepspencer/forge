@@ -26,11 +26,12 @@ where
     super::artifacts::materialize_domain_capability_canonical_runtime_artifact(contribution)
 }
 
-pub fn materialize_runtime_admission_decision(
-    contribution: WorthQueryMaterializationReadyAdmissionContribution<
-        WorthQueryAdmittedPlanBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryIntentAdmissionDecision> {
+pub(crate) fn materialize_runtime_admission_decision<T>(
+    contribution: WorthQueryMaterializationReadyAdmissionContribution<T>,
+) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryIntentAdmissionDecision>
+where
+    T: crate::domain_capabilities::WorthQueryAdmittedPlanContributionTargetBinding,
+{
     let domain_contribution = contribution.payload();
     let payload = domain_contribution.payload();
     let target = domain_contribution.target();

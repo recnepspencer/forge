@@ -1,3 +1,8 @@
+pub use crate::domain_capabilities::{
+    WorthQueryInstalledAdmittedPlanContributionTarget,
+    WorthQueryInstalledDeclarationContributionTarget, WorthQueryInstalledDomainContributionSurface,
+    WorthQueryInstalledLowerRuntimeContributionTarget,
+};
 pub use crate::domain_installation::{
     WorthQueryAdmittedDomainPackage, WorthQueryDomainDeclarationFamilyDefinition,
     WorthQueryDomainExecutionIndexRebuildReport, WorthQueryDomainGraphReadOperationDefinition,
@@ -11,8 +16,14 @@ pub use crate::domain_installation::{
     WorthQueryDomainInvariantPredicate, WorthQueryDomainPackage,
     WorthQueryDomainPackageAdmissionDenial, WorthQueryDomainPackageAdmissionDenialKind,
     WorthQueryDomainPackageIdentity, WorthQueryDomainPackageValidationDenial,
-    WorthQueryDomainPackageValidationDenialKind, WorthQueryDomainSemanticVersion,
-    WorthQueryInstalledDomainAuthority, WorthQueryInstalledDomainHandle,
+    WorthQueryDomainPackageValidationDenialKind, WorthQueryDomainRebindDenial,
+    WorthQueryDomainRebindDenialKind, WorthQueryDomainRebindNextAction,
+    WorthQueryDomainRebindReceipt, WorthQueryDomainRebindRequest, WorthQueryDomainSemanticVersion,
+    WorthQueryInstalledDomainAuthority, WorthQueryInstalledDomainAuthorityWitness,
+    WorthQueryInstalledDomainExecutionDrift, WorthQueryInstalledDomainExecutionDriftKind,
+    WorthQueryInstalledDomainExecutionNextAction, WorthQueryInstalledDomainExecutionReceipt,
+    WorthQueryInstalledDomainHandle, WorthQueryInstalledDomainReadAdmission,
+    WorthQueryInstalledDomainReadAdmissionError, WorthQueryReboundDomainHandle,
     WorthQueryValidatedDomainPackage,
 };
 pub use crate::ordinary::domain::{

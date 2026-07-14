@@ -118,11 +118,12 @@ impl WorthQueryInvariantCatalogRegistrationArtifact {
     }
 }
 
-pub fn materialize_query_invariant_catalog_registration_artifact(
-    contribution: WorthQueryMaterializationReadyInvariantCapabilityContribution<
-        WorthQueryDeclarationBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryInvariantCatalogRegistrationArtifact> {
+pub(crate) fn materialize_query_invariant_catalog_registration_artifact<T>(
+    contribution: WorthQueryMaterializationReadyInvariantCapabilityContribution<T>,
+) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryInvariantCatalogRegistrationArtifact>
+where
+    T: crate::domain_capabilities::WorthQueryDeclarationContributionTargetBinding,
+{
     let domain_contribution = contribution.payload();
     let payload = domain_contribution.payload();
     let Some(invariant_registration) = payload.invariant_registration() else {
@@ -248,11 +249,12 @@ pub fn materialize_graph_composition_capability_support_row(
     }
 }
 
-pub fn materialize_graph_composition_domain_invariant_denial(
-    contribution: WorthQueryMaterializationReadyInvariantCapabilityContribution<
-        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryGraphCompositionDomainInvariantDenial> {
+pub(crate) fn materialize_graph_composition_domain_invariant_denial<T>(
+    contribution: WorthQueryMaterializationReadyInvariantCapabilityContribution<T>,
+) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryGraphCompositionDomainInvariantDenial>
+where
+    T: crate::domain_capabilities::WorthQueryLowerRuntimeContributionTargetBinding,
+{
     let domain_contribution = contribution.payload();
     let payload = domain_contribution.payload();
     let Some(graph_invariant_denial) = payload.graph_invariant_denial() else {
