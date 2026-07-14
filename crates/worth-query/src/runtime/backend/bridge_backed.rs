@@ -244,6 +244,26 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
         Ok(execution)
     }
 
+    fn admit_query_writeback_authority(&self) -> Result<(), WorthQueryWorkspaceError> {
+        if self.runtime_bridge.writeback_authority().is_some() {
+            Ok(())
+        } else {
+            Err(WorthQueryWorkspaceError::new(
+                "bridge-backed runtime has no configured truth writeback authority",
+            ))
+        }
+    }
+
+    fn execute_query_writeback(
+        &mut self,
+        declaration: &crate::workflow::QueryWritebackDeclaration,
+    ) -> Result<
+        worth_runtime_bridge::facade::BridgeAdmittedWritebackExecution,
+        (crate::effect_lifecycle::EffectExecutionDenialKind, String),
+    > {
+        crate::effect_lifecycle::execute_lowered_writeback(&self.runtime_bridge, declaration)
+    }
+
     fn live_entities_for_target(
         &self,
         target: &WorthQueryLiveArtifactTarget,

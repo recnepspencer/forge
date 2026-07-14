@@ -19,6 +19,7 @@ use crate::session_label::WorthQuerySessionLabel;
 use crate::subscription::SubscriptionActivationInput;
 use crate::view_shape_live::WorthQueryGroupedBaselineMember;
 use worth_relational::facade::runtime::RelationalRuntime;
+use worth_runtime_bridge::facade::BridgeAdmittedWritebackExecution;
 use worth_runtime_bridge::facade::{BridgeMutationAuthorityBundle, RuntimeBridge};
 
 use crate::runtime::remask_posture::WorthQueryRuntimeRemaskProjection;
@@ -118,6 +119,25 @@ pub trait WorthQueryRuntimeBackend {
         &mut self,
         declaration: &WorthQueryIntentDeclaration,
     ) -> Result<WorthQueryIntentExecution, WorthQueryRuntimeError>;
+
+    fn admit_query_writeback_authority(&self) -> Result<(), WorthQueryWorkspaceError> {
+        Err(WorthQueryWorkspaceError::new(
+            "this runtime backend has no admitted bridge writeback authority",
+        ))
+    }
+
+    fn execute_query_writeback(
+        &mut self,
+        _declaration: &crate::workflow::QueryWritebackDeclaration,
+    ) -> Result<
+        BridgeAdmittedWritebackExecution,
+        (crate::effect_lifecycle::EffectExecutionDenialKind, String),
+    > {
+        Err((
+            crate::effect_lifecycle::EffectExecutionDenialKind::MissingBridgeAuthority,
+            "this runtime backend has no admitted bridge writeback executor".to_string(),
+        ))
+    }
 
     fn live_entities_for_target(
         &self,

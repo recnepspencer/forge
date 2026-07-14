@@ -94,6 +94,10 @@ impl WorthQueryAdmittedWorkflowEffect {
             .seal(),
         }
     }
+
+    pub(crate) fn from_effect_lifecycle(effect_identity: WorthQueryEvidenceIdentity) -> Self {
+        Self { effect_identity }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

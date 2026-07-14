@@ -129,6 +129,27 @@ fn workflow_journey_uses_only_workflow_capability_vocabulary() {
 }
 
 #[test]
+fn writeback_journey_uses_only_workflow_capability_vocabulary() {
+    use worth_query::facade::workflow::{declare_writeback, projected_state_diff, writeback};
+
+    let declaration = declare_writeback(projected_state_diff()).with_rich_inspection();
+    let mut workspace = PublicBridgeRuntimeHarness::new()
+        .bridge_backed_runtime()
+        .workspace("public-writeback-dx")
+        .expect("workspace should open");
+    let context = writeback(&workspace).expect("writeback authority should admit");
+    let outcome = declaration.using(context).run(&mut workspace);
+    let completion = outcome.completed().expect("writeback should complete");
+
+    assert_eq!(completion.receipt().write_count(), 1);
+    assert!(completion.diagnostics().is_some());
+    assert!(!completion
+        .aftermath()
+        .execution_receipt_identity_for_reporting()
+        .is_empty());
+}
+
+#[test]
 fn domain_journey_lowers_contributed_vocabulary_through_query() {
     use worth_query::facade::domain::{
         declare, declare_mutation, preview, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,

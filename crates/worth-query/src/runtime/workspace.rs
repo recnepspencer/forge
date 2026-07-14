@@ -84,6 +84,12 @@ impl WorthQueryWorkspace {
             .capture_ordinary_preview_authority(label, effect_policy)
     }
 
+    pub(crate) fn capture_ordinary_writeback_authority(
+        &self,
+    ) -> Result<super::WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
+        self.runtime.capture_ordinary_writeback_authority()
+    }
+
     pub(crate) fn ordinary_authority_drift(
         &self,
         admission: &super::WorthQueryOrdinaryAuthorityAdmission,
@@ -128,6 +134,22 @@ impl WorthQueryWorkspace {
             basis_admission,
             declaration_identity,
             command,
+            materialize_inspection,
+        )
+    }
+
+    pub(crate) fn execute_ordinary_writeback(
+        &mut self,
+        authority: super::WorthQueryOrdinaryAuthorityAdmission,
+        declaration_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
+        materialize_inspection: bool,
+    ) -> Result<
+        super::WorthQueryLowerRuntimeWritebackExecution,
+        super::WorthQueryOrdinaryWritebackExecutionError,
+    > {
+        self.runtime.execute_ordinary_writeback(
+            authority,
+            declaration_identity,
             materialize_inspection,
         )
     }

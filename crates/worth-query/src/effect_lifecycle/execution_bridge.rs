@@ -14,7 +14,7 @@ use crate::workflow::QueryWritebackDeclaration;
 
 use super::execution::EffectExecutionDenialKind;
 
-pub(super) fn execute_lowered_writeback(
+pub(crate) fn execute_lowered_writeback(
     runtime: &RuntimeBridge,
     declaration: &QueryWritebackDeclaration,
 ) -> Result<

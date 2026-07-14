@@ -2,14 +2,19 @@ pub use crate::ordinary::mutation::{
     declare as declare_mutation, WorthQueryMutationDeclaration, WorthQueryMutationDeclarationStop,
 };
 pub use crate::ordinary::workflow::{
-    declare, preview, WorthQueryAdmittedWorkflowEffect, WorthQueryLoweredWorkflowPlan,
+    declare, declare_writeback, preview, projected_state_diff, writeback,
+    WorthQueryAdmittedWorkflowEffect, WorthQueryLoweredWorkflowPlan,
     WorthQueryPromotionEligibility, WorthQueryWorkflowAdvisory, WorthQueryWorkflowAdvisoryKind,
     WorthQueryWorkflowAftermath, WorthQueryWorkflowCompletion, WorthQueryWorkflowContext,
     WorthQueryWorkflowContextStop, WorthQueryWorkflowCounters, WorthQueryWorkflowDeclaration,
     WorthQueryWorkflowDeclarationIdentity, WorthQueryWorkflowExecution, WorthQueryWorkflowFamily,
     WorthQueryWorkflowNextAction, WorthQueryWorkflowOutcome, WorthQueryWorkflowRequest,
     WorthQueryWorkflowStop, WorthQueryWorkflowStopSource, WorthQueryWorkflowViolation,
-    WorthQueryWorkflowViolationKind,
+    WorthQueryWorkflowViolationKind, WorthQueryWritebackAftermath, WorthQueryWritebackCompletion,
+    WorthQueryWritebackContext, WorthQueryWritebackContextStop, WorthQueryWritebackDeclaration,
+    WorthQueryWritebackDeclarationIdentity, WorthQueryWritebackNextAction,
+    WorthQueryWritebackOutcome, WorthQueryWritebackRequest, WorthQueryWritebackStop,
+    WorthQueryWritebackStopSource, WorthQueryWritebackTrigger,
 };
 pub use crate::ordinary::WorthQueryOrdinaryInspectionPolicy;
 pub use crate::runtime::{

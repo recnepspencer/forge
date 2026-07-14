@@ -16,6 +16,21 @@ pub(crate) fn stateful_bridge_task_runtime() -> WorthQueryRuntime {
     stateful_bridge_runtime_via_custom_backend(["Task"], graph_test_support_profile())
 }
 
+pub(crate) fn stateful_bridge_task_runtime_without_writeback() -> WorthQueryRuntime {
+    let installed_collections = ["Task".to_string()].into_iter().collect::<BTreeSet<_>>();
+    let state = Rc::new(RefCell::new(StatefulBridgeState::with_bridge(
+        installed_collections,
+        super::test_bridge_without_writeback_authority(),
+    )));
+    WorthQueryRuntime::builder()
+        .backend(StatefulBridgeRuntimeBackend::new(
+            state,
+            graph_test_support_profile(),
+        ))
+        .build()
+        .expect("stateful bridge runtime without writeback should build")
+}
+
 pub(crate) fn stateful_bridge_task_issue_runtime() -> WorthQueryRuntime {
     stateful_bridge_runtime_via_custom_backend(["Task", "Issue"], graph_test_support_profile())
 }

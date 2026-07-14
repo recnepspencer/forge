@@ -2,11 +2,89 @@ use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
 use crate::session_label::WorthQuerySessionLabel;
+use crate::{
+    basis_lifecycle::basis_lifecycle,
+    effect_lifecycle::{
+        admit_effect_intent, evaluate_effect_eligibility, normalize_raw_effect_intent,
+        scope_admitted_effect_plan, EffectDiagnosticsMaterialization, EffectDiagnosticsRequest,
+        EffectEligibilityOutcome, EffectExecutionReceipt, ExecutedEffectAuthorityArtifact,
+        ExecutedEffectPlan, RawEffectIntent,
+    },
+    workflow::{
+        synthetic_runtime_workflow_binding_scoped_for_snapshot_binding_identity,
+        WorkflowAuthorityTargetFamily, WorkflowBindingScopeField, WorkflowBudgetClass,
+        WorkflowCostClass, WorkflowDeclarationFamily, WorkflowDeclarationRequest,
+        WorkflowFreshnessPolicy, WritebackLoweringInput,
+    },
+};
 
 use super::{
-    WorthQueryInspection, WorthQueryPreviewBasisAdmission, WorthQueryPreviewOutcome,
+    WorthQueryInspection, WorthQueryOrdinaryAuthorityAdmission, WorthQueryOrdinaryAuthorityDrift,
+    WorthQueryOrdinaryAuthorityFamily, WorthQueryPreviewBasisAdmission, WorthQueryPreviewOutcome,
     WorthQueryRuntime, WorthQueryRuntimeError, WorthQueryWriteCommand,
 };
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WorthQueryOrdinaryWritebackFailureStage {
+    Authority,
+    Basis,
+    Intent,
+    Eligibility,
+    Lowering,
+    BridgeExecution,
+}
+
+pub(crate) struct WorthQueryOrdinaryWritebackExecutionError {
+    stage: WorthQueryOrdinaryWritebackFailureStage,
+    message: String,
+}
+
+impl WorthQueryOrdinaryWritebackExecutionError {
+    fn new(stage: WorthQueryOrdinaryWritebackFailureStage, message: impl Into<String>) -> Self {
+        Self {
+            stage,
+            message: message.into(),
+        }
+    }
+
+    pub(crate) fn stage(&self) -> WorthQueryOrdinaryWritebackFailureStage {
+        self.stage
+    }
+
+    pub(crate) fn message(&self) -> &str {
+        &self.message
+    }
+}
+
+pub(crate) struct WorthQueryLowerRuntimeWritebackExecution {
+    admitted_effect_identity: WorthQueryEvidenceIdentity,
+    lowered_plan_identity: WorthQueryEvidenceIdentity,
+    receipt: EffectExecutionReceipt,
+    diagnostics: Option<EffectDiagnosticsMaterialization>,
+}
+
+impl WorthQueryLowerRuntimeWritebackExecution {
+    pub(crate) fn admitted_effect_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.admitted_effect_identity
+    }
+
+    pub(crate) fn lowered_plan_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.lowered_plan_identity
+    }
+
+    pub(crate) fn receipt(&self) -> &EffectExecutionReceipt {
+        &self.receipt
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        EffectExecutionReceipt,
+        Option<EffectDiagnosticsMaterialization>,
+    ) {
+        (self.receipt, self.diagnostics)
+    }
+}
 
 pub(crate) struct WorthQueryLowerRuntimePreviewExecution {
     request_identity: WorthQueryEvidenceIdentity,
@@ -43,6 +121,131 @@ impl WorthQueryLowerRuntimePreviewExecution {
 }
 
 impl WorthQueryRuntime {
+    pub(crate) fn execute_ordinary_writeback(
+        &mut self,
+        authority: WorthQueryOrdinaryAuthorityAdmission,
+        declaration_identity: &WorthQueryEvidenceIdentity,
+        materialize_inspection: bool,
+    ) -> Result<WorthQueryLowerRuntimeWritebackExecution, WorthQueryOrdinaryWritebackExecutionError>
+    {
+        if authority.family() != WorthQueryOrdinaryAuthorityFamily::Writeback {
+            return Err(WorthQueryOrdinaryWritebackExecutionError::new(
+                WorthQueryOrdinaryWritebackFailureStage::Authority,
+                "ordinary writeback requires a writeback authority context",
+            ));
+        }
+        if self.ordinary_authority_drift(&authority) != WorthQueryOrdinaryAuthorityDrift::Current {
+            return Err(WorthQueryOrdinaryWritebackExecutionError::new(
+                WorthQueryOrdinaryWritebackFailureStage::Authority,
+                "ordinary writeback authority is no longer current",
+            ));
+        }
+
+        let scope = WorkflowBindingScopeField::Identity(declaration_identity);
+        let binding = synthetic_runtime_workflow_binding_scoped_for_snapshot_binding_identity(
+            "ordinary-declarative-writeback",
+            &scope,
+            authority.snapshot_identity().clone(),
+        );
+        let basis = basis_lifecycle()
+            .branch_head("main", true)
+            .prepare_mutation()
+            .map_err(|error| {
+                WorthQueryOrdinaryWritebackExecutionError::new(
+                    WorthQueryOrdinaryWritebackFailureStage::Basis,
+                    format!("{error:?}"),
+                )
+            })?;
+        let request = WorkflowDeclarationRequest::new(
+            WorkflowDeclarationFamily::WritebackLoweringNarrow,
+            WorkflowAuthorityTargetFamily::BridgeWriteback,
+            WorkflowCostClass::WritebackLoweringNarrow,
+            WorkflowBudgetClass::AuthorityTargetBounded,
+            WorkflowFreshnessPolicy::ExactBasis,
+        );
+        let normalized = normalize_raw_effect_intent(
+            &basis.into(),
+            RawEffectIntent::Writeback {
+                binding,
+                request,
+                input: WritebackLoweringInput::projected_state_diff(),
+            },
+        )
+        .map_err(|denial| {
+            WorthQueryOrdinaryWritebackExecutionError::new(
+                WorthQueryOrdinaryWritebackFailureStage::Intent,
+                denial.message(),
+            )
+        })?;
+        let eligibility = match evaluate_effect_eligibility(normalized) {
+            EffectEligibilityOutcome::Admitted(eligibility) => eligibility,
+            EffectEligibilityOutcome::Advisory(outcome) => {
+                return Err(WorthQueryOrdinaryWritebackExecutionError::new(
+                    WorthQueryOrdinaryWritebackFailureStage::Eligibility,
+                    outcome.decision_trace().message(),
+                ));
+            }
+            EffectEligibilityOutcome::Denied(outcome) => {
+                return Err(WorthQueryOrdinaryWritebackExecutionError::new(
+                    WorthQueryOrdinaryWritebackFailureStage::Eligibility,
+                    outcome.decision_trace().message(),
+                ));
+            }
+            EffectEligibilityOutcome::RebindRequired(outcome) => {
+                return Err(WorthQueryOrdinaryWritebackExecutionError::new(
+                    WorthQueryOrdinaryWritebackFailureStage::Eligibility,
+                    outcome.decision_trace().message(),
+                ));
+            }
+            EffectEligibilityOutcome::Deferred(outcome) => {
+                return Err(WorthQueryOrdinaryWritebackExecutionError::new(
+                    WorthQueryOrdinaryWritebackFailureStage::Eligibility,
+                    outcome.decision_trace().message(),
+                ));
+            }
+        };
+        let admitted = admit_effect_intent(eligibility);
+        let admitted_effect_identity = admitted.admitted_identity().clone();
+        let lowered = scope_admitted_effect_plan(admitted)
+            .lower()
+            .map_err(|denial| {
+                WorthQueryOrdinaryWritebackExecutionError::new(
+                    WorthQueryOrdinaryWritebackFailureStage::Lowering,
+                    denial.message(),
+                )
+            })?;
+        let lowered_plan_identity = lowered.lowered_effect_execution_plan_identity().clone();
+        let declaration = lowered.as_writeback().cloned().ok_or_else(|| {
+            WorthQueryOrdinaryWritebackExecutionError::new(
+                WorthQueryOrdinaryWritebackFailureStage::Lowering,
+                "writeback effect lowering produced a non-writeback artifact",
+            )
+        })?;
+        let execution =
+            self.backend
+                .execute_query_writeback(&declaration)
+                .map_err(|(kind, message)| {
+                    WorthQueryOrdinaryWritebackExecutionError::new(
+                        WorthQueryOrdinaryWritebackFailureStage::BridgeExecution,
+                        format!("{}: {message}", kind.as_str()),
+                    )
+                })?;
+        let receipt = ExecutedEffectPlan::new(
+            lowered,
+            ExecutedEffectAuthorityArtifact::Writeback { execution },
+            1,
+        )
+        .receipt();
+        let diagnostics = materialize_inspection
+            .then(|| receipt.materialize_diagnostics(EffectDiagnosticsRequest::forensic()));
+        Ok(WorthQueryLowerRuntimeWritebackExecution {
+            admitted_effect_identity,
+            lowered_plan_identity,
+            receipt,
+            diagnostics,
+        })
+    }
+
     pub(crate) fn execute_ordinary_read_only_preview(
         &mut self,
         basis_admission: WorthQueryPreviewBasisAdmission,

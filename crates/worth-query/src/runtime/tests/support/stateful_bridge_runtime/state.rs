@@ -25,6 +25,16 @@ pub(super) struct StatefulBridgeState {
 
 impl StatefulBridgeState {
     pub(super) fn new(installed_collections: BTreeSet<String>) -> Self {
+        Self::with_bridge(
+            installed_collections,
+            test_bridge_with_writeback_authority(),
+        )
+    }
+
+    pub(super) fn with_bridge(
+        installed_collections: BTreeSet<String>,
+        bridge: RuntimeBridge,
+    ) -> Self {
         Self {
             installed_collections,
             live_views: BTreeMap::new(),
@@ -36,7 +46,7 @@ impl StatefulBridgeState {
             next_entity_identity: 0,
             next_commit_identity: 0,
             next_snapshot_token: 0,
-            bridge: test_bridge_with_writeback_authority(),
+            bridge,
         }
     }
 }

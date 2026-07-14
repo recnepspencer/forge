@@ -41,6 +41,11 @@ impl WorthQueryWorkflowCounters {
         self
     }
 
+    pub(crate) fn lower_runtime_attempted(mut self) -> Self {
+        self.lower_runtime_execution_attempt_count += 1;
+        self
+    }
+
     pub(crate) fn execution_completed(mut self, inspection_materialized: bool) -> Self {
         self.lower_runtime_execution_completed_count += 1;
         self.inspection_materialization_count += usize::from(inspection_materialized);

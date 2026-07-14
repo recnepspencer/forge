@@ -737,7 +737,10 @@ pub(crate) use ordinary_workflow_authority::{
     WorthQueryOrdinaryAuthorityDrift, WorthQueryOrdinaryAuthorityFamily,
     WorthQueryRuntimeAuthorityIdentity,
 };
-pub(crate) use ordinary_workflow_execution::WorthQueryLowerRuntimePreviewExecution;
+pub(crate) use ordinary_workflow_execution::{
+    WorthQueryLowerRuntimePreviewExecution, WorthQueryLowerRuntimeWritebackExecution,
+    WorthQueryOrdinaryWritebackExecutionError, WorthQueryOrdinaryWritebackFailureStage,
+};
 pub use preview::{
     WorthQueryPreviewCloseoutEvidence, WorthQueryPreviewCloseoutKind, WorthQueryPreviewDiff,
     WorthQueryPreviewEffectBindingDisposition, WorthQueryPreviewExecutionEvidence,

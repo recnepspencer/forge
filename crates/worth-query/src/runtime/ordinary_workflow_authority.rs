@@ -37,6 +37,7 @@ pub(crate) enum WorthQueryOrdinaryAuthorityFamily {
     Mutation,
     ReadOnlyPreview,
     PromotionPreview,
+    Writeback,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -52,6 +53,7 @@ impl WorthQueryOrdinaryAuthorityFamily {
             Self::Mutation => "mutation",
             Self::ReadOnlyPreview => "read-only-preview",
             Self::PromotionPreview => "promotion-preview",
+            Self::Writeback => "writeback",
         }
     }
 }
@@ -136,6 +138,18 @@ impl WorthQueryRuntime {
 
     pub(crate) fn admit_ordinary_rich_inspection(&self) -> Result<(), WorthQueryRuntimeError> {
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Inspect)
+    }
+
+    pub(crate) fn capture_ordinary_writeback_authority(
+        &self,
+    ) -> Result<WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
+        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Effect)?;
+        self.backend.admit_query_writeback_authority()?;
+        Ok(self.ordinary_authority_admission(
+            WorthQueryOrdinaryAuthorityFamily::Writeback,
+            None,
+            None,
+        ))
     }
 
     pub(crate) fn capture_ordinary_preview_authority(

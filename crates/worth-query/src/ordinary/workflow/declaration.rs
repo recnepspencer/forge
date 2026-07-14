@@ -8,14 +8,14 @@ use crate::session_label::WorthQuerySessionLabel;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryWorkflowFamily {
     PreviewPromotion,
-    DeferredWriteback,
+    ProjectedStateWriteback,
 }
 
 impl WorthQueryWorkflowFamily {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::PreviewPromotion => "preview-promotion",
-            Self::DeferredWriteback => "deferred-writeback",
+            Self::ProjectedStateWriteback => "projected-state-writeback",
         }
     }
 }
@@ -55,12 +55,6 @@ impl WorthQueryWorkflowDeclaration {
 
     pub fn session_label(&self) -> &WorthQuerySessionLabel {
         &self.label
-    }
-
-    pub fn deferred_writeback(mut self) -> Self {
-        self.family = WorthQueryWorkflowFamily::DeferredWriteback;
-        self.identity = workflow_identity(self.family, &self.label, &self.mutation);
-        self
     }
 
     pub fn inspection_policy(&self) -> WorthQueryOrdinaryInspectionPolicy {

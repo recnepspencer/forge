@@ -213,31 +213,5 @@ fn foreign_authority_and_stale_preview_deny_before_session_open() {
     assert_eq!(stop.counters().session_open_attempt_count(), 0);
 }
 
-#[test]
-fn unsupported_writeback_denies_before_open_and_preserves_retry_authority() {
-    let session_label = label("writeback-denial");
-    let mut workspace = stateful_bridge_task_runtime()
-        .workspace("ordinary-workflow-writeback")
-        .expect("workspace should open");
-    let context = preview(&workspace, session_label.clone()).expect("context should admit");
-    let stopped = declare(session_label.clone(), mutation("writeback"))
-        .deferred_writeback()
-        .using(context)
-        .run(&mut workspace);
-    let stop = stopped.stop().expect("writeback should deny");
-    assert_eq!(
-        stop.source(),
-        WorthQueryWorkflowStopSource::UnsupportedWriteback
-    );
-    assert_eq!(
-        stop.violation().kind(),
-        WorthQueryWorkflowViolationKind::UnsupportedWriteback
-    );
-    assert_eq!(stop.counters().session_open_attempt_count(), 0);
-
-    let retry_context = preview(&workspace, session_label.clone()).expect("context should admit");
-    let retry = declare(session_label, mutation("writeback-retry"))
-        .using(retry_context)
-        .run(&mut workspace);
-    assert!(retry.completed().is_some());
-}
+#[path = "tests/writeback.rs"]
+mod writeback;

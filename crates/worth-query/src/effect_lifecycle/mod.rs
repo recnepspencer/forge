@@ -110,6 +110,7 @@ pub use taxonomy::{
     DeniedEffectEligibilityKind, EffectAuthorityLane, EffectFamily, EffectIntentDenialKind,
 };
 
+pub(crate) use execution_bridge::execute_lowered_writeback;
 pub(crate) use execution_relational_scalar::stable_branch_snapshot_id;
 
 #[cfg(test)]

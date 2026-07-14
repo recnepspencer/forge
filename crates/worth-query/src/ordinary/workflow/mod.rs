@@ -3,6 +3,7 @@ mod declaration;
 mod execution;
 mod outcome;
 mod request;
+mod writeback;
 
 pub use context::{preview, WorthQueryWorkflowContext, WorthQueryWorkflowContextStop};
 pub use declaration::{
@@ -18,6 +19,13 @@ pub use outcome::{
     WorthQueryWorkflowViolationKind,
 };
 pub use request::WorthQueryWorkflowRequest;
+pub use writeback::{
+    declare_writeback, projected_state_diff, writeback, WorthQueryWritebackAftermath,
+    WorthQueryWritebackCompletion, WorthQueryWritebackContext, WorthQueryWritebackContextStop,
+    WorthQueryWritebackDeclaration, WorthQueryWritebackDeclarationIdentity,
+    WorthQueryWritebackNextAction, WorthQueryWritebackOutcome, WorthQueryWritebackRequest,
+    WorthQueryWritebackStop, WorthQueryWritebackStopSource, WorthQueryWritebackTrigger,
+};
 
 #[cfg(test)]
 mod tests;

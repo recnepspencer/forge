@@ -16,12 +16,7 @@ impl WorthQueryWorkflowRequest {
                 counters,
             ));
         }
-        if family == WorthQueryWorkflowFamily::DeferredWriteback {
-            return WorthQueryWorkflowOutcome::Stopped(WorthQueryWorkflowStop::denied(
-                WorthQueryWorkflowStopSource::UnsupportedWriteback,
-                counters,
-            ));
-        }
+        debug_assert_eq!(family, WorthQueryWorkflowFamily::PreviewPromotion);
         match workspace.ordinary_authority_drift(&self.context.authority) {
             WorthQueryOrdinaryAuthorityDrift::ForeignOwner => {
                 return WorthQueryWorkflowOutcome::Stopped(WorthQueryWorkflowStop::denied(
