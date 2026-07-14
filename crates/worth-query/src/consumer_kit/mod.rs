@@ -29,8 +29,10 @@ pub use boundary_audit::{
 };
 pub use capability_grammar::{
     current_capability_grammar_audit, worth_query_capability_grammar, WorthQueryCapabilityCeremony,
-    WorthQueryCapabilityGrammarAudit, WorthQueryCapabilityGrammarFinding,
-    WorthQueryCapabilityGrammarFindingKind, WorthQueryCapabilityGrammarRow,
+    WorthQueryCapabilityFacadeNamespace, WorthQueryCapabilityGrammarAudit,
+    WorthQueryCapabilityGrammarFinding, WorthQueryCapabilityGrammarFindingKind,
+    WorthQueryCapabilityGrammarRow, WorthQueryCapabilityOutcomeContract,
+    WorthQueryCapabilityTerminalVocabulary, WorthQueryCapabilityTranscriptOwner,
 };
 pub use consumer_residue::{
     query_consumer_residue_audit, worth_query_consumer_residue_certification_evidence,

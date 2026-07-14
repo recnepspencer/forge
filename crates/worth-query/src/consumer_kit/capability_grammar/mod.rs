@@ -1,8 +1,13 @@
 mod audit;
+mod contract;
 mod model;
 mod registry;
 
 pub use audit::current_capability_grammar_audit;
+pub use contract::{
+    WorthQueryCapabilityFacadeNamespace, WorthQueryCapabilityOutcomeContract,
+    WorthQueryCapabilityTerminalVocabulary, WorthQueryCapabilityTranscriptOwner,
+};
 pub use model::{
     WorthQueryCapabilityCeremony, WorthQueryCapabilityGrammarAudit,
     WorthQueryCapabilityGrammarFinding, WorthQueryCapabilityGrammarFindingKind,

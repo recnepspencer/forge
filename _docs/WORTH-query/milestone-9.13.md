@@ -169,17 +169,32 @@ capabilities.
 
 **Test requirements**
 
-- Compile-pass DX transcripts prove a new consumer can author one representative
-  journey per capability family using only ordinary facade imports.
+- A compiler-backed grammar contract freezes one complete ordinary journey
+  signature per capability family: facade namespace, declaration/refinement/
+  terminal vocabulary, outcome, typed stop, next action, explicit context,
+  cost disclosure, ceremony budget, and the later phase that owns its first
+  executable transcript. Missing fields or an unowned transcript fail this
+  phase.
+- Compile-pass DX transcripts prove every capability implemented through
+  Phase 5 uses only its frozen ordinary facade imports. Phases 6 through 9
+  must add the executable transcript for each family they implement, and
+  Phase 12 must reject any frozen grammar without a compiling final journey.
 - Compile-fail transcripts prove capability-specific options cannot be applied
   to the wrong declaration family or after admission.
-- Ambiguous-default tests prove missing basis, policy, tenant, or bound context
-  produces a typed next-action stop instead of guessing.
+- Compile-fail tests prove a declaration cannot run without an explicit context
+  handoff. Hostile context tests prove missing or mismatched basis, policy,
+  tenant, or relationship authority inside that handoff produces a typed
+  next-action stop instead of guessing.
 
 **Engineering decisions**
 
 - The public grammar follows `declare -> refine -> admit/run -> outcome`; Query
   may fuse steps internally without exposing its internal phase count.
+- Phase 2 freezes the final grammar and transcript owner; it does not create
+  placeholder declarations, synthetic success outcomes, or non-constructible
+  context shells for capabilities whose operational semantics belong to later
+  phases. Each owning phase must implement the already-frozen signature rather
+  than redesigning it.
 - Common refinement vocabulary is shared only where meaning, cost, denial, and
   lifecycle are genuinely identical.
 - Typed stops report the missing decision and the valid next action. They do
@@ -378,6 +393,9 @@ suppression, or teardown phases.
 
 **Test requirements**
 
+- A compile-pass `facade::live` journey implements the Phase 2 grammar contract
+  exactly and proves declaration, context handoff, open, delivery observation,
+  and deterministic close without importing lifecycle phase machinery.
 - One-shot and live-promoted evaluation converge for the same admitted query,
   basis, policy, and view shape across update, suppression, and replay.
 - Compile-fail tests prove consumers cannot activate an unadmitted declaration,
@@ -428,6 +446,9 @@ distinct basis, ambiguity, materialization, and cost semantics.
 
 **Test requirements**
 
+- Compile-pass `facade::history` and `facade::comparison` journeys implement
+  their Phase 2 grammar contracts exactly using only capability-specific
+  declaration, context, outcome, stop, and inspection vocabulary.
 - Current, historical, and restored internal fixtures yield equivalent result
   meaning when they observe the same canonical truth basis.
 - Cross-basis pairing, missing history, ambiguous correspondence, and stale
@@ -479,6 +500,10 @@ admission and orchestration chain.
 
 **Test requirements**
 
+- Compile-pass `facade::preview`, `facade::mutation`, `facade::workflow`, and
+  `facade::domain` journeys implement their Phase 2 grammar contracts exactly;
+  each transcript must exercise its real authority handoff and terminal rather
+  than a placeholder or compile-only shell.
 - Equivalent explicit internal orchestration and ordinary workflow declaration
   produce identical lower-runtime request, receipt, aftermath, and inspection
   identity.
@@ -530,6 +555,9 @@ know which internal subsystem produced each artifact.
 
 **Test requirements**
 
+- A compile-pass `facade::inspection` journey implements its Phase 2 grammar
+  contract exactly, begins from authentic outcome evidence plus scoped
+  inspection basis, and never imports source phase artifacts.
 - Every capability family exposes a common outcome navigation contract while
   preserving its family-specific success and denial payloads.
 - Receipt-only, digest-only, and diagnostic-only attempts to authorize new
@@ -684,6 +712,11 @@ proof-preserving internal chain, and one coherent outcome contract.
 
 **Test requirements**
 
+- The final compiler-backed transcript matrix proves every Phase 2 grammar row
+  resolves to an executable ordinary facade journey with the same namespace,
+  ordered vocabulary, typed outcome/stop/next-action contract, context
+  requirement, and ceremony ceiling; a frozen-but-unimplemented or drifted
+  family blocks closure.
 - A hostile matrix covers equivalent declaration convergence, cross-capability
   option rejection, cross-basis and stale-context denial, one-shot/live parity,
   historical ambiguity, preview/workflow denial, receipt non-promotion, and

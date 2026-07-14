@@ -1,5 +1,10 @@
 use crate::consumer_kit::WorthQueryDeclarativeCapabilityFamily;
 
+use super::{
+    WorthQueryCapabilityFacadeNamespace, WorthQueryCapabilityOutcomeContract,
+    WorthQueryCapabilityTerminalVocabulary, WorthQueryCapabilityTranscriptOwner,
+};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthQueryCapabilityCeremony {
     import_count: usize,
@@ -47,13 +52,12 @@ impl WorthQueryCapabilityCeremony {
 pub struct WorthQueryCapabilityGrammarRow {
     family: WorthQueryDeclarativeCapabilityFamily,
     reference_journey: &'static str,
-    namespace: &'static str,
+    namespace: WorthQueryCapabilityFacadeNamespace,
     declare: &'static str,
     refine: &'static str,
-    terminal: &'static str,
-    outcome: &'static str,
-    stop: &'static str,
-    next_action: &'static str,
+    terminal: WorthQueryCapabilityTerminalVocabulary,
+    outcome: WorthQueryCapabilityOutcomeContract,
+    transcript_owner: WorthQueryCapabilityTranscriptOwner,
     explicit_context: &'static str,
     cost_disclosure: &'static str,
     baseline: WorthQueryCapabilityCeremony,
@@ -66,16 +70,15 @@ pub(super) struct WorthQueryCapabilityGrammarIdentity {
 }
 
 pub(super) struct WorthQueryCapabilityGrammarWords {
-    pub(super) namespace: &'static str,
+    pub(super) namespace: WorthQueryCapabilityFacadeNamespace,
     pub(super) declare: &'static str,
     pub(super) refine: &'static str,
-    pub(super) terminal: &'static str,
+    pub(super) terminal: WorthQueryCapabilityTerminalVocabulary,
 }
 
 pub(super) struct WorthQueryCapabilityGrammarBoundary {
-    pub(super) outcome: &'static str,
-    pub(super) stop: &'static str,
-    pub(super) next_action: &'static str,
+    pub(super) outcome: WorthQueryCapabilityOutcomeContract,
+    pub(super) transcript_owner: WorthQueryCapabilityTranscriptOwner,
     pub(super) explicit_context: &'static str,
     pub(super) cost_disclosure: &'static str,
 }
@@ -100,8 +103,7 @@ impl WorthQueryCapabilityGrammarRow {
             refine: words.refine,
             terminal: words.terminal,
             outcome: boundary.outcome,
-            stop: boundary.stop,
-            next_action: boundary.next_action,
+            transcript_owner: boundary.transcript_owner,
             explicit_context: boundary.explicit_context,
             cost_disclosure: boundary.cost_disclosure,
             baseline: ceremony.baseline,
@@ -116,6 +118,9 @@ impl WorthQueryCapabilityGrammarRow {
         self.reference_journey
     }
     pub fn namespace(&self) -> &'static str {
+        self.namespace.as_str()
+    }
+    pub fn namespace_contract(&self) -> WorthQueryCapabilityFacadeNamespace {
         self.namespace
     }
     pub fn declare(&self) -> &'static str {
@@ -125,16 +130,25 @@ impl WorthQueryCapabilityGrammarRow {
         self.refine
     }
     pub fn terminal(&self) -> &'static str {
+        self.terminal.as_str()
+    }
+    pub fn terminal_vocabulary(&self) -> WorthQueryCapabilityTerminalVocabulary {
         self.terminal
     }
     pub fn outcome(&self) -> &'static str {
+        self.outcome.outcome()
+    }
+    pub fn outcome_contract(&self) -> WorthQueryCapabilityOutcomeContract {
         self.outcome
     }
     pub fn stop(&self) -> &'static str {
-        self.stop
+        self.outcome.stop()
     }
     pub fn next_action(&self) -> &'static str {
-        self.next_action
+        self.outcome.next_action()
+    }
+    pub fn transcript_owner(&self) -> WorthQueryCapabilityTranscriptOwner {
+        self.transcript_owner
     }
     pub fn explicit_context(&self) -> &'static str {
         self.explicit_context
@@ -148,12 +162,42 @@ impl WorthQueryCapabilityGrammarRow {
     pub fn target(&self) -> WorthQueryCapabilityCeremony {
         self.target
     }
+
+    #[cfg(test)]
+    pub(super) fn with_transcript_owner_for_test(
+        mut self,
+        transcript_owner: WorthQueryCapabilityTranscriptOwner,
+    ) -> Self {
+        self.transcript_owner = transcript_owner;
+        self
+    }
+
+    #[cfg(test)]
+    pub(super) fn with_namespace_for_test(
+        mut self,
+        namespace: WorthQueryCapabilityFacadeNamespace,
+    ) -> Self {
+        self.namespace = namespace;
+        self
+    }
+
+    #[cfg(test)]
+    pub(super) fn with_outcome_for_test(
+        mut self,
+        outcome: WorthQueryCapabilityOutcomeContract,
+    ) -> Self {
+        self.outcome = outcome;
+        self
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryCapabilityGrammarFindingKind {
     MissingJourney,
     JourneyFamilyMismatch,
+    NamespaceFamilyMismatch,
+    OutcomeFamilyMismatch,
+    TranscriptOwnerMismatch,
     CeremonyRegression,
 }
 
