@@ -35,24 +35,29 @@ pub use crate::basis_lifecycle::{
 };
 pub use crate::consumer_kit::{
     audit_consumer_journey_sources, audit_consumer_orchestration_sources,
-    audit_declarative_surface_sources, current_capability_grammar_audit,
-    current_declarative_surface_audit, worth_query_capability_grammar,
-    worth_query_consumer_journey_rows, worth_query_declarative_surface_rows,
-    WorthQueryCapabilityCeremony, WorthQueryCapabilityFacadeNamespace,
-    WorthQueryCapabilityGrammarAudit, WorthQueryCapabilityGrammarFinding,
-    WorthQueryCapabilityGrammarFindingKind, WorthQueryCapabilityGrammarRow,
-    WorthQueryCapabilityOutcomeContract, WorthQueryCapabilityTerminalVocabulary,
-    WorthQueryCapabilityTranscriptOwner, WorthQueryConsumerJourneyAudit,
-    WorthQueryConsumerJourneyFinding, WorthQueryConsumerJourneyFindingKind,
-    WorthQueryConsumerJourneyRow, WorthQueryConsumerJourneySource,
-    WorthQueryConsumerOrchestrationAudit, WorthQueryConsumerOrchestrationError,
-    WorthQueryConsumerOrchestrationErrorKind, WorthQueryConsumerOrchestrationFinding,
-    WorthQueryConsumerOrchestrationPhase, WorthQueryConsumerOrchestrationSite,
-    WorthQueryDeclarativeCapabilityFamily, WorthQueryDeclarativePhaseResponsibility,
-    WorthQueryDeclarativeSurfaceAudit, WorthQueryDeclarativeSurfaceClass,
-    WorthQueryDeclarativeSurfaceFinding, WorthQueryDeclarativeSurfaceFindingKind,
-    WorthQueryDeclarativeSurfaceRow, WorthQueryDeclarativeSurfaceSource,
-    WorthQueryDeclarativeSurfaceSourceSite,
+    audit_declarative_surface_sources, audit_reference_consumer_adoption_sources,
+    current_capability_grammar_audit, current_declarative_surface_audit,
+    worth_query_capability_grammar, worth_query_consumer_journey_rows,
+    worth_query_declarative_surface_rows, worth_query_reference_consumer_adoption_rows,
+    worth_query_reference_consumer_deleted_residue, WorthQueryCapabilityCeremony,
+    WorthQueryCapabilityFacadeNamespace, WorthQueryCapabilityGrammarAudit,
+    WorthQueryCapabilityGrammarFinding, WorthQueryCapabilityGrammarFindingKind,
+    WorthQueryCapabilityGrammarRow, WorthQueryCapabilityOutcomeContract,
+    WorthQueryCapabilityTerminalVocabulary, WorthQueryCapabilityTranscriptOwner,
+    WorthQueryConsumerJourneyAudit, WorthQueryConsumerJourneyFinding,
+    WorthQueryConsumerJourneyFindingKind, WorthQueryConsumerJourneyRow,
+    WorthQueryConsumerJourneySource, WorthQueryConsumerOrchestrationAudit,
+    WorthQueryConsumerOrchestrationError, WorthQueryConsumerOrchestrationErrorKind,
+    WorthQueryConsumerOrchestrationFinding, WorthQueryConsumerOrchestrationPhase,
+    WorthQueryConsumerOrchestrationSite, WorthQueryDeclarativeCapabilityFamily,
+    WorthQueryDeclarativePhaseResponsibility, WorthQueryDeclarativeSurfaceAudit,
+    WorthQueryDeclarativeSurfaceClass, WorthQueryDeclarativeSurfaceFinding,
+    WorthQueryDeclarativeSurfaceFindingKind, WorthQueryDeclarativeSurfaceRow,
+    WorthQueryDeclarativeSurfaceSource, WorthQueryDeclarativeSurfaceSourceSite,
+    WorthQueryReferenceConsumerAdoptionAudit, WorthQueryReferenceConsumerAdoptionFinding,
+    WorthQueryReferenceConsumerAdoptionFindingKind, WorthQueryReferenceConsumerAdoptionRow,
+    WorthQueryReferenceConsumerDeletedResidue, WorthQueryReferenceConsumerDxCounters,
+    WorthQueryReferenceConsumerResidueKind, WorthQueryReferenceConsumerSource,
 };
 pub use crate::domain_capabilities::{
     certify_domain_capabilities, worth_query_domain_capability_certification_output_manifest,
@@ -230,4 +235,39 @@ pub fn resolve_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.clone(),
         schema_basis_authority,
     )
+}
+
+/// Admit an externally authored current-snapshot basis for an explicit
+/// downstream certification fixture.
+pub fn admit_runtime_current_snapshot_basis_for_certification(
+    snapshot_identity: crate::WorthQueryEvidenceIdentity,
+    external_schema_basis: crate::basis::QueryExternalSchemaBasisToken,
+) -> Result<crate::basis::ResolvedSnapshotBasis, crate::basis::BasisResolutionError> {
+    crate::basis::admit_runtime_current_snapshot_basis(snapshot_identity, external_schema_basis)
+}
+
+/// Project a foundation-only projection outcome into the ordinary navigation
+/// contract for certification fixtures that exercise warning and denial
+/// postures which cannot be authored by ordinary callers.
+pub fn ordinary_projection_outcome_for_certification(
+    outcome: crate::projection_consumption::ProjectionAuthorityOutcome,
+) -> crate::ordinary::read::WorthQueryProjectionOutcome {
+    crate::ordinary::read::WorthQueryProjectionOutcome::from_foundation(outcome)
+}
+
+/// Apply the query-context advisory posture to an otherwise ordinary
+/// projection outcome for downstream boundary fixtures.
+pub fn ordinary_query_context_advisory_for_certification(
+    outcome: crate::ordinary::read::WorthQueryProjectionOutcome,
+) -> crate::ordinary::read::WorthQueryProjectionOutcome {
+    outcome.with_query_context_advisory_for_certification()
+}
+
+/// Exercise a non-ordinary projection contract against an ordinary read
+/// completion for downstream denial-boundary fixtures.
+pub fn consume_projection_contract_for_certification(
+    completion: &crate::ordinary::read::WorthQueryReadCompletion,
+    contract: crate::projection_consumption::ProjectionAuthorityContract,
+) -> crate::ordinary::read::WorthQueryProjectionOutcome {
+    completion.consume_projection_contract_for_certification(contract)
 }

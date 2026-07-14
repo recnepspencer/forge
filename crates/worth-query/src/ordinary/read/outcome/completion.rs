@@ -34,6 +34,14 @@ impl WorthQueryReadCompletion {
         self.projection_binding.consume(&self.result, declaration)
     }
 
+    pub(crate) fn consume_projection_contract_for_certification(
+        &self,
+        contract: crate::projection_consumption::ProjectionAuthorityContract,
+    ) -> WorthQueryProjectionOutcome {
+        self.projection_binding
+            .consume_contract(&self.result, contract)
+    }
+
     pub fn into_result(self) -> WorthQueryReadResult {
         self.result
     }

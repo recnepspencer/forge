@@ -22,6 +22,10 @@ internal_suite!(
 );
 internal_suite!(consumer_residue_audit, "../tests/consumer_residue_audit.rs");
 internal_suite!(
+    declarative_facade_docs,
+    "../tests/declarative_facade_docs.rs"
+);
+internal_suite!(
     consumer_residue_compile_fail,
     "../tests/consumer_residue_compile_fail.rs"
 );

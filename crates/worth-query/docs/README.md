@@ -101,6 +101,7 @@ artifact, orchestration, grouping, and recovery model.
 
 ## Capabilities (feature docs)
 
+- [Declarative Query Experience](./capabilities/declarative-query-experience.md)
 - [Basis capability lifecycle](./capabilities/basis-capability-lifecycle.md)
 - [Subscription selection and diagnostics](./capabilities/subscription-selection-and-diagnostics.md)
 - [Historical diff and basis](./capabilities/historical-diff-and-basis.md)

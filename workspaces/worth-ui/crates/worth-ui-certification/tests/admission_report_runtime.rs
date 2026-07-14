@@ -5,9 +5,10 @@ use worth_ui::facade::admission::{
 };
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
+use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
 
 use worth_ui::facade::graph::{
-    admit_runtime_current_snapshot_basis, snapshot_resolution_report, QueryExternalIdentityToken,
+    snapshot_resolution_report, QueryExternalIdentityToken,
     QueryExternalSchemaBasisToken, UiGraphWorldProfile, WorthQuerySessionLabel,
     WorthQuerySnapshotIdentity,
 };
@@ -295,7 +296,7 @@ fn query_snapshot_world_profile() -> UiGraphWorldProfile {
     let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
         QueryExternalIdentityToken::new(Arc::<str>::from("snapshot:admission-report")),
     );
-    let basis = admit_runtime_current_snapshot_basis(
+    let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
         QueryExternalSchemaBasisToken::from_domain_parts(
             &["worth-ui.phase5", "admission", "report"]

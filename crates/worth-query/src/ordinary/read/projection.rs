@@ -119,6 +119,40 @@ pub enum WorthQueryProjectionOutcome {
 }
 
 impl WorthQueryProjectionOutcome {
+    pub(crate) fn from_foundation(outcome: ProjectionAuthorityOutcome) -> Self {
+        match outcome {
+            ProjectionAuthorityOutcome::Admitted(authority) => Self::Completed(authority),
+            ProjectionAuthorityOutcome::AdmittedWithWarnings(authority, warnings) => {
+                Self::Advisory(WorthQueryProjectionAdvisory {
+                    authority,
+                    warnings,
+                })
+            }
+            ProjectionAuthorityOutcome::AuthorityDenied(denial) => {
+                Self::Violation(WorthQueryProjectionViolation::Authority(denial))
+            }
+            ProjectionAuthorityOutcome::ConsumptionDenied(denial) => {
+                Self::Violation(WorthQueryProjectionViolation::Consumption(denial))
+            }
+            ProjectionAuthorityOutcome::Deferred(deferred) => Self::Deferred(deferred),
+            ProjectionAuthorityOutcome::SourceMismatch(mismatch) => {
+                Self::Violation(WorthQueryProjectionViolation::SourceMismatch(mismatch))
+            }
+        }
+    }
+
+    pub(crate) fn with_query_context_advisory_for_certification(self) -> Self {
+        match self {
+            Self::Completed(authority) => Self::Advisory(WorthQueryProjectionAdvisory {
+                authority,
+                warnings: ProjectionConsumptionWarnings::for_certification(
+                    crate::projection_consumption::ProjectionConsumptionWarningKind::QueryContextRowBound,
+                ),
+            }),
+            other => other,
+        }
+    }
+
     pub fn authority(&self) -> Option<&WorthQueryConsumedProjectionAuthority> {
         match self {
             Self::Completed(authority) => Some(authority),
@@ -201,6 +235,14 @@ impl WorthQueryReadProjectionBinding {
         result: &WorthQueryReadResult,
         declaration: WorthQueryProjectionDeclaration,
     ) -> WorthQueryProjectionOutcome {
+        self.consume_contract(result, declaration.contract)
+    }
+
+    pub(crate) fn consume_contract(
+        &self,
+        result: &WorthQueryReadResult,
+        contract: ProjectionAuthorityContract,
+    ) -> WorthQueryProjectionOutcome {
         let authorized = match &self.authorized_projection {
             Ok(authorized) => authorized,
             Err(error) => {
@@ -209,38 +251,8 @@ impl WorthQueryReadProjectionBinding {
                 )
             }
         };
-        match result.consume_projection_authority(
-            &self.result_shape,
-            authorized,
-            declaration.contract,
-        ) {
-            Ok(ProjectionAuthorityOutcome::Admitted(authority)) => {
-                WorthQueryProjectionOutcome::Completed(authority)
-            }
-            Ok(ProjectionAuthorityOutcome::AdmittedWithWarnings(authority, warnings)) => {
-                WorthQueryProjectionOutcome::Advisory(WorthQueryProjectionAdvisory {
-                    authority,
-                    warnings,
-                })
-            }
-            Ok(ProjectionAuthorityOutcome::AuthorityDenied(denial)) => {
-                WorthQueryProjectionOutcome::Violation(WorthQueryProjectionViolation::Authority(
-                    denial,
-                ))
-            }
-            Ok(ProjectionAuthorityOutcome::ConsumptionDenied(denial)) => {
-                WorthQueryProjectionOutcome::Violation(WorthQueryProjectionViolation::Consumption(
-                    denial,
-                ))
-            }
-            Ok(ProjectionAuthorityOutcome::Deferred(deferred)) => {
-                WorthQueryProjectionOutcome::Deferred(deferred)
-            }
-            Ok(ProjectionAuthorityOutcome::SourceMismatch(mismatch)) => {
-                WorthQueryProjectionOutcome::Violation(
-                    WorthQueryProjectionViolation::SourceMismatch(mismatch),
-                )
-            }
+        match result.consume_projection_authority(&self.result_shape, authorized, contract) {
+            Ok(outcome) => WorthQueryProjectionOutcome::from_foundation(outcome),
             Err(
                 crate::projection_consumption::ProjectionFactConsumptionPathError::Declaration(
                     error,

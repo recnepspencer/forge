@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use worth_ui::facade::admission::UiAdmissionQueryBasis;
+use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
 use worth_ui::facade::graph::{
-    admit_runtime_current_snapshot_basis, snapshot_resolution_report, QueryExternalIdentityToken,
+    snapshot_resolution_report, QueryExternalIdentityToken,
     QueryExternalSchemaBasisToken, UiGraphTouchDescriptor, UiGraphWorldProfile,
     WorthQuerySnapshotIdentity,
 };
@@ -19,7 +20,7 @@ pub fn query_snapshot_world_profile(
     let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
         QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
     );
-    let basis = admit_runtime_current_snapshot_basis(
+    let basis = admit_runtime_current_snapshot_basis_for_certification(
         snapshot_identity.evidence_identity(),
         QueryExternalSchemaBasisToken::from_domain_parts(
             &schema_basis_parts

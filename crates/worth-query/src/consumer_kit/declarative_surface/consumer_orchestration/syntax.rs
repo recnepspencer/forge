@@ -110,14 +110,14 @@ impl<'ast> Visit<'ast> for CallCollector {
 }
 
 fn query_phase(name: &str, query_qualified: bool) -> Option<Phase> {
-    let distinctive = name.contains("query")
-        || name.contains("declaration_entry")
+    let distinctive = name.contains("declaration_entry")
         || name.contains("read_family")
         || name.contains("graph_read")
         || name.contains("projection_consumption")
         || name.contains("historical_evaluation")
         || name.contains("correspondence_evidence")
-        || name.contains("preview_session");
+        || name.contains("preview_session")
+        || name.contains("query_subscription");
     if !query_qualified && !distinctive {
         return None;
     }
@@ -133,6 +133,15 @@ fn query_phase(name: &str, query_qualified: bool) -> Option<Phase> {
         Some(Phase::Plan)
     } else if name.starts_with("lower") {
         Some(Phase::Lower)
+    } else if name.starts_with("activate") || name.starts_with("open_query_subscription") {
+        Some(Phase::Activate)
+    } else if name.starts_with("maintain") || name.starts_with("advance_query_subscription") {
+        Some(Phase::Maintain)
+    } else if name.starts_with("close")
+        || name.starts_with("dispose")
+        || name.starts_with("teardown")
+    {
+        Some(Phase::Close)
     } else if name.starts_with("execute") || name == "run" || name == "open" {
         Some(Phase::Execute)
     } else if name.starts_with("orchestrate")

@@ -2,30 +2,25 @@ use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::runtime::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryReadBuilder, WorthQueryReadDenial,
-    WorthQueryReadFamily, WorthQueryReadGraph, WorthQueryWorkspace,
+    WorthQueryWorkspace,
 };
-use worth_query::facade::policy::{
-    admit_query_basis_context,
-    execute_query_basis_context,
-    QueryContextBindingSource,
-};
-use worth_query::facade::{
-    bind_query_basis_context,
-    QueryBasisContextRequest,
+use worth_query::facade::read::{
+    current, declare, project_facts, WorthQueryProjectionOutcome, WorthQueryReadCompletion,
 };
 use worth_query::facade::foundation::{
-    preflight_execution_basis,
-    resolve_runtime_current_snapshot_basis,
     snapshot_resolution_report,
     AspectFieldSelector,
     AuthoredResultShapeField,
     EqualityPredicate,
     ProjectionAuthorityContract,
-    ProjectionAuthorityOutcome,
     ProjectionFactFieldPath,
     ScalarPredicateValue,
 };
-use worth_query::facade::certification::public_bridge_projection_artifacts_for_read_graph;
+use worth_query::facade::certification::{
+    consume_projection_contract_for_certification,
+    ordinary_query_context_advisory_for_certification,
+    resolve_runtime_current_snapshot_basis_for_certification,
+};
 use worth_query::facade::runtime::{
     WorthQueryAspectTouch,
     WorthQueryAuthoredAspectValue,
@@ -34,57 +29,56 @@ use worth_ui_query_binding::{WorthUiQueryBindingSubsystem, WorthUiQueryPrerequis
 
 pub(super) fn query_projection_consumption(
     label: &str,
-) -> (WorthUiQueryPrerequisiteEvidence, ProjectionAuthorityOutcome) {
-    let (mut workspace, family) = workspace_and_family(label);
-    let read = workspace.execute_read_family(&family).expect("Query read");
-    let (shape, projection) =
-        public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let outcome = read
-        .consume_projection_authority(&shape, &projection, requested_authority())
-        .expect("projection authority consumption");
-    (prerequisites(&workspace, &family), outcome)
+) -> (WorthUiQueryPrerequisiteEvidence, WorthQueryProjectionOutcome) {
+    let (prerequisites, completion) = ordinary_completion(label);
+    let outcome = completion.consume_projection(project_facts().display_field(query_size_path()));
+    (prerequisites, outcome)
 }
 
 pub(super) fn partial_query_projection_consumption(
     label: &str,
-) -> (WorthUiQueryPrerequisiteEvidence, ProjectionAuthorityOutcome) {
-    let (workspace, family) = workspace_and_family(label);
-    let basis = query_basis(&workspace, &family);
-    let preflight =
-        preflight_execution_basis(family.read_graph().execution_plan().clone(), basis.clone())
-            .expect("Query preflight");
-    let binding = bind_query_basis_context(
-        QueryBasisContextRequest::current_branch_head(),
-        QueryContextBindingSource::RuntimeCurrent(&preflight),
+) -> (WorthUiQueryPrerequisiteEvidence, WorthQueryProjectionOutcome) {
+    let (prerequisites, completion) = ordinary_completion(label);
+    let outcome = completion.consume_projection(project_facts().display_field(query_size_path()));
+    (
+        prerequisites,
+        ordinary_query_context_advisory_for_certification(outcome),
     )
-    .expect("Query context binding");
-    let context = admit_query_basis_context(binding).expect("Query context admission");
-    let execution = execute_query_basis_context(&context).expect("Query context execution");
-    let (_, projection) = public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let outcome = execution
-        .consume_projection_authority(&projection, requested_authority())
-        .expect("warning-bearing projection authority consumption");
-    (prerequisites_from_basis(basis), outcome)
 }
 
 pub(super) fn unsupported_query_projection_consumption(
     label: &str,
-) -> (WorthUiQueryPrerequisiteEvidence, ProjectionAuthorityOutcome) {
-    let (mut workspace, family) = workspace_and_family(label);
-    let read = workspace.execute_read_family(&family).expect("Query read");
-    let (shape, projection) =
-        public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let outcome = read
-        .consume_projection_authority(
-            &shape,
-            &projection,
-            authority_contract().require_target_identity(),
-        )
-        .expect("unsupported projection authority remains typed");
-    (prerequisites(&workspace, &family), outcome)
+) -> (WorthUiQueryPrerequisiteEvidence, WorthQueryProjectionOutcome) {
+    let (prerequisites, completion) = ordinary_completion(label);
+    let outcome = consume_projection_contract_for_certification(
+        &completion,
+        authority_contract().require_target_identity(),
+    );
+    (prerequisites, outcome)
 }
 
-fn workspace_and_family(label: &str) -> (WorthQueryWorkspace, WorthQueryReadFamily) {
+fn ordinary_completion(
+    label: &str,
+) -> (WorthUiQueryPrerequisiteEvidence, WorthQueryReadCompletion) {
+    let (mut workspace, schema_basis_authority) = workspace_and_schema(label);
+    let completion = declare(query_size_graph)
+        .expect("ordinary Query declaration")
+        .using(current())
+        .run(&mut workspace)
+        .into_result()
+        .expect("ordinary Query read");
+    (
+        prerequisites_from_schema(&workspace, schema_basis_authority),
+        completion,
+    )
+}
+
+fn workspace_and_schema(
+    label: &str,
+) -> (
+    WorthQueryWorkspace,
+    worth_query::facade::foundation::QuerySchemaBasisAuthority,
+) {
     let schema = WorthQueryTestBackendSchema::single_collection("task")
         .aspect("identity.id", "identity.id")
         .expect("identity aspect")
@@ -106,28 +100,7 @@ fn workspace_and_family(label: &str) -> (WorthQueryWorkspace, WorthQueryReadFami
             )
         })
         .expect("Query insert");
-    let family = workspace
-        .define_read_family(label, query_size_graph)
-        .expect("Query family");
-    (workspace, family)
-}
-
-fn prerequisites(
-    workspace: &WorthQueryWorkspace,
-    family: &WorthQueryReadFamily,
-) -> WorthUiQueryPrerequisiteEvidence {
-    prerequisites_from_basis(query_basis(workspace, family))
-}
-
-fn query_basis(
-    workspace: &WorthQueryWorkspace,
-    family: &WorthQueryReadFamily,
-) -> worth_query::facade::foundation::ResolvedSnapshotBasis {
-    resolve_runtime_current_snapshot_basis(
-        workspace.snapshot_identity().evidence_identity(),
-        family.read_graph().schema_basis_authority(),
-    )
-    .expect("Query basis")
+    (workspace, query_schema().basis_authority())
 }
 
 fn prerequisites_from_basis(
@@ -139,8 +112,16 @@ fn prerequisites_from_basis(
         .expect("Query prerequisites")
 }
 
-fn requested_authority() -> ProjectionAuthorityContract {
-    authority_contract().require_display_field(query_size_path())
+fn prerequisites_from_schema(
+    workspace: &WorthQueryWorkspace,
+    schema_basis_authority: worth_query::facade::foundation::QuerySchemaBasisAuthority,
+) -> WorthUiQueryPrerequisiteEvidence {
+    let basis = resolve_runtime_current_snapshot_basis_for_certification(
+        &workspace.snapshot_identity().evidence_identity(),
+        schema_basis_authority,
+    )
+    .expect("Query basis");
+    prerequisites_from_basis(basis)
 }
 
 fn authority_contract() -> ProjectionAuthorityContract {
@@ -149,9 +130,9 @@ fn authority_contract() -> ProjectionAuthorityContract {
         .require_source_authority()
 }
 
-fn query_size_graph(
-    read: WorthQueryReadBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+fn query_size_graph<Output>(
+    read: WorthQueryReadBuilder<Output>,
+) -> Result<Output, WorthQueryReadDenial> {
     read.local_detail(
         "task",
         query_schema(),

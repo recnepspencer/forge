@@ -7,6 +7,9 @@ pub enum WorthQueryConsumerOrchestrationPhase {
     Plan,
     Lower,
     Execute,
+    Activate,
+    Maintain,
+    Close,
     AssembleOutcome,
     Inspect,
 }
@@ -63,6 +66,9 @@ impl WorthQueryConsumerOrchestrationPhase {
             Self::Plan => "plan",
             Self::Lower => "lower",
             Self::Execute => "execute",
+            Self::Activate => "activate",
+            Self::Maintain => "maintain",
+            Self::Close => "close",
             Self::AssembleOutcome => "assemble-outcome",
             Self::Inspect => "inspect",
         }

@@ -1,6 +1,4 @@
 pub use worth_query::facade::foundation::{
-    admit_runtime_current_snapshot_basis,
-    resolve_runtime_current_snapshot_basis,
     snapshot_resolution_report,
     BasisAuthorityFamily,
     QueryExternalIdentityToken,

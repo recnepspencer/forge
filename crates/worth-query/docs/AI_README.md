@@ -104,99 +104,59 @@ source of truth for the exact surfaces and examples.
 
 If you have no idea where to start, read these first:
 
+- [Declarative Query Experience](./capabilities/declarative-query-experience.md)
 - [Docs README](./README.md)
-- [Choosing The Right Surface](./domain-capabilities/choosing/README.md)
 - [Workspace Overview](./foundations/workspace-overview.md)
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 - [Async Resources And Result State](./capabilities/async-resources-and-result-state.md)
 - [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
 
-## Choosing Guides
+## Declarative Capability Surface
 
-Choosing guides exist for the moment when several Query surfaces look equally
-plausible and you need the shortest honest chooser before writing code.
+Ordinary product code starts in a capability namespace and follows one grammar:
 
-They do not replace feature docs. They answer overlap questions such as binding
-versus orchestration versus helpers, inspection versus readiness versus
-recovery, grouped authoring versus grouped products versus grouped
-contributions, and signal compatibility versus continuation.
+```text
+declare intent -> refine it -> using(context) -> run(...) or open(...) -> typed outcome
+```
 
-Use this category when you already know the rough job but two or more Query
-lanes still feel interchangeable.
+Choose `facade::read`, `live`, `history`, `comparison`, `preview`, `mutation`,
+`workflow`, `inspection`, or `domain` based on the job. Query owns the
+canonicalization, authority admission, planning, lower-runtime selection,
+execution, lifecycle, receipts, and stops behind that declaration.
 
-The mistake to avoid is picking a surface because the name sounds familiar.
-Query separates lanes that often look similar from the outside.
-
-Read next:
-
-- [Choosing The Right Surface](./domain-capabilities/choosing/README.md)
-- [Binding Vs Orchestration Vs Helpers](./domain-capabilities/choosing/binding-vs-orchestration-vs-helpers.md)
-- [Inspection Vs Readiness Vs Recovery](./domain-capabilities/choosing/inspection-vs-readiness-vs-recovery.md)
-- [Grouped Authoring Vs Grouped Products Vs Grouped Contributions](./domain-capabilities/choosing/grouped-authoring-vs-grouped-products-vs-grouped-contributions.md)
-- [Signal Compatibility Vs Continuation Pipeline](./domain-capabilities/choosing/signal-compatibility-vs-continuation-pipeline.md)
-
-## Workflow Guides
-
-Workflow guides are task-first paths across multiple Query surfaces. They show
-how declaration work, retained artifacts, grouped neighborhoods, preview
-steps, signal or continuation moves, and recovery fit together for one job.
-
-Use this category when you know the end-to-end task but do not want to assemble
-the path from isolated feature pages alone.
-
-The mistake to avoid is treating a workflow guide as the authority boundary.
-It is a navigation shortcut; feature docs still own the contracts.
+Use this category whenever a consumer is tempted to import phase artifacts,
+choose a backend, pair basis digests with receipts, or split live activation,
+maintenance, and closeout across local helpers.
 
 Read next:
 
-- [Workflow Guides](./domain-capabilities/workflow/README.md)
-- [Single Declaration To Envelope](./domain-capabilities/workflow/single-declaration-to-envelope.md)
-- [Retained Artifact To Next Step](./domain-capabilities/workflow/retained-artifact-to-next-step.md)
-- [Envelope To Signal Or Continuation](./domain-capabilities/workflow/envelope-to-signal-or-continuation.md)
-- [Grouped Neighborhood Workflow](./domain-capabilities/workflow/grouped-neighborhood-workflow.md)
-- [Stop To Recovery](./domain-capabilities/workflow/stop-to-recovery.md)
-
-## Recipes
-
-Recipes are short, copy-oriented examples for common Query jobs. They help you
-see one practical call shape before diving into the full mental model.
-
-Use this category when you want a working shape first and will move to feature
-docs for support posture, authority boundaries, and alternate lanes.
-
-The mistake to avoid is treating a recipe as the complete contract. Recipes
-compress; they do not replace admission, basis, or recovery semantics.
-
-Read next:
-
-- [Recipes](./domain-capabilities/recipes/README.md)
-- [Carry Query Facts Into A Downstream Runtime](./domain-capabilities/recipes/carry-query-facts-into-a-downstream-runtime.md)
-- [Prepare Preview From Active Face Selection](./domain-capabilities/recipes/prepare-preview-from-active-face-selection.md)
-- [Attach Material With Declaration-Scoped Contributions](./domain-capabilities/recipes/attach-material-with-declaration-scoped-contributions.md)
-- [Author A Grouped Neighborhood With Contributions](./domain-capabilities/recipes/author-a-grouped-neighborhood-with-contributions.md)
-- [Turn A Stop Into A Recovery Action](./domain-capabilities/recipes/turn-a-stop-into-a-recovery-action.md)
+- [Declarative Query Experience](./capabilities/declarative-query-experience.md)
+- [Read Composition](./authoring/read-composition.md)
+- [Live Views](./runtime-surfaces/live-views.md)
+- [Historical Diff And Basis](./capabilities/historical-diff-and-basis.md)
+- [Projection Consumption](./capabilities/projection-consumption.md)
+- [Inspection](./capabilities/inspection.md)
 
 ## Public Runtime Facade
 
 The public facade is a set of explicit capability namespaces, not one barrel
-that mirrors Query's module tree:
+that mirrors Query's implementation tree:
 
-- `worth_query::facade::foundation` contains declarations, canonical artifacts,
-  sealed basis capabilities, projection authority, and application-facing
-  foundation types.
-- `worth_query::facade::policy` contains admitted query-context, comparison,
-  narrowing, and other policy-bearing transitions.
-- `worth_query::facade::runtime` contains the workspace, runtime, retained
-  handles, operational receipts, typed stops, state, and inspection surfaces.
+- `worth_query::facade::{read, live, history, comparison}` owns query-shaped
+  observation.
+- `worth_query::facade::{preview, mutation, workflow, domain}` owns declared
+  change and promotion journeys.
+- `worth_query::facade::inspection` owns outcome-attached inspection.
+- `worth_query::facade::runtime` contains workspaces and backend-owned runtime
+  products used by those journeys.
 - `worth_query::facade::consumer_kit` contains downstream adoption, support
   pinning, evidence, test-runtime, and residue-proof tools.
 - `worth_query::facade::certification` contains manifests, generated checks,
   and hostile-test tooling. It is not an ordinary product import.
 
-Start with the narrowest namespace that owns the task. A declaration normally
-comes from `foundation`, an admitted policy transition from `policy`, and
-runtime-backed product work from `runtime`. Do not import through the facade
-root or reach into crate-internal modules.
+Start with the capability namespace that names the task. Foundation, policy,
+and lower runtime surfaces are substrate and advanced accountability seams;
+they are not the ordinary journey to reconstruct in consumers.
 
 Visibility and support are separate. A public type can describe vocabulary for
 a deferred neighbor without making that neighbor an admitted runtime lane.

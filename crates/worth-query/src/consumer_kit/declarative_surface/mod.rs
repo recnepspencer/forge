@@ -12,6 +12,7 @@ mod phase_graph_registry;
 mod phase_seven_registry;
 mod policy_phase_registry;
 mod preview_phase_registry;
+mod reference_consumer_adoption;
 mod registry;
 mod source;
 mod surface_syntax;
@@ -39,6 +40,14 @@ pub use model::{
 pub use ordinary_api_snapshot::{
     current_ordinary_api_snapshot_audit, WorthQueryOrdinaryApiSnapshot,
     WorthQueryOrdinaryApiSnapshotAudit, WorthQueryOrdinaryApiSnapshotFinding,
+};
+pub use reference_consumer_adoption::{
+    audit_reference_consumer_adoption_sources, worth_query_reference_consumer_adoption_rows,
+    worth_query_reference_consumer_deleted_residue, WorthQueryReferenceConsumerAdoptionAudit,
+    WorthQueryReferenceConsumerAdoptionFinding, WorthQueryReferenceConsumerAdoptionFindingKind,
+    WorthQueryReferenceConsumerAdoptionRow, WorthQueryReferenceConsumerDeletedResidue,
+    WorthQueryReferenceConsumerDxCounters, WorthQueryReferenceConsumerResidueKind,
+    WorthQueryReferenceConsumerSource,
 };
 pub use registry::worth_query_declarative_surface_rows;
 pub use source::{

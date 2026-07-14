@@ -60,6 +60,41 @@ pub fn research() {
 }
 
 #[test]
+fn split_subscription_lifecycle_helpers_cannot_hide_local_ownership() {
+    let source = WorthQueryDeclarativeSurfaceSource::new(
+        "seeded/local_subscription.rs",
+        r#"
+fn begin_live(input: Input) -> Active {
+    worth_query::facade::activate_query_subscription(input)
+}
+fn refresh_live(active: Active) -> Active {
+    worth_query::facade::maintain_query_subscription(active)
+}
+fn finish_live(active: Active) -> Closed {
+    worth_query::facade::close_query_subscription(active)
+}
+pub fn own_live_lifecycle(input: Input) -> Closed {
+    let active = begin_live(input);
+    let active = refresh_live(active);
+    finish_live(active)
+}
+"#,
+    );
+
+    let audit = audit_consumer_orchestration_sources(&[source]).expect("fixture parses");
+
+    assert_eq!(audit.findings().len(), 1);
+    let finding = &audit.findings()[0];
+    assert_eq!(finding.site().path(), "seeded/local_subscription.rs");
+    assert_eq!(finding.site().line(), 11);
+    assert_eq!(finding.site().function_name(), "own_live_lifecycle");
+    assert_eq!(
+        finding.phases(),
+        &[Phase::Activate, Phase::Maintain, Phase::Close]
+    );
+}
+
+#[test]
 fn invalid_consumer_source_returns_typed_location_evidence() {
     let source =
         WorthQueryDeclarativeSurfaceSource::new("seeded/invalid_consumer.rs", "fn broken( {");
@@ -127,11 +162,11 @@ fn required_reference_consumer_trees_are_parseable_as_one_call_graph() {
         audit.scanned_function_count() > 1_000,
         "consumer call graph unexpectedly contracted"
     );
-    for finding in audit.findings() {
-        assert!(finding.phases().len() >= 2);
-        assert!(finding.site().line() > 0);
-        assert!(finding.site().column() > 0);
-    }
+    assert!(
+        !audit.has_local_orchestration(),
+        "reference consumers still own Query orchestration: {:#?}",
+        audit.findings()
+    );
 }
 
 fn collect_rust_sources(
@@ -157,9 +192,22 @@ fn collect_rust_sources(
                 .expect("consumer source must remain in workspace")
                 .to_string_lossy()
                 .replace('\\', "/");
+            if is_explicit_certification_source(&relative_path) {
+                continue;
+            }
             let text = std::fs::read_to_string(&path)
                 .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
             sources.push(WorthQueryDeclarativeSurfaceSource::new(relative_path, text));
         }
     }
+}
+
+fn is_explicit_certification_source(path: &str) -> bool {
+    path.contains("/tests/")
+        || path.contains("/test_support/")
+        || path.ends_with("_tests.rs")
+        || path.ends_with("tests.rs")
+        || path.ends_with("_test_support.rs")
+        || path.contains("/fixtures/")
+        || path.contains("/certification/")
 }

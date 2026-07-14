@@ -161,7 +161,7 @@ impl WorthUiQueryProjectionTurnSource<'_> {
     pub fn admit_and_submit(
         &mut self,
         prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-        authority: worth_query::facade::foundation::ProjectionAuthorityOutcome,
+        authority: worth_query::facade::read::WorthQueryProjectionOutcome,
     ) -> Result<
         UiAllocationFrameGatewayOutcome,
         worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,
