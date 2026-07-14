@@ -2,17 +2,19 @@ pub use crate::ordinary::mutation::{
     declare as declare_mutation, WorthQueryMutationDeclaration, WorthQueryMutationDeclarationStop,
 };
 pub use crate::ordinary::preview::{
-    declare, for_session, WorthQueryPreviewCompletionFamily, WorthQueryPreviewContext,
-    WorthQueryPreviewContextStop, WorthQueryPreviewJourneyOutcome,
-    WorthQueryPromotionEligiblePreviewDeclaration, WorthQueryPromotionEligiblePreviewRequest,
-    WorthQueryReadOnlyPreviewCompletion, WorthQueryReadOnlyPreviewDeclaration,
-    WorthQueryReadOnlyPreviewRequest,
+    declare, promotion, read_only, WorthQueryPreviewCompletionFamily, WorthQueryPreviewContextStop,
+    WorthQueryPreviewJourneyOutcome, WorthQueryPromotionEligiblePreviewDeclaration,
+    WorthQueryPromotionEligiblePreviewRequest, WorthQueryPromotionPreviewContext,
+    WorthQueryReadOnlyPreviewCompletion, WorthQueryReadOnlyPreviewContext,
+    WorthQueryReadOnlyPreviewDeclaration, WorthQueryReadOnlyPreviewRequest,
 };
 pub use crate::ordinary::workflow::{
     WorthQueryLoweredWorkflowPlan, WorthQueryPromotionEligibility, WorthQueryWorkflowAftermath,
     WorthQueryWorkflowCompletion, WorthQueryWorkflowCounters, WorthQueryWorkflowNextAction,
-    WorthQueryWorkflowStop, WorthQueryWorkflowStopSource,
+    WorthQueryWorkflowStop, WorthQueryWorkflowStopSource, WorthQueryWorkflowViolation,
+    WorthQueryWorkflowViolationKind,
 };
+pub use crate::ordinary::WorthQueryOrdinaryInspectionPolicy;
 pub use crate::runtime::{
     WorthQueryAspectMutationBuilder, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
     WorthQueryPreviewCloseoutKind, WorthQueryRuntimeError,

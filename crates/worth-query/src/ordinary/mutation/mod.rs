@@ -15,3 +15,6 @@ pub use outcome::{
     WorthQueryMutationStop, WorthQueryMutationStopSource,
 };
 pub use request::WorthQueryMutationRequest;
+
+#[cfg(test)]
+mod tests;

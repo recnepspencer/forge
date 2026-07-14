@@ -14,6 +14,13 @@ use crate::runtime::{
     WorthQueryVerifiedExistingTruthAssertion, WorthQueryWriteCommand,
 };
 
+#[path = "mutation/semantic_identity.rs"]
+mod semantic_identity;
+
+use semantic_identity::{
+    continuity_identity, metadata_identities, mutation_command_shape, naming_identity,
+};
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum WorthQueryAuthoritativeMutationPreflight {
     Admitted {
@@ -136,7 +143,7 @@ impl WorthQueryAuthoritativeMutationBatchIntentSeed {
         let command_identities = self
             .commands
             .iter()
-            .map(mutation_input_identity)
+            .map(authoritative_mutation_input_identity)
             .collect::<Vec<_>>();
         worth_query_evidence_identity(WorthQueryEvidenceScope::AuthoritativeMutationBatchIntentSeed)
             .field_evidence_identity_sequence(
@@ -164,10 +171,14 @@ fn mutation_intent_name(command: &WorthQueryWriteCommand) -> String {
 }
 
 fn mutation_input_digest(command: &WorthQueryWriteCommand) -> String {
-    mutation_input_identity(command).as_str().to_string()
+    authoritative_mutation_input_identity(command)
+        .as_str()
+        .to_string()
 }
 
-fn mutation_input_identity(command: &WorthQueryWriteCommand) -> WorthQueryEvidenceIdentity {
+pub(crate) fn authoritative_mutation_input_identity(
+    command: &WorthQueryWriteCommand,
+) -> WorthQueryEvidenceIdentity {
     let declared_entity_identity = command
         .declared_entity_identity_ref()
         .map(|identity| identity.evidence_identity());
@@ -191,11 +202,18 @@ fn mutation_input_identity(command: &WorthQueryWriteCommand) -> WorthQueryEviden
         .into_iter()
         .map(declared_aspect_operation_identity)
         .collect::<Vec<_>>();
+    let metadata_identities = metadata_identities(command);
+    let naming_identity = naming_identity(command);
+    let continuity_identity = continuity_identity(command);
     let mut identity =
         worth_query_evidence_identity(WorthQueryEvidenceScope::AuthoritativeMutationIntentSeed)
             .field_shape(
                 WorthQueryEvidenceTag::new("family"),
                 command.mutation_family().as_str(),
+            )
+            .field_shape(
+                WorthQueryEvidenceTag::new("command_shape"),
+                mutation_command_shape(command),
             )
             .optional_evidence_identity(
                 WorthQueryEvidenceTag::new("collection"),
@@ -228,6 +246,18 @@ fn mutation_input_identity(command: &WorthQueryWriteCommand) -> WorthQueryEviden
             .field_evidence_identity_sequence(
                 WorthQueryEvidenceTag::new("symbolic_aspects"),
                 symbolic_aspects.iter(),
+            )
+            .field_evidence_identity_sequence(
+                WorthQueryEvidenceTag::new("metadata"),
+                metadata_identities.iter(),
+            )
+            .optional_evidence_identity(
+                WorthQueryEvidenceTag::new("naming"),
+                naming_identity.as_ref(),
+            )
+            .optional_evidence_identity(
+                WorthQueryEvidenceTag::new("continuity"),
+                continuity_identity.as_ref(),
             );
     if let Some(identity_evidence) = declared_entity_identity {
         identity = identity.field_evidence_identity(

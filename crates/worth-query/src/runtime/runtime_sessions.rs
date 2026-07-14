@@ -137,6 +137,22 @@ impl WorthQueryRuntime {
         ))
     }
 
+    pub(in crate::runtime) fn open_preview_with_admitted_basis<'a>(
+        &'a mut self,
+        basis_admission: WorthQueryPreviewBasisAdmission,
+    ) -> Result<WorthQueryPreviewSession<'a>, WorthQueryRuntimeError> {
+        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::BranchPreview)?;
+        let label = basis_admission.session_label().clone();
+        let effect_policy = basis_admission.effect_policy();
+        self.admit_preview_session_label(&label)?;
+        Ok(WorthQueryPreviewSession::new(
+            label,
+            self,
+            effect_policy,
+            basis_admission,
+        ))
+    }
+
     pub fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
         self.backend.support_profile()
     }

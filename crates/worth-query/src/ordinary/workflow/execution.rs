@@ -9,7 +9,7 @@ use crate::runtime::{WorthQueryOrdinaryAuthorityDrift, WorthQueryWorkspace};
 impl WorthQueryWorkflowRequest {
     pub fn run(self, workspace: &mut WorthQueryWorkspace) -> WorthQueryWorkflowOutcome {
         let counters = WorthQueryWorkflowCounters::context_checked();
-        let (identity, family, label, mutation) = self.declaration.into_parts();
+        let (identity, family, label, mutation, inspection_policy) = self.declaration.into_parts();
         if self.context.authority.session_label() != Some(&label) {
             return WorthQueryWorkflowOutcome::Stopped(WorthQueryWorkflowStop::denied(
                 WorthQueryWorkflowStopSource::CrossSession,
@@ -37,17 +37,36 @@ impl WorthQueryWorkflowRequest {
             }
             WorthQueryOrdinaryAuthorityDrift::Current => {}
         }
+        debug_assert_eq!(
+            self.context.authority.family(),
+            crate::runtime::WorthQueryOrdinaryAuthorityFamily::PromotionPreview
+        );
         debug_assert!(self.context.authority.preview_basis().is_some());
         let eligibility = WorthQueryPromotionEligibility::from_authority(&self.context.authority);
         let admitted_effect = WorthQueryAdmittedWorkflowEffect::new(
             identity.evidence_identity(),
             &self.context.authority,
         );
+        let basis_admission = self
+            .context
+            .authority
+            .into_preview_basis()
+            .expect("promotion context must carry its admitted preview basis");
+        let (command, _) = mutation.into_parts();
+        let materialize_inspection = inspection_policy.materializes_rich_inspection();
+        if materialize_inspection {
+            if let Err(error) = workspace.admit_ordinary_rich_inspection() {
+                return WorthQueryWorkflowOutcome::Stopped(
+                    WorthQueryWorkflowStop::inspection_unavailable(error, counters),
+                );
+            }
+        }
         let counters = counters.execution_attempted();
         let execution = match workspace.execute_ordinary_preview_promotion(
-            label,
+            basis_admission,
             identity.evidence_identity(),
-            mutation.into_command(),
+            command,
+            materialize_inspection,
         ) {
             Ok(execution) => execution,
             Err(error) => {
@@ -61,7 +80,7 @@ impl WorthQueryWorkflowRequest {
             execution.outcome(),
             execution.receipt_identity().clone(),
             execution.aftermath_identity().clone(),
-            execution.inspection_identity().clone(),
+            execution.inspection_identity().cloned(),
         );
         WorthQueryWorkflowOutcome::Completed(WorthQueryWorkflowCompletion::new(
             eligibility,
@@ -69,7 +88,7 @@ impl WorthQueryWorkflowRequest {
             lowered_plan,
             aftermath,
             execution.into_outcome(),
-            counters.execution_completed(),
+            counters.execution_completed(materialize_inspection),
         ))
     }
 }

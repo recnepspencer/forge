@@ -1,6 +1,5 @@
-use crate::evidence_identity::{
-    WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
-};
+use crate::evidence_identity::WorthQueryEvidenceIdentity;
+use crate::ordinary::WorthQueryOrdinaryInspectionPolicy;
 use crate::runtime::{
     WorthQueryAspectMutationBuilder, WorthQueryRuntimeError, WorthQueryWriteCommand,
 };
@@ -24,6 +23,7 @@ impl WorthQueryMutationDeclarationIdentity {
 pub struct WorthQueryMutationDeclaration {
     identity: WorthQueryMutationDeclarationIdentity,
     command: WorthQueryWriteCommand,
+    inspection_policy: WorthQueryOrdinaryInspectionPolicy,
 }
 
 impl WorthQueryMutationDeclaration {
@@ -31,12 +31,17 @@ impl WorthQueryMutationDeclaration {
         &self.identity
     }
 
-    pub(crate) fn command(&self) -> &WorthQueryWriteCommand {
-        &self.command
+    pub fn inspection_policy(&self) -> WorthQueryOrdinaryInspectionPolicy {
+        self.inspection_policy
     }
 
-    pub(crate) fn into_command(self) -> WorthQueryWriteCommand {
-        self.command
+    pub fn with_rich_inspection(mut self) -> Self {
+        self.inspection_policy = WorthQueryOrdinaryInspectionPolicy::Rich;
+        self
+    }
+
+    pub(crate) fn into_parts(self) -> (WorthQueryWriteCommand, WorthQueryOrdinaryInspectionPolicy) {
+        (self.command, self.inspection_policy)
     }
 }
 
@@ -66,33 +71,10 @@ pub fn declare(
     Ok(WorthQueryMutationDeclaration {
         identity: WorthQueryMutationDeclarationIdentity { identity },
         command,
+        inspection_policy: WorthQueryOrdinaryInspectionPolicy::OperationalOnly,
     })
 }
 
 fn mutation_declaration_identity(command: &WorthQueryWriteCommand) -> WorthQueryEvidenceIdentity {
-    let collection = command.declared_collection_identity();
-    let entity = command
-        .declared_entity_identity_ref()
-        .map(|identity| identity.evidence_identity());
-    WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::WorkflowMutationLowering)
-        .field_shape(
-            WorthQueryEvidenceTag::new("role"),
-            "ordinary-mutation-declaration",
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("family"),
-            command.mutation_family().as_str(),
-        )
-        .optional_evidence_identity(
-            WorthQueryEvidenceTag::new("collection"),
-            collection
-                .as_ref()
-                .map(crate::runtime::WorthQueryMutationTargetCollectionIdentity::evidence_identity),
-        )
-        .optional_evidence_identity(WorthQueryEvidenceTag::new("entity"), entity.as_ref())
-        .field_usize(
-            WorthQueryEvidenceTag::new("aspect_operation_count"),
-            command.declared_aspect_operations().len(),
-        )
-        .seal()
+    crate::intent_admission::authoritative_mutation_input_identity(command)
 }

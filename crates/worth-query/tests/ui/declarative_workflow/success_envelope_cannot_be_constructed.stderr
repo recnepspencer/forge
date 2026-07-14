@@ -1,3 +1,11 @@
+error[E0560]: struct `WorthQueryWorkflowCompletion` has no field named `admitted_effect`
+ --> tests/ui/declarative_workflow/success_envelope_cannot_be_constructed.rs:6:9
+  |
+6 |         admitted_effect: todo!(),
+  |         ^^^^^^^^^^^^^^^ `WorthQueryWorkflowCompletion` does not have this field
+  |
+  = note: all struct fields are already assigned
+
 warning: unreachable expression
  --> tests/ui/declarative_workflow/success_envelope_cannot_be_constructed.rs:6:26
   |
@@ -9,20 +17,10 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0451]: fields `eligibility`, `admitted_effect`, `lowered_plan`, `aftermath`, `preview_outcome` and `counters` of struct `WorthQueryWorkflowCompletion` are private
-  --> tests/ui/declarative_workflow/success_envelope_cannot_be_constructed.rs:5:9
-   |
- 4 |     let _completion = WorthQueryWorkflowCompletion {
-   |                       ---------------------------- in this type
- 5 |         eligibility: todo!(),
-   |         ^^^^^^^^^^^ private field
- 6 |         admitted_effect: todo!(),
-   |         ^^^^^^^^^^^^^^^ private field
- 7 |         lowered_plan: todo!(),
-   |         ^^^^^^^^^^^^ private field
- 8 |         aftermath: todo!(),
-   |         ^^^^^^^^^ private field
- 9 |         preview_outcome: todo!(),
-   |         ^^^^^^^^^^^^^^^ private field
-10 |         counters: todo!(),
-   |         ^^^^^^^^ private field
+error[E0560]: struct `WorthQueryWorkflowCompletion` has no field named `lowered_plan`
+ --> tests/ui/declarative_workflow/success_envelope_cannot_be_constructed.rs:7:9
+  |
+7 |         lowered_plan: todo!(),
+  |         ^^^^^^^^^^^^ `WorthQueryWorkflowCompletion` does not have this field
+  |
+  = note: all struct fields are already assigned

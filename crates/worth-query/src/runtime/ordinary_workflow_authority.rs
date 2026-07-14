@@ -7,9 +7,9 @@ use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::session_label::WorthQuerySessionLabel;
 
 use super::{
-    WorthQueryInspection, WorthQueryPreviewBasisAdmission, WorthQueryRuntime,
-    WorthQueryRuntimeError, WorthQueryRuntimeFacadeFamily, WorthQueryWriteCommand,
-    WorthQueryWriteReceipt,
+    WorthQueryEffectPolicy, WorthQueryInspection, WorthQueryPreviewBasisAdmission,
+    WorthQueryRuntime, WorthQueryRuntimeError, WorthQueryRuntimeFacadeFamily,
+    WorthQueryWriteCommand, WorthQueryWriteReceipt,
 };
 
 static NEXT_RUNTIME_AUTHORITY_IDENTITY: AtomicU64 = AtomicU64::new(1);
@@ -35,7 +35,8 @@ impl WorthQueryRuntimeAuthorityIdentity {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum WorthQueryOrdinaryAuthorityFamily {
     Mutation,
-    Preview,
+    ReadOnlyPreview,
+    PromotionPreview,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -49,12 +50,13 @@ impl WorthQueryOrdinaryAuthorityFamily {
     fn as_str(self) -> &'static str {
         match self {
             Self::Mutation => "mutation",
-            Self::Preview => "preview",
+            Self::ReadOnlyPreview => "read-only-preview",
+            Self::PromotionPreview => "promotion-preview",
         }
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub(crate) struct WorthQueryOrdinaryAuthorityAdmission {
     family: WorthQueryOrdinaryAuthorityFamily,
     runtime_identity: WorthQueryRuntimeAuthorityIdentity,
@@ -68,7 +70,7 @@ pub(crate) struct WorthQueryLowerRuntimeMutationExecution {
     request_identity: WorthQueryEvidenceIdentity,
     handoff_identity: WorthQueryEvidenceIdentity,
     receipt_identity: WorthQueryEvidenceIdentity,
-    inspection_identity: WorthQueryEvidenceIdentity,
+    inspection_identity: Option<WorthQueryEvidenceIdentity>,
     receipt: WorthQueryWriteReceipt,
 }
 
@@ -85,8 +87,8 @@ impl WorthQueryLowerRuntimeMutationExecution {
         &self.receipt_identity
     }
 
-    pub(crate) fn inspection_identity(&self) -> &WorthQueryEvidenceIdentity {
-        &self.inspection_identity
+    pub(crate) fn inspection_identity(&self) -> Option<&WorthQueryEvidenceIdentity> {
+        self.inspection_identity.as_ref()
     }
 
     pub(crate) fn into_receipt(self) -> WorthQueryWriteReceipt {
@@ -97,10 +99,6 @@ impl WorthQueryLowerRuntimeMutationExecution {
 impl WorthQueryOrdinaryAuthorityAdmission {
     pub(crate) fn family(&self) -> WorthQueryOrdinaryAuthorityFamily {
         self.family
-    }
-
-    pub(crate) fn runtime_identity(&self) -> WorthQueryRuntimeAuthorityIdentity {
-        self.runtime_identity
     }
 
     pub(crate) fn snapshot_identity(&self) -> &WorthQuerySnapshotIdentity {
@@ -115,6 +113,10 @@ impl WorthQueryOrdinaryAuthorityAdmission {
         self.preview_basis.as_ref()
     }
 
+    pub(crate) fn into_preview_basis(self) -> Option<WorthQueryPreviewBasisAdmission> {
+        self.preview_basis
+    }
+
     pub(crate) fn admission_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.admission_identity
     }
@@ -125,7 +127,6 @@ impl WorthQueryRuntime {
         &self,
     ) -> Result<WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Write)?;
-        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Inspect)?;
         Ok(self.ordinary_authority_admission(
             WorthQueryOrdinaryAuthorityFamily::Mutation,
             None,
@@ -133,22 +134,37 @@ impl WorthQueryRuntime {
         ))
     }
 
+    pub(crate) fn admit_ordinary_rich_inspection(&self) -> Result<(), WorthQueryRuntimeError> {
+        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Inspect)
+    }
+
     pub(crate) fn capture_ordinary_preview_authority(
         &self,
         label: WorthQuerySessionLabel,
+        effect_policy: WorthQueryEffectPolicy,
     ) -> Result<WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::BranchPreview)?;
-        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Inspect)?;
-        let preview_basis = self.backend.admit_preview_basis(
-            &label,
-            super::WorthQueryEffectPolicy::SandboxedWriteIntent,
-            &self.evidence_authority,
-        )?;
-        Ok(self.ordinary_authority_admission(
-            WorthQueryOrdinaryAuthorityFamily::Preview,
-            Some(label),
-            Some(preview_basis),
-        ))
+        let preview_basis =
+            self.backend
+                .admit_preview_basis(&label, effect_policy, &self.evidence_authority)?;
+        let family = match effect_policy {
+            WorthQueryEffectPolicy::DeriveOnly => {
+                WorthQueryOrdinaryAuthorityFamily::ReadOnlyPreview
+            }
+            WorthQueryEffectPolicy::SandboxedWriteIntent => {
+                WorthQueryOrdinaryAuthorityFamily::PromotionPreview
+            }
+            WorthQueryEffectPolicy::Muted
+            | WorthQueryEffectPolicy::Redirected
+            | WorthQueryEffectPolicy::AuthoritativeAllowed => {
+                return Err(WorthQueryRuntimeError::Workspace(
+                    crate::memory_workspace::WorthQueryWorkspaceError::new(
+                        "ordinary preview contexts cannot admit external-effect authority",
+                    ),
+                ));
+            }
+        };
+        Ok(self.ordinary_authority_admission(family, Some(label), Some(preview_basis)))
     }
 
     pub(crate) fn ordinary_authority_drift(
@@ -167,6 +183,7 @@ impl WorthQueryRuntime {
     pub(crate) fn execute_ordinary_authoritative_mutation(
         &mut self,
         command: WorthQueryWriteCommand,
+        materialize_inspection: bool,
     ) -> Result<WorthQueryLowerRuntimeMutationExecution, WorthQueryRuntimeError> {
         let admitted = self.write_intent(command).admit()?;
         let request_identity =
@@ -175,11 +192,15 @@ impl WorthQueryRuntime {
             workflow_lower_identity("handoff", admitted.handoff().handoff_digest());
         let receipt = admitted.execute()?;
         let receipt_identity = receipt.commit_evidence_identity().clone();
-        let inspection = match self.inspect(&receipt)? {
-            WorthQueryInspection::WriteReceipt(inspection) => inspection,
-            other => panic!("expected write receipt inspection, got {other:?}"),
+        let inspection_identity = if materialize_inspection {
+            let inspection = match self.inspect(&receipt)? {
+                WorthQueryInspection::WriteReceipt(inspection) => inspection,
+                other => panic!("expected write receipt inspection, got {other:?}"),
+            };
+            Some(inspection.inspection_identity().clone())
+        } else {
+            None
         };
-        let inspection_identity = inspection.inspection_identity().clone();
         Ok(WorthQueryLowerRuntimeMutationExecution {
             request_identity,
             handoff_identity,

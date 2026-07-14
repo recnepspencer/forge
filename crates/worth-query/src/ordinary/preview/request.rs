@@ -1,20 +1,23 @@
 use super::{
-    WorthQueryPreviewContext, WorthQueryPromotionEligiblePreviewDeclaration,
-    WorthQueryReadOnlyPreviewDeclaration,
+    WorthQueryPromotionEligiblePreviewDeclaration, WorthQueryPromotionPreviewContext,
+    WorthQueryReadOnlyPreviewContext, WorthQueryReadOnlyPreviewDeclaration,
 };
 
 pub struct WorthQueryReadOnlyPreviewRequest {
     pub(crate) declaration: WorthQueryReadOnlyPreviewDeclaration,
-    pub(crate) context: WorthQueryPreviewContext,
+    pub(crate) context: WorthQueryReadOnlyPreviewContext,
 }
 
 pub struct WorthQueryPromotionEligiblePreviewRequest {
     pub(crate) declaration: WorthQueryPromotionEligiblePreviewDeclaration,
-    pub(crate) context: WorthQueryPreviewContext,
+    pub(crate) context: WorthQueryPromotionPreviewContext,
 }
 
 impl WorthQueryReadOnlyPreviewDeclaration {
-    pub fn using(self, context: WorthQueryPreviewContext) -> WorthQueryReadOnlyPreviewRequest {
+    pub fn using(
+        self,
+        context: WorthQueryReadOnlyPreviewContext,
+    ) -> WorthQueryReadOnlyPreviewRequest {
         WorthQueryReadOnlyPreviewRequest {
             declaration: self,
             context,
@@ -25,7 +28,7 @@ impl WorthQueryReadOnlyPreviewDeclaration {
 impl WorthQueryPromotionEligiblePreviewDeclaration {
     pub fn using(
         self,
-        context: WorthQueryPreviewContext,
+        context: WorthQueryPromotionPreviewContext,
     ) -> WorthQueryPromotionEligiblePreviewRequest {
         WorthQueryPromotionEligiblePreviewRequest {
             declaration: self,

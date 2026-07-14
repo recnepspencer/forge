@@ -36,10 +36,32 @@ impl WorthQueryReadOnlyPreviewRequest {
             }
             WorthQueryOrdinaryAuthorityDrift::Current => {}
         }
+        debug_assert_eq!(
+            self.context.authority.family(),
+            crate::runtime::WorthQueryOrdinaryAuthorityFamily::ReadOnlyPreview
+        );
+        let materialize_inspection = self
+            .declaration
+            .inspection_policy
+            .materializes_rich_inspection();
+        if materialize_inspection {
+            if let Err(error) = workspace.admit_ordinary_rich_inspection() {
+                return WorthQueryPreviewJourneyOutcome::Stopped(
+                    WorthQueryWorkflowStop::inspection_unavailable(error, counters),
+                );
+            }
+        }
+        let basis_admission = self
+            .context
+            .authority
+            .into_preview_basis()
+            .expect("read-only context must carry its admitted preview basis");
         let counters = counters.execution_attempted();
-        let execution = match workspace
-            .execute_ordinary_read_only_preview(self.declaration.label, &self.declaration.identity)
-        {
+        let execution = match workspace.execute_ordinary_read_only_preview(
+            basis_admission,
+            &self.declaration.identity,
+            materialize_inspection,
+        ) {
             Ok(execution) => execution,
             Err(error) => {
                 return WorthQueryPreviewJourneyOutcome::Stopped(WorthQueryWorkflowStop::runtime(
@@ -52,14 +74,14 @@ impl WorthQueryReadOnlyPreviewRequest {
             execution.outcome(),
             execution.receipt_identity().clone(),
             execution.aftermath_identity().clone(),
-            execution.inspection_identity().clone(),
+            execution.inspection_identity().cloned(),
         );
         WorthQueryPreviewJourneyOutcome::ReadOnlyCompleted(
             WorthQueryReadOnlyPreviewCompletion::new(
                 lowered_plan,
                 aftermath,
                 execution.into_outcome(),
-                counters.execution_completed(),
+                counters.execution_completed(materialize_inspection),
             ),
         )
     }

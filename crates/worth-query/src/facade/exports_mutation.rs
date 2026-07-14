@@ -6,6 +6,7 @@ pub use crate::ordinary::mutation::{
     WorthQueryMutationNextAction, WorthQueryMutationOutcome, WorthQueryMutationRequest,
     WorthQueryMutationStop, WorthQueryMutationStopSource,
 };
+pub use crate::ordinary::WorthQueryOrdinaryInspectionPolicy;
 pub use crate::runtime::{
     WorthQueryAspectMutationBuilder, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
     WorthQueryAuthorityLane, WorthQueryRuntimeError, WorthQueryWriteReceipt,

@@ -1,10 +1,10 @@
 use crate::runtime::{
-    WorthQueryOrdinaryAuthorityAdmission, WorthQueryOrdinaryAuthorityFamily,
-    WorthQueryRuntimeError, WorthQueryWorkspace,
+    WorthQueryEffectPolicy, WorthQueryOrdinaryAuthorityAdmission,
+    WorthQueryOrdinaryAuthorityFamily, WorthQueryRuntimeError, WorthQueryWorkspace,
 };
 use crate::session_label::WorthQuerySessionLabel;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryWorkflowContext {
     pub(crate) authority: WorthQueryOrdinaryAuthorityAdmission,
 }
@@ -22,6 +22,10 @@ impl WorthQueryWorkflowContextStop {
     pub fn next_action(&self) -> super::WorthQueryWorkflowNextAction {
         super::WorthQueryWorkflowNextAction::ProvideAuthority
     }
+
+    pub(crate) fn from_runtime(error: WorthQueryRuntimeError) -> Self {
+        Self { error }
+    }
 }
 
 pub fn preview(
@@ -29,11 +33,11 @@ pub fn preview(
     label: WorthQuerySessionLabel,
 ) -> Result<WorthQueryWorkflowContext, WorthQueryWorkflowContextStop> {
     let authority = workspace
-        .capture_ordinary_preview_authority(label)
+        .capture_ordinary_preview_authority(label, WorthQueryEffectPolicy::SandboxedWriteIntent)
         .map_err(|error| WorthQueryWorkflowContextStop { error })?;
     debug_assert_eq!(
         authority.family(),
-        WorthQueryOrdinaryAuthorityFamily::Preview
+        WorthQueryOrdinaryAuthorityFamily::PromotionPreview
     );
     Ok(WorthQueryWorkflowContext { authority })
 }

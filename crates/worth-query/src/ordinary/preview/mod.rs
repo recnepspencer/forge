@@ -4,7 +4,10 @@ mod execution;
 mod outcome;
 mod request;
 
-pub use context::{for_session, WorthQueryPreviewContext, WorthQueryPreviewContextStop};
+pub use context::{
+    promotion, read_only, WorthQueryPreviewContextStop, WorthQueryPromotionPreviewContext,
+    WorthQueryReadOnlyPreviewContext,
+};
 pub use declaration::{
     declare, WorthQueryPromotionEligiblePreviewDeclaration, WorthQueryReadOnlyPreviewDeclaration,
 };

@@ -3,7 +3,7 @@ use crate::runtime::{
     WorthQueryRuntimeError, WorthQueryWorkspace,
 };
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryMutationContext {
     pub(crate) authority: WorthQueryOrdinaryAuthorityAdmission,
 }

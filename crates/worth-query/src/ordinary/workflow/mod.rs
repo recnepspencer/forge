@@ -11,9 +11,11 @@ pub use declaration::{
 };
 pub use outcome::{
     WorthQueryAdmittedWorkflowEffect, WorthQueryLoweredWorkflowPlan,
-    WorthQueryPromotionEligibility, WorthQueryWorkflowAftermath, WorthQueryWorkflowCompletion,
-    WorthQueryWorkflowCounters, WorthQueryWorkflowNextAction, WorthQueryWorkflowOutcome,
-    WorthQueryWorkflowStop, WorthQueryWorkflowStopSource,
+    WorthQueryPromotionEligibility, WorthQueryWorkflowAdvisory, WorthQueryWorkflowAdvisoryKind,
+    WorthQueryWorkflowAftermath, WorthQueryWorkflowCompletion, WorthQueryWorkflowCounters,
+    WorthQueryWorkflowExecution, WorthQueryWorkflowNextAction, WorthQueryWorkflowOutcome,
+    WorthQueryWorkflowStop, WorthQueryWorkflowStopSource, WorthQueryWorkflowViolation,
+    WorthQueryWorkflowViolationKind,
 };
 pub use request::WorthQueryWorkflowRequest;
 

@@ -40,7 +40,7 @@ fn mutation_journey_uses_only_mutation_capability_vocabulary() {
 #[test]
 fn preview_journey_has_distinct_read_only_and_promotion_eligible_states() {
     use worth_query::facade::preview::{
-        declare, declare_mutation, for_session, WorthQueryAspectTouch,
+        declare, declare_mutation, promotion, read_only, WorthQueryAspectTouch,
         WorthQueryAuthoredAspectValue, WorthQueryPreviewCloseoutKind, WorthQuerySessionLabel,
     };
 
@@ -50,7 +50,7 @@ fn preview_journey_has_distinct_read_only_and_promotion_eligible_states() {
         .expect("workspace should open");
     let read_label = WorthQuerySessionLabel::scoped_strs("public-preview", ["read-only"])
         .expect("label should build");
-    let read_context = for_session(&workspace, read_label.clone()).expect("context should admit");
+    let read_context = read_only(&workspace, read_label.clone()).expect("context should admit");
     let read_outcome = declare(read_label)
         .using(read_context)
         .open_and_close(&mut workspace);
@@ -75,7 +75,7 @@ fn preview_journey_has_distinct_read_only_and_promotion_eligible_states() {
     })
     .expect("mutation should declare");
     let promote_context =
-        for_session(&workspace, promote_label.clone()).expect("context should admit");
+        promotion(&workspace, promote_label.clone()).expect("context should admit");
     let promote_outcome = declare(promote_label)
         .with_mutation(mutation)
         .using(promote_context)

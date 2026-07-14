@@ -3,12 +3,15 @@ pub use crate::ordinary::mutation::{
 };
 pub use crate::ordinary::workflow::{
     declare, preview, WorthQueryAdmittedWorkflowEffect, WorthQueryLoweredWorkflowPlan,
-    WorthQueryPromotionEligibility, WorthQueryWorkflowAftermath, WorthQueryWorkflowCompletion,
-    WorthQueryWorkflowContext, WorthQueryWorkflowContextStop, WorthQueryWorkflowCounters,
-    WorthQueryWorkflowDeclaration, WorthQueryWorkflowDeclarationIdentity, WorthQueryWorkflowFamily,
+    WorthQueryPromotionEligibility, WorthQueryWorkflowAdvisory, WorthQueryWorkflowAdvisoryKind,
+    WorthQueryWorkflowAftermath, WorthQueryWorkflowCompletion, WorthQueryWorkflowContext,
+    WorthQueryWorkflowContextStop, WorthQueryWorkflowCounters, WorthQueryWorkflowDeclaration,
+    WorthQueryWorkflowDeclarationIdentity, WorthQueryWorkflowExecution, WorthQueryWorkflowFamily,
     WorthQueryWorkflowNextAction, WorthQueryWorkflowOutcome, WorthQueryWorkflowRequest,
-    WorthQueryWorkflowStop, WorthQueryWorkflowStopSource,
+    WorthQueryWorkflowStop, WorthQueryWorkflowStopSource, WorthQueryWorkflowViolation,
+    WorthQueryWorkflowViolationKind,
 };
+pub use crate::ordinary::WorthQueryOrdinaryInspectionPolicy;
 pub use crate::runtime::{
     WorthQueryAspectMutationBuilder, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
     WorthQueryPreviewCloseoutKind, WorthQueryRuntimeError,

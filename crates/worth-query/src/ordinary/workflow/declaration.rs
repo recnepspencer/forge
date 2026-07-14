@@ -2,6 +2,7 @@ use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
 use crate::ordinary::mutation::WorthQueryMutationDeclaration;
+use crate::ordinary::WorthQueryOrdinaryInspectionPolicy;
 use crate::session_label::WorthQuerySessionLabel;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -40,6 +41,7 @@ pub struct WorthQueryWorkflowDeclaration {
     family: WorthQueryWorkflowFamily,
     label: WorthQuerySessionLabel,
     mutation: WorthQueryMutationDeclaration,
+    inspection_policy: WorthQueryOrdinaryInspectionPolicy,
 }
 
 impl WorthQueryWorkflowDeclaration {
@@ -61,6 +63,16 @@ impl WorthQueryWorkflowDeclaration {
         self
     }
 
+    pub fn inspection_policy(&self) -> WorthQueryOrdinaryInspectionPolicy {
+        self.inspection_policy
+    }
+
+    pub fn with_rich_inspection(mut self) -> Self {
+        self.inspection_policy = WorthQueryOrdinaryInspectionPolicy::Rich;
+        self
+    }
+
+    #[cfg(test)]
     pub(crate) fn mutation(&self) -> &WorthQueryMutationDeclaration {
         &self.mutation
     }
@@ -72,8 +84,15 @@ impl WorthQueryWorkflowDeclaration {
         WorthQueryWorkflowFamily,
         WorthQuerySessionLabel,
         WorthQueryMutationDeclaration,
+        WorthQueryOrdinaryInspectionPolicy,
     ) {
-        (self.identity, self.family, self.label, self.mutation)
+        (
+            self.identity,
+            self.family,
+            self.label,
+            self.mutation,
+            self.inspection_policy,
+        )
     }
 }
 
@@ -82,11 +101,13 @@ pub fn declare(
     mutation: WorthQueryMutationDeclaration,
 ) -> WorthQueryWorkflowDeclaration {
     let family = WorthQueryWorkflowFamily::PreviewPromotion;
+    let inspection_policy = mutation.inspection_policy();
     WorthQueryWorkflowDeclaration {
         identity: workflow_identity(family, &label, &mutation),
         family,
         label,
         mutation,
+        inspection_policy,
     }
 }
 

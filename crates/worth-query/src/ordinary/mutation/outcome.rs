@@ -40,9 +40,9 @@ impl WorthQueryMutationCounters {
         self
     }
 
-    pub(crate) fn execution_completed(mut self) -> Self {
+    pub(crate) fn execution_completed(mut self, inspection_materialized: bool) -> Self {
         self.lower_runtime_execution_completed_count += 1;
-        self.inspection_materialization_count += 1;
+        self.inspection_materialization_count += usize::from(inspection_materialized);
         self
     }
 }
@@ -77,7 +77,7 @@ impl WorthQueryLoweredMutationPlan {
 pub struct WorthQueryMutationAftermath {
     authority_lane: WorthQueryAuthorityLane,
     receipt_identity: WorthQueryEvidenceIdentity,
-    inspection_identity: WorthQueryEvidenceIdentity,
+    inspection_identity: Option<WorthQueryEvidenceIdentity>,
     aftermath_identity: WorthQueryEvidenceIdentity,
 }
 
@@ -90,8 +90,8 @@ impl WorthQueryMutationAftermath {
         &self.receipt_identity
     }
 
-    pub fn inspection_identity(&self) -> &WorthQueryEvidenceIdentity {
-        &self.inspection_identity
+    pub fn inspection_identity(&self) -> Option<&WorthQueryEvidenceIdentity> {
+        self.inspection_identity.as_ref()
     }
 
     pub fn identity(&self) -> &WorthQueryEvidenceIdentity {
@@ -101,7 +101,7 @@ impl WorthQueryMutationAftermath {
     pub(crate) fn new(
         receipt: &WorthQueryWriteReceipt,
         receipt_identity: WorthQueryEvidenceIdentity,
-        inspection_identity: WorthQueryEvidenceIdentity,
+        inspection_identity: Option<WorthQueryEvidenceIdentity>,
     ) -> Self {
         let aftermath_identity =
             WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::WorkflowMutationLowering)
@@ -111,10 +111,6 @@ impl WorthQueryMutationAftermath {
                     receipt.authority_lane().as_str(),
                 )
                 .field_evidence_identity(WorthQueryEvidenceTag::new("receipt"), &receipt_identity)
-                .field_evidence_identity(
-                    WorthQueryEvidenceTag::new("inspection"),
-                    &inspection_identity,
-                )
                 .seal();
         Self {
             authority_lane: receipt.authority_lane(),
@@ -168,6 +164,7 @@ impl WorthQueryMutationCompletion {
 pub enum WorthQueryMutationStopSource {
     ForeignAuthority,
     StaleBasis,
+    InspectionUnavailable,
     LowerRuntime,
 }
 
@@ -176,6 +173,7 @@ pub enum WorthQueryMutationNextAction {
     ReviseDeclaration,
     ProvideAuthority,
     RefreshContext,
+    UseOperationalReceipt,
     InspectRuntimeDenial,
 }
 
@@ -206,6 +204,9 @@ impl WorthQueryMutationStop {
             WorthQueryMutationStopSource::StaleBasis => {
                 WorthQueryMutationNextAction::RefreshContext
             }
+            WorthQueryMutationStopSource::InspectionUnavailable => {
+                WorthQueryMutationNextAction::UseOperationalReceipt
+            }
             WorthQueryMutationStopSource::LowerRuntime => {
                 WorthQueryMutationNextAction::InspectRuntimeDenial
             }
@@ -229,6 +230,17 @@ impl WorthQueryMutationStop {
     ) -> Self {
         Self {
             source: WorthQueryMutationStopSource::LowerRuntime,
+            error: Some(error),
+            counters,
+        }
+    }
+
+    pub(crate) fn inspection_unavailable(
+        error: WorthQueryRuntimeError,
+        counters: WorthQueryMutationCounters,
+    ) -> Self {
+        Self {
+            source: WorthQueryMutationStopSource::InspectionUnavailable,
             error: Some(error),
             counters,
         }

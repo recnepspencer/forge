@@ -78,8 +78,10 @@ impl WorthQueryWorkspace {
     pub(crate) fn capture_ordinary_preview_authority(
         &self,
         label: WorthQuerySessionLabel,
+        effect_policy: super::WorthQueryEffectPolicy,
     ) -> Result<super::WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
-        self.runtime.capture_ordinary_preview_authority(label)
+        self.runtime
+            .capture_ordinary_preview_authority(label, effect_policy)
     }
 
     pub(crate) fn ordinary_authority_drift(
@@ -89,31 +91,45 @@ impl WorthQueryWorkspace {
         self.runtime.ordinary_authority_drift(admission)
     }
 
+    pub(crate) fn admit_ordinary_rich_inspection(&self) -> Result<(), WorthQueryRuntimeError> {
+        self.runtime.admit_ordinary_rich_inspection()
+    }
+
     pub(crate) fn execute_ordinary_authoritative_mutation(
         &mut self,
         command: super::WorthQueryWriteCommand,
+        materialize_inspection: bool,
     ) -> Result<super::WorthQueryLowerRuntimeMutationExecution, WorthQueryRuntimeError> {
         self.runtime
-            .execute_ordinary_authoritative_mutation(command)
+            .execute_ordinary_authoritative_mutation(command, materialize_inspection)
     }
 
     pub(crate) fn execute_ordinary_read_only_preview(
         &mut self,
-        label: WorthQuerySessionLabel,
+        basis_admission: super::WorthQueryPreviewBasisAdmission,
         declaration_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
+        materialize_inspection: bool,
     ) -> Result<super::WorthQueryLowerRuntimePreviewExecution, WorthQueryRuntimeError> {
-        self.runtime
-            .execute_ordinary_read_only_preview(label, declaration_identity)
+        self.runtime.execute_ordinary_read_only_preview(
+            basis_admission,
+            declaration_identity,
+            materialize_inspection,
+        )
     }
 
     pub(crate) fn execute_ordinary_preview_promotion(
         &mut self,
-        label: WorthQuerySessionLabel,
+        basis_admission: super::WorthQueryPreviewBasisAdmission,
         declaration_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
         command: super::WorthQueryWriteCommand,
+        materialize_inspection: bool,
     ) -> Result<super::WorthQueryLowerRuntimePreviewExecution, WorthQueryRuntimeError> {
-        self.runtime
-            .execute_ordinary_preview_promotion(label, declaration_identity, command)
+        self.runtime.execute_ordinary_preview_promotion(
+            basis_admission,
+            declaration_identity,
+            command,
+            materialize_inspection,
+        )
     }
 
     pub fn into_runtime(self) -> WorthQueryRuntime {

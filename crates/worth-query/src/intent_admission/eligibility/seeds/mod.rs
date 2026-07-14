@@ -9,6 +9,7 @@ pub use generic_inspection::{
     WorthQueryGenericInspectionIntentTargetSeed, WorthQueryGenericInspectionRequestLabel,
 };
 pub use inspection::WorthQueryDerivedViewIntentSeed;
+pub(crate) use mutation::authoritative_mutation_input_identity;
 pub use mutation::{
     WorthQueryAuthoritativeMutationBatchIntentSeed, WorthQueryAuthoritativeMutationIntentSeed,
     WorthQueryAuthoritativeMutationPreflight,
