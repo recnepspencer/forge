@@ -1,8 +1,8 @@
+use worth_query::facade::domain::{WorthQueryDomainHandleDenial, WorthQueryInstalledDomainHandle};
 use worth_query::facade::runtime::{
-    worth_query_domain, CustomInvariantRegistrationError,
-    WorthQueryDomainCapabilityMaterializationError, WorthQueryDomainCapabilityProgressionDenial,
-    WorthQueryDomainCapabilityProgressionFailure, WorthQueryDomainCapabilityRebindRequired,
-    WorthQueryDomainCapabilityStale,
+    CustomInvariantRegistrationError, WorthQueryDomainCapabilityMaterializationError,
+    WorthQueryDomainCapabilityProgressionDenial, WorthQueryDomainCapabilityProgressionFailure,
+    WorthQueryDomainCapabilityRebindRequired, WorthQueryDomainCapabilityStale,
 };
 
 use crate::discovery_loop::{DiscoveryFrontier, ResearchEvidenceCorpus};
@@ -32,6 +32,7 @@ pub enum ResearchGraphInvariantError {
     QueryInvariantContributionStale(WorthQueryDomainCapabilityStale),
     QueryInvariantContributionRebindRequired(WorthQueryDomainCapabilityRebindRequired),
     QueryInvariantContributionFailed(WorthQueryDomainCapabilityProgressionFailure),
+    InstalledDomain(WorthQueryDomainHandleDenial),
     CustomInvariantRegistration(CustomInvariantRegistrationError),
 }
 
@@ -124,7 +125,8 @@ pub fn certify_research_graph_invariant_violation(
 }
 
 pub fn materialize_research_graph_invariant_denial(
-    _handle: &HadwigerResearchHandle,
+    handle: &WorthQueryInstalledDomainHandle<crate::query_entry::HadwigerResearchDomainEntry>,
+    workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
     request: ResearchGraphInvariantDenialRequest,
 ) -> Result<ResearchGraphInvariantDenial, ResearchGraphInvariantError> {
     let source = request
@@ -132,7 +134,9 @@ pub fn materialize_research_graph_invariant_denial(
         .ok_or(ResearchGraphInvariantError::MissingLowerRuntimeBoundaryEnvelope)?;
     let violation = request.violation();
     let family = violation.rule_family().query_invariant_family();
-    let query_denial = worth_query_domain("hadwiger_research")
+    let query_denial = handle
+        .contributions_in(workspace)
+        .map_err(ResearchGraphInvariantError::InstalledDomain)?
         .for_lower_runtime_boundary_source(source.envelope())
         .denies_graph_invariant(
             family,

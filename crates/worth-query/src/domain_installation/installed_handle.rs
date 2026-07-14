@@ -208,26 +208,30 @@ impl<D> WorthQueryInstalledDomainHandle<D> {
         )
     }
 
+    pub fn contributions_in(
+        &self,
+        workspace: &crate::runtime::WorthQueryWorkspace,
+    ) -> Result<
+        crate::domain_capabilities::WorthQueryInstalledDomainContributionSurface,
+        WorthQueryDomainHandleDenial,
+    >
+    where
+        D: 'static,
+    {
+        workspace.validate_installed_domain_witness::<D>(&self.authority_witness())?;
+        Ok(
+            crate::domain_capabilities::WorthQueryInstalledDomainContributionSurface::new(
+                self.authority_arc(),
+            ),
+        )
+    }
+
     pub fn authority_witness(&self) -> super::WorthQueryInstalledDomainAuthorityWitness {
         super::WorthQueryInstalledDomainAuthorityWitness::from_authority(self.authority_arc())
     }
 
     pub fn rebind_request(&self) -> super::WorthQueryDomainRebindRequest<D> {
         super::WorthQueryDomainRebindRequest::new(self.authority_witness())
-    }
-
-    pub fn admit_read(
-        &self,
-        runtime: &crate::runtime::WorthQueryRuntime,
-        family: &crate::runtime::WorthQueryReadFamily,
-    ) -> Result<
-        super::WorthQueryInstalledDomainReadAdmission<D>,
-        super::WorthQueryInstalledDomainReadAdmissionError,
-    >
-    where
-        D: 'static,
-    {
-        super::WorthQueryInstalledDomainReadAdmission::admit(self, runtime, family)
     }
 }
 

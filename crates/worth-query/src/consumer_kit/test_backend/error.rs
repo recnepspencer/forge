@@ -44,5 +44,6 @@ pub enum WorthQueryTestBackendErrorKind {
     EmptyAspectSet,
     MissingSchema,
     InvariantRegistrationFailed,
+    DomainInstallationFailed,
     WorkspaceBuildFailed,
 }

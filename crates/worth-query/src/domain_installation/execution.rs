@@ -1,41 +1,50 @@
-use std::marker::PhantomData;
-
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
     WorthQueryEvidenceTag,
 };
-use crate::runtime::{
-    WorthQueryAdmittedGraphReadAccessPlan, WorthQueryGraphReadAccessAdmission,
-    WorthQueryGraphReadAccessShapeExplanationError, WorthQueryReadFamily, WorthQueryRuntime,
-};
+use crate::runtime::WorthQueryWorkspace;
 
 use super::{
     WorthQueryDomainHandleDenial, WorthQueryDomainHandleDenialKind,
-    WorthQueryInstalledDomainAuthorityWitness, WorthQueryInstalledDomainHandle,
+    WorthQueryInstalledDomainAuthorityWitness,
 };
 
-#[derive(Debug)]
-pub enum WorthQueryInstalledDomainReadAdmissionError {
-    InstalledAuthority(WorthQueryDomainHandleDenial),
-    ReadShape(WorthQueryGraphReadAccessShapeExplanationError),
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryInstalledDomainCapabilityKind {
+    Read,
+    Projection,
+    Inspection,
+    LiveOpen,
+    LiveRead,
+    LiveDelivery,
+    LiveCheckpoint,
+    LiveResume,
+    LiveClose,
+    Mutation,
+    Workflow,
 }
 
-impl From<WorthQueryDomainHandleDenial> for WorthQueryInstalledDomainReadAdmissionError {
-    fn from(value: WorthQueryDomainHandleDenial) -> Self {
-        Self::InstalledAuthority(value)
-    }
-}
-
-impl From<WorthQueryGraphReadAccessShapeExplanationError>
-    for WorthQueryInstalledDomainReadAdmissionError
-{
-    fn from(value: WorthQueryGraphReadAccessShapeExplanationError) -> Self {
-        Self::ReadShape(value)
+impl WorthQueryInstalledDomainCapabilityKind {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Read => "read",
+            Self::Projection => "projection",
+            Self::Inspection => "inspection",
+            Self::LiveOpen => "live-open",
+            Self::LiveRead => "live-read",
+            Self::LiveDelivery => "live-delivery",
+            Self::LiveCheckpoint => "live-checkpoint",
+            Self::LiveResume => "live-resume",
+            Self::LiveClose => "live-close",
+            Self::Mutation => "mutation",
+            Self::Workflow => "workflow",
+        }
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryInstalledDomainExecutionDriftKind {
+    DomainNotInstalled,
     ForeignRuntime,
     StaleInstallation,
     PackageMeaningChanged,
@@ -47,6 +56,7 @@ pub enum WorthQueryInstalledDomainExecutionDriftKind {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryInstalledDomainExecutionNextAction {
+    InstallDomainPackage,
     RebindInstalledDomain,
     ReadmitBasis,
     ReadmitPolicy,
@@ -61,30 +71,35 @@ pub struct WorthQueryInstalledDomainExecutionDrift {
 }
 
 impl WorthQueryInstalledDomainExecutionDrift {
-    fn from_handle_denial(denial: &WorthQueryDomainHandleDenial) -> Self {
-        let kind = match denial.kind() {
-            WorthQueryDomainHandleDenialKind::DomainNotInstalled
-            | WorthQueryDomainHandleDenialKind::ForeignRuntime => {
-                WorthQueryInstalledDomainExecutionDriftKind::ForeignRuntime
-            }
-            WorthQueryDomainHandleDenialKind::StaleInstallationGeneration => {
-                WorthQueryInstalledDomainExecutionDriftKind::StaleInstallation
-            }
-            WorthQueryDomainHandleDenialKind::PackageIdentityChanged => {
-                WorthQueryInstalledDomainExecutionDriftKind::PackageMeaningChanged
-            }
-        };
-        Self {
-            kind,
-            next_action: WorthQueryInstalledDomainExecutionNextAction::RebindInstalledDomain,
-        }
+    pub(crate) fn validate<D: 'static>(
+        witness: &WorthQueryInstalledDomainAuthorityWitness,
+        workspace: &WorthQueryWorkspace,
+    ) -> Result<(), Self> {
+        workspace
+            .validate_installed_domain_witness::<D>(witness)
+            .map_err(Self::from_handle_denial)
     }
 
-    fn basis_changed() -> Self {
-        Self {
-            kind: WorthQueryInstalledDomainExecutionDriftKind::BasisChanged,
-            next_action: WorthQueryInstalledDomainExecutionNextAction::ReadmitBasis,
-        }
+    fn from_handle_denial(denial: WorthQueryDomainHandleDenial) -> Self {
+        let (kind, next_action) = match denial.kind() {
+            WorthQueryDomainHandleDenialKind::DomainNotInstalled => (
+                WorthQueryInstalledDomainExecutionDriftKind::DomainNotInstalled,
+                WorthQueryInstalledDomainExecutionNextAction::InstallDomainPackage,
+            ),
+            WorthQueryDomainHandleDenialKind::ForeignRuntime => (
+                WorthQueryInstalledDomainExecutionDriftKind::ForeignRuntime,
+                WorthQueryInstalledDomainExecutionNextAction::RebindInstalledDomain,
+            ),
+            WorthQueryDomainHandleDenialKind::StaleInstallationGeneration => (
+                WorthQueryInstalledDomainExecutionDriftKind::StaleInstallation,
+                WorthQueryInstalledDomainExecutionNextAction::RebindInstalledDomain,
+            ),
+            WorthQueryDomainHandleDenialKind::PackageIdentityChanged => (
+                WorthQueryInstalledDomainExecutionDriftKind::PackageMeaningChanged,
+                WorthQueryInstalledDomainExecutionNextAction::RebindInstalledDomain,
+            ),
+        };
+        Self { kind, next_action }
     }
 
     pub fn kind(&self) -> WorthQueryInstalledDomainExecutionDriftKind {
@@ -99,165 +114,93 @@ impl WorthQueryInstalledDomainExecutionDrift {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryInstalledDomainExecutionReceipt {
     installed_authority: WorthQueryInstalledDomainAuthorityWitness,
+    capability: WorthQueryInstalledDomainCapabilityKind,
+    declaration_identity: WorthQueryEvidenceIdentity,
     basis_identity: WorthQueryEvidenceIdentity,
-    capability_authority_identity: WorthQueryEvidenceIdentity,
-    admission_identity: WorthQueryEvidenceIdentity,
-    plan_identity: Option<WorthQueryEvidenceIdentity>,
+    operational_identity: WorthQueryEvidenceIdentity,
     receipt_identity: WorthQueryEvidenceIdentity,
 }
 
 impl WorthQueryInstalledDomainExecutionReceipt {
-    fn new(
+    pub(crate) fn new(
         installed_authority: WorthQueryInstalledDomainAuthorityWitness,
+        capability: WorthQueryInstalledDomainCapabilityKind,
+        declaration_identity: WorthQueryEvidenceIdentity,
         basis_identity: WorthQueryEvidenceIdentity,
-        admission: &WorthQueryGraphReadAccessAdmission,
-        plan: Option<&WorthQueryAdmittedGraphReadAccessPlan>,
+        operational_identity: WorthQueryEvidenceIdentity,
     ) -> Self {
-        let capability_authority_identity =
+        let receipt_identity =
             worth_query_evidence_identity(WorthQueryEvidenceScope::InstalledDomainExecution)
-                .field_shape(WorthQueryEvidenceTag::new("capability"), "graph-read")
-                .field_value(
-                    WorthQueryEvidenceTag::new("authority_receipt"),
-                    admission.authority_receipt().digest(),
+                .field_shape(
+                    WorthQueryEvidenceTag::new("capability"),
+                    capability.as_str(),
                 )
-                .seal();
-        let admission_identity =
-            worth_query_evidence_identity(WorthQueryEvidenceScope::InstalledDomainExecution)
-                .field_shape(WorthQueryEvidenceTag::new("phase"), "admission")
-                .field_value(WorthQueryEvidenceTag::new("admission"), admission.digest())
-                .seal();
-        let plan_identity = plan.map(|plan| {
-            worth_query_evidence_identity(WorthQueryEvidenceScope::InstalledDomainExecution)
-                .field_shape(WorthQueryEvidenceTag::new("phase"), "plan")
-                .field_value(WorthQueryEvidenceTag::new("plan"), plan.digest())
-                .seal()
-        });
-        let mut receipt_identity =
-            worth_query_evidence_identity(WorthQueryEvidenceScope::InstalledDomainExecution)
                 .field_evidence_identity(
                     WorthQueryEvidenceTag::new("installed_authority"),
                     installed_authority.witness_identity(),
                 )
+                .field_evidence_identity(
+                    WorthQueryEvidenceTag::new("declaration"),
+                    &declaration_identity,
+                )
                 .field_evidence_identity(WorthQueryEvidenceTag::new("basis"), &basis_identity)
                 .field_evidence_identity(
-                    WorthQueryEvidenceTag::new("capability_authority"),
-                    &capability_authority_identity,
+                    WorthQueryEvidenceTag::new("operational"),
+                    &operational_identity,
                 )
-                .field_evidence_identity(
-                    WorthQueryEvidenceTag::new("admission"),
-                    &admission_identity,
-                );
-        if let Some(plan_identity) = plan_identity.as_ref() {
-            receipt_identity = receipt_identity
-                .field_evidence_identity(WorthQueryEvidenceTag::new("plan"), plan_identity);
-        }
-        let receipt_identity = receipt_identity.seal();
+                .seal();
         Self {
             installed_authority,
+            capability,
+            declaration_identity,
             basis_identity,
-            capability_authority_identity,
-            admission_identity,
-            plan_identity,
+            operational_identity,
             receipt_identity,
         }
+    }
+
+    pub(crate) fn label_identity(role: &'static str, value: &str) -> WorthQueryEvidenceIdentity {
+        worth_query_evidence_identity(WorthQueryEvidenceScope::InstalledDomainExecution)
+            .field_shape(WorthQueryEvidenceTag::new("role"), role)
+            .field_value(WorthQueryEvidenceTag::new("query_minted_value"), value)
+            .seal()
+    }
+
+    pub(crate) fn derive(
+        &self,
+        capability: WorthQueryInstalledDomainCapabilityKind,
+        operational_identity: WorthQueryEvidenceIdentity,
+    ) -> Self {
+        Self::new(
+            self.installed_authority.clone(),
+            capability,
+            self.declaration_identity.clone(),
+            self.basis_identity.clone(),
+            operational_identity,
+        )
     }
 
     pub fn installed_authority(&self) -> &WorthQueryInstalledDomainAuthorityWitness {
         &self.installed_authority
     }
 
+    pub fn capability(&self) -> WorthQueryInstalledDomainCapabilityKind {
+        self.capability
+    }
+
+    pub fn declaration_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.declaration_identity
+    }
+
     pub fn basis_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.basis_identity
     }
 
-    pub fn capability_authority_identity(&self) -> &WorthQueryEvidenceIdentity {
-        &self.capability_authority_identity
-    }
-
-    pub fn admission_identity(&self) -> &WorthQueryEvidenceIdentity {
-        &self.admission_identity
-    }
-
-    pub fn plan_identity(&self) -> Option<&WorthQueryEvidenceIdentity> {
-        self.plan_identity.as_ref()
+    pub fn operational_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.operational_identity
     }
 
     pub fn receipt_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.receipt_identity
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryInstalledDomainReadAdmission<D> {
-    admission: WorthQueryGraphReadAccessAdmission,
-    plan: Option<WorthQueryAdmittedGraphReadAccessPlan>,
-    receipt: WorthQueryInstalledDomainExecutionReceipt,
-    marker: PhantomData<fn() -> D>,
-}
-
-impl<D: 'static> WorthQueryInstalledDomainReadAdmission<D> {
-    pub(crate) fn admit(
-        handle: &WorthQueryInstalledDomainHandle<D>,
-        runtime: &WorthQueryRuntime,
-        family: &WorthQueryReadFamily,
-    ) -> Result<Self, WorthQueryInstalledDomainReadAdmissionError> {
-        runtime.validate_installed_domain_handle(handle)?;
-        let basis_identity = runtime.current_snapshot_identity().evidence_identity();
-        let admission = runtime.admit_graph_read_access_for_family(family)?;
-        let plan = WorthQueryAdmittedGraphReadAccessPlan::from_admission(admission.clone());
-        let receipt = WorthQueryInstalledDomainExecutionReceipt::new(
-            handle.authority_witness(),
-            basis_identity,
-            &admission,
-            plan.as_ref(),
-        );
-        Ok(Self {
-            admission,
-            plan,
-            receipt,
-            marker: PhantomData,
-        })
-    }
-
-    pub fn admission(&self) -> &WorthQueryGraphReadAccessAdmission {
-        &self.admission
-    }
-
-    pub fn plan(&self) -> Option<&WorthQueryAdmittedGraphReadAccessPlan> {
-        self.plan.as_ref()
-    }
-
-    pub fn receipt(&self) -> &WorthQueryInstalledDomainExecutionReceipt {
-        &self.receipt
-    }
-
-    pub fn validate_for_execution(
-        &self,
-        handle: &WorthQueryInstalledDomainHandle<D>,
-        runtime: &WorthQueryRuntime,
-    ) -> Result<(), WorthQueryInstalledDomainExecutionDrift> {
-        runtime
-            .validate_installed_domain_handle(handle)
-            .map_err(|denial| {
-                WorthQueryInstalledDomainExecutionDrift::from_handle_denial(&denial)
-            })?;
-        if handle.authority().authority_identity()
-            != self
-                .receipt
-                .installed_authority()
-                .authority()
-                .authority_identity()
-        {
-            let denial =
-                WorthQueryDomainHandleDenial::new(WorthQueryDomainHandleDenialKind::ForeignRuntime);
-            return Err(WorthQueryInstalledDomainExecutionDrift::from_handle_denial(
-                &denial,
-            ));
-        }
-        if runtime.current_snapshot_identity().evidence_identity() != *self.receipt.basis_identity()
-        {
-            return Err(WorthQueryInstalledDomainExecutionDrift::basis_changed());
-        }
-        Ok(())
     }
 }

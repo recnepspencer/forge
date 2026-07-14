@@ -62,6 +62,23 @@ impl WorthQueryWorkspace {
         self.runtime.current_snapshot_identity()
     }
 
+    pub fn domain<D: 'static>(
+        &self,
+        marker: D,
+    ) -> Result<
+        crate::domain_installation::WorthQueryInstalledDomainHandle<D>,
+        crate::domain_installation::WorthQueryDomainHandleDenial,
+    > {
+        self.runtime.domain(marker)
+    }
+
+    pub(crate) fn validate_installed_domain_witness<D: 'static>(
+        &self,
+        witness: &crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness,
+    ) -> Result<(), crate::domain_installation::WorthQueryDomainHandleDenial> {
+        self.runtime.validate_installed_domain_witness::<D>(witness)
+    }
+
     pub(crate) fn capture_branch_comparison_basis(
         &self,
         label: WorthQuerySessionLabel,

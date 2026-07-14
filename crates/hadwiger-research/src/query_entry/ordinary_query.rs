@@ -1,23 +1,70 @@
-//! Hadwiger-specific declarations over Query's ordinary capability facade.
+//! Hadwiger vocabulary over Query's runtime-installed domain handle.
 
 use worth_query::facade::{domain, read};
 
+use super::HadwigerResearchDomainEntry;
+
 const CANDIDATE_ROOT: &str = "HadwigerCandidate";
 
-pub fn declare_candidate_search(
-) -> Result<read::WorthQueryReadDeclaration, read::WorthQueryReadDeclarationStop> {
-    read::declare(|query| {
-        query.local_collection(
-            CANDIDATE_ROOT,
-            candidate_schema(),
-            |query| {
-                query
-                    .project(identity_selector())
-                    .project(chromatic_bound_selector())
-            },
-            |shape| shape.field(identity_field()).field(chromatic_bound_field()),
-        )
-    })
+pub trait HadwigerResearchQueryExt {
+    fn candidate_search(
+        &self,
+    ) -> Result<
+        domain::WorthQueryInstalledDomainReadDeclaration<HadwigerResearchDomainEntry>,
+        read::WorthQueryReadDeclarationStop,
+    >;
+
+    fn candidate_promotion(
+        &self,
+        label: domain::WorthQuerySessionLabel,
+        candidate: HadwigerCandidateContribution,
+    ) -> Result<
+        domain::WorthQueryInstalledDomainWorkflowDeclaration<HadwigerResearchDomainEntry>,
+        domain::WorthQueryMutationDeclarationStop,
+    >;
+}
+
+impl HadwigerResearchQueryExt
+    for domain::WorthQueryInstalledDomainHandle<HadwigerResearchDomainEntry>
+{
+    fn candidate_search(
+        &self,
+    ) -> Result<
+        domain::WorthQueryInstalledDomainReadDeclaration<HadwigerResearchDomainEntry>,
+        read::WorthQueryReadDeclarationStop,
+    > {
+        self.read(|query| {
+            query.local_collection(
+                CANDIDATE_ROOT,
+                candidate_schema(),
+                |query| {
+                    query
+                        .project(identity_selector())
+                        .project(chromatic_bound_selector())
+                },
+                |shape| shape.field(identity_field()).field(chromatic_bound_field()),
+            )
+        })
+    }
+
+    fn candidate_promotion(
+        &self,
+        label: domain::WorthQuerySessionLabel,
+        candidate: HadwigerCandidateContribution,
+    ) -> Result<
+        domain::WorthQueryInstalledDomainWorkflowDeclaration<HadwigerResearchDomainEntry>,
+        domain::WorthQueryMutationDeclarationStop,
+    > {
+        self.mutation(|mutation| {
+            mutation
+                .set_aspect(
+                    domain::WorthQueryAspectTouch::from_authoring_ingress_text("identity.id")?,
+                    domain::WorthQueryAuthoredAspectValue::string(candidate.candidate_identity),
+                )
+                .build_insert(CANDIDATE_ROOT)
+        })
+        .map(|mutation| mutation.workflow(label))
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -31,32 +78,6 @@ impl HadwigerCandidateContribution {
             candidate_identity: candidate_identity.into(),
         }
     }
-}
-
-impl domain::WorthQueryDomainWorkflowContribution for HadwigerCandidateContribution {
-    type Error = domain::WorthQueryMutationDeclarationStop;
-
-    fn contribute(&self) -> Result<domain::WorthQueryMutationDeclaration, Self::Error> {
-        domain::declare_mutation(|mutation| {
-            mutation
-                .set_aspect(
-                    domain::WorthQueryAspectTouch::from_authoring_ingress_text("identity.id")?,
-                    domain::WorthQueryAuthoredAspectValue::string(&self.candidate_identity),
-                )
-                .build_insert(CANDIDATE_ROOT)
-        })
-    }
-}
-
-pub fn declare_candidate_promotion(
-    label: domain::WorthQuerySessionLabel,
-    candidate_identity: impl Into<String>,
-) -> Result<domain::WorthQueryDomainWorkflowDeclaration, domain::WorthQueryMutationDeclarationStop>
-{
-    domain::declare(
-        label,
-        HadwigerCandidateContribution::new(candidate_identity),
-    )
 }
 
 fn candidate_schema() -> read::QuerySchemaView {

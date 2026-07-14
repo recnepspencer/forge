@@ -9,11 +9,18 @@ use super::backend::WorthQueryInMemoryTestBackend;
 use super::error::{WorthQueryTestBackendError, WorthQueryTestBackendErrorKind};
 use super::schema::WorthQueryTestBackendSchema;
 
+type TestDomainInstaller = Box<
+    dyn FnOnce(
+        WorthQueryRuntimeBuilder,
+    ) -> Result<WorthQueryRuntimeBuilder, WorthQueryTestBackendError>,
+>;
+
 #[derive(Default)]
 pub struct WorthQueryInMemoryTestRuntimeBuilder {
     schema: Option<WorthQueryTestBackendSchema>,
     invariant_catalog: InvariantCatalog,
     custom_invariants: Vec<CustomInvariantRegistration>,
+    domain_installers: Vec<TestDomainInstaller>,
 }
 
 pub fn in_memory_test_runtime() -> WorthQueryInMemoryTestRuntimeBuilder {
@@ -41,6 +48,21 @@ impl WorthQueryInMemoryTestRuntimeBuilder {
 
     pub fn custom_invariant(mut self, custom_invariant: CustomInvariantRegistration) -> Self {
         self.custom_invariants.push(custom_invariant);
+        self
+    }
+
+    pub fn domain_package<D: 'static>(
+        mut self,
+        package: crate::domain_installation::WorthQueryAdmittedDomainPackage<D>,
+    ) -> Self {
+        self.domain_installers.push(Box::new(move |builder| {
+            builder.domain_package(package).map_err(|error| {
+                WorthQueryTestBackendError::new(
+                    WorthQueryTestBackendErrorKind::DomainInstallationFailed,
+                    format!("failed to install in-memory test domain: {error}"),
+                )
+            })
+        }));
         self
     }
 
@@ -80,15 +102,17 @@ impl WorthQueryInMemoryTestRuntimeBuilder {
                 format!("failed to build in-memory test backend workspace: {error}"),
             )
         })?;
-        let runtime = WorthQueryRuntimeBuilder::new()
-            .backend(WorthQueryInMemoryTestBackend::new(memory_workspace))
-            .build()
-            .map_err(|error| {
-                WorthQueryTestBackendError::new(
-                    WorthQueryTestBackendErrorKind::WorkspaceBuildFailed,
-                    format!("failed to build in-memory test runtime: {error}"),
-                )
-            })?;
+        let mut runtime_builder = WorthQueryRuntimeBuilder::new()
+            .backend(WorthQueryInMemoryTestBackend::new(memory_workspace));
+        for install in self.domain_installers {
+            runtime_builder = install(runtime_builder)?;
+        }
+        let runtime = runtime_builder.build().map_err(|error| {
+            WorthQueryTestBackendError::new(
+                WorthQueryTestBackendErrorKind::WorkspaceBuildFailed,
+                format!("failed to build in-memory test runtime: {error}"),
+            )
+        })?;
         WorthQueryWorkspace::new(name, runtime).map_err(|error| {
             WorthQueryTestBackendError::new(
                 WorthQueryTestBackendErrorKind::WorkspaceBuildFailed,

@@ -1,6 +1,5 @@
 pub(crate) mod comparison;
 pub(crate) mod count;
-pub(crate) mod domain;
 pub(crate) mod history;
 pub(crate) mod inspection;
 pub(crate) mod inspection_policy;

@@ -27,6 +27,7 @@ use crate::runtime::{
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
 
 mod authority;
+mod journey;
 mod rebind;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

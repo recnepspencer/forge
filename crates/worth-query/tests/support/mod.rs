@@ -5,6 +5,7 @@ use worth_query::facade::runtime::WorthQueryAspectTouch;
 
 pub mod graph_index_inventory;
 pub mod graph_read_access;
+pub mod installed_domain;
 pub mod public_bridge_runtime;
 pub mod test_entity_identities;
 
