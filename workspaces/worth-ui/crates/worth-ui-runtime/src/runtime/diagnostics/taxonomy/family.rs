@@ -12,7 +12,7 @@ pub enum WorthUiRuntimeDiagnosticFamily {
     LaneAdmission,
     ActivationStaging,
     ActivationGate,
-    AtomicPlanSwap,
+    CommittedAllocationActivation,
     PlanInspection,
     DiagnosticsProjection,
 }
@@ -32,7 +32,7 @@ impl WorthUiRuntimeDiagnosticFamily {
             Self::LaneAdmission => "plan.lane_admission",
             Self::ActivationStaging => "activation.staging",
             Self::ActivationGate => "activation.gate",
-            Self::AtomicPlanSwap => "activation.atomic_plan_swap",
+            Self::CommittedAllocationActivation => "activation.committed_allocation",
             Self::PlanInspection => "plan.inspection",
             Self::DiagnosticsProjection => "diagnostics.projection",
         }

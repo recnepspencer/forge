@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryBatchWriteReceipt, WorthQueryBatchWriteReceiptInspection, WorthQueryIntentReceipt,
-    WorthQueryWriteReceipt,
-};
+use worth_query::facade::runtime::{WorthQueryBatchWriteReceipt, WorthQueryBatchWriteReceiptInspection, WorthQueryIntentReceipt, WorthQueryWriteReceipt};
 
 fn main() {
     fn write_receipt(receipt: &WorthQueryWriteReceipt) {

@@ -1,7 +1,7 @@
-use worth_query::facade::{
-    WORTHQueryContributionComposedOrchestrationChecked,
-    WORTHQueryDeclarationEntryOrchestrationChecked, WORTHQueryGroupedOrchestrationChecked,
-    WORTHQueryGroupedOrchestrationTranscript, WORTHQueryOrdinaryOutcome, WORTHQueryRecoveryBrief,
+use worth_query::facade::foundation::{
+    WorthQueryContributionComposedOrchestrationChecked,
+    WorthQueryDeclarationEntryOrchestrationChecked, WorthQueryGroupedOrchestrationChecked,
+    WorthQueryGroupedOrchestrationTranscript, WorthQueryOrdinaryOutcome, WorthQueryRecoveryBrief,
 };
 
 use crate::domain_declarations::HadwigerResearchDeclarationInput;
@@ -9,15 +9,15 @@ use crate::query_entry::{HadwigerResearchDomainEntry, HadwigerResearchHandle};
 
 pub fn recover_research_stop_from_outcome<T>(
     handle: &HadwigerResearchHandle,
-    outcome: &WORTHQueryOrdinaryOutcome<T>,
-) -> Option<WORTHQueryRecoveryBrief> {
+    outcome: &WorthQueryOrdinaryOutcome<T>,
+) -> Option<WorthQueryRecoveryBrief> {
     handle.recover_from_outcome(outcome)
 }
 
 pub fn recover_research_stop_from_declaration_entry_checked<I>(
     handle: &HadwigerResearchHandle,
-    checked: WORTHQueryDeclarationEntryOrchestrationChecked<HadwigerResearchDomainEntry, I>,
-) -> Option<WORTHQueryRecoveryBrief>
+    checked: WorthQueryDeclarationEntryOrchestrationChecked<HadwigerResearchDomainEntry, I>,
+) -> Option<WorthQueryRecoveryBrief>
 where
     I: HadwigerResearchDeclarationInput,
 {
@@ -26,8 +26,8 @@ where
 
 pub fn recover_research_stop_from_contribution_composed_checked<I>(
     handle: &HadwigerResearchHandle,
-    checked: WORTHQueryContributionComposedOrchestrationChecked<HadwigerResearchDomainEntry, I>,
-) -> Option<WORTHQueryRecoveryBrief>
+    checked: WorthQueryContributionComposedOrchestrationChecked<HadwigerResearchDomainEntry, I>,
+) -> Option<WorthQueryRecoveryBrief>
 where
     I: HadwigerResearchDeclarationInput,
 {
@@ -36,8 +36,8 @@ where
 
 pub fn recover_research_stop_from_grouped_orchestration_checked<I>(
     handle: &HadwigerResearchHandle,
-    checked: WORTHQueryGroupedOrchestrationChecked<HadwigerResearchDomainEntry, I>,
-) -> Option<WORTHQueryRecoveryBrief>
+    checked: WorthQueryGroupedOrchestrationChecked<HadwigerResearchDomainEntry, I>,
+) -> Option<WorthQueryRecoveryBrief>
 where
     I: HadwigerResearchDeclarationInput,
 {
@@ -46,8 +46,8 @@ where
 
 pub fn recover_research_stop_from_grouped_orchestration_proof<I>(
     handle: &HadwigerResearchHandle,
-    proof: WORTHQueryGroupedOrchestrationTranscript<HadwigerResearchDomainEntry, I>,
-) -> Option<WORTHQueryRecoveryBrief>
+    proof: WorthQueryGroupedOrchestrationTranscript<HadwigerResearchDomainEntry, I>,
+) -> Option<WorthQueryRecoveryBrief>
 where
     I: HadwigerResearchDeclarationInput,
 {

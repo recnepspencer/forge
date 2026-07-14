@@ -149,7 +149,9 @@ fn is_test_file(relative: &Path) -> bool {
     relative
         .file_name()
         .and_then(|name| name.to_str())
-        .is_some_and(|name| name.ends_with("_tests.rs") || name.ends_with("_test_support.rs"))
+        .is_some_and(|name| {
+            name == "tests.rs" || name.ends_with("_tests.rs") || name.ends_with("_test_support.rs")
+        })
 }
 
 fn relative_runtime_path(workspace_root: &Path, path: &Path) -> PathBuf {

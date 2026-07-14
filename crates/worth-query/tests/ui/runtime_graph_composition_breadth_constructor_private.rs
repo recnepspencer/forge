@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGraphCompositionBreadth;
+use worth_query::facade::runtime::WorthQueryGraphCompositionBreadth;
 
 fn main() {
     let _ = WorthQueryGraphCompositionBreadth {

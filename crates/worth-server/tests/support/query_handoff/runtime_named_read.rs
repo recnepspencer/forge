@@ -1,5 +1,5 @@
-use worth_query::facade::AspectFieldKey;
-use worth_query::facade::WorthQueryWorkspace;
+use worth_query::facade::foundation::AspectFieldKey;
+use worth_query::facade::runtime::WorthQueryWorkspace;
 use worth_server::{
     WorthServerDirectDeclarationSourceKind, WorthServerQueryHandoffOperation,
     WorthServerQueryWorkspaceBindingError, WorthServerQueryWorkspaceBindingRequest,

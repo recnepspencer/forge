@@ -119,16 +119,6 @@ impl WorthUiFileRustReplacementParityCounters {
         self.plan_swap_count += 1;
     }
 
-    #[cfg(test)]
-    pub(crate) fn record_swap_forbidden_work(
-        &mut self,
-        source_reparse_count: usize,
-        registry_rebuild_count: usize,
-    ) {
-        self.source_reparse_on_swap_count += source_reparse_count;
-        self.registry_rebuild_on_swap_count += registry_rebuild_count;
-    }
-
     pub(crate) fn record_parity_comparison(&mut self) {
         self.parity_comparison_count += 1;
     }

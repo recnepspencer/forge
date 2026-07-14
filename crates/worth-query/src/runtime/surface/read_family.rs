@@ -66,6 +66,14 @@ pub struct WorthQueryReadFamily {
 }
 
 impl WorthQueryReadFamily {
+    #[cfg(test)]
+    pub(crate) fn for_product_boundary_certification(
+        family_name: impl Into<String>,
+        read_graph: WorthQueryReadGraph,
+    ) -> Self {
+        Self::new_kernel_only(family_name, read_graph)
+    }
+
     pub fn family_name(&self) -> &str {
         &self.family_name
     }

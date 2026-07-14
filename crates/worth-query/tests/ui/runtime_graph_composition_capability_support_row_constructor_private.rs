@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryGraphCompositionCapabilityClass, WorthQueryGraphCompositionCapabilitySupportRow,
-};
+use worth_query::facade::runtime::{WorthQueryGraphCompositionCapabilityClass, WorthQueryGraphCompositionCapabilitySupportRow};
 
 fn main() {
     let _ = WorthQueryGraphCompositionCapabilitySupportRow {

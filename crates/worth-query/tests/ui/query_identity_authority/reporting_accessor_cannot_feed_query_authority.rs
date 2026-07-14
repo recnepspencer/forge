@@ -1,7 +1,7 @@
 use worth_query::facade::identity_authority::{
     QuerySubscriptionAuthorityIdentity, QuerySubscriptionIdentityKind,
 };
-use worth_query::facade::WorthQueryEvidenceIdentity;
+use worth_query::facade::runtime::WorthQueryEvidenceIdentity;
 
 fn evidence_identity() -> WorthQueryEvidenceIdentity {
     unreachable!()

@@ -1,14 +1,5 @@
 use worth_foundational::facade::CanonicalDerivedDigest;
-use worth_query::facade::{
-    WorthQueryCapabilityFamily, WorthQueryDeclarationEnvelope,
-    WorthQueryDeclarationEnvelopeClass, WorthQueryDeclarationEnvelopeEvidenceOrigin,
-    WorthQueryDeclarationEnvelopeExplanation, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
-    WorthQueryDeclarationReceiptDenialCause, WorthQueryDeclarationRouteContract,
-    WorthQueryDeclarationRoutePlanDenialCause, WorthQueryDomainEntryMarker,
-    WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
-    WorthQuerySingleOnlyGrouping,
-};
+use worth_query::facade::foundation::{WorthQueryCapabilityFamily, WorthQueryDeclarationEnvelope, WorthQueryDeclarationEnvelopeClass, WorthQueryDeclarationEnvelopeEvidenceOrigin, WorthQueryDeclarationEnvelopeExplanation, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract, WorthQueryDeclarationReceiptDenialCause, WorthQueryDeclarationRouteContract, WorthQueryDeclarationRoutePlanDenialCause, WorthQueryDomainEntryMarker, WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture, WorthQuerySingleOnlyGrouping};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct GeometryDomain;
@@ -46,7 +37,7 @@ impl WorthQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
 
     fn canonical_declaration_entries(
         &self,
-    ) -> Vec<worth_query::facade::WorthQueryDeclarationCanonicalEntry> {
+    ) -> Vec<worth_query::facade::foundation::WorthQueryDeclarationCanonicalEntry> {
         Vec::new()
     }
 }

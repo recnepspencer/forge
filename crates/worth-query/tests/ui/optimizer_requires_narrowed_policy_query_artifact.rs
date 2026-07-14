@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    optimizer_input_from_narrowed_policy_query, AspectFieldSelector, AuthoredResultShapeField,
-    DetailQueryBuilder, DetailResultShapeBuilder, GuidedAuthoringPath, RootEntityKey,
-};
+use worth_query::facade::foundation::{AspectFieldSelector, AuthoredResultShapeField, DetailQueryBuilder, DetailResultShapeBuilder, GuidedAuthoringPath, RootEntityKey};
+use worth_query::facade::policy::optimizer_input_from_narrowed_policy_query;
 
 fn main() {
     let query = DetailQueryBuilder::new(RootEntityKey::new("user").unwrap())

@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    GroupedBaselineMaterializationContract, GroupedViewPlanningArtifact,
-};
+use worth_query::facade::runtime::{GroupedBaselineMaterializationContract, GroupedViewPlanningArtifact};
 
 fn assert_no_terminal_grouping_projection(
     baseline: &GroupedBaselineMaterializationContract,

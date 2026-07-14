@@ -1,12 +1,11 @@
 use crate::facade::WorthUi;
-use crate::runtime::{WorthUiRuntimeHost, WorthUiRuntimeLaunch, WorthUiSourceProvider};
+use crate::runtime::{WorthUiRuntimeLaunch, WorthUiSourceProvider};
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
     WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
     WorthUiRustAuthoredToArtifactInputLowerer, WorthUiStructuralLegalityLowerer,
 };
-use std::rc::Rc;
 
 pub(crate) fn file_import_provider() -> WorthUiSourceProvider {
     file_import_provider_for("app/panels/inspector.wui")
@@ -48,14 +47,22 @@ pub(crate) fn empty_artifact() -> WorthUiArtifact {
     )])
 }
 
-pub(crate) fn runtime_from_artifact(artifact: WorthUiArtifact) -> WorthUiRuntimeHost {
+pub(crate) fn runtime_from_artifact(artifact: WorthUiArtifact) -> crate::runtime::WorthUiRuntime {
+    framework_from_artifact(artifact).into_runtime()
+}
+
+pub(crate) fn framework_from_artifact(
+    artifact: WorthUiArtifact,
+) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     let app = WorthUi::app().freeze();
-    WorthUiRuntimeHost::launch(
-        WorthUiRuntimeLaunch::from_canonical_artifact(artifact),
+    let candidate = crate::runtime::candidate::rust_authored_replacement_candidate(
+        artifact,
         app.capabilities().digest(),
-        Rc::default(),
+        crate::runtime::WorthUiReplacementCause::rust_authored_input_change(1),
     )
-    .expect("runtime launches")
+    .expect("production candidate lowers");
+    app.launch_runtime(WorthUiRuntimeLaunch::from_candidate(candidate))
+        .expect("runtime launches")
 }
 
 fn canonical_artifact_from_rust_modules<const N: usize>(

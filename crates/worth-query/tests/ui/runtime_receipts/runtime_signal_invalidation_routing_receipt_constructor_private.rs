@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    WorthQueryMutationDelta, WorthQueryMutationKind, WorthQueryMutationReceipt,
-    SignalInvalidationRoutingReceipt,
-};
+use worth_query::facade::foundation::{WorthQueryMutationDelta, WorthQueryMutationKind, WorthQueryMutationReceipt};
+use worth_query::facade::runtime::SignalInvalidationRoutingReceipt;
 
 fn main() {
     let receipt = WorthQueryMutationReceipt {

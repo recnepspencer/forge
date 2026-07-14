@@ -4,7 +4,7 @@ use std::sync::{atomic::AtomicUsize, Arc};
 
 use worth_foundational::facade::DiagnosticRichnessProfile;
 use worth_proof::TransitionOutcome;
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     WorthServer, WorthServerBinaryDownload, WorthServerCompatibilityExport,
     WorthServerCompatibilityMutation, WorthServerCompatibilityRead, WorthServerDirectMutation,

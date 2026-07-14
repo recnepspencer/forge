@@ -1,8 +1,10 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
 
-use crate::facade::{
-    WorthQueryDerivedPatch, WorthQueryDerivedPatchPayload, WorthQueryDerivedView,
-    WorthQueryDerivedViewMaintainer, WorthQueryDerivedViewMaterialization, WorthQueryMutationDelta,
+use crate::facade::foundation::WorthQueryMutationDelta;
+use crate::facade::policy::WorthQueryDerivedView;
+use crate::facade::runtime::{
+    WorthQueryDerivedPatch, WorthQueryDerivedPatchPayload, WorthQueryDerivedViewMaintainer,
+    WorthQueryDerivedViewMaterialization,
 };
 use crate::memory_workspace::WorthQueryCommitIdentity;
 use crate::runtime::WorthQueryRetainedFieldPath;

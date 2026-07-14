@@ -1,4 +1,4 @@
-use worth_query::facade::EffectDiagnosticsMaterialization;
+use worth_query::facade::foundation::EffectDiagnosticsMaterialization;
 
 fn main() {
     let _ = EffectDiagnosticsMaterialization {

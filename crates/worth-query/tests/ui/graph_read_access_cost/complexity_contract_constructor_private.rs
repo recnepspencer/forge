@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadComplexityContract, WorthQueryGraphReadComplexityContractKind,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadComplexityContract, WorthQueryGraphReadComplexityContractKind};
 
 fn main() {
     let _ = WorthQueryGraphReadComplexityContract {

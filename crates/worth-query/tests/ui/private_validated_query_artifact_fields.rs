@@ -1,4 +1,4 @@
-use worth_query::facade::ValidatedQueryArtifact;
+use worth_query::facade::runtime::ValidatedQueryArtifact;
 
 fn main() {
     let _ = ValidatedQueryArtifact {

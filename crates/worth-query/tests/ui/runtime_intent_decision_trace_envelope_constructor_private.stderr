@@ -1,15 +1,15 @@
 error[E0451]: fields `kind`, `family`, `entrypoint`, `rows` and `trace_digest` of struct `WorthQueryIntentDecisionTraceEnvelope` are private
-  --> tests/ui/runtime_intent_decision_trace_envelope_constructor_private.rs:9:9
-   |
- 8 |     let _worthd = WorthQueryIntentDecisionTraceEnvelope {
-   |                   ------------------------------------- in this type
- 9 |         kind: WorthQueryIntentDecisionTraceEnvelopeKind::AdmittedExecution,
-   |         ^^^^ private field
-10 |         family: WorthQueryIntentAdmissionFamily::AuthoritativeUserIntent,
-   |         ^^^^^^ private field
-11 |         entrypoint: WorthQueryIntentAdmissionCoveredEntrypoint::ExecuteIntent,
-   |         ^^^^^^^^^^ private field
-12 |         rows: Vec::<WorthQueryIntentDecisionTraceRow>::new(),
-   |         ^^^^ private field
-13 |         trace_digest: String::new(),
-   |         ^^^^^^^^^^^^ private field
+ --> tests/ui/runtime_intent_decision_trace_envelope_constructor_private.rs:5:9
+  |
+4 |     let _worthd = WorthQueryIntentDecisionTraceEnvelope {
+  |                   ------------------------------------- in this type
+5 |         kind: WorthQueryIntentDecisionTraceEnvelopeKind::AdmittedExecution,
+  |         ^^^^ private field
+6 |         family: WorthQueryIntentAdmissionFamily::AuthoritativeUserIntent,
+  |         ^^^^^^ private field
+7 |         entrypoint: WorthQueryIntentAdmissionCoveredEntrypoint::ExecuteIntent,
+  |         ^^^^^^^^^^ private field
+8 |         rows: Vec::<WorthQueryIntentDecisionTraceRow>::new(),
+  |         ^^^^ private field
+9 |         trace_digest: String::new(),
+  |         ^^^^^^^^^^^^ private field

@@ -16,6 +16,9 @@ to see one practical call shape without reading a full feature doc first.
 
 ## Start Here
 
+- [Carry Query Facts Into A Downstream Runtime](./carry-query-facts-into-a-downstream-runtime.md)
+  Hand one sealed Query authority to a consumer without reconstructing basis or
+  source lineage.
 - [Prepare Preview From An Active Face Selection](./prepare-preview-from-active-face-selection.md)
   Progress one active-face declaration and ask Query for the preview-facing next
   step.

@@ -108,7 +108,7 @@ impl QuerySubscriptionEquivalenceBasis {
 }
 
 /// Must stay aligned with the field cardinality of `compose_equivalence_identity`.
-const EQUIVALENCE_DIGEST_PART_COUNT: usize = 22;
+const EQUIVALENCE_DIGEST_PART_COUNT: usize = 23;
 
 fn equivalence_digest_part_count(
     _input: &LiveQueryAdmissionArtifact,
@@ -148,6 +148,13 @@ fn compose_equivalence_identity(
         .field_shape(
             WorthQueryEvidenceTag::new("basis"),
             input.basis_posture.as_str(),
+        )
+        .field_shape(
+            WorthQueryEvidenceTag::new("scoped_declaration_basis"),
+            input
+                .scoped_declaration_basis()
+                .map(|basis| basis.scoped_basis_digest())
+                .unwrap_or("missing"),
         )
         .field_shape(
             WorthQueryEvidenceTag::new("cost"),

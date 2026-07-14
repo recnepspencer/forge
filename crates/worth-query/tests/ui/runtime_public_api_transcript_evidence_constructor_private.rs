@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryRuntimePublicApiTranscriptEvidence;
+use worth_query::facade::runtime::WorthQueryRuntimePublicApiTranscriptEvidence;
 
 fn main() {
     let _evidence = WorthQueryRuntimePublicApiTranscriptEvidence {

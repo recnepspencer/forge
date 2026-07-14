@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadOrderingFieldAuthority, WorthQueryGraphReadPredicateFieldAuthority,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadOrderingFieldAuthority, WorthQueryGraphReadPredicateFieldAuthority};
 
 fn main() {
     let predicate: WorthQueryGraphReadPredicateFieldAuthority = unreachable!();

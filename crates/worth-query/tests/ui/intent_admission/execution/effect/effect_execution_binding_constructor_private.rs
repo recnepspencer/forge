@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    WorthQueryCommitIdentity,
-    runtime::WorthQueryEffectTriggeredIntentExecutionBinding,
-};
+use worth_query::facade::foundation::WorthQueryCommitIdentity;
+use worth_query::facade::runtime::WorthQueryEffectTriggeredIntentExecutionBinding;
 
 fn main() {
     let _ = WorthQueryEffectTriggeredIntentExecutionBinding {

@@ -1,7 +1,14 @@
-use worth_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily,
-    QuerySubscriptionSupportPosture, ResultShapeFamily, ViewShapeDescriptor,
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
+use worth_query::facade::foundation::{
+    discover_basis_lifecycle_support,
+    BasisFamily,
+    ResultShapeFamily,
+    WorthQueryApplicationFacade,
+    WorthQueryCapabilityFamily,
+};
+use worth_query::facade::runtime::{
+    QuerySubscriptionFamily,
+    QuerySubscriptionSupportPosture,
+    ViewShapeDescriptor,
 };
 
 use crate::capability::{
@@ -9,12 +16,14 @@ use crate::capability::{
     QueryResultShapeReference, QueryViewCapabilityReference, ViewBindingDescriptor,
     ViewBindingFamily, ViewBindingId,
 };
-use crate::facade::{WorthUi, WorthUiApp};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
 use crate::runtime::tests::dependency_impact_narrowing_test_support::lower_rust_authored_artifact;
 use crate::runtime::tests::replacement_impact_test_support::{admitted_candidate, launch_runtime};
 use crate::runtime::{
-    WorthUiAdmittedReplacementCandidate, WorthUiNodeReplacementPlan, WorthUiRuntimeHost,
-    WorthUiRuntimeImpactNarrowing,
+    WorthUiAdmittedReplacementCandidate, WorthUiNodeReplacementPlan, WorthUiRuntimeImpactNarrowing,
 };
 use crate::source::{WorthUiArtifact, WorthUiRustAuthoredArtifactInputModule};
 
@@ -70,7 +79,7 @@ pub(super) fn phase11_pipeline(
     active_artifact: WorthUiArtifact,
     candidate_artifact: WorthUiArtifact,
 ) -> (
-    WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiAdmittedReplacementCandidate,
     WorthUiRuntimeImpactNarrowing,
     WorthUiNodeReplacementPlan,

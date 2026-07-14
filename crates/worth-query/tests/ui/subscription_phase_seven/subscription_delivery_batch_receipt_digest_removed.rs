@@ -1,4 +1,4 @@
-use worth_query::facade::QueryDeliveryBatchReceipt;
+use worth_query::facade::runtime::QueryDeliveryBatchReceipt;
 
 fn main() {
     let receipt: QueryDeliveryBatchReceipt = todo!();

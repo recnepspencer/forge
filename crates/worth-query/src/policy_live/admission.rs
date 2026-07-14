@@ -69,7 +69,7 @@ impl PolicyAwareLivePlan {
     }
 }
 
-pub fn admit_policy_aware_live_plan(
+pub(crate) fn admit_policy_aware_live_plan(
     artifact: &NarrowedPolicyQueryArtifact,
     requested_relevance_fields: &[AuthorizedProjectionFieldPath],
     drift_disposition: PolicyDriftDisposition,

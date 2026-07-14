@@ -1,8 +1,4 @@
-use worth_query::facade::{
-    AdmittedCausalInspection, CausalDecisionTraceIndex, CausalInspectionAdmissionCounters,
-    CausalInspectionAdmissionDecision, CausalInspectionAdmissionReceipt,
-    CausalInspectionAdmissionSubject,
-};
+use worth_query::facade::runtime::{AdmittedCausalInspection, CausalDecisionTraceIndex, CausalInspectionAdmissionCounters, CausalInspectionAdmissionDecision, CausalInspectionAdmissionReceipt, CausalInspectionAdmissionSubject};
 
 fn main() {
     let subject: CausalInspectionAdmissionSubject = todo!();

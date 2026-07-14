@@ -16,7 +16,7 @@ use super::{
     ValidationRejectionMatrix,
 };
 
-pub fn validate_canonical_bundle(
+pub(crate) fn validate_canonical_bundle(
     bundle: CanonicalQueryBundle,
     schema_view: QuerySchemaView,
 ) -> Result<ValidatedQueryBundle, QueryValidationError> {

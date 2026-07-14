@@ -1,4 +1,4 @@
-use crate::query_context::AdmittedQueryBasisContext;
+use crate::query_context::ScopedQueryBasisContext;
 use crate::runtime::{WorthQueryReadFamily, WorthQueryRuntimeLiveSubscriptionInstallation};
 
 use super::{
@@ -10,7 +10,7 @@ use super::{
 pub struct WorthQueryReadExecutionPlan {
     inner: WorthQueryAdmittedIntentPlanCore,
     read_family: WorthQueryReadFamily,
-    basis_context: Option<AdmittedQueryBasisContext>,
+    basis_context: Option<ScopedQueryBasisContext>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -55,7 +55,7 @@ impl WorthQueryReadExecutionPlan {
         &self.read_family
     }
 
-    pub fn basis_context(&self) -> Option<&AdmittedQueryBasisContext> {
+    pub fn basis_context(&self) -> Option<&ScopedQueryBasisContext> {
         self.basis_context.as_ref()
     }
 

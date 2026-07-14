@@ -17,10 +17,22 @@ mod measurement_basis;
 mod plan_allocation;
 mod transitions;
 
+/// Capability held only by the planning lane when it materializes candidate truth.
+pub(crate) struct UiAllocationCandidateMintAuthority(());
+
+impl UiAllocationCandidateMintAuthority {
+    const fn new() -> Self {
+        Self(())
+    }
+}
+
 pub(crate) use input_handoff::construct_verified_planning_input_handoff;
 
-#[cfg(test)]
 pub(crate) use measurement_basis::collect_planning_measurement_basis;
+#[cfg(test)]
+pub(crate) use plan_allocation::candidate_from_test_planning;
 pub(crate) use plan_allocation::plan_allocation_for_pending_activation;
+pub(crate) use plan_allocation::replan_selected_candidates_with_portal;
+pub(crate) use plan_allocation::replan_selected_candidates_with_resize;
 pub(crate) use transitions::construct_planning_lane_input;
 pub use transitions::{WorthUiPlanningLaneAdmissionDenial, WorthUiPlanningLaneInput};

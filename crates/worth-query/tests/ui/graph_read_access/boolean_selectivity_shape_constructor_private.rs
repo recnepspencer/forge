@@ -1,10 +1,6 @@
 #![allow(unreachable_code)]
 
-use worth_query::facade::runtime::{
-    WorthQueryBooleanPredicateTopology, WorthQueryBooleanSelectivityAdmissionPosture,
-    WorthQueryBooleanSelectivityShape, WorthQueryPredicateAnchorPosture,
-    WorthQueryTraversalPredicateOrderingPosture,
-};
+use worth_query::facade::runtime::{WorthQueryBooleanPredicateTopology, WorthQueryBooleanSelectivityAdmissionPosture, WorthQueryBooleanSelectivityShape, WorthQueryPredicateAnchorPosture, WorthQueryTraversalPredicateOrderingPosture};
 
 fn main() {
     let _ = WorthQueryBooleanSelectivityShape {

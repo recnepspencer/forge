@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/domain_declaration/boundaries/accessors/canonical_declaration/core/canonical_comparison_rejects_arbitrary_struct.rs:89:32
+  --> tests/ui/domain_declaration/boundaries/accessors/canonical_declaration/core/canonical_comparison_rejects_arbitrary_struct.rs:82:32
    |
-89 |     let _ = left.compare_under(&right, CanonicalEquivalenceBasis::ExactCanonicalBasis);
+82 |     let _ = left.compare_under(&right, CanonicalEquivalenceBasis::ExactCanonicalBasis);
    |                  ------------- ^^^^^^ expected `&...`, found `&SplitEdgeDeclaration`
    |                  |
    |                  arguments to this method are incorrect

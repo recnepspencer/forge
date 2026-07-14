@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryApplicationFacade;
+use worth_query::facade::foundation::WorthQueryApplicationFacade;
 
 fn main() {
     let query = WorthQueryApplicationFacade::runtime_backed_default();

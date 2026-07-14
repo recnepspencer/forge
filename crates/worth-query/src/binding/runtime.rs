@@ -203,7 +203,7 @@ pub fn derive_binding_requirements(bundle: &ValidatedQueryBundle) -> BindingRequ
     BindingRequirements::new(requirements)
 }
 
-pub fn resolve_bindings(
+pub(crate) fn resolve_bindings(
     requirements: BindingRequirements,
     bindings: BoundBindings,
 ) -> Result<BindingResolution, BindingResolutionError> {

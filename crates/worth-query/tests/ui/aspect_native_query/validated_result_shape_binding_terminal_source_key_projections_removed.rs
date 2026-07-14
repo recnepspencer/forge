@@ -1,4 +1,4 @@
-use worth_query::facade::ValidatedResultShapeBinding;
+use worth_query::facade::runtime::ValidatedResultShapeBinding;
 
 fn main() {
     let binding: ValidatedResultShapeBinding = unreachable!();

@@ -27,20 +27,21 @@ pub(super) fn derive_members(
             continue;
         }
 
-        members.push(UiAllocationNeighborhoodMember::new(
+        members.push(UiAllocationNeighborhoodMember::new_with_graph_authority(
             candidate_id,
             node_record.authored_provenance_digest(),
             repeated_instance_basis_for(node_record.repeated_instance_basis()),
             layout_participation,
             role_for(root_graph_node_identity, candidate_id, membership_rule),
             node_record.measurement_constraint_modifier(),
+            &super::UiAllocationNeighborhoodMintAuthority::mint(),
         ));
     }
 
     members
 }
 
-pub(super) fn layout_participates_in_planning(
+pub(crate) fn layout_participates_in_planning(
     snapshot: &UiGraphSnapshot,
     graph_node_identity: UiGraphNodeIdentity,
     layout_participation: UiGraphAxisParticipation,

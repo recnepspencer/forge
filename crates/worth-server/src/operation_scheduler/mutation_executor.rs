@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 
-use worth_query::facade::{WorthQueryInspection, WorthQueryRuntimeError};
+use worth_query::facade::runtime::WorthQueryRuntimeError;
 
 use crate::{WorthServerQueryOperation, WorthServerResponseFacade, WorthServerResponseInput};
 
@@ -157,22 +157,14 @@ fn execute_slot_operation(
 
     match query_operation {
         WorthServerQueryOperation::SingleMutation { command, .. } => {
-            let receipt = submission_lane.submit(command)?;
-            let inspection = match workspace.inspect(&receipt)? {
-                WorthQueryInspection::WriteReceipt(inspection) => inspection,
-                other => panic!("expected write receipt inspection, got {other:?}"),
-            };
+            let (receipt, inspection) = submission_lane.submit_with_inspection(command)?;
             Ok(WorthServerScheduledMutationResult::Single {
                 receipt,
                 inspection,
             })
         }
         WorthServerQueryOperation::BatchMutation { commands, .. } => {
-            let receipt = submission_lane.submit_batch(commands)?;
-            let inspection = match workspace.inspect(&receipt)? {
-                WorthQueryInspection::BatchWriteReceipt(inspection) => inspection,
-                other => panic!("expected batch write receipt inspection, got {other:?}"),
-            };
+            let (receipt, inspection) = submission_lane.submit_batch_with_inspection(commands)?;
             Ok(WorthServerScheduledMutationResult::Batch {
                 receipt,
                 inspection,

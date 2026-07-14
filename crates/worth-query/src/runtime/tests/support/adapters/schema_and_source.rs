@@ -54,6 +54,7 @@ impl WorthQueryRuntimeSchemaAdapter for DriftingSchemaReceiptAdapter {
 pub(in crate::runtime::tests) struct TestSourceAdapter {
     live_views: BTreeMap<WorthQueryLiveArtifactTarget, WorthQueryMutationTargetCollectionIdentity>,
     fail_declare: bool,
+    fail_close: bool,
 }
 
 impl TestSourceAdapter {
@@ -61,6 +62,15 @@ impl TestSourceAdapter {
         Self {
             live_views: BTreeMap::new(),
             fail_declare: true,
+            fail_close: false,
+        }
+    }
+
+    pub(in crate::runtime::tests) fn fail_close() -> Self {
+        Self {
+            live_views: BTreeMap::new(),
+            fail_declare: false,
+            fail_close: true,
         }
     }
 }
@@ -81,6 +91,17 @@ impl WorthQueryRuntimeSourceAdapter for TestSourceAdapter {
         self.live_views
             .insert(live_target, request.target_collection_identity());
         Ok(WorthQueryLiveViewHandle::new(name))
+    }
+
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        if self.fail_close {
+            return Err(WorthQueryWorkspaceError::new(
+                "source close denied by test adapter",
+            ));
+        }
+        self.live_views
+            .remove(&WorthQueryLiveArtifactTarget::from_view_name(name));
+        Ok(())
     }
 
     fn live_entities_for_target(
@@ -123,6 +144,8 @@ impl WorthQueryRuntimeSourceAdapter for TestSourceAdapter {
 
 pub(in crate::runtime::tests) struct CountingSourceAdapter {
     pub(in crate::runtime::tests) declared_live_views: std::rc::Rc<std::cell::Cell<usize>>,
+    closed_live_views: Option<std::rc::Rc<std::cell::Cell<usize>>>,
+    close_denied: Option<std::rc::Rc<std::cell::Cell<bool>>>,
     inner: TestSourceAdapter,
 }
 
@@ -132,6 +155,21 @@ impl CountingSourceAdapter {
     ) -> Self {
         Self {
             declared_live_views,
+            closed_live_views: None,
+            close_denied: None,
+            inner: TestSourceAdapter::default(),
+        }
+    }
+
+    pub(in crate::runtime::tests) fn lifecycle_counting(
+        declared_live_views: std::rc::Rc<std::cell::Cell<usize>>,
+        closed_live_views: std::rc::Rc<std::cell::Cell<usize>>,
+        close_denied: std::rc::Rc<std::cell::Cell<bool>>,
+    ) -> Self {
+        Self {
+            declared_live_views,
+            closed_live_views: Some(closed_live_views),
+            close_denied: Some(close_denied),
             inner: TestSourceAdapter::default(),
         }
     }
@@ -147,6 +185,22 @@ impl WorthQueryRuntimeSourceAdapter for CountingSourceAdapter {
         self.declared_live_views
             .set(self.declared_live_views.get().saturating_add(1));
         self.inner.declare_live_view(name, request, schema_view)
+    }
+
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        if self
+            .close_denied
+            .as_ref()
+            .is_some_and(|denied| denied.get())
+        {
+            return Err(WorthQueryWorkspaceError::new(
+                "source close denied by lifecycle counting adapter",
+            ));
+        }
+        if let Some(closed_live_views) = self.closed_live_views.as_ref() {
+            closed_live_views.set(closed_live_views.get().saturating_add(1));
+        }
+        self.inner.close_live_view(name)
     }
 
     fn live_entities_for_target(

@@ -1,8 +1,9 @@
 use super::{
-    WorthQueryEffectHandle, WorthQueryEffectIntentReceipt, WorthQueryIntentDeclaration,
+    WorthQueryBatchWriteReceipt, WorthQueryBatchWriteReceiptInspection, WorthQueryEffectHandle,
+    WorthQueryEffectIntentReceipt, WorthQueryInspection, WorthQueryIntentDeclaration,
     WorthQueryIntentReceipt, WorthQueryMutationBatchBuilder, WorthQueryRuntimeError,
     WorthQueryRuntimeFacadeFamily, WorthQueryWorkspace, WorthQueryWriteCommand,
-    WorthQueryWriteReceipt,
+    WorthQueryWriteReceipt, WorthQueryWriteReceiptInspection,
 };
 
 pub struct WorthQueryWorkspaceSubmissionLane<'a> {
@@ -21,11 +22,42 @@ impl<'a> WorthQueryWorkspaceSubmissionLane<'a> {
         self.runtime.write(command)
     }
 
+    pub fn submit_with_inspection(
+        &mut self,
+        command: WorthQueryWriteCommand,
+    ) -> Result<(WorthQueryWriteReceipt, WorthQueryWriteReceiptInspection), WorthQueryRuntimeError>
+    {
+        let receipt = self.runtime.write(command)?;
+        let inspection = match self.runtime.inspect(&receipt)? {
+            WorthQueryInspection::WriteReceipt(inspection) => inspection,
+            other => panic!("expected write receipt inspection, got {other:?}"),
+        };
+        Ok((receipt, inspection))
+    }
+
     pub fn submit_batch(
         &mut self,
         commands: Vec<WorthQueryWriteCommand>,
-    ) -> Result<super::WorthQueryBatchWriteReceipt, WorthQueryRuntimeError> {
+    ) -> Result<WorthQueryBatchWriteReceipt, WorthQueryRuntimeError> {
         self.runtime.write_batch_intent(commands).execute()
+    }
+
+    pub fn submit_batch_with_inspection(
+        &mut self,
+        commands: Vec<WorthQueryWriteCommand>,
+    ) -> Result<
+        (
+            WorthQueryBatchWriteReceipt,
+            WorthQueryBatchWriteReceiptInspection,
+        ),
+        WorthQueryRuntimeError,
+    > {
+        let receipt = self.runtime.write_batch_intent(commands).execute()?;
+        let inspection = match self.runtime.inspect(&receipt)? {
+            WorthQueryInspection::BatchWriteReceipt(inspection) => inspection,
+            other => panic!("expected batch write receipt inspection, got {other:?}"),
+        };
+        Ok((receipt, inspection))
     }
 
     pub fn submit_batch_builder(

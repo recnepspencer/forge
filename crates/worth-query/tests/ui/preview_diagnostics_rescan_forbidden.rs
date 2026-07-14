@@ -1,4 +1,4 @@
-use worth_query::facade::{PreviewEvaluationClass, PreviewSessionQueryContext};
+use worth_query::facade::policy::{PreviewEvaluationClass, PreviewSessionQueryContext};
 use worth_runtime_bridge::facade::{
     BridgePreviewReplayBundle, BridgePreviewSession, PreviewActive,
 };

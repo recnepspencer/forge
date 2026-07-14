@@ -1,7 +1,5 @@
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    WorthQueryAspectMutationBuilder, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
-};
+use worth_query::facade::runtime::{WorthQueryAspectMutationBuilder, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue};
 
 fn main() {
     let title = WorthQueryAspectTouch::aspect_field_path(

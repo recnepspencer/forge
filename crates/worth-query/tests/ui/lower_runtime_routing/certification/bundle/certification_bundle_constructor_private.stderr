@@ -1,7 +1,7 @@
 error[E0624]: associated function `new` is private
- --> tests/ui/lower_runtime_routing/certification/bundle/certification_bundle_constructor_private.rs:9:56
+ --> tests/ui/lower_runtime_routing/certification/bundle/certification_bundle_constructor_private.rs:6:56
   |
-9 |       let _ = WorthQueryLowerRuntimeCertificationBundle::new(rows, outputs);
+6 |       let _ = WorthQueryLowerRuntimeCertificationBundle::new(rows, outputs);
   |                                                          ^^^ private associated function
   |
  ::: src/lower_runtime_routing/certification/closeout_artifacts/bundle_types.rs

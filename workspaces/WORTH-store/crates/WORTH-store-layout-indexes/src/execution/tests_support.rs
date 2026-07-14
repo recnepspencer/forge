@@ -1,4 +1,8 @@
-use crate::facade::{access_planning, deterministic_plan_selection, layout_execution_freshness};
+use crate::facade::{
+    access_planning,
+    deterministic_plan_selection,
+    layout_execution_freshness,
+};
 use crate::strategy::tests_support::admit_phase_five_scope;
 use crate::{
     access_lowering, S8AccessLoweringDenied, S8AccessLoweringOutcome, S8DegradedExactScanRequest,

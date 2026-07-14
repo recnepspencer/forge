@@ -25,6 +25,18 @@ impl WorthQueryReadReceipt {
         &self.graph_family
     }
 
+    pub fn collection_result_family(&self) -> Option<&crate::collection::CollectionResultFamily> {
+        self.collection_result_family.as_ref()
+    }
+
+    /// Canonical identity of the admitted execution plan consumed by Query.
+    ///
+    /// This is derived evidence. It does not expose planner construction or
+    /// route-selection authority to the caller.
+    pub fn execution_plan_digest(&self) -> &str {
+        &self.execution_plan_digest
+    }
+
     pub fn query_digest(&self) -> &str {
         &self.query_digest
     }
@@ -88,6 +100,22 @@ impl WorthQueryReadReceipt {
 
     pub fn relationship_proof_support_profile(&self) -> Option<&RelationshipProofSupportProfile> {
         self.relationship_proof_support_profile.as_ref()
+    }
+
+    pub fn policy_narrowing_digest(&self) -> Option<&str> {
+        self.policy_narrowing_digest.as_deref()
+    }
+
+    pub fn policy_aware_plan_digest(&self) -> Option<&str> {
+        self.policy_aware_plan_digest.as_deref()
+    }
+
+    pub fn policy_execution_seam_identity(&self) -> Option<&str> {
+        self.policy_execution_seam_identity.as_deref()
+    }
+
+    pub fn policy_executor_semantic_rediscovery_count(&self) -> usize {
+        self.policy_executor_semantic_rediscovery_count
     }
 
     pub fn relationship_proof_support_profile_digest(&self) -> Option<&str> {
@@ -222,6 +250,10 @@ impl WorthQueryReadReceipt {
         Self {
             read_graph_digest: read_graph_digest.into(),
             graph_family: WorthQueryReadGraphFamily::Collection,
+            collection_result_family: Some(
+                crate::collection::CollectionResultFamily::OrdinaryCollection,
+            ),
+            execution_plan_digest: "test-execution-plan".to_string(),
             query_digest: query_digest.into(),
             basis_digest: basis_digest.into(),
             result_digest: result_digest.into(),
@@ -237,10 +269,15 @@ impl WorthQueryReadReceipt {
             relationship_proof_posture: WorthQueryReadRelationshipProofPosture::NotRequired,
             relationship_proof_admission: None,
             relationship_proof_support_profile: None,
+            policy_narrowing_digest: None,
+            policy_aware_plan_digest: None,
+            policy_execution_seam_identity: None,
+            policy_executor_semantic_rediscovery_count: 0,
             breadth: WorthQueryReadBreadth {
                 planned_read_surface_count: 0,
                 planned_traversal_clause_count: 0,
                 planned_traversal_depth_limit: 0,
+                execution_query_projection_count: 0,
                 execution_read_operation_count: 0,
                 execution_records_examined_count: 0,
                 execution_records_emitted_count: 0,
@@ -248,6 +285,8 @@ impl WorthQueryReadReceipt {
                 execution_page_truncation_count: 0,
                 execution_cursor_advance_count: 0,
                 execution_materialized_relation_count: 0,
+                execution_aggregate_input_count: 0,
+                execution_rollup_input_count: 0,
             },
             materialized_fact_posture: None,
             graph_read_access_plan: None,

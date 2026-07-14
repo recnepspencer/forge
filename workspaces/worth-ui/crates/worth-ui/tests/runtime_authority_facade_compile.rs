@@ -112,6 +112,13 @@ fn forged_last_valid_receipt_is_not_installable_as_active_truth() {
 }
 
 #[test]
+fn portal_anchor_identity_fields_are_not_publicly_mintable() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/portal_anchor_identity_fields_not_public.rs",
+    );
+}
+
+#[test]
 fn pending_activation_is_not_publicly_mintable() {
     runtime_authority_compile_fail(
         "tests/ui/runtime_authority/fail/pending_activation_not_publicly_mintable.rs",

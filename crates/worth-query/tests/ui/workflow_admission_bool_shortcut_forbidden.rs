@@ -1,4 +1,4 @@
-use worth_query::facade::{WorkflowDeclarationFamily, WorkflowDeclarationRequest};
+use worth_query::facade::runtime::{WorkflowDeclarationFamily, WorkflowDeclarationRequest};
 
 fn main() {
     let _ = WorkflowDeclarationRequest::new_with_bool(

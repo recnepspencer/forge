@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    GroupedDesiredStateArtifact, GroupedExecutionLaneValue, GroupedLaneIdentity,
-    GroupedViewResultArtifact,
-};
+use worth_query::facade::runtime::{GroupedDesiredStateArtifact, GroupedExecutionLaneValue, GroupedLaneIdentity, GroupedViewResultArtifact};
 
 fn assert_no_terminal_grouped_live_projection(
     lane: &GroupedLaneIdentity,

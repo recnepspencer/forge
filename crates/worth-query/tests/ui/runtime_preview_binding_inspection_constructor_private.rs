@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryAuthorityLane, WorthQueryEffectPolicy, WorthQueryPreviewBindingInspection,
-    WorthQueryPreviewHandleBindingFamily,
-};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryEffectPolicy, WorthQueryPreviewBindingInspection, WorthQueryPreviewHandleBindingFamily};
 
 fn main() {
     let _worthd = WorthQueryPreviewBindingInspection {

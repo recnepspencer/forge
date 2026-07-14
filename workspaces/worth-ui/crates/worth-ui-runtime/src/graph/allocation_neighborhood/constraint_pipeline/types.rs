@@ -19,6 +19,7 @@ pub(super) struct PropagationEdgeAdmissionParts {
         Option<crate::evidence::UiConstraintViewportPlanningInputResult>,
     pub(super) scroll_owner_planning_input:
         Option<crate::evidence::UiConstraintScrollOwnerPlanningInputResult>,
+    pub(super) scroll_authority: Option<crate::graph::UiGraphScrollPlanningAuthority>,
     pub(super) portal_anchor_planning_input:
         Option<crate::evidence::UiConstraintPortalAnchorPlanningInputResult>,
     pub(super) sibling_negotiation: Option<crate::evidence::UiConstraintSiblingNegotiationResult>,
@@ -33,6 +34,7 @@ pub(super) struct SpecialInputAdmissionParts {
         Option<crate::evidence::UiConstraintViewportPlanningInputResult>,
     pub(super) scroll_owner_planning_input:
         Option<crate::evidence::UiConstraintScrollOwnerPlanningInputResult>,
+    pub(super) scroll_authority: Option<crate::graph::UiGraphScrollPlanningAuthority>,
     pub(super) portal_anchor_planning_input:
         Option<crate::evidence::UiConstraintPortalAnchorPlanningInputResult>,
 }

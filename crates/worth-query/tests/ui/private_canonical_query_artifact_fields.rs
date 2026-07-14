@@ -1,4 +1,4 @@
-use worth_query::facade::CanonicalQueryArtifact;
+use worth_query::facade::foundation::CanonicalQueryArtifact;
 
 fn main() {
     let _ = CanonicalQueryArtifact {

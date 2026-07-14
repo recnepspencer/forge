@@ -19,6 +19,7 @@ pub use special_inputs::{
     UiConstraintPortalAnchorPlanningInputResult, UiConstraintScrollOwnerPlanningInputResult,
     UiConstraintViewportPlanningInputResult, UiPortalAnchorPlanningInputPosture,
     UiPortalAnchorPlanningInputSolveOrder, UiScrollOwnerPlanningInputPosture,
-    UiScrollOwnerPlanningInputSolveOrder, UiViewportPlanningInputPosture,
+    UiScrollOwnerPlanningInputSolveOrder, UiScrollOwnerSourceAdmissionCounters,
+    UiScrollOwnerSourceEvidence, UiScrollOwnerSourceKind, UiViewportPlanningInputPosture,
     UiViewportPlanningInputSolveOrder,
 };

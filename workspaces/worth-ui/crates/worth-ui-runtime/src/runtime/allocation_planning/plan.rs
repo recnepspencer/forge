@@ -106,6 +106,9 @@ fn allocation_planning_identity_digest(
     if let Some(constraint_set) = basis.allocation_constraint_set() {
         digest ^= constraint_set.identity().identity_digest().rotate_left(17);
     }
+    if let Some(portal) = basis.portal_allocation_input() {
+        digest ^= portal.identity_digest().rotate_left(37);
+    }
 
     if let Some(lowering) = lowering {
         digest ^= lowering.basis().active_artifact_digest().rotate_left(19);

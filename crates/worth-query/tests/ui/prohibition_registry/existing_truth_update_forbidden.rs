@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryAspectMutationBuilder, WorthQueryExistingTruthTargetBinding, WorthQueryWorkspace,
-};
+use worth_query::facade::runtime::{WorthQueryAspectMutationBuilder, WorthQueryExistingTruthTargetBinding, WorthQueryWorkspace};
 
 fn forbidden(mut workspace: WorthQueryWorkspace, binding: WorthQueryExistingTruthTargetBinding) {
     let _ = workspace.update_existing(binding, |builder: WorthQueryAspectMutationBuilder| builder);

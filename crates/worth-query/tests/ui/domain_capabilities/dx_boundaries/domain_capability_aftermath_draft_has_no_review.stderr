@@ -1,11 +1,11 @@
 error[E0599]: no method named `review` found for struct `WorthQueryAdmittedPlanAftermathDraft` in the current scope
-  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_aftermath_draft_has_no_review.rs:17:10
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_aftermath_draft_has_no_review.rs:15:10
    |
-14 |       let _ = worth_query_domain("worth.spatial")
+12 |       let _ = worth_query_domain("worth.spatial")
    |  _____________-
-15 | |         .for_admitted_intent_plan(&admitted_plan())
-16 | |         .consumes_projection_contract("projection.contract", projection_contract())
-17 | |         .review();
+13 | |         .for_admitted_intent_plan(&admitted_plan())
+14 | |         .consumes_projection_contract("projection.contract", projection_contract())
+15 | |         .review();
    | |         -^^^^^^ method not found in `WorthQueryAdmittedPlanAftermathDraft`
    | |_________|
    |

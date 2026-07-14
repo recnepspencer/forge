@@ -1,5 +1,7 @@
-use worth_query::facade::{
-    WorthQueryCapabilityDescriptor, WorthQueryCapabilityFamily, WorthQueryCapabilityStatus,
+use worth_query::facade::foundation::{
+    WorthQueryCapabilityDescriptor,
+    WorthQueryCapabilityFamily,
+    WorthQueryCapabilityStatus,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]

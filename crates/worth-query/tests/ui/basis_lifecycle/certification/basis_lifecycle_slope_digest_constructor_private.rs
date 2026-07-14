@@ -1,4 +1,4 @@
-use worth_query::facade::{BasisLifecycleSlopeDigest, BasisLifecycleSlopeFamily};
+use worth_query::facade::certification::{BasisLifecycleSlopeDigest, BasisLifecycleSlopeFamily};
 
 fn main() {
     let _digest = BasisLifecycleSlopeDigest {

@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    admit_query_subscription, QuerySubscriptionAdmissionBudget,
-    QuerySubscriptionDeclarationArtifact,
-};
+use worth_query::facade::runtime::{admit_query_subscription, QuerySubscriptionAdmissionBudget, QuerySubscriptionDeclarationArtifact};
 
 fn main() {
     let declaration: Option<QuerySubscriptionDeclarationArtifact> = None;

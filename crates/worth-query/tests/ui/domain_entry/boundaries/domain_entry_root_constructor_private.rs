@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker,
-    WorthQueryDomainEntryRoot,
-};
+use worth_query::facade::foundation::{WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker, WorthQueryDomainEntryRoot};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct LocalDomain;

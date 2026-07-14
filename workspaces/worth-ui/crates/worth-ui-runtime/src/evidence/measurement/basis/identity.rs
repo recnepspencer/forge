@@ -104,6 +104,9 @@ pub(super) fn basis_identity_digest(
             .basis_source()
             .map(|basis_source| {
                 stable_text_digest(match basis_source {
+                    UiDeclaredMeasurementBasisSource::ViewportExtent => {
+                        "basis-source:viewport-extent"
+                    }
                     UiDeclaredMeasurementBasisSource::ScrollViewport => {
                         "basis-source:scroll-viewport"
                     }
@@ -211,6 +214,7 @@ fn denial_digest(denial_posture: Option<&UiMeasurementBasisDenial>) -> u64 {
         Some(UiMeasurementBasisDenial::MissingBasisSourceEvidence { basis_source, slot }) => {
             stable_text_digest("denial:missing-basis-source-evidence")
                 ^ stable_text_digest(match basis_source {
+                    UiDeclaredMeasurementBasisSource::ViewportExtent => "viewport-extent",
                     UiDeclaredMeasurementBasisSource::ScrollViewport => "scroll-viewport",
                     UiDeclaredMeasurementBasisSource::PortalAnchor => "portal-anchor",
                 })

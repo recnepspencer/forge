@@ -250,9 +250,9 @@ fn execute_lineage(
     let complexity_report = IdentityEvolutionComplexityReport::from_contract(
         admitted_query.complexity_contract().clone(),
     );
-    let metadata = IdentityEvolutionMetadata::from_parts(
-        admitted_query.query_context().query_digest().clone(),
-        admitted_query.query_context().basis_digest().clone(),
+    let metadata = IdentityEvolutionMetadata::from_authority_parts(
+        admitted_query.query_context().query_authority().clone(),
+        admitted_query.query_context().basis_proof().clone(),
         lineage_digest.clone(),
         outcome_family_for_lineage(descriptor.family(), admitted_query.synthetic_scenario()),
         admitted_query.query_context().basis_digest().clone(),
@@ -515,9 +515,9 @@ fn execute_comparison(
     let complexity_report = IdentityEvolutionComplexityReport::from_contract(
         admitted_query.complexity_contract().clone(),
     );
-    let metadata = IdentityEvolutionMetadata::from_parts(
-        admitted_query.query_context().query_digest().clone(),
-        admitted_query.query_context().basis_digest().clone(),
+    let metadata = IdentityEvolutionMetadata::from_authority_parts(
+        admitted_query.query_context().query_authority().clone(),
+        admitted_query.query_context().basis_proof().clone(),
         crate::identity::LineageDigest::from_parts(&[format!(
             "comparison_lineage_digest:{}",
             lineage_digest.as_str()

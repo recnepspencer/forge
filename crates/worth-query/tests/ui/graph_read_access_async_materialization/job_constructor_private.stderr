@@ -1,21 +1,21 @@
 error[E0451]: fields `digest`, `request`, `snapshot_identity`, `progress`, `target_progress`, `checkpoint`, `checkpoints` and `state` of struct `WorthQueryGraphReadMaterializationJob` are private
-  --> tests/ui/graph_read_access_async_materialization/job_constructor_private.rs:9:9
+  --> tests/ui/graph_read_access_async_materialization/job_constructor_private.rs:5:9
    |
- 8 |     let _ = WorthQueryGraphReadMaterializationJob {
+ 4 |     let _ = WorthQueryGraphReadMaterializationJob {
    |             ------------------------------------- in this type
- 9 |         digest: String::new(),
+ 5 |         digest: String::new(),
    |         ^^^^^^ private field
-10 |         request: worthd_request(),
+ 6 |         request: worthd_request(),
    |         ^^^^^^^ private field
-11 |         snapshot_identity: String::new(),
+ 7 |         snapshot_identity: String::new(),
    |         ^^^^^^^^^^^^^^^^^ private field
-12 |         progress: worthd_progress(),
+ 8 |         progress: worthd_progress(),
    |         ^^^^^^^^ private field
-13 |         target_progress: worthd_progress(),
+ 9 |         target_progress: worthd_progress(),
    |         ^^^^^^^^^^^^^^^ private field
-14 |         checkpoint: worthd_checkpoint(),
+10 |         checkpoint: worthd_checkpoint(),
    |         ^^^^^^^^^^ private field
-15 |         checkpoints: vec![],
+11 |         checkpoints: vec![],
    |         ^^^^^^^^^^^ private field
-16 |         state: WorthQueryGraphReadMaterializationJobState::Running,
+12 |         state: WorthQueryGraphReadMaterializationJobState::Running,
    |         ^^^^^ private field

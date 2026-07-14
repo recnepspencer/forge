@@ -42,6 +42,9 @@ jobs:
       - name: Delivery guards
         run: python3 scripts/ci/check_delivery_guards.py
 
+      - name: Worth UI Phase 10 authority boundary guard
+        run: python3 scripts/ci/check_worth_ui_phase_10_authority_boundaries.py
+
       - name: Determinism guards
         run: python3 scripts/ci/check_determinism_guards.py
 

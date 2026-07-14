@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryIntentAdmissionFamily, WorthQueryIntentAdmissionFamilyInventoryRow,
-    WorthQueryIntentAdmissionSurfaceDescriptor,
-};
+use worth_query::facade::runtime::{WorthQueryIntentAdmissionFamily, WorthQueryIntentAdmissionFamilyInventoryRow, WorthQueryIntentAdmissionSurfaceDescriptor};
 
 fn main() {
     let _ = WorthQueryIntentAdmissionFamilyInventoryRow {

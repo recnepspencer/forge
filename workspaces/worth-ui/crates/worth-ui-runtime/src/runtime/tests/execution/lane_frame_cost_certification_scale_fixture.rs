@@ -8,7 +8,7 @@ use super::{
     WorthUiComponentLoweringHook, WorthUiExecutionLaneSupport, WorthUiExecutionPlanInput,
     WorthUiExtensionHookAdmission, WorthUiFrameExecutionReceipt, WorthUiHighFrequencyFramePolicy,
     WorthUiLaneAdapterHook, WorthUiPlanNodeInputFamily, WorthUiRealtimeFramePriority,
-    WorthUiRealtimeFrameTarget, WorthUiRuntimeHandleAllocation, WorthUiRuntimeHost,
+    WorthUiRealtimeFrameTarget, WorthUiRuntime, WorthUiRuntimeHandleAllocation,
     WorthUiSteadyFrameCounterBoundary, WorthUiViewBindingHandle, WorthUiVirtualizedDataFrameTarget,
     WorthUiVisibleRange,
 };
@@ -28,7 +28,7 @@ pub(super) fn virtualized_data_scale_sample(
             &virtualized.data_plan,
             WorthUiVirtualizedDataFrameTarget::view_binding(data_handle, range),
         )
-        .expect("virtualized scale sample executes");
+        .expect("runtime frame execution succeeds");
 
     WorthUiSteadyFrameCounterBoundary::for_active_plan(active_plan_digest)
         .record_virtualized_data_frame(receipt)
@@ -48,7 +48,7 @@ pub(super) fn realtime_overlay_scale_sample(
             &context.hud_plan,
             WorthUiRealtimeFrameTarget::renderer_surface(surface),
         )
-        .expect("realtime scale sample executes");
+        .expect("runtime frame execution succeeds");
 
     WorthUiSteadyFrameCounterBoundary::for_active_plan(active_plan_digest)
         .record_realtime_overlay_frame(receipt)
@@ -57,7 +57,7 @@ pub(super) fn realtime_overlay_scale_sample(
 }
 
 struct RealtimeScaleContext {
-    runtime: WorthUiRuntimeHost,
+    runtime: crate::runtime::WorthUiRuntimeFrameworkLoop,
     hud_plan: super::WorthUiHudPlan,
 }
 
@@ -79,14 +79,17 @@ fn realtime_scale_context(duplicate_render_resource: bool) -> RealtimeScaleConte
     }
     let planning = allocation_planning(&runtime, &plan_input, "lane-frame-cost.realtime");
     let allocation = runtime
-        .allocate_runtime_handles(&planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect("handle allocation succeeds");
     let lane_admission = runtime
-        .admit_execution_lanes(&planning, &WorthUiExecutionLaneSupport::platform_default())
+        .admit_execution_lanes(
+            &runtime.detached_allocation_receipt_for_test(&planning),
+            &WorthUiExecutionLaneSupport::platform_default(),
+        )
         .expect("lane admission succeeds");
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &planning,
+            &runtime.detached_allocation_receipt_for_test(&planning),
             &allocation,
             &lane_admission,
         )
@@ -110,7 +113,7 @@ fn realtime_scale_context(duplicate_render_resource: bool) -> RealtimeScaleConte
 }
 
 fn pending_plan_input(
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     admitted: super::WorthUiAdmittedReplacementCandidate,
 ) -> super::WorthUiPendingActivation {
     let comparison = runtime
@@ -196,7 +199,7 @@ fn realtime_component_hooks() -> [WorthUiComponentLoweringHook; 5] {
 }
 
 fn realtime_hook_admissions(
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     lane_admission: &super::WorthUiLaneAdmission,
 ) -> Vec<WorthUiExtensionHookAdmission> {
     [WorthUiLaneAdapterHook::realtime_overlay_mechanics(

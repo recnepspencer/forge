@@ -154,7 +154,7 @@ of canonical declaration meaning and later support behavior.
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryCapabilityFamily, WorthQueryDeclarationFamilyMarker,
     WorthQueryDeclarationLegalityContract,
     WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
@@ -192,7 +192,7 @@ internal proof shape.
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
     WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,

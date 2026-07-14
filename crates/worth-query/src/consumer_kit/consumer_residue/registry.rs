@@ -19,6 +19,17 @@ pub enum WorthQueryConsumerResidueClass {
     DebugDerivedQueryProof,
     DelimiterJoinedQueryProof,
     DelimiterFormattedQueryProof,
+    DecomposedProjectionConsumptionAttempt,
+    IndependentlyPairableProjectionConsumptionParts,
+    LegacyProjectionFactConsumptionCall,
+    LegacyProjectionDeclarationCall,
+    LegacyProjectionIntentAdmissionCall,
+    LocalQueryMeasurementConsumptionIdentity,
+    LocalProjectionContractBinding,
+    LocalQueryBasisDigestCompatibility,
+    LegacyProjectionPrerequisiteAssembly,
+    DirectInternalQueryImport,
+    LegacyQueryBasisLifecycle,
 }
 
 impl WorthQueryConsumerResidueClass {
@@ -43,6 +54,23 @@ impl WorthQueryConsumerResidueClass {
             Self::DebugDerivedQueryProof => "debug-derived-query-proof",
             Self::DelimiterJoinedQueryProof => "delimiter-joined-query-proof",
             Self::DelimiterFormattedQueryProof => "delimiter-formatted-query-proof",
+            Self::DecomposedProjectionConsumptionAttempt => {
+                "decomposed-projection-consumption-attempt"
+            }
+            Self::IndependentlyPairableProjectionConsumptionParts => {
+                "independently-pairable-projection-consumption-parts"
+            }
+            Self::LegacyProjectionFactConsumptionCall => "legacy-projection-fact-consumption-call",
+            Self::LegacyProjectionDeclarationCall => "legacy-projection-declaration-call",
+            Self::LegacyProjectionIntentAdmissionCall => "legacy-projection-intent-admission-call",
+            Self::LocalQueryMeasurementConsumptionIdentity => {
+                "local-query-measurement-consumption-identity"
+            }
+            Self::LocalProjectionContractBinding => "local-projection-contract-binding",
+            Self::LocalQueryBasisDigestCompatibility => "local-query-basis-digest-compatibility",
+            Self::LegacyProjectionPrerequisiteAssembly => "legacy-projection-prerequisite-assembly",
+            Self::DirectInternalQueryImport => "direct-internal-query-import",
+            Self::LegacyQueryBasisLifecycle => "legacy-query-basis-lifecycle",
         }
     }
 
@@ -282,20 +310,86 @@ const CONSUMER_RESIDUE_REGISTRY: &[WorthQueryConsumerResidueRegistryRow] = &[
         "consumer derives Query proof from delimiter-formatted strings",
         "evidence-report-kit",
     ),
+    registry_row(
+        WorthQueryConsumerResidueClass::DecomposedProjectionConsumptionAttempt,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "ProjectionFactConsumptionAttempt",
+        "consumer accepts a decomposed attempt instead of Query's sealed authority outcome",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::IndependentlyPairableProjectionConsumptionParts,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "CompletedProjectionFactConsumption",
+        "consumer retains completed consumption parts that can be paired outside Query authority",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LegacyProjectionFactConsumptionCall,
+        WorthQueryConsumerResidueDetection::ExactText,
+        ".consume_projection_facts(",
+        "consumer invokes the decomposed fact-consumption lifecycle instead of requesting sealed authority",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LegacyProjectionDeclarationCall,
+        WorthQueryConsumerResidueDetection::ExactText,
+        ".declare_projection_fact_consumption(",
+        "consumer authors the intermediate projection lifecycle outside Query authority",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LegacyProjectionIntentAdmissionCall,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "worth_query_projection_consumption_intent(",
+        "consumer routes through the retired projection-consumption intent instead of requesting sealed authority",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LocalQueryMeasurementConsumptionIdentity,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "WorthUiQueryMeasurementConsumptionIdentity",
+        "consumer mints a local mirror of Query consumption identity",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LocalProjectionContractBinding,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "bind_projection_contract(",
+        "consumer binds a decomposed projection contract instead of retaining Query authority",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LocalQueryBasisDigestCompatibility,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "contract.basis_digest() != Some(",
+        "consumer reopens Query basis compatibility through a reporting digest",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LegacyProjectionPrerequisiteAssembly,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "with_query_prerequisites_from_projection_consumption",
+        "consumer reconstructs prerequisites from decomposed projection consumption",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::DirectInternalQueryImport,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "worth_query::projection_consumption",
+        "consumer imports Query implementation topology instead of the curated facade",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LegacyQueryBasisLifecycle,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "query_basis_lifecycle",
+        "consumer imports or reconstructs the deleted parallel basis lifecycle",
+        "downstream-authority-adoption",
+    ),
 ];
 
-const fn registry_row(
-    class: WorthQueryConsumerResidueClass,
-    detection: WorthQueryConsumerResidueDetection,
-    detection_key: &'static str,
-    explanation: &'static str,
-    replacement_lane: &'static str,
-) -> WorthQueryConsumerResidueRegistryRow {
-    WorthQueryConsumerResidueRegistryRow::new(
-        class,
-        detection,
-        detection_key,
-        explanation,
-        replacement_lane,
-    )
+#[rustfmt::skip]
+const fn registry_row(class: WorthQueryConsumerResidueClass, detection: WorthQueryConsumerResidueDetection, detection_key: &'static str, explanation: &'static str, replacement_lane: &'static str) -> WorthQueryConsumerResidueRegistryRow {
+    WorthQueryConsumerResidueRegistryRow::new(class, detection, detection_key, explanation, replacement_lane)
 }

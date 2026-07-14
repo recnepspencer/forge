@@ -1,13 +1,13 @@
 error[E0308]: arguments to this function are incorrect
- --> tests/ui/subscription_consumer_attachment_raw_budget_forbidden.rs:6:19
+ --> tests/ui/subscription_consumer_attachment_raw_budget_forbidden.rs:4:19
   |
-6 |     let _budget = SubscriptionConsumerAttachmentBudget::admitted(
+4 |     let _budget = SubscriptionConsumerAttachmentBudget::admitted(
   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-7 |         1,
+5 |         1,
   |         - expected `ActiveFanoutWidth`, found integer
-8 |         1,
+6 |         1,
   |         - expected `ConsumerDeliveryPacingWidth`, found integer
-9 |         1,
+7 |         1,
   |         - expected `ActiveAllocationScopeWidth`, found integer
   |
 note: associated function defined here

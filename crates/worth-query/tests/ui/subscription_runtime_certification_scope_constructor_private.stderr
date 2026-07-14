@@ -1,17 +1,17 @@
 warning: unreachable statement
-  --> tests/ui/subscription_runtime_certification_scope_constructor_private.rs:10:5
-   |
- 9 |     let support_report: QuerySubscriptionSupportReport = todo!();
-   |                                                          ------- any code following this expression is unreachable
-10 |     let bridge_parity: QuerySubscriptionBridgeParityExplanation = todo!();
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
-   |
-   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+ --> tests/ui/subscription_runtime_certification_scope_constructor_private.rs:6:5
+  |
+5 |     let support_report: QuerySubscriptionSupportReport = todo!();
+  |                                                          ------- any code following this expression is unreachable
+6 |     let bridge_parity: QuerySubscriptionBridgeParityExplanation = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
 error[E0624]: associated function `compose` is private
-  --> tests/ui/subscription_runtime_certification_scope_constructor_private.rs:22:53
+  --> tests/ui/subscription_runtime_certification_scope_constructor_private.rs:18:53
    |
-22 |         scope_identity: WorthQueryEvidenceIdentity::compose(
+18 |         scope_identity: WorthQueryEvidenceIdentity::compose(
    |                                                     ^^^^^^^ private associated function
    |
   ::: src/evidence_identity/artifact.rs
@@ -20,9 +20,9 @@ error[E0624]: associated function `compose` is private
    |     ------------------------------------------------------------------------------------------ private associated function defined here
 
 error[E0624]: method `seal` is private
-  --> tests/ui/subscription_runtime_certification_scope_constructor_private.rs:25:10
+  --> tests/ui/subscription_runtime_certification_scope_constructor_private.rs:21:10
    |
-25 |         .seal(),
+21 |         .seal(),
    |          ^^^^ private method
    |
   ::: src/evidence_identity/encoder.rs

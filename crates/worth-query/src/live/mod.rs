@@ -7,7 +7,7 @@ use crate::validation::ValidatedQueryBundle;
 use worth_foundational::facade::{AspectKey, FieldKey};
 
 mod region_scoped;
-pub use region_scoped::{
+pub(crate) use region_scoped::{
     admit_region_scoped_live_plan, execute_region_scoped_live_change,
     lower_region_scoped_execution_to_stream_contract,
 };
@@ -4466,7 +4466,7 @@ pub fn promote_preflight_bundle_to_live(
     })
 }
 
-pub fn execute_live_change(
+pub(crate) fn execute_live_change(
     live: &LiveQueryPlan,
     change: &BridgeChangeSummary,
 ) -> Result<LiveExecutionEnvelope, LiveExecutionError> {

@@ -1,6 +1,5 @@
-use worth_query::facade::{
-    BasisLifecycleAdapterOutcome, BasisLifecycleAdapterProof, BasisLifecycleMigrationSurface,
-};
+use worth_query::facade::certification::BasisLifecycleMigrationSurface;
+use worth_query::facade::{BasisLifecycleAdapterOutcome, BasisLifecycleAdapterProof};
 
 fn main() {
     let _proof = BasisLifecycleAdapterProof {

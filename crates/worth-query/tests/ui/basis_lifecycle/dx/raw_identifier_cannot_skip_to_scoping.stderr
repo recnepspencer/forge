@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_query::facade::scope_basis_for_observation`
+ --> tests/ui/basis_lifecycle/dx/raw_identifier_cannot_skip_to_scoping.rs:1:5
+  |
+1 | use worth_query::facade::scope_basis_for_observation;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `scope_basis_for_observation` in `facade`

@@ -2,7 +2,7 @@
 
 use std::sync::{atomic::AtomicUsize, Arc, Mutex};
 use worth_proof::{TransitionOutcome, TransitionReadiness};
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     request_context::DiagnosticRichnessProfile,
     surfaces::{CompatHttpSurface, WorthNativeSurface},
@@ -293,8 +293,10 @@ impl WorthServerQueryWorkspaceProvider for CapturingWorkspaceProvider {
     fn bind_workspace(
         &self,
         request: &WorthServerQueryWorkspaceBindingRequest,
-    ) -> Result<worth_query::facade::WorthQueryWorkspace, WorthServerQueryWorkspaceBindingError>
-    {
+    ) -> Result<
+        worth_query::facade::runtime::WorthQueryWorkspace,
+        WorthServerQueryWorkspaceBindingError,
+    > {
         self.captured_targets
             .lock()
             .expect("capturing workspace provider mutex should not be poisoned")
@@ -318,8 +320,10 @@ impl WorthServerQueryWorkspaceProvider for FailingWorkspaceProvider {
     fn bind_workspace(
         &self,
         _request: &WorthServerQueryWorkspaceBindingRequest,
-    ) -> Result<worth_query::facade::WorthQueryWorkspace, WorthServerQueryWorkspaceBindingError>
-    {
+    ) -> Result<
+        worth_query::facade::runtime::WorthQueryWorkspace,
+        WorthServerQueryWorkspaceBindingError,
+    > {
         Err(WorthServerQueryWorkspaceBindingError::new(
             self.stage,
             self.message,

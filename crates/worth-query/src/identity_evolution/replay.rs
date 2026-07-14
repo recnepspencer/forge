@@ -1,4 +1,6 @@
+use crate::basis::ResolvedBasisProof;
 use crate::identity::{BasisDigest, FailureDigest, LineageDigest, ResultDigest};
+use crate::identity_authority::QueryCanonicalAuthority;
 
 use super::{
     evidence::{
@@ -25,6 +27,8 @@ impl IdentityEvolutionReplayParityClass {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IdentityEvolutionReplayArtifact {
+    query_authority: Option<QueryCanonicalAuthority>,
+    basis: Option<ResolvedBasisProof>,
     query_digest: String,
     basis_digest: BasisDigest,
     lineage_digest: LineageDigest,
@@ -37,6 +41,14 @@ pub struct IdentityEvolutionReplayArtifact {
 }
 
 impl IdentityEvolutionReplayArtifact {
+    pub fn query_authority(&self) -> Option<&QueryCanonicalAuthority> {
+        self.query_authority.as_ref()
+    }
+
+    pub fn basis_proof(&self) -> Option<&ResolvedBasisProof> {
+        self.basis.as_ref()
+    }
+
     pub fn query_digest(&self) -> &str {
         &self.query_digest
     }
@@ -99,6 +111,8 @@ impl IdentityEvolutionReplayArtifact {
             ),
         ]);
         Self {
+            query_authority: Some(evidence.query_authority().clone()),
+            basis: Some(evidence.basis_proof().clone()),
             query_digest: evidence.query_digest().as_str().to_string(),
             basis_digest: evidence.basis_digest().clone(),
             lineage_digest: evidence.lineage_digest().clone(),
@@ -140,6 +154,8 @@ impl IdentityEvolutionReplayArtifact {
             ),
         ]);
         Self {
+            query_authority: None,
+            basis: None,
             query_digest: evidence.query_digest().as_str().to_string(),
             basis_digest: evidence.basis_digest().clone(),
             lineage_digest: evidence.lineage_digest().clone(),

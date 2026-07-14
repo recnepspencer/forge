@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryOperationInput, WorthQueryOperationOutput, WorthQueryProgramValue,
-};
+use worth_query::facade::policy::{WorthQueryOperationInput, WorthQueryOperationOutput, WorthQueryProgramValue};
 
 fn main() {
     let value = WorthQueryProgramValue::string("native");

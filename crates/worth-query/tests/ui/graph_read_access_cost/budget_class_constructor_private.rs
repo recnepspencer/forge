@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadBudgetClass, WorthQueryGraphReadBudgetClassKind,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadBudgetClass, WorthQueryGraphReadBudgetClassKind};
 
 fn main() {
     let _ = WorthQueryGraphReadBudgetClass {

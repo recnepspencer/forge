@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphObligationDispatchContext, WorthQueryGraphObligationDispatchContextKind,
-};
+use worth_query::facade::runtime::{WorthQueryGraphObligationDispatchContext, WorthQueryGraphObligationDispatchContextKind};
 
 fn main() {
     let _ = WorthQueryGraphObligationDispatchContext {

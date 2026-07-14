@@ -7,15 +7,15 @@ error[E0277]: the trait bound `BasisLifecycleIntentDraft: ScopedBasisProof` is n
   |         ^^^^^ the trait `ScopedBasisProof` is not implemented for `BasisLifecycleIntentDraft`
   |
   = help: the following other types implement trait `ScopedBasisProof`:
-            worth_query::facade::ScopedCertificationBasis
-            worth_query::facade::ScopedInspectionBasis
-            worth_query::facade::ScopedMaterializationBasis
-            worth_query::facade::ScopedMutationPreparationBasis
-            worth_query::facade::ScopedObservationBasis
-            worth_query::facade::ScopedPreviewCloseoutBasis
-            worth_query::facade::ScopedReplayBasis
-            worth_query::facade::ScopedSubscriptionActivationBasis
-            worth_query::facade::ScopedSubscriptionDeclarationBasis
+            worth_query::basis_lifecycle::scoping::ScopedCertificationBasis
+            worth_query::facade::foundation::ScopedInspectionBasis
+            worth_query::facade::foundation::ScopedMaterializationBasis
+            worth_query::facade::foundation::ScopedMutationPreparationBasis
+            worth_query::facade::foundation::ScopedObservationBasis
+            worth_query::facade::foundation::ScopedPreviewCloseoutBasis
+            worth_query::facade::foundation::ScopedReplayBasis
+            worth_query::facade::foundation::ScopedSubscriptionActivationBasis
+            worth_query::facade::foundation::ScopedSubscriptionDeclarationBasis
 note: required by a bound in `readmit_lower_runtime_evidence`
  --> src/basis_lifecycle/lower_runtime/mod.rs
   |
@@ -33,15 +33,15 @@ error[E0277]: the trait bound `BasisLifecycleIntentDraft: ScopedBasisProof` is n
   | |_____^ the trait `ScopedBasisProof` is not implemented for `BasisLifecycleIntentDraft`
   |
   = help: the following other types implement trait `ScopedBasisProof`:
-            worth_query::facade::ScopedCertificationBasis
-            worth_query::facade::ScopedInspectionBasis
-            worth_query::facade::ScopedMaterializationBasis
-            worth_query::facade::ScopedMutationPreparationBasis
-            worth_query::facade::ScopedObservationBasis
-            worth_query::facade::ScopedPreviewCloseoutBasis
-            worth_query::facade::ScopedReplayBasis
-            worth_query::facade::ScopedSubscriptionActivationBasis
-            worth_query::facade::ScopedSubscriptionDeclarationBasis
+            worth_query::basis_lifecycle::scoping::ScopedCertificationBasis
+            worth_query::facade::foundation::ScopedInspectionBasis
+            worth_query::facade::foundation::ScopedMaterializationBasis
+            worth_query::facade::foundation::ScopedMutationPreparationBasis
+            worth_query::facade::foundation::ScopedObservationBasis
+            worth_query::facade::foundation::ScopedPreviewCloseoutBasis
+            worth_query::facade::foundation::ScopedReplayBasis
+            worth_query::facade::foundation::ScopedSubscriptionActivationBasis
+            worth_query::facade::foundation::ScopedSubscriptionDeclarationBasis
 note: required by a bound in `LowerRuntimeBoundBasis`
  --> src/basis_lifecycle/lower_runtime/mod.rs
   |

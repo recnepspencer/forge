@@ -22,7 +22,7 @@ use crate::{
     compat_http_phase_twelve_runtime::{build_phase_twelve_server, upload_input},
     query_handoff_runtime::ProfiledTestWorkspaceProvider,
 };
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 
 #[test]
 fn compat_http_phase_twelve_transfer_lifecycle_accounting_stays_narrow_and_reconstructable() {

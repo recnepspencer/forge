@@ -1,4 +1,4 @@
-use worth_query::facade::LoweredMergeWorkflowDeclaration;
+use worth_query::facade::runtime::LoweredMergeWorkflowDeclaration;
 
 fn main() {
     let _ = LoweredMergeWorkflowDeclaration {

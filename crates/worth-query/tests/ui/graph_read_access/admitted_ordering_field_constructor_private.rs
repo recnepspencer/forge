@@ -1,7 +1,5 @@
 use worth_foundational::facade::{AspectKey, FieldKey};
-use worth_query::facade::runtime::{
-    WorthQueryAdmittedGraphReadOrderingField, WorthQueryGraphReadAdmittedSchemaFieldKind,
-};
+use worth_query::facade::runtime::{WorthQueryAdmittedGraphReadOrderingField, WorthQueryGraphReadAdmittedSchemaFieldKind};
 
 fn main() {
     let _ = WorthQueryAdmittedGraphReadOrderingField {

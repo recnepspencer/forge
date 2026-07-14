@@ -1,0 +1,25 @@
+warning: unreachable statement
+ --> tests/ui/public_authority_surface/causal_receipt_cannot_author_inspection.rs:5:5
+  |
+4 |     let receipt: QueryObservationReceipt = todo!();
+  |                                            ------- any code following this expression is unreachable
+5 |     let _ = CausalInspection::for_observation(receipt);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0061]: this function takes 2 arguments but 1 argument was supplied
+ --> tests/ui/public_authority_surface/causal_receipt_cannot_author_inspection.rs:5:13
+  |
+5 |     let _ = CausalInspection::for_observation(receipt);
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------- argument #2 of type `worth_query::facade::foundation::ScopedInspectionBasis` is missing
+  |
+note: associated function defined here
+ --> src/runtime/inspection/causal/builder.rs
+  |
+  |     pub fn for_observation(
+  |            ^^^^^^^^^^^^^^^
+help: provide the argument
+  |
+5 |     let _ = CausalInspection::for_observation(receipt, /* worth_query::facade::foundation::ScopedInspectionBasis */);
+  |                                                      ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

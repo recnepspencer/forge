@@ -1,6 +1,4 @@
-use crate::collection::{
-    AggregateFunctionFamily, CollectionResultFamily, DerivedFieldComputationClass,
-};
+use crate::collection::{CollectionResultFamily, DerivedFieldComputationClass};
 use crate::identity::ResultDigest;
 
 pub(super) fn synthetic_rows(
@@ -16,17 +14,6 @@ pub(super) fn synthetic_rows(
             matches!(
                 collection.post_read_shaping().result_family(),
                 CollectionResultFamily::CdcCollection
-            )
-        })
-        .unwrap_or(false);
-    let is_count_rollup = collection
-        .map(|collection| {
-            matches!(
-                collection
-                    .post_read_shaping()
-                    .aggregate_shape()
-                    .function_family(),
-                AggregateFunctionFamily::CountRows
             )
         })
         .unwrap_or(false);
@@ -48,20 +35,6 @@ pub(super) fn synthetic_rows(
                 format!(
                     "cdc:{}:{}:{}",
                     historical_query_identity, basis_digest, index
-                )
-            } else if is_count_rollup {
-                format!(
-                    "aggregate:count_rows:{}:{}:{}",
-                    historical_query_identity,
-                    basis_digest,
-                    preflight
-                        .plan()
-                        .collection()
-                        .unwrap()
-                        .post_read_shaping()
-                        .aggregate_shape()
-                        .input_breadth()
-                        .value()
                 )
             } else if is_display_label_derived {
                 format!(
@@ -96,17 +69,6 @@ pub(super) fn synthetic_result_digest(
             matches!(
                 collection.post_read_shaping().result_family(),
                 CollectionResultFamily::CdcCollection
-            )
-        })
-        .unwrap_or(false);
-    let is_count_rollup = collection
-        .map(|collection| {
-            matches!(
-                collection
-                    .post_read_shaping()
-                    .aggregate_shape()
-                    .function_family(),
-                AggregateFunctionFamily::CountRows
             )
         })
         .unwrap_or(false);
@@ -147,14 +109,9 @@ pub(super) fn synthetic_result_digest(
                     "ordinary_collection"
                 }
             )))
-            .chain(std::iter::once(format!(
-                "aggregate_family:{}",
-                if is_count_rollup {
-                    "count_rows"
-                } else {
-                    "none_admitted_yet"
-                }
-            )))
+            .chain(std::iter::once(
+                "aggregate_family:none_admitted_yet".to_string(),
+            ))
             .chain(std::iter::once(format!(
                 "derived_field_family:{}",
                 if is_display_label_derived {

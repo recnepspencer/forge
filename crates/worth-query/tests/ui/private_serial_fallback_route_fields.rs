@@ -1,4 +1,4 @@
-use worth_query::facade::SerialFallbackRoute;
+use worth_query::facade::foundation::SerialFallbackRoute;
 
 fn main() {
     let _ = SerialFallbackRoute {

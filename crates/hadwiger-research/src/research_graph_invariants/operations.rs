@@ -1,13 +1,8 @@
-use worth_proof::TransitionOutcome;
 use worth_query::facade::runtime::{
-    admit_eligible_domain_capability_contribution,
-    evaluate_requested_domain_capability_contribution,
-    materialize_graph_composition_domain_invariant_denial,
-    prepare_admitted_domain_capability_contribution_for_materialization,
-    CustomInvariantRegistrationError, WORTHQueryDomainCapabilityProgressionDenial,
-    WORTHQueryDomainCapabilityProgressionFailure, WORTHQueryDomainCapabilityRebindRequired,
-    WORTHQueryDomainCapabilityStale, WORTHQueryDomainCapabilityTransitionOutcome,
-    WORTHQueryInvariantCapabilityContributionAuthoring,
+    worth_query_domain, CustomInvariantRegistrationError,
+    WorthQueryDomainCapabilityMaterializationError, WorthQueryDomainCapabilityProgressionDenial,
+    WorthQueryDomainCapabilityProgressionFailure, WorthQueryDomainCapabilityRebindRequired,
+    WorthQueryDomainCapabilityStale,
 };
 
 use crate::discovery_loop::{DiscoveryFrontier, ResearchEvidenceCorpus};
@@ -33,10 +28,10 @@ pub enum ResearchGraphInvariantError {
     MissingCorpus,
     MissingLowerRuntimeBoundaryEnvelope,
     NoViolationDetected,
-    QueryInvariantContributionDenied(WORTHQueryDomainCapabilityProgressionDenial),
-    QueryInvariantContributionStale(WORTHQueryDomainCapabilityStale),
-    QueryInvariantContributionRebindRequired(WORTHQueryDomainCapabilityRebindRequired),
-    QueryInvariantContributionFailed(WORTHQueryDomainCapabilityProgressionFailure),
+    QueryInvariantContributionDenied(WorthQueryDomainCapabilityProgressionDenial),
+    QueryInvariantContributionStale(WorthQueryDomainCapabilityStale),
+    QueryInvariantContributionRebindRequired(WorthQueryDomainCapabilityRebindRequired),
+    QueryInvariantContributionFailed(WorthQueryDomainCapabilityProgressionFailure),
     CustomInvariantRegistration(CustomInvariantRegistrationError),
 }
 
@@ -137,28 +132,22 @@ pub fn materialize_research_graph_invariant_denial(
         .ok_or(ResearchGraphInvariantError::MissingLowerRuntimeBoundaryEnvelope)?;
     let violation = request.violation();
     let family = violation.rule_family().query_invariant_family();
-    let authoring = WORTHQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(
-        family,
-        ["hadwiger_research_graph"],
-        [violation.reference().stable_token()],
-        [violation.scope().as_str()],
-        [violation.violation_kind().as_str()],
-        request.catalog().artifact_digest().stable_token(),
-        violation.artifact_digest().stable_token(),
-        violation.counters().stable_token(),
-        family,
-        violation.detail(),
-    );
-    let requested = authoring.for_lower_runtime_boundary_source(source.envelope());
-    let eligible =
-        transition_success(evaluate_requested_domain_capability_contribution(requested))?;
-    let admitted = transition_success(admit_eligible_domain_capability_contribution(eligible))?;
-    let target = admitted.payload().target().clone();
-    let ready = transition_success(
-        prepare_admitted_domain_capability_contribution_for_materialization(admitted, target),
-    )?;
-    let query_denial =
-        transition_success(materialize_graph_composition_domain_invariant_denial(ready))?;
+    let query_denial = worth_query_domain("hadwiger_research")
+        .for_lower_runtime_boundary_source(source.envelope())
+        .denies_graph_invariant(
+            family,
+            ["hadwiger_research_graph"],
+            [violation.reference().stable_token()],
+            [violation.scope().as_str()],
+            [violation.violation_kind().as_str()],
+            request.catalog().artifact_digest().stable_token(),
+            violation.artifact_digest().stable_token(),
+            violation.counters().stable_token(),
+            family,
+            violation.detail(),
+        )
+        .materialize()
+        .map_err(map_domain_materialization_error)?;
     ResearchGraphInvariantDenial::new(request.catalog(), violation, source, query_denial)
         .map_err(Into::into)
 }
@@ -227,23 +216,21 @@ fn scope_for_family(family: ResearchGraphInvariantFamily) -> ResearchGraphInvari
     }
 }
 
-fn transition_success<S>(
-    outcome: WORTHQueryDomainCapabilityTransitionOutcome<S>,
-) -> Result<S, ResearchGraphInvariantError> {
-    match outcome {
-        TransitionOutcome::Success(value) => Ok(value),
-        TransitionOutcome::Denied(denial) => {
-            Err(ResearchGraphInvariantError::QueryInvariantContributionDenied(denial))
+fn map_domain_materialization_error(
+    error: WorthQueryDomainCapabilityMaterializationError,
+) -> ResearchGraphInvariantError {
+    match error {
+        WorthQueryDomainCapabilityMaterializationError::Denied(denial) => {
+            ResearchGraphInvariantError::QueryInvariantContributionDenied(denial)
         }
-        TransitionOutcome::Stale(stale) => {
-            Err(ResearchGraphInvariantError::QueryInvariantContributionStale(stale))
+        WorthQueryDomainCapabilityMaterializationError::Stale(stale) => {
+            ResearchGraphInvariantError::QueryInvariantContributionStale(stale)
         }
-        TransitionOutcome::RebindRequired(rebind) => {
-            Err(ResearchGraphInvariantError::QueryInvariantContributionRebindRequired(rebind))
+        WorthQueryDomainCapabilityMaterializationError::RebindRequired(rebind) => {
+            ResearchGraphInvariantError::QueryInvariantContributionRebindRequired(rebind)
         }
-        TransitionOutcome::Failed(failure) => {
-            Err(ResearchGraphInvariantError::QueryInvariantContributionFailed(failure))
+        WorthQueryDomainCapabilityMaterializationError::Failed(failure) => {
+            ResearchGraphInvariantError::QueryInvariantContributionFailed(failure)
         }
-        TransitionOutcome::Deferred(never) => match never {},
     }
 }

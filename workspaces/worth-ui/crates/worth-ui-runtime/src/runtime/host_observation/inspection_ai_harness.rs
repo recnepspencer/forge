@@ -2,33 +2,33 @@ use crate::evidence::{
     UiAllocationPlanningInspectionReceipt, UiEvidenceExpansion, UiEvidenceRef, UiEvidenceSliceRef,
 };
 use crate::facade::inspection_bridge::UiInspectionReceipt;
-use crate::runtime::{WorthUiAllocationPlanning, WorthUiRuntimeHost};
+use crate::runtime::{UiAllocationCandidate, WorthUiRuntime};
 use worth_ui_inspection::{UiEvidenceRichness, UiInspectionQuery};
 
 pub struct WorthUiRuntimeInspectionAiHarness<'a> {
-    runtime: &'a WorthUiRuntimeHost,
+    runtime: &'a WorthUiRuntime,
 }
 
 impl<'a> WorthUiRuntimeInspectionAiHarness<'a> {
-    pub const fn new(runtime: &'a WorthUiRuntimeHost) -> Self {
+    pub const fn new(runtime: &'a WorthUiRuntime) -> Self {
         Self { runtime }
     }
 
     pub fn inspect_allocation_planning(
         &self,
-        allocation_planning: &WorthUiAllocationPlanning,
+        allocation_candidate: &UiAllocationCandidate,
     ) -> UiAllocationPlanningInspectionReceipt {
         self.runtime
-            .inspect_allocation_planning(allocation_planning)
+            .inspect_allocation_planning(allocation_candidate)
     }
 
     pub fn inspect_allocation_planning_query(
         &self,
-        allocation_planning: &WorthUiAllocationPlanning,
+        allocation_candidate: &UiAllocationCandidate,
         query: UiInspectionQuery,
     ) -> UiInspectionReceipt {
         self.runtime
-            .inspect_allocation_planning_query(allocation_planning, query)
+            .inspect_allocation_planning_query(allocation_candidate, query)
     }
 
     pub fn expand_evidence_ref(

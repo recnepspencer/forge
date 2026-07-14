@@ -1,13 +1,13 @@
 error: cannot construct `WorthQueryGraphObligationDispatchContext` with struct literal syntax due to private fields
- --> tests/ui/graph_obligation/dispatch/dispatch_context_constructor_private.rs:6:13
+ --> tests/ui/graph_obligation/dispatch/dispatch_context_constructor_private.rs:4:13
   |
-6 |     let _ = WorthQueryGraphObligationDispatchContext {
+4 |     let _ = WorthQueryGraphObligationDispatchContext {
   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-7 |         kind: WorthQueryGraphObligationDispatchContextKind::GraphComposition,
+5 |         kind: WorthQueryGraphObligationDispatchContextKind::GraphComposition,
   |         -------------------------------------------------------------------- private field
-8 |         touch_descriptor_digest: "touch.digest".to_string(),
+6 |         touch_descriptor_digest: "touch.digest".to_string(),
   |         --------------------------------------------------- private field
-9 |         operating_world_digest: "world.digest".to_string(),
+7 |         operating_world_digest: "world.digest".to_string(),
   |         -------------------------------------------------- private field
   |
   = note: ...and other private field `context_digest` that was not provided

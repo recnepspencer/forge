@@ -1,13 +1,5 @@
-use worth_query::facade::{
-    admit_eligible_domain_capability_contribution,
-    evaluate_requested_domain_capability_contribution,
-    materialize_query_invariant_catalog_registration_artifact,
-    prepare_admitted_domain_capability_contribution_for_materialization,
-    WorthQueryCommitIdentity, WorthQueryEntityIdentity,
-    WorthQueryInvariantCapabilityContributionAuthoring, WorthQueryMutationReceipt,
-    WorthQueryRuntimeWriteAuthorityAdapter, WorthQuerySnapshotIdentity, WorthQueryWorkspaceError,
-    WorthQueryWriteCommand, RelationalBridgeRecordIdentityParts, WriteAuthorityExecutionReceipt,
-};
+use worth_query::facade::foundation::{WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQueryMutationReceipt, WorthQuerySnapshotIdentity, WorthQueryWorkspaceError, RelationalBridgeRecordIdentityParts};
+use worth_query::facade::runtime::{admit_eligible_domain_capability_contribution, evaluate_requested_domain_capability_contribution, materialize_query_invariant_catalog_registration_artifact, prepare_admitted_domain_capability_contribution_for_materialization, WorthQueryInvariantCapabilityContributionAuthoring, WorthQueryRuntimeWriteAuthorityAdapter, WorthQueryWriteCommand, WriteAuthorityExecutionReceipt};
 use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 use worth_relational::facade::runtime::{InvariantRegistration, InvariantRule, RelationalRuntime};
 use worth_runtime_bridge::facade::RuntimeBridge;

@@ -240,6 +240,8 @@ pub use domain_entry::{
     WorthQueryDomainEntryProofRoot, WorthQueryDomainEntryRoot,
     WorthQueryDomainEntrySupportSnapshot, WorthQueryDomainEntryUnsupported,
 };
+#[cfg(test)]
+pub(crate) use domain_handle::compose_basis_lifecycle_support_identity;
 pub use domain_handle::{
     WorthQueryAdmittedConfiguredDomainHandle, WorthQueryAdmittedWorldBasis,
     WorthQueryConfiguredDomainHandleAdmissionError, WorthQueryConfiguredDomainHandleChecked,

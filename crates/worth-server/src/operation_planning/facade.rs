@@ -144,8 +144,8 @@ impl WorthServerOperationPlanner {
 fn build_query_handoff(
     operation_admission: crate::WorthServerOperationAdmissionPosture,
     operation: WorthServerQueryHandoffOperation,
-    workspace: worth_query::facade::WorthQueryWorkspace,
-    downstream_delivery_contract: worth_query::facade::WorthQueryRuntimeDownstreamDeliveryContract,
+    workspace: worth_query::facade::runtime::WorthQueryWorkspace,
+    downstream_delivery_contract: worth_query::facade::runtime::WorthQueryRuntimeDownstreamDeliveryContract,
     readiness_closure: WorthServerOperationReadinessClosure,
 ) -> WorthServerQueryHandoff {
     let canonical_digest = format!(

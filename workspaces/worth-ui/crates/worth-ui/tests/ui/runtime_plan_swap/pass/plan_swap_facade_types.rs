@@ -1,6 +1,6 @@
 use worth_ui::facade::{
-    WorthUiAtomicPlanSwapCounters, WorthUiPlanSwapDenialReason, WorthUiPlanSwapReceipt,
-    WorthUiPlanSwapRollback, WorthUiPriorValidPlanObservation,
+    UiCommittedAllocationActivationCounters, WorthUiPlanSwapReceipt,
+    WorthUiPriorValidPlanObservation,
 };
 
 fn observe_receipt(receipt: WorthUiPlanSwapReceipt) {
@@ -23,16 +23,6 @@ fn observe_receipt(receipt: WorthUiPlanSwapReceipt) {
     let _ = receipt.counters();
 }
 
-fn observe_rollback(rollback: WorthUiPlanSwapRollback) {
-    let _ = rollback.reason();
-    let _ = rollback.prior_valid_plan();
-    let _ = rollback.restored_active_artifact_digest();
-    let _ = rollback.restored_active_plan_digest();
-    let _ = rollback.attempted_next_artifact_digest();
-    let _ = rollback.attempted_next_plan_digest();
-    let _ = rollback.counters();
-}
-
 fn observe_prior(prior: WorthUiPriorValidPlanObservation) {
     let _ = prior.artifact_digest();
     let _ = prior.active_plan_digest();
@@ -42,22 +32,16 @@ fn observe_prior(prior: WorthUiPriorValidPlanObservation) {
     let _ = prior.frame_epoch();
 }
 
-fn observe_counters(counters: WorthUiAtomicPlanSwapCounters) {
-    let _ = counters.prior_valid_capture_count();
-    let _ = counters.activation_gate_count();
-    let _ = counters.next_active_state_build_count();
-    let _ = counters.active_state_mutation_count();
-    let _ = counters.rollback_restore_count();
-    let _ = counters.source_reparse_count();
-    let _ = counters.registry_rebuild_count();
-    let _ = counters.semantic_replanning_count();
-    let _ = counters.query_replanning_count();
-    let _ = counters.handle_allocation_count();
+fn observe_counters(counters: UiCommittedAllocationActivationCounters) {
+    let _ = counters.ledger_predecessor_checks();
+    let _ = counters.readiness_checks();
+    let _ = counters.graph_predecessor_checks();
+    let _ = counters.scroll_binding_checks();
+    let _ = counters.frame_replacement_checks();
+    let _ = counters.frame_boundary_checks();
+    let _ = counters.active_successor_builds();
     let _ = counters.denial_count();
-}
-
-fn observe_reason(reason: WorthUiPlanSwapDenialReason) {
-    let _ = reason;
+    let _ = counters.live_mutation_count();
 }
 
 fn main() {}

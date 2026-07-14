@@ -12,7 +12,8 @@ Use when you need **evidence or explanation** after a run and are mixing up `wor
 
 ## When Cross-Runtime Causal Inspection
 
-- **`CausalInspection` lane**: `admit_causal_inspection`, `request_causal_inspection`
+- **`CausalInspection` lane**: bind the originating receipt to a
+  `ScopedInspectionBasis`, then admit, plan, and materialize that artifact
 - `CrossRuntimeCausalExplanation` (reference-only supported; materialized detail advisory)
 - temporal wakes, async completions, mixed-cause suppressions, preview remasks,
   replay drift, and resume mismatch
@@ -20,7 +21,7 @@ Use when you need **evidence or explanation** after a run and are mixing up `wor
 
 ## When Explanation Contributions
 
-- domain **declaration posture** for explanation ([explanation/](../explanation/))
+- domain **declaration posture** for explanation ([lower-runtime explanation contributions](../explanation/lower-runtime-explanation-contributions.md))
 - does not replace causal inspection APIs or general inspection reads
 
 ## Quick Rules

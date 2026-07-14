@@ -1,4 +1,4 @@
-use worth_query::facade::CausalInspectionRepresentativeMatrix;
+use worth_query::facade::runtime::CausalInspectionRepresentativeMatrix;
 
 fn main() {
     let _ = CausalInspectionRepresentativeMatrix {

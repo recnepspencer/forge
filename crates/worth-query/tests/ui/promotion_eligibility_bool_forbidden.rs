@@ -1,4 +1,4 @@
-use worth_query::facade::PreviewSessionQueryContext;
+use worth_query::facade::policy::PreviewSessionQueryContext;
 use worth_runtime_bridge::facade::{BridgePreviewSession, PreviewDeclared};
 
 fn main() {

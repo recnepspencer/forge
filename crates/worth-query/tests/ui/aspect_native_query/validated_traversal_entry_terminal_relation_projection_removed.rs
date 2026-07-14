@@ -1,4 +1,4 @@
-use worth_query::facade::ValidatedTraversalEntry;
+use worth_query::facade::runtime::ValidatedTraversalEntry;
 
 fn main() {
     let entry = traversal_entry_fixture();

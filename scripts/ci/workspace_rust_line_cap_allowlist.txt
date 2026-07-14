@@ -76,6 +76,7 @@ crates/worth-query/src/program.rs
 crates/worth-query/src/query_context/basis.rs
 crates/worth-query/src/query_context/execution.rs
 crates/worth-query/src/query_context/tests.rs
+crates/worth-query/src/runtime.rs
 crates/worth-query/src/runtime/computed/surface.rs
 crates/worth-query/src/runtime/handle_contract.rs
 crates/worth-query/src/runtime/inspection/intent.rs

@@ -55,9 +55,7 @@ impl UiMeasurementSiblingResizeSupport {
         axis_scope: UiConstraintAxisScope,
         sizing_contract_id: Option<&MosaicSizingContractId>,
     ) -> Option<Self> {
-        if !input.is_admitted()
-            || input.resize_permission() != &MosaicResizePermission::UserResizable
-        {
+        if input.resize_permission() != &MosaicResizePermission::UserResizable {
             return None;
         }
         Some(Self {

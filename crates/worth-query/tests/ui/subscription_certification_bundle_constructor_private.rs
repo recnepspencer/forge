@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionCertificationBundle;
+use worth_query::facade::certification::QuerySubscriptionCertificationBundle;
 
 fn main() {
     let _ = QuerySubscriptionCertificationBundle {

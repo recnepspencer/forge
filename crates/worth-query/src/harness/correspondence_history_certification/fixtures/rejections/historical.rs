@@ -5,7 +5,7 @@ use crate::correspondence::{
 use crate::correspondence_history::{
     compose_historical_admission_denied_envelope, compose_historical_path_denied_envelope,
 };
-use crate::facade::{
+use crate::facade::foundation::{
     admit_historical_evaluation_path, build_correspondence_historical_parity_bundle,
     resolve_historical_materialization_path, HistoricalCapabilityDescriptor,
     HistoricalEvaluationError, HistoricalEvaluationRequest, HistoricalMaterializationDescriptor,
@@ -28,13 +28,13 @@ pub(crate) fn unsupported_historical_materialization_rejection(
             1,
         ))
         .expect("correspondence should resolve");
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         "basis:a",
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         "basis:a",
         Some(crate::historical::AdmittedHistoricalPathClass::AdmittedRetainedSnapshotPath),
         false,
@@ -81,13 +81,13 @@ pub(crate) fn hidden_materialization_substitution_rejection(
             1,
         ))
         .expect("correspondence should resolve");
-    let request = HistoricalEvaluationRequest::delta_replay(
+    let request = HistoricalEvaluationRequest::delta_replay_for_test(
         "basis:replay",
         4,
         8,
         HistoricalPathReuseDescriptor::with_replay_tail_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         "basis:replay",
         Some(crate::historical::AdmittedHistoricalPathClass::AdmittedDeltaReplayPath),
         true,
@@ -100,7 +100,7 @@ pub(crate) fn hidden_materialization_substitution_rejection(
         admit_historical_evaluation_path(request, capability).expect("admission should succeed");
     let error = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::new(
+        HistoricalMaterializationDescriptor::new_for_test(
             "basis:replay",
             ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath,
         ),
@@ -136,13 +136,13 @@ pub(crate) fn executor_path_mutation_rejection() -> CorrespondenceHistoryCertifi
             1,
         ))
         .expect("correspondence should resolve");
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         "basis:executor",
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         "basis:executor",
         Some(crate::historical::AdmittedHistoricalPathClass::AdmittedRetainedSnapshotPath),
         false,
@@ -155,7 +155,7 @@ pub(crate) fn executor_path_mutation_rejection() -> CorrespondenceHistoryCertifi
         admit_historical_evaluation_path(request, capability).expect("admission should succeed");
     let error = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::new(
+        HistoricalMaterializationDescriptor::new_for_test(
             "basis:executor",
             ResolvedHistoricalPathClass::ResolvedFullReconstructionPath,
         ),
@@ -192,7 +192,7 @@ pub(crate) fn host_cache_history_authority_rejection() -> CorrespondenceHistoryC
             1,
         ))
         .expect("correspondence should resolve");
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         "basis:host-cache",
         1,
         1,

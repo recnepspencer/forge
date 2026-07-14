@@ -1,7 +1,7 @@
 use flate2::{write::GzEncoder, Compression};
 use serde_json::json;
 use std::io::Write;
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     WorthServerQueryHandoffDenialCode, WorthServerStreamCancellationKind, WorthServerUploadChunk,
     WorthServerUploadContentEncoding, WorthServerUploadExpectation, WorthServerUploadManifest,

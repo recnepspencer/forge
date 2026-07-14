@@ -1,4 +1,4 @@
-use worth_query::facade::{attach_subscription_consumer, ActiveSubscriptionRuntime};
+use worth_query::facade::runtime::{attach_subscription_consumer, ActiveSubscriptionRuntime};
 
 struct GenericHandle;
 

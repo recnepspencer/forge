@@ -134,27 +134,47 @@ binding instead of flattening everything into caller-owned identity strings.
 - `runtime.write_intent(...)`
 - `runtime.write_batch_intent(...)`
 - `runtime.next_effect_write_intent(...)`
+- `workspace.read_family_intent(...)`
+- `workspace.read_family_in_basis_context_intent(...)`
 - `workspace.read_live_intent(...)`
 - `workspace.materialize_intent(...)`
 - `workspace.inspect_intent(...)`
-- `worth_query_basis_observation_intent(...)`
-- `worth_query_projection_consumption_intent(...)`
 
 Use the intent lattice only when the family genuinely belongs on the admitted
 intent path. Do not treat every surface with `intent` in the name as the
 default way to do ordinary work.
 
+Projection authority is deliberately not a second intent family. For an
+ordinary read, ask the completed read to consume a `read::project_facts()`
+declaration. The completion already owns the result-shape, authorized
+projection, basis, source, and settlement binding.
+
+### Basis capabilities
+
+- `facade::foundation::basis_lifecycle()`
+- `basis_lifecycle().current_head().observe()`
+- `basis_lifecycle().historical_snapshot(...).materialize()`
+- `basis_lifecycle().current_head().declare_subscription()`
+
+Use the basis lifecycle when the operation depends on which truth world it may
+observe, inspect, replay, materialize, mutate, or subscribe to. Carry the
+returned scoped capability rather than a raw branch, snapshot, preview, or
+digest projection.
+
 ### Typed fact extraction
 
-- `consume_projection_facts(...)`
-- `declare_projection_fact_consumption(...)`
-- `bind_contract()`
+- `completion.consume_projection(read::project_facts()...)`
+- `WorthQueryProjectionOutcome::into_admitted()`
+- `WorthQueryConsumedProjectionAuthority`
 
-Use Projection Consumption when the caller needs typed identities, memberships,
-targets, source references, provenance, or continuity facts from a read
-result, write receipt, or query-context artifact.
+Use Projection Consumption when the caller needs typed identities,
+memberships, targets, source references, provenance, or continuity facts from
+a completed ordinary read. Retained derived artifacts, live artifact bindings,
+write receipts, and query-context artifacts use their source-specific advanced
+substrate operations; do not make ordinary callers reconstruct their inputs.
 
-Do not re-parse payload bags or reconstruct the same meaning in caller code.
+Do not re-parse payload bags, invoke the crate-internal decomposed lifecycle,
+or reconstruct the same meaning in caller code.
 
 ## Do Not Build These Things Locally
 

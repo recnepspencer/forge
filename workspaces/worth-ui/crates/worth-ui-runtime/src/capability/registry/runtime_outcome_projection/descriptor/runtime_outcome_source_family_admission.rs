@@ -1,7 +1,8 @@
-use worth_query::facade::{
-    WorthQueryOrdinaryPostureKind, WorthQueryOrdinaryRuntimePostureKind,
-    WorthQueryRuntimeAsyncResultStateKind,
+use worth_query::facade::foundation::{
+    WorthQueryOrdinaryPostureKind,
+    WorthQueryOrdinaryRuntimePostureKind,
 };
+use worth_query::facade::runtime::WorthQueryRuntimeAsyncResultStateKind;
 
 use super::{RuntimeOutcomeFamily, RuntimeOutcomeSourceReference};
 

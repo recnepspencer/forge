@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker};
+use worth_query::facade::foundation::{WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct GeometryDomainEntry;

@@ -1,8 +1,4 @@
-use worth_query::facade::runtime::{
-    prepare_admitted_domain_capability_contribution_for_materialization,
-    WorthQueryAdmissionContributionAuthoring, WorthQueryDeclarationBoundContributionTarget,
-    WorthQueryIntentDeclaration, WorthQueryIntentInput,
-};
+use worth_query::facade::runtime::{prepare_admitted_domain_capability_contribution_for_materialization, WorthQueryAdmissionContributionAuthoring, WorthQueryDeclarationBoundContributionTarget, WorthQueryIntentDeclaration, WorthQueryIntentInput};
 
 fn main() {
     let declaration = WorthQueryIntentDeclaration::strategy_commit(

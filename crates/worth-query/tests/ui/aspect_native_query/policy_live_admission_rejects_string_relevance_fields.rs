@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    admit_policy_aware_live_plan, NarrowedPolicyQueryArtifact, PolicyDriftDisposition,
-    PolicyLiveDensityPosture,
-};
+use worth_query::facade::policy::{admit_policy_aware_live_plan, NarrowedPolicyQueryArtifact, PolicyDriftDisposition, PolicyLiveDensityPosture};
 
 fn main() {
     let fields = vec!["profile.display_name".to_string()];

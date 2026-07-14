@@ -1,7 +1,7 @@
 error[E0061]: this function takes 2 arguments but 3 arguments were supplied
- --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:8:9
+ --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:5:9
   |
-8 |         DeclarativeEqualityFilter::new("identity", "id", ScalarPredicateValue::String("a".into()));
+5 |         DeclarativeEqualityFilter::new("identity", "id", ScalarPredicateValue::String("a".into()));
   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ----------  ---- unexpected argument #2 of type `&'static str`
   |                                        |
   |                                        expected `AspectFieldKey`, found `&str`
@@ -13,14 +13,14 @@ note: associated function defined here
   |            ^^^
 help: remove the extra argument
   |
-8 -         DeclarativeEqualityFilter::new("identity", "id", ScalarPredicateValue::String("a".into()));
-8 +         DeclarativeEqualityFilter::new(/* AspectFieldKey */, ScalarPredicateValue::String("a".into()));
+5 -         DeclarativeEqualityFilter::new("identity", "id", ScalarPredicateValue::String("a".into()));
+5 +         DeclarativeEqualityFilter::new(/* AspectFieldKey */, ScalarPredicateValue::String("a".into()));
   |
 
 error[E0061]: this function takes 2 arguments but 3 arguments were supplied
- --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:9:13
+ --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:6:13
   |
-9 |     let _ = DeclarativeIntegerComparisonFilter::greater_than("metrics", "rank", 1);
+6 |     let _ = DeclarativeIntegerComparisonFilter::greater_than("metrics", "rank", 1);
   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ---------  ------ unexpected argument #2 of type `&'static str`
   |                                                              |
   |                                                              expected `AspectFieldKey`, found `&str`
@@ -32,55 +32,55 @@ note: associated function defined here
   |            ^^^^^^^^^^^^
 help: remove the extra argument
   |
-9 -     let _ = DeclarativeIntegerComparisonFilter::greater_than("metrics", "rank", 1);
-9 +     let _ = DeclarativeIntegerComparisonFilter::greater_than(/* AspectFieldKey */, 1);
+6 -     let _ = DeclarativeIntegerComparisonFilter::greater_than("metrics", "rank", 1);
+6 +     let _ = DeclarativeIntegerComparisonFilter::greater_than(/* AspectFieldKey */, 1);
   |
 
 error[E0061]: this function takes 2 arguments but 3 arguments were supplied
-  --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:10:13
-   |
-10 |     let _ = DeclarativeIntegerComparisonFilter::less_than("metrics", "rank", 1);
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ---------  ------ unexpected argument #2 of type `&'static str`
-   |                                                           |
-   |                                                           expected `AspectFieldKey`, found `&str`
-   |
+ --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:7:13
+  |
+7 |     let _ = DeclarativeIntegerComparisonFilter::less_than("metrics", "rank", 1);
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ---------  ------ unexpected argument #2 of type `&'static str`
+  |                                                           |
+  |                                                           expected `AspectFieldKey`, found `&str`
+  |
 note: associated function defined here
-  --> src/declarative_live.rs
-   |
-   |     pub fn less_than(source: AspectFieldKey, value: i64) -> Self {
-   |            ^^^^^^^^^
+ --> src/declarative_live.rs
+  |
+  |     pub fn less_than(source: AspectFieldKey, value: i64) -> Self {
+  |            ^^^^^^^^^
 help: remove the extra argument
-   |
-10 -     let _ = DeclarativeIntegerComparisonFilter::less_than("metrics", "rank", 1);
-10 +     let _ = DeclarativeIntegerComparisonFilter::less_than(/* AspectFieldKey */, 1);
-   |
+  |
+7 -     let _ = DeclarativeIntegerComparisonFilter::less_than("metrics", "rank", 1);
+7 +     let _ = DeclarativeIntegerComparisonFilter::less_than(/* AspectFieldKey */, 1);
+  |
 
 error[E0061]: this function takes 2 arguments but 3 arguments were supplied
-  --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:11:13
-   |
-11 |     let _ = DeclarativeStringContainsFilter::new("title", "value", "needle");
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ -------           -------- unexpected argument #3 of type `&'static str`
-   |                                                  |
-   |                                                  expected `AspectFieldKey`, found `&str`
-   |
+ --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:8:13
+  |
+8 |     let _ = DeclarativeStringContainsFilter::new("title", "value", "needle");
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ -------           -------- unexpected argument #3 of type `&'static str`
+  |                                                  |
+  |                                                  expected `AspectFieldKey`, found `&str`
+  |
 note: associated function defined here
-  --> src/declarative_live.rs
-   |
-   |     pub fn new(source: AspectFieldKey, value: impl Into<String>) -> Self {
-   |            ^^^
+ --> src/declarative_live.rs
+  |
+  |     pub fn new(source: AspectFieldKey, value: impl Into<String>) -> Self {
+  |            ^^^
 help: remove the extra argument
-   |
-11 -     let _ = DeclarativeStringContainsFilter::new("title", "value", "needle");
-11 +     let _ = DeclarativeStringContainsFilter::new(/* AspectFieldKey */, "value");
-   |
+  |
+8 -     let _ = DeclarativeStringContainsFilter::new("title", "value", "needle");
+8 +     let _ = DeclarativeStringContainsFilter::new(/* AspectFieldKey */, "value");
+  |
 
 error[E0277]: `&str` is not an iterator
-  --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:14:9
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:11:9
    |
-12 |     let _ = DeclarativeSetMembershipFilter::new(
+ 9 |     let _ = DeclarativeSetMembershipFilter::new(
    |             ----------------------------------- required by a bound introduced by this call
-13 |         "status",
-14 |         "value",
+10 |         "status",
+11 |         "value",
    |         ^^^^^^^ `&str` is not an iterator; try calling `.chars()` or `.bytes()`
    |
    = help: the trait `Iterator` is not implemented for `&str`
@@ -95,14 +95,14 @@ note: required by a bound in `DeclarativeSetMembershipFilter::new`
    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `DeclarativeSetMembershipFilter::new`
 
 error[E0061]: this function takes 2 arguments but 3 arguments were supplied
-  --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:12:13
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:9:13
    |
-12 |     let _ = DeclarativeSetMembershipFilter::new(
+ 9 |     let _ = DeclarativeSetMembershipFilter::new(
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-13 |         "status",
+10 |         "status",
    |         -------- expected `AspectFieldKey`, found `&str`
-14 |         "value",
-15 |         [ScalarPredicateValue::String("open".into())],
+11 |         "value",
+12 |         [ScalarPredicateValue::String("open".into())],
    |         --------------------------------------------- unexpected argument #3 of type `[ScalarPredicateValue; 1]`
    |
 note: associated function defined here
@@ -112,14 +112,14 @@ note: associated function defined here
    |            ^^^
 help: remove the extra argument
    |
-13 ~         /* AspectFieldKey */,
-14 ~         "value",
+10 ~         /* AspectFieldKey */,
+11 ~         "value",
    |
 
 error[E0061]: this function takes 1 argument but 2 arguments were supplied
-  --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:17:13
+  --> tests/ui/aspect_native_query/declarative_predicate_filter_rejects_raw_strings.rs:14:13
    |
-17 |     let _ = DeclarativePresenceFilter::is_present("owner", "id");
+14 |     let _ = DeclarativePresenceFilter::is_present("owner", "id");
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ -------  ---- unexpected argument #2 of type `&'static str`
    |                                                   |
    |                                                   expected `AspectFieldKey`, found `&str`
@@ -131,6 +131,6 @@ note: associated function defined here
    |            ^^^^^^^^^^
 help: remove the extra argument
    |
-17 -     let _ = DeclarativePresenceFilter::is_present("owner", "id");
-17 +     let _ = DeclarativePresenceFilter::is_present(/* AspectFieldKey */);
+14 -     let _ = DeclarativePresenceFilter::is_present("owner", "id");
+14 +     let _ = DeclarativePresenceFilter::is_present(/* AspectFieldKey */);
    |

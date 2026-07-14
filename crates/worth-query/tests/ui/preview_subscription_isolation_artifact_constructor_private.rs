@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    PreviewResidueWidth, PreviewSubscriptionIsolationArtifact, PreviewSubscriptionLifecycleState,
-};
+use worth_query::facade::runtime::{PreviewResidueWidth, PreviewSubscriptionIsolationArtifact, PreviewSubscriptionLifecycleState};
 
 fn main() {
     let _ = PreviewSubscriptionIsolationArtifact {

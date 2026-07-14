@@ -1,4 +1,4 @@
-use worth_query::facade::{QueryWorkflowDeclaration, WorkflowAuthorityTargetFamily};
+use worth_query::facade::runtime::{QueryWorkflowDeclaration, WorkflowAuthorityTargetFamily};
 
 fn main() {
     let declaration: QueryWorkflowDeclaration = todo!();

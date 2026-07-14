@@ -1,4 +1,4 @@
-use worth_query::facade::{ActiveLaneLookupClass, ActiveSubscriptionLaneAdmission};
+use worth_query::facade::runtime::{ActiveLaneLookupClass, ActiveSubscriptionLaneAdmission};
 
 fn main() {
     let _ = ActiveSubscriptionLaneAdmission {

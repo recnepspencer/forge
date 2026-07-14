@@ -1,0 +1,15 @@
+error[E0308]: arguments to this function are incorrect
+ --> tests/ui/public_authority_surface/raw_digests_cannot_enter_identity_evolution.rs:4:13
+  |
+4 |     let _ = IdentityEvolutionQueryContext::lineage_traversal(
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         query,
+  |         ----- expected `&QueryCanonicalAuthority`, found `CanonicalQueryDigest`
+6 |         basis,
+  |         ----- expected `&ResolvedSnapshotBasis`, found `BasisDigest`
+  |
+note: associated function defined here
+ --> src/identity_evolution/request.rs
+  |
+  |     pub fn lineage_traversal(
+  |            ^^^^^^^^^^^^^^^^^

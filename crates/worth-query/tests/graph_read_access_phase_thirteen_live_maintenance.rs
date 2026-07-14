@@ -100,14 +100,20 @@ fn live_read_receipt_exposes_live_graph_access_counters() {
             query
                 .from("Task")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 )
                 .schema_basis("phase-thirteen-live-receipt")
         })
@@ -143,14 +149,20 @@ fn live_mutation_delivery_carries_graph_read_maintenance_receipt() {
             query
                 .from("Task")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 )
                 .schema_basis("phase-thirteen-live-mutation-maintenance")
         })
@@ -203,14 +215,20 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
             query
                 .from("Task")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 )
                 .schema_basis("phase-thirteen-live-update-maintenance")
         })
@@ -265,6 +283,8 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
     assert!(hidden_only.query_delivery_batches.is_empty());
 }
 
-fn authored_text(value: impl Into<String>) -> worth_query::facade::WorthQueryAuthoredAspectValue {
-    worth_query::facade::WorthQueryAuthoredAspectValue::string(value)
+fn authored_text(
+    value: impl Into<String>,
+) -> worth_query::facade::runtime::WorthQueryAuthoredAspectValue {
+    worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(value)
 }

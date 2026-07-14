@@ -1,5 +1,6 @@
 #![allow(dead_code, unused_imports)]
 
+use crate::facade::runtime::BridgeSubscriptionDeclarationFamilyKind;
 pub(crate) use crate::facade::{
     AdmittedBridgeAsyncRequestIdentity, AdmittedBridgeTemporalBasis,
     BridgeAsyncRequestAdmissionRequest, BridgeAsyncRequestTruthViewBasis,
@@ -8,14 +9,13 @@ pub(crate) use crate::facade::{
     BridgeSubscriptionBasisKind, BridgeSubscriptionBasisRequest,
     BridgeSubscriptionBasisResolutionFailureKind, BridgeSubscriptionConsumerBackpressurePosture,
     BridgeSubscriptionConsumerContractFamily, BridgeSubscriptionConsumerDiagnosticsRetention,
-    BridgeSubscriptionConsumerPacingCapability, BridgeSubscriptionDeclarationFamilyKind,
-    BridgeSubscriptionDeliveryContentDigest, BridgeSubscriptionDeliveryContentOmissionReason,
-    BridgeSubscriptionDeliveryDensityPosture, BridgeSubscriptionDeliveryFamilyKind,
-    BridgeSubscriptionDeliveryIntentClass, BridgeSubscriptionDeliveryMemberClass,
-    BridgeSubscriptionDeliveryMemberInput, BridgeSubscriptionPreviewWorkInput,
-    BridgeSubscriptionPreviewWorkTrace, BridgeTemporalSignalBasis,
-    BridgeTemporalSubscriptionFamilyKind, BridgeTemporalTruthViewBasis, BridgeTemporalWakeEvidence,
-    NormalizedSubscriptionSliceIntent,
+    BridgeSubscriptionConsumerPacingCapability, BridgeSubscriptionDeliveryContentDigest,
+    BridgeSubscriptionDeliveryContentOmissionReason, BridgeSubscriptionDeliveryDensityPosture,
+    BridgeSubscriptionDeliveryFamilyKind, BridgeSubscriptionDeliveryIntentClass,
+    BridgeSubscriptionDeliveryMemberClass, BridgeSubscriptionDeliveryMemberInput,
+    BridgeSubscriptionPreviewWorkInput, BridgeSubscriptionPreviewWorkTrace,
+    BridgeTemporalSignalBasis, BridgeTemporalSubscriptionFamilyKind, BridgeTemporalTruthViewBasis,
+    BridgeTemporalWakeEvidence, NormalizedSubscriptionSliceIntent,
 };
 pub(crate) use crate::input::envelope::TruthBranchIdentity;
 pub(crate) use crate::input::envelope::{

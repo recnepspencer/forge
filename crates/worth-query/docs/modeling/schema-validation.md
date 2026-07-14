@@ -67,7 +67,7 @@ guess whether a canonical bundle was legal.
 ## Small Example
 
 ```rust
-use worth_query::validation::validate_canonical_bundle;
+use worth_query::facade::runtime::validate_canonical_bundle;
 
 let canonical = canonical_bundle;
 
@@ -89,7 +89,7 @@ only after legality succeeds.
 ## Real Example
 
 ```rust
-use worth_query::validation::{validate_canonical_bundle, QueryValidationError};
+use worth_query::facade::runtime::{validate_canonical_bundle, QueryValidationError};
 
 let canonical = workflow_canonical_bundle;
 

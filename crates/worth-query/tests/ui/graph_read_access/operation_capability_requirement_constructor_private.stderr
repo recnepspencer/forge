@@ -1,17 +1,17 @@
 error[E0451]: fields `kind`, `operation_name`, `domain_owner`, `support_family`, `read_graph_digest` and `matched_relations` of struct `WorthQueryGraphReadOperationCapabilityRequirement` are private
-  --> tests/ui/graph_read_access/operation_capability_requirement_constructor_private.rs:8:9
+  --> tests/ui/graph_read_access/operation_capability_requirement_constructor_private.rs:5:9
    |
- 7 |     let _ = WorthQueryGraphReadOperationCapabilityRequirement {
+ 4 |     let _ = WorthQueryGraphReadOperationCapabilityRequirement {
    |             ------------------------------------------------- in this type
- 8 |         kind: WorthQueryGraphReadOperationCapabilityRequirementKind::RequiresAccessCapabilityRegistration,
+ 5 |         kind: WorthQueryGraphReadOperationCapabilityRequirementKind::RequiresAccessCapabilityRegistration,
    |         ^^^^ private field
- 9 |         operation_name: String::new(),
+ 6 |         operation_name: String::new(),
    |         ^^^^^^^^^^^^^^ private field
-10 |         domain_owner: String::new(),
+ 7 |         domain_owner: String::new(),
    |         ^^^^^^^^^^^^ private field
-11 |         support_family: String::new(),
+ 8 |         support_family: String::new(),
    |         ^^^^^^^^^^^^^^ private field
-12 |         read_graph_digest: String::new(),
+ 9 |         read_graph_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^ private field
-13 |         matched_relations: Vec::new(),
+10 |         matched_relations: Vec::new(),
    |         ^^^^^^^^^^^^^^^^^ private field

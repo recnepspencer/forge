@@ -1,4 +1,4 @@
-use worth_query::facade::{AuthorizedProjectionArtifact, MaskedProjectionArtifact};
+use worth_query::facade::foundation::{AuthorizedProjectionArtifact, MaskedProjectionArtifact};
 
 fn requires_authorized_projection(_artifact: &AuthorizedProjectionArtifact) {}
 

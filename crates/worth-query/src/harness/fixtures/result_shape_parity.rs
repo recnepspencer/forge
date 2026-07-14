@@ -1,5 +1,5 @@
 use crate::authoring::RawAuthoredResultShape;
-use crate::facade::AuthoredResultShapeField;
+use crate::facade::foundation::AuthoredResultShapeField;
 
 pub fn direct_detail_shape() -> crate::authoring::DetailAuthoredResultShape {
     RawAuthoredResultShape::detail_builder()

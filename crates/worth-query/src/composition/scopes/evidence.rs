@@ -1,5 +1,5 @@
 use crate::identity::CanonicalQueryDigest;
-use crate::query_context::{AdmittedQueryBasisContext, QueryContextFamily};
+use crate::query_context::{QueryContextFamily, ScopedQueryBasisContext};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BasisScopeEvidence {
@@ -11,7 +11,7 @@ pub struct BasisScopeEvidence {
 
 impl BasisScopeEvidence {
     pub fn from_admitted_context_for_canonical_query(
-        context: &AdmittedQueryBasisContext,
+        context: &ScopedQueryBasisContext,
         canonical_query_digest: &CanonicalQueryDigest,
     ) -> Self {
         Self {

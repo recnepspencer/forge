@@ -1,4 +1,4 @@
-use worth_query::facade::BridgeSubscriptionLoweringPlan;
+use worth_query::facade::runtime::BridgeSubscriptionLoweringPlan;
 
 fn main() {
     let _fabricated = BridgeSubscriptionLoweringPlan {

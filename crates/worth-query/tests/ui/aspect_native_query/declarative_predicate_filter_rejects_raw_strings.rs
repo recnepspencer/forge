@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    DeclarativeEqualityFilter, DeclarativeIntegerComparisonFilter, DeclarativePresenceFilter,
-    DeclarativeSetMembershipFilter, DeclarativeStringContainsFilter, ScalarPredicateValue,
-};
+use worth_query::facade::foundation::{DeclarativeEqualityFilter, DeclarativeIntegerComparisonFilter, DeclarativePresenceFilter, DeclarativeSetMembershipFilter, DeclarativeStringContainsFilter, ScalarPredicateValue};
 
 fn main() {
     let _ =

@@ -1,3 +1,6 @@
+use crate::basis_lifecycle::{
+    ScopedSubscriptionActivationBasis, ScopedSubscriptionDeclarationBasis,
+};
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
@@ -20,6 +23,8 @@ pub struct ActiveSubscriptionLaneAdmission {
     pub(super) bridge_declaration_identity: WorthQueryEvidenceIdentity,
     pub(super) future_selection: QuerySubscriptionFutureSelection,
     pub(super) basis_binding_identity: WorthQueryEvidenceIdentity,
+    pub(super) scoped_declaration_basis: ScopedSubscriptionDeclarationBasis,
+    pub(super) scoped_activation_basis: ScopedSubscriptionActivationBasis,
     pub(super) checkpoint_identity: WorthQueryEvidenceIdentity,
     pub(super) signal_strategy_identity: WorthQueryEvidenceIdentity,
     pub(super) lifecycle_posture: ActiveSubscriptionLifecyclePosture,
@@ -90,6 +95,14 @@ impl ActiveSubscriptionLaneAdmission {
         &self.basis_binding_identity
     }
 
+    pub fn scoped_declaration_basis(&self) -> &ScopedSubscriptionDeclarationBasis {
+        &self.scoped_declaration_basis
+    }
+
+    pub fn scoped_activation_basis(&self) -> &ScopedSubscriptionActivationBasis {
+        &self.scoped_activation_basis
+    }
+
     pub fn checkpoint_projection(
         &self,
     ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
@@ -152,6 +165,8 @@ pub struct ActiveSubscriptionLane {
     pub(super) bridge_declaration_identity: WorthQueryEvidenceIdentity,
     pub(super) future_selection: QuerySubscriptionFutureSelection,
     pub(super) basis_binding_identity: WorthQueryEvidenceIdentity,
+    pub(super) scoped_declaration_basis: ScopedSubscriptionDeclarationBasis,
+    pub(super) scoped_activation_basis: ScopedSubscriptionActivationBasis,
     pub(super) checkpoint_identity: WorthQueryEvidenceIdentity,
     pub(super) signal_strategy_identity: WorthQueryEvidenceIdentity,
     pub(super) lifecycle_posture: ActiveSubscriptionLifecyclePosture,
@@ -218,6 +233,14 @@ impl ActiveSubscriptionLane {
 
     pub fn basis_binding_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.basis_binding_identity
+    }
+
+    pub fn scoped_declaration_basis(&self) -> &ScopedSubscriptionDeclarationBasis {
+        &self.scoped_declaration_basis
+    }
+
+    pub fn scoped_activation_basis(&self) -> &ScopedSubscriptionActivationBasis {
+        &self.scoped_activation_basis
     }
 
     pub fn checkpoint_projection(

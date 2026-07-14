@@ -1,15 +1,21 @@
 use super::super::support::*;
 use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
-use crate::facade::{
-    admit_historical_evaluation_path, admit_preview_workflow_foundation, admit_query_basis_context,
-    bind_preflight_to_preview_session, bind_query_basis_context,
-    materialization_metadata_from_resolved, preflight_execution_basis,
-    resolve_historical_materialization_path, resolve_snapshot_basis, AdmittedQueryBasisContext,
+use crate::facade::foundation::{
+    admit_historical_evaluation_path, materialization_metadata_from_resolved,
+    preflight_execution_basis, resolve_historical_materialization_path, resolve_snapshot_basis,
     BasisAuthorityFamily, BasisResolutionMode, ExecutionBasisIntent,
     HistoricalCapabilityDescriptor, HistoricalEvaluationRequest,
-    HistoricalMaterializationDescriptor, HistoricalPathReuseDescriptor, PreviewEvaluationClass,
-    PreviewSessionQueryContext, QueryBasisContextRequest, QueryContextBindingSource,
-    QueryContextFamily, ResolvedSnapshotIdentity, SnapshotLineageClass,
+    HistoricalMaterializationDescriptor, HistoricalPathReuseDescriptor, ResolvedSnapshotIdentity,
+    SnapshotLineageClass,
+};
+use crate::facade::policy::{
+    admit_preview_workflow_foundation, bind_preflight_to_preview_session, PreviewEvaluationClass,
+    PreviewSessionQueryContext, QueryContextBindingSource, QueryContextFamily,
+    ScopedQueryBasisContext,
+};
+use crate::facade::{
+    admit_and_scope_legacy_query_basis_context_for_test, bind_legacy_query_basis_context,
+    QueryBasisContextRequest,
 };
 use crate::harness::fixtures::preview_bridge::active_preview_artifacts;
 use crate::runtime::tests::support::{
@@ -233,44 +239,46 @@ fn profile_read_family(
 fn current_context_for_family(
     family: &WorthQueryReadFamily,
     snapshot_token: &str,
-) -> AdmittedQueryBasisContext {
+) -> ScopedQueryBasisContext {
     let preflight =
         runtime_preflight_for_family(family, snapshot_token, SnapshotLineageClass::CurrentHead);
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::current_branch_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .expect("current basis context should bind");
-    admit_query_basis_context(binding).expect("current basis context should admit")
+    admit_and_scope_legacy_query_basis_context_for_test(binding)
+        .expect("current basis context should admit")
 }
 
 fn branch_context_for_family(
     family: &WorthQueryReadFamily,
     snapshot_token: &str,
-) -> AdmittedQueryBasisContext {
+) -> ScopedQueryBasisContext {
     let preflight =
         runtime_preflight_for_family(family, snapshot_token, SnapshotLineageClass::CurrentHead);
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::branch_head(snapshot_token),
         QueryContextBindingSource::RuntimeBranch(&preflight),
     )
     .expect("branch basis context should bind");
-    admit_query_basis_context(binding).expect("branch basis context should admit")
+    admit_and_scope_legacy_query_basis_context_for_test(binding)
+        .expect("branch basis context should admit")
 }
 
 fn retained_historical_context_for_family(
     family: &WorthQueryReadFamily,
     snapshot_token: &str,
-) -> AdmittedQueryBasisContext {
+) -> ScopedQueryBasisContext {
     let query_preflight =
         runtime_preflight_for_family(family, snapshot_token, SnapshotLineageClass::CurrentHead);
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         snapshot_token,
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::retained_snapshot(
+    let capability = HistoricalCapabilityDescriptor::retained_snapshot_for_test(
         snapshot_token,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
@@ -278,11 +286,11 @@ fn retained_historical_context_for_family(
         admit_historical_evaluation_path(request, capability).expect("history should admit");
     let resolved = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::retained_snapshot(snapshot_token),
+        HistoricalMaterializationDescriptor::retained_snapshot_for_test(snapshot_token),
     )
     .expect("history should resolve");
     let metadata = materialization_metadata_from_resolved(resolved);
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::historical_snapshot(snapshot_token),
         QueryContextBindingSource::Historical {
             query_preflight: &query_preflight,
@@ -291,13 +299,14 @@ fn retained_historical_context_for_family(
         },
     )
     .expect("historical basis context should bind");
-    admit_query_basis_context(binding).expect("historical basis context should admit")
+    admit_and_scope_legacy_query_basis_context_for_test(binding)
+        .expect("historical basis context should admit")
 }
 
 fn preview_derived_context_for_family(
     family: &WorthQueryReadFamily,
     snapshot_token: &str,
-) -> AdmittedQueryBasisContext {
+) -> ScopedQueryBasisContext {
     let preflight =
         runtime_preflight_for_family(family, snapshot_token, SnapshotLineageClass::CurrentHead);
     let (_runtime, active, execution_record) = active_preview_artifacts(snapshot_token);
@@ -312,7 +321,7 @@ fn preview_derived_context_for_family(
     .expect("preview binding should succeed");
     let foundation =
         admit_preview_workflow_foundation(&binding).expect("preview foundation should admit");
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::preview_derived_historical(
             foundation
                 .preview_session_identity()
@@ -323,14 +332,15 @@ fn preview_derived_context_for_family(
         QueryContextBindingSource::PreviewDerivedHistorical(&foundation),
     )
     .expect("preview-derived basis context should bind");
-    admit_query_basis_context(binding).expect("preview-derived basis context should admit")
+    admit_and_scope_legacy_query_basis_context_for_test(binding)
+        .expect("preview-derived basis context should admit")
 }
 
 fn runtime_preflight_for_family(
     family: &WorthQueryReadFamily,
     snapshot_token: &str,
     lineage_class: SnapshotLineageClass,
-) -> crate::facade::ExecutionPreflightBundle {
+) -> crate::facade::foundation::ExecutionPreflightBundle {
     let intent =
         ExecutionBasisIntent::new(BasisAuthorityFamily::Runtime, lineage_class.clone(), false);
     let identity = ResolvedSnapshotIdentity::new(
@@ -347,8 +357,8 @@ fn runtime_preflight_for_family(
 }
 
 fn assert_context_materialized_rows(
-    rows: &[crate::facade::WorthQueryEntity],
-    context: &AdmittedQueryBasisContext,
+    rows: &[crate::facade::foundation::WorthQueryEntity],
+    context: &ScopedQueryBasisContext,
 ) {
     assert!(!rows.is_empty());
     assert!(rows
@@ -369,7 +379,7 @@ fn assert_context_materialized_rows(
         .all(|row| row.identity().relational_record_parts().is_none()));
 }
 
-fn assert_runtime_materialized_rows(rows: &[crate::facade::WorthQueryEntity]) {
+fn assert_runtime_materialized_rows(rows: &[crate::facade::foundation::WorthQueryEntity]) {
     assert!(!rows.is_empty());
     assert!(rows
         .iter()

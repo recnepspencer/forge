@@ -20,7 +20,66 @@ pub struct UiAllocationNeighborhoodMember {
 }
 
 impl UiAllocationNeighborhoodMember {
-    pub(crate) fn new(
+    pub(crate) fn new_with_graph_authority(
+        graph_node_identity: UiGraphNodeIdentity,
+        authored_provenance_digest: u64,
+        repeated_instance_basis: UiRepeatedInstanceBasis,
+        layout_participation: UiGraphAxisParticipation,
+        role: UiAllocationNeighborhoodMemberRole,
+        measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+        _: &crate::graph::UiAllocationNeighborhoodMintAuthority,
+    ) -> Self {
+        Self::construct(
+            graph_node_identity,
+            authored_provenance_digest,
+            repeated_instance_basis,
+            layout_participation,
+            role,
+            measurement_constraint_modifier,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_for_evidence_test(
+        graph_node_identity: UiGraphNodeIdentity,
+        authored_provenance_digest: u64,
+        repeated_instance_basis: UiRepeatedInstanceBasis,
+        layout_participation: UiGraphAxisParticipation,
+        role: UiAllocationNeighborhoodMemberRole,
+        measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+        _: &super::UiAllocationNeighborhoodEvidenceTestAuthority,
+    ) -> Self {
+        Self::construct(
+            graph_node_identity,
+            authored_provenance_digest,
+            repeated_instance_basis,
+            layout_participation,
+            role,
+            measurement_constraint_modifier,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_for_graph_test(
+        graph_node_identity: UiGraphNodeIdentity,
+        authored_provenance_digest: u64,
+        repeated_instance_basis: UiRepeatedInstanceBasis,
+        layout_participation: UiGraphAxisParticipation,
+        role: UiAllocationNeighborhoodMemberRole,
+        measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+        _: &crate::graph::UiAllocationNeighborhoodMintAuthority,
+    ) -> Self {
+        Self::construct(
+            graph_node_identity,
+            authored_provenance_digest,
+            repeated_instance_basis,
+            layout_participation,
+            role,
+            measurement_constraint_modifier,
+        )
+    }
+
+    fn construct(
         graph_node_identity: UiGraphNodeIdentity,
         authored_provenance_digest: u64,
         repeated_instance_basis: UiRepeatedInstanceBasis,

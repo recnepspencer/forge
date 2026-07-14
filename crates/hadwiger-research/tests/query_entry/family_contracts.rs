@@ -1,9 +1,9 @@
 use hadwiger_research::facade::*;
-use worth_query::facade::{
-    WORTHQueryDeclarationFamilyMarker, WORTHQueryDeclarationLegalityClass,
-    WORTHQueryDeclarationPrimaryAuthorityFamily, WORTHQueryDeclarationRelationalTruthClaim,
-    WORTHQueryGroupedDeclarationPosture, WORTHQueryLowerAuthorityRouteFamily,
-    WORTHQuerySignalCompatibilityPosture,
+use worth_query::facade::foundation::{
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationLegalityClass,
+    WorthQueryDeclarationPrimaryAuthorityFamily, WorthQueryDeclarationRelationalTruthClaim,
+    WorthQueryGroupedDeclarationPosture, WorthQueryLowerAuthorityRouteFamily,
+    WorthQuerySignalCompatibilityPosture,
 };
 
 #[test]
@@ -31,21 +31,21 @@ fn descriptive_declaration_families_encode_deferred_support_contracts() {
 
 fn assert_descriptive_bound_support_contract<F>(family_key: &'static str)
 where
-    F: WORTHQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry>,
+    F: WorthQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry>,
 {
     let taxonomy = F::taxonomy();
     assert_eq!(F::semantic_family_key(), family_key);
     assert_eq!(
         taxonomy.primary_authority_family(),
-        WORTHQueryDeclarationPrimaryAuthorityFamily::DescriptiveOnly
+        WorthQueryDeclarationPrimaryAuthorityFamily::DescriptiveOnly
     );
     assert_eq!(
         F::legality_contract().legality_class(),
-        WORTHQueryDeclarationLegalityClass::DescriptiveDeferredSupport
+        WorthQueryDeclarationLegalityClass::DescriptiveDeferredSupport
     );
     assert_eq!(
         F::route_contract().allowed_route_families(),
-        &[WORTHQueryLowerAuthorityRouteFamily::Relational]
+        &[WorthQueryLowerAuthorityRouteFamily::Relational]
     );
     assert!(!F::route_contract().can_defer());
     assert!(F::relational_truth_contract().is_none());
@@ -53,60 +53,60 @@ where
 
 fn assert_relational_contract<F>(family_key: &'static str)
 where
-    F: WORTHQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry>,
+    F: WorthQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry>,
 {
     let taxonomy = F::taxonomy();
     assert_eq!(F::semantic_family_key(), family_key);
     assert_eq!(
         taxonomy.primary_authority_family(),
-        WORTHQueryDeclarationPrimaryAuthorityFamily::RelationalTruth
+        WorthQueryDeclarationPrimaryAuthorityFamily::RelationalTruth
     );
     assert_eq!(
         taxonomy.signal_compatibility(),
-        WORTHQuerySignalCompatibilityPosture::NotCompatible
+        WorthQuerySignalCompatibilityPosture::NotCompatible
     );
     assert_eq!(
         taxonomy.grouped_posture(),
-        WORTHQueryGroupedDeclarationPosture::NeighborhoodCapable
+        WorthQueryGroupedDeclarationPosture::NeighborhoodCapable
     );
     assert_eq!(
         F::legality_contract().legality_class(),
-        WORTHQueryDeclarationLegalityClass::AuthoritativeHotArtifact
+        WorthQueryDeclarationLegalityClass::AuthoritativeHotArtifact
     );
     assert_eq!(
         F::route_contract().allowed_route_families(),
-        &[WORTHQueryLowerAuthorityRouteFamily::Relational]
+        &[WorthQueryLowerAuthorityRouteFamily::Relational]
     );
     assert!(!F::route_contract().can_defer());
     assert_eq!(
         F::relational_truth_contract()
             .expect("relational family should declare truth contract")
             .truth_claim(),
-        WORTHQueryDeclarationRelationalTruthClaim::AuthoritativeCurrentTruth
+        WorthQueryDeclarationRelationalTruthClaim::AuthoritativeCurrentTruth
     );
 }
 
 fn assert_descriptive_contract<F>(family_key: &'static str)
 where
-    F: WORTHQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry>,
+    F: WorthQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry>,
 {
     let taxonomy = F::taxonomy();
     assert_eq!(F::semantic_family_key(), family_key);
     assert_eq!(
         taxonomy.primary_authority_family(),
-        WORTHQueryDeclarationPrimaryAuthorityFamily::DescriptiveOnly
+        WorthQueryDeclarationPrimaryAuthorityFamily::DescriptiveOnly
     );
     assert_eq!(
         taxonomy.signal_compatibility(),
-        WORTHQuerySignalCompatibilityPosture::NotCompatible
+        WorthQuerySignalCompatibilityPosture::NotCompatible
     );
     assert_eq!(
         taxonomy.grouped_posture(),
-        WORTHQueryGroupedDeclarationPosture::SingleOnly
+        WorthQueryGroupedDeclarationPosture::SingleOnly
     );
     assert_eq!(
         F::legality_contract().legality_class(),
-        WORTHQueryDeclarationLegalityClass::DescriptiveDeferredSupport
+        WorthQueryDeclarationLegalityClass::DescriptiveDeferredSupport
     );
     assert!(F::route_contract().allowed_route_families().is_empty());
     assert!(F::route_contract().can_defer());

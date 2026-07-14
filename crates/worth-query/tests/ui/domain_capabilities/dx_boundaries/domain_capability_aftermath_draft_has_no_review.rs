@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    worth_query_domain, WorthQueryAdmittedIntentPlan, WorthQueryProjectionContractRequest,
-};
+use worth_query::facade::runtime::{worth_query_domain, WorthQueryAdmittedIntentPlan, WorthQueryProjectionContractRequest};
 
 fn admitted_plan() -> WorthQueryAdmittedIntentPlan {
     todo!()

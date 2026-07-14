@@ -1,6 +1,6 @@
 use super::super::support::*;
 use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
-use crate::facade::TraversalSelector;
+use crate::facade::foundation::TraversalSelector;
 use crate::schema_view::{QuerySchemaView, SchemaRelationView};
 
 fn expanded_manager_schema() -> QuerySchemaView {

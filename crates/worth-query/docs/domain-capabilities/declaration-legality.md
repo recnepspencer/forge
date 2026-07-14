@@ -223,7 +223,7 @@ Important:
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryDeclarationLegalityContract, WorthQueryDeclarationLegalityChecked,
 };
 
@@ -254,7 +254,7 @@ match handle.review_legality_checked(handle.declare(AttachMaterialForActiveFaceS
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationAdmissionOrLegalityError,
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,

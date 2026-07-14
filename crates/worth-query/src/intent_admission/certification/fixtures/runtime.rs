@@ -1,24 +1,26 @@
 use super::bridge::certification_bridge;
 use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativeLiveViewShape};
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
-use crate::facade::{
-    runtime_subscription_support_evidence_identity, DeclarativeProjectionField,
-    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SchemaFieldKind, SchemaFieldView,
-    SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
-    SubscriptionActivationInput, WorthQueryAuthorityLane, WorthQueryBasisAdmissionEvidenceRow,
-    WorthQueryEffectPolicy, WorthQueryExistingTruthAssertionDenial,
-    WorthQueryExistingTruthProbeDenial, WorthQueryExistingTruthProbeDenialKind,
-    WorthQueryIntentAuthorityAdapter, WorthQueryIntentDeclaration, WorthQueryIntentExecution,
-    WorthQueryLiveArtifactTarget, WorthQueryLiveViewHandle, WorthQueryMutationDelta,
-    WorthQueryMutationKind, WorthQueryMutationReceipt, WorthQueryPreviewBasisAdmission,
-    WorthQueryRuntime, WorthQueryRuntimeEvidenceAuthority,
+use crate::facade::foundation::{
+    DeclarativeProjectionField, WorthQueryLiveViewHandle, WorthQueryMutationDelta,
+    WorthQueryMutationKind, WorthQueryMutationReceipt, WorthQueryWorkspaceError,
+};
+use crate::facade::runtime::{
+    runtime_subscription_support_evidence_identity, LiveViewDeclarationAdmissionBoundaryReceipt,
+    QuerySchemaView, SchemaFieldKind, SchemaFieldView, SignalInvalidationBoundaryReceipt,
+    SubscriptionActivationBoundaryReceipt, SubscriptionActivationInput, WorthQueryAuthorityLane,
+    WorthQueryBasisAdmissionEvidenceRow, WorthQueryEffectPolicy,
+    WorthQueryExistingTruthAssertionDenial, WorthQueryExistingTruthProbeDenial,
+    WorthQueryExistingTruthProbeDenialKind, WorthQueryIntentAuthorityAdapter,
+    WorthQueryIntentDeclaration, WorthQueryIntentExecution, WorthQueryLiveArtifactTarget,
+    WorthQueryPreviewBasisAdmission, WorthQueryRuntime, WorthQueryRuntimeEvidenceAuthority,
     WorthQueryRuntimeExistingTruthVerificationAdapter, WorthQueryRuntimeFacadeFamily,
     WorthQueryRuntimeFamilySupport, WorthQueryRuntimeInspectionEvidence,
     WorthQueryRuntimeInspectorEvidenceAdapter, WorthQueryRuntimePreviewBasisAdapter,
     WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSignalSinkAdapter,
     WorthQueryRuntimeSnapshotIdentityAdapter, WorthQueryRuntimeSourceAdapter,
     WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeSupportProfile,
-    WorthQuerySessionLabel, WorthQueryWorkspaceError, WorthQueryWriteReceipt,
+    WorthQuerySessionLabel, WorthQueryWriteReceipt,
 };
 use crate::identity::hash_parts;
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
@@ -173,6 +175,12 @@ impl WorthQueryRuntimeSourceAdapter for CertificationSourceAdapter {
         self.live_views
             .insert(live_target, request.target_collection_identity());
         Ok(WorthQueryLiveViewHandle::new(name))
+    }
+
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        self.live_views
+            .remove(&WorthQueryLiveArtifactTarget::from_view_name(name));
+        Ok(())
     }
 
     fn live_entities_for_target(

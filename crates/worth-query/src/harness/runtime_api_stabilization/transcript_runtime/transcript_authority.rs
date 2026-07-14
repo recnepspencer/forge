@@ -1,10 +1,13 @@
 use worth_relational::facade::runtime::RelationalRuntime;
 use worth_runtime_bridge::facade::RuntimeBridge;
 
-use crate::facade::{
-    WorthQueryAspectTouch, WorthQueryBackendAdmissibleMutation, WorthQueryMutationDelta,
-    WorthQueryMutationKind, WorthQueryMutationReceipt, WorthQueryRuntimeWriteAuthorityAdapter,
-    WorthQueryWorkspaceError, WriteAuthorityExecutionReceipt,
+use crate::facade::foundation::{
+    WorthQueryMutationDelta, WorthQueryMutationKind, WorthQueryMutationReceipt,
+    WorthQueryWorkspaceError,
+};
+use crate::facade::runtime::{
+    WorthQueryAspectTouch, WorthQueryBackendAdmissibleMutation,
+    WorthQueryRuntimeWriteAuthorityAdapter, WriteAuthorityExecutionReceipt,
 };
 use crate::memory_workspace::{WorthQueryCommitIdentity, WorthQuerySnapshotIdentity};
 use crate::runtime::build_bridge_authority_bundle;

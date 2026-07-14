@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryGraphCompositionExtensionHookBoundary,
-    WorthQueryGraphCompositionExtensionHookSupportRow,
-};
+use worth_query::facade::runtime::{WorthQueryGraphCompositionExtensionHookBoundary, WorthQueryGraphCompositionExtensionHookSupportRow};
 
 fn main() {
     let _ = WorthQueryGraphCompositionExtensionHookSupportRow {

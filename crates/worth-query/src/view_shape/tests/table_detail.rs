@@ -1,8 +1,9 @@
 use super::*;
 use crate::view_shape::{
-    admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
-    ViewShapeComplexityStatus, ViewShapeDescriptor, ViewShapeFailureClass,
-    ViewShapeInvalidationPosture, ViewShapePatchPosture,
+    admit_view_shape, plan_admitted_view_shape, plan_admitted_view_shape_from_execution_plan,
+    validate_canonical_bundle_for_admitted_view_shape, ViewShapeComplexityStatus,
+    ViewShapeDescriptor, ViewShapeFailureClass, ViewShapeInvalidationPosture,
+    ViewShapePatchPosture,
 };
 
 #[test]
@@ -112,5 +113,66 @@ fn detail_plan_is_verified_runtime_backed_product_lane() {
             .result_shape()
             .canonical_result_shape_digest(),
         canonical.result_shape().digest()
+    );
+}
+
+#[test]
+fn live_promotion_consumes_the_exact_admitted_execution_plan() {
+    let canonical = direct_collection();
+    let planned = plan_admitted_view_shape(
+        validate_canonical_bundle_for_admitted_view_shape(
+            &canonical,
+            collection_schema_view(),
+            admit_view_shape(&canonical, ViewShapeDescriptor::table()).unwrap(),
+        )
+        .unwrap(),
+        basis_intent(),
+    )
+    .unwrap();
+    let promoted = plan_admitted_view_shape_from_execution_plan(
+        planned.validated_view().clone(),
+        planned.execution_plan().clone(),
+    )
+    .expect("exact admitted execution plan should promote to live");
+
+    assert_eq!(
+        promoted.execution_plan().query().plan_digest(),
+        planned.execution_plan().query().plan_digest()
+    );
+}
+
+#[test]
+fn live_promotion_rejects_an_execution_plan_from_another_query() {
+    let collection = direct_collection();
+    let collection_plan = plan_admitted_view_shape(
+        validate_canonical_bundle_for_admitted_view_shape(
+            &collection,
+            collection_schema_view(),
+            admit_view_shape(&collection, ViewShapeDescriptor::table()).unwrap(),
+        )
+        .unwrap(),
+        basis_intent(),
+    )
+    .unwrap();
+    let detail = direct_detail();
+    let detail_plan = plan_admitted_view_shape(
+        validate_canonical_bundle_for_admitted_view_shape(
+            &detail,
+            detail_schema_view(),
+            admit_view_shape(&detail, ViewShapeDescriptor::detail()).unwrap(),
+        )
+        .unwrap(),
+        basis_intent(),
+    )
+    .unwrap();
+
+    let error = plan_admitted_view_shape_from_execution_plan(
+        collection_plan.validated_view().clone(),
+        detail_plan.execution_plan().clone(),
+    )
+    .expect_err("live promotion must reject unrelated admitted evidence");
+    assert_eq!(
+        error.failure_class(),
+        &ViewShapeFailureClass::PlanningInvariantRejected
     );
 }

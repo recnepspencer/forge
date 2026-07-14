@@ -19,4 +19,4 @@ pub use artifacts::{
 };
 pub use bundle_state::CanonicalQueryBundle;
 pub use errors::{CanonicalizationFailureClass, QueryCanonicalizationError};
-pub use pipeline::canonicalize_request;
+pub(crate) use pipeline::canonicalize_request;

@@ -20,8 +20,9 @@ use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
 use crate::historical::{
-    admit_historical_evaluation_path, lower_materialization_from_decision_log,
-    lower_policy_resolution, resolve_historical_materialization_path, HistoricalEvaluationRequest,
+    admit_historical_evaluation_path, bridge_historical_basis,
+    lower_materialization_from_decision_log, lower_policy_resolution,
+    resolve_historical_materialization_path, HistoricalEvaluationRequest,
     HistoricalPathReuseDescriptor,
 };
 use crate::lower_runtime_routing::{
@@ -41,11 +42,14 @@ pub(crate) fn representative_historical_bridge_lowering_row() -> RepresentativeA
         BridgeDiagnosticsTier::Standard,
         BridgeDeliveryIntent::PrepareSignalEvaluation,
     );
-    let request = HistoricalEvaluationRequest::delta_replay(
+    let basis = bridge_historical_basis(
         declaration
             .declaration_identity()
             .bridge_admission_evidence()
             .terminal_projection_for_reporting(),
+    );
+    let request = HistoricalEvaluationRequest::delta_replay(
+        &basis,
         4,
         8,
         HistoricalPathReuseDescriptor::with_replay_tail_reuse(),

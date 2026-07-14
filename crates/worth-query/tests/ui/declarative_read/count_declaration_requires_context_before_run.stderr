@@ -1,0 +1,5 @@
+error[E0599]: no method named `run` found for struct `WorthQueryCountDeclaration` in the current scope
+ --> tests/ui/declarative_read/count_declaration_requires_context_before_run.rs:8:32
+  |
+8 |     let _outcome = declaration.run(workspace);
+  |                                ^^^ method not found in `WorthQueryCountDeclaration`

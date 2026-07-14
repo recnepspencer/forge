@@ -2,11 +2,12 @@ use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
 use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
-use crate::facade::{
-    admit_query_basis_context, bind_query_basis_context, preflight_execution_basis,
-    resolve_snapshot_basis, AdmittedQueryBasisContext, BasisAuthorityFamily, BasisResolutionMode,
-    ExecutionBasisIntent, QueryBasisContextRequest, QueryContextBindingSource,
-    ResolvedSnapshotIdentity, SnapshotLineageClass,
+use crate::facade::foundation::{
+    basis_lifecycle, preflight_execution_basis, resolve_snapshot_basis, BasisAuthorityFamily,
+    BasisResolutionMode, ExecutionBasisIntent, ResolvedSnapshotIdentity, SnapshotLineageClass,
+};
+use crate::facade::policy::{
+    admit_query_basis_context, QueryContextBindingSource, ScopedQueryBasisContext,
 };
 use crate::intent_admission::certification_runtime;
 use crate::lower_runtime_routing::{
@@ -265,20 +266,19 @@ fn read_declaration() -> impl FnOnce(
 fn branch_context_for_family(
     family: &WorthQueryReadFamily,
     snapshot_token: &str,
-) -> AdmittedQueryBasisContext {
+) -> ScopedQueryBasisContext {
     let preflight = runtime_preflight_for_family(family, snapshot_token);
-    let binding = bind_query_basis_context(
-        QueryBasisContextRequest::branch_head(snapshot_token),
+    admit_query_basis_context(
+        basis_lifecycle().branch_head(snapshot_token, true),
         QueryContextBindingSource::RuntimeBranch(&preflight),
     )
-    .expect("branch read fixture context should bind");
-    admit_query_basis_context(binding).expect("branch read fixture context should admit")
+    .expect("branch read fixture context should admit")
 }
 
 fn runtime_preflight_for_family(
     family: &WorthQueryReadFamily,
     snapshot_token: &str,
-) -> crate::facade::ExecutionPreflightBundle {
+) -> crate::facade::foundation::ExecutionPreflightBundle {
     let intent = ExecutionBasisIntent::new(
         BasisAuthorityFamily::Runtime,
         SnapshotLineageClass::CurrentHead,

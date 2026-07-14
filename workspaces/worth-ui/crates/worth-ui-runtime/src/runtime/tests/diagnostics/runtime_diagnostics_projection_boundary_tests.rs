@@ -1,5 +1,4 @@
-use super::allocation_planning_test_support::allocation_planning;
-use super::frame_activation_gate_test_support::ready_activation_fixture;
+use super::activation_staging_test_support::activation_staging_inputs;
 use super::reload_failure_test_support::missing_artifact_candidate_denial;
 use super::runtime_diagnostics_projection_test_support::{
     foundational_frame_report, runtime_from_import_target,
@@ -13,7 +12,7 @@ use crate::runtime::{
 
 #[test]
 fn diagnostics_projection_preserves_runtime_diagnostic_identity() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let failure = fixture
         .runtime
         .preserve_invalid_candidate_reload(missing_artifact_candidate_denial());
@@ -48,7 +47,7 @@ fn diagnostics_projection_preserves_runtime_diagnostic_identity() {
 
 #[test]
 fn diagnostics_projection_cannot_mutate_active_plan() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let active_before = fixture.runtime.inspect_active();
     let failure = fixture
         .runtime
@@ -80,7 +79,7 @@ fn diagnostics_projection_cannot_mutate_active_plan() {
 
 #[test]
 fn failed_reload_visible_without_blank_active_app() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let active_before = fixture.runtime.inspect_active();
     let failure = fixture
         .runtime
@@ -120,7 +119,7 @@ fn failed_reload_visible_without_blank_active_app() {
 
 #[test]
 fn diagnostics_projection_rejects_hook_identity_rewrite() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let failure = fixture
         .runtime
         .preserve_invalid_candidate_reload(missing_artifact_candidate_denial());
@@ -150,7 +149,7 @@ fn diagnostics_projection_rejects_hook_identity_rewrite() {
 
 #[test]
 fn frame_cost_surface_consumes_foundational_materialized_report() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let failure = fixture
         .runtime
         .preserve_invalid_candidate_reload(missing_artifact_candidate_denial());
@@ -182,7 +181,7 @@ fn frame_cost_surface_consumes_foundational_materialized_report() {
 
 #[test]
 fn projection_digest_changes_when_typed_frame_cost_input_changes() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let failure = fixture
         .runtime
         .preserve_invalid_candidate_reload(missing_artifact_candidate_denial());
@@ -251,29 +250,40 @@ fn diagnostics_projection_rejects_report_from_different_runtime() {
 
 #[test]
 fn diagnostics_projection_rejects_plan_inspection_from_different_plan() {
-    let fixture = ready_activation_fixture();
-    let failure = fixture
-        .runtime
-        .preserve_invalid_candidate_reload(missing_artifact_candidate_denial());
-    let report = fixture
-        .runtime
+    let inputs = activation_staging_inputs();
+    let (mut runtime, pending) = inputs.into_runtime_and_pending();
+    let failure = runtime.preserve_invalid_candidate_reload(missing_artifact_candidate_denial());
+    let report = runtime
         .diagnostics()
         .for_reload_failure(&failure)
         .materialize();
-    let candidate_inspection = fixture
-        .runtime
-        .inspect_execution_plan(
-            &fixture.candidate_plan,
-            &allocation_planning(
-                &fixture.runtime,
-                &fixture.plan_input,
-                "runtime-diagnostics-projection.candidate-plan",
-            ),
+    let (snapshot, first, second) =
+        crate::runtime::tests::allocation_catalog_test_support::admitted_disjoint_planning_admissions(
+            "runtime-diagnostics-projection.candidate-plan",
+        );
+    let admitted = snapshot
+        .admit_allocation_catalog_basis_set(vec![first, second])
+        .expect("graph admits complete diagnostic catalog");
+    let boundary = runtime.traversal_frame_boundary_for_test();
+    let mut candidate_inspection = None;
+    runtime
+        .activate_admitted_allocation_catalog_with_boundary_source(
+            pending,
+            admitted,
+            |runtime, _, candidate_plan, planning| {
+                candidate_inspection = Some(
+                    runtime
+                        .inspect_execution_plan(candidate_plan, planning)
+                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?,
+                );
+                Ok((boundary, None))
+            },
         )
-        .expect("candidate plan inspection succeeds");
+        .expect_err("unsafe boundary preserves active plan");
+    let candidate_inspection =
+        candidate_inspection.expect("canonical route exposes read-only plan inspection");
 
-    let denial = fixture
-        .runtime
+    let denial = runtime
         .diagnostics_projection()
         .from_report(&report)
         .with_plan_inspection(&candidate_inspection)

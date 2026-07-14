@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    ConsumedProjectionFactSet, ProjectionContractSupportPosture, ProjectionFactExtractionCounters,
-    ProjectionSourceFamily,
-};
+use worth_query::facade::foundation::{ConsumedProjectionFactSet, ProjectionContractSupportPosture, ProjectionFactExtractionCounters, ProjectionSourceFamily};
 
 fn main() {
     let _ = ConsumedProjectionFactSet {

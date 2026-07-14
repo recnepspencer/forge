@@ -21,6 +21,8 @@ pub(super) struct WorthQueryRuntimeLiveSubscriptionActivation {
     pub(super) consumer_attachment: SubscriptionConsumerAttachment,
     pub(super) request: DeclarativeLiveQueryRequest,
     pub(super) remask_posture: Option<WorthQueryRuntimeRemaskPosture>,
+    pub(super) read_authority_binding:
+        Option<crate::intent_admission::WorthQueryReadExecutionBinding>,
 }
 
 pub(super) struct WorthQueryRuntimeLiveSubscriptionState {
@@ -32,6 +34,8 @@ pub(super) struct WorthQueryRuntimeLiveSubscriptionState {
     pub(super) last_delivery: Option<WorthQueryRuntimeRetainedDelivery>,
     pub(super) async_result_state: Option<WorthQueryRuntimeAsyncResultState>,
     pub(super) remask_posture: Option<WorthQueryRuntimeRemaskPosture>,
+    pub(super) read_authority_binding:
+        Option<crate::intent_admission::WorthQueryReadExecutionBinding>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -269,7 +273,7 @@ pub(super) fn register_live_subscription_index(
     entry.targets_mut().insert(target);
 }
 
-fn unregister_live_subscription_index(
+pub(super) fn unregister_live_subscription_index(
     index: &mut Vec<WorthQueryLiveSubscriptionIndexEntry>,
     view_name: &str,
 ) {

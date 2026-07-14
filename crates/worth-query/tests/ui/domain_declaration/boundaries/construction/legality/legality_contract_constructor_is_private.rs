@@ -2,9 +2,7 @@ use worth_foundational::facade::{
     FoundationalBoundaryArtifactCategory, FoundationalBoundaryArtifactRole,
     FoundationalBoundaryAvailability, FoundationalBoundaryDeliveryClass,
 };
-use worth_query::facade::{
-    WorthQueryDeclarationLegalityClass, WorthQueryDeclarationLegalityContract,
-};
+use worth_query::facade::foundation::{WorthQueryDeclarationLegalityClass, WorthQueryDeclarationLegalityContract};
 
 fn main() {
     let _ = WorthQueryDeclarationLegalityContract::new(

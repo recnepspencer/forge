@@ -101,17 +101,17 @@ pub(super) fn branch_snapshot_identity(
     runtime: &RelationalRuntime,
     branch: &str,
 ) -> WorthQuerySnapshotIdentity {
-    let version_id = runtime
-        .history()
+    let history = runtime.history();
+    let head = history
         .branch_head(&BranchId(branch.to_string()))
-        .map(|commit| commit.version_id.0)
-        .unwrap_or(0);
-    WorthQuerySnapshotIdentity::from_relational_snapshot(
-        RelationalBridgeSnapshotIdentityParts::new(
-            crate::effect_lifecycle::stable_branch_snapshot_id(&BranchId(branch.to_string())),
-            version_id,
+        .expect("certification branch snapshot requires a current head");
+    WorthQuerySnapshotIdentity::from_bridge_snapshot_identity(
+        worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
+            head.commit_id,
+            head.version_id,
         ),
     )
+    .expect("relational commit must yield a relational snapshot identity")
 }
 
 fn test_schema_registry() -> RelationalSchemaRegistry {

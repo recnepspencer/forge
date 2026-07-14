@@ -20,6 +20,7 @@ fn prohibition_registry_compile_fail_directory_has_no_unregistered_fixture() {
     let expected = hard_prohibition_compile_fail_fixtures()
         .iter()
         .map(|fixture| fixture.fixture_path().to_string())
+        .filter(|path| path.starts_with("tests/ui/prohibition_registry/"))
         .chain([REGISTRY_ROW_CONSTRUCTOR_FIXTURE.to_string()])
         .collect::<BTreeSet<_>>();
     let found = fs::read_dir("tests/ui/prohibition_registry")

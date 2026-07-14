@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionSliceIntent;
+use worth_query::facade::runtime::QuerySubscriptionSliceIntent;
 
 fn main() {
     let _fabricated = QuerySubscriptionSliceIntent {

@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    QuerySubscriptionDiagnosticEvidence, QuerySubscriptionDiagnosticOutcome,
-    QuerySubscriptionDiagnosticStage,
-};
+use worth_query::facade::runtime::{QuerySubscriptionDiagnosticEvidence, QuerySubscriptionDiagnosticOutcome, QuerySubscriptionDiagnosticStage};
 
 fn main() {
     let _fabricated = QuerySubscriptionDiagnosticEvidence {

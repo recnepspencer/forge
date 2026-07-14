@@ -1,4 +1,4 @@
-use worth_query::facade::{TenantBasisEpoch, TenantBindingSnapshot, TenantResolutionClass};
+use worth_query::facade::runtime::{TenantBasisEpoch, TenantBindingSnapshot, TenantResolutionClass};
 
 fn main() {
     let _ = TenantBindingSnapshot {

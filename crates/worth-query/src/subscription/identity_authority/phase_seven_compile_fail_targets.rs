@@ -36,6 +36,10 @@ impl WorthQuerySubscriptionPhaseSevenGoldenPath {
 
 const COMPILE_FAIL_TARGETS: &[WorthQuerySubscriptionPhaseSevenCompileFailTarget] = &[
     WorthQuerySubscriptionPhaseSevenCompileFailTarget::new(
+        "tests/ui/subscription_phase_seven/subscription_posture_cannot_author_admission.rs",
+        "derived subscription posture cannot substitute for scoped declaration proof",
+    ),
+    WorthQuerySubscriptionPhaseSevenCompileFailTarget::new(
         "tests/ui/subscription_phase_seven/subscription_source_digest_cannot_feed_authority.rs",
         "source digest string cannot satisfy subscription authority",
     ),

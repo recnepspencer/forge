@@ -1,4 +1,4 @@
-use crate::facade::{canonicalize_request, GuidedAuthoringPath};
+use crate::facade::foundation::{canonicalize_request, GuidedAuthoringPath};
 
 use super::super::fixtures::{binding_descriptor_parity, query_parity, result_shape_parity};
 use super::super::matrices::{
@@ -174,14 +174,14 @@ impl MilestoneOneCertificationAdapter {
             crate::canonicalization::pipeline::QueryCanonicalizer::canonicalize_bundle(
                 query_parity::unsupported_detail_query_for_test(),
                 result_shape_parity::direct_detail_shape().into_raw(),
-                crate::facade::QueryBindingDescriptor::default(),
+                crate::facade::foundation::QueryBindingDescriptor::default(),
             )
             .unwrap_err();
         let unsupported_shape_error =
             crate::canonicalization::pipeline::QueryCanonicalizer::canonicalize_bundle(
                 query_parity::direct_detail_query().into_raw(),
                 result_shape_parity::unsupported_detail_shape_for_test(),
-                crate::facade::QueryBindingDescriptor::default(),
+                crate::facade::foundation::QueryBindingDescriptor::default(),
             )
             .unwrap_err();
         let helper_residue_error = canonicalize_request(

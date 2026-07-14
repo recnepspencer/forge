@@ -1,5 +1,5 @@
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
-use worth_query::facade::WorthQueryWorkspace;
+use worth_query::facade::runtime::WorthQueryWorkspace;
 use worth_server::{
     WorthServerQueryHandoffOperation, WorthServerQueryWorkspaceBindingError,
     WorthServerQueryWorkspaceBindingRequest, WorthServerQueryWorkspaceBindingTarget,

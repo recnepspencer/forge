@@ -1,12 +1,12 @@
 error[E0308]: arguments to this function are incorrect
-  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:7:21
+  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:6:21
    |
- 7 |     let execution = WorthQueryIntentExecution::idempotent_noop(
+ 6 |     let execution = WorthQueryIntentExecution::idempotent_noop(
    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ...
-14 |         "commit-1",
+13 |         "commit-1",
    |         ---------- expected `WorthQueryCommitIdentity`, found `&str`
-15 |         "snapshot-1",
+14 |         "snapshot-1",
    |         ------------ expected `WorthQuerySnapshotIdentity`, found `&str`
    |
 note: associated function defined here
@@ -15,11 +15,11 @@ note: associated function defined here
    |     pub fn idempotent_noop(
    |            ^^^^^^^^^^^^^^^
 
-error[E0277]: the trait bound `WorthQueryInspectionTarget<'_>: From<&worth_query::facade::WorthQueryIntentExecution>` is not satisfied
-  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:18:29
+error[E0277]: the trait bound `WorthQueryInspectionTarget<'_>: From<&worth_query::facade::runtime::WorthQueryIntentExecution>` is not satisfied
+  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:17:29
    |
-18 |     let _ = runtime.inspect(&execution);
-   |                     ------- ^^^^^^^^^^ the trait `From<&worth_query::facade::WorthQueryIntentExecution>` is not implemented for `WorthQueryInspectionTarget<'_>`
+17 |     let _ = runtime.inspect(&execution);
+   |                     ------- ^^^^^^^^^^ the trait `From<&worth_query::facade::runtime::WorthQueryIntentExecution>` is not implemented for `WorthQueryInspectionTarget<'_>`
    |                     |
    |                     required by a bound introduced by this call
    |
@@ -33,7 +33,7 @@ error[E0277]: the trait bound `WorthQueryInspectionTarget<'_>: From<&worth_query
              `WorthQueryInspectionTarget<'_>` implements `From<&WorthQueryPreviewHandleBindingEvidence>`
              `WorthQueryInspectionTarget<'_>` implements `From<&WorthQueryPreviewIntentReceipt>`
            and $N others
-   = note: required for `&worth_query::facade::WorthQueryIntentExecution` to implement `Into<WorthQueryInspectionTarget<'_>>`
+   = note: required for `&worth_query::facade::runtime::WorthQueryIntentExecution` to implement `Into<WorthQueryInspectionTarget<'_>>`
 note: required by a bound in `worth_query::runtime::runtime_inspection::<impl WorthQueryRuntime>::inspect`
   --> src/runtime/runtime_inspection.rs
    |
@@ -44,9 +44,9 @@ note: required by a bound in `worth_query::runtime::runtime_inspection::<impl Wo
    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `worth_query::runtime::runtime_inspection::<impl WorthQueryRuntime>::inspect`
 
 error[E0308]: mismatched types
-  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:19:40
+  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:18:40
    |
-19 |     let _: WorthQueryMutationReceipt = execution;
+18 |     let _: WorthQueryMutationReceipt = execution;
    |            -------------------------   ^^^^^^^^^ expected `WorthQueryMutationReceipt`, found `WorthQueryIntentExecution`
    |            |
    |            expected due to this

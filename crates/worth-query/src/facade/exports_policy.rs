@@ -1,13 +1,16 @@
-pub use crate::planning::{
+pub(crate) use crate::planning::{
     plan_validated_bundle, plan_validated_bundle_for_collection_family,
+};
+pub use crate::planning::{
     planning_request_context_for_bound, planning_request_context_for_direct, seed_execution_plan,
     ExecutionCostMarker, ExecutionMechanics, ExecutionPlanBundle, FallbackDisposition,
     PlannedExecutionRoute, PlannedQueryArtifact, PlannedResultShapeArtifact,
     PlanningAmbientContext, PlanningCounters, PlanningError, PlanningFailureClass, PlanningReport,
     PlanningRequestContext, PlanningSemanticInputs,
 };
+pub(crate) use crate::policy_basis::admit_policy_tenant_context;
 pub use crate::policy_basis::{
-    admit_policy_tenant_context, classify_saved_query_policy_tenant_reuse,
+    classify_saved_query_policy_tenant_reuse,
     runtime_backed_policy_tenant_admission_support_profile, AdmittedPolicyTenantContext,
     BranchAccessGrant, BranchAccessGrantClass, PolicyAdmissionDisposition, PolicyBasis,
     PolicyBasisCounters, PolicyBasisIdentity, PolicyCostPosture, PolicyEpoch,
@@ -17,20 +20,11 @@ pub use crate::policy_basis::{
     PolicyTenantAdmissionSupportProfile, PolicyTenantPhaseOneSurface, PolicyTenantSupportStatus,
     PolicyWorkBudget, SavedQueryPolicyReuseDescriptor, SavedQueryPolicyReuseDisposition,
 };
-pub use crate::policy_certification::{
-    employee_record_policy_fixture, employee_record_policy_scale_report,
-    policy_composition_parity_report, policy_identity_aware_inspector_parity_report,
-    policy_mask_parity_report, policy_view_shape_parity_report, EmployeeRecordCertificationBundle,
-    EmployeeRecordPolicyFixture, EmployeeRecordPolicyScenario, EmployeeRecordQueryFamily,
-    EmployeeRecordTenantVariant, PolicyCompositionParityReport,
-    PolicyIdentityAwareInspectorParityReport, PolicyMaskParityReport, PolicyScaleCounterSnapshot,
-    PolicyScaleFixtureSize, PolicyScaleSlopeDigest, PolicyScaleSlopeReport,
-    PolicyViewShapeParityReport,
-};
+pub(crate) use crate::policy_delivery::lower_policy_aware_delivery_shape;
 pub use crate::policy_delivery::{
-    deny_policy_placeholder_masking, lower_policy_aware_delivery_shape, DeliveryWidthClass,
-    PolicyAwareDeliveryDigest, PolicyAwareDeliveryReport, PolicyAwareDeliveryShape,
-    PolicyPlaceholderMaskingDenial, PolicyPlaceholderMaskingRequest,
+    deny_policy_placeholder_masking, DeliveryWidthClass, PolicyAwareDeliveryDigest,
+    PolicyAwareDeliveryReport, PolicyAwareDeliveryShape, PolicyPlaceholderMaskingDenial,
+    PolicyPlaceholderMaskingRequest,
 };
 pub use crate::policy_execution_seam::{
     deny_durable_policy_artifact_reload_claim, deny_durable_policy_cursor_claim,
@@ -44,8 +38,8 @@ pub use crate::policy_execution_seam::{
     PolicyExecutionSeamSupportProfile, PolicyExecutionSeamSupportStatus,
     PolicyExecutionSeamSurface,
 };
+pub(crate) use crate::policy_live::admit_policy_aware_live_plan;
 pub use crate::policy_live::{
-    admit_policy_aware_live_plan, certify_policy_live_drift_evidence,
     PolicyAwareLiveAdmissionReport, PolicyAwareLivePlan, PolicyAwareLiveRelevanceContract,
     PolicyDriftDisposition, PolicyLiveDensityEvidence, PolicyLiveDensityPosture,
     PolicyLiveDriftEvidenceReport, PolicyLiveEpochEvidence,
@@ -60,24 +54,29 @@ pub use crate::policy_narrowing::{
     SavedPolicyNarrowingReuseDisposition,
 };
 pub use crate::policy_plan::{
-    defer_store_backed_policy_historical_plan, deny_raw_diff_scrub, lower_policy_aware_branch_plan,
-    lower_policy_aware_current_plan, lower_policy_aware_diff_plan,
-    lower_policy_aware_historical_plan, lower_policy_aware_optimizer_input, PolicyAwareBranchPlan,
+    defer_store_backed_policy_historical_plan, deny_raw_diff_scrub, PolicyAwareBranchPlan,
     PolicyAwareCurrentPlan, PolicyAwareDiffBasisPair, PolicyAwareDiffPlan,
     PolicyAwareDiffScrubDisposition, PolicyAwareHistoricalBasis, PolicyAwareHistoricalPlan,
     PolicyAwarePlanCore, PolicyAwarePlanCostPosture, PolicyAwarePlanDigest,
     PolicyAwarePlanLoweringReport, PolicyAwarePlanWorkBudget, PolicyAwareReadBasis,
 };
-pub use crate::preview::{
+pub(crate) use crate::policy_plan::{
+    lower_policy_aware_branch_plan, lower_policy_aware_current_plan, lower_policy_aware_diff_plan,
+    lower_policy_aware_historical_plan, lower_policy_aware_optimizer_input,
+};
+pub(crate) use crate::preview::{
     admit_authoritative_preview_comparison_candidate, admit_preview_promotion_parity_comparison,
     admit_preview_workflow_foundation, admit_preview_workflow_foundation_request,
     admit_promotion_eligible_preview_session_plan_binding,
     admit_read_only_preview_session_plan_binding, admit_scoped_preview_live_session_plan,
     admit_scoped_preview_session_plan_binding,
-    admit_scoped_preview_session_plan_binding_from_preview_binding, assess_preview_live_drift,
+    admit_scoped_preview_session_plan_binding_from_preview_binding,
     bind_preflight_to_preview_session, execute_promotion_eligible_preview_session_plan,
     execute_read_only_preview_session_plan, execute_scoped_preview_live_session_plan,
-    scoped_observation_basis_for_preview_binding, AdmittedPreviewWorkflowFoundation,
+    scoped_observation_basis_for_preview_binding,
+};
+pub use crate::preview::{
+    assess_preview_live_drift, AdmittedPreviewWorkflowFoundation,
     AuthoritativePreviewComparisonCandidate, PreviewBindingCounters, PreviewBindingError,
     PreviewBindingFailureClass, PreviewBindingReport, PreviewComparisonCounters,
     PreviewComparisonEligibilityArtifact, PreviewComparisonError, PreviewComparisonFailureClass,
@@ -86,9 +85,9 @@ pub use crate::preview::{
     PreviewLifecycleMetadata, PreviewLiveAdmissionReport, PreviewLiveCounters,
     PreviewLiveDriftDenied, PreviewLiveDriftOutcome, PreviewLiveError,
     PreviewLiveExecutionEnvelope, PreviewLiveFailureClass, PreviewLiveMaintained,
-    PreviewLiveRebindArtifact, PreviewLiveSessionPlanBinding, PreviewPerformanceStatusMarker,
-    PreviewSessionBasis, PreviewSessionBindingTuple, PreviewSessionPlanBinding,
-    PreviewSessionQueryContext, PreviewWorkflowFoundationArtifact, PreviewWorkflowFoundationError,
+    PreviewLiveRebindArtifact, PreviewPerformanceStatusMarker, PreviewSessionBasis,
+    PreviewSessionBindingTuple, PreviewSessionPlanBinding, PreviewSessionQueryContext,
+    PreviewWorkflowFoundationArtifact, PreviewWorkflowFoundationError,
     PreviewWorkflowFoundationFailureClass, PreviewWorkflowFoundationRequest,
     PromotionEligiblePreviewEvaluation, PromotionEligiblePreviewExecutionEnvelope,
     PromotionEligiblePreviewSessionPlanBinding, PromotionParityPreviewComparisonAdmission,
@@ -102,52 +101,15 @@ pub use crate::program::{
     WorthQueryProgramTrace, WorthQueryProgramValue, WorthQuerySchemaAdapter, WorthQueryTypedPort,
     WorthQueryValueExpr, WorthQueryWorkflowGraph, WorthQueryWriteCommandTemplate,
 };
-pub use crate::query_basis_lifecycle::{
-    admit_certification_basis, admit_certification_basis_intent, admit_inspection_basis,
-    admit_inspection_basis_intent, admit_materialization_basis, admit_materialization_basis_intent,
-    admit_mutation_preparation_basis, admit_mutation_preparation_basis_intent,
-    admit_observation_basis, admit_observation_basis_intent, admit_preview_closeout_basis,
-    admit_preview_closeout_basis_intent, admit_replay_basis, admit_replay_basis_intent,
-    admit_subscription_activation_basis, admit_subscription_activation_basis_intent,
-    admit_subscription_declaration_basis, admit_subscription_declaration_basis_intent,
-    basis_compatibility_debt_registry, basis_inventory, evaluate_basis_eligibility,
-    lower_runtime_api_reuse_matrix, normalize_query_context_request, normalize_raw_basis,
-    query_basis_lifecycle_support_report, readmit_bridge_continuity_evidence,
-    readmit_bridge_subscription_activation_evidence,
-    readmit_bridge_subscription_declaration_evidence, readmit_bridge_truth_view_evidence,
-    scope_certification_basis, scope_certification_basis_intent, scope_inspection_basis,
-    scope_inspection_basis_intent, scope_materialization_basis, scope_materialization_basis_intent,
-    scope_mutation_preparation_basis, scope_mutation_preparation_basis_intent,
-    scope_observation_basis, scope_observation_basis_intent, scope_preview_closeout_basis,
-    scope_preview_closeout_basis_intent, scope_replay_basis, scope_replay_basis_intent,
-    scope_subscription_activation_basis, scope_subscription_activation_basis_intent,
-    scope_subscription_declaration_basis, scope_subscription_declaration_basis_intent,
-    target_dx_transcript_inventory, try_raw_basis_intent_from_query_context_request,
-    AdvisoryBasisCapability, BasisCapabilityAdmission, BasisCompatibilityDebtPosture,
-    BasisCompatibilityDebtRegistry, BasisCompatibilityDebtRow, BasisEligibilityDisposition,
-    BasisEligibilityTrace, BasisInventory, BasisInventoryDisposition, BasisInventoryOwner,
-    BasisInventoryRow, BasisLaneSupportRow, BasisLaneSupportStatus, BasisNormalizationCounters,
-    BasisOperationLaneRequest, BasisScopedAdmissionDenial, BasisTenantSchemaPosture,
-    BasisVisibility, BridgeLowerRuntimeEvidenceReference, CertificationBasisCapability,
-    InspectionBasisCapability, LowerRuntimeApiReuseClass, LowerRuntimeApiReuseMatrix,
-    LowerRuntimeApiReuseRow, LowerRuntimeBoundInspectionBasis, LowerRuntimeBoundObservationBasis,
-    LowerRuntimeBoundSubscriptionActivationBasis, LowerRuntimeBoundSubscriptionDeclarationBasis,
-    MaterializationBasisCapability, MutationPreparationBasisCapability, NormalizedBasisFamily,
-    ObservationBasisCapability, PreviewCloseoutBasisCapability, QueryBasisLifecycleSupportReport,
-    RawBasisSelector, RawBasisSourcePath, RawFutureBasisNeighborFamily, ReplayBasisCapability,
-    ScopedBasisConstructionCounters, SubscriptionActivationBasisCapability,
-    SubscriptionDeclarationBasisCapability, TargetDxTranscriptInventory, TargetDxTranscriptKind,
-    TargetDxTranscriptRow, UnboundLowerRuntimeEvidencePlaceholder,
+pub(crate) use crate::query_context::{
+    admit_query_basis_context, bind_diff_query_context,
+    execute_and_build_query_basis_result_bundle, execute_query_basis_context,
 };
 pub use crate::query_context::{
-    admit_query_basis_context, admit_scoped_query_basis_context, attach_diff_query_metadata,
-    attach_query_basis_metadata, bind_diff_query_context, bind_query_basis_context,
-    build_query_basis_result_bundle, build_query_diff_result_bundle,
-    build_scoped_query_basis_result_bundle, compose_construction_branch_basis_preparation_digest,
-    execute_and_build_scoped_query_basis_result_bundle, execute_query_basis_context,
-    execute_scoped_query_basis_context, shape_query_diff_change_set, AdmittedDiffQueryContext,
-    AdmittedQueryBasisContext, ComparisonBasisFamily, DiffQueryMetadata, HistoricalAdmissionClass,
-    HistoricalMaterializationCostClass, QueryBasisContextBinding, QueryBasisContextRequest,
+    attach_diff_query_metadata, attach_query_basis_metadata, build_query_basis_result_bundle,
+    build_query_diff_result_bundle, compose_construction_branch_basis_preparation_digest,
+    shape_query_diff_change_set, AdmittedDiffQueryContext, ComparisonBasisFamily,
+    DiffQueryMetadata, HistoricalAdmissionClass, HistoricalMaterializationCostClass,
     QueryBasisMetadata, QueryBasisResultBundle, QueryContextAdmissionError,
     QueryContextAdmissionFailureClass, QueryContextBindingSource, QueryContextBudgetClass,
     QueryContextCostClass, QueryContextCounters, QueryContextDriftOutcome,
@@ -157,10 +119,11 @@ pub use crate::query_context::{
     ScopedMaterializationQueryBasisContext, ScopedObservationQueryBasisContext,
     ScopedQueryBasisContext, ScopedQueryContextAdmissionError,
 };
+pub(crate) use crate::relationship_proof::admit_relationship_proofs;
 pub use crate::relationship_proof::{
-    admit_relationship_proofs, runtime_backed_relationship_proof_support_profile,
-    RelationshipProofAdmission, RelationshipProofAdmissionIdentity, RelationshipProofBudget,
-    RelationshipProofCounters, RelationshipProofDescriptor, RelationshipProofDescriptorSet,
-    RelationshipProofError, RelationshipProofFailureClass, RelationshipProofSupportProfile,
-    RelationshipProofSupportStatus, RelationshipProofSurface, RelationshipProofTopologyClass,
+    runtime_backed_relationship_proof_support_profile, RelationshipProofAdmission,
+    RelationshipProofAdmissionIdentity, RelationshipProofBudget, RelationshipProofCounters,
+    RelationshipProofDescriptor, RelationshipProofDescriptorSet, RelationshipProofError,
+    RelationshipProofFailureClass, RelationshipProofSupportProfile, RelationshipProofSupportStatus,
+    RelationshipProofSurface, RelationshipProofTopologyClass,
 };

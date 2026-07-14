@@ -1,13 +1,16 @@
 use std::{collections::BTreeMap, path::Path};
 
-use crate::facade::{WorthUi, WorthUiApp};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
 use crate::runtime::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission,
     WorthUiCandidateAdmissionDenial, WorthUiQuerySupportStatus, WorthUiReplacementCause,
-    WorthUiRuntimeArtifactComparisonDenial, WorthUiRuntimeArtifactComparisonOutcome,
-    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeEquivalenceBasis, WorthUiRuntimeHost,
-    WorthUiRuntimeLaunch,
+    WorthUiRuntime, WorthUiRuntimeArtifactComparisonDenial,
+    WorthUiRuntimeArtifactComparisonOutcome, WorthUiRuntimeDiagnosticPolicy,
+    WorthUiRuntimeEquivalenceBasis, WorthUiRuntimeLaunch,
 };
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactHandle, WorthUiArtifactIdentitySeed,
@@ -210,7 +213,7 @@ fn same_digest_with_mismatched_equivalence_basis_rejected() {
 
 fn admitted_candidate<const N: usize>(
     app: &WorthUiApp,
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     targets: [&str; N],
 ) -> WorthUiAdmittedReplacementCandidate {
     admitted_candidate_with_cause(
@@ -223,7 +226,7 @@ fn admitted_candidate<const N: usize>(
 
 fn admitted_candidate_with_cause<const N: usize>(
     app: &WorthUiApp,
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     targets: [&str; N],
     cause: WorthUiReplacementCause,
 ) -> WorthUiAdmittedReplacementCandidate {
@@ -240,7 +243,7 @@ fn admitted_candidate_with_cause<const N: usize>(
 
 fn admitted_rust_candidate_from_artifact(
     app: &WorthUiApp,
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     artifact: WorthUiArtifact,
     cause: WorthUiReplacementCause,
 ) -> WorthUiAdmittedReplacementCandidate {
@@ -293,7 +296,10 @@ fn canonical_artifact_from_input(
         .expect("canonical artifact assembles")
 }
 
-fn launch_runtime(app: &WorthUiApp, artifact: WorthUiArtifact) -> WorthUiRuntimeHost {
+fn launch_runtime(
+    app: &WorthUiApp,
+    artifact: WorthUiArtifact,
+) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     launch_runtime_with_diagnostics(app, artifact, WorthUiRuntimeDiagnosticPolicy::minimal())
 }
 
@@ -301,7 +307,7 @@ fn launch_runtime_with_diagnostics(
     app: &WorthUiApp,
     artifact: WorthUiArtifact,
     diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
-) -> WorthUiRuntimeHost {
+) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     app.launch_runtime(
         WorthUiRuntimeLaunch::from_canonical_artifact(artifact).with_diagnostics(diagnostic_policy),
     )

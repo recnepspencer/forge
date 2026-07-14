@@ -1,4 +1,4 @@
-use worth_query::facade::{PreviewEvaluationClass, PreviewSessionQueryContext};
+use worth_query::facade::policy::{PreviewEvaluationClass, PreviewSessionQueryContext};
 
 fn main() {
     let _ = PreviewSessionQueryContext {

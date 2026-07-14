@@ -1,6 +1,13 @@
-use worth_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily, ResultShapeFamily,
-    ViewShapeDescriptor, WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
+use worth_query::facade::foundation::{
+    discover_basis_lifecycle_support,
+    BasisFamily,
+    ResultShapeFamily,
+    WorthQueryApplicationFacade,
+    WorthQueryCapabilityFamily,
+};
+use worth_query::facade::runtime::{
+    QuerySubscriptionFamily,
+    ViewShapeDescriptor,
 };
 
 use crate::capability::{
@@ -63,7 +70,7 @@ pub(super) fn frozen_view_binding_entry_for_descriptor(
 
 fn query_owned_view_binding_descriptor(
     query_capability: QueryViewCapabilityReference,
-    query_composition: &worth_query::facade::QueryCompositionSupportProfile,
+    query_composition: &worth_query::facade::foundation::QueryCompositionSupportProfile,
     basis_posture: QueryBasisPostureReference,
     live_compatibility: Option<QueryLiveCompatibility>,
 ) -> ViewBindingDescriptor {

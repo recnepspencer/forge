@@ -1,4 +1,4 @@
-use worth_query::facade::CausalInspectionProofShapeCertification;
+use worth_query::facade::certification::CausalInspectionProofShapeCertification;
 
 fn main() {
     let _ = CausalInspectionProofShapeCertification {

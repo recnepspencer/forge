@@ -48,7 +48,7 @@ impl PolicyAwareBranchPlan {
     }
 }
 
-pub fn lower_policy_aware_branch_plan(
+pub(crate) fn lower_policy_aware_branch_plan(
     artifact: &NarrowedPolicyQueryArtifact,
     basis: PolicyAwareReadBasis,
 ) -> Result<PolicyAwareBranchPlan, PolicyAwareExecutionSeamError> {

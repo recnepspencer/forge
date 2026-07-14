@@ -1,4 +1,4 @@
-use worth_query::facade::{QuerySubscriptionFamily, QuerySubscriptionSupportEvidence};
+use worth_query::facade::runtime::{QuerySubscriptionFamily, QuerySubscriptionSupportEvidence};
 
 fn main() {
     let _ = QuerySubscriptionSupportEvidence {

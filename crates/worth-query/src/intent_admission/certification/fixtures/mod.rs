@@ -32,11 +32,12 @@ pub(crate) use runtime::{
 };
 
 use crate::facade::runtime::{
-    admit_runtime_intent_request, WorthQueryAspectTouch, WorthQueryEffectDeclaration,
-    WorthQueryEffectTrigger, WorthQueryIntentAdmissionDecision, WorthQueryIntentAdvisoryDecision,
-    WorthQueryIntentDeclaration, WorthQueryRawIntentAdmissionRequest, WorthQueryWriteCommand,
+    WorthQueryAspectTouch, WorthQueryEffectDeclaration, WorthQueryEffectTrigger,
+    WorthQueryIntentAdmissionDecision, WorthQueryIntentAdvisoryDecision,
+    WorthQueryIntentDeclaration, WorthQueryWriteCommand,
 };
 use crate::intent_admission::dx::WorthQueryRuntimeIntentAdmissionReviewData;
+use crate::intent_admission::{admit_runtime_intent_request, WorthQueryRawIntentAdmissionRequest};
 use crate::memory_workspace::{
     WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQuerySnapshotIdentity,
 };
@@ -313,7 +314,7 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
     delegated_effect_runtime
         .write(WorthQueryWriteCommand::UpdateAspect {
             entity_identity: certification_entity_identity("task-1"),
-            aspect: crate::facade::WorthQueryAdmittedAspectValue::new_set(
+            aspect: crate::facade::runtime::WorthQueryAdmittedAspectValue::new_set(
                 title_value_touch(),
                 crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
                     "title from delegated effect",
@@ -344,7 +345,7 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
     canonical_effect_runtime
         .write(WorthQueryWriteCommand::UpdateAspect {
             entity_identity: certification_entity_identity("task-1"),
-            aspect: crate::facade::WorthQueryAdmittedAspectValue::new_set(
+            aspect: crate::facade::runtime::WorthQueryAdmittedAspectValue::new_set(
                 title_value_touch(),
                 crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
                     "title from delegated effect",

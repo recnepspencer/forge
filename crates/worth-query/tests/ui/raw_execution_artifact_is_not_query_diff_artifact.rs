@@ -1,4 +1,4 @@
-use worth_query::facade::{QueryContextExecutionArtifact, QueryDiffChangeSetArtifact};
+use worth_query::facade::policy::{QueryContextExecutionArtifact, QueryDiffChangeSetArtifact};
 
 fn expects_query_diff_artifact(_artifact: QueryDiffChangeSetArtifact) {}
 

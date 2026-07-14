@@ -13,8 +13,7 @@ use crate::evidence::measurement::projection::fact_test_support::{
     synthetic_declaration_identity,
 };
 use crate::evidence::{
-    admit_measurement_basis, MeasurementEvidenceInput, UiAllocationNeighborhood,
-    UiConstraintPropagationDenialReason,
+    admit_measurement_basis, MeasurementEvidenceInput, UiConstraintPropagationDenialReason,
 };
 use crate::facade::WorthUi;
 use crate::graph::allocation_neighborhood_test_support::snapshot_with_admitted_layout;
@@ -119,17 +118,8 @@ fn equivalent_peer_reorder_converges_on_the_same_negotiation_result() {
     let neighborhood = basis
         .admit_allocation_neighborhood_from_graph(&snapshot)
         .expect("row neighborhood should admit");
-    let reordered_neighborhood = UiAllocationNeighborhood::new_with_authority(
-        neighborhood.root_graph_node_identity(),
-        neighborhood.graph_generation(),
-        neighborhood.world_identity_digest(),
-        neighborhood.measurement_basis_identity_digest(),
-        neighborhood.layout_operator_planning_contract().clone(),
-        neighborhood.dependency_map().clone(),
-        neighborhood.neighborhood_class(),
-        neighborhood.membership_rule(),
-        neighborhood.members().iter().rev().cloned().collect(),
-    );
+    let reordered_neighborhood = neighborhood
+        .with_members_for_graph_test(neighborhood.members().iter().rev().cloned().collect());
 
     let left = basis
         .admit_allocation_constraint_set(&neighborhood)

@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryIntentAdmissionRepresentativeFamilyReport;
+use worth_query::facade::runtime::WorthQueryIntentAdmissionRepresentativeFamilyReport;
 
 fn main() {
     let _ = WorthQueryIntentAdmissionRepresentativeFamilyReport {

@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryEffectPayload;
+use worth_query::facade::runtime::WorthQueryEffectPayload;
 
 fn main() {
     let _ = WorthQueryEffectPayload {

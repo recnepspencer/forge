@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 use worth_proof::TransitionOutcome;
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     WorthServerDirectDeclaration, WorthServerDirectProjectionOutcome,
     WorthServerDirectProjectionRequest, WorthServerDirectReadOutcome,
@@ -360,9 +360,9 @@ fn direct_projection_success(
 struct ProjectionRemaskTestSupport;
 
 impl ProjectionRemaskTestSupport {
-    fn projection() -> worth_query::facade::WorthQueryRuntimeRemaskProjection {
-        worth_query::facade::WorthQueryRuntimeRemaskProjection::remasked(
-            worth_query::facade::WorthQueryRuntimeRemaskReasonKind::PolicyDrift,
+    fn projection() -> worth_query::facade::runtime::WorthQueryRuntimeRemaskProjection {
+        worth_query::facade::runtime::WorthQueryRuntimeRemaskProjection::remasked(
+            worth_query::facade::runtime::WorthQueryRuntimeRemaskReasonKind::PolicyDrift,
             "policy:test",
             "tenant-truth:test",
             "tenant-schema:test",

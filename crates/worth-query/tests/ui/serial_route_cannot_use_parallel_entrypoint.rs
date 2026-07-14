@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    execute_parallel_admission_route, ParallelAdmissionRoute, SerialFallbackRoute,
-};
+use worth_query::facade::foundation::{execute_parallel_admission_route, ParallelAdmissionRoute, SerialFallbackRoute};
 
 fn main() {
     let route: SerialFallbackRoute = todo!();

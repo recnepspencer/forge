@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope};
+use worth_query::facade::runtime::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope};
 
 fn main() {
     let _identity = WorthQueryEvidenceIdentity::compose(

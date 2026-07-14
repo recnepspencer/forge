@@ -1,17 +1,17 @@
 error[E0599]: no method named `terminal_json_projection` found for struct `WorthQueryProgramValue` in the current scope
- --> tests/ui/aspect_native_query/program_terminal_json_projection_removed.rs:7:19
+ --> tests/ui/aspect_native_query/program_terminal_json_projection_removed.rs:5:19
   |
-7 |     let _ = value.terminal_json_projection();
+5 |     let _ = value.terminal_json_projection();
   |                   ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryProgramValue`
 
 error[E0599]: no method named `terminal_json_value_projection` found for struct `WorthQueryOperationInput` in the current scope
-  --> tests/ui/aspect_native_query/program_terminal_json_projection_removed.rs:10:19
-   |
-10 |     let _ = input.terminal_json_value_projection();
-   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryOperationInput`
+ --> tests/ui/aspect_native_query/program_terminal_json_projection_removed.rs:8:19
+  |
+8 |     let _ = input.terminal_json_value_projection();
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryOperationInput`
 
 error[E0599]: no method named `terminal_json_value_projection` found for struct `WorthQueryOperationOutput` in the current scope
-  --> tests/ui/aspect_native_query/program_terminal_json_projection_removed.rs:13:20
+  --> tests/ui/aspect_native_query/program_terminal_json_projection_removed.rs:11:20
    |
-13 |     let _ = output.terminal_json_value_projection();
+11 |     let _ = output.terminal_json_value_projection();
    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryOperationOutput`

@@ -1,7 +1,7 @@
 error[E0560]: struct `WorthQueryRuntimePublicApiContract` has no field named `contract_digest`
-  --> tests/ui/runtime_public_api_contract_constructor_private.rs:12:9
+  --> tests/ui/runtime_public_api_contract_constructor_private.rs:10:9
    |
-12 |         contract_digest: String::new(),
+10 |         contract_digest: String::new(),
    |         ^^^^^^^^^^^^^^^ `WorthQueryRuntimePublicApiContract` does not have this field
    |
    = note: all struct fields are already assigned

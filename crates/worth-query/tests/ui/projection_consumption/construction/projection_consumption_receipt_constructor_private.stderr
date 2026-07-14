@@ -9,8 +9,8 @@ error: cannot construct `ProjectionConsumptionReceipt` with struct literal synta
    |         ------------------------------ private field
  7 |         fact_set_digest: String::new(),
    |         ------------------------------ private field
- 8 |         source_family: worth_query::facade::ProjectionSourceFamily::RelationalRowSet,
-   |         ---------------------------------------------------------------------------- private field
+ 8 |         source_family: worth_query::facade::foundation::ProjectionSourceFamily::RelationalRowSet,
+   |         ---------------------------------------------------------------------------------------- private field
  9 |         source_identity: String::new(),
    |         ------------------------------ private field
 10 |         support_posture: ProjectionContractSupportPosture::Admitted,
@@ -37,7 +37,7 @@ help: you might have meant to use the `from_fact_set` associated function
  5 -         declaration_digest: String::new(),
  6 -         contract_digest: String::new(),
  7 -         fact_set_digest: String::new(),
- 8 -         source_family: worth_query::facade::ProjectionSourceFamily::RelationalRowSet,
+ 8 -         source_family: worth_query::facade::foundation::ProjectionSourceFamily::RelationalRowSet,
  9 -         source_identity: String::new(),
 10 -         support_posture: ProjectionContractSupportPosture::Admitted,
 11 -         admitted_fact_family_count: 0,

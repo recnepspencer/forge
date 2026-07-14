@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryEvidenceIdentity;
+use worth_query::facade::runtime::WorthQueryEvidenceIdentity;
 
 fn evidence_identity() -> WorthQueryEvidenceIdentity {
     unreachable!()

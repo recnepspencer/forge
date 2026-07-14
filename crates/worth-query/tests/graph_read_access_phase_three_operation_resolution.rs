@@ -1,3 +1,7 @@
+use worth_query::facade::foundation::{
+    AspectFieldSelector, AuthoredResultShapeField, TraversalSelector,
+    WorthQueryGraphReadDomainOperationDeclaration,
+};
 use worth_query::facade::runtime::{
     explain_graph_read_access_shape_for_family_with_operation_registry,
     resolve_graph_read_operations_for_family_with_registry, QuerySchemaView, SchemaFieldKind,
@@ -6,10 +10,6 @@ use worth_query::facade::runtime::{
     WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
     WorthQueryGraphReadResolvedOperationFamily, WorthQueryGraphReadResolvedOperationKind,
     WorthQueryGraphReadTraversalOperator,
-};
-use worth_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, TraversalSelector,
-    WorthQueryGraphReadDomainOperationDeclaration,
 };
 
 mod support;
@@ -245,22 +245,22 @@ fn manager_schema() -> QuerySchemaView {
         "graph-read-access-phase-three-manager",
         [
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("identity")
+                worth_query::facade::foundation::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("id")
+                worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("profile")
+                worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("display_name")
+                worth_query::facade::foundation::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
         ],
         [SchemaRelationView::new(
-            worth_query::facade::RelationName::new("manager")
+            worth_query::facade::foundation::RelationName::new("manager")
                 .expect("schema relation literal must be valid"),
             2,
         )],

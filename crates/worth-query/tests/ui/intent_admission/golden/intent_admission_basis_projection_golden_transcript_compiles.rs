@@ -1,11 +1,9 @@
 
-use worth_query::facade::{
-    worth_query_basis_observation_intent, worth_query_projection_consumption_intent,
-    WorthQueryIntentAdmissionDecision, ProjectionConsumptionDeclaration, RawBasisIntent,
-};
+use worth_query::facade::foundation::{worth_query_basis_observation_intent, basis_lifecycle};
+use worth_query::facade::runtime::WorthQueryIntentAdmissionDecision;
 
 fn basis_observation_common_path() {
-    let scoped_basis = worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)
+    let scoped_basis = worth_query_basis_observation_intent(basis_lifecycle().current_head())
         .expect("basis observation authoring should build")
         .admit()
         .expect("basis observation should admit")
@@ -14,7 +12,7 @@ fn basis_observation_common_path() {
 }
 
 fn basis_observation_advanced_path() {
-    let review = worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)
+    let review = worth_query_basis_observation_intent(basis_lifecycle().current_head())
         .expect("basis observation authoring should build")
         .review();
     let _ = review.request();
@@ -30,34 +28,6 @@ fn basis_observation_advanced_path() {
     let admitted = review.admit().expect("basis observation should admit");
     let _ = admitted.plan();
     let _ = admitted.scope();
-}
-
-fn projection_consumption_common_path(declaration: ProjectionConsumptionDeclaration) {
-    let contract = worth_query_projection_consumption_intent(declaration)
-        .expect("projection authoring should build")
-        .admit()
-        .expect("projection consumption should admit")
-        .bind_contract();
-    let _ = contract.contract_digest();
-}
-
-fn projection_consumption_advanced_path(declaration: ProjectionConsumptionDeclaration) {
-    let review = worth_query_projection_consumption_intent(declaration)
-        .expect("projection authoring should build")
-        .review();
-    let _ = review.request();
-    let _ = review.eligibility();
-    let _ = review.decision();
-    let _ = review.decision_trace_envelope();
-    let _ = review.consumer_inspection();
-    match review.decision() {
-        WorthQueryIntentAdmissionDecision::Admitted(_) => {}
-        WorthQueryIntentAdmissionDecision::Advisory(_) => {}
-        WorthQueryIntentAdmissionDecision::Violation(_) => {}
-    }
-    let admitted = review.admit().expect("projection consumption should admit");
-    let _ = admitted.plan();
-    let _ = admitted.bind_contract();
 }
 
 fn main() {}

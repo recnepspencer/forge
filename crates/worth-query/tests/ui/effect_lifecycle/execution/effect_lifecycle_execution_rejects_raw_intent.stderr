@@ -1,9 +1,9 @@
 error[E0308]: mismatched types
-  --> tests/ui/effect_lifecycle/execution/effect_lifecycle_execution_rejects_raw_intent.rs:13:9
+  --> tests/ui/effect_lifecycle/execution/effect_lifecycle_execution_rejects_raw_intent.rs:11:9
    |
-12 |     let _ = execute_lowered_effect_plan(
+10 |     let _ = execute_lowered_effect_plan(
    |             --------------------------- arguments to this function are incorrect
-13 |         raw_effect_intent(),
+11 |         raw_effect_intent(),
    |         ^^^^^^^^^^^^^^^^^^^ expected `LoweredEffectExecutionPlan`, found `RawEffectIntent`
    |
 note: function defined here

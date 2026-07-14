@@ -1,45 +1,21 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, WorthQueryReadResult,
-    ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError,
-    ProjectionFactFieldPath,
-};
+use worth_query::facade::foundation::{AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ProjectionAuthorityContract, ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError, ProjectionFactFieldPath};
+use worth_query::facade::runtime::WorthQueryReadResult;
 
 fn common_read_path(
     read_result: &WorthQueryReadResult,
     result_shape: &CanonicalResultShapeArtifact,
     authorized_projection: &AuthorizedProjectionArtifact,
-) -> Result<String, ProjectionFactConsumptionPathError> {
-    let attempt = read_result.consume_projection_facts(
+) -> Result<ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError> {
+    read_result.consume_projection_authority(
         result_shape,
         authorized_projection,
-        ProjectMaterializedFacts::declare()
-            .entity_identities()
-            .display_field_path(profile_display_name_field_path()),
-    )?;
-
-    if let Some(completed) = attempt.completed() {
-        let receipt = completed.receipt();
-        let envelope = completed.projection_consumption_envelope();
-        return Ok(format!(
-            "{}:{}:{}",
-            receipt.contract_digest(),
-            envelope.envelope_digest(),
-            completed.extracted_fact_count()
-        ));
-    }
-
-    match attempt {
-        ProjectionFactConsumptionAttempt::Denied(denied) => Ok(format!("{:?}", denied.reason())),
-        ProjectionFactConsumptionAttempt::Deferred(deferred) => {
-            Ok(format!("{:?}", deferred.reason()))
-        }
-        ProjectionFactConsumptionAttempt::SourceMismatch(mismatch) => {
-            Ok(format!("{:?}", mismatch.source_family()))
-        }
-        ProjectionFactConsumptionAttempt::Admitted(_)
-        | ProjectionFactConsumptionAttempt::AdmittedWithWarnings(_, _) => unreachable!(),
-    }
+        ProjectionAuthorityContract::declare()
+            .require_settled_consumption()
+            .require_source_authority()
+            .require_entity_identities()
+            .require_display_field(profile_display_name_field_path()),
+    )
 }
 
 fn profile_display_name_field_path() -> ProjectionFactFieldPath {

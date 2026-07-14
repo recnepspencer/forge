@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryCheckedDomainCapabilityOutcome, WorthQueryDomainCapabilityTargetKind,
-};
+use worth_query::facade::runtime::{WorthQueryCheckedDomainCapabilityOutcome, WorthQueryDomainCapabilityTargetKind};
 
 fn main() {
     let _ = WorthQueryCheckedDomainCapabilityOutcome::<()>

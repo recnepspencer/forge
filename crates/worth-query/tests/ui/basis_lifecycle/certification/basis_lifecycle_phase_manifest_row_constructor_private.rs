@@ -1,4 +1,4 @@
-use worth_query::facade::{BasisLifecyclePhaseArtifact, BasisLifecyclePhaseManifestRow};
+use worth_query::facade::certification::{BasisLifecyclePhaseArtifact, BasisLifecyclePhaseManifestRow};
 
 fn main() {
     let _ = BasisLifecyclePhaseManifestRow {

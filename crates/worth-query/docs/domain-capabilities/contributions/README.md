@@ -13,7 +13,7 @@ Contributions declare posture (admission, support, workflow, continuity, afterma
 | Admission (advisory / violation) | [advisory-and-violation-contributions.md](../admission/advisory-and-violation-contributions.md) |
 | Admission targets | [declaration-vs-admitted-plan-targets.md](../admission/declaration-vs-admitted-plan-targets.md) |
 | Support (declaration-scoped) | [declaration-scoped-support-and-traceability.md](../support/declaration-scoped-support-and-traceability.md) |
-| Support (lower-runtime traceability) | [lower-runtime-support-and-boundary-traceability.md](../support/lower-runtime-support-and-traceability.md) |
+| Support (lower-runtime traceability) | [lower-runtime-support-and-boundary-traceability.md](../support/lower-runtime-support-and-boundary-traceability.md) |
 | Support (admission-local reports) | [admission-local-support-reports.md](../support/admission-local-support-reports.md) |
 | Workflow | [workflow/README.md](../workflow/README.md) |
 | Continuity | [continuity-contributions-and-authoritative-successors.md](../continuity/continuity-contributions-and-authoritative-successors.md) |

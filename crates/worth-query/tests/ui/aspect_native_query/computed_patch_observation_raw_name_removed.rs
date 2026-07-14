@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryRuntime, WorthQueryWorkspace};
+use worth_query::facade::runtime::{WorthQueryRuntime, WorthQueryWorkspace};
 
 fn runtime_raw_name(mut runtime: WorthQueryRuntime) {
     let _ = runtime.drain_derived_patches("computed.title_list");

@@ -1,15 +1,18 @@
-use worth_query::facade::{ResolvedSnapshotBasis, SnapshotResolutionReport};
+use worth_query::facade::foundation::{
+    ResolvedSnapshotBasis,
+    SnapshotResolutionReport,
+};
 
 use super::prerequisite_assembly::construct_prerequisite_evidence;
 #[cfg(feature = "certification-construction")]
 use super::WorthUiQueryMeasurementFactFamily;
 use super::{
-    WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
-    WorthUiQueryMeasurementFactEligibility, WorthUiQueryMeasurementFactEligibilityError,
-    WorthUiQueryMeasurementFactObservation, WorthUiQueryMeasurementFactObservationError,
-    WorthUiQueryMeasurementFactReceipt, WorthUiQueryMeasurementFactReceiptError,
-    WorthUiQueryPrerequisiteEvidence, WorthUiQueryPrerequisiteEvidenceError,
-    WorthUiQueryProjectionConsumptionLane,
+    WorthUiQueryAuthorityHandle, WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane,
+    WorthUiQueryInspectionLane, WorthUiQueryMeasurementFactEligibility,
+    WorthUiQueryMeasurementFactEligibilityError, WorthUiQueryMeasurementFactObservation,
+    WorthUiQueryMeasurementFactObservationError, WorthUiQueryMeasurementFactReceipt,
+    WorthUiQueryMeasurementFactReceiptError, WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryPrerequisiteEvidenceError, WorthUiQueryProjectionConsumptionLane,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -117,56 +120,48 @@ impl WorthUiQueryPrerequisiteBoundary {
         )
     }
 
-    pub fn bind_projection_consumption(
+    pub fn bind_query_authority(
         self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+        authority: &worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
     ) -> Result<WorthUiQueryPrerequisiteEvidence, WorthUiQueryMeasurementFactEligibilityError> {
         let _ = self;
-        WorthUiQueryMeasurementFactEligibility::bind_projection_consumption_attempt(
-            prerequisites,
-            consumption,
-        )
+        WorthUiQueryMeasurementFactEligibility::bind_query_authority(prerequisites, authority)
     }
 
-    pub fn measurement_fact_eligibility_from_projection_consumption(
+    pub fn measurement_fact_eligibility_from_query_authority(
         self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+        authority: &worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
     ) -> Result<WorthUiQueryMeasurementFactEligibility, WorthUiQueryMeasurementFactEligibilityError>
     {
         let _ = self;
-        WorthUiQueryMeasurementFactEligibility::from_projection_consumption_attempt(
-            prerequisites,
-            consumption,
-        )
+        WorthUiQueryMeasurementFactEligibility::from_query_authority(prerequisites, authority)
     }
 
-    pub fn measurement_fact_receipt_from_projection_consumption(
+    pub fn measurement_fact_receipt_from_query_authority(
         self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+        query_authority: WorthUiQueryAuthorityHandle,
     ) -> Result<WorthUiQueryMeasurementFactReceipt, WorthUiQueryMeasurementFactReceiptError> {
         let _ = self;
-        WorthUiQueryMeasurementFactReceipt::from_projection_consumption_attempt(
+        WorthUiQueryMeasurementFactReceipt::from_query_authority(
             prerequisites,
-            consumption,
+            query_authority,
+            false,
         )
     }
 
-    pub fn measurement_fact_observation_from_projection_consumption(
+    pub fn measurement_fact_observation_from_query_authority(
         self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+        authority: &worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
     ) -> Result<
         Box<[WorthUiQueryMeasurementFactObservation]>,
         WorthUiQueryMeasurementFactObservationError,
     > {
         let _ = self;
-        WorthUiQueryMeasurementFactObservation::from_projection_consumption_attempt(
-            prerequisites,
-            consumption,
-        )
+        WorthUiQueryMeasurementFactObservation::from_query_authority(prerequisites, authority)
     }
 
     #[cfg(feature = "certification-construction")]
@@ -191,31 +186,6 @@ impl WorthUiQueryPrerequisiteBoundary {
             prerequisites,
             projection_contract_digest,
             available_families,
-        )
-    }
-
-    #[cfg(feature = "certification-construction")]
-    pub fn measurement_fact_receipt_for_certification(
-        self,
-        prerequisites: WorthUiQueryPrerequisiteEvidence,
-        projection_contract_digest: impl Into<Box<str>>,
-        projection_consumption_declaration_digest: impl Into<Box<str>>,
-        projection_consumption_receipt_digest: impl Into<Box<str>>,
-        projection_fact_set_digest: impl Into<Box<str>>,
-        projection_source_identity: impl Into<Box<str>>,
-        consumed_families: Vec<WorthUiQueryMeasurementFactFamily>,
-        observations: Vec<WorthUiQueryMeasurementFactObservation>,
-    ) -> WorthUiQueryMeasurementFactReceipt {
-        let _ = self;
-        WorthUiQueryMeasurementFactReceipt::for_certification(
-            prerequisites,
-            projection_contract_digest,
-            projection_consumption_declaration_digest,
-            projection_consumption_receipt_digest,
-            projection_fact_set_digest,
-            projection_source_identity,
-            consumed_families,
-            observations,
         )
     }
 }

@@ -19,6 +19,6 @@ pub use crate::runtime::{
     WorthQueryPersistentGraphIndexRequirementCounters,
     WorthQueryPersistentGraphIndexRequirementDeclaration,
     WorthQueryPersistentGraphIndexRequirementReceipt, WorthQueryPersistentGraphIndexRequirementRow,
-    WorthQueryPublishedDerivedArtifactHandle, WorthQueryPublishedProjectionConsumption,
+    WorthQueryPublishedDerivedArtifactHandle, WorthQueryPublishedProjectionAuthorityOutcome,
     WorthQueryPublishedProjectionInspection, WorthQuerySharedReadContext,
 };

@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryAdmittedWorldBasis, WorthQueryCommitIdentity};
+use worth_query::facade::foundation::{WorthQueryAdmittedWorldBasis, WorthQueryCommitIdentity};
 
 fn main() {
     let evidence = WorthQueryCommitIdentity::from_relational_commit_id(1).evidence_identity();

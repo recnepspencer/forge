@@ -1,9 +1,4 @@
-use worth_query::facade::{
-    WorthQueryDeclarationEntryOrchestrationAutomationBoundary,
-    WorthQueryDeclarationEntryOrchestrationAutomationRefusal,
-    WorthQueryDeclarationEntryOrchestrationAutomationRefusalClass,
-    WorthQueryDeclarationEntryOrchestrationStage,
-};
+use worth_query::facade::foundation::{WorthQueryDeclarationEntryOrchestrationAutomationBoundary, WorthQueryDeclarationEntryOrchestrationAutomationRefusal, WorthQueryDeclarationEntryOrchestrationAutomationRefusalClass, WorthQueryDeclarationEntryOrchestrationStage};
 
 fn main() {
     let _ = WorthQueryDeclarationEntryOrchestrationAutomationRefusal {

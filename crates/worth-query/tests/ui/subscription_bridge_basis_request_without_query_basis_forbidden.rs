@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    lower_query_subscription_to_bridge, QuerySubscriptionBasisBindingRequestKind,
-    QuerySubscriptionBridgeLoweringBudget,
-};
+use worth_query::facade::runtime::{lower_query_subscription_to_bridge, QuerySubscriptionBasisBindingRequestKind, QuerySubscriptionBridgeLoweringBudget};
 
 fn main() {
     let raw_basis = QuerySubscriptionBasisBindingRequestKind::CurrentHead;

@@ -7,8 +7,8 @@ use crate::runtime::{
     WorthUiCanvasSpatialPlan, WorthUiCanvasSpatialPlanDenial, WorthUiComponentLoweringHook,
     WorthUiExecutionLane, WorthUiExecutionLaneSupport, WorthUiExecutionPlan,
     WorthUiExecutionPlanInput, WorthUiExtensionHookAdmission, WorthUiLaneAdapterHook,
-    WorthUiLaneAdmission, WorthUiPlanNodeInputFamily, WorthUiRuntimeHandleAllocation,
-    WorthUiRuntimeHost,
+    WorthUiLaneAdmission, WorthUiPlanNodeInputFamily, WorthUiRuntime,
+    WorthUiRuntimeHandleAllocation,
 };
 use crate::source::WorthUiRustAuthoredArtifactInputModule;
 
@@ -32,15 +32,15 @@ pub(super) fn canvas_spatial_denial_for_missing_hook() -> WorthUiCanvasSpatialPl
 pub(super) fn canvas_spatial_denial_for_stale_lane_admission() -> WorthUiCanvasSpatialPlanDenial {
     let context = canvas_spatial_context();
     let drifted_plan_input = plan_input_with_duplicate_lane_ref(&context.plan_input);
+    let receipt_runtime = fresh_canvas_runtime();
     let drifted_planning = allocation_planning(
-        &context.runtime,
+        &receipt_runtime,
         &drifted_plan_input,
         "canvas-spatial.stale-admission",
     );
-    let stale_admission = context
-        .runtime
+    let stale_admission = receipt_runtime
         .admit_execution_lanes(
-            &drifted_planning,
+            &receipt_runtime.detached_allocation_receipt_for_test(&drifted_planning),
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("drifted lane admission succeeds");
@@ -59,14 +59,16 @@ pub(super) fn canvas_spatial_denial_for_mismatched_handle_allocation(
 ) -> WorthUiCanvasSpatialPlanDenial {
     let context = canvas_spatial_context();
     let drifted_plan_input = plan_input_with_drifted_diagnostics_ref(&context.plan_input);
+    let receipt_runtime = fresh_canvas_runtime();
     let drifted_planning = allocation_planning(
-        &context.runtime,
+        &receipt_runtime,
         &drifted_plan_input,
         "canvas-spatial.drifted-allocation",
     );
-    let drifted_allocation = context
-        .runtime
-        .allocate_runtime_handles(&drifted_planning)
+    let drifted_allocation = receipt_runtime
+        .allocate_runtime_handles(
+            &receipt_runtime.detached_allocation_receipt_for_test(&drifted_planning),
+        )
         .expect("drifted handle allocation succeeds");
     context
         .runtime
@@ -79,16 +81,25 @@ pub(super) fn canvas_spatial_denial_for_mismatched_handle_allocation(
         .expect_err("canvas spatial plan rejects mismatched handle allocation")
 }
 
+fn fresh_canvas_runtime() -> crate::runtime::WorthUiRuntimeFrameworkLoop {
+    let app = impact_test_app();
+    launch_runtime(&app, canvas_source_artifact(&app))
+}
+
 pub(super) fn canvas_spatial_denial_for_missing_support() -> WorthUiCanvasSpatialPlanDenial {
     let context = canvas_spatial_context();
+    let planning = allocation_planning(
+        &context.runtime,
+        &context.plan_input,
+        "canvas-spatial.missing-support",
+    );
+    let receipt = context
+        .runtime
+        .detached_allocation_receipt_for_test(&planning);
     let no_canvas_support = context
         .runtime
         .admit_execution_lanes(
-            &allocation_planning(
-                &context.runtime,
-                &context.plan_input,
-                "canvas-spatial.missing-support",
-            ),
+            &receipt,
             &WorthUiExecutionLaneSupport::without_lane_for_test(
                 WorthUiExecutionLane::CanvasSpatial,
             ),
@@ -106,13 +117,13 @@ pub(super) fn canvas_spatial_denial_for_missing_support() -> WorthUiCanvasSpatia
 }
 
 pub(super) struct CanvasSpatialFixture {
-    pub(super) runtime: WorthUiRuntimeHost,
+    pub(super) runtime: crate::runtime::WorthUiRuntimeFrameworkLoop,
     pub(super) canvas_plan: WorthUiCanvasSpatialPlan,
     pub(super) allocation: WorthUiRuntimeHandleAllocation,
 }
 
 struct CanvasSpatialContext {
-    runtime: WorthUiRuntimeHost,
+    runtime: crate::runtime::WorthUiRuntimeFrameworkLoop,
     plan_input: WorthUiExecutionPlanInput,
     allocation: WorthUiRuntimeHandleAllocation,
     execution_plan: WorthUiExecutionPlan,
@@ -145,20 +156,21 @@ fn canvas_spatial_context() -> CanvasSpatialContext {
         )
         .expect("execution plan input prepares");
     let allocation = runtime
-        .allocate_runtime_handles(&allocation_planning(
-            &runtime,
-            &plan_input,
-            "canvas-spatial.fixture",
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(
+            &allocation_planning(&runtime, &plan_input, "canvas-spatial.fixture"),
         ))
         .expect("handle allocation succeeds");
     let planning = allocation_planning(&runtime, &plan_input, "canvas-spatial.fixture");
     let lane_admission = runtime
-        .admit_execution_lanes(&planning, &WorthUiExecutionLaneSupport::platform_default())
+        .admit_execution_lanes(
+            &runtime.detached_allocation_receipt_for_test(&planning),
+            &WorthUiExecutionLaneSupport::platform_default(),
+        )
         .expect("lane admission succeeds");
     let hook_admissions = canvas_hook_admissions(&runtime, &lane_admission);
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &planning,
+            &runtime.detached_allocation_receipt_for_test(&planning),
             &allocation,
             &lane_admission,
         )
@@ -187,7 +199,7 @@ fn canvas_spatial_context() -> CanvasSpatialContext {
 }
 
 fn pending_plan_input(
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     admitted: crate::runtime::WorthUiAdmittedReplacementCandidate,
 ) -> crate::runtime::WorthUiPendingActivation {
     let comparison = runtime
@@ -269,7 +281,7 @@ fn canvas_component_hooks() -> [WorthUiComponentLoweringHook; 4] {
 }
 
 fn canvas_hook_admissions(
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     lane_admission: &WorthUiLaneAdmission,
 ) -> Vec<WorthUiExtensionHookAdmission> {
     [WorthUiLaneAdapterHook::canvas_spatial_draw_and_hit_test(

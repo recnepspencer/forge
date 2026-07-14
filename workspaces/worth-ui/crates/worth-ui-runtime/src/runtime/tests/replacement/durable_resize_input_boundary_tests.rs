@@ -9,28 +9,9 @@ use super::durable_state_reconciliation_test_support::{
 };
 use super::identity_match_graph_test_support::{
     artifact_from_nodes, component_node, identity_match_app, runtime_and_narrowing,
-    splitter_surface_node,
+    splitter_surface_node_with_authored_provenance_digest,
 };
 use super::node_replacement_classification_test_support::{narrowing_for, no_op_impact_for};
-
-use crate::declaration::{
-    UiDeclarationOrderingGuarantee, UiDeclarationPlanningOperatorKind,
-    UiDeclarationRepetitionPosture, UiDeclaredMeasurementConstraintModifier,
-    UiDeclaredMeasurementMode, UiDeclaredMeasurementPolicyPosture,
-};
-use crate::evidence::measurement::projection::fact_test_support::synthetic_declaration_identity;
-use crate::evidence::{
-    admit_measurement_basis, UiAllocationNeighborhood, UiAllocationNeighborhoodClass,
-    UiAllocationNeighborhoodMember, UiAllocationNeighborhoodMemberRole,
-    UiAllocationNeighborhoodMembershipRule, UiLayoutOperatorContainmentKind,
-    UiLayoutOperatorFamily, UiLayoutOperatorPlanningContract,
-    UiLayoutOperatorSlotParticipationKind, UiMeasurementDependencyMap,
-};
-use crate::graph::{
-    UiGraphAxisParticipation, UiGraphGeneration, UiGraphNodeIdentity, UiGraphParticipationStatus,
-    UiGraphWorldProfile, UiRepeatedInstanceBasis,
-};
-use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 #[test]
 fn splitter_position_state_participates_only_through_admitted_runtime_resize_seam() {
@@ -129,12 +110,27 @@ fn incompatible_splitter_shape_change_denies_explicitly() {
 
 #[test]
 fn ordinary_planning_consumes_runtime_resize_witness_instead_of_legacy_support_marker() {
-    let (runtime, pending, authored_provenance_digest) = splitter_pending_activation();
-    let measurement_basis = split_measurement_basis();
-    let neighborhood = split_neighborhood(
-        measurement_basis.identity_digest(),
-        authored_provenance_digest,
-    );
+    let (measurement_basis, graph_snapshot, selected) =
+        crate::runtime::tests::allocation_planning_test_support::admitted_planning_admission(
+            "runtime-durable-resize-split",
+            "operator:split",
+        );
+    let neighborhood = selected
+        .admit_allocation_neighborhood(&graph_snapshot, &measurement_basis)
+        .expect("selected graph touch admits the preliminary split neighborhood");
+    let authored_provenance_digest = neighborhood
+        .members()
+        .iter()
+        .find(|member| {
+            matches!(
+                member.role(),
+                crate::evidence::UiAllocationNeighborhoodMemberRole::Root
+            )
+        })
+        .expect("graph-admitted split neighborhood has a root")
+        .authored_provenance_digest();
+    let (runtime, pending, _) =
+        splitter_pending_activation_with_provenance(authored_provenance_digest);
 
     let direct_constraints = measurement_basis
         .admit_allocation_constraint_set(&neighborhood)
@@ -146,7 +142,10 @@ fn ordinary_planning_consumes_runtime_resize_witness_instead_of_legacy_support_m
         "legacy graph support must not manufacture durable resize authority on its own"
     );
 
-    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
+    let input = runtime
+        .admit_planning_lane_input(&pending, &graph_snapshot, measurement_basis, &selected)
+        .expect("canonical admission augments and re-admits durable resize truth");
+    let planning = runtime.plan_allocation(input);
     assert!(planning.is_admitted());
     let constraints = planning
         .allocation_constraint_set()
@@ -168,8 +167,10 @@ fn ordinary_planning_consumes_runtime_resize_witness_instead_of_legacy_support_m
     }
 }
 
-fn splitter_pending_activation() -> (
-    crate::runtime::WorthUiRuntimeHost,
+pub(crate) fn splitter_pending_activation_with_provenance(
+    authored_provenance_digest: u64,
+) -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     crate::runtime::WorthUiPendingActivation,
     u64,
 ) {
@@ -178,11 +179,12 @@ fn splitter_pending_activation() -> (
         "app/main.wui",
         vec![
             component_node("component:dashboard", 0),
-            splitter_surface_node(
+            splitter_surface_node_with_authored_provenance_digest(
                 "surface:main",
                 "workspace.surface.main",
                 "workspace.sizing.splitter.main",
                 1,
+                authored_provenance_digest,
             ),
         ],
     )]);
@@ -230,61 +232,4 @@ fn splitter_pending_activation() -> (
         .expect("admitted resize witness should preserve authored provenance");
 
     (runtime, pending, authored_provenance_digest)
-}
-
-fn split_measurement_basis() -> crate::evidence::UiMeasurementBasis {
-    admit_measurement_basis(
-        synthetic_declaration_identity("runtime-durable-resize-split"),
-        UiGraphNodeIdentity::new(900),
-        UiGraphWorldProfile::authoritative(),
-        UiEvidenceAuthorityGeneration::new(41),
-        &UiDeclaredMeasurementPolicyPosture::new(
-            Some(UiDeclaredMeasurementMode::HugHeight),
-            Some(UiDeclaredMeasurementConstraintModifier::Bounded),
-            None,
-            None,
-            vec![],
-        )
-        .expect("split policy should admit"),
-        &[],
-    )
-}
-
-fn split_neighborhood(
-    measurement_basis_identity_digest: u64,
-    authored_provenance_digest: u64,
-) -> UiAllocationNeighborhood {
-    UiAllocationNeighborhood::new_with_authority(
-        UiGraphNodeIdentity::new(900),
-        UiGraphGeneration::initial(),
-        77,
-        measurement_basis_identity_digest,
-        UiLayoutOperatorPlanningContract::new(
-            UiDeclarationPlanningOperatorKind::Split,
-            UiLayoutOperatorFamily::Control,
-            UiLayoutOperatorContainmentKind::Control,
-            None,
-            UiLayoutOperatorSlotParticipationKind::DeclaredParticipant,
-            UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
-            UiDeclarationRepetitionPosture::NotAdmitted,
-            UiAllocationNeighborhoodClass::ContainerPeerGroup,
-            UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
-            None,
-            None,
-            None,
-            None,
-            vec![],
-        ),
-        UiMeasurementDependencyMap::new(vec![]),
-        UiAllocationNeighborhoodClass::ContainerPeerGroup,
-        UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
-        vec![UiAllocationNeighborhoodMember::new(
-            UiGraphNodeIdentity::new(900),
-            authored_provenance_digest,
-            UiRepeatedInstanceBasis::unavailable(),
-            UiGraphAxisParticipation::runtime_mutation(UiGraphParticipationStatus::Admitted),
-            UiAllocationNeighborhoodMemberRole::Root,
-            None,
-        )],
-    )
 }

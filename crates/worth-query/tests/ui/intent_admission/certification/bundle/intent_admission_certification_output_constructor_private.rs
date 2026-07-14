@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryIntentAdmissionCertificationOutput;
+use worth_query::facade::certification::WorthQueryIntentAdmissionCertificationOutput;
 
 fn main() {
     let _ = WorthQueryIntentAdmissionCertificationOutput {

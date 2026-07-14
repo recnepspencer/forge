@@ -31,6 +31,10 @@ pub enum RawBasisIntent {
         snapshot_identity: String,
         replay_supported: bool,
     },
+    HistoricalCommit {
+        commit_identity: String,
+        replay_supported: bool,
+    },
     TenantScoped {
         tenant_identity: String,
         branch_identity: String,
@@ -191,6 +195,25 @@ pub fn normalize_raw_basis_intent(
             None,
             Some(format!("relational-historical:{snapshot_identity}")),
             "raw.historical_snapshot",
+        )),
+        RawBasisIntent::HistoricalCommit {
+            commit_identity,
+            replay_supported,
+        } => Ok(NormalizedBasisIntent::new(
+            BasisFamily::HistoricalCommit,
+            BasisAuthorityPosture::RelationalFacade,
+            BasisScopePosture::Snapshot,
+            if replay_supported {
+                BasisVisibilityPosture::Full
+            } else {
+                BasisVisibilityPosture::Advisory
+            },
+            BasisLifecyclePosture::HistoricalRetained,
+            operation_lane,
+            None,
+            None,
+            Some(format!("relational-historical-commit:{commit_identity}")),
+            "raw.historical_commit",
         )),
         RawBasisIntent::TenantScoped {
             tenant_identity,

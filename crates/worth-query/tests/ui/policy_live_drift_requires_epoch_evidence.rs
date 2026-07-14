@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    certify_policy_live_drift_evidence, PolicyAwareExecutionSeamError, PolicyAwareLivePlan,
-    PolicyDriftDisposition, PolicyLiveDensityEvidence, PolicyLiveDriftEvidenceReport,
-};
+use worth_query::facade::policy::{PolicyAwareExecutionSeamError, PolicyAwareLivePlan, PolicyDriftDisposition, PolicyLiveDensityEvidence, PolicyLiveDriftEvidenceReport};
+use worth_query::facade::certification::certify_policy_live_drift_evidence;
 
 fn expects_raw_drift_shortcut(
     _: fn(

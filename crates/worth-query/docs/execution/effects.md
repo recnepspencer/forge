@@ -75,7 +75,7 @@ delivery/staging do not blur together.
 ## Small Example
 
 ```rust
-use worth_query::facade::{WorthQueryEffectHandle, WorthQueryLiveView};
+use worth_query::facade::runtime::{WorthQueryEffectHandle, WorthQueryLiveView};
 use serde_json::Value;
 
 let mut workspace = runtime.workspace("ui").unwrap();
@@ -103,7 +103,7 @@ trigger, optional expression semantics, and delivery target.
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryDerivedViewHandle, WorthQueryEffectHandle, WorthQueryInspection, WorthQueryLiveView,
 };
 use serde_json::Value;
@@ -225,7 +225,7 @@ This is how you tell the difference between "nothing happened", "suppressed",
   are stable in the runtime-backed synchronous facade.
 - Pending write-intent staging is available, but authoritative execution still
   depends on admitted intent support through the covered effect-intent family.
-- Store-backed effect execution and durable replay are **deferred**â€”see
+- Store-backed effect execution and durable replay are **deferred**—see
   [authority-scoped effect execution](authority-scoped-effect-execution.md), not
   implied by effect authoring alone.
 - Runtime-backed mixed truth/time/async delivery meaning now projects through
@@ -238,8 +238,8 @@ This doc stops at declaration, staging, delivery, and `workspace.inspect` for
 effects. Lowering, eligibility, admission, and execute receipts live in
 [authority-scoped effect execution](authority-scoped-effect-execution.md) with
 `effect_lifecycle_support_matrix()` honesty (`StoreBackedExecutionDeferred`,
-`DurableReplayDeferred`, advisory-only rows). Do not document a â€œfull effect
-pipelineâ€ here without checking that matrix.
+`DurableReplayDeferred`, advisory-only rows). Do not document a “full effect
+pipeline” here without checking that matrix.
 
 ## Related Docs
 
@@ -247,6 +247,6 @@ pipelineâ€ here without checking that matrix.
 - [Workspace Overview](../foundations/workspace-overview.md)
 - [Live Views](../runtime-surfaces/live-views.md)
 - [Computed](../runtime-surfaces/computed.md)
-- [Intent admission and observation](../foundations/intent-admission-and-observation.md)
+- [Intent Admission](intent-admission.md)
 
 

@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphTouchDescriptor, WorthQueryGraphTouchDescriptorKind,
-};
+use worth_query::facade::runtime::{WorthQueryGraphTouchDescriptor, WorthQueryGraphTouchDescriptorKind};
 
 fn main() {
     let _ = WorthQueryGraphTouchDescriptor {

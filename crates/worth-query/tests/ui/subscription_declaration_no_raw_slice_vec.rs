@@ -1,4 +1,4 @@
-use worth_query::facade::{declare_query_subscription, QuerySubscriptionSliceBudget};
+use worth_query::facade::runtime::{declare_query_subscription, QuerySubscriptionSliceBudget};
 
 fn main() {
     let raw_slices = vec!["authorized_projection:0".to_string()];

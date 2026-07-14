@@ -1,4 +1,4 @@
-use worth_query::facade::ValidatedWorthQueryConfig;
+use worth_query::facade::foundation::ValidatedWorthQueryConfig;
 
 fn main() {
     let _ = ValidatedWorthQueryConfig {

@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryAdmittedBooleanExpressionBranch, WorthQueryAdmittedBooleanExpressionBranchKind,
-};
+use worth_query::facade::runtime::{WorthQueryAdmittedBooleanExpressionBranch, WorthQueryAdmittedBooleanExpressionBranchKind};
 
 fn main() {
     let _ = WorthQueryAdmittedBooleanExpressionBranch {

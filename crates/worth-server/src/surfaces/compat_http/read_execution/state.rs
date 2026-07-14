@@ -1,5 +1,5 @@
 use worth_proof::TransitionOutcome;
-use worth_query::facade::WorthQueryRuntimeStateSnapshot;
+use worth_query::facade::runtime::WorthQueryRuntimeStateSnapshot;
 
 use crate::{
     WorthServerCompatibilityCachePolicy, WorthServerCompatibilityFacade,

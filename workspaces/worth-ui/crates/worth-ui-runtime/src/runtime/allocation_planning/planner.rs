@@ -21,10 +21,9 @@ impl WorthUiAllocationPlanner {
         counters.record_measurement_basis_read();
 
         if let Some(denial) = admission.measurement_basis().denial_posture() {
-            let basis = WorthUiAllocationPlanningBasis::new(
-                admission.measurement_basis().clone(),
-                admission.allocation_neighborhood().clone(),
-                Some(admission.allocation_constraint_set().clone()),
+            let basis = WorthUiAllocationPlanningBasis::from_admitted(
+                admission.constraint_basis().clone(),
+                admission.portal_allocation_input().cloned(),
             );
             let denial_posture = Some(WorthUiAllocationPlanningDenial::new(
                 WorthUiAllocationPlanningDenialReason::MeasurementBasisDenied,
@@ -39,10 +38,9 @@ impl WorthUiAllocationPlanner {
 
         counters.record_lowering_read();
         if !admission.lowered_input_matches(&lowered_input) {
-            let basis = WorthUiAllocationPlanningBasis::new(
-                admission.measurement_basis().clone(),
-                admission.allocation_neighborhood().clone(),
-                Some(admission.allocation_constraint_set().clone()),
+            let basis = WorthUiAllocationPlanningBasis::from_admitted(
+                admission.constraint_basis().clone(),
+                admission.portal_allocation_input().cloned(),
             );
             let denial_posture = Some(WorthUiAllocationPlanningDenial::new(
                 WorthUiAllocationPlanningDenialReason::LoweringAdmissionMismatch,
@@ -61,10 +59,9 @@ impl WorthUiAllocationPlanner {
             return WorthUiAllocationPlanning::new(basis, None, denial_posture, counters);
         }
 
-        let basis = WorthUiAllocationPlanningBasis::new(
-            admission.measurement_basis().clone(),
-            admission.allocation_neighborhood().clone(),
-            Some(admission.allocation_constraint_set().clone()),
+        let basis = WorthUiAllocationPlanningBasis::from_admitted(
+            admission.constraint_basis().clone(),
+            admission.portal_allocation_input().cloned(),
         );
         let lowering =
             Some(WorthUiAllocationPlanningLowering::from_execution_plan_input(lowered_input));
@@ -79,14 +76,11 @@ impl WorthUiAllocationPlanner {
         let mut counters = WorthUiAllocationPlanningCounters::default();
         counters.record_planning_attempt();
         counters.record_measurement_basis_read();
-        let basis = WorthUiAllocationPlanningBasis::new(
-            measurement_basis.clone(),
-            allocation_neighborhood.clone(),
-            Some(
-                measurement_basis
-                    .admit_allocation_constraint_set(allocation_neighborhood)
-                    .expect("constraint set should already admit before plan-lowering denial"),
-            ),
+        let basis = WorthUiAllocationPlanningBasis::from_admitted(
+            measurement_basis
+                .admit_allocation_constraint_basis(allocation_neighborhood)
+                .expect("constraint basis should already admit before plan-lowering denial"),
+            None,
         );
         let denial_posture = Some(WorthUiAllocationPlanningDenial::new(
             WorthUiAllocationPlanningDenialReason::PlanLoweringDenied,

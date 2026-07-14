@@ -1,16 +1,14 @@
-use worth_query::facade::ProjectionFactConsumptionAttempt;
 use worth_ui_host_contract::{
     UiMeasurementEvidenceFamily, UiMeasurementRequestIdentity, WorthUiHostCapabilityReport,
     WorthUiMeasurementHostAdapter,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
-use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
+use worth_ui_query_binding::{WorthUiQueryAuthorityHandle, WorthUiQueryPrerequisiteEvidence};
 
 use crate::declaration::{UiDeclarationIdentity, UiDeclaredMeasurementPolicyPosture};
 use crate::graph::{UiGraphNodeIdentity, UiGraphWorldProfile};
 use crate::host::{
-    collect_host_measurement_evidence, UiHostMeasurementEvidenceDenial, UiHostMeasurementNeed,
-    UiHostMeasurementNormalizationContext,
+    UiHostMeasurementEvidenceDenial, UiHostMeasurementNeed, UiHostMeasurementNormalizationContext,
 };
 
 use super::{
@@ -39,7 +37,7 @@ pub struct UiMeasurementBasisCertificationScenario {
     query_receipt_authority_generation: Option<UiEvidenceAuthorityGeneration>,
     declared_measurement_policy: UiDeclaredMeasurementPolicyPosture,
     query_prerequisites: Option<WorthUiQueryPrerequisiteEvidence>,
-    projection_consumption: Option<ProjectionFactConsumptionAttempt>,
+    query_authority: Option<WorthUiQueryAuthorityHandle>,
     host_capability_report: WorthUiHostCapabilityReport,
     host_requests: Box<[UiMeasurementBasisCertificationHostRequest]>,
 }
@@ -92,19 +90,19 @@ impl UiMeasurementBasisCertificationScenario {
             query_receipt_authority_generation: None,
             declared_measurement_policy,
             query_prerequisites: None,
-            projection_consumption: None,
+            query_authority: None,
             host_capability_report,
             host_requests: Box::new([]),
         }
     }
 
-    pub fn with_query_projection_consumption(
+    pub fn with_query_authority(
         mut self,
         query_prerequisites: WorthUiQueryPrerequisiteEvidence,
-        projection_consumption: ProjectionFactConsumptionAttempt,
+        query_authority: WorthUiQueryAuthorityHandle,
     ) -> Self {
         self.query_prerequisites = Some(query_prerequisites);
-        self.projection_consumption = Some(projection_consumption);
+        self.query_authority = Some(query_authority);
         self
     }
 
@@ -164,11 +162,8 @@ fn materialize_measurement_basis_for_certification<Adapter: WorthUiMeasurementHo
 ) -> Result<UiMeasurementBasis, UiMeasurementBasisCertificationScenarioError> {
     let mut inputs = Vec::new();
 
-    match (
-        &scenario.query_prerequisites,
-        &scenario.projection_consumption,
-    ) {
-        (Some(prerequisites), Some(consumption)) => {
+    match (&scenario.query_prerequisites, &scenario.query_authority) {
+        (Some(prerequisites), Some(query_authority)) => {
             let receipt = consume_declared_measurement_projection_facts(
                 scenario.declaration_identity.clone(),
                 scenario
@@ -176,7 +171,7 @@ fn materialize_measurement_basis_for_certification<Adapter: WorthUiMeasurementHo
                     .unwrap_or(scenario.declaration_support_authority_generation),
                 &scenario.declared_measurement_policy,
                 prerequisites.clone(),
-                consumption,
+                query_authority,
             )
             .map_err(UiMeasurementBasisCertificationScenarioError::ProjectionFactReceiptDenied)?;
             inputs.push(MeasurementEvidenceInput::query_projection_fact(&receipt));
@@ -194,17 +189,20 @@ fn materialize_measurement_basis_for_certification<Adapter: WorthUiMeasurementHo
         &scenario.host_capability_report,
     ));
 
+    let host_measurement_collector =
+        crate::host::WorthUiHostMeasurementCollector::for_internal_proof();
     for host_request in scenario.host_requests.iter() {
-        let result = collect_host_measurement_evidence(
-            host_adapter,
-            host_request.request_identity,
-            host_request.evidence_family,
-            host_request.need.clone(),
-            &scenario.host_capability_report,
-            scenario.declaration_support_authority_generation,
-            host_request.normalization_context,
-        )
-        .map_err(UiMeasurementBasisCertificationScenarioError::HostMeasurementEvidenceDenied)?;
+        let result = host_measurement_collector
+            .collect(
+                host_adapter,
+                host_request.request_identity,
+                host_request.evidence_family,
+                host_request.need.clone(),
+                &scenario.host_capability_report,
+                scenario.declaration_support_authority_generation,
+                host_request.normalization_context,
+            )
+            .map_err(UiMeasurementBasisCertificationScenarioError::HostMeasurementEvidenceDenied)?;
         inputs.push(MeasurementEvidenceInput::host_measurement_result(&result));
     }
 

@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadAccessShape, WorthQueryGraphReadRootPosture, WorthQueryReadScopeClass,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadAccessShape, WorthQueryGraphReadRootPosture, WorthQueryReadScopeClass};
 
 fn main() {
     let _ = WorthQueryGraphReadAccessShape {

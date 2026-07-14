@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    CausalEvidenceFamily, CausalEvidenceOwner, CausalEvidenceReferenceIndexRecord,
-};
+use worth_query::facade::runtime::{CausalEvidenceFamily, CausalEvidenceOwner, CausalEvidenceReferenceIndexRecord};
 
 fn main() {
     let _ = CausalEvidenceReferenceIndexRecord {

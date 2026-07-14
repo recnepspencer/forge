@@ -1,6 +1,6 @@
 use worth_foundational::facade::DiagnosticRichnessProfile;
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryInspection, WorthQueryRuntimeRemaskProjection, WorthQueryRuntimeRemaskReasonKind,
     WorthQueryRuntimeStateKind,
 };

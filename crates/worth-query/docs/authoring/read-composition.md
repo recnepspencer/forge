@@ -339,8 +339,8 @@ builder requests.
 
 ```rust
 use worth_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, QuerySchemaView, SchemaFieldKind,
-    SchemaFieldView, SchemaRelationView, TraversalSelector,
+    foundation::{AspectFieldSelector, AuthoredResultShapeField, TraversalSelector},
+    runtime::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView},
 };
 
 let mut workspace = runtime.workspace("editor")?;
@@ -408,8 +408,11 @@ pack variant instead of rebuilding those rules outside the kernel:
 
 ```rust
 use worth_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, WorthQueryReadInvariantPackViolation,
-    QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView, TraversalSelector,
+    foundation::{AspectFieldSelector, AuthoredResultShapeField, TraversalSelector},
+    runtime::{
+        QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
+        WorthQueryReadInvariantPackViolation,
+    },
 };
 
 let mut workspace = runtime.workspace("org-chart")?;
@@ -531,7 +534,7 @@ let family = workspace
 
 assert!(matches!(
     family.admission(),
-    worth_query::facade::WorthQueryReadFamilyAdmission::DomainInvariantAdmitted(_)
+    worth_query::facade::runtime::WorthQueryReadFamilyAdmission::DomainInvariantAdmitted(_)
 ));
 ```
 
@@ -545,8 +548,10 @@ Use the family form when:
 
 ```rust
 use worth_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, QuerySchemaView,
-    ScalarPredicateValue, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
+    foundation::{
+        AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, ScalarPredicateValue,
+    },
+    runtime::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView},
 };
 
 let mut workspace = runtime.workspace("org-chart")?;
@@ -599,7 +604,7 @@ assert_eq!(
 assert!(manager_detail
     .receipt()
     .operator_families()
-    .contains(&worth_query::facade::WorthQueryReadOperatorFamily::Predicate));
+    .contains(&worth_query::facade::runtime::WorthQueryReadOperatorFamily::Predicate));
 ```
 
 Good to know:
@@ -657,7 +662,7 @@ If you omit `order_by(...)` on a collection read, the runtime still
 canonicalizes the request with identity ordering so the collection stays
 stable under the shared declarative contract.
 
-If your read is really â€œone direct edge hopâ€ or â€œone bounded ancestor walk,â€
+If your read is really “one direct edge hop” or “one bounded ancestor walk,”
 prefer the operator-owned entrypoints instead of open-coded traversal:
 
 ```rust
@@ -690,8 +695,8 @@ Use these operator-owned entrypoints when:
 - you want the attached receipt to report the exact built-in operator coverage
   instead of only generic traversal presence
 
-If you mean â€œfollow one successor relation repeatedly, but still treat that
-bounded walk as one local neighborhood question,â€ use the successor-walk
+If you mean “follow one successor relation repeatedly, but still treat that
+bounded walk as one local neighborhood question,” use the successor-walk
 entrypoints:
 
 ```rust
@@ -726,8 +731,8 @@ Use successor-walk when:
 - you want the kernel to distinguish this from a generic anchored-expansion
   builder
 
-If you mean â€œexpand from this root through a small explicit frontier of
-relations,â€ use the anchored-frontier entrypoints instead of hand-writing
+If you mean “expand from this root through a small explicit frontier of
+relations,” use the anchored-frontier entrypoints instead of hand-writing
 multiple `.traverse(...)` calls:
 
 ```rust
@@ -773,7 +778,7 @@ assert_eq!(
   payload-plus-receipt artifact.
 - Policy, tenant, and relationship-proof narrowing detail lives in
   [policy, tenant, and relationship-proof narrowing](../foundations/policy-tenant-and-relationship-proof-narrowing.md)
-  (masking, descriptors, deferred policy-aware live/historical parity)â€”not duplicated here.
+  (masking, descriptors, deferred policy-aware live/historical parity)—not duplicated here.
 - Collection cursors, ordering, aggregates, and CDC-shaped collection planning live in
   [collections, cursors, ordering, and aggregations](collections-cursors-ordering-and-aggregations.md).
 - Reusable composition posture for named scopes and templates lives in
@@ -859,7 +864,7 @@ public support artifacts are part of this feature too:
 - `workspace.public_read_composition_support_report()` freezes the admitted
   generic kernel surface
 - `workspace.public_read_composition_phase_one_closeout()` freezes the safe
-  assumptions, remaining non-assumptions, migration guidance, and required
+  assumptions, remaining non-assumptions, adoption guidance, and required
   verification commands
 - `workspace.public_read_composition_phase_gate()` turns the readiness answer
   into typed runtime evidence for:

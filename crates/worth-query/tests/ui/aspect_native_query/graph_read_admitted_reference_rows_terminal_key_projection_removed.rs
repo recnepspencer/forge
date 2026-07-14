@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryAdmittedGraphReadOrderingField, WorthQueryAdmittedGraphReadPredicateField,
-    WorthQueryAdmittedGraphReadProjectionField,
-};
+use worth_query::facade::runtime::{WorthQueryAdmittedGraphReadOrderingField, WorthQueryAdmittedGraphReadPredicateField, WorthQueryAdmittedGraphReadProjectionField};
 
 fn assert_projection_terminal_key_projection_removed(
     row: &WorthQueryAdmittedGraphReadProjectionField,

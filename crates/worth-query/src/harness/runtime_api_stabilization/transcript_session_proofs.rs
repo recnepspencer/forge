@@ -1,4 +1,4 @@
-use crate::facade::{
+use crate::facade::runtime::{
     WorthQueryAuthorityLane, WorthQueryBranchOptions, WorthQueryEffectHandle,
     WorthQueryIntentDeclaration, WorthQueryIntentInput, WorthQueryLiveView,
     WorthQueryPreviewOptions, WorthQueryRuntimeFacadeFamily, WorthQueryRuntimePublicApiContract,
@@ -14,7 +14,7 @@ use super::transcripts::TranscriptSpec;
 pub(super) fn preview_proof(
     workspace: &mut WorthQueryWorkspace,
     live: &WorthQueryLiveView<WorthQueryNativeRow>,
-    computed: &crate::facade::WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+    computed: &crate::facade::runtime::WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
     effect: &WorthQueryEffectHandle<WorthQueryNativeRow>,
     spec: &TranscriptSpec,
 ) -> (String, usize) {
@@ -122,7 +122,8 @@ pub(super) fn support_gated_neighbor_denials(
                 .family(*family)
                 .expect("future neighbor family should have contract row");
             assert!(
-                row.status() != crate::facade::WorthQueryRuntimeFamilySupportStatus::Supported,
+                row.status()
+                    != crate::facade::runtime::WorthQueryRuntimeFamilySupportStatus::Supported,
                 "future neighbor must not be silently admitted in public stabilization transcripts"
             );
             hash_parts(&[
@@ -135,7 +136,9 @@ pub(super) fn support_gated_neighbor_denials(
         .collect()
 }
 
-fn binding_digest(binding: &crate::facade::WorthQueryPreviewHandleBindingEvidence) -> String {
+fn binding_digest(
+    binding: &crate::facade::runtime::WorthQueryPreviewHandleBindingEvidence,
+) -> String {
     hash_parts(&[
         format!("label_identity:{}", binding.label_identity().as_str()),
         format!("handle:{}", binding.handle_name()),

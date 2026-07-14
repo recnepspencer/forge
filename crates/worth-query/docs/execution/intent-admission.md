@@ -2,395 +2,274 @@
 
 ## What This Feature Is
 
-Intent admission is the shared front door for the covered Query
-families that need more than "just call the runtime and hope."
-
-It gives those families one visible progression:
-
-1. author a raw intent request
-2. review the request and its eligibility facts
-3. get an admitted, advisory, or violation decision
-4. execute only through a sealed handoff when the family really crosses a
-   runtime seam
-5. receive a receipt, scoped artifact, bound contract, or typed denial that
-   still points back to the same decision trace
-
-This is the feature that keeps covered intent work honest. Callers do not have
-to rediscover support posture, basis posture, routing posture, or mismatch
-reasons from lower-runtime artifacts after the fact.
+Intent admission is the advanced runtime surface for Query operations that
+need an inspectable eligibility decision before execution. Ordinary product
+journeys begin in a capability namespace such as `facade::read`,
+`facade::aggregate`, `facade::live`, or `facade::mutation`. Use the intent
+surface when a runtime-owned family specifically exposes it and the consumer
+needs its decision trace or sealed handoff.
 
 ## Why You Use It
 
-- you want one public way to ask whether a covered Query intent can proceed
-- you want execution receipts to preserve a proof chain back to the admitted
-  handoff
-- you want basis observation and projection consumption to use the same
-  admitted vocabulary as runtime-backed execution families
-- you want the advanced path when framework or tooling code needs to inspect
-  request, eligibility, decision, handoff, binding, and final receipt evidence
+- Execute a supported read, live read, materialization, inspection, probe,
+  write, batch write, or effect-follow-on intent.
+- Inspect eligibility and the decision trace before committing to execution.
+- Preserve one proof chain from the authored operation through the final result
+  or receipt.
+- Handle support, basis, policy, routing, and stale-state failures as typed
+  outcomes instead of rediscovering them from lower-runtime errors.
 
 ## Stable Entry Points
 
-Common path:
+Use a family-owned authoring method from `worth_query::facade::runtime`:
 
-- `runtime.intent(declaration).execute()`
-- `runtime.intent(declaration).review()?.admit()?.execute()`
-- `runtime.next_effect_write_intent(&effect, version, contract).execute()`
-- `runtime.next_effect_write_intent(&effect, version, contract).review()?.admit()?.execute()`
-- `runtime.write_intent(command).execute()`
-- `runtime.write_intent(command).review()?.admit()?.execute()`
-- `workspace.write_intent(command).execute()`
-- `workspace.write_intent(command).review()?.admit()?.execute()`
-- `runtime.write_batch_intent(commands).execute()`
-- `runtime.write_batch_intent(commands).review()?.admit()?.execute()`
-- `workspace.write_batch_intent(commands).execute()`
-- `workspace.write_batch_intent(commands).review()?.admit()?.execute()`
-- `workspace.read_family_intent(&family).execute()`
-- `workspace.read_family_intent(&family).review()?.admit()?.execute()`
-- `workspace.read_family_in_basis_context_intent(&family, &context).execute()`
-- `workspace.read_family_in_basis_context_intent(&family, &context).review()?.admit()?.execute()`
-- `workspace.read_live_intent(&view).execute()`
-- `workspace.read_live_intent(&view).review()?.admit()?.execute()`
-- `workspace.materialize_intent(&view).execute()`
-- `workspace.materialize_intent(&view).review()?.admit()?.execute()`
-- `workspace.inspect_intent(target).execute()`
-- `workspace.inspect_intent(target).review()?.admit()?.execute()`
-- `workspace.inspect_derived_intent(&view).execute()`
-- `workspace.inspect_derived_intent(&view).review()?.admit()?.execute()`
-- `runtime.probe_existing_intent(request).execute()`
-- `runtime.probe_existing_intent(request).review()?.admit()?.execute()`
-- `workspace.probe_existing_intent(request).execute()`
-- `workspace.probe_existing_intent(request).review()?.admit()?.execute()`
-- `worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)?.admit()?.scope()`
-- `worth_query_projection_consumption_intent(declaration)?.admit()?.bind_contract()`
+- `runtime.intent(declaration)`
+- `runtime.write_intent(command)`
+- `runtime.write_batch_intent(commands)`
+- `runtime.next_effect_write_intent(...)`
+- `workspace.read_family_intent(&family)`
+- `workspace.read_family_in_basis_context_intent(&family, &context)`
+- `workspace.read_live_intent(&view)`
+- `workspace.materialize_intent(&view)`
+- `workspace.inspect_intent(target)`
+- `workspace.inspect_derived_intent(&view)`
+- `runtime.probe_existing_intent(request)`
+- `workspace.probe_existing_intent(request)`
 
-Advanced path:
+The ordinary path is `.execute()`. The advanced path is
+`.review()?.admit()?.execute()`.
 
-- `.review()?`
-- `.admit()?`
-- `.handoff()`
-- `.execution_binding()`
-- `.execute()?`
+Coverage is family-specific. Check the support matrix before treating a nearby
+intent-shaped type as an admitted runtime feature.
 
-Existing-truth work covered by the same lattice:
-
-- graph-composition existing-target update, retarget, supersession, and retirement lanes
-- graph-composition verified-existing lanes
-- `workspace.read(&view)`
-- `workspace.materialize_result(&view)?`
-- `workspace.inspect(&view)`
-- `runtime.probe_existing(...)`
-- `workspace.probe_existing_intent(request).execute()`
-
-Good to know:
-
-- coverage is concrete, not blanket. These named families are covered now.
-- Generic materialization neighbors, temporal families, async/resource
-  families, store-backed restart work, and other later neighbors remain explicitly deferred.
-- unsupported or future families are still support-gated even when nearby
-  covered families already have ordinary public entry points.
+Basis admission and projection authority have their own public surfaces. Use
+`facade::foundation::basis_lifecycle()` for advanced basis capabilities. For
+an ordinary read, consume projection facts from the completed read with
+`completion.consume_projection(read::project_facts()...)`.
 
 ## Core Mental Model
 
-Think of intent admission as a published contract that separates:
+Intent authoring and intent authority are different things.
 
-- naming work from executing work
-- support posture from success posture
-- admitted runtime execution families from admitted non-runtime families
+The authoring object records what the caller wants. Query derives eligibility,
+classifies the decision, and—only for an admitted decision—creates the sealed
+handoff and execution binding. The result or receipt retains the same decision
+trace so inspection never has to guess how execution became legal.
 
-Some covered families end in a runtime handoff:
-
-- authoritative mutation intent execution
-- batch mutation intent execution
-- read-family execution
-- basis-context read-family execution
-- live read execution
-- derived materialization
-- generic and derived inspection
-- existing-truth probe routing
-- effect-triggered pending write intent execution
-
-Graph touch obligation authority is covered by the same admission posture when
-graph-shaped mutation or access needs obligation selection. Intent admission
-must preserve the touch descriptor, operating world descriptor, selected
-obligations, dispatch plan, executor verdict, and budget outcome instead of
-flattening the work into a local validator callback.
-
-For that effect-triggered family, the admitted review, binding, and final
-effect-intent receipt can preserve one typed write-adjacent trigger class such
-as ordinary effect follow-on, time-only wake, async completion, mixed-cause,
-replay drift, remask drift, stale completion, or preview-crossed residue.
-That trigger posture stays on the same admitted lane. It is not a second local
-callback pipeline.
-
-Some covered families are still admitted, but do not cross a runtime execution
-seam:
-
-- basis observation
-- projection consumption
-
-That difference is intentional. An admitted family with
-`no-execution-handoff` is not less real. It just terminates in a scoped basis
-artifact or a bound projection contract instead of route/evaluate execution.
+Some decisions are advisory or require a next action. They are not successful
+execution, and they should not be flattened into `true`, `false`, or a message
+string.
 
 ## How It Executes
 
-The common path is:
+```text
+family-owned intent authoring
+  -> request and eligibility
+  -> admitted, advisory, or violation decision
+  -> sealed handoff and execution binding, when admitted
+  -> runtime execution
+  -> result or receipt carrying the decision trace
+```
 
-1. author the intent from a covered public entry point
-2. let Query resolve eligibility and decision posture
-3. if admitted, execute only through the sealed handoff for that family
-4. receive a final receipt or artifact that still exposes the same trace and
-   provenance chain
-
-The advanced path keeps those phases visible:
-
-1. `review()?`
-2. inspect `request()`, `eligibility()`, `decision()`, and
-   `decision_trace_envelope()`
-3. if admitted, call `admit()?`
-4. inspect `handoff()` and `execution_binding()` when the family crosses a
-   runtime seam
-5. execute or terminate through the family-owned admitted artifact
-
-What "execute" means depends on the family:
-
-- runtime-backed families return a receipt or result with trace and provenance
-- basis observation returns a scoped basis artifact
-- projection consumption returns a bound contract, then typed extracted facts
+Unsupported combinations stop before construction, lowering, or lower-runtime
+contact. The executor consumes the admitted binding; it does not repeat support
+or authority decisions.
 
 ## Small Example
 
-Use the common path when product code wants admitted execution and one
-canonical receipt:
+```rust
+let result = workspace
+    .read_family_intent(&family)
+    .execute()?;
+
+let trace = result.receipt().decision_trace_envelope();
+```
+
+This is the normal product path: declare the read family, execute through
+admission, and retain the receipt if the application needs evidence.
+
+## Real Example
+
+```rust
+use worth_query::facade::runtime::WorthQueryIntentConsumerOutcomeClass;
+
+let review = workspace
+    .read_live_intent(&view)
+    .review()?;
+
+if review.consumer_inspection().outcome_class()
+    != WorthQueryIntentConsumerOutcomeClass::Admitted
+{
+    return handle_intent_stop(review.consumer_inspection());
+}
+
+let admitted = review.admit()?;
+let handoff_digest = admitted.handoff().handoff_digest().to_owned();
+let binding_digest = admitted.execution_binding().binding_digest().to_owned();
+let result = admitted.execute()?;
+
+record_live_read_evidence(
+    handoff_digest,
+    binding_digest,
+    result.receipt().execution_provenance_chain_digest(),
+);
+```
+
+The workspace owns runtime configuration and the view owns canonical Query
+meaning. The review exposes read-only decision evidence. Only `admit()` can
+produce the binding consumed by execution, and the result receipt preserves
+the provenance chain.
+
+For a write whose operation is already known:
+
+```rust
+use worth_query::facade::runtime::WorthQueryIntentConsumerOutcomeClass;
+
+let receipt = runtime
+    .write_intent(command)
+    .execute()?;
+
+match receipt
+    .consumer_inspection()
+    .map(|inspection| inspection.outcome_class())
+{
+    Some(WorthQueryIntentConsumerOutcomeClass::Admitted) => persist_receipt(receipt),
+    _ => handle_missing_admission_evidence(receipt),
+}
+```
+
+Use the typed outcome and stop classification available on the concrete
+receipt or error in production code; the string projection above is useful for
+logging and examples, not for minting authority.
+
+### Family route reference
+
+The common path stays deliberately uniform across the covered families. These
+snippets assume the declarations, handles, contexts, and requests have already
+been authored through their owning public facade namespace:
 
 ```rust
 let receipt = runtime
     .intent(declaration)
     .execute()?;
 
-let covered_entrypoint = receipt.covered_entrypoint_label();
-let trace = receipt.decision_trace_envelope();
-let provenance = receipt.execution_provenance();
+let consumer = receipt.consumer_inspection();
+
+let outcome = consumer.map(|inspection| inspection.outcome_class());
+
+let scoped_basis = basis_lifecycle()
+    .current_head()
+    .observe()?;
+
+let read_completion = read_declaration
+    .using(read::current())
+    .run(&mut workspace)
+    .into_result()?;
+let projection = read_completion
+    .consume_projection(read::project_facts().entity_identities());
+
+let read_result = workspace.read_family_intent(&family).execute()?;
+let basis_result = workspace
+    .read_family_in_basis_context_intent(&family, &context)
+    .execute()?;
+let write_receipt = runtime.write_intent(command).execute()?;
+let batch_receipt = runtime.write_batch_intent(commands).execute()?;
+let live_result = workspace.read_live_intent(&view).execute()?;
+let live_rows = workspace.read(&view);
+let inspection_result = workspace.inspect_intent(&view).execute()?;
+let materialization = workspace.materialize_result(&view)?;
+let inspection = workspace.inspect(&view)?;
+let probe_result = runtime.probe_existing_intent(request).execute()?;
+let workspace_probe = workspace.probe_existing_intent(request).execute()?;
 ```
 
-That is the normal shape for a covered runtime-backed family: author intent,
-execute, then inspect the receipt if you care about the proof chain.
-
-## Real Example
-
-Use the advanced path when framework or tooling code needs the proof chain
-itself:
-
-```rust
-let review = workspace.read_live_intent(&view).review()?;
-
-let request = review.request();
-let eligibility = review.eligibility();
-let decision = review.decision();
-let trace = review.decision_trace_envelope();
-
-let admitted = review.admit()?;
-let handoff = admitted.handoff();
-let binding = admitted.execution_binding();
-let result = admitted.execute()?;
-
-let receipt = result.receipt();
-let provenance = receipt.execution_provenance();
-```
-
-The same advanced execute shape is also valid on the authoritative runtime
-floor:
-
-```rust
-let admitted = runtime.intent(declaration).review()?.admit()?;
-```
-
-The same review/admit rhythm also covers the admitted families that do not
-cross a runtime execution seam:
-
-```rust
-let scoped_basis = worth_query_basis_observation_intent(
-    RawBasisIntent::CurrentHead,
-)?
-.admit()?
-.scope();
-
-let contract = worth_query_projection_consumption_intent(declaration)?
-    .admit()?
-    .bind_contract();
-```
-
-That is the point of the feature: one shared public admission story, even when
-the family-specific terminal artifact is different.
-
-Covered family examples:
+When you need to inspect a decision before execution, stop at review or at a
+scoped capability instead of reaching into admission internals:
 
 ```rust
 let review = runtime.intent(declaration).review()?;
 
 let request = review.request();
-```
-
-```rust
-let consumer = receipt.consumer_inspection();
-
-let outcome = consumer.outcome_class();
-```
-
-```rust
-let scoped_basis = worth_query_basis_observation_intent(
-    RawBasisIntent::CurrentHead,
-)?
-.admit()?
-.scope();
-```
-
-```rust
-let contract = worth_query_projection_consumption_intent(declaration)?
-    .admit()?
-    .bind_contract();
-```
-
-```rust
-let read_result = workspace.read_family_intent(&family).execute()?;
-```
-
-```rust
-let basis_result = workspace
-    .read_family_in_basis_context_intent(&family, &context)
-    .execute()?;
-```
-
-```rust
-let write_receipt = runtime.write_intent(command).execute()?;
-```
-
-```rust
-let batch_receipt = runtime.write_batch_intent(commands).execute()?;
-```
-
-```rust
+let admitted = runtime.intent(declaration).review()?.admit()?;
 let batch_review = runtime.write_batch_intent(commands).review()?;
-```
-
-```rust
-let live_result = workspace.read_live_intent(&view).execute()?;
-```
-
-```rust
-let live_rows = workspace.read(&view);
-```
-
-```rust
-let inspection_result = workspace.inspect_intent(&view).execute()?;
-```
-
-```rust
-let materialization = workspace.materialize_result(&view)?;
-```
-
-```rust
-let inspection = workspace.inspect(&view)?;
-```
-
-```rust
-let probe_result = runtime.probe_existing_intent(request).execute()?;
-```
-
-```rust
-let probe = runtime.probe_existing(request.clone())?;
-```
-
-```rust
-let basis_review = worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)?
-    .review()?;
-```
-
-```rust
-let projection_review =
-    worth_query_projection_consumption_intent(declaration)?.review()?;
-```
-
-```rust
+let scoped_inspection_basis = basis_lifecycle()
+    .current_head()
+    .inspect()?;
+let (authority, projection_warnings) = projection
+    .into_admitted()
+    .map_err(handle_projection_stop)?;
 let write_review = runtime.write_intent(command).review()?;
-```
-
-```rust
 let live_review = workspace.read_live_intent(&view).review()?;
-```
-
-```rust
 let inspection_review = workspace.inspect_intent(&view).review()?;
-```
-
-```rust
 let probe_review = runtime.probe_existing_intent(request).review()?;
 ```
 
+The scoped basis and consumed projection authority are neighboring authority
+surfaces, not intent receipts. They appear here because intent execution may
+consume them; intent admission does not mint or replace them. Advanced
+substrate sources such as retained artifacts or write receipts keep their
+source-specific projection-consumption operations, but ordinary read code must
+not reconstruct result-shape or authorization inputs that its completion
+already owns.
+
 ## How It Relates To Other Features
 
-- Use [Writes And Intent Boundaries](writes-and-intents.md) when you are
-  deciding whether a direct mutation path or an intent path is the right author
-  surface.
-- Use [Existing Truth](../capabilities/existing-truth.md) when the intent work
-  is specifically about verified existing-target mutation or probing.
-- Use [Inspection](../capabilities/inspection.md) when you need the retained
-  explanation surface over receipts, denials, preview artifacts, or branch
-  artifacts.
-- Use [Projection Consumption](../capabilities/projection-consumption.md) when
-  the terminal admitted artifact is a bound contract and typed fact extraction,
-  not runtime execution.
-- Use [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
-  when you need to explain whether a family is fully supported, deferred, or
-  still support-gated before teaching it as everyday production DX.
+- [Writes And Intent Boundaries](./writes-and-intents.md) explains when direct
+  mutation or an admitted intent is the right authoring surface.
+- [Existing Truth](../capabilities/existing-truth.md) covers verified existing
+  targets and probe intent.
+- [Basis Capability Lifecycle](../capabilities/basis-capability-lifecycle.md)
+  owns operation-scoped truth-world authority.
+- [Projection Consumption](../capabilities/projection-consumption.md) owns
+  downstream fact authority; it is not another intent family.
+- [Inspection](../capabilities/inspection.md) reads retained results, receipts,
+  and denials after a decision.
+- [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
+  tells you which family/profile combinations are admitted today.
 
 ## Inspection And Debugging
 
-Every covered receipt or denial/failure evidence carries a
-`WorthQueryIntentDecisionTraceEnvelope`.
+The advanced path exposes:
 
-The most useful public inspection surfaces are:
-
+- `request()`
+- `eligibility()`
+- `decision()`
 - `decision_trace_envelope()`
 - `consumer_inspection()`
-- `execution_provenance()`
-- `execution_provenance_chain_digest()`
-- `covered_entrypoint_label()`
-- `outcome_class()`
-- `terminal_stage_label()`
+- `handoff()` after admission
+- `execution_binding()` after admission
+- `execution_provenance()` and
+  `execution_provenance_chain_digest()` on the result or receipt
 
-The consumer lane is the right fallback when downstream code wants shared
-admission vocabulary and does not want to branch on family-specific receipt
-types.
+Prefer typed outcome and stop classes for branching. Treat messages, rendered
+labels, and digests as presentation or evidence projections.
 
 ## Anti-Patterns
 
-- teaching every method with "intent" in its name as equally stable everyday
-  DX without checking support posture
-- treating the convenience wrappers as independent execution systems when they
-  are really thin delegates over the same lattice
-- reconstructing support, mismatch, or routing posture from lower-runtime
-  details instead of reading the public decision trace
-- treating basis observation or projection consumption as second-class because
-  they terminate without a runtime handoff
+- Constructing admission requests, eligibility artifacts, handoffs, or
+  bindings outside the family-owned authoring surface.
+- Treating every type with `Intent` in its name as an admitted product lane.
+- Calling lower runtimes directly after Query has denied or deferred a family.
+- Recomputing routing or support posture from result text.
+- Flattening advisory and violation decisions into a boolean.
+- Using intent admission to replace basis lifecycle or projection authority.
 
 ## Current Limits
 
-- the covered families listed above are real now, but they are not the whole
-  future Query surface
-- generic materialization neighbors, temporal families, async/resource
-  families, durable restart work, and store-backed replay remain explicitly deferred
-- support posture still matters. Method presence is not a promise that every
-  runtime profile admits every intent family
+- The named entry points above are real only for runtime profiles whose support
+  rows admit the corresponding family.
+- Temporal and async/resource meaning extends existing declaration and live
+  lanes; it does not imply a blanket generic intent API.
+- Store-backed replay, durable restart, and neighboring materialization
+  families remain deferred where the support matrix says so.
+- Certification tooling is available only through
+  `worth_query::facade::certification`; it is not ordinary execution DX.
 
 ## Related Docs
 
-- [Writes And Intent Boundaries](writes-and-intents.md)
-- [Graph Touch Obligation Authority](../authoring/graph-touch-obligation-authority.md)
-- [Graph Obligation Consumer Kit](../authoring/graph-obligation-consumer-kit.md)
+- [Writes And Intent Boundaries](./writes-and-intents.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
+- [Basis Capability Lifecycle](../capabilities/basis-capability-lifecycle.md)
 - [Existing Truth](../capabilities/existing-truth.md)
 - [Inspection](../capabilities/inspection.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)
-- [Workspace Overview](../foundations/workspace-overview.md)

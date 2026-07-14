@@ -7,7 +7,7 @@ mod compat_http_phase_eight_runtime;
 #[path = "support/query_handoff/runtime.rs"]
 mod query_handoff_runtime;
 
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     WorthServerBinaryDownloadRequest, WorthServerBinaryResumeRequest,
     WorthServerQueryHandoffDenialCode,

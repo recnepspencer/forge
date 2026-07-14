@@ -1,7 +1,7 @@
 error[E0599]: no function or associated item named `from_counters` found for struct `QuerySubscriptionScaleCounterSnapshot` in the current scope
- --> tests/ui/subscription_scale_snapshot_requires_activation.rs:8:52
+ --> tests/ui/subscription_scale_snapshot_requires_activation.rs:5:52
   |
-8 |     let _ = QuerySubscriptionScaleCounterSnapshot::from_counters(
+5 |     let _ = QuerySubscriptionScaleCounterSnapshot::from_counters(
   |                                                    ^^^^^^^^^^^^^ function or associated item not found in `QuerySubscriptionScaleCounterSnapshot`
   |
 note: if you're trying to build a new `QuerySubscriptionScaleCounterSnapshot`, consider using `QuerySubscriptionScaleCounterSnapshot::from_activation` which returns `QuerySubscriptionScaleCounterSnapshot`

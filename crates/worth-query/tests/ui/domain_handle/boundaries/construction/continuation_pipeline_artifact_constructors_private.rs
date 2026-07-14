@@ -1,14 +1,6 @@
 #![allow(invalid_value)]
 
-use worth_query::facade::{
-    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryContinuationExecution,
-    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationLegalityContract,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
-    WorthQuerySignalCompatiblePosture,
-    WorthQueryPreparedContinuation,
-};
+use worth_query::facade::foundation::{WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryContinuationExecution, WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext, WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture, WorthQueryPreparedContinuation};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct GeometryDomainEntry;

@@ -1,6 +1,7 @@
+use worth_query::facade::certification::WorthQueryGraphObligationMatrixCertificationCase;
 use worth_query::facade::runtime::{
     WorthQueryGraphObligationIndex, WorthQueryGraphObligationMaterializedDispatch,
-    WorthQueryGraphObligationMatrixCertificationCase, WorthQueryGraphObligationRegistrationCatalog,
+    WorthQueryGraphObligationRegistrationCatalog,
 };
 
 #[test]

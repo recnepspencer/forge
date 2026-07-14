@@ -31,13 +31,12 @@ fn narrowed() -> crate::policy_narrowing::NarrowedPolicyQueryArtifact {
         .build()
         .unwrap();
     let canonical = GuidedAuthoringPath::canonicalize_detail(query, result_shape).unwrap();
-    let policy = PolicyRuleSnapshot::synthetic_authority_with_posture(
+    let policy = PolicyRuleSnapshot::synthetic_authority_with_projection(
         "runtime-policy",
         "rules-v1",
         PolicyEpoch::Synthetic(7),
-        true,
-        true,
-        false,
+        PolicyAspectMask::allow_all()
+            .with_masked(AspectFieldKey::from_authoring_parts("secret", "salary").unwrap()),
     );
     let admitted = admit_policy_tenant_context(
         canonical.query(),

@@ -1,7 +1,8 @@
 use super::evidence_identities::runtime_live_view_consumer_attachment_identity;
 use super::live_subscription::live_subscription_source_identity;
 use super::runtime_session_lowering::{
-    install_live_subscription_activation, lower_runtime_live_subscription_request,
+    install_live_subscription_activation, lower_runtime_live_subscription_read_binding,
+    lower_runtime_live_subscription_request, LoweredRuntimeLiveSubscriptionRequest,
 };
 use super::*;
 
@@ -42,27 +43,10 @@ impl WorthQueryRuntime {
     ) -> Result<WorthQueryBranchSession<'a>, WorthQueryRuntimeError> {
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::BranchPreview)?;
         self.admit_branch_session_label(&label)?;
-        let branch_support_evidence = self
-            .backend
-            .support_profile()
-            .support_for(WorthQueryRuntimeFacadeFamily::BranchPreview)
-            .map(|support| support.evidence().to_vec())
-            .unwrap_or_default();
-        let evidence_rows = std::iter::once(WorthQueryBasisAdmissionEvidenceRow::tagged(
-            "runtime-branch-basis-admission",
-            "runtime-branch-basis-admission",
-        ))
-        .chain(
-            branch_support_evidence
-                .into_iter()
-                .map(WorthQueryBasisAdmissionEvidenceRow::support_profile_token),
-        )
-        .collect::<Vec<_>>();
-        let basis_admission = WorthQueryBranchBasisAdmission::new(
-            &self.evidence_authority,
+        let basis_admission = self.branch_basis_admission(
             label.clone(),
             options.effect_policy(),
-            evidence_rows,
+            "runtime-branch-basis-admission",
         );
         Ok(WorthQueryBranchSession::new(
             label,
@@ -70,6 +54,52 @@ impl WorthQueryRuntime {
             options,
             basis_admission,
         ))
+    }
+
+    pub(crate) fn capture_branch_comparison_basis(
+        &self,
+        label: WorthQuerySessionLabel,
+    ) -> Result<WorthQueryRuntimeBranchComparisonBasis, WorthQueryRuntimeError> {
+        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::BranchPreview)?;
+        let admission = self.branch_basis_admission(
+            label,
+            WorthQueryEffectPolicy::DeriveOnly,
+            "runtime-branch-comparison-basis-admission",
+        );
+        Ok(WorthQueryRuntimeBranchComparisonBasis::new(
+            admission,
+            self.current_snapshot_identity(),
+        ))
+    }
+
+    fn branch_basis_admission(
+        &self,
+        label: WorthQuerySessionLabel,
+        effect_policy: WorthQueryEffectPolicy,
+        evidence_tag: &'static str,
+    ) -> WorthQueryBranchBasisAdmission {
+        let branch_support_evidence = self
+            .backend
+            .support_profile()
+            .support_for(WorthQueryRuntimeFacadeFamily::BranchPreview)
+            .map(|support| support.evidence().to_vec())
+            .unwrap_or_default();
+        let evidence_rows = std::iter::once(WorthQueryBasisAdmissionEvidenceRow::tagged(
+            evidence_tag,
+            evidence_tag,
+        ))
+        .chain(
+            branch_support_evidence
+                .into_iter()
+                .map(WorthQueryBasisAdmissionEvidenceRow::support_profile_token),
+        )
+        .collect::<Vec<_>>();
+        WorthQueryBranchBasisAdmission::new(
+            &self.evidence_authority,
+            label,
+            effect_policy,
+            evidence_rows,
+        )
     }
 
     pub fn preview_with_options<'a>(
@@ -103,6 +133,22 @@ impl WorthQueryRuntime {
             label,
             self,
             options.effect_policy(),
+            basis_admission,
+        ))
+    }
+
+    pub(in crate::runtime) fn open_preview_with_admitted_basis<'a>(
+        &'a mut self,
+        basis_admission: WorthQueryPreviewBasisAdmission,
+    ) -> Result<WorthQueryPreviewSession<'a>, WorthQueryRuntimeError> {
+        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::BranchPreview)?;
+        let label = basis_admission.session_label().clone();
+        let effect_policy = basis_admission.effect_policy();
+        self.admit_preview_session_label(&label)?;
+        Ok(WorthQueryPreviewSession::new(
+            label,
+            self,
+            effect_policy,
             basis_admission,
         ))
     }
@@ -215,6 +261,36 @@ impl WorthQueryRuntime {
             request,
             schema_view,
         )?;
+        self.install_lowered_live_subscription(view_name, request, lowered_subscription, None)
+    }
+
+    pub(super) fn install_live_subscription_for_read_binding(
+        &mut self,
+        view_name: &str,
+        binding: WorthQueryReadExecutionBinding,
+    ) -> Result<WorthQueryRuntimeLiveSubscriptionActivation, WorthQueryRuntimeError> {
+        let lowered_subscription =
+            lower_runtime_live_subscription_read_binding(&*self.backend, view_name, &binding)?;
+        let request = binding
+            .read_family()
+            .read_graph()
+            .declarative_request()
+            .clone();
+        self.install_lowered_live_subscription(
+            view_name,
+            &request,
+            lowered_subscription,
+            Some(binding),
+        )
+    }
+
+    fn install_lowered_live_subscription(
+        &mut self,
+        view_name: &str,
+        request: &DeclarativeLiveQueryRequest,
+        lowered_subscription: LoweredRuntimeLiveSubscriptionRequest,
+        read_authority_binding: Option<WorthQueryReadExecutionBinding>,
+    ) -> Result<WorthQueryRuntimeLiveSubscriptionActivation, WorthQueryRuntimeError> {
         let activation = lowered_subscription.activation.clone();
         let counters = activation.counters().clone();
         let activation_receipt =
@@ -292,6 +368,7 @@ impl WorthQueryRuntime {
             consumer_attachment,
             request: request.clone(),
             remask_posture,
+            read_authority_binding,
         })
     }
 }

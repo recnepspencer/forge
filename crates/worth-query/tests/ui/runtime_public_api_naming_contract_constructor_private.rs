@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryRuntimePublicApiNamingContract, WorthQueryRuntimePublicApiNamingRow,
-};
+use worth_query::facade::runtime::{WorthQueryRuntimePublicApiNamingContract, WorthQueryRuntimePublicApiNamingRow};
 
 fn main() {
     let _row = WorthQueryRuntimePublicApiNamingRow {

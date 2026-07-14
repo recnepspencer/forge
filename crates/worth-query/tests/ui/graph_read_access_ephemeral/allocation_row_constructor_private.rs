@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryEphemeralGraphIndexAllocationRow, WorthQueryGraphReadAccessRequirementKind,
-};
+use worth_query::facade::runtime::{WorthQueryEphemeralGraphIndexAllocationRow, WorthQueryGraphReadAccessRequirementKind};
 
 fn main() {
     let _ = WorthQueryEphemeralGraphIndexAllocationRow {

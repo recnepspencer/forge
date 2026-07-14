@@ -1,4 +1,4 @@
-use worth_query::facade::{ViewShapeDescriptor, ViewShapeIdentityConsumption};
+use worth_query::facade::runtime::{ViewShapeDescriptor, ViewShapeIdentityConsumption};
 
 fn main() {
     let mut descriptor = ViewShapeDescriptor::inspector_detail_focused(worth_foundational::facade::AspectKey::new("profile").unwrap());

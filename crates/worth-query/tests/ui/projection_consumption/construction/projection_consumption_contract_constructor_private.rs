@@ -1,7 +1,4 @@
-use worth_query::facade::foundation::{
-    BoundProjectionFactFamily, MaterializedProjectionContract, ProjectionContractSourcePosture,
-    ProjectionContractSupportPosture, ProjectionSourceFamily, ProjectionSourceReferenceIdentity,
-};
+use worth_query::facade::foundation::{BoundProjectionFactFamily, MaterializedProjectionContract, ProjectionContractSourcePosture, ProjectionContractSupportPosture, ProjectionSourceFamily, ProjectionSourceReferenceIdentity};
 
 fn impossible<T>() -> T {
     panic!("fixture should fail before construction")

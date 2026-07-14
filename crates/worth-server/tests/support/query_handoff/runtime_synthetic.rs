@@ -4,17 +4,19 @@ use std::sync::{
     Arc,
 };
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    DeclarativeLiveQueryRequest, LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
-    SubscriptionActivationInput, SubscriptionActivationReceipt,
-    WorthQueryBackendAdmissibleMutation, WorthQueryEntity, WorthQueryIntentDeclaration,
-    WorthQueryIntentExecution, WorthQueryLiveArtifactTarget, WorthQueryLivePatch,
-    WorthQueryLiveViewHandle, WorthQueryMutationReceipt, WorthQueryPreviewBasisAdmission,
-    WorthQueryRuntime, WorthQueryRuntimeBackend, WorthQueryRuntimeError,
-    WorthQueryRuntimeEvidenceAuthority, WorthQueryRuntimeInspectionEvidence,
-    WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSubscriptionActivationAdapter,
-    WorthQueryRuntimeSupportProfile, WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
-    WorthQueryWorkspace, WorthQueryWorkspaceError, WorthQueryWriteReceipt,
+use worth_query::facade::foundation::{
+    DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryLivePatch, WorthQueryLiveViewHandle,
+    WorthQueryMutationReceipt, WorthQuerySnapshotIdentity, WorthQueryWorkspaceError,
+};
+use worth_query::facade::runtime::{
+    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
+    SubscriptionActivationReceipt, WorthQueryBackendAdmissibleMutation,
+    WorthQueryIntentDeclaration, WorthQueryIntentExecution, WorthQueryLiveArtifactTarget,
+    WorthQueryPreviewBasisAdmission, WorthQueryRuntime, WorthQueryRuntimeBackend,
+    WorthQueryRuntimeError, WorthQueryRuntimeEvidenceAuthority,
+    WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeSchemaAdapter,
+    WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeSupportProfile,
+    WorthQuerySessionLabel, WorthQueryWorkspace, WorthQueryWriteReceipt,
 };
 use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 use worth_server::{
@@ -223,6 +225,11 @@ impl WorthQueryRuntimeBackend for TestQueryRuntimeBackend {
         Ok(WorthQueryLiveViewHandle::new(name))
     }
 
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        self.declared_live_views.remove(name);
+        Ok(())
+    }
+
     fn write(
         &mut self,
         command: WorthQueryBackendAdmissibleMutation,
@@ -266,10 +273,10 @@ impl WorthQueryRuntimeBackend for TestQueryRuntimeBackend {
         }
 
         vec![WorthQueryEntity::from_native_field_values(
-            worth_query::facade::admit_authored_entity_token(
-                worth_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
-                    "user-1",
-                )),
+            worth_query::facade::foundation::WorthQueryEntityIdentity::admit_authored_entity_token(
+                worth_query::facade::foundation::QueryExternalIdentityToken::new(
+                    std::sync::Arc::from("user-1"),
+                ),
             ),
             std::collections::BTreeMap::from([
                 (
@@ -317,7 +324,7 @@ impl WorthQueryRuntimeBackend for TestQueryRuntimeBackend {
     fn admit_preview_basis(
         &self,
         _label: &WorthQuerySessionLabel,
-        _effect_policy: worth_query::facade::WorthQueryEffectPolicy,
+        _effect_policy: worth_query::facade::runtime::WorthQueryEffectPolicy,
         _authority: &WorthQueryRuntimeEvidenceAuthority,
     ) -> Result<WorthQueryPreviewBasisAdmission, WorthQueryWorkspaceError> {
         panic!("unused in query handoff phase tests")

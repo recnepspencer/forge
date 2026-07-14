@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryDerivedArtifactBinding;
+use worth_query::facade::runtime::WorthQueryDerivedArtifactBinding;
 
 fn main() {
     let binding = binding_fixture();

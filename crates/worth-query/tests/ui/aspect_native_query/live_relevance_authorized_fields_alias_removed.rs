@@ -1,4 +1,4 @@
-use worth_query::facade::PolicyAwareLiveRelevanceContract;
+use worth_query::facade::policy::PolicyAwareLiveRelevanceContract;
 
 fn main() {
     let relevance = relevance_fixture();

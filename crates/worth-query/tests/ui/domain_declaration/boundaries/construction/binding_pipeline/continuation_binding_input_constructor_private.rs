@@ -1,11 +1,4 @@
-use worth_query::facade::{
-    WorthQueryCapabilityFamily, WorthQueryContinuationBindingInput,
-    WorthQueryDeclarationAspectContract, WorthQueryDeclarationCanonicalEntry,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRouteContract,
-    WorthQueryDomainEntryMarker, WorthQueryNeighborhoodCapableGrouping,
-    WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
-};
+use worth_query::facade::foundation::{WorthQueryCapabilityFamily, WorthQueryContinuationBindingInput, WorthQueryDeclarationAspectContract, WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRouteContract, WorthQueryDomainEntryMarker, WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct ExampleDomain;

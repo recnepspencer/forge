@@ -1,17 +1,10 @@
-error[E0599]: no method named `published_binding` found for reference `&WorthQueryPublicBridgePublishedProjectionReader<'_>` in the current scope
- --> tests/ui/public_bridge_reader_lane/public_bridge_reader_lane_has_no_binding_shortcut.rs:4:20
+error[E0432]: unresolved import `worth_query::WorthQueryPublicBridgePublishedProjectionReader`
+ --> tests/ui/public_bridge_reader_lane/public_bridge_reader_lane_has_no_binding_shortcut.rs:1:5
   |
-4 |     let _ = reader.published_binding();
-  |                    ^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryPublicBridgePublishedProjectionReader<'_>`
-
-error[E0599]: no method named `materialization_by_name` found for reference `&WorthQueryPublicBridgePublishedProjectionReader<'_>` in the current scope
- --> tests/ui/public_bridge_reader_lane/public_bridge_reader_lane_has_no_binding_shortcut.rs:5:20
+1 | use worth_query::WorthQueryPublicBridgePublishedProjectionReader;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryPublicBridgePublishedProjectionReader` in the root
   |
-5 |     let _ = reader.materialization_by_name("view");
-  |                    ^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryPublicBridgePublishedProjectionReader<'_>`
-
-error[E0599]: no method named `rows` found for reference `&WorthQueryPublicBridgePublishedProjectionReader<'_>` in the current scope
- --> tests/ui/public_bridge_reader_lane/public_bridge_reader_lane_has_no_binding_shortcut.rs:6:20
+help: consider importing this struct instead
   |
-6 |     let _ = reader.rows();
-  |                    ^^^^ method not found in `&WorthQueryPublicBridgePublishedProjectionReader<'_>`
+1 | use worth_query::facade::certification::WorthQueryPublicBridgePublishedProjectionReader;
+  |                  +++++++++++++++++++++++

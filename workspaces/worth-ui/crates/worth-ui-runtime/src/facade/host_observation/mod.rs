@@ -1,11 +1,11 @@
 //! Host observation intake — measurement requests and host contract surfaces.
 
 pub use crate::host::{
-    admit_current_host_measurement_evidence, collect_host_measurement_evidence,
-    freeze_measurement_request, UiHostMeasurementAssumptionProfile,
-    UiHostMeasurementEvidenceDenial, UiHostMeasurementExecutionDenial,
-    UiHostMeasurementFreshnessWitness, UiHostMeasurementInvalidationReason, UiHostMeasurementNeed,
+    admit_current_host_measurement_evidence, freeze_measurement_request, UiAdmittedHostMeasurement,
+    UiHostMeasurementAssumptionProfile, UiHostMeasurementEvidenceDenial,
+    UiHostMeasurementExecutionDenial, UiHostMeasurementInvalidationReason, UiHostMeasurementNeed,
     UiHostMeasurementNormalizationContext, UiHostMeasurementNormalizationDenial,
+    UiPortalAnchorCoordinateSpacePosture, WorthUiHostMeasurementCollector,
 };
 pub use worth_ui_host_contract::{
     UiDpiScaleFactorObservation, UiDpiScaleFactorRequest, UiFontMeasurementKey,
@@ -15,9 +15,10 @@ pub use worth_ui_host_contract::{
     UiMeasurementRequestFamily, UiMeasurementRequestIdentity,
     UiNativeControlIntrinsicSizeObservation, UiNativeControlIntrinsicSizeRequest,
     UiNativeControlKind, UiPortalAnchorRectObservation, UiPortalAnchorRectRequest,
-    UiScrollContainerViewportObservation, UiScrollContainerViewportRequest,
-    UiTextBaselineMetricsObservation, UiTextBaselineMetricsRequest, UiTextIntrinsicSizeObservation,
-    UiTextIntrinsicSizeRequest, UiViewportExtentObservation, UiViewportExtentRequest,
-    WorthUiHostAdapter, WorthUiHostCapability, WorthUiHostCapabilityPosture,
-    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
+    UiPortalAnchorTargetIdentity, UiScrollContainerViewportObservation,
+    UiScrollContainerViewportRequest, UiTextBaselineMetricsObservation,
+    UiTextBaselineMetricsRequest, UiTextIntrinsicSizeObservation, UiTextIntrinsicSizeRequest,
+    UiViewportExtentObservation, UiViewportExtentRequest, WorthUiHostAdapter,
+    WorthUiHostCapability, WorthUiHostCapabilityPosture, WorthUiHostCapabilityReport,
+    WorthUiHostContract, WorthUiMeasurementHostAdapter,
 };

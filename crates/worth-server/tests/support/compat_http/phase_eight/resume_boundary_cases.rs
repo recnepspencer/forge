@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     WorthServerBinaryDownloadAuthorization, WorthServerBinaryDownloadRequest,
     WorthServerBinaryResumeRequest, WorthServerCompatHttpRouteFamily,

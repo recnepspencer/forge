@@ -5,7 +5,7 @@ use crate::runtime::candidate::rust_authored_replacement_candidate;
 use crate::runtime::tests::replacement_impact_test_support::{admitted_candidate, launch_runtime};
 use crate::runtime::{
     WorthUiAccessibilityInvalidation, WorthUiAdmittedReplacementCandidate,
-    WorthUiCandidateAdmission, WorthUiImpactLookupCounters, WorthUiRuntimeHost,
+    WorthUiCandidateAdmission, WorthUiImpactLookupCounters, WorthUiRuntime,
     WorthUiRuntimeImpactNarrowing,
 };
 use crate::source::{
@@ -39,7 +39,7 @@ pub(super) fn runtime_and_narrowing(
     active_artifact: WorthUiArtifact,
     candidate_artifact: WorthUiArtifact,
 ) -> (
-    WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiAdmittedReplacementCandidate,
     WorthUiRuntimeImpactNarrowing,
 ) {
@@ -53,7 +53,10 @@ pub(super) fn admitted_with_runtime(
     app: &WorthUiApp,
     active_artifact: WorthUiArtifact,
     candidate_artifact: WorthUiArtifact,
-) -> (WorthUiRuntimeHost, WorthUiAdmittedReplacementCandidate) {
+) -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
+    WorthUiAdmittedReplacementCandidate,
+) {
     let runtime = launch_runtime(app, active_artifact);
     let candidate = rust_authored_replacement_candidate(
         candidate_artifact,
@@ -140,6 +143,22 @@ pub(super) fn splitter_surface_node(
     sizing_contract_id: &str,
     index: usize,
 ) -> WorthUiArtifactNode {
+    splitter_surface_node_with_authored_provenance_digest(
+        seed,
+        surface_id,
+        sizing_contract_id,
+        index,
+        0,
+    )
+}
+
+pub(super) fn splitter_surface_node_with_authored_provenance_digest(
+    seed: &str,
+    surface_id: &str,
+    sizing_contract_id: &str,
+    index: usize,
+    authored_provenance_digest: u64,
+) -> WorthUiArtifactNode {
     let module_id = module_id("placeholder.wui");
     WorthUiArtifactNode::Surface(WorthUiArtifactSurfaceNode::new(
         WorthUiArtifactHandle::Surface(WorthUiArtifactSurfaceHandle::new(module_id, index)),
@@ -147,7 +166,7 @@ pub(super) fn splitter_surface_node(
         surface(surface_id, "workspace.component.dashboard"),
         splitter_structure(surface_id, sizing_contract_id),
         WorthUiBoundSurfaceSemantics::default(),
-        0,
+        authored_provenance_digest,
         WorthUiArtifactIdentitySeed::authored(seed.to_owned()),
         durable_eligible(),
     ))
@@ -321,7 +340,7 @@ fn splitter_structure(surface_id: &str, sizing_contract_id: &str) -> WorthUiMosa
 }
 
 fn identity_narrowing_for(
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     admitted: &WorthUiAdmittedReplacementCandidate,
 ) -> WorthUiRuntimeImpactNarrowing {
     WorthUiRuntimeImpactNarrowing::new(

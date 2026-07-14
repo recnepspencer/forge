@@ -1,42 +1,18 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    AuthorizedProjectionArtifact, ProjectMaterializedFacts, ProjectionFactConsumptionPathError,
-    ProjectionFactFieldPath, QueryContextExecutionArtifact,
-};
+use worth_query::facade::foundation::{AuthorizedProjectionArtifact, ProjectionAuthorityContract, ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError, ProjectionFactFieldPath};
+use worth_query::facade::policy::QueryContextExecutionArtifact;
 
 fn common_query_context_path(
     execution: &QueryContextExecutionArtifact,
     authorized_projection: &AuthorizedProjectionArtifact,
-) -> Result<String, ProjectionFactConsumptionPathError> {
-    let attempt = execution.consume_projection_facts(
+) -> Result<ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError> {
+    execution.consume_projection_authority(
         authorized_projection,
-        ProjectMaterializedFacts::declare().display_field_path(profile_display_name_field_path()),
-    )?;
-
-    if let Some(completed) = attempt.completed() {
-        let warnings = attempt
-            .warnings()
-            .map(|warnings| warnings.warning_kinds().len())
-            .unwrap_or(0);
-        return Ok(format!(
-            "{}:{}:{}",
-            completed.receipt().receipt_digest(),
-            completed.warning_kinds().len(),
-            warnings
-        ));
-    }
-
-    if let Some(denied) = attempt.denied() {
-        return Ok(format!("{:?}", denied.reason()));
-    }
-    if let Some(deferred) = attempt.deferred() {
-        return Ok(format!("{:?}", deferred.reason()));
-    }
-    if let Some(mismatch) = attempt.source_mismatch() {
-        return Ok(format!("{:?}", mismatch.source_family()));
-    }
-
-    unreachable!()
+        ProjectionAuthorityContract::declare()
+            .require_settled_consumption()
+            .require_source_authority()
+            .require_display_field(profile_display_name_field_path()),
+    )
 }
 
 fn profile_display_name_field_path() -> ProjectionFactFieldPath {

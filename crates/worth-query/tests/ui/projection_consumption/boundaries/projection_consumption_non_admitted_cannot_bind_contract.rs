@@ -1,6 +1,4 @@
-use worth_query::facade::foundation::{
-    DeferredProjectionConsumption, ProjectionConsumptionEligibility,
-};
+use worth_query::facade::foundation::{DeferredProjectionConsumption, ProjectionConsumptionEligibility};
 
 fn impossible<T>() -> T {
     panic!("fixture should fail before construction")

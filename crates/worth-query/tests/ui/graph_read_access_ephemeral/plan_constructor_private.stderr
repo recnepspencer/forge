@@ -1,23 +1,23 @@
 error[E0451]: fields `digest`, `admission_digest`, `requirement_set_digest`, `estimated_index_bytes`, `admitted_byte_budget`, `estimated_touched_nodes`, `estimated_touched_edges`, `required_scope_kind` and `allocation_rows` of struct `WorthQueryEphemeralGraphIndexPlan` are private
-  --> tests/ui/graph_read_access_ephemeral/plan_constructor_private.rs:7:9
+  --> tests/ui/graph_read_access_ephemeral/plan_constructor_private.rs:5:9
    |
- 6 |     let _ = WorthQueryEphemeralGraphIndexPlan {
+ 4 |     let _ = WorthQueryEphemeralGraphIndexPlan {
    |             --------------------------------- in this type
- 7 |         digest: "plan".to_string(),
+ 5 |         digest: "plan".to_string(),
    |         ^^^^^^ private field
- 8 |         admission_digest: "admission".to_string(),
+ 6 |         admission_digest: "admission".to_string(),
    |         ^^^^^^^^^^^^^^^^ private field
- 9 |         requirement_set_digest: "requirements".to_string(),
+ 7 |         requirement_set_digest: "requirements".to_string(),
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         estimated_index_bytes: 1,
+ 8 |         estimated_index_bytes: 1,
    |         ^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         admitted_byte_budget: 1,
+ 9 |         admitted_byte_budget: 1,
    |         ^^^^^^^^^^^^^^^^^^^^ private field
-12 |         estimated_touched_nodes: 1,
+10 |         estimated_touched_nodes: 1,
    |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
-13 |         estimated_touched_edges: 1,
+11 |         estimated_touched_edges: 1,
    |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
-14 |         required_scope_kind: WorthQueryEphemeralGraphIndexScopeKind::ReadExecution,
+12 |         required_scope_kind: WorthQueryEphemeralGraphIndexScopeKind::ReadExecution,
    |         ^^^^^^^^^^^^^^^^^^^ private field
-15 |         allocation_rows: Vec::new(),
+13 |         allocation_rows: Vec::new(),
    |         ^^^^^^^^^^^^^^^ private field

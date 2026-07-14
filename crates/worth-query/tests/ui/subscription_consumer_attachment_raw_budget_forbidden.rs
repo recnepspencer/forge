@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    DeliveryBackpressurePolicy, SubscriptionConsumerAttachmentBudget,
-};
+use worth_query::facade::runtime::{DeliveryBackpressurePolicy, SubscriptionConsumerAttachmentBudget};
 
 fn main() {
     let _budget = SubscriptionConsumerAttachmentBudget::admitted(

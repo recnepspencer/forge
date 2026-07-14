@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryAuthoritativeMutationEvidenceSupport;
+use worth_query::facade::runtime::WorthQueryAuthoritativeMutationEvidenceSupport;
 
 fn main() {
     let _ = WorthQueryAuthoritativeMutationEvidenceSupport {

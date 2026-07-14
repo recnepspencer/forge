@@ -2,7 +2,7 @@
 fn intent_admission_dx_boundaries_hold() {
     let t = trybuild::TestCases::new();
     for transcript in
-        worth_query::facade::runtime::worth_query_intent_admission_golden_transcripts()
+        worth_query::facade::certification::worth_query_intent_admission_golden_transcripts()
     {
         t.pass(transcript.path());
     }
@@ -11,7 +11,8 @@ fn intent_admission_dx_boundaries_hold() {
     {
         t.pass(target.path());
     }
-    for target in worth_query::facade::runtime::worth_query_intent_admission_compile_fail_targets()
+    for target in
+        worth_query::facade::certification::worth_query_intent_admission_compile_fail_targets()
     {
         t.compile_fail(target.path());
     }

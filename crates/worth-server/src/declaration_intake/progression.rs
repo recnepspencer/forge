@@ -2,7 +2,7 @@ use worth_query::facade::consumer_kit::{
     project_workspace_support_snapshot, support_pinning_contract, WorthQueryPinnedSupportStatus,
     WorthQueryPinnedTeachingPosture,
 };
-use worth_query::facade::{WorthQueryRuntimeFacadeFamily, WorthQueryWorkspace};
+use worth_query::facade::runtime::{WorthQueryRuntimeFacadeFamily, WorthQueryWorkspace};
 
 use crate::{
     config::WorthServerQueryHandoffConfig, WorthServerAdmission,

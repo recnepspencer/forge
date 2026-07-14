@@ -1,4 +1,4 @@
-use worth_query::facade::EmployeeRecordCertificationBundle;
+use worth_query::facade::certification::EmployeeRecordCertificationBundle;
 
 fn main() {
     let _ = EmployeeRecordCertificationBundle {

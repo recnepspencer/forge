@@ -1,5 +1,5 @@
 use worth_foundational::facade::AspectValue;
-use worth_query::facade::WorthQueryEntity;
+use worth_query::facade::foundation::WorthQueryEntity;
 
 fn main() {
     let entity = entity_fixture();

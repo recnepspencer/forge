@@ -1,8 +1,8 @@
 warning: unreachable statement
  --> tests/ui/facade_query_read_capability_has_no_live_promote.rs:8:5
   |
-6 |     let preflight: worth_query::facade::ExecutionPreflightBundle = todo!();
-  |                                                                    ------- any code following this expression is unreachable
+6 |     let preflight: worth_query::facade::foundation::ExecutionPreflightBundle = todo!();
+  |                                                                                ------- any code following this expression is unreachable
 7 |
 8 |     let _ = query_reads.capability().promote_preflight(&preflight);
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement

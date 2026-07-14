@@ -67,7 +67,7 @@ builders are how you author durable query artifacts cleanly and safely.
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     AspectFieldSelector, AuthoredResultShapeField, CollectionQueryBuilder,
     CollectionResultShapeBuilder, GuidedAuthoringPath, OrderingSelector,
     RootEntityKey,
@@ -97,7 +97,7 @@ projection, result shape, and compatibility pairing.
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     TypedCollectionQueryBuilder, TypedCollectionResultShapeBuilder,
     TypedGuidedAuthoringPath, TypedOrderableField, TypedPresenceField,
     TypedProjectableField, TypedSchemaField, TypedSchemaRoot,

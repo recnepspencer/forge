@@ -1,4 +1,4 @@
-use worth_query::facade::runtime::WorthQueryDomainCapabilityCertifiedSurfaceInventory;
+use worth_query::facade::certification::WorthQueryDomainCapabilityCertifiedSurfaceInventory;
 
 fn main() {
     let _ = WorthQueryDomainCapabilityCertifiedSurfaceInventory { rows: &[] };

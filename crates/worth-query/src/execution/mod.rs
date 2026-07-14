@@ -3,9 +3,9 @@ use crate::identity::{BasisDigest, PlanDigest, ResultDigest, ValidatedQueryDiges
 
 mod preflight;
 
-pub use preflight::execute_preflight_bundle;
+pub(crate) use preflight::execute_preflight_bundle;
 #[cfg(test)]
-pub use preflight::{execute_parallel_admission_route, execute_serial_fallback_route};
+pub(crate) use preflight::{execute_parallel_admission_route, execute_serial_fallback_route};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ExecutionCounters {
@@ -87,8 +87,26 @@ impl ExecutionCounters {
         self.executor_semantic_rediscovery_count
     }
 
-    pub(crate) fn with_materialized_row_count(mut self, row_count: usize) -> Self {
+    pub(crate) fn with_materialized_rows(
+        mut self,
+        records_examined_count: usize,
+        row_count: usize,
+    ) -> Self {
+        self.execution_records_examined_count = records_examined_count;
         self.execution_records_emitted_count = row_count;
+        self
+    }
+
+    pub(crate) fn with_count_aggregate_input(
+        mut self,
+        records_examined_count: usize,
+        input_row_count: usize,
+    ) -> Self {
+        self.execution_records_examined_count = records_examined_count;
+        self.execution_records_emitted_count = 1;
+        self.page_width = 1;
+        self.aggregate_input_count = input_row_count;
+        self.rollup_input_count = input_row_count;
         self
     }
 

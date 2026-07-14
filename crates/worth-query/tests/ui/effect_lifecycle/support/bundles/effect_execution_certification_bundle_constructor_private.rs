@@ -1,9 +1,6 @@
 #![allow(unreachable_code)]
 
-use worth_query::facade::{
-    EffectExecutionCertificationBundle, EffectExecutionCertificationOutputDigest,
-    EffectExecutionCertificationRow,
-};
+use worth_query::facade::certification::{EffectExecutionCertificationBundle, EffectExecutionCertificationOutputDigest, EffectExecutionCertificationRow};
 
 fn main() {
     let _ = EffectExecutionCertificationBundle {

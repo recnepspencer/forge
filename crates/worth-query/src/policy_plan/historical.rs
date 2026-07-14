@@ -66,7 +66,7 @@ impl PolicyAwareHistoricalPlan {
     }
 }
 
-pub fn lower_policy_aware_historical_plan(
+pub(crate) fn lower_policy_aware_historical_plan(
     artifact: &NarrowedPolicyQueryArtifact,
     basis: PolicyAwareHistoricalBasis,
 ) -> Result<PolicyAwareHistoricalPlan, PolicyAwareExecutionSeamError> {

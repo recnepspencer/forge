@@ -1,6 +1,6 @@
 use crate::authoring::{
-    AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath, RawAuthoredQuery,
-    RawAuthoredResultShape, RootEntityKey,
+    AspectFieldKey, AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath,
+    RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
 };
 use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};
 
@@ -9,10 +9,10 @@ mod saved_reuse;
 use super::{
     admit_policy_tenant_context, classify_saved_query_policy_tenant_reuse,
     runtime_backed_policy_tenant_admission_support_profile, BranchAccessGrant,
-    PolicyAdmissionDisposition, PolicyCostPosture, PolicyEpoch, PolicyExecutionModeRequest,
-    PolicyReuseEquivalenceContract, PolicyRuleSnapshot, PolicyTenantAdmissionFailureClass,
-    PolicyTenantPhaseOneSurface, PolicyTenantSupportStatus, PolicyWorkBudget,
-    SavedQueryPolicyReuseDescriptor, SavedQueryPolicyReuseDisposition,
+    PolicyAdmissionDisposition, PolicyAspectMask, PolicyCostPosture, PolicyEpoch,
+    PolicyExecutionModeRequest, PolicyReuseEquivalenceContract, PolicyRuleSnapshot,
+    PolicyTenantAdmissionFailureClass, PolicyTenantPhaseOneSurface, PolicyTenantSupportStatus,
+    PolicyWorkBudget, SavedQueryPolicyReuseDescriptor, SavedQueryPolicyReuseDisposition,
 };
 
 fn canonical_query() -> crate::canonicalization::CanonicalQueryBundle {
@@ -106,8 +106,6 @@ fn unknown_policy_cost_is_denied_before_tenant_truth_admission() {
         "rules-v1",
         PolicyEpoch::Synthetic(7),
         true,
-        false,
-        false,
         PolicyCostPosture::UnknownCost,
         Some(PolicyWorkBudget::bounded(1, 1, 1)),
     );
@@ -150,13 +148,12 @@ fn unknown_policy_cost_is_denied_before_tenant_truth_admission() {
 #[test]
 fn policy_projection_narrowing_is_explicit_in_admitted_basis() {
     let canonical = canonical_query();
-    let policy = PolicyRuleSnapshot::synthetic_authority_with_posture(
+    let policy = PolicyRuleSnapshot::synthetic_authority_with_projection(
         "runtime-policy",
         "rules-v1",
         PolicyEpoch::Synthetic(7),
-        true,
-        true,
-        false,
+        PolicyAspectMask::allow_all()
+            .with_masked(AspectFieldKey::from_authoring_parts("profile", "display_name").unwrap()),
     );
     let tenant = TenantBindingSnapshot::synthetic_direct(
         "tenant-a",

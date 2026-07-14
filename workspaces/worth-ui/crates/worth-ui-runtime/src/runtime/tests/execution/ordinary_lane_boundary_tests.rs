@@ -27,13 +27,13 @@ fn equivalent_ordinary_lane_plans_execute_with_equivalent_traversal_counters() {
             &left_plan,
             WorthUiOrdinaryFrameTarget::component(left_handle),
         )
-        .expect("ordinary component frame executes");
+        .expect("runtime frame execution succeeds");
     let right_receipt = right_runtime
         .execute_ordinary_lane_frame(
             &right_plan,
             WorthUiOrdinaryFrameTarget::component(right_handle),
         )
-        .expect("ordinary component frame executes");
+        .expect("runtime frame execution succeeds");
 
     assert_eq!(
         left_receipt.certification().ordinary_plan_digest(),
@@ -53,19 +53,19 @@ fn ordinary_lane_rejects_virtualized_or_canvas_surface_claims() {
             &ordinary_plan,
             WorthUiOrdinaryFrameTarget::virtualized_data_for_test(31),
         )
-        .expect_err("virtualized data cannot enter ordinary lane");
+        .expect_err("runtime frame execution denies");
     let canvas = runtime
         .execute_ordinary_lane_frame(
             &ordinary_plan,
             WorthUiOrdinaryFrameTarget::canvas_spatial_for_test(37),
         )
-        .expect_err("canvas spatial cannot enter ordinary lane");
+        .expect_err("runtime frame execution denies");
     let realtime = runtime
         .execute_ordinary_lane_frame(
             &ordinary_plan,
             WorthUiOrdinaryFrameTarget::realtime_overlay_for_test(41),
         )
-        .expect_err("realtime overlay cannot enter ordinary lane");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         virtualized.reason(),
@@ -97,13 +97,13 @@ fn ordinary_frame_path_does_not_parse_or_resolve_source() {
             &ordinary_plan,
             WorthUiOrdinaryFrameTarget::command(command_handle),
         )
-        .expect("command surface frame executes from typed handle");
+        .expect("runtime frame execution succeeds");
     let token_receipt = runtime
         .execute_ordinary_lane_frame(
             &ordinary_plan,
             WorthUiOrdinaryFrameTarget::token_support(token_handle),
         )
-        .expect("token support frame executes from typed handle");
+        .expect("runtime frame execution succeeds");
 
     assert_path_is_source_free(command_receipt.counters());
     assert_path_is_source_free(token_receipt.counters());
@@ -115,19 +115,19 @@ fn ordinary_frame_path_does_not_parse_or_resolve_source() {
             &ordinary_plan,
             WorthUiOrdinaryFrameTarget::parse_source_for_test(),
         )
-        .expect_err("source parsing path is denied");
+        .expect_err("runtime frame execution denies");
     let lookup_denial = runtime
         .execute_ordinary_lane_frame(
             &ordinary_plan,
             WorthUiOrdinaryFrameTarget::registry_lookup_for_test(),
         )
-        .expect_err("registry lookup path is denied");
+        .expect_err("runtime frame execution denies");
     let artifact_denial = runtime
         .execute_ordinary_lane_frame(
             &ordinary_plan,
             WorthUiOrdinaryFrameTarget::artifact_scan_for_test(),
         )
-        .expect_err("artifact scan path is denied");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         parse_denial.reason(),
@@ -152,7 +152,7 @@ fn ordinary_lane_counters_fail_when_widget_execution_scans_all_plan_nodes() {
             &ordinary_plan,
             WorthUiOrdinaryFrameTarget::full_plan_scan_for_test(),
         )
-        .expect_err("full plan scan is not certified for frame execution");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         denial.reason(),
@@ -205,7 +205,7 @@ fn ordinary_frame_rejects_stale_typed_handle_generation() {
             &ordinary_plan,
             WorthUiOrdinaryFrameTarget::component(stale_handle),
         )
-        .expect_err("stale component handle generation cannot execute");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         denial.reason(),
@@ -225,7 +225,7 @@ fn assert_path_is_source_free(counters: crate::runtime::WorthUiOrdinaryLaneCount
 }
 
 fn ordinary_fixture() -> (
-    crate::runtime::WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     crate::runtime::WorthUiOrdinaryLanePlan,
     crate::runtime::WorthUiRuntimeHandleAllocation,
 ) {

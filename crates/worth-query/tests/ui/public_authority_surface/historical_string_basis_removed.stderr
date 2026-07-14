@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+ --> tests/ui/public_authority_surface/historical_string_basis_removed.rs:5:9
+  |
+4 |     let _ = HistoricalEvaluationRequest::retained_snapshot(
+  |             ---------------------------------------------- arguments to this function are incorrect
+5 |         "basis:raw",
+  |         ^^^^^^^^^^^ expected `&ResolvedBasisProof`, found `&str`
+  |
+  = note: expected reference `&ResolvedBasisProof`
+             found reference `&'static str`
+note: associated function defined here
+ --> src/historical/request.rs
+  |
+  |     pub fn retained_snapshot(
+  |            ^^^^^^^^^^^^^^^^^

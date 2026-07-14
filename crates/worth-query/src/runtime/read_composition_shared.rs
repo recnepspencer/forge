@@ -1,27 +1,28 @@
 use crate::authoring::{
     CollectionResultShapeBuilder, DetailResultShapeBuilder, RawAuthoredQuery, RelationName,
 };
+use crate::ordinary::read::WorthQueryDeclaredReadIntent;
 use crate::runtime::{
     QuerySchemaView, WorthQueryReadBuiltInOperator, WorthQueryReadBuiltInOperatorDenialReason,
-    WorthQueryReadDenial, WorthQueryReadGraph, WorthQueryReadGraphFamily, WorthQueryReadScopeClass,
+    WorthQueryReadDenial, WorthQueryReadGraphFamily, WorthQueryReadScopeClass,
 };
 
 use super::read_composition_lowering::{
     build_collection_operator_authored_inputs, build_detail_operator_authored_inputs,
-    build_scoped_read_graph_from_authored, traversal_selector,
+    build_scoped_read_intent_from_authored, traversal_selector,
 };
 use super::read_composition_operator_builders::{
     CollectionReadOperatorQueryBuilder, DetailReadOperatorQueryBuilder,
 };
 
-pub(in crate::runtime) fn build_shared_attachment_collection_read_graph(
+pub(in crate::runtime) fn build_shared_attachment_collection_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     shared_relations: impl IntoIterator<Item = RelationName>,
     declare_query: impl FnOnce(CollectionReadOperatorQueryBuilder) -> CollectionReadOperatorQueryBuilder,
     declare_result_shape: impl FnOnce(CollectionResultShapeBuilder) -> CollectionResultShapeBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
-    build_shared_local_collection_read_graph(
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
+    build_shared_local_collection_read_intent(
         root,
         schema_view,
         shared_relations,
@@ -32,14 +33,14 @@ pub(in crate::runtime) fn build_shared_attachment_collection_read_graph(
     )
 }
 
-pub(in crate::runtime) fn build_shared_endpoint_collection_read_graph(
+pub(in crate::runtime) fn build_shared_endpoint_collection_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     shared_relations: impl IntoIterator<Item = RelationName>,
     declare_query: impl FnOnce(CollectionReadOperatorQueryBuilder) -> CollectionReadOperatorQueryBuilder,
     declare_result_shape: impl FnOnce(CollectionResultShapeBuilder) -> CollectionResultShapeBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
-    build_shared_local_collection_read_graph(
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
+    build_shared_local_collection_read_intent(
         root,
         schema_view,
         shared_relations,
@@ -50,14 +51,14 @@ pub(in crate::runtime) fn build_shared_endpoint_collection_read_graph(
     )
 }
 
-pub(in crate::runtime) fn build_shared_attachment_detail_read_graph(
+pub(in crate::runtime) fn build_shared_attachment_detail_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     shared_relations: impl IntoIterator<Item = RelationName>,
     declare_query: impl FnOnce(DetailReadOperatorQueryBuilder) -> DetailReadOperatorQueryBuilder,
     declare_result_shape: impl FnOnce(DetailResultShapeBuilder) -> DetailResultShapeBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
-    build_shared_local_detail_read_graph(
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
+    build_shared_local_detail_read_intent(
         root,
         schema_view,
         shared_relations,
@@ -68,14 +69,14 @@ pub(in crate::runtime) fn build_shared_attachment_detail_read_graph(
     )
 }
 
-pub(in crate::runtime) fn build_shared_endpoint_detail_read_graph(
+pub(in crate::runtime) fn build_shared_endpoint_detail_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     shared_relations: impl IntoIterator<Item = RelationName>,
     declare_query: impl FnOnce(DetailReadOperatorQueryBuilder) -> DetailReadOperatorQueryBuilder,
     declare_result_shape: impl FnOnce(DetailResultShapeBuilder) -> DetailResultShapeBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
-    build_shared_local_detail_read_graph(
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
+    build_shared_local_detail_read_intent(
         root,
         schema_view,
         shared_relations,
@@ -86,7 +87,7 @@ pub(in crate::runtime) fn build_shared_endpoint_detail_read_graph(
     )
 }
 
-fn build_shared_local_collection_read_graph(
+fn build_shared_local_collection_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     shared_relations: impl IntoIterator<Item = RelationName>,
@@ -94,10 +95,10 @@ fn build_shared_local_collection_read_graph(
     declare_result_shape: impl FnOnce(CollectionResultShapeBuilder) -> CollectionResultShapeBuilder,
     operator: WorthQueryReadBuiltInOperator,
     label: &'static str,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let (query, result_shape) =
         build_collection_operator_authored_inputs(root, declare_query, declare_result_shape)?;
-    build_scoped_read_graph_from_authored(
+    build_scoped_read_intent_from_authored(
         with_shared_local_traversals(query, shared_relations, operator.clone(), label)?,
         result_shape,
         schema_view,
@@ -107,7 +108,7 @@ fn build_shared_local_collection_read_graph(
     )
 }
 
-fn build_shared_local_detail_read_graph(
+fn build_shared_local_detail_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     shared_relations: impl IntoIterator<Item = RelationName>,
@@ -115,10 +116,10 @@ fn build_shared_local_detail_read_graph(
     declare_result_shape: impl FnOnce(DetailResultShapeBuilder) -> DetailResultShapeBuilder,
     operator: WorthQueryReadBuiltInOperator,
     label: &'static str,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let (query, result_shape) =
         build_detail_operator_authored_inputs(root, declare_query, declare_result_shape)?;
-    build_scoped_read_graph_from_authored(
+    build_scoped_read_intent_from_authored(
         with_shared_local_traversals(query, shared_relations, operator.clone(), label)?,
         result_shape,
         schema_view,

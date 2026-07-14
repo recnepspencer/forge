@@ -1,16 +1,3 @@
-warning: the type `AdmittedDiffQueryContext` does not permit zero-initialization
- --> tests/ui/query_diff_result_bundle_constructor_private.rs:5:27
-  |
-5 |         context: unsafe { std::mem::zeroed() },
-  |                           ^^^^^^^^^^^^^^^^^^
-  |                           |
-  |                           this code causes undefined behavior when executed
-  |                           help: use `MaybeUninit<T>` instead, and only call `assume_init` after initialization is done
-  |
-  = note: `std::ptr::Unique<u8>` must be non-null
-  = note: because `std::ptr::NonNull<u8>` must be non-null
-  = note: `#[warn(invalid_value)]` on by default
-
 warning: the type `QueryDiffChangeSetArtifact` does not permit zero-initialization
  --> tests/ui/query_diff_result_bundle_constructor_private.rs:6:30
   |
@@ -22,6 +9,7 @@ warning: the type `QueryDiffChangeSetArtifact` does not permit zero-initializati
   |
   = note: `std::ptr::Unique<u8>` must be non-null
   = note: because `std::ptr::NonNull<u8>` must be non-null
+  = note: `#[warn(invalid_value)]` on by default
 
 warning: the type `DiffQueryMetadata` does not permit zero-initialization
  --> tests/ui/query_diff_result_bundle_constructor_private.rs:7:28

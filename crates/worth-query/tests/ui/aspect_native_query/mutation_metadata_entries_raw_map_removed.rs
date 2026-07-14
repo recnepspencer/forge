@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use worth_query::facade::{WorthQueryMutationMetadata, WorthQueryMutationMetadataValue};
+use worth_query::facade::runtime::{WorthQueryMutationMetadata, WorthQueryMutationMetadataValue};
 
 fn main() {
     let metadata = metadata_fixture();

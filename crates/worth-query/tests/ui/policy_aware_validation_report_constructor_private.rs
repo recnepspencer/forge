@@ -1,4 +1,4 @@
-use worth_query::facade::PolicyAwareValidationReport;
+use worth_query::facade::policy::PolicyAwareValidationReport;
 
 fn main() {
     let _report = PolicyAwareValidationReport {

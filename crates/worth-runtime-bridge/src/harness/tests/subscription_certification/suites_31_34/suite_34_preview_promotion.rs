@@ -1,10 +1,10 @@
 use super::super::support::*;
+use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::{
-    BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeRuntimePolicy,
-    BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity,
-    BridgeSubscriptionDeliveryDensityPosture, BridgeSubscriptionPreviewPromotionOutcomeClass,
-    BridgeSubscriptionPreviewWorkInput, BridgeSubscriptionPreviewWorkKind,
-    BridgeSubscriptionPreviewWorkTraceRejectionKind,
+    BridgePreviewSessionDeclarationIdentity, BridgeRuntimePolicy, BridgeSignalBranchIdentity,
+    BridgeSpeculativeBranchBindingIdentity, BridgeSubscriptionDeliveryDensityPosture,
+    BridgeSubscriptionPreviewPromotionOutcomeClass, BridgeSubscriptionPreviewWorkInput,
+    BridgeSubscriptionPreviewWorkKind, BridgeSubscriptionPreviewWorkTraceRejectionKind,
 };
 
 #[test]

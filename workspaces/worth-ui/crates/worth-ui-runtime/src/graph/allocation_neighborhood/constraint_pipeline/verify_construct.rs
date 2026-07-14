@@ -123,6 +123,7 @@ pub(super) fn construct_constraint_set(
     edges: Vec<UiConstraintPropagationEdge>,
 ) -> Result<UiAllocationConstraintSet, UiConstraintPropagationDenial> {
     Ok(UiAllocationConstraintSet::new_with_sibling_negotiation(
+        super::super::UiGraphConstraintMintAuthority::mint(),
         neighborhood_identity_digest,
         contract_identity,
         summary,

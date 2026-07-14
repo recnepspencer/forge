@@ -1109,7 +1109,7 @@ impl QueryWorkflowDeclaration {
     }
 }
 
-pub fn bind_workflow_context(
+pub(crate) fn bind_workflow_context(
     source: WorkflowBindingSource<'_>,
 ) -> Result<WorkflowContextBinding, WorkflowAdmissionError> {
     match source {
@@ -1134,7 +1134,7 @@ pub fn bind_workflow_context(
     }
 }
 
-pub fn admit_query_workflow_declaration(
+pub(crate) fn admit_query_workflow_declaration(
     binding: &WorkflowContextBinding,
     request: WorkflowDeclarationRequest,
 ) -> Result<QueryWorkflowDeclaration, WorkflowAdmissionError> {

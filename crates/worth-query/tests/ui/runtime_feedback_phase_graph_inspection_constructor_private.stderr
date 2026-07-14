@@ -1,19 +1,19 @@
 error[E0560]: struct `WorthQueryFeedbackPhaseGraphInspection` has no field named `trigger_commit_identity`
-  --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:10:9
-   |
-10 |         trigger_commit_identity: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryFeedbackPhaseGraphInspection` does not have this field
-   |
-   = note: all struct fields are already assigned
+ --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:7:9
+  |
+7 |         trigger_commit_identity: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryFeedbackPhaseGraphInspection` does not have this field
+  |
+  = note: all struct fields are already assigned
 
 error[E0308]: mismatched types
-  --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:21:23
+  --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:18:23
    |
-21 |         graph_digest: String::new(),
+18 |         graph_digest: String::new(),
    |                       ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
 
 error[E0308]: mismatched types
-  --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:22:28
+  --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:19:28
    |
-22 |         inspection_digest: String::new(),
+19 |         inspection_digest: String::new(),
    |                            ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`

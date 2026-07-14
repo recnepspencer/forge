@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+ --> tests/ui/declarative_workflow/inspection_receipt_cannot_authorize_inspection.rs:4:32
+  |
+4 |     let _declaration = declare(receipt);
+  |                        ------- ^^^^^^^ expected `&WorthQueryReadCompletion`, found `&WorthQueryInspectionReceipt`
+  |                        |
+  |                        arguments to this function are incorrect
+  |
+  = note: expected reference `&WorthQueryReadCompletion`
+             found reference `&WorthQueryInspectionReceipt`
+note: function defined here
+ --> src/ordinary/inspection/declaration.rs
+  |
+  | pub fn declare(completion: &WorthQueryReadCompletion) -> WorthQueryInspectionDeclaration {
+  |        ^^^^^^^

@@ -1,4 +1,4 @@
-use worth_query::facade::CorrespondenceIdentityComparison;
+use worth_query::facade::foundation::CorrespondenceIdentityComparison;
 
 fn main() {
     let _: fn(String, String, bool) -> CorrespondenceIdentityComparison =

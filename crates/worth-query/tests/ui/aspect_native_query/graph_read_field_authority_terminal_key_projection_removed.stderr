@@ -1,23 +1,23 @@
 error[E0599]: no method named `terminal_aspect_key_projection` found for reference `&WorthQueryGraphReadPredicateFieldAuthority` in the current scope
- --> tests/ui/aspect_native_query/graph_read_field_authority_terminal_key_projection_removed.rs:8:17
+ --> tests/ui/aspect_native_query/graph_read_field_authority_terminal_key_projection_removed.rs:6:17
   |
-8 |     let _ = row.terminal_aspect_key_projection();
+6 |     let _ = row.terminal_aspect_key_projection();
   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryGraphReadPredicateFieldAuthority`
 
 error[E0599]: no method named `terminal_field_key_projection` found for reference `&WorthQueryGraphReadPredicateFieldAuthority` in the current scope
- --> tests/ui/aspect_native_query/graph_read_field_authority_terminal_key_projection_removed.rs:9:17
+ --> tests/ui/aspect_native_query/graph_read_field_authority_terminal_key_projection_removed.rs:7:17
   |
-9 |     let _ = row.terminal_field_key_projection();
+7 |     let _ = row.terminal_field_key_projection();
   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryGraphReadPredicateFieldAuthority`
 
 error[E0599]: no method named `terminal_aspect_key_projection` found for reference `&WorthQueryGraphReadOrderingFieldAuthority` in the current scope
-  --> tests/ui/aspect_native_query/graph_read_field_authority_terminal_key_projection_removed.rs:13:17
+  --> tests/ui/aspect_native_query/graph_read_field_authority_terminal_key_projection_removed.rs:11:17
    |
-13 |     let _ = row.terminal_aspect_key_projection();
+11 |     let _ = row.terminal_aspect_key_projection();
    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryGraphReadOrderingFieldAuthority`
 
 error[E0599]: no method named `terminal_field_key_projection` found for reference `&WorthQueryGraphReadOrderingFieldAuthority` in the current scope
-  --> tests/ui/aspect_native_query/graph_read_field_authority_terminal_key_projection_removed.rs:14:17
+  --> tests/ui/aspect_native_query/graph_read_field_authority_terminal_key_projection_removed.rs:12:17
    |
-14 |     let _ = row.terminal_field_key_projection();
+12 |     let _ = row.terminal_field_key_projection();
    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryGraphReadOrderingFieldAuthority`

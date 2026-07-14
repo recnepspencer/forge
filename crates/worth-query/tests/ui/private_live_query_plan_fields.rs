@@ -1,4 +1,4 @@
-use worth_query::facade::LiveQueryPlan;
+use worth_query::facade::foundation::LiveQueryPlan;
 
 fn main() {
     let _ = LiveQueryPlan {

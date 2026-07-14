@@ -1,7 +1,7 @@
+use crate::facade::runtime::BridgeSubscriptionDeclarationFamilyKind;
 use crate::facade::{
     BridgeCommittedPatchEnvelope, BridgeRuntimePolicy, BridgeSubscriptionBasisRequest,
-    BridgeSubscriptionDeclarationFamilyKind, BridgeSubscriptionDeliveryIntentClass,
-    NormalizedSubscriptionSliceIntent,
+    BridgeSubscriptionDeliveryIntentClass, NormalizedSubscriptionSliceIntent,
 };
 use crate::input::envelope::{
     BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem, TruthBranchIdentity,

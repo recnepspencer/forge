@@ -12,10 +12,11 @@ use super::{
     IdentityEvolutionDeniedBundle, IdentityEvolutionExecutionFamily,
     IdentityEvolutionIdentityBreakBundle, IdentityEvolutionIdentityBreakReason,
     IdentityEvolutionMetadata, IdentityEvolutionOutcomeFamily, IdentityEvolutionQueryContext,
-    IdentityEvolutionQueryFamily, IdentityEvolutionReplayParityClass,
-    IdentityEvolutionResultBundle, IdentityEvolutionSyntheticScenario, InspectorIdentityArtifact,
-    InspectorIdentityClassification, LineageTraversalDescriptor, LineageTraversalFamily,
-    PluralIdentitySuccessorSet, PromotionOrMergeAuthorityState, SingularIdentityContinuityResult,
+    IdentityEvolutionQueryFamily, IdentityEvolutionReplayArtifact,
+    IdentityEvolutionReplayParityClass, IdentityEvolutionResultBundle,
+    IdentityEvolutionSyntheticScenario, InspectorIdentityArtifact, InspectorIdentityClassification,
+    LineageTraversalDescriptor, LineageTraversalFamily, PluralIdentitySuccessorSet,
+    PromotionOrMergeAuthorityState, SingularIdentityContinuityResult,
 };
 use crate::identity::{BasisDigest, CanonicalQueryDigest, LineageDigest};
 
@@ -254,18 +255,19 @@ fn branch_locality_fields_participate_in_metadata_digest() {
 
 #[test]
 fn query_context_keeps_lineage_and_correspondence_shapes_distinct() {
-    let lineage_context = IdentityEvolutionQueryContext::lineage_traversal(
+    let lineage_context = IdentityEvolutionQueryContext::lineage_traversal_for_test(
         query_digest("lineage"),
         basis_digest("left"),
         LineageTraversalDescriptor::direct_predecessor("anchor"),
     );
-    let correspondence_context = IdentityEvolutionQueryContext::correspondence_identity_comparison(
-        query_digest("correspondence"),
-        IdentityEvolutionComparisonBasisFamily::BranchToBranch,
-        basis_digest("left"),
-        basis_digest("right"),
-        CorrespondenceIdentityComparison::advisory_between("left-id", "right-id"),
-    );
+    let correspondence_context =
+        IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
+            query_digest("correspondence"),
+            IdentityEvolutionComparisonBasisFamily::BranchToBranch,
+            basis_digest("left"),
+            basis_digest("right"),
+            CorrespondenceIdentityComparison::advisory_between("left-id", "right-id"),
+        );
 
     assert_eq!(
         lineage_context.family(),
@@ -275,6 +277,96 @@ fn query_context_keeps_lineage_and_correspondence_shapes_distinct() {
     assert!(correspondence_context
         .correspondence_identity_comparison_descriptor()
         .is_some());
+}
+
+#[test]
+fn query_minted_authority_survives_planning_replay_and_inspection() {
+    let canonical = crate::harness::fixtures::canonical_bundles::runtime_detail_bundle();
+    let validated = crate::harness::fixtures::validated_bundles::runtime_detail_bundle();
+    let preflight = crate::harness::fixtures::execution_preflights::direct_runtime_preflight();
+
+    let direct = canonical.query().authority();
+    let fluent = validated.query().canonical_authority();
+    let planned = preflight.plan().query().canonical_authority();
+    assert_eq!(direct, fluent);
+    assert_eq!(fluent, planned);
+
+    let context = IdentityEvolutionQueryContext::lineage_traversal(
+        &planned,
+        preflight.basis(),
+        LineageTraversalDescriptor::direct_replacement("entity:authority-continuity"),
+    );
+    let admitted = admit_identity_evolution_query(context).expect("authority-bound admission");
+    let execution = execute_admitted_identity_evolution_query(&admitted)
+        .expect("authority-bound identity evolution");
+    let evidence =
+        IdentityEvolutionCertificationResultEvidence::from_execution_artifact(&execution);
+    let replay = IdentityEvolutionReplayArtifact::from_result_evidence(&evidence);
+    let inspection = InspectorIdentityArtifact::from_result_evidence(&evidence);
+
+    assert_eq!(evidence.query_authority(), &planned);
+    assert_eq!(replay.query_authority(), Some(&planned));
+    assert_eq!(inspection.query_authority(), &planned);
+    assert_eq!(evidence.basis_proof(), preflight.basis().proof());
+    assert_eq!(replay.basis_proof(), Some(preflight.basis().proof()));
+    assert_eq!(inspection.basis_proof(), preflight.basis().proof());
+    assert_eq!(replay.query_digest(), planned.digest().as_str());
+}
+
+#[test]
+fn equal_digest_text_cannot_collapse_distinct_basis_generations() {
+    let left_preflight = crate::harness::fixtures::execution_preflights::direct_runtime_preflight();
+    let right_preflight =
+        crate::harness::fixtures::execution_preflights::runtime_preflight_with_snapshot_identity(
+            crate::harness::fixtures::resolved_bases::alternate_snapshot_identity(),
+        );
+    let collision_label = "hostile-equal-rendered-basis-digest";
+    let left_digest = BasisDigest::from_collision_for_test(
+        collision_label,
+        left_preflight.basis().proof().identity().clone(),
+    );
+    let right_digest = BasisDigest::from_collision_for_test(
+        collision_label,
+        right_preflight.basis().proof().identity().clone(),
+    );
+    let left = left_preflight.basis().clone().replace_proof_for_test(
+        crate::basis::ResolvedBasisProof::from_identity_and_digest_for_test(
+            left_preflight.basis().proof().identity().clone(),
+            left_digest,
+        ),
+    );
+    let right = right_preflight.basis().clone().replace_proof_for_test(
+        crate::basis::ResolvedBasisProof::from_identity_and_digest_for_test(
+            right_preflight.basis().proof().identity().clone(),
+            right_digest,
+        ),
+    );
+
+    assert_eq!(
+        left.proof().digest().as_str(),
+        right.proof().digest().as_str()
+    );
+    assert_ne!(left.proof(), right.proof());
+    assert!(!crate::basis::snapshot_resolution_report(&left).certifies(&right));
+
+    let authority = left_preflight.plan().query().canonical_authority();
+    let context = IdentityEvolutionQueryContext::correspondence_identity_comparison(
+        &authority,
+        IdentityEvolutionComparisonBasisFamily::BranchToBranch,
+        &left,
+        &right,
+        CorrespondenceIdentityComparison::advisory_between("left", "right"),
+    );
+    let (left_proof, right_proof) = context
+        .correspondence_basis_proofs()
+        .expect("comparison retains both sealed generations");
+    assert_ne!(left_proof.identity(), right_proof.identity());
+
+    let admitted = admit_identity_evolution_query(context).expect("structurally distinct bases");
+    let execution = execute_admitted_identity_evolution_query(&admitted)
+        .expect("collision-safe comparison execution");
+    let inspection = InspectorIdentityArtifact::from_result_bundle(execution.result_bundle());
+    assert_eq!(inspection.basis_proof().identity(), left.proof().identity());
 }
 
 #[test]
@@ -335,7 +427,7 @@ fn identity_break_remains_distinct_from_denial() {
 
 #[test]
 fn correspondence_context_admits_as_distinct_shape() {
-    let context = IdentityEvolutionQueryContext::correspondence_identity_comparison(
+    let context = IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
         query_digest("correspondence"),
         IdentityEvolutionComparisonBasisFamily::BranchToBranch,
         basis_digest("left"),
@@ -350,7 +442,7 @@ fn correspondence_context_admits_as_distinct_shape() {
 
 #[test]
 fn lineage_traversal_admission_requires_anchor_identity() {
-    let context = IdentityEvolutionQueryContext::lineage_traversal(
+    let context = IdentityEvolutionQueryContext::lineage_traversal_for_test(
         query_digest("lineage"),
         basis_digest("basis"),
         LineageTraversalDescriptor::direct_predecessor(""),
@@ -367,7 +459,7 @@ fn lineage_traversal_admission_requires_anchor_identity() {
 #[test]
 fn split_successor_execution_shapes_plural_result() {
     let admitted =
-        admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal(
+        admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal_for_test(
             query_digest("split"),
             basis_digest("basis"),
             LineageTraversalDescriptor::direct_split_successors("anchor"),
@@ -392,7 +484,7 @@ fn split_successor_execution_shapes_plural_result() {
 #[test]
 fn branch_local_execution_keeps_locality_explicit() {
     let admitted =
-        admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal(
+        admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal_for_test(
             query_digest("branch-local"),
             basis_digest("basis"),
             LineageTraversalDescriptor::branch_local_direct_evolution("anchor"),
@@ -412,7 +504,7 @@ fn branch_local_execution_keeps_locality_explicit() {
 #[test]
 fn branch_crossing_probe_shapes_denial_bundle() {
     let admitted = admit_identity_evolution_query_for_scenario(
-        IdentityEvolutionQueryContext::lineage_traversal(
+        IdentityEvolutionQueryContext::lineage_traversal_for_test(
             query_digest("branch-cross"),
             basis_digest("basis"),
             LineageTraversalDescriptor::branch_local_direct_evolution("anchor"),
@@ -434,7 +526,7 @@ fn branch_crossing_probe_shapes_denial_bundle() {
 
 #[test]
 fn comparison_context_exposes_basis_family_and_intent() {
-    let context = IdentityEvolutionQueryContext::correspondence_identity_comparison(
+    let context = IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
         query_digest("comparison"),
         IdentityEvolutionComparisonBasisFamily::PreviewToAuthoritative,
         basis_digest("preview"),
@@ -458,7 +550,7 @@ fn comparison_context_exposes_basis_family_and_intent() {
 #[test]
 fn comparison_admission_requires_distinct_bases() {
     let digest = basis_digest("same");
-    let context = IdentityEvolutionQueryContext::correspondence_identity_comparison(
+    let context = IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
         query_digest("comparison"),
         IdentityEvolutionComparisonBasisFamily::BranchToBranch,
         digest.clone(),
@@ -477,7 +569,7 @@ fn comparison_admission_requires_distinct_bases() {
 #[test]
 fn advisory_comparison_shapes_candidate_set() {
     let admitted = admit_identity_evolution_query(
-        IdentityEvolutionQueryContext::correspondence_identity_comparison(
+        IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
             query_digest("comparison"),
             IdentityEvolutionComparisonBasisFamily::BranchToBranch,
             basis_digest("left"),
@@ -510,7 +602,7 @@ fn advisory_comparison_shapes_candidate_set() {
 #[test]
 fn authoritative_comparison_denies_when_authority_is_unavailable() {
     let admitted = admit_identity_evolution_query_for_scenario(
-        IdentityEvolutionQueryContext::correspondence_identity_comparison(
+        IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
             query_digest("comparison"),
             IdentityEvolutionComparisonBasisFamily::BranchToBranch,
             basis_digest("left"),
@@ -535,7 +627,7 @@ fn authoritative_comparison_denies_when_authority_is_unavailable() {
 #[test]
 fn ambiguous_comparison_shapes_ambiguity_bundle() {
     let admitted = admit_identity_evolution_query_for_scenario(
-        IdentityEvolutionQueryContext::correspondence_identity_comparison(
+        IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
             query_digest("comparison"),
             IdentityEvolutionComparisonBasisFamily::HistoricalToHistorical,
             basis_digest("historical-left"),
@@ -556,7 +648,7 @@ fn ambiguous_comparison_shapes_ambiguity_bundle() {
 #[test]
 fn branch_local_comparison_preserves_branch_locality_metadata() {
     let admitted = admit_identity_evolution_query_for_scenario(
-        IdentityEvolutionQueryContext::correspondence_identity_comparison(
+        IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
             query_digest("comparison"),
             IdentityEvolutionComparisonBasisFamily::CurrentToHistorical,
             basis_digest("current"),
@@ -580,7 +672,7 @@ fn branch_local_comparison_preserves_branch_locality_metadata() {
 #[test]
 fn result_evidence_exposes_required_digests() {
     let admitted =
-        admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal(
+        admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal_for_test(
             query_digest("replacement-evidence"),
             basis_digest("basis"),
             LineageTraversalDescriptor::direct_replacement("anchor"),
@@ -610,7 +702,7 @@ fn result_evidence_exposes_required_digests() {
 #[test]
 fn denial_evidence_exposes_required_digests() {
     let admitted = admit_identity_evolution_query_for_scenario(
-        IdentityEvolutionQueryContext::lineage_traversal(
+        IdentityEvolutionQueryContext::lineage_traversal_for_test(
             query_digest("branch-crossing-evidence"),
             basis_digest("basis"),
             LineageTraversalDescriptor::branch_local_direct_evolution("anchor"),
@@ -709,7 +801,7 @@ fn typed_reason_taxonomy_stays_closed_inside_result_bundles() {
 #[test]
 fn replay_artifact_stays_equivalent_for_same_result_evidence() {
     let admitted =
-        admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal(
+        admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal_for_test(
             query_digest("replay"),
             basis_digest("basis"),
             LineageTraversalDescriptor::direct_replacement("anchor"),

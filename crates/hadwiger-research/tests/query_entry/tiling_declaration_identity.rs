@@ -1,7 +1,7 @@
 use hadwiger_research::facade::*;
-use worth_query::facade::{
-    WORTHQueryDeclarationCanonicalEntry, WORTHQueryDeclarationCanonicalValue,
-    WORTHQueryDeclarationInput, WORTHQueryDeclaredFamilyChecked,
+use worth_query::facade::foundation::{
+    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationCanonicalValue,
+    WorthQueryDeclarationInput, WorthQueryDeclaredFamilyChecked,
 };
 
 fn handle() -> HadwigerResearchHandle {
@@ -317,11 +317,11 @@ fn minimal_tiling_canonical_entries_omit_empty_identity_values() {
 }
 
 fn assert_digest_changes<I>(
-    left: worth_query::facade::WORTHQueryCanonicalDeclarationArtifact<
+    left: worth_query::facade::foundation::WorthQueryCanonicalDeclarationArtifact<
         HadwigerResearchDomainEntry,
         I,
     >,
-    right: worth_query::facade::WORTHQueryCanonicalDeclarationArtifact<
+    right: worth_query::facade::foundation::WorthQueryCanonicalDeclarationArtifact<
         HadwigerResearchDomainEntry,
         I,
     >,
@@ -332,13 +332,16 @@ fn assert_digest_changes<I>(
 }
 
 fn admitted_declaration<I>(
-    checked: WORTHQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>,
-) -> worth_query::facade::WORTHQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>
+    checked: WorthQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>,
+) -> worth_query::facade::foundation::WorthQueryCanonicalDeclarationArtifact<
+    HadwigerResearchDomainEntry,
+    I,
+>
 where
     I: HadwigerResearchDeclarationInput,
 {
     match checked {
-        WORTHQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
+        WorthQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
         _ => panic!("Hadwiger tiling declaration should admit"),
     }
 }
@@ -350,28 +353,28 @@ where
     let entries = request.canonical_declaration_entries();
     assert!(entries.iter().all(|entry| !entry.locus().is_empty()));
     assert!(entries.iter().all(|entry| match entry.value() {
-        WORTHQueryDeclarationCanonicalValue::ExactText(value) => !value.trim().is_empty(),
+        WorthQueryDeclarationCanonicalValue::ExactText(value) => !value.trim().is_empty(),
         _ => true,
     }));
 }
 
 fn assert_entries(
-    actual: Vec<WORTHQueryDeclarationCanonicalEntry>,
-    expected: &[WORTHQueryDeclarationCanonicalEntry],
+    actual: Vec<WorthQueryDeclarationCanonicalEntry>,
+    expected: &[WorthQueryDeclarationCanonicalEntry],
 ) {
     assert_eq!(actual, expected);
     assert_eq!(actual[0].locus(), "declaration_kind");
     assert!(actual.iter().all(|entry| !entry.locus().is_empty()));
 }
 
-fn text(locus: &str, value: &str) -> WORTHQueryDeclarationCanonicalEntry {
-    WORTHQueryDeclarationCanonicalEntry::text(locus, value)
+fn text(locus: &str, value: &str) -> WorthQueryDeclarationCanonicalEntry {
+    WorthQueryDeclarationCanonicalEntry::text(locus, value)
 }
 
-fn unsigned(locus: &str, value: u128) -> WORTHQueryDeclarationCanonicalEntry {
-    WORTHQueryDeclarationCanonicalEntry::new(
+fn unsigned(locus: &str, value: u128) -> WorthQueryDeclarationCanonicalEntry {
+    WorthQueryDeclarationCanonicalEntry::new(
         locus,
-        worth_query::facade::WORTHQueryDeclarationCanonicalEntryKind::Field,
-        WORTHQueryDeclarationCanonicalValue::UnsignedInteger(value),
+        worth_query::facade::foundation::WorthQueryDeclarationCanonicalEntryKind::Field,
+        WorthQueryDeclarationCanonicalValue::UnsignedInteger(value),
     )
 }

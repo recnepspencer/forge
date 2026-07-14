@@ -2,7 +2,7 @@ use super::model::{
     CanonicalCertificationBundle, CertificationMatrix, CertificationPerturbationClass,
     HostileLaneExpectation, ParityAnchor, RejectionCertificationBundle,
 };
-use crate::facade::{
+use crate::facade::foundation::{
     CanonicalizationCounters, CanonicalizationReport, CanonicalizationWarning,
     CompatibilityEvidence, NormalizationEvent,
 };

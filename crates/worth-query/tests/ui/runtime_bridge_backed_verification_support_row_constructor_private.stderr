@@ -1,19 +1,19 @@
 error[E0451]: fields `operation_family`, `target_binding_family`, `current_posture_status`, `scaffold_profile_supported`, `primary_bridge_backed_runtime_supported`, `denial_class_when_unsupported` and `row_digest` of struct `WorthQueryBridgeBackedVerificationSupportRow` are private
-  --> tests/ui/runtime_bridge_backed_verification_support_row_constructor_private.rs:8:9
+  --> tests/ui/runtime_bridge_backed_verification_support_row_constructor_private.rs:5:9
    |
- 7 |     let _ = WorthQueryBridgeBackedVerificationSupportRow {
+ 4 |     let _ = WorthQueryBridgeBackedVerificationSupportRow {
    |             -------------------------------------------- in this type
- 8 |         operation_family: String::from("verify_existing"),
+ 5 |         operation_family: String::from("verify_existing"),
    |         ^^^^^^^^^^^^^^^^ private field
- 9 |         target_binding_family: String::from("direct_entity_identity"),
+ 6 |         target_binding_family: String::from("direct_entity_identity"),
    |         ^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         current_posture_status: WorthQueryBridgeBackedVerificationSupportStatus::Admitted,
+ 7 |         current_posture_status: WorthQueryBridgeBackedVerificationSupportStatus::Admitted,
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         scaffold_profile_supported: true,
+ 8 |         scaffold_profile_supported: true,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         primary_bridge_backed_runtime_supported: false,
+ 9 |         primary_bridge_backed_runtime_supported: false,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-13 |         denial_class_when_unsupported: None,
+10 |         denial_class_when_unsupported: None,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-14 |         row_digest: String::new(),
+11 |         row_digest: String::new(),
    |         ^^^^^^^^^^ private field

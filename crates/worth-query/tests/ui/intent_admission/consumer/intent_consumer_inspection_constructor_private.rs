@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryIntentConsumerInspection, WorthQueryIntentConsumerOutcomeClass,
-};
+use worth_query::facade::runtime::{WorthQueryIntentConsumerInspection, WorthQueryIntentConsumerOutcomeClass};
 
 fn main() {
     let _worthd = WorthQueryIntentConsumerInspection {

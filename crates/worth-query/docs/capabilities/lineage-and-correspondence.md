@@ -77,10 +77,10 @@ branch even when correspondence candidates exist.
 ## Small Example
 
 ```rust
-use worth_query::correspondence::{
+use worth_query::facade::foundation::{
     CorrespondenceEvaluationRequest, resolve_correspondence_evidence,
 };
-use worth_query::correspondence::{
+use worth_query::facade::foundation::{
     StructuralCandidateDiscoveryPlan, StructuralCandidateOrderingContract,
 };
 
@@ -103,7 +103,7 @@ just yes-or-no matching. The result carries a specific identity outcome family.
 ## Real Example
 
 ```rust
-use worth_query::identity_evolution::{
+use worth_query::facade::foundation::{
     admit_identity_evolution_query, execute_admitted_identity_evolution_query,
     IdentityEvolutionQueryContext, LineageTraversalDescriptor,
 };

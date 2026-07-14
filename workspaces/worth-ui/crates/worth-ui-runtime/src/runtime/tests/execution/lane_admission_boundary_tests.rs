@@ -1,11 +1,8 @@
-use super::activation_staging_test_support::activation_staging_inputs;
-use super::allocation_planning_test_support::allocation_planning;
+use super::lane_admission_fixture::{admit_lanes, lane_fixture, spoofed_query_lane_fixture};
 use crate::runtime::{
-    WorthUiAllocationPlanning, WorthUiComponentLoweringHook, WorthUiExecutionLane,
-    WorthUiExecutionLaneSupport, WorthUiLaneAdapterHook, WorthUiLaneAdapterHookKind,
-    WorthUiLaneAdmission, WorthUiLaneAdmissionDenialReason, WorthUiLaneCostRegime,
-    WorthUiLaneFailureMode, WorthUiPlanNodeInputFamily, WorthUiPlanTopologyDenialReason,
-    WorthUiRuntimeHandleAllocation, WorthUiRuntimeHost, WorthUiUnsupportedHookDenialReason,
+    WorthUiExecutionLane, WorthUiExecutionLaneSupport, WorthUiLaneAdapterHook,
+    WorthUiLaneAdapterHookKind, WorthUiLaneAdmissionDenialReason, WorthUiLaneCostRegime,
+    WorthUiLaneFailureMode, WorthUiPlanTopologyDenialReason, WorthUiUnsupportedHookDenialReason,
 };
 
 #[test]
@@ -43,7 +40,10 @@ fn unsupported_lane_reference_rejected_before_plan_activation() {
         WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound);
 
     let denial = runtime
-        .admit_execution_lanes(&planning, &support_without_query)
+        .admit_execution_lanes(
+            &runtime.detached_allocation_receipt_for_test(&planning),
+            &support_without_query,
+        )
         .expect_err("unsupported lane denies before topology activation");
 
     assert_eq!(
@@ -68,7 +68,11 @@ fn unsupported_lane_reference_rejected_before_plan_activation() {
         &WorthUiExecutionLaneSupport::platform_default(),
     );
     let plan = runtime
-        .assemble_execution_plan_topology_with_lane_admission(&planning, &allocation, &admission)
+        .assemble_execution_plan_topology_with_lane_admission(
+            &runtime.detached_allocation_receipt_for_test(&planning),
+            &allocation,
+            &admission,
+        )
         .expect("admitted lanes allow topology activation");
     assert_eq!(
         plan.topology().traversal_order().len(),
@@ -82,7 +86,7 @@ fn query_lane_node_without_query_owned_support_link_denies() {
 
     let denial = runtime
         .admit_execution_lanes(
-            &broken_planning,
+            &runtime.detached_allocation_receipt_for_test(&broken_planning),
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect_err("query-shaped node without Query support link denies");
@@ -100,11 +104,14 @@ fn query_lane_node_without_query_owned_support_link_denies() {
 fn topology_convenience_path_requires_lane_admission() {
     let (runtime, _broken_input, broken_planning) = spoofed_query_lane_fixture();
     let allocation = runtime
-        .allocate_runtime_handles(&broken_planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&broken_planning))
         .expect("handle allocation still sees typed plan families");
 
     let denial = runtime
-        .assemble_execution_plan_topology(&broken_planning, &allocation)
+        .assemble_execution_plan_topology(
+            &runtime.detached_allocation_receipt_for_test(&broken_planning),
+            &allocation,
+        )
         .expect_err("public topology assembly cannot bypass lane admission");
 
     assert_eq!(
@@ -347,57 +354,4 @@ fn query_bound_lane_support_links_are_preserved_not_reauthored() {
         query_inputs.len()
     );
     assert_eq!(admission.counters().query_posture_reauthoring_count(), 0);
-}
-
-fn lane_fixture() -> (
-    crate::runtime::WorthUiRuntimeHost,
-    crate::runtime::WorthUiExecutionPlanInput,
-    WorthUiAllocationPlanning,
-    WorthUiRuntimeHandleAllocation,
-) {
-    let inputs = activation_staging_inputs();
-    let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(pending)
-        .expect("plan input prepares");
-    let planning = allocation_planning(&runtime, &plan_input, "lane-admission.fixture");
-    let allocation = runtime
-        .allocate_runtime_handles(&planning)
-        .expect("handles allocate");
-    (runtime, plan_input, planning, allocation)
-}
-
-fn plan_input_with_spoofed_query_lane_identity(
-    runtime: &WorthUiRuntimeHost,
-    pending: crate::runtime::WorthUiPendingActivation,
-) -> crate::runtime::WorthUiExecutionPlanInput {
-    let hook = WorthUiComponentLoweringHook::registered(
-        "component.local.spoofed_query_lane",
-        WorthUiPlanNodeInputFamily::QueryViewBinding,
-    );
-    runtime
-        .prepare_execution_plan_input_with_component_hooks_for_test(pending, &[hook])
-        .expect("spoofed query-lane input prepares before lane admission")
-}
-
-fn spoofed_query_lane_fixture() -> (
-    crate::runtime::WorthUiRuntimeHost,
-    crate::runtime::WorthUiExecutionPlanInput,
-    WorthUiAllocationPlanning,
-) {
-    let inputs = activation_staging_inputs();
-    let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = plan_input_with_spoofed_query_lane_identity(&runtime, pending);
-    let planning = allocation_planning(&runtime, &plan_input, "lane-admission.spoofed-query");
-    (runtime, plan_input, planning)
-}
-
-fn admit_lanes(
-    runtime: &WorthUiRuntimeHost,
-    planning: &WorthUiAllocationPlanning,
-    support: &WorthUiExecutionLaneSupport,
-) -> WorthUiLaneAdmission {
-    runtime
-        .admit_execution_lanes(planning, support)
-        .expect("lane admission succeeds")
 }

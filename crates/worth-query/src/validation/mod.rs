@@ -20,7 +20,7 @@ pub use counters::QueryValidationCounters;
 pub use errors::{QueryValidationError, ValidationFailureClass};
 #[cfg(test)]
 pub(crate) use failure::ValidationFailureArtifact;
-pub use pipeline::validate_canonical_bundle;
+pub(crate) use pipeline::validate_canonical_bundle;
 #[cfg(test)]
 pub(crate) use pipeline::validate_canonical_bundle_with_failure_artifact;
 pub use report::{

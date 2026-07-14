@@ -1,4 +1,4 @@
-use worth_query::facade::{lower_authority_scoped_effect_plan, RawEffectIntent};
+use worth_query::facade::foundation::{lower_authority_scoped_effect_plan, RawEffectIntent};
 
 fn raw_effect_intent() -> RawEffectIntent {
     unimplemented!()

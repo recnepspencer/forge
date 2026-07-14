@@ -1,3 +1,4 @@
+use worth_relational::facade::history::BranchId;
 use worth_relational::facade::runtime::RelationalRuntime;
 use worth_runtime_bridge::facade::RuntimeBridge;
 
@@ -11,7 +12,7 @@ use crate::session_label::WorthQuerySessionLabel;
 use crate::subscription::SubscriptionActivationInput;
 
 use crate::runtime::{
-    WorthQueryBackendAdmissibleMutation, WorthQueryEffectPolicy,
+    WorthQueryBackendAdmissibleMutation, WorthQueryBackendMergeAuthority, WorthQueryEffectPolicy,
     WorthQueryExistingTruthAssertionDenial, WorthQueryExistingTruthBindingDenial,
     WorthQueryExistingTruthProbe, WorthQueryExistingTruthProbeDenial,
     WorthQueryExistingTruthTargetBinding, WorthQueryIntentDeclaration, WorthQueryIntentExecution,
@@ -94,6 +95,10 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
     ) -> Result<WorthQueryLiveViewHandle, WorthQueryWorkspaceError> {
         self.source_adapter
             .declare_live_view(name, request, schema_view)
+    }
+
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        self.source_adapter.close_live_view(name)
     }
 
     fn admit_live_view_declaration(
@@ -238,6 +243,87 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
             )
             .map_err(WorthQueryRuntimeError::Workspace)?;
         Ok(execution)
+    }
+
+    fn admit_query_writeback_authority(&self) -> Result<(), WorthQueryWorkspaceError> {
+        if self.runtime_bridge.writeback_authority().is_some() {
+            Ok(())
+        } else {
+            Err(WorthQueryWorkspaceError::new(
+                "bridge-backed runtime has no configured truth writeback authority",
+            ))
+        }
+    }
+
+    fn execute_query_writeback(
+        &mut self,
+        declaration: &crate::workflow::QueryWritebackDeclaration,
+    ) -> Result<
+        worth_runtime_bridge::facade::BridgeAdmittedWritebackExecution,
+        (crate::effect_lifecycle::EffectExecutionDenialKind, String),
+    > {
+        crate::effect_lifecycle::execute_lowered_writeback(&self.runtime_bridge, declaration)
+    }
+
+    fn capture_query_merge_authority(
+        &self,
+        target_branch: BranchId,
+        source_branch: BranchId,
+    ) -> Result<WorthQueryBackendMergeAuthority, WorthQueryWorkspaceError> {
+        let runtime = self.relational_runtime.as_ref().ok_or_else(|| {
+            WorthQueryWorkspaceError::new(
+                "bridge-backed runtime has no configured relational merge authority",
+            )
+        })?;
+        WorthQueryBackendMergeAuthority::capture(runtime, target_branch, source_branch)
+    }
+
+    fn validate_query_merge_authority(
+        &self,
+        authority: &WorthQueryBackendMergeAuthority,
+    ) -> Result<(), WorthQueryWorkspaceError> {
+        let runtime = self.relational_runtime.as_ref().ok_or_else(|| {
+            WorthQueryWorkspaceError::new(
+                "bridge-backed runtime has no configured relational merge authority",
+            )
+        })?;
+        authority.validate_against(runtime)
+    }
+
+    fn execute_query_merge(
+        &mut self,
+        authority: &WorthQueryBackendMergeAuthority,
+        declaration: &crate::workflow::LoweredMergeWorkflowDeclaration,
+    ) -> Result<
+        worth_relational::facade::transactions::MergeExecutionOutcome,
+        (crate::effect_lifecycle::EffectExecutionDenialKind, String),
+    > {
+        let runtime = self.relational_runtime.as_mut().ok_or_else(|| {
+            (
+                crate::effect_lifecycle::EffectExecutionDenialKind::MissingRelationalAuthority,
+                "bridge-backed runtime has no configured relational merge authority".to_string(),
+            )
+        })?;
+        if declaration.merge_request().target_branch() != authority.target_branch()
+            || declaration.merge_request().source_branch() != authority.source_branch()
+        {
+            return Err((
+                crate::effect_lifecycle::EffectExecutionDenialKind::AuthorityOverrideRejected,
+                "lowered merge request does not match the captured branch authority".to_string(),
+            ));
+        }
+        crate::effect_lifecycle::execute_lowered_merge(runtime, declaration)
+    }
+
+    fn execute_query_causal_inspection(
+        &self,
+        plan: &crate::runtime::CausalInspectionPlan,
+    ) -> Result<
+        crate::runtime::QueryCausalInspectionArtifact,
+        crate::runtime::WorthQueryBackendInspectionError,
+    > {
+        plan.materialize_with_bridge(&self.runtime_bridge)
+            .map_err(Into::into)
     }
 
     fn live_entities_for_target(

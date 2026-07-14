@@ -29,6 +29,7 @@ impl QuerySubscriptionBasisBindingRequestKind {
 pub struct QuerySubscriptionBasisBindingRequest {
     request_kind: QuerySubscriptionBasisBindingRequestKind,
     source_declaration_identity: WorthQueryEvidenceIdentity,
+    scoped_declaration_basis_digest: String,
     evidence_identity: WorthQueryEvidenceIdentity,
 }
 
@@ -52,14 +53,21 @@ impl QuerySubscriptionBasisBindingRequest {
             }
         };
         let source_declaration_identity = declaration.declaration_identity().clone();
+        let scoped_declaration_basis_digest = declaration
+            .scoped_declaration_basis()
+            .expect("bridge lowering rejects declarations without scoped basis proof")
+            .scoped_basis_digest()
+            .to_string();
         let evidence_identity = basis_binding_request_identity(
             &request_kind,
             &source_declaration_identity,
             declaration.equivalence_identity(),
+            &scoped_declaration_basis_digest,
         );
         Self {
             request_kind,
             source_declaration_identity,
+            scoped_declaration_basis_digest,
             evidence_identity,
         }
     }
@@ -70,6 +78,10 @@ impl QuerySubscriptionBasisBindingRequest {
 
     pub fn source_declaration_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.source_declaration_identity
+    }
+
+    pub fn scoped_declaration_basis_digest(&self) -> &str {
+        &self.scoped_declaration_basis_digest
     }
 
     pub fn evidence_identity(&self) -> &WorthQueryEvidenceIdentity {

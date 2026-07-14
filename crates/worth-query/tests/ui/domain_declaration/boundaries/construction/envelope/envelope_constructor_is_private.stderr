@@ -1,7 +1,7 @@
 error[E0624]: associated function `from_issued` is private
-  --> tests/ui/domain_declaration/boundaries/construction/envelope/envelope_constructor_is_private.rs:57:84
+  --> tests/ui/domain_declaration/boundaries/construction/envelope/envelope_constructor_is_private.rs:48:84
    |
-57 |       let _ = WorthQueryDeclarationEnvelope::<GeometryDomain, SplitEdgeDeclaration>::from_issued(
+48 |       let _ = WorthQueryDeclarationEnvelope::<GeometryDomain, SplitEdgeDeclaration>::from_issued(
    |                                                                                      ^^^^^^^^^^^ private associated function
    |
   ::: src/application/declaration_envelope/artifact.rs
@@ -14,9 +14,9 @@ error[E0624]: associated function `from_issued` is private
    | |_____________- private associated function defined here
 
 error[E0624]: associated function `new` is private
-  --> tests/ui/domain_declaration/boundaries/construction/envelope/envelope_constructor_is_private.rs:60:51
+  --> tests/ui/domain_declaration/boundaries/construction/envelope/envelope_constructor_is_private.rs:51:51
    |
-60 |           WorthQueryDeclarationEnvelopeExplanation::new(
+51 |           WorthQueryDeclarationEnvelopeExplanation::new(
    |                                                     ^^^ private associated function
    |
   ::: src/application/declaration_envelope/explain.rs

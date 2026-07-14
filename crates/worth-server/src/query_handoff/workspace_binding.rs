@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryWorkspace;
+use worth_query::facade::runtime::WorthQueryWorkspace;
 
 use crate::{
     WorthServerDirectDeclarationSourceKind, WorthServerQueryHandoffOperation,

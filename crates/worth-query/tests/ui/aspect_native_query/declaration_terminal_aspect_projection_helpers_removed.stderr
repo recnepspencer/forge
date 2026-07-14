@@ -1,47 +1,47 @@
 error[E0599]: no method named `terminal_present_projections` found for reference `&WorthQueryDeclarationAspectPublication` in the current scope
- --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:9:25
+ --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:7:25
   |
-9 |     let _ = publication.terminal_present_projections();
+7 |     let _ = publication.terminal_present_projections();
   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDeclarationAspectPublication`
 
 error[E0599]: no method named `terminal_widened_projections` found for reference `&WorthQueryDeclarationAspectPublication` in the current scope
-  --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:10:25
-   |
-10 |     let _ = publication.terminal_widened_projections();
-   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDeclarationAspectPublication`
+ --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:8:25
+  |
+8 |     let _ = publication.terminal_widened_projections();
+  |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDeclarationAspectPublication`
 
 error[E0599]: no method named `terminal_elided_projections` found for reference `&WorthQueryDeclarationAspectPublication` in the current scope
-  --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:11:25
-   |
-11 |     let _ = publication.terminal_elided_projections();
-   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDeclarationAspectPublication`
+ --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:9:25
+  |
+9 |     let _ = publication.terminal_elided_projections();
+  |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDeclarationAspectPublication`
 
 error[E0599]: no method named `terminal_masked_projections` found for reference `&WorthQueryDeclarationAspectPublication` in the current scope
-  --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:12:25
+  --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:10:25
    |
-12 |     let _ = publication.terminal_masked_projections();
+10 |     let _ = publication.terminal_masked_projections();
    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryDeclarationAspectPublication`
 
 error[E0599]: no method named `terminal_present_any_projections` found for reference `&WorthQueryGroupedAspectParticipationSummary` in the current scope
-  --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:14:21
+  --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:12:21
    |
-14 |     let _ = grouped.terminal_present_any_projections();
+12 |     let _ = grouped.terminal_present_any_projections();
    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryGroupedAspectParticipationSummary`
 
 error[E0599]: no method named `terminal_present_all_projections` found for reference `&WorthQueryGroupedAspectParticipationSummary` in the current scope
-  --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:15:21
+  --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:13:21
    |
-15 |     let _ = grouped.terminal_present_all_projections();
+13 |     let _ = grouped.terminal_present_all_projections();
    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryGroupedAspectParticipationSummary`
 
 error[E0599]: no method named `terminal_masked_any_projections` found for reference `&WorthQueryGroupedAspectParticipationSummary` in the current scope
-  --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:16:21
+  --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:14:21
    |
-16 |     let _ = grouped.terminal_masked_any_projections();
+14 |     let _ = grouped.terminal_masked_any_projections();
    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryGroupedAspectParticipationSummary`
 
 error[E0599]: no method named `terminal_conflicting_any_projections` found for reference `&WorthQueryGroupedAspectParticipationSummary` in the current scope
-  --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:17:21
+  --> tests/ui/aspect_native_query/declaration_terminal_aspect_projection_helpers_removed.rs:15:21
    |
-17 |     let _ = grouped.terminal_conflicting_any_projections();
+15 |     let _ = grouped.terminal_conflicting_any_projections();
    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryGroupedAspectParticipationSummary`

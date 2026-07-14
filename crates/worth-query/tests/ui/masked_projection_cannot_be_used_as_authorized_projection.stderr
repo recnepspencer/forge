@@ -6,7 +6,7 @@ error[E0308]: mismatched types
   |     |
   |     arguments to this function are incorrect
   |
-  = note: expected reference `&worth_query::facade::AuthorizedProjectionArtifact`
+  = note: expected reference `&worth_query::facade::foundation::AuthorizedProjectionArtifact`
              found reference `&MaskedProjectionArtifact`
 note: function defined here
  --> tests/ui/masked_projection_cannot_be_used_as_authorized_projection.rs:3:4

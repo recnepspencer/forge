@@ -1,13 +1,13 @@
 error[E0308]: mismatched types
- --> tests/ui/causal_evidence_reference_index_record_constructor_private.rs:9:27
+ --> tests/ui/causal_evidence_reference_index_record_constructor_private.rs:7:27
   |
-9 |         reference_digest: "bridge-route-reference".to_string(),
+7 |         reference_digest: "bridge-route-reference".to_string(),
   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `CausalEvidenceReferenceDigest`, found `String`
 
-error[E0560]: struct `worth_query::facade::CausalEvidenceReferenceIndexRecord` has no field named `record_digest`
-  --> tests/ui/causal_evidence_reference_index_record_constructor_private.rs:10:9
-   |
-10 |         record_digest: "record-digest".to_string(),
-   |         ^^^^^^^^^^^^^ `worth_query::facade::CausalEvidenceReferenceIndexRecord` does not have this field
-   |
-   = note: all struct fields are already assigned
+error[E0560]: struct `worth_query::facade::runtime::CausalEvidenceReferenceIndexRecord` has no field named `record_digest`
+ --> tests/ui/causal_evidence_reference_index_record_constructor_private.rs:8:9
+  |
+8 |         record_digest: "record-digest".to_string(),
+  |         ^^^^^^^^^^^^^ `worth_query::facade::runtime::CausalEvidenceReferenceIndexRecord` does not have this field
+  |
+  = note: all struct fields are already assigned

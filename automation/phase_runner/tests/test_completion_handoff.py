@@ -101,6 +101,7 @@ def minimal_config_with_completion_handoff() -> dict:
             "plan": str((RUNNER_DIR / "templates" / "plan.md").resolve()),
             "implement": str((RUNNER_DIR / "templates" / "implement.md").resolve()),
             "review": str((RUNNER_DIR / "templates" / "review_test_hardening.md").resolve()),
+            "repair_plan": str((RUNNER_DIR / "templates" / "plan.md").resolve()),
             "repair": str((RUNNER_DIR / "templates" / "repair.md").resolve()),
             "test_review": str((RUNNER_DIR / "templates" / "test_review.md").resolve()),
             "test_repair_plan": str((RUNNER_DIR / "templates" / "test_repair_plan.md").resolve()),

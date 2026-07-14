@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryAdmissionContributionPayload, WorthQueryEligibleDomainCapabilityContribution,
-};
+use worth_query::facade::runtime::{WorthQueryAdmissionContributionPayload, WorthQueryEligibleDomainCapabilityContribution};
 
 fn main() {
     let _ = WorthQueryEligibleDomainCapabilityContribution::<

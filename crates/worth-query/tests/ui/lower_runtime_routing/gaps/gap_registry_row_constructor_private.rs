@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryLowerRuntimeAuthorityOwner, WorthQueryLowerRuntimeGapRegistryRow,
-    WorthQueryLowerRuntimeSeamKey,
-};
+use worth_query::facade::runtime::{WorthQueryLowerRuntimeAuthorityOwner, WorthQueryLowerRuntimeGapRegistryRow, WorthQueryLowerRuntimeSeamKey};
 
 fn main() {
     let _ = WorthQueryLowerRuntimeGapRegistryRow::new(

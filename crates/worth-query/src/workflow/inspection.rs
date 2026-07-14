@@ -4,10 +4,10 @@ use crate::evidence_identity::WorthQueryEvidenceIdentity;
 mod identities;
 mod operations;
 pub use operations::{
-    build_workflow_replay_bundle, inspect_merge_conflicts, inspect_post_merge_outcome,
-    shape_merge_authority_outcome, shape_mutation_authority_outcome,
+    build_workflow_replay_bundle, shape_merge_authority_outcome, shape_mutation_authority_outcome,
     shape_writeback_authority_outcome,
 };
+pub(crate) use operations::{inspect_merge_conflicts, inspect_post_merge_outcome};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum WorkflowStalenessOutcome {

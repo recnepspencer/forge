@@ -1,4 +1,4 @@
-use worth_query::facade::CorrespondenceHistoricalEnvelope;
+use worth_query::facade::foundation::CorrespondenceHistoricalEnvelope;
 
 fn main() {
     let _: fn(&CorrespondenceHistoricalEnvelope) -> &[String] =

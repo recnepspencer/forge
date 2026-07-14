@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    BasisLifecycleProofShapeAuditRow, BasisLifecycleProofShapeEnforcement,
-    BasisLifecycleProofShapeViolation,
-};
+use worth_query::facade::certification::{BasisLifecycleProofShapeAuditRow, BasisLifecycleProofShapeEnforcement, BasisLifecycleProofShapeViolation};
 
 fn main() {
     let _row = BasisLifecycleProofShapeAuditRow {

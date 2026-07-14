@@ -1,12 +1,12 @@
+use worth_query::facade::foundation::{
+    AspectFieldSelector, AuthoredResultShapeField, RelationName, TraversalSelector,
+};
 use worth_query::facade::runtime::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
     WorthQueryGraphReadAdmittedSchemaFieldKind, WorthQueryGraphReadFanoutPosture,
     WorthQueryGraphReadPolicyTenantPosture, WorthQueryGraphReadRelationshipProofBindingPosture,
     WorthQueryGraphReadResolvedOperationFamily, WorthQueryGraphReadResolvedOperationKind,
     WorthQueryGraphReadRootPosture, WorthQueryGraphReadTraversalOperator, WorthQueryReadScopeClass,
-};
-use worth_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, RelationName, TraversalSelector,
 };
 
 mod support;
@@ -346,22 +346,22 @@ fn manager_schema() -> QuerySchemaView {
         "graph-read-access-manager",
         [
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("identity")
+                worth_query::facade::foundation::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("id")
+                worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("profile")
+                worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("display_name")
+                worth_query::facade::foundation::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
         ],
         [SchemaRelationView::new(
-            worth_query::facade::RelationName::new("manager")
+            worth_query::facade::foundation::RelationName::new("manager")
                 .expect("schema relation literal must be valid"),
             2,
         )],
@@ -373,28 +373,28 @@ fn frontier_schema() -> QuerySchemaView {
         "graph-read-access-frontier",
         [
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("identity")
+                worth_query::facade::foundation::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("id")
+                worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("profile")
+                worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("display_name")
+                worth_query::facade::foundation::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
         ],
         [
             SchemaRelationView::new(
-                worth_query::facade::RelationName::new("manager")
+                worth_query::facade::foundation::RelationName::new("manager")
                     .expect("schema relation literal must be valid"),
                 2,
             ),
             SchemaRelationView::new(
-                worth_query::facade::RelationName::new("mentor")
+                worth_query::facade::foundation::RelationName::new("mentor")
                     .expect("schema relation literal must be valid"),
                 2,
             ),
@@ -407,36 +407,36 @@ fn wide_schema() -> QuerySchemaView {
         "graph-read-access-wide",
         [
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("identity")
+                worth_query::facade::foundation::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("id")
+                worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("profile")
+                worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("display_name")
+                worth_query::facade::foundation::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("profile")
+                worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("title")
+                worth_query::facade::foundation::FieldName::new("title")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("profile")
+                worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("department")
+                worth_query::facade::foundation::FieldName::new("department")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
         ],
         [SchemaRelationView::new(
-            worth_query::facade::RelationName::new("manager")
+            worth_query::facade::foundation::RelationName::new("manager")
                 .expect("schema relation literal must be valid"),
             2,
         )],

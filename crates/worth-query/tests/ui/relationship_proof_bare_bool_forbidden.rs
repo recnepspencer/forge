@@ -1,4 +1,4 @@
-use worth_query::facade::{RelationshipProofBudget, RelationshipProofDescriptorSet};
+use worth_query::facade::policy::{RelationshipProofBudget, RelationshipProofDescriptorSet};
 
 fn main() {
     let _proofs = RelationshipProofDescriptorSet::new(

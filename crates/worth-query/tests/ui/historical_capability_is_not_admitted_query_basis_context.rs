@@ -1,6 +1,5 @@
-use worth_query::facade::{
-    execute_query_basis_context, HistoricalCapabilityDescriptor, HistoricalPathReuseDescriptor,
-};
+use worth_query::facade::foundation::{HistoricalCapabilityDescriptor, HistoricalPathReuseDescriptor};
+use worth_query::facade::policy::execute_query_basis_context;
 
 fn main() {
     let capability = HistoricalCapabilityDescriptor::retained_snapshot(

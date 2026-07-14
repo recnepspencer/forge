@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    BasisAuthorityPosture, BasisFamily, BasisLifecyclePosture, BasisScopePosture,
-    BasisVisibilityPosture, NormalizedBasisIntent,
-};
+use worth_query::facade::foundation::{BasisAuthorityPosture, BasisFamily, BasisLifecyclePosture, BasisScopePosture, BasisVisibilityPosture};
+use worth_query::facade::NormalizedBasisIntent;
 
 fn main() {
     let _ = NormalizedBasisIntent {

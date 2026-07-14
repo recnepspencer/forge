@@ -208,7 +208,7 @@ The common lane preserves the same structure. It still lowers through:
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryDeclarationSignalCompatibilityChecked,
     WorthQueryDeclarationSignalCompatibilityInput,
 };

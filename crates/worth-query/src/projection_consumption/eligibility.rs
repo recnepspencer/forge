@@ -43,6 +43,15 @@ pub struct ProjectionConsumptionWarnings {
 }
 
 impl ProjectionConsumptionWarnings {
+    pub(crate) fn for_certification(kind: ProjectionConsumptionWarningKind) -> Self {
+        let warning_kinds = vec![kind];
+        let warning_digest = compose_eligibility_warning_kinds_digest(&warning_kinds);
+        Self {
+            warning_kinds,
+            warning_digest,
+        }
+    }
+
     pub fn warning_kinds(&self) -> &[ProjectionConsumptionWarningKind] {
         &self.warning_kinds
     }

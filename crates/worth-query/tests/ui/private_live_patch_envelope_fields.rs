@@ -1,4 +1,4 @@
-use worth_query::facade::LivePatchEnvelope;
+use worth_query::facade::foundation::LivePatchEnvelope;
 
 fn main() {
     let _ = LivePatchEnvelope {

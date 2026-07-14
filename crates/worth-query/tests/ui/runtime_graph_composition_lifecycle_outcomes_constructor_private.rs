@@ -1,8 +1,4 @@
-use worth_query::facade::{
-    WorthQueryGraphCompositionLifecycleOutcomeEntry,
-    WorthQueryGraphCompositionLifecycleOutcomeKind,
-    WorthQueryGraphCompositionLifecycleOutcomes,
-};
+use worth_query::facade::runtime::{WorthQueryGraphCompositionLifecycleOutcomeEntry, WorthQueryGraphCompositionLifecycleOutcomeKind, WorthQueryGraphCompositionLifecycleOutcomes};
 
 fn main() {
     let _ = WorthQueryGraphCompositionLifecycleOutcomes {

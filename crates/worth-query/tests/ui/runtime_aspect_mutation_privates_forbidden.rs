@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryAdmittedAspectValue;
+use worth_query::facade::runtime::WorthQueryAdmittedAspectValue;
 
 fn main() {
     let _aspect = WorthQueryAdmittedAspectValue {

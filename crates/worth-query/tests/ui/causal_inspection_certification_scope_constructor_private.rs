@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    CausalInspectionCertificationScope, CausalInspectionPerformanceCertificationBundle,
-};
+use worth_query::facade::certification::{CausalInspectionCertificationScope, CausalInspectionPerformanceCertificationBundle};
 
 fn worth_scope(performance_certification: CausalInspectionPerformanceCertificationBundle) {
     let _ = CausalInspectionCertificationScope {

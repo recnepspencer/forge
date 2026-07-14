@@ -1,4 +1,4 @@
-use worth_query::facade::{lower_authority_scoped_effect_plan, NormalizedEffectIntent};
+use worth_query::facade::foundation::{lower_authority_scoped_effect_plan, NormalizedEffectIntent};
 
 fn normalized_effect_intent() -> NormalizedEffectIntent {
     unimplemented!()

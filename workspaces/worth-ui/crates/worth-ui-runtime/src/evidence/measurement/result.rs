@@ -27,6 +27,7 @@ pub enum UiMeasurementValue {
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiMeasurementResult {
     request_identity: UiMeasurementRequestIdentity,
+    request_shape_digest: u64,
     evidence_category: UiMeasurementEvidenceCategory,
     evidence_generation: UiEvidenceAuthorityGeneration,
     unit_posture: UiMeasurementUnitPosture,
@@ -34,6 +35,10 @@ pub struct UiMeasurementResult {
     rounding_posture: UiMeasurementRoundingPosture,
     assumption_profile: UiHostMeasurementAssumptionProfile,
     value: UiMeasurementValue,
+    portal_anchor_target_identity: Option<worth_ui_host_contract::UiPortalAnchorTargetIdentity>,
+    host_source_identity: u64,
+    host_source_generation: u64,
+    host_source_order: u64,
 }
 
 #[derive(Debug, PartialEq)]
@@ -63,6 +68,7 @@ impl UiMeasurementValue {
 impl UiMeasurementResult {
     pub(crate) fn new_from_host_lane(
         request_identity: UiMeasurementRequestIdentity,
+        request_shape_digest: u64,
         evidence_category: UiMeasurementEvidenceCategory,
         evidence_generation: UiEvidenceAuthorityGeneration,
         unit_posture: UiMeasurementUnitPosture,
@@ -70,9 +76,11 @@ impl UiMeasurementResult {
         rounding_posture: UiMeasurementRoundingPosture,
         assumption_profile: UiHostMeasurementAssumptionProfile,
         value: UiMeasurementValue,
+        portal_anchor_target_identity: Option<worth_ui_host_contract::UiPortalAnchorTargetIdentity>,
     ) -> Self {
         Self {
             request_identity,
+            request_shape_digest,
             evidence_category,
             evidence_generation,
             unit_posture,
@@ -80,11 +88,38 @@ impl UiMeasurementResult {
             rounding_posture,
             assumption_profile,
             value,
+            portal_anchor_target_identity,
+            host_source_identity: 0,
+            host_source_generation: 0,
+            host_source_order: 0,
         }
+    }
+
+    pub(crate) fn seal_host_source_position(
+        &mut self,
+        source_identity: u64,
+        source_generation: u64,
+        source_order: u64,
+    ) {
+        self.host_source_identity = source_identity;
+        self.host_source_generation = source_generation;
+        self.host_source_order = source_order;
+    }
+
+    pub(crate) fn host_source_position(&self) -> (u64, u64, u64) {
+        (
+            self.host_source_identity,
+            self.host_source_generation,
+            self.host_source_order,
+        )
     }
 
     pub(crate) fn request_identity(&self) -> UiMeasurementRequestIdentity {
         self.request_identity
+    }
+
+    pub(crate) fn request_shape_digest(&self) -> u64 {
+        self.request_shape_digest
     }
 
     pub(crate) fn evidence_category(&self) -> UiMeasurementEvidenceCategory {
@@ -113,6 +148,16 @@ impl UiMeasurementResult {
 
     pub(crate) fn value(&self) -> &UiMeasurementValue {
         &self.value
+    }
+
+    pub(crate) fn authority_witness(&self) -> super::UiHostMeasurementAuthorityWitness {
+        super::UiHostMeasurementAuthorityWitness::seal(self)
+    }
+
+    pub(crate) fn portal_anchor_target_identity(
+        &self,
+    ) -> Option<worth_ui_host_contract::UiPortalAnchorTargetIdentity> {
+        self.portal_anchor_target_identity
     }
 }
 
@@ -151,5 +196,9 @@ impl<'a> UiCurrentMeasurementResult<'a> {
 
     pub fn value(&self) -> &UiMeasurementValue {
         self.result.value()
+    }
+
+    pub(crate) fn to_owned_result(&self) -> UiMeasurementResult {
+        self.result.clone()
     }
 }

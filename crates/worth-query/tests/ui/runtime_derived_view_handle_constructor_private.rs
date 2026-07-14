@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryAuthorityLane, WorthQueryDerivedViewHandle, WorthQueryNativeRow,
-};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryDerivedViewHandle, WorthQueryNativeRow};
 
 fn main() {
     let _worthd = WorthQueryDerivedViewHandle::<WorthQueryNativeRow> {

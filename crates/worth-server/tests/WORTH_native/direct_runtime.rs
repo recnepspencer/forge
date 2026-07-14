@@ -1,5 +1,5 @@
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryAuthorityLane, WorthQueryInspection, WorthQueryRuntimeFacadeFamily,
     WorthQueryRuntimeFamilySupport, WorthQueryRuntimeStateKind, WorthQueryRuntimeSupportProfile,
 };

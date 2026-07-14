@@ -2,6 +2,26 @@ use super::super::super::*;
 use super::materialization::support::*;
 
 #[test]
+fn cross_basis_pairing_denies_before_anchor_or_envelope_assembly() {
+    let receipt = receipt_with_evidence(
+        CausalObservationOutcome::Changed,
+        &[(CausalEvidenceFamily::QueryInspection, "cross-basis")],
+    );
+    let foreign_basis = crate::basis_lifecycle::basis_lifecycle()
+        .branch_head("foreign-branch", true)
+        .inspect()
+        .unwrap();
+
+    let error = CausalInspection::for_observation(receipt, foreign_basis)
+        .why_changed()
+        .plan()
+        .unwrap_err();
+
+    assert_eq!(error.kind(), CausalInspectionPlanErrorKind::BasisMismatch);
+    assert!(matches!(error, CausalInspectionPlanError::BasisMismatch(_)));
+}
+
+#[test]
 fn reason_outcome_matrix_denies_every_mismatched_pair() {
     let rows = [
         (
@@ -64,7 +84,7 @@ fn common_path_missing_evidence_matrix_fails_before_admission() {
         CausalEvidenceFamily::SignalEvaluation,
         CausalEvidenceFamily::SignalReplayCursor,
     ] {
-        let error = CausalInspection::for_observation(receipt_with_evidence(
+        let error = CausalInspection::for_test_observation(receipt_with_evidence(
             CausalObservationOutcome::Changed,
             &[(CausalEvidenceFamily::QueryInspection, "query-inspection")],
         ))
@@ -88,7 +108,7 @@ fn future_explanation_families_deny_without_bridge_assembly() {
         CausalInspection::store_backed_replay,
     ] {
         let plan = family_builder(
-            CausalInspection::for_observation(receipt_with_evidence(
+            CausalInspection::for_test_observation(receipt_with_evidence(
                 CausalObservationOutcome::Changed,
                 &[(CausalEvidenceFamily::QueryInspection, "query-inspection")],
             ))
@@ -159,7 +179,7 @@ fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
                     ),
                 ],
             );
-            let plan = CausalInspection::for_observation(receipt)
+            let plan = CausalInspection::for_test_observation(receipt)
                 .why_changed()
                 .reference_only()
                 .redaction(redaction_policy)

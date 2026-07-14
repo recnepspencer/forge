@@ -1,3 +1,4 @@
+use crate::basis_lifecycle::ScopedSubscriptionDeclarationBasis;
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::identity_authority::{
     project_query_subscription_evidence, QueryProjectionIdentity, QuerySubscriptionIdentityKind,
@@ -31,6 +32,7 @@ pub struct BridgeSubscriptionLoweringPlan {
     slice_map: QueryToBridgeSliceMap,
     future_selection: QuerySubscriptionFutureSelection,
     basis_request: QuerySubscriptionBasisBindingRequest,
+    scoped_declaration_basis: ScopedSubscriptionDeclarationBasis,
     signal_strategy_request: QuerySubscriptionSignalStrategyRequest,
     lowering_budget: QuerySubscriptionBridgeLoweringBudget,
     counters: QuerySubscriptionDeclarationCounters,
@@ -71,6 +73,10 @@ impl BridgeSubscriptionLoweringPlan {
 
     pub fn basis_request(&self) -> &QuerySubscriptionBasisBindingRequest {
         &self.basis_request
+    }
+
+    pub fn scoped_declaration_basis(&self) -> &ScopedSubscriptionDeclarationBasis {
+        &self.scoped_declaration_basis
     }
 
     pub fn signal_strategy_request(&self) -> &QuerySubscriptionSignalStrategyRequest {
@@ -145,6 +151,21 @@ pub fn lower_query_subscription_to_bridge(
         ));
     }
 
+    let scoped_declaration_basis =
+        declaration
+            .scoped_declaration_basis()
+            .cloned()
+            .ok_or_else(|| {
+                counters.basis_binding_denial_count = 1;
+                QuerySubscriptionBridgeLoweringError::new(
+                    QuerySubscriptionBridgeLoweringDenialKind::BasisBindingUnsupported,
+                    "subscription lowering requires Query-minted scoped declaration basis proof",
+                    QuerySubscriptionDiagnosticStage::BasisBinding,
+                    source_identity,
+                    counters.clone(),
+                )
+            })?;
+
     if exceeds_lowering_budget(&slice_map, &lowering_budget) {
         counters.work_budget_denial_count = 1;
         return Err(QuerySubscriptionBridgeLoweringError::new(
@@ -180,6 +201,7 @@ pub fn lower_query_subscription_to_bridge(
         slice_map,
         future_selection: declaration.future_selection().clone(),
         basis_request,
+        scoped_declaration_basis,
         signal_strategy_request,
         lowering_budget,
         counters,

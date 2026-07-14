@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryLowerRuntimeBoundaryBoundContributionTarget, WorthQueryLowerRuntimeSupportDraft,
-};
+use worth_query::facade::runtime::{WorthQueryLowerRuntimeBoundaryBoundContributionTarget, WorthQueryLowerRuntimeSupportDraft};
 
 fn main() {
     let _ = WorthQueryLowerRuntimeSupportDraft {

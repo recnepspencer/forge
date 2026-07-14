@@ -1,3 +1,20 @@
+error[E0432]: unresolved imports `worth_query::facade::AdmittedQueryBasisContext`, `worth_query::facade::QueryBasisContextRequest`
+ --> tests/ui/admitted_query_basis_context_family_override_forbidden.rs:1:27
+  |
+1 | use worth_query::facade::{AdmittedQueryBasisContext, QueryBasisContextRequest};
+  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^ no `QueryBasisContextRequest` in `facade`
+  |                           |
+  |                           no `AdmittedQueryBasisContext` in `facade`
+  |
+note: found an item that was configured out
+ --> src/facade.rs
+  |
+  | #[cfg(test)]
+  |       ---- the item is gated here
+...
+  |     QueryBasisContextRequest,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
 warning: unreachable statement
  --> tests/ui/admitted_query_basis_context_family_override_forbidden.rs:5:5
   |
@@ -7,9 +24,3 @@ warning: unreachable statement
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
-
-error[E0616]: field `binding` of struct `AdmittedQueryBasisContext` is private
- --> tests/ui/admitted_query_basis_context_family_override_forbidden.rs:5:13
-  |
-5 |     context.binding.request = QueryBasisContextRequest::current_branch_head();
-  |             ^^^^^^^ private field

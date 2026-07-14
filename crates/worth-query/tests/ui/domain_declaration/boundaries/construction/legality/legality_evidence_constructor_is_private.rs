@@ -1,11 +1,5 @@
 use worth_foundational::facade::evaluate_boundary_surface_disposition_legality;
-use worth_query::facade::{
-    WorthQueryAdmittedWorldBasis, WorthQueryCapabilityFamily, WorthQueryDeclarationCanonicalEntry,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationLegalityContract, WorthQueryDeclarationLegalityEvidence,
-    WorthQueryDomainEntryMarker, WorthQueryNeighborhoodCapableGrouping,
-    WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
-};
+use worth_query::facade::foundation::{WorthQueryAdmittedWorldBasis, WorthQueryCapabilityFamily, WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract, WorthQueryDeclarationLegalityEvidence, WorthQueryDomainEntryMarker, WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct GeometryDomain;
@@ -39,7 +33,7 @@ impl WorthQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
 
     fn canonical_declaration_entries(
         &self,
-    ) -> Vec<worth_query::facade::WorthQueryDeclarationCanonicalEntry> {
+    ) -> Vec<worth_query::facade::foundation::WorthQueryDeclarationCanonicalEntry> {
         vec![WorthQueryDeclarationCanonicalEntry::text("edge_ref", "edge:42")]
     }
 }

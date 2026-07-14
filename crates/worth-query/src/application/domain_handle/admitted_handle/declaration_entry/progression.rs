@@ -102,7 +102,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         worth_query_checked_declaration_progression(recipe)
     }
 
-    pub fn declare_review_and_progress<I>(
+    pub(crate) fn declare_review_and_progress<I>(
         &self,
         input: I,
     ) -> Result<

@@ -184,7 +184,7 @@ currently bindable.
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryDeclarationCapabilityStatus, WorthQueryDeclaredFamilyChecked,
 };
 
@@ -225,7 +225,7 @@ match handle.declare_checked(AttachMaterialForActiveFaceSelection) {
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationCanonicalEntry,
     WorthQueryDeclarationCapabilityStatus, WorthQueryDeclarationCapabilityVerb,

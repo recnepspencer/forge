@@ -5,7 +5,7 @@ use crate::planning::{ParallelAdmissionRoute, SerialFallbackRoute};
 
 use super::{ExecutionCounters, ExecutionError, ExecutionReport, ExecutionResultEnvelope};
 
-pub fn execute_preflight_bundle(
+pub(crate) fn execute_preflight_bundle(
     preflight: &ExecutionPreflightBundle,
 ) -> Result<ExecutionResultEnvelope, ExecutionError> {
     let collection = preflight.plan().collection();
@@ -28,6 +28,14 @@ pub fn execute_preflight_bundle(
             )
         })
         .unwrap_or(false);
+    let collection_result_family = collection
+        .map(|collection| {
+            collection
+                .post_read_shaping()
+                .result_family()
+                .digest_label()
+        })
+        .unwrap_or("detail");
     let is_display_label_derived =
         collection
             .map(|collection| {
@@ -45,20 +53,6 @@ pub fn execute_preflight_bundle(
                     preflight.plan().query().plan_digest().as_str(),
                     preflight.basis().proof().digest().as_str(),
                     index
-                )
-            } else if is_count_rollup {
-                format!(
-                    "aggregate:count_rows:{}:{}:{}",
-                    preflight.plan().query().plan_digest().as_str(),
-                    preflight.basis().proof().digest().as_str(),
-                    preflight
-                        .plan()
-                        .collection()
-                        .expect("count rollup collection should exist")
-                        .post_read_shaping()
-                        .aggregate_shape()
-                        .input_breadth()
-                        .value()
                 )
             } else if is_display_label_derived {
                 format!(
@@ -93,11 +87,7 @@ pub fn execute_preflight_bundle(
             )))
             .chain(std::iter::once(format!(
                 "collection_result_family:{}",
-                if is_cdc_collection {
-                    "cdc_collection"
-                } else {
-                    "ordinary_collection"
-                }
+                collection_result_family
             )))
             .chain(std::iter::once(format!(
                 "aggregate_family:{}",
@@ -122,14 +112,14 @@ pub fn execute_preflight_bundle(
 }
 
 #[cfg(test)]
-pub fn execute_parallel_admission_route(
+pub(crate) fn execute_parallel_admission_route(
     route: &ParallelAdmissionRoute,
 ) -> Result<ExecutionResultEnvelope, ExecutionError> {
     execute_preflight_bundle(route.preflight())
 }
 
 #[cfg(test)]
-pub fn execute_serial_fallback_route(
+pub(crate) fn execute_serial_fallback_route(
     route: &SerialFallbackRoute,
 ) -> Result<ExecutionResultEnvelope, ExecutionError> {
     execute_preflight_bundle(route.preflight())

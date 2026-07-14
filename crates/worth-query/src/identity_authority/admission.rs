@@ -2,16 +2,11 @@ use worth_foundational::facade::admit_foundational_authority_identity;
 
 use crate::WorthQueryEvidenceIdentity;
 
-use super::authority::{
-    query_causal_inspection_authority, query_feeder_authority, query_subscription_authority,
-};
+use super::authority::{query_causal_inspection_authority, query_subscription_authority};
 use super::categories::{
-    QueryCausalInspectionAuthorityIdentity, QueryFeederAuthorityIdentity,
-    QuerySubscriptionAuthorityIdentity,
+    QueryCausalInspectionAuthorityIdentity, QuerySubscriptionAuthorityIdentity,
 };
-use super::kinds::{
-    QueryCausalInspectionIdentityKind, QueryFeederIdentityKind, QuerySubscriptionIdentityKind,
-};
+use super::kinds::{QueryCausalInspectionIdentityKind, QuerySubscriptionIdentityKind};
 
 pub(crate) fn admit_query_subscription_authority_identity(
     identity: WorthQueryEvidenceIdentity,
@@ -26,10 +21,4 @@ pub(crate) fn admit_query_causal_inspection_authority_identity(
     QueryCausalInspectionIdentityKind,
 > {
     admit_foundational_authority_identity(identity, query_causal_inspection_authority())
-}
-
-pub(crate) fn admit_query_feeder_authority_identity(
-    identity: WorthQueryEvidenceIdentity,
-) -> QueryFeederAuthorityIdentity<WorthQueryEvidenceIdentity, QueryFeederIdentityKind> {
-    admit_foundational_authority_identity(identity, query_feeder_authority())
 }

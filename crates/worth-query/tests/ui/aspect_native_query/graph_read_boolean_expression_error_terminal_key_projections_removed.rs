@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryBooleanExpressionAdmissionError;
+use worth_query::facade::runtime::WorthQueryBooleanExpressionAdmissionError;
 
 fn main() {
     let error: WorthQueryBooleanExpressionAdmissionError = unreachable!();

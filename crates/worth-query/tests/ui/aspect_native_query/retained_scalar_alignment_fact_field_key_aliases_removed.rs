@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryRetainedScalarAlignmentFact;
+use worth_query::facade::runtime::WorthQueryRetainedScalarAlignmentFact;
 
 fn main() {
     let fact: WorthQueryRetainedScalarAlignmentFact = unreachable!();

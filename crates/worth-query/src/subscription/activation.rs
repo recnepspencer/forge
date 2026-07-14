@@ -1,3 +1,7 @@
+use crate::basis_lifecycle::{
+    activate_subscription_basis, ScopedSubscriptionActivationBasis,
+    ScopedSubscriptionDeclarationBasis,
+};
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::identity_authority::{
     project_query_subscription_evidence, QueryProjectionIdentity, QuerySubscriptionIdentityKind,
@@ -16,6 +20,8 @@ pub struct SubscriptionActivationInput {
     bridge_declaration_identity: WorthQueryEvidenceIdentity,
     future_selection: QuerySubscriptionFutureSelection,
     basis_binding_identity: WorthQueryEvidenceIdentity,
+    scoped_declaration_basis: ScopedSubscriptionDeclarationBasis,
+    scoped_activation_basis: ScopedSubscriptionActivationBasis,
     checkpoint_identity: WorthQueryEvidenceIdentity,
     signal_strategy_identity: WorthQueryEvidenceIdentity,
     counters: QuerySubscriptionDeclarationCounters,
@@ -76,6 +82,14 @@ impl SubscriptionActivationInput {
         &self.basis_binding_identity
     }
 
+    pub fn scoped_declaration_basis(&self) -> &ScopedSubscriptionDeclarationBasis {
+        &self.scoped_declaration_basis
+    }
+
+    pub fn scoped_activation_basis(&self) -> &ScopedSubscriptionActivationBasis {
+        &self.scoped_activation_basis
+    }
+
     pub fn checkpoint_projection(
         &self,
     ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
@@ -122,6 +136,7 @@ pub fn prepare_subscription_activation(
         admission.future_selection().projection_identity(),
         &counters.evidence_identity(),
     );
+    let scoped_activation_basis = activate_subscription_basis(admission.scoped_declaration_basis());
     SubscriptionActivationInput {
         activation_identity,
         admission_identity: admission.evidence_identity().clone(),
@@ -129,6 +144,8 @@ pub fn prepare_subscription_activation(
         bridge_declaration_identity: admission.bridge_declaration_identity().clone(),
         future_selection: admission.future_selection().clone(),
         basis_binding_identity: admission.basis_binding_identity().clone(),
+        scoped_declaration_basis: admission.scoped_declaration_basis().clone(),
+        scoped_activation_basis,
         checkpoint_identity,
         signal_strategy_identity: admission.signal_strategy_identity().clone(),
         counters,

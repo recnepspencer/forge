@@ -4,12 +4,12 @@ use crate::runtime::{
     WorthUiExecutionPlan, WorthUiNodeLifecycleTransition, WorthUiNodeReplacementClassification,
     WorthUiNodeReplacementCounters, WorthUiNodeReplacementPlan, WorthUiPlanExecutionLane,
     WorthUiPlanLanePartition, WorthUiPlanNode, WorthUiPlanNodeInputFamily, WorthUiPlanTopology,
-    WorthUiQueryBindingComparison, WorthUiQueryLiveRebindPlan, WorthUiRuntimeHost,
+    WorthUiQueryBindingComparison, WorthUiQueryLiveRebindPlan, WorthUiRuntime,
     WorthUiRuntimeImpactNarrowing,
 };
 
 pub(super) struct QueryPreservingLaneChangeFixture {
-    pub(super) runtime: WorthUiRuntimeHost,
+    pub(super) runtime: crate::runtime::WorthUiRuntimeFrameworkLoop,
     pub(super) narrowing: WorthUiRuntimeImpactNarrowing,
     pub(super) node_plan: WorthUiNodeReplacementPlan,
     pub(super) query_comparison: WorthUiQueryBindingComparison,
@@ -111,7 +111,7 @@ fn lane_change_plan(plan: &WorthUiNodeReplacementPlan) -> WorthUiNodeReplacement
 }
 
 fn assemble_plan_from_pending_activation(
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     pending: crate::runtime::WorthUiPendingActivation,
 ) -> WorthUiExecutionPlan {
     let plan_input = runtime
@@ -119,10 +119,13 @@ fn assemble_plan_from_pending_activation(
         .expect("plan input prepares");
     let planning = allocation_planning(&runtime, &plan_input, "lane-meaning.active");
     let allocation = runtime
-        .allocate_runtime_handles(&planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect("handles allocate");
     runtime
-        .assemble_execution_plan_topology(&planning, &allocation)
+        .assemble_execution_plan_topology(
+            &runtime.detached_allocation_receipt_for_test(&planning),
+            &allocation,
+        )
         .expect("topology assembles")
 }
 

@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
 use serde_json::Value;
-use worth_query::facade::{
-    admit_authored_entity_token, QueryExternalIdentityToken, RelationalBridgeRecordIdentityParts,
+use worth_query::facade::foundation::{
+    QueryExternalIdentityToken, RelationalBridgeRecordIdentityParts, WorthQueryEntityIdentity,
+};
+use worth_query::facade::runtime::{
     WorthQueryAspectMutationBuilder, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
-    WorthQueryDeleteMutationBuilder, WorthQueryEntityIdentity, WorthQueryWriteCommand,
+    WorthQueryDeleteMutationBuilder, WorthQueryWriteCommand,
 };
 
 use crate::{
@@ -141,7 +143,9 @@ fn admit_compat_entity_identity(entity_identity: &str) -> WorthQueryEntityIdenti
     RelationalBridgeRecordIdentityParts::from_bridge_entity_identity(entity_identity)
         .map(WorthQueryEntityIdentity::from_relational_record)
         .unwrap_or_else(|| {
-            admit_authored_entity_token(QueryExternalIdentityToken::new(Arc::from(entity_identity)))
+            WorthQueryEntityIdentity::admit_authored_entity_token(QueryExternalIdentityToken::new(
+                Arc::from(entity_identity),
+            ))
         })
 }
 

@@ -1,4 +1,4 @@
-use worth_query::facade::PreviewSessionBindingTuple;
+use worth_query::facade::policy::PreviewSessionBindingTuple;
 
 fn main() {
     let _ = PreviewSessionBindingTuple {

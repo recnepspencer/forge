@@ -1,5 +1,5 @@
 use crate::authoring::{AspectName, FieldName};
-use crate::facade::{
+use crate::facade::runtime::{
     validate_canonical_bundle, QueryValidationError, SchemaFieldKind, TypedCollectionQueryBuilder,
     TypedCollectionResultShapeBuilder, TypedDetailQueryBuilder, TypedDetailResultShapeBuilder,
     TypedGuidedAuthoringPath, TypedSchemaField,

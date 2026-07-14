@@ -1,4 +1,4 @@
-use worth_query::facade::IdentityEvolutionExecutionArtifact;
+use worth_query::facade::foundation::IdentityEvolutionExecutionArtifact;
 
 fn main() {
     let _: fn() -> IdentityEvolutionExecutionArtifact = IdentityEvolutionExecutionArtifact::new;

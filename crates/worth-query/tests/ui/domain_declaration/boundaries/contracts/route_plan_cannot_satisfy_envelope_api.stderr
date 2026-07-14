@@ -1,25 +1,25 @@
 error[E0277]: `WorthQueryDeclarationEntryProgressionError<GeometryDomain, SplitEdgeDeclaration>` doesn't implement `Debug`
-  --> tests/ui/domain_declaration/boundaries/contracts/route_plan_cannot_satisfy_envelope_api.rs:76:79
+  --> tests/ui/domain_declaration/boundaries/contracts/route_plan_cannot_satisfy_envelope_api.rs:68:79
    |
-76 |     let progressed = handle.declare_review_and_progress(SplitEdgeDeclaration).unwrap();
+68 |     let progressed = handle.declare_review_and_progress(SplitEdgeDeclaration).unwrap();
    |                                                                               ^^^^^^ the trait `Debug` is not implemented for `WorthQueryDeclarationEntryProgressionError<GeometryDomain, SplitEdgeDeclaration>`
    |
 note: required by a bound in `std::result::Result::<T, E>::unwrap`
   --> $RUST/core/src/result.rs
 
 error[E0277]: `WorthQueryDeclarationRoutePlanTerminalError<GeometryDomain, SplitEdgeDeclaration>` doesn't implement `Debug`
-  --> tests/ui/domain_declaration/boundaries/contracts/route_plan_cannot_satisfy_envelope_api.rs:91:10
+  --> tests/ui/domain_declaration/boundaries/contracts/route_plan_cannot_satisfy_envelope_api.rs:83:10
    |
-91 |         .unwrap();
+83 |         .unwrap();
    |          ^^^^^^ the trait `Debug` is not implemented for `WorthQueryDeclarationRoutePlanTerminalError<GeometryDomain, SplitEdgeDeclaration>`
    |
 note: required by a bound in `std::result::Result::<T, E>::unwrap`
   --> $RUST/core/src/result.rs
 
 error[E0308]: mismatched types
-  --> tests/ui/domain_declaration/boundaries/contracts/route_plan_cannot_satisfy_envelope_api.rs:93:88
+  --> tests/ui/domain_declaration/boundaries/contracts/route_plan_cannot_satisfy_envelope_api.rs:85:88
    |
-93 |     let _ = handle.envelope_routes(WorthQueryDeclarationEnvelopeInput::receipt_checked(route_plan));
+85 |     let _ = handle.envelope_routes(WorthQueryDeclarationEnvelopeInput::receipt_checked(route_plan));
    |                                    --------------------------------------------------- ^^^^^^^^^^ expected `WorthQueryDeclarationReceiptChecked<..., _>`, found `WorthQueryDeclarationRoutePlan<..., ...>`
    |                                    |
    |                                    arguments to this function are incorrect

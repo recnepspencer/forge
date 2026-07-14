@@ -1,6 +1,5 @@
-use worth_query::facade::{
-    lower_view_shape_plan_to_live, CanonicalQueryBundle, ResolvedSnapshotBasis,
-};
+use worth_query::facade::foundation::{CanonicalQueryBundle, ResolvedSnapshotBasis};
+use worth_query::facade::runtime::lower_view_shape_plan_to_live;
 
 fn canonical() -> CanonicalQueryBundle {
     todo!()

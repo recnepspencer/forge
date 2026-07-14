@@ -7,6 +7,32 @@ use super::{
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::session_label::WorthQuerySessionLabel;
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WorthQueryRuntimeBranchComparisonBasis {
+    admission: WorthQueryBranchBasisAdmission,
+    snapshot: WorthQuerySnapshotIdentity,
+}
+
+impl WorthQueryRuntimeBranchComparisonBasis {
+    pub(super) fn new(
+        admission: WorthQueryBranchBasisAdmission,
+        snapshot: WorthQuerySnapshotIdentity,
+    ) -> Self {
+        Self {
+            admission,
+            snapshot,
+        }
+    }
+
+    pub(crate) fn admission(&self) -> &WorthQueryBranchBasisAdmission {
+        &self.admission
+    }
+
+    pub(crate) fn snapshot(&self) -> &WorthQuerySnapshotIdentity {
+        &self.snapshot
+    }
+}
+
 pub struct WorthQueryBranchSession<'a> {
     label: WorthQuerySessionLabel,
     runtime: &'a mut WorthQueryRuntime,

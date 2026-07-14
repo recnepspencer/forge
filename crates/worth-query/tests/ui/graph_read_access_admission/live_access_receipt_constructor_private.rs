@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryLiveGraphReadAccessReceipt, WorthQueryLiveGraphReadMaintenanceCounters,
-};
+use worth_query::facade::runtime::{WorthQueryLiveGraphReadAccessReceipt, WorthQueryLiveGraphReadMaintenanceCounters};
 
 fn main() {
     let _worthd = WorthQueryLiveGraphReadAccessReceipt {

@@ -80,11 +80,11 @@ pub(super) fn validate_conditional_read(
 
 pub(super) fn runtime_error_outcome<T>(
     prepared_request: &WorthServerCompatibilityPreparedRequest,
-    error: worth_query::facade::WorthQueryRuntimeError,
+    error: worth_query::facade::runtime::WorthQueryRuntimeError,
 ) -> WorthServerCompatibilityExecutionOutcome<T> {
     match error {
-        worth_query::facade::WorthQueryRuntimeError::MissingLiveView(_)
-        | worth_query::facade::WorthQueryRuntimeError::MissingLiveSubscription(_) => {
+        worth_query::facade::runtime::WorthQueryRuntimeError::MissingLiveView(_)
+        | worth_query::facade::runtime::WorthQueryRuntimeError::MissingLiveSubscription(_) => {
             TransitionOutcome::Denied(crate::WorthServerQueryHandoffDenial::new(
                 crate::WorthServerQueryHandoffDenialCode::RetainedQueryArtifactUnavailable,
                 prepared_request

@@ -7,8 +7,7 @@ use crate::declarative_live::{
 };
 #[allow(unused_imports)]
 pub use crate::intent_admission::{
-    admit_runtime_intent_request, certify_intent_admission,
-    worth_query_intent_admission_certification_output_manifest,
+    certify_intent_admission, worth_query_intent_admission_certification_output_manifest,
     worth_query_intent_admission_closeout_extension_outputs,
     worth_query_intent_admission_compile_fail_targets,
     worth_query_intent_admission_coverage_inventory,
@@ -230,18 +229,23 @@ mod journal_replay;
 mod live_subscription;
 mod live_subscription_accessors;
 mod live_subscription_delivery_routing;
+mod managed_live_resource;
 mod materialized_fact_posture;
 mod mixed_cause_delivery;
 mod mixed_cause_emission;
 mod mutation;
 mod mutation_surface;
+mod ordinary_inspection_execution;
 mod ordinary_runtime_posture;
+mod ordinary_workflow_authority;
+mod ordinary_workflow_execution;
 mod preview;
 mod public_api;
 mod published_artifacts;
 mod read_composition;
 mod read_composition_builder_shared;
 mod read_composition_builder_walks;
+mod read_composition_current_execution;
 mod read_composition_frontier;
 mod read_composition_frontier_search;
 mod read_composition_hooks;
@@ -251,6 +255,7 @@ mod read_composition_operator_builders;
 mod read_composition_phase_gate;
 mod read_composition_phase_one_closeout;
 mod read_composition_relationship_proof;
+mod read_composition_row_selection;
 mod read_composition_runtime;
 mod read_composition_shared;
 mod read_composition_successor;
@@ -283,7 +288,7 @@ mod runtime_read_obligation_dispatch;
 mod runtime_reads_programs;
 mod runtime_session_lowering;
 
-pub use read_composition_materialization::worth_query_materialized_relation_field_key;
+pub use read_composition_row_selection::worth_query_materialized_relation_field_key;
 mod runtime_sessions;
 mod runtime_unified_inspection_intents;
 mod runtime_write_intents;
@@ -292,7 +297,6 @@ mod shared_read;
 mod shared_read_pins;
 mod state;
 mod state_basis;
-mod state_basis_classification;
 mod state_snapshot;
 mod support;
 mod support_matrix;
@@ -302,6 +306,7 @@ mod workspace;
 mod workspace_contracts;
 mod workspace_declaration;
 mod workspace_graph;
+mod workspace_inspection;
 mod workspace_live_queries;
 mod workspace_mutations;
 mod workspace_queries;
@@ -342,8 +347,10 @@ pub use backend::{
     runtime_subscription_support_evidence_identity, LiveViewDeclarationAdmissionBoundaryReceipt,
     LiveViewDeclarationAdmissionReceipt, SignalInvalidationBoundaryReceipt,
     SignalInvalidationRoutingReceipt, SubscriptionActivationBoundaryReceipt,
-    SubscriptionActivationReceipt, WorthQueryBridgeBackedRuntimeBackend,
-    WorthQueryIntentAuthorityAdapter, WorthQueryRuntimeBackend, WorthQueryRuntimeBackendParts,
+    SubscriptionActivationReceipt, WorthQueryBackendInspectionError,
+    WorthQueryBackendInspectionErrorKind, WorthQueryBackendMergeAuthority,
+    WorthQueryBridgeBackedRuntimeBackend, WorthQueryIntentAuthorityAdapter,
+    WorthQueryRuntimeBackend, WorthQueryRuntimeBackendParts,
     WorthQueryRuntimeDeclarationInitializationAdapter,
     WorthQueryRuntimeExistingTruthVerificationAdapter, WorthQueryRuntimeInspectorEvidenceAdapter,
     WorthQueryRuntimeIntentAuthorityAdapter, WorthQueryRuntimePreviewBasisAdapter,
@@ -353,6 +360,7 @@ pub use backend::{
     WriteAuthorityExecutionReceipt,
 };
 pub use branch::WorthQueryBranchSession;
+pub(crate) use branch::WorthQueryRuntimeBranchComparisonBasis;
 use bridge_mutation_lowering::{bridge_continuity_mutation_bundle, bridge_naming_mutation_bundle};
 pub use builder::WorthQueryRuntimeBuilder;
 use computed::{
@@ -547,14 +555,15 @@ pub(crate) use graph_read_access::{
 pub use handle_contract::{
     WorthQueryHandleContract, WorthQueryHandleContractFamily, WorthQueryHandleContractRow,
 };
+pub(crate) use inspection::request_causal_inspection;
 pub use inspection::{
     admit_causal_inspection, anchor_causal_observation,
     build_causal_inspection_certification_scope, causal_evidence_inventory_rows,
     causal_inspection_target, certify_causal_inspection_runtime_path,
     materialize_admitted_causal_inspection, materialize_advisory_causal_inspection,
-    materialize_denied_causal_inspection, request_causal_inspection,
-    resolve_causal_evidence_references, resolve_indexed_causal_evidence_references,
-    AdmittedCausalInspection, AdmittedQueryCausalInspectionArtifact, AdvisoryCausalInspection,
+    materialize_denied_causal_inspection, resolve_causal_evidence_references,
+    resolve_indexed_causal_evidence_references, AdmittedCausalInspection,
+    AdmittedQueryCausalInspectionArtifact, AdvisoryCausalInspection,
     AdvisoryQueryCausalInspectionArtifact, CausalDecisionTraceIndex, CausalDecisionTraceRow,
     CausalEvidenceFamily, CausalEvidenceInventoryRow, CausalEvidenceOwner, CausalEvidenceReference,
     CausalEvidenceReferenceDigest, CausalEvidenceReferenceIndex, CausalEvidenceReferenceIndexError,
@@ -565,17 +574,17 @@ pub use inspection::{
     CausalInspectionAdmissionDecision, CausalInspectionAdmissionDecisionKind,
     CausalInspectionAdmissionReceipt, CausalInspectionAdmissionSubject,
     CausalInspectionAdvisoryKind, CausalInspectionArtifactDecisionTrace,
-    CausalInspectionArtifactIntegrity, CausalInspectionArtifactKind, CausalInspectionBoundaryAudit,
-    CausalInspectionBoundaryEnvelopeCategory, CausalInspectionCertificationBundle,
-    CausalInspectionCertificationError, CausalInspectionCertificationErrorKind,
-    CausalInspectionCertificationFailureEvidence, CausalInspectionCertificationFailureKind,
-    CausalInspectionCertificationFailureSource, CausalInspectionCertificationLane,
-    CausalInspectionCertificationScope, CausalInspectionEstimatedCost,
-    CausalInspectionExplanationFamily, CausalInspectionMaterializationError,
-    CausalInspectionMaterializationErrorKind, CausalInspectionMaterializationPolicy,
-    CausalInspectionPerformanceCertificationBundle, CausalInspectionPerformanceEnvelope,
-    CausalInspectionPlan, CausalInspectionPlanError, CausalInspectionPlanErrorKind,
-    CausalInspectionPlanExplanation, CausalInspectionProofFlow,
+    CausalInspectionArtifactIntegrity, CausalInspectionArtifactKind, CausalInspectionBasisMismatch,
+    CausalInspectionBoundaryAudit, CausalInspectionBoundaryEnvelopeCategory,
+    CausalInspectionCertificationBundle, CausalInspectionCertificationError,
+    CausalInspectionCertificationErrorKind, CausalInspectionCertificationFailureEvidence,
+    CausalInspectionCertificationFailureKind, CausalInspectionCertificationFailureSource,
+    CausalInspectionCertificationLane, CausalInspectionCertificationScope,
+    CausalInspectionEstimatedCost, CausalInspectionExplanationFamily,
+    CausalInspectionMaterializationError, CausalInspectionMaterializationErrorKind,
+    CausalInspectionMaterializationPolicy, CausalInspectionPerformanceCertificationBundle,
+    CausalInspectionPerformanceEnvelope, CausalInspectionPlan, CausalInspectionPlanError,
+    CausalInspectionPlanErrorKind, CausalInspectionPlanExplanation, CausalInspectionProofFlow,
     CausalInspectionProofShapeCertification, CausalInspectionReason,
     CausalInspectionRedactionPolicy, CausalInspectionRepresentativeEvidence,
     CausalInspectionRepresentativeKind, CausalInspectionRepresentativeMatrix,
@@ -637,6 +646,13 @@ pub use live_subscription::{
     WorthQueryRuntimeLiveSubscriptionInstallation,
 };
 use live_subscription_delivery_routing::route_live_subscription_delivery;
+pub use managed_live_resource::{
+    WorthQueryManagedLiveActivationWork, WorthQueryManagedLiveLifecycleObservation,
+    WorthQueryManagedLiveLifecyclePosture, WorthQueryManagedLiveSubscriptionFamily,
+};
+pub(crate) use managed_live_resource::{
+    WorthQueryManagedLiveRuntimeDelivery, WorthQueryManagedLiveWorkspaceCapability,
+};
 #[allow(unused_imports)]
 pub use mixed_cause_delivery::{
     WorthQueryRuntimeDeliveryCoalescingKind, WorthQueryRuntimeMixedCauseDelivery,
@@ -720,6 +736,18 @@ pub use mutation::{
 pub use mutation_surface::{
     WorthQueryMutationSurfacePosture, WorthQueryMutationSurfaceReport, WorthQueryMutationSurfaceRow,
 };
+pub(crate) use ordinary_workflow_authority::{
+    WorthQueryLowerRuntimeMutationExecution, WorthQueryMergeAuthorityValidationError,
+    WorthQueryOrdinaryAuthorityAdmission, WorthQueryOrdinaryAuthorityDrift,
+    WorthQueryOrdinaryAuthorityFamily, WorthQueryRuntimeAuthorityIdentity,
+    WorthQueryValidatedMergeAuthority,
+};
+pub(crate) use ordinary_workflow_execution::{
+    WorthQueryLowerRuntimeMergeExecution, WorthQueryLowerRuntimePreviewExecution,
+    WorthQueryLowerRuntimeWritebackExecution, WorthQueryOrdinaryMergeExecutionError,
+    WorthQueryOrdinaryMergeFailureStage, WorthQueryOrdinaryWritebackExecutionError,
+    WorthQueryOrdinaryWritebackFailureStage,
+};
 pub use preview::{
     WorthQueryPreviewCloseoutEvidence, WorthQueryPreviewCloseoutKind, WorthQueryPreviewDiff,
     WorthQueryPreviewEffectBindingDisposition, WorthQueryPreviewExecutionEvidence,
@@ -775,7 +803,7 @@ use runtime_helpers::{
 };
 #[allow(unused_imports)]
 pub use shared_read::{
-    WorthQueryPublishedDerivedArtifactHandle, WorthQueryPublishedProjectionConsumption,
+    WorthQueryPublishedDerivedArtifactHandle, WorthQueryPublishedProjectionAuthorityOutcome,
     WorthQueryPublishedProjectionInspection, WorthQuerySharedReadBasisInspection,
     WorthQuerySharedReadContext,
 };
@@ -809,12 +837,13 @@ pub use support::{
 pub use support_matrix::{
     WorthQueryRuntimePublicSupportMatrix, WorthQueryRuntimePublicSupportMatrixRow,
 };
+pub(in crate::runtime) use surface::WorthQueryReadExecutionProduct;
 #[allow(unused_imports)]
 pub use surface::{
     WorthQueryArtifactInspector, WorthQueryBatchMutationEvidence, WorthQueryBatchWriteReceipt,
     WorthQueryBatchWriteRetainedArtifact, WorthQueryContinuityClass,
     WorthQueryContinuityMutationEvidence, WorthQueryContinuityOutcomeClass,
-    WorthQueryContinuityRejectionClass, WorthQueryDerivedArtifactBinding,
+    WorthQueryContinuityRejectionClass, WorthQueryCountResult, WorthQueryDerivedArtifactBinding,
     WorthQueryDerivedInspectionReceipt, WorthQueryDerivedInspectionResult,
     WorthQueryDerivedMaterializationBundle, WorthQueryDerivedMaterializationReceipt,
     WorthQueryDerivedMaterializationResult, WorthQueryDerivedMaterializationTarget,
@@ -861,11 +890,13 @@ pub use workspace_declaration::{
     WorthQueryComputedBuilder, WorthQueryEffectBuilder, WorthQueryLiveViewBuilder,
     WorthQueryWorkspaceLiveViewDeclaration,
 };
+pub use workspace_inspection::WorthQueryWorkspaceInspectionLane;
 pub use workspace_submission::WorthQueryWorkspaceSubmissionLane;
 
 pub struct WorthQueryRuntime {
     backend: Box<dyn WorthQueryRuntimeBackend>,
     evidence_authority: WorthQueryRuntimeEvidenceAuthority,
+    authority_identity: WorthQueryRuntimeAuthorityIdentity,
     preview_session_labels: BTreeSet<WorthQuerySessionLabel>,
     branch_session_labels: BTreeSet<WorthQuerySessionLabel>,
     active_subscriptions: ActiveSubscriptionRuntime,
@@ -884,6 +915,7 @@ pub struct WorthQueryRuntime {
     effect_index: WorthQueryEffectIndex,
     graph_obligation_registration_catalog: WorthQueryGraphObligationRegistrationCatalog,
     graph_obligation_index: WorthQueryGraphObligationIndex,
+    managed_live_resource_capability: std::sync::Arc<WorthQueryManagedLiveWorkspaceCapability>,
     next_run_id: u64,
 }
 

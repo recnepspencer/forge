@@ -32,6 +32,13 @@ fn consumer_residue_registry_covers_all_phase_nine_classes() {
         WorthQueryConsumerResidueClass::DebugDerivedQueryProof,
         WorthQueryConsumerResidueClass::DelimiterJoinedQueryProof,
         WorthQueryConsumerResidueClass::DelimiterFormattedQueryProof,
+        WorthQueryConsumerResidueClass::DecomposedProjectionConsumptionAttempt,
+        WorthQueryConsumerResidueClass::LocalQueryMeasurementConsumptionIdentity,
+        WorthQueryConsumerResidueClass::LocalProjectionContractBinding,
+        WorthQueryConsumerResidueClass::LocalQueryBasisDigestCompatibility,
+        WorthQueryConsumerResidueClass::LegacyProjectionPrerequisiteAssembly,
+        WorthQueryConsumerResidueClass::DirectInternalQueryImport,
+        WorthQueryConsumerResidueClass::LegacyQueryBasisLifecycle,
     ] {
         assert!(
             classes.contains(&required),

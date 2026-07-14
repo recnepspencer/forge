@@ -13,10 +13,11 @@ const ADVANCED_REVIEW_SNIPPET: &str =
 const ADVANCED_EXECUTE_SNIPPET: &str =
     "let admitted = runtime.intent(declaration).review()?.admit()?;";
 const CONSUMER_SNIPPET: &str =
-    "let consumer = receipt.consumer_inspection();\n\nlet outcome = consumer.outcome_class();";
-const BASIS_COMMON_PATH_SNIPPET: &str = "let scoped_basis = worth_query_basis_observation_intent(\n    RawBasisIntent::CurrentHead,\n)?\n.admit()?\n.scope();";
+    "let consumer = receipt.consumer_inspection();\n\nlet outcome = consumer.map(|inspection| inspection.outcome_class());";
+const BASIS_COMMON_PATH_SNIPPET: &str =
+    "let scoped_basis = basis_lifecycle()\n    .current_head()\n    .observe()?;";
 const PROJECTION_COMMON_PATH_SNIPPET: &str =
-    "let contract = worth_query_projection_consumption_intent(declaration)?\n    .admit()?\n    .bind_contract();";
+    "let read_completion = read_declaration\n    .using(read::current())\n    .run(&mut workspace)\n    .into_result()?;\nlet projection = read_completion\n    .consume_projection(read::project_facts().entity_identities());";
 const READ_COMMON_PATH_SNIPPET: &str =
     "let read_result = workspace.read_family_intent(&family).execute()?;";
 const READ_BASIS_COMMON_PATH_SNIPPET: &str =
@@ -37,11 +38,12 @@ const MATERIALIZATION_CONVENIENCE_SNIPPET: &str =
 const INSPECTION_CONVENIENCE_SNIPPET: &str = "let inspection = workspace.inspect(&view)?;";
 const ROUTING_COMMON_PATH_SNIPPET: &str =
     "let probe_result = runtime.probe_existing_intent(request).execute()?;";
-const ROUTING_CONVENIENCE_SNIPPET: &str = "let probe = runtime.probe_existing(request.clone())?;";
+const ROUTING_CONVENIENCE_SNIPPET: &str =
+    "let workspace_probe = workspace.probe_existing_intent(request).execute()?;";
 const BASIS_ADVANCED_PATH_SNIPPET: &str =
-    "let basis_review = worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)?\n    .review()?;";
+    "let scoped_inspection_basis = basis_lifecycle()\n    .current_head()\n    .inspect()?;";
 const PROJECTION_ADVANCED_PATH_SNIPPET: &str =
-    "let projection_review =\n    worth_query_projection_consumption_intent(declaration)?.review()?;";
+    "let (authority, projection_warnings) = projection\n    .into_admitted()\n    .map_err(handle_projection_stop)?;";
 const MUTATION_ADVANCED_PATH_SNIPPET: &str =
     "let write_review = runtime.write_intent(command).review()?;";
 const LIVE_READ_ADVANCED_PATH_SNIPPET: &str =

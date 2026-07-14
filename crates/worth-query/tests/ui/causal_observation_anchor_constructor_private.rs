@@ -1,8 +1,4 @@
-use worth_query::facade::{
-    CausalInspectionReason, CausalObservationAnchor, CausalObservationAnchorCounters,
-    CausalObservationAnchorDigest, CausalObservationMissingReferencePosture,
-    QueryObservationReceipt,
-};
+use worth_query::facade::runtime::{CausalInspectionReason, CausalObservationAnchor, CausalObservationAnchorCounters, CausalObservationAnchorDigest, CausalObservationMissingReferencePosture, QueryObservationReceipt};
 
 fn main() {
     let observation_receipt: QueryObservationReceipt = todo!();

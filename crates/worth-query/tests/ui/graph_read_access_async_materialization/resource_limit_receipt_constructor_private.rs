@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadMaterializationJobState,
-    WorthQueryGraphReadMaterializationResourceLimitReceipt,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadMaterializationJobState, WorthQueryGraphReadMaterializationResourceLimitReceipt};
 
 fn main() {
     let _ = WorthQueryGraphReadMaterializationResourceLimitReceipt {

@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryRetainedScalarFactSet;
+use worth_query::facade::runtime::WorthQueryRetainedScalarFactSet;
 
 fn main() {
     let facts = fact_set_fixture();

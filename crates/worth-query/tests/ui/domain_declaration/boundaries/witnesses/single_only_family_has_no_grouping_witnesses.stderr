@@ -1,10 +1,10 @@
 error[E0599]: the method `neighborhood_capable` exists for struct `WorthQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>`, but its trait bounds were not satisfied
-  --> tests/ui/domain_declaration/boundaries/witnesses/single_only_family_has_no_grouping_witnesses.rs:72:25
+  --> tests/ui/domain_declaration/boundaries/witnesses/single_only_family_has_no_grouping_witnesses.rs:65:25
    |
-37 | struct SplitEdgeFamily;
+30 | struct SplitEdgeFamily;
    | ---------------------- doesn't satisfy `_: WorthQueryDeclarationSupportsNeighborhoodGrouping<GeometryDomain>`
 ...
-72 |     let _ = declaration.neighborhood_capable();
+65 |     let _ = declaration.neighborhood_capable();
    |                         ^^^^^^^^^^^^^^^^^^^^ method cannot be called due to unsatisfied trait bounds
    |
   ::: src/application/declaration_capability/tags.rs

@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryApplicationFacade, WorthQueryCapabilityFamily};
+use worth_query::facade::foundation::{WorthQueryApplicationFacade, WorthQueryCapabilityFamily};
 
 fn main() {
     let facade = WorthQueryApplicationFacade::runtime_backed_default();

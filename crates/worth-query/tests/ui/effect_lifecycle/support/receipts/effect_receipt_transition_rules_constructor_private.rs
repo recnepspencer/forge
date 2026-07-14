@@ -1,8 +1,6 @@
 #![allow(unreachable_code)]
 
-use worth_query::facade::{
-    EffectReceiptArtifactKind, EffectReceiptTransitionRule, EffectReceiptTransitionRules,
-};
+use worth_query::facade::foundation::{EffectReceiptArtifactKind, EffectReceiptTransitionRule, EffectReceiptTransitionRules};
 
 fn main() {
     let _ = EffectReceiptTransitionRules {

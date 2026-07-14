@@ -1,6 +1,6 @@
-use worth_query::facade::{
-    WORTHQueryDeclarationCanonicalEntry, WORTHQueryDeclarationCanonicalEntryKind,
-    WORTHQueryDeclarationCanonicalValue, WORTHQueryDeclarationInput,
+use worth_query::facade::foundation::{
+    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationCanonicalEntryKind,
+    WorthQueryDeclarationCanonicalValue, WorthQueryDeclarationInput,
 };
 
 use super::family_markers::{
@@ -42,82 +42,82 @@ use super::screening_request_types::{
 };
 use crate::query_entry::HadwigerResearchDomainEntry;
 
-fn kind_entry(kind: &'static str) -> WORTHQueryDeclarationCanonicalEntry {
-    WORTHQueryDeclarationCanonicalEntry::text("declaration_kind", kind)
+fn kind_entry(kind: &'static str) -> WorthQueryDeclarationCanonicalEntry {
+    WorthQueryDeclarationCanonicalEntry::text("declaration_kind", kind)
 }
 
-fn unsigned_entry(locus: &'static str, value: u32) -> WORTHQueryDeclarationCanonicalEntry {
-    WORTHQueryDeclarationCanonicalEntry::new(
+fn unsigned_entry(locus: &'static str, value: u32) -> WorthQueryDeclarationCanonicalEntry {
+    WorthQueryDeclarationCanonicalEntry::new(
         locus,
-        WORTHQueryDeclarationCanonicalEntryKind::Field,
-        WORTHQueryDeclarationCanonicalValue::UnsignedInteger(value as u128),
+        WorthQueryDeclarationCanonicalEntryKind::Field,
+        WorthQueryDeclarationCanonicalValue::UnsignedInteger(value as u128),
     )
 }
-impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
+impl WorthQueryDeclarationInput<HadwigerResearchDomainEntry>
     for FractionalChromaticScreeningDeclaration
 {
     type Family = FractionalChromaticScreeningDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WorthQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("fractional_chromatic_screening"),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text(
                 "graph_version_reference",
                 self.graph_version_reference(),
             ),
             unsigned_entry("color_limit", self.color_limit()),
-            WORTHQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
+            WorthQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
         ]
     }
 }
 
-impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for LovaszThetaScreeningDeclaration {
+impl WorthQueryDeclarationInput<HadwigerResearchDomainEntry> for LovaszThetaScreeningDeclaration {
     type Family = LovaszThetaScreeningDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WorthQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("lovasz_theta_screening"),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text(
                 "graph_version_reference",
                 self.graph_version_reference(),
             ),
             unsigned_entry("color_limit", self.color_limit()),
-            WORTHQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
+            WorthQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
         ]
     }
 }
 
-impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
+impl WorthQueryDeclarationInput<HadwigerResearchDomainEntry>
     for AutocorrelationZeroScreeningDeclaration
 {
     type Family = AutocorrelationZeroScreeningDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WorthQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("autocorrelation_zero_screening"),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text(
                 "subject_reference",
                 self.subject_reference(),
             ),
-            WORTHQueryDeclarationCanonicalEntry::text("model_reference", self.model_reference()),
-            WORTHQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
+            WorthQueryDeclarationCanonicalEntry::text("model_reference", self.model_reference()),
+            WorthQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
         ]
     }
 }
 
-impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for DensityCapScreeningDeclaration {
+impl WorthQueryDeclarationInput<HadwigerResearchDomainEntry> for DensityCapScreeningDeclaration {
     type Family = DensityCapScreeningDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WorthQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("density_cap_screening"),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text(
                 "subject_reference",
                 self.subject_reference(),
             ),
-            WORTHQueryDeclarationCanonicalEntry::text("model_reference", self.model_reference()),
-            WORTHQueryDeclarationCanonicalEntry::text("color_id", self.color_id()),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text("model_reference", self.model_reference()),
+            WorthQueryDeclarationCanonicalEntry::text("color_id", self.color_id()),
+            WorthQueryDeclarationCanonicalEntry::text(
                 "retained_cap_reference",
                 self.retained_cap_reference(),
             ),
@@ -125,22 +125,22 @@ impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for DensityCapScree
     }
 }
 
-impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
+impl WorthQueryDeclarationInput<HadwigerResearchDomainEntry>
     for LocalDensityWindowScreeningDeclaration
 {
     type Family = LocalDensityWindowScreeningDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WorthQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("local_density_window_screening"),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text(
                 "subject_reference",
                 self.subject_reference(),
             ),
-            WORTHQueryDeclarationCanonicalEntry::text("model_reference", self.model_reference()),
-            WORTHQueryDeclarationCanonicalEntry::text("window_reference", self.window_reference()),
-            WORTHQueryDeclarationCanonicalEntry::text("color_id", self.color_id()),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text("model_reference", self.model_reference()),
+            WorthQueryDeclarationCanonicalEntry::text("window_reference", self.window_reference()),
+            WorthQueryDeclarationCanonicalEntry::text("color_id", self.color_id()),
+            WorthQueryDeclarationCanonicalEntry::text(
                 "retained_bound_reference",
                 self.retained_bound_reference(),
             ),
@@ -150,17 +150,17 @@ impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
 
 macro_rules! subject_certificate_screening_input {
     ($type:ty, $family:ty, $kind:literal) => {
-        impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for $type {
+        impl WorthQueryDeclarationInput<HadwigerResearchDomainEntry> for $type {
             type Family = $family;
 
-            fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
+            fn canonical_declaration_entries(&self) -> Vec<WorthQueryDeclarationCanonicalEntry> {
                 vec![
                     kind_entry($kind),
-                    WORTHQueryDeclarationCanonicalEntry::text(
+                    WorthQueryDeclarationCanonicalEntry::text(
                         "subject_reference",
                         self.subject_reference(),
                     ),
-                    WORTHQueryDeclarationCanonicalEntry::text(
+                    WorthQueryDeclarationCanonicalEntry::text(
                         "certificate_reference",
                         self.certificate_reference(),
                     ),
@@ -256,19 +256,19 @@ subject_certificate_screening_input!(
     "finite_patch_boundary_extension_screening"
 );
 
-impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
+impl WorthQueryDeclarationInput<HadwigerResearchDomainEntry>
     for MinkowskiDifferenceScreeningDeclaration
 {
     type Family = MinkowskiDifferenceScreeningDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WorthQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("minkowski_difference_screening"),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text(
                 "subject_reference",
                 self.subject_reference(),
             ),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text(
                 "certificate_reference",
                 self.certificate_reference(),
             ),
@@ -276,19 +276,19 @@ impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
     }
 }
 
-impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
+impl WorthQueryDeclarationInput<HadwigerResearchDomainEntry>
     for ForbiddenDisplacementScreeningDeclaration
 {
     type Family = ForbiddenDisplacementScreeningDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WorthQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("forbidden_displacement_screening"),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text(
                 "subject_reference",
                 self.subject_reference(),
             ),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text(
                 "certificate_reference",
                 self.certificate_reference(),
             ),
@@ -296,20 +296,20 @@ impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
     }
 }
 
-impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
+impl WorthQueryDeclarationInput<HadwigerResearchDomainEntry>
     for PeriodicQuotientGraphScreeningDeclaration
 {
     type Family = PeriodicQuotientGraphScreeningDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WorthQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("periodic_quotient_graph_screening"),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text(
                 "subject_reference",
                 self.subject_reference(),
             ),
-            WORTHQueryDeclarationCanonicalEntry::text("model_reference", self.model_reference()),
-            WORTHQueryDeclarationCanonicalEntry::text(
+            WorthQueryDeclarationCanonicalEntry::text("model_reference", self.model_reference()),
+            WorthQueryDeclarationCanonicalEntry::text(
                 "certificate_reference",
                 self.certificate_reference(),
             ),

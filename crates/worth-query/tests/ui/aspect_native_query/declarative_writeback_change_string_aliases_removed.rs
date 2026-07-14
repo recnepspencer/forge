@@ -1,4 +1,4 @@
-use worth_query::facade::{AspectFieldKey, DeclarativeWritebackChange, DeclarativeWritebackValue};
+use worth_query::facade::foundation::{AspectFieldKey, DeclarativeWritebackChange, DeclarativeWritebackValue};
 
 fn main() {
     let change = DeclarativeWritebackChange::new(

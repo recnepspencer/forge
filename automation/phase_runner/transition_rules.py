@@ -16,6 +16,7 @@ STANDARD_TURN_OUTCOME_EVENTS = {
     "plan": {"plan_posted"},
     "implement": {"implementation_completed"},
     "review": {"review_failed", "review_passed"},
+    "repair_plan": {"repair_plan_posted"},
     "repair": {"repair_completed"},
     "test_review": {"test_review_failed", "test_review_passed"},
     "test_repair_plan": {"test_repair_plan_posted"},
@@ -45,6 +46,12 @@ def validate_projected_transition(projection: dict[str, Any], event: dict[str, A
             f"{event_type} targets phase {phase_id!r} while current phase is {current.get('phase')!r}"
         )
     if current.get("turn") != turn:
+        if (
+            current.get("turn") == "repair_plan"
+            and turn == "repair"
+            and event_type == "repair_completed"
+        ):
+            return
         raise ValueError(
             f"{event_type} targets turn {turn!r} while current turn is {current.get('turn')!r}"
         )
@@ -105,6 +112,10 @@ def apply_phase_progress(
     if event_type == "review_failed":
         phase["status"] = "regressed"
         phase["qa_status"] = "failed"
+        next_turn = "repair_plan" if repair_plan_applies(config, event) else "repair"
+        projection["current"] = {"phase": phase_id, "turn": next_turn}
+        return
+    if event_type == "repair_plan_posted":
         projection["current"] = {"phase": phase_id, "turn": "repair"}
         return
     if event_type == "review_passed":
@@ -149,6 +160,16 @@ def apply_phase_progress(
 def merge_notes(target: dict[str, list[str]], incoming: dict[str, list[str]]) -> None:
     for bucket, entries in incoming.items():
         target[bucket] = entries
+
+
+def repair_plan_applies(config: dict[str, Any], event: dict[str, Any]) -> bool:
+    runner_control = config.get("runner_control", {})
+    if not isinstance(runner_control, dict):
+        return "repair_plan" in config.get("turn_templates", {})
+    start_sequence = runner_control.get("repair_plan_start_sequence")
+    if isinstance(start_sequence, int) and start_sequence >= 0:
+        return event["sequence"] >= start_sequence
+    return "repair_plan" in config.get("turn_templates", {})
 
 
 def phase_by_id(projection: dict[str, Any], phase_id: int) -> dict[str, Any]:

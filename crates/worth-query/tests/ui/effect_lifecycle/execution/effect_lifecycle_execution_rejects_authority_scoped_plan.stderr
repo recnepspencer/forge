@@ -1,9 +1,9 @@
 error[E0308]: mismatched types
-  --> tests/ui/effect_lifecycle/execution/effect_lifecycle_execution_rejects_authority_scoped_plan.rs:13:9
+  --> tests/ui/effect_lifecycle/execution/effect_lifecycle_execution_rejects_authority_scoped_plan.rs:11:9
    |
-12 |     let _ = execute_lowered_effect_plan(
+10 |     let _ = execute_lowered_effect_plan(
    |             --------------------------- arguments to this function are incorrect
-13 |         authority_scoped_plan(),
+11 |         authority_scoped_plan(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^ expected `LoweredEffectExecutionPlan`, found `AuthorityScopedEffectPlan`
    |
 note: function defined here

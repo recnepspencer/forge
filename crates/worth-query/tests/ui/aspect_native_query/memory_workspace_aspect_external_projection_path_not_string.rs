@@ -1,5 +1,6 @@
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{WorthQueryAspect, WorthQueryAspectTouch};
+use worth_query::facade::foundation::WorthQueryAspect;
+use worth_query::facade::runtime::WorthQueryAspectTouch;
 
 fn main() {
     let aspect = WorthQueryAspect::new(

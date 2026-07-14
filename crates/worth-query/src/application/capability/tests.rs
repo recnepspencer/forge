@@ -5,14 +5,13 @@ use crate::application::{
     WorthQuerySignalConfig,
 };
 use crate::harness::fixtures::{execution_preflights, preview_bridge::active_preview_artifacts};
-use crate::historical::{
-    HistoricalCapabilityDescriptor, HistoricalEvaluationRequest, HistoricalPathReuseDescriptor,
-};
 use crate::preview::{PreviewEvaluationClass, PreviewSessionQueryContext};
 use crate::workflow::{
     WorkflowAuthorityTargetFamily, WorkflowBindingSource, WorkflowBudgetClass, WorkflowCostClass,
     WorkflowDeclarationFamily, WorkflowDeclarationRequest, WorkflowFreshnessPolicy,
 };
+
+mod historical;
 
 #[test]
 fn facade_support_matrix_stays_in_sync_with_capability_admission() {
@@ -357,34 +356,6 @@ fn invalid_store_config_rejects_before_facade_construction() {
         error.failure_class(),
         ConfigurationAdmissionFailureClass::ContradictorySectionPosture
     );
-}
-
-#[test]
-fn historical_capability_admits_runtime_retained_snapshot_request() {
-    let facade = WorthQueryApplicationFacade::runtime_backed_default();
-    let historical = facade
-        .historical_query_capability()
-        .expect("runtime-backed facade should admit historical evaluation");
-    let request = HistoricalEvaluationRequest::retained_snapshot(
-        "basis:historical-facade",
-        1,
-        1,
-        HistoricalPathReuseDescriptor::retained_reuse(),
-    );
-    let capability = HistoricalCapabilityDescriptor::retained_snapshot(
-        "basis:historical-facade",
-        HistoricalPathReuseDescriptor::retained_reuse(),
-    );
-    let admission = historical
-        .capability()
-        .admit_path(request, capability)
-        .expect("historical capability should admit a retained snapshot request");
-
-    assert_eq!(
-        admission.requested_path().basis_identity(),
-        "basis:historical-facade"
-    );
-    assert_eq!(historical.counters().capability_lookup_count(), 1);
 }
 
 #[test]

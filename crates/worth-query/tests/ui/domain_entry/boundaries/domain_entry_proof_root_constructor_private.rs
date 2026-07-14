@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker,
-    WorthQueryDomainEntryProofRoot,
-};
+use worth_query::facade::foundation::{WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker, WorthQueryDomainEntryProofRoot};
 use std::marker::PhantomData;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

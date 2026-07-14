@@ -24,10 +24,50 @@ use verify_construct::{construct_constraint_set, verify_unique_edge_authority};
 
 /// Orchestration: admits a constraint set only after authority collection, special-input
 /// classification, edge admission, and unique-edge verification.
+#[cfg(test)]
 pub(super) fn admit_constraint_set(
     measurement_basis: &UiMeasurementBasis,
     neighborhood: &UiAllocationNeighborhood,
 ) -> Result<UiAllocationConstraintSet, UiConstraintPropagationDenial> {
+    Ok(
+        admit_constraint_basis_inner(measurement_basis, neighborhood, None)?
+            .constraint_set()
+            .clone(),
+    )
+}
+
+pub(super) fn admit_constraint_basis(
+    measurement_basis: &UiMeasurementBasis,
+    neighborhood: &UiAllocationNeighborhood,
+) -> Result<crate::graph::UiAdmittedAllocationConstraintBasis, UiConstraintPropagationDenial> {
+    admit_constraint_basis_inner(measurement_basis, neighborhood, None)
+}
+pub(super) fn admit_constraint_basis_with_portal(
+    measurement_basis: &UiMeasurementBasis,
+    neighborhood: &UiAllocationNeighborhood,
+    portal: &crate::runtime::UiPortalAllocationPlanningBasis,
+) -> Result<crate::graph::UiAdmittedAllocationConstraintBasis, UiConstraintPropagationDenial> {
+    admit_constraint_basis_inner(measurement_basis, neighborhood, Some(portal))
+}
+
+#[cfg(test)]
+pub(super) fn admit_constraint_set_with_portal(
+    measurement_basis: &UiMeasurementBasis,
+    neighborhood: &UiAllocationNeighborhood,
+    portal: &crate::runtime::UiPortalAllocationPlanningBasis,
+) -> Result<UiAllocationConstraintSet, UiConstraintPropagationDenial> {
+    Ok(
+        admit_constraint_basis_inner(measurement_basis, neighborhood, Some(portal))?
+            .constraint_set()
+            .clone(),
+    )
+}
+
+fn admit_constraint_basis_inner(
+    measurement_basis: &UiMeasurementBasis,
+    neighborhood: &UiAllocationNeighborhood,
+    portal: Option<&crate::runtime::UiPortalAllocationPlanningBasis>,
+) -> Result<crate::graph::UiAdmittedAllocationConstraintBasis, UiConstraintPropagationDenial> {
     let context = collect_constraint_authority_context(measurement_basis, neighborhood);
     let required_special_families = classify_special_input_requirements(&context);
     let observed_special_families = special_input_families_from_basis(measurement_basis);
@@ -37,13 +77,14 @@ pub(super) fn admit_constraint_set(
         &context,
         &required_special_families,
         &observed_special_families,
+        portal,
     )?;
     verify_unique_edge_authority(
         &mut parts.edges,
         context.neighborhood_identity_digest,
         context.contract_identity_digest,
     )?;
-    construct_constraint_set(
+    let constraint_set = construct_constraint_set(
         context.neighborhood_identity_digest,
         context.contract.identity(),
         parts.summary,
@@ -54,5 +95,11 @@ pub(super) fn admit_constraint_set(
         parts.equal_share_distribution,
         parts.bound_reconciliation,
         parts.edges,
-    )
+    )?;
+    Ok(crate::graph::UiAdmittedAllocationConstraintBasis::seal(
+        measurement_basis,
+        neighborhood,
+        constraint_set,
+        parts.scroll_authority,
+    ))
 }

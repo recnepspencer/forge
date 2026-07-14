@@ -1,11 +1,11 @@
 use super::{NativeStreamCommitWindow, StreamHarnessTarget};
+use crate::facade::foundation::StreamConsumerShape;
 use crate::facade::{
     AdmittedConsumerContract, BridgeRouteRequest, CanonicalStreamReplayRecord,
     ChangeStreamDeclaration, ConsumerCheckpointToken, PlannedChangeStreamWindow,
     StreamCheckpointFrontierKind, StreamCoalescingFamily, StreamCoalescingIntent,
-    StreamConsumerShape, StreamDeliveryIntent, StreamDiagnosticsPolicyClass,
-    StreamReplayAuditResult, StreamReplayMode, StreamResumeMode, StreamWindowDeliveryResult,
-    ValidatedStreamProtocol,
+    StreamDeliveryIntent, StreamDiagnosticsPolicyClass, StreamReplayAuditResult, StreamReplayMode,
+    StreamResumeMode, StreamWindowDeliveryResult, ValidatedStreamProtocol,
 };
 use crate::harness::adapter::adapter_impl::BridgeHarnessError;
 

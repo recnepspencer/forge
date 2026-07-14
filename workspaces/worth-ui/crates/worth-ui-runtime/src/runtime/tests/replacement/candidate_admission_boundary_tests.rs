@@ -1,9 +1,16 @@
 use std::{collections::BTreeMap, path::Path};
 
-use worth_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily,
-    QuerySubscriptionSupportPosture, ResultShapeFamily, ViewShapeDescriptor,
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
+use worth_query::facade::foundation::{
+    discover_basis_lifecycle_support,
+    BasisFamily,
+    ResultShapeFamily,
+    WorthQueryApplicationFacade,
+    WorthQueryCapabilityFamily,
+};
+use worth_query::facade::runtime::{
+    QuerySubscriptionFamily,
+    QuerySubscriptionSupportPosture,
+    ViewShapeDescriptor,
 };
 
 use crate::capability::{
@@ -11,7 +18,10 @@ use crate::capability::{
     QueryResultShapeReference, QueryViewCapabilityReference, ViewBindingDescriptor,
     ViewBindingFamily, ViewBindingId,
 };
-use crate::facade::{WorthUi, WorthUiApp};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
 use crate::runtime::admission::{
     WorthUiCandidateAdmission, WorthUiCandidateAdmissionDenial, WorthUiQuerySupportReceipt,
     WorthUiQuerySupportStatus, WorthUiRuntimeReplacementPosture,
@@ -20,7 +30,7 @@ use crate::runtime::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
     WorthUiCandidateArtifactBundle, WorthUiCandidateDependencyMetadata,
     WorthUiCandidateLoweringBasis, WorthUiReplacementCandidate, WorthUiReplacementCause,
-    WorthUiRuntimeHost, WorthUiRuntimeLaunch,
+    WorthUiRuntimeLaunch,
 };
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactDigestor, WorthUiArtifactEquivalenceBasis,
@@ -284,7 +294,10 @@ fn candidate_with_lowering_basis<const N: usize>(
     .expect("test candidate seals")
 }
 
-fn launch_runtime(app: &WorthUiApp, artifact: WorthUiArtifact) -> WorthUiRuntimeHost {
+fn launch_runtime(
+    app: &WorthUiApp,
+    artifact: WorthUiArtifact,
+) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     app.launch_runtime(WorthUiRuntimeLaunch::from_canonical_artifact(artifact))
         .expect("runtime launches from canonical artifact")
 }

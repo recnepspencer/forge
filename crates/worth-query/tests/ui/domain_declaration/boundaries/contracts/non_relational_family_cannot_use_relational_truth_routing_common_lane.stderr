@@ -1,7 +1,7 @@
 error[E0277]: the trait bound `WorthQueryDescriptiveOnlyAuthority: worth_query::application::declaration_capability::tags::WorthQueryRelationalTruthCapableAuthorityTag` is not satisfied
-  --> tests/ui/domain_declaration/boundaries/contracts/non_relational_family_cannot_use_relational_truth_routing_common_lane.rs:79:59
+  --> tests/ui/domain_declaration/boundaries/contracts/non_relational_family_cannot_use_relational_truth_routing_common_lane.rs:72:59
    |
-79 |     let _ = handle.route_relational_truth_from_progressed(progressed);
+72 |     let _ = handle.route_relational_truth_from_progressed(progressed);
    |                    -------------------------------------- ^^^^^^^^^^ unsatisfied trait bound
    |                    |
    |                    required by a bound introduced by this call

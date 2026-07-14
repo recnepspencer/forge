@@ -1,7 +1,7 @@
 warning: the type `WorthQueryLowerRuntimeBoundaryBoundContributionTarget` does not permit zero-initialization
- --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_support_requires_because.rs:8:26
+ --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_support_requires_because.rs:6:26
   |
-8 |         target: unsafe { std::mem::zeroed::<WorthQueryLowerRuntimeBoundaryBoundContributionTarget>() },
+6 |         target: unsafe { std::mem::zeroed::<WorthQueryLowerRuntimeBoundaryBoundContributionTarget>() },
   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |                          |
   |                          this code causes undefined behavior when executed
@@ -12,13 +12,13 @@ warning: the type `WorthQueryLowerRuntimeBoundaryBoundContributionTarget` does n
   = note: `#[warn(invalid_value)]` on by default
 
 error[E0451]: fields `domain`, `target` and `semantic_code` of struct `WorthQueryLowerRuntimeSupportDraft` are private
- --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_support_requires_because.rs:7:9
+ --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_support_requires_because.rs:5:9
   |
-6 |     let _ = WorthQueryLowerRuntimeSupportDraft {
+4 |     let _ = WorthQueryLowerRuntimeSupportDraft {
   |             ---------------------------------- in this type
-7 |         domain: "worth.spatial".to_string(),
+5 |         domain: "worth.spatial".to_string(),
   |         ^^^^^^ private field
-8 |         target: unsafe { std::mem::zeroed::<WorthQueryLowerRuntimeBoundaryBoundContributionTarget>() },
+6 |         target: unsafe { std::mem::zeroed::<WorthQueryLowerRuntimeBoundaryBoundContributionTarget>() },
   |         ^^^^^^ private field
-9 |         semantic_code: "routing.signal_invalidation".to_string(),
+7 |         semantic_code: "routing.signal_invalidation".to_string(),
   |         ^^^^^^^^^^^^^ private field

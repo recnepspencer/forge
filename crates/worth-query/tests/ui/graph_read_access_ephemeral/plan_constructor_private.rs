@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryEphemeralGraphIndexPlan, WorthQueryEphemeralGraphIndexScopeKind,
-};
+use worth_query::facade::runtime::{WorthQueryEphemeralGraphIndexPlan, WorthQueryEphemeralGraphIndexScopeKind};
 
 fn main() {
     let _ = WorthQueryEphemeralGraphIndexPlan {

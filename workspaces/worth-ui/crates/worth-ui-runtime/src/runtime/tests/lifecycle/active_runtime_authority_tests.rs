@@ -1,9 +1,12 @@
 use std::{collections::BTreeMap, path::Path};
 
-use crate::facade::{WorthUi, WorthUiApp};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
 use crate::runtime::{
-    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch, WorthUiRuntimeHost,
-    WorthUiRuntimeLaunch, WorthUiRuntimeLifecycle,
+    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch, WorthUiRuntimeLaunch,
+    WorthUiRuntimeLifecycle,
 };
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactHandle, WorthUiArtifactIdentitySeed,
@@ -88,7 +91,10 @@ fn shutdown_receipt_preserves_final_frame_epoch() {
     assert_eq!(receipt.final_frame_epoch(), frame_epoch);
 }
 
-fn launch_runtime(app: &WorthUiApp, artifact: WorthUiArtifact) -> WorthUiRuntimeHost {
+fn launch_runtime(
+    app: &WorthUiApp,
+    artifact: WorthUiArtifact,
+) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     app.launch_runtime(WorthUiRuntimeLaunch::from_canonical_artifact(artifact))
         .expect("runtime launches from canonical artifact")
 }

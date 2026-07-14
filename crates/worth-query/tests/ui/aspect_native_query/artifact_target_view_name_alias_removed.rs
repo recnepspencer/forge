@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryDerivedMaterializationTarget, WorthQueryLiveArtifactTarget,
-};
+use worth_query::facade::runtime::{WorthQueryDerivedMaterializationTarget, WorthQueryLiveArtifactTarget};
 
 fn main() {
     let derived_target = derived_target_fixture();

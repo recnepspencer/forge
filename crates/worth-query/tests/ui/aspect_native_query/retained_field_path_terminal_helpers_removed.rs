@@ -1,5 +1,5 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::WorthQueryRetainedFieldPath;
+use worth_query::facade::runtime::WorthQueryRetainedFieldPath;
 
 fn main() {
     let _ = WorthQueryRetainedFieldPath::from_authoring_path("title.value");

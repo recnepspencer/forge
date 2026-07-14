@@ -1,11 +1,12 @@
 use std::sync::atomic::Ordering;
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{
-    admit_authored_entity_token, QueryExternalIdentityToken, WorthQueryAspectMutationBuilder,
-    WorthQueryExistingEntityTarget, WorthQueryExistingTruthBindingAuthorityLabel,
-    WorthQueryExistingTruthTargetBinding, WorthQueryMutationAuthorityIdentity,
-    WorthQueryRuntimeBackendPosture, WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport,
-    WorthQueryRuntimeSupportProfile, WorthQueryWriteCommand,
+use worth_query::facade::foundation::{QueryExternalIdentityToken, WorthQueryEntityIdentity};
+use worth_query::facade::runtime::{
+    WorthQueryAspectMutationBuilder, WorthQueryExistingEntityTarget,
+    WorthQueryExistingTruthBindingAuthorityLabel, WorthQueryExistingTruthTargetBinding,
+    WorthQueryMutationAuthorityIdentity, WorthQueryRuntimeBackendPosture,
+    WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport, WorthQueryRuntimeSupportProfile,
+    WorthQueryWriteCommand,
 };
 use worth_server::{
     WorthServerDirectMutationOutcome, WorthServerQueryHandoffDenialCode, WorthServerQueryOperation,
@@ -384,9 +385,9 @@ fn existing_binding(
                     .expect("existing-truth authority label"),
             )
             .expect("existing-truth authority identity"),
-            admit_authored_entity_token(QueryExternalIdentityToken::new(std::sync::Arc::from(
-                resolved_entity_identity,
-            ))),
+            WorthQueryEntityIdentity::admit_authored_entity_token(QueryExternalIdentityToken::new(
+                std::sync::Arc::from(resolved_entity_identity),
+            )),
         )
         .expect("existing entity target should build")
         .in_target_collection("Task")

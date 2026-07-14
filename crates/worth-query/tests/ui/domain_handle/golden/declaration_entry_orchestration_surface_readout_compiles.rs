@@ -1,6 +1,5 @@
-use worth_query::facade::{
-    WorthQueryOrchestrationSurfaceInventory, WorthQueryPublicDocCoverageInventory,
-};
+use worth_query::facade::foundation::WorthQueryOrchestrationSurfaceInventory;
+use worth_query::facade::certification::WorthQueryPublicDocCoverageInventory;
 
 fn main() {
     let coverage = WorthQueryPublicDocCoverageInventory::current();

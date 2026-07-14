@@ -1,4 +1,4 @@
-use worth_query::facade::{SubscriptionContinuationClass, SubscriptionContinuationEvidence};
+use worth_query::facade::runtime::{SubscriptionContinuationClass, SubscriptionContinuationEvidence};
 
 fn main() {
     let _evidence = SubscriptionContinuationEvidence {

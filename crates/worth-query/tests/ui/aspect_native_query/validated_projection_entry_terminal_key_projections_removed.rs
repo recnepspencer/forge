@@ -1,4 +1,4 @@
-use worth_query::facade::ValidatedProjectionEntry;
+use worth_query::facade::runtime::ValidatedProjectionEntry;
 
 fn main() {
     let entry: ValidatedProjectionEntry = unreachable!();

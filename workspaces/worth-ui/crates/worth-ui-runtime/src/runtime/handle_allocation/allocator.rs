@@ -1,7 +1,7 @@
 use super::claim_validation::reject_invalid_specialized_handle_claims;
 use crate::runtime::{
-    WorthUiAllocationPlanning, WorthUiChildRangeHandle, WorthUiCommandHandle,
-    WorthUiComponentHandle, WorthUiHandlePlanGeneration, WorthUiLaneHandle, WorthUiPlanNodeInput,
+    UiAllocationReceipt, WorthUiChildRangeHandle, WorthUiCommandHandle, WorthUiComponentHandle,
+    WorthUiHandlePlanGeneration, WorthUiLaneHandle, WorthUiPlanNodeInput,
     WorthUiPlanNodeInputFamily, WorthUiRuntimeHandle, WorthUiRuntimeHandleAllocation,
     WorthUiRuntimeHandleAllocationBasis, WorthUiRuntimeHandleAllocationCounters,
     WorthUiRuntimeHandleAllocationDenial, WorthUiRuntimeHandleAllocationDenialReason,
@@ -27,19 +27,12 @@ struct HandleAllocationAccumulator {
 
 impl WorthUiRuntimeHandleAllocator {
     pub(crate) fn allocate(
-        allocation_planning: &WorthUiAllocationPlanning,
+        allocation_receipt: &UiAllocationReceipt,
     ) -> Result<WorthUiRuntimeHandleAllocation, WorthUiRuntimeHandleAllocationDenial> {
-        if !allocation_planning.is_admitted() {
-            return Err(denial(
-                WorthUiRuntimeHandleAllocationDenialReason::StalePlanInputReceipt,
-                WorthUiRuntimeHandleAllocationCounters::default(),
-            ));
-        }
-        let node_inputs = allocation_planning
-            .node_inputs()
-            .expect("admitted allocation planning must expose lowered node inputs");
+        let committed_allocation = allocation_receipt.committed_allocation();
+        let node_inputs = committed_allocation.node_inputs();
         let basis =
-            WorthUiRuntimeHandleAllocationBasis::from_allocation_planning(allocation_planning);
+            WorthUiRuntimeHandleAllocationBasis::from_committed_allocation(committed_allocation);
         let receipt = WorthUiRuntimeHandleAllocationReceipt::from_basis(&basis);
         let counters = reject_invalid_specialized_handle_claims(node_inputs)?;
         let mut allocation = HandleAllocationAccumulator::new(receipt.plan_generation(), counters);

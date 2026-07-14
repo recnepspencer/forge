@@ -261,16 +261,16 @@ impl ResearchGraphInvariantCompatibilitySurfaces {
         Self {
             surfaces: vec![
                 ResearchGraphInvariantCompatibilitySurface::new(
-                    "WORTHQueryRuntime::builder().invariant_catalog(...)",
+                    "WorthQueryRuntime::builder().invariant_catalog(...)",
                 ),
                 ResearchGraphInvariantCompatibilitySurface::new(
-                    "WORTHQueryRuntime::builder().custom_invariant(...)",
+                    "WorthQueryRuntime::builder().custom_invariant(...)",
                 ),
                 ResearchGraphInvariantCompatibilitySurface::new(
-                    "WORTHQueryRuntime::builder().register_invariant(...)",
+                    "WorthQueryRuntime::builder().register_invariant(...)",
                 ),
                 ResearchGraphInvariantCompatibilitySurface::new(
-                    "WORTHQueryRuntime::builder().invariant_registration_artifact(...)",
+                    "WorthQueryRuntime::builder().invariant_registration_artifact(...)",
                 ),
             ],
         }

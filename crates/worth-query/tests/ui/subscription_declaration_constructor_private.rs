@@ -1,4 +1,4 @@
-use worth_query::facade::{QuerySubscriptionDeclarationArtifact, QuerySubscriptionFamily};
+use worth_query::facade::runtime::{QuerySubscriptionDeclarationArtifact, QuerySubscriptionFamily};
 
 fn main() {
     let _fabricated = QuerySubscriptionDeclarationArtifact {

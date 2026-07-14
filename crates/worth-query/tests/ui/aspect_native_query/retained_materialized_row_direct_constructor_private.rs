@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{WorthQueryRetainedFieldPath, WorthQueryRetainedMaterializedRow};
+use worth_query::facade::runtime::{WorthQueryRetainedFieldPath, WorthQueryRetainedMaterializedRow};
 
 fn main() {
     let field_path = WorthQueryRetainedFieldPath::from_canonical_field_path(

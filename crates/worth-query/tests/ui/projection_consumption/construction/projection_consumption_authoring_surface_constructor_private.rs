@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    ProjectionConsumptionAuthoringSurface, ProjectionConsumptionDeclarationBuilder,
-};
+use worth_query::facade::{ProjectionConsumptionAuthoringSurface, ProjectionConsumptionDeclarationBuilder};
 
 fn main() {
     let surface = ProjectionConsumptionAuthoringSurface {

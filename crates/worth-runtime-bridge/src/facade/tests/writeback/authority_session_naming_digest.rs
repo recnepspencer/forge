@@ -37,9 +37,9 @@ fn writeback_batch_naming_digest_changes_with_attachment_identity() {
     .with_naming_mutation(
         crate::facade::BridgeNamingMutationBundle::attach_new_target(
             bridge_naming_attachment("persistent-name:left"),
-            bridge_naming_target(crate::facade::RelationalBridgeRecordIdentityParts::entity(
-                1, 3, 0,
-            )),
+            bridge_naming_target(
+                crate::facade::foundation::RelationalBridgeRecordIdentityParts::entity(1, 3, 0),
+            ),
             Some(bridge_naming_collection("Task")),
         ),
     );
@@ -62,9 +62,9 @@ fn writeback_batch_naming_digest_changes_with_attachment_identity() {
     .with_naming_mutation(
         crate::facade::BridgeNamingMutationBundle::attach_new_target(
             bridge_naming_attachment("persistent-name:right"),
-            bridge_naming_target(crate::facade::RelationalBridgeRecordIdentityParts::entity(
-                1, 3, 0,
-            )),
+            bridge_naming_target(
+                crate::facade::foundation::RelationalBridgeRecordIdentityParts::entity(1, 3, 0),
+            ),
             Some(bridge_naming_collection("Task")),
         ),
     );
@@ -90,7 +90,7 @@ fn bridge_naming_attachment(value: &str) -> crate::facade::BridgeNamingAttachmen
 }
 
 fn bridge_naming_target(
-    parts: crate::facade::RelationalBridgeRecordIdentityParts,
+    parts: crate::facade::foundation::RelationalBridgeRecordIdentityParts,
 ) -> crate::facade::BridgeNamingResolvedTargetIdentity {
     crate::facade::BridgeNamingResolvedTargetIdentity::from_relational_record(parts)
 }

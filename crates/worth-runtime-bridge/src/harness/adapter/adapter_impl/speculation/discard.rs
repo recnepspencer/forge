@@ -7,7 +7,7 @@ pub(super) fn execute_discard_certification(
 ) -> Result<SpeculationHarnessExecution, BridgeHarnessError> {
     let admitted = runtime_bridge
         .admit_preview_session(
-            crate::facade::BridgePreviewSessionIdentity::admit_bridge_owned(
+            crate::facade::runtime::BridgePreviewSessionIdentity::admit_bridge_owned(
                 "harness:speculation-discard",
             ),
             shared::preview_declaration(

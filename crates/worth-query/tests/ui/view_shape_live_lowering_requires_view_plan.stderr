@@ -1,7 +1,7 @@
 error[E0061]: this function takes 4 arguments but 3 arguments were supplied
-  --> tests/ui/view_shape_live_lowering_requires_view_plan.rs:14:13
+  --> tests/ui/view_shape_live_lowering_requires_view_plan.rs:13:13
    |
-14 |     let _ = lower_view_shape_plan_to_live(&canonical(), basis(), None);
+13 |     let _ = lower_view_shape_plan_to_live(&canonical(), basis(), None);
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-----------------------------
    |                                          ||
    |                                          |expected `&ViewShapePlanArtifact`, found `&CanonicalQueryBundle`
@@ -16,6 +16,6 @@ note: function defined here
    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 help: provide the argument
    |
-14 -     let _ = lower_view_shape_plan_to_live(&canonical(), basis(), None);
-14 +     let _ = lower_view_shape_plan_to_live(/* &ViewShapePlanArtifact */, basis(), None, /* Option<InspectorIdentityArtifact> */);
+13 -     let _ = lower_view_shape_plan_to_live(&canonical(), basis(), None);
+13 +     let _ = lower_view_shape_plan_to_live(/* &ViewShapePlanArtifact */, basis(), None, /* Option<InspectorIdentityArtifact> */);
    |

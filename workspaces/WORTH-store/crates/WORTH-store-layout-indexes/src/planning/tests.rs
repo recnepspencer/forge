@@ -1,7 +1,10 @@
 use super::{
     S8DeterministicSelectionRule, S8PlanningCapabilityGrant, S8SelectionCandidateEligibility,
 };
-use crate::facade::{access_planning, deterministic_plan_selection};
+use crate::facade::{
+    access_planning,
+    deterministic_plan_selection,
+};
 use crate::strategy::tests_support::admit_phase_five_scope;
 use crate::{
     access_shapes, S8DegradedExactScanRequest, S8LayoutStrategyFamily, S8PlanSelectionDenied,

@@ -1,65 +1,65 @@
 warning: unreachable statement
- --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:8:5
+ --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:5:5
   |
-7 |     let trace: QuerySubscriptionDiagnosticTrace = todo!();
+4 |     let trace: QuerySubscriptionDiagnosticTrace = todo!();
   |                                                   ------- any code following this expression is unreachable
-8 |     let labels: QuerySubscriptionDiagnosticSemanticLabels = todo!();
+5 |     let labels: QuerySubscriptionDiagnosticSemanticLabels = todo!();
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
 error[E0560]: struct `QuerySubscriptionAdmittedDiagnosticBundle` has no field named `support_report_digest`
-  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:12:9
-   |
-12 |         support_report_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionAdmittedDiagnosticBundle` does not have this field
-   |
-   = note: all struct fields are already assigned
+ --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:9:9
+  |
+9 |         support_report_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionAdmittedDiagnosticBundle` does not have this field
+  |
+  = note: all struct fields are already assigned
 
 error[E0560]: struct `QuerySubscriptionAdmittedDiagnosticBundle` has no field named `lifecycle_certification_digest`
-  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:13:9
+  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:10:9
    |
-13 |         lifecycle_certification_digest: String::new(),
+10 |         lifecycle_certification_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionAdmittedDiagnosticBundle` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `QuerySubscriptionAdmittedDiagnosticBundle` has no field named `continuation_digest`
-  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:14:9
+  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:11:9
    |
-14 |         continuation_digest: None,
+11 |         continuation_digest: None,
    |         ^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionAdmittedDiagnosticBundle` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `QuerySubscriptionAdmittedDiagnosticBundle` has no field named `preview_isolation_digest`
-  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:15:9
+  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:12:9
    |
-15 |         preview_isolation_digest: None,
+12 |         preview_isolation_digest: None,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionAdmittedDiagnosticBundle` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `QuerySubscriptionAdmittedDiagnosticBundle` has no field named `lifecycle_closeout_digest`
-  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:16:9
+  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:13:9
    |
-16 |         lifecycle_closeout_digest: None,
+13 |         lifecycle_closeout_digest: None,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^ `QuerySubscriptionAdmittedDiagnosticBundle` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `QuerySubscriptionAdmittedDiagnosticBundle` has no field named `counter_snapshot`
-  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:17:9
+  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:14:9
    |
-17 |         counter_snapshot: String::new(),
+14 |         counter_snapshot: String::new(),
    |         ^^^^^^^^^^^^^^^^ `QuerySubscriptionAdmittedDiagnosticBundle` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `QuerySubscriptionAdmittedDiagnosticBundle` has no field named `bundle_digest`
-  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:18:9
+  --> tests/ui/subscription_diagnostic_bundle_constructor_private.rs:15:9
    |
-18 |         bundle_digest: String::new(),
+15 |         bundle_digest: String::new(),
    |         ^^^^^^^^^^^^^ `QuerySubscriptionAdmittedDiagnosticBundle` does not have this field
    |
    = note: all struct fields are already assigned

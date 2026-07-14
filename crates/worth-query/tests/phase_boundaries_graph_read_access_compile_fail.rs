@@ -1,12 +1,12 @@
-use worth_query::facade::runtime::{
+use worth_query::facade::certification::{
     worth_query_graph_read_access_compile_fail_boundary_digest,
     worth_query_graph_read_access_compile_fail_target_count,
     worth_query_graph_read_access_compile_fail_targets,
     worth_query_graph_read_proof_transition_manifest,
     worth_query_graph_read_proof_transition_manifest_count,
     worth_query_graph_read_proof_transition_manifest_digest,
-    WorthQueryGraphReadProofBoundaryEvidenceKind,
 };
+use worth_query::facade::runtime::WorthQueryGraphReadProofBoundaryEvidenceKind;
 
 const EXPECTED_TARGET_COUNT: usize = 45;
 const EXPECTED_TRANSITION_MANIFEST_COUNT: usize = 12;

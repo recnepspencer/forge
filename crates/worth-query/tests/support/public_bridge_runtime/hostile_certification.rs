@@ -4,21 +4,25 @@ use std::sync::{
     Arc,
 };
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
+use worth_query::facade::certification::{
     compose_public_bridge_hostile_certification_digest,
     public_bridge_hostile_certification_evidence_label,
     public_bridge_hostile_published_artifact_component_digest,
-    PublicBridgeHostileCertificationComposeInput, WorthQueryAspectMutationBuilder,
-    WorthQueryCommitIdentity, WorthQueryDerivedPatch, WorthQueryDerivedPatchPayload,
-    WorthQueryDerivedView, WorthQueryDerivedViewHandle, WorthQueryDerivedViewMaintainer,
+    PublicBridgeHostileCertificationComposeInput,
+};
+use worth_query::facade::certification::{
+    WorthQueryPublicBridgeProjectionConsumptionEvidence,
+    WorthQueryPublicBridgeReaderLaneCertification, WorthQueryPublicBridgeReaderLanePosture,
+};
+use worth_query::facade::foundation::WorthQueryCommitIdentity;
+use worth_query::facade::policy::WorthQueryDerivedView;
+use worth_query::facade::runtime::{
+    WorthQueryAspectMutationBuilder, WorthQueryDerivedPatch, WorthQueryDerivedPatchPayload,
+    WorthQueryDerivedViewHandle, WorthQueryDerivedViewMaintainer,
     WorthQueryDerivedViewMaterialization, WorthQueryLiveView, WorthQueryNativeRow,
     WorthQueryPublishedDerivedArtifactHandle, WorthQueryRetainedFieldPath, WorthQueryRuntime,
     WorthQueryRuntimeSupportProfile, WorthQueryWorkspace, WorthQueryWriteCommand,
     WorthQueryWriteReceipt,
-};
-use worth_query::{
-    WorthQueryPublicBridgeProjectionConsumptionEvidence,
-    WorthQueryPublicBridgeReaderLaneCertification, WorthQueryPublicBridgeReaderLanePosture,
 };
 
 use super::reader_lane_honesty::{
@@ -36,7 +40,7 @@ impl WorthQueryDerivedViewMaintainer for PublicHostileMaintainer {
     fn maintain(
         &mut self,
         view: &WorthQueryDerivedView,
-        _delta: &worth_query::facade::WorthQueryMutationDelta,
+        _delta: &worth_query::facade::foundation::WorthQueryMutationDelta,
         materialization: &mut WorthQueryDerivedViewMaterialization,
     ) -> WorthQueryDerivedPatch {
         let next = self.invocations.fetch_add(1, Ordering::SeqCst);
@@ -152,14 +156,20 @@ fn declare_public_bridge_hostile_projection(
         .live_view("public.bridge.hostile-certification.tasks", |q| {
             q.from("Task")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 )
                 .schema_basis("public-bridge-hostile-certification-tasks")
         })
@@ -350,8 +360,8 @@ fn consume_title(
     PublicBridgePublishedProjectionReader::new(artifact).consume_title(invocations)
 }
 
-fn session_label(label: &str) -> worth_query::facade::WorthQuerySessionLabel {
-    worth_query::facade::WorthQuerySessionLabel::scoped_strs(
+fn session_label(label: &str) -> worth_query::facade::runtime::WorthQuerySessionLabel {
+    worth_query::facade::runtime::WorthQuerySessionLabel::scoped_strs(
         "worth-query-public-bridge-tests",
         [label],
     )
@@ -370,6 +380,8 @@ fn retained_field_path(
     WorthQueryRetainedFieldPath::from_canonical_field_path(canonical)
 }
 
-fn authored_text(value: impl Into<String>) -> worth_query::facade::WorthQueryAuthoredAspectValue {
-    worth_query::facade::WorthQueryAuthoredAspectValue::string(value)
+fn authored_text(
+    value: impl Into<String>,
+) -> worth_query::facade::runtime::WorthQueryAuthoredAspectValue {
+    worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(value)
 }

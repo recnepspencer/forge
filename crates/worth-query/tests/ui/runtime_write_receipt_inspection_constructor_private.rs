@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryAuthorityLane, WorthQueryInspectedArtifact, WorthQueryRuntimeInspectionEvidence,
-    WorthQueryWriteReceiptInspection,
-};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryInspectedArtifact, WorthQueryRuntimeInspectionEvidence, WorthQueryWriteReceiptInspection};
 
 fn main() {
     let _ = WorthQueryWriteReceiptInspection {

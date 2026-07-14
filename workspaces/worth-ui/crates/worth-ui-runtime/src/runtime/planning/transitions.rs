@@ -81,19 +81,6 @@ impl<P> WorthUiPlanningLaneInput<P>
 where
     P: Borrow<WorthUiPendingActivation>,
 {
-    pub fn new(
-        pending_activation: P,
-        measurement_basis: UiMeasurementBasis,
-        allocation_neighborhood: UiAllocationNeighborhood,
-    ) -> Self {
-        construct_planning_lane_input(
-            pending_activation,
-            measurement_basis,
-            allocation_neighborhood,
-        )
-        .expect("planning lane input requires aligned basis and neighborhood")
-    }
-
     pub fn pending_activation(&self) -> &WorthUiPendingActivation {
         self.pending_activation.borrow()
     }

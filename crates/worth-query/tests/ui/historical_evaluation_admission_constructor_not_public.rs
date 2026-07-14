@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    HistoricalEvaluationAdmission, HistoricalPathCompatibilityOutcome, HistoricalPathCostPosture,
-};
+use worth_query::facade::foundation::{HistoricalEvaluationAdmission, HistoricalPathCompatibilityOutcome, HistoricalPathCostPosture};
 
 fn main() {
     let _ = HistoricalEvaluationAdmission {

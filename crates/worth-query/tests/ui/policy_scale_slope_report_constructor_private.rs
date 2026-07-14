@@ -1,4 +1,4 @@
-use worth_query::facade::{PolicyScaleCounterSnapshot, PolicyScaleFixtureSize, PolicyScaleSlopeReport};
+use worth_query::facade::certification::{PolicyScaleCounterSnapshot, PolicyScaleFixtureSize, PolicyScaleSlopeReport};
 
 fn main() {
     let snapshot =

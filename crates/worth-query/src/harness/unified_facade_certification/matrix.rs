@@ -6,14 +6,19 @@ use super::row_catalog::{
     UnifiedFacadeCanonicalRowSpec, UnifiedFacadeRejectionRowSpec,
     UNIFIED_FACADE_CANONICAL_ROW_SPECS, UNIFIED_FACADE_REJECTION_ROW_SPECS,
 };
-use crate::facade::{
+use crate::basis_lifecycle::basis_lifecycle;
+use crate::facade::foundation::{
     IdentityEvolutionComparisonBasisFamily, IdentityEvolutionQueryContext,
-    LineageTraversalDescriptor, PreviewEvaluationClass, PreviewSessionQueryContext,
-    QueryBasisContextRequest, QueryContextBindingSource, WorkflowAuthorityTargetFamily,
-    WorkflowBindingSource, WorkflowBudgetClass, WorkflowCostClass, WorkflowDeclarationFamily,
-    WorkflowDeclarationRequest, WorkflowFreshnessPolicy, WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily, WorthQueryCapabilityStatus, WorthQueryConfig,
-    WorthQueryConfigSectionFamily, WorthQueryQueryConfig, WorthQuerySignalConfig,
+    LineageTraversalDescriptor, WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
+    WorthQueryCapabilityStatus, WorthQueryConfig, WorthQueryConfigSectionFamily,
+    WorthQueryQueryConfig, WorthQuerySignalConfig,
+};
+use crate::facade::policy::{
+    PreviewEvaluationClass, PreviewSessionQueryContext, QueryContextBindingSource,
+};
+use crate::facade::runtime::{
+    WorkflowAuthorityTargetFamily, WorkflowBindingSource, WorkflowBudgetClass, WorkflowCostClass,
+    WorkflowDeclarationFamily, WorkflowDeclarationRequest, WorkflowFreshnessPolicy,
 };
 use crate::harness::certification::{
     CanonicalCertificationRow, ParityAnchor, RejectionCertificationRow,
@@ -73,7 +78,7 @@ fn identity_evolution_lane() -> UnifiedFacadeLane {
         .expect("identity evolution should admit");
     let admitted = identity
         .capability()
-        .admit_query(IdentityEvolutionQueryContext::lineage_traversal(
+        .admit_query(IdentityEvolutionQueryContext::lineage_traversal_for_test(
             crate::identity::CanonicalQueryDigest::from_parts(&[format!(
                 "unified-facade-identity-evolution:{}",
                 preflight.plan().query().validated_query_digest().as_str()
@@ -196,25 +201,15 @@ fn query_context_lane() -> UnifiedFacadeLane {
     let left = contexts
         .capability()
         .admit_basis_context(
-            contexts
-                .capability()
-                .bind_basis_context(
-                    QueryBasisContextRequest::current_branch_head(),
-                    QueryContextBindingSource::RuntimeCurrent(&left_preflight),
-                )
-                .expect("current context should bind"),
+            basis_lifecycle().current_head(),
+            QueryContextBindingSource::RuntimeCurrent(&left_preflight),
         )
         .expect("current context should admit");
     let right = contexts
         .capability()
         .admit_basis_context(
-            contexts
-                .capability()
-                .bind_basis_context(
-                    QueryBasisContextRequest::branch_head("branch:snapshot-2"),
-                    QueryContextBindingSource::RuntimeBranch(&right_preflight),
-                )
-                .expect("branch context should bind"),
+            basis_lifecycle().branch_head("branch:snapshot-2", true),
+            QueryContextBindingSource::RuntimeBranch(&right_preflight),
         )
         .expect("branch context should admit");
     let _diff = contexts
@@ -523,7 +518,7 @@ fn identity_evolution_support_sync_lane() -> UnifiedFacadeLane {
     let admitted = identity
         .capability()
         .admit_query(
-            IdentityEvolutionQueryContext::correspondence_identity_comparison(
+            IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
                 crate::identity::CanonicalQueryDigest::from_parts(&[format!(
                     "identity-evolution-support-sync:{}",
                     preflight.plan().query().validated_query_digest().as_str()
@@ -531,7 +526,7 @@ fn identity_evolution_support_sync_lane() -> UnifiedFacadeLane {
                 IdentityEvolutionComparisonBasisFamily::BranchToBranch,
                 crate::identity::BasisDigest::from_parts(&["identity-left".to_string()]),
                 crate::identity::BasisDigest::from_parts(&["identity-right".to_string()]),
-                crate::facade::CorrespondenceIdentityComparison::advisory_between(
+                crate::facade::foundation::CorrespondenceIdentityComparison::advisory_between(
                     "entity:left",
                     "entity:right",
                 ),
@@ -668,7 +663,7 @@ fn rejection_row(
         "invalid-workflow-support-posture" => {
             let facade = WorthQueryApplicationFacade::new(
                 WorthQueryConfig::runtime_backed_default().with_relational(
-                    crate::facade::WorthQueryRelationalConfig::enabled()
+                    crate::facade::foundation::WorthQueryRelationalConfig::enabled()
                         .with_workflow_orchestration(false)
                         .with_historical_evaluation(true),
                 ),
@@ -707,25 +702,15 @@ fn rejection_row(
             let left = contexts
                 .capability()
                 .admit_basis_context(
-                    contexts
-                        .capability()
-                        .bind_basis_context(
-                            QueryBasisContextRequest::current_branch_head(),
-                            QueryContextBindingSource::RuntimeCurrent(&left_preflight),
-                        )
-                        .expect("left context should bind"),
+                    basis_lifecycle().current_head(),
+                    QueryContextBindingSource::RuntimeCurrent(&left_preflight),
                 )
                 .expect("left context should admit");
             let right = contexts
                 .capability()
                 .admit_basis_context(
-                    contexts
-                        .capability()
-                        .bind_basis_context(
-                            QueryBasisContextRequest::branch_head("branch:ordered-collection"),
-                            QueryContextBindingSource::RuntimeBranch(&right_preflight),
-                        )
-                        .expect("right context should bind"),
+                    basis_lifecycle().branch_head("branch:ordered-collection", true),
+                    QueryContextBindingSource::RuntimeBranch(&right_preflight),
                 )
                 .expect("right context should admit");
             let diff = contexts

@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryAuthoritativeMutationEvidenceCloseout;
+use worth_query::facade::certification::WorthQueryAuthoritativeMutationEvidenceCloseout;
 
 fn main() {
     let _ = WorthQueryAuthoritativeMutationEvidenceCloseout {

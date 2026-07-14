@@ -17,7 +17,7 @@ use crate::facade::{
     },
     registry::CapabilitySnapshot,
     retained_obligation_registry::WorthUiRetainedObligationRegistry,
-    runtime_handoff::{WorthUiRuntimeHost, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial},
+    runtime_handoff::{WorthUiRuntime, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial},
 };
 use crate::graph::{
     UiGraphAspectEvidenceIndexes, UiGraphAuthority, UiGraphCloseoutReport,
@@ -129,16 +129,13 @@ impl WorthUiApp {
 
     /// Admit Query-backed measurement eligibility from an ordinary projection-fact
     /// consumption attempt without requiring callers to mint prerequisite artifacts.
-    pub fn admit_query_measurement_eligibility_for_touch_from_projection_consumption(
+    pub fn admit_query_measurement_eligibility_for_touch_from_query_authority(
         &self,
         touch: &UiGraphTouchDescriptor,
-        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+        authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     ) -> Option<crate::admission::UiQueryMeasurementEligibility> {
         self.admission()
-            .admit_query_measurement_eligibility_for_touch_from_projection_consumption(
-                touch,
-                consumption,
-            )
+            .admit_query_measurement_eligibility_for_touch_from_query_authority(touch, authority)
     }
 
     pub(crate) fn graph_snapshot(&self) -> &UiGraphSnapshot {
@@ -237,17 +234,18 @@ impl WorthUiApp {
         self.graph_aspect_evidence_indexes = graph_evidence.aspect;
     }
 
-    /// Launch a runtime host from canonical artifact truth validated against this app snapshot.
+    /// Launch the runtime whose ordinary frame boundary owns dispatcher close/pump.
     pub fn launch_runtime(
         &self,
         launch: WorthUiRuntimeLaunch,
-    ) -> Result<WorthUiRuntimeHost, WorthUiRuntimeLaunchDenial> {
-        WorthUiRuntimeHost::launch(
+    ) -> Result<WorthUiRuntime, WorthUiRuntimeLaunchDenial> {
+        WorthUiRuntime::launch(
             launch,
             self.capability_snapshot.digest(),
             Rc::clone(&self.retained_allocation_planning_evidence),
         )
     }
+
     pub(crate) fn retained_obligation_registry(&self) -> &WorthUiRetainedObligationRegistry {
         &self.retained_obligations
     }

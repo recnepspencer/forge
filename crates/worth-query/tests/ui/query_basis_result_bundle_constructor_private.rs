@@ -1,4 +1,4 @@
-use worth_query::facade::QueryBasisResultBundle;
+use worth_query::facade::policy::QueryBasisResultBundle;
 
 fn main() {
     let _ = QueryBasisResultBundle {

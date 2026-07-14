@@ -1,8 +1,8 @@
 use worth_query::facade::WORTHQueryDeclaredFamilyChecked;
 use hadwiger_research::facade::{
     admit_hadwiger_research_handle, declare_research_request_checked,
-    orchestrate_research_request_entry, research_declaration_entry_readiness,
-    CandidateGraphDeclaration, HadwigerResearchAdmissionError, HadwigerResearchOperatingContext,
+    research_declaration_entry_readiness, CandidateGraphDeclaration,
+    HadwigerResearchAdmissionError, HadwigerResearchOperatingContext,
 };
 
 fn admitted_handle_dx() -> Result<(), HadwigerResearchAdmissionError> {
@@ -13,9 +13,8 @@ fn admitted_handle_dx() -> Result<(), HadwigerResearchAdmissionError> {
         .with_graph_version("v1")
         .with_source_note("phase-1 declaration-entry smoke");
 
-    let checked = declare_research_request_checked(&handle, request.clone());
+    let checked = declare_research_request_checked(&handle, request);
     let readiness = research_declaration_entry_readiness::<CandidateGraphDeclaration>(&handle);
-    let _outcome = orchestrate_research_request_entry(&handle, request);
 
     match checked {
         WORTHQueryDeclaredFamilyChecked::Admitted(declaration) => {

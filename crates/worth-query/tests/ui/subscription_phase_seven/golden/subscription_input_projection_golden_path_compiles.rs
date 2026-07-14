@@ -1,4 +1,4 @@
-use worth_query::facade::{LiveQueryAdmissionArtifact, QuerySubscriptionSupportProfile};
+use worth_query::facade::runtime::{LiveQueryAdmissionArtifact, QuerySubscriptionSupportProfile};
 
 fn input_projection_golden_path(live: &LiveQueryAdmissionArtifact) {
     let _ = live.query_projection().label();

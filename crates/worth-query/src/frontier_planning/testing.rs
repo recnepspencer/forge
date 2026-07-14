@@ -1,5 +1,4 @@
 use crate::basis::ExecutionPreflightBundle;
-use crate::collection::CollectionResultFamily;
 use crate::execution::{ExecutionCounters, ExecutionResultEnvelope};
 use crate::identity::{hash_parts, BasisDigest, PlanDigest, ResultDigest, ValidatedQueryDigest};
 use crate::live::{LiveQueryFamily, LiveQueryPlan};
@@ -1972,10 +1971,10 @@ pub(crate) fn lower_preflight_to_frontier_plan(
             format!(
                 "collection:{}:result_family:{}:ordering:{}",
                 collection.digest().as_str(),
-                match collection.post_read_shaping().result_family() {
-                    CollectionResultFamily::OrdinaryCollection => "ordinary_collection",
-                    CollectionResultFamily::CdcCollection => "cdc_collection",
-                },
+                collection
+                    .post_read_shaping()
+                    .result_family()
+                    .digest_label(),
                 collection.ordering_basis().entries().len()
             ),
             FrontierBreadthPrediction::new(

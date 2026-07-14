@@ -1,17 +1,17 @@
 warning: unreachable statement
- --> tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs:7:5
+ --> tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs:5:5
   |
-6 |     let eligibility: WorthQueryLowerRuntimeCapabilityEligibility = todo!();
+4 |     let eligibility: WorthQueryLowerRuntimeCapabilityEligibility = todo!();
   |                                                                    ------- any code following this expression is unreachable
-7 |     let _ = WorthQueryLowerRuntimeRoutePlan::new(eligibility, "worthd-route");
+5 |     let _ = WorthQueryLowerRuntimeRoutePlan::new(eligibility, "worthd-route");
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
 error[E0624]: associated function `new` is private
- --> tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs:7:46
+ --> tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs:5:46
   |
-7 |       let _ = WorthQueryLowerRuntimeRoutePlan::new(eligibility, "worthd-route");
+5 |       let _ = WorthQueryLowerRuntimeRoutePlan::new(eligibility, "worthd-route");
   |                                                ^^^ private associated function
   |
  ::: src/lower_runtime_routing/plans/mod.rs
@@ -23,9 +23,9 @@ error[E0624]: associated function `new` is private
   | |_____________- private associated function defined here
 
 error[E0308]: mismatched types
- --> tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs:7:63
+ --> tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs:5:63
   |
-7 |     let _ = WorthQueryLowerRuntimeRoutePlan::new(eligibility, "worthd-route");
+5 |     let _ = WorthQueryLowerRuntimeRoutePlan::new(eligibility, "worthd-route");
   |             ------------------------------------              ^^^^^^^^^^^^^^ expected `WorthQueryLowerRuntimeRouteSubjectIdentity`, found `&str`
   |             |
   |             arguments to this function are incorrect

@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGraphTouchSelector;
+use worth_query::facade::runtime::WorthQueryGraphTouchSelector;
 
 fn main() {
     let selector = WorthQueryGraphTouchSelector::any_graph_touch();

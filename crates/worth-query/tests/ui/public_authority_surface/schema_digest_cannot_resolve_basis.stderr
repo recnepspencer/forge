@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/public_authority_surface/schema_digest_cannot_resolve_basis.rs:5:62
+  |
+5 |     let _ = resolve_runtime_current_snapshot_basis(snapshot, digest);
+  |             --------------------------------------           ^^^^^^ expected `QuerySchemaBasisAuthority`, found `SchemaBasisDigest`
+  |             |
+  |             arguments to this function are incorrect
+  |
+note: function defined here
+ --> src/basis/mod.rs
+  |
+  | pub fn resolve_runtime_current_snapshot_basis(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

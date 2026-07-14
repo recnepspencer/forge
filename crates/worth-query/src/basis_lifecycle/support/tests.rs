@@ -170,6 +170,10 @@ fn raw_admitted_basis_for(family: BasisFamily) -> RawBasisIntent {
             snapshot_identity: "history-support".to_string(),
             replay_supported: true,
         },
+        BasisFamily::HistoricalCommit => RawBasisIntent::HistoricalCommit {
+            commit_identity: "commit-support".to_string(),
+            replay_supported: true,
+        },
         BasisFamily::TenantScoped => RawBasisIntent::TenantScoped {
             tenant_identity: "tenant-support".to_string(),
             branch_identity: "branch-support".to_string(),

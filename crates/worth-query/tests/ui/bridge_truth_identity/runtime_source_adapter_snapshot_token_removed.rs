@@ -1,8 +1,5 @@
-use worth_query::facade::{
-    DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryLiveArtifactTarget,
-    WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQueryMutationReceipt,
-    WorthQueryRuntimeSourceAdapter, WorthQueryWorkspaceError, QuerySchemaView,
-};
+use worth_query::facade::foundation::{DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQueryMutationReceipt, WorthQueryWorkspaceError};
+use worth_query::facade::runtime::{WorthQueryLiveArtifactTarget, WorthQueryRuntimeSourceAdapter, QuerySchemaView};
 
 struct StringSnapshotSource;
 
@@ -13,6 +10,10 @@ impl WorthQueryRuntimeSourceAdapter for StringSnapshotSource {
         _request: DeclarativeLiveQueryRequest,
         _schema_view: QuerySchemaView,
     ) -> Result<WorthQueryLiveViewHandle, WorthQueryWorkspaceError> {
+        panic!("not executed")
+    }
+
+    fn close_live_view(&mut self, _name: &str) -> Result<(), WorthQueryWorkspaceError> {
         panic!("not executed")
     }
 

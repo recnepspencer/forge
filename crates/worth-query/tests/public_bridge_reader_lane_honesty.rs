@@ -1,5 +1,6 @@
-use worth_query::{
-    WorthQueryPublicBridgeReaderLanePosture, WorthQueryPublicBridgeReaderLaneSabotageOutcome,
+use worth_query::facade::certification::{
+    WorthQueryPublicBridgeProjectionConsumptionEvidence, WorthQueryPublicBridgeReaderLanePosture,
+    WorthQueryPublicBridgeReaderLaneSabotageOutcome,
 };
 
 mod support;
@@ -118,9 +119,7 @@ fn public_bridge_reader_lane_compile_fail_boundaries_hold() {
     );
 }
 
-fn assert_projection_reads_are_real(
-    reads: &[worth_query::WorthQueryPublicBridgeProjectionConsumptionEvidence],
-) {
+fn assert_projection_reads_are_real(reads: &[WorthQueryPublicBridgeProjectionConsumptionEvidence]) {
     let titles = reads
         .iter()
         .map(|read| read.consumed_title())

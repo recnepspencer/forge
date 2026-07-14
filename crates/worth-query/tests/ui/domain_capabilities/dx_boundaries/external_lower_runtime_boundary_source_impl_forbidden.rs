@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryLowerRuntimeBoundaryEnvelope, WorthQueryLowerRuntimeBoundaryEnvelopeSource,
-};
+use worth_query::facade::runtime::{WorthQueryLowerRuntimeBoundaryEnvelope, WorthQueryLowerRuntimeBoundaryEnvelopeSource};
 
 struct FakeSource;
 

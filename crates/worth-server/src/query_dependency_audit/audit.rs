@@ -2,9 +2,10 @@ use worth_proof::TransitionReadiness;
 use worth_query::facade::consumer_kit::{
     hard_prohibition_boundary_audit, project_workspace_support_snapshot,
     query_test_backend_residue_audit, support_pinning_contract, WorthQueryPinnedSupportStatus,
-    WorthQueryPinnedTeachingPosture,
+    WorthQueryPinnedTeachingPosture, WorthQuerySupportPinContractBuilder,
+    WorthQuerySupportPinningError,
 };
-use worth_query::facade::WorthQueryRuntimeFacadeFamily;
+use worth_query::facade::runtime::WorthQueryRuntimeFacadeFamily;
 
 use crate::{
     config::WorthServerQueryHandoffConfig, query_handoff::WorthServerQueryWorkspaceBindingRequest,
@@ -358,12 +359,9 @@ fn scope_posture_for(
 }
 
 fn require_supported_family(
-    builder: worth_query::WorthQuerySupportPinContractBuilder,
+    builder: WorthQuerySupportPinContractBuilder,
     family: WorthQueryRuntimeFacadeFamily,
-) -> Result<
-    worth_query::WorthQuerySupportPinContractBuilder,
-    worth_query::WorthQuerySupportPinningError,
-> {
+) -> Result<WorthQuerySupportPinContractBuilder, WorthQuerySupportPinningError> {
     builder.require_family(family, |row| {
         row.status(WorthQueryPinnedSupportStatus::Supported)
             .teaching_posture(WorthQueryPinnedTeachingPosture::OrdinaryRuntimeDx)

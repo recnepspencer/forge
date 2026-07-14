@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    WorthUiReplacementCandidate, WorthUiReplacementImpactClassification, WorthUiRuntimeHost,
+    WorthUiReplacementCandidate, WorthUiReplacementImpactClassification, WorthUiRuntime,
 };
 
 fn main() {
@@ -10,7 +10,7 @@ fn main() {
     let _ = host.narrow_replacement_impact(&classification, &candidate);
 }
 
-fn runtime_host() -> WorthUiRuntimeHost {
+fn runtime_host() -> WorthUiRuntime {
     unimplemented!()
 }
 

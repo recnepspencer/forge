@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryAuthorityLane, WorthQueryComputedInspectionEvidence};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryComputedInspectionEvidence};
 
 fn main() {
     let _worthd = WorthQueryComputedInspectionEvidence {

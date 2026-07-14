@@ -144,6 +144,7 @@ def standard_turn_templates() -> dict[str, str]:
         "plan": str((template_dir / "plan.md").resolve()),
         "implement": str((template_dir / "implement.md").resolve()),
         "review": str((template_dir / "review_test_hardening.md").resolve()),
+        "repair_plan": str((template_dir / "plan.md").resolve()),
         "repair": str((template_dir / "repair.md").resolve()),
         "test_review": str((template_dir / "test_review.md").resolve()),
         "test_repair_plan": str((template_dir / "test_repair_plan.md").resolve()),

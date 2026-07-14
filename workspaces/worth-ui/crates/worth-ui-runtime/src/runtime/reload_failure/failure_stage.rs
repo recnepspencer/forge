@@ -13,5 +13,4 @@ pub enum WorthUiReloadFailureStage {
     PlanTopologyAssembly,
     ReadyActivation,
     ActivationGate,
-    AtomicPlanSwap,
 }

@@ -1,14 +1,6 @@
-use worth_query::facade::{
-    DeclarativeLiveQueryRequest, WorthQueryDerivedView, WorthQueryEffectPolicy,
-    WorthQueryEntity, WorthQueryIntentDeclaration, WorthQueryIntentExecution, WorthQueryLivePatch,
-    WorthQueryLiveArtifactTarget, WorthQueryLiveViewHandle, WorthQueryMutationReceipt,
-    WorthQueryPreviewBasisAdmission, WorthQueryBackendAdmissibleMutation, WorthQueryRuntimeBackend,
-    WorthQueryRuntimeEvidenceAuthority, WorthQueryRuntimeError, WorthQueryRuntimeInspectionEvidence,
-    WorthQueryRuntimeSupportProfile, WorthQuerySessionLabel, WorthQueryWorkspaceError,
-    WorthQueryWriteReceipt,
-    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
-    SubscriptionActivationReceipt,
-};
+use worth_query::facade::foundation::{DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQueryMutationReceipt, WorthQueryWorkspaceError};
+use worth_query::facade::policy::WorthQueryDerivedView;
+use worth_query::facade::runtime::{WorthQueryEffectPolicy, WorthQueryIntentDeclaration, WorthQueryIntentExecution, WorthQueryLiveArtifactTarget, WorthQueryPreviewBasisAdmission, WorthQueryBackendAdmissibleMutation, WorthQueryRuntimeBackend, WorthQueryRuntimeEvidenceAuthority, WorthQueryRuntimeError, WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeSupportProfile, WorthQuerySessionLabel, WorthQueryWriteReceipt, LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput, SubscriptionActivationReceipt};
 
 struct StringSnapshotBackend;
 
@@ -32,6 +24,10 @@ impl WorthQueryRuntimeBackend for StringSnapshotBackend {
         _request: DeclarativeLiveQueryRequest,
         _schema_view: QuerySchemaView,
     ) -> Result<WorthQueryLiveViewHandle, WorthQueryWorkspaceError> {
+        panic!("not executed")
+    }
+
+    fn close_live_view(&mut self, _name: &str) -> Result<(), WorthQueryWorkspaceError> {
         panic!("not executed")
     }
 
@@ -102,7 +98,7 @@ impl WorthQueryRuntimeBackend for StringSnapshotBackend {
     fn declaration_initialization_metadata(
         &self,
         _view: &WorthQueryDerivedView,
-    ) -> Result<worth_query::facade::WorthQueryMutationMetadata, WorthQueryWorkspaceError> {
+    ) -> Result<worth_query::facade::runtime::WorthQueryMutationMetadata, WorthQueryWorkspaceError> {
         panic!("not executed")
     }
 

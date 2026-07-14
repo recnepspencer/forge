@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryBindingAuthorityWitness, WorthQueryBindingBasisWitness,
-    WorthQueryBindingFamilyWitness, WorthQueryBindingTargetWitnessSet,
-};
+use worth_query::facade::foundation::{WorthQueryBindingAuthorityWitness, WorthQueryBindingBasisWitness, WorthQueryBindingFamilyWitness, WorthQueryBindingTargetWitnessSet};
 
 fn main() {
     let _ = WorthQueryBindingAuthorityWitness {

@@ -304,7 +304,7 @@ pub fn emit_preview_closeout_basis_receipt(
     BasisUseReceipt::new(BasisUseReceiptKind::PreviewCloseout, bound_basis)
 }
 
-pub fn emit_certification_basis_receipt(
+pub(crate) fn emit_certification_basis_receipt(
     bound_basis: LowerRuntimeBoundBasis<ScopedCertificationBasis>,
 ) -> BasisUseReceipt {
     BasisUseReceipt::new(BasisUseReceiptKind::Certification, bound_basis)

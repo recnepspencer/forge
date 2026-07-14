@@ -1,5 +1,5 @@
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_query::facade::WorthQueryAspectTouch;
+use worth_query::facade::runtime::WorthQueryAspectTouch;
 
 fn main() {}
 

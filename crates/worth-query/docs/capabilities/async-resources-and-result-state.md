@@ -50,8 +50,8 @@ Runtime-backed observation and explanation:
 
 Materialized fact and recovery surfaces:
 
-- `WorthQueryReadResult::consume_projection_facts(...)`
-- `QueryContextExecutionArtifact::consume_projection_facts(...)`
+- `WorthQueryReadCompletion::consume_projection(...)`
+- `read::project_facts()`
 - `ProjectionConsumptionReceipt::materialized_fact_posture()`
 - `execute_prepared_continuation(...)`
 - `execute_prepared_continuation_outcome(...)`
@@ -121,7 +121,7 @@ The important rule is:
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryAsyncDeclarationClause, WorthQueryAsyncFailurePosture,
     WorthQueryAsyncLoadingPosture, WorthQueryAsyncRequestIdentityPart,
     WorthQueryAsyncSourceFamily,
@@ -160,7 +160,7 @@ projection surfaces can tell whether a reconciliation run was fulfilled,
 retried, or denied.
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryAsyncDeclarationClause, WorthQueryAsyncFailurePosture,
     WorthQueryAsyncLoadingPosture, WorthQueryAsyncRequestIdentityPart,
     WorthQueryAsyncSourceFamily, WorthQueryDeclarationCanonicalEntry,
@@ -273,22 +273,22 @@ match inspection {
 }
 ```
 
-If you later materialize and consume facts from a read or query-context
-execution built on the same lower declaration, Query keeps the async-backed
-posture on the consumption receipt:
+If an ordinary read completes over the same async-backed declaration, consume
+facts from the completion. Query owns the result-shape and authorization
+binding and keeps the async-backed posture on the consumption receipt:
 
 ```rust
-let completed = read_result
-    .consume_projection_facts(
-        &result_shape,
-        &authorized_projection,
-        ProjectMaterializedFacts::declare().display_field("profile.display_name"),
-    )?
-    .completed()
+let outcome = completion.consume_projection(
+    read::project_facts()
+        .display_field(profile_display_name_field_path()),
+);
+let (authority, _) = outcome
+    .into_admitted()
     .expect("thermal read should stay admitted");
 
 assert_eq!(
-    completed
+    authority
+        .receipt()
         .materialized_fact_posture()
         .expect("async-backed posture should survive")
         .kind()
@@ -344,7 +344,7 @@ expected:
 - rich live explanation:
   `workspace.inspect(&view)?` then `async_result_state()`
 - materialized fact posture:
-  `CompletedProjectionFactConsumption::materialized_fact_posture()`
+  `WorthQueryConsumedProjectionAuthority::receipt().materialized_fact_posture()`
 - downstream delivery:
   `workspace.downstream_delivery(&view)?`
 - continuation drift:

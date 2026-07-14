@@ -1,5 +1,5 @@
 use crate::authoring::RawAuthoredQuery;
-use crate::facade::{AspectFieldSelector, RootEntityKey, TraversalSelector};
+use crate::facade::foundation::{AspectFieldSelector, RootEntityKey, TraversalSelector};
 
 pub fn direct_detail_query() -> crate::authoring::DetailAuthoredQuery {
     RawAuthoredQuery::detail_builder(RootEntityKey::new("task").unwrap())

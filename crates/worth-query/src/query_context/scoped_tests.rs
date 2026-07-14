@@ -1,40 +1,40 @@
 use super::{
-    admit_scoped_query_basis_context, build_scoped_query_basis_result_bundle,
-    execute_and_build_scoped_query_basis_result_bundle, execute_scoped_query_basis_context,
-    QueryBasisContextRequest, QueryContextAdmissionFailureClass, QueryContextBindingSource,
-    QueryContextExecutionFamily, ScopedQueryBasisContext, ScopedQueryContextAdmissionError,
+    admit_query_basis_context, build_query_basis_result_bundle,
+    execute_and_build_query_basis_result_bundle, execute_query_basis_context,
+    QueryContextAdmissionFailureClass, QueryContextBindingSource, QueryContextExecutionFamily,
+    ScopedQueryBasisContext, ScopedQueryContextAdmissionError,
 };
-use crate::facade::{
-    admit_historical_evaluation_path, admit_preview_workflow_foundation,
-    bind_preflight_to_preview_session, materialization_metadata_from_resolved,
+use crate::basis_lifecycle::{basis_lifecycle, BasisFamily};
+use crate::facade::foundation::{
+    admit_historical_evaluation_path, materialization_metadata_from_resolved,
     resolve_historical_materialization_path, HistoricalCapabilityDescriptor,
     HistoricalEvaluationRequest, HistoricalMaterializationDescriptor,
-    HistoricalPathReuseDescriptor, PreviewEvaluationClass, PreviewSessionQueryContext,
+    HistoricalPathReuseDescriptor,
+};
+use crate::facade::policy::{
+    admit_preview_workflow_foundation, bind_preflight_to_preview_session, PreviewEvaluationClass,
+    PreviewSessionQueryContext,
 };
 use crate::harness::fixtures::{execution_preflights, preview_bridge::active_preview_artifacts};
-use crate::query_basis_lifecycle::{BasisCapabilityAdmission, BasisIntentDenialKind};
 
 #[test]
 fn scoped_query_context_current_head_uses_observation_basis() {
     let preflight = execution_preflights::direct_runtime_preflight();
 
-    let scoped = admit_scoped_query_basis_context(
-        QueryBasisContextRequest::current_branch_head(),
+    let scoped = admit_query_basis_context(
+        basis_lifecycle().current_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .expect("current-head scoped query context should admit");
-    let execution = execute_scoped_query_basis_context(&scoped)
-        .expect("scoped current-head execution should succeed");
-    let bundle = build_scoped_query_basis_result_bundle(&scoped, execution.clone())
+    let execution =
+        execute_query_basis_context(&scoped).expect("scoped current-head execution should succeed");
+    let bundle = build_query_basis_result_bundle(&scoped, execution.clone())
         .expect("scoped current-head bundle should build");
 
     match scoped {
-        ScopedQueryBasisContext::Observation(scoped) => match scoped.scoped_basis().admission() {
-            BasisCapabilityAdmission::Admitted(capability) => {
-                assert_eq!(capability.operation_lane().as_str(), "observation");
-            }
-            other => panic!("unexpected observation admission posture: {other:?}"),
-        },
+        ScopedQueryBasisContext::Observation(scoped) => {
+            assert_eq!(scoped.scoped_basis().family(), BasisFamily::CurrentHead);
+        }
         other => panic!("unexpected scoped query context variant: {other:?}"),
     }
     assert_eq!(
@@ -52,13 +52,13 @@ fn scoped_query_context_current_head_uses_observation_basis() {
 fn scoped_query_context_historical_snapshot_uses_materialization_basis() {
     let query_preflight = execution_preflights::direct_runtime_preflight();
     let snapshot_basis = "history:scoped-snapshot";
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         snapshot_basis,
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::retained_snapshot(
+    let capability = HistoricalCapabilityDescriptor::retained_snapshot_for_test(
         snapshot_basis,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
@@ -66,13 +66,13 @@ fn scoped_query_context_historical_snapshot_uses_materialization_basis() {
         .expect("retained history should admit");
     let resolved = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::retained_snapshot(snapshot_basis),
+        HistoricalMaterializationDescriptor::retained_snapshot_for_test(snapshot_basis),
     )
     .expect("retained history should resolve");
     let metadata = materialization_metadata_from_resolved(resolved);
 
-    let scoped = admit_scoped_query_basis_context(
-        QueryBasisContextRequest::historical_snapshot(snapshot_basis.to_string()),
+    let scoped = admit_query_basis_context(
+        basis_lifecycle().historical_snapshot(snapshot_basis, true),
         QueryContextBindingSource::Historical {
             query_preflight: &query_preflight,
             admission: &admission,
@@ -80,14 +80,14 @@ fn scoped_query_context_historical_snapshot_uses_materialization_basis() {
         },
     )
     .expect("historical scoped query context should admit");
-    let execution = execute_scoped_query_basis_context(&scoped)
-        .expect("scoped historical execution should succeed");
+    let execution =
+        execute_query_basis_context(&scoped).expect("scoped historical execution should succeed");
 
     match scoped {
         ScopedQueryBasisContext::Materialization(scoped) => {
             assert_eq!(
-                scoped.scoped_basis().capability().operation_lane().as_str(),
-                "materialization"
+                scoped.scoped_basis().family(),
+                BasisFamily::HistoricalSnapshot
             );
         }
         other => panic!("unexpected scoped query context variant: {other:?}"),
@@ -118,27 +118,19 @@ fn scoped_query_context_preview_derived_historical_uses_observation_basis() {
         .preview_session_identity()
         .bridge_admission_evidence();
 
-    let scoped = admit_scoped_query_basis_context(
-        QueryBasisContextRequest::preview_derived_historical(
-            preview_session_identity
-                .terminal_projection_for_reporting()
-                .to_string(),
+    let scoped = admit_query_basis_context(
+        basis_lifecycle().preview_derived(
+            preview_session_identity.terminal_projection_for_reporting(),
+            "preview-source-basis",
         ),
         QueryContextBindingSource::PreviewDerivedHistorical(&foundation),
     )
     .expect("preview-derived scoped query context should admit");
 
     match scoped {
-        ScopedQueryBasisContext::Observation(scoped) => match scoped.scoped_basis().admission() {
-            BasisCapabilityAdmission::Advisory(capability) => {
-                assert_eq!(
-                    scoped.context().family().as_str(),
-                    "preview_derived_historical"
-                );
-                assert_eq!(capability.operation_lane().as_str(), "observation");
-            }
-            other => panic!("unexpected preview-derived observation posture: {other:?}"),
-        },
+        ScopedQueryBasisContext::Observation(scoped) => {
+            assert_eq!(scoped.scoped_basis().family(), BasisFamily::PreviewDerived);
+        }
         other => panic!("unexpected scoped query context variant: {other:?}"),
     }
 }
@@ -147,8 +139,8 @@ fn scoped_query_context_preview_derived_historical_uses_observation_basis() {
 fn scoped_query_context_preserves_query_context_source_pairing_denials() {
     let preflight = execution_preflights::direct_runtime_preflight();
 
-    let error = admit_scoped_query_basis_context(
-        QueryBasisContextRequest::current_branch_head(),
+    let error = admit_query_basis_context(
+        basis_lifecycle().current_head(),
         QueryContextBindingSource::RuntimeBranch(&preflight),
     )
     .expect_err("source pairing mismatch should still deny");
@@ -165,23 +157,20 @@ fn scoped_query_context_preserves_query_context_source_pairing_denials() {
 }
 
 #[test]
-fn scoped_query_context_diff_comparison_denies_typed_before_legacy_binding() {
+fn unsupported_query_context_family_denies_typed_before_legacy_binding() {
     let preflight = execution_preflights::direct_runtime_preflight();
 
-    let error = admit_scoped_query_basis_context(
-        QueryBasisContextRequest::diff_comparison_for_internal_denial_testing("diff"),
+    let error = admit_query_basis_context(
+        basis_lifecycle().branch_snapshot("branch", "snapshot"),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
-    .expect_err("diff comparison should deny before legacy binding");
+    .expect_err("unsupported query-context family should deny before legacy binding");
 
     match error {
-        ScopedQueryContextAdmissionError::Intent(denial) => match denial.kind() {
-            BasisIntentDenialKind::UnsupportedCompatibilityFamily { family, owner } => {
-                assert_eq!(family, &"diff_comparison");
-                assert_eq!(owner, &"worth_query::query_context");
-            }
-            other => panic!("unexpected denial kind: {other:?}"),
-        },
+        ScopedQueryContextAdmissionError::Context(error) => assert_eq!(
+            error.failure_class(),
+            &QueryContextAdmissionFailureClass::UnsupportedQueryContextBasisFamily
+        ),
         other => panic!("unexpected scoped query context error: {other:?}"),
     }
 }
@@ -190,13 +179,13 @@ fn scoped_query_context_diff_comparison_denies_typed_before_legacy_binding() {
 fn execute_and_build_scoped_query_basis_result_bundle_keeps_execution_boundary_explicit() {
     let preflight = execution_preflights::direct_runtime_preflight();
 
-    let scoped = admit_scoped_query_basis_context(
-        QueryBasisContextRequest::current_branch_head(),
+    let scoped = admit_query_basis_context(
+        basis_lifecycle().current_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .expect("current-head scoped query context should admit");
 
-    let bundle = execute_and_build_scoped_query_basis_result_bundle(&scoped)
+    let bundle = execute_and_build_query_basis_result_bundle(&scoped)
         .expect("explicit execute-and-build helper should succeed");
 
     assert_eq!(bundle.context().family().as_str(), "current_branch_head");

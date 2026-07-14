@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    execute_lowered_effect_plan, AdmittedEffectIntent, EffectExecutionAuthority,
-};
+use worth_query::facade::foundation::{execute_lowered_effect_plan, AdmittedEffectIntent, EffectExecutionAuthority};
 use worth_relational::facade::runtime::RelationalRuntimeApi;
 
 fn admitted_effect() -> AdmittedEffectIntent {

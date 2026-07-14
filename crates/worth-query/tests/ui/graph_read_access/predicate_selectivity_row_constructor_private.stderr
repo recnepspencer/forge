@@ -1,23 +1,23 @@
 error[E0451]: fields `aspect`, `field`, `family`, `operand_identity`, `operator`, `normalized_operand_values`, `field_kind`, `selectivity_class` and `pre_traversal_eligible` of struct `WorthQueryBooleanPredicateSelectivityRow` are private
-  --> tests/ui/graph_read_access/predicate_selectivity_row_constructor_private.rs:9:9
+  --> tests/ui/graph_read_access/predicate_selectivity_row_constructor_private.rs:6:9
    |
- 8 |     let _ = WorthQueryBooleanPredicateSelectivityRow {
+ 5 |     let _ = WorthQueryBooleanPredicateSelectivityRow {
    |             ---------------------------------------- in this type
- 9 |         aspect: AspectKey::new("status").unwrap(),
+ 6 |         aspect: AspectKey::new("status").unwrap(),
    |         ^^^^^^ private field
-10 |         field: FieldKey::new("value").unwrap(),
+ 7 |         field: FieldKey::new("value").unwrap(),
    |         ^^^^^ private field
-11 |         family: "equality".to_string(),
+ 8 |         family: "equality".to_string(),
    |         ^^^^^^ private field
-12 |         operand_identity: "eq:string:active".to_string(),
+ 9 |         operand_identity: "eq:string:active".to_string(),
    |         ^^^^^^^^^^^^^^^^ private field
-13 |         operator: WorthQueryPredicateOperandOperator::Equal,
+10 |         operator: WorthQueryPredicateOperandOperator::Equal,
    |         ^^^^^^^^ private field
-14 |         normalized_operand_values: vec!["string:active".to_string()],
+11 |         normalized_operand_values: vec!["string:active".to_string()],
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-15 |         field_kind: WorthQueryGraphReadAdmittedSchemaFieldKind::String,
+12 |         field_kind: WorthQueryGraphReadAdmittedSchemaFieldKind::String,
    |         ^^^^^^^^^^ private field
-16 |         selectivity_class: WorthQueryPredicateSelectivityClass::ExactAnchor,
+13 |         selectivity_class: WorthQueryPredicateSelectivityClass::ExactAnchor,
    |         ^^^^^^^^^^^^^^^^^ private field
-17 |         pre_traversal_eligible: true,
+14 |         pre_traversal_eligible: true,
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field

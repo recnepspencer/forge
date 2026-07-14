@@ -1,4 +1,4 @@
-use worth_query::facade::ScopedMaterializationQueryBasisContext;
+use worth_query::facade::policy::ScopedMaterializationQueryBasisContext;
 
 fn main() {
     let _ = ScopedMaterializationQueryBasisContext {

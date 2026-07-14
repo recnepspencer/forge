@@ -1,5 +1,5 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryContinuityPriorAuthorityLabel, WorthQueryContinuitySuccessorAuthorityLabel,
     WorthQueryExistingRelationTarget, WorthQueryExistingTruthBindingAuthorityLabel,
     WorthQueryExistingTruthTargetBinding, WorthQueryGraphCompositionAdmissionTraceStage,
@@ -15,7 +15,7 @@ use support::test_entity_identities::relational_test_entity_identity;
 
 fn public_verified_relation_profile(
     operation_family: &str,
-) -> worth_query::facade::WorthQueryRuntimeSupportProfile {
+) -> worth_query::facade::runtime::WorthQueryRuntimeSupportProfile {
     public_graph_support_profile().with_bridge_backed_verification_support(
         operation_family,
         "direct_relation_identity",
@@ -59,14 +59,20 @@ fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retir
         .live_view("public.graph-composition-lifecycle-tasks", |q| {
             q.from("Task")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 )
                 .schema_basis("public-graph-composition-lifecycle-tasks")
         })
@@ -75,22 +81,26 @@ fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retir
         .live_view("public.graph-composition-lifecycle-edges", |q| {
             q.from("TaskEdge")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("edge", "kind")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts(
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "edge", "kind",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
                         "edge",
                         "source_identity",
                     )
                     .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts(
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
                         "edge",
                         "target_identity",
                     )
                     .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("edge", "kind")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "edge", "kind",
+                    )
+                    .unwrap(),
                 )
                 .schema_basis("public-graph-composition-lifecycle-edges")
         })
@@ -249,7 +259,7 @@ fn graph_composition_public_bridge_preserves_domain_invariant_denial_lane() {
             },
             |_context| {
                 Err(
-                    worth_query::facade::WorthQueryGraphCompositionInvariantPackViolation::new(
+                    worth_query::facade::runtime::WorthQueryGraphCompositionInvariantPackViolation::new(
                         "non_manifold_topology",
                         "loop successor rewire would create a non-manifold adjacency fanout",
                     ),
@@ -288,8 +298,10 @@ fn graph_composition_public_bridge_preserves_domain_invariant_denial_lane() {
     }
 }
 
-fn authored_text(value: impl Into<String>) -> worth_query::facade::WorthQueryAuthoredAspectValue {
-    worth_query::facade::WorthQueryAuthoredAspectValue::string(value)
+fn authored_text(
+    value: impl Into<String>,
+) -> worth_query::facade::runtime::WorthQueryAuthoredAspectValue {
+    worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(value)
 }
 
 fn text(value: impl Into<String>) -> worth_foundational::facade::AspectValue {

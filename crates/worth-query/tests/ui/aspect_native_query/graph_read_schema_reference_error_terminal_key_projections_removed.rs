@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGraphReadSchemaReferenceAdmissionError;
+use worth_query::facade::runtime::WorthQueryGraphReadSchemaReferenceAdmissionError;
 
 fn main() {
     let error: WorthQueryGraphReadSchemaReferenceAdmissionError = unreachable!();

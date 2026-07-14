@@ -1,4 +1,4 @@
-use worth_query::facade::ProjectionConsumptionReceipt;
+use worth_query::facade::foundation::ProjectionConsumptionReceipt;
 
 use super::WorthServerDirectMaterializationDigest;
 

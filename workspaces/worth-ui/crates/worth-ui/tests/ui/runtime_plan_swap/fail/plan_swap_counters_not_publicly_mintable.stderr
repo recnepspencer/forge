@@ -1,10 +1,8 @@
-error[E0624]: associated function `new` is private
- --> tests/ui/runtime_plan_swap/fail/plan_swap_counters_not_publicly_mintable.rs:4:44
+error[E0599]: no function or associated item named `new` found for struct `UiCommittedAllocationActivationCounters` in the current scope
+ --> tests/ui/runtime_plan_swap/fail/plan_swap_counters_not_publicly_mintable.rs:4:54
   |
-4 |     let _ = WorthUiAtomicPlanSwapCounters::new();
-  |                                            ^^^ private associated function
+4 |     let _ = UiCommittedAllocationActivationCounters::new();
+  |                                                      ^^^ function or associated item not found in `UiCommittedAllocationActivationCounters`
   |
- ::: $WORKSPACE/crates/worth-ui-runtime/src/runtime/activation/../atomic_plan_swap/counters.rs
-  |
-  |     pub(crate) fn new() -> Self {
-  |     --------------------------- private associated function defined here
+help: there is a method `ne` with a similar name, but with different arguments
+ --> $RUST/core/src/cmp.rs

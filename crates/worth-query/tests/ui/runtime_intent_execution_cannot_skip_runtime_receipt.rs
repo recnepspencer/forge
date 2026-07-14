@@ -1,6 +1,5 @@
-use worth_query::facade::{
-    WorthQueryIntentExecution, WorthQueryMutationReceipt, WorthQueryRuntime,
-};
+use worth_query::facade::foundation::WorthQueryMutationReceipt;
+use worth_query::facade::runtime::{WorthQueryIntentExecution, WorthQueryRuntime};
 
 fn main() {
     let runtime = fake_runtime();

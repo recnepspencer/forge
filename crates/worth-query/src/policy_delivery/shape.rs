@@ -113,7 +113,7 @@ impl PolicyAwareDeliveryShape {
     }
 }
 
-pub fn lower_policy_aware_delivery_shape(
+pub(crate) fn lower_policy_aware_delivery_shape(
     artifact: &NarrowedPolicyQueryArtifact,
     width_class: DeliveryWidthClass,
 ) -> Result<PolicyAwareDeliveryShape, PolicyAwareExecutionSeamError> {

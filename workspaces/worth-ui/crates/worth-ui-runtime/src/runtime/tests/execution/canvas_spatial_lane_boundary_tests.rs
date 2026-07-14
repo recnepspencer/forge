@@ -28,7 +28,7 @@ fn equivalent_canvas_plans_produce_equivalent_spatial_lane_receipts() {
                 ),
             ),
         )
-        .expect("left canvas hit-test executes");
+        .expect("runtime frame execution succeeds");
     let right_receipt = right
         .runtime
         .execute_canvas_spatial_frame(
@@ -40,7 +40,7 @@ fn equivalent_canvas_plans_produce_equivalent_spatial_lane_receipts() {
                 ),
             ),
         )
-        .expect("right canvas hit-test executes");
+        .expect("runtime frame execution succeeds");
 
     assert_eq!(
         left.canvas_plan.canvas_plan_digest(),
@@ -66,7 +66,7 @@ fn equivalent_canvas_plans_produce_equivalent_spatial_lane_receipts() {
             &left.canvas_plan,
             WorthUiCanvasSpatialFrameTarget::overlay(WorthUiCanvasOverlayPlan::for_lane(left_lane)),
         )
-        .expect("left overlay executes");
+        .expect("runtime frame execution succeeds");
     let right_overlay = right
         .runtime
         .execute_canvas_spatial_frame(
@@ -75,7 +75,7 @@ fn equivalent_canvas_plans_produce_equivalent_spatial_lane_receipts() {
                 right_lane,
             )),
         )
-        .expect("right overlay executes");
+        .expect("runtime frame execution succeeds");
     assert_eq!(
         left_overlay.touched_plan_indexes(),
         right_overlay.touched_plan_indexes()
@@ -96,14 +96,14 @@ fn canvas_lane_rejects_domain_truth_or_scene_renderer_ownership() {
             &fixture.canvas_plan,
             WorthUiCanvasSpatialFrameTarget::domain_geometry_truth_owner_for_test(lane),
         )
-        .expect_err("canvas lane cannot own domain geometry truth");
+        .expect_err("runtime frame execution denies");
     let renderer_denial = fixture
         .runtime
         .execute_canvas_spatial_frame(
             &fixture.canvas_plan,
             WorthUiCanvasSpatialFrameTarget::renderer_internal_owner_for_test(lane),
         )
-        .expect_err("canvas lane cannot own renderer internals");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         domain_denial.reason(),
@@ -130,7 +130,7 @@ fn spatial_lane_preserves_command_and_selection_identity() {
             &fixture.canvas_plan,
             WorthUiCanvasSpatialFrameTarget::tool_state(lane),
         )
-        .expect("tool state attaches through canvas lane");
+        .expect("runtime frame execution succeeds");
 
     assert_eq!(receipt.lane(), WorthUiCanvasSpatialLane::ToolState);
     assert!(!receipt.command_plan_indexes().is_empty());
@@ -162,7 +162,7 @@ fn canvas_viewport_transform_supports_pan_and_zoom_without_scene_ownership() {
             &fixture.canvas_plan,
             WorthUiCanvasSpatialFrameTarget::viewport(viewport_plan),
         )
-        .expect("viewport pan/zoom executes through canvas lane");
+        .expect("runtime frame execution succeeds");
 
     assert_eq!(receipt.lane(), WorthUiCanvasSpatialLane::ViewportTransform);
     assert_eq!(receipt.touched_plan_indexes(), &[lane.plan_index()]);
@@ -194,7 +194,7 @@ fn canvas_hit_test_cannot_read_domain_geometry_truth_directly() {
             &fixture.canvas_plan,
             WorthUiCanvasSpatialFrameTarget::domain_geometry_hit_test_for_test(lane),
         )
-        .expect_err("raw domain geometry cannot drive hit-test");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         denial.reason(),
@@ -213,7 +213,7 @@ fn custom_canvas_draw_hook_preserves_platform_identity_and_counters() {
             &fixture.canvas_plan,
             WorthUiCanvasSpatialFrameTarget::draw(lane),
         )
-        .expect("draw executes through admitted canvas hook");
+        .expect("runtime frame execution succeeds");
 
     assert_eq!(receipt.lane(), WorthUiCanvasSpatialLane::Draw);
     assert_eq!(
@@ -236,7 +236,7 @@ fn canvas_overlay_keeps_lane_handle_scope() {
             &fixture.canvas_plan,
             WorthUiCanvasSpatialFrameTarget::overlay(WorthUiCanvasOverlayPlan::for_lane(lane)),
         )
-        .expect("overlay executes through canvas lane");
+        .expect("runtime frame execution succeeds");
 
     assert_eq!(receipt.lane(), WorthUiCanvasSpatialLane::Overlay);
     assert_eq!(receipt.counters().overlay_plan_count(), 1);
@@ -273,7 +273,7 @@ fn canvas_lane_rejects_noncanvas_frame_claims() {
             &fixture.canvas_plan,
             WorthUiCanvasSpatialFrameTarget::component_for_test(component),
         )
-        .expect_err("component frame target cannot claim canvas lane");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         denial.reason(),

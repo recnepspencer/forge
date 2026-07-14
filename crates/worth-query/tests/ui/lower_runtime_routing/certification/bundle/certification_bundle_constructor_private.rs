@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryLowerRuntimeCertificationBundle, WorthQueryLowerRuntimeCertificationOutputDigest,
-    WorthQueryLowerRuntimeCertificationRow,
-};
+use worth_query::facade::certification::{WorthQueryLowerRuntimeCertificationBundle, WorthQueryLowerRuntimeCertificationOutputDigest, WorthQueryLowerRuntimeCertificationRow};
 
 fn main() {
     let rows: Vec<WorthQueryLowerRuntimeCertificationRow> = Vec::new();

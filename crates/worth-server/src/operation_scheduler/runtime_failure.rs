@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryRuntimeError;
+use worth_query::facade::runtime::WorthQueryRuntimeError;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthServerSchedulerRuntimeFailure {

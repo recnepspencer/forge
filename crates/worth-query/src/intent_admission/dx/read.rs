@@ -4,18 +4,19 @@ use crate::intent_admission::{
     WorthQueryIntentDecisionTraceEnvelope, WorthQueryRawIntentAdmissionRequest,
     WorthQueryReadExecutionBinding, WorthQueryReadExecutionHandoff,
 };
-use crate::query_context::AdmittedQueryBasisContext;
+use crate::query_context::ScopedQueryBasisContext;
 use crate::runtime::{
-    WorthQueryAdmittedGraphReadAccessPlan, WorthQueryGraphIndexInventoryMatchReport,
-    WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessAuthorityContext,
-    WorthQueryGraphReadAccessPlanExplanation, WorthQueryIntentConsumerInspection,
-    WorthQueryReadFamily, WorthQueryReadResult, WorthQueryRuntimeError, WorthQueryWorkspace,
+    WorthQueryAdmittedGraphReadAccessPlan, WorthQueryCountResult,
+    WorthQueryGraphIndexInventoryMatchReport, WorthQueryGraphReadAccessAdmission,
+    WorthQueryGraphReadAccessAuthorityContext, WorthQueryGraphReadAccessPlanExplanation,
+    WorthQueryIntentConsumerInspection, WorthQueryReadFamily, WorthQueryReadResult,
+    WorthQueryRuntimeError, WorthQueryWorkspace,
 };
 
 pub struct WorthQueryWorkspaceReadIntentAuthoring<'a> {
     workspace: &'a mut WorthQueryWorkspace,
     read_family: WorthQueryReadFamily,
-    basis_context: Option<AdmittedQueryBasisContext>,
+    basis_context: Option<ScopedQueryBasisContext>,
     graph_read_authority: Option<WorthQueryGraphReadAccessAuthorityContext>,
 }
 
@@ -23,7 +24,7 @@ impl<'a> WorthQueryWorkspaceReadIntentAuthoring<'a> {
     pub(crate) fn new(
         workspace: &'a mut WorthQueryWorkspace,
         read_family: WorthQueryReadFamily,
-        basis_context: Option<AdmittedQueryBasisContext>,
+        basis_context: Option<ScopedQueryBasisContext>,
         graph_read_authority: Option<WorthQueryGraphReadAccessAuthorityContext>,
     ) -> Self {
         Self {
@@ -258,5 +259,18 @@ impl<'a> WorthQueryAdmittedWorkspaceReadIntent<'a> {
     pub fn execute(self) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
         self.workspace
             .execute_bound_read_execution(self.execution_binding)
+    }
+
+    pub(crate) fn execute_count(self) -> Result<WorthQueryCountResult, WorthQueryRuntimeError> {
+        self.workspace
+            .execute_bound_count_read_execution(self.execution_binding)
+    }
+
+    pub(crate) fn open_managed_live<T>(
+        self,
+        name: impl Into<String>,
+    ) -> Result<crate::runtime::WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.workspace
+            .open_admitted_live_binding(name, self.execution_binding)
     }
 }

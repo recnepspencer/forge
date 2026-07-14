@@ -6,19 +6,21 @@ use std::sync::{
     Arc,
 };
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{
-    SubscriptionActivationInput, SubscriptionActivationReceipt,
-    WorthQueryBackendAdmissibleMutation, WorthQueryEntity, WorthQueryIntentDeclaration,
-    WorthQueryIntentExecution, WorthQueryLiveArtifactTarget, WorthQueryLivePatch,
-    WorthQueryMutationReceipt, WorthQueryPreviewBasisAdmission, WorthQueryRuntime,
-    WorthQueryRuntimeBackend, WorthQueryRuntimeError, WorthQueryRuntimeEvidenceAuthority,
-    WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeSupportProfile, WorthQuerySessionLabel,
-    WorthQuerySnapshotIdentity, WorthQueryWorkspace, WorthQueryWorkspaceError,
-    WorthQueryWriteCommand, WorthQueryWriteReceipt,
-};
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQueryMutationDelta,
     WorthQueryMutationKind,
+};
+use worth_query::facade::foundation::{
+    WorthQueryEntity, WorthQueryLivePatch, WorthQueryMutationReceipt, WorthQuerySnapshotIdentity,
+    WorthQueryWorkspaceError,
+};
+use worth_query::facade::runtime::{
+    SubscriptionActivationInput, SubscriptionActivationReceipt,
+    WorthQueryBackendAdmissibleMutation, WorthQueryIntentDeclaration, WorthQueryIntentExecution,
+    WorthQueryLiveArtifactTarget, WorthQueryPreviewBasisAdmission, WorthQueryRuntime,
+    WorthQueryRuntimeBackend, WorthQueryRuntimeError, WorthQueryRuntimeEvidenceAuthority,
+    WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeSupportProfile, WorthQuerySessionLabel,
+    WorthQueryWorkspace, WorthQueryWriteCommand, WorthQueryWriteReceipt,
 };
 use worth_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
@@ -149,7 +151,7 @@ pub(crate) fn mutation_request_input_for_workspace(
 }
 
 pub(crate) fn insert_task(identity: &str) -> WorthQueryWriteCommand {
-    worth_query::facade::WorthQueryAspectMutationBuilder::new()
+    worth_query::facade::runtime::WorthQueryAspectMutationBuilder::new()
         .aspect("identity.id", identity)
         .aspect("title.value", format!("Title for {identity}"))
         .build_insert("Task")
@@ -280,10 +282,10 @@ impl WorthQueryRuntimeBackend for StatefulCountingMutationRuntimeBackend {
     fn admit_live_view_declaration(
         &self,
         _name: &str,
-        _request: &worth_query::facade::DeclarativeLiveQueryRequest,
-        _schema_view: &worth_query::facade::QuerySchemaView,
+        _request: &worth_query::facade::foundation::DeclarativeLiveQueryRequest,
+        _schema_view: &worth_query::facade::runtime::QuerySchemaView,
     ) -> Result<
-        worth_query::facade::LiveViewDeclarationAdmissionBoundaryReceipt,
+        worth_query::facade::runtime::LiveViewDeclarationAdmissionBoundaryReceipt,
         WorthQueryWorkspaceError,
     > {
         panic!("phase three mutation runtime does not declare live views")
@@ -292,10 +294,15 @@ impl WorthQueryRuntimeBackend for StatefulCountingMutationRuntimeBackend {
     fn declare_live_view(
         &mut self,
         _name: String,
-        _request: worth_query::facade::DeclarativeLiveQueryRequest,
-        _schema_view: worth_query::facade::QuerySchemaView,
-    ) -> Result<worth_query::facade::WorthQueryLiveViewHandle, WorthQueryWorkspaceError> {
+        _request: worth_query::facade::foundation::DeclarativeLiveQueryRequest,
+        _schema_view: worth_query::facade::runtime::QuerySchemaView,
+    ) -> Result<worth_query::facade::foundation::WorthQueryLiveViewHandle, WorthQueryWorkspaceError>
+    {
         panic!("phase three mutation runtime does not declare live views")
+    }
+
+    fn close_live_view(&mut self, _name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        panic!("phase three mutation runtime does not close live views")
     }
 
     fn write(
@@ -377,7 +384,7 @@ impl WorthQueryRuntimeBackend for StatefulCountingMutationRuntimeBackend {
     fn admit_preview_basis(
         &self,
         _label: &WorthQuerySessionLabel,
-        _effect_policy: worth_query::facade::WorthQueryEffectPolicy,
+        _effect_policy: worth_query::facade::runtime::WorthQueryEffectPolicy,
         _authority: &WorthQueryRuntimeEvidenceAuthority,
     ) -> Result<WorthQueryPreviewBasisAdmission, WorthQueryWorkspaceError> {
         panic!("phase three mutation runtime does not admit preview basis")
@@ -425,8 +432,12 @@ fn test_mutation_receipt(
 
 fn mutation_kind(command: &WorthQueryBackendAdmissibleMutation) -> WorthQueryMutationKind {
     match command.mutation_family() {
-        worth_query::facade::WorthQueryMutationFamily::Insert => WorthQueryMutationKind::Created,
-        worth_query::facade::WorthQueryMutationFamily::Delete => WorthQueryMutationKind::Deleted,
+        worth_query::facade::runtime::WorthQueryMutationFamily::Insert => {
+            WorthQueryMutationKind::Created
+        }
+        worth_query::facade::runtime::WorthQueryMutationFamily::Delete => {
+            WorthQueryMutationKind::Deleted
+        }
         _ => WorthQueryMutationKind::Updated,
     }
 }

@@ -1,5 +1,5 @@
 error[E0308]: mismatched types
- --> tests/ui/runtime_preview_binding_inspection_constructor_private.rs:8:16
+ --> tests/ui/runtime_preview_binding_inspection_constructor_private.rs:5:16
   |
-8 |         label: String::new(),
+5 |         label: String::new(),
   |                ^^^^^^^^^^^^^ expected `WorthQuerySessionLabel`, found `String`

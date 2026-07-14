@@ -68,7 +68,7 @@ pub fn evaluate_basis_preview_closeout_eligibility(
     evaluate_eligibility(normalized, PreviewCloseoutLaneWitness::new())
 }
 
-pub fn evaluate_basis_certification_eligibility(
+pub(crate) fn evaluate_basis_certification_eligibility(
     normalized: NormalizedBasisIntent,
 ) -> Result<BasisEligibility<CertificationLaneWitness>, DeniedBasisCapability> {
     evaluate_eligibility(normalized, CertificationLaneWitness::new())
@@ -235,7 +235,10 @@ fn historical_replay_lacks_retained_support(
     operation_lane: &'static str,
 ) -> bool {
     operation_lane == "replay"
-        && normalized.family() == BasisFamily::HistoricalSnapshot
+        && matches!(
+            normalized.family(),
+            BasisFamily::HistoricalSnapshot | BasisFamily::HistoricalCommit
+        )
         && normalized.visibility() == BasisVisibilityPosture::Advisory
 }
 

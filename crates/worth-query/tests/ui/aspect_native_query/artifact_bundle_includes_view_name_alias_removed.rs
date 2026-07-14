@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryDerivedMaterializationBundle, WorthQueryLiveArtifactBundle};
+use worth_query::facade::runtime::{WorthQueryDerivedMaterializationBundle, WorthQueryLiveArtifactBundle};
 
 fn main() {
     let derived = derived_bundle_fixture();

@@ -1,22 +1,25 @@
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
+use worth_query::facade::certification::resolve_runtime_current_snapshot_basis_for_certification;
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
+use worth_query::facade::foundation::{
+    snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
+    ScalarPredicateValue, WorthQueryEntityIdentity,
+};
+use worth_query::facade::read::{
+    current, declare, WorthQueryProjectionDeclaration, WorthQueryProjectionOutcome,
+};
 use worth_query::facade::runtime::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryReadBuilder, WorthQueryReadDenial,
-    WorthQueryReadFamily, WorthQueryReadGraph, WorthQueryWorkspace,
+    WorthQueryWorkspace,
 };
-use worth_query::facade::{
-    public_bridge_projection_artifacts_for_read_graph, resolve_runtime_current_snapshot_basis,
-    snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ScalarPredicateValue,
-    WorthQueryAspectTouch, WorthQueryAuthoredAspectValue, WorthQueryEntityIdentity,
-};
+use worth_query::facade::runtime::{WorthQueryAspectTouch, WorthQueryAuthoredAspectValue};
 use worth_ui::facade::graph::UiGraphWorldProfile;
 
 pub(super) fn measurement_projection_workspace(
     lane_label: &str,
 ) -> (
     WorthQueryWorkspace,
-    WorthQueryReadFamily,
+    worth_query::facade::foundation::QuerySchemaBasisAuthority,
     WorthQueryEntityIdentity,
 ) {
     let schema = WorthQueryTestBackendSchema::single_collection("task")
@@ -44,43 +47,40 @@ pub(super) fn measurement_projection_workspace(
         .target_entity_identity()
         .cloned()
         .expect("fixture insert should resolve one target entity identity");
-    let family = workspace
-        .define_read_family(
-            &format!("worth-ui.phase5.measurement-basis.{lane_label}"),
-            title_family_graph,
-        )
-        .expect("query read family should admit");
-    (workspace, family, entity_identity)
+    (
+        workspace,
+        task_query_schema().basis_authority(),
+        entity_identity,
+    )
 }
 
 pub(super) fn projection_consumption_attempt(
     workspace: &mut WorthQueryWorkspace,
-    family: &WorthQueryReadFamily,
-    requested: ProjectMaterializedFacts,
-) -> (UiGraphWorldProfile, ProjectionFactConsumptionAttempt) {
-    let read_result = workspace
-        .execute_read_family(family)
-        .expect("query read family should execute");
-    let basis = resolve_runtime_current_snapshot_basis(
-        workspace.snapshot_identity().evidence_identity(),
-        family.read_graph().schema_basis().clone(),
+    schema_basis_authority: worth_query::facade::foundation::QuerySchemaBasisAuthority,
+    projection: WorthQueryProjectionDeclaration,
+) -> (UiGraphWorldProfile, WorthQueryProjectionOutcome) {
+    let completion = declare(title_family_graph)
+        .expect("ordinary query declaration should admit")
+        .using(current())
+        .run(workspace)
+        .into_result()
+        .expect("ordinary query read should execute");
+    let basis = resolve_runtime_current_snapshot_basis_for_certification(
+        &workspace.snapshot_identity().evidence_identity(),
+        schema_basis_authority,
     )
-    .expect("runtime current snapshot basis should resolve from the real read family");
+    .expect("runtime current snapshot basis should resolve from the ordinary declaration");
     let world_profile = UiGraphWorldProfile::query_snapshot_basis(
         basis.clone(),
         snapshot_resolution_report(&basis),
     )
     .expect("query snapshot basis world should admit");
-    let (result_shape, authorized_projection) =
-        public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let attempt = read_result
-        .consume_projection_facts(&result_shape, &authorized_projection, requested)
-        .expect("real query read should consume projection facts");
-    (world_profile, attempt)
+    let outcome = completion.consume_projection(projection);
+    (world_profile, outcome)
 }
 
-pub(super) fn title_value_field_path() -> worth_query::facade::ProjectionFactFieldPath {
-    worth_query::facade::ProjectionFactFieldPath::from_canonical_field_path(
+pub(super) fn title_value_field_path() -> worth_query::facade::foundation::ProjectionFactFieldPath {
+    worth_query::facade::foundation::ProjectionFactFieldPath::from_canonical_field_path(
         CanonicalFieldPath::new(vec![
             FieldKey::new("size").expect("field key should admit"),
             FieldKey::new("value").expect("field key should admit"),
@@ -89,9 +89,9 @@ pub(super) fn title_value_field_path() -> worth_query::facade::ProjectionFactFie
     )
 }
 
-fn title_family_graph(
-    read: WorthQueryReadBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+fn title_family_graph<Output>(
+    read: WorthQueryReadBuilder<Output>,
+) -> Result<Output, WorthQueryReadDenial> {
     read.local_detail(
         "task",
         task_query_schema(),
@@ -116,14 +116,17 @@ fn task_query_schema() -> QuerySchemaView {
         "task",
         [
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("identity")
+                worth_query::facade::foundation::AspectName::new("identity")
                     .expect("schema aspect should admit"),
-                worth_query::facade::FieldName::new("id").expect("schema field should admit"),
+                worth_query::facade::foundation::FieldName::new("id")
+                    .expect("schema field should admit"),
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("size").expect("schema aspect should admit"),
-                worth_query::facade::FieldName::new("value").expect("schema field should admit"),
+                worth_query::facade::foundation::AspectName::new("size")
+                    .expect("schema aspect should admit"),
+                worth_query::facade::foundation::FieldName::new("value")
+                    .expect("schema field should admit"),
                 SchemaFieldKind::String,
             ),
         ],

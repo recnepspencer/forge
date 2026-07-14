@@ -6,7 +6,7 @@ mod query_handoff_runtime;
 use std::sync::atomic::Ordering;
 
 use serde_json::json;
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     WorthServerCompatHttpRouteFamily, WorthServerCompatibilityRequestInput,
     WorthServerMultipartUpload, WorthServerQueryHandoffDenialCode, WorthServerUploadExpectation,

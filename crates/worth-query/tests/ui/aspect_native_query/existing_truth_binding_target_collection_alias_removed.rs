@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryExistingTruthTargetBinding;
+use worth_query::facade::runtime::WorthQueryExistingTruthTargetBinding;
 
 fn main() {}
 

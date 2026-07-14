@@ -1,4 +1,4 @@
-use worth_query::facade::PolicyExecutionModeRequest;
+use worth_query::facade::policy::PolicyExecutionModeRequest;
 
 fn main() {
     let _admitted: bool = PolicyExecutionModeRequest::CurrentRead;

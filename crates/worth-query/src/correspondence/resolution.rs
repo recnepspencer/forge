@@ -79,7 +79,7 @@ impl CorrespondenceEvidenceResolved {
     }
 }
 
-pub fn resolve_correspondence_evidence(
+pub(crate) fn resolve_correspondence_evidence(
     request: CorrespondenceEvaluationRequest,
 ) -> Result<CorrespondenceEvidenceResolved, CorrespondenceEvaluationError> {
     let lineage_digest = lineage_digest_for(request.lineage_evidence());

@@ -14,11 +14,52 @@ impl WorthQueryRuntime {
         request: DeclarativeLiveQueryRequest,
         schema_view: QuerySchemaView,
     ) -> Result<WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Live)?;
         let name = name.into();
         admit_live_view_declaration_receipt(&*self.backend, &name, &request, &schema_view)?;
         let activation =
             self.install_live_subscription_for_request(&name, &request, schema_view.clone())?;
+        self.finish_live_view_declaration(name, request, schema_view, activation)
+    }
+
+    pub(crate) fn declare_live_view_from_read_binding<T>(
+        &mut self,
+        name: impl Into<String>,
+        binding: WorthQueryReadExecutionBinding,
+    ) -> Result<WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
+        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Live)?;
+        let name = name.into();
+        if self
+            .live_subscriptions
+            .contains_key(&WorthQueryLiveArtifactTarget::from_view_name(&name))
+        {
+            return Err(WorthQueryRuntimeError::LiveSubscriptionInstallation {
+                view_name: name,
+                stage: "managed-resource-name-admission",
+                message: "managed live resource names must be unique within a workspace"
+                    .to_string(),
+            });
+        }
+        let request = binding
+            .read_family()
+            .read_graph()
+            .declarative_request()
+            .clone();
+        let schema_view = binding.read_family().read_graph().schema_view().clone();
+        admit_live_view_declaration_receipt(&*self.backend, &name, &request, &schema_view)?;
+        let activation = self.install_live_subscription_for_read_binding(&name, binding)?;
+        self.finish_live_view_declaration(name, request, schema_view, activation)
+    }
+
+    fn finish_live_view_declaration<T>(
+        &mut self,
+        name: String,
+        request: DeclarativeLiveQueryRequest,
+        schema_view: QuerySchemaView,
+        activation: WorthQueryRuntimeLiveSubscriptionActivation,
+    ) -> Result<WorthQueryLiveView<T>, WorthQueryRuntimeError> {
         let handle = declare_live_view_source_handle(
             &mut *self.backend,
             &mut self.active_subscriptions,
@@ -59,6 +100,7 @@ impl WorthQueryRuntime {
                 last_delivery: None,
                 async_result_state: None,
                 remask_posture: activation.remask_posture,
+                read_authority_binding: activation.read_authority_binding,
             },
         );
         if let Some(projection) = pending_async_result_state.as_ref() {
@@ -76,6 +118,7 @@ impl WorthQueryRuntime {
         &mut self,
         view: WorthQueryDerivedView,
     ) -> Result<WorthQueryDerivedView, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Computed)?;
         self.admit_derived_view_declaration(&view)?;
         insert_derived_runtime(
@@ -92,6 +135,7 @@ impl WorthQueryRuntime {
         view: WorthQueryDerivedView,
         maintainer: impl WorthQueryDerivedViewMaintainer + 'static,
     ) -> Result<WorthQueryDerivedViewHandle<T>, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Computed)?;
         self.admit_derived_view_declaration(&view)?;
         let name = view.name().to_string();
@@ -123,6 +167,7 @@ impl WorthQueryRuntime {
         &mut self,
         declaration: WorthQueryEffectDeclaration,
     ) -> Result<WorthQueryEffectHandle<T>, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Effect)?;
         let live_view_targets = self
             .live_subscriptions

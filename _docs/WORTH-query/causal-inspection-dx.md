@@ -1,6 +1,6 @@
 # Causal Inspection
 
-Causal inspection answers questions like “why did this observation change?” from an existing `QueryObservationReceipt`.
+Causal inspection answers questions like “why did this observation change?” from an existing `QueryObservationReceipt` and the Query-minted inspection basis that authorizes that scope.
 
 Before building a plan, callers can inspect the supported families and later-milestone debt:
 
@@ -13,7 +13,11 @@ let explanation = support.explain();
 Use the common path when you want a finished Query inspection artifact:
 
 ```rust
-let plan = CausalInspection::for_observation(receipt)
+let inspection_basis = basis_lifecycle()
+    .current_head()
+    .inspect()?;
+
+let plan = CausalInspection::for_observation(receipt, inspection_basis)
     .why_changed()
     .reference_only()
     .include_all_retained_evidence()
@@ -21,6 +25,8 @@ let plan = CausalInspection::for_observation(receipt)
 
 let artifact = plan.materialize_with_bridge(&bridge)?;
 ```
+
+The receipt and scoped basis must match the pairing captured when the observation receipt was created. A mismatch returns a typed `BasisMismatch` before anchoring, evidence resolution, or bridge-envelope assembly.
 
 The plan is intentionally cheap. It anchors the observation, resolves Query evidence references, builds the inspection target, creates the inspection request, and runs Query admission. It does not ask the runtime bridge to assemble a causal envelope until `materialize_with_bridge`.
 
@@ -34,18 +40,19 @@ let evidence = plan.required_evidence();
 let trace = plan.decision_trace();
 let cost = plan.estimated_cost();
 let explanation = plan.explain();
+let basis = plan.inspection_basis();
 ```
 
 `estimated_cost()` exposes the planned anchor, reference-resolution, admission,
 bridge-assembly, and evidence-reference counts. A denied Query-admission plan
 reports zero bridge-envelope assembly before materialization.
 
-Use the digest accessors when comparing a common-path plan to a certification or advanced pipeline:
+Read-only reporting projections are available for certification and diagnostics:
 
 ```rust
-let anchor = plan.anchor_digest();
+let anchor = plan.anchor_for_reporting();
 let references = plan.reference_set_digest();
-let request = plan.request_digest();
+let request = plan.request_for_reporting();
 let admission = plan.admission_digest();
 ```
 
@@ -77,30 +84,15 @@ let advisory = artifact.advisory_reason();
 
 Authority bindings and evidence are Query-owned artifact views over the bridge envelope bindings. Relational and signal evidence remain owned by their authority crates; Query reports references and bridge-bound evidence summaries rather than rebuilding those authority APIs.
 
-## When To Use Advanced Primitives
+## Advanced Inspection
 
-Use the common `CausalInspection` builder for product and operator workflows.
-
-Use the explicit primitives when you need certification-grade control over each proof boundary:
-
-```rust
-let anchor = anchor_causal_observation(receipt, reason)?;
-let references = resolve_causal_evidence_references(anchor, families);
-let target = causal_inspection_target(
-    CausalObservationTargetHandle::new(observation_digest),
-    CausalResultShapeContextHandle::new(shape_digest),
-)?;
-let request = request_causal_inspection(reference_set, target, family, richness, families)?;
-let admission = admit_causal_inspection(request);
-```
-
-Those primitives remain the authoritative path for certification rows, proof-shape parity, compile-fail boundary tests, and hostile QA.
+Use the common `CausalInspection` builder for product, operator, and downstream-domain workflows. Query keeps observation anchoring, reference resolution, request assembly, and admission transitions internal so they cannot become a second public authority path. Certification code exercises those boundaries through its dedicated tooling surface.
 
 ## Boundary Rule
 
 Do not stitch runtime bridge, signal, or relational APIs directly to answer causal-inspection questions. The common path preserves the boundary:
 
-- Query owns observation anchoring, evidence references, request admission, and Query artifacts.
+- Query owns scoped inspection admission, observation anchoring, evidence references, request admission, and Query artifacts.
 - Runtime bridge owns causal envelope assembly.
 - Signal and relational crates own their evidence and authority records.
 

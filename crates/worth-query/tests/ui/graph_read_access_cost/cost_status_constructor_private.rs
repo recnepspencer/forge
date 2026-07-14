@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadCostEstimateStatus, WorthQueryGraphReadCostEstimateStatusKind,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadCostEstimateStatus, WorthQueryGraphReadCostEstimateStatusKind};
 
 fn main() {
     let _ = WorthQueryGraphReadCostEstimateStatus {

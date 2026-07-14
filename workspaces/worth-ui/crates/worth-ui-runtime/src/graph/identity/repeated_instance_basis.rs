@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use worth_foundational::facade::FoundationalIdentityKind;
-use worth_query::facade::QueryExternalIdentityToken;
+use worth_query::facade::foundation::QueryExternalIdentityToken;
 
 use crate::declaration::{stable_text_digest, UiDeclarationIdentityDigest};
 

@@ -1,4 +1,4 @@
-use worth_query::facade::SubscriptionLifecycleCertificationContext;
+use worth_query::facade::certification::SubscriptionLifecycleCertificationContext;
 
 fn main() {
     let _ = SubscriptionLifecycleCertificationContext::admitted(

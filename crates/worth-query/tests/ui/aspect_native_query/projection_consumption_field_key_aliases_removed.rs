@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    BoundProjectionFactFamily, ConsumedFieldValueFact, ProjectionFactFieldPath,
-    ProjectionFactRequest,
-};
+use worth_query::facade::foundation::{BoundProjectionFactFamily, ConsumedFieldValueFact, ProjectionFactFieldPath, ProjectionFactRequest};
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
 
 fn main() {

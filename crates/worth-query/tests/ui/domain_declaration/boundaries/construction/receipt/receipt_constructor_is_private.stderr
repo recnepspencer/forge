@@ -1,7 +1,7 @@
 error[E0624]: associated function `new` is private
-  --> tests/ui/domain_declaration/boundaries/construction/receipt/receipt_constructor_is_private.rs:58:83
+  --> tests/ui/domain_declaration/boundaries/construction/receipt/receipt_constructor_is_private.rs:51:83
    |
-58 |       let _ = WorthQueryDeclarationReceipt::<GeometryDomain, SplitEdgeDeclaration>::new(
+51 |       let _ = WorthQueryDeclarationReceipt::<GeometryDomain, SplitEdgeDeclaration>::new(
    |                                                                                     ^^^ private associated function
    |
   ::: src/application/declaration_receipt/artifact.rs
@@ -16,9 +16,9 @@ error[E0624]: associated function `new` is private
    | |_____________- private associated function defined here
 
 error[E0624]: associated function `new` is private
-  --> tests/ui/domain_declaration/boundaries/construction/receipt/receipt_constructor_is_private.rs:64:50
+  --> tests/ui/domain_declaration/boundaries/construction/receipt/receipt_constructor_is_private.rs:57:50
    |
-64 |           WorthQueryDeclarationReceiptExplanation::new("x", None, Vec::new(), "x".to_string()),
+57 |           WorthQueryDeclarationReceiptExplanation::new("x", None, Vec::new(), "x".to_string()),
    |                                                    ^^^ private associated function
    |
   ::: src/application/declaration_receipt/explain.rs
@@ -32,19 +32,19 @@ error[E0624]: associated function `new` is private
    | |_____________- private associated function defined here
 
 error[E0061]: this function takes 12 arguments but 9 arguments were supplied
-  --> tests/ui/domain_declaration/boundaries/construction/receipt/receipt_constructor_is_private.rs:58:13
+  --> tests/ui/domain_declaration/boundaries/construction/receipt/receipt_constructor_is_private.rs:51:13
    |
-58 |        let _ = WorthQueryDeclarationReceipt::<GeometryDomain, SplitEdgeDeclaration>::new(
+51 |        let _ = WorthQueryDeclarationReceipt::<GeometryDomain, SplitEdgeDeclaration>::new(
    |  ______________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-
-59 | |          WorthQueryDeclarationReceiptClass::CoveredCrossing,
-60 | |          WorthQueryDeclarationReceiptKind::Relational,
-61 | |          None,
+52 | |          WorthQueryDeclarationReceiptClass::CoveredCrossing,
+53 | |          WorthQueryDeclarationReceiptKind::Relational,
+54 | |          None,
 ...  |
-65 | |/         None::<FoundationalBoundaryEvidenceCompletedReceiptArtifact>,
-66 | ||         fake::<FoundationalMaterializedBoundaryArtifact<FoundationalBoundaryReceiptSurface>>(),
+58 | |/         None::<FoundationalBoundaryEvidenceCompletedReceiptArtifact>,
+59 | ||         fake::<FoundationalMaterializedBoundaryArtifact<FoundationalBoundaryReceiptSurface>>(),
    | ||______________________________________________________________________________________________- two arguments of type `WorthQueryDeclarationAspectContract` and `WorthQueryDeclarationAspectCoverage` are missing
-67 | |          fake(),
-68 | |      );
+60 | |          fake(),
+61 | |      );
    | |______- argument #12 of type `CanonicalDerivedDigest` is missing
    |
 note: associated function defined here
@@ -54,18 +54,18 @@ note: associated function defined here
    |                   ^^^
 help: provide the arguments
    |
-58 ~     let _ = WorthQueryDeclarationReceipt::<GeometryDomain, SplitEdgeDeclaration>::new(
-59 +         WorthQueryDeclarationReceiptClass::CoveredCrossing,
-60 +         WorthQueryDeclarationReceiptKind::Relational,
-61 +         None,
-62 +         Some(fake()),
-63 +         None,
-64 +         WorthQueryDeclarationReceiptExplanation::new("x", None, Vec::new(), "x".to_string()),
-65 +         /* WorthQueryDeclarationAspectContract */,
-66 +         /* WorthQueryDeclarationAspectCoverage */,
-67 +         fake(),
-68 +         None::<FoundationalBoundaryEvidenceCompletedReceiptArtifact>,
-69 +         fake::<FoundationalMaterializedBoundaryArtifact<FoundationalBoundaryReceiptSurface>>(),
-70 +         /* CanonicalDerivedDigest */,
-71 ~     );
+51 ~     let _ = WorthQueryDeclarationReceipt::<GeometryDomain, SplitEdgeDeclaration>::new(
+52 +         WorthQueryDeclarationReceiptClass::CoveredCrossing,
+53 +         WorthQueryDeclarationReceiptKind::Relational,
+54 +         None,
+55 +         Some(fake()),
+56 +         None,
+57 +         WorthQueryDeclarationReceiptExplanation::new("x", None, Vec::new(), "x".to_string()),
+58 +         /* WorthQueryDeclarationAspectContract */,
+59 +         /* WorthQueryDeclarationAspectCoverage */,
+60 +         fake(),
+61 +         None::<FoundationalBoundaryEvidenceCompletedReceiptArtifact>,
+62 +         fake::<FoundationalMaterializedBoundaryArtifact<FoundationalBoundaryReceiptSurface>>(),
+63 +         /* CanonicalDerivedDigest */,
+64 ~     );
    |

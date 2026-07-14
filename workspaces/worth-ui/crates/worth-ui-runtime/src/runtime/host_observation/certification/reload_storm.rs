@@ -1,5 +1,5 @@
 use crate::capability::CapabilitySnapshot;
-use crate::runtime::host::WorthUiRuntimeHost;
+use crate::runtime::WorthUiRuntime;
 use crate::runtime::{
     WorthUiCandidateAdmission, WorthUiCounterCaptureRichness,
     WorthUiFileRustReplacementParityCounters, WorthUiFoundationalCounterBridge,
@@ -22,7 +22,7 @@ struct WorthUiReloadStormCandidateLoweringFailure {
     counters: WorthUiReloadLatencyCounters,
 }
 
-impl WorthUiRuntimeHost {
+impl WorthUiRuntime {
     pub fn certify_reload_storm_against_snapshot(
         &mut self,
         scenario: WorthUiReloadStormScenario,

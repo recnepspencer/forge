@@ -1,4 +1,4 @@
-use worth_query::facade::{ActiveFanoutWidth, ActiveRegistryLookupWidth, ActiveSubscriptionAllocationPolicy, ActiveSubscriptionWorkBudget};
+use worth_query::facade::runtime::{ActiveFanoutWidth, ActiveRegistryLookupWidth, ActiveSubscriptionAllocationPolicy, ActiveSubscriptionWorkBudget};
 
 fn main() {
     let _ = ActiveSubscriptionWorkBudget::admitted(

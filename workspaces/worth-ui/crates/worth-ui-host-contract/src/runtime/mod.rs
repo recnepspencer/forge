@@ -23,9 +23,10 @@ pub use measurement_request::{
     UiMeasurementRequestDenial, UiMeasurementRequestFamily, UiMeasurementRequestIdentity,
     UiNativeControlIntrinsicSizeObservation, UiNativeControlIntrinsicSizeRequest,
     UiNativeControlKind, UiPortalAnchorRectObservation, UiPortalAnchorRectRequest,
-    UiScrollContainerViewportObservation, UiScrollContainerViewportRequest,
-    UiTextBaselineMetricsObservation, UiTextBaselineMetricsRequest, UiTextIntrinsicSizeObservation,
-    UiTextIntrinsicSizeRequest, UiViewportExtentObservation, UiViewportExtentRequest,
+    UiPortalAnchorTargetIdentity, UiScrollContainerViewportObservation,
+    UiScrollContainerViewportRequest, UiTextBaselineMetricsObservation,
+    UiTextBaselineMetricsRequest, UiTextIntrinsicSizeObservation, UiTextIntrinsicSizeRequest,
+    UiViewportExtentObservation, UiViewportExtentRequest,
 };
 pub use runtime_host_contract::{
     WorthUiHostAdapter, WorthUiHostContract, WorthUiHostKind, WorthUiMeasurementHostAdapter,

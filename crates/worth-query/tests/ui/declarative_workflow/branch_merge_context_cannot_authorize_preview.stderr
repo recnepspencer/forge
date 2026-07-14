@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/declarative_workflow/branch_merge_context_cannot_authorize_preview.rs:9:38
+  |
+9 |     let _request = declaration.using(context);
+  |                                ----- ^^^^^^^ expected `WorthQueryWorkflowContext`, found `WorthQueryBranchMergeContext`
+  |                                |
+  |                                arguments to this method are incorrect
+  |
+note: method defined here
+ --> src/ordinary/workflow/request.rs
+  |
+  |     pub fn using(self, context: WorthQueryWorkflowContext) -> WorthQueryWorkflowRequest {
+  |            ^^^^^

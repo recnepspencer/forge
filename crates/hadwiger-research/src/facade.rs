@@ -99,14 +99,12 @@ pub use crate::domain_artifacts::{
     HadwigerArtifactSourceReference, HadwigerCanonicalArtifact, HadwigerCheckerBoundaryKind,
     HadwigerCheckerCausalEvidence, HadwigerCheckerPosture, HadwigerDeclaredFamilyCheckedExt,
     HadwigerProofClaimKind, HadwigerProofClaimPosture, HadwigerQueryDeclarationReference,
-    HadwigerQueryEnvelopeReference, LowerBoundWitnessArtifact, ProofClaim, ReductionTrace,
-    RetainedBackgroundTheorem, SolverRun, SolverRunPosture, UnitDistanceVerification,
-    UnsatCoreArtifact, VertexIdentity,
+    LowerBoundWitnessArtifact, ProofClaim, ReductionTrace, RetainedBackgroundTheorem, SolverRun,
+    SolverRunPosture, UnitDistanceVerification, UnsatCoreArtifact, VertexIdentity,
 };
 pub use crate::domain_declarations::{
-    declare_research_request_checked, orchestrate_research_request_entry,
-    research_declaration_entry_inventory, research_declaration_entry_readiness,
-    AdvisoryNoteDeclaration, AdvisoryNoteDeclarationFamily,
+    declare_research_request_checked, research_declaration_entry_inventory,
+    research_declaration_entry_readiness, AdvisoryNoteDeclaration, AdvisoryNoteDeclarationFamily,
     AutocorrelationZeroScreeningDeclaration, AutocorrelationZeroScreeningDeclarationFamily,
     BackgroundTheoremDeclaration, BackgroundTheoremDeclarationFamily,
     BoundaryOwnershipScreeningDeclaration, BoundaryOwnershipScreeningDeclarationFamily,
@@ -211,7 +209,8 @@ pub use crate::proof_claims::{
     PlaneLowerBoundClaimRequest, PlaneUpperBoundClaimRequest,
 };
 pub use crate::query_entry::{
-    admit_hadwiger_research_handle, HadwigerResearchAdmissionError,
+    admit_hadwiger_research_handle, declare_candidate_promotion, declare_candidate_search,
+    HadwigerCandidateContribution, HadwigerResearchAdmissionError,
     HadwigerResearchAssumptionRegime, HadwigerResearchCheckerSupportRegime,
     HadwigerResearchDomainEntry, HadwigerResearchHandle, HadwigerResearchInvalidationRegime,
     HadwigerResearchOperatingContext,

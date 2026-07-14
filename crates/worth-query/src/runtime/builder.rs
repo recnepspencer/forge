@@ -292,6 +292,7 @@ impl WorthQueryRuntimeBuilder {
         Ok(WorthQueryRuntime {
             backend,
             evidence_authority: WorthQueryRuntimeEvidenceAuthority::new(),
+            authority_identity: super::WorthQueryRuntimeAuthorityIdentity::mint(),
             preview_session_labels: BTreeSet::new(),
             branch_session_labels: BTreeSet::new(),
             active_subscriptions: ActiveSubscriptionRuntime::new(),
@@ -310,6 +311,7 @@ impl WorthQueryRuntimeBuilder {
             effect_index: WorthQueryEffectIndex::default(),
             graph_obligation_registration_catalog,
             graph_obligation_index,
+            managed_live_resource_capability: WorthQueryManagedLiveWorkspaceCapability::shared(),
             next_run_id: 0,
         })
     }

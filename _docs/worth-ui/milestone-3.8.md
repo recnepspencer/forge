@@ -20,9 +20,10 @@ runtime-owned lane.
 
 Milestone 3.8 is complete when Worth UI can take admitted
 `UiMeasurementBasis`, admitted `UiAllocationNeighborhood`, and `plan_allocation`
-output; classify resize/drag/scroll/portal/content-growth streams into typed
-invalidation families; replan only the affected allocation neighborhood; and
-commit explicit `UiAllocationReceipt` artifacts with declared freshness,
+output; own the frame-dispatch boundary that turns admitted host, interaction,
+and Query observations into sealed stream frames; classify those frames into
+typed invalidation families; replan only the affected allocation neighborhood;
+and commit explicit `UiAllocationReceipt` artifacts with declared freshness,
 identity, reuse, denial, and inspection posture.
 
 This milestone closes the first half of churn-heavy runtime geometry truth:
@@ -178,6 +179,9 @@ The failure modes this milestone must prevent are:
   distinct runtime acts.
 - High-frequency streams are governed by typed commit strategies, not generic
   debounce helpers.
+- The runtime, not a host callback or test harness, owns frame collection,
+  deterministic frame close, stream-policy resolution, and transition dispatch.
+  Host and Query-facing boundaries may submit admitted source facts only.
 - Scroll-owned and portal-anchored behavior remain runtime-owned semantics.
   Host adapters report observations and consume receipts; they do not decide
   allocation truth.
@@ -337,7 +341,6 @@ Freshness postures must include at least:
 - `coalescing`
 - `stale_but_bounded`
 - `recompute_pending`
-- `denied`
 
 Ordinary law:
 
@@ -346,10 +349,12 @@ Ordinary law:
 - later execution lowering may consume only receipts whose companion report is
   `current` or `stale_but_bounded` under an admitted policy that explicitly
   allows bounded lag
-- `denied` and `recompute_pending` are not execution-lowering inputs
+- `recompute_pending` is not an execution-lowering input
 
-`denied` and `recompute_pending` live on append-only report lineage artifacts,
-not by mutating committed receipt truth in place.
+`recompute_pending` lives on append-only report lineage artifacts, not by
+mutating committed receipt truth in place. A denial is an attempted-transition
+outcome on transaction lineage, not a freshness posture of the prior committed
+receipt.
 
 If a commit attempt denies:
 
@@ -357,6 +362,9 @@ If a commit attempt denies:
 - a new denial-bearing report/evidence artifact is appended against the prior
   committed receipt lineage or transaction lineage, according to the denial
   family
+- the prior committed receipt retains its prior paintability posture, or moves
+  only to `stale_but_bounded` or `recompute_pending` through an independently
+  admitted safety rule; denial alone may not revoke prior admitted truth
 
 If recompute is pending:
 
@@ -371,14 +379,11 @@ Freshness posture transitions must be explicit:
 | `current` | admitted coalescing policy accepts delayed recompute | `coalescing` |
 | `current` | later basis/observation invalidates but bounded prior receipt remains paintable | `stale_but_bounded` |
 | `current` | replacement/remeasure required before next committed receipt | `recompute_pending` |
-| `current` | next commit attempt denies | `denied` |
 | `coalescing` | committed recompute succeeds | `current` |
-| `coalescing` | bounded lag exceeded before recompute | `recompute_pending` or `denied` |
+| `coalescing` | bounded lag exceeded before recompute | `recompute_pending` |
 | `stale_but_bounded` | committed recompute succeeds | `current` |
-| `stale_but_bounded` | bounded lag no longer admissible | `recompute_pending` or `denied` |
+| `stale_but_bounded` | bounded lag no longer admissible | `recompute_pending` |
 | `recompute_pending` | committed recompute succeeds | `current` |
-| `recompute_pending` | next commit denies | `denied` |
-| `denied` | later admitted recompute succeeds | `current` |
 
 Partial reuse is admitted in one narrow form in 3.8:
 
@@ -454,6 +459,23 @@ Neighborhood-set order is deterministic and must be derived by:
 
 That ordering participates in transaction evidence and replay determinism.
 
+Neighborhood-set commit is atomic. Before mutating committed truth, the runtime
+must preflight the complete ordered set against its expected generation vector,
+policy verdict, reuse legality, coordinate posture, and locality proof. It then
+either publishes every receipt, report, transaction artifact, counter effect,
+and evidence reference as one outcome, or publishes no receipt and no partial
+counter/evidence effect while appending one typed transaction denial.
+
+`UiAllocationReplanTransaction` is the commit authority for a neighborhood set.
+Its idempotency key includes runtime-instance generation, allocation frame
+epoch, resolved policy verdict, ordered neighborhood identities, and expected
+generation vector. Replay of the same key returns the prior complete outcome
+without duplicate evidence or counters.
+
+Disjoint transaction sets may commit independently. Overlapping sets must merge
+before preflight or serialize by stable neighborhood-set order; they may never
+partially interleave publication.
+
 Widen reasons must come from a closed seed set in 3.8:
 
 - `constraint_propagation_crossing`
@@ -488,6 +510,14 @@ Each admitted policy family must declare at least:
 - whether the family may enter `coalescing` or `stale_but_bounded`
 - whether the family is override-admissible
 
+`SourceLane`, `UiAllocationStreamFamily`, and
+`UiAllocationInvalidationFamily` are distinct closed classifications. Every
+sealed entry carries runtime-instance generation, source identity, source
+generation, monotonic source sequence, source/evidence reference, and a
+deduplication key. Within-source order is sequence order; cross-source ties use
+the frozen source-lane rank and stable source identity. Duplicate and sequence
+gap handling are typed policy inputs, not callback-order folklore.
+
 Concurrent same-frame policy law:
 
 - resize preview + durable resize commit: preview resolves first, durable
@@ -503,7 +533,12 @@ Concurrent same-frame policy law:
 Illegal combinations must deny at admit-time or runtime commit-time with typed
 denials. They may not fall back to generic debounce or whole-page replanning.
 
-The merge table is total over admitted family pairs.
+The merge table is total and symmetric over admitted family pairs, with exact
+numeric budgets for every admitted family declared in the table rather than
+left to implementation selection. Its merge operator must prove associative,
+commutative, and idempotent behavior; otherwise the runtime uses the defined
+canonical left-fold over the sealed entry order and records every intermediate
+verdict.
 
 Every pair must map to exactly one of:
 
@@ -528,6 +563,80 @@ That order is the n-way merge law for deterministic replay.
 Evidence cadence follows commit cadence, not raw ingress cadence.
 Coalesced windows must emit one evidence artifact per committed window, plus
 ingress sample counts through counters.
+
+### Frame Dispatch And Ingress Lifecycle Law
+
+An admitted stream frame is a runtime-owned transition boundary, not a bag that
+host callbacks may fill and flush at will.
+
+The ordinary path is:
+
+`admitted source fact -> source-to-frame gateway -> open frame collector ->
+sealed admitted stream frame -> policy resolution -> allocation transition ->
+typed outcome/evidence envelope`
+
+The runtime owns exactly one dispatcher lifecycle per active runtime instance.
+It owns frame epoch allocation, collector replacement, deterministic frame
+close, and handoff into the stream-resolved allocation transition. No host
+adapter, renderer, gesture helper, Query callback, inspection surface, or test
+fixture may close a frame, invoke policy resolution, or commit a receipt.
+
+Source-to-frame gateways are narrow admission boundaries. They accept only
+already admitted source truth:
+
+- host measurement observations through the measurement lane
+- settled Query projection facts through the binding-consumption lane
+- admitted transient interaction state through the interaction lane
+- admitted durable resize input through the durable-state lane
+
+They do not decide invalidation family, policy, locality, receipt reuse, or
+commit eligibility. Those decisions begin only after frame sealing.
+
+Frame lifecycle is an explicit state machine:
+
+`Paused -> Open(epoch) -> Closing(epoch, next_epoch_reserved) ->
+Sealed(epoch) -> Dispatched(epoch)`
+
+`Paused` is entered only during launch, replacement pause, shutdown, or a
+typed fatal dispatcher denial. `Dispatched(epoch)` opens only the next reserved
+epoch; no state may reopen or mutate a sealed epoch.
+
+The runtime executor is the sole linearization authority. In 3.8 it is an
+explicitly single-threaded runtime pump over a bounded runtime-owned mailbox;
+host and Query callbacks submit capability-shaped messages but never borrow or
+mutate the collector. A host paint/tick boundary may be an admitted boundary
+fact, but it does not allocate the epoch or close the frame. The runtime pump
+closes an epoch through its one named dispatch act.
+
+Submission outcomes are typed and carry the accepted epoch plus assigned
+sequence, duplicate identity, backpressure watermark/retry epoch, or terminal
+denial. Every accepted ingress belongs to exactly one epoch. Ingress observed
+after `Closing` begins is assigned to the next reserved epoch or returns typed
+backpressure/denial; it is never folded into the closing frame silently.
+
+Transport capacity is a Phase 3 mailbox/collector law, distinct from later
+semantic per-family cadence policy. Overflow may backpressure or deny with
+source identity and counters, but may not silently discard source truth.
+Duplicate/retry handling is idempotent: the same ingress key has one accepted
+sequence and one counter/evidence effect.
+
+Dispatcher lifetime is tied to runtime-instance generation. Launch creates its
+initial `Open` epoch; replacement pause seals or explicitly disposes queued
+ingress through typed outcomes; shutdown denies new ingress and drains or
+disposes the bounded queue by declared policy; epoch exhaustion is terminal.
+`UiAllocationFrameEpoch` must either replace `WorthUiRuntimeFrameEpoch` or
+carry an explicit causal bridge to it; two unrelated epoch authorities are
+forbidden.
+
+Only `Dispatched(epoch)` returns one `UiAllocationFrameTransitionOutcome`
+carrying the resolved frame plan, later transition result, receipt/report or
+denial lineage, and boundary counters. Consumers do not reconstruct an outcome
+from collector or host state.
+
+The dispatcher may batch only across a semantically honest frame boundary. It
+must expose ingress count, frame count, late-ingress count, queue/overflow
+denials, family cardinality, resolved transaction-set cardinality, receipt
+count, and evidence count so frame-cost claims remain mechanically auditable.
 
 ### Named Step Surface
 
@@ -636,11 +745,11 @@ At minimum:
 - stale or generation-mismatched anchor evidence denies reuse before any
   committed replacement receipt is produced
 
-Phase 9 tests asserting anchor identity must certify against this rule.
+Phase 11 tests asserting anchor identity must certify against this rule.
 
 ### Anti-Bypass Type Fence Law
 
-Anti-bypass is part of the appendix contract, not only Phase 13 certification.
+Anti-bypass is part of the appendix contract, not only Phase 15 certification.
 
 3.8 must enforce at least:
 
@@ -796,6 +905,23 @@ workspaces/worth-ui/crates/
         replacement/
           ...existing preservation / impact inputs...
 
+        allocation_frame_dispatch/
+          mod.rs
+          lifecycle.rs
+          epoch.rs
+          mailbox.rs
+          collector.rs
+          sealed_frame.rs
+          submission_outcome.rs
+          dispatcher.rs
+          shutdown.rs
+          gateway/
+            mod.rs
+            host_measurement.rs
+            query_projection.rs
+            interaction.rs
+            durable_resize.rs
+
         allocation_invalidation/
           mod.rs
           family.rs
@@ -893,7 +1019,12 @@ workspaces/worth-ui/crates/
 - `graph/allocation_neighborhood/` owns neighborhood identity, ordered-set
   shape, widen reasons, and locality proof only.
 - `runtime/allocation_invalidation/` owns family classification only.
-- `runtime/allocation_stream_policy/` owns cadence and merge legality only.
+- `runtime/allocation_frame_dispatch/` owns runtime lifecycle, transport
+  capacity, epoch/sequence allocation, immutable sealing, and one-shot dispatch
+  only; its `gateway/` children own capability-shaped source submission only.
+- `runtime/allocation_stream_policy/` owns cadence, ordering, and merge
+  legality only; it returns a resolved frame plan and never closes frames or
+  commits receipts.
 - `runtime/allocation_receipt/` owns committed receipt truth only.
 - `runtime/allocation_freshness/` owns freshness posture only.
 - `runtime/allocation_counters/` owns boundedness counters only.
@@ -907,26 +1038,33 @@ workspaces/worth-ui/crates/
 
 - Phase 1 and Phase 2 land primarily in `runtime/allocation_receipt/` and
   `evidence/allocation/`
-- Phase 3 lands primarily in `runtime/allocation_stream_policy/`
-- Phase 4 lands primarily in `runtime/allocation_invalidation/`
-- Phase 5 lands primarily in `graph/allocation_neighborhood/`
-- Phase 6 lands primarily in `runtime/allocation_invalidation/viewport_extent_change.rs`
+- Phase 3 lands primarily in `runtime/allocation_frame_dispatch/`
+- Phase 4 lands primarily in `runtime/allocation_frame_dispatch/gateway/` and
+  admitted host/Query/interaction boundary ports
+- Phase 5 lands primarily in `runtime/allocation_stream_policy/` and
+  `runtime/allocation_invalidation/` as a resolved frame plan with typed
+  invalidation artifacts only
+- Phase 6 lands primarily in `runtime/allocation_invalidation/` and admitted
+  graph/Query narrowing surfaces
+- Phase 7 lands primarily in `graph/allocation_neighborhood/`, planning, and
+  the transaction-owned atomic allocation transition seam
+- Phase 8 lands primarily in `runtime/allocation_invalidation/viewport_extent_change.rs`
   plus `runtime/allocation_stream_policy/viewport_policy.rs`
-- Phase 7 lands primarily in
+- Phase 9 lands primarily in
   `runtime/allocation_invalidation/durable_resize_change.rs`,
   `runtime/allocation_invalidation/resize_preview_delta.rs`, and
   `runtime/allocation_stream_policy/drag_resize_policy.rs`
-- Phase 8 lands primarily in
+- Phase 10 lands primarily in
   `runtime/allocation_invalidation/scroll_extent_change.rs` and
   `graph/allocation_neighborhood/scroll_family.rs`
-- Phase 9 lands primarily in
+- Phase 11 lands primarily in
   `runtime/allocation_invalidation/portal_anchor_movement.rs` and
   `graph/allocation_neighborhood/portal_family.rs`
-- Phase 10 lands primarily in `worth-ui-inspection/src/allocation/`
-- Phase 11 lands primarily in `runtime/allocation_freshness/`
-- Phase 12 lands primarily in `runtime/allocation_counters/` and
+- Phase 12 lands primarily in `worth-ui-inspection/src/allocation/`
+- Phase 13 lands primarily in `runtime/allocation_freshness/`
+- Phase 14 lands primarily in `runtime/allocation_counters/` and
   `evidence/allocation/counter_report.rs`
-- Phase 13 lands primarily in `worth-ui-certification/src/allocation/`
+- Phase 15 lands primarily in `worth-ui-certification/src/allocation/`
 
 ### Anti-Sprawl Rules
 
@@ -1069,9 +1207,138 @@ It must not be a host-shaped geometry dump.
   `Receipt Identity, Freshness, And Partial Reuse`,
   `Generation, Concurrency, And Supersession Law`.
 
-### Phase 3: Stream Classification And Commit-Cadence Contract
+### Phase 3: Runtime Frame Dispatch Ownership
 
-This phase freezes the semantic contract for continuous streams.
+This phase gives continuous allocation work a sealed dispatcher lifecycle
+before source gateways, framework scheduling, or stream policy are allowed to
+claim effect.
+
+The dispatcher owns the open-frame collector, epoch progression, deterministic
+internal close transition, immutable frame sealing, and a move-only handoff
+artifact for the later stream transition. It is the only owner permitted to
+turn already-admitted ingress into a sealed frame. Phase 3 establishes that
+authority; it does not yet wire a real host event loop, source gateway, or
+stream-policy consumer to it.
+
+**Relevant subsystems**
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/launch/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_frame_dispatch/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/evidence/`
+
+**Relevant APIs**
+- `UiAllocationFrameEpoch`
+- `UiAllocationFrameDispatcher`
+- `UiAdmittedAllocationStreamFrame`
+- `UiAllocationFrameTransitionOutcome`
+- dispatcher-owned sealed-frame handoff vocabulary
+
+**Warnings**
+- Do not expose collector flush or policy resolution as a host/renderer helper.
+- Phase 3 must not invent a proxy framework loop, public close capability, or
+  synthetic production caller merely to prove later Phase 4 integration.
+- Phase 3 must not self-acknowledge or self-consume its handoff merely to
+  simulate later Phase 5 stream-policy consumption.
+- Do not conflate a sealed frame with its later policy decision or allocation
+  outcome.
+
+**Test requirements**
+- Adversarial replay test: the same already-admitted ingress set, submitted
+  through the dispatcher test-support seam in every permitted arrival order
+  within one epoch, seals to the same ordered frame and produces the same
+  dispatch identity and counters.
+- Adversarial lifecycle test: duplicate close and reentrant dispatch are typed
+  denials, and a sealed epoch cannot be dispatched twice or mutated after close.
+- Adversarial late-ingress test: ingress racing frame close is assigned to the
+  next epoch or denied by declared capacity law, never silently merged into the
+  closing outcome.
+- Adversarial boundary test: no non-test source gateway, host event-loop owner,
+  or stream-policy consumer is claimed or fabricated in this phase; the
+  dispatcher exposes only the narrow sealed-frame handoff required by Phases 4
+  and 5.
+
+**Engineering decisions**
+- Add a dedicated `allocation_frame_dispatch` responsibility rather than
+  placing lifecycle state in stream policy, host observation, or launch facade.
+- Keep the dispatcher as the source of the one ordinary frame-transition
+  artifact; collectors and policy internals remain non-authoritative support.
+- Use a bounded, runtime-owned collector footprint with explicit epoch and
+  ingress counters.
+- Phase 4 owns production ingress plus the concrete framework-loop scheduling
+  seam. Phase 5 owns mandatory sealed-frame consumption and acknowledgment.
+
+**Open questions**
+- Resolved in Contract Appendix: `Frame Dispatch And Ingress Lifecycle Law`.
+
+### Phase 4: Source-To-Frame Admission Gateways
+
+This phase connects existing admitted source lanes and the concrete framework
+turn to the runtime dispatcher without promoting host mechanics or Query
+callbacks into allocation owners.
+
+**Relevant subsystems**
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/host/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_frame_dispatch/gateway/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/launch/`
+- `workspaces/worth-ui/crates/worth-ui-query-binding/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/evidence/`
+
+**Relevant APIs**
+- `UiHostObservation`
+- `UiMeasurementBasis`
+- `UiProjectionFactReceipt`
+- `WorthUiTransientInteractionState`
+- `WorthUiAdmittedDurableResizeInput`
+- `runtime.submit_admitted_allocation_ingress(...)`
+- framework-owned allocation-frame turn scheduler
+
+**Warnings**
+- A gateway may classify only the source-backed ingress family it is admitted
+  to submit; it may not select invalidation, policy, receipt reuse, or commit.
+- Query callbacks must submit settled projection facts through the binding lane,
+  never payload caches or locally reconstructed Query state.
+- Do not make one generic event API that accepts raw host geometry, arbitrary
+  source labels, or caller-owned frame identifiers.
+- The framework-loop owner may close and dispatch a turn, but it must hand the
+  sealed result forward unchanged; Phase 4 must not classify policy or
+  acknowledge downstream consumption on its own.
+
+**Test requirements**
+- Adversarial anti-bypass test: host, renderer, gesture, Query, and fixture
+  callers cannot close a frame, invoke policy resolution, or commit a receipt;
+  only their narrow gateway submission is available.
+- Adversarial source-settlement test: unsupported Query settlement and stale
+  host measurement admission deny before they enter a frame; partial Query
+  settlement enters only as an explicitly typed partial-settlement fact for
+  later policy resolution, with exact gateway evidence retained.
+- Adversarial boundedness test: a pointer-rate interaction stream and a burst
+  of Query facts remain bounded by per-family ingress capacity without losing
+  the declared source-order or silently widening work.
+- Adversarial ownership test: a concrete non-test framework-turn owner, not a
+  callback or host facade, exclusively invokes the dispatcher close/pump seam;
+  unsupported absence of a downstream Phase 5 consumer is a typed handoff
+  backpressure result rather than a self-acknowledged success.
+
+**Engineering decisions**
+- Gateways consume already admitted source truth and append to the dispatcher;
+  they do not recreate source admission or dependency graphs.
+- Each gateway preserves source generation and ordering posture into the sealed
+  frame so later policy and transaction work never infer it from callback order.
+- Make raw collector mutation crate-private and expose only capability-shaped
+  submission ports from the runtime facade.
+- Move all ordinary nonempty-frame proof off test-only ingress construction and
+  through the production gateways and framework-owned turn seam.
+
+**Open questions**
+- Resolved in Contract Appendix: `Frame Dispatch And Ingress Lifecycle Law`,
+  `Query Settlement To Allocation Posture Law`.
+
+### Phase 5: Stream Classification And Typed Invalidation Plan
+
+This phase freezes the semantic contract for continuous streams, installs the
+mandatory consumer of the Phase 4 sealed-frame handoff, and lowers each sealed
+dispatcher-owned frame into a resolved frame plan. It classifies source
+and stream families and produces typed invalidation artifacts, but it does not
+select neighborhoods, plan allocation, or commit receipts.
 
 3.8 must not force one generic "commit" meaning across:
 
@@ -1093,11 +1360,16 @@ Each stream family must declare:
 
 **Relevant subsystems**
 - `workspaces/worth-ui/crates/worth-ui-runtime/src/host/`
+- `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_frame_dispatch/`
 - `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/planning/`
 - `workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/`
 - `workspaces/worth-ui/crates/worth-ui-query-binding/`
 
 **Relevant APIs**
+- `UiAdmittedAllocationStreamFrame`
+- `UiResolvedAllocationFramePlan`
+- `UiAllocationInvalidation`
+- `runtime.resolve_allocation_frame(...)`
 - `UiHostObservation`
 - `UiMeasurementRequest::viewport_extent(...)`
 - `UiMeasurementRequest::portal_anchor_rect(...)`
@@ -1111,21 +1383,24 @@ Each stream family must declare:
   truth."
 - Per-character semantic commit is legal for some fields and illegal as a
   global allocation commit default.
+- Do not leave policy resolution as a pull-only helper; the sealed dispatcher
+  frame is its mandatory ordinary input, it must acknowledge consumption only
+  after accepting that exact move-only handoff, and the resolved frame plan is
+  its only output in this phase.
 
 **Test requirements**
 - Adversarial cadence test: per-character typing may commit semantic field
-  value each event while allocation recompute remains threshold- and
-  neighborhood-bounded, with a declared maximum committed receipt count for
-  `N` semantic input events under each admitted policy family.
+  value each event while the resolved allocation frame plan remains
+  threshold-bounded, with declared input, frame-plan, and later receipt budget
+  contracts for `N` semantic input events under each admitted policy family.
 - Adversarial stream-policy test: latest-wins, coalesced-window, and
   terminal-commit policies reject illegal collapse of stream families whose
   intermediate states matter semantically, with typed denial of the exact
   illegal policy combination.
 - Adversarial multi-stream test: same-frame typing + Query growth + resize
-  preview resolves through the policy composition table and produces typed
-  neighborhood selection instead of a hidden priority hack, with an asserted
-  composition verdict, primary family ordering, and expected neighborhood-set
-  cardinality.
+  preview resolves through the policy composition table into typed
+  invalidation artifacts and a deterministic frame plan instead of a hidden
+  priority hack.
 
 **Engineering decisions**
 - Introduce explicit stream policy families such as immediate latest-wins,
@@ -1137,6 +1412,8 @@ Each stream family must declare:
   commitment.
 - Resolve concurrent same-frame stream families through one runtime-owned merge
   table rather than per-feature policy code.
+- Return the resolved policy, typed invalidation set, preview legality, and
+  cadence/evidence verdict together as one immutable resolved frame plan.
 
 **Open questions**
 - Resolved in Contract Appendix:
@@ -1144,13 +1421,14 @@ Each stream family must declare:
   `Stream Policy Composition Table`,
   `Complexity And Evidence-Cadence Envelope`.
 
-### Phase 4: Typed Invalidation Intake And Family Closure
+### Phase 6: Invalidation Family Closure And Graph Narrowing
 
-This phase closes the invalidation vocabulary so the runtime never falls back
-to generic "something changed" churn.
+This phase closes the invalidation vocabulary and turns the Phase 5 resolved
+frame plan into graph- and Query-backed invalidation facts without selecting a
+neighborhood set or committing allocation.
 
-Phase 4 freezes the invalidation family skeleton and typed evidence shape.
-Phases 6 through 8 finalize domain-specific semantics for resize, scroll, and
+Phase 6 freezes the invalidation family skeleton and typed evidence shape.
+Phases 8 through 11 finalize domain-specific semantics for resize, scroll, and
 portal families without reopening the existence of the family itself.
 
 At minimum, 3.8 needs typed invalidation families for:
@@ -1217,10 +1495,11 @@ At minimum, 3.8 needs typed invalidation families for:
   `Anti-Bypass Type Fence Law`,
   `Replan Unit And Neighborhood-Set Law`.
 
-### Phase 5: Affected-Neighborhood Replan Selection
+### Phase 7: Affected-Neighborhood Replan Selection
 
 This phase turns "only replan the affected neighborhood" into a mechanical
-runtime proof instead of a promise.
+runtime proof and consumes the resolved frame plan plus closed invalidation
+facts to perform the first ordinary allocation transition.
 
 3.8 must define:
 
@@ -1230,6 +1509,8 @@ runtime proof instead of a promise.
 - when a neighborhood must widen
 - how widening is explained and counted
 - how multi-neighborhood replan sets are ordered and certified
+- how complete-set preflight, planning, receipt commitment, and transaction
+  publication remain atomic
 
 This phase must build directly on 3.6b neighborhood admission and 3.7
 replacement/impact narrowing instead of inventing a second selection path.
@@ -1244,6 +1525,8 @@ replacement/impact narrowing instead of inventing a second selection path.
 - `UiAllocationNeighborhood`
 - `UiMeasurementBasis`
 - `runtime.plan_allocation(...)`
+- `UiResolvedAllocationFramePlan`
+- `UiAllocationFrameTransitionOutcome`
 - identity-match report surfaces from replacement
 - `workspace.inspect(...)`
 
@@ -1258,6 +1541,8 @@ replacement/impact narrowing instead of inventing a second selection path.
   renderer-local tree position, or helper-owned dependency maps when the UI
   authority graph, touched-graph consequences, and retained indexes already
   own the locality proof.
+- Do not commit one neighborhood from a selected set before every member has
+  passed generation, policy, reuse, and locality preflight.
 
 **Test requirements**
 - Adversarial locality test: local content growth or splitter movement replans
@@ -1272,6 +1557,10 @@ replacement/impact narrowing instead of inventing a second selection path.
   yields a typed neighborhood set with counted widen reasons instead of silent
   root collapse, with an asserted primary neighborhood id, ordered
   neighborhood-set membership, and zero root-widen events.
+- Adversarial atomicity test: a generation or reuse denial for any selected
+  neighborhood publishes no replacement receipt, counter, or evidence for any
+  member; replay of the transaction idempotency key returns the exact prior
+  complete outcome.
 
 **Engineering decisions**
 - Reuse 3.6b neighborhood grammar and 3.7 impact narrowing as the sole inputs
@@ -1282,6 +1571,10 @@ replacement/impact narrowing instead of inventing a second selection path.
   broad replans are exceptional and explained.
 - Keep receipt reuse proof and neighborhood selection proof aligned so later
   execution can consume one honest story.
+- Freeze `UiCommittedAllocationLoweringInput` as the 3.8-to-3.9 handoff: a
+  committed receipt, execution-admissible companion report, transaction
+  identity, and allocation-frame epoch. 3.9 may lower only from this wrapper
+  and may not reinterpret preview, policy, freshness, locality, or denial.
 - Keep neighborhood selection downstream of runtime graph truth and Query
   consumption truth; 3.8 may specialize allocation invalidation, but it may
   not become a second graph-authority or consumer-proof lane.
@@ -1291,7 +1584,7 @@ replacement/impact narrowing instead of inventing a second selection path.
   `Replan Unit And Neighborhood-Set Law`,
   `Generation, Concurrency, And Supersession Law`.
 
-### Phase 6: Continuous Viewport Resize Semantics
+### Phase 8: Continuous Viewport Resize Semantics
 
 This phase freezes viewport resize as its own allocation pressure family.
 
@@ -1354,7 +1647,7 @@ recompute policy.
   `Replan Unit And Neighborhood-Set Law`,
   `Complexity And Evidence-Cadence Envelope`.
 
-### Phase 7: Drag Preview And Durable Resize Commit
+### Phase 9: Drag Preview And Durable Resize Commit
 
 This phase freezes drag-driven preview and durable resize semantics so the
 runtime can render smooth interaction without treating every pointer delta as
@@ -1418,7 +1711,7 @@ continuous-interaction cases.
   `Stream Policy Composition Table`,
   `Generation, Concurrency, And Supersession Law`.
 
-### Phase 8: Scroll-Owned Allocation Semantics
+### Phase 10: Scroll-Owned Allocation Semantics
 
 This phase closes scroll-owned layout truth as a runtime lane rather than an
 adapter behavior.
@@ -1482,7 +1775,7 @@ adapter behavior.
   `Query Settlement To Allocation Posture Law`,
   `Replan Unit And Neighborhood-Set Law`.
 
-### Phase 9: Portal-Anchored Allocation Semantics
+### Phase 11: Portal-Anchored Allocation Semantics
 
 This phase closes portal anchoring as runtime-owned allocation truth instead of
 floating host glue.
@@ -1551,7 +1844,7 @@ must remain mechanically explainable.
   `Replan Unit And Neighborhood-Set Law`,
   `Generation, Concurrency, And Supersession Law`.
 
-### Phase 10: Allocation Inspection Surface
+### Phase 12: Allocation Inspection Surface
 
 This phase closes the local inspection surface needed to keep 3.8 from
 becoming an authority black box.
@@ -1616,7 +1909,7 @@ the default allocation debugger.
   `Allocation Inspection And Visual-Critique Readiness`,
   `Geometry Evidence Minimum Schema`.
 
-### Phase 11: Allocation Freshness And Lag Posture
+### Phase 13: Allocation Freshness And Lag Posture
 
 This phase closes the freshness contract for committed allocation truth.
 
@@ -1640,14 +1933,15 @@ This phase closes the freshness contract for committed allocation truth.
 **Warnings**
 - Committed does not mean current.
 - Freshness must not be reconstructed from timing heuristics or logs.
-- Execution consumers must not silently treat `recompute_pending` or `denied`
-  as valid committed geometry truth.
+- Execution consumers must not silently treat `recompute_pending` as valid
+  committed geometry truth; attempted-transition denial is inspected through
+  transaction lineage, not as a receipt posture.
 
 **Test requirements**
-- Adversarial posture test: inspection distinguishes `current`, `preview`,
-  `coalescing`, `stale_but_bounded`, `recompute_pending`, and `denied`
-  accurately for the same receipt lineage under different stream pressure, with
-  the expected posture asserted per scenario.
+- Adversarial posture test: inspection distinguishes receipt `current`,
+  `coalescing`, `stale_but_bounded`, and `recompute_pending` from separate
+  preview-candidate artifacts and attempted-transition denials, with the
+  expected posture or outcome asserted per scenario.
 - Adversarial consumer-boundary test: host paint and downstream execution obey
   the admitted freshness-consumption rules rather than sharing one permissive
   posture, with explicit assertions for which postures each consumer may and
@@ -1664,7 +1958,7 @@ This phase closes the freshness contract for committed allocation truth.
   `Receipt Identity, Freshness, And Partial Reuse`,
   `Preview Candidate Versus Committed Receipt Consumption`.
 
-### Phase 12: Allocation Counters And Denial Taxonomy
+### Phase 14: Allocation Counters And Denial Taxonomy
 
 This phase closes the boundedness proof and denial vocabulary for allocation
 churn.
@@ -1716,7 +2010,7 @@ churn.
   `Replan Unit And Neighborhood-Set Law`,
   `Complexity And Evidence-Cadence Envelope`.
 
-### Phase 13: Runtime Integration And Certification Closeout
+### Phase 15: Runtime Integration And Certification Closeout
 
 This phase closes the actual runtime path and certification program for 3.8.
 
@@ -1787,6 +2081,9 @@ the existing proof-flow grammar:
 - explicit distinction between stream ingress, local projected interaction
   state, candidate allocation result, preview allocation posture, committed
   allocation receipt, and durable semantic state
+- runtime-owned frame dispatcher, immutable admitted stream frame, and
+  capability-shaped source-to-frame gateways before stream policy may cause an
+  ordinary allocation transition
 - typed stream commit-strategy contract for continuous interaction and
   continuous data/measurement families
 - same-frame stream policy composition table and override legality rules
@@ -1832,7 +2129,8 @@ the existing proof-flow grammar:
   replay of the same admitted plan/basis/neighborhood generations and denies
   stale-basis commit attempts with typed evidence
 - viewport resize enters through `UiMeasurementRequest::viewport_extent(...)`
-  and `UiHostObservation`, and replans only the affected allocation
+  and `UiHostObservation`, enters a runtime-owned admitted stream frame, and
+  replans only the affected allocation
   neighborhood
 - scroll-owned extent changes enter through
   `UiMeasurementRequest::scroll_container_viewport(...)` and remain
@@ -1841,6 +2139,9 @@ the existing proof-flow grammar:
   `UiMeasurementRequest::portal_anchor_rect(...)` and remain runtime-owned
 - per-character typing may commit semantic field truth each event while
   allocation churn remains threshold- and neighborhood-bounded
+- same admitted source facts replay to the same sealed frame, policy decision,
+  transition outcome, and allocation evidence regardless of permitted arrival
+  order; late ingress is assigned or denied by explicit epoch law
 - splitter drag preview can update continuously without rewriting durable
   resize truth every pointer delta unless the declared stream policy requires it
 - Query-backed content growth participates through
@@ -1873,7 +2174,8 @@ the existing proof-flow grammar:
   stack on top of broad facades, helper sprawl, and unclear proof-flow
   topology.
 - It belongs before 3.9 because execution-plan lowering must consume committed
-  allocation truth, explicit receipt reuse, and boundedness counters rather
+  allocation truth, dispatcher-owned ordinary stream transitions, explicit
+  receipt reuse, and boundedness counters rather
   than rediscovering those semantics during execution.
 - It should not be split into "nice layout receipts" and "stream handling"
   because the scaling boundary is precisely the interaction between committed

@@ -23,14 +23,14 @@ fn equivalent_visible_range_inputs_produce_equivalent_data_lane_receipts() {
             &left.data_plan,
             WorthUiVirtualizedDataFrameTarget::view_binding(left_handle, range),
         )
-        .expect("left data frame executes");
+        .expect("runtime frame execution succeeds");
     let right_receipt = right
         .runtime
         .execute_virtualized_data_frame(
             &right.data_plan,
             WorthUiVirtualizedDataFrameTarget::view_binding(right_handle, range),
         )
-        .expect("right data frame executes");
+        .expect("runtime frame execution succeeds");
 
     assert_eq!(
         left_receipt.certification().data_plan_digest(),
@@ -57,14 +57,14 @@ fn virtualized_data_lane_classifies_row_and_grid_frame_breadth() {
             &fixture.data_plan,
             WorthUiVirtualizedDataFrameTarget::view_binding(handle, row_range),
         )
-        .expect("row data frame executes");
+        .expect("runtime frame execution succeeds");
     let grid_receipt = fixture
         .runtime
         .execute_virtualized_data_frame(
             &fixture.data_plan,
             WorthUiVirtualizedDataFrameTarget::view_binding(handle, grid_range),
         )
-        .expect("grid data frame executes");
+        .expect("runtime frame execution succeeds");
 
     assert_eq!(row_receipt.lane(), WorthUiVirtualizedDataLane::RowList);
     assert_eq!(grid_receipt.lane(), WorthUiVirtualizedDataLane::CellGrid);
@@ -83,7 +83,7 @@ fn data_lane_rejects_full_collection_frame_scan() {
             &fixture.data_plan,
             WorthUiVirtualizedDataFrameTarget::full_collection_scan_for_test(handle),
         )
-        .expect_err("full collection scan cannot certify data frame");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         denial.reason(),
@@ -110,7 +110,7 @@ fn query_shaped_patch_posture_preserved_in_data_lane() {
             &fixture.data_plan,
             WorthUiVirtualizedDataFrameTarget::view_binding(handle, range),
         )
-        .expect("data frame executes");
+        .expect("runtime frame execution succeeds");
     let posture = receipt.query_patch_posture();
 
     assert_eq!(posture.plan_index(), expected.plan_index());
@@ -146,7 +146,7 @@ fn virtualized_data_lane_rejects_offset_pagination_as_cursor_substitute() {
             &fixture.data_plan,
             WorthUiVirtualizedDataFrameTarget::offset_pagination_for_test(handle),
         )
-        .expect_err("offset pagination cannot substitute for Query cursor posture");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         denial.reason(),
@@ -206,21 +206,21 @@ fn virtualized_data_frame_rejects_stale_or_nondata_targets() {
             &fixture.data_plan,
             WorthUiVirtualizedDataFrameTarget::view_binding(stale_handle, range),
         )
-        .expect_err("stale view binding handle cannot execute");
+        .expect_err("runtime frame execution denies");
     let absent_denial = fixture
         .runtime
         .execute_virtualized_data_frame(
             &fixture.data_plan,
             WorthUiVirtualizedDataFrameTarget::view_binding(absent_handle, range),
         )
-        .expect_err("absent view binding handle cannot execute");
+        .expect_err("runtime frame execution denies");
     let component_denial = fixture
         .runtime
         .execute_virtualized_data_frame(
             &fixture.data_plan,
             WorthUiVirtualizedDataFrameTarget::component_for_test(component_handle),
         )
-        .expect_err("component handle cannot execute data lane");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         stale_denial.reason(),

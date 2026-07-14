@@ -1,4 +1,4 @@
-use worth_query::facade::RegionScopedLivePlan;
+use worth_query::facade::foundation::RegionScopedLivePlan;
 
 fn main() {
     let _ = RegionScopedLivePlan {

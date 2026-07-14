@@ -1,4 +1,4 @@
-use worth_query::facade::TraversalSelector;
+use worth_query::facade::foundation::TraversalSelector;
 
 fn main() {
     let traversal = TraversalSelector::bounded("manager", 1).unwrap();

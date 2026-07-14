@@ -1,26 +1,27 @@
 use crate::authoring::{CollectionResultShapeBuilder, DetailResultShapeBuilder, RelationName};
+use crate::ordinary::read::WorthQueryDeclaredReadIntent;
 use crate::runtime::{
     QuerySchemaView, WorthQueryReadBuiltInOperator, WorthQueryReadBuiltInOperatorDenialReason,
-    WorthQueryReadDenial, WorthQueryReadGraph, WorthQueryReadGraphFamily, WorthQueryReadScopeClass,
+    WorthQueryReadDenial, WorthQueryReadGraphFamily, WorthQueryReadScopeClass,
 };
 
 use super::read_composition_frontier::with_frontier_traversals;
 use super::read_composition_lowering::{
     build_collection_operator_authored_inputs, build_detail_operator_authored_inputs,
-    build_scoped_read_graph_from_authored,
+    build_scoped_read_intent_from_authored,
 };
 use super::read_composition_operator_builders::{
     CollectionReadOperatorQueryBuilder, DetailReadOperatorQueryBuilder,
 };
 
-pub(in crate::runtime) fn build_frontier_search_collection_read_graph(
+pub(in crate::runtime) fn build_frontier_search_collection_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     frontier_relations: impl IntoIterator<Item = RelationName>,
     max_depth: u8,
     declare_query: impl FnOnce(CollectionReadOperatorQueryBuilder) -> CollectionReadOperatorQueryBuilder,
     declare_result_shape: impl FnOnce(CollectionResultShapeBuilder) -> CollectionResultShapeBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let (query, result_shape) =
         build_collection_operator_authored_inputs(root, declare_query, declare_result_shape)?;
     let query = with_frontier_traversals(
@@ -30,7 +31,7 @@ pub(in crate::runtime) fn build_frontier_search_collection_read_graph(
         WorthQueryReadBuiltInOperator::FrontierSearch,
     )?;
     require_broad_search_predicate(query.predicates().len())?;
-    build_scoped_read_graph_from_authored(
+    build_scoped_read_intent_from_authored(
         query,
         result_shape,
         schema_view,
@@ -40,14 +41,14 @@ pub(in crate::runtime) fn build_frontier_search_collection_read_graph(
     )
 }
 
-pub(in crate::runtime) fn build_frontier_search_detail_read_graph(
+pub(in crate::runtime) fn build_frontier_search_detail_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     frontier_relations: impl IntoIterator<Item = RelationName>,
     max_depth: u8,
     declare_query: impl FnOnce(DetailReadOperatorQueryBuilder) -> DetailReadOperatorQueryBuilder,
     declare_result_shape: impl FnOnce(DetailResultShapeBuilder) -> DetailResultShapeBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let (query, result_shape) =
         build_detail_operator_authored_inputs(root, declare_query, declare_result_shape)?;
     let query = with_frontier_traversals(
@@ -57,7 +58,7 @@ pub(in crate::runtime) fn build_frontier_search_detail_read_graph(
         WorthQueryReadBuiltInOperator::FrontierSearch,
     )?;
     require_broad_search_predicate(query.predicates().len())?;
-    build_scoped_read_graph_from_authored(
+    build_scoped_read_intent_from_authored(
         query,
         result_shape,
         schema_view,

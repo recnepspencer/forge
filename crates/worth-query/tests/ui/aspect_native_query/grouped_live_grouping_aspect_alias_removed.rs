@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    GroupedDesiredStateArtifact, GroupedExecutionLaneValue, GroupedLaneIdentity,
-    GroupedViewResultArtifact,
-};
+use worth_query::facade::runtime::{GroupedDesiredStateArtifact, GroupedExecutionLaneValue, GroupedLaneIdentity, GroupedViewResultArtifact};
 
 fn main() {
     let lane = lane_fixture();

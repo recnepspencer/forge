@@ -18,7 +18,7 @@ use crate::application::WorthQueryDomainOperatingContext;
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
     WorthQueryAdmittedConfiguredDomainHandle<D, C>
 {
-    pub fn bind_route_from_target<I>(
+    pub(crate) fn bind_route_from_target<I>(
         &self,
         request: WorthQueryResolveRouteFromTargetRequest<D, I>,
     ) -> WorthQueryBindingOutcome<WorthQueryDeclarationRoutePlanInput<D, I>>
@@ -28,7 +28,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         bind_route_from_target_on_handle(self, request).into_outcome()
     }
 
-    pub fn bind_route_from_target_outcome<I>(
+    pub(crate) fn bind_route_from_target_outcome<I>(
         &self,
         request: WorthQueryResolveRouteFromTargetRequest<D, I>,
     ) -> WorthQueryOrdinaryOutcome<WorthQueryDeclarationRoutePlanInput<D, I>>
@@ -40,7 +40,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn bind_route_from_target_checked<I>(
+    pub(crate) fn bind_route_from_target_checked<I>(
         &self,
         request: WorthQueryResolveRouteFromTargetRequest<D, I>,
     ) -> WorthQueryBindingChecked<WorthQueryDeclarationRoutePlanInput<D, I>>
@@ -50,7 +50,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         bind_route_from_target_on_handle(self, request).into_checked()
     }
 
-    pub fn bind_route_from_target_proof<I>(
+    pub(crate) fn bind_route_from_target_proof<I>(
         &self,
         request: WorthQueryResolveRouteFromTargetRequest<D, I>,
     ) -> WorthQueryBindingTranscript<WorthQueryDeclarationRoutePlanInput<D, I>>
@@ -60,7 +60,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         bind_route_from_target_on_handle(self, request)
     }
 
-    pub fn bind_receipt_from_target<I>(
+    pub(crate) fn bind_receipt_from_target<I>(
         &self,
         request: WorthQueryResolveReceiptFromTargetRequest<D, I>,
     ) -> WorthQueryBindingOutcome<WorthQueryDeclarationReceiptInput<D, I>>
@@ -70,7 +70,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         bind_receipt_from_target_on_handle(self, request).into_outcome()
     }
 
-    pub fn bind_receipt_from_target_outcome<I>(
+    pub(crate) fn bind_receipt_from_target_outcome<I>(
         &self,
         request: WorthQueryResolveReceiptFromTargetRequest<D, I>,
     ) -> WorthQueryOrdinaryOutcome<WorthQueryDeclarationReceiptInput<D, I>>
@@ -82,7 +82,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn bind_receipt_from_target_checked<I>(
+    pub(crate) fn bind_receipt_from_target_checked<I>(
         &self,
         request: WorthQueryResolveReceiptFromTargetRequest<D, I>,
     ) -> WorthQueryBindingChecked<WorthQueryDeclarationReceiptInput<D, I>>
@@ -92,7 +92,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         bind_receipt_from_target_on_handle(self, request).into_checked()
     }
 
-    pub fn bind_receipt_from_target_proof<I>(
+    pub(crate) fn bind_receipt_from_target_proof<I>(
         &self,
         request: WorthQueryResolveReceiptFromTargetRequest<D, I>,
     ) -> WorthQueryBindingTranscript<WorthQueryDeclarationReceiptInput<D, I>>
@@ -102,7 +102,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         bind_receipt_from_target_on_handle(self, request)
     }
 
-    pub fn bind_envelope_from_target<I>(
+    pub(crate) fn bind_envelope_from_target<I>(
         &self,
         request: WorthQueryResolveEnvelopeFromTargetRequest<D, I>,
     ) -> WorthQueryBindingOutcome<WorthQueryDeclarationEnvelopeInput<D, I>>
@@ -112,7 +112,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         bind_envelope_from_target_on_handle(self, request).into_outcome()
     }
 
-    pub fn bind_envelope_from_target_outcome<I>(
+    pub(crate) fn bind_envelope_from_target_outcome<I>(
         &self,
         request: WorthQueryResolveEnvelopeFromTargetRequest<D, I>,
     ) -> WorthQueryOrdinaryOutcome<WorthQueryDeclarationEnvelopeInput<D, I>>
@@ -124,7 +124,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn bind_envelope_from_target_checked<I>(
+    pub(crate) fn bind_envelope_from_target_checked<I>(
         &self,
         request: WorthQueryResolveEnvelopeFromTargetRequest<D, I>,
     ) -> WorthQueryBindingChecked<WorthQueryDeclarationEnvelopeInput<D, I>>
@@ -134,7 +134,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         bind_envelope_from_target_on_handle(self, request).into_checked()
     }
 
-    pub fn bind_envelope_from_target_proof<I>(
+    pub(crate) fn bind_envelope_from_target_proof<I>(
         &self,
         request: WorthQueryResolveEnvelopeFromTargetRequest<D, I>,
     ) -> WorthQueryBindingTranscript<WorthQueryDeclarationEnvelopeInput<D, I>>
@@ -144,7 +144,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         bind_envelope_from_target_on_handle(self, request)
     }
 
-    pub fn bind_continuation_from_target<I>(
+    pub(crate) fn bind_continuation_from_target<I>(
         &self,
         request: WorthQueryResolveContinuationFromTargetRequest<D, I>,
     ) -> WorthQueryBindingOutcome<WorthQueryContinuationBindingInput<D, I>>
@@ -154,7 +154,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         bind_continuation_from_target_on_handle(self, request).into_outcome()
     }
 
-    pub fn bind_continuation_from_target_outcome<I>(
+    pub(crate) fn bind_continuation_from_target_outcome<I>(
         &self,
         request: WorthQueryResolveContinuationFromTargetRequest<D, I>,
     ) -> WorthQueryOrdinaryOutcome<WorthQueryContinuationBindingInput<D, I>>
@@ -166,7 +166,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         )
     }
 
-    pub fn bind_continuation_from_target_checked<I>(
+    pub(crate) fn bind_continuation_from_target_checked<I>(
         &self,
         request: WorthQueryResolveContinuationFromTargetRequest<D, I>,
     ) -> WorthQueryBindingChecked<WorthQueryContinuationBindingInput<D, I>>
@@ -176,7 +176,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         bind_continuation_from_target_on_handle(self, request).into_checked()
     }
 
-    pub fn bind_continuation_from_target_proof<I>(
+    pub(crate) fn bind_continuation_from_target_proof<I>(
         &self,
         request: WorthQueryResolveContinuationFromTargetRequest<D, I>,
     ) -> WorthQueryBindingTranscript<WorthQueryContinuationBindingInput<D, I>>

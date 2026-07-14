@@ -1,0 +1,5 @@
+error[E0599]: no method named `open` found for struct `WorthQueryLiveDeclaration` in the current scope
+ --> tests/ui/managed_live/unadmitted_declaration_cannot_open.rs:8:17
+  |
+8 |     declaration.open(workspace);
+  |                 ^^^^ method not found in `WorthQueryLiveDeclaration`

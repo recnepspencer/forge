@@ -1,4 +1,4 @@
-use worth_query::facade::{admit_effect_intent, RebindRequiredEffectEligibility};
+use worth_query::facade::foundation::{admit_effect_intent, RebindRequiredEffectEligibility};
 
 fn main() {
     let rebind: RebindRequiredEffectEligibility = unsafe { std::mem::zeroed() };

@@ -33,12 +33,14 @@ pub(super) fn admit_propagation_edge_families(
     context: &ConstraintAuthorityContext<'_>,
     required_special_families: &[UiConstraintPropagationEdgeFamily],
     observed_special_families: &[UiConstraintPropagationEdgeFamily],
+    portal: Option<&crate::runtime::UiPortalAllocationPlanningBasis>,
 ) -> Result<PropagationEdgeAdmissionParts, UiConstraintPropagationDenial> {
     let special_inputs = admit_required_special_inputs(
         measurement_basis,
         neighborhood,
         context,
         required_special_families,
+        portal,
     )?;
     let downward =
         admit_parent_available_space(measurement_basis, neighborhood, context.allowed_families)?;
@@ -96,6 +98,7 @@ pub(super) fn admit_propagation_edge_families(
         summary,
         viewport_planning_input: special_inputs.viewport_planning_input,
         scroll_owner_planning_input: special_inputs.scroll_owner_planning_input,
+        scroll_authority: special_inputs.scroll_authority,
         portal_anchor_planning_input: special_inputs.portal_anchor_planning_input,
         sibling_negotiation,
         equal_share_distribution,
@@ -109,6 +112,7 @@ pub(super) fn admit_required_special_inputs(
     neighborhood: &UiAllocationNeighborhood,
     context: &ConstraintAuthorityContext<'_>,
     required_special_families: &[UiConstraintPropagationEdgeFamily],
+    portal: Option<&crate::runtime::UiPortalAllocationPlanningBasis>,
 ) -> Result<SpecialInputAdmissionParts, UiConstraintPropagationDenial> {
     let viewport_planning_input = admit_viewport_planning_input(
         measurement_basis,
@@ -116,7 +120,7 @@ pub(super) fn admit_required_special_inputs(
         required_special_families.contains(&UiConstraintPropagationEdgeFamily::ViewportInput),
         context.allowed_families,
     )?;
-    let scroll_owner_planning_input = admit_scroll_owner_planning_input(
+    let (scroll_owner_planning_input, scroll_authority) = admit_scroll_owner_planning_input(
         measurement_basis,
         neighborhood,
         required_special_families.contains(&UiConstraintPropagationEdgeFamily::ScrollViewportInput),
@@ -127,10 +131,12 @@ pub(super) fn admit_required_special_inputs(
         neighborhood,
         required_special_families.contains(&UiConstraintPropagationEdgeFamily::PortalAnchorInput),
         context.allowed_families,
+        portal,
     )?;
     Ok(SpecialInputAdmissionParts {
         viewport_planning_input,
         scroll_owner_planning_input,
+        scroll_authority,
         portal_anchor_planning_input,
     })
 }

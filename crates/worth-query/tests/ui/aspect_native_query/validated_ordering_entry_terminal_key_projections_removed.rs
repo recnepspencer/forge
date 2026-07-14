@@ -1,4 +1,4 @@
-use worth_query::facade::ValidatedOrderingEntry;
+use worth_query::facade::runtime::ValidatedOrderingEntry;
 
 fn main() {
     let entry: ValidatedOrderingEntry = unreachable!();

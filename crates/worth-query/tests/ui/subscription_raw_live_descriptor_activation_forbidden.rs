@@ -1,4 +1,4 @@
-use worth_query::facade::{prepare_subscription_activation, LiveQueryAdmissionArtifact};
+use worth_query::facade::runtime::{prepare_subscription_activation, LiveQueryAdmissionArtifact};
 
 fn main() {
     let raw_live = Option::<LiveQueryAdmissionArtifact>::None.unwrap();

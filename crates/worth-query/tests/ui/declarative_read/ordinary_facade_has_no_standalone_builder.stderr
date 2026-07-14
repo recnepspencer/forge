@@ -1,0 +1,16 @@
+error[E0432]: unresolved import `worth_query::facade::read::WorthQueryReadBuilder`
+ --> tests/ui/declarative_read/ordinary_facade_has_no_standalone_builder.rs:1:5
+  |
+1 | use worth_query::facade::read::WorthQueryReadBuilder;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryReadBuilder` in `facade::read`
+  |
+help: a similar name exists in the module
+  |
+1 - use worth_query::facade::read::WorthQueryReadBuilder;
+1 + use worth_query::facade::read::WorthQueryReadBreadth;
+  |
+help: consider importing this struct instead
+  |
+1 - use worth_query::facade::read::WorthQueryReadBuilder;
+1 + use worth_query::facade::runtime::WorthQueryReadBuilder;
+  |

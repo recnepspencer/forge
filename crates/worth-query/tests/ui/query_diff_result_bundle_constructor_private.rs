@@ -1,4 +1,4 @@
-use worth_query::facade::QueryDiffResultBundle;
+use worth_query::facade::policy::QueryDiffResultBundle;
 
 fn main() {
     let _ = QueryDiffResultBundle {

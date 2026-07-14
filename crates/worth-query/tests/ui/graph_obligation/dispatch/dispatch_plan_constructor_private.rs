@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphObligationDispatchPlan, WorthQueryGraphObligationKind,
-    WorthQueryGraphObligationRuleIdentity, WorthQueryGraphObligationVerdict,
-};
+use worth_query::facade::runtime::{WorthQueryGraphObligationDispatchPlan, WorthQueryGraphObligationKind, WorthQueryGraphObligationRuleIdentity, WorthQueryGraphObligationVerdict};
 
 fn main() {
     let _ = WorthQueryGraphObligationDispatchPlan {

@@ -1,7 +1,6 @@
 //! Compatibility module paths for in-crate imports during lane topology migration.
 
 pub use super::activation::activation_staging;
-pub use super::activation::atomic_plan_swap;
 pub use super::activation::frame_activation_gate;
 pub use super::execution::canvas_spatial_lane;
 pub use super::execution::handle_allocation;

@@ -1,6 +1,6 @@
 use worth_foundational::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
-use worth_query::facade::WorthQueryAspectTouch;
-use worth_query::facade::WorthQueryExistingTruthProbeField;
+use worth_query::facade::runtime::WorthQueryAspectTouch;
+use worth_query::facade::runtime::WorthQueryExistingTruthProbeField;
 
 fn main() {
     let field = WorthQueryExistingTruthProbeField::from_admitted_aspect_touch(

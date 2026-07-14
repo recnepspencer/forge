@@ -1,4 +1,6 @@
+use crate::basis::{ResolvedBasisProof, ResolvedSnapshotBasis};
 use crate::identity::{BasisDigest, CanonicalQueryDigest};
+use crate::identity_authority::QueryCanonicalAuthority;
 
 use super::families::{IdentityEvolutionQueryFamily, LineageTraversalFamily};
 
@@ -140,35 +142,82 @@ enum IdentityEvolutionQuerySubject {
     LineageTraversal(LineageTraversalDescriptor),
     CorrespondenceIdentityComparison {
         comparison_basis_family: IdentityEvolutionComparisonBasisFamily,
-        left_basis_digest: BasisDigest,
-        right_basis_digest: BasisDigest,
+        left_basis: ResolvedBasisProof,
+        right_basis: ResolvedBasisProof,
         comparison: CorrespondenceIdentityComparison,
     },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IdentityEvolutionQueryContext {
-    query_digest: CanonicalQueryDigest,
-    basis_digest: BasisDigest,
+    query_authority: QueryCanonicalAuthority,
+    basis: ResolvedBasisProof,
     family: IdentityEvolutionQueryFamily,
     subject: IdentityEvolutionQuerySubject,
 }
 
 impl IdentityEvolutionQueryContext {
+    pub fn query_authority(&self) -> &QueryCanonicalAuthority {
+        &self.query_authority
+    }
+
+    pub fn basis_proof(&self) -> &ResolvedBasisProof {
+        &self.basis
+    }
+
     pub fn lineage_traversal(
-        query_digest: CanonicalQueryDigest,
-        basis_digest: BasisDigest,
+        query_authority: &QueryCanonicalAuthority,
+        basis: &ResolvedSnapshotBasis,
         descriptor: LineageTraversalDescriptor,
     ) -> Self {
         Self {
-            query_digest,
-            basis_digest,
+            query_authority: query_authority.clone(),
+            basis: basis.proof().clone(),
             family: IdentityEvolutionQueryFamily::LineageTraversal,
             subject: IdentityEvolutionQuerySubject::LineageTraversal(descriptor),
         }
     }
 
     pub fn correspondence_identity_comparison(
+        query_authority: &QueryCanonicalAuthority,
+        comparison_basis_family: IdentityEvolutionComparisonBasisFamily,
+        left_basis: &ResolvedSnapshotBasis,
+        right_basis: &ResolvedSnapshotBasis,
+        comparison: CorrespondenceIdentityComparison,
+    ) -> Self {
+        Self {
+            query_authority: query_authority.clone(),
+            basis: left_basis.proof().clone(),
+            family: IdentityEvolutionQueryFamily::CorrespondenceIdentityComparison,
+            subject: IdentityEvolutionQuerySubject::CorrespondenceIdentityComparison {
+                comparison_basis_family,
+                left_basis: left_basis.proof().clone(),
+                right_basis: right_basis.proof().clone(),
+                comparison,
+            },
+        }
+    }
+
+    pub fn query_digest(&self) -> &CanonicalQueryDigest {
+        self.query_authority.digest()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn lineage_traversal_for_test(
+        query_digest: CanonicalQueryDigest,
+        basis_digest: BasisDigest,
+        descriptor: LineageTraversalDescriptor,
+    ) -> Self {
+        Self {
+            query_authority: QueryCanonicalAuthority::from_digest_for_test(query_digest),
+            basis: ResolvedBasisProof::from_digest_for_test(basis_digest),
+            family: IdentityEvolutionQueryFamily::LineageTraversal,
+            subject: IdentityEvolutionQuerySubject::LineageTraversal(descriptor),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn correspondence_identity_comparison_for_test(
         query_digest: CanonicalQueryDigest,
         comparison_basis_family: IdentityEvolutionComparisonBasisFamily,
         left_basis_digest: BasisDigest,
@@ -176,24 +225,20 @@ impl IdentityEvolutionQueryContext {
         comparison: CorrespondenceIdentityComparison,
     ) -> Self {
         Self {
-            query_digest,
-            basis_digest: left_basis_digest.clone(),
+            query_authority: QueryCanonicalAuthority::from_digest_for_test(query_digest),
+            basis: ResolvedBasisProof::from_digest_for_test(left_basis_digest.clone()),
             family: IdentityEvolutionQueryFamily::CorrespondenceIdentityComparison,
             subject: IdentityEvolutionQuerySubject::CorrespondenceIdentityComparison {
                 comparison_basis_family,
-                left_basis_digest,
-                right_basis_digest,
+                left_basis: ResolvedBasisProof::from_digest_for_test(left_basis_digest),
+                right_basis: ResolvedBasisProof::from_digest_for_test(right_basis_digest),
                 comparison,
             },
         }
     }
 
-    pub fn query_digest(&self) -> &CanonicalQueryDigest {
-        &self.query_digest
-    }
-
     pub fn basis_digest(&self) -> &BasisDigest {
-        &self.basis_digest
+        self.basis.digest()
     }
 
     pub fn family(&self) -> IdentityEvolutionQueryFamily {
@@ -219,15 +264,28 @@ impl IdentityEvolutionQueryContext {
             IdentityEvolutionQuerySubject::LineageTraversal(_) => None,
             IdentityEvolutionQuerySubject::CorrespondenceIdentityComparison {
                 comparison_basis_family,
-                left_basis_digest,
-                right_basis_digest,
+                left_basis,
+                right_basis,
                 comparison,
             } => Some((
                 *comparison_basis_family,
-                left_basis_digest,
-                right_basis_digest,
+                left_basis.digest(),
+                right_basis.digest(),
                 comparison,
             )),
+        }
+    }
+
+    pub fn correspondence_basis_proofs(
+        &self,
+    ) -> Option<(&ResolvedBasisProof, &ResolvedBasisProof)> {
+        match &self.subject {
+            IdentityEvolutionQuerySubject::LineageTraversal(_) => None,
+            IdentityEvolutionQuerySubject::CorrespondenceIdentityComparison {
+                left_basis,
+                right_basis,
+                ..
+            } => Some((left_basis, right_basis)),
         }
     }
 }

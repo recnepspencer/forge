@@ -1,10 +1,10 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    WorthQueryEntityIdentity, WorthQueryExistingEntityTarget,
-    WorthQueryExistingTruthBindingAuthorityLabel, WorthQueryExistingTruthProbeDenialKind,
-    WorthQueryExistingTruthProbeMode, WorthQueryExistingTruthProbeRequest,
-    WorthQueryExistingTruthTargetBinding, WorthQueryLiveView, WorthQueryMutationAuthorityIdentity,
-    WorthQueryNativeRow, WorthQueryRuntimeError,
+use worth_query::facade::foundation::WorthQueryEntityIdentity;
+use worth_query::facade::runtime::{
+    WorthQueryExistingEntityTarget, WorthQueryExistingTruthBindingAuthorityLabel,
+    WorthQueryExistingTruthProbeDenialKind, WorthQueryExistingTruthProbeMode,
+    WorthQueryExistingTruthProbeRequest, WorthQueryExistingTruthTargetBinding, WorthQueryLiveView,
+    WorthQueryMutationAuthorityIdentity, WorthQueryNativeRow, WorthQueryRuntimeError,
 };
 mod support;
 
@@ -15,7 +15,8 @@ use support::public_bridge_runtime::{
     PublicBridgeRuntimeHarness,
 };
 
-fn public_entity_verified_profile() -> worth_query::facade::WorthQueryRuntimeSupportProfile {
+fn public_entity_verified_profile() -> worth_query::facade::runtime::WorthQueryRuntimeSupportProfile
+{
     public_graph_support_profile().with_bridge_backed_verification_support(
         "probe_existing",
         "direct_entity_identity",
@@ -41,9 +42,9 @@ fn existing_task_binding(
         WorthQueryExistingEntityTarget::new(
             existing_authority(authority_label),
             WorthQueryEntityIdentity::admit_authored_entity_token(
-                worth_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
-                    entity_token,
-                )),
+                worth_query::facade::foundation::QueryExternalIdentityToken::new(
+                    std::sync::Arc::from(entity_token),
+                ),
             ),
         )
         .expect("existing entity target should build")
@@ -64,14 +65,20 @@ fn public_bridge_runtime_common_bootstrap_lane_builds_runtime_backed_live_reads(
         .live_view("public.bridge-runtime-bootstrap.common-lane.tasks", |q| {
             q.from("Task")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 )
                 .schema_basis("public-bridge-runtime-bootstrap-common-lane-tasks")
         })
@@ -224,8 +231,10 @@ fn public_bridge_runtime_builder_lane_usage_stays_explicit() {
     );
 }
 
-fn authored_text(value: impl Into<String>) -> worth_query::facade::WorthQueryAuthoredAspectValue {
-    worth_query::facade::WorthQueryAuthoredAspectValue::string(value)
+fn authored_text(
+    value: impl Into<String>,
+) -> worth_query::facade::runtime::WorthQueryAuthoredAspectValue {
+    worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(value)
 }
 
 fn text(value: impl Into<String>) -> worth_foundational::facade::AspectValue {

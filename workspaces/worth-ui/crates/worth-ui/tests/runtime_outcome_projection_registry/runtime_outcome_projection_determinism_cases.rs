@@ -1,4 +1,7 @@
-use worth_query::facade::{WorthQueryOrdinaryPostureKind, WorthQueryOrdinaryRuntimePostureKind};
+use worth_query::facade::foundation::{
+    WorthQueryOrdinaryPostureKind,
+    WorthQueryOrdinaryRuntimePostureKind,
+};
 use worth_ui::facade::{
     IconDescriptor, IconFamily, IconId, IconSourceDescriptor, RuntimeOutcomeAffordance,
     RuntimeOutcomeFamily, RuntimeOutcomePresentation, RuntimeOutcomeProjectionDescriptor,

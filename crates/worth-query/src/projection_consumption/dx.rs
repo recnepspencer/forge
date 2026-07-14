@@ -36,6 +36,20 @@ pub struct CompletedProjectionFactConsumption {
 }
 
 impl CompletedProjectionFactConsumption {
+    pub(super) fn certification(
+        declaration: ProjectionConsumptionDeclaration,
+        contract: MaterializedProjectionContract,
+        facts: ConsumedProjectionFactSet,
+        receipt: ProjectionConsumptionReceipt,
+    ) -> Self {
+        Self {
+            declaration,
+            contract,
+            facts,
+            receipt,
+        }
+    }
+
     pub fn declaration(&self) -> &ProjectionConsumptionDeclaration {
         &self.declaration
     }
@@ -162,7 +176,7 @@ impl ProjectionFactConsumptionAttempt {
 }
 
 impl WorthQueryReadResult {
-    pub fn consume_projection_facts(
+    pub(crate) fn consume_projection_facts(
         &self,
         result_shape: &CanonicalResultShapeArtifact,
         authorized_projection: &AuthorizedProjectionArtifact,
@@ -179,7 +193,7 @@ impl WorthQueryReadResult {
 }
 
 impl WorthQueryLiveReadResult {
-    pub fn consume_projection_facts_with_binding(
+    pub(crate) fn consume_projection_facts_with_binding(
         &self,
         binding: super::declaration::ProjectionConsumptionBindingContext,
         requested: ProjectMaterializedFacts,
@@ -209,7 +223,7 @@ impl crate::runtime::WorthQueryReadReceipt {
 }
 
 impl WorthQueryWriteReceipt {
-    pub fn consume_projection_facts(
+    pub(crate) fn consume_projection_facts(
         &self,
         result_shape_digest: &str,
         authorized_projection: &AuthorizedProjectionArtifact,
@@ -237,7 +251,7 @@ impl WorthQueryWriteReceipt {
 }
 
 impl QueryContextExecutionArtifact {
-    pub fn consume_projection_facts(
+    pub(crate) fn consume_projection_facts(
         &self,
         authorized_projection: &AuthorizedProjectionArtifact,
         requested: ProjectMaterializedFacts,
@@ -260,7 +274,7 @@ impl QueryContextExecutionArtifact {
 }
 
 impl WorthQueryDerivedArtifactBinding {
-    pub fn consume_projection_facts(
+    pub(crate) fn consume_projection_facts(
         &self,
         result_shape: &CanonicalResultShapeArtifact,
         authorized_projection: &AuthorizedProjectionArtifact,
@@ -284,7 +298,7 @@ impl WorthQueryDerivedArtifactBinding {
 }
 
 impl WorthQueryLiveArtifactBinding {
-    pub fn consume_projection_facts(
+    pub(crate) fn consume_projection_facts(
         &self,
         result_shape_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
         authorized_projection: &AuthorizedProjectionArtifact,

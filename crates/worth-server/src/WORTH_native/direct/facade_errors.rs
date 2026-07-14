@@ -1,5 +1,5 @@
 use worth_proof::TransitionOutcome;
-use worth_query::facade::WorthQueryRuntimeError;
+use worth_query::facade::runtime::WorthQueryRuntimeError;
 
 use crate::WorthServerOperationDenial;
 
@@ -80,17 +80,17 @@ impl WorthServerWorthNativeDirectFacade {
 
     pub(super) fn projection_error_outcome(
         &self,
-        error: worth_query::facade::ProjectionFactConsumptionPathError,
+        error: worth_query::facade::foundation::ProjectionFactConsumptionPathError,
     ) -> WorthServerDirectProjectionOutcome {
         match error {
-            worth_query::facade::ProjectionFactConsumptionPathError::Declaration(detail) => {
-                TransitionOutcome::Denied(crate::WorthServerQueryHandoffDenial::new(
-                    crate::WorthServerQueryHandoffDenialCode::DirectProjectionBindingInvalid,
-                    self.admission.request_context().diagnostics_profile(),
-                    format!("{detail:?}"),
-                ))
-            }
-            worth_query::facade::ProjectionFactConsumptionPathError::Extraction(_) => {
+            worth_query::facade::foundation::ProjectionFactConsumptionPathError::Declaration(
+                detail,
+            ) => TransitionOutcome::Denied(crate::WorthServerQueryHandoffDenial::new(
+                crate::WorthServerQueryHandoffDenialCode::DirectProjectionBindingInvalid,
+                self.admission.request_context().diagnostics_profile(),
+                format!("{detail:?}"),
+            )),
+            worth_query::facade::foundation::ProjectionFactConsumptionPathError::Extraction(_) => {
                 TransitionOutcome::failed(crate::WorthServerQueryHandoffFailure::new(
                     "direct_projection_extraction_failed",
                 ))

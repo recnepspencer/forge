@@ -1,4 +1,4 @@
-use worth_query::facade::{AdmittedPreviewWorkflowFoundation, QueryBasisResultBundle};
+use worth_query::facade::policy::{AdmittedPreviewWorkflowFoundation, QueryBasisResultBundle};
 
 fn takes_bundle(_: QueryBasisResultBundle) {}
 

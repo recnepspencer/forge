@@ -18,6 +18,7 @@ fn closeout_bundle_emits_full_phase_six_surface() {
         ProjectionConsumptionCertificationLane::CompileFailBoundary,
         ProjectionConsumptionCertificationLane::OracleSurface,
         ProjectionConsumptionCertificationLane::SeededReplaySurface,
+        ProjectionConsumptionCertificationLane::DownstreamAuthoritySurface,
     ] {
         assert!(bundle.rows().iter().any(|row| row.lane() == lane));
     }
@@ -84,8 +85,8 @@ fn closeout_bundle_still_binds_real_transcript_and_compile_fail_catalogs() {
     let bundle = certify_projection_consumption_closeout_core();
     let golden_digest = golden_transcript_bundle_digest();
     let compile_fail_digest = compile_fail_boundary_bundle_digest();
-    assert_eq!(projection_consumption_golden_transcripts().len(), 4);
-    assert_eq!(projection_consumption_compile_fail_proofs().len(), 12);
+    assert_eq!(projection_consumption_golden_transcripts().len(), 5);
+    assert_eq!(projection_consumption_compile_fail_proofs().len(), 17);
     assert_eq!(
         bundle.output_digest("projection_golden_transcript_digest"),
         Some(golden_digest.as_str())

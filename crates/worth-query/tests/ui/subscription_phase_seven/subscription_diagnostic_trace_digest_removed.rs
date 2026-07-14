@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionDiagnosticTrace;
+use worth_query::facade::runtime::QuerySubscriptionDiagnosticTrace;
 
 fn main() {
     let trace: QuerySubscriptionDiagnosticTrace = todo!();

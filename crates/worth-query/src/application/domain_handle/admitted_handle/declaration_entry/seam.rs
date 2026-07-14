@@ -38,7 +38,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         worth_query_declaration_entry_readiness_report_with_request::<D, C, I>(self, request)
     }
 
-    pub fn inspect_declaration_entry<I: WorthQueryDeclarationInput<D>>(
+    pub(crate) fn inspect_declaration_entry<I: WorthQueryDeclarationInput<D>>(
         &self,
         subject: WorthQueryDeclarationEntryInspectionInput<D, I>,
     ) -> Result<

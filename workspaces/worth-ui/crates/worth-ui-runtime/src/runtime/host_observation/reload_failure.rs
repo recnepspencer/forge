@@ -1,20 +1,19 @@
-use crate::runtime::host::WorthUiRuntimeHost;
 use crate::runtime::reload_failure::evidence_digest::{
     activation_gate_denial_digest, activation_staging_denial_digest,
-    invalid_candidate_denial_digest, plan_lowering_denial_digest, plan_swap_rollback_digest,
+    invalid_candidate_denial_digest, plan_lowering_denial_digest,
     query_binding_drift_denial_digest, query_live_rebind_denial_digest,
     reconciliation_denial_digest,
 };
+use crate::runtime::WorthUiRuntime;
 use crate::runtime::{
     WorthUiActivationGateDenial, WorthUiActivationStagingDenial,
     WorthUiDurableStateReconciliationDenial, WorthUiFailedActivationReport,
-    WorthUiPlanLoweringDenial, WorthUiPlanSwapRollback, WorthUiQueryBindingDriftDenial,
-    WorthUiQueryLiveRebindPlanDenial, WorthUiReloadDenial, WorthUiReloadFailure,
-    WorthUiReloadFailureCounters, WorthUiReloadFailureStage, WorthUiReloadPreservationReceipt,
-    WorthUiReplacementCandidateDenial,
+    WorthUiPlanLoweringDenial, WorthUiQueryBindingDriftDenial, WorthUiQueryLiveRebindPlanDenial,
+    WorthUiReloadDenial, WorthUiReloadFailure, WorthUiReloadFailureCounters,
+    WorthUiReloadFailureStage, WorthUiReloadPreservationReceipt, WorthUiReplacementCandidateDenial,
 };
 
-impl WorthUiRuntimeHost {
+impl WorthUiRuntime {
     pub fn preserve_failed_reload(&self, denial: WorthUiReloadDenial) -> WorthUiReloadFailure {
         let counters = WorthUiReloadFailureCounters::preserved_without_runtime_mutation();
         let preservation_receipt = WorthUiReloadPreservationReceipt::from_active_and_last_valid(
@@ -82,16 +81,6 @@ impl WorthUiRuntimeHost {
         self.preserve_failed_reload(WorthUiReloadDenial::ordinary(
             WorthUiReloadFailureStage::ActivationGate,
             Some(activation_gate_denial_digest(denial)),
-        ))
-    }
-
-    pub fn preserve_failed_plan_swap(
-        &self,
-        rollback: WorthUiPlanSwapRollback,
-    ) -> WorthUiReloadFailure {
-        self.preserve_failed_reload(WorthUiReloadDenial::ordinary(
-            WorthUiReloadFailureStage::AtomicPlanSwap,
-            Some(plan_swap_rollback_digest(rollback)),
         ))
     }
 

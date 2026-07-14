@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGraphCompositionResolutionEntry;
+use worth_query::facade::runtime::WorthQueryGraphCompositionResolutionEntry;
 
 fn main() {
     let entry: WorthQueryGraphCompositionResolutionEntry = unreachable!();

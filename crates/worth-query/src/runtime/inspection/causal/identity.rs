@@ -211,6 +211,7 @@ pub(super) fn compose_causal_inspection_request_identity(
     explanation_family: CausalInspectionExplanationFamily,
     requested_richness: CausalInspectionRichness,
     requested_evidence_families: &[CausalEvidenceFamily],
+    inspection_basis_digest: &str,
 ) -> CausalInspectionRequestIdentity {
     worth_query_evidence_identity(WorthQueryEvidenceScope::CausalInspectionRequest)
         .field_evidence_identity(
@@ -224,6 +225,10 @@ pub(super) fn compose_causal_inspection_request_identity(
         .field_evidence_identity(
             WorthQueryEvidenceTag::new("target"),
             target_identity.evidence_identity(),
+        )
+        .field_shape(
+            WorthQueryEvidenceTag::new("scoped_inspection_basis"),
+            inspection_basis_digest,
         )
         .field_shape(
             WorthQueryEvidenceTag::new("family"),

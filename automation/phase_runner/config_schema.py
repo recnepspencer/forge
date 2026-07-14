@@ -165,6 +165,7 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
         validate_optional_positive_int(runner_control, "turn_timeout_seconds", errors)
         validate_optional_positive_int(runner_control, "idle_timeout_seconds", errors)
         validate_optional_positive_int(runner_control, "fresh_session_after_qa_repair_cycles", errors)
+        validate_optional_nonnegative_int(runner_control, "repair_plan_start_sequence", errors)
         stop_reason = runner_control.get("stop_reason")
         if stop_reason is not None and (not isinstance(stop_reason, str) or not stop_reason):
             errors.append("runner_control.stop_reason must be a non-empty string when present")

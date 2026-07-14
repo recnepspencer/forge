@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    lower_query_subscription_to_bridge, QuerySubscriptionBridgeLoweringBudget,
-    QuerySubscriptionFamilySelection,
-};
+use worth_query::facade::runtime::{lower_query_subscription_to_bridge, QuerySubscriptionBridgeLoweringBudget, QuerySubscriptionFamilySelection};
 
 fn main() {
     let selection = Option::<QuerySubscriptionFamilySelection>::None.unwrap();

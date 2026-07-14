@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryUnifiedInspectionResult;
+use worth_query::facade::runtime::WorthQueryUnifiedInspectionResult;
 
 use crate::{
     WorthServerDirectContextArtifact, WorthServerQuerySupportPosture, WorthServerResponseEnvelope,

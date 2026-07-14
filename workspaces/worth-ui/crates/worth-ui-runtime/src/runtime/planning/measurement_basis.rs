@@ -30,9 +30,10 @@ pub(crate) fn collect_planning_measurement_basis(
         })
         .expect("allocation neighborhood must preserve a root member")
         .authored_provenance_digest();
-    let Some(durable_resize_input) = durable_resize_inputs.iter().find(|input| {
-        input.is_admitted() && input.authored_provenance_digest() == Some(root_provenance_digest)
-    }) else {
+    let Some(durable_resize_input) = durable_resize_inputs
+        .iter()
+        .find(|input| input.authored_provenance_digest() == Some(root_provenance_digest))
+    else {
         return measurement_basis.clone();
     };
     let Some(runtime_resize_support) =

@@ -1,4 +1,4 @@
-use worth_query::facade::PreviewSubscriptionIsolationError;
+use worth_query::facade::runtime::PreviewSubscriptionIsolationError;
 
 fn main() {
     let error: PreviewSubscriptionIsolationError = todo!();

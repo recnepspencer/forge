@@ -1,10 +1,4 @@
-use worth_query::facade::{
-    WorthQueryCapabilityFamily, WorthQueryDeclarationCanonicalEntry,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationLegalityContract, WorthQueryDomainEntryMarker,
-    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
-    WorthQuerySignalCompatiblePosture,
-};
+use worth_query::facade::foundation::{WorthQueryCapabilityFamily, WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract, WorthQueryDomainEntryMarker, WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct GeometryDomain;
@@ -42,7 +36,7 @@ impl WorthQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
 }
 
 fn main() {
-    let declaration = worth_query::facade::WorthQueryApplicationFacade::runtime_backed_default()
+    let declaration = worth_query::facade::foundation::WorthQueryApplicationFacade::runtime_backed_default()
         .domain(GeometryDomain)
         .declare(SplitEdgeDeclaration)
         .unwrap();

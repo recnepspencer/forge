@@ -1,7 +1,8 @@
-use crate::facade::{
+use crate::facade::foundation::{
     resolve_snapshot_basis, BasisAuthorityFamily, BasisResolutionMode, ExecutionBasisIntent,
-    ResolvedSnapshotBasis, ResolvedSnapshotIdentity, SnapshotLineageClass, ValidatedQueryBundle,
+    ResolvedSnapshotBasis, ResolvedSnapshotIdentity, SnapshotLineageClass,
 };
+use crate::facade::runtime::ValidatedQueryBundle;
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 

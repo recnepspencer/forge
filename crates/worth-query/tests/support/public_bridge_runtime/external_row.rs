@@ -1,8 +1,7 @@
 use super::state::NativeExternalRow;
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    WorthQueryAdmittedAspectValue, WorthQueryAspectTouch, WorthQueryWorkspaceError,
-};
+use worth_query::facade::foundation::WorthQueryWorkspaceError;
+use worth_query::facade::runtime::{WorthQueryAdmittedAspectValue, WorthQueryAspectTouch};
 
 pub(super) fn external_row_from_aspects(
     aspects: &[WorthQueryAdmittedAspectValue],

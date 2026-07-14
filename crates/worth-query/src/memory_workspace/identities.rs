@@ -122,6 +122,16 @@ impl WorthQuerySnapshotIdentity {
         }
     }
 
+    pub(crate) fn from_bridge_snapshot_identity(
+        bridge_identity: TruthSnapshotIdentity,
+    ) -> Option<Self> {
+        let parts = bridge_identity.relational_snapshot_parts()?;
+        Some(Self::RelationalBridge {
+            bridge_identity,
+            parts,
+        })
+    }
+
     pub fn preview(evidence_identity: WorthQueryEvidenceIdentity) -> Self {
         Self::Preview { evidence_identity }
     }

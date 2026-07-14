@@ -1,6 +1,116 @@
 use super::super::*;
 use super::state::{NativeExternalRow, StatefulBridgeState};
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
+use worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
+
+use crate::memory_workspace::{WorthQueryCommitIdentity, WorthQuerySnapshotIdentity};
+use crate::runtime::backend::build_bridge_authority_bundle;
+
+use super::SharedState;
+
+pub(super) fn execute_write(
+    shared: &SharedState,
+    mutation: WorthQueryBackendAdmissibleMutation,
+) -> Result<WorthQueryMutationReceipt, WorthQueryWorkspaceError> {
+    let mut state = shared.borrow_mut();
+    let collection = mutation
+        .declared_collection_identity()
+        .map(|collection| collection.as_str().to_string())
+        .or_else(|| {
+            mutation.existing_truth_binding().and_then(|binding| {
+                binding
+                    .terminal_target_collection_projection()
+                    .map(str::to_string)
+            })
+        })
+        .or_else(|| {
+            mutation
+                .declared_entity_identity_ref()
+                .and_then(|identity| {
+                    state
+                        .collection_by_identity
+                        .get(&identity.terminal_projection_for_reporting())
+                        .cloned()
+                })
+        })
+        .ok_or_else(|| {
+            WorthQueryWorkspaceError::new("stateful bridge could not resolve collection")
+        })?;
+    let (entity_identity, entity_identity_text) = match mutation.mutation_family() {
+        WorthQueryMutationFamily::Insert => {
+            state.next_entity_identity += 1;
+            let identity = WorthQueryEntityIdentity::from_relational_record(
+                RelationalBridgeRecordIdentityParts::entity(
+                    1,
+                    state.next_entity_identity as u64,
+                    0,
+                ),
+            );
+            let identity_text = identity.terminal_projection_for_reporting();
+            (identity, identity_text)
+        }
+        _ => {
+            let identity = mutation
+                .declared_entity_identity_ref()
+                .cloned()
+                .or_else(|| {
+                    mutation
+                        .existing_truth_binding()
+                        .map(|binding| binding.resolved_target_identity().clone())
+                })
+                .or_else(|| {
+                    mutation.symbolic_target_reference().and_then(|reference| {
+                        state.identity_by_symbol.get(reference.symbol()).cloned()
+                    })
+                })
+                .ok_or_else(|| {
+                    WorthQueryWorkspaceError::new(
+                        "stateful bridge could not resolve target entity identity",
+                    )
+                })?;
+            let identity_text = mutation
+                .symbolic_target_reference()
+                .and_then(|reference| state.identity_text_by_symbol.get(reference.symbol()))
+                .cloned()
+                .unwrap_or_else(|| identity.terminal_projection_for_reporting());
+            (identity, identity_text)
+        }
+    };
+    let mutation_kind = apply_command(
+        &mut state,
+        &mutation,
+        &collection,
+        &entity_identity,
+        &entity_identity_text,
+    )?;
+    state.next_commit_identity += 1;
+    state.next_snapshot_token += 1;
+    let commit_identity =
+        WorthQueryCommitIdentity::from_relational_commit_id(state.next_commit_identity as u64);
+    let snapshot_identity = WorthQuerySnapshotIdentity::from_relational_snapshot(
+        worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts::new(
+            1,
+            state.next_snapshot_token as u64,
+        ),
+    );
+    let bridge_authority = build_bridge_authority_bundle(
+        &state.bridge,
+        &snapshot_identity,
+        &mutation,
+        &collection,
+        &entity_identity,
+        mutation_kind.clone(),
+    )?;
+    Ok(test_mutation_receipt_with_bridge_authority(
+        commit_identity,
+        snapshot_identity,
+        collection,
+        entity_identity,
+        mutation_kind,
+        mutation.declared_aspect_touches(),
+        bridge_authority,
+    ))
+}
 
 pub(super) fn apply_command(
     state: &mut StatefulBridgeState,

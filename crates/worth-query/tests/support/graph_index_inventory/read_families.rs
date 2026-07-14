@@ -1,10 +1,10 @@
+use worth_query::facade::foundation::{
+    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, ScalarPredicateValue,
+    TraversalSelector,
+};
 use worth_query::facade::runtime::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView, WorthQueryReadFamily,
     WorthQueryWorkspace,
-};
-use worth_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, ScalarPredicateValue,
-    TraversalSelector,
 };
 
 pub fn traversal_collection_family(
@@ -52,22 +52,22 @@ fn relation_schema() -> QuerySchemaView {
         "graph-index-inventory-test-schema",
         [
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("identity")
+                worth_query::facade::foundation::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("id")
+                worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("status")
+                worth_query::facade::foundation::AspectName::new("status")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("value")
+                worth_query::facade::foundation::FieldName::new("value")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
         ],
         [SchemaRelationView::new(
-            worth_query::facade::RelationName::new("manager")
+            worth_query::facade::foundation::RelationName::new("manager")
                 .expect("schema relation literal must be valid"),
             2,
         )],

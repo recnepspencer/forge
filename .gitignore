@@ -10,6 +10,7 @@
 .gemini/
 .claude/*
 !.claude/settings.json
+.codex-tmp/
 
 # IDE
 .idea/

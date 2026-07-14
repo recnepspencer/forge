@@ -43,11 +43,11 @@ fn migration_audit_has_no_in_scope_compatibility_debt_remaining() {
 
         assert_eq!(
             row.posture(),
-            BasisLifecycleMigrationPosture::LifecycleAdapterCovered
+            BasisLifecycleMigrationPosture::LifecycleNative
         );
         assert!(
-            row.lifecycle_artifact().starts_with("adapt_"),
-            "{} must name its lifecycle adapter",
+            !row.lifecycle_artifact().contains("adapt_"),
+            "{} must name its native scoped artifact",
             row.surface().as_str()
         );
     }

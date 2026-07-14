@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryBridgeBackedVerificationSupportRow,
-    WorthQueryBridgeBackedVerificationSupportStatus,
-};
+use worth_query::facade::runtime::{WorthQueryBridgeBackedVerificationSupportRow, WorthQueryBridgeBackedVerificationSupportStatus};
 
 fn main() {
     let _ = WorthQueryBridgeBackedVerificationSupportRow {

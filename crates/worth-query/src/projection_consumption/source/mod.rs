@@ -1,7 +1,12 @@
+mod basis_authority_binding;
 mod constructors;
 
-use crate::evidence_identity::WorthQueryEvidenceIdentity;
+use crate::evidence_identity::{
+    WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
+};
+use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
+use crate::query_context::QueryContextExecutionFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProjectionSourceFamily {
@@ -177,6 +182,77 @@ impl std::fmt::Display for ProjectionSourceIdentity {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectionSourceBasisAuthority {
+    kind: ProjectionSourceBasisAuthorityKind,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum ProjectionSourceBasisAuthorityKind {
+    RuntimeSnapshot(WorthQuerySnapshotIdentity),
+    QueryContext {
+        family: QueryContextExecutionFamily,
+        basis_digest: String,
+    },
+    Certification(WorthQueryEvidenceIdentity),
+}
+
+impl ProjectionSourceBasisAuthority {
+    pub fn snapshot_identity(&self) -> Option<&WorthQuerySnapshotIdentity> {
+        match &self.kind {
+            ProjectionSourceBasisAuthorityKind::RuntimeSnapshot(identity) => Some(identity),
+            ProjectionSourceBasisAuthorityKind::QueryContext { .. }
+            | ProjectionSourceBasisAuthorityKind::Certification(_) => None,
+        }
+    }
+
+    pub fn query_context_family(&self) -> Option<&QueryContextExecutionFamily> {
+        match &self.kind {
+            ProjectionSourceBasisAuthorityKind::QueryContext { family, .. } => Some(family),
+            ProjectionSourceBasisAuthorityKind::RuntimeSnapshot(_)
+            | ProjectionSourceBasisAuthorityKind::Certification(_) => None,
+        }
+    }
+
+    pub fn terminal_projection_for_reporting(&self) -> String {
+        match &self.kind {
+            ProjectionSourceBasisAuthorityKind::RuntimeSnapshot(identity) => {
+                identity.evidence_identity().as_str().to_string()
+            }
+            ProjectionSourceBasisAuthorityKind::QueryContext { basis_digest, .. } => {
+                basis_digest.clone()
+            }
+            ProjectionSourceBasisAuthorityKind::Certification(identity) => {
+                identity.as_str().to_string()
+            }
+        }
+    }
+
+    pub(crate) fn runtime_snapshot(identity: WorthQuerySnapshotIdentity) -> Self {
+        Self {
+            kind: ProjectionSourceBasisAuthorityKind::RuntimeSnapshot(identity),
+        }
+    }
+
+    pub(crate) fn query_context(
+        family: QueryContextExecutionFamily,
+        basis_digest: impl Into<String>,
+    ) -> Self {
+        Self {
+            kind: ProjectionSourceBasisAuthorityKind::QueryContext {
+                family,
+                basis_digest: basis_digest.into(),
+            },
+        }
+    }
+
+    pub(crate) fn certification(identity: WorthQueryEvidenceIdentity) -> Self {
+        Self {
+            kind: ProjectionSourceBasisAuthorityKind::Certification(identity),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectionSourceReferenceIdentity {
     label: &'static str,
     identity: String,
@@ -210,6 +286,7 @@ pub struct ProjectionConsumptionSource {
     capability_profile: ProjectionSourceCapabilityProfile,
     query_digest: Option<String>,
     basis_digest: Option<String>,
+    basis_authority: ProjectionSourceBasisAuthority,
     result_digest: Option<String>,
     result_shape_digest: Option<String>,
     source_identity: ProjectionSourceIdentity,
@@ -232,6 +309,10 @@ impl ProjectionConsumptionSource {
 
     pub fn basis_digest(&self) -> Option<&str> {
         self.basis_digest.as_deref()
+    }
+
+    pub fn basis_authority(&self) -> &ProjectionSourceBasisAuthority {
+        &self.basis_authority
     }
 
     pub fn result_digest(&self) -> Option<&str> {
@@ -269,6 +350,9 @@ impl ProjectionConsumptionSource {
             capability_profile,
             query_digest: None,
             basis_digest: None,
+            basis_authority: ProjectionSourceBasisAuthority::certification(
+                certification_basis_identity("projection-source-certification-basis"),
+            ),
             result_digest: None,
             result_shape_digest: None,
             source_identity: source_identity.into(),
@@ -292,6 +376,9 @@ impl ProjectionConsumptionSource {
             capability_profile,
             query_digest,
             basis_digest,
+            basis_authority: ProjectionSourceBasisAuthority::certification(
+                certification_basis_identity("projection-source-intent-certification-basis"),
+            ),
             result_digest,
             result_shape_digest,
             source_identity: source_identity.into(),
@@ -299,6 +386,12 @@ impl ProjectionConsumptionSource {
             materialized_fact_posture: None,
         }
     }
+}
+
+fn certification_basis_identity(label: &'static str) -> WorthQueryEvidenceIdentity {
+    WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::ProjectionConsumptionIdentity)
+        .field_shape(WorthQueryEvidenceTag::new("certification_basis"), label)
+        .seal()
 }
 
 #[cfg(test)]

@@ -1,30 +1,30 @@
 warning: unreachable expression
-  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_checked_outcome_constructor_private.rs:6:13
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_checked_outcome_constructor_private.rs:4:13
    |
- 6 |       let _ = WorthQueryCheckedDomainCapabilityOutcome::<()>
+ 4 |       let _ = WorthQueryCheckedDomainCapabilityOutcome::<()>
    |  _____________^
- 7 | |     {
- 8 | |         category: "support-traceability",
- 9 | |         target_kind: WorthQueryDomainCapabilityTargetKind::IntentDeclaration,
-10 | |         semantic_posture: "declaration-support",
-11 | |         inner: todo!(),
+ 5 | |     {
+ 6 | |         category: "support-traceability",
+ 7 | |         target_kind: WorthQueryDomainCapabilityTargetKind::IntentDeclaration,
+ 8 | |         semantic_posture: "declaration-support",
+ 9 | |         inner: todo!(),
    | |                ------- any code following this expression is unreachable
-12 | |     };
+10 | |     };
    | |_____^ unreachable expression
    |
    = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
 error[E0451]: fields `category`, `target_kind`, `semantic_posture` and `inner` of struct `WorthQueryCheckedDomainCapabilityOutcome` are private
-  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_checked_outcome_constructor_private.rs:8:9
-   |
- 6 |     let _ = WorthQueryCheckedDomainCapabilityOutcome::<()>
-   |             ---------------------------------------------- in this type
- 7 |     {
- 8 |         category: "support-traceability",
-   |         ^^^^^^^^ private field
- 9 |         target_kind: WorthQueryDomainCapabilityTargetKind::IntentDeclaration,
-   |         ^^^^^^^^^^^ private field
-10 |         semantic_posture: "declaration-support",
-   |         ^^^^^^^^^^^^^^^^ private field
-11 |         inner: todo!(),
-   |         ^^^^^ private field
+ --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_checked_outcome_constructor_private.rs:6:9
+  |
+4 |     let _ = WorthQueryCheckedDomainCapabilityOutcome::<()>
+  |             ---------------------------------------------- in this type
+5 |     {
+6 |         category: "support-traceability",
+  |         ^^^^^^^^ private field
+7 |         target_kind: WorthQueryDomainCapabilityTargetKind::IntentDeclaration,
+  |         ^^^^^^^^^^^ private field
+8 |         semantic_posture: "declaration-support",
+  |         ^^^^^^^^^^^^^^^^ private field
+9 |         inner: todo!(),
+  |         ^^^^^ private field

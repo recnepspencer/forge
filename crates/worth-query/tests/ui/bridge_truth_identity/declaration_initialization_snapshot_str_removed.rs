@@ -1,7 +1,6 @@
-use worth_query::facade::{
-    WorthQueryDerivedView, WorthQueryMutationMetadata,
-    WorthQueryRuntimeDeclarationInitializationAdapter, WorthQueryWorkspaceError,
-};
+use worth_query::facade::foundation::WorthQueryWorkspaceError;
+use worth_query::facade::policy::WorthQueryDerivedView;
+use worth_query::facade::runtime::{WorthQueryMutationMetadata, WorthQueryRuntimeDeclarationInitializationAdapter};
 
 struct StringSnapshotInitializationAdapter;
 

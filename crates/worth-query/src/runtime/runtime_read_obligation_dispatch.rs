@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::intent_admission::{WorthQueryLiveReadExecutionHandoff, WorthQueryReadExecutionHandoff};
-use crate::query_context::{AdmittedQueryBasisContext, QueryContextFamily};
+use crate::query_context::{QueryContextFamily, ScopedQueryBasisContext};
 use worth_foundational::facade::CanonicalFieldPath;
 
 use super::{
@@ -89,7 +89,7 @@ impl WorthQueryRuntime {
 
 fn read_family_read_verbs(
     read_graph: &crate::runtime::WorthQueryReadGraph,
-    basis_context: Option<&AdmittedQueryBasisContext>,
+    basis_context: Option<&ScopedQueryBasisContext>,
 ) -> Vec<WorthQueryGraphTouchReadVerb> {
     let mut verbs = BTreeSet::from([
         WorthQueryGraphTouchReadVerb::ObservesCollection,
@@ -177,9 +177,9 @@ fn graph_obligation_dispatch_error(
 }
 
 fn read_family_operating_world(
-    basis_context: Option<&AdmittedQueryBasisContext>,
+    basis_context: Option<&ScopedQueryBasisContext>,
 ) -> WorthQueryGraphObligationOperatingWorldDescriptor {
-    match basis_context.map(AdmittedQueryBasisContext::family) {
+    match basis_context.map(ScopedQueryBasisContext::family) {
         Some(QueryContextFamily::BranchHead) => {
             WorthQueryGraphObligationOperatingWorldDescriptor::branch()
         }

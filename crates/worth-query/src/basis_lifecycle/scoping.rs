@@ -135,6 +135,30 @@ scoped_basis_proof!(ScopedSubscriptionActivationBasis);
 scoped_basis_proof!(ScopedPreviewCloseoutBasis);
 scoped_basis_proof!(ScopedCertificationBasis);
 
+pub fn activate_subscription_basis(
+    declaration: &ScopedSubscriptionDeclarationBasis,
+) -> ScopedSubscriptionActivationBasis {
+    let capability_digest = hash_parts(&[
+        "subscription_activation_capability_from_declaration_v1".to_string(),
+        format!("declaration:{}", declaration.capability_digest()),
+    ]);
+    let scoped_basis_digest = hash_parts(&[
+        "ScopedSubscriptionActivationBasis".to_string(),
+        format!("capability:{capability_digest}"),
+    ]);
+    ScopedSubscriptionActivationBasis {
+        family: declaration.family,
+        authority: declaration.authority,
+        lifecycle: declaration.lifecycle,
+        capability_digest,
+        expected_lower_runtime_binding_digest: declaration
+            .expected_lower_runtime_binding_digest
+            .clone(),
+        scoped_basis_digest,
+        counters: BasisEligibilityCounters::scoped_capability(),
+    }
+}
+
 pub fn scope_basis_for_observation(
     capability: AdmittedBasisCapability<ObservationLaneWitness>,
 ) -> ScopedObservationBasis {
@@ -183,7 +207,7 @@ pub fn scope_basis_for_preview_closeout(
     ScopedPreviewCloseoutBasis::new(capability)
 }
 
-pub fn scope_basis_for_certification(
+pub(crate) fn scope_basis_for_certification(
     capability: AdmittedBasisCapability<CertificationLaneWitness>,
 ) -> ScopedCertificationBasis {
     ScopedCertificationBasis::new(capability)

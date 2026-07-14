@@ -1,12 +1,9 @@
 
-use worth_query::facade::{
-    WorthQueryExistingTruthProbeRequest, WorthQueryLiveView, WorthQueryRuntime,
-    WorthQueryNativeRow, WorthQueryRuntimeError, WorthQueryWorkspace,
-};
+use worth_query::facade::runtime::{WorthQueryExistingTruthProbeRequest, WorthQueryLiveView, WorthQueryRuntime, WorthQueryNativeRow, WorthQueryRuntimeError, WorthQueryWorkspace};
 
 fn mutation_common_path(
     runtime: &mut WorthQueryRuntime,
-    command: worth_query::facade::WorthQueryWriteCommand,
+    command: worth_query::facade::runtime::WorthQueryWriteCommand,
 ) -> Result<(), WorthQueryRuntimeError> {
     let write_receipt = runtime.write_intent(command).execute()?;
     let _ = write_receipt.decision_trace_envelope();
@@ -15,7 +12,7 @@ fn mutation_common_path(
 
 fn live_read_common_path<T>(
     workspace: &mut WorthQueryWorkspace,
-    view: &worth_query::facade::WorthQueryLiveView<T>,
+    view: &worth_query::facade::runtime::WorthQueryLiveView<T>,
 ) -> Result<(), WorthQueryRuntimeError> {
     let live_result = workspace.read_live_intent(view).execute()?;
     let _ = live_result.receipt().decision_trace_envelope();

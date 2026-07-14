@@ -1,6 +1,7 @@
+use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::{
     BridgePreviewDiscardRecordIdentity, BridgePreviewLifecycleStateKind, BridgePreviewReplayBundle,
-    BridgePreviewSessionIdentity, PreviewExecutionRecordIdentity, TruthBranchIdentity,
+    PreviewExecutionRecordIdentity, TruthBranchIdentity,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

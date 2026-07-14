@@ -7,9 +7,9 @@ warning: unused imports: `CanonicalFieldPath` and `FieldKey`
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
 error[E0599]: no method named `with_target_lane` found for struct `WorthQueryEffectDeclaration` in the current scope
-  --> tests/ui/runtime_effect_declaration_target_lane_override_forbidden.rs:16:25
+  --> tests/ui/runtime_effect_declaration_target_lane_override_forbidden.rs:13:25
    |
-16 |     let _ = declaration.with_target_lane(WorthQueryAuthorityLane::AuthoritativeTruth);
+13 |     let _ = declaration.with_target_lane(WorthQueryAuthorityLane::AuthoritativeTruth);
    |                         ^^^^^^^^^^^^^^^^
    |
 help: there is a method `target_lane` with a similar name, but with different arguments

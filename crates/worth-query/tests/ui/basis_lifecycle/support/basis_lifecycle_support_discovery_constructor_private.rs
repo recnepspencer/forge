@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    BasisEligibilityCounters, BasisFamily, BasisLifecycleSupportDiscovery, BasisSupportPosture,
-};
+use worth_query::facade::foundation::{BasisEligibilityCounters, BasisFamily, BasisLifecycleSupportDiscovery, BasisSupportPosture};
 
 fn main() {
     let _ = BasisLifecycleSupportDiscovery {

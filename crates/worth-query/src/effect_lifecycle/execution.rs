@@ -110,7 +110,7 @@ pub(crate) fn execute_lowered_effect_plan_with_authority(
     }
 }
 
-fn execute_lowered_merge(
+pub(crate) fn execute_lowered_merge(
     runtime: &mut RelationalRuntime,
     declaration: &crate::workflow::LoweredMergeWorkflowDeclaration,
 ) -> Result<MergeExecutionOutcome, (EffectExecutionDenialKind, String)> {

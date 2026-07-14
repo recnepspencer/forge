@@ -1,5 +1,5 @@
 use worth_proof::TransitionOutcome;
-use worth_query::facade::WorthQueryUnifiedInspectionResult;
+use worth_query::facade::runtime::WorthQueryUnifiedInspectionResult;
 
 use crate::{
     WorthServerCompatibilityCachePolicy, WorthServerCompatibilityCertificationBundle,
@@ -265,7 +265,7 @@ impl WorthServerCompatibilityFacade {
             .responses
             .shape_with_defaults(WorthServerResponseInput::query_handoff_success(handoff));
         let (basis_digest, remask_posture) = match inspection_result.inspection() {
-            worth_query::facade::WorthQueryInspection::LiveView(live) => {
+            worth_query::facade::runtime::WorthQueryInspection::LiveView(live) => {
                 let basis = live
                     .basis_binding_identity()
                     .terminal_projection_for_reporting();

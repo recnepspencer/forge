@@ -1,13 +1,11 @@
+use crate::memory_workspace::WorthQuerySnapshotIdentity;
+use crate::workflow::LoweredMutationIntentDeclaration;
 use worth_relational::facade::commit_strategies::{
     CanonicalStrategyCommitRequest, StrategyExecutionDraft,
 };
 use worth_relational::facade::history::BranchId;
 use worth_relational::facade::runtime::RelationalRuntime;
 use worth_relational::facade::transactions::{CommitResult, TransactionOptions};
-use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
-
-use crate::memory_workspace::WorthQuerySnapshotIdentity;
-use crate::workflow::LoweredMutationIntentDeclaration;
 
 use super::execution::{lower_runtime_error, EffectExecutionDenialKind};
 
@@ -119,10 +117,9 @@ fn current_branch_snapshot_identity(
     runtime: &RelationalRuntime,
     branch: &BranchId,
 ) -> Result<WorthQuerySnapshotIdentity, (EffectExecutionDenialKind, String)> {
-    let version_id = runtime
-        .history()
+    let history = runtime.history();
+    let head = history
         .branch_head(branch)
-        .map(|head| head.version_id.0)
         .ok_or_else(|| {
             (
                 EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
@@ -132,21 +129,16 @@ fn current_branch_snapshot_identity(
                 ),
             )
         })?;
-    Ok(WorthQuerySnapshotIdentity::from_relational_snapshot(
-        RelationalBridgeSnapshotIdentityParts::new(stable_branch_snapshot_id(branch), version_id),
-    ))
-}
-
-pub(crate) fn stable_branch_snapshot_id(branch: &BranchId) -> u64 {
-    let mut acc = 14_695_981_039_346_656_037_u64;
-    for byte in b"effect-current-branch-snapshot"
-        .iter()
-        .copied()
-        .chain([0])
-        .chain(branch.0.bytes())
-    {
-        acc ^= u64::from(byte);
-        acc = acc.wrapping_mul(1_099_511_628_211);
-    }
-    acc
+    WorthQuerySnapshotIdentity::from_bridge_snapshot_identity(
+        worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
+            head.commit_id,
+            head.version_id,
+        ),
+    )
+    .ok_or_else(|| {
+        (
+            EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
+            "relational bridge returned a non-relational snapshot identity".to_string(),
+        )
+    })
 }

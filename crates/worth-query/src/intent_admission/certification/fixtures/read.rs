@@ -1,13 +1,14 @@
 use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
+use crate::facade::foundation::{
+    basis_lifecycle, preflight_execution_basis, resolve_snapshot_basis, BasisAuthorityFamily,
+    BasisResolutionMode, ExecutionBasisIntent, ResolvedSnapshotIdentity, SnapshotLineageClass,
+};
+use crate::facade::policy::{
+    admit_query_basis_context, QueryContextBindingSource, ScopedQueryBasisContext,
+};
 use crate::facade::runtime::{
     WorthQueryIntentAdmissionDecision, WorthQueryReadFamily, WorthQueryReadResult,
     WorthQueryWorkspace,
-};
-use crate::facade::{
-    admit_query_basis_context, bind_query_basis_context, preflight_execution_basis,
-    resolve_snapshot_basis, AdmittedQueryBasisContext, BasisAuthorityFamily, BasisResolutionMode,
-    ExecutionBasisIntent, QueryBasisContextRequest, QueryContextBindingSource,
-    ResolvedSnapshotIdentity, SnapshotLineageClass,
 };
 use crate::intent_admission::{WorthQueryAdmittedIntentPlan, WorthQueryRawIntentAdmissionRequest};
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
@@ -174,7 +175,7 @@ fn certification_read_family(
 fn current_context_for_family(
     family: &WorthQueryReadFamily,
     snapshot_identity: WorthQuerySnapshotIdentity,
-) -> AdmittedQueryBasisContext {
+) -> ScopedQueryBasisContext {
     let intent = ExecutionBasisIntent::new(
         BasisAuthorityFamily::Runtime,
         SnapshotLineageClass::CurrentHead,
@@ -191,12 +192,11 @@ fn current_context_for_family(
         .expect("runtime basis should resolve");
     let preflight = preflight_execution_basis(family.read_graph().execution_plan().clone(), basis)
         .expect("family preflight should build");
-    let binding = bind_query_basis_context(
-        QueryBasisContextRequest::current_branch_head(),
+    admit_query_basis_context(
+        basis_lifecycle().current_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
-    .expect("current basis context should bind");
-    admit_query_basis_context(binding).expect("current basis context should admit")
+    .expect("current basis context should admit")
 }
 
 fn certification_manager_schema() -> QuerySchemaView {

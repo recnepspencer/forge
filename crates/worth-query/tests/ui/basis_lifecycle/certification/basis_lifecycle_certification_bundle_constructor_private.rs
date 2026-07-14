@@ -1,4 +1,5 @@
-use worth_query::facade::{BasisEligibilityCounters, BasisLifecycleCertificationBundle};
+use worth_query::facade::foundation::BasisEligibilityCounters;
+use worth_query::facade::certification::BasisLifecycleCertificationBundle;
 
 fn main() {
     let _ = BasisLifecycleCertificationBundle {

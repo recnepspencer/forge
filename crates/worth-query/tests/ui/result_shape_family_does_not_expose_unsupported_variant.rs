@@ -1,4 +1,4 @@
-use worth_query::facade::ResultShapeFamily;
+use worth_query::facade::foundation::ResultShapeFamily;
 
 fn main() {
     let _ = ResultShapeFamily::Unsupported("inspector");

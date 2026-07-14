@@ -1,4 +1,4 @@
-use worth_query::facade::{declare_query_subscription, QuerySubscriptionSliceBudget};
+use worth_query::facade::runtime::{declare_query_subscription, QuerySubscriptionSliceBudget};
 
 struct RawCdcFilter {
     table: &'static str,

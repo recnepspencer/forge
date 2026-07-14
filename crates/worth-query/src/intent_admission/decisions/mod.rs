@@ -16,7 +16,7 @@ pub(crate) const INTENT_ADMISSION_DECISIONS_EXPORTED_SURFACE: &[&str] = &[
     "WorthQueryIntentViolationDecision",
 ];
 
-pub fn admit_runtime_intent_request(
+pub(crate) fn admit_runtime_intent_request(
     request: WorthQueryRawIntentAdmissionRequest,
 ) -> WorthQueryIntentAdmissionDecision {
     let eligibility = WorthQueryIntentAdmissionEligibility::from_request(request);

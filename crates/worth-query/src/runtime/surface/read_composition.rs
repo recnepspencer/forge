@@ -1,4 +1,7 @@
 use crate::authoring::WorthQueryGraphReadDomainOperationDeclaration;
+use crate::authorized_projection::AuthorizedProjectionArtifact;
+use crate::basis::QuerySchemaBasisAuthority;
+use crate::canonicalization::CanonicalQueryBundle;
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
@@ -7,11 +10,13 @@ use crate::identity::SchemaBasisDigest;
 use crate::intent_admission::WorthQueryIntentDecisionTraceEnvelope;
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::planning::ExecutionPlanBundle;
+use crate::policy_plan::PolicyAwareCurrentPlan;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::relationship_proof::{RelationshipProofAdmission, RelationshipProofSupportProfile};
 use crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch;
 use crate::runtime::WorthQueryIntentExecutionProvenance;
 use crate::schema_view::QuerySchemaView;
+use crate::validation::ValidatedQueryBundle;
 
 use super::{WorthQueryReadBreadth, WorthQueryReadBuiltInOperator, WorthQueryReadOperatorFamily};
 
@@ -90,6 +95,10 @@ pub struct WorthQueryReadGraph {
     declared_traversal_clause_count: usize,
     declared_traversal_depth_limit: usize,
     relationship_proof_admission: Option<RelationshipProofAdmission>,
+    policy_aware_plan: Option<PolicyAwareCurrentPlan>,
+    authorized_projection: Option<AuthorizedProjectionArtifact>,
+    canonical: CanonicalQueryBundle,
+    validated: ValidatedQueryBundle,
     declarative_request: DeclarativeLiveQueryRequest,
     schema_view: QuerySchemaView,
     execution_plan: ExecutionPlanBundle,
@@ -110,6 +119,10 @@ impl WorthQueryReadGraph {
 
     pub fn schema_basis(&self) -> &SchemaBasisDigest {
         &self.schema_basis
+    }
+
+    pub fn schema_basis_authority(&self) -> QuerySchemaBasisAuthority {
+        QuerySchemaBasisAuthority::from_query_artifact(&self.schema_basis)
     }
 
     pub fn built_in_operators(&self) -> &[WorthQueryReadBuiltInOperator] {
@@ -139,12 +152,28 @@ impl WorthQueryReadGraph {
         &self.execution_plan
     }
 
+    pub(crate) fn canonical(&self) -> &CanonicalQueryBundle {
+        &self.canonical
+    }
+
+    pub(crate) fn validated(&self) -> &ValidatedQueryBundle {
+        &self.validated
+    }
+
     pub fn declarative_request(&self) -> &DeclarativeLiveQueryRequest {
         &self.declarative_request
     }
 
     pub fn relationship_proof_admission(&self) -> Option<&RelationshipProofAdmission> {
         self.relationship_proof_admission.as_ref()
+    }
+
+    pub(crate) fn policy_aware_plan(&self) -> Option<&PolicyAwareCurrentPlan> {
+        self.policy_aware_plan.as_ref()
+    }
+
+    pub(crate) fn authorized_projection(&self) -> Option<&AuthorizedProjectionArtifact> {
+        self.authorized_projection.as_ref()
     }
 
     pub fn schema_view(&self) -> &QuerySchemaView {
@@ -169,7 +198,7 @@ impl WorthQueryReadGraph {
         families
     }
 
-    pub(in crate::runtime) fn new(
+    pub(crate) fn new(
         family: WorthQueryReadGraphFamily,
         scope_class: WorthQueryReadScopeClass,
         schema_basis: SchemaBasisDigest,
@@ -178,6 +207,10 @@ impl WorthQueryReadGraph {
         declared_traversal_clause_count: usize,
         declared_traversal_depth_limit: usize,
         relationship_proof_admission: Option<RelationshipProofAdmission>,
+        policy_aware_plan: Option<PolicyAwareCurrentPlan>,
+        authorized_projection: Option<AuthorizedProjectionArtifact>,
+        canonical: CanonicalQueryBundle,
+        validated: ValidatedQueryBundle,
         declarative_request: DeclarativeLiveQueryRequest,
         schema_view: QuerySchemaView,
         execution_plan: ExecutionPlanBundle,
@@ -219,6 +252,12 @@ impl WorthQueryReadGraph {
                     .as_ref()
                     .map(|admission| admission.identity().as_str()),
             )
+            .optional_value(
+                WorthQueryEvidenceTag::new("policy_aware_plan"),
+                policy_aware_plan
+                    .as_ref()
+                    .map(|plan| plan.core().digest().as_str()),
+            )
             .seal()
             .as_str()
             .to_string();
@@ -232,6 +271,10 @@ impl WorthQueryReadGraph {
             declared_traversal_clause_count,
             declared_traversal_depth_limit,
             relationship_proof_admission,
+            policy_aware_plan,
+            authorized_projection,
+            canonical,
+            validated,
             declarative_request,
             schema_view,
             execution_plan,
@@ -243,6 +286,8 @@ impl WorthQueryReadGraph {
 pub struct WorthQueryReadReceipt {
     pub(super) read_graph_digest: String,
     pub(super) graph_family: WorthQueryReadGraphFamily,
+    pub(super) collection_result_family: Option<crate::collection::CollectionResultFamily>,
+    pub(super) execution_plan_digest: String,
     pub(super) query_digest: String,
     pub(super) basis_digest: String,
     pub(super) result_digest: String,
@@ -256,6 +301,10 @@ pub struct WorthQueryReadReceipt {
     pub(super) relationship_proof_posture: WorthQueryReadRelationshipProofPosture,
     pub(super) relationship_proof_admission: Option<RelationshipProofAdmission>,
     pub(super) relationship_proof_support_profile: Option<RelationshipProofSupportProfile>,
+    pub(super) policy_narrowing_digest: Option<String>,
+    pub(super) policy_aware_plan_digest: Option<String>,
+    pub(super) policy_execution_seam_identity: Option<String>,
+    pub(super) policy_executor_semantic_rediscovery_count: usize,
     pub(super) breadth: WorthQueryReadBreadth,
     pub(super) materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     pub(super) graph_read_access_plan:

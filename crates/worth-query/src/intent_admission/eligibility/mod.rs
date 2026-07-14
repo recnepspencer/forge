@@ -47,6 +47,7 @@ pub use facts::{
     WorthQueryIntentAdmissionSourceLaneEligibility, WorthQueryIntentAdmissionSupportEligibility,
 };
 pub use request::WorthQueryRawIntentAdmissionRequest;
+pub(crate) use seeds::authoritative_mutation_input_identity;
 pub use seeds::{
     WorthQueryAuthoritativeMutationBatchIntentSeed, WorthQueryAuthoritativeMutationIntentSeed,
     WorthQueryAuthoritativeMutationPreflight, WorthQueryDerivedViewIntentSeed,

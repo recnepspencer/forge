@@ -10,6 +10,8 @@ fn projection_consumption_compile_fail_boundaries_hold() {
         "tests/ui/projection_consumption/golden/projection_consumption_retained_live_ordinary_path_compiles.rs",
     );
     t.pass("tests/ui/projection_consumption/golden/projection_consumption_advanced_path_golden_transcript_compiles.rs");
+    t.pass("tests/ui/projection_consumption/golden/projection_authority_fluent_path_compiles.rs");
+    t.pass("tests/ui/projection_consumption/golden/projection_authority_serialized_contract_compiles.rs");
     t.compile_fail("tests/ui/projection_consumption/construction/projection_consumption_authoring_surface_constructor_private.rs");
     t.compile_fail(
         "tests/ui/projection_consumption/construction/projection_consumption_contract_constructor_private.rs",
@@ -38,4 +40,19 @@ fn projection_consumption_compile_fail_boundaries_hold() {
         "tests/ui/projection_consumption/boundaries/projection_consumption_raw_source_has_no_consumed_fact_accessors.rs",
     );
     t.compile_fail("tests/ui/projection_consumption/construction/projection_consumption_support_artifacts_constructor_private.rs");
+    t.compile_fail(
+        "tests/ui/projection_consumption/construction/consumed_projection_authority_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/projection_consumption/construction/consumed_projection_authority_certification_bundle_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/projection_consumption/boundaries/consumed_projection_authority_not_cloneable.rs",
+    );
+    t.compile_fail(
+        "tests/ui/projection_consumption/boundaries/legacy_completed_consumption_not_in_facade.rs",
+    );
+    t.compile_fail(
+        "tests/ui/projection_consumption/boundaries/legacy_consumption_attempt_not_in_facade.rs",
+    );
 }

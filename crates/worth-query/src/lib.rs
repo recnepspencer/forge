@@ -10,6 +10,9 @@
 
 #![forbid(unsafe_code)]
 
+#[cfg(test)]
+extern crate self as worth_query;
+
 mod application;
 mod aspect_field_authoring;
 mod authoring;
@@ -48,7 +51,9 @@ mod live;
 mod live_performance;
 mod lower_runtime_routing;
 mod memory_workspace;
+mod milestone_nine_twelve_certification;
 mod orchestration_inventory;
+mod ordinary;
 mod ordinary_outcome;
 mod planning;
 mod platform_entry_closeout;
@@ -63,7 +68,6 @@ mod preview;
 mod program;
 mod projection_consumption;
 mod public_doc_coverage;
-mod query_basis_lifecycle;
 mod query_context;
 mod recovery_boundary;
 mod result_shape;
@@ -87,52 +91,49 @@ mod workflow;
 #[cfg(test)]
 mod future_signal_test_support;
 
-pub use application::{
-    WorthQueryConcurrentHostileMatrixArtifact, WorthQueryConcurrentHostileMatrixPosture,
-    WorthQueryConcurrentHostileMatrixSabotage, WorthQueryConcurrentHostileMatrixSabotageKind,
-    WorthQueryMilestoneClosureStatus, WorthQueryMilestoneNineSevenDerivedClosure,
-    WorthQueryMilestoneNineSevenPhaseClosure, WorthQueryPublicBridgeForbiddenAccessFinding,
-    WorthQueryPublicBridgeForbiddenAccessPattern,
-    WorthQueryPublicBridgeProjectionConsumptionEvidence,
-    WorthQueryPublicBridgePublishedProjectionReader, WorthQueryPublicBridgeReaderLaneCertification,
-    WorthQueryPublicBridgeReaderLaneInventory, WorthQueryPublicBridgeReaderLanePosture,
-    WorthQueryPublicBridgeReaderLaneSabotage, WorthQueryPublicBridgeReaderLaneSabotageKind,
-    WorthQueryPublicBridgeReaderLaneSabotageOutcome,
-};
-pub use consumer_kit::{
-    compare_test_backend_write_receipts, evidence_report_adoption_audit,
-    graph_obligation_consumer_kit, graph_read_bypass_adoption, graph_read_bypass_audit,
-    hard_prohibition_boundary_audit, hard_prohibition_boundary_audit_coverage,
-    hard_prohibition_compile_fail_fixtures, hard_prohibition_documentation_rows,
-    hard_prohibition_documented_seam_keys, hard_prohibition_registry,
-    hard_prohibition_seeded_consumer_sources, in_memory_test_runtime,
+#[allow(unused_imports)]
+pub(crate) use consumer_kit::{
+    audit_public_authority_surface_symbols, compare_test_backend_write_receipts,
+    downstream_authority_adoption, evidence_report_adoption_audit, graph_obligation_consumer_kit,
+    graph_read_bypass_adoption, graph_read_bypass_audit, hard_prohibition_boundary_audit,
+    hard_prohibition_boundary_audit_coverage, hard_prohibition_compile_fail_fixtures,
+    hard_prohibition_documentation_rows, hard_prohibition_documented_seam_keys,
+    hard_prohibition_registry, hard_prohibition_seeded_consumer_sources, in_memory_test_runtime,
     load_support_pin_contract_terminal_json_document, load_support_snapshot_terminal_json_document,
     project_support_snapshot, project_workspace_support_snapshot, query_boundary_source_inventory,
     query_consumer_residue_audit, query_test_backend_residue_audit,
     render_hard_prohibition_reference, support_pinning_contract,
     worth_query_consumer_residue_certification_evidence, worth_query_consumer_residue_registry,
-    worth_query_graph_read_bypass_registry, worth_query_test_backend_residue_classes,
-    EvidenceReport, EvidenceReportDeclaration, EvidenceReportError, EvidenceReportErrorKind,
-    EvidenceReportField, EvidenceReportFieldKind, EvidenceReportFieldParticipation,
-    EvidenceReportFieldValue, EvidenceReportScope, WorthQueryBoundaryAuditCoverage,
-    WorthQueryBoundaryAuditCoverageMechanism, WorthQueryBoundaryAuditCoverageRow,
-    WorthQueryBoundaryAuditError, WorthQueryBoundaryAuditErrorKind,
-    WorthQueryBoundaryAuditEvaluation, WorthQueryBoundaryAuditFailure,
-    WorthQueryBoundaryAuditFinding, WorthQueryBoundaryAuditFindingKind,
-    WorthQueryBoundaryAuditReport, WorthQueryBoundaryAuditSeededSource,
-    WorthQueryBoundaryAuditSource, WorthQueryBoundaryAuditSourceInventory,
-    WorthQueryBoundaryAuditSourceInventoryBuilder, WorthQueryBoundaryAuditSourceInventoryFile,
-    WorthQueryBoundaryAuditSourceSet, WorthQueryBoundaryAuditSourceSite,
-    WorthQueryBoundaryAuditSyntaxClass, WorthQueryConsumerResidueAudit,
+    worth_query_graph_read_bypass_registry, worth_query_public_authority_surface_rows,
+    worth_query_test_backend_residue_classes, EvidenceReport, EvidenceReportDeclaration,
+    EvidenceReportError, EvidenceReportErrorKind, EvidenceReportField, EvidenceReportFieldKind,
+    EvidenceReportFieldParticipation, EvidenceReportFieldValue, EvidenceReportScope,
+    WorthQueryBoundaryAuditCoverage, WorthQueryBoundaryAuditCoverageMechanism,
+    WorthQueryBoundaryAuditCoverageRow, WorthQueryBoundaryAuditError,
+    WorthQueryBoundaryAuditErrorKind, WorthQueryBoundaryAuditEvaluation,
+    WorthQueryBoundaryAuditFailure, WorthQueryBoundaryAuditFinding,
+    WorthQueryBoundaryAuditFindingKind, WorthQueryBoundaryAuditReport,
+    WorthQueryBoundaryAuditSeededSource, WorthQueryBoundaryAuditSource,
+    WorthQueryBoundaryAuditSourceInventory, WorthQueryBoundaryAuditSourceInventoryBuilder,
+    WorthQueryBoundaryAuditSourceInventoryFile, WorthQueryBoundaryAuditSourceSet,
+    WorthQueryBoundaryAuditSourceSite, WorthQueryBoundaryAuditSyntaxClass,
+    WorthQueryConsumerJourneyAudit, WorthQueryConsumerJourneyFinding,
+    WorthQueryConsumerJourneyFindingKind, WorthQueryConsumerJourneyRow,
+    WorthQueryConsumerJourneySource, WorthQueryConsumerOrchestrationAudit,
+    WorthQueryConsumerOrchestrationError, WorthQueryConsumerOrchestrationErrorKind,
+    WorthQueryConsumerOrchestrationFinding, WorthQueryConsumerOrchestrationPhase,
+    WorthQueryConsumerOrchestrationSite, WorthQueryConsumerResidueAudit,
     WorthQueryConsumerResidueCertificationCaseEvidence, WorthQueryConsumerResidueClass,
     WorthQueryConsumerResidueDetection, WorthQueryConsumerResidueFinding,
     WorthQueryConsumerResidueQueryOwnedRootAuthority, WorthQueryConsumerResidueRegistryRow,
     WorthQueryConsumerResidueReport, WorthQueryConsumerResidueSourceInventory,
-    WorthQueryConsumerResidueSourceSite, WorthQueryEvidenceReportAdoptionAudit,
-    WorthQueryEvidenceReportAdoptionError, WorthQueryEvidenceReportAdoptionErrorKind,
-    WorthQueryEvidenceReportAdoptionEvaluation, WorthQueryEvidenceReportAdoptionFinding,
-    WorthQueryEvidenceReportAdoptionFindingKind, WorthQueryEvidenceReportAdoptionReport,
-    WorthQueryEvidenceReportAdoptionResidueClassification,
+    WorthQueryConsumerResidueSourceSite, WorthQueryDownstreamAuthorityAdoption,
+    WorthQueryDownstreamAuthorityAdoptionManifest, WorthQueryDownstreamAuthorityAdoptionProof,
+    WorthQueryDownstreamAuthorityDeletionReceipt, WorthQueryDownstreamAuthorityDeletionRow,
+    WorthQueryEvidenceReportAdoptionAudit, WorthQueryEvidenceReportAdoptionError,
+    WorthQueryEvidenceReportAdoptionErrorKind, WorthQueryEvidenceReportAdoptionEvaluation,
+    WorthQueryEvidenceReportAdoptionFinding, WorthQueryEvidenceReportAdoptionFindingKind,
+    WorthQueryEvidenceReportAdoptionReport, WorthQueryEvidenceReportAdoptionResidueClassification,
     WorthQueryEvidenceReportAdoptionResidueRow, WorthQueryEvidenceReportAdoptionSource,
     WorthQueryEvidenceReportAdoptionSourceSet, WorthQueryEvidenceReportAdoptionSyntaxClass,
     WorthQueryExternalSupportPinContractTerminalJsonDocument,
@@ -164,7 +165,10 @@ pub use consumer_kit::{
     WorthQueryObservedSupportPin, WorthQueryPinnedSupportStatus, WorthQueryPinnedTeachingPosture,
     WorthQueryProhibitedSeam, WorthQueryProhibitionCompileFailFixture,
     WorthQueryProhibitionEnforcementTier, WorthQueryProhibitionRegistry,
-    WorthQueryProhibitionRegistryRow, WorthQuerySupportPinContract,
+    WorthQueryProhibitionRegistryRow, WorthQueryPublicAuthorityOwner,
+    WorthQueryPublicAuthoritySurfaceAudit, WorthQueryPublicAuthoritySurfaceClass,
+    WorthQueryPublicAuthoritySurfaceFinding, WorthQueryPublicAuthoritySurfaceFindingKind,
+    WorthQueryPublicAuthoritySurfaceRow, WorthQuerySupportPinContract,
     WorthQuerySupportPinContractBuilder, WorthQuerySupportPinContractSchemaVersion,
     WorthQuerySupportPinContractTerminalJsonDocument, WorthQuerySupportPinDeclaration,
     WorthQuerySupportPinFinding, WorthQuerySupportPinFindingKind, WorthQuerySupportPinReport,
@@ -178,7 +182,8 @@ pub use consumer_kit::{
     WorthQueryTestBackendResidueFinding, WorthQueryTestBackendResidueReport,
     WorthQueryTestBackendSchema,
 };
-pub use continuation_pipeline::{
+#[allow(unused_imports)]
+pub(crate) use continuation_pipeline::{
     WorthQueryContinuationBasisPosture, WorthQueryContinuationExecution,
     WorthQueryContinuationExecutionChecked, WorthQueryContinuationExecutionOutcome,
     WorthQueryContinuationExecutionTranscript, WorthQueryContinuationRuntimeContract,
@@ -192,7 +197,8 @@ pub use continuation_pipeline::{
     WorthQueryPreparedContinuationRequest, WorthQueryPreparedContinuationSignalPosture,
     WorthQueryPreparedContinuationTranscript,
 };
-pub use contribution_composed_orchestration::{
+#[allow(unused_imports)]
+pub(crate) use contribution_composed_orchestration::{
     WorthQueryContributionComposedClassification, WorthQueryContributionComposedComposition,
     WorthQueryContributionComposedContribution, WorthQueryContributionComposedDeclarationRecord,
     WorthQueryContributionComposedIntentClassification,
@@ -208,16 +214,19 @@ pub use contribution_composed_orchestration::{
     WorthQueryContributionComposedOrchestrationTranscript, WorthQueryContributionComposedStop,
     WorthQueryContributionComposedSummary, WorthQueryContributionIntent,
 };
-pub use evidence_identity::{
+#[allow(unused_imports)]
+pub(crate) use evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceIdentityComparisonError,
     WorthQueryEvidenceIdentityScheme, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
-pub use family_helpers::{
+#[allow(unused_imports)]
+pub(crate) use family_helpers::{
     WorthQueryFamilyHelpers, WorthQueryGeometryActiveFaceSelectionHelperFamily,
     WorthQueryGeometryFamilyHelpers, WorthQueryGeometryMaterialAttachmentHelperFamily,
     WorthQueryGeometryMaterialAttachmentInput, WorthQueryGeometryNeighborhoodHelperFamily,
 };
-pub use grouped_authoring::{
+#[allow(unused_imports)]
+pub(crate) use grouped_authoring::{
     WorthQueryGroupedAspectParticipationSummary, WorthQueryGroupedAtomicity,
     WorthQueryGroupedContinuityAssumption, WorthQueryGroupedContributionAssignment,
     WorthQueryGroupedContributionComposition, WorthQueryGroupedContributionInput,
@@ -236,7 +245,8 @@ pub use grouped_authoring::{
     WorthQueryGroupedSharedPostureClaim, WorthQueryGroupedSupportFeature,
     WorthQueryGroupedSupportReport, WorthQueryGroupedSupportStatus,
 };
-pub use orchestration_inventory::{
+#[allow(unused_imports)]
+pub(crate) use orchestration_inventory::{
     WorthQueryOrchestrationAspectPosture, WorthQueryOrchestrationBasisPosture,
     WorthQueryOrchestrationBindingProjection, WorthQueryOrchestrationCheckedTopologyKind,
     WorthQueryOrchestrationCollaborativeExtensionPosture,
@@ -250,7 +260,8 @@ pub use orchestration_inventory::{
     WorthQueryOrchestrationSurfaceInventory, WorthQueryOrchestrationSurfaceRow,
     WorthQueryOrchestrationSurfaceVisibility, WorthQueryOrchestrationTranscriptFamily,
 };
-pub use ordinary_outcome::{
+#[allow(unused_imports)]
+pub(crate) use ordinary_outcome::{
     WorthQueryOrdinaryBindingCheckedTopologyKind, WorthQueryOrdinaryCheckedTopology,
     WorthQueryOrdinaryContinuationCheckedTopologyKind,
     WorthQueryOrdinaryContributionComposedCheckedTopologyKind, WorthQueryOrdinaryNextStep,
@@ -260,7 +271,8 @@ pub use ordinary_outcome::{
     WorthQueryOrdinaryRuntimePostureKind,
     WorthQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };
-pub use platform_entry_closeout::{
+#[allow(unused_imports)]
+pub(crate) use platform_entry_closeout::{
     certify_platform_entry_closeout, worth_query_platform_entry_closeout_surface,
     worth_query_platform_entry_compile_fail_boundary_digest,
     worth_query_platform_entry_compile_fail_manifest, worth_query_platform_entry_hostile_manifest,
@@ -274,14 +286,16 @@ pub use platform_entry_closeout::{
     WorthQueryPlatformEntryParityManifest, WorthQueryPlatformEntryParityRow,
     WorthQueryPlatformEntryUiProofKind, WorthQueryPlatformEntryUiProofRow,
 };
-pub use public_doc_coverage::{
+#[allow(unused_imports)]
+pub(crate) use public_doc_coverage::{
     worth_query_public_doc_coverage_golden_transcript_digest,
     worth_query_public_doc_coverage_golden_transcripts, WorthQueryPublicDocCoverageAudit,
     WorthQueryPublicDocCoverageInventory, WorthQueryPublicDocCoverageRow,
     WorthQueryPublicDocReference, WorthQueryPublicGoldenTranscript,
     WorthQueryPublicGoldenTranscriptKind, WorthQueryPublicJourneyKind,
 };
-pub use recovery_boundary::{
+#[allow(unused_imports)]
+pub(crate) use recovery_boundary::{
     worth_query_recovery_brief_from_continuation_execution_checked,
     worth_query_recovery_brief_from_continuation_execution_proof,
     worth_query_recovery_brief_from_contribution_composed_checked,
@@ -303,16 +317,19 @@ pub use recovery_boundary::{
     WorthQueryRecoveryRequest, WorthQueryRecoveryRequestKind, WorthQueryRecoverySourceFamily,
     WorthQueryRecoveryStopFamily, WorthQueryRecoveryStopKind,
 };
-pub use runtime::{
+#[allow(unused_imports)]
+pub(crate) use runtime::{
     WorthQueryConcurrentHostileMatrixCounterSnapshot, WorthQueryConcurrentHostileMatrixTopology,
     WorthQueryConcurrentSubmissionIntake, WorthQueryConcurrentSubmissionLane,
     WorthQueryConcurrentSubmissionRecord,
 };
-pub use session_label::{
+#[allow(unused_imports)]
+pub(crate) use session_label::{
     WorthQuerySessionLabel, WorthQuerySessionLabelError, WorthQuerySessionLabelSegment,
     WorthQuerySessionNamespace,
 };
-pub use signal_compatibility_orchestration::{
+#[allow(unused_imports)]
+pub(crate) use signal_compatibility_orchestration::{
     WorthQuerySignalCompatibilityOrchestration, WorthQuerySignalCompatibilityOrchestrationChecked,
     WorthQuerySignalCompatibilityOrchestrationClass,
     WorthQuerySignalCompatibilityOrchestrationInput,
@@ -321,4 +338,12 @@ pub use signal_compatibility_orchestration::{
 };
 
 #[cfg(test)]
+#[path = "../tests/graph_read_access_cost_model_support.rs"]
+mod graph_read_access_cost_model_support;
+#[cfg(test)]
 mod harness;
+#[cfg(test)]
+mod integration_tests;
+#[cfg(test)]
+#[path = "../tests/support/mod.rs"]
+mod support;

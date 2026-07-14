@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryWriteCommand;
+use worth_query::facade::runtime::WorthQueryWriteCommand;
 
 fn main() {
     let _ = WorthQueryWriteCommand::Insert {

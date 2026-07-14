@@ -1,30 +1,34 @@
 use super::{
-    admit_query_basis_context, attach_diff_query_metadata, attach_query_basis_metadata,
-    bind_diff_query_context, bind_query_basis_context, execute_query_basis_context,
-    shape_query_diff_change_set, ComparisonBasisFamily, HistoricalAdmissionClass,
-    HistoricalMaterializationCostClass, QueryBasisContextRequest,
+    admit_and_scope_legacy_query_basis_context_for_test, attach_diff_query_metadata,
+    attach_query_basis_metadata, bind_diff_query_context, bind_legacy_query_basis_context,
+    execute_query_basis_context, shape_query_diff_change_set, ComparisonBasisFamily,
+    HistoricalAdmissionClass, HistoricalMaterializationCostClass, QueryBasisContextRequest,
     QueryContextAdmissionFailureClass, QueryContextBindingSource, QueryContextBudgetClass,
     QueryContextCostClass, QueryContextExecutionFamily, QueryContextFamily,
     QueryContextPredictionDriftOutcome,
 };
-use crate::facade::{
-    admit_historical_evaluation_path, admit_preview_workflow_foundation,
-    bind_preflight_to_preview_session, materialization_metadata_from_resolved,
+use crate::facade::foundation::{
+    admit_historical_evaluation_path, materialization_metadata_from_resolved,
     resolve_historical_materialization_path, HistoricalCapabilityDescriptor,
     HistoricalEvaluationRequest, HistoricalMaterializationDescriptor,
-    HistoricalPathReuseDescriptor, PreviewEvaluationClass, PreviewSessionQueryContext,
+    HistoricalPathReuseDescriptor,
+};
+use crate::facade::policy::{
+    admit_preview_workflow_foundation, bind_preflight_to_preview_session, PreviewEvaluationClass,
+    PreviewSessionQueryContext,
 };
 use crate::harness::fixtures::{execution_preflights, preview_bridge::active_preview_artifacts};
 
 #[test]
 fn current_branch_head_context_binding_preserves_runtime_digests() {
     let preflight = execution_preflights::direct_runtime_preflight();
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::current_branch_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .expect("current runtime basis should bind");
-    let admitted = admit_query_basis_context(binding).expect("current runtime basis should admit");
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding)
+        .expect("current runtime basis should admit");
 
     assert_eq!(admitted.family(), &QueryContextFamily::CurrentBranchHead);
     assert_eq!(
@@ -55,15 +59,35 @@ fn current_branch_head_context_binding_preserves_runtime_digests() {
 }
 
 #[test]
+fn legacy_query_basis_execution_cannot_fabricate_count_aggregate_results() {
+    let preflight = execution_preflights::aggregate_rollup_collection_preflight();
+    let binding = bind_legacy_query_basis_context(
+        QueryBasisContextRequest::current_branch_head(),
+        QueryContextBindingSource::RuntimeCurrent(&preflight),
+    )
+    .expect("count preflight should remain bindable for inspection");
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding)
+        .expect("count context should remain inspectable");
+
+    let error = execute_query_basis_context(&admitted)
+        .expect_err("legacy query-basis execution must not produce a count result");
+
+    assert_eq!(
+        error.failure_class(),
+        &QueryContextAdmissionFailureClass::UnsupportedHistoricalBasis
+    );
+}
+
+#[test]
 fn alternate_branch_head_context_binding_is_explicitly_distinct() {
     let preflight = execution_preflights::alternate_basis_runtime_preflight();
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::branch_head("branch:snapshot-2"),
         QueryContextBindingSource::RuntimeBranch(&preflight),
     )
     .expect("alternate runtime basis should bind");
-    let admitted =
-        admit_query_basis_context(binding).expect("alternate runtime basis should admit");
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding)
+        .expect("alternate runtime basis should admit");
 
     assert_eq!(admitted.family(), &QueryContextFamily::BranchHead);
     assert_eq!(
@@ -81,13 +105,13 @@ fn alternate_branch_head_context_binding_is_explicitly_distinct() {
 #[test]
 fn retained_historical_context_binding_reuses_admitted_history_artifacts() {
     let query_preflight = execution_preflights::direct_runtime_preflight();
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         "history:snapshot-1",
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::retained_snapshot(
+    let capability = HistoricalCapabilityDescriptor::retained_snapshot_for_test(
         "history:snapshot-1",
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
@@ -95,12 +119,12 @@ fn retained_historical_context_binding_reuses_admitted_history_artifacts() {
         .expect("retained history should admit");
     let resolved = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::retained_snapshot("history:snapshot-1"),
+        HistoricalMaterializationDescriptor::retained_snapshot_for_test("history:snapshot-1"),
     )
     .expect("retained history should resolve");
     let metadata = materialization_metadata_from_resolved(resolved);
 
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
         QueryContextBindingSource::Historical {
             query_preflight: &query_preflight,
@@ -109,7 +133,8 @@ fn retained_historical_context_binding_reuses_admitted_history_artifacts() {
         },
     )
     .expect("historical context should bind");
-    let admitted = admit_query_basis_context(binding).expect("historical context should admit");
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding)
+        .expect("historical context should admit");
     let execution = execute_query_basis_context(&admitted)
         .expect("historical query-context execution should succeed");
     let shaped = attach_query_basis_metadata(&admitted, &execution)
@@ -162,7 +187,7 @@ fn preview_derived_context_binding_preserves_preview_identity() {
         .preview_session_identity()
         .bridge_admission_evidence();
 
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::preview_derived_historical(
             preview_session_identity
                 .terminal_projection_for_reporting()
@@ -171,8 +196,8 @@ fn preview_derived_context_binding_preserves_preview_identity() {
         QueryContextBindingSource::PreviewDerivedHistorical(&foundation),
     )
     .expect("preview-derived context should bind");
-    let admitted =
-        admit_query_basis_context(binding).expect("preview-derived context should admit");
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding)
+        .expect("preview-derived context should admit");
 
     assert_eq!(
         admitted.family(),
@@ -215,8 +240,8 @@ fn preview_derived_execution_is_query_owned_and_provenance_explicit() {
         .preview_session_identity()
         .bridge_admission_evidence();
 
-    let admitted = admit_query_basis_context(
-        bind_query_basis_context(
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::preview_derived_historical(
                 preview_session_identity
                     .terminal_projection_for_reporting()
@@ -263,16 +288,16 @@ fn preview_derived_execution_is_query_owned_and_provenance_explicit() {
 fn diff_context_binding_preserves_both_basis_identities() {
     let left_preflight = execution_preflights::direct_runtime_preflight();
     let right_preflight = execution_preflights::alternate_basis_runtime_preflight();
-    let left = admit_query_basis_context(
-        bind_query_basis_context(
+    let left = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::current_branch_head(),
             QueryContextBindingSource::RuntimeCurrent(&left_preflight),
         )
         .expect("left context should bind"),
     )
     .expect("left context should admit");
-    let right = admit_query_basis_context(
-        bind_query_basis_context(
+    let right = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::branch_head("branch:snapshot-2"),
             QueryContextBindingSource::RuntimeBranch(&right_preflight),
         )
@@ -347,13 +372,13 @@ fn diff_context_binding_preserves_both_basis_identities() {
 #[test]
 fn historical_execution_artifact_preserves_requested_admitted_and_resolved_path_identity() {
     let query_preflight = execution_preflights::direct_runtime_preflight();
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         "history:snapshot-1",
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::retained_snapshot(
+    let capability = HistoricalCapabilityDescriptor::retained_snapshot_for_test(
         "history:snapshot-1",
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
@@ -361,13 +386,13 @@ fn historical_execution_artifact_preserves_requested_admitted_and_resolved_path_
         .expect("retained history should admit");
     let resolved = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::retained_snapshot("history:snapshot-1"),
+        HistoricalMaterializationDescriptor::retained_snapshot_for_test("history:snapshot-1"),
     )
     .expect("retained history should resolve");
     let metadata = materialization_metadata_from_resolved(resolved);
 
-    let admitted = admit_query_basis_context(
-        bind_query_basis_context(
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
             QueryContextBindingSource::Historical {
                 query_preflight: &query_preflight,
@@ -424,7 +449,7 @@ fn historical_execution_artifact_preserves_requested_admitted_and_resolved_path_
 #[test]
 fn invalid_runtime_current_vs_branch_pairing_rejects_typed_and_early() {
     let preflight = execution_preflights::direct_runtime_preflight();
-    let error = bind_query_basis_context(
+    let error = bind_legacy_query_basis_context(
         QueryBasisContextRequest::branch_head("branch:snapshot-2"),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
@@ -441,7 +466,7 @@ fn invalid_runtime_current_vs_branch_pairing_rejects_typed_and_early() {
 
 #[test]
 fn store_backed_historical_debt_is_denied_typed_and_early() {
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         "history:store",
         None,
         false,
@@ -450,7 +475,7 @@ fn store_backed_historical_debt_is_denied_typed_and_early() {
         true,
         HistoricalPathReuseDescriptor::no_reuse(),
     );
-    let error = bind_query_basis_context(
+    let error = bind_legacy_query_basis_context(
         QueryBasisContextRequest::historical_commit("history:store"),
         QueryContextBindingSource::HistoricalCapability(&capability),
     )
@@ -469,13 +494,13 @@ fn store_backed_historical_debt_is_denied_typed_and_early() {
 fn store_backed_retained_historical_binding_preserves_query_owned_parity() {
     let runtime_preflight = execution_preflights::direct_runtime_preflight();
     let store_preflight = execution_preflights::store_detail_preflight();
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         "history:snapshot-1",
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::retained_snapshot(
+    let capability = HistoricalCapabilityDescriptor::retained_snapshot_for_test(
         "history:snapshot-1",
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
@@ -483,13 +508,13 @@ fn store_backed_retained_historical_binding_preserves_query_owned_parity() {
         .expect("retained history should admit");
     let resolved = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::retained_snapshot("history:snapshot-1"),
+        HistoricalMaterializationDescriptor::retained_snapshot_for_test("history:snapshot-1"),
     )
     .expect("retained history should resolve");
     let metadata = materialization_metadata_from_resolved(resolved);
 
-    let runtime = admit_query_basis_context(
-        bind_query_basis_context(
+    let runtime = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
             QueryContextBindingSource::Historical {
                 query_preflight: &runtime_preflight,
@@ -500,8 +525,8 @@ fn store_backed_retained_historical_binding_preserves_query_owned_parity() {
         .expect("runtime historical context should bind"),
     )
     .expect("runtime historical context should admit");
-    let store = admit_query_basis_context(
-        bind_query_basis_context(
+    let store = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
             QueryContextBindingSource::Historical {
                 query_preflight: &store_preflight,
@@ -550,13 +575,13 @@ fn store_backed_retained_historical_binding_preserves_query_owned_parity() {
 #[test]
 fn store_backed_replay_historical_binding_stays_explicit_deferred_debt() {
     let store_preflight = execution_preflights::store_detail_preflight();
-    let request = HistoricalEvaluationRequest::delta_replay(
+    let request = HistoricalEvaluationRequest::delta_replay_for_test(
         "history:snapshot-1",
         1,
         1,
         HistoricalPathReuseDescriptor::no_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::delta_replay(
+    let capability = HistoricalCapabilityDescriptor::delta_replay_for_test(
         "history:snapshot-1",
         HistoricalPathReuseDescriptor::no_reuse(),
     );
@@ -564,12 +589,12 @@ fn store_backed_replay_historical_binding_stays_explicit_deferred_debt() {
         admit_historical_evaluation_path(request, capability).expect("replay history should admit");
     let resolved = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::delta_replay("history:snapshot-1"),
+        HistoricalMaterializationDescriptor::delta_replay_for_test("history:snapshot-1"),
     )
     .expect("replay history should resolve");
     let metadata = materialization_metadata_from_resolved(resolved);
 
-    let error = bind_query_basis_context(
+    let error = bind_legacy_query_basis_context(
         QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
         QueryContextBindingSource::Historical {
             query_preflight: &store_preflight,
@@ -591,13 +616,13 @@ fn store_backed_replay_historical_binding_stays_explicit_deferred_debt() {
 #[test]
 fn store_backed_reconstruction_historical_binding_stays_explicit_deferred_debt() {
     let store_preflight = execution_preflights::store_detail_preflight();
-    let request = HistoricalEvaluationRequest::full_reconstruction(
+    let request = HistoricalEvaluationRequest::full_reconstruction_for_test(
         "history:snapshot-1",
         1,
         1,
         HistoricalPathReuseDescriptor::no_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::full_reconstruction(
+    let capability = HistoricalCapabilityDescriptor::full_reconstruction_for_test(
         "history:snapshot-1",
         HistoricalPathReuseDescriptor::no_reuse(),
     );
@@ -605,12 +630,12 @@ fn store_backed_reconstruction_historical_binding_stays_explicit_deferred_debt()
         .expect("reconstruction history should admit");
     let resolved = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::full_reconstruction("history:snapshot-1"),
+        HistoricalMaterializationDescriptor::full_reconstruction_for_test("history:snapshot-1"),
     )
     .expect("reconstruction history should resolve");
     let metadata = materialization_metadata_from_resolved(resolved);
 
-    let error = bind_query_basis_context(
+    let error = bind_legacy_query_basis_context(
         QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
         QueryContextBindingSource::Historical {
             query_preflight: &store_preflight,
@@ -633,16 +658,16 @@ fn store_backed_reconstruction_historical_binding_stays_explicit_deferred_debt()
 fn diff_scope_mismatch_rejects_before_broadening() {
     let left_preflight = execution_preflights::direct_runtime_preflight();
     let right_preflight = execution_preflights::ordered_collection_preflight();
-    let left = admit_query_basis_context(
-        bind_query_basis_context(
+    let left = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::current_branch_head(),
             QueryContextBindingSource::RuntimeCurrent(&left_preflight),
         )
         .expect("left context should bind"),
     )
     .expect("left context should admit");
-    let right = admit_query_basis_context(
-        bind_query_basis_context(
+    let right = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::branch_head("branch:ordered"),
             QueryContextBindingSource::RuntimeBranch(&right_preflight),
         )
@@ -662,13 +687,13 @@ fn diff_scope_mismatch_rejects_before_broadening() {
 #[test]
 fn basis_substitution_attempt_rejects_typed_and_early() {
     let query_preflight = execution_preflights::direct_runtime_preflight();
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         "history:snapshot-1",
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::retained_snapshot(
+    let capability = HistoricalCapabilityDescriptor::retained_snapshot_for_test(
         "history:snapshot-1",
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
@@ -676,12 +701,12 @@ fn basis_substitution_attempt_rejects_typed_and_early() {
         .expect("retained history should admit");
     let resolved = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::retained_snapshot("history:snapshot-1"),
+        HistoricalMaterializationDescriptor::retained_snapshot_for_test("history:snapshot-1"),
     )
     .expect("retained history should resolve");
     let metadata = materialization_metadata_from_resolved(resolved);
 
-    let error = bind_query_basis_context(
+    let error = bind_legacy_query_basis_context(
         QueryBasisContextRequest::historical_snapshot("history:other"),
         QueryContextBindingSource::Historical {
             query_preflight: &query_preflight,
@@ -704,21 +729,21 @@ fn basis_substitution_attempt_rejects_typed_and_early() {
 fn current_to_historical_diff_admission_attaches_cost_budget_and_prediction_posture() {
     let current_preflight = execution_preflights::direct_runtime_preflight();
     let historical_preflight = execution_preflights::direct_runtime_preflight();
-    let current = admit_query_basis_context(
-        bind_query_basis_context(
+    let current = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::current_branch_head(),
             QueryContextBindingSource::RuntimeCurrent(&current_preflight),
         )
         .expect("current context should bind"),
     )
     .expect("current context should admit");
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         "history:snapshot-1",
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::retained_snapshot(
+    let capability = HistoricalCapabilityDescriptor::retained_snapshot_for_test(
         "history:snapshot-1",
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
@@ -726,12 +751,12 @@ fn current_to_historical_diff_admission_attaches_cost_budget_and_prediction_post
         .expect("retained history should admit");
     let resolved = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::retained_snapshot("history:snapshot-1"),
+        HistoricalMaterializationDescriptor::retained_snapshot_for_test("history:snapshot-1"),
     )
     .expect("retained history should resolve");
     let metadata = materialization_metadata_from_resolved(resolved);
-    let historical = admit_query_basis_context(
-        bind_query_basis_context(
+    let historical = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
             QueryContextBindingSource::Historical {
                 query_preflight: &historical_preflight,
@@ -768,16 +793,16 @@ fn current_to_historical_diff_admission_attaches_cost_budget_and_prediction_post
 fn diff_change_set_rejects_basis_mismatched_execution_artifacts_before_materialization() {
     let left_preflight = execution_preflights::direct_runtime_preflight();
     let right_preflight = execution_preflights::alternate_basis_runtime_preflight();
-    let left = admit_query_basis_context(
-        bind_query_basis_context(
+    let left = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::current_branch_head(),
             QueryContextBindingSource::RuntimeCurrent(&left_preflight),
         )
         .expect("left context should bind"),
     )
     .expect("left context should admit");
-    let right = admit_query_basis_context(
-        bind_query_basis_context(
+    let right = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::branch_head("branch:snapshot-2"),
             QueryContextBindingSource::RuntimeBranch(&right_preflight),
         )
@@ -806,16 +831,16 @@ fn diff_change_set_rejects_basis_mismatched_execution_artifacts_before_materiali
 fn broadening_required_comparison_denies_before_rich_artifact_shaping() {
     let left_preflight = execution_preflights::ordered_collection_without_traversal_preflight();
     let right_preflight = execution_preflights::alternate_basis_ordered_collection_preflight();
-    let left = admit_query_basis_context(
-        bind_query_basis_context(
+    let left = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::current_branch_head(),
             QueryContextBindingSource::RuntimeCurrent(&left_preflight),
         )
         .expect("left context should bind"),
     )
     .expect("left context should admit");
-    let right = admit_query_basis_context(
-        bind_query_basis_context(
+    let right = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::branch_head("branch:ordered-collection"),
             QueryContextBindingSource::RuntimeBranch(&right_preflight),
         )
@@ -844,13 +869,13 @@ fn broadening_required_comparison_denies_before_rich_artifact_shaping() {
 #[test]
 fn historical_reconstruction_broadening_denies_before_rich_execution() {
     let preflight = execution_preflights::ordered_collection_preflight();
-    let request = HistoricalEvaluationRequest::full_reconstruction(
+    let request = HistoricalEvaluationRequest::full_reconstruction_for_test(
         "history:reconstruction",
         4,
         8,
         HistoricalPathReuseDescriptor::no_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::full_reconstruction(
+    let capability = HistoricalCapabilityDescriptor::full_reconstruction_for_test(
         "history:reconstruction",
         HistoricalPathReuseDescriptor::no_reuse(),
     );
@@ -858,12 +883,12 @@ fn historical_reconstruction_broadening_denies_before_rich_execution() {
         admit_historical_evaluation_path(request, capability).expect("reconstruction should admit");
     let resolved = resolve_historical_materialization_path(
         admission.clone(),
-        HistoricalMaterializationDescriptor::full_reconstruction("history:reconstruction"),
+        HistoricalMaterializationDescriptor::full_reconstruction_for_test("history:reconstruction"),
     )
     .expect("reconstruction should resolve");
     let metadata = materialization_metadata_from_resolved(resolved);
-    let admitted = admit_query_basis_context(
-        bind_query_basis_context(
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(
+        bind_legacy_query_basis_context(
             QueryBasisContextRequest::historical_snapshot("history:reconstruction"),
             QueryContextBindingSource::Historical {
                 query_preflight: &preflight,

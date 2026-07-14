@@ -1,4 +1,4 @@
-use worth_query::facade::TypedDetailQueryBuilder;
+use worth_query::facade::runtime::TypedDetailQueryBuilder;
 
 worth_query::worth_query_schema! {
     pub schema UserSchema("user") {

@@ -1,4 +1,4 @@
-use worth_query::facade::{QuerySubscriptionFamily, QuerySubscriptionFamilySelection};
+use worth_query::facade::runtime::{QuerySubscriptionFamily, QuerySubscriptionFamilySelection};
 
 fn main() {
     let _fabricated = QuerySubscriptionFamilySelection {

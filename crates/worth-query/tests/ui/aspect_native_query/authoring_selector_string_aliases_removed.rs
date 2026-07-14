@@ -1,8 +1,4 @@
-use worth_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, IntegerComparisonPredicate,
-    OrderingSelector, PredicateSelector, PresencePredicate, ScalarPredicateValue,
-    SetMembershipPredicate, StringContainsPredicate,
-};
+use worth_query::facade::foundation::{AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, IntegerComparisonPredicate, OrderingSelector, PredicateSelector, PresencePredicate, ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate};
 
 fn main() {
     let projection = AspectFieldSelector::new("identity", "id").unwrap();

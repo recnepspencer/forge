@@ -5,7 +5,7 @@ use crate::correspondence::{
 use crate::correspondence_history::{
     compose_correspondence_historical_envelope, CorrespondenceHistoricalEnvelope,
 };
-use crate::facade::{
+use crate::facade::foundation::{
     admit_historical_evaluation_path, resolve_historical_materialization_path,
     HistoricalCapabilityDescriptor, HistoricalEvaluationRequest,
     HistoricalMaterializationDescriptor, HistoricalPathReuseDescriptor,
@@ -26,13 +26,13 @@ pub(crate) fn correspondence_denied_envelope() -> CorrespondenceHistoricalEnvelo
             StructuralCandidateOrderingContract::StableFingerprintOrder,
         ))
         .expect("correspondence should resolve into denial");
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         "basis:a",
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         "basis:a",
         Some(crate::historical::AdmittedHistoricalPathClass::AdmittedRetainedSnapshotPath),
         false,
@@ -45,7 +45,7 @@ pub(crate) fn correspondence_denied_envelope() -> CorrespondenceHistoricalEnvelo
         admit_historical_evaluation_path(request, capability).expect("admission should succeed");
     let resolved = resolve_historical_materialization_path(
         admission,
-        HistoricalMaterializationDescriptor::new(
+        HistoricalMaterializationDescriptor::new_for_test(
             "basis:a",
             ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath,
         ),

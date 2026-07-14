@@ -154,7 +154,7 @@ fn inspector_identity_artifact(
 ) -> InspectorIdentityArtifact {
     let (context, scenario) = match classification {
         InspectorIdentityClassification::AuthoritativeContinuity => (
-            IdentityEvolutionQueryContext::lineage_traversal(
+            IdentityEvolutionQueryContext::lineage_traversal_for_test(
                 identity_query_digest("authoritative"),
                 identity_basis_digest("authoritative-basis"),
                 LineageTraversalDescriptor::direct_replacement("anchor"),
@@ -162,7 +162,7 @@ fn inspector_identity_artifact(
             IdentityEvolutionSyntheticScenario::Standard,
         ),
         InspectorIdentityClassification::AdvisoryCandidates => (
-            IdentityEvolutionQueryContext::correspondence_identity_comparison(
+            IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
                 identity_query_digest("advisory"),
                 IdentityEvolutionComparisonBasisFamily::BranchToBranch,
                 identity_basis_digest("left"),
@@ -172,7 +172,7 @@ fn inspector_identity_artifact(
             IdentityEvolutionSyntheticScenario::Standard,
         ),
         InspectorIdentityClassification::IdentityBreak => (
-            IdentityEvolutionQueryContext::lineage_traversal(
+            IdentityEvolutionQueryContext::lineage_traversal_for_test(
                 identity_query_digest("identity-break"),
                 identity_basis_digest("identity-break-basis"),
                 LineageTraversalDescriptor::branch_local_direct_evolution("anchor"),

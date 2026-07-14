@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
- --> tests/ui/aspect_native_query/view_shape_focused_constructor_requires_aspect_key.rs:4:59
+ --> tests/ui/aspect_native_query/view_shape_focused_constructor_requires_aspect_key.rs:5:59
   |
-4 |     let _ = ViewShapeDescriptor::inspector_detail_focused("profile");
+5 |     let _ = ViewShapeDescriptor::inspector_detail_focused("profile");
   |             --------------------------------------------- ^^^^^^^^^ expected `AspectKey`, found `&str`
   |             |
   |             arguments to this function are incorrect
@@ -13,9 +13,9 @@ note: associated function defined here
   |            ^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0308]: mismatched types
- --> tests/ui/aspect_native_query/view_shape_focused_constructor_requires_aspect_key.rs:5:57
+ --> tests/ui/aspect_native_query/view_shape_focused_constructor_requires_aspect_key.rs:6:57
   |
-5 |     let _ = DeclarativeLiveViewShape::inspector_focused("profile");
+6 |     let _ = DeclarativeLiveViewShape::inspector_focused("profile");
   |             ------------------------------------------- ^^^^^^^^^ expected `AspectKey`, found `&str`
   |             |
   |             arguments to this function are incorrect

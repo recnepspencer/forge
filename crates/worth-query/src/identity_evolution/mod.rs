@@ -1,4 +1,5 @@
 mod admission;
+mod certification_evidence;
 mod contracts;
 mod evidence;
 mod execution;
@@ -18,11 +19,13 @@ pub use admission::{
     admit_identity_evolution_query, AdmittedIdentityEvolutionQuery,
     IdentityEvolutionAdmissionError, IdentityEvolutionAdmissionFailureClass,
 };
+#[allow(unused_imports)]
+pub use certification_evidence::IdentityEvolutionCertificationEvidence;
 pub use contracts::{IdentityEvolutionComplexityContract, IdentityEvolutionComplexityStatus};
 #[allow(unused_imports)]
 pub use evidence::{
-    IdentityEvolutionCertificationDenialEvidence, IdentityEvolutionCertificationEvidence,
-    IdentityEvolutionCertificationResultEvidence, IdentityEvolutionCounterSnapshot,
+    IdentityEvolutionCertificationDenialEvidence, IdentityEvolutionCertificationResultEvidence,
+    IdentityEvolutionCounterSnapshot,
 };
 pub use execution::{
     execute_admitted_identity_evolution_query, IdentityEvolutionExecutionArtifact,

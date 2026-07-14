@@ -1,9 +1,4 @@
-use worth_query::facade::{
-    admit_active_subscription_lane, open_active_subscription_lane,
-    ActiveAllocationScopeWidth, ActiveFanoutWidth, ActiveRegistryLookupWidth,
-    ActiveSubscriptionAllocationPolicy, ActiveSubscriptionRuntime, ActiveSubscriptionWorkBudget,
-    SubscriptionActivationInput,
-};
+use worth_query::facade::runtime::{admit_active_subscription_lane, open_active_subscription_lane, ActiveAllocationScopeWidth, ActiveFanoutWidth, ActiveRegistryLookupWidth, ActiveSubscriptionAllocationPolicy, ActiveSubscriptionRuntime, ActiveSubscriptionWorkBudget, SubscriptionActivationInput};
 
 fn main() {
     fn fabricated_activation() -> SubscriptionActivationInput {

@@ -1,10 +1,8 @@
 use crate::runtime::activation::WorthUiActivationLaneInput;
 use crate::runtime::tests::activation_staging_test_support::activation_staging_inputs;
-use crate::runtime::tests::allocation_planning_test_support::{
-    admitted_allocation_neighborhood, admitted_measurement_basis,
-};
+use crate::runtime::tests::allocation_planning_test_support::admitted_planning_admission;
 use crate::runtime::tests::durable_state_inventory_test_support::platform_inventory;
-use crate::runtime::WorthUiRuntimeHost;
+use crate::runtime::WorthUiRuntime;
 
 #[test]
 fn lifecycle_path_parity_orchestrator_matches_stepwise_replacement_chain() {
@@ -45,44 +43,35 @@ fn lifecycle_path_parity_orchestrator_matches_stepwise_replacement_chain() {
 }
 
 #[test]
-fn lifecycle_path_parity_planning_lane_matches_direct_plan_allocation() {
+fn lifecycle_path_planning_uses_canonical_admission() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let measurement_basis = admitted_measurement_basis("lifecycle-path.parity");
-    let allocation_neighborhood = admitted_allocation_neighborhood("lifecycle-path.parity");
-
-    let direct = runtime.plan_allocation(&pending, &measurement_basis, &allocation_neighborhood);
-    let via_lane_input =
-        runtime.plan_allocation_from_lane_input(crate::runtime::WorthUiPlanningLaneInput::new(
-            &pending,
-            measurement_basis.clone(),
-            allocation_neighborhood.clone(),
-        ));
-
-    assert_eq!(
-        direct.planning_identity_digest(),
-        via_lane_input.planning_identity_digest()
-    );
-    assert_eq!(
-        direct.denial_posture().is_some(),
-        via_lane_input.denial_posture().is_some()
-    );
+    let (basis, snapshot, selected) =
+        admitted_planning_admission("lifecycle-path.parity", "operator:stack");
+    let input = runtime
+        .admit_planning_lane_input(&pending, &snapshot, basis, &selected)
+        .expect("canonical planning admission succeeds");
+    assert!(runtime.plan_allocation(input).is_admitted());
 }
 
 #[test]
 fn lifecycle_path_parity_execution_lane_matches_direct_handle_allocation() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let measurement_basis = admitted_measurement_basis("lifecycle-path.execution");
-    let allocation_neighborhood = admitted_allocation_neighborhood("lifecycle-path.execution");
-    let planning = runtime.plan_allocation(&pending, &measurement_basis, &allocation_neighborhood);
+    let (measurement_basis, snapshot, selected) =
+        admitted_planning_admission("lifecycle-path.execution", "operator:stack");
+    let planning = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
+            .expect("execution parity planning admits through graph authority"),
+    );
 
     let direct = runtime
-        .allocate_runtime_handles(&planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect("direct handle allocation succeeds");
     let via_lane = runtime
         .allocate_runtime_handles_from_lane_input(crate::runtime::WorthUiExecutionLaneInput::new(
-            &planning,
+            &runtime.detached_allocation_receipt_for_test(&planning),
         ))
         .expect("lane handle allocation succeeds");
 
@@ -92,4 +81,4 @@ fn lifecycle_path_parity_execution_lane_matches_direct_handle_allocation() {
     );
 }
 
-fn _host_type_check(_: &WorthUiRuntimeHost) {}
+fn _host_type_check(_: &WorthUiRuntime) {}

@@ -1,4 +1,4 @@
-use worth_query::facade::QueryContextCapability;
+use worth_query::facade::foundation::QueryContextCapability;
 
 fn main() {
     let _ = QueryContextCapability {

@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionRuntimeCertificationScope;
+use worth_query::facade::certification::QuerySubscriptionRuntimeCertificationScope;
 
 fn main() {
     let scope: QuerySubscriptionRuntimeCertificationScope = todo!();

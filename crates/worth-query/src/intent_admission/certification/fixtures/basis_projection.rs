@@ -1,4 +1,4 @@
-use crate::basis_lifecycle::RawBasisIntent;
+use crate::basis_lifecycle::basis_lifecycle;
 use crate::intent_admission::{
     worth_query_basis_observation_intent, worth_query_projection_consumption_intent,
     WorthQueryAdmittedIntentPlan, WorthQueryBasisObservationPlan,
@@ -40,7 +40,7 @@ pub(in crate::intent_admission::certification) struct CertifiedProjectionConsump
 
 pub(in crate::intent_admission::certification) fn certified_basis_observation_intent_fixture(
 ) -> CertifiedBasisObservationIntentFixture {
-    let review = worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)
+    let review = worth_query_basis_observation_intent(basis_lifecycle().current_head())
         .expect("basis observation intent should build")
         .review();
     let request = review.request().clone();
@@ -51,7 +51,7 @@ pub(in crate::intent_admission::certification) fn certified_basis_observation_in
         ) => plan,
         other => panic!("expected admitted basis plan, got {other:?}"),
     };
-    let scoped_basis = worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)
+    let scoped_basis = worth_query_basis_observation_intent(basis_lifecycle().current_head())
         .expect("basis observation intent should build")
         .admit()
         .expect("basis observation should admit")

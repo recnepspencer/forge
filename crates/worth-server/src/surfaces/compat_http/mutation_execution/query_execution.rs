@@ -10,7 +10,7 @@ use crate::{
     WorthServerQueryWorkspaceBindingRequest, WorthServerScheduledMutationResult,
 };
 use worth_proof::TransitionOutcome;
-use worth_query::facade::WorthQueryRuntimeFacadeFamily;
+use worth_query::facade::runtime::WorthQueryRuntimeFacadeFamily;
 
 use super::{
     envelope::WorthServerCompatibilityMutationEnvelope,

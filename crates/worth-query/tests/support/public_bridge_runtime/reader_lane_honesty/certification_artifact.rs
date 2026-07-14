@@ -1,7 +1,7 @@
-use worth_query::{
-    facade::WorthQueryEvidenceIdentity, WorthQueryPublicBridgeReaderLaneCertification,
-    WorthQueryPublicBridgeReaderLanePosture,
+use worth_query::facade::certification::{
+    WorthQueryPublicBridgeReaderLaneCertification, WorthQueryPublicBridgeReaderLanePosture,
 };
+use worth_query::facade::runtime::WorthQueryEvidenceIdentity;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PublicBridgeReaderLaneHonestyArtifact {

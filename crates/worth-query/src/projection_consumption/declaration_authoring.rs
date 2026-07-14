@@ -234,7 +234,7 @@ impl ProjectMaterializedFacts {
 }
 
 impl WorthQueryReadReceipt {
-    pub fn declare_projection_fact_consumption(
+    pub(crate) fn declare_projection_fact_consumption(
         &self,
         result_shape: &CanonicalResultShapeArtifact,
         authorized_projection: &AuthorizedProjectionArtifact,
@@ -251,7 +251,7 @@ impl WorthQueryReadReceipt {
 }
 
 impl WorthQueryWriteReceipt {
-    pub fn declare_projection_fact_consumption(
+    pub(crate) fn declare_projection_fact_consumption(
         &self,
         result_shape_digest: &str,
         authorized_projection: &AuthorizedProjectionArtifact,
@@ -268,7 +268,7 @@ impl WorthQueryWriteReceipt {
 }
 
 impl QueryContextExecutionArtifact {
-    pub fn declare_projection_fact_consumption(
+    pub(crate) fn declare_projection_fact_consumption(
         &self,
         authorized_projection: &AuthorizedProjectionArtifact,
         requested: ProjectMaterializedFacts,
@@ -285,7 +285,7 @@ impl QueryContextExecutionArtifact {
 }
 
 impl WorthQueryDerivedArtifactBinding {
-    pub fn declare_projection_fact_consumption(
+    pub(crate) fn declare_projection_fact_consumption(
         &self,
         result_shape: &CanonicalResultShapeArtifact,
         authorized_projection: &AuthorizedProjectionArtifact,
@@ -304,7 +304,7 @@ impl WorthQueryDerivedArtifactBinding {
 }
 
 impl WorthQueryLiveArtifactBinding {
-    pub fn declare_projection_fact_consumption(
+    pub(crate) fn declare_projection_fact_consumption(
         &self,
         result_shape_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
         authorized_projection: &AuthorizedProjectionArtifact,

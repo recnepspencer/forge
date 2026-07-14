@@ -201,7 +201,12 @@ fn execute_slot_operation(slot: &mut WorthServerOperationExecutionSlot) -> Resul
         WorthServerQueryHandoffOperation::DirectInspection { target_label } => handoff
             .workspace_mut()
             .resolve_live_artifact_target(&target_label)
-            .and_then(|target| handoff.workspace_mut().inspect_live_target(&target))
+            .and_then(|target| {
+                handoff
+                    .workspace_mut()
+                    .inspections()?
+                    .inspect_live_target(&target)
+            })
             .map(|inspection| inspection.receipt().result_digest().to_string())
             .map_err(|error| error.to_string()),
         unsupported => Err(format!(

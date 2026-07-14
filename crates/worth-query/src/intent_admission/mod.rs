@@ -53,13 +53,13 @@ pub(crate) use certification::{
     INTENT_ADMISSION_CERTIFICATION_CHILD_MODULES, INTENT_ADMISSION_CERTIFICATION_EXPORTED_SURFACE,
     INTENT_ADMISSION_CERTIFICATION_MODULE_ROOT,
 };
-pub use decisions::{
-    admit_runtime_intent_request, WorthQueryIntentAdmissionDecision,
-    WorthQueryIntentAdvisoryDecision, WorthQueryIntentViolationDecision,
-};
 pub(crate) use decisions::{
-    INTENT_ADMISSION_DECISIONS_CHILD_MODULES, INTENT_ADMISSION_DECISIONS_EXPORTED_SURFACE,
-    INTENT_ADMISSION_DECISIONS_MODULE_ROOT,
+    admit_runtime_intent_request, INTENT_ADMISSION_DECISIONS_CHILD_MODULES,
+    INTENT_ADMISSION_DECISIONS_EXPORTED_SURFACE, INTENT_ADMISSION_DECISIONS_MODULE_ROOT,
+};
+pub use decisions::{
+    WorthQueryIntentAdmissionDecision, WorthQueryIntentAdvisoryDecision,
+    WorthQueryIntentViolationDecision,
 };
 #[allow(unused_imports)]
 pub use dx::{
@@ -91,6 +91,10 @@ pub(crate) use dx::{
     INTENT_ADMISSION_DX_CHILD_MODULES, INTENT_ADMISSION_DX_EXPORTED_SURFACE,
     INTENT_ADMISSION_DX_MODULE_ROOT,
 };
+pub(crate) use eligibility::{
+    authoritative_mutation_input_identity, INTENT_ADMISSION_ELIGIBILITY_CHILD_MODULES,
+    INTENT_ADMISSION_ELIGIBILITY_EXPORTED_SURFACE, INTENT_ADMISSION_ELIGIBILITY_MODULE_ROOT,
+};
 pub use eligibility::{
     WorthQueryAuthoritativeMutationBatchIntentSeed, WorthQueryAuthoritativeMutationIntentSeed,
     WorthQueryAuthoritativeMutationPreflight, WorthQueryDerivedViewIntentSeed,
@@ -106,10 +110,6 @@ pub use eligibility::{
     WorthQueryIntentAdmissionSourceLaneEligibility, WorthQueryIntentAdmissionSupportEligibility,
     WorthQueryLiveReadIntentSeed, WorthQueryRawIntentAdmissionRequest,
     WorthQueryReadExecutionIntentSeed,
-};
-pub(crate) use eligibility::{
-    INTENT_ADMISSION_ELIGIBILITY_CHILD_MODULES, INTENT_ADMISSION_ELIGIBILITY_EXPORTED_SURFACE,
-    INTENT_ADMISSION_ELIGIBILITY_MODULE_ROOT,
 };
 pub use families::{
     worth_query_intent_admission_family_inventory, WorthQueryIntentAdmissionFamily,

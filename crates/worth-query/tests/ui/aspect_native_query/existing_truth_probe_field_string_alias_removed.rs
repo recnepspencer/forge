@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryExistingTruthProbe;
+use worth_query::facade::runtime::WorthQueryExistingTruthProbe;
 
 fn main() {
     let probe = probe_fixture();

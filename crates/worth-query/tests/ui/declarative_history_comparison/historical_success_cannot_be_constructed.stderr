@@ -1,0 +1,24 @@
+warning: unreachable expression
+ --> tests/ui/declarative_history_comparison/historical_success_cannot_be_constructed.rs:6:26
+  |
+5 |         result: todo!(),
+  |                 ------- any code following this expression is unreachable
+6 |         context_receipt: todo!(),
+  |                          ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `result`, `context_receipt`, `materialization` and `counters` of struct `WorthQueryHistoricalCompletion` are private
+ --> tests/ui/declarative_history_comparison/historical_success_cannot_be_constructed.rs:5:9
+  |
+4 |     let _completion = WorthQueryHistoricalCompletion {
+  |                       ------------------------------ in this type
+5 |         result: todo!(),
+  |         ^^^^^^ private field
+6 |         context_receipt: todo!(),
+  |         ^^^^^^^^^^^^^^^ private field
+7 |         materialization: todo!(),
+  |         ^^^^^^^^^^^^^^^ private field
+8 |         counters: todo!(),
+  |         ^^^^^^^^ private field

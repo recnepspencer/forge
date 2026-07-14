@@ -3,8 +3,8 @@ use super::worth_ui_durable_resize_reconciliation_support::{
     splitter_resize_input_for_replacement,
 };
 use crate::runtime::{
-    WorthUiAdmittedDurableResizeInput, WorthUiDurableStateCarryForward, WorthUiDurableStateFamily,
-    WorthUiDurableStateFamilyId, WorthUiDurableStateInventory,
+    WorthUiDurableResizeInputDisposition, WorthUiDurableStateCarryForward,
+    WorthUiDurableStateFamily, WorthUiDurableStateFamilyId, WorthUiDurableStateInventory,
     WorthUiDurableStateReconciliationCounters, WorthUiDurableStateReconciliationDenial,
     WorthUiDurableStateReconciliationOutcome, WorthUiDurableStateReconciliationPlan,
     WorthUiDurableStateReconciliationReceipt, WorthUiDurableStateReplacement,
@@ -118,7 +118,7 @@ fn reconcile_classification_family(
     counters: &mut WorthUiDurableStateReconciliationCounters,
 ) -> (
     WorthUiDurableStateReconciliationReceipt,
-    Option<WorthUiAdmittedDurableResizeInput>,
+    Option<WorthUiDurableResizeInputDisposition>,
 ) {
     if classification.unrestored_durable_state_carry_permitted()
         && family_allows_carry_for_transition(family, classification.transition())

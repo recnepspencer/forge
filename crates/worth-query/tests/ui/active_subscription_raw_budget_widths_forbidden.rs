@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    ActiveSubscriptionAllocationPolicy, ActiveSubscriptionWorkBudget,
-};
+use worth_query::facade::runtime::{ActiveSubscriptionAllocationPolicy, ActiveSubscriptionWorkBudget};
 
 fn main() {
     let _budget = ActiveSubscriptionWorkBudget::admitted(

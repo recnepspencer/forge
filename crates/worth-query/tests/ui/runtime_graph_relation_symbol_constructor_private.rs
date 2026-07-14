@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGraphRelationSymbol;
+use worth_query::facade::runtime::WorthQueryGraphRelationSymbol;
 
 #[allow(invalid_value)]
 fn main() {

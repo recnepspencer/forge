@@ -3,18 +3,19 @@
 use serde_json::Value;
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{
-    DeclarativeLiveQueryRequest, LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
-    SubscriptionActivationInput, SubscriptionActivationReceipt,
-    WorthQueryBackendAdmissibleMutation, WorthQueryEntity, WorthQueryEvidenceIdentity,
+use worth_query::facade::foundation::{
+    DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryLivePatch, WorthQueryLiveViewHandle,
+    WorthQueryMutationReceipt, WorthQuerySnapshotIdentity, WorthQueryWorkspaceError,
+};
+use worth_query::facade::runtime::{
+    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
+    SubscriptionActivationReceipt, WorthQueryBackendAdmissibleMutation, WorthQueryEvidenceIdentity,
     WorthQueryIntentDeclaration, WorthQueryIntentExecution, WorthQueryLiveArtifactTarget,
-    WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQueryMutationReceipt,
     WorthQueryPreviewBasisAdmission, WorthQueryRuntime, WorthQueryRuntimeBackend,
     WorthQueryRuntimeError, WorthQueryRuntimeEvidenceAuthority,
     WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeSchemaAdapter,
     WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeSupportProfile,
-    WorthQuerySessionLabel, WorthQuerySnapshotIdentity, WorthQueryWorkspace,
-    WorthQueryWorkspaceError, WorthQueryWriteReceipt,
+    WorthQuerySessionLabel, WorthQueryWorkspace, WorthQueryWriteReceipt,
 };
 use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 use worth_server::{
@@ -249,6 +250,10 @@ impl WorthQueryRuntimeBackend for StreamingDatasetRuntimeBackend {
         Ok(WorthQueryLiveViewHandle::new(name))
     }
 
+    fn close_live_view(&mut self, _name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        Ok(())
+    }
+
     fn write(
         &mut self,
         _command: WorthQueryBackendAdmissibleMutation,
@@ -278,10 +283,10 @@ impl WorthQueryRuntimeBackend for StreamingDatasetRuntimeBackend {
             .map(|index| {
                 let payload = "x".repeat(self.payload_width);
                 WorthQueryEntity::from_native_field_values(
-                    worth_query::facade::admit_authored_entity_token(
-                        worth_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
-                            format!("stream-row-{index}"),
-                        )),
+                    worth_query::facade::foundation::WorthQueryEntityIdentity::admit_authored_entity_token(
+                        worth_query::facade::foundation::QueryExternalIdentityToken::new(
+                            std::sync::Arc::from(format!("stream-row-{index}")),
+                        ),
                     ),
                     std::collections::BTreeMap::from([
                         (
@@ -331,7 +336,7 @@ impl WorthQueryRuntimeBackend for StreamingDatasetRuntimeBackend {
     fn admit_preview_basis(
         &self,
         _label: &WorthQuerySessionLabel,
-        _effect_policy: worth_query::facade::WorthQueryEffectPolicy,
+        _effect_policy: worth_query::facade::runtime::WorthQueryEffectPolicy,
         _authority: &WorthQueryRuntimeEvidenceAuthority,
     ) -> Result<WorthQueryPreviewBasisAdmission, WorthQueryWorkspaceError> {
         panic!("phase four streaming runtime does not admit preview basis")
@@ -388,8 +393,8 @@ fn install_requested_named_read(
         })
 }
 
-fn aspect_field_key(aspect: &str, field: &str) -> worth_query::facade::AspectFieldKey {
-    worth_query::facade::AspectFieldKey::from_authoring_parts(aspect, field)
+fn aspect_field_key(aspect: &str, field: &str) -> worth_query::facade::foundation::AspectFieldKey {
+    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(aspect, field)
         .expect("streaming runtime field keys should be foundational")
 }
 
@@ -421,7 +426,7 @@ struct TestSubscriptionActivation;
 
 impl WorthQueryRuntimeSubscriptionActivationAdapter for TestSubscriptionActivation {
     fn support_evidence_identity(&self) -> WorthQueryEvidenceIdentity {
-        worth_query::facade::runtime_subscription_support_evidence_identity(
+        worth_query::facade::runtime::runtime_subscription_support_evidence_identity(
             "phase-four-streaming-support",
         )
     }
@@ -430,8 +435,10 @@ impl WorthQueryRuntimeSubscriptionActivationAdapter for TestSubscriptionActivati
         &mut self,
         view_name: &str,
         activation: &SubscriptionActivationInput,
-    ) -> Result<worth_query::facade::SubscriptionActivationBoundaryReceipt, WorthQueryWorkspaceError>
-    {
+    ) -> Result<
+        worth_query::facade::runtime::SubscriptionActivationBoundaryReceipt,
+        WorthQueryWorkspaceError,
+    > {
         let receipt = self.build_subscription_activation_receipt(view_name, activation);
         Ok(self.build_subscription_activation_boundary_receipt(view_name, activation, receipt))
     }

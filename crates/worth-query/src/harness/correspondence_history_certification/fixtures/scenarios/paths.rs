@@ -1,4 +1,4 @@
-use crate::facade::{
+use crate::facade::foundation::{
     admit_historical_evaluation_path, resolve_historical_materialization_path,
     HistoricalCapabilityDescriptor, HistoricalEvaluationRequest,
     HistoricalMaterializationDescriptor, HistoricalPathResolved, HistoricalPathReuseDescriptor,
@@ -6,13 +6,13 @@ use crate::facade::{
 };
 
 pub(crate) fn retained_resolved(basis: &str) -> HistoricalPathResolved {
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         basis.to_string(),
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         basis.to_string(),
         Some(crate::historical::AdmittedHistoricalPathClass::AdmittedRetainedSnapshotPath),
         false,
@@ -25,7 +25,7 @@ pub(crate) fn retained_resolved(basis: &str) -> HistoricalPathResolved {
         admit_historical_evaluation_path(request, capability).expect("admission should succeed");
     resolve_historical_materialization_path(
         admission,
-        HistoricalMaterializationDescriptor::new(
+        HistoricalMaterializationDescriptor::new_for_test(
             basis.to_string(),
             ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath,
         ),
@@ -34,13 +34,13 @@ pub(crate) fn retained_resolved(basis: &str) -> HistoricalPathResolved {
 }
 
 pub(crate) fn replay_resolved(basis: &str) -> HistoricalPathResolved {
-    let request = HistoricalEvaluationRequest::delta_replay(
+    let request = HistoricalEvaluationRequest::delta_replay_for_test(
         basis.to_string(),
         4,
         8,
         HistoricalPathReuseDescriptor::with_replay_tail_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         basis.to_string(),
         Some(crate::historical::AdmittedHistoricalPathClass::AdmittedDeltaReplayPath),
         true,
@@ -53,7 +53,7 @@ pub(crate) fn replay_resolved(basis: &str) -> HistoricalPathResolved {
         admit_historical_evaluation_path(request, capability).expect("admission should succeed");
     resolve_historical_materialization_path(
         admission,
-        HistoricalMaterializationDescriptor::new(
+        HistoricalMaterializationDescriptor::new_for_test(
             basis.to_string(),
             ResolvedHistoricalPathClass::ResolvedDeltaReplayPath,
         ),
@@ -62,13 +62,13 @@ pub(crate) fn replay_resolved(basis: &str) -> HistoricalPathResolved {
 }
 
 pub(crate) fn reconstruction_resolved(basis: &str) -> HistoricalPathResolved {
-    let request = HistoricalEvaluationRequest::full_reconstruction(
+    let request = HistoricalEvaluationRequest::full_reconstruction_for_test(
         basis.to_string(),
         4,
         8,
         HistoricalPathReuseDescriptor::no_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         basis.to_string(),
         Some(crate::historical::AdmittedHistoricalPathClass::AdmittedFullReconstructionPath),
         true,
@@ -81,7 +81,7 @@ pub(crate) fn reconstruction_resolved(basis: &str) -> HistoricalPathResolved {
         admit_historical_evaluation_path(request, capability).expect("admission should succeed");
     resolve_historical_materialization_path(
         admission,
-        HistoricalMaterializationDescriptor::new(
+        HistoricalMaterializationDescriptor::new_for_test(
             basis.to_string(),
             ResolvedHistoricalPathClass::ResolvedFullReconstructionPath,
         ),

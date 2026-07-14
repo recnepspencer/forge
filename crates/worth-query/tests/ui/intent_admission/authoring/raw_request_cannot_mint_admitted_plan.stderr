@@ -1,7 +1,24 @@
-error[E0624]: associated function `from_eligibility` is private
-  --> tests/ui/intent_admission/authoring/raw_request_cannot_mint_admitted_plan.rs:20:47
+error[E0432]: unresolved import `worth_query::facade::WorthQueryRawIntentAdmissionRequest`
+ --> tests/ui/intent_admission/authoring/raw_request_cannot_mint_admitted_plan.rs:2:5
+  |
+2 | use worth_query::facade::WorthQueryRawIntentAdmissionRequest;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryRawIntentAdmissionRequest` in `facade`
+
+error[E0624]: associated function `from_request` is private
+  --> tests/ui/intent_admission/authoring/raw_request_cannot_mint_admitted_plan.rs:15:91
    |
-20 |     let _plan = WorthQueryAdmittedIntentPlan::from_eligibility(
+15 |     let eligibility = worth_query::facade::runtime::WorthQueryIntentAdmissionEligibility::from_request(
+   |                                                                                           ^^^^^^^^^^^^ private associated function
+   |
+  ::: src/intent_admission/eligibility/artifact.rs
+   |
+   |     pub(crate) fn from_request(request: WorthQueryRawIntentAdmissionRequest) -> Self {
+   |     -------------------------------------------------------------------------------- private associated function defined here
+
+error[E0624]: associated function `from_eligibility` is private
+  --> tests/ui/intent_admission/authoring/raw_request_cannot_mint_admitted_plan.rs:18:47
+   |
+18 |     let _plan = WorthQueryAdmittedIntentPlan::from_eligibility(
    |                                               ^^^^^^^^^^^^^^^^ private associated function
    |
   ::: src/intent_admission/plans/mod.rs
@@ -10,12 +27,12 @@ error[E0624]: associated function `from_eligibility` is private
    |     ----------------------------------------------------------------------------------------- private associated function defined here
 
 error[E0061]: this function takes 1 argument but 2 arguments were supplied
-  --> tests/ui/intent_admission/authoring/raw_request_cannot_mint_admitted_plan.rs:20:17
+  --> tests/ui/intent_admission/authoring/raw_request_cannot_mint_admitted_plan.rs:18:17
    |
-20 |     let _plan = WorthQueryAdmittedIntentPlan::from_eligibility(
+18 |     let _plan = WorthQueryAdmittedIntentPlan::from_eligibility(
    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-21 |         eligibility,
-22 |         WorthQueryIntentAdmissionExecutionSeam::BackendIntentAuthorityRoute,
+19 |         eligibility,
+20 |         WorthQueryIntentAdmissionExecutionSeam::BackendIntentAuthorityRoute,
    |         ------------------------------------------------------------------- unexpected argument #2 of type `WorthQueryIntentAdmissionExecutionSeam`
    |
 note: associated function defined here
@@ -25,7 +42,7 @@ note: associated function defined here
    |                   ^^^^^^^^^^^^^^^^
 help: remove the extra argument
    |
-21 -         eligibility,
-22 -         WorthQueryIntentAdmissionExecutionSeam::BackendIntentAuthorityRoute,
-21 +         eligibility,
+19 -         eligibility,
+20 -         WorthQueryIntentAdmissionExecutionSeam::BackendIntentAuthorityRoute,
+19 +         eligibility,
    |

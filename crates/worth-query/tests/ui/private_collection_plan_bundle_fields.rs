@@ -1,4 +1,4 @@
-use worth_query::facade::CollectionPlanBundle;
+use worth_query::facade::foundation::CollectionPlanBundle;
 
 fn main() {
     let _ = CollectionPlanBundle {

@@ -33,9 +33,11 @@ mod read_access_summary;
 mod read_breadth;
 mod read_built_in_operator_denial;
 mod read_composition;
+mod read_count_result;
 mod read_denial;
 mod read_domain_invariant_denial;
 mod read_domain_invariant_summary;
+mod read_execution_product;
 mod read_extension_hook_support;
 mod read_family;
 mod read_operator_coverage;
@@ -125,12 +127,14 @@ pub use read_composition::{
     WorthQueryReadGraphFamily, WorthQueryReadReceipt, WorthQueryReadRelationshipProofPosture,
     WorthQueryReadScopeClass,
 };
+pub use read_count_result::WorthQueryCountResult;
 pub use read_denial::{
     WorthQueryReadAccessPlanBindingMismatch, WorthQueryReadDenial, WorthQueryReadDenialKind,
     WorthQueryReadScopeShapeMismatch,
 };
 pub use read_domain_invariant_denial::WorthQueryReadDomainInvariantDenial;
 pub use read_domain_invariant_summary::WorthQueryReadDomainInvariantSummary;
+pub(in crate::runtime) use read_execution_product::WorthQueryReadExecutionProduct;
 pub use read_extension_hook_support::{
     WorthQueryReadCompositionExtensionHookBoundary, WorthQueryReadCompositionExtensionHookFamily,
     WorthQueryReadCompositionExtensionHookSupportRow,

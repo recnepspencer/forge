@@ -1,15 +1,15 @@
 warning: unreachable statement
- --> tests/ui/admitted_causal_inspection_constructor_private.rs:9:5
+ --> tests/ui/admitted_causal_inspection_constructor_private.rs:5:5
   |
-8 |     let subject: CausalInspectionAdmissionSubject = todo!();
+4 |     let subject: CausalInspectionAdmissionSubject = todo!();
   |                                                     ------- any code following this expression is unreachable
-9 |     let decision: CausalInspectionAdmissionDecision = todo!();
+5 |     let decision: CausalInspectionAdmissionDecision = todo!();
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
 error[E0308]: mismatched types
-  --> tests/ui/admitted_causal_inspection_constructor_private.rs:20:37
+  --> tests/ui/admitted_causal_inspection_constructor_private.rs:16:37
    |
-20 |         admitted_inspection_digest: "worthd-admission".to_string(),
+16 |         admitted_inspection_digest: "worthd-admission".to_string(),
    |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `CausalInspectionOutcomeIdentity`, found `String`

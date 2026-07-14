@@ -1,4 +1,4 @@
-use worth_query::facade::SavedPolicyNarrowingReuseDescriptor;
+use worth_query::facade::policy::SavedPolicyNarrowingReuseDescriptor;
 
 fn main() {
     let _descriptor = SavedPolicyNarrowingReuseDescriptor::new(

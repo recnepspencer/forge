@@ -1,5 +1,5 @@
 use crate::identity::hash_parts;
-use crate::query_context::AdmittedQueryBasisContext;
+use crate::query_context::ScopedQueryBasisContext;
 use crate::runtime::{
     WorthQueryLiveView, WorthQueryReadFamily, WorthQueryRuntimeLiveSubscriptionInstallation,
 };
@@ -7,7 +7,7 @@ use crate::runtime::{
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthQueryReadExecutionIntentSeed {
     read_family: WorthQueryReadFamily,
-    basis_context: Option<AdmittedQueryBasisContext>,
+    basis_context: Option<ScopedQueryBasisContext>,
     request_label: String,
     request_input_digest: String,
 }
@@ -39,7 +39,7 @@ impl WorthQueryReadExecutionIntentSeed {
 
     pub fn in_basis_context(
         read_family: WorthQueryReadFamily,
-        basis_context: AdmittedQueryBasisContext,
+        basis_context: ScopedQueryBasisContext,
     ) -> Self {
         let request_label = format!(
             "read.family.{}.basis.{}",
@@ -65,7 +65,7 @@ impl WorthQueryReadExecutionIntentSeed {
         &self.read_family
     }
 
-    pub fn basis_context(&self) -> Option<&AdmittedQueryBasisContext> {
+    pub fn basis_context(&self) -> Option<&ScopedQueryBasisContext> {
         self.basis_context.as_ref()
     }
 

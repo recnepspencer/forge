@@ -18,6 +18,10 @@ impl WorthQueryRuntimeSourceAdapter for RepresentativeSourceAdapter {
         Ok(WorthQueryLiveViewHandle::new(name))
     }
 
+    fn close_live_view(&mut self, _name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        Ok(())
+    }
+
     fn live_entities_for_target(
         &self,
         _target: &WorthQueryLiveArtifactTarget,

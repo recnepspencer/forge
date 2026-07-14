@@ -38,9 +38,9 @@ fn writeback_batch_mutation_authority_bundle_counts_naming_components() {
     .with_naming_mutation(
         crate::facade::BridgeNamingMutationBundle::attach_new_target(
             bridge_naming_attachment("persistent-name:first"),
-            bridge_naming_target(crate::facade::RelationalBridgeRecordIdentityParts::entity(
-                1, 2, 0,
-            )),
+            bridge_naming_target(
+                crate::facade::foundation::RelationalBridgeRecordIdentityParts::entity(1, 2, 0),
+            ),
             Some(bridge_naming_collection("Task")),
         ),
     );
@@ -78,7 +78,7 @@ fn bridge_naming_attachment(value: &str) -> crate::facade::BridgeNamingAttachmen
 }
 
 fn bridge_naming_target(
-    parts: crate::facade::RelationalBridgeRecordIdentityParts,
+    parts: crate::facade::foundation::RelationalBridgeRecordIdentityParts,
 ) -> crate::facade::BridgeNamingResolvedTargetIdentity {
     crate::facade::BridgeNamingResolvedTargetIdentity::from_relational_record(parts)
 }
@@ -129,7 +129,7 @@ fn writeback_batch_mutation_authority_bundle_counts_existing_and_symbolic_compon
                 ),
             ),
             crate::facade::BridgeExistingTruthBindingResolvedTargetIdentity::from_relational_record(
-                crate::facade::RelationalBridgeRecordIdentityParts::entity(1, 1, 0),
+                crate::facade::foundation::RelationalBridgeRecordIdentityParts::entity(1, 1, 0),
             ),
             Some(crate::facade::BridgeExistingTruthBindingTargetCollection::new("Task")),
         ),
@@ -156,7 +156,7 @@ fn writeback_batch_mutation_authority_bundle_counts_existing_and_symbolic_compon
                 "draft-task",
             ),
             crate::facade::BridgeSymbolicTargetResolvedEntityIdentity::from_relational_record(
-                crate::facade::RelationalBridgeRecordIdentityParts::entity(1, 4, 0),
+                crate::facade::foundation::RelationalBridgeRecordIdentityParts::entity(1, 4, 0),
             ),
             Some(crate::facade::BridgeSymbolicTargetCollection::new("Task")),
         ),

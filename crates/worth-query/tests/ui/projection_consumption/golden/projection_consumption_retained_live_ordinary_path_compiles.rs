@@ -1,9 +1,6 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, WorthQueryDerivedArtifactBinding,
-    WorthQueryEvidenceIdentity, WorthQueryLiveArtifactBinding, ProjectMaterializedFacts,
-    ProjectionFactConsumptionPathError, ProjectionFactFieldPath,
-};
+use worth_query::facade::foundation::{AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ProjectionAuthorityContract, ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError, ProjectionFactFieldPath};
+use worth_query::facade::runtime::{WorthQueryDerivedArtifactBinding, WorthQueryEvidenceIdentity, WorthQueryLiveArtifactBinding};
 
 fn retained_live_ordinary_path(
     retained: &WorthQueryDerivedArtifactBinding,
@@ -12,33 +9,46 @@ fn retained_live_ordinary_path(
     result_shape_identity: &WorthQueryEvidenceIdentity,
     authorized_projection: &AuthorizedProjectionArtifact,
 ) -> Result<(usize, usize), ProjectionFactConsumptionPathError> {
-    let retained_attempt = retained.consume_projection_facts(
+    let (retained, live) = retained_live_authority_path(
+        retained,
+        live,
         result_shape,
-        authorized_projection,
-        ProjectMaterializedFacts::declare()
-            .view_local_identities()
-            .display_field_path(profile_display_name_field_path())
-            .source_references(),
-    )?;
-    let live_attempt = live.consume_projection_facts(
         result_shape_identity,
         authorized_projection,
-        ProjectMaterializedFacts::declare()
-            .entity_identities()
-            .view_local_identities()
-            .display_field_path(profile_display_name_field_path())
-            .source_references(),
     )?;
-
     Ok((
-        retained_attempt
-            .completed()
-            .map(|completed| completed.extracted_fact_count())
+        retained
+            .authority()
+            .map(|authority| authority.counters().consumed_fact_visits())
             .unwrap_or(0),
-        live_attempt
-            .completed()
-            .map(|completed| completed.extracted_fact_count())
+        live.authority()
+            .map(|authority| authority.counters().consumed_fact_visits())
             .unwrap_or(0),
+    ))
+}
+
+fn retained_live_authority_path(
+    retained: &WorthQueryDerivedArtifactBinding,
+    live: &WorthQueryLiveArtifactBinding,
+    result_shape: &CanonicalResultShapeArtifact,
+    result_shape_identity: &WorthQueryEvidenceIdentity,
+    projection: &AuthorizedProjectionArtifact,
+) -> Result<(ProjectionAuthorityOutcome, ProjectionAuthorityOutcome), ProjectionFactConsumptionPathError>
+{
+    let retained_contract = ProjectionAuthorityContract::declare()
+        .require_settled_consumption()
+        .require_source_authority()
+        .require_source_references()
+        .require_display_field(profile_display_name_field_path());
+    let live_contract = ProjectionAuthorityContract::declare()
+        .require_settled_consumption()
+        .require_source_authority()
+        .require_source_references()
+        .require_entity_identities()
+        .require_display_field(profile_display_name_field_path());
+    Ok((
+        retained.consume_projection_authority(result_shape, projection, retained_contract)?,
+        live.consume_projection_authority(result_shape_identity, projection, live_contract)?,
     ))
 }
 
@@ -54,4 +64,5 @@ fn profile_display_name_field_path() -> ProjectionFactFieldPath {
 
 fn main() {
     let _ = retained_live_ordinary_path;
+    let _ = retained_live_authority_path;
 }

@@ -1,0 +1,17 @@
+error[E0599]: no function or associated item named `from_domain_parts` found for struct `CanonicalQueryDigest` in the current scope
+ --> tests/ui/public_authority_surface/raw_digest_minting_removed.rs:5:35
+  |
+5 |     let _ = CanonicalQueryDigest::from_domain_parts(&parts);
+  |                                   ^^^^^^^^^^^^^^^^^ function or associated item not found in `CanonicalQueryDigest`
+
+error[E0599]: no function or associated item named `from_domain_parts` found for struct `worth_query::facade::foundation::SchemaBasisDigest` in the current scope
+ --> tests/ui/public_authority_surface/raw_digest_minting_removed.rs:6:32
+  |
+6 |     let _ = SchemaBasisDigest::from_domain_parts(&parts);
+  |                                ^^^^^^^^^^^^^^^^^ function or associated item not found in `worth_query::facade::foundation::SchemaBasisDigest`
+
+error[E0599]: no function or associated item named `from_domain_parts` found for struct `worth_query::facade::foundation::BasisDigest` in the current scope
+ --> tests/ui/public_authority_surface/raw_digest_minting_removed.rs:7:26
+  |
+7 |     let _ = BasisDigest::from_domain_parts(&parts);
+  |                          ^^^^^^^^^^^^^^^^^ function or associated item not found in `worth_query::facade::foundation::BasisDigest`

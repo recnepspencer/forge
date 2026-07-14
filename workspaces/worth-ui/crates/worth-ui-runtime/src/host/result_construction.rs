@@ -19,12 +19,19 @@ pub(super) fn construct_measurement_result_from_host_observation(
     assumption_profile: UiHostMeasurementAssumptionProfile,
 ) -> UiMeasurementResult {
     let request_identity = observation.request_identity();
+    let request_shape_digest =
+        crate::evidence::host_measurement_request_shape_digest(observation.request());
     let evidence_category =
         UiMeasurementEvidenceCategory::from_request_family(observation.family());
     let value = measurement_value_from_host_observation(observation.value().clone());
+    let portal_anchor_target_identity = observation
+        .request()
+        .portal_anchor_rect_input()
+        .map(worth_ui_host_contract::UiPortalAnchorRectRequest::target_identity);
 
     UiMeasurementResult::new_from_host_lane(
         request_identity,
+        request_shape_digest,
         evidence_category,
         evidence_generation,
         unit_posture,
@@ -32,6 +39,7 @@ pub(super) fn construct_measurement_result_from_host_observation(
         rounding_posture,
         assumption_profile,
         value,
+        portal_anchor_target_identity,
     )
 }
 

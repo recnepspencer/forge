@@ -1,4 +1,4 @@
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryBatchWriteReceipt, WorthQueryBatchWriteReceiptInspection, WorthQueryWriteReceipt,
     WorthQueryWriteReceiptInspection,
 };

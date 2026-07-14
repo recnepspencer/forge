@@ -3,7 +3,7 @@ mod coordinate_space;
 pub(crate) mod dependency;
 mod evidence_category;
 mod generation_compatibility;
-#[cfg(test)]
+mod host_authority_witness;
 mod host_request_shape_digest;
 pub(crate) mod inputs;
 pub(crate) mod projection;
@@ -33,7 +33,7 @@ pub use dependency::{
 };
 pub use evidence_category::UiMeasurementEvidenceCategory;
 pub use generation_compatibility::UiMeasurementGenerationCompatibility;
-#[cfg(test)]
+pub(crate) use host_authority_witness::UiHostMeasurementAuthorityWitness;
 pub(crate) use host_request_shape_digest::host_measurement_request_shape_digest;
 pub use inputs::{
     MeasurementEvidenceInput, UiChildIntrinsicMeasurementEvidence,

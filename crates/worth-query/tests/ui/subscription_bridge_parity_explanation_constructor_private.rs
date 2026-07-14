@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    QuerySubscriptionBridgeParityComparison, QuerySubscriptionBridgeParityCounters,
-    QuerySubscriptionBridgeParityExplanation, QuerySubscriptionManualBridgeWitness,
-};
+use worth_query::facade::runtime::{QuerySubscriptionBridgeParityComparison, QuerySubscriptionBridgeParityCounters, QuerySubscriptionBridgeParityExplanation, QuerySubscriptionManualBridgeWitness};
 
 fn main() {
     let comparison: QuerySubscriptionBridgeParityComparison = todo!();

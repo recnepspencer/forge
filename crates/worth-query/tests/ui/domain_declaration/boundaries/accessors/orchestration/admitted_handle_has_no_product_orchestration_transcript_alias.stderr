@@ -1,11 +1,11 @@
 error[E0599]: no method named `orchestrate_routes_from_progressed_transcript` found for struct `WorthQueryAdmittedConfiguredDomainHandle<D, C>` in the current scope
-  --> tests/ui/domain_declaration/boundaries/accessors/orchestration/admitted_handle_has_no_product_orchestration_transcript_alias.rs:79:20
+  --> tests/ui/domain_declaration/boundaries/accessors/orchestration/admitted_handle_has_no_product_orchestration_transcript_alias.rs:72:20
    |
-79 |     let _ = handle.orchestrate_routes_from_progressed_transcript(progressed);
+72 |     let _ = handle.orchestrate_routes_from_progressed_transcript(progressed);
    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
 help: there is a method `orchestrate_routes_from_progressed` with a similar name
    |
-79 -     let _ = handle.orchestrate_routes_from_progressed_transcript(progressed);
-79 +     let _ = handle.orchestrate_routes_from_progressed(progressed);
+72 -     let _ = handle.orchestrate_routes_from_progressed_transcript(progressed);
+72 +     let _ = handle.orchestrate_routes_from_progressed(progressed);
    |

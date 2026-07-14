@@ -78,6 +78,8 @@ impl ActiveSubscriptionLaneRegistry {
             bridge_declaration_identity: admission.bridge_declaration_identity,
             future_selection: admission.future_selection,
             basis_binding_identity: admission.basis_binding_identity,
+            scoped_declaration_basis: admission.scoped_declaration_basis,
+            scoped_activation_basis: admission.scoped_activation_basis,
             checkpoint_identity: admission.checkpoint_identity,
             signal_strategy_identity: admission.signal_strategy_identity,
             lifecycle_posture: admission.lifecycle_posture,
@@ -228,5 +230,37 @@ impl ActiveSubscriptionLaneRegistry {
             return Ok(true);
         }
         Ok(false)
+    }
+
+    pub(super) fn validate_attachment_close(
+        &self,
+        handle: &ActiveSubscriptionLaneHandle,
+        attachment_digest: &SubscriptionConsumerAttachmentDigest,
+    ) -> Result<(), ActiveSubscriptionLifecycleError> {
+        self.validate_handle(handle)?;
+        let mut counters = ActiveSubscriptionCounters::default();
+        let Some(index) = self
+            .attachment_lane_by_digest
+            .get(attachment_digest)
+            .copied()
+        else {
+            counters.subscription_lifecycle_closeout_denial_count = 1;
+            return Err(ActiveSubscriptionLifecycleError::new(
+                ActiveSubscriptionLifecycleDenialKind::AttachmentNotActive,
+                "subscription lifecycle closeout requires an active registered consumer attachment",
+                attachment_digest.evidence_identity().clone(),
+                counters,
+            ));
+        };
+        if index as u64 != handle.lane_index() {
+            counters.subscription_lifecycle_closeout_denial_count = 1;
+            return Err(ActiveSubscriptionLifecycleError::new(
+                ActiveSubscriptionLifecycleDenialKind::AttachmentLaneMismatch,
+                "subscription lifecycle closeout attachment does not belong to the requested lane handle",
+                attachment_digest.evidence_identity().clone(),
+                counters,
+            ));
+        }
+        Ok(())
     }
 }

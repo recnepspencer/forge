@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_query::query_basis_lifecycle`
+ --> tests/ui/prohibition_registry/legacy_query_basis_lifecycle_forbidden.rs:1:18
+  |
+1 | use worth_query::query_basis_lifecycle::RawBasisIntent;
+  |                  ^^^^^^^^^^^^^^^^^^^^^ could not find `query_basis_lifecycle` in `worth_query`

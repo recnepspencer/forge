@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    lower_query_subscription_to_bridge, BridgeSubscriptionSliceKind,
-    QuerySubscriptionBridgeLoweringBudget,
-};
+use worth_query::facade::runtime::{lower_query_subscription_to_bridge, BridgeSubscriptionSliceKind, QuerySubscriptionBridgeLoweringBudget};
 
 fn main() {
     let raw_slices = vec![BridgeSubscriptionSliceKind::ProjectedField];

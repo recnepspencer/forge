@@ -23,7 +23,7 @@ use super::traversal::canonicalize_traversal;
 pub struct QueryCanonicalizer;
 
 impl QueryCanonicalizer {
-    pub fn canonicalize_request(
+    pub(crate) fn canonicalize_request(
         request: AuthoredQueryBundleRequest,
     ) -> Result<CanonicalQueryBundle, QueryCanonicalizationError> {
         if let Some(residue) = request.helper_residue_marker() {
@@ -283,7 +283,7 @@ pub(crate) fn validate_digest_basis_consistency_for_test(
     validate_digest_basis_consistency(query, result_shape)
 }
 
-pub fn canonicalize_request(
+pub(crate) fn canonicalize_request(
     request: AuthoredQueryBundleRequest,
 ) -> Result<CanonicalQueryBundle, QueryCanonicalizationError> {
     QueryCanonicalizer::canonicalize_request(request)

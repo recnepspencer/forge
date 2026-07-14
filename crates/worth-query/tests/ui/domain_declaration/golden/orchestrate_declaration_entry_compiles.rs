@@ -1,12 +1,4 @@
-use worth_query::facade::{
-    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
-    WorthQueryDeclarationProgressionContract, WorthQueryDeclarationRouteContract,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
-    WorthQuerySignalNotCompatiblePosture,
-};
+use worth_query::facade::foundation::{WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract, WorthQueryDeclarationProgressionContract, WorthQueryDeclarationRouteContract, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext, WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority, WorthQuerySignalNotCompatiblePosture};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct GeometryDomain;
@@ -86,7 +78,7 @@ impl WorthQueryDeclarationInput<GeometryDomain> for TrimSegmentAtIntersection {
 }
 
 fn accepts_orchestration_surface(
-    handle: &worth_query::facade::WorthQueryAdmittedConfiguredDomainHandle<
+    handle: &worth_query::facade::foundation::WorthQueryAdmittedConfiguredDomainHandle<
         GeometryDomain,
         GeometryOperatingContext,
     >,

@@ -1,7 +1,9 @@
 use crate::authoring::QueryFamily;
+use crate::basis::QuerySchemaBasisAuthority;
 use crate::binding::IdentityBindingDescriptor;
 use crate::canonicalization::CanonicalQueryArtifact;
 use crate::identity::{CanonicalQueryDigest, SchemaBasisDigest, ValidatedQueryDigest};
+use crate::identity_authority::QueryCanonicalAuthority;
 
 use super::{
     ValidatedOrderingSet, ValidatedPredicateSet, ValidatedProjectionEntry, ValidatedTraversalEntry,
@@ -21,6 +23,10 @@ pub struct ValidatedQueryArtifact {
 }
 
 impl ValidatedQueryArtifact {
+    pub fn canonical_authority(&self) -> QueryCanonicalAuthority {
+        QueryCanonicalAuthority::from_query_artifact(&self.canonical_query_digest)
+    }
+
     pub fn digest(&self) -> &ValidatedQueryDigest {
         &self.digest
     }
@@ -31,6 +37,10 @@ impl ValidatedQueryArtifact {
 
     pub fn schema_basis(&self) -> &SchemaBasisDigest {
         &self.schema_basis
+    }
+
+    pub fn schema_basis_authority(&self) -> QuerySchemaBasisAuthority {
+        QuerySchemaBasisAuthority::from_query_artifact(&self.schema_basis)
     }
 
     pub fn family(&self) -> &QueryFamily {

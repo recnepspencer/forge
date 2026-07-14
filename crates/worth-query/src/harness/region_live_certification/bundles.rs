@@ -1,4 +1,4 @@
-use crate::facade::{
+use crate::facade::foundation::{
     admit_region_scoped_live_plan, execute_live_change, execute_region_scoped_live_change,
     lower_region_scoped_execution_to_stream_contract, promote_preflight_bundle_to_live,
     BridgeChangeSummary, BridgeFieldDelta, LiveExecutionEnvelope, LivePolicyCounters,
@@ -439,25 +439,25 @@ fn bundle_from_region_execution(
 ) -> LiveCertificationBundle {
     let replay_record = execution.region_scoped_replay_bundle().replay_record();
     let (outcome_kind, outcome_digest) = match execution.patch_envelope().payload() {
-        crate::facade::LivePatchPayload::Detail(_)
-        | crate::facade::LivePatchPayload::OrderedCollection(_)
-        | crate::facade::LivePatchPayload::BoundedMaterialization(_) => (
+        crate::facade::foundation::LivePatchPayload::Detail(_)
+        | crate::facade::foundation::LivePatchPayload::OrderedCollection(_)
+        | crate::facade::foundation::LivePatchPayload::BoundedMaterialization(_) => (
             LiveOutcomeKind::Patch,
             execution.patch_envelope().delivery_digest().to_string(),
         ),
-        crate::facade::LivePatchPayload::Suppressed(_) => (
+        crate::facade::foundation::LivePatchPayload::Suppressed(_) => (
             LiveOutcomeKind::Suppressed,
             execution.patch_envelope().delivery_digest().to_string(),
         ),
-        crate::facade::LivePatchPayload::Refresh(_) => (
+        crate::facade::foundation::LivePatchPayload::Refresh(_) => (
             LiveOutcomeKind::Refresh,
             execution.patch_envelope().delivery_digest().to_string(),
         ),
-        crate::facade::LivePatchPayload::ProgressAdvance { .. } => (
+        crate::facade::foundation::LivePatchPayload::ProgressAdvance { .. } => (
             LiveOutcomeKind::ProgressAdvance,
             execution.patch_envelope().delivery_digest().to_string(),
         ),
-        crate::facade::LivePatchPayload::Coalesced(_) => (
+        crate::facade::foundation::LivePatchPayload::Coalesced(_) => (
             LiveOutcomeKind::CoalescedDelivery,
             execution.patch_envelope().delivery_digest().to_string(),
         ),
@@ -484,7 +484,7 @@ fn bundle_from_region_execution(
 fn bundle_from_stream_contract(
     profile: CertificationProfile,
     execution: &RegionScopedLiveExecutionEnvelope,
-    contract: &crate::facade::StreamLoweredDeliveryContract,
+    contract: &crate::facade::foundation::StreamLoweredDeliveryContract,
 ) -> LiveCertificationBundle {
     LiveCertificationBundle {
         profile,
@@ -508,25 +508,35 @@ fn bundle_from_stream_contract(
     }
 }
 
-fn bundle_family(family: &crate::facade::LiveQueryFamily) -> LiveBundleFamily {
+fn bundle_family(family: &crate::facade::foundation::LiveQueryFamily) -> LiveBundleFamily {
     match family {
-        crate::facade::LiveQueryFamily::Detail => LiveBundleFamily::Detail,
-        crate::facade::LiveQueryFamily::OrderedCollection => LiveBundleFamily::OrderedCollection,
-        crate::facade::LiveQueryFamily::BoundedMaterialization => {
+        crate::facade::foundation::LiveQueryFamily::Detail => LiveBundleFamily::Detail,
+        crate::facade::foundation::LiveQueryFamily::OrderedCollection => {
+            LiveBundleFamily::OrderedCollection
+        }
+        crate::facade::foundation::LiveQueryFamily::BoundedMaterialization => {
             LiveBundleFamily::BoundedMaterialization
         }
     }
 }
 
-fn outcome_kind_from_payload(payload: &crate::facade::LivePatchPayload) -> LiveOutcomeKind {
+fn outcome_kind_from_payload(
+    payload: &crate::facade::foundation::LivePatchPayload,
+) -> LiveOutcomeKind {
     match payload {
-        crate::facade::LivePatchPayload::Detail(_)
-        | crate::facade::LivePatchPayload::OrderedCollection(_)
-        | crate::facade::LivePatchPayload::BoundedMaterialization(_) => LiveOutcomeKind::Patch,
-        crate::facade::LivePatchPayload::Suppressed(_) => LiveOutcomeKind::Suppressed,
-        crate::facade::LivePatchPayload::Refresh(_) => LiveOutcomeKind::Refresh,
-        crate::facade::LivePatchPayload::ProgressAdvance { .. } => LiveOutcomeKind::ProgressAdvance,
-        crate::facade::LivePatchPayload::Coalesced(_) => LiveOutcomeKind::CoalescedDelivery,
+        crate::facade::foundation::LivePatchPayload::Detail(_)
+        | crate::facade::foundation::LivePatchPayload::OrderedCollection(_)
+        | crate::facade::foundation::LivePatchPayload::BoundedMaterialization(_) => {
+            LiveOutcomeKind::Patch
+        }
+        crate::facade::foundation::LivePatchPayload::Suppressed(_) => LiveOutcomeKind::Suppressed,
+        crate::facade::foundation::LivePatchPayload::Refresh(_) => LiveOutcomeKind::Refresh,
+        crate::facade::foundation::LivePatchPayload::ProgressAdvance { .. } => {
+            LiveOutcomeKind::ProgressAdvance
+        }
+        crate::facade::foundation::LivePatchPayload::Coalesced(_) => {
+            LiveOutcomeKind::CoalescedDelivery
+        }
     }
 }
 
@@ -632,7 +642,9 @@ fn bounded_in_region_change() -> BridgeChangeSummary {
             Some("Esther"),
             Some("Ess"),
         ))
-        .with_relation_delta(crate::facade::BridgeRelationDelta::new("manager"))
+        .with_relation_delta(crate::facade::foundation::BridgeRelationDelta::new(
+            "manager",
+        ))
         .with_materialization_scope_transition(false, true)
         .with_region_slice("assembly-a")
 }

@@ -1,11 +1,8 @@
-use worth_query::facade::{
-    CapabilityAdmissionDecision, WorthQueryCapabilityFamily, WorthQueryCapabilityStatus,
-    WorthQueryConfigSectionFamily, WorthQueryFacadeCounters, WorthQuerySubsystemOwner,
-};
+use worth_query::facade::foundation::{CapabilityAdmissionDecision, WorthQueryCapabilityFamily, WorthQueryCapabilityStatus, WorthQueryConfigSectionFamily, WorthQueryFacadeCounters, WorthQuerySubsystemOwner};
 
 fn main() {
     let _ = CapabilityAdmissionDecision {
-        descriptor: worth_query::facade::WorthQueryCapabilityDescriptor {
+        descriptor: worth_query::facade::foundation::WorthQueryCapabilityDescriptor {
             family: WorthQueryCapabilityFamily::QueryRead,
             status: WorthQueryCapabilityStatus::Admitted,
             owner: WorthQuerySubsystemOwner::Query,

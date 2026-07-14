@@ -12,7 +12,7 @@ use std::sync::{
 
 use flate2::{write::GzEncoder, Compression};
 use serde_json::json;
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     WorthServerQueryHandoffDenialCode, WorthServerUploadChunk, WorthServerUploadCleanupReason,
     WorthServerUploadContentEncoding, WorthServerUploadExpectation, WorthServerUploadManifest,

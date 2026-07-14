@@ -5,8 +5,8 @@ use crate::basis::{
     SnapshotLineageClass,
 };
 use crate::query_context::{
-    admit_query_basis_context, bind_query_basis_context, QueryBasisContextRequest,
-    QueryContextBindingSource,
+    admit_and_scope_legacy_query_basis_context_for_test, bind_legacy_query_basis_context,
+    QueryBasisContextRequest, QueryContextBindingSource,
 };
 use crate::schema_view::SchemaRelationView;
 
@@ -304,20 +304,21 @@ fn read_registration(
 
 fn branch_context_for_family(
     family: &WorthQueryReadFamily,
-) -> crate::query_context::AdmittedQueryBasisContext {
+) -> crate::query_context::ScopedQueryBasisContext {
     let preflight = runtime_preflight_for_family(family, "read-obligation-branch-basis");
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::branch_head("read-obligation-branch-basis"),
         QueryContextBindingSource::RuntimeBranch(&preflight),
     )
     .expect("branch basis context should bind");
-    admit_query_basis_context(binding).expect("branch basis context should admit")
+    admit_and_scope_legacy_query_basis_context_for_test(binding)
+        .expect("branch basis context should admit")
 }
 
 fn runtime_preflight_for_family(
     family: &WorthQueryReadFamily,
     snapshot_token: &str,
-) -> crate::facade::ExecutionPreflightBundle {
+) -> crate::facade::foundation::ExecutionPreflightBundle {
     let lineage_class = SnapshotLineageClass::CurrentHead;
     let intent = ExecutionBasisIntent::new(
         crate::basis::BasisAuthorityFamily::Runtime,

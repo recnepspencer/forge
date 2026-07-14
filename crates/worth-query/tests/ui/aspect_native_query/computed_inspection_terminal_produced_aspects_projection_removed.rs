@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryComputedInspectionEvidence;
+use worth_query::facade::runtime::WorthQueryComputedInspectionEvidence;
 
 fn assert_no_terminal_produced_projection(evidence: &WorthQueryComputedInspectionEvidence) {
     let _ = evidence.terminal_produced_aspects_projection();

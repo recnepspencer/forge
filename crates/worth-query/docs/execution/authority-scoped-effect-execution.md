@@ -36,7 +36,7 @@ Postures: `Admitted`, `Advisory`, `Denied`, `RebindRequired`, `Deferred`, `Unsup
 ## Typical Flow
 
 1. Author effect via `workspace.effect` (triggers, delivery, write-intent staging).
-2. When consuming staged work, route through intent admission (see [intent admission](../foundations/intent-admission-and-observation.md)).
+2. When consuming staged work, route through [intent admission](intent-admission.md).
 3. `discover_effect_lifecycle_support` for the basis + effect family.
 4. If admitted: eligibility → admit → execute with authority owner receipt.
 5. Inspect effect artifacts; do not assume durable replay without matrix row.
@@ -46,7 +46,7 @@ Postures: `Admitted`, `Advisory`, `Denied`, `RebindRequired`, `Deferred`, `Unsup
 - [Effects](effects.md) — declaration, inspection, staging DX
 - [Authoritative mutation evidence](../capabilities/authoritative-mutation-evidence.md) — write provenance vs effect delivery
 - [Basis capability lifecycle](../capabilities/basis-capability-lifecycle.md) — basis phases before effect admit
-- [Intent admission and observation](../foundations/intent-admission-and-observation.md) — consuming staged write-intent
+- [Intent Admission](intent-admission.md) — consuming staged write-intent
 
 ## Good to Know
 

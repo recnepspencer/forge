@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadMaterializationCancellationReceipt,
-    WorthQueryGraphReadMaterializationJobState,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadMaterializationCancellationReceipt, WorthQueryGraphReadMaterializationJobState};
 
 fn main() {
     let _ = WorthQueryGraphReadMaterializationCancellationReceipt {

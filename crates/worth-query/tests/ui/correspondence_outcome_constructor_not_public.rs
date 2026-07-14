@@ -1,4 +1,4 @@
-use worth_query::facade::LineageContinuity;
+use worth_query::facade::foundation::LineageContinuity;
 
 fn main() {
     let _ = LineageContinuity {

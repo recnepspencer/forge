@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryGraphCompositionDenial, WorthQueryGraphCompositionDenialKind};
+use worth_query::facade::runtime::{WorthQueryGraphCompositionDenial, WorthQueryGraphCompositionDenialKind};
 
 fn main() {
     let _ = WorthQueryGraphCompositionDenial {

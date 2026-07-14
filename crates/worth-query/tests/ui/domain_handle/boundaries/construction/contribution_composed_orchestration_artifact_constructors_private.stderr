@@ -1,37 +1,37 @@
 error[E0560]: struct `WorthQueryContributionComposedOrchestration<GeometryDomainEntry, GeometryInput>` has no field named `composed_digest`
-  --> tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs:80:9
+  --> tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs:72:9
    |
-80 |         composed_digest: String::new(),
+72 |         composed_digest: String::new(),
    |         ^^^^^^^^^^^^^^^ `WorthQueryContributionComposedOrchestration<GeometryDomainEntry, GeometryInput>` does not have this field
    |
    = note: all struct fields are already assigned
 
 error: cannot construct `WorthQueryContributionComposedOrchestrationTranscript<GeometryDomainEntry, GeometryInput>` with struct literal syntax due to private fields
-  --> tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs:82:13
+  --> tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs:74:13
    |
-82 |       let _ = WorthQueryContributionComposedOrchestrationTranscript::<
+74 |       let _ = WorthQueryContributionComposedOrchestrationTranscript::<
    |  _____________^
-83 | |         GeometryDomainEntry,
-84 | |         GeometryInput,
-85 | |     > {
+75 | |         GeometryDomainEntry,
+76 | |         GeometryInput,
+77 | |     > {
    | |_____^
-86 |           request_digest: String::new(),
+78 |           request_digest: String::new(),
    |           ----------------------------- private field
-87 |           outcome: unsafe { std::mem::zeroed() },
+79 |           outcome: unsafe { std::mem::zeroed() },
    |           -------------------------------------- private field
-88 |           linked_artifacts: unsafe { std::mem::zeroed() },
+80 |           linked_artifacts: unsafe { std::mem::zeroed() },
    |           ----------------------------------------------- private field
-89 |           contribution_digest: None,
+81 |           contribution_digest: None,
    |           ------------------------- private field
    |
    = note: ...and other private fields `request_descriptor`, `materialization_policy`, `declaration`, `composition_classification`, `graph_obligation_dispatch` and `intent_results` that were not provided
 help: you might have meant to use the `new` associated function
    |
-85 -     > {
-86 -         request_digest: String::new(),
-87 -         outcome: unsafe { std::mem::zeroed() },
-88 -         linked_artifacts: unsafe { std::mem::zeroed() },
-89 -         contribution_digest: None,
-90 -     };
-85 +     >::new(_, _, _, _, _, _, _, _, _, _);
+77 -     > {
+78 -         request_digest: String::new(),
+79 -         outcome: unsafe { std::mem::zeroed() },
+80 -         linked_artifacts: unsafe { std::mem::zeroed() },
+81 -         contribution_digest: None,
+82 -     };
+77 +     >::new(_, _, _, _, _, _, _, _, _, _);
    |

@@ -1,5 +1,8 @@
 use crate::facade::TruthSnapshotIdentity;
-use crate::facade::{BridgeProducerAuthorityKind, BridgeRouteRequest};
+use crate::facade::{
+    BridgeProducerAuthorityKind,
+    BridgeRouteRequest,
+};
 
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use super::support::{

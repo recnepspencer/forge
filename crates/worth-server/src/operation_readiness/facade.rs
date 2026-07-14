@@ -1,4 +1,6 @@
-use worth_query::facade::{WorthQueryRuntimeDownstreamDeliveryContract, WorthQueryWorkspace};
+use worth_query::facade::runtime::{
+    WorthQueryRuntimeDownstreamDeliveryContract, WorthQueryWorkspace,
+};
 
 use crate::{
     WorthServerCompatibilityPreparedRequest, WorthServerOperationAdmissionPosture,

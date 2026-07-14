@@ -1,23 +1,5 @@
-error[E0451]: fields `left`, `right`, `family`, `drift_outcome`, `cost_class`, `budget_class`, `prediction_report`, `prediction_drift_outcome` and `counters` of struct `AdmittedDiffQueryContext` are private
-  --> tests/ui/admitted_diff_query_context_constructor_private.rs:17:9
-   |
-16 |     let _ = AdmittedDiffQueryContext {
-   |             ------------------------ in this type
-17 |         left: basis(),
-   |         ^^^^ private field
-18 |         right: basis(),
-   |         ^^^^^ private field
-19 |         family: ComparisonBasisFamily::BranchToBranch,
-   |         ^^^^^^ private field
-20 |         drift_outcome: QueryContextDriftOutcome::BasisExact,
-   |         ^^^^^^^^^^^^^ private field
-21 |         cost_class: QueryContextCostClass::DiffComparisonBounded,
-   |         ^^^^^^^^^^ private field
-22 |         budget_class: QueryContextBudgetClass::ComparisonBounded,
-   |         ^^^^^^^^^^^^ private field
-23 |         prediction_report: report(),
-   |         ^^^^^^^^^^^^^^^^^ private field
-24 |         prediction_drift_outcome: QueryContextPredictionDriftOutcome::PendingComparison,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
-25 |         counters: QueryContextCounters::default(),
-   |         ^^^^^^^^ private field
+error[E0432]: unresolved import `worth_query::facade::AdmittedQueryBasisContext`
+ --> tests/ui/admitted_diff_query_context_constructor_private.rs:2:5
+  |
+2 | use worth_query::facade::AdmittedQueryBasisContext;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `AdmittedQueryBasisContext` in `facade`

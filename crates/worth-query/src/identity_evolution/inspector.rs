@@ -1,4 +1,6 @@
+use crate::basis::ResolvedBasisProof;
 use crate::identity::ResultDigest;
+use crate::identity_authority::QueryCanonicalAuthority;
 
 use super::{
     evidence::IdentityEvolutionCertificationResultEvidence, metadata::BranchLocalityClass,
@@ -47,6 +49,8 @@ impl InspectorIdentityClassification {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InspectorIdentityArtifact {
+    query_authority: QueryCanonicalAuthority,
+    basis: ResolvedBasisProof,
     digest: InspectorIdentityDigest,
     classification: InspectorIdentityClassification,
     branch_locality_class: BranchLocalityClass,
@@ -56,6 +60,14 @@ pub struct InspectorIdentityArtifact {
 }
 
 impl InspectorIdentityArtifact {
+    pub fn query_authority(&self) -> &QueryCanonicalAuthority {
+        &self.query_authority
+    }
+
+    pub fn basis_proof(&self) -> &ResolvedBasisProof {
+        &self.basis
+    }
+
     pub fn digest(&self) -> &InspectorIdentityDigest {
         &self.digest
     }
@@ -81,12 +93,16 @@ impl InspectorIdentityArtifact {
     }
 
     pub(crate) fn from_parts(
+        query_authority: QueryCanonicalAuthority,
+        basis: ResolvedBasisProof,
         digest: InspectorIdentityDigest,
         classification: InspectorIdentityClassification,
         branch_locality_class: BranchLocalityClass,
         replay_stable_digest: impl Into<String>,
     ) -> Self {
         Self {
+            query_authority,
+            basis,
             digest,
             classification,
             branch_locality_class,
@@ -120,6 +136,8 @@ impl InspectorIdentityArtifact {
             metadata.branch_locality_class(),
         );
         Self::from_parts(
+            metadata.query_authority().clone(),
+            metadata.basis_proof().clone(),
             digest,
             classification,
             metadata.branch_locality_class(),
@@ -148,6 +166,8 @@ impl InspectorIdentityArtifact {
             evidence.branch_locality_class(),
         );
         Self::from_parts(
+            evidence.query_authority().clone(),
+            evidence.basis_proof().clone(),
             digest,
             classification,
             evidence.branch_locality_class(),

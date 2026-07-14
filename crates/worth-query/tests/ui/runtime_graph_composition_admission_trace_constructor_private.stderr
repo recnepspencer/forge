@@ -1,5 +1,5 @@
 error[E0308]: mismatched types
-  --> tests/ui/runtime_graph_composition_admission_trace_constructor_private.rs:12:33
+  --> tests/ui/runtime_graph_composition_admission_trace_constructor_private.rs:10:33
    |
-12 |         admission_trace_digest: String::new(),
+10 |         admission_trace_digest: String::new(),
    |                                 ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`

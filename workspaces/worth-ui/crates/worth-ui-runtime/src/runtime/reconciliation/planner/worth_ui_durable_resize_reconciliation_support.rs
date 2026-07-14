@@ -1,9 +1,9 @@
 use crate::capability::MosaicResizePermission;
 use crate::runtime::{
-    WorthUiAdmittedDurableResizeInput, WorthUiDurableResizeInputPosture, WorthUiDurableStateFamily,
-    WorthUiDurableStateFamilyId, WorthUiDurableStateReconciliationReceipt,
-    WorthUiIdentityMatchNodeKind, WorthUiNodeLifecycleTransition,
-    WorthUiNodeReplacementClassification,
+    WorthUiDurableResizeInputDisposition, WorthUiDurableResizeInputPosture,
+    WorthUiDurableStateFamily, WorthUiDurableStateFamilyId,
+    WorthUiDurableStateReconciliationReceipt, WorthUiIdentityMatchNodeKind,
+    WorthUiNodeLifecycleTransition, WorthUiNodeReplacementClassification,
 };
 
 pub(super) fn classification_targets_splitter_surface(
@@ -20,7 +20,7 @@ pub(super) fn classification_targets_splitter_surface(
 pub(super) fn splitter_resize_input_for_carry(
     classification: &WorthUiNodeReplacementClassification,
     family: &WorthUiDurableStateFamily,
-) -> Option<WorthUiAdmittedDurableResizeInput> {
+) -> Option<WorthUiDurableResizeInputDisposition> {
     if !is_splitter_surface_family(classification, family)
         || !splitter_resize_shapes_match(classification)
     {
@@ -30,7 +30,7 @@ pub(super) fn splitter_resize_input_for_carry(
         .candidate_resize_permission()
         .filter(|permission| **permission == MosaicResizePermission::UserResizable)?
         .clone();
-    Some(WorthUiAdmittedDurableResizeInput::new(
+    Some(WorthUiDurableResizeInputDisposition::new(
         classification.identity_basis().to_owned(),
         classification.authored_provenance_digest(),
         family.id().clone(),
@@ -45,7 +45,7 @@ pub(super) fn splitter_resize_input_for_replacement(
     classification: &WorthUiNodeReplacementClassification,
     family: &WorthUiDurableStateFamily,
     receipt: &WorthUiDurableStateReconciliationReceipt,
-) -> Option<WorthUiAdmittedDurableResizeInput> {
+) -> Option<WorthUiDurableResizeInputDisposition> {
     if !is_splitter_surface_family(classification, family) {
         return None;
     }
@@ -74,7 +74,7 @@ pub(super) fn splitter_resize_input_for_replacement(
         .or_else(|| classification.active_resize_permission())
         .cloned()
         .unwrap_or_else(MosaicResizePermission::missing_for_diagnostics);
-    Some(WorthUiAdmittedDurableResizeInput::new(
+    Some(WorthUiDurableResizeInputDisposition::new(
         receipt.identity_basis().to_owned(),
         classification.authored_provenance_digest(),
         receipt.family_id().clone(),

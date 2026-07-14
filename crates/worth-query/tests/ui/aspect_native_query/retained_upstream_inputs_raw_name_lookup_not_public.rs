@@ -1,4 +1,5 @@
-use worth_query::facade::{WorthQueryDerivedView, WorthQueryRetainedUpstreamInputs};
+use worth_query::facade::policy::WorthQueryDerivedView;
+use worth_query::facade::runtime::WorthQueryRetainedUpstreamInputs;
 
 fn main() {
     let upstreams = upstreams_fixture();

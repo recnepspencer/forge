@@ -1,9 +1,9 @@
 error[E0308]: mismatched types
-  --> tests/ui/composition_canonical_bundle_cannot_reenter_scope_expansion.rs:22:9
+  --> tests/ui/composition_canonical_bundle_cannot_reenter_scope_expansion.rs:19:9
    |
-21 |     let _ = GuidedCompositionPath::expand_detail_scopes(
+18 |     let _ = GuidedCompositionPath::expand_detail_scopes(
    |             ------------------------------------------- arguments to this function are incorrect
-22 |         canonical,
+19 |         canonical,
    |         ^^^^^^^^^ expected `AuthoredQuery<DetailFamily>`, found `CanonicalQueryBundle`
    |
    = note: expected struct `worth_query::authoring::query_family::AuthoredQuery<worth_query::authoring::detail::DetailFamily>`

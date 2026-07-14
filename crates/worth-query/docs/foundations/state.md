@@ -73,7 +73,7 @@ questions.
 ## Small Example
 
 ```rust
-use worth_query::facade::WorthQueryRuntimeFacadeFamily;
+use worth_query::facade::runtime::WorthQueryRuntimeFacadeFamily;
 
 let temporal_state = workspace
     .state(WorthQueryRuntimeFacadeFamily::Temporal)
@@ -90,7 +90,7 @@ runtime root.
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryDerivedViewHandle, WorthQueryLiveView, WorthQueryRuntimeFacadeFamily,
 };
 use serde_json::Value;

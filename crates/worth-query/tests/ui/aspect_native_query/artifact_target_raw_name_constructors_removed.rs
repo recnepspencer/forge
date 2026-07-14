@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryDerivedMaterializationTarget, WorthQueryLiveArtifactTarget};
+use worth_query::facade::runtime::{WorthQueryDerivedMaterializationTarget, WorthQueryLiveArtifactTarget};
 
 fn main() {
     let _ = WorthQueryDerivedMaterializationTarget::new("computed.title_list");

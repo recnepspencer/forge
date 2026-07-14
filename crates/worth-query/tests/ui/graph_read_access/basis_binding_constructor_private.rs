@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadBasisBinding, WorthQueryGraphReadBasisPosture,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadBasisBinding, WorthQueryGraphReadBasisPosture};
 
 fn main() {
     let _ = WorthQueryGraphReadBasisBinding {

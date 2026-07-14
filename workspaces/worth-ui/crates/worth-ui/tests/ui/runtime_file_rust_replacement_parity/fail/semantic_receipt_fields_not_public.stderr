@@ -1,37 +1,15 @@
-error[E0451]: fields `file_next_artifact_digest`, `rust_next_artifact_digest`, `file_next_plan_digest`, `rust_next_plan_digest`, `file_candidate_plan_digest`, `rust_candidate_plan_digest`, `file_reconciliation_basis_digest`, `rust_reconciliation_basis_digest`, `file_query_rebind_basis_digest`, `rust_query_rebind_basis_digest`, `file_lane_support_digest`, `rust_lane_support_digest`, `file_lane_parity_reference_digest`, `rust_lane_parity_reference_digest`, `file_swap_receipt` and `rust_swap_receipt` of struct `WorthUiFileRustReplacementSemanticReceipt` are private
-  --> tests/ui/runtime_file_rust_replacement_parity/fail/semantic_receipt_fields_not_public.rs:5:9
+error[E0560]: struct `WorthUiFileRustReplacementSemanticReceipt` has no field named `file_swap_receipt`
+  --> tests/ui/runtime_file_rust_replacement_parity/fail/semantic_receipt_fields_not_public.rs:19:9
    |
- 4 |     let _receipt = WorthUiFileRustReplacementSemanticReceipt {
-   |                    ----------------------------------------- in this type
- 5 |         file_next_artifact_digest: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 6 |         rust_next_artifact_digest: 1,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 7 |         file_next_plan_digest: 2,
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
- 8 |         rust_next_plan_digest: 2,
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         file_candidate_plan_digest: 2,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         rust_candidate_plan_digest: 2,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         file_reconciliation_basis_digest: 3,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         rust_reconciliation_basis_digest: 3,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-13 |         file_query_rebind_basis_digest: 4,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-14 |         rust_query_rebind_basis_digest: 4,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-15 |         file_lane_support_digest: 5,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
-16 |         rust_lane_support_digest: 5,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
-17 |         file_lane_parity_reference_digest: None,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-18 |         rust_lane_parity_reference_digest: None,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 19 |         file_swap_receipt: uninitialized_field(),
-   |         ^^^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^^^ `WorthUiFileRustReplacementSemanticReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthUiFileRustReplacementSemanticReceipt` has no field named `rust_swap_receipt`
+  --> tests/ui/runtime_file_rust_replacement_parity/fail/semantic_receipt_fields_not_public.rs:20:9
+   |
 20 |         rust_swap_receipt: uninitialized_field(),
-   |         ^^^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^^^ `WorthUiFileRustReplacementSemanticReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned

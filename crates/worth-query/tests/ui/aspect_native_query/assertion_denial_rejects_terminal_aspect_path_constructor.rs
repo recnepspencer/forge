@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryExistingTruthAssertionDenial, WorthQueryExistingTruthAssertionDenialKind,
-    WorthQueryExistingTruthTargetBinding,
-};
+use worth_query::facade::runtime::{WorthQueryExistingTruthAssertionDenial, WorthQueryExistingTruthAssertionDenialKind, WorthQueryExistingTruthTargetBinding};
 
 fn main() {
 }

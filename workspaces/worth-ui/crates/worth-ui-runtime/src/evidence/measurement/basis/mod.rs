@@ -6,9 +6,11 @@ mod certification_scenario;
 #[cfg(test)]
 mod certification_tests;
 mod denial;
+mod evidence_index;
 #[cfg(test)]
 mod hostile_tests;
 mod identity;
+mod query_allocation_mapping;
 #[cfg(test)]
 mod tests;
 
@@ -26,3 +28,6 @@ pub use certification_scenario::{
     UiMeasurementBasisCertificationScenario, UiMeasurementBasisCertificationScenarioError,
 };
 pub use denial::{UiMeasurementBasisDenial, UiMeasurementEvidenceSlot};
+pub(crate) use query_allocation_mapping::{
+    UiQueryAllocationPurpose, UiQueryAllocationTargetMapping,
+};

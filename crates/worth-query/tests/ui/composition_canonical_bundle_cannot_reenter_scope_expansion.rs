@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, DetailQueryBuilder, DetailResultShapeBuilder,
-    GuidedAuthoringPath, GuidedCompositionPath, RootEntityKey,
-};
+use worth_query::facade::foundation::{AspectFieldSelector, AuthoredResultShapeField, DetailQueryBuilder, DetailResultShapeBuilder, GuidedAuthoringPath, GuidedCompositionPath, RootEntityKey};
 
 fn main() {
     let query = DetailQueryBuilder::new(RootEntityKey::new("user").unwrap())

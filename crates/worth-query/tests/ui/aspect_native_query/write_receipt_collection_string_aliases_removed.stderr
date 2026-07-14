@@ -1,4 +1,4 @@
-error[E0599]: no method named `declared_collection` found for reference `&worth_query::facade::WorthQueryWriteReceipt` in the current scope
+error[E0599]: no method named `declared_collection` found for reference `&worth_query::facade::runtime::WorthQueryWriteReceipt` in the current scope
  --> tests/ui/aspect_native_query/write_receipt_collection_string_aliases_removed.rs:6:21
   |
 6 |     let _ = receipt.declared_collection();
@@ -9,7 +9,7 @@ help: there is a method `declared_collection_identity` with a similar name
 6 |     let _ = receipt.declared_collection_identity();
   |                                        +++++++++
 
-error[E0599]: no method named `target_collection` found for reference `&worth_query::facade::WorthQueryWriteReceipt` in the current scope
+error[E0599]: no method named `target_collection` found for reference `&worth_query::facade::runtime::WorthQueryWriteReceipt` in the current scope
  --> tests/ui/aspect_native_query/write_receipt_collection_string_aliases_removed.rs:7:21
   |
 7 |     let _ = receipt.target_collection();

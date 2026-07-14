@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGraphCompositionEvidence;
+use worth_query::facade::runtime::WorthQueryGraphCompositionEvidence;
 
 fn main() {
     let _ = WorthQueryGraphCompositionEvidence {

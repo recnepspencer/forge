@@ -11,6 +11,54 @@ use super::{
 };
 
 impl WorthQueryWorkspace {
+    pub(crate) fn close_managed_live_view<T>(
+        &mut self,
+        view: &super::WorthQueryLiveView<T>,
+        capability: &std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability>,
+    ) -> Result<crate::subscription::SubscriptionLifecycleCloseout, WorthQueryRuntimeError> {
+        self.admit_managed_live_capability(capability, view.name())?;
+        self.runtime.reap_abandoned_managed_live_resources()?;
+        self.runtime.close_managed_live_view(view)
+    }
+
+    pub(crate) fn read_managed_live_view<T>(
+        &mut self,
+        view: &super::WorthQueryLiveView<T>,
+        capability: &std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability>,
+    ) -> Result<WorthQueryLiveReadResult, WorthQueryRuntimeError> {
+        self.admit_managed_live_capability(capability, view.name())?;
+        self.runtime.reap_abandoned_managed_live_resources()?;
+        self.read_live_result(view)
+    }
+
+    pub(crate) fn drain_managed_live_view<T>(
+        &mut self,
+        view: &super::WorthQueryLiveView<T>,
+        capability: &std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability>,
+    ) -> Result<super::WorthQueryManagedLiveRuntimeDelivery, WorthQueryRuntimeError> {
+        self.admit_managed_live_capability(capability, view.name())?;
+        self.runtime.reap_abandoned_managed_live_resources()?;
+        let target = self.resolve_live_artifact_target(view.name())?;
+        if target.subscription_installation() != Some(view.subscription_installation()) {
+            return Err(WorthQueryRuntimeError::MissingLiveSubscription(
+                view.name().to_string(),
+            ));
+        }
+        Ok(super::WorthQueryManagedLiveRuntimeDelivery::new(
+            view.name(),
+            self.runtime.drain_live_delivery_batches(view),
+        ))
+    }
+
+    pub(crate) fn observe_managed_live_view<T>(
+        &mut self,
+        view: &super::WorthQueryLiveView<T>,
+        capability: &std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability>,
+    ) -> Result<super::WorthQueryManagedLiveLifecycleObservation, WorthQueryRuntimeError> {
+        self.admit_managed_live_capability(capability, view.name())?;
+        self.runtime.observe_managed_live_view(view)
+    }
+
     pub fn resolve_live_artifact_target(
         &self,
         view_name: &str,

@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryComputedInspectionEvidence;
+use worth_query::facade::runtime::WorthQueryComputedInspectionEvidence;
 
 fn assert_no_neutral_computed_inspection_aspect_aliases(
     evidence: &WorthQueryComputedInspectionEvidence,

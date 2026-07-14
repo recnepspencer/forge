@@ -10,7 +10,7 @@ pub struct WorthServerDirectRetainedPosture {
     declaration_snapshot: WorthServerDirectDeclarationSnapshot,
     support_posture: WorthServerQuerySupportPosture,
     direct_context: WorthServerDirectContextArtifact,
-    runtime_state: worth_query::facade::WorthQueryRuntimeStateSnapshot,
+    runtime_state: worth_query::facade::runtime::WorthQueryRuntimeStateSnapshot,
     async_result_state: Option<WorthServerDirectAsyncResultState>,
     temporal_state: Option<WorthServerDirectTemporalState>,
     canonical_digest: String,
@@ -55,7 +55,7 @@ impl WorthServerDirectRetainedPosture {
         &self.direct_context
     }
 
-    pub fn runtime_state(&self) -> &worth_query::facade::WorthQueryRuntimeStateSnapshot {
+    pub fn runtime_state(&self) -> &worth_query::facade::runtime::WorthQueryRuntimeStateSnapshot {
         &self.runtime_state
     }
 

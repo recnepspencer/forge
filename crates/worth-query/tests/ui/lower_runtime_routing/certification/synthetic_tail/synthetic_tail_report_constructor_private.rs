@@ -1,5 +1,5 @@
-use worth_query::facade::WorthQueryLowerRuntimeSyntheticTailReport;
-use worth_query::facade::WorthQueryLowerRuntimeSyntheticTailRow;
+use worth_query::facade::runtime::WorthQueryLowerRuntimeSyntheticTailReport;
+use worth_query::facade::runtime::WorthQueryLowerRuntimeSyntheticTailRow;
 
 fn main() {
     let rows: Vec<WorthQueryLowerRuntimeSyntheticTailRow> = Vec::new();

@@ -1,7 +1,8 @@
-use crate::facade::{
+use crate::facade::policy::{
     planning_request_context_for_bound, planning_request_context_for_direct,
-    PlanningAmbientContext, PlanningRequestContext, PlanningSemanticInputs, ValidatedQueryBundle,
+    PlanningAmbientContext, PlanningRequestContext, PlanningSemanticInputs,
 };
+use crate::facade::runtime::ValidatedQueryBundle;
 
 pub fn direct_runtime_request(bundle: &ValidatedQueryBundle) -> PlanningRequestContext {
     planning_request_context_for_direct(bundle, super::resolved_bases::runtime_basis_intent())

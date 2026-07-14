@@ -1,3 +1,4 @@
+use crate::basis_lifecycle::ScopedSubscriptionDeclarationBasis;
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::live::LiveQueryFamily;
 use crate::view_shape_live::LiveViewShapeFamily;
@@ -30,6 +31,7 @@ pub struct QuerySubscriptionFamilySelection {
     cost_posture: QuerySubscriptionCostPosture,
     live_graph_access_posture: QuerySubscriptionLiveGraphAccessPosture,
     basis_posture: QuerySubscriptionBasisPosture,
+    scoped_declaration_basis: Option<ScopedSubscriptionDeclarationBasis>,
     bridge_posture: QuerySubscriptionBridgePosture,
     equivalence_basis: QuerySubscriptionEquivalenceBasis,
     work_budget: QuerySubscriptionWorkBudget,
@@ -69,6 +71,10 @@ impl QuerySubscriptionFamilySelection {
 
     pub fn basis_posture(&self) -> &QuerySubscriptionBasisPosture {
         &self.basis_posture
+    }
+
+    pub fn scoped_declaration_basis(&self) -> Option<&ScopedSubscriptionDeclarationBasis> {
+        self.scoped_declaration_basis.as_ref()
     }
 
     pub fn bridge_posture(&self) -> &QuerySubscriptionBridgePosture {
@@ -214,6 +220,7 @@ pub fn select_query_subscription_family(
         cost_posture: classification.cost_posture,
         live_graph_access_posture,
         basis_posture: live.basis_posture,
+        scoped_declaration_basis: live.scoped_declaration_basis,
         bridge_posture: classification.bridge_posture,
         equivalence_basis,
         work_budget: budget,

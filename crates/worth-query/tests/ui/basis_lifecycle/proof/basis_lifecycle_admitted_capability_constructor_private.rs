@@ -1,4 +1,4 @@
-use worth_query::facade::{AdmittedBasisCapability, ObservationLaneWitness};
+use worth_query::facade::foundation::{AdmittedBasisCapability, ObservationLaneWitness};
 
 fn normalized() -> worth_query::facade::NormalizedBasisIntent {
     unimplemented!()

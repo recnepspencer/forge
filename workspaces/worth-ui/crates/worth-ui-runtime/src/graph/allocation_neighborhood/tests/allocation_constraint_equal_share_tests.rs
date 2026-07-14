@@ -115,17 +115,8 @@ fn equivalent_peer_reorder_converges_on_the_same_equal_share_result() {
     let neighborhood = basis
         .admit_allocation_neighborhood_from_graph(&snapshot)
         .expect("grid neighborhood should admit");
-    let reordered = UiAllocationNeighborhood::new_with_authority(
-        neighborhood.root_graph_node_identity(),
-        neighborhood.graph_generation(),
-        neighborhood.world_identity_digest(),
-        neighborhood.measurement_basis_identity_digest(),
-        neighborhood.layout_operator_planning_contract().clone(),
-        neighborhood.dependency_map().clone(),
-        neighborhood.neighborhood_class(),
-        neighborhood.membership_rule(),
-        neighborhood.members().iter().rev().cloned().collect(),
-    );
+    let reordered = neighborhood
+        .with_members_for_graph_test(neighborhood.members().iter().rev().cloned().collect());
 
     let left = basis
         .admit_allocation_constraint_set(&neighborhood)
@@ -258,7 +249,7 @@ fn zero_share_and_single_survivor_resolve_through_typed_posture() {
         })
         .expect("grid neighborhood should preserve a peer member")
         .clone();
-    let single_survivor = UiAllocationNeighborhood::new_with_authority(
+    let single_survivor = UiAllocationNeighborhood::new_for_graph_test(
         neighborhood.root_graph_node_identity(),
         neighborhood.graph_generation(),
         neighborhood.world_identity_digest(),
@@ -268,8 +259,9 @@ fn zero_share_and_single_survivor_resolve_through_typed_posture() {
         neighborhood.neighborhood_class(),
         neighborhood.membership_rule(),
         vec![root_member.clone(), first_peer],
+        &super::super::UiAllocationNeighborhoodMintAuthority::mint(),
     );
-    let zero_share = UiAllocationNeighborhood::new_with_authority(
+    let zero_share = UiAllocationNeighborhood::new_for_graph_test(
         neighborhood.root_graph_node_identity(),
         neighborhood.graph_generation(),
         neighborhood.world_identity_digest(),
@@ -279,6 +271,7 @@ fn zero_share_and_single_survivor_resolve_through_typed_posture() {
         neighborhood.neighborhood_class(),
         neighborhood.membership_rule(),
         vec![root_member],
+        &super::super::UiAllocationNeighborhoodMintAuthority::mint(),
     );
 
     let single_constraints = basis

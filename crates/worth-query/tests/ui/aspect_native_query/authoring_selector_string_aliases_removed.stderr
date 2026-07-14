@@ -1,7 +1,7 @@
 error[E0624]: method `aspect` is private
- --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:9:24
+ --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:5:24
   |
-9 |     let _ = projection.aspect();
+5 |     let _ = projection.aspect();
   |                        ^^^^^^ private method
   |
  ::: src/authoring/projection.rs
@@ -10,31 +10,31 @@ error[E0624]: method `aspect` is private
   |     ----------------------------------- private method defined here
 
 error[E0624]: method `field` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:10:24
-   |
-10 |     let _ = projection.field();
-   |                        ^^^^^ private method
-   |
-  ::: src/authoring/projection.rs
-   |
-   |     pub(crate) fn field(&self) -> &str {
-   |     ---------------------------------- private method defined here
+ --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:6:24
+  |
+6 |     let _ = projection.field();
+  |                        ^^^^^ private method
+  |
+ ::: src/authoring/projection.rs
+  |
+  |     pub(crate) fn field(&self) -> &str {
+  |     ---------------------------------- private method defined here
 
 error[E0624]: method `source_aspect` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:13:26
-   |
-13 |     let _ = result_field.source_aspect();
-   |                          ^^^^^^^^^^^^^ private method
-   |
-  ::: src/authoring/result_shape_field.rs
-   |
-   |     pub(crate) fn source_aspect(&self) -> &str {
-   |     ------------------------------------------ private method defined here
+ --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:9:26
+  |
+9 |     let _ = result_field.source_aspect();
+  |                          ^^^^^^^^^^^^^ private method
+  |
+ ::: src/authoring/result_shape_field.rs
+  |
+  |     pub(crate) fn source_aspect(&self) -> &str {
+  |     ------------------------------------------ private method defined here
 
 error[E0624]: method `source_field` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:14:26
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:10:26
    |
-14 |     let _ = result_field.source_field();
+10 |     let _ = result_field.source_field();
    |                          ^^^^^^^^^^^^ private method
    |
   ::: src/authoring/result_shape_field.rs
@@ -43,31 +43,31 @@ error[E0624]: method `source_field` is private
    |     ----------------------------------------- private method defined here
 
 error[E0599]: no method named `aspect` found for struct `OrderingSelector` in the current scope
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:17:22
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:13:22
    |
-17 |     let _ = ordering.aspect();
+13 |     let _ = ordering.aspect();
    |                      ^^^^^^
    |
 help: there is a method `aspect_name` with a similar name
    |
-17 |     let _ = ordering.aspect_name();
+13 |     let _ = ordering.aspect_name();
    |                            +++++
 
 error[E0599]: no method named `field` found for struct `OrderingSelector` in the current scope
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:18:22
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:14:22
    |
-18 |     let _ = ordering.field();
+14 |     let _ = ordering.field();
    |                      ^^^^^
    |
 help: there is a method `field_name` with a similar name
    |
-18 |     let _ = ordering.field_name();
+14 |     let _ = ordering.field_name();
    |                           +++++
 
 error[E0624]: method `aspect` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:23:22
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:19:22
    |
-23 |     let _ = equality.aspect();
+19 |     let _ = equality.aspect();
    |                      ^^^^^^ private method
    |
   ::: src/authoring/predicate.rs
@@ -76,9 +76,9 @@ error[E0624]: method `aspect` is private
    |     ----------------------------------- private method defined here
 
 error[E0624]: method `field` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:24:22
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:20:22
    |
-24 |     let _ = equality.field();
+20 |     let _ = equality.field();
    |                      ^^^^^ private method
    |
   ::: src/authoring/predicate.rs
@@ -87,9 +87,9 @@ error[E0624]: method `field` is private
    |     ---------------------------------- private method defined here
 
 error[E0624]: method `aspect` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:27:21
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:23:21
    |
-27 |     let _ = integer.aspect();
+23 |     let _ = integer.aspect();
    |                     ^^^^^^ private method
    |
   ::: src/authoring/predicate.rs
@@ -98,9 +98,9 @@ error[E0624]: method `aspect` is private
    |     ----------------------------------- private method defined here
 
 error[E0624]: method `field` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:28:21
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:24:21
    |
-28 |     let _ = integer.field();
+24 |     let _ = integer.field();
    |                     ^^^^^ private method
    |
   ::: src/authoring/predicate.rs
@@ -109,9 +109,9 @@ error[E0624]: method `field` is private
    |     ---------------------------------- private method defined here
 
 error[E0624]: method `aspect` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:31:22
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:27:22
    |
-31 |     let _ = contains.aspect();
+27 |     let _ = contains.aspect();
    |                      ^^^^^^ private method
    |
   ::: src/authoring/predicate.rs
@@ -120,9 +120,9 @@ error[E0624]: method `aspect` is private
    |     ----------------------------------- private method defined here
 
 error[E0624]: method `field` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:32:22
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:28:22
    |
-32 |     let _ = contains.field();
+28 |     let _ = contains.field();
    |                      ^^^^^ private method
    |
   ::: src/authoring/predicate.rs
@@ -131,9 +131,9 @@ error[E0624]: method `field` is private
    |     ---------------------------------- private method defined here
 
 error[E0624]: method `aspect` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:40:24
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:36:24
    |
-40 |     let _ = membership.aspect();
+36 |     let _ = membership.aspect();
    |                        ^^^^^^ private method
    |
   ::: src/authoring/predicate.rs
@@ -142,9 +142,9 @@ error[E0624]: method `aspect` is private
    |     ----------------------------------- private method defined here
 
 error[E0624]: method `field` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:41:24
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:37:24
    |
-41 |     let _ = membership.field();
+37 |     let _ = membership.field();
    |                        ^^^^^ private method
    |
   ::: src/authoring/predicate.rs
@@ -153,9 +153,9 @@ error[E0624]: method `field` is private
    |     ---------------------------------- private method defined here
 
 error[E0624]: method `aspect` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:44:22
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:40:22
    |
-44 |     let _ = presence.aspect();
+40 |     let _ = presence.aspect();
    |                      ^^^^^^ private method
    |
   ::: src/authoring/predicate.rs
@@ -164,9 +164,9 @@ error[E0624]: method `aspect` is private
    |     ----------------------------------- private method defined here
 
 error[E0624]: method `field` is private
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:45:22
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:41:22
    |
-45 |     let _ = presence.field();
+41 |     let _ = presence.field();
    |                      ^^^^^ private method
    |
   ::: src/authoring/predicate.rs
@@ -175,13 +175,13 @@ error[E0624]: method `field` is private
    |     ---------------------------------- private method defined here
 
 error[E0599]: no method named `aspect` found for enum `PredicateSelector` in the current scope
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:48:23
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:44:23
    |
-48 |     let _ = predicate.aspect();
+44 |     let _ = predicate.aspect();
    |                       ^^^^^^ method not found in `PredicateSelector`
 
 error[E0599]: no method named `field` found for enum `PredicateSelector` in the current scope
-  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:49:23
+  --> tests/ui/aspect_native_query/authoring_selector_string_aliases_removed.rs:45:23
    |
-49 |     let _ = predicate.field();
+45 |     let _ = predicate.field();
    |                       ^^^^^ method not found in `PredicateSelector`

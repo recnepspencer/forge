@@ -11,7 +11,7 @@ use super::identity_match_graph_test_support::{
 use super::node_replacement_classification_test_support::{narrowing_for, no_op_impact_for};
 
 pub(super) fn deterministic_replacement_plan() -> (
-    crate::runtime::WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     crate::runtime::WorthUiNodeReplacementPlan,
 ) {
     let app = identity_match_app();
@@ -42,7 +42,7 @@ pub(super) fn deterministic_replacement_plan() -> (
 }
 
 pub(super) fn platform_inventory(
-    runtime: &crate::runtime::WorthUiRuntimeHost,
+    runtime: &crate::runtime::WorthUiRuntime,
 ) -> crate::runtime::WorthUiDurableStateInventoryBuilder {
     runtime
         .durable_state_inventory()
@@ -56,7 +56,7 @@ pub(super) fn platform_inventory(
 }
 
 pub(super) fn reversed_platform_inventory(
-    runtime: &crate::runtime::WorthUiRuntimeHost,
+    runtime: &crate::runtime::WorthUiRuntime,
 ) -> crate::runtime::WorthUiDurableStateInventoryBuilder {
     runtime
         .durable_state_inventory()

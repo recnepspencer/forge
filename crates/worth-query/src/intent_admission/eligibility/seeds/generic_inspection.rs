@@ -86,21 +86,14 @@ impl WorthQueryGenericInspectionIntentSeed {
                 Some(Self::branch_intent_receipt(receipt))
             }
             WorthQueryInspectionTarget::AdmittedWorldBasis(_)
-            | WorthQueryInspectionTarget::ObservationBasisCapability(_)
-            | WorthQueryInspectionTarget::InspectionBasisCapability(_)
-            | WorthQueryInspectionTarget::SubscriptionDeclarationBasisCapability(_)
-            | WorthQueryInspectionTarget::SubscriptionActivationBasisCapability(_)
             | WorthQueryInspectionTarget::ScopedObservationBasis(_)
+            | WorthQueryInspectionTarget::ScopedMutationPreparationBasis(_)
             | WorthQueryInspectionTarget::ScopedInspectionBasis(_)
             | WorthQueryInspectionTarget::ScopedReplayBasis(_)
+            | WorthQueryInspectionTarget::ScopedMaterializationBasis(_)
             | WorthQueryInspectionTarget::ScopedSubscriptionDeclarationBasis(_)
             | WorthQueryInspectionTarget::ScopedSubscriptionActivationBasis(_)
-            | WorthQueryInspectionTarget::LowerRuntimeBoundObservationBasis(_)
-            | WorthQueryInspectionTarget::LowerRuntimeBoundInspectionBasis(_)
-            | WorthQueryInspectionTarget::LowerRuntimeBoundSubscriptionDeclarationBasis(_)
-            | WorthQueryInspectionTarget::LowerRuntimeBoundSubscriptionActivationBasis(_)
-            | WorthQueryInspectionTarget::DeniedBasisCapability(_)
-            | WorthQueryInspectionTarget::BasisIntentDenial(_) => None,
+            | WorthQueryInspectionTarget::ScopedPreviewCloseoutBasis(_) => None,
         }
     }
 

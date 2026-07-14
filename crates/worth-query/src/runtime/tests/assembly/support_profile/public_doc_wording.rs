@@ -40,39 +40,21 @@ fn graph_authoring_plan_names_deleted_and_lower_level_residue_honestly() {
 #[test]
 fn intent_admission_doc_teaches_the_runtime_floor_with_final_public_names() {
     for required in [
-        "`runtime.intent(declaration).execute()`",
-        "`runtime.intent(declaration).review()?.admit()?.execute()`",
-        "`runtime.next_effect_write_intent(&effect, version, contract).execute()`",
-        "`runtime.next_effect_write_intent(&effect, version, contract).review()?.admit()?.execute()`",
-        "`runtime.write_intent(command).execute()`",
-        "`runtime.write_intent(command).review()?.admit()?.execute()`",
-        "`workspace.write_intent(command).execute()`",
-        "`workspace.write_intent(command).review()?.admit()?.execute()`",
-        "`runtime.write_batch_intent(commands).execute()`",
-        "`runtime.write_batch_intent(commands).review()?.admit()?.execute()`",
-        "`workspace.write_batch_intent(commands).execute()`",
-        "`workspace.write_batch_intent(commands).review()?.admit()?.execute()`",
-        "`workspace.read_family_intent(&family).execute()`",
-        "`workspace.read_family_intent(&family).review()?.admit()?.execute()`",
-        "`workspace.read_family_in_basis_context_intent(&family, &context).execute()`",
-        "`workspace.read_family_in_basis_context_intent(&family, &context).review()?.admit()?.execute()`",
-        "`workspace.read_live_intent(&view).execute()`",
-        "`workspace.read_live_intent(&view).review()?.admit()?.execute()`",
-        "`workspace.read(&view)`",
-        "`workspace.materialize_intent(&view).execute()`",
-        "`workspace.materialize_intent(&view).review()?.admit()?.execute()`",
-        "`workspace.inspect_intent(target).execute()`",
-        "`workspace.inspect_intent(target).review()?.admit()?.execute()`",
-        "`workspace.inspect_derived_intent(&view).execute()`",
-        "`workspace.inspect_derived_intent(&view).review()?.admit()?.execute()`",
-        "`runtime.probe_existing_intent(request).execute()`",
-        "`runtime.probe_existing_intent(request).review()?.admit()?.execute()`",
-        "`workspace.probe_existing_intent(request).execute()`",
-        "`workspace.probe_existing_intent(request).review()?.admit()?.execute()`",
-        "`workspace.materialize_result(&view)?`",
-        "`worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)?.admit()?.scope()`",
-        "`worth_query_projection_consumption_intent(declaration)?.admit()?.bind_contract()`",
-        "`WorthQueryIntentDecisionTraceEnvelope`",
+        "`runtime.intent(declaration)`",
+        "`runtime.next_effect_write_intent(...)`",
+        "`runtime.write_intent(command)`",
+        "`runtime.write_batch_intent(commands)`",
+        "`workspace.read_family_intent(&family)`",
+        "`workspace.read_family_in_basis_context_intent(&family, &context)`",
+        "`workspace.read_live_intent(&view)`",
+        "`workspace.materialize_intent(&view)`",
+        "`workspace.inspect_intent(target)`",
+        "`workspace.inspect_derived_intent(&view)`",
+        "`runtime.probe_existing_intent(request)`",
+        "`workspace.probe_existing_intent(request)`",
+        "completion.consume_projection(read::project_facts()...)",
+        ".consume_projection(read::project_facts().entity_identities())",
+        "`decision_trace_envelope()`",
         "`consumer_inspection()`",
     ] {
         assert!(
@@ -80,48 +62,31 @@ fn intent_admission_doc_teaches_the_runtime_floor_with_final_public_names() {
             "intent admission doc must include {required}"
         );
     }
+    assert!(INTENT_ADMISSION_DOC.contains("The ordinary path is `.execute()`"));
+    assert!(INTENT_ADMISSION_DOC.contains("`.review()?.admit()?.execute()`"));
 }
 
 #[test]
 fn intent_admission_doc_names_deferred_neighbors_honestly() {
     assert!(
-        INTENT_ADMISSION_DOC.contains("remain explicitly deferred"),
-        "intent admission doc must state that deferred neighbors are still deferred"
+        INTENT_ADMISSION_DOC.contains("Coverage is family-specific"),
+        "intent admission doc must make support admission family-specific"
     );
     assert!(
-        INTENT_ADMISSION_DOC.contains("still support-gated"),
-        "intent admission doc must preserve the support-gated posture"
+        INTENT_ADMISSION_DOC.contains("Check the support matrix"),
+        "intent admission doc must route support questions to the support matrix"
     );
     assert!(
-        INTENT_ADMISSION_DOC.contains("basis observation"),
-        "intent admission doc must name basis observation as a covered family"
+        INTENT_ADMISSION_DOC
+            .contains("Store-backed replay, durable restart, and neighboring materialization"),
+        "intent admission doc must name the deferred capability neighbors"
     );
     assert!(
-        INTENT_ADMISSION_DOC.contains("projection consumption"),
-        "intent admission doc must name projection consumption as a covered family"
+        INTENT_ADMISSION_DOC.contains("remain deferred where the support matrix says so"),
+        "intent admission doc must preserve the deferred support posture"
     );
     assert!(
-        INTENT_ADMISSION_DOC.contains("read-family execution"),
-        "intent admission doc must teach read execution as a covered family"
-    );
-    assert!(
-        INTENT_ADMISSION_DOC.contains("derived materialization"),
-        "intent admission doc must teach derived inspection-materialization as a covered family"
-    );
-    assert!(
-        INTENT_ADMISSION_DOC.contains("existing-truth probe routing"),
-        "intent admission doc must teach lower-runtime capability routing as a covered family"
-    );
-    assert!(
-        INTENT_ADMISSION_DOC.contains("graph-composition verified-existing lanes"),
-        "intent admission doc must teach verified-existing work through graph-composition lanes"
-    );
-    assert!(
-        INTENT_ADMISSION_DOC.contains("generic and derived inspection"),
-        "intent admission doc must teach generic inspection as a covered family"
-    );
-    assert!(
-        INTENT_ADMISSION_DOC.contains("Generic materialization neighbors"),
-        "intent admission doc must keep the generic materialization neighbors deferred explicitly"
+        INTENT_ADMISSION_DOC.contains("it is not ordinary execution DX"),
+        "intent admission doc must keep certification outside ordinary execution"
     );
 }

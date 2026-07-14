@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadPolicyTenantPosture, WorthQueryGraphReadPolicyTenantProofBinding,
-    WorthQueryGraphReadRelationshipProofBindingPosture,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadPolicyTenantPosture, WorthQueryGraphReadPolicyTenantProofBinding, WorthQueryGraphReadRelationshipProofBindingPosture};
 
 fn main() {
     let _ = WorthQueryGraphReadPolicyTenantProofBinding {

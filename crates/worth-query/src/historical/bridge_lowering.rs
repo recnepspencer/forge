@@ -5,6 +5,11 @@ use worth_runtime_bridge::facade::{
     TruthViewReplayContinuity, TruthViewRetentionAdmission, TruthViewSourceCapability,
 };
 
+use crate::basis::{BasisResolutionMode, ResolvedBasisProof};
+use crate::evidence_identity::{
+    worth_query_evidence_identity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
+};
+
 use super::contracts::HistoricalPathReuseDescriptor;
 use super::error::HistoricalEvaluationError;
 use super::path_classes::{
@@ -99,10 +104,12 @@ fn lower_admitted_policy(
     };
 
     HistoricalCapabilityDescriptor::new(
-        declaration
-            .declaration_identity()
-            .bridge_admission_evidence()
-            .terminal_projection_for_reporting(),
+        bridge_historical_basis(
+            declaration
+                .declaration_identity()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting(),
+        ),
         admitted_path_class,
         replay_permitted,
         replay_required,
@@ -116,10 +123,12 @@ pub(crate) fn lower_materialization_from_decision_log(
     decision_log: &BridgeHistoricalEvaluationDecisionLog,
 ) -> Result<HistoricalMaterializationDescriptor, HistoricalEvaluationError> {
     lower_materialization_descriptor(
-        decision_log
-            .declaration_identity()
-            .bridge_admission_evidence()
-            .terminal_projection_for_reporting(),
+        bridge_historical_basis(
+            decision_log
+                .declaration_identity()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting(),
+        ),
         decision_log.materialization_path(),
     )
 }
@@ -131,24 +140,37 @@ pub(crate) fn lower_materialization_from_artifact(
 ) -> Result<HistoricalMaterializationDescriptor, HistoricalEvaluationError> {
     let _ = requested_path_class;
     lower_materialization_descriptor(
-        artifact
-            .declaration_identity()
-            .bridge_admission_evidence()
-            .terminal_projection_for_reporting(),
+        bridge_historical_basis(
+            artifact
+                .declaration_identity()
+                .bridge_admission_evidence()
+                .terminal_projection_for_reporting(),
+        ),
         artifact.materialization_path(),
     )
 }
 
 fn lower_materialization_descriptor(
-    basis_identity: &str,
+    basis: ResolvedBasisProof,
     path: BridgeHistoricalMaterializationPath,
 ) -> Result<HistoricalMaterializationDescriptor, HistoricalEvaluationError> {
     let resolved_path_class = resolved_path_class_for(path)?;
     let (actual_replay_span, actual_reconstruction_scope) = realized_work_for(path);
     Ok(
-        HistoricalMaterializationDescriptor::new(basis_identity, resolved_path_class)
+        HistoricalMaterializationDescriptor::new(basis, resolved_path_class)
             .with_realized_work(actual_replay_span, actual_reconstruction_scope),
     )
+}
+
+pub(crate) fn bridge_historical_basis(reporting_identity: &str) -> ResolvedBasisProof {
+    let identity = worth_query_evidence_identity(WorthQueryEvidenceScope::ResolvedSnapshotBasis)
+        .field_value(
+            WorthQueryEvidenceTag::new("bridge_historical_declaration"),
+            reporting_identity,
+        )
+        .seal();
+    ResolvedBasisProof::new(identity, BasisResolutionMode::RuntimeDirect)
+        .with_reporting_label(reporting_identity)
 }
 
 fn resolved_path_class_for(

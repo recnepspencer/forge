@@ -1,10 +1,10 @@
 use super::durable_state_inventory_test_support::platform_inventory;
 use crate::runtime::{
-    WorthUiAdmittedReplacementCandidate, WorthUiPendingActivation, WorthUiRuntimeHost,
+    WorthUiAdmittedReplacementCandidate, WorthUiPendingActivation, WorthUiRuntime,
 };
 
 pub(super) fn pending_plan_input(
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     admitted: WorthUiAdmittedReplacementCandidate,
 ) -> WorthUiPendingActivation {
     let comparison = runtime

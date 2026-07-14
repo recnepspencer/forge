@@ -1,4 +1,4 @@
-use worth_query::facade::PreviewSessionCapability;
+use worth_query::facade::foundation::PreviewSessionCapability;
 
 fn main() {
     let _ = PreviewSessionCapability {

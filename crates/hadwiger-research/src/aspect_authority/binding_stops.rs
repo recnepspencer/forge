@@ -1,6 +1,6 @@
-use worth_query::facade::{
-    WORTHQueryBindingAspectConflict, WORTHQueryBindingMissingRequiredAspect,
-    WORTHQueryBindingRebindRequired, WORTHQueryBindingStale,
+use worth_query::facade::foundation::{
+    WorthQueryBindingAspectConflict, WorthQueryBindingMissingRequiredAspect,
+    WorthQueryBindingRebindRequired, WorthQueryBindingStale,
 };
 
 use super::aspect_kinds::HadwigerAspectKind;
@@ -9,19 +9,19 @@ use super::aspect_kinds::HadwigerAspectKind;
 pub enum AspectClosureStop {
     QueryStale {
         aspect_kind: HadwigerAspectKind,
-        stop: WORTHQueryBindingStale,
+        stop: WorthQueryBindingStale,
     },
     QueryRebindRequired {
         aspect_kind: HadwigerAspectKind,
-        stop: WORTHQueryBindingRebindRequired,
+        stop: WorthQueryBindingRebindRequired,
     },
     QueryMissingRequiredAspect {
         aspect_kind: HadwigerAspectKind,
-        stop: WORTHQueryBindingMissingRequiredAspect,
+        stop: WorthQueryBindingMissingRequiredAspect,
     },
     QueryAspectConflict {
         aspect_kind: HadwigerAspectKind,
-        stop: WORTHQueryBindingAspectConflict,
+        stop: WorthQueryBindingAspectConflict,
     },
     LocalClosureStop {
         aspect_kind: HadwigerAspectKind,
@@ -30,27 +30,27 @@ pub enum AspectClosureStop {
 }
 
 impl AspectClosureStop {
-    pub fn query_stale(aspect_kind: HadwigerAspectKind, stop: WORTHQueryBindingStale) -> Self {
+    pub fn query_stale(aspect_kind: HadwigerAspectKind, stop: WorthQueryBindingStale) -> Self {
         Self::QueryStale { aspect_kind, stop }
     }
 
     pub fn query_rebind_required(
         aspect_kind: HadwigerAspectKind,
-        stop: WORTHQueryBindingRebindRequired,
+        stop: WorthQueryBindingRebindRequired,
     ) -> Self {
         Self::QueryRebindRequired { aspect_kind, stop }
     }
 
     pub fn query_missing_required_aspect(
         aspect_kind: HadwigerAspectKind,
-        stop: WORTHQueryBindingMissingRequiredAspect,
+        stop: WorthQueryBindingMissingRequiredAspect,
     ) -> Self {
         Self::QueryMissingRequiredAspect { aspect_kind, stop }
     }
 
     pub fn query_aspect_conflict(
         aspect_kind: HadwigerAspectKind,
-        stop: WORTHQueryBindingAspectConflict,
+        stop: WorthQueryBindingAspectConflict,
     ) -> Self {
         Self::QueryAspectConflict { aspect_kind, stop }
     }

@@ -1,19 +1,19 @@
 error: cannot construct `WorthQueryGraphReadAccessShape` with struct literal syntax due to private fields
- --> tests/ui/graph_read_access/access_shape_constructor_private.rs:6:13
+ --> tests/ui/graph_read_access/access_shape_constructor_private.rs:4:13
   |
-6 |     let _ = WorthQueryGraphReadAccessShape {
+4 |     let _ = WorthQueryGraphReadAccessShape {
   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-7 |         root_posture: WorthQueryGraphReadRootPosture::Local,
+5 |         root_posture: WorthQueryGraphReadRootPosture::Local,
   |         --------------------------------------------------- private field
-8 |         scope_class: WorthQueryReadScopeClass::LocalNeighborhood,
+6 |         scope_class: WorthQueryReadScopeClass::LocalNeighborhood,
   |         -------------------------------------------------------- private field
   |
   = note: ...and other private fields that were not provided
 help: you might have meant to use the `new` associated function
   |
-6 -     let _ = WorthQueryGraphReadAccessShape {
-7 -         root_posture: WorthQueryGraphReadRootPosture::Local,
-8 -         scope_class: WorthQueryReadScopeClass::LocalNeighborhood,
-9 -     };
-6 +     let _ = WorthQueryGraphReadAccessShape::new(_, _, _, _, _, _, _, _, _, _, _);
+4 -     let _ = WorthQueryGraphReadAccessShape {
+5 -         root_posture: WorthQueryGraphReadRootPosture::Local,
+6 -         scope_class: WorthQueryReadScopeClass::LocalNeighborhood,
+7 -     };
+4 +     let _ = WorthQueryGraphReadAccessShape::new(_, _, _, _, _, _, _, _, _, _, _);
   |

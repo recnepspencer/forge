@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    BranchLocalityClass, InspectorIdentityArtifact, InspectorIdentityClassification,
-    InspectorIdentityDigest,
-};
+use worth_query::facade::foundation::{BranchLocalityClass, InspectorIdentityArtifact, InspectorIdentityClassification, InspectorIdentityDigest};
 
 fn main() {
     let _ = InspectorIdentityArtifact {

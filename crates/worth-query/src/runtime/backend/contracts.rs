@@ -1,8 +1,6 @@
 use super::{
     LiveViewDeclarationAdmissionBoundaryReceipt, LiveViewDeclarationAdmissionReceipt,
-    SignalInvalidationBoundaryReceipt, SignalInvalidationRoutingReceipt,
-    SubscriptionActivationBoundaryReceipt, SubscriptionActivationReceipt,
-    WriteAuthorityExecutionReceipt,
+    SubscriptionActivationReceipt, WriteAuthorityExecutionReceipt,
 };
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::evidence_identity::{
@@ -18,10 +16,13 @@ use crate::schema_view::QuerySchemaView;
 use crate::session_label::WorthQuerySessionLabel;
 use crate::subscription::SubscriptionActivationInput;
 use crate::view_shape_live::WorthQueryGroupedBaselineMember;
+use worth_relational::facade::history::BranchId;
 use worth_relational::facade::runtime::RelationalRuntime;
+use worth_runtime_bridge::facade::BridgeAdmittedWritebackExecution;
 use worth_runtime_bridge::facade::{BridgeMutationAuthorityBundle, RuntimeBridge};
 
-use crate::runtime::remask_posture::WorthQueryRuntimeRemaskProjection;
+use super::{WorthQueryBackendInspectionError, WorthQueryBackendMergeAuthority};
+
 use crate::runtime::{
     WorthQueryBackendAdmissibleMutation, WorthQueryEffectPolicy,
     WorthQueryExistingTruthAssertionDenial, WorthQueryExistingTruthBindingDenial,
@@ -66,6 +67,8 @@ pub trait WorthQueryRuntimeBackend {
         request: DeclarativeLiveQueryRequest,
         schema_view: QuerySchemaView,
     ) -> Result<WorthQueryLiveViewHandle, WorthQueryWorkspaceError>;
+
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError>;
 
     fn write(
         &mut self,
@@ -116,6 +119,68 @@ pub trait WorthQueryRuntimeBackend {
         &mut self,
         declaration: &WorthQueryIntentDeclaration,
     ) -> Result<WorthQueryIntentExecution, WorthQueryRuntimeError>;
+
+    fn admit_query_writeback_authority(&self) -> Result<(), WorthQueryWorkspaceError> {
+        Err(WorthQueryWorkspaceError::new(
+            "this runtime backend has no admitted bridge writeback authority",
+        ))
+    }
+
+    fn execute_query_writeback(
+        &mut self,
+        _declaration: &crate::workflow::QueryWritebackDeclaration,
+    ) -> Result<
+        BridgeAdmittedWritebackExecution,
+        (crate::effect_lifecycle::EffectExecutionDenialKind, String),
+    > {
+        Err((
+            crate::effect_lifecycle::EffectExecutionDenialKind::MissingBridgeAuthority,
+            "this runtime backend has no admitted bridge writeback executor".to_string(),
+        ))
+    }
+
+    fn capture_query_merge_authority(
+        &self,
+        _target_branch: BranchId,
+        _source_branch: BranchId,
+    ) -> Result<WorthQueryBackendMergeAuthority, WorthQueryWorkspaceError> {
+        Err(WorthQueryWorkspaceError::new(
+            "this runtime backend has no admitted relational merge authority",
+        ))
+    }
+
+    fn validate_query_merge_authority(
+        &self,
+        _authority: &WorthQueryBackendMergeAuthority,
+    ) -> Result<(), WorthQueryWorkspaceError> {
+        Err(WorthQueryWorkspaceError::new(
+            "this runtime backend cannot validate relational merge authority",
+        ))
+    }
+
+    fn execute_query_merge(
+        &mut self,
+        _authority: &WorthQueryBackendMergeAuthority,
+        _declaration: &crate::workflow::LoweredMergeWorkflowDeclaration,
+    ) -> Result<
+        worth_relational::facade::transactions::MergeExecutionOutcome,
+        (crate::effect_lifecycle::EffectExecutionDenialKind, String),
+    > {
+        Err((
+            crate::effect_lifecycle::EffectExecutionDenialKind::MissingRelationalAuthority,
+            "this runtime backend has no relational merge executor".to_string(),
+        ))
+    }
+
+    fn execute_query_causal_inspection(
+        &self,
+        _plan: &crate::runtime::CausalInspectionPlan,
+    ) -> Result<crate::runtime::QueryCausalInspectionArtifact, WorthQueryBackendInspectionError>
+    {
+        Err(WorthQueryBackendInspectionError::unavailable(
+            "this runtime backend has no causal inspection materializer",
+        ))
+    }
 
     fn live_entities_for_target(
         &self,
@@ -207,6 +272,8 @@ pub trait WorthQueryRuntimeSourceAdapter {
         schema_view: QuerySchemaView,
     ) -> Result<WorthQueryLiveViewHandle, WorthQueryWorkspaceError>;
 
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError>;
+
     fn live_entities_for_target(
         &self,
         target: &WorthQueryLiveArtifactTarget,
@@ -287,112 +354,4 @@ pub trait WorthQueryRuntimeWriteAuthorityAdapter {
         }
         Ok(receipts)
     }
-}
-
-pub trait WorthQueryRuntimeSignalSinkAdapter {
-    fn build_signal_invalidation_routing_receipt(
-        &self,
-        receipt: &WorthQueryMutationReceipt,
-    ) -> Result<SignalInvalidationRoutingReceipt, WorthQueryWorkspaceError> {
-        SignalInvalidationRoutingReceipt::from_mutation_receipt(receipt)
-    }
-
-    fn build_signal_invalidation_boundary_receipt(
-        &self,
-        receipt: &WorthQueryMutationReceipt,
-        routing_receipt: SignalInvalidationRoutingReceipt,
-    ) -> Result<SignalInvalidationBoundaryReceipt, WorthQueryWorkspaceError> {
-        Ok(SignalInvalidationBoundaryReceipt::from_mutation_receipt(
-            receipt,
-            routing_receipt,
-        ))
-    }
-
-    fn route_write_receipt(
-        &mut self,
-        receipt: &WorthQueryMutationReceipt,
-    ) -> Result<SignalInvalidationBoundaryReceipt, WorthQueryWorkspaceError>;
-
-    fn route_write_batch(
-        &mut self,
-        receipts: &[WorthQueryMutationReceipt],
-    ) -> Result<Vec<SignalInvalidationBoundaryReceipt>, WorthQueryWorkspaceError> {
-        let mut routed = Vec::with_capacity(receipts.len());
-        for receipt in receipts {
-            routed.push(self.route_write_receipt(receipt)?);
-        }
-        Ok(routed)
-    }
-}
-
-pub trait WorthQueryRuntimeSubscriptionActivationAdapter {
-    fn support_evidence_identity(&self) -> WorthQueryEvidenceIdentity;
-
-    fn support_evidence_for_reporting(&self) -> String {
-        self.support_evidence_identity().as_str().to_string()
-    }
-
-    fn remask_projection(
-        &self,
-        _view_name: &str,
-        _activation: &SubscriptionActivationInput,
-    ) -> Option<WorthQueryRuntimeRemaskProjection> {
-        None
-    }
-
-    fn build_subscription_activation_receipt(
-        &self,
-        view_name: &str,
-        activation: &SubscriptionActivationInput,
-    ) -> SubscriptionActivationReceipt {
-        SubscriptionActivationReceipt::from_activation(
-            view_name,
-            activation,
-            self.support_evidence_identity(),
-            self.remask_projection(view_name, activation),
-        )
-    }
-
-    fn build_subscription_activation_boundary_receipt(
-        &self,
-        view_name: &str,
-        activation: &SubscriptionActivationInput,
-        activation_receipt: SubscriptionActivationReceipt,
-    ) -> SubscriptionActivationBoundaryReceipt {
-        SubscriptionActivationBoundaryReceipt::from_activation(
-            view_name,
-            activation,
-            activation_receipt,
-        )
-    }
-
-    fn admit_activation(
-        &mut self,
-        view_name: &str,
-        activation: &SubscriptionActivationInput,
-    ) -> Result<SubscriptionActivationBoundaryReceipt, WorthQueryWorkspaceError>;
-}
-
-pub trait WorthQueryRuntimePreviewBasisAdapter {
-    fn admit_preview_basis(
-        &self,
-        label: &WorthQuerySessionLabel,
-        effect_policy: WorthQueryEffectPolicy,
-        authority: &WorthQueryRuntimeEvidenceAuthority,
-    ) -> Result<WorthQueryPreviewBasisAdmission, WorthQueryWorkspaceError>;
-}
-
-pub trait WorthQueryRuntimeInspectorEvidenceAdapter {
-    fn inspect_write_receipt(
-        &self,
-        receipt: &WorthQueryWriteReceipt,
-        authority: &WorthQueryRuntimeEvidenceAuthority,
-    ) -> Result<WorthQueryRuntimeInspectionEvidence, WorthQueryWorkspaceError>;
-}
-
-pub trait WorthQueryRuntimeDeclarationInitializationAdapter {
-    fn declaration_initialization_metadata(
-        &self,
-        view: &WorthQueryDerivedView,
-    ) -> Result<crate::runtime::WorthQueryMutationMetadata, WorthQueryWorkspaceError>;
 }

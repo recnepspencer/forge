@@ -1,12 +1,4 @@
-use worth_query::facade::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationEnvelopeInput,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRouteContract,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
-    WorthQuerySignalCompatiblePosture,
-};
+use worth_query::facade::foundation::{WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationEnvelopeInput, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRouteContract, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext, WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct GeometryDomain;
@@ -76,14 +68,14 @@ fn main() {
     let progressed = handle.declare_review_and_progress(SplitEdgeDeclaration).unwrap();
     let evidence = handle
         .describe_foundational(
-            worth_query::facade::WorthQueryDeclarationFoundationalEvidenceInput::admitted_progression(
+            worth_query::facade::foundation::WorthQueryDeclarationFoundationalEvidenceInput::admitted_progression(
                 progressed.clone(),
             ),
         )
         .unwrap();
     let route_plan = handle
         .plan_routes(
-            worth_query::facade::WorthQueryDeclarationRoutePlanInput::admitted(
+            worth_query::facade::foundation::WorthQueryDeclarationRoutePlanInput::admitted(
                 progressed,
                 evidence,
             ),

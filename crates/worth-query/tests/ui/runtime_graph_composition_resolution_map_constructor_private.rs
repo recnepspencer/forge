@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGraphCompositionResolutionMap;
+use worth_query::facade::runtime::WorthQueryGraphCompositionResolutionMap;
 
 fn main() {
     let _ = WorthQueryGraphCompositionResolutionMap {

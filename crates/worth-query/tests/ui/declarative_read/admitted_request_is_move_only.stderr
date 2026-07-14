@@ -1,0 +1,5 @@
+error[E0599]: no method named `clone` found for struct `WorthQueryReadRequest` in the current scope
+ --> tests/ui/declarative_read/admitted_request_is_move_only.rs:5:27
+  |
+5 |     let _reused = request.clone();
+  |                           ^^^^^ method not found in `WorthQueryReadRequest`

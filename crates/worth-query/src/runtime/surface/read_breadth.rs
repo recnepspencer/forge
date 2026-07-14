@@ -3,6 +3,7 @@ pub struct WorthQueryReadBreadth {
     pub(crate) planned_read_surface_count: usize,
     pub(crate) planned_traversal_clause_count: usize,
     pub(crate) planned_traversal_depth_limit: usize,
+    pub(crate) execution_query_projection_count: usize,
     pub(crate) execution_read_operation_count: usize,
     pub(crate) execution_records_examined_count: usize,
     pub(crate) execution_records_emitted_count: usize,
@@ -10,6 +11,8 @@ pub struct WorthQueryReadBreadth {
     pub(crate) execution_page_truncation_count: usize,
     pub(crate) execution_cursor_advance_count: usize,
     pub(crate) execution_materialized_relation_count: usize,
+    pub(crate) execution_aggregate_input_count: usize,
+    pub(crate) execution_rollup_input_count: usize,
 }
 
 impl WorthQueryReadBreadth {
@@ -23,6 +26,10 @@ impl WorthQueryReadBreadth {
 
     pub fn planned_traversal_depth_limit(&self) -> usize {
         self.planned_traversal_depth_limit
+    }
+
+    pub fn execution_query_projection_count(&self) -> usize {
+        self.execution_query_projection_count
     }
 
     pub fn execution_read_operation_count(&self) -> usize {
@@ -51,5 +58,13 @@ impl WorthQueryReadBreadth {
 
     pub fn execution_materialized_relation_count(&self) -> usize {
         self.execution_materialized_relation_count
+    }
+
+    pub fn execution_aggregate_input_count(&self) -> usize {
+        self.execution_aggregate_input_count
+    }
+
+    pub fn execution_rollup_input_count(&self) -> usize {
+        self.execution_rollup_input_count
     }
 }

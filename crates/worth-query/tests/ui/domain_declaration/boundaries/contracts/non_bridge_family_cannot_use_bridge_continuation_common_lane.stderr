@@ -1,7 +1,7 @@
 error[E0277]: the trait bound `WorthQueryRelationalTruthAuthority: worth_query::application::declaration_capability::tags::WorthQueryBridgeContinuationCapableAuthorityTag` is not satisfied
-  --> tests/ui/domain_declaration/boundaries/contracts/non_bridge_family_cannot_use_bridge_continuation_common_lane.rs:79:62
+  --> tests/ui/domain_declaration/boundaries/contracts/non_bridge_family_cannot_use_bridge_continuation_common_lane.rs:72:62
    |
-79 |     let _ = handle.route_bridge_continuation_from_progressed(progressed);
+72 |     let _ = handle.route_bridge_continuation_from_progressed(progressed);
    |                    ----------------------------------------- ^^^^^^^^^^ unsatisfied trait bound
    |                    |
    |                    required by a bound introduced by this call

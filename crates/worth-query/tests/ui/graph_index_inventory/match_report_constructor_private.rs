@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphIndexInventoryCounters, WorthQueryGraphIndexInventoryMatchReport,
-};
+use worth_query::facade::runtime::{WorthQueryGraphIndexInventoryCounters, WorthQueryGraphIndexInventoryMatchReport};
 
 fn main() {
     let _ = WorthQueryGraphIndexInventoryMatchReport {

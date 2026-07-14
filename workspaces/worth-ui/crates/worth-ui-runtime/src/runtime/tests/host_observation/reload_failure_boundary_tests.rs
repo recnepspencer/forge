@@ -2,7 +2,6 @@ use super::activation_staging_test_support::activation_staging_inputs;
 use super::durable_state_reconciliation_test_support::{
     deterministic_reconciliation_inputs, stale_inventory_for,
 };
-use super::frame_activation_gate_test_support::ready_activation_fixture;
 use super::query_binding_comparison_test_support::{
     denial_presentation_drift_query_app, phase11_pipeline, query_artifact, standard_query_app,
 };
@@ -11,7 +10,6 @@ use super::reload_failure_test_support::{
     missing_artifact_candidate_denial, missing_dependency_candidate_denial,
     missing_lowering_basis_candidate_denial, stale_dependency_candidate_denial,
 };
-use crate::runtime::atomic_plan_swap::WorthUiPlanSwapFailureInjection;
 use crate::runtime::{
     WorthUiNodeReplacementPlan, WorthUiQueryLiveRebindOutcome, WorthUiReloadCheckedStopPosture,
     WorthUiReloadFailureStage, WorthUiReplacementCandidateDenial, WorthUiRuntimeLifecycle,
@@ -20,7 +18,7 @@ use std::collections::BTreeSet;
 
 #[test]
 fn invalid_candidate_reload_preserves_previous_active_plan() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let active_before = fixture.runtime.inspect_active();
     let last_valid_before = fixture.runtime.last_valid();
     let denial = missing_artifact_candidate_denial();
@@ -208,43 +206,8 @@ fn query_recovery_checked_stop_preserves_active_and_recovery_posture() {
 }
 
 #[test]
-fn partial_swap_failure_preservation_reports_no_fallback_runtime() {
-    let mut fixture = ready_activation_fixture();
-    let active_before = fixture.runtime.inspect_active();
-    let last_valid_before = fixture.runtime.last_valid();
-    let boundary = fixture.runtime.safe_frame_boundary();
-    let rollback = fixture
-        .runtime
-        .swap_ready_activation_at_frame_boundary_with_injection_for_test(
-            fixture.ready,
-            fixture.candidate_plan,
-            boundary,
-            WorthUiPlanSwapFailureInjection::AfterArtifactMutation,
-        )
-        .expect_err("injected partial swap rolls back");
-
-    let failure = fixture.runtime.preserve_failed_plan_swap(rollback);
-
-    assert_eq!(fixture.runtime.inspect_active(), active_before);
-    assert_eq!(fixture.runtime.last_valid(), last_valid_before);
-    assert_failure_preserves_active_runtime(
-        failure,
-        active_before,
-        last_valid_before,
-        WorthUiReloadFailureStage::AtomicPlanSwap,
-    );
-    assert_eq!(
-        failure
-            .failed_activation_report()
-            .fallback_runtime_created(),
-        false
-    );
-    assert_eq!(failure.counters().fallback_runtime_creation_count(), 0);
-}
-
-#[test]
 fn repeated_invalid_reloads_do_not_accumulate_runtime_residue() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let active_before = fixture.runtime.inspect_active();
     let last_valid_before = fixture.runtime.last_valid();
     let failures = [
@@ -292,20 +255,33 @@ fn repeated_invalid_reloads_do_not_accumulate_runtime_residue() {
 
 #[test]
 fn activation_gate_denial_preservation_keeps_active_meaning_unchanged() {
-    let mut fixture = ready_activation_fixture();
-    let stale_boundary = fixture.runtime.safe_frame_boundary();
-    fixture.runtime.advance_frame_epoch_for_test();
-    let active_before_failure = fixture.runtime.inspect_active();
-    let last_valid_before_failure = fixture.runtime.last_valid();
-    let rollback = fixture
-        .runtime
-        .activate_ready_at_frame_boundary(fixture.ready, stale_boundary)
-        .expect_err("stale frame boundary denies activation gate");
+    let inputs = activation_staging_inputs();
+    let (mut runtime, pending) = inputs.into_runtime_and_pending();
+    let (snapshot, first, second) =
+        crate::runtime::tests::allocation_catalog_test_support::admitted_disjoint_planning_admissions(
+            "reload.activation-gate",
+        );
+    let admitted = snapshot
+        .admit_allocation_catalog_basis_set(vec![first, second])
+        .expect("graph admits complete reload catalog");
+    let active_before_failure = runtime.inspect_active();
+    let last_valid_before_failure = runtime.last_valid();
+    let boundary = runtime.traversal_frame_boundary_for_test();
+    let denial = runtime
+        .activate_admitted_allocation_catalog_at_frame_boundary(pending, admitted, boundary, None)
+        .expect_err("unsafe frame boundary denies activation");
+    let crate::runtime::WorthUiAllocationCatalogActivationDenial::Attempt(denial) = denial else {
+        panic!("post-mint denial carries canonical evidence")
+    };
+    let crate::runtime::UiCommittedAllocationActivationDenialReason::FrameBoundary(gate) =
+        denial.reason()
+    else {
+        panic!("canonical denial retains frame reason")
+    };
+    let failure = runtime.preserve_failed_activation_gate(gate);
 
-    let failure = fixture.runtime.preserve_failed_activation_gate(&rollback);
-
-    assert_eq!(fixture.runtime.inspect_active(), active_before_failure);
-    assert_eq!(fixture.runtime.last_valid(), last_valid_before_failure);
+    assert_eq!(runtime.inspect_active(), active_before_failure);
+    assert_eq!(runtime.last_valid(), last_valid_before_failure);
     assert_failure_preserves_active_runtime(
         failure,
         active_before_failure,

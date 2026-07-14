@@ -1,8 +1,4 @@
-use worth_query::facade::{
-    WorthQueryBatchMutationEvidence, WorthQueryMutationCausalityEvidence,
-    WorthQueryMutationProvenanceEvidence, WorthQueryMutationTargetClass,
-    WorthQueryMutationTargetDescriptor, WorthQueryMutationTargetEvidence,
-};
+use worth_query::facade::runtime::{WorthQueryBatchMutationEvidence, WorthQueryMutationCausalityEvidence, WorthQueryMutationProvenanceEvidence, WorthQueryMutationTargetClass, WorthQueryMutationTargetDescriptor, WorthQueryMutationTargetEvidence};
 
 fn main() {
     let declared = WorthQueryMutationTargetDescriptor {

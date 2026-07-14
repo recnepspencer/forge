@@ -1,5 +1,5 @@
-error[E0599]: no function or associated item named `promote_to_global_continuity` found for struct `worth_query::facade::PluralIdentitySuccessorSet` in the current scope
+error[E0599]: no function or associated item named `promote_to_global_continuity` found for struct `worth_query::facade::foundation::PluralIdentitySuccessorSet` in the current scope
  --> tests/ui/identity_evolution_branch_local_promotion_forbidden.rs:5:37
   |
 5 |         PluralIdentitySuccessorSet::promote_to_global_continuity;
-  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `worth_query::facade::PluralIdentitySuccessorSet`
+  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `worth_query::facade::foundation::PluralIdentitySuccessorSet`

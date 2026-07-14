@@ -1,4 +1,4 @@
-use worth_query::facade::PreviewSubscriptionDiscardCloseout;
+use worth_query::facade::runtime::PreviewSubscriptionDiscardCloseout;
 
 fn main() {
     let _ = PreviewSubscriptionDiscardCloseout {

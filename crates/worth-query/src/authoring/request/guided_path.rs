@@ -45,14 +45,14 @@ impl GuidedAuthoringPath {
         pair(query, result_shape, bindings)
     }
 
-    pub fn canonicalize_detail(
+    pub(crate) fn canonicalize_detail(
         query: DetailAuthoredQuery,
         result_shape: DetailAuthoredResultShape,
     ) -> Result<CanonicalQueryBundle, QueryCanonicalizationError> {
         canonicalize(query, result_shape, QueryBindingDescriptor::default())
     }
 
-    pub fn canonicalize_detail_with_bindings(
+    pub(crate) fn canonicalize_detail_with_bindings(
         query: DetailAuthoredQuery,
         result_shape: DetailAuthoredResultShape,
         bindings: QueryBindingDescriptor,
@@ -60,14 +60,14 @@ impl GuidedAuthoringPath {
         canonicalize(query, result_shape, bindings)
     }
 
-    pub fn canonicalize_collection(
+    pub(crate) fn canonicalize_collection(
         query: CollectionAuthoredQuery,
         result_shape: CollectionAuthoredResultShape,
     ) -> Result<CanonicalQueryBundle, QueryCanonicalizationError> {
         canonicalize(query, result_shape, QueryBindingDescriptor::default())
     }
 
-    pub fn canonicalize_collection_with_bindings(
+    pub(crate) fn canonicalize_collection_with_bindings(
         query: CollectionAuthoredQuery,
         result_shape: CollectionAuthoredResultShape,
         bindings: QueryBindingDescriptor,

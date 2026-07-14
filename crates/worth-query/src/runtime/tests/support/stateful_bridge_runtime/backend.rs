@@ -1,28 +1,21 @@
 use super::super::*;
-use super::state::StatefulBridgeState;
+use super::merge::{capture_merge_authority, execute_merge, validate_merge_authority};
 use super::verification::{probe_existing_truth, verify_existing_truth_assertion};
 use super::writes::{
-    apply_command, external_row_text_at_path, native_external_field_path_for_touch,
+    execute_write, external_row_text_at_path, native_external_field_path_for_touch,
 };
-use crate::evidence_identity::{
-    WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
-};
-use crate::runtime::backend::build_bridge_authority_bundle;
 use crate::runtime::WorthQueryAspectTouch;
-
-use std::cell::RefCell;
-use std::rc::Rc;
+use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag};
 
 use crate::declarative_live::{DeclarativeLiveViewShape, DeclarativeProjectionField};
 use crate::memory_workspace::{
-    WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQueryLivePatch,
-    WorthQueryLiveViewHandle, WorthQuerySnapshotIdentity,
+    WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQuerySnapshotIdentity,
 };
 use crate::subscription::SubscriptionActivationInput;
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
+use worth_relational::facade::history::BranchId;
 
-type SharedState = Rc<RefCell<StatefulBridgeState>>;
+use super::SharedState;
 
 pub(super) struct StatefulBridgeRuntimeBackend {
     state: SharedState,
@@ -81,108 +74,19 @@ impl WorthQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         Ok(WorthQueryLiveViewHandle::new(name))
     }
 
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        self.state
+            .borrow_mut()
+            .live_views
+            .remove(&WorthQueryLiveArtifactTarget::from_view_name(name));
+        Ok(())
+    }
+
     fn write(
         &mut self,
         mutation: WorthQueryBackendAdmissibleMutation,
     ) -> Result<WorthQueryMutationReceipt, WorthQueryWorkspaceError> {
-        let mut state = self.state.borrow_mut();
-        let collection = mutation
-            .declared_collection_identity()
-            .map(|collection| collection.as_str().to_string())
-            .or_else(|| {
-                mutation.existing_truth_binding().and_then(|binding| {
-                    binding
-                        .terminal_target_collection_projection()
-                        .map(str::to_string)
-                })
-            })
-            .or_else(|| {
-                mutation
-                    .declared_entity_identity_ref()
-                    .and_then(|identity| {
-                        state
-                            .collection_by_identity
-                            .get(&identity.terminal_projection_for_reporting())
-                            .cloned()
-                    })
-            })
-            .ok_or_else(|| {
-                WorthQueryWorkspaceError::new("stateful bridge could not resolve collection")
-            })?;
-        let (entity_identity, entity_identity_text) = match mutation.mutation_family() {
-            WorthQueryMutationFamily::Insert => {
-                state.next_entity_identity += 1;
-                let identity = WorthQueryEntityIdentity::from_relational_record(
-                    RelationalBridgeRecordIdentityParts::entity(
-                        1,
-                        state.next_entity_identity as u64,
-                        0,
-                    ),
-                );
-                let identity_text = identity.terminal_projection_for_reporting();
-                (identity, identity_text)
-            }
-            _ => {
-                let identity = mutation
-                    .declared_entity_identity_ref()
-                    .cloned()
-                    .or_else(|| {
-                        mutation
-                            .existing_truth_binding()
-                            .map(|binding| binding.resolved_target_identity().clone())
-                    })
-                    .or_else(|| {
-                        mutation.symbolic_target_reference().and_then(|reference| {
-                            state.identity_by_symbol.get(reference.symbol()).cloned()
-                        })
-                    })
-                    .ok_or_else(|| {
-                        WorthQueryWorkspaceError::new(
-                            "stateful bridge could not resolve target entity identity",
-                        )
-                    })?;
-                let identity_text = mutation
-                    .symbolic_target_reference()
-                    .and_then(|reference| state.identity_text_by_symbol.get(reference.symbol()))
-                    .cloned()
-                    .unwrap_or_else(|| identity.terminal_projection_for_reporting());
-                (identity, identity_text)
-            }
-        };
-        let mutation_kind = apply_command(
-            &mut state,
-            &mutation,
-            &collection,
-            &entity_identity,
-            &entity_identity_text,
-        )?;
-        state.next_commit_identity += 1;
-        state.next_snapshot_token += 1;
-        let commit_identity =
-            WorthQueryCommitIdentity::from_relational_commit_id(state.next_commit_identity as u64);
-        let snapshot_identity = WorthQuerySnapshotIdentity::from_relational_snapshot(
-            worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts::new(
-                1,
-                state.next_snapshot_token as u64,
-            ),
-        );
-        let bridge_authority = build_bridge_authority_bundle(
-            &state.bridge,
-            &snapshot_identity,
-            &mutation,
-            &collection,
-            &entity_identity,
-            mutation_kind.clone(),
-        )?;
-        Ok(test_mutation_receipt_with_bridge_authority(
-            commit_identity,
-            snapshot_identity,
-            collection,
-            entity_identity,
-            mutation_kind,
-            mutation.declared_aspect_touches(),
-            bridge_authority,
-        ))
+        execute_write(&self.state, mutation)
     }
 
     fn write_batch(
@@ -262,6 +166,63 @@ impl WorthQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         _declaration: &WorthQueryIntentDeclaration,
     ) -> Result<WorthQueryIntentExecution, WorthQueryRuntimeError> {
         Err(WorthQueryRuntimeError::MissingIntentAuthority)
+    }
+
+    fn admit_query_writeback_authority(&self) -> Result<(), WorthQueryWorkspaceError> {
+        if self.state.borrow().bridge.writeback_authority().is_some() {
+            Ok(())
+        } else {
+            Err(WorthQueryWorkspaceError::new(
+                "stateful bridge fixture has no truth writeback authority",
+            ))
+        }
+    }
+
+    fn execute_query_writeback(
+        &mut self,
+        declaration: &crate::workflow::QueryWritebackDeclaration,
+    ) -> Result<
+        worth_runtime_bridge::facade::BridgeAdmittedWritebackExecution,
+        (crate::effect_lifecycle::EffectExecutionDenialKind, String),
+    > {
+        crate::effect_lifecycle::execute_lowered_writeback(&self.state.borrow().bridge, declaration)
+    }
+
+    fn capture_query_merge_authority(
+        &self,
+        target_branch: BranchId,
+        source_branch: BranchId,
+    ) -> Result<WorthQueryBackendMergeAuthority, WorthQueryWorkspaceError> {
+        capture_merge_authority(&self.state, target_branch, source_branch)
+    }
+
+    fn validate_query_merge_authority(
+        &self,
+        authority: &WorthQueryBackendMergeAuthority,
+    ) -> Result<(), WorthQueryWorkspaceError> {
+        validate_merge_authority(&self.state, authority)
+    }
+
+    fn execute_query_merge(
+        &mut self,
+        authority: &WorthQueryBackendMergeAuthority,
+        declaration: &crate::workflow::LoweredMergeWorkflowDeclaration,
+    ) -> Result<
+        worth_relational::facade::transactions::MergeExecutionOutcome,
+        (crate::effect_lifecycle::EffectExecutionDenialKind, String),
+    > {
+        execute_merge(&self.state, authority, declaration)
+    }
+
+    fn execute_query_causal_inspection(
+        &self,
+        plan: &crate::runtime::CausalInspectionPlan,
+    ) -> Result<
+        crate::runtime::QueryCausalInspectionArtifact,
+        crate::runtime::WorthQueryBackendInspectionError,
+    > {
+        plan.materialize_with_bridge(&self.state.borrow().bridge)
+            .map_err(Into::into)
     }
 
     fn live_entities_for_target(

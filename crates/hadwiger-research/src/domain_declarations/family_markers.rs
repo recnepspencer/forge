@@ -1,9 +1,9 @@
-use worth_query::facade::{
-    WORTHQueryDeclarationFamilyMarker, WORTHQueryDeclarationLegalityContract,
-    WORTHQueryDeclarationRelationalTruthContract, WORTHQueryDeclarationRouteContract,
-    WORTHQueryDescriptiveOnlyAuthority, WORTHQueryNeighborhoodCapableGrouping,
-    WORTHQueryRelationalTruthAuthority, WORTHQuerySignalNotCompatiblePosture,
-    WORTHQuerySingleOnlyGrouping,
+use worth_query::facade::foundation::{
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationLegalityContract,
+    WorthQueryDeclarationRelationalTruthContract, WorthQueryDeclarationRouteContract,
+    WorthQueryDescriptiveOnlyAuthority, WorthQueryNeighborhoodCapableGrouping,
+    WorthQueryRelationalTruthAuthority, WorthQuerySignalNotCompatiblePosture,
+    WorthQuerySingleOnlyGrouping,
 };
 
 use crate::query_entry::HadwigerResearchDomainEntry;
@@ -13,25 +13,25 @@ macro_rules! relational_family {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         pub struct $name;
 
-        impl WORTHQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry> for $name {
-            type PrimaryAuthority = WORTHQueryRelationalTruthAuthority;
-            type SignalCompatibility = WORTHQuerySignalNotCompatiblePosture;
-            type GroupedPosture = WORTHQueryNeighborhoodCapableGrouping;
+        impl WorthQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry> for $name {
+            type PrimaryAuthority = WorthQueryRelationalTruthAuthority;
+            type SignalCompatibility = WorthQuerySignalNotCompatiblePosture;
+            type GroupedPosture = WorthQueryNeighborhoodCapableGrouping;
 
             fn semantic_family_key() -> &'static str {
                 $key
             }
 
-            fn legality_contract() -> WORTHQueryDeclarationLegalityContract {
-                WORTHQueryDeclarationLegalityContract::authoritative_hot_artifact()
+            fn legality_contract() -> WorthQueryDeclarationLegalityContract {
+                WorthQueryDeclarationLegalityContract::authoritative_hot_artifact()
             }
 
-            fn route_contract() -> WORTHQueryDeclarationRouteContract {
-                WORTHQueryDeclarationRouteContract::relational_only()
+            fn route_contract() -> WorthQueryDeclarationRouteContract {
+                WorthQueryDeclarationRouteContract::relational_only()
             }
 
-            fn relational_truth_contract() -> Option<WORTHQueryDeclarationRelationalTruthContract> {
-                Some(WORTHQueryDeclarationRelationalTruthContract::authoritative_current_truth())
+            fn relational_truth_contract() -> Option<WorthQueryDeclarationRelationalTruthContract> {
+                Some(WorthQueryDeclarationRelationalTruthContract::authoritative_current_truth())
             }
         }
     };
@@ -42,21 +42,21 @@ macro_rules! descriptive_family {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         pub struct $name;
 
-        impl WORTHQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry> for $name {
-            type PrimaryAuthority = WORTHQueryDescriptiveOnlyAuthority;
-            type SignalCompatibility = WORTHQuerySignalNotCompatiblePosture;
-            type GroupedPosture = WORTHQuerySingleOnlyGrouping;
+        impl WorthQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry> for $name {
+            type PrimaryAuthority = WorthQueryDescriptiveOnlyAuthority;
+            type SignalCompatibility = WorthQuerySignalNotCompatiblePosture;
+            type GroupedPosture = WorthQuerySingleOnlyGrouping;
 
             fn semantic_family_key() -> &'static str {
                 $key
             }
 
-            fn legality_contract() -> WORTHQueryDeclarationLegalityContract {
-                WORTHQueryDeclarationLegalityContract::descriptive_deferred_support()
+            fn legality_contract() -> WorthQueryDeclarationLegalityContract {
+                WorthQueryDeclarationLegalityContract::descriptive_deferred_support()
             }
 
-            fn route_contract() -> WORTHQueryDeclarationRouteContract {
-                WORTHQueryDeclarationRouteContract::deferred_auto()
+            fn route_contract() -> WorthQueryDeclarationRouteContract {
+                WorthQueryDeclarationRouteContract::deferred_auto()
             }
         }
     };
@@ -238,23 +238,23 @@ relational_family!(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AdvisoryNoteDeclarationFamily;
 
-impl WORTHQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry>
+impl WorthQueryDeclarationFamilyMarker<HadwigerResearchDomainEntry>
     for AdvisoryNoteDeclarationFamily
 {
-    type PrimaryAuthority = WORTHQueryDescriptiveOnlyAuthority;
-    type SignalCompatibility = WORTHQuerySignalNotCompatiblePosture;
-    type GroupedPosture = WORTHQuerySingleOnlyGrouping;
+    type PrimaryAuthority = WorthQueryDescriptiveOnlyAuthority;
+    type SignalCompatibility = WorthQuerySignalNotCompatiblePosture;
+    type GroupedPosture = WorthQuerySingleOnlyGrouping;
 
     fn semantic_family_key() -> &'static str {
         "hadwiger.advisory_note"
     }
 
-    fn legality_contract() -> WORTHQueryDeclarationLegalityContract {
-        WORTHQueryDeclarationLegalityContract::descriptive_deferred_support()
+    fn legality_contract() -> WorthQueryDeclarationLegalityContract {
+        WorthQueryDeclarationLegalityContract::descriptive_deferred_support()
     }
 
-    fn route_contract() -> WORTHQueryDeclarationRouteContract {
-        WORTHQueryDeclarationRouteContract::relational_only()
+    fn route_contract() -> WorthQueryDeclarationRouteContract {
+        WorthQueryDeclarationRouteContract::relational_only()
     }
 }
 

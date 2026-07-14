@@ -12,7 +12,7 @@ pub use runtime::{
     UiMeasurementRequestFamily, UiMeasurementRequestIdentity, UiMeasurementRoundingPosture,
     UiMeasurementUnitPosture, UiNativeControlIntrinsicSizeObservation,
     UiNativeControlIntrinsicSizeRequest, UiNativeControlKind, UiPortalAnchorRectObservation,
-    UiPortalAnchorRectRequest, UiScrollContainerViewportObservation,
+    UiPortalAnchorRectRequest, UiPortalAnchorTargetIdentity, UiScrollContainerViewportObservation,
     UiScrollContainerViewportRequest, UiTextBaselineMetricsObservation,
     UiTextBaselineMetricsRequest, UiTextIntrinsicSizeObservation, UiTextIntrinsicSizeRequest,
     UiViewportExtentObservation, UiViewportExtentRequest, WorthUiHostAdapter,

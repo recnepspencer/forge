@@ -1,6 +1,6 @@
 use super::*;
 
-pub fn admit_region_scoped_live_plan(
+pub(crate) fn admit_region_scoped_live_plan(
     live: &LiveQueryPlan,
     locality: LocalityPredicateContract,
 ) -> Result<RegionScopedLivePlan, RegionScopedLiveError> {
@@ -310,7 +310,7 @@ fn classify_locality_match(
     Err(RegionScopedLiveError::BridgeSliceIncompatibility)
 }
 
-pub fn execute_region_scoped_live_change(
+pub(crate) fn execute_region_scoped_live_change(
     plan: &RegionScopedLivePlan,
     change: &BridgeChangeSummary,
 ) -> Result<RegionScopedLiveExecutionEnvelope, RegionScopedLiveError> {
@@ -458,7 +458,7 @@ pub fn execute_region_scoped_live_change(
     }
 }
 
-pub fn lower_region_scoped_execution_to_stream_contract(
+pub(crate) fn lower_region_scoped_execution_to_stream_contract(
     plan: &RegionScopedLivePlan,
     execution: &RegionScopedLiveExecutionEnvelope,
     consumer_shape: StreamConsumerShape,

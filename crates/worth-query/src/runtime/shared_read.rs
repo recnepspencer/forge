@@ -5,7 +5,7 @@ use crate::canonicalization::CanonicalResultShapeArtifact;
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::projection_consumption::{
-    ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError,
+    ProjectionAuthorityContract, ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError,
 };
 
 use super::published_artifacts::{
@@ -19,10 +19,28 @@ use super::{
     WorthQuerySharedReadPinningDiagnostics,
 };
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum WorthQueryPublishedProjectionConsumption {
-    Current(ProjectionFactConsumptionAttempt),
+#[derive(Debug)]
+pub enum WorthQueryPublishedProjectionAuthorityOutcome {
+    Current(ProjectionAuthorityOutcome),
     ResultState(WorthQueryRuntimeAsyncResultState),
+}
+
+impl WorthQueryPublishedProjectionAuthorityOutcome {
+    pub fn authority(
+        &self,
+    ) -> Option<&crate::projection_consumption::WorthQueryConsumedProjectionAuthority> {
+        match self {
+            Self::Current(outcome) => outcome.authority(),
+            Self::ResultState(_) => None,
+        }
+    }
+
+    pub fn result_state(&self) -> Option<&WorthQueryRuntimeAsyncResultState> {
+        match self {
+            Self::Current(_) => None,
+            Self::ResultState(state) => Some(state),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -100,17 +118,22 @@ impl WorthQueryPublishedDerivedArtifactHandle {
         }
     }
 
-    pub fn consume_projection_facts(
+    pub fn consume_projection_authority(
         &self,
         result_shape: &CanonicalResultShapeArtifact,
         authorized_projection: &AuthorizedProjectionArtifact,
-        requested: ProjectMaterializedFacts,
-    ) -> Result<WorthQueryPublishedProjectionConsumption, ProjectionFactConsumptionPathError> {
+        contract: ProjectionAuthorityContract,
+    ) -> Result<WorthQueryPublishedProjectionAuthorityOutcome, ProjectionFactConsumptionPathError>
+    {
         match &self.published_binding {
-            Some(binding) => Ok(WorthQueryPublishedProjectionConsumption::Current(
-                binding.consume_projection_facts(result_shape, authorized_projection, requested)?,
+            Some(binding) => Ok(WorthQueryPublishedProjectionAuthorityOutcome::Current(
+                binding.consume_projection_authority(
+                    result_shape,
+                    authorized_projection,
+                    contract,
+                )?,
             )),
-            None => Ok(WorthQueryPublishedProjectionConsumption::ResultState(
+            None => Ok(WorthQueryPublishedProjectionAuthorityOutcome::ResultState(
                 self.async_result_state
                     .clone()
                     .expect("unpublished shared-read artifact must retain typed async posture"),

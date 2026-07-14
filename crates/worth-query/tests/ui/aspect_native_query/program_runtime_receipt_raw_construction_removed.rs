@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryInstalledOperation, WorthQueryRunReceipt};
+use worth_query::facade::runtime::{WorthQueryInstalledOperation, WorthQueryRunReceipt};
 
 fn main() {
     let operation = WorthQueryInstalledOperation {

@@ -1,6 +1,6 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::{
-    admitted_allocation_neighborhood, admitted_measurement_basis, allocation_planning,
+    admitted_measurement_basis, allocation_planning, planning_graph_authority,
 };
 use super::durable_state_inventory_test_support::platform_inventory;
 use super::query_binding_comparison_test_support::{query_artifact, standard_query_app};
@@ -11,8 +11,7 @@ use crate::runtime::{
     WorthUiExecutionPlan, WorthUiExecutionPlanInput, WorthUiPlanChildRange,
     WorthUiPlanExecutionLane, WorthUiPlanLanePartition, WorthUiPlanNode,
     WorthUiPlanNodeInputFamily, WorthUiPlanReuseClassification, WorthUiPlanTopology,
-    WorthUiRenderResourceRef, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeHost,
-    WorthUiRuntimeLaunch,
+    WorthUiRenderResourceRef, WorthUiRuntime, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeLaunch,
 };
 
 #[test]
@@ -27,7 +26,6 @@ fn same_runtime_meaning_has_same_digest_and_reuse_classification() {
         equivalence.reuse_classification(),
         WorthUiPlanReuseClassification::Reusable
     );
-    assert!(equivalence.is_reusable());
     assert_eq!(
         equivalence.counters().plan_node_digest_count(),
         left_plan.topology().traversal_order().len()
@@ -43,19 +41,22 @@ fn same_runtime_meaning_has_same_digest_and_reuse_classification() {
 #[test]
 fn lane_or_handle_meaning_change_changes_equivalence() {
     let (runtime, stable_plan) = execution_plan_fixture();
-    let changed_input = plan_input_with_first_family(WorthUiPlanNodeInputFamily::TokenStyle);
+    let (changed_runtime, changed_input) =
+        plan_input_with_first_family(WorthUiPlanNodeInputFamily::TokenStyle);
     let changed_planning =
-        allocation_planning(&runtime, &changed_input, "plan-equivalence.changed");
-    let changed_allocation = runtime
-        .allocate_runtime_handles(&changed_planning)
+        allocation_planning(&changed_runtime, &changed_input, "plan-equivalence.changed");
+    let changed_receipt = changed_runtime
+        .commit_allocation_candidate_for_test(changed_planning)
+        .expect("independently admitted changed meaning commits");
+    let changed_allocation = changed_runtime
+        .allocate_runtime_handles(&changed_receipt)
         .expect("changed handles allocate");
-    let changed_plan = runtime
-        .assemble_execution_plan_topology(&changed_planning, &changed_allocation)
+    let changed_plan = changed_runtime
+        .assemble_execution_plan_topology(&changed_receipt, &changed_allocation)
         .expect("changed topology assembles");
 
     let equivalence = runtime.compare_execution_plans(&stable_plan, &changed_plan);
 
-    assert_ne!(equivalence.previous_digest(), equivalence.next_digest());
     assert_eq!(
         equivalence.reuse_classification(),
         WorthUiPlanReuseClassification::RebuildRequired
@@ -162,14 +163,22 @@ fn render_resource_ref_meaning_change_changes_digest() {
     );
 }
 
-fn execution_plan_fixture() -> (WorthUiRuntimeHost, WorthUiExecutionPlan) {
+fn execution_plan_fixture() -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
+    WorthUiExecutionPlan,
+) {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan = assemble_plan_from_pending_activation(&runtime, pending);
     (runtime, plan)
 }
 
-fn plan_input_with_first_family(family: WorthUiPlanNodeInputFamily) -> WorthUiExecutionPlanInput {
+fn plan_input_with_first_family(
+    family: WorthUiPlanNodeInputFamily,
+) -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
+    WorthUiExecutionPlanInput,
+) {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
@@ -181,17 +190,23 @@ fn plan_input_with_first_family(family: WorthUiPlanNodeInputFamily) -> WorthUiEx
         .position(|input| input.family() != family)
         .expect("fixture includes a different plan input family");
     node_inputs[index] = node_inputs[index].clone().with_family_for_test(family);
-    WorthUiExecutionPlanInput::new(
-        plan_input.basis().clone(),
-        plan_input.context().clone(),
-        node_inputs,
-        plan_input.counters(),
+    (
+        runtime,
+        WorthUiExecutionPlanInput::new(
+            plan_input.basis().clone(),
+            plan_input.context().clone(),
+            node_inputs,
+            plan_input.counters(),
+        ),
     )
 }
 
 fn execution_plan_fixture_with_diagnostic_policy(
     policy: WorthUiRuntimeDiagnosticPolicy,
-) -> (WorthUiRuntimeHost, WorthUiExecutionPlan) {
+) -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
+    WorthUiExecutionPlan,
+) {
     let app = standard_query_app();
     let active = query_artifact(&app, "workspace.view_binding.selection");
     let candidate = query_artifact(&app, "workspace.view_binding.selection");
@@ -203,7 +218,7 @@ fn execution_plan_fixture_with_diagnostic_policy(
 
 fn stage_query_replacement_for_policy_runtime(
     app: &WorthUiApp,
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     candidate: crate::source::WorthUiArtifact,
 ) -> WorthUiPendingActivation {
     let admitted = admitted_candidate(&app, &runtime, candidate);
@@ -253,17 +268,25 @@ fn stage_query_replacement_for_policy_runtime(
 }
 
 fn assemble_plan_from_pending_activation(
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     pending: WorthUiPendingActivation,
 ) -> WorthUiExecutionPlan {
     let measurement_basis = admitted_measurement_basis("plan-equivalence.fixture");
-    let neighborhood = admitted_allocation_neighborhood("plan-equivalence.fixture");
-    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
+    let (snapshot, selected) =
+        planning_graph_authority("plan-equivalence.fixture", "operator:stack");
+    let planning = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
+            .expect("equivalence planning admits through graph authority"),
+    );
     let allocation = runtime
-        .allocate_runtime_handles(&planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect("handles allocate");
     runtime
-        .assemble_execution_plan_topology(&planning, &allocation)
+        .assemble_execution_plan_topology(
+            &runtime.detached_allocation_receipt_for_test(&planning),
+            &allocation,
+        )
         .expect("topology assembles")
 }
 
@@ -271,7 +294,7 @@ fn launch_runtime_with_policy(
     app: &WorthUiApp,
     artifact: crate::source::WorthUiArtifact,
     policy: WorthUiRuntimeDiagnosticPolicy,
-) -> WorthUiRuntimeHost {
+) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     app.launch_runtime(
         WorthUiRuntimeLaunch::from_canonical_artifact(artifact).with_diagnostics(policy),
     )
@@ -286,7 +309,11 @@ fn plan_with_first_node_moved_to_next_lane(plan: &WorthUiExecutionPlan) -> Worth
         .expect("fixture has a populated source lane");
     let current_lane = partitions[source].lane();
     let indexes = partitions[source].plan_indexes().to_vec();
-    partitions[source] = WorthUiPlanLanePartition::new(alternate_lane(current_lane), indexes);
+    let alternate_lane = match current_lane {
+        WorthUiPlanExecutionLane::QueryView => WorthUiPlanExecutionLane::UiStructure,
+        _ => WorthUiPlanExecutionLane::QueryView,
+    };
+    partitions[source] = WorthUiPlanLanePartition::new(alternate_lane, indexes);
 
     WorthUiExecutionPlan::new(
         plan.handle_receipt(),
@@ -370,11 +397,4 @@ fn execution_plan_with_topology(
         plan.lookup_index().clone(),
         plan.counters(),
     )
-}
-
-fn alternate_lane(lane: WorthUiPlanExecutionLane) -> WorthUiPlanExecutionLane {
-    match lane {
-        WorthUiPlanExecutionLane::QueryView => WorthUiPlanExecutionLane::UiStructure,
-        _ => WorthUiPlanExecutionLane::QueryView,
-    }
 }

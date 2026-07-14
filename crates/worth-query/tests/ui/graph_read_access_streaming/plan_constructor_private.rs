@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadStreamingPageBudget, WorthQueryGraphReadStreamingPlan,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadStreamingPageBudget, WorthQueryGraphReadStreamingPlan};
 
 fn main() {
     let _ = WorthQueryGraphReadStreamingPlan {

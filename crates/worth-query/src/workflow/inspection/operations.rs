@@ -12,7 +12,7 @@ use worth_relational::facade::merge::{
     NormalizedRelationalMergeRequest, RelationalMergeInspectionArtifact,
 };
 
-pub fn inspect_merge_conflicts(
+pub(crate) fn inspect_merge_conflicts(
     declaration: &QueryWorkflowDeclaration,
     merge_declaration: &LoweredMergeWorkflowDeclaration,
     relational_inspection: &RelationalMergeInspectionArtifact,
@@ -163,7 +163,7 @@ pub fn shape_writeback_authority_outcome(
     )
 }
 
-pub fn inspect_post_merge_outcome(
+pub(crate) fn inspect_post_merge_outcome(
     declaration: &QueryWorkflowDeclaration,
     outcome: &WorkflowAuthorityOutcomeArtifact,
 ) -> Result<QueryPostMergeInspectionArtifact, WorkflowInspectionError> {

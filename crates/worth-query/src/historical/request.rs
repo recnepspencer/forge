@@ -6,10 +6,11 @@ use super::error::HistoricalEvaluationError;
 use super::path_classes::{
     AdmittedHistoricalPathClass, RequestedHistoricalPathClass, ResolvedHistoricalPathClass,
 };
+use crate::basis::ResolvedBasisProof;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoricalEvaluationRequest {
-    basis_identity: String,
+    basis: ResolvedBasisProof,
     requested_path_class: RequestedHistoricalPathClass,
     cost_posture: HistoricalPathCostPosture,
     replay_budget: HistoricalReplaySpanBudget,
@@ -19,13 +20,13 @@ pub struct HistoricalEvaluationRequest {
 
 impl HistoricalEvaluationRequest {
     pub fn retained_snapshot(
-        basis_identity: impl Into<String>,
+        basis: &ResolvedBasisProof,
         replay_budget: usize,
         reconstruction_budget: usize,
         reuse_descriptor: HistoricalPathReuseDescriptor,
     ) -> Self {
         Self::new(
-            basis_identity,
+            basis.clone(),
             RequestedHistoricalPathClass::RequestedRetainedSnapshotPath,
             HistoricalPathCostPosture::HistoricalRetainedFastPath,
             HistoricalReplaySpanBudget::bounded(replay_budget),
@@ -35,13 +36,13 @@ impl HistoricalEvaluationRequest {
     }
 
     pub fn delta_replay(
-        basis_identity: impl Into<String>,
+        basis: &ResolvedBasisProof,
         replay_budget: usize,
         reconstruction_budget: usize,
         reuse_descriptor: HistoricalPathReuseDescriptor,
     ) -> Self {
         Self::new(
-            basis_identity,
+            basis.clone(),
             RequestedHistoricalPathClass::RequestedDeltaReplayPath,
             HistoricalPathCostPosture::HistoricalReplayBounded,
             HistoricalReplaySpanBudget::bounded(replay_budget),
@@ -51,13 +52,13 @@ impl HistoricalEvaluationRequest {
     }
 
     pub fn full_reconstruction(
-        basis_identity: impl Into<String>,
+        basis: &ResolvedBasisProof,
         replay_budget: usize,
         reconstruction_budget: usize,
         reuse_descriptor: HistoricalPathReuseDescriptor,
     ) -> Self {
         Self::new(
-            basis_identity,
+            basis.clone(),
             RequestedHistoricalPathClass::RequestedFullReconstructionPath,
             HistoricalPathCostPosture::HistoricalReconstructionExpensive,
             HistoricalReplaySpanBudget::bounded(replay_budget),
@@ -67,7 +68,13 @@ impl HistoricalEvaluationRequest {
     }
 
     pub fn basis_identity(&self) -> &str {
-        &self.basis_identity
+        self.basis
+            .reporting_label()
+            .unwrap_or_else(|| self.basis.identity().as_str())
+    }
+
+    pub fn basis_proof(&self) -> &ResolvedBasisProof {
+        &self.basis
     }
 
     pub fn requested_path_class(&self) -> &RequestedHistoricalPathClass {
@@ -91,7 +98,7 @@ impl HistoricalEvaluationRequest {
     }
 
     pub(crate) fn new(
-        basis_identity: impl Into<String>,
+        basis: ResolvedBasisProof,
         requested_path_class: RequestedHistoricalPathClass,
         cost_posture: HistoricalPathCostPosture,
         replay_budget: HistoricalReplaySpanBudget,
@@ -99,7 +106,7 @@ impl HistoricalEvaluationRequest {
         reuse_descriptor: HistoricalPathReuseDescriptor,
     ) -> Self {
         Self {
-            basis_identity: basis_identity.into(),
+            basis,
             requested_path_class,
             cost_posture,
             replay_budget,
@@ -111,13 +118,19 @@ impl HistoricalEvaluationRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoricalPathRequested {
-    basis_identity: String,
+    basis: ResolvedBasisProof,
     requested_path_class: RequestedHistoricalPathClass,
 }
 
 impl HistoricalPathRequested {
     pub fn basis_identity(&self) -> &str {
-        &self.basis_identity
+        self.basis
+            .reporting_label()
+            .unwrap_or_else(|| self.basis.identity().as_str())
+    }
+
+    pub fn basis_proof(&self) -> &ResolvedBasisProof {
+        &self.basis
     }
 
     pub fn requested_path_class(&self) -> &RequestedHistoricalPathClass {
@@ -126,7 +139,7 @@ impl HistoricalPathRequested {
 
     pub(crate) fn from_request(request: &HistoricalEvaluationRequest) -> Self {
         Self {
-            basis_identity: request.basis_identity.clone(),
+            basis: request.basis.clone(),
             requested_path_class: request.requested_path_class.clone(),
         }
     }
@@ -134,7 +147,7 @@ impl HistoricalPathRequested {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoricalCapabilityDescriptor {
-    basis_identity: String,
+    basis: ResolvedBasisProof,
     admitted_path_class: Option<AdmittedHistoricalPathClass>,
     replay_permitted: bool,
     replay_required: bool,
@@ -145,7 +158,13 @@ pub struct HistoricalCapabilityDescriptor {
 
 impl HistoricalCapabilityDescriptor {
     pub fn basis_identity(&self) -> &str {
-        &self.basis_identity
+        self.basis
+            .reporting_label()
+            .unwrap_or_else(|| self.basis.identity().as_str())
+    }
+
+    pub fn basis_proof(&self) -> &ResolvedBasisProof {
+        &self.basis
     }
 
     pub fn admitted_path_class(&self) -> Option<&AdmittedHistoricalPathClass> {
@@ -157,11 +176,11 @@ impl HistoricalCapabilityDescriptor {
     }
 
     pub fn retained_snapshot(
-        basis_identity: impl Into<String>,
+        basis: &ResolvedBasisProof,
         reuse_descriptor: HistoricalPathReuseDescriptor,
     ) -> Self {
         Self {
-            basis_identity: basis_identity.into(),
+            basis: basis.clone(),
             admitted_path_class: Some(AdmittedHistoricalPathClass::AdmittedRetainedSnapshotPath),
             replay_permitted: false,
             replay_required: false,
@@ -172,11 +191,11 @@ impl HistoricalCapabilityDescriptor {
     }
 
     pub fn delta_replay(
-        basis_identity: impl Into<String>,
+        basis: &ResolvedBasisProof,
         reuse_descriptor: HistoricalPathReuseDescriptor,
     ) -> Self {
         Self {
-            basis_identity: basis_identity.into(),
+            basis: basis.clone(),
             admitted_path_class: Some(AdmittedHistoricalPathClass::AdmittedDeltaReplayPath),
             replay_permitted: true,
             replay_required: false,
@@ -187,11 +206,11 @@ impl HistoricalCapabilityDescriptor {
     }
 
     pub fn full_reconstruction(
-        basis_identity: impl Into<String>,
+        basis: &ResolvedBasisProof,
         reuse_descriptor: HistoricalPathReuseDescriptor,
     ) -> Self {
         Self {
-            basis_identity: basis_identity.into(),
+            basis: basis.clone(),
             admitted_path_class: Some(AdmittedHistoricalPathClass::AdmittedFullReconstructionPath),
             replay_permitted: true,
             replay_required: false,
@@ -218,7 +237,7 @@ impl HistoricalCapabilityDescriptor {
     }
 
     pub(crate) fn new(
-        basis_identity: impl Into<String>,
+        basis: ResolvedBasisProof,
         admitted_path_class: Option<AdmittedHistoricalPathClass>,
         replay_permitted: bool,
         replay_required: bool,
@@ -227,7 +246,7 @@ impl HistoricalCapabilityDescriptor {
         reuse_descriptor: HistoricalPathReuseDescriptor,
     ) -> Self {
         Self {
-            basis_identity: basis_identity.into(),
+            basis,
             admitted_path_class,
             replay_permitted,
             replay_required,
@@ -240,7 +259,7 @@ impl HistoricalCapabilityDescriptor {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoricalMaterializationDescriptor {
-    basis_identity: String,
+    basis: ResolvedBasisProof,
     resolved_path_class: ResolvedHistoricalPathClass,
     actual_replay_span: usize,
     actual_reconstruction_scope: usize,
@@ -248,7 +267,13 @@ pub struct HistoricalMaterializationDescriptor {
 
 impl HistoricalMaterializationDescriptor {
     pub fn basis_identity(&self) -> &str {
-        &self.basis_identity
+        self.basis
+            .reporting_label()
+            .unwrap_or_else(|| self.basis.identity().as_str())
+    }
+
+    pub fn basis_proof(&self) -> &ResolvedBasisProof {
+        &self.basis
     }
 
     pub fn resolved_path_class(&self) -> &ResolvedHistoricalPathClass {
@@ -263,27 +288,27 @@ impl HistoricalMaterializationDescriptor {
         self.actual_reconstruction_scope
     }
 
-    pub fn retained_snapshot(basis_identity: impl Into<String>) -> Self {
+    pub fn retained_snapshot(basis: &ResolvedBasisProof) -> Self {
         Self {
-            basis_identity: basis_identity.into(),
+            basis: basis.clone(),
             resolved_path_class: ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath,
             actual_replay_span: 0,
             actual_reconstruction_scope: 0,
         }
     }
 
-    pub fn delta_replay(basis_identity: impl Into<String>) -> Self {
+    pub fn delta_replay(basis: &ResolvedBasisProof) -> Self {
         Self {
-            basis_identity: basis_identity.into(),
+            basis: basis.clone(),
             resolved_path_class: ResolvedHistoricalPathClass::ResolvedDeltaReplayPath,
             actual_replay_span: 1,
             actual_reconstruction_scope: 0,
         }
     }
 
-    pub fn full_reconstruction(basis_identity: impl Into<String>) -> Self {
+    pub fn full_reconstruction(basis: &ResolvedBasisProof) -> Self {
         Self {
-            basis_identity: basis_identity.into(),
+            basis: basis.clone(),
             resolved_path_class: ResolvedHistoricalPathClass::ResolvedFullReconstructionPath,
             actual_replay_span: 0,
             actual_reconstruction_scope: 1,
@@ -301,13 +326,13 @@ impl HistoricalMaterializationDescriptor {
     }
 
     pub(crate) fn new(
-        basis_identity: impl Into<String>,
+        basis: ResolvedBasisProof,
         resolved_path_class: ResolvedHistoricalPathClass,
     ) -> Self {
         let (actual_replay_span, actual_reconstruction_scope) =
             default_realized_work(&resolved_path_class);
         Self {
-            basis_identity: basis_identity.into(),
+            basis,
             resolved_path_class,
             actual_replay_span,
             actual_reconstruction_scope,
@@ -317,14 +342,14 @@ impl HistoricalMaterializationDescriptor {
 
 pub(crate) fn validate_basis_match(
     request: &HistoricalEvaluationRequest,
-    descriptor_basis: &str,
+    descriptor_basis: &ResolvedBasisProof,
 ) -> Result<(), HistoricalEvaluationError> {
-    if request.basis_identity() == descriptor_basis {
+    if request.basis_proof() == descriptor_basis {
         Ok(())
     } else {
         Err(HistoricalEvaluationError::IncompatibleBasisPathPair {
             requested_basis_identity: request.basis_identity().to_string(),
-            descriptor_basis_identity: descriptor_basis.to_string(),
+            descriptor_basis_identity: descriptor_basis.identity().as_str().to_string(),
             requested_path_class: request.requested_path_class().clone(),
         })
     }

@@ -17,7 +17,7 @@ error[E0603]: module `subscription` is private
   |                  ^^^^^^^^^^^^ private module
   |
 help: consider importing this enum instead:
-      worth_query::facade::QuerySubscriptionSupportPosture
+      worth_query::facade::runtime::QuerySubscriptionSupportPosture
  --> tests/ui/subscription_support_report_durable_overclaim_forbidden.rs:2:71
   |
 2 |     QuerySubscriptionSupportCounters, QuerySubscriptionSupportMatrix, QuerySubscriptionSupportPosture,

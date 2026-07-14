@@ -1,0 +1,25 @@
+warning: unreachable statement
+ --> tests/ui/public_authority_surface/legacy_preview_binding_cannot_assess_drift.rs:5:5
+  |
+4 |     let binding: PreviewSessionPlanBinding = todo!();
+  |                                              ------- any code following this expression is unreachable
+5 |     let context: PreviewSessionQueryContext = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+ --> tests/ui/public_authority_surface/legacy_preview_binding_cannot_assess_drift.rs:6:39
+  |
+6 |     let _ = assess_preview_live_drift(&binding, context);
+  |             ------------------------- ^^^^^^^^ expected `&ScopedPreviewLiveSessionPlanBinding`, found `&PreviewSessionPlanBinding`
+  |             |
+  |             arguments to this function are incorrect
+  |
+  = note: expected reference `&ScopedPreviewLiveSessionPlanBinding`
+             found reference `&PreviewSessionPlanBinding`
+note: function defined here
+ --> src/preview/mod.rs
+  |
+  | pub fn assess_preview_live_drift(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^

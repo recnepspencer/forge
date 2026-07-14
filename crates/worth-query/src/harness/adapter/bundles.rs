@@ -3,7 +3,7 @@ use super::super::profiles::CertificationProfile;
 
 pub(super) fn to_bundle(
     profile: CertificationProfile,
-    bundle: &crate::facade::CanonicalQueryBundle,
+    bundle: &crate::facade::foundation::CanonicalQueryBundle,
 ) -> CanonicalCertificationBundle {
     CanonicalCertificationBundle {
         profile,
@@ -18,7 +18,7 @@ pub(super) fn to_bundle(
 
 pub(super) fn to_rejection_bundle(
     profile: CertificationProfile,
-    error: &crate::facade::QueryCanonicalizationError,
+    error: &crate::facade::foundation::QueryCanonicalizationError,
 ) -> RejectionCertificationBundle {
     RejectionCertificationBundle {
         profile,

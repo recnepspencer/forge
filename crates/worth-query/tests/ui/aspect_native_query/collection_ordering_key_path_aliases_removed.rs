@@ -1,4 +1,4 @@
-use worth_query::facade::OrderingKeyPath;
+use worth_query::facade::foundation::OrderingKeyPath;
 
 fn main() {
     let key_path = key_path_fixture();

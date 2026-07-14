@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    PromotionEligiblePreviewExecutionEnvelope, PromotionEligiblePreviewSessionPlanBinding,
-    ReadOnlyPreviewExecutionEnvelope, ReadOnlyPreviewSessionPlanBinding,
-};
+use worth_query::facade::policy::{PromotionEligiblePreviewExecutionEnvelope, PromotionEligiblePreviewSessionPlanBinding, ReadOnlyPreviewExecutionEnvelope, ReadOnlyPreviewSessionPlanBinding};
 
 fn binding_downgrade(
     read_only: &ReadOnlyPreviewSessionPlanBinding,

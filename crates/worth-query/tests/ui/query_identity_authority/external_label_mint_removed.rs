@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQuerySnapshotIdentity};
+use worth_query::facade::foundation::{WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQuerySnapshotIdentity};
 
 fn main() {
     let _commit = WorthQueryCommitIdentity::from_external_authority_label("commit:test");

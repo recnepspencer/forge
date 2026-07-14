@@ -2,7 +2,7 @@ use crate::runtime::{
     WorthUiReloadCertificationBundle, WorthUiReloadLatencyCounters, WorthUiReloadStormOrderedTruth,
 };
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct WorthUiReloadStormCertification {
     scenario_name: String,
     scenario_digest: u64,

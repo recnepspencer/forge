@@ -1,13 +1,11 @@
-use worth_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath, RootEntityKey,
-};
+use worth_query::facade::foundation::{AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath, RootEntityKey};
 
 fn main() {
-    let query = worth_query::facade::DetailQueryBuilder::new(RootEntityKey::new("task").unwrap())
+    let query = worth_query::facade::foundation::DetailQueryBuilder::new(RootEntityKey::new("task").unwrap())
         .project(AspectFieldSelector::new("title", "text").unwrap())
         .build()
         .unwrap();
-    let shape = worth_query::facade::DetailResultShapeBuilder::new()
+    let shape = worth_query::facade::foundation::DetailResultShapeBuilder::new()
         .field(AuthoredResultShapeField::new("title", "text", "title").unwrap())
         .build()
         .unwrap();

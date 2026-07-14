@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionBasisBindingRequest;
+use worth_query::facade::runtime::QuerySubscriptionBasisBindingRequest;
 
 fn main() {
     let request: QuerySubscriptionBasisBindingRequest = todo!();

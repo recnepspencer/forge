@@ -2,114 +2,195 @@
 
 ## What This Feature Is
 
-Cross-runtime causal inspection is the **`CausalInspection` lane**: admit and request **cross-runtime causal explanations** with explicit richness and explanation-family support. It is **not** the same as `workspace.inspect`, which returns **per-target retained evidence** on the workspace inspection surface.
+Cross-runtime causal inspection explains why an observed Query result changed,
+was suppressed, was denied, or was replayed across Query, bridge, relational,
+and signal boundaries. It starts from an observation receipt plus a sealed
+inspection-basis capability, then produces an admitted explanation plan and an
+inspectable artifact.
 
-Domain **explanation contributions** declare how domains attach explanation posture—they do not replace this runtime inspection lane.
+This is different from `workspace.inspect(...)`, which explains one retained
+workspace target. Use causal inspection when the question crosses runtime
+boundaries.
 
 ## Why You Use It
 
-- explain causality across runtime boundaries with `CrossRuntimeCausalExplanation`
-- explain temporal wakes, async completions, mixed-cause suppressions,
-  preview remasks, replay drift, and resume mismatches without importing lower
-  runtime bridge or signal types in product code
-- choose reference-only vs materialized detail with honest advisory/deferred rows
-- avoid overloading `workspace.inspect` for full cross-runtime envelopes
-- align agent/docs language with `CausalInspection::support()` postures
+- Explain a result change through Query, bridge, truth, and signal evidence.
+- Investigate temporal wakes, async completions, remasking, replay drift, or a
+  resume mismatch.
+- Ask for reference-only evidence without materializing every lower-runtime
+  detail.
+- Preserve a typed denial or advisory when requested evidence is unavailable
+  or too expensive.
+- Keep the explanation tied to the same scoped authority as the observation.
+
+## Stable Entry Points
+
+Import the basis capability from the foundation facade and causal inspection
+from the runtime facade:
+
+```rust
+use worth_query::facade::{
+    foundation::{basis_lifecycle, ScopedInspectionBasis},
+    runtime::{CausalInspection, QueryObservationReceipt},
+};
+```
+
+The ordinary builder surface is:
+
+- `CausalInspection::for_observation(receipt, inspection_basis)`
+- `why_changed()`, `why_suppressed()`, `why_denied()`,
+  `why_replayed()`, or `why_previewed()`
+- `why_temporal_wake()`, `why_async_completion()`, `why_remasked()`, or
+  `why_resume_mismatch()` for common cross-runtime questions
+- `reference_only()` or `materialized_detail()`
+- `plan()`
+- `plan.materialize_with_bridge(...)`
+- `CausalInspection::support()`
+
+The observation receipt alone is not inspection authority. The scoped
+inspection basis is required and must match the basis retained by the receipt.
 
 ## Core Mental Model
 
-Three distinct surfaces:
+The receipt proves that an observation happened. The inspection basis proves
+that this caller may inspect that truth world. Neither artifact substitutes for
+the other.
 
-| Surface | What you get |
-|---------|----------------|
-| `workspace.inspect` | Per-target retained inspection evidence ([inspection](inspection.md)) |
-| `CausalInspection` | Cross-runtime causal explanation families, admission + request pipeline |
-| Explanation contributions | Domain declaration posture ([explanation/](../domain-capabilities/explanation/)) |
+`CausalInspection::for_observation(...)` keeps both together. Planning anchors
+the observation, resolves retained evidence references, checks support and
+cost, and creates an admitted, advisory, or denied proof flow. Materialization
+then asks the bridge for the detail allowed by that plan.
 
-Pipeline (facade: `admit_causal_inspection`, `request_causal_inspection`, materialization helpers):
+Reference-only evidence is the common supported lane. Materialized detail is
+advisory because availability, redaction, and lower-runtime cost can narrow the
+answer.
+
+## How It Executes
 
 ```text
-CausalInspection plan
-  → admit_causal_inspection
-  → request_causal_inspection (family + richness)
-  → [optional] materialized detail (advisory)
-  → artifacts + decision trace
+observation receipt + matching ScopedInspectionBasis
+  -> causal question and evidence selection
+  -> evidence-reference resolution
+  -> support and cost admission
+  -> causal inspection plan
+  -> optional bridge materialization
+  -> Query-owned causal inspection artifact
 ```
 
-Temporal and async-rich explanations now stay Query-owned on the materialized
-artifact itself:
+Basis mismatch and missing required evidence stop during planning, before a
+bridge explanation is assembled.
 
-- `QueryCausalTemporalAsyncExplanation`
-- `QueryCausalTemporalAsyncExplanationKind`
+## Small Example
 
-That summary is projected from the anchored observation reason plus retained
-causal evidence families. It is not reconstructed by downstream code.
+```rust
+use worth_query::facade::{
+    foundation::ScopedInspectionBasis,
+    runtime::{CausalInspection, QueryObservationReceipt},
+};
 
-## Main Entry Points
+fn plan_change_explanation(
+    receipt: QueryObservationReceipt,
+    inspection_basis: ScopedInspectionBasis,
+) -> Result<_, worth_query::facade::runtime::CausalInspectionPlanError> {
+    CausalInspection::for_observation(receipt, inspection_basis)
+        .why_changed()
+        .reference_only()
+        .include_all_retained_evidence()
+        .plan()
+}
+```
 
-`exports_runtime.rs` (representative):
+The function requires both proof artifacts. A caller cannot authorize
+inspection by supplying a receipt or matching-looking digest alone.
 
-- `CausalInspection`, `CausalInspectionPlan`, `CausalInspectionRequest`
-- `admit_causal_inspection`, `request_causal_inspection`
-- `CausalInspectionExplanationFamily`, `CausalInspectionRichness`
-- `CausalInspection::support()` — `builder_support.rs` row postures
-- builder helpers such as `why_temporal_wake()`, `why_async_completion()`,
-  `why_remasked()`, and `why_resume_mismatch()`
-- Materialization errors/policy types when narrowing to detail
+## Real Example
 
-Tests: `src/runtime/tests/causal_inspection/`.
+```rust
+use worth_query::facade::runtime::CausalInspection;
 
-## Typical Flow
+let plan = CausalInspection::for_observation(receipt, inspection_basis)
+    .why_async_completion()
+    .reference_only()
+    .include_all_retained_evidence()
+    .plan()?;
 
-1. Build a causal inspection plan for the cross-runtime question (targets, families).
-2. `admit_causal_inspection` → admission receipt and counters.
-3. `request_causal_inspection` with `CrossRuntimeCausalExplanation` and **ReferenceOnly** richness (common supported path).
-4. If you need materialized detail, check advisory posture and materialization policy—may narrow until bridge envelope materialization.
-5. Use `resolve_causal_evidence_references` when following reference sets—not durable archive replay.
+let artifact = plan.materialize_with_bridge(&bridge)?;
 
-When the question is specifically temporal or async:
+record_causal_evidence(
+    artifact.receipt(),
+    artifact.authority_bindings(),
+    artifact.performance_envelope(),
+);
+```
 
-- use the ordinary builder helpers when they fit the question
-- inspect `artifact.temporal_async_explanation()` on admitted, advisory, or
-  denied causal artifacts
-- use the richer evidence reference set only when the compact Query-owned
-  temporal/async summary is not enough
+The observation and inspection capability are authoritative inputs. The bridge
+owns its lower-runtime evidence and Query owns the public explanation artifact.
+The artifact's references and digests are inspection projections, not new
+authority inputs.
 
-## How It Relates
+## How It Relates To Other Features
 
-- [Inspection](inspection.md) — retained per-target evidence; “what this is not”
-- [Choosing: inspection vs cross-runtime explanation](../domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md)
-- [Explanation contributions](../domain-capabilities/explanation/) — domain posture, not runtime causal lane
-- [Lower-runtime capability routing](../domain-capabilities/lower-runtime-capability-routing.md) — bridge envelopes for materialization neighbors
+- [Inspection](./inspection.md) explains retained Query targets without
+  assembling a cross-runtime causal envelope.
+- [Basis Capability Lifecycle](./basis-capability-lifecycle.md) creates the
+  `ScopedInspectionBasis` required here.
+- [Authoritative Mutation Evidence](./authoritative-mutation-evidence.md)
+  explains what a write changed; causal inspection explains why an observed
+  result followed.
+- [Lower-Runtime Capability Routing](../domain-capabilities/lower-runtime-capability-routing.md)
+  owns bridge-facing materialization boundaries.
+- [Lower-runtime explanation contributions](../domain-capabilities/explanation/lower-runtime-explanation-contributions.md) describe
+  domain explanation posture; they do not execute this runtime lane.
 
-## Good to Know
+## Inspection And Debugging
 
-- `CrossRuntimeCausalExplanation` + **ReferenceOnly** is **Supported**.
-- Same family + **MaterializedDetail** is **Advisory** (“narrows until bridge envelope materialization”).
-- **DurableCausalArchive** and **StoreBackedReplayReconstruction** are **Deferred** for all richness levels.
-- Temporal/async causal richness does not turn `workspace.inspect(...)` into a
-  causal lane clone; it stays on `CausalInspection` artifacts.
+Before materialization, inspect:
+
+- `plan.support_posture()`
+- `plan.required_evidence()`
+- `plan.decision_trace()`
+- `plan.estimated_cost()`
+- `plan.inspection_basis()`
+- `plan.explain()`
+
+After materialization, inspect:
+
+- `artifact.primary_result()`
+- `artifact.warnings()`
+- `artifact.authority_bindings()`
+- `artifact.evidence()`
+- `artifact.performance_envelope()`
+- `artifact.receipt()`
+- `artifact.denial_reason()` or `artifact.advisory_reason()`
+
+Use `CausalInspection::support()` to distinguish supported, advisory, and
+deferred explanation families before authoring a production workflow.
 
 ## Anti-Patterns
 
-- Calling `workspace.inspect` and documenting it as “cross-runtime causal inspection.”
-- Expecting store-backed replay reconstruction from causal inspection APIs today.
-- Using explanation contribution registration instead of admitting/requesting causal inspection when you need the runtime envelope.
+- Calling `CausalInspection::for_observation(...)` without a scoped inspection
+  basis.
+- Reconstructing inspection authority from receipt, basis, or evidence digests.
+- Calling `workspace.inspect(...)` and describing it as cross-runtime causal
+  inspection.
+- Importing bridge or signal internals into product code to assemble a local
+  explanation.
+- Treating advisory materialized detail as guaranteed support.
+- Using domain explanation contributions in place of causal inspection.
 
 ## Current Limits
 
-`CausalInspection::support()` (`builder_support.rs`):
-
-| Family | Richness | Posture |
-|--------|----------|---------|
-| CrossRuntimeCausalExplanation | ReferenceOnly | **Supported** |
-| CrossRuntimeCausalExplanation | MaterializedDetail | **Advisory** |
-| DurableCausalArchive | ReferenceOnly | **Deferred** |
-| StoreBackedReplayReconstruction | ReferenceOnly | **Deferred** |
+- Cross-runtime reference-only explanation is supported.
+- Materialized detail is advisory and can narrow under evidence, redaction, or
+  bridge constraints.
+- Durable causal archives and store-backed replay reconstruction are deferred.
+- Causal inspection explains retained evidence; it does not create truth,
+  replay authority, or durable history.
 
 ## Related Docs
 
-- [Inspection](inspection.md)
-- [Inspection vs cross-runtime explanation (chooser)](../domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md)
-- [Support matrix and admission](../foundations/support-matrix-and-admission.md)
-- [Authoritative mutation evidence](authoritative-mutation-evidence.md) — causality on writes vs causal inspection reads
+- [Inspection](./inspection.md)
+- [Basis Capability Lifecycle](./basis-capability-lifecycle.md)
+- [Inspection Vs Cross-Runtime Explanation](../domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md)
+- [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
+- [Authoritative Mutation Evidence](./authoritative-mutation-evidence.md)

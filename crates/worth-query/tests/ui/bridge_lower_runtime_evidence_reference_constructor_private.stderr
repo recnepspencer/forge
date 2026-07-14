@@ -1,3 +1,15 @@
+error[E0432]: unresolved import `worth_query::facade::BridgeLowerRuntimeEvidenceReference`
+ --> tests/ui/bridge_lower_runtime_evidence_reference_constructor_private.rs:1:5
+  |
+1 | use worth_query::facade::BridgeLowerRuntimeEvidenceReference;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `BridgeLowerRuntimeEvidenceReference` in `facade`
+  |
+help: consider importing this variant instead
+  |
+1 - use worth_query::facade::BridgeLowerRuntimeEvidenceReference;
+1 + use worth_query::WorthQueryEvidenceScope::BridgeLowerRuntimeEvidenceReference;
+  |
+
 warning: unreachable expression
  --> tests/ui/bridge_lower_runtime_evidence_reference_constructor_private.rs:6:17
   |
@@ -8,21 +20,3 @@ warning: unreachable expression
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0451]: fields `kind` and `detail` of struct `worth_query::facade::BridgeLowerRuntimeEvidenceReference` are private
- --> tests/ui/bridge_lower_runtime_evidence_reference_constructor_private.rs:5:9
-  |
-4 |     let _ = BridgeLowerRuntimeEvidenceReference {
-  |             ----------------------------------- in this type
-5 |         kind: todo!(),
-  |         ^^^^ private field
-6 |         detail: todo!(),
-  |         ^^^^^^ private field
-
-error: type `worth_query::query_basis_lifecycle::binding_evidence::BridgeLowerRuntimeEvidenceDetail` is private
- --> tests/ui/bridge_lower_runtime_evidence_reference_constructor_private.rs:6:17
-  |
-6 |         detail: todo!(),
-  |                 ^^^^^^^ private type
-  |
-  = note: this error originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)

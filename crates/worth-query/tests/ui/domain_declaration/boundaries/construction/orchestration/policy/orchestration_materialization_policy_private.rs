@@ -1,10 +1,5 @@
 use worth_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfile;
-use worth_query::facade::{
-    WorthQueryDeclarationEntryOrchestrationCostPosture,
-    WorthQueryDeclarationEntryOrchestrationMaterializationGate,
-    WorthQueryDeclarationEntryOrchestrationMaterializationPolicy,
-    WorthQueryDeclarationEntryOrchestrationMaterializationTier,
-};
+use worth_query::facade::foundation::{WorthQueryDeclarationEntryOrchestrationCostPosture, WorthQueryDeclarationEntryOrchestrationMaterializationGate, WorthQueryDeclarationEntryOrchestrationMaterializationPolicy, WorthQueryDeclarationEntryOrchestrationMaterializationTier};
 
 fn main() {
     let _ = WorthQueryDeclarationEntryOrchestrationMaterializationPolicy {

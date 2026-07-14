@@ -318,7 +318,7 @@ fn changed_admitted_query_support_receipt_cannot_drive_live_rebind_planning() {
 }
 
 fn query_live_rebind_plan(
-    runtime: &crate::runtime::WorthUiRuntimeHost,
+    runtime: &crate::runtime::WorthUiRuntime,
     plan: &crate::runtime::WorthUiNodeReplacementPlan,
     narrowing: &crate::runtime::WorthUiRuntimeImpactNarrowing,
     admitted: &crate::runtime::WorthUiAdmittedReplacementCandidate,

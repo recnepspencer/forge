@@ -1,4 +1,4 @@
-use worth_query::facade::SubscriptionConsumerAttachmentError;
+use worth_query::facade::runtime::SubscriptionConsumerAttachmentError;
 
 fn main() {
     let error: SubscriptionConsumerAttachmentError = todo!();

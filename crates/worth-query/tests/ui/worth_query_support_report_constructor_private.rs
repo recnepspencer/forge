@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQuerySupportReport;
+use worth_query::facade::foundation::WorthQuerySupportReport;
 
 fn main() {
     let _ = WorthQuerySupportReport {

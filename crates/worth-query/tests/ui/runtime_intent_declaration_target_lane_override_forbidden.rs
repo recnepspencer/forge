@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryAuthorityLane, WorthQueryIntentDeclaration, WorthQueryIntentInput,
-};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryIntentDeclaration, WorthQueryIntentInput};
 
 fn main() {
     let declaration = WorthQueryIntentDeclaration::strategy_commit(

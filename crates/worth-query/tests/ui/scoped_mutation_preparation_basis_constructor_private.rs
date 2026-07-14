@@ -1,6 +1,5 @@
-use worth_query::facade::policy::{
-    AdmittedBasisCapability, ScopedBasisConstructionCounters, ScopedMutationPreparationBasis,
-};
+use worth_query::facade::foundation::{AdmittedBasisCapability, ScopedMutationPreparationBasis};
+use worth_query::facade::policy::ScopedBasisConstructionCounters;
 
 fn main() {
     let _ = ScopedMutationPreparationBasis {

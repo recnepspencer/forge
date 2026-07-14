@@ -1,4 +1,4 @@
-error[E0451]: fields `policy_basis_label`, `rule_set_digest`, `policy_epoch`, `admits_query_family`, `narrows_projection`, `admits_non_disclosing_use`, `cost_posture`, `work_budget` and `digest` of struct `worth_query::facade::PolicyRuleSnapshot` are private
+error[E0451]: fields `policy_basis_label`, `rule_set_digest`, `policy_epoch`, `admits_query_family`, `narrows_projection`, `admits_non_disclosing_use`, `cost_posture`, `work_budget` and `digest` of struct `worth_query::facade::policy::PolicyRuleSnapshot` are private
   --> tests/ui/policy_rule_snapshot_raw_constructor_forbidden.rs:5:9
    |
  4 |     let _ = PolicyRuleSnapshot {

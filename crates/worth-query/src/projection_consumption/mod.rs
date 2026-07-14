@@ -3,6 +3,7 @@ mod consumed;
 mod contracts;
 mod declaration;
 mod declaration_authoring;
+mod downstream_authority;
 mod dx;
 mod eligibility;
 mod envelope;
@@ -16,20 +17,26 @@ mod support;
 
 #[allow(unused_imports)]
 pub use certification::{
-    certify_projection_consumption_closeout_core, projection_consumption_family_inventory,
+    certify_consumed_projection_authority, certify_projection_consumption_closeout_core,
+    consumed_projection_authority_support_matrix, projection_consumption_family_inventory,
     projection_consumption_forbidden_fallback_audit,
     projection_consumption_phase_progression_digest, projection_consumption_proof_shape_audit,
     projection_consumption_public_boundary_audit, projection_consumption_support_matrix,
-    ProjectionConsumptionCertificationBundle, ProjectionConsumptionCertificationCounterSnapshot,
-    ProjectionConsumptionCertificationLane, ProjectionConsumptionCertificationRow,
-    ProjectionConsumptionCertifiedSourceSurface, ProjectionConsumptionFamilyInventory,
-    ProjectionConsumptionFamilyInventoryRow, ProjectionConsumptionForbiddenFallbackAudit,
-    ProjectionConsumptionForbiddenFallbackAuditRow, ProjectionConsumptionForbiddenFallbackSeam,
-    ProjectionConsumptionOrdinaryPathSurface, ProjectionConsumptionProofShapeAudit,
-    ProjectionConsumptionProofShapeAuditRow, ProjectionConsumptionProofShapeEnforcement,
-    ProjectionConsumptionProofShapeViolation, ProjectionConsumptionPublicBoundaryAudit,
-    ProjectionConsumptionPublicBoundaryAuditRow, ProjectionConsumptionPublicBoundarySurface,
-    ProjectionConsumptionSupportMatrix, ProjectionConsumptionSupportMatrixRow,
+    ConsumedProjectionAuthorityCertificationBundle, ConsumedProjectionAuthorityCertificationLane,
+    ConsumedProjectionAuthorityCertificationRow, ConsumedProjectionAuthorityComplexityAxis,
+    ConsumedProjectionAuthorityComplexityEvidence, ConsumedProjectionAuthorityComplexityRow,
+    ConsumedProjectionAuthoritySupportMatrix, ConsumedProjectionAuthoritySupportRow,
+    ConsumedProjectionAuthoritySupportStatus, ProjectionConsumptionCertificationBundle,
+    ProjectionConsumptionCertificationCounterSnapshot, ProjectionConsumptionCertificationLane,
+    ProjectionConsumptionCertificationRow, ProjectionConsumptionCertifiedSourceSurface,
+    ProjectionConsumptionFamilyInventory, ProjectionConsumptionFamilyInventoryRow,
+    ProjectionConsumptionForbiddenFallbackAudit, ProjectionConsumptionForbiddenFallbackAuditRow,
+    ProjectionConsumptionForbiddenFallbackSeam, ProjectionConsumptionOrdinaryPathSurface,
+    ProjectionConsumptionProofShapeAudit, ProjectionConsumptionProofShapeAuditRow,
+    ProjectionConsumptionProofShapeEnforcement, ProjectionConsumptionProofShapeViolation,
+    ProjectionConsumptionPublicBoundaryAudit, ProjectionConsumptionPublicBoundaryAuditRow,
+    ProjectionConsumptionPublicBoundarySurface, ProjectionConsumptionSupportMatrix,
+    ProjectionConsumptionSupportMatrixRow,
 };
 pub(crate) use certification::{
     intent_admission_admitted_projection_declaration,
@@ -51,8 +58,17 @@ pub use declaration::{
     declare_projection_consumption, ProjectionConsumptionBindingContext,
     ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError,
 };
-pub use declaration_authoring::{
-    ProjectionConsumptionAuthoringSurface, ProjectionConsumptionDeclarationBuilder,
+pub use declaration_authoring::ProjectionConsumptionAuthoringSurface;
+pub use downstream_authority::{
+    downstream_authority_closure_contract, load_projection_authority_contract_document,
+    ConsumedProjectionAuthorityCounters, ConsumedProjectionAuthorityDenial,
+    ConsumedProjectionAuthorityDenialKind, ConsumedProjectionAuthorityEvidence,
+    DownstreamAuthorityClosureContract, DownstreamAuthorityClosureRole,
+    DownstreamAuthorityClosureRow, ExternalProjectionAuthorityContractDocument,
+    ProjectionAuthorityContract, ProjectionAuthorityContractDocument,
+    ProjectionAuthorityContractDocumentError, ProjectionAuthorityContractDocumentErrorKind,
+    ProjectionAuthorityOutcome, ProjectionAuthorityRequirement,
+    WorthQueryConsumedProjectionAuthority,
 };
 pub use dx::{
     CompletedProjectionFactConsumption, ProjectionFactConsumptionAttempt,
@@ -62,8 +78,7 @@ pub use eligibility::{
     evaluate_projection_consumption_eligibility, AdmittedProjectionConsumption,
     DeferredProjectionConsumption, DeferredProjectionConsumptionReason,
     DeniedProjectionConsumption, ProjectionConsumptionDenialReason,
-    ProjectionConsumptionEligibility, ProjectionConsumptionEligibilityCounters,
-    ProjectionConsumptionEligibilityTrace, ProjectionConsumptionWarningKind,
+    ProjectionConsumptionEligibility, ProjectionConsumptionWarningKind,
     ProjectionConsumptionWarnings, SourceMismatchedProjectionConsumption,
 };
 pub use envelope::{
@@ -83,7 +98,8 @@ pub use receipt_transitions::{
     ProjectionConsumptionTransitionRules,
 };
 pub use source::{
-    ProjectionConsumptionSource, ProjectionSourceFamily, ProjectionSourceReferenceIdentity,
+    ProjectionConsumptionSource, ProjectionSourceBasisAuthority, ProjectionSourceFamily,
+    ProjectionSourceIdentity, ProjectionSourceReferenceIdentity,
 };
 pub use support::{
     discover_projection_consumption_support, ProjectionConsumptionSupportPosture,

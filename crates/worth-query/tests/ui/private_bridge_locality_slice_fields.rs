@@ -1,4 +1,4 @@
-use worth_query::facade::BridgeLocalitySlice;
+use worth_query::facade::foundation::BridgeLocalitySlice;
 
 fn main() {
     let _ = BridgeLocalitySlice {

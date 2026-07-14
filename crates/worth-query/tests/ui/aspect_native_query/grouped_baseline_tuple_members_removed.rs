@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGroupedBaselineMember;
+use worth_query::facade::runtime::WorthQueryGroupedBaselineMember;
 
 fn main() {
     accepts_grouped_baseline_members(Some(vec![(

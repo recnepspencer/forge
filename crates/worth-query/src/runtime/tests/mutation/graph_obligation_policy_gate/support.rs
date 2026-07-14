@@ -1,8 +1,8 @@
 pub(super) use crate::runtime::tests::support::*;
 
 use crate::authoring::{
-    AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath, RawAuthoredQuery,
-    RawAuthoredResultShape, RootEntityKey,
+    AspectFieldKey, AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath,
+    RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
 };
 use crate::policy_basis::{
     admit_policy_tenant_context, AdmittedPolicyTenantContext, BranchAccessGrant, PolicyEpoch,
@@ -34,14 +34,28 @@ pub(super) fn policy_context_for_mode(
     mode: PolicyExecutionModeRequest,
 ) -> AdmittedPolicyTenantContext {
     let canonical = canonical_task_query();
-    let policy = PolicyRuleSnapshot::synthetic_authority_with_posture(
-        format!("policy-{label}"),
-        format!("rules-{label}"),
-        PolicyEpoch::Synthetic(7),
-        true,
-        narrows_projection,
-        admits_non_disclosing_use,
-    );
+    let policy = if narrows_projection || admits_non_disclosing_use {
+        let mask = if admits_non_disclosing_use {
+            crate::policy_basis::PolicyAspectMask::allow_all().with_non_disclosing_use_only(
+                AspectFieldKey::from_authoring_parts("title", "value").unwrap(),
+            )
+        } else {
+            crate::policy_basis::PolicyAspectMask::allow_all()
+                .with_masked(AspectFieldKey::from_authoring_parts("title", "value").unwrap())
+        };
+        PolicyRuleSnapshot::synthetic_authority_with_projection(
+            format!("policy-{label}"),
+            format!("rules-{label}"),
+            PolicyEpoch::Synthetic(7),
+            mask,
+        )
+    } else {
+        PolicyRuleSnapshot::synthetic_authority(
+            format!("policy-{label}"),
+            format!("rules-{label}"),
+            PolicyEpoch::Synthetic(7),
+        )
+    };
     let tenant = TenantBindingSnapshot::synthetic_direct(
         format!("tenant-{label}"),
         format!("branch-{label}"),

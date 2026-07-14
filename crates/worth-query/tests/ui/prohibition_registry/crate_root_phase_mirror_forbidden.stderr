@@ -1,0 +1,15 @@
+error[E0603]: struct `WorthQueryPreparedContinuation` is private
+ --> tests/ui/prohibition_registry/crate_root_phase_mirror_forbidden.rs:1:18
+  |
+1 | use worth_query::WorthQueryPreparedContinuation;
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private struct
+  |
+note: the struct `WorthQueryPreparedContinuation` is defined here
+ --> src/lib.rs
+  |
+  |     WorthQueryExecutePreparedContinuationRequest, WorthQueryPreparedContinuation,
+  |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: import `WorthQueryPreparedContinuation` directly
+  |
+1 | use worth_query::continuation_pipeline::artifacts::WorthQueryPreparedContinuation;
+  |                  ++++++++++++++++++++++++++++++++++

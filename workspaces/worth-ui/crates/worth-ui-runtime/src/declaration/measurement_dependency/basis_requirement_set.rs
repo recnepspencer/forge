@@ -36,7 +36,10 @@ impl UiDeclaredMeasurementBasisRequirementSet {
     pub fn requires_viewport_extent(&self) -> bool {
         matches!(
             self.basis_source,
-            Some(UiDeclaredMeasurementBasisSource::ScrollViewport)
+            Some(
+                UiDeclaredMeasurementBasisSource::ViewportExtent
+                    | UiDeclaredMeasurementBasisSource::ScrollViewport
+            )
         )
     }
 

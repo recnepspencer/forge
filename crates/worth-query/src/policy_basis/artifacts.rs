@@ -5,8 +5,8 @@ use crate::tenant_basis::{
 };
 
 use super::{
-    BranchAccessGrant, PolicyCostPosture, PolicyEpoch, PolicyTenantAdmissionCounters,
-    PolicyWorkBudget,
+    BranchAccessGrant, PolicyAspectMask, PolicyCostPosture, PolicyEpoch,
+    PolicyTenantAdmissionCounters, PolicyWorkBudget,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -94,6 +94,7 @@ pub struct PolicyBasis {
     disposition: PolicyAdmissionDisposition,
     cost_posture: PolicyCostPosture,
     work_budget: PolicyWorkBudget,
+    projection_mask: Option<PolicyAspectMask>,
 }
 
 impl PolicyBasis {
@@ -104,6 +105,7 @@ impl PolicyBasis {
         disposition: PolicyAdmissionDisposition,
         cost_posture: PolicyCostPosture,
         work_budget: PolicyWorkBudget,
+        projection_mask: Option<PolicyAspectMask>,
     ) -> Self {
         Self {
             identity,
@@ -112,6 +114,7 @@ impl PolicyBasis {
             disposition,
             cost_posture,
             work_budget,
+            projection_mask,
         }
     }
 
@@ -137,6 +140,10 @@ impl PolicyBasis {
 
     pub fn work_budget(&self) -> PolicyWorkBudget {
         self.work_budget
+    }
+
+    pub(crate) fn projection_mask(&self) -> Option<&PolicyAspectMask> {
+        self.projection_mask.as_ref()
     }
 }
 
@@ -307,11 +314,13 @@ pub(crate) fn policy_basis_identity(
     label: &str,
     rule_set_digest: &str,
     epoch: PolicyEpoch,
+    policy_snapshot_digest: &str,
 ) -> PolicyBasisIdentity {
     PolicyBasisIdentity::new(hash_parts(&[
         format!("policy_basis:{label}"),
         format!("rule_set:{rule_set_digest}"),
         format!("epoch:{}", epoch.as_u64()),
+        format!("policy_snapshot:{policy_snapshot_digest}"),
     ]))
 }
 

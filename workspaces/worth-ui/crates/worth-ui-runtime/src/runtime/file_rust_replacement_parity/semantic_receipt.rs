@@ -1,4 +1,4 @@
-use crate::runtime::{WorthUiFileRustReplacementPipelineReport, WorthUiPlanSwapReceipt};
+use crate::runtime::WorthUiFileRustReplacementPipelineReport;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthUiFileRustReplacementSemanticReceipt {
@@ -16,8 +16,7 @@ pub struct WorthUiFileRustReplacementSemanticReceipt {
     rust_lane_support_digest: u64,
     file_lane_parity_reference_digest: Option<u64>,
     rust_lane_parity_reference_digest: Option<u64>,
-    file_swap_receipt: WorthUiPlanSwapReceipt,
-    rust_swap_receipt: WorthUiPlanSwapReceipt,
+    swap_receipts_match: bool,
 }
 
 impl WorthUiFileRustReplacementSemanticReceipt {
@@ -42,8 +41,7 @@ impl WorthUiFileRustReplacementSemanticReceipt {
             rust_lane_support_digest: rust.lane_support_digest(),
             file_lane_parity_reference_digest: file_swap.lane_parity_semantic_reference_digest(),
             rust_lane_parity_reference_digest: rust_swap.lane_parity_semantic_reference_digest(),
-            file_swap_receipt: file_swap,
-            rust_swap_receipt: rust_swap,
+            swap_receipts_match: file_swap == rust_swap,
         }
     }
 
@@ -58,7 +56,7 @@ impl WorthUiFileRustReplacementSemanticReceipt {
     }
 
     pub(crate) fn activation_receipts_match(self) -> bool {
-        self.file_swap_receipt == self.rust_swap_receipt
+        self.swap_receipts_match
             && self.file_reconciliation_basis_digest == self.rust_reconciliation_basis_digest
             && self.file_query_rebind_basis_digest == self.rust_query_rebind_basis_digest
     }
@@ -98,13 +96,5 @@ impl WorthUiFileRustReplacementSemanticReceipt {
 
     pub fn rust_query_rebind_basis_digest(self) -> u64 {
         self.rust_query_rebind_basis_digest
-    }
-
-    pub fn file_swap_receipt(self) -> WorthUiPlanSwapReceipt {
-        self.file_swap_receipt
-    }
-
-    pub fn rust_swap_receipt(self) -> WorthUiPlanSwapReceipt {
-        self.rust_swap_receipt
     }
 }

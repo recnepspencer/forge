@@ -1,8 +1,8 @@
-error[E0432]: unresolved import `worth_query::facade::ParallelAdmissionRoute`
+error[E0432]: unresolved import `worth_query::facade::foundation::ParallelAdmissionRoute`
  --> tests/ui/private_parallel_admission_route_fields.rs:1:5
   |
-1 | use worth_query::facade::ParallelAdmissionRoute;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ParallelAdmissionRoute` in `facade`
+1 | use worth_query::facade::foundation::ParallelAdmissionRoute;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ParallelAdmissionRoute` in `facade::foundation`
 
 warning: unreachable expression
  --> tests/ui/private_parallel_admission_route_fields.rs:6:24

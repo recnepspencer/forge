@@ -63,6 +63,7 @@ pub struct WorthQueryPreviewCloseoutEvidence {
     kind: WorthQueryPreviewCloseoutKind,
     effect_policy: WorthQueryEffectPolicy,
     basis_evidence: Vec<String>,
+    basis_admission_identity: WorthQueryEvidenceIdentity,
     preview_basis_snapshot_identity: WorthQuerySnapshotIdentity,
     target_basis_snapshot_identity: WorthQuerySnapshotIdentity,
     preview_binding_count: usize,
@@ -211,11 +212,13 @@ impl WorthQueryPreviewCloseoutEvidence {
         }
         let closeout_identity = closeout_builder.seal();
         let basis_evidence = basis_admission.evidence();
+        let basis_admission_identity = basis_admission.admission_identity().clone();
         Self {
             session_label: basis_admission.session_label().clone(),
             kind,
             effect_policy,
             basis_evidence,
+            basis_admission_identity,
             preview_basis_snapshot_identity: preview_basis_snapshot_identity.clone(),
             target_basis_snapshot_identity: target_basis_snapshot_identity.clone(),
             preview_binding_count,
@@ -260,6 +263,10 @@ impl WorthQueryPreviewCloseoutEvidence {
 
     pub fn basis_evidence(&self) -> &[String] {
         &self.basis_evidence
+    }
+
+    pub fn basis_admission_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.basis_admission_identity
     }
 
     pub fn preview_basis_snapshot_identity(&self) -> &WorthQuerySnapshotIdentity {

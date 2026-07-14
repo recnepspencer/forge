@@ -8,17 +8,16 @@ use super::{
     WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessAuthorityContext,
     WorthQueryGraphReadAccessShapeExplanationError, WorthQueryGraphReadMaterializationRuntime,
     WorthQueryHandleContract, WorthQueryIntentDeclaration, WorthQueryIntentReceipt,
-    WorthQueryLiveView, WorthQueryLiveViewBuilder, WorthQueryMutationSurfaceReport,
-    WorthQueryPreviewOptions, WorthQueryPreviewSession, WorthQueryReadFamily, WorthQueryRuntime,
-    WorthQueryRuntimeError, WorthQueryRuntimeFacadeFamily, WorthQueryRuntimePublicApiContract,
-    WorthQueryRuntimePublicApiFamilyContract, WorthQueryRuntimePublicSupportMatrix,
-    WorthQueryRuntimeStateSnapshot, WorthQueryRuntimeStateTarget,
-    WorthQueryWorkspaceLiveViewDeclaration,
+    WorthQueryLiveView, WorthQueryLiveViewBuilder, WorthQueryManagedLiveWorkspaceCapability,
+    WorthQueryMutationSurfaceReport, WorthQueryPreviewOptions, WorthQueryPreviewSession,
+    WorthQueryReadFamily, WorthQueryRuntime, WorthQueryRuntimeError, WorthQueryRuntimeFacadeFamily,
+    WorthQueryRuntimePublicApiContract, WorthQueryRuntimePublicApiFamilyContract,
+    WorthQueryRuntimePublicSupportMatrix, WorthQueryRuntimeStateSnapshot,
+    WorthQueryRuntimeStateTarget, WorthQueryWorkspaceLiveViewDeclaration,
 };
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::program::WorthQueryDerivedView;
 use crate::session_label::WorthQuerySessionLabel;
-
 pub struct WorthQueryWorkspace {
     pub(super) name: String,
     pub(super) runtime: WorthQueryRuntime,
@@ -44,8 +43,161 @@ impl WorthQueryWorkspace {
         &self.name
     }
 
+    pub(crate) fn managed_live_capability(
+        &self,
+    ) -> std::sync::Arc<WorthQueryManagedLiveWorkspaceCapability> {
+        self.runtime.managed_live_capability()
+    }
+
+    pub(crate) fn admit_managed_live_capability(
+        &self,
+        capability: &std::sync::Arc<WorthQueryManagedLiveWorkspaceCapability>,
+        resource_name: &str,
+    ) -> Result<(), WorthQueryRuntimeError> {
+        self.runtime
+            .admit_managed_live_capability(capability, resource_name)
+    }
+
     pub fn snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
         self.runtime.current_snapshot_identity()
+    }
+
+    pub(crate) fn capture_branch_comparison_basis(
+        &self,
+        label: WorthQuerySessionLabel,
+    ) -> Result<super::WorthQueryRuntimeBranchComparisonBasis, WorthQueryRuntimeError> {
+        self.runtime.capture_branch_comparison_basis(label)
+    }
+
+    pub(crate) fn capture_ordinary_mutation_authority(
+        &self,
+    ) -> Result<super::WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
+        self.runtime.capture_ordinary_mutation_authority()
+    }
+
+    pub(crate) fn capture_ordinary_preview_authority(
+        &self,
+        label: WorthQuerySessionLabel,
+        effect_policy: super::WorthQueryEffectPolicy,
+    ) -> Result<super::WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
+        self.runtime
+            .capture_ordinary_preview_authority(label, effect_policy)
+    }
+
+    pub(crate) fn capture_ordinary_writeback_authority(
+        &self,
+    ) -> Result<super::WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
+        self.runtime.capture_ordinary_writeback_authority()
+    }
+
+    pub(crate) fn capture_ordinary_merge_authority(
+        &self,
+        target_branch: worth_relational::facade::history::BranchId,
+        source_branch: worth_relational::facade::history::BranchId,
+    ) -> Result<super::WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
+        self.runtime
+            .capture_ordinary_merge_authority(target_branch, source_branch)
+    }
+
+    pub(crate) fn ordinary_authority_drift(
+        &self,
+        admission: &super::WorthQueryOrdinaryAuthorityAdmission,
+    ) -> super::WorthQueryOrdinaryAuthorityDrift {
+        self.runtime.ordinary_authority_drift(admission)
+    }
+
+    pub(crate) fn validate_ordinary_merge_authority(
+        &self,
+        admission: super::WorthQueryOrdinaryAuthorityAdmission,
+    ) -> Result<
+        super::WorthQueryValidatedMergeAuthority,
+        super::WorthQueryMergeAuthorityValidationError,
+    > {
+        self.runtime.validate_ordinary_merge_authority(admission)
+    }
+
+    pub(crate) fn admit_ordinary_rich_inspection(&self) -> Result<(), WorthQueryRuntimeError> {
+        self.runtime.admit_ordinary_rich_inspection()
+    }
+
+    pub(crate) fn materialize_ordinary_inspection(
+        &self,
+        plan: &super::CausalInspectionPlan,
+    ) -> Result<super::QueryCausalInspectionArtifact, super::WorthQueryBackendInspectionError> {
+        self.runtime.materialize_ordinary_inspection(plan)
+    }
+
+    pub(crate) fn execute_ordinary_authoritative_mutation(
+        &mut self,
+        command: super::WorthQueryWriteCommand,
+        materialize_inspection: bool,
+    ) -> Result<super::WorthQueryLowerRuntimeMutationExecution, WorthQueryRuntimeError> {
+        self.runtime
+            .execute_ordinary_authoritative_mutation(command, materialize_inspection)
+    }
+
+    pub(crate) fn execute_ordinary_read_only_preview(
+        &mut self,
+        basis_admission: super::WorthQueryPreviewBasisAdmission,
+        declaration_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
+        materialize_inspection: bool,
+    ) -> Result<super::WorthQueryLowerRuntimePreviewExecution, WorthQueryRuntimeError> {
+        self.runtime.execute_ordinary_read_only_preview(
+            basis_admission,
+            declaration_identity,
+            materialize_inspection,
+        )
+    }
+
+    pub(crate) fn execute_ordinary_preview_promotion(
+        &mut self,
+        basis_admission: super::WorthQueryPreviewBasisAdmission,
+        declaration_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
+        command: super::WorthQueryWriteCommand,
+        materialize_inspection: bool,
+    ) -> Result<super::WorthQueryLowerRuntimePreviewExecution, WorthQueryRuntimeError> {
+        self.runtime.execute_ordinary_preview_promotion(
+            basis_admission,
+            declaration_identity,
+            command,
+            materialize_inspection,
+        )
+    }
+
+    pub(crate) fn execute_ordinary_writeback(
+        &mut self,
+        authority: super::WorthQueryOrdinaryAuthorityAdmission,
+        declaration_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
+        materialize_inspection: bool,
+    ) -> Result<
+        super::WorthQueryLowerRuntimeWritebackExecution,
+        super::WorthQueryOrdinaryWritebackExecutionError,
+    > {
+        self.runtime.execute_ordinary_writeback(
+            authority,
+            declaration_identity,
+            materialize_inspection,
+        )
+    }
+
+    pub(crate) fn execute_ordinary_merge(
+        &mut self,
+        authority: super::WorthQueryValidatedMergeAuthority,
+        declaration_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
+        target_branch: worth_relational::facade::history::BranchId,
+        source_branch: worth_relational::facade::history::BranchId,
+        materialize_inspection: bool,
+    ) -> Result<
+        super::WorthQueryLowerRuntimeMergeExecution,
+        super::WorthQueryOrdinaryMergeExecutionError,
+    > {
+        self.runtime.execute_ordinary_merge(
+            authority,
+            declaration_identity,
+            target_branch,
+            source_branch,
+            materialize_inspection,
+        )
     }
 
     pub fn into_runtime(self) -> WorthQueryRuntime {

@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryBooleanSelectivityBranch, WorthQueryBooleanSelectivityBranchKind,
-    WorthQueryPredicateAnchorPosture, WorthQueryTraversalPredicateOrderingPosture,
-};
+use worth_query::facade::runtime::{WorthQueryBooleanSelectivityBranch, WorthQueryBooleanSelectivityBranchKind, WorthQueryPredicateAnchorPosture, WorthQueryTraversalPredicateOrderingPosture};
 
 fn main() {
     let _ = WorthQueryBooleanSelectivityBranch {

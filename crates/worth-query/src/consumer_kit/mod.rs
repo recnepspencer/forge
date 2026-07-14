@@ -1,10 +1,15 @@
 pub(crate) mod boundary_audit;
+pub(crate) mod capability_grammar;
 pub(crate) mod consumer_residue;
+pub(crate) mod declarative_surface;
+pub(crate) mod downstream_authority_adoption;
 pub(crate) mod evidence_report;
 pub(crate) mod evidence_report_adoption;
 pub(crate) mod graph_obligation_adoption;
 pub(crate) mod graph_read_bypass_audit;
+pub(crate) mod product_boundary_certification;
 pub(crate) mod prohibition_registry;
+pub(crate) mod public_authority_surface;
 pub(crate) mod support_pinning;
 pub(crate) mod support_snapshot;
 pub(crate) mod test_backend;
@@ -23,6 +28,13 @@ pub use boundary_audit::{
     WorthQueryBoundaryAuditSourceSite, WorthQueryBoundaryAuditSyntaxClass,
     WorthQueryHardProhibitionBoundaryAudit,
 };
+pub use capability_grammar::{
+    current_capability_grammar_audit, worth_query_capability_grammar, WorthQueryCapabilityCeremony,
+    WorthQueryCapabilityFacadeNamespace, WorthQueryCapabilityGrammarAudit,
+    WorthQueryCapabilityGrammarFinding, WorthQueryCapabilityGrammarFindingKind,
+    WorthQueryCapabilityGrammarRow, WorthQueryCapabilityOutcomeContract,
+    WorthQueryCapabilityTerminalVocabulary, WorthQueryCapabilityTranscriptOwner,
+};
 pub use consumer_residue::{
     query_consumer_residue_audit, worth_query_consumer_residue_certification_evidence,
     worth_query_consumer_residue_registry, worth_query_test_backend_residue_classes,
@@ -31,6 +43,34 @@ pub use consumer_residue::{
     WorthQueryConsumerResidueFinding, WorthQueryConsumerResidueQueryOwnedRootAuthority,
     WorthQueryConsumerResidueRegistryRow, WorthQueryConsumerResidueReport,
     WorthQueryConsumerResidueSourceInventory, WorthQueryConsumerResidueSourceSite,
+};
+pub use declarative_surface::{
+    audit_consumer_journey_sources, audit_consumer_orchestration_sources,
+    audit_declarative_surface_sources, audit_ordinary_api_snapshot_source_for_certification,
+    audit_reference_consumer_adoption_sources, current_declarative_surface_audit,
+    current_ordinary_api_snapshot_audit, worth_query_consumer_journey_rows,
+    worth_query_declarative_surface_rows, worth_query_reference_consumer_adoption_rows,
+    worth_query_reference_consumer_deleted_residue, WorthQueryConsumerJourneyAudit,
+    WorthQueryConsumerJourneyFinding, WorthQueryConsumerJourneyFindingKind,
+    WorthQueryConsumerJourneyRow, WorthQueryConsumerJourneySource,
+    WorthQueryConsumerOrchestrationAudit, WorthQueryConsumerOrchestrationError,
+    WorthQueryConsumerOrchestrationErrorKind, WorthQueryConsumerOrchestrationFinding,
+    WorthQueryConsumerOrchestrationPhase, WorthQueryConsumerOrchestrationSite,
+    WorthQueryDeclarativeCapabilityFamily, WorthQueryDeclarativePhaseResponsibility,
+    WorthQueryDeclarativeSurfaceAudit, WorthQueryDeclarativeSurfaceClass,
+    WorthQueryDeclarativeSurfaceFinding, WorthQueryDeclarativeSurfaceFindingKind,
+    WorthQueryDeclarativeSurfaceRow, WorthQueryDeclarativeSurfaceSource,
+    WorthQueryDeclarativeSurfaceSourceSite, WorthQueryOrdinaryApiSnapshot,
+    WorthQueryOrdinaryApiSnapshotAudit, WorthQueryOrdinaryApiSnapshotFinding,
+    WorthQueryReferenceConsumerAdoptionAudit, WorthQueryReferenceConsumerAdoptionFinding,
+    WorthQueryReferenceConsumerAdoptionFindingKind, WorthQueryReferenceConsumerAdoptionRow,
+    WorthQueryReferenceConsumerDeletedResidue, WorthQueryReferenceConsumerDxCounters,
+    WorthQueryReferenceConsumerResidueKind, WorthQueryReferenceConsumerSource,
+};
+pub use downstream_authority_adoption::{
+    downstream_authority_adoption, WorthQueryDownstreamAuthorityAdoption,
+    WorthQueryDownstreamAuthorityAdoptionManifest, WorthQueryDownstreamAuthorityAdoptionProof,
+    WorthQueryDownstreamAuthorityDeletionReceipt, WorthQueryDownstreamAuthorityDeletionRow,
 };
 pub use evidence_report::{
     EvidenceReport, EvidenceReportDeclaration, EvidenceReportError, EvidenceReportErrorKind,
@@ -74,6 +114,12 @@ pub use graph_read_bypass_audit::{
     WorthQueryGraphReadBypassResidueErrorKind, WorthQueryGraphReadBypassResidueManifest,
     WorthQueryGraphReadBypassResidueRow,
 };
+pub use product_boundary_certification::{
+    certify_declarative_product_boundary, worth_query_product_boundary_evidence_rows,
+    WorthQueryProductBoundaryCertificationBundle, WorthQueryProductBoundaryCertificationError,
+    WorthQueryProductBoundaryEvidenceKind, WorthQueryProductBoundaryEvidenceRow,
+    WorthQueryProductBoundaryHostileCase, WorthQueryProductBoundarySabotageCase,
+};
 pub use prohibition_registry::{
     hard_prohibition_compile_fail_fixtures, hard_prohibition_documentation_rows,
     hard_prohibition_documented_seam_keys, hard_prohibition_registry,
@@ -81,6 +127,12 @@ pub use prohibition_registry::{
     WorthQueryProhibitedSeam, WorthQueryProhibitionCompileFailFixture,
     WorthQueryProhibitionEnforcementTier, WorthQueryProhibitionRegistry,
     WorthQueryProhibitionRegistryRow,
+};
+pub use public_authority_surface::{
+    audit_public_authority_surface_symbols, worth_query_public_authority_surface_rows,
+    WorthQueryPublicAuthorityOwner, WorthQueryPublicAuthoritySurfaceAudit,
+    WorthQueryPublicAuthoritySurfaceClass, WorthQueryPublicAuthoritySurfaceFinding,
+    WorthQueryPublicAuthoritySurfaceFindingKind, WorthQueryPublicAuthoritySurfaceRow,
 };
 pub use support_pinning::{
     load_support_pin_contract_terminal_json_document, support_pinning_contract,

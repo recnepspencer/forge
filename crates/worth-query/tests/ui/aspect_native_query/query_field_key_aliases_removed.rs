@@ -1,4 +1,4 @@
-use worth_query::facade::QueryFieldKey;
+use worth_query::facade::foundation::QueryFieldKey;
 
 fn main() {
     let key = key_fixture();

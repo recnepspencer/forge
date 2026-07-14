@@ -33,9 +33,9 @@ pub(crate) const AUTHORITATIVE_MUTATION_BATCH_ADVANCED_PATHS: &str =
 pub(crate) const BASIS_OBSERVATION_RAW_ENTRYPOINT: &str =
     "WorthQueryRawIntentAdmissionRequest::basis_observation_lane(...)";
 pub(crate) const BASIS_OBSERVATION_COMMON_PATH: &str =
-    "worth_query_basis_observation_intent(raw).admit()";
+    "worth_query_basis_observation_intent(basis_lifecycle().current_head()).admit()";
 pub(crate) const BASIS_OBSERVATION_ADVANCED_PATH: &str =
-    "worth_query_basis_observation_intent(raw).review()?.admit()";
+    "worth_query_basis_observation_intent(basis_lifecycle().current_head()).review()?.admit()";
 
 pub(crate) const PROJECTION_CONSUMPTION_RAW_ENTRYPOINT: &str =
     "WorthQueryRawIntentAdmissionRequest::projection_consumption(declaration)";

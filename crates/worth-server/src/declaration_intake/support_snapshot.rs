@@ -1,6 +1,5 @@
-use worth_query::facade::{
-    consumer_kit::WorthQuerySupportSnapshotRow, WorthQueryRuntimePublicApiFamilyContract,
-};
+use worth_query::facade::consumer_kit::WorthQuerySupportSnapshotRow;
+use worth_query::facade::runtime::WorthQueryRuntimePublicApiFamilyContract;
 
 use super::{
     WorthServerDirectDeclaration, WorthServerDirectDeclarationSourceKind,

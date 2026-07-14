@@ -1,4 +1,4 @@
-use worth_query::facade::{ActiveAllocationScopeWidth, ActiveSubscriptionAllocationPolicy, ActiveSubscriptionWorkBudget, ActiveRegistryLookupWidth};
+use worth_query::facade::runtime::{ActiveAllocationScopeWidth, ActiveSubscriptionAllocationPolicy, ActiveSubscriptionWorkBudget, ActiveRegistryLookupWidth};
 
 fn main() {
     let _ = ActiveSubscriptionWorkBudget::admitted(

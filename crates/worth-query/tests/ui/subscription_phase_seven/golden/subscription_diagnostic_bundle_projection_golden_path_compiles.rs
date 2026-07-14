@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    DiagnosticAssemblyReceipt, QuerySubscriptionDiagnosticBundleWidth,
-    QuerySubscriptionDiagnosticSemanticLabels,
-};
+use worth_query::facade::runtime::{DiagnosticAssemblyReceipt, QuerySubscriptionDiagnosticBundleWidth, QuerySubscriptionDiagnosticSemanticLabels};
 
 fn bundle_width_projection_golden_path(width: &QuerySubscriptionDiagnosticBundleWidth) {
     let _ = width.bundle_width_projection().label();

@@ -333,6 +333,9 @@ fn constraint_modifier_digest(modifier: Option<UiDeclaredMeasurementConstraintMo
 
 fn basis_source_digest(source: Option<UiDeclaredMeasurementBasisSource>) -> u64 {
     match source {
+        Some(UiDeclaredMeasurementBasisSource::ViewportExtent) => {
+            stable_text_digest("worth-ui.operator-contract.basis.viewport-extent")
+        }
         Some(UiDeclaredMeasurementBasisSource::ScrollViewport) => {
             stable_text_digest("worth-ui.operator-contract.basis.scroll-viewport")
         }

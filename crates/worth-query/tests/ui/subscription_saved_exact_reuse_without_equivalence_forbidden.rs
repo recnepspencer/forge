@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    declare_query_subscription, QuerySubscriptionSliceBudget, SavedQueryArtifact,
-};
+use worth_query::facade::runtime::{declare_query_subscription, QuerySubscriptionSliceBudget, SavedQueryArtifact};
 
 fn main() {
     let saved = Option::<SavedQueryArtifact>::None.unwrap();

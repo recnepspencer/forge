@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    FocusedInspectorAspectPatchArtifact, ViewShapeDeliveryMetadata, ViewShapeDescriptor,
-};
+use worth_query::facade::runtime::{FocusedInspectorAspectPatchArtifact, ViewShapeDeliveryMetadata, ViewShapeDescriptor};
 
 fn main() {
     let descriptor = ViewShapeDescriptor::terminal_inspector_detail_focused("profile");

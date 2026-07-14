@@ -1,15 +1,15 @@
 error[E0271]: type mismatch resolving `<SplitEdgeFamily as WorthQueryDeclarationFamilyMarker<GeometryDomain>>::SignalCompatibility == WorthQuerySignalCompatiblePosture`
-  --> tests/ui/domain_declaration/boundaries/contracts/non_signal_compatible_family_cannot_use_signal_compatibility_common_lane.rs:79:57
+  --> tests/ui/domain_declaration/boundaries/contracts/non_signal_compatible_family_cannot_use_signal_compatibility_common_lane.rs:72:57
    |
-79 |     let _ = handle.signal_compatibility_from_progressed(progressed);
+72 |     let _ = handle.signal_compatibility_from_progressed(progressed);
    |                    ------------------------------------ ^^^^^^^^^^ type mismatch resolving `<SplitEdgeFamily as WorthQueryDeclarationFamilyMarker<GeometryDomain>>::SignalCompatibility == WorthQuerySignalCompatiblePosture`
    |                    |
    |                    required by a bound introduced by this call
    |
 note: expected this to be `WorthQuerySignalCompatiblePosture`
-  --> tests/ui/domain_declaration/boundaries/contracts/non_signal_compatible_family_cannot_use_signal_compatibility_common_lane.rs:41:32
+  --> tests/ui/domain_declaration/boundaries/contracts/non_signal_compatible_family_cannot_use_signal_compatibility_common_lane.rs:34:32
    |
-41 |     type SignalCompatibility = WorthQuerySignalNotCompatiblePosture;
+34 |     type SignalCompatibility = WorthQuerySignalNotCompatiblePosture;
    |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: required for `SplitEdgeFamily` to implement `WorthQueryDeclarationSupportsSignalCompatibility<GeometryDomain>`
 note: required by a bound in `worth_query::application::domain_handle::admitted_handle::signal_compatibility::<impl WorthQueryAdmittedConfiguredDomainHandle<D, C>>::signal_compatibility_from_progressed`

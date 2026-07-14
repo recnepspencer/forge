@@ -1,4 +1,4 @@
-use worth_query::facade::{BasisEligibilityCounters, ScopedObservationBasis};
+use worth_query::facade::foundation::{BasisEligibilityCounters, ScopedObservationBasis};
 
 fn counters() -> BasisEligibilityCounters {
     unimplemented!()

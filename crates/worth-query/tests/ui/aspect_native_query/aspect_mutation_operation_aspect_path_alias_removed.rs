@@ -1,5 +1,5 @@
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{WorthQueryAspectMutationOperation, WorthQueryAspectTouch};
+use worth_query::facade::runtime::{WorthQueryAspectMutationOperation, WorthQueryAspectTouch};
 
 fn main() {
     let operation =

@@ -1,4 +1,4 @@
-use worth_query::facade::BasisResolutionMode;
+use worth_query::facade::foundation::BasisResolutionMode;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 use worth_ui_query_binding::{
     WorthUiQueryBindingSubsystem, WorthUiQueryMeasurementFactFamily,
@@ -33,15 +33,11 @@ pub struct UiProjectionFactObservation {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiProjectionFactReceipt {
+    query_authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+    authority_index_key: worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
     declaration_identity: UiDeclarationIdentity,
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
-    query_basis_digest: Box<str>,
     query_resolution_mode: BasisResolutionMode,
-    projection_contract_digest: Box<str>,
-    projection_consumption_declaration_digest: Box<str>,
-    projection_consumption_receipt_digest: Box<str>,
-    projection_fact_set_digest: Box<str>,
-    projection_source_identity: Box<str>,
     required_measurement_dependencies: Box<[UiDeclaredMeasurementEvidenceRequirement]>,
     required_query_fact_families: Box<[WorthUiQueryMeasurementFactFamily]>,
     required_query_fact_family_set_digest: u64,
@@ -78,6 +74,15 @@ impl UiProjectionFactObservation {
 }
 
 impl UiProjectionFactReceipt {
+    pub(crate) fn query_authority(&self) -> &worth_ui_query_binding::WorthUiQueryAuthorityHandle {
+        &self.query_authority
+    }
+
+    pub(crate) fn authority_index_key(
+        &self,
+    ) -> &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey {
+        &self.authority_index_key
+    }
     pub fn declaration_identity(&self) -> &UiDeclarationIdentity {
         &self.declaration_identity
     }
@@ -87,7 +92,11 @@ impl UiProjectionFactReceipt {
     }
 
     pub fn query_basis_digest(&self) -> &str {
-        &self.query_basis_digest
+        self.query_authority
+            .authority()
+            .contract()
+            .basis_digest()
+            .unwrap_or_default()
     }
 
     pub fn query_resolution_mode(&self) -> &BasisResolutionMode {
@@ -95,23 +104,29 @@ impl UiProjectionFactReceipt {
     }
 
     pub fn projection_contract_digest(&self) -> &str {
-        &self.projection_contract_digest
+        self.query_authority
+            .authority()
+            .contract()
+            .contract_digest()
     }
 
     pub fn projection_consumption_declaration_digest(&self) -> &str {
-        &self.projection_consumption_declaration_digest
+        self.query_authority
+            .authority()
+            .receipt()
+            .declaration_digest()
     }
 
     pub fn projection_consumption_receipt_digest(&self) -> &str {
-        &self.projection_consumption_receipt_digest
+        self.query_authority.authority().receipt().receipt_digest()
     }
 
     pub fn projection_fact_set_digest(&self) -> &str {
-        &self.projection_fact_set_digest
+        self.query_authority.authority().receipt().fact_set_digest()
     }
 
     pub fn projection_source_identity(&self) -> &str {
-        &self.projection_source_identity
+        self.query_authority.authority().source_identity().as_str()
     }
 
     pub fn required_measurement_dependencies(&self) -> &[UiDeclaredMeasurementEvidenceRequirement] {
@@ -148,13 +163,13 @@ pub fn consume_declared_measurement_projection_facts(
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
     measurement_policy: &UiDeclaredMeasurementPolicyPosture,
     query_prerequisites: WorthUiQueryPrerequisiteEvidence,
-    consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+    query_authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
 ) -> Result<UiProjectionFactReceipt, UiProjectionFactReceiptDenial> {
     let dependencies = declared_query_measurement_dependencies(measurement_policy)
         .ok_or(UiProjectionFactReceiptDenial::NoQueryMeasurementDependencies)?;
     let query_receipt = WorthUiQueryBindingSubsystem::bootstrap()
         .prerequisites()
-        .measurement_fact_receipt_from_projection_consumption(query_prerequisites, consumption)
+        .measurement_fact_receipt_from_query_authority(query_prerequisites, query_authority.clone())
         .map_err(UiProjectionFactReceiptDenial::QueryFactReceipt)?;
     admit_declared_measurement_projection_fact_receipt(
         declaration_identity,
@@ -208,6 +223,8 @@ fn receipt_from_query_fact_receipt(
     dependencies: UiDeclaredMeasurementQueryDependencySet,
     query_receipt: WorthUiQueryMeasurementFactReceipt,
 ) -> UiProjectionFactReceipt {
+    let query_authority = query_receipt.query_authority().clone();
+    let authority_index_key = query_receipt.authority_index_key().clone();
     let required_query_fact_family_set_digest =
         query_measurement_fact_family_set_digest(dependencies.fact_families());
     let consumed_fact_family_set_digest =
@@ -223,28 +240,15 @@ fn receipt_from_query_fact_receipt(
         |digest, observation| digest ^ observation.identity_digest().rotate_left(17),
     );
     UiProjectionFactReceipt {
+        query_authority,
+        authority_index_key,
         declaration_identity,
         declaration_support_authority_generation,
-        query_basis_digest: query_receipt
-            .prerequisites()
-            .resolution_report()
-            .basis_digest()
-            .as_str()
-            .into(),
         query_resolution_mode: query_receipt
             .prerequisites()
             .resolution_report()
             .resolution_mode()
             .clone(),
-        projection_contract_digest: query_receipt.projection_contract_digest().into(),
-        projection_consumption_declaration_digest: query_receipt
-            .projection_consumption_declaration_digest()
-            .into(),
-        projection_consumption_receipt_digest: query_receipt
-            .projection_consumption_receipt_digest()
-            .into(),
-        projection_fact_set_digest: query_receipt.projection_fact_set_digest().into(),
-        projection_source_identity: query_receipt.projection_source_identity().into(),
         required_measurement_dependencies: dependencies
             .required_measurement_dependencies()
             .to_vec()

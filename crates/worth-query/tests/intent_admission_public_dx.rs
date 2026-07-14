@@ -1,6 +1,6 @@
-use worth_query::facade::{
-    worth_query_basis_observation_intent, worth_query_projection_consumption_intent,
-    AdmittedQueryBasisContext, ProjectionConsumptionDeclaration, RawBasisIntent,
+use worth_query::facade::foundation::{basis_lifecycle, worth_query_basis_observation_intent};
+use worth_query::facade::policy::ScopedQueryBasisContext;
+use worth_query::facade::runtime::{
     WorthQueryBatchWriteReceipt, WorthQueryEffectHandle, WorthQueryEffectIntentReceipt,
     WorthQueryExistingTruthProbeRequest, WorthQueryExistingTruthProbeResult,
     WorthQueryExistingTruthTargetBinding, WorthQueryIntentAdmissionDecision,
@@ -179,21 +179,12 @@ fn consumer_lane_typecheck(
 }
 
 fn basis_observation_common_path_compiles() {
-    let admitted = worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)
+    let admitted = worth_query_basis_observation_intent(basis_lifecycle().current_head())
         .unwrap()
         .admit()
         .unwrap();
     let _ = admitted.plan().execution_seam();
     let _ = admitted.scope();
-}
-
-fn projection_consumption_common_path_compiles(declaration: ProjectionConsumptionDeclaration) {
-    let admitted = worth_query_projection_consumption_intent(declaration)
-        .unwrap()
-        .admit()
-        .unwrap();
-    let _ = admitted.plan().execution_seam();
-    let _ = admitted.bind_contract();
 }
 
 fn read_family_common_path_compiles(
@@ -228,7 +219,7 @@ fn read_family_advanced_path_compiles(
 fn read_family_in_basis_context_common_path_compiles(
     workspace: &mut WorthQueryWorkspace,
     family: &WorthQueryReadFamily,
-    context: &AdmittedQueryBasisContext,
+    context: &ScopedQueryBasisContext,
 ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
     let result = workspace
         .read_family_in_basis_context_intent(family, context)
@@ -244,7 +235,7 @@ fn read_family_in_basis_context_common_path_compiles(
 fn read_family_in_basis_context_advanced_path_compiles(
     workspace: &mut WorthQueryWorkspace,
     family: &WorthQueryReadFamily,
-    context: &AdmittedQueryBasisContext,
+    context: &ScopedQueryBasisContext,
 ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
     let review = workspace
         .read_family_in_basis_context_intent(family, context)
@@ -262,8 +253,8 @@ fn read_family_in_basis_context_advanced_path_compiles(
 
 fn live_read_common_path_compiles<T>(
     workspace: &mut WorthQueryWorkspace,
-    live_view: &worth_query::facade::WorthQueryLiveView<T>,
-) -> Result<worth_query::facade::WorthQueryLiveReadResult, WorthQueryRuntimeError> {
+    live_view: &worth_query::facade::runtime::WorthQueryLiveView<T>,
+) -> Result<worth_query::facade::runtime::WorthQueryLiveReadResult, WorthQueryRuntimeError> {
     let result = workspace.read_live_intent(live_view).execute()?;
     let _ = result
         .receipt()
@@ -276,8 +267,8 @@ fn live_read_common_path_compiles<T>(
 
 fn live_read_advanced_path_compiles<T>(
     workspace: &mut WorthQueryWorkspace,
-    live_view: &worth_query::facade::WorthQueryLiveView<T>,
-) -> Result<worth_query::facade::WorthQueryLiveReadResult, WorthQueryRuntimeError> {
+    live_view: &worth_query::facade::runtime::WorthQueryLiveView<T>,
+) -> Result<worth_query::facade::runtime::WorthQueryLiveReadResult, WorthQueryRuntimeError> {
     let review = workspace.read_live_intent(live_view).review()?;
     let _ = review.request().request_digest();
     let _ = review.eligibility().eligibility_digest();
@@ -292,8 +283,11 @@ fn live_read_advanced_path_compiles<T>(
 
 fn derived_materialization_common_path_compiles<T>(
     workspace: &mut WorthQueryWorkspace,
-    derived_view: &worth_query::facade::WorthQueryDerivedViewHandle<T>,
-) -> Result<worth_query::facade::WorthQueryDerivedMaterializationResult, WorthQueryRuntimeError> {
+    derived_view: &worth_query::facade::runtime::WorthQueryDerivedViewHandle<T>,
+) -> Result<
+    worth_query::facade::runtime::WorthQueryDerivedMaterializationResult,
+    WorthQueryRuntimeError,
+> {
     let result = workspace.materialize_intent(derived_view).execute()?;
     let _ = result
         .receipt()
@@ -306,8 +300,11 @@ fn derived_materialization_common_path_compiles<T>(
 
 fn derived_materialization_advanced_path_compiles<T>(
     workspace: &mut WorthQueryWorkspace,
-    derived_view: &worth_query::facade::WorthQueryDerivedViewHandle<T>,
-) -> Result<worth_query::facade::WorthQueryDerivedMaterializationResult, WorthQueryRuntimeError> {
+    derived_view: &worth_query::facade::runtime::WorthQueryDerivedViewHandle<T>,
+) -> Result<
+    worth_query::facade::runtime::WorthQueryDerivedMaterializationResult,
+    WorthQueryRuntimeError,
+> {
     let review = workspace.materialize_intent(derived_view).review()?;
     let _ = review.request().request_digest();
     let _ = review.eligibility().eligibility_digest();
@@ -322,8 +319,9 @@ fn derived_materialization_advanced_path_compiles<T>(
 
 fn derived_inspection_common_path_compiles<T>(
     workspace: &mut WorthQueryWorkspace,
-    derived_view: &worth_query::facade::WorthQueryDerivedViewHandle<T>,
-) -> Result<worth_query::facade::WorthQueryDerivedInspectionResult, WorthQueryRuntimeError> {
+    derived_view: &worth_query::facade::runtime::WorthQueryDerivedViewHandle<T>,
+) -> Result<worth_query::facade::runtime::WorthQueryDerivedInspectionResult, WorthQueryRuntimeError>
+{
     let result = workspace.inspect_derived_intent(derived_view).execute()?;
     let _ = result
         .receipt()
@@ -336,8 +334,9 @@ fn derived_inspection_common_path_compiles<T>(
 
 fn derived_inspection_advanced_path_compiles<T>(
     workspace: &mut WorthQueryWorkspace,
-    derived_view: &worth_query::facade::WorthQueryDerivedViewHandle<T>,
-) -> Result<worth_query::facade::WorthQueryDerivedInspectionResult, WorthQueryRuntimeError> {
+    derived_view: &worth_query::facade::runtime::WorthQueryDerivedViewHandle<T>,
+) -> Result<worth_query::facade::runtime::WorthQueryDerivedInspectionResult, WorthQueryRuntimeError>
+{
     let review = workspace.inspect_derived_intent(derived_view).review()?;
     let _ = review.request().request_digest();
     let _ = review.eligibility().eligibility_digest();
@@ -352,8 +351,9 @@ fn derived_inspection_advanced_path_compiles<T>(
 
 fn generic_inspection_common_path_compiles<T>(
     workspace: &WorthQueryWorkspace,
-    live_view: &worth_query::facade::WorthQueryLiveView<T>,
-) -> Result<worth_query::facade::WorthQueryUnifiedInspectionResult, WorthQueryRuntimeError> {
+    live_view: &worth_query::facade::runtime::WorthQueryLiveView<T>,
+) -> Result<worth_query::facade::runtime::WorthQueryUnifiedInspectionResult, WorthQueryRuntimeError>
+{
     let result = workspace.inspect_intent(live_view).execute()?;
     let _ = result
         .receipt()
@@ -366,8 +366,9 @@ fn generic_inspection_common_path_compiles<T>(
 
 fn generic_inspection_advanced_path_compiles<T>(
     workspace: &WorthQueryWorkspace,
-    live_view: &worth_query::facade::WorthQueryLiveView<T>,
-) -> Result<worth_query::facade::WorthQueryUnifiedInspectionResult, WorthQueryRuntimeError> {
+    live_view: &worth_query::facade::runtime::WorthQueryLiveView<T>,
+) -> Result<worth_query::facade::runtime::WorthQueryUnifiedInspectionResult, WorthQueryRuntimeError>
+{
     let review = workspace.inspect_intent(live_view).review()?;
     let _ = review.request().request_digest();
     let _ = review.eligibility().eligibility_digest();
@@ -425,7 +426,10 @@ fn existing_truth_probe_advanced_path_compiles(
 
 fn existing_truth_probe_request_typecheck(
     binding: WorthQueryExistingTruthTargetBinding,
-) -> Result<WorthQueryExistingTruthProbeRequest, worth_query::facade::WorthQueryWorkspaceError> {
+) -> Result<
+    WorthQueryExistingTruthProbeRequest,
+    worth_query::facade::foundation::WorthQueryWorkspaceError,
+> {
     WorthQueryExistingTruthProbeRequest::new(binding, [touch("identity.id")])
 }
 
@@ -484,7 +488,6 @@ fn public_dx_signatures_are_referenced() {
     let _ = consumer_lane_typecheck
         as fn(&WorthQueryIntentReceipt) -> WorthQueryIntentConsumerOutcomeClass;
     let _ = basis_observation_common_path_compiles as fn();
-    let _ = projection_consumption_common_path_compiles as fn(ProjectionConsumptionDeclaration);
     let _ = read_family_common_path_compiles
         as fn(
             &mut WorthQueryWorkspace,
@@ -499,72 +502,76 @@ fn public_dx_signatures_are_referenced() {
         as fn(
             &mut WorthQueryWorkspace,
             &WorthQueryReadFamily,
-            &AdmittedQueryBasisContext,
+            &ScopedQueryBasisContext,
         ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError>;
     let _ = read_family_in_basis_context_advanced_path_compiles
         as fn(
             &mut WorthQueryWorkspace,
             &WorthQueryReadFamily,
-            &AdmittedQueryBasisContext,
+            &ScopedQueryBasisContext,
         ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError>;
     let _ = live_read_common_path_compiles::<WorthQueryNativeRow>
         as fn(
             &mut WorthQueryWorkspace,
-            &worth_query::facade::WorthQueryLiveView<WorthQueryNativeRow>,
-        )
-            -> Result<worth_query::facade::WorthQueryLiveReadResult, WorthQueryRuntimeError>;
+            &worth_query::facade::runtime::WorthQueryLiveView<WorthQueryNativeRow>,
+        ) -> Result<
+            worth_query::facade::runtime::WorthQueryLiveReadResult,
+            WorthQueryRuntimeError,
+        >;
     let _ = live_read_advanced_path_compiles::<WorthQueryNativeRow>
         as fn(
             &mut WorthQueryWorkspace,
-            &worth_query::facade::WorthQueryLiveView<WorthQueryNativeRow>,
-        )
-            -> Result<worth_query::facade::WorthQueryLiveReadResult, WorthQueryRuntimeError>;
+            &worth_query::facade::runtime::WorthQueryLiveView<WorthQueryNativeRow>,
+        ) -> Result<
+            worth_query::facade::runtime::WorthQueryLiveReadResult,
+            WorthQueryRuntimeError,
+        >;
     let _ = derived_materialization_common_path_compiles::<WorthQueryNativeRow>
         as fn(
             &mut WorthQueryWorkspace,
-            &worth_query::facade::WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+            &worth_query::facade::runtime::WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
         ) -> Result<
-            worth_query::facade::WorthQueryDerivedMaterializationResult,
+            worth_query::facade::runtime::WorthQueryDerivedMaterializationResult,
             WorthQueryRuntimeError,
         >;
     let _ = derived_materialization_advanced_path_compiles::<WorthQueryNativeRow>
         as fn(
             &mut WorthQueryWorkspace,
-            &worth_query::facade::WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+            &worth_query::facade::runtime::WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
         ) -> Result<
-            worth_query::facade::WorthQueryDerivedMaterializationResult,
+            worth_query::facade::runtime::WorthQueryDerivedMaterializationResult,
             WorthQueryRuntimeError,
         >;
     let _ = derived_inspection_common_path_compiles::<WorthQueryNativeRow>
         as fn(
             &mut WorthQueryWorkspace,
-            &worth_query::facade::WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+            &worth_query::facade::runtime::WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
         ) -> Result<
-            worth_query::facade::WorthQueryDerivedInspectionResult,
+            worth_query::facade::runtime::WorthQueryDerivedInspectionResult,
             WorthQueryRuntimeError,
         >;
     let _ = derived_inspection_advanced_path_compiles::<WorthQueryNativeRow>
         as fn(
             &mut WorthQueryWorkspace,
-            &worth_query::facade::WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+            &worth_query::facade::runtime::WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
         ) -> Result<
-            worth_query::facade::WorthQueryDerivedInspectionResult,
+            worth_query::facade::runtime::WorthQueryDerivedInspectionResult,
             WorthQueryRuntimeError,
         >;
     let _ = generic_inspection_common_path_compiles::<WorthQueryNativeRow>
         as fn(
             &WorthQueryWorkspace,
-            &worth_query::facade::WorthQueryLiveView<WorthQueryNativeRow>,
+            &worth_query::facade::runtime::WorthQueryLiveView<WorthQueryNativeRow>,
         ) -> Result<
-            worth_query::facade::WorthQueryUnifiedInspectionResult,
+            worth_query::facade::runtime::WorthQueryUnifiedInspectionResult,
             WorthQueryRuntimeError,
         >;
     let _ = generic_inspection_advanced_path_compiles::<WorthQueryNativeRow>
         as fn(
             &WorthQueryWorkspace,
-            &worth_query::facade::WorthQueryLiveView<WorthQueryNativeRow>,
+            &worth_query::facade::runtime::WorthQueryLiveView<WorthQueryNativeRow>,
         ) -> Result<
-            worth_query::facade::WorthQueryUnifiedInspectionResult,
+            worth_query::facade::runtime::WorthQueryUnifiedInspectionResult,
             WorthQueryRuntimeError,
         >;
     let _ = existing_truth_probe_common_path_compiles
@@ -587,6 +594,6 @@ fn public_dx_signatures_are_referenced() {
             WorthQueryExistingTruthTargetBinding,
         ) -> Result<
             WorthQueryExistingTruthProbeRequest,
-            worth_query::facade::WorthQueryWorkspaceError,
+            worth_query::facade::foundation::WorthQueryWorkspaceError,
         >;
 }

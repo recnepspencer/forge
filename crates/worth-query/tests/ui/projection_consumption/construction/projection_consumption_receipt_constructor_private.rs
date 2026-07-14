@@ -1,11 +1,11 @@
-use worth_query::facade::{ProjectionConsumptionReceipt, ProjectionContractSupportPosture};
+use worth_query::facade::foundation::{ProjectionConsumptionReceipt, ProjectionContractSupportPosture};
 
 fn main() {
     let _ = ProjectionConsumptionReceipt {
         declaration_digest: String::new(),
         contract_digest: String::new(),
         fact_set_digest: String::new(),
-        source_family: worth_query::facade::ProjectionSourceFamily::RelationalRowSet,
+        source_family: worth_query::facade::foundation::ProjectionSourceFamily::RelationalRowSet,
         source_identity: String::new(),
         support_posture: ProjectionContractSupportPosture::Admitted,
         admitted_fact_family_count: 0,

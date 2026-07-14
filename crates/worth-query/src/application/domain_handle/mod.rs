@@ -10,8 +10,10 @@ mod validation;
 pub use admitted_handle::{
     WorthQueryAdmittedConfiguredDomainHandle, WorthQueryDeclarationEntryProgressionError,
 };
-pub(crate) use admitted_world_basis::compose_admitted_configured_domain_handle_identity;
 pub use admitted_world_basis::WorthQueryAdmittedWorldBasis;
+pub(crate) use admitted_world_basis::{
+    compose_admitted_configured_domain_handle_identity, compose_basis_lifecycle_support_identity,
+};
 pub use checked_outcome::{
     WorthQueryConfiguredDomainHandleAdmissionError, WorthQueryConfiguredDomainHandleChecked,
     WorthQueryConfiguredDomainHandleDeferred, WorthQueryConfiguredDomainHandleInvalidContext,

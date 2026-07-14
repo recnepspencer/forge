@@ -1,4 +1,4 @@
-use worth_query::facade::{QueryDeliveryWindow, SubscriptionConsumerAttachment};
+use worth_query::facade::runtime::{QueryDeliveryWindow, SubscriptionConsumerAttachment};
 
 fn delivery_projection_golden_path(
     window: &QueryDeliveryWindow,

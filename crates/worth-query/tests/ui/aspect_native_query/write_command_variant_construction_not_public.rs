@@ -1,6 +1,5 @@
-use worth_query::facade::{
-    WorthQueryEntityIdentity, WorthQueryWriteCommand, QueryExternalIdentityToken,
-};
+use worth_query::facade::foundation::{WorthQueryEntityIdentity, QueryExternalIdentityToken};
+use worth_query::facade::runtime::WorthQueryWriteCommand;
 use std::sync::Arc;
 
 fn main() {

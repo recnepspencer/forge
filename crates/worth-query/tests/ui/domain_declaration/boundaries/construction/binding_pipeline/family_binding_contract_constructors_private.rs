@@ -1,8 +1,4 @@
-use worth_query::facade::{
-    WorthQueryBindingSourceKind, WorthQueryBindingSpecificity, WorthQueryDeclarationAspectContract,
-    WorthQueryFamilyBindingContract, WorthQueryFamilyContextExtractorContract,
-    WorthQueryFamilyTargetResolverContract,
-};
+use worth_query::facade::foundation::{WorthQueryBindingSourceKind, WorthQueryBindingSpecificity, WorthQueryDeclarationAspectContract, WorthQueryFamilyBindingContract, WorthQueryFamilyContextExtractorContract, WorthQueryFamilyTargetResolverContract};
 
 fn main() {
     let contract = WorthQueryDeclarationAspectContract::empty();

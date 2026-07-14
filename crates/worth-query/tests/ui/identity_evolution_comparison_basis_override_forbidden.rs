@@ -1,4 +1,4 @@
-use worth_query::facade::{AdmittedIdentityEvolutionQuery, IdentityEvolutionComparisonBasisFamily};
+use worth_query::facade::foundation::{AdmittedIdentityEvolutionQuery, IdentityEvolutionComparisonBasisFamily};
 
 fn main() {
     let _: fn(&mut AdmittedIdentityEvolutionQuery, IdentityEvolutionComparisonBasisFamily) =

@@ -27,9 +27,6 @@ use super::super::consumed::ConsumedProjectionFactSet;
 use super::super::contracts::MaterializedProjectionContract;
 use super::super::envelope::SelfDescribingProjectionConsumptionEnvelope;
 use super::super::receipt::ProjectionConsumptionReceipt;
-use super::super::source::{
-    ProjectionSourceCapabilityProfile, ProjectionSourceExecutionPosture, ProjectionSourceFamily,
-};
 use super::grouped_projection_contract::grouped_projection_contract;
 
 const QUERY_DIGEST: &str = "query:projection_consumption_certification";
@@ -62,6 +59,15 @@ impl ProjectionConsumptionCertifiedLifecycle {
 
     pub fn envelope(&self) -> &SelfDescribingProjectionConsumptionEnvelope {
         &self.envelope
+    }
+
+    pub(super) fn into_completed(self) -> super::super::CompletedProjectionFactConsumption {
+        super::super::CompletedProjectionFactConsumption::certification(
+            self.declaration,
+            self.contract,
+            self.facts,
+            self.receipt,
+        )
     }
 }
 
@@ -329,84 +335,12 @@ fn aspect_value(value: AspectValue) -> AspectValue {
     encode_snapshot_aspect_read_value(&value)
 }
 
-pub(crate) fn intent_admission_admitted_projection_declaration() -> ProjectionConsumptionDeclaration
-{
-    declare_projection_consumption(
-        ProjectionConsumptionSource::intent_admission_certification(
-            ProjectionSourceFamily::QueryReadReceipt,
-            ProjectionSourceCapabilityProfile::QueryReadReceipt {
-                execution_posture: ProjectionSourceExecutionPosture::Current,
-            },
-            Some("query-digest".to_string()),
-            Some("basis-digest".to_string()),
-            Some("result-digest".to_string()),
-            Some("shape-digest".to_string()),
-            "query-read:certification-admitted",
-            Vec::new(),
-        ),
-        intent_admission_projection_binding("query-read:certification-admitted"),
-        ProjectMaterializedFacts::declare().display_field_path(
-            crate::projection_consumption::projection_fact_field_path_from_segments([
-                worth_foundational::facade::FieldKey::new("field")
-                    .expect("projection fact field segment should admit"),
-                worth_foundational::facade::FieldKey::new("visible")
-                    .expect("projection fact field segment should admit"),
-            ]),
-        ),
-    )
-    .expect("intent-admission admitted projection declaration should build")
-}
-
-pub(crate) fn intent_admission_warning_projection_declaration() -> ProjectionConsumptionDeclaration
-{
-    declare_projection_consumption(
-        ProjectionConsumptionSource::intent_admission_certification(
-            ProjectionSourceFamily::QueryContextExecution,
-            ProjectionSourceCapabilityProfile::QueryContextExecution {
-                execution_posture: ProjectionSourceExecutionPosture::Current,
-            },
-            Some("query-digest".to_string()),
-            Some("basis-digest".to_string()),
-            Some("result-digest".to_string()),
-            Some("shape-digest".to_string()),
-            "query-context:certification-warning",
-            Vec::new(),
-        ),
-        intent_admission_projection_binding("query-context:certification-warning"),
-        ProjectMaterializedFacts::declare().display_field_path(
-            crate::projection_consumption::projection_fact_field_path_from_segments([
-                worth_foundational::facade::FieldKey::new("field")
-                    .expect("projection fact field segment should admit"),
-                worth_foundational::facade::FieldKey::new("visible")
-                    .expect("projection fact field segment should admit"),
-            ]),
-        ),
-    )
-    .expect("intent-admission warning projection declaration should build")
-}
-
-fn intent_admission_projection_binding(
-    source_identity: &str,
-) -> ProjectionConsumptionBindingContext {
-    ProjectionConsumptionBindingContext::intent_admission_certification_binding(
-        "shape-digest",
-        "query-digest",
-        "shape-digest",
-        source_identity,
-        "narrowed-shape-digest",
-        "policy-digest",
-        "tenant-schema-digest",
-        vec![field_path(&"field.visible")],
-    )
-}
-
 fn field_path(field: &&str) -> crate::authorized_projection::AuthorizedProjectionFieldPath {
-    let Some((aspect, field)) = field.split_once('.') else {
-        panic!("certification field path should include an aspect and field");
-    };
+    let (aspect, field) = field
+        .split_once('.')
+        .expect("certification field path must include aspect and field");
     crate::authorized_projection::AuthorizedProjectionFieldPath::from_native_keys(
-        AspectKey::new(aspect.to_string())
-            .expect("certification aspect key should be foundational"),
-        FieldKey::new(field.to_string()).expect("certification field key should be foundational"),
+        AspectKey::new(aspect).expect("certification aspect key should be foundational"),
+        FieldKey::new(field).expect("certification field key should be foundational"),
     )
 }

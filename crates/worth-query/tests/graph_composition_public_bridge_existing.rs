@@ -1,5 +1,5 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryContinuityMutationFamily, WorthQueryContinuityPriorAuthorityLabel,
     WorthQueryContinuitySuccessorAuthorityLabel, WorthQueryExistingRelationTarget,
     WorthQueryExistingTruthAssertionMode, WorthQueryExistingTruthBindingAuthorityLabel,
@@ -15,8 +15,8 @@ mod support;
 use support::aspect_touch as touch;
 use support::public_bridge_runtime::{public_graph_support_profile, PublicBridgeRuntimeHarness};
 
-fn public_multi_verified_relation_profile() -> worth_query::facade::WorthQueryRuntimeSupportProfile
-{
+fn public_multi_verified_relation_profile(
+) -> worth_query::facade::runtime::WorthQueryRuntimeSupportProfile {
     ["update_existing_verified", "delete_existing_verified"]
         .into_iter()
         .fold(
@@ -90,18 +90,28 @@ fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle()
             |q| {
                 q.from("TaskRelation")
                     .select([
-                        worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                            .unwrap(),
-                        worth_query::facade::AspectFieldKey::from_authoring_parts("kind", "value")
-                            .unwrap(),
-                        worth_query::facade::AspectFieldKey::from_authoring_parts("source", "id")
-                            .unwrap(),
-                        worth_query::facade::AspectFieldKey::from_authoring_parts("target", "id")
-                            .unwrap(),
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "identity", "id",
+                        )
+                        .unwrap(),
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "kind", "value",
+                        )
+                        .unwrap(),
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "source", "id",
+                        )
+                        .unwrap(),
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "target", "id",
+                        )
+                        .unwrap(),
                     ])
                     .order_by(
-                        worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                            .unwrap(),
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "identity", "id",
+                        )
+                        .unwrap(),
                     )
                     .schema_basis("public-graph-composition-existing-retarget-relations")
             },
@@ -372,8 +382,10 @@ fn graph_composition_public_bridge_denies_verified_existing_mismatch() {
     }
 }
 
-fn authored_text(value: impl Into<String>) -> worth_query::facade::WorthQueryAuthoredAspectValue {
-    worth_query::facade::WorthQueryAuthoredAspectValue::string(value)
+fn authored_text(
+    value: impl Into<String>,
+) -> worth_query::facade::runtime::WorthQueryAuthoredAspectValue {
+    worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(value)
 }
 
 fn text(value: impl Into<String>) -> worth_foundational::facade::AspectValue {

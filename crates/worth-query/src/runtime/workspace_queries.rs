@@ -2,15 +2,75 @@ use super::read_composition_hooks::{
     WorthQueryReadInvariantPackContext, WorthQueryReadInvariantPackViolation,
 };
 use super::{
-    WorthQueryGenericInspectionIntentTarget, WorthQueryInspection, WorthQueryInspectionTarget,
-    WorthQueryInstalledProgram, WorthQueryProgram, WorthQueryReadBuilder,
-    WorthQueryReadDomainInvariantDenial, WorthQueryReadFamily,
+    WorthQueryCountResult, WorthQueryGenericInspectionIntentTarget, WorthQueryInspection,
+    WorthQueryInspectionTarget, WorthQueryInstalledProgram, WorthQueryProgram,
+    WorthQueryReadBuilder, WorthQueryReadDomainInvariantDenial, WorthQueryReadFamily,
     WorthQueryReadFamilyInvariantEvidence, WorthQueryReadGraph, WorthQueryReadResult,
     WorthQueryRuntimeError, WorthQueryUnifiedInspectionResult, WorthQueryWorkspace,
 };
 
 impl WorthQueryWorkspace {
-    pub fn compose_read(
+    pub(crate) fn open_declared_live_graph<T>(
+        &mut self,
+        name: impl Into<String>,
+        read_graph: WorthQueryReadGraph,
+        authority: &super::WorthQueryGraphReadAccessAuthorityContext,
+    ) -> Result<super::WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.runtime
+            .admit_facade_family(super::WorthQueryRuntimeFacadeFamily::Read)?;
+        let family = WorthQueryReadFamily::new_kernel_only("declared_live_resource", read_graph);
+        self.read_family_intent_in_graph_read_authority(&family, authority)
+            .admit()?
+            .open_managed_live(name)
+    }
+
+    pub(crate) fn open_admitted_live_binding<T>(
+        &mut self,
+        name: impl Into<String>,
+        binding: crate::intent_admission::WorthQueryReadExecutionBinding,
+    ) -> Result<super::WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.runtime
+            .declare_live_view_from_read_binding(name, binding)
+    }
+
+    pub(crate) fn execute_declared_read_graph_in_authority(
+        &mut self,
+        read_graph: WorthQueryReadGraph,
+        authority: &super::WorthQueryGraphReadAccessAuthorityContext,
+    ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
+        self.runtime
+            .admit_facade_family(super::WorthQueryRuntimeFacadeFamily::Read)?;
+        let family = WorthQueryReadFamily::new_kernel_only("declared_read", read_graph);
+        self.read_family_intent_in_graph_read_authority(&family, authority)
+            .execute()
+    }
+
+    pub(crate) fn execute_declared_read_graph_in_basis_context(
+        &mut self,
+        read_graph: WorthQueryReadGraph,
+        context: &crate::query_context::ScopedQueryBasisContext,
+    ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
+        self.runtime
+            .admit_facade_family(super::WorthQueryRuntimeFacadeFamily::Read)?;
+        let family = WorthQueryReadFamily::new_kernel_only("declared_historical_read", read_graph);
+        self.read_family_in_basis_context_intent(&family, context)
+            .execute()
+    }
+
+    pub(crate) fn execute_declared_count_graph_in_authority(
+        &mut self,
+        read_graph: WorthQueryReadGraph,
+        authority: &super::WorthQueryGraphReadAccessAuthorityContext,
+    ) -> Result<WorthQueryCountResult, WorthQueryRuntimeError> {
+        self.runtime
+            .admit_facade_family(super::WorthQueryRuntimeFacadeFamily::Read)?;
+        let family = WorthQueryReadFamily::new_kernel_only("declared_count", read_graph);
+        self.read_family_intent_in_graph_read_authority(&family, authority)
+            .admit()?
+            .execute_count()
+    }
+
+    pub(crate) fn compose_read(
         &mut self,
         declaration: impl FnOnce(
             WorthQueryReadBuilder,
@@ -19,7 +79,7 @@ impl WorthQueryWorkspace {
         self.compose_read_with_invariant_pack(declaration, |_context| Ok(()))
     }
 
-    pub fn compose_read_with_invariant_pack(
+    pub(crate) fn compose_read_with_invariant_pack(
         &mut self,
         declaration: impl FnOnce(
             WorthQueryReadBuilder,
@@ -42,7 +102,7 @@ impl WorthQueryWorkspace {
         self.read_family_intent(&family).execute()
     }
 
-    pub fn define_read_family(
+    pub(crate) fn define_read_family(
         &mut self,
         family_name: impl Into<String>,
         declaration: impl FnOnce(
@@ -59,7 +119,7 @@ impl WorthQueryWorkspace {
         ))
     }
 
-    pub fn define_read_family_with_invariant_pack(
+    pub(crate) fn define_read_family_with_invariant_pack(
         &mut self,
         family_name: impl Into<String>,
         invariant_family: impl Into<String>,
@@ -91,7 +151,7 @@ impl WorthQueryWorkspace {
         ))
     }
 
-    pub fn execute_read_family(
+    pub(crate) fn execute_read_family(
         &mut self,
         family: &WorthQueryReadFamily,
     ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
@@ -100,7 +160,7 @@ impl WorthQueryWorkspace {
         self.read_family_intent(family).execute()
     }
 
-    pub fn execute_read_family_with_access_plan(
+    pub(crate) fn execute_read_family_with_access_plan(
         &mut self,
         family: &WorthQueryReadFamily,
         graph_read_access_plan: super::WorthQueryAdmittedGraphReadAccessPlan,
@@ -124,10 +184,10 @@ impl WorthQueryWorkspace {
         self.execute_bound_read_execution(binding)
     }
 
-    pub fn execute_read_family_in_basis_context_with_access_plan(
+    pub(crate) fn execute_read_family_in_basis_context_with_access_plan(
         &mut self,
         family: &WorthQueryReadFamily,
-        context: &crate::query_context::AdmittedQueryBasisContext,
+        context: &crate::query_context::ScopedQueryBasisContext,
         graph_read_access_plan: super::WorthQueryAdmittedGraphReadAccessPlan,
     ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
         self.runtime
@@ -149,10 +209,10 @@ impl WorthQueryWorkspace {
         self.execute_bound_read_execution(binding)
     }
 
-    pub fn execute_read_family_in_basis_context(
+    pub(crate) fn execute_read_family_in_basis_context(
         &mut self,
         family: &WorthQueryReadFamily,
-        context: &crate::query_context::AdmittedQueryBasisContext,
+        context: &crate::query_context::ScopedQueryBasisContext,
     ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
         self.runtime
             .admit_facade_family(super::WorthQueryRuntimeFacadeFamily::Read)?;
@@ -170,7 +230,7 @@ impl WorthQueryWorkspace {
         super::explain_graph_read_access_shape_for_family(family)
     }
 
-    pub fn admit_graph_read_access_authority(
+    pub(crate) fn admit_graph_read_access_authority(
         &self,
         request: super::WorthQueryGraphReadAccessAuthorityRequest,
     ) -> Result<
@@ -180,7 +240,7 @@ impl WorthQueryWorkspace {
         super::admit_graph_read_access_authority(request)
     }
 
-    pub fn admit_graph_read_access_authority_from_policy_tenant_request(
+    pub(crate) fn admit_graph_read_access_authority_from_policy_tenant_request(
         &self,
         request: super::WorthQueryGraphReadPolicyTenantAuthorityRequest,
     ) -> Result<
@@ -201,7 +261,7 @@ impl WorthQueryWorkspace {
         super::explain_graph_read_access_shape_for_family_in_authority(family, authority)
     }
 
-    pub fn admit_graph_read_access_in_authority(
+    pub(crate) fn admit_graph_read_access_in_authority(
         &self,
         family: &WorthQueryReadFamily,
         authority: &super::WorthQueryGraphReadAccessAuthorityContext,
@@ -212,7 +272,7 @@ impl WorthQueryWorkspace {
         self.admit_graph_read_access_for_family_in_authority(family, authority)
     }
 
-    pub fn plan_graph_read_access_in_authority(
+    pub(crate) fn plan_graph_read_access_in_authority(
         &self,
         family: &WorthQueryReadFamily,
         authority: &super::WorthQueryGraphReadAccessAuthorityContext,
@@ -233,7 +293,7 @@ impl WorthQueryWorkspace {
         super::explain_boolean_selectivity_shape_for_family(family)
     }
 
-    pub fn plan_live_graph_read_access(
+    pub(crate) fn plan_live_graph_read_access(
         &self,
         family: &WorthQueryReadFamily,
         budget: super::WorthQueryLiveGraphReadMaintenanceBudget,
@@ -261,7 +321,7 @@ impl WorthQueryWorkspace {
         super::WorthQueryLiveGraphReadAccessPlan::from_one_shot_access_plan(&one_shot, budget)
     }
 
-    pub fn inspect_intent<'a, T>(
+    pub(crate) fn inspect_intent<'a, T>(
         &'a self,
         target: T,
     ) -> crate::intent_admission::WorthQueryRuntimeInspectionIntentAuthoring<'a>
@@ -271,14 +331,14 @@ impl WorthQueryWorkspace {
         self.runtime.inspect_intent(target)
     }
 
-    pub fn install_program(
+    pub(crate) fn install_program(
         &mut self,
         program: WorthQueryProgram,
     ) -> Result<WorthQueryInstalledProgram, WorthQueryRuntimeError> {
         self.runtime.install_program(program)
     }
 
-    pub fn inspect<'a, T>(
+    pub(crate) fn inspect<'a, T>(
         &'a self,
         target: T,
     ) -> Result<WorthQueryInspection, WorthQueryRuntimeError>
@@ -288,14 +348,14 @@ impl WorthQueryWorkspace {
         self.runtime.inspect(target)
     }
 
-    pub fn inspect_live<T>(
+    pub(crate) fn inspect_live<T>(
         &self,
         view: &super::WorthQueryLiveView<T>,
     ) -> Result<WorthQueryUnifiedInspectionResult, WorthQueryRuntimeError> {
         self.inspect_live_by_name(view.name())
     }
 
-    pub fn inspect_live_target(
+    pub(crate) fn inspect_live_target(
         &self,
         target: &super::WorthQueryLiveArtifactTarget,
     ) -> Result<WorthQueryUnifiedInspectionResult, WorthQueryRuntimeError> {

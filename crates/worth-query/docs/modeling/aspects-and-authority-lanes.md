@@ -105,7 +105,7 @@ state snapshot names the authority lane.
 ## Real Example
 
 ```rust
-use worth_query::facade::WorthQueryPreviewOptions;
+use worth_query::facade::runtime::WorthQueryPreviewOptions;
 
 let titles = workspace
     .computed(
@@ -155,7 +155,7 @@ workspace
 let derived_state = workspace.state(&readiness).unwrap();
 let effect_inspection = workspace.inspect(&publish).unwrap();
 let preview_label =
-    worth_query::facade::WorthQuerySessionLabel::scoped_strs("workflow", ["approval-preview"])
+    worth_query::facade::runtime::WorthQuerySessionLabel::scoped_strs("workflow", ["approval-preview"])
         .unwrap();
 
 let mut preview = workspace
@@ -169,7 +169,7 @@ let preview_binding = preview.use_effect(&publish).unwrap();
 assert_eq!(derived_state.authority_lane().as_str(), "derived-runtime-state");
 
 match effect_inspection {
-    worth_query::facade::WorthQueryInspection::Effect(effect) => {
+    worth_query::facade::runtime::WorthQueryInspection::Effect(effect) => {
         assert_eq!(effect.target_lane().as_str(), "effect-delivery-state");
         assert_eq!(effect.trigger_aspects(), &["readiness.state".to_string()]);
     }
@@ -178,7 +178,7 @@ match effect_inspection {
 
 let binding = workspace.inspect(&preview_binding).unwrap();
 match binding {
-    worth_query::facade::WorthQueryInspection::PreviewBinding(binding) => {
+    worth_query::facade::runtime::WorthQueryInspection::PreviewBinding(binding) => {
         assert_eq!(binding.preview_lane().as_str(), "preview-truth");
         assert!(binding.pending_write_intent_admitted());
         assert!(!binding.authoritative_side_effect_admitted());

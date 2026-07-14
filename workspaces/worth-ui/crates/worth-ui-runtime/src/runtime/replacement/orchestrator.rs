@@ -28,9 +28,9 @@ use super::transitions::{
     WorthUiReplacementNodePlanReady, WorthUiReplacementQueryComparisonReady,
     WorthUiReplacementReconciliationReady,
 };
-use crate::runtime::launch::host::WorthUiRuntimeHost;
+use crate::runtime::launch::runtime_instance::WorthUiRuntime;
 
-impl WorthUiRuntimeHost {
+impl WorthUiRuntime {
     pub fn replacement_admission_basis(&self) -> WorthUiActiveReplacementBasis {
         WorthUiActiveReplacementBasis::from_observation(self.inspect_active())
     }

@@ -1,9 +1,19 @@
-use worth_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily,
-    QuerySubscriptionSupportPosture, ResultShapeFamily, ViewShapeDescriptor,
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfig,
-    WorthQueryQueryConfig, WorthQueryRelationalConfig, WorthQueryRuntimeBridgeConfig,
+use worth_query::facade::foundation::{
+    discover_basis_lifecycle_support,
+    BasisFamily,
+    ResultShapeFamily,
+    WorthQueryApplicationFacade,
+    WorthQueryCapabilityFamily,
+    WorthQueryConfig,
+    WorthQueryQueryConfig,
+    WorthQueryRelationalConfig,
+    WorthQueryRuntimeBridgeConfig,
     WorthQuerySignalConfig,
+};
+use worth_query::facade::runtime::{
+    QuerySubscriptionFamily,
+    QuerySubscriptionSupportPosture,
+    ViewShapeDescriptor,
 };
 use worth_ui::facade::{
     QueryBasisPostureReference, QueryDenialPresentation, QueryLiveCompatibility,

@@ -1,4 +1,4 @@
-use worth_query::facade::{PreviewResidueWidth, PreviewSubscriptionResidueReport};
+use worth_query::facade::runtime::{PreviewResidueWidth, PreviewSubscriptionResidueReport};
 
 fn main() {
     let _ = PreviewSubscriptionResidueReport {

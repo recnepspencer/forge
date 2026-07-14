@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    WorthQueryAdmittedIntentPlan, WorthQueryIntentAdmissionExecutionSeam,
-    WorthQueryIntentDeclaration, WorthQueryIntentInput, WorthQueryRawIntentAdmissionRequest,
-};
+use worth_query::facade::runtime::{WorthQueryAdmittedIntentPlan, WorthQueryIntentAdmissionExecutionSeam, WorthQueryIntentDeclaration, WorthQueryIntentInput};
+use worth_query::facade::WorthQueryRawIntentAdmissionRequest;
 
 fn main() {
     let request = WorthQueryRawIntentAdmissionRequest::authoritative_runtime_entrypoint(
@@ -14,7 +12,7 @@ fn main() {
         ),
     )
     .unwrap();
-    let eligibility = worth_query::facade::WorthQueryIntentAdmissionEligibility::from_request(
+    let eligibility = worth_query::facade::runtime::WorthQueryIntentAdmissionEligibility::from_request(
         request,
     );
     let _plan = WorthQueryAdmittedIntentPlan::from_eligibility(

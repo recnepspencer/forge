@@ -34,12 +34,12 @@ pub(crate) use domain_capability::{
     admit_contributed_preview_workflow_foundation,
     materialize_contributed_preview_workflow_foundation_artifact,
 };
-pub use scoped::{
+pub(crate) use scoped::{
     admit_scoped_preview_live_session_plan, admit_scoped_preview_session_plan_binding,
     admit_scoped_preview_session_plan_binding_from_preview_binding,
     execute_scoped_preview_live_session_plan, scoped_observation_basis_for_preview_binding,
-    ScopedPreviewLiveSessionPlanBinding, ScopedPreviewSessionPlanBinding,
 };
+pub use scoped::{ScopedPreviewLiveSessionPlanBinding, ScopedPreviewSessionPlanBinding};
 pub(crate) use workflow_context_identity::preview_lifecycle_state_label;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -679,34 +679,34 @@ impl PreviewLiveAdmissionReport {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PreviewLiveSessionPlanBinding {
+pub(crate) struct PreviewLiveSessionPlanBinding {
     preview_binding: PreviewSessionPlanBinding,
     live_plan: LiveQueryPlan,
     report: PreviewLiveAdmissionReport,
 }
 
 impl PreviewLiveSessionPlanBinding {
-    pub fn preview_binding(&self) -> &PreviewSessionPlanBinding {
+    pub(crate) fn preview_binding(&self) -> &PreviewSessionPlanBinding {
         &self.preview_binding
     }
 
-    pub fn live_plan(&self) -> &LiveQueryPlan {
+    pub(crate) fn live_plan(&self) -> &LiveQueryPlan {
         &self.live_plan
     }
 
-    pub fn report(&self) -> &PreviewLiveAdmissionReport {
+    pub(crate) fn report(&self) -> &PreviewLiveAdmissionReport {
         &self.report
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreviewLiveExecutionEnvelope {
-    preview_live: PreviewLiveSessionPlanBinding,
+    preview_live: ScopedPreviewLiveSessionPlanBinding,
     counters: PreviewLiveCounters,
 }
 
 impl PreviewLiveExecutionEnvelope {
-    pub fn preview_live(&self) -> &PreviewLiveSessionPlanBinding {
+    pub fn preview_live(&self) -> &ScopedPreviewLiveSessionPlanBinding {
         &self.preview_live
     }
 
@@ -766,12 +766,12 @@ impl PreviewLiveDriftDenied {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreviewLiveMaintained {
-    maintained_preview_live: PreviewLiveSessionPlanBinding,
+    maintained_preview_live: ScopedPreviewLiveSessionPlanBinding,
     counters: PreviewLiveCounters,
 }
 
 impl PreviewLiveMaintained {
-    pub fn maintained_preview_live(&self) -> &PreviewLiveSessionPlanBinding {
+    pub fn maintained_preview_live(&self) -> &ScopedPreviewLiveSessionPlanBinding {
         &self.maintained_preview_live
     }
 
@@ -783,7 +783,7 @@ impl PreviewLiveMaintained {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreviewLiveRebindArtifact {
     prior_preview_live_digest: String,
-    rebound_preview_live: PreviewLiveSessionPlanBinding,
+    rebound_preview_live: ScopedPreviewLiveSessionPlanBinding,
     counters: PreviewLiveCounters,
 }
 
@@ -792,7 +792,7 @@ impl PreviewLiveRebindArtifact {
         &self.prior_preview_live_digest
     }
 
-    pub fn rebound_preview_live(&self) -> &PreviewLiveSessionPlanBinding {
+    pub fn rebound_preview_live(&self) -> &ScopedPreviewLiveSessionPlanBinding {
         &self.rebound_preview_live
     }
 
@@ -1625,12 +1625,7 @@ impl PreviewComparisonShapeContract {
             })
             .unwrap_or_else(|| preflight.plan().result_shape().binding_count().max(1));
         let result_family = collection
-            .map(
-                |collection| match collection.planning_context().result_family() {
-                    CollectionResultFamily::OrdinaryCollection => "ordinary_collection",
-                    CollectionResultFamily::CdcCollection => "cdc_collection",
-                },
-            )
+            .map(|collection| collection.planning_context().result_family().digest_label())
             .unwrap_or("detail")
             .to_string();
 
@@ -2271,7 +2266,7 @@ fn derive_preview_workflow_foundation(
     }
 }
 
-pub fn admit_preview_workflow_foundation(
+pub(crate) fn admit_preview_workflow_foundation(
     binding: &PreviewSessionPlanBinding,
 ) -> Result<AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationError> {
     admit_preview_workflow_foundation_request(
@@ -2280,7 +2275,7 @@ pub fn admit_preview_workflow_foundation(
     )
 }
 
-pub fn admit_preview_workflow_foundation_request(
+pub(crate) fn admit_preview_workflow_foundation_request(
     binding: &PreviewSessionPlanBinding,
     request: PreviewWorkflowFoundationRequest,
 ) -> Result<AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationError> {
@@ -2368,7 +2363,7 @@ fn derive_preview_comparison_candidate(
     }
 }
 
-pub fn admit_authoritative_preview_comparison_candidate(
+pub(crate) fn admit_authoritative_preview_comparison_candidate(
     candidate_preflight: &ExecutionPreflightBundle,
     candidate_execution: &ExecutionResultEnvelope,
 ) -> Result<AuthoritativePreviewComparisonCandidate, PreviewComparisonError> {
@@ -2540,7 +2535,7 @@ fn admit_preview_execution_comparison(
     })
 }
 
-pub fn admit_preview_promotion_parity_comparison(
+pub(crate) fn admit_preview_promotion_parity_comparison(
     preview_execution: &PromotionEligiblePreviewExecutionEnvelope,
     candidate: &AuthoritativePreviewComparisonCandidate,
 ) -> Result<PromotionParityPreviewComparisonAdmission, PreviewComparisonError> {
@@ -2625,7 +2620,7 @@ pub(crate) fn execute_preview_session_plan(
     Ok(envelope)
 }
 
-pub fn admit_read_only_preview_session_plan_binding(
+pub(crate) fn admit_read_only_preview_session_plan_binding(
     binding: PreviewSessionPlanBinding,
 ) -> Result<ReadOnlyPreviewSessionPlanBinding, PreviewExecutionError> {
     if !matches!(
@@ -2641,7 +2636,7 @@ pub fn admit_read_only_preview_session_plan_binding(
     Ok(ReadOnlyPreviewSessionPlanBinding { inner: binding })
 }
 
-pub fn admit_promotion_eligible_preview_session_plan_binding(
+pub(crate) fn admit_promotion_eligible_preview_session_plan_binding(
     binding: PreviewSessionPlanBinding,
 ) -> Result<PromotionEligiblePreviewSessionPlanBinding, PreviewExecutionError> {
     if !matches!(
@@ -2657,7 +2652,7 @@ pub fn admit_promotion_eligible_preview_session_plan_binding(
     Ok(PromotionEligiblePreviewSessionPlanBinding { inner: binding })
 }
 
-pub fn execute_read_only_preview_session_plan(
+pub(crate) fn execute_read_only_preview_session_plan(
     binding: &ReadOnlyPreviewSessionPlanBinding,
 ) -> Result<ReadOnlyPreviewExecutionEnvelope, PreviewExecutionError> {
     Ok(ReadOnlyPreviewExecutionEnvelope {
@@ -2665,7 +2660,7 @@ pub fn execute_read_only_preview_session_plan(
     })
 }
 
-pub fn execute_promotion_eligible_preview_session_plan(
+pub(crate) fn execute_promotion_eligible_preview_session_plan(
     binding: &PromotionEligiblePreviewSessionPlanBinding,
 ) -> Result<PromotionEligiblePreviewExecutionEnvelope, PreviewExecutionError> {
     Ok(PromotionEligiblePreviewExecutionEnvelope {
@@ -2673,7 +2668,7 @@ pub fn execute_promotion_eligible_preview_session_plan(
     })
 }
 
-pub fn admit_preview_live_session_plan(
+pub(crate) fn admit_preview_live_session_plan_component(
     preview_binding: PreviewSessionPlanBinding,
     live_plan: LiveQueryPlan,
 ) -> Result<PreviewLiveSessionPlanBinding, PreviewLiveError> {
@@ -2762,22 +2757,33 @@ pub fn admit_preview_live_session_plan(
     })
 }
 
-pub fn execute_preview_live_session_plan(
+pub(crate) fn preview_live_execution_counters(
     preview_live: &PreviewLiveSessionPlanBinding,
-) -> Result<PreviewLiveExecutionEnvelope, PreviewExecutionError> {
+) -> Result<PreviewLiveCounters, PreviewExecutionError> {
     let mut counters = preview_live.report().counters().clone();
     counters.preview_live_execution_count = 1;
+    Ok(counters)
+}
 
-    let envelope = PreviewLiveExecutionEnvelope {
-        preview_live: preview_live.clone(),
-        counters,
-    };
-    envelope.check_invariants()?;
-    Ok(envelope)
+#[cfg(test)]
+fn admit_preview_live_session_plan(
+    preview_binding: PreviewSessionPlanBinding,
+    live_plan: LiveQueryPlan,
+) -> Result<ScopedPreviewLiveSessionPlanBinding, PreviewLiveError> {
+    let scoped_binding =
+        admit_scoped_preview_session_plan_binding_from_preview_binding(preview_binding)?;
+    admit_scoped_preview_live_session_plan(scoped_binding, live_plan)
+}
+
+#[cfg(test)]
+fn execute_preview_live_session_plan(
+    preview_live: &ScopedPreviewLiveSessionPlanBinding,
+) -> Result<PreviewLiveExecutionEnvelope, PreviewExecutionError> {
+    execute_scoped_preview_live_session_plan(preview_live)
 }
 
 pub fn assess_preview_live_drift(
-    preview_live: &PreviewLiveSessionPlanBinding,
+    preview_live: &ScopedPreviewLiveSessionPlanBinding,
     refreshed_context: PreviewSessionQueryContext,
 ) -> PreviewLiveDriftOutcome {
     let mut lifecycle_counters = PreviewLiveCounters {
@@ -2788,7 +2794,7 @@ pub fn assess_preview_live_drift(
     if refreshed_context.lifecycle_state_kind() != BridgePreviewLifecycleStateKind::Active {
         lifecycle_counters.preview_live_drift_denial_count = 1;
         return PreviewLiveDriftOutcome::DriftDenied(PreviewLiveDriftDenied {
-            prior_preview_live_digest: preview_live.report().digest().to_string(),
+            prior_preview_live_digest: preview_live.scoped_live_digest().to_string(),
             lifecycle_state_kind: refreshed_context.lifecycle_state_kind(),
             error: PreviewLiveError {
                 failure_class: PreviewLiveFailureClass::PreviewLiveLifecycleDrifted,
@@ -2799,7 +2805,11 @@ pub fn assess_preview_live_drift(
     }
 
     let rebound_binding = match bind_preflight_to_preview_session(
-        preview_live.preview_binding().preflight().clone(),
+        preview_live
+            .preview_live_component()
+            .preview_binding()
+            .preflight()
+            .clone(),
         refreshed_context,
     ) {
         Ok(binding) => binding,
@@ -2830,7 +2840,7 @@ pub fn assess_preview_live_drift(
                 counters.preview_live_broad_fallback_denial_count = 1;
             }
             return PreviewLiveDriftOutcome::DriftDenied(PreviewLiveDriftDenied {
-                prior_preview_live_digest: preview_live.report().digest().to_string(),
+                prior_preview_live_digest: preview_live.scoped_live_digest().to_string(),
                 lifecycle_state_kind: BridgePreviewLifecycleStateKind::Active,
                 error: PreviewLiveError {
                     failure_class: failure_class.clone(),
@@ -2849,14 +2859,17 @@ pub fn assess_preview_live_drift(
     };
 
     let rebound_preview_live =
-        match admit_preview_live_session_plan(rebound_binding, preview_live.live_plan().clone()) {
+        match admit_scoped_preview_session_plan_binding_from_preview_binding(rebound_binding)
+            .and_then(|binding| {
+                admit_scoped_preview_live_session_plan(binding, preview_live.live_plan().clone())
+            }) {
             Ok(binding) => binding,
             Err(error) => {
                 let mut counters = error.counters.clone();
                 counters.preview_live_lifecycle_check_count += 1;
                 counters.preview_live_drift_denial_count += 1;
                 return PreviewLiveDriftOutcome::DriftDenied(PreviewLiveDriftDenied {
-                    prior_preview_live_digest: preview_live.report().digest().to_string(),
+                    prior_preview_live_digest: preview_live.scoped_live_digest().to_string(),
                     lifecycle_state_kind: BridgePreviewLifecycleStateKind::Active,
                     error: PreviewLiveError {
                         failure_class: error.failure_class,
@@ -2867,7 +2880,7 @@ pub fn assess_preview_live_drift(
             }
         };
 
-    if rebound_preview_live.report().digest() == preview_live.report().digest() {
+    if rebound_preview_live == *preview_live {
         return PreviewLiveDriftOutcome::Maintained(PreviewLiveMaintained {
             maintained_preview_live: rebound_preview_live,
             counters: lifecycle_counters,
@@ -2876,13 +2889,13 @@ pub fn assess_preview_live_drift(
 
     lifecycle_counters.preview_live_rebind_available_count = 1;
     PreviewLiveDriftOutcome::ExplicitRebindAvailable(PreviewLiveRebindArtifact {
-        prior_preview_live_digest: preview_live.report().digest().to_string(),
+        prior_preview_live_digest: preview_live.scoped_live_digest().to_string(),
         rebound_preview_live,
         counters: lifecycle_counters,
     })
 }
 
-pub fn bind_preflight_to_preview_session(
+pub(crate) fn bind_preflight_to_preview_session(
     preflight: ExecutionPreflightBundle,
     query_context: PreviewSessionQueryContext,
 ) -> Result<PreviewSessionPlanBinding, PreviewBindingError> {
@@ -3184,6 +3197,7 @@ mod tests {
         assert_eq!(
             preview_live.live_plan().descriptor().query_digest(),
             preview_live
+                .scoped_binding()
                 .preview_binding()
                 .preflight()
                 .plan()
@@ -3193,6 +3207,7 @@ mod tests {
         assert_eq!(
             preview_live.report().preview_binding_digest(),
             preview_live
+                .scoped_binding()
                 .preview_binding()
                 .basis()
                 .binding_tuple()
@@ -3307,7 +3322,7 @@ mod tests {
                 assert_eq!(rebind.counters().preview_live_rebind_available_count(), 1);
                 assert_ne!(
                     rebind.prior_preview_live_digest(),
-                    rebind.rebound_preview_live().report().digest()
+                    rebind.rebound_preview_live().scoped_live_digest()
                 );
             }
             other => panic!("expected explicit rebind, got {other:?}"),

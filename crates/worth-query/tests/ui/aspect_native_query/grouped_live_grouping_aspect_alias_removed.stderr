@@ -1,47 +1,47 @@
 error[E0599]: no method named `grouping_aspect` found for struct `GroupedLaneIdentity` in the current scope
- --> tests/ui/aspect_native_query/grouped_live_grouping_aspect_alias_removed.rs:8:18
+ --> tests/ui/aspect_native_query/grouped_live_grouping_aspect_alias_removed.rs:5:18
   |
-8 |     let _ = lane.grouping_aspect();
+5 |     let _ = lane.grouping_aspect();
   |                  ^^^^^^^^^^^^^^^ private field, not a method
   |
 help: there is a method `native_grouping_aspect_key` with a similar name
   |
-8 -     let _ = lane.grouping_aspect();
-8 +     let _ = lane.native_grouping_aspect_key();
+5 -     let _ = lane.grouping_aspect();
+5 +     let _ = lane.native_grouping_aspect_key();
   |
 
 error[E0599]: no method named `grouping_aspect` found for struct `GroupedViewResultArtifact` in the current scope
-  --> tests/ui/aspect_native_query/grouped_live_grouping_aspect_alias_removed.rs:11:20
-   |
-11 |     let _ = result.grouping_aspect();
-   |                    ^^^^^^^^^^^^^^^ private field, not a method
-   |
+ --> tests/ui/aspect_native_query/grouped_live_grouping_aspect_alias_removed.rs:8:20
+  |
+8 |     let _ = result.grouping_aspect();
+  |                    ^^^^^^^^^^^^^^^ private field, not a method
+  |
 help: there is a method `native_grouping_aspect_key` with a similar name
-   |
-11 -     let _ = result.grouping_aspect();
-11 +     let _ = result.native_grouping_aspect_key();
-   |
+  |
+8 -     let _ = result.grouping_aspect();
+8 +     let _ = result.native_grouping_aspect_key();
+  |
 
 error[E0599]: no method named `grouping_aspect` found for struct `GroupedDesiredStateArtifact` in the current scope
-  --> tests/ui/aspect_native_query/grouped_live_grouping_aspect_alias_removed.rs:14:21
+  --> tests/ui/aspect_native_query/grouped_live_grouping_aspect_alias_removed.rs:11:21
    |
-14 |     let _ = desired.grouping_aspect();
+11 |     let _ = desired.grouping_aspect();
    |                     ^^^^^^^^^^^^^^^
    |
 help: there is a method `native_grouping_aspect_key` with a similar name
    |
-14 -     let _ = desired.grouping_aspect();
-14 +     let _ = desired.native_grouping_aspect_key();
+11 -     let _ = desired.grouping_aspect();
+11 +     let _ = desired.native_grouping_aspect_key();
    |
 
 error[E0599]: no method named `grouping_aspect` found for struct `GroupedExecutionLaneValue` in the current scope
-  --> tests/ui/aspect_native_query/grouped_live_grouping_aspect_alias_removed.rs:17:28
+  --> tests/ui/aspect_native_query/grouped_live_grouping_aspect_alias_removed.rs:14:28
    |
-17 |     let _ = execution_lane.grouping_aspect();
+14 |     let _ = execution_lane.grouping_aspect();
    |                            ^^^^^^^^^^^^^^^
    |
 help: there is a method `native_grouping_aspect_key` with a similar name
    |
-17 -     let _ = execution_lane.grouping_aspect();
-17 +     let _ = execution_lane.native_grouping_aspect_key();
+14 -     let _ = execution_lane.grouping_aspect();
+14 +     let _ = execution_lane.native_grouping_aspect_key();
    |

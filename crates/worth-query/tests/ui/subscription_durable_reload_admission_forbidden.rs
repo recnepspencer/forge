@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionAdmissionBudget;
+use worth_query::facade::runtime::QuerySubscriptionAdmissionBudget;
 
 fn main() {
     let _budget =

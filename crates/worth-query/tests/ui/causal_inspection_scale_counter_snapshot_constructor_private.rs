@@ -1,4 +1,4 @@
-use worth_query::facade::{CausalInspectionScaleCounterSnapshot, CausalInspectionScaleFixtureSize};
+use worth_query::facade::runtime::{CausalInspectionScaleCounterSnapshot, CausalInspectionScaleFixtureSize};
 
 fn main() {
     let _ = CausalInspectionScaleCounterSnapshot {

@@ -1,7 +1,7 @@
 error[E0624]: associated function `new` is private
- --> tests/ui/lower_runtime_routing/gaps/gap_registry_row_constructor_private.rs:7:51
+ --> tests/ui/lower_runtime_routing/gaps/gap_registry_row_constructor_private.rs:4:51
   |
-7 |       let _ = WorthQueryLowerRuntimeGapRegistryRow::new(
+4 |       let _ = WorthQueryLowerRuntimeGapRegistryRow::new(
   |                                                     ^^^ private associated function
   |
  ::: src/lower_runtime_routing/inventory/gap_types.rs

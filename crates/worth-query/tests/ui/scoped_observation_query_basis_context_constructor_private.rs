@@ -1,4 +1,4 @@
-use worth_query::facade::ScopedObservationQueryBasisContext;
+use worth_query::facade::policy::ScopedObservationQueryBasisContext;
 
 fn main() {
     let _ = ScopedObservationQueryBasisContext {

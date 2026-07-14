@@ -1,10 +1,10 @@
 error[E0308]: mismatched types
-  --> tests/ui/policy_narrowing_requires_admitted_context.rs:20:9
+  --> tests/ui/policy_narrowing_requires_admitted_context.rs:17:9
    |
-18 |     let _ = narrow_policy_query(
+15 |     let _ = narrow_policy_query(
    |             ------------------- arguments to this function are incorrect
-19 |         &canonical,
-20 |         canonical.query().clone(),
+16 |         &canonical,
+17 |         canonical.query().clone(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^ expected `AdmittedPolicyTenantContext`, found `CanonicalQueryArtifact`
    |
 note: function defined here

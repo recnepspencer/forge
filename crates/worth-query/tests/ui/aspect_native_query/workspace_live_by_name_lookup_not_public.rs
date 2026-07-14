@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryNativeRow, WorthQueryWorkspace};
+use worth_query::facade::runtime::{WorthQueryNativeRow, WorthQueryWorkspace};
 
 fn main() {
     let mut workspace = workspace_fixture();

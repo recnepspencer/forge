@@ -2,8 +2,6 @@ error[E0432]: unresolved imports `worth_query::facade::execute_preview_session_p
  --> tests/ui/preview_generic_execution_surface_not_public.rs:1:27
   |
 1 | use worth_query::facade::{execute_preview_session_plan, PreviewExecutionEnvelope};
-  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
-  |                           |                             |
-  |                           |                             no `PreviewExecutionEnvelope` in `facade`
-  |                           |                             help: a similar name exists in the module: `PreviewLiveExecutionEnvelope`
+  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^ no `PreviewExecutionEnvelope` in `facade`
+  |                           |
   |                           no `execute_preview_session_plan` in `facade`

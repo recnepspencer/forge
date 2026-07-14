@@ -1,4 +1,4 @@
-use worth_query::facade::ValidatedQueryBundle;
+use worth_query::facade::runtime::ValidatedQueryBundle;
 
 fn main() {
     let _ = ValidatedQueryBundle {

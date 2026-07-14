@@ -1,4 +1,4 @@
-use worth_query::facade::DiffQueryMetadata;
+use worth_query::facade::policy::DiffQueryMetadata;
 
 fn main() {
     let _ = DiffQueryMetadata {

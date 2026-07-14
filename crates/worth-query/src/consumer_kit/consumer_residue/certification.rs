@@ -224,6 +224,50 @@ const HOSTILE_CERTIFICATION_SOURCES: &[(WorthQueryConsumerResidueClass, &str)] =
         WorthQueryConsumerResidueClass::DelimiterFormattedQueryProof,
         "fn residue(left: String, right: String) { let query_proof = format!(\"{}||{}\", left, right); let _ = query_proof; }",
     ),
+    (
+        WorthQueryConsumerResidueClass::DecomposedProjectionConsumptionAttempt,
+        "fn residue(value: ProjectionFactConsumptionAttempt) { let _ = value; }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::IndependentlyPairableProjectionConsumptionParts,
+        "fn residue(value: CompletedProjectionFactConsumption) { let _ = value; }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LegacyProjectionFactConsumptionCall,
+        "fn residue(result: Result) { let _ = result.consume_projection_facts(); }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LegacyProjectionDeclarationCall,
+        "fn residue(receipt: Receipt) { let _ = receipt.declare_projection_fact_consumption(); }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LegacyProjectionIntentAdmissionCall,
+        "fn residue(declaration: Declaration) { let _ = worth_query_projection_consumption_intent(declaration); }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LocalQueryMeasurementConsumptionIdentity,
+        "struct WorthUiQueryMeasurementConsumptionIdentity;",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LocalProjectionContractBinding,
+        "fn bind_projection_contract() {}",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LocalQueryBasisDigestCompatibility,
+        "fn residue(contract: Contract) { let _ = contract.basis_digest() != Some(\"basis\"); }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LegacyProjectionPrerequisiteAssembly,
+        "fn with_query_prerequisites_from_projection_consumption() {}",
+    ),
+    (
+        WorthQueryConsumerResidueClass::DirectInternalQueryImport,
+        "use worth_query::projection_consumption::ProjectionConsumptionReceipt;",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LegacyQueryBasisLifecycle,
+        "use worth_query::query_basis_lifecycle::RawBasisIntent;",
+    ),
 ];
 
 const FALSE_POSITIVE_CERTIFICATION_SOURCES: &[&str] = &[

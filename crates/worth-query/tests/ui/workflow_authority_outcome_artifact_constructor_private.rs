@@ -1,4 +1,4 @@
-use worth_query::facade::WorkflowAuthorityOutcomeArtifact;
+use worth_query::facade::runtime::WorkflowAuthorityOutcomeArtifact;
 
 fn main() {
     let _ = WorkflowAuthorityOutcomeArtifact {

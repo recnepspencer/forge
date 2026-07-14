@@ -1,5 +1,5 @@
 use crate::authoring::{RawAuthoredQuery, RawAuthoredResultShape};
-use crate::facade::{AspectFieldSelector, AuthoredResultShapeField, RootEntityKey};
+use crate::facade::foundation::{AspectFieldSelector, AuthoredResultShapeField, RootEntityKey};
 
 pub fn runtime_detail_query() -> crate::authoring::DetailAuthoredQuery {
     RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())

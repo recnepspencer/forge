@@ -10,7 +10,10 @@ use crate::facade::registry::{
     SettingDescriptor, SurfaceDescriptor, TaskPresentationDescriptor, ThemeTokenDescriptor,
     ViewBindingDescriptor,
 };
-use crate::facade::{WorthUiApp, WorthUiDslPackage};
+use crate::facade::{
+    WorthUiApp,
+    WorthUiDslPackage,
+};
 use crate::graph::UiGraphWorldProfile;
 use crate::runtime::{WorthUiSourceBackedDeclarationWitness, WorthUiSourceBackedDslPackage};
 

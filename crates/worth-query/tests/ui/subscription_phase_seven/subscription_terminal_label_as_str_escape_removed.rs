@@ -1,4 +1,4 @@
-use worth_query::facade::TerminalProjectionLabel;
+use worth_query::facade::runtime::TerminalProjectionLabel;
 
 fn main() {
     let label: TerminalProjectionLabel = todo!();

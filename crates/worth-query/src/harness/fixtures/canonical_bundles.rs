@@ -3,7 +3,7 @@ use crate::authoring::{
     IntegerComparisonPredicate, OrderingSelector, PresencePredicate, RootEntityKey,
     ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate,
 };
-use crate::facade::CanonicalQueryBundle;
+use crate::facade::foundation::CanonicalQueryBundle;
 
 pub fn runtime_detail_bundle() -> CanonicalQueryBundle {
     let request = GuidedAuthoringPath::pair_detail(
@@ -11,14 +11,14 @@ pub fn runtime_detail_bundle() -> CanonicalQueryBundle {
         super::authored_requests::runtime_detail_result_shape(),
     )
     .unwrap();
-    crate::facade::canonicalize_request(request).unwrap()
+    crate::facade::foundation::canonicalize_request(request).unwrap()
 }
 
 pub fn runtime_bound_detail_bundle() -> CanonicalQueryBundle {
-    let bindings = crate::facade::QueryBindingDescriptor::new().with_identity(
-        crate::facade::IdentityBindingDescriptor::new(
-            crate::facade::QueryBindingSlot::new("root").unwrap(),
-            crate::facade::QueryBindingSubject::RootEntity,
+    let bindings = crate::facade::foundation::QueryBindingDescriptor::new().with_identity(
+        crate::facade::foundation::IdentityBindingDescriptor::new(
+            crate::facade::foundation::QueryBindingSlot::new("root").unwrap(),
+            crate::facade::foundation::QueryBindingSubject::RootEntity,
         ),
     );
     let request = GuidedAuthoringPath::pair_detail_with_bindings(
@@ -27,7 +27,7 @@ pub fn runtime_bound_detail_bundle() -> CanonicalQueryBundle {
         bindings,
     )
     .unwrap();
-    crate::facade::canonicalize_request(request).unwrap()
+    crate::facade::foundation::canonicalize_request(request).unwrap()
 }
 
 pub fn legal_detail_bundle() -> CanonicalQueryBundle {

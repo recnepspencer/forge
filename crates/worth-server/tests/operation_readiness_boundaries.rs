@@ -64,10 +64,10 @@ fn support_and_precondition_denials_do_not_fall_back_to_serialization() {
 
     let handoff_server = test_server(
         ProfiledTestWorkspaceProvider::new(
-            worth_query::facade::WorthQueryRuntimeSupportProfile::scaffold_backend_profile()
+            worth_query::facade::runtime::WorthQueryRuntimeSupportProfile::scaffold_backend_profile()
                 .with_family_support(
-                    worth_query::facade::WorthQueryRuntimeFamilySupport::unsupported(
-                        worth_query::facade::WorthQueryRuntimeFacadeFamily::Read,
+                    worth_query::facade::runtime::WorthQueryRuntimeFamilySupport::unsupported(
+                        worth_query::facade::runtime::WorthQueryRuntimeFacadeFamily::Read,
                         "read support intentionally denied for phase-five hostility",
                     ),
                 ),

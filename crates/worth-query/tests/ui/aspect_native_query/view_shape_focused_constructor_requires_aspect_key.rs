@@ -1,4 +1,5 @@
-use worth_query::facade::{DeclarativeLiveViewShape, ViewShapeDescriptor};
+use worth_query::facade::foundation::DeclarativeLiveViewShape;
+use worth_query::facade::runtime::ViewShapeDescriptor;
 
 fn main() {
     let _ = ViewShapeDescriptor::inspector_detail_focused("profile");

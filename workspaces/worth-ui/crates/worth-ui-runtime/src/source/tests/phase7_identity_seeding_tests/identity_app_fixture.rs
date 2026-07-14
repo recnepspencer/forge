@@ -19,10 +19,20 @@ use crate::capability::{
     ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
     ViewBindingDescriptor, ViewBindingId,
 };
-use crate::facade::{WorthUi, WorthUiApp};
-use worth_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily, ResultShapeFamily,
-    ViewShapeDescriptor, WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
+use worth_query::facade::foundation::{
+    discover_basis_lifecycle_support,
+    BasisFamily,
+    ResultShapeFamily,
+    WorthQueryApplicationFacade,
+    WorthQueryCapabilityFamily,
+};
+use worth_query::facade::runtime::{
+    QuerySubscriptionFamily,
+    ViewShapeDescriptor,
 };
 
 pub(crate) fn identity_test_app() -> WorthUiApp {
@@ -34,7 +44,7 @@ pub(crate) fn identity_test_app() -> WorthUiApp {
             )
             .with_icon(IconId::new("workspace.icon.inspect").unwrap())
             .with_readiness(CommandReadinessBinding::from_query_readiness_status(
-                worth_query::facade::WorthQueryDeclarationEntryReadinessStatus::Deferred,
+                worth_query::facade::foundation::WorthQueryDeclarationEntryReadinessStatus::Deferred,
             ))
             .with_runtime_intent_binding(CommandRuntimeIntentBinding::named(
                 "workspace.runtime.inspect",

@@ -4,6 +4,8 @@ pub(crate) mod constraint_propagation;
 pub(crate) mod constraint_set;
 pub(crate) mod inspection_receipt;
 pub(crate) mod neighborhood;
+mod receipt_inspection;
+mod stream_policy_receipt;
 #[cfg(test)]
 mod tests;
 
@@ -37,6 +39,7 @@ pub use constraint_propagation::{
     UiConstraintSiblingNegotiationSolveOrder, UiConstraintViewportPlanningInputResult,
     UiPortalAnchorPlanningInputPosture, UiPortalAnchorPlanningInputSolveOrder,
     UiScrollOwnerPlanningInputPosture, UiScrollOwnerPlanningInputSolveOrder,
+    UiScrollOwnerSourceAdmissionCounters, UiScrollOwnerSourceEvidence, UiScrollOwnerSourceKind,
     UiViewportPlanningInputPosture, UiViewportPlanningInputSolveOrder,
 };
 pub use constraint_set::{
@@ -54,5 +57,15 @@ pub use inspection_receipt::{
 pub use neighborhood::{
     UiAllocationNeighborhood, UiAllocationNeighborhoodClass, UiAllocationNeighborhoodIdentity,
     UiAllocationNeighborhoodMember, UiAllocationNeighborhoodMemberRole,
-    UiAllocationNeighborhoodMembershipRule,
+    UiAllocationNeighborhoodMembershipRule, UiAllocationNeighborhoodScope,
+};
+pub(crate) use receipt_inspection::{
+    project_allocation_receipt_denial_inspection, project_allocation_receipt_inspection,
+};
+pub use receipt_inspection::{
+    UiAllocationReceiptDenialInspectionReceipt, UiAllocationReceiptInspectionReceipt,
+};
+pub use stream_policy_receipt::{
+    UiAllocationStreamPolicyDenialEvidenceReceipt, UiAllocationStreamPolicyEvidenceOutcome,
+    UiAllocationStreamPolicyEvidenceReceipt, UiAllocationStreamPolicyPayloadCounters,
 };

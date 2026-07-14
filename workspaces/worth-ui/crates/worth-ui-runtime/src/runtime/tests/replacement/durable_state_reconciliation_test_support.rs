@@ -18,8 +18,8 @@ use super::node_replacement_classification_test_support::{
     structural_impact_for, structural_impact_for_identity,
 };
 
-pub(super) fn deterministic_reconciliation_inputs() -> (
-    crate::runtime::WorthUiRuntimeHost,
+pub(crate) fn deterministic_reconciliation_inputs() -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiNodeReplacementPlan,
     WorthUiDurableStateInventory,
 ) {
@@ -31,7 +31,7 @@ pub(super) fn deterministic_reconciliation_inputs() -> (
 }
 
 pub(super) fn reversed_inventory_for(
-    runtime: &crate::runtime::WorthUiRuntimeHost,
+    runtime: &crate::runtime::WorthUiRuntime,
     plan: &WorthUiNodeReplacementPlan,
 ) -> WorthUiDurableStateInventory {
     reversed_platform_inventory(runtime)
@@ -40,7 +40,7 @@ pub(super) fn reversed_inventory_for(
 }
 
 pub(super) fn structural_replacement_inputs() -> (
-    crate::runtime::WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiNodeReplacementPlan,
     WorthUiDurableStateInventory,
 ) {
@@ -69,7 +69,7 @@ pub(super) fn structural_replacement_inputs() -> (
 }
 
 pub(super) fn drop_create_inputs() -> (
-    crate::runtime::WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiNodeReplacementPlan,
     WorthUiDurableStateInventory,
 ) {
@@ -106,7 +106,7 @@ pub(super) fn drop_create_inputs() -> (
 }
 
 pub(super) fn lane_change_inputs() -> (
-    crate::runtime::WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiNodeReplacementPlan,
     WorthUiDurableStateInventory,
 ) {
@@ -137,7 +137,7 @@ pub(super) fn lane_change_inputs() -> (
 }
 
 pub(super) fn moved_scroll_anchor_inputs() -> (
-    crate::runtime::WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiNodeReplacementPlan,
     WorthUiDurableStateInventory,
 ) {
@@ -170,7 +170,7 @@ pub(super) fn moved_scroll_anchor_inputs() -> (
 }
 
 pub(super) fn rebind_plan_with_inventory() -> (
-    crate::runtime::WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiNodeReplacementPlan,
     WorthUiDurableStateInventory,
 ) {
@@ -189,8 +189,8 @@ pub(super) fn rebind_plan_with_inventory() -> (
     (runtime, plan, inventory)
 }
 
-pub(super) fn splitter_replace_inputs() -> (
-    crate::runtime::WorthUiRuntimeHost,
+pub(crate) fn splitter_replace_inputs() -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiNodeReplacementPlan,
     WorthUiDurableStateInventory,
 ) {
@@ -210,7 +210,7 @@ pub(super) fn splitter_replace_inputs() -> (
 }
 
 pub(super) fn ambiguous_plan_with_inventory() -> (
-    crate::runtime::WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiNodeReplacementPlan,
     WorthUiDurableStateInventory,
 ) {
@@ -247,7 +247,7 @@ pub(super) fn ambiguous_plan_with_inventory() -> (
 }
 
 pub(super) fn custom_lane_change_inventory(
-    runtime: &crate::runtime::WorthUiRuntimeHost,
+    runtime: &crate::runtime::WorthUiRuntime,
     plan: &WorthUiNodeReplacementPlan,
 ) -> WorthUiDurableStateInventory {
     custom_inventory_for_policy(
@@ -258,7 +258,7 @@ pub(super) fn custom_lane_change_inventory(
 }
 
 pub(super) fn custom_inventory_for_policy(
-    runtime: &crate::runtime::WorthUiRuntimeHost,
+    runtime: &crate::runtime::WorthUiRuntime,
     plan: &WorthUiNodeReplacementPlan,
     replacement_policy: WorthUiDurableStateReplacementPolicy,
 ) -> WorthUiDurableStateInventory {

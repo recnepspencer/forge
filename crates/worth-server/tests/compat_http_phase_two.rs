@@ -10,7 +10,7 @@ mod worth_native_assertions;
 mod worth_native_runtime;
 
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryInspection, WorthQueryRuntimeRemaskProjection, WorthQueryRuntimeRemaskReasonKind,
 };
 use worth_server::{

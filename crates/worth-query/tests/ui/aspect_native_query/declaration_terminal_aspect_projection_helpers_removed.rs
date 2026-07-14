@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryDeclarationAspectPublication, WorthQueryGroupedAspectParticipationSummary,
-};
+use worth_query::facade::foundation::{WorthQueryDeclarationAspectPublication, WorthQueryGroupedAspectParticipationSummary};
 
 fn assert_public_declaration_terminal_helpers_removed(
     publication: &WorthQueryDeclarationAspectPublication,

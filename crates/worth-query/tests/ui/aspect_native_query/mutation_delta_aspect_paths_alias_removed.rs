@@ -1,8 +1,6 @@
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    WorthQueryAspectTouch, WorthQueryEntityIdentity, WorthQueryMutationDelta,
-    WorthQueryMutationKind, QueryExternalIdentityToken,
-};
+use worth_query::facade::foundation::{WorthQueryEntityIdentity, WorthQueryMutationDelta, WorthQueryMutationKind, QueryExternalIdentityToken};
+use worth_query::facade::runtime::WorthQueryAspectTouch;
 use std::sync::Arc;
 
 fn main() {

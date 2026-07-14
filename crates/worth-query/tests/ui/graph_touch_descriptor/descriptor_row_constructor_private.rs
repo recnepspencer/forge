@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphTouchDescriptorRow, WorthQueryMutationFamily,
-};
+use worth_query::facade::runtime::{WorthQueryGraphTouchDescriptorRow, WorthQueryMutationFamily};
 
 fn main() {
     let _ = WorthQueryGraphTouchDescriptorRow {

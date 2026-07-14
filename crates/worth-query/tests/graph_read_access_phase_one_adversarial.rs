@@ -1,14 +1,14 @@
+use worth_query::facade::foundation::{
+    AspectFieldSelector, AuthoredResultShapeField, CollectionQueryBuilder, EqualityPredicate,
+    IntegerComparisonPredicate, OrderingSelector, PresencePredicate, RelationName,
+    ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate,
+};
 use worth_query::facade::runtime::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
     WorthQueryAdmittedGraphReadRelationDirection, WorthQueryGraphReadAccessShape,
     WorthQueryGraphReadFanoutPosture, WorthQueryGraphReadOrderingPosture,
     WorthQueryGraphReadPredicateFamily, WorthQueryGraphReadResultPressure,
     WorthQueryGraphReadRootPosture, WorthQueryGraphReadTraversalOperator, WorthQueryReadScopeClass,
-};
-use worth_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, CollectionQueryBuilder, EqualityPredicate,
-    IntegerComparisonPredicate, OrderingSelector, PresencePredicate, RelationName,
-    ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate,
 };
 
 mod support;
@@ -309,13 +309,14 @@ fn relation_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "graph-read-access-direction",
         [SchemaFieldView::new(
-            worth_query::facade::AspectName::new("identity")
+            worth_query::facade::foundation::AspectName::new("identity")
                 .expect("schema aspect literal must be valid"),
-            worth_query::facade::FieldName::new("id").expect("schema field literal must be valid"),
+            worth_query::facade::foundation::FieldName::new("id")
+                .expect("schema field literal must be valid"),
             SchemaFieldKind::String,
         )],
         [SchemaRelationView::new(
-            worth_query::facade::RelationName::new("manager")
+            worth_query::facade::foundation::RelationName::new("manager")
                 .expect("schema relation literal must be valid"),
             3,
         )],
@@ -327,31 +328,31 @@ fn predicate_schema() -> QuerySchemaView {
         "graph-read-access-predicate",
         [
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("identity")
+                worth_query::facade::foundation::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("id")
+                worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("status")
+                worth_query::facade::foundation::AspectName::new("status")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("value")
+                worth_query::facade::foundation::FieldName::new("value")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             )
             .membership_predicate_queryable(),
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("profile")
+                worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("age")
+                worth_query::facade::foundation::FieldName::new("age")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::Integer,
             ),
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("profile")
+                worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
-                worth_query::facade::FieldName::new("display_name")
+                worth_query::facade::foundation::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
                 SchemaFieldKind::String,
             )

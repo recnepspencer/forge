@@ -1,4 +1,4 @@
-use worth_query::facade::RegionScopedLiveExecutionEnvelope;
+use worth_query::facade::foundation::RegionScopedLiveExecutionEnvelope;
 
 fn main() {
     let _ = RegionScopedLiveExecutionEnvelope {

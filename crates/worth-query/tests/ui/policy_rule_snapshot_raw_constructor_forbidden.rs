@@ -1,4 +1,4 @@
-use worth_query::facade::{PolicyCostPosture, PolicyEpoch, PolicyRuleSnapshot, PolicyWorkBudget};
+use worth_query::facade::policy::{PolicyCostPosture, PolicyEpoch, PolicyRuleSnapshot, PolicyWorkBudget};
 
 fn main() {
     let _ = PolicyRuleSnapshot {

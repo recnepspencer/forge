@@ -1,38 +1,43 @@
 use crate::authoring::{
-    CollectionQueryBuilder, CollectionResultShapeBuilder, DetailQueryBuilder,
-    DetailResultShapeBuilder, IntegerComparisonOperator, PredicateSelector, RawAuthoredQuery,
-    RawAuthoredResultShape, RelationName, RootEntityKey, TraversalSelector,
+    AuthoredQueryBundleRequest, CollectionQueryBuilder, CollectionResultShapeBuilder,
+    DetailQueryBuilder, DetailResultShapeBuilder, RawAuthoredQuery, RawAuthoredResultShape,
+    RelationName, RootEntityKey, TraversalSelector,
 };
-use crate::declarative_live::{
-    canonicalize_declarative_request, validate_declared_traversal_contract,
-    DeclarativeEqualityFilter, DeclarativeIntegerComparisonFilter, DeclarativeLiveQueryError,
-    DeclarativeLiveQueryRequest, DeclarativeLiveViewShape, DeclarativeOrderingField,
-    DeclarativePresenceFilter, DeclarativeProjectionField, DeclarativeSetMembershipFilter,
-    DeclarativeStringContainsFilter,
+use crate::binding::QueryBindingDescriptor;
+use crate::canonicalization::canonicalize_request;
+use crate::composition::ExpandedComposedIntent;
+use crate::declarative_live::{validate_declared_traversal_contract, DeclarativeLiveQueryError};
+use crate::ordinary::read::{
+    WorthQueryDeclaredReadArtifacts, WorthQueryDeclaredReadIntent, WorthQueryDeclaredReadMeaning,
+    WorthQueryDeclaredReadOperations, WorthQueryDeclaredTraversalContract,
+    WorthQueryReadPlanningAuthority,
 };
-use crate::planning::{plan_validated_bundle, planning_request_context_for_direct};
 use crate::runtime::{
     QuerySchemaView, WorthQueryReadBuiltInOperator, WorthQueryReadDenial, WorthQueryReadDenialKind,
     WorthQueryReadGraph, WorthQueryReadGraphFamily, WorthQueryReadScopeClass,
 };
 use crate::validation::validate_canonical_bundle;
 
+#[path = "read_composition_request.rs"]
+mod request;
+
 use super::read_composition_operator_builders::{
     CollectionReadOperatorQueryBuilder, DetailReadOperatorQueryBuilder,
 };
 use super::read_composition_relationship_proof::admit_read_relationship_proof;
-use super::read_composition_runtime::{classify_scope_shape_with_operators, runtime_basis_intent};
+use super::read_composition_runtime::classify_scope_shape_with_operators;
+pub(in crate::runtime) use request::declarative_request_from_authored_shape;
 
-pub(in crate::runtime) fn build_collection_read_graph(
+pub(in crate::runtime) fn build_collection_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     declare_query: impl FnOnce(CollectionQueryBuilder) -> CollectionQueryBuilder,
     declare_result_shape: impl FnOnce(CollectionResultShapeBuilder) -> CollectionResultShapeBuilder,
     expected_scope_class: WorthQueryReadScopeClass,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let (query, result_shape) =
         build_collection_authored_inputs(root, declare_query, declare_result_shape)?;
-    build_scoped_read_graph_from_authored(
+    build_scoped_read_intent_from_authored(
         query,
         result_shape,
         schema_view,
@@ -42,16 +47,16 @@ pub(in crate::runtime) fn build_collection_read_graph(
     )
 }
 
-pub(in crate::runtime) fn build_detail_read_graph(
+pub(in crate::runtime) fn build_detail_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     declare_query: impl FnOnce(DetailQueryBuilder) -> DetailQueryBuilder,
     declare_result_shape: impl FnOnce(DetailResultShapeBuilder) -> DetailResultShapeBuilder,
     expected_scope_class: WorthQueryReadScopeClass,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let (query, result_shape) =
         build_detail_authored_inputs(root, declare_query, declare_result_shape)?;
-    build_scoped_read_graph_from_authored(
+    build_scoped_read_intent_from_authored(
         query,
         result_shape,
         schema_view,
@@ -61,16 +66,16 @@ pub(in crate::runtime) fn build_detail_read_graph(
     )
 }
 
-pub(in crate::runtime) fn build_direct_edge_collection_read_graph(
+pub(in crate::runtime) fn build_direct_edge_collection_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     relation: RelationName,
     declare_query: impl FnOnce(CollectionReadOperatorQueryBuilder) -> CollectionReadOperatorQueryBuilder,
     declare_result_shape: impl FnOnce(CollectionResultShapeBuilder) -> CollectionResultShapeBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let (query, result_shape) =
         build_collection_operator_authored_inputs(root, declare_query, declare_result_shape)?;
-    build_scoped_read_graph_from_authored(
+    build_scoped_read_intent_from_authored(
         query.with_traversal(traversal_selector(relation, 1)?),
         result_shape,
         schema_view,
@@ -80,16 +85,16 @@ pub(in crate::runtime) fn build_direct_edge_collection_read_graph(
     )
 }
 
-pub(in crate::runtime) fn build_direct_edge_detail_read_graph(
+pub(in crate::runtime) fn build_direct_edge_detail_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     relation: RelationName,
     declare_query: impl FnOnce(DetailReadOperatorQueryBuilder) -> DetailReadOperatorQueryBuilder,
     declare_result_shape: impl FnOnce(DetailResultShapeBuilder) -> DetailResultShapeBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let (query, result_shape) =
         build_detail_operator_authored_inputs(root, declare_query, declare_result_shape)?;
-    build_scoped_read_graph_from_authored(
+    build_scoped_read_intent_from_authored(
         query.with_traversal(traversal_selector(relation, 1)?),
         result_shape,
         schema_view,
@@ -173,22 +178,64 @@ pub(super) fn build_detail_operator_authored_inputs(
     Ok((query, result_shape))
 }
 
-pub(super) fn build_scoped_read_graph_from_authored(
+pub(super) fn build_scoped_read_intent_from_authored(
     query: RawAuthoredQuery,
     result_shape: RawAuthoredResultShape,
     schema_view: QuerySchemaView,
     family: WorthQueryReadGraphFamily,
     expected_scope_class: WorthQueryReadScopeClass,
     built_in_operators: Vec<WorthQueryReadBuiltInOperator>,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
+    let request = AuthoredQueryBundleRequest::for_ordinary_read(
+        query,
+        result_shape,
+        QueryBindingDescriptor::default(),
+    )
+    .map_err(authoring_denial)?;
+    build_scoped_read_intent_from_request(
+        request,
+        schema_view,
+        family,
+        expected_scope_class,
+        built_in_operators,
+    )
+}
+
+pub(super) fn build_scoped_read_intent_from_composed(
+    expanded: ExpandedComposedIntent,
+    schema_view: QuerySchemaView,
+    family: WorthQueryReadGraphFamily,
+    expected_scope_class: WorthQueryReadScopeClass,
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
+    let (query, result_shape, bindings) = expanded.into_authored_request().into_parts();
+    let authored = AuthoredQueryBundleRequest::for_ordinary_read(query, result_shape, bindings)
+        .map_err(authoring_denial)?;
+    build_scoped_read_intent_from_request(
+        authored,
+        schema_view,
+        family,
+        expected_scope_class,
+        Vec::new(),
+    )
+}
+
+fn build_scoped_read_intent_from_request(
+    authored: AuthoredQueryBundleRequest,
+    schema_view: QuerySchemaView,
+    family: WorthQueryReadGraphFamily,
+    expected_scope_class: WorthQueryReadScopeClass,
+    built_in_operators: Vec<WorthQueryReadBuiltInOperator>,
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
+    let query = authored.query().clone();
+    let result_shape = authored.result_shape().clone();
     let domain_graph_operations = query.domain_graph_operations().to_vec();
     let request =
         declarative_request_from_authored_shape(query, result_shape).map_err(declarative_denial)?;
     validate_declared_traversal_contract(&request, &schema_view).map_err(declarative_denial)?;
-    let canonical = canonicalize_declarative_request(&request).map_err(declarative_denial)?;
-    let canonical_query = canonical.query().clone();
+    let canonical = canonicalize_request(authored).map_err(canonicalization_denial)?;
     let schema_view_for_runtime = schema_view.clone();
-    let validated = validate_canonical_bundle(canonical, schema_view).map_err(validation_denial)?;
+    let validated =
+        validate_canonical_bundle(canonical.clone(), schema_view).map_err(validation_denial)?;
     let scope_class = classify_scope_shape_with_operators(&validated, &built_in_operators);
     if scope_class != expected_scope_class {
         return Err(WorthQueryReadDenial::new_scope_shape_denied(
@@ -196,118 +243,48 @@ pub(super) fn build_scoped_read_graph_from_authored(
             scope_class,
         ));
     }
-    let relationship_proof_admission = admit_read_relationship_proof(
-        &canonical_query,
-        validated.query().schema_basis(),
-        validated.query().traversal(),
-        &built_in_operators,
-    )?;
-    let request_context = planning_request_context_for_direct(&validated, runtime_basis_intent())
-        .map_err(planning_denial)?;
-    let execution_plan =
-        plan_validated_bundle(&validated, request_context).map_err(planning_denial)?;
-    Ok(WorthQueryReadGraph::new(
+    let meaning = WorthQueryDeclaredReadMeaning {
         family,
         scope_class,
-        validated.query().schema_basis().clone(),
-        built_in_operators,
-        domain_graph_operations,
-        validated.query().traversal().len(),
-        validated
+        schema_basis: validated.query().schema_basis().clone(),
+    };
+    let operations = WorthQueryDeclaredReadOperations {
+        built_in: built_in_operators,
+        domain: domain_graph_operations,
+    };
+    let traversal = WorthQueryDeclaredTraversalContract {
+        clause_count: validated.query().traversal().len(),
+        depth_limit: validated
             .query()
             .traversal()
             .iter()
             .map(|entry| usize::from(entry.depth()))
             .max()
             .unwrap_or(0),
-        relationship_proof_admission,
+    };
+    let artifacts = WorthQueryDeclaredReadArtifacts {
         request,
-        schema_view_for_runtime,
-        execution_plan,
+        schema_view: schema_view_for_runtime,
+        canonical,
+        validated,
+    };
+    Ok(WorthQueryDeclaredReadIntent::new(
+        meaning, operations, traversal, artifacts,
     ))
 }
 
-pub(in crate::runtime) fn declarative_request_from_authored_shape(
-    query: RawAuthoredQuery,
-    result_shape: RawAuthoredResultShape,
-) -> Result<DeclarativeLiveQueryRequest, crate::declarative_live::DeclarativeLiveQueryError> {
-    let view_shape = match query.family() {
-        crate::authoring::QueryFamily::Detail => DeclarativeLiveViewShape::detail(),
-        crate::authoring::QueryFamily::Collection => DeclarativeLiveViewShape::table(),
-    };
-    let mut request = DeclarativeLiveQueryRequest::new(query.root().as_str(), view_shape);
-    for field in query.projection() {
-        let delivered_name = result_shape
-            .fields()
-            .iter()
-            .find(|result_field| result_field.source_field_key() == field.source_field_key())
-            .map(|result_field| result_field.delivered_name())
-            .unwrap_or_else(|| field.source_field_key().field().as_str());
-        request = request.project_query_only(
-            DeclarativeProjectionField::new(field.source_field_key().clone())
-                .delivered_as(delivered_name),
-        );
-    }
-    for field in result_shape.fields() {
-        request = request.result_field(
-            DeclarativeProjectionField::new(field.source_field_key().clone())
-                .delivered_as(field.delivered_name()),
-        );
-    }
-    for predicate in query.predicates() {
-        request = match predicate {
-            PredicateSelector::Equality(predicate) => {
-                request.where_equal(DeclarativeEqualityFilter::new(
-                    predicate.target_field_key().clone(),
-                    predicate.value().clone(),
-                ))
-            }
-            PredicateSelector::IntegerComparison(predicate) => match predicate.operator() {
-                IntegerComparisonOperator::GreaterThan => {
-                    request.where_greater_than(DeclarativeIntegerComparisonFilter::greater_than(
-                        predicate.target_field_key().clone(),
-                        predicate.value(),
-                    ))
-                }
-                IntegerComparisonOperator::LessThan => {
-                    request.where_less_than(DeclarativeIntegerComparisonFilter::less_than(
-                        predicate.target_field_key().clone(),
-                        predicate.value(),
-                    ))
-                }
-            },
-            PredicateSelector::StringContains(predicate) => {
-                request.where_contains(DeclarativeStringContainsFilter::new(
-                    predicate.target_field_key().clone(),
-                    predicate.value(),
-                ))
-            }
-            PredicateSelector::SetMembership(predicate) => {
-                request.where_in(DeclarativeSetMembershipFilter::new(
-                    predicate.target_field_key().clone(),
-                    predicate.values().iter().cloned(),
-                ))
-            }
-            PredicateSelector::Presence(predicate) => request.where_present(
-                DeclarativePresenceFilter::is_present(predicate.target_field_key().clone()),
-            ),
-        };
-    }
-    for traversal in query.traversal() {
-        request = request.traverse(traversal.clone());
-    }
-    for ordering in query.ordering() {
-        let ordering = match ordering.direction() {
-            crate::authoring::OrderingDirection::Ascending => {
-                DeclarativeOrderingField::ascending(ordering.source_field_key().clone())
-            }
-            crate::authoring::OrderingDirection::Descending => {
-                DeclarativeOrderingField::descending(ordering.source_field_key().clone())
-            }
-        };
-        request = request.order_by_direction(ordering);
-    }
-    Ok(request)
+pub(in crate::runtime) fn plan_standalone_read_intent(
+    intent: WorthQueryDeclaredReadIntent,
+) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+    let relationship_proof_admission = admit_read_relationship_proof(
+        intent.canonical().query(),
+        intent.validated().query().schema_basis(),
+        intent.validated().query().traversal(),
+        intent.built_in_operators(),
+    )?;
+    intent.plan(WorthQueryReadPlanningAuthority::canonical(
+        relationship_proof_admission,
+    ))
 }
 
 fn parse_root(root: impl Into<String>) -> Result<RootEntityKey, WorthQueryReadDenial> {
@@ -347,9 +324,9 @@ fn declarative_denial(error: DeclarativeLiveQueryError) -> WorthQueryReadDenial 
     WorthQueryReadDenial::new(kind, format!("{error:?}"))
 }
 
-fn planning_denial(error: impl std::fmt::Debug) -> WorthQueryReadDenial {
+fn canonicalization_denial(error: impl std::fmt::Debug) -> WorthQueryReadDenial {
     WorthQueryReadDenial::new(
-        WorthQueryReadDenialKind::PlanningDenied,
+        WorthQueryReadDenialKind::CanonicalizationDenied,
         format!("{error:?}"),
     )
 }

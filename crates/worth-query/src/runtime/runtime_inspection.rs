@@ -5,6 +5,11 @@ impl WorthQueryRuntime {
         &self,
         view_name: &str,
     ) -> Result<WorthQueryLiveArtifactTarget, WorthQueryRuntimeError> {
+        if self.managed_live_resource_is_abandoned(view_name) {
+            return Err(WorthQueryRuntimeError::MissingLiveSubscription(
+                view_name.to_string(),
+            ));
+        }
         let target = WorthQueryLiveArtifactTarget::from_view_name(view_name);
         let state = self.live_subscriptions.get(&target).ok_or_else(|| {
             WorthQueryRuntimeError::MissingLiveSubscription(view_name.to_string())
@@ -17,6 +22,11 @@ impl WorthQueryRuntime {
         view_name: &str,
     ) -> Result<&WorthQueryRuntimeLiveSubscriptionInstallation, WorthQueryRuntimeError> {
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Inspect)?;
+        if self.managed_live_resource_is_abandoned(view_name) {
+            return Err(WorthQueryRuntimeError::MissingLiveSubscription(
+                view_name.to_string(),
+            ));
+        }
         let target = WorthQueryLiveArtifactTarget::from_view_name(view_name);
         self.live_subscriptions
             .get(&target)
@@ -176,19 +186,10 @@ impl WorthQueryRuntime {
                     WorthQueryBasisLifecycleInspection::from_admitted_world_basis(basis),
                 ))
             }
-            WorthQueryInspectionTarget::ObservationBasisCapability(basis) => {
-                Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
-            }
-            WorthQueryInspectionTarget::InspectionBasisCapability(basis) => {
-                Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
-            }
-            WorthQueryInspectionTarget::SubscriptionDeclarationBasisCapability(basis) => {
-                Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
-            }
-            WorthQueryInspectionTarget::SubscriptionActivationBasisCapability(basis) => {
-                Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
-            }
             WorthQueryInspectionTarget::ScopedObservationBasis(basis) => {
+                Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
+            }
+            WorthQueryInspectionTarget::ScopedMutationPreparationBasis(basis) => {
                 Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
             }
             WorthQueryInspectionTarget::ScopedInspectionBasis(basis) => {
@@ -197,29 +198,17 @@ impl WorthQueryRuntime {
             WorthQueryInspectionTarget::ScopedReplayBasis(basis) => {
                 Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
             }
+            WorthQueryInspectionTarget::ScopedMaterializationBasis(basis) => {
+                Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
+            }
             WorthQueryInspectionTarget::ScopedSubscriptionDeclarationBasis(basis) => {
                 Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
             }
             WorthQueryInspectionTarget::ScopedSubscriptionActivationBasis(basis) => {
                 Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
             }
-            WorthQueryInspectionTarget::LowerRuntimeBoundObservationBasis(basis) => {
+            WorthQueryInspectionTarget::ScopedPreviewCloseoutBasis(basis) => {
                 Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
-            }
-            WorthQueryInspectionTarget::LowerRuntimeBoundInspectionBasis(basis) => {
-                Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
-            }
-            WorthQueryInspectionTarget::LowerRuntimeBoundSubscriptionDeclarationBasis(basis) => {
-                Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
-            }
-            WorthQueryInspectionTarget::LowerRuntimeBoundSubscriptionActivationBasis(basis) => {
-                Ok(WorthQueryInspection::BasisLifecycle(basis.into()))
-            }
-            WorthQueryInspectionTarget::DeniedBasisCapability(denial) => {
-                Ok(WorthQueryInspection::BasisLifecycle(denial.into()))
-            }
-            WorthQueryInspectionTarget::BasisIntentDenial(denial) => {
-                Ok(WorthQueryInspection::BasisLifecycle(denial.into()))
             }
             WorthQueryInspectionTarget::DerivedView { name } => {
                 let review = self.review_runtime_derived_inspection(name.to_string())?;

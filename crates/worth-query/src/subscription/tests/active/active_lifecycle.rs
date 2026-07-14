@@ -17,6 +17,14 @@ fn active_lane_admission_preserves_activation_digests_and_phase_one_posture() {
         .label()
         .to_string();
     let basis_binding_digest = activation.basis_binding_projection().label().to_string();
+    let scoped_declaration_basis_digest = activation
+        .scoped_declaration_basis()
+        .scoped_basis_digest()
+        .to_string();
+    let scoped_activation_basis_digest = activation
+        .scoped_activation_basis()
+        .scoped_basis_digest()
+        .to_string();
     let signal_strategy_digest = activation.signal_strategy_projection().label().to_string();
     let signal_strategy_identity = activation.signal_strategy_identity().clone();
 
@@ -45,6 +53,14 @@ fn active_lane_admission_preserves_activation_digests_and_phase_one_posture() {
     assert_eq!(
         admission.basis_binding_projection().label().as_str(),
         basis_binding_digest.as_str()
+    );
+    assert_eq!(
+        admission.scoped_declaration_basis().scoped_basis_digest(),
+        scoped_declaration_basis_digest
+    );
+    assert_eq!(
+        admission.scoped_activation_basis().scoped_basis_digest(),
+        scoped_activation_basis_digest
     );
     assert_eq!(
         admission.signal_strategy_identity(),

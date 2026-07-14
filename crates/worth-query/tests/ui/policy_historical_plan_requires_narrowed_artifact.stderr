@@ -1,20 +1,20 @@
 error[E0308]: mismatched types
-  --> tests/ui/policy_historical_plan_requires_narrowed_artifact.rs:15:31
+  --> tests/ui/policy_historical_plan_requires_narrowed_artifact.rs:13:31
    |
-15 |     expects_raw_query_lowerer(lower_policy_aware_historical_plan);
+13 |     expects_raw_query_lowerer(lower_policy_aware_historical_plan);
    |     ------------------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected fn pointer, found fn item
    |     |
    |     arguments to this function are incorrect
    |
    = note: expected fn pointer `for<'a> fn(&'a CanonicalQueryArtifact, PolicyAwareHistoricalBasis) -> std::result::Result<PolicyAwareHistoricalPlan, PolicyAwareExecutionSeamError>`
-                 found fn item `for<'a> fn(&'a worth_query::facade::NarrowedPolicyQueryArtifact, PolicyAwareHistoricalBasis) -> std::result::Result<PolicyAwareHistoricalPlan, PolicyAwareExecutionSeamError> {lower_policy_aware_historical_plan}`
+                 found fn item `for<'a> fn(&'a worth_query::facade::policy::NarrowedPolicyQueryArtifact, PolicyAwareHistoricalBasis) -> std::result::Result<PolicyAwareHistoricalPlan, PolicyAwareExecutionSeamError> {lower_policy_aware_historical_plan}`
 note: function defined here
-  --> tests/ui/policy_historical_plan_requires_narrowed_artifact.rs:6:4
+  --> tests/ui/policy_historical_plan_requires_narrowed_artifact.rs:4:4
    |
- 6 |   fn expects_raw_query_lowerer(
+ 4 |   fn expects_raw_query_lowerer(
    |      ^^^^^^^^^^^^^^^^^^^^^^^^^
- 7 | /     _: fn(
- 8 | |         &CanonicalQueryArtifact,
- 9 | |         PolicyAwareHistoricalBasis,
-10 | |     ) -> Result<PolicyAwareHistoricalPlan, PolicyAwareExecutionSeamError>,
+ 5 | /     _: fn(
+ 6 | |         &CanonicalQueryArtifact,
+ 7 | |         PolicyAwareHistoricalBasis,
+ 8 | |     ) -> Result<PolicyAwareHistoricalPlan, PolicyAwareExecutionSeamError>,
    | |_________________________________________________________________________-

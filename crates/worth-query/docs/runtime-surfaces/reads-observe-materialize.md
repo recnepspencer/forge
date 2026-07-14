@@ -111,7 +111,7 @@ for that live surface since the last drain.
 ## Small Example
 
 ```rust
-use worth_query::facade::WorthQueryLiveView;
+use worth_query::facade::runtime::WorthQueryLiveView;
 use serde_json::Value;
 
 let mut workspace = runtime.workspace("tasks").unwrap();
@@ -141,7 +141,7 @@ consumption paths on the same handle.
 ## Real Example
 
 ```rust
-use worth_query::facade::{WorthQueryDerivedViewHandle, WorthQueryLiveView};
+use worth_query::facade::runtime::{WorthQueryDerivedViewHandle, WorthQueryLiveView};
 use serde_json::Value;
 
 let mut workspace = runtime.workspace("builder").unwrap();

@@ -127,7 +127,20 @@ impl WorthQueryRuntime {
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Read)?;
         let target =
             WorthQueryLiveArtifactTarget::from_subscription_installation(binding.installation());
-        let rows = self.backend.live_entities_for_target(&target);
+        let source_rows = self.backend.live_entities_for_target(&target);
+        let rows = self
+            .live_subscriptions
+            .get(&target)
+            .and_then(|state| state.read_authority_binding.as_ref())
+            .map(|binding| {
+                let graph = binding.read_family().read_graph();
+                super::read_composition_materialization::materialize_source_rows_for_read_graph(
+                    graph,
+                    graph.declarative_request(),
+                    &source_rows,
+                )
+            })
+            .unwrap_or(source_rows);
         let snapshot_identity = self.current_snapshot_identity();
         let snapshot_evidence_identity = snapshot_identity.evidence_identity();
         let materialized_fact_posture = self.materialized_fact_posture_for_live_read(

@@ -1,10 +1,16 @@
+mod resolved;
+mod schema_authority;
+
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
     WorthQueryEvidenceTag,
 };
-use crate::identity::{BasisDigest, SchemaBasisDigest};
+use crate::identity::SchemaBasisDigest;
 use crate::planning::{ExecutionPlanBundle, PlannedExecutionRoute};
 use worth_runtime_bridge::facade::TruthSnapshotIdentity;
+
+pub use resolved::{ResolvedBasisProof, ResolvedSnapshotBasis, SnapshotResolutionReport};
+pub use schema_authority::{QueryExternalSchemaBasisToken, QuerySchemaBasisAuthority};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum BasisAuthorityFamily {
@@ -150,108 +156,6 @@ impl ResolvedSnapshotIdentity {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ResolvedBasisProof {
-    identity: WorthQueryEvidenceIdentity,
-    digest: BasisDigest,
-    resolution_mode: BasisResolutionMode,
-}
-
-impl ResolvedBasisProof {
-    pub fn identity(&self) -> &WorthQueryEvidenceIdentity {
-        &self.identity
-    }
-
-    pub fn digest(&self) -> &BasisDigest {
-        &self.digest
-    }
-
-    pub fn resolution_mode(&self) -> &BasisResolutionMode {
-        &self.resolution_mode
-    }
-
-    pub(crate) fn new(
-        identity: WorthQueryEvidenceIdentity,
-        resolution_mode: BasisResolutionMode,
-    ) -> Self {
-        let digest = BasisDigest::from_evidence_identity(&identity);
-        Self {
-            identity,
-            digest,
-            resolution_mode,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ResolvedSnapshotBasis {
-    intent: ExecutionBasisIntent,
-    identity: ResolvedSnapshotIdentity,
-    resolution_mode: BasisResolutionMode,
-    proof: ResolvedBasisProof,
-}
-
-impl ResolvedSnapshotBasis {
-    pub fn intent(&self) -> &ExecutionBasisIntent {
-        &self.intent
-    }
-
-    pub fn identity(&self) -> &ResolvedSnapshotIdentity {
-        &self.identity
-    }
-
-    pub fn resolution_mode(&self) -> &BasisResolutionMode {
-        &self.resolution_mode
-    }
-
-    pub fn proof(&self) -> &ResolvedBasisProof {
-        &self.proof
-    }
-
-    pub(crate) fn new(
-        intent: ExecutionBasisIntent,
-        identity: ResolvedSnapshotIdentity,
-        resolution_mode: BasisResolutionMode,
-    ) -> Self {
-        let proof = ResolvedBasisProof::new(identity.evidence_identity(), resolution_mode.clone());
-        Self {
-            intent,
-            identity,
-            resolution_mode,
-            proof,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SnapshotResolutionReport {
-    basis_digest: BasisDigest,
-    resolution_mode: BasisResolutionMode,
-    snapshot_basis_resolution_count: usize,
-}
-
-impl SnapshotResolutionReport {
-    pub fn basis_digest(&self) -> &BasisDigest {
-        &self.basis_digest
-    }
-
-    pub fn resolution_mode(&self) -> &BasisResolutionMode {
-        &self.resolution_mode
-    }
-
-    pub fn snapshot_basis_resolution_count(&self) -> usize {
-        self.snapshot_basis_resolution_count
-    }
-
-    pub(crate) fn from_resolved_basis(basis: &ResolvedSnapshotBasis) -> Self {
-        Self {
-            basis_digest: basis.proof().digest().clone(),
-            resolution_mode: basis.resolution_mode().clone(),
-            snapshot_basis_resolution_count: 1,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BasisResolutionError {
     UnsupportedBasisKind,
     ResolutionIdentityMismatch,
@@ -318,9 +222,9 @@ pub fn resolve_snapshot_basis(
     ))
 }
 
-pub fn resolve_runtime_current_snapshot_basis(
+pub(crate) fn resolve_runtime_current_snapshot_basis(
     snapshot_identity: WorthQueryEvidenceIdentity,
-    schema_basis: SchemaBasisDigest,
+    schema_basis: QuerySchemaBasisAuthority,
 ) -> Result<ResolvedSnapshotBasis, BasisResolutionError> {
     resolve_snapshot_basis(
         ExecutionBasisIntent::new(
@@ -332,11 +236,44 @@ pub fn resolve_runtime_current_snapshot_basis(
             BasisAuthorityFamily::Runtime,
             None,
             snapshot_identity,
-            schema_basis,
+            schema_basis.into_digest(),
             SnapshotLineageClass::CurrentHead,
         ),
         BasisResolutionMode::RuntimeDirect,
     )
+}
+
+pub(crate) fn resolve_runtime_historical_snapshot_basis(
+    snapshot_identity: WorthQueryEvidenceIdentity,
+    schema_basis: SchemaBasisDigest,
+    workspace_scope: impl Into<String>,
+) -> ResolvedSnapshotBasis {
+    let reporting_label = snapshot_identity.as_str().to_string();
+    let intent = ExecutionBasisIntent::new(
+        BasisAuthorityFamily::Runtime,
+        SnapshotLineageClass::ReplayEquivalent,
+        false,
+    );
+    let identity = ResolvedSnapshotIdentity::new(
+        BasisAuthorityFamily::Runtime,
+        Some(workspace_scope.into()),
+        snapshot_identity,
+        schema_basis,
+        SnapshotLineageClass::ReplayEquivalent,
+    );
+    ResolvedSnapshotBasis::new_with_reporting_label(
+        intent,
+        identity,
+        BasisResolutionMode::RuntimeDirect,
+        reporting_label,
+    )
+}
+
+pub fn admit_runtime_current_snapshot_basis(
+    snapshot_identity: WorthQueryEvidenceIdentity,
+    external_schema_basis: QueryExternalSchemaBasisToken,
+) -> Result<ResolvedSnapshotBasis, BasisResolutionError> {
+    resolve_runtime_current_snapshot_basis(snapshot_identity, external_schema_basis.admit())
 }
 
 pub fn snapshot_resolution_report(basis: &ResolvedSnapshotBasis) -> SnapshotResolutionReport {

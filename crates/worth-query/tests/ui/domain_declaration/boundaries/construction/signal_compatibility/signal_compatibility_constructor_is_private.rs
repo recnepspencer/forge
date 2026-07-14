@@ -1,11 +1,4 @@
-use worth_query::facade::{
-    WorthQueryCapabilityFamily, WorthQueryDeclarationCanonicalEntry,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationLegalityContract, WorthQueryDeclarationSignalCompatibility,
-    WorthQueryDeclarationSignalCompatibilityExplanation, WorthQueryDomainEntryMarker,
-    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
-    WorthQuerySignalCompatiblePosture,
-};
+use worth_query::facade::foundation::{WorthQueryCapabilityFamily, WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract, WorthQueryDeclarationSignalCompatibility, WorthQueryDeclarationSignalCompatibilityExplanation, WorthQueryDomainEntryMarker, WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct ExampleDomain;
@@ -48,8 +41,8 @@ fn main() {
         unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
 
     let _ = WorthQueryDeclarationSignalCompatibility::<ExampleDomain, ExampleInput>::new(
-        worth_query::facade::WorthQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
-        worth_query::facade::WorthQueryDeclarationSignalExecutionFamily::RuntimeDerivedExecution,
+        worth_query::facade::foundation::WorthQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+        worth_query::facade::foundation::WorthQueryDeclarationSignalExecutionFamily::RuntimeDerivedExecution,
         Vec::new(),
         envelope,
         "digest".to_string(),

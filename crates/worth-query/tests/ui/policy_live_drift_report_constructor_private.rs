@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    PolicyLiveDensityEvidence, PolicyLiveDriftEvidenceReport, PolicyLiveEpochEvidence,
-};
+use worth_query::facade::policy::{PolicyLiveDensityEvidence, PolicyLiveDriftEvidenceReport, PolicyLiveEpochEvidence};
 
 fn main() {
     let _ = PolicyLiveDriftEvidenceReport {

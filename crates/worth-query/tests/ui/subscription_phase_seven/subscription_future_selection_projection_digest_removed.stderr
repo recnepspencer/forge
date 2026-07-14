@@ -2,10 +2,7 @@ error[E0432]: unresolved import `worth_query::facade::QuerySubscriptionFutureSel
  --> tests/ui/subscription_phase_seven/subscription_future_selection_projection_digest_removed.rs:1:5
   |
 1 | use worth_query::facade::QuerySubscriptionFutureSelection;
-  |     ^^^^^^^^^^^^^^^^^^^^^--------------------------------
-  |     |                    |
-  |     |                    help: a similar name exists in the module: `QuerySubscriptionFamilySelection`
-  |     no `QuerySubscriptionFutureSelection` in `facade`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `QuerySubscriptionFutureSelection` in `facade`
 
 warning: unreachable statement
  --> tests/ui/subscription_phase_seven/subscription_future_selection_projection_digest_removed.rs:5:5

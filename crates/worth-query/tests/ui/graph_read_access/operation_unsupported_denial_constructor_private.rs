@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadOperationUnsupportedDenial,
-    WorthQueryGraphReadOperationUnsupportedDenialKind,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadOperationUnsupportedDenial, WorthQueryGraphReadOperationUnsupportedDenialKind};
 
 fn main() {
     let _ = WorthQueryGraphReadOperationUnsupportedDenial {
