@@ -74,8 +74,10 @@ fn planning_scenario(
     crate::obligations::selection::UiSelectedObligationSet,
 ) {
     let generation = UiEvidenceAuthorityGeneration::new(17);
-    let (_, _, world_profile) = crate::evidence::measurement::projection::query_context_test_support::
-        display_field_projection_context(operator_token);
+    // Planning certification exercises UI allocation determinism, not Query
+    // construction. Query-hostile worlds are owned by worth-ui-certification;
+    // this production feature therefore carries no direct Query dependency.
+    let world_profile = crate::graph::UiGraphWorldProfile::authoritative();
     let (app, nodes, bounded) = match shape {
         CertificationScenarioShape::Control { nodes, bounded } => (
             control_app(world_profile, operator_token, nodes, bounded),

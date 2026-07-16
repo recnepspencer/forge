@@ -13,7 +13,7 @@ pub(super) fn subtree_digest(
 fn subtree_basis(node: &WorthUiArtifactNode, hooks: &[WorthUiRuntimeDependencyHook]) -> String {
     let hook_basis = hooks
         .iter()
-        .map(WorthUiRuntimeDependencyHook::digest_basis)
+        .map(WorthUiRuntimeDependencyHook::artifact_identity_material)
         .collect::<Vec<_>>()
         .join("|");
     format!("{}|runtime_hooks:[{hook_basis}]", node_basis(node))

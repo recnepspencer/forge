@@ -5,7 +5,6 @@ use crate::evidence::{
     UiProjectionFactReceipt,
 };
 use crate::graph::UiGraphNodeIdentity;
-use worth_query::facade::foundation::{BasisDigest, BasisResolutionMode};
 use worth_ui_query_binding::WorthUiQueryMeasurementFactFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -20,13 +19,10 @@ pub enum UiQueryMeasurementUnsupportedQueryReason {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiQueryMeasurementBasisAuthority {
     AdmittedPrerequisites {
-        basis_digest: BasisDigest,
-        resolution_mode: BasisResolutionMode,
-        projection_contract_digest: Option<Box<str>>,
+        prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
     },
     ProjectionConsumption {
-        basis_digest: Box<str>,
-        projection_contract_digest: Box<str>,
+        authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     },
 }
 
@@ -62,9 +58,6 @@ pub struct UiQueryMeasurementEligibility {
     selected_measurement_obligation_identity_digest: Option<u64>,
     selected_support_authority_generation: UiEvidenceAuthorityGeneration,
     boundary_support_authority_generation: UiEvidenceAuthorityGeneration,
-    query_basis_digest: Option<BasisDigest>,
-    query_resolution_mode: Option<BasisResolutionMode>,
-    query_projection_contract_digest: Option<Box<str>>,
     required_fact_family_set_digest: u64,
     required_families: Box<[WorthUiQueryMeasurementFactFamily]>,
     projection_fact_receipt: Option<UiProjectionFactReceipt>,
@@ -81,9 +74,6 @@ impl UiQueryMeasurementEligibility {
         selected_measurement_obligation_identity_digest: Option<u64>,
         selected_support_authority_generation: UiEvidenceAuthorityGeneration,
         boundary_support_authority_generation: UiEvidenceAuthorityGeneration,
-        query_basis_digest: Option<BasisDigest>,
-        query_resolution_mode: Option<BasisResolutionMode>,
-        query_projection_contract_digest: Option<Box<str>>,
         required_families: Box<[WorthUiQueryMeasurementFactFamily]>,
         projection_fact_receipt: Option<UiProjectionFactReceipt>,
         posture: UiQueryMeasurementEligibilityPosture,
@@ -98,9 +88,6 @@ impl UiQueryMeasurementEligibility {
             selected_measurement_obligation_identity_digest,
             selected_support_authority_generation,
             boundary_support_authority_generation,
-            query_basis_digest,
-            query_resolution_mode,
-            query_projection_contract_digest,
             required_fact_family_set_digest,
             required_families,
             projection_fact_receipt,
@@ -136,16 +123,24 @@ impl UiQueryMeasurementEligibility {
         self.boundary_support_authority_generation
     }
 
-    pub fn query_basis_digest(&self) -> Option<&BasisDigest> {
-        self.query_basis_digest.as_ref()
+    pub fn query_basis_digest_for_diagnostics(&self) -> Option<&str> {
+        self.target
+            .query_prerequisites()
+            .map(|evidence| evidence.basis_digest_for_diagnostics())
     }
 
-    pub fn query_resolution_mode(&self) -> Option<&BasisResolutionMode> {
-        self.query_resolution_mode.as_ref()
+    pub fn query_resolution_mode(
+        &self,
+    ) -> Option<worth_ui_query_binding::WorthUiQueryResolutionMode> {
+        self.target
+            .query_prerequisites()
+            .map(|evidence| evidence.resolution_mode())
     }
 
     pub fn query_projection_contract_digest(&self) -> Option<&str> {
-        self.query_projection_contract_digest.as_deref()
+        self.target
+            .query_prerequisites()
+            .and_then(|evidence| evidence.projection_contract_digest())
     }
 
     pub fn required_fact_family_set_digest(&self) -> u64 {

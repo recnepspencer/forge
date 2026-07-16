@@ -2,7 +2,8 @@ use super::lane_meaning_parity_test_support::{
     plan_with_command_semantics_changed, query_preserving_lane_change_fixture,
 };
 use super::query_binding_comparison_test_support::{
-    basis_drift_query_app, denial_presentation_drift_query_app, phase11_pipeline, query_artifact,
+    denial_presentation_drift_query_app, lifecycle_drift_query_app, phase11_pipeline,
+    query_artifact,
     standard_query_app,
 };
 use crate::runtime::{
@@ -76,7 +77,7 @@ fn lane_report_does_not_guess_transition_lane_from_plan_partition_shape() {
 #[test]
 fn query_rebind_receipt_certifies_drift_without_hiding_digest_difference() {
     let active_app = standard_query_app();
-    let candidate_app = basis_drift_query_app();
+    let candidate_app = lifecycle_drift_query_app();
     let active = query_artifact(&active_app, "workspace.view_binding.selection");
     let candidate = query_artifact(&candidate_app, "workspace.view_binding.selection");
     let (runtime, admitted, narrowing, plan) = phase11_pipeline(&active_app, active, candidate);
@@ -185,7 +186,7 @@ fn visual_similarity_without_semantic_parity_does_not_certify_lane_transition() 
 #[test]
 fn lane_transition_with_changed_query_binding_denied_without_query_rebind() {
     let active_app = standard_query_app();
-    let candidate_app = basis_drift_query_app();
+    let candidate_app = lifecycle_drift_query_app();
     let active = query_artifact(&active_app, "workspace.view_binding.selection");
     let candidate = query_artifact(&candidate_app, "workspace.view_binding.selection");
     let (runtime, admitted, narrowing, plan) = phase11_pipeline(&active_app, active, candidate);

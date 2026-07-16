@@ -289,16 +289,12 @@ impl WorthUiRuntime {
 
     pub(super) fn admit_and_submit_query_projection(
         &mut self,
-        prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-        authority: worth_query::facade::read::WorthQueryProjectionOutcome,
+        outcome: worth_ui_query_binding::WorthUiQueryProjectionOutcome,
     ) -> Result<
         UiAllocationFrameGatewayOutcome,
         worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,
     > {
-        let settlement = self
-            .query_binding
-            .allocation_admission()
-            .admit(prerequisites, authority)?;
+        let settlement = self.query_binding.admit(outcome)?;
         Ok(self
             .query_projection_submission()
             .submit_query_projection_settlement(settlement))

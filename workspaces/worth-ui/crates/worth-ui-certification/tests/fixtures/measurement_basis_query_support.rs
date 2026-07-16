@@ -54,7 +54,7 @@ pub fn target_bound_to_projection_consumption(
     authority: &WorthUiQueryAuthorityHandle,
 ) -> UiAdmissionTarget {
     available_measurement_target(touch)
-        .with_query_prerequisites_from_query_authority(authority.authority())
+        .with_query_prerequisites_from_query_authority(authority)
         .expect("query-backed measurement target should bind real projection consumption authority")
 }
 

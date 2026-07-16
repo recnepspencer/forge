@@ -10,7 +10,8 @@ use super::view_binding_fixtures::{table_view_binding, view_binding_id};
 fn admitted_view_binding_can_satisfy_surface_view_binding_reference() {
     let report = WorthUi::app()
         .register_component(component_descriptor("workspace.component.tasks"))
-        .register_view_binding(table_view_binding("workspace.view_binding.tasks"))
+        .register_query_view(table_view_binding("workspace.view_binding.tasks"))
+        .expect("installed view should register")
         .register_surface(
             SurfaceDescriptor::new(
                 surface_id("workspace.surface.tasks"),

@@ -118,10 +118,7 @@ fn activate_catalog(
     let (snapshot, admissions) = if let Some(admitted_inputs) = admitted_inputs {
         admitted_inputs
     } else if scroll {
-        crate::runtime::tests::allocation_catalog_test_support::admitted_scroll_planning_admissions(
-            "production-scroll-catalog-activation",
-            count,
-        )
+        panic!("scroll catalog activation requires installed Query admissions")
     } else if portal {
         crate::runtime::tests::allocation_catalog_test_support::admitted_portal_planning_admissions(
             "production-portal-catalog-activation",
@@ -151,6 +148,13 @@ fn activate_catalog(
             runtime.plan_allocation(input)
         })
         .collect::<Vec<_>>();
+    for candidate in &candidates {
+        assert!(
+            candidate.is_admitted(),
+            "catalog fixture must produce an admitted candidate: {:?}",
+            candidate.denial_posture()
+        );
+    }
     let planning = if scroll {
         candidates
             .iter()
@@ -235,7 +239,9 @@ fn activate_catalog(
             boundary,
             None,
         )
-        .expect("production catalog activation owns the atomic swap");
+        .unwrap_or_else(|denial| {
+            panic!("production catalog activation owns the atomic swap: {denial:?}")
+        });
     let committed_evidence = swap_receipt
         .committed_allocation()
         .committed_evidence()

@@ -7,7 +7,7 @@ use crate::evidence::{
 };
 
 use super::classify_special_inputs::family_for_requirement;
-use super::types::ConstraintAuthorityContext;
+use super::admission_parts::ConstraintAuthorityContext;
 
 pub(super) fn verify_required_special_inputs(
     context: &ConstraintAuthorityContext<'_>,

@@ -1,6 +1,6 @@
 use super::identity_match_graph_test_support::{artifact_from_nodes, component_node};
 use super::query_binding_comparison_test_support::{
-    basis_drift_query_app, query_artifact, standard_query_app,
+    lifecycle_drift_query_app, query_artifact, standard_query_app,
 };
 use crate::facade::WorthUi;
 use crate::runtime::{
@@ -130,7 +130,7 @@ pub(super) fn missing_lowering_basis_candidate_denial() -> WorthUiReplacementCan
 
 pub(super) fn stale_dependency_candidate_denial() -> WorthUiReplacementCandidateDenial {
     let stale_app = standard_query_app();
-    let candidate_app = basis_drift_query_app();
+    let candidate_app = lifecycle_drift_query_app();
     let stale_artifact = query_artifact(&stale_app, "workspace.view_binding.selection");
     let candidate_artifact = query_artifact(&candidate_app, "workspace.view_binding.selection");
     let candidate_digest = WorthUiArtifactDigestor::digest(

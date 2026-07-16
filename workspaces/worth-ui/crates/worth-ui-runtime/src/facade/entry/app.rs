@@ -52,18 +52,24 @@ pub struct WorthUiApp {
     graph_aspect_evidence_indexes: UiGraphAspectEvidenceIndexes,
     retained_obligations: WorthUiRetainedObligationRegistry,
     retained_allocation_planning_evidence: Rc<WorthUiRetainedAllocationPlanningEvidenceRegistry>,
+    query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
 }
 
 impl WorthUiApp {
-    pub(crate) fn from_freeze_core(core: WorthUiCapabilityRegistrationFreezeCore) -> Self {
+    pub(crate) fn from_freeze_core_with_query_binding(
+        core: WorthUiCapabilityRegistrationFreezeCore,
+        query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
+    ) -> Self {
         let (capability_snapshot, declaration_artifacts, graph_snapshot, lifecycle) =
             core.into_parts();
-        Self::from_authority_parts(
+        let mut app = Self::from_authority_parts(
             capability_snapshot,
             declaration_artifacts,
             graph_snapshot,
             lifecycle,
-        )
+        );
+        app.query_binding_plan = query_binding_plan;
+        app
     }
 
     pub(crate) fn from_authority_parts(
@@ -87,6 +93,7 @@ impl WorthUiApp {
             lifecycle,
             retained_obligations: WorthUiRetainedObligationRegistry::default(),
             retained_allocation_planning_evidence: Rc::default(),
+            query_binding_plan: Default::default(),
         }
     }
 
@@ -243,6 +250,7 @@ impl WorthUiApp {
             launch,
             self.capability_snapshot.digest(),
             Rc::clone(&self.retained_allocation_planning_evidence),
+            self.query_binding_plan.activate(),
         )
     }
 

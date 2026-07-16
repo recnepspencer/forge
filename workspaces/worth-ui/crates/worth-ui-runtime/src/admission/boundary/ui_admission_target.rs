@@ -5,7 +5,7 @@ use crate::graph::UiGraphNodeIdentity;
 use crate::graph::UiGraphWorldProfile;
 use worth_ui_host_contract::{WorthUiHostCapabilityPosture, WorthUiHostCapabilityReport};
 use worth_ui_query_binding::{
-    WorthUiQueryBasisPosture, WorthUiQueryBindingSubsystem,
+    WorthUiQueryBasisPosture,
     WorthUiQueryMeasurementFactEligibilityError, WorthUiQueryPrerequisiteEvidence,
 };
 
@@ -85,15 +85,13 @@ impl UiAdmissionTarget {
 
     pub fn with_query_prerequisites_from_query_authority(
         mut self,
-        authority: &worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
+        authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     ) -> Result<Self, WorthUiQueryMeasurementFactEligibilityError> {
         let Some(query_prerequisites) = self.query_prerequisites.take() else {
             return Ok(self);
         };
         self.query_prerequisites = Some(
-            WorthUiQueryBindingSubsystem::bootstrap()
-                .prerequisites()
-                .bind_query_authority(query_prerequisites, authority)?,
+            authority.bind_prerequisites(query_prerequisites)?,
         );
         Ok(self)
     }
@@ -110,18 +108,12 @@ impl UiAdmissionTarget {
 fn query_prerequisites_for_world(
     world: &UiAdmissionWorld,
 ) -> Option<WorthUiQueryPrerequisiteEvidence> {
-    let UiGraphWorldProfile::QuerySnapshotBasis {
-        basis,
-        resolution_report,
-    } = world.graph_world_profile()
+    let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } = world.graph_world_profile()
     else {
         return None;
     };
 
-    WorthUiQueryBindingSubsystem::bootstrap()
-        .prerequisites()
-        .graph_aligned(basis.clone(), resolution_report.clone())
-        .ok()
+    Some(prerequisites.clone())
 }
 
 fn query_basis_from_evidence(evidence: &WorthUiQueryPrerequisiteEvidence) -> UiAdmissionQueryBasis {

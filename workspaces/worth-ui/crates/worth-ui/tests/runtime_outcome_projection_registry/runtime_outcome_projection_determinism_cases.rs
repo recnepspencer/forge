@@ -1,6 +1,3 @@
-use worth_query::facade::foundation::{
-    WorthQueryOrdinaryPostureKind, WorthQueryOrdinaryRuntimePostureKind,
-};
 use worth_ui::facade::{
     IconDescriptor, IconFamily, IconId, IconSourceDescriptor, RuntimeOutcomeAffordance,
     RuntimeOutcomeFamily, RuntimeOutcomePresentation, RuntimeOutcomeProjectionDescriptor,
@@ -96,24 +93,20 @@ fn async_result_state_family_is_preserved_without_local_bool_flattening() {
 }
 
 #[test]
-fn supported_query_source_surfaces_project_distinct_typed_families() {
+fn ui_outcome_sources_project_distinct_typed_families() {
     let app = WorthUi::app()
         .register_runtime_outcome_projection(
             RuntimeOutcomeProjectionDescriptor::new(
                 projection_id("workspace.outcome.ordinary_rebind"),
                 RuntimeOutcomeFamily::recoverable(),
-                RuntimeOutcomeSourceReference::from_query_ordinary_posture_kind(
-                    WorthQueryOrdinaryPostureKind::RebindRequired,
-                ),
+                RuntimeOutcomeSourceReference::new(RuntimeOutcomeFamily::recoverable()),
             )
             .with_recovery_posture(RuntimeOutcomeRecoveryPosture::action_hint()),
         )
         .register_runtime_outcome_projection(RuntimeOutcomeProjectionDescriptor::new(
             projection_id("workspace.outcome.runtime_pending"),
             RuntimeOutcomeFamily::loading(),
-            RuntimeOutcomeSourceReference::from_query_ordinary_runtime_posture_kind(
-                WorthQueryOrdinaryRuntimePostureKind::Pending,
-            ),
+            RuntimeOutcomeSourceReference::new(RuntimeOutcomeFamily::loading()),
         ))
         .register_runtime_outcome_projection(ready_projection("workspace.outcome.async_ready"))
         .freeze();

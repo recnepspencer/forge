@@ -175,6 +175,12 @@ domains = ["replay", "scale", "approval", "perf", "workflows"]
 
 [rule_contracts]
 
+[rule_contracts.worth_ui_query_edge]
+workspace = "workspaces/worth-ui"
+engine_package = "worth-query"
+allowed_production_consumers = ["worth-ui-query-binding"]
+guidance = "Worth UI production code consumes Query only through worth-ui-query-binding; certification is the explicit hostile-world exception. Remove the direct dependency and accept binding-owned authority/value artifacts."
+
 [rule_contracts.query_audience]
 engine_package = "worth-query"
 

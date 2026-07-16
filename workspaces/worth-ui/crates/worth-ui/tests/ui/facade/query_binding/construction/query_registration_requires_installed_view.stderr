@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/facade/query_binding/construction/query_registration_requires_installed_view.rs:7:48
+  |
+7 |     let _ = WorthUi::app().register_query_view(definition);
+  |                            ------------------- ^^^^^^^^^^ expected `WorthUiInstalledQueryView`, found `WorthUiQueryViewDefinition`
+  |                            |
+  |                            arguments to this method are incorrect
+  |
+note: method defined here
+ --> $WORKSPACE/crates/worth-ui-runtime/src/facade/entry/app_builder.rs
+  |
+  |     pub fn register_query_view(
+  |            ^^^^^^^^^^^^^^^^^^^

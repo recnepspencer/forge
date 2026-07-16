@@ -155,7 +155,7 @@ pub(super) fn direct_measurement_view_for_graph_node(
         .query_authority()
         .expect("success parity path should carry Query authority");
     admission_target = admission_target
-        .with_query_prerequisites_from_query_authority(authority.authority())
+        .with_query_prerequisites_from_query_authority(authority)
         .expect("query projection consumption should bind prerequisites");
 
     let selected = app

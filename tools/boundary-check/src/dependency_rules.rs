@@ -6,6 +6,7 @@ use crate::manifest_types::Road1Package;
 use crate::naming::parse_crate_name;
 use crate::source_rules::{illegal_law_substrate_edge, is_legal_law_substrate_edge};
 use std::collections::BTreeMap;
+use std::path::Path;
 
 pub(crate) fn validate_dependency_rules(
     packages: &[Road1Package],
@@ -108,6 +109,214 @@ pub(crate) fn validate_dependency_rules(
     }
 
     diagnostics
+}
+
+pub(crate) fn validate_worth_ui_query_edge(
+    root: &Path,
+    contract: &crate::config::WorthUiQueryEdgeContract,
+) -> Result<Vec<Diagnostic>, String> {
+    let crates_root = root.join(&contract.workspace).join("crates");
+    let entries = std::fs::read_dir(&crates_root).map_err(|error| {
+        format!("failed to read {}: {error}", crates_root.display())
+    })?;
+    let mut diagnostics = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|error| format!("failed to read crate entry: {error}"))?;
+        let manifest_path = entry.path().join("Cargo.toml");
+        if !manifest_path.is_file() {
+            continue;
+        }
+        let text = std::fs::read_to_string(&manifest_path)
+            .map_err(|error| format!("failed to read {}: {error}", manifest_path.display()))?;
+        let manifest: toml::Value = toml::from_str(&text)
+            .map_err(|error| format!("failed to parse {}: {error}", manifest_path.display()))?;
+        let package = manifest
+            .get("package")
+            .and_then(|value| value.get("name"))
+            .and_then(toml::Value::as_str)
+            .unwrap_or("unknown");
+        let has_engine_dependency = manifest
+            .get("dependencies")
+            .and_then(toml::Value::as_table)
+            .is_some_and(|dependencies| dependencies.contains_key(&contract.engine_package));
+        if has_engine_dependency
+            && !contract
+                .allowed_production_consumers
+                .iter()
+                .any(|allowed| allowed == package)
+        {
+            diagnostics.push(Diagnostic::new(
+                DiagnosticCode::Bc2001BandDependencyViolation,
+                package,
+                format!(
+                    "direct production dependency on `{}` is denied by the Worth UI Query edge: {}",
+                    contract.engine_package, contract.guidance
+                ),
+            ));
+        }
+        if !contract
+            .allowed_production_consumers
+            .iter()
+            .any(|allowed| allowed == package)
+        {
+            diagnostics.extend(validate_crate_query_source_edge(
+                &entry.path().join("src"),
+                package,
+                contract,
+            )?);
+        }
+    }
+    Ok(diagnostics)
+}
+
+fn validate_crate_query_source_edge(
+    source_root: &Path,
+    package: &str,
+    contract: &crate::config::WorthUiQueryEdgeContract,
+) -> Result<Vec<Diagnostic>, String> {
+    if !source_root.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut pending = vec![source_root.to_path_buf()];
+    let mut diagnostics = Vec::new();
+    while let Some(directory) = pending.pop() {
+        for entry in std::fs::read_dir(&directory)
+            .map_err(|error| format!("failed to read {}: {error}", directory.display()))?
+        {
+            let entry = entry.map_err(|error| format!("failed to read source entry: {error}"))?;
+            let path = entry.path();
+            if path.is_dir() {
+                pending.push(path);
+                continue;
+            }
+            if path.extension().and_then(std::ffi::OsStr::to_str) != Some("rs") {
+                continue;
+            }
+            let text = std::fs::read_to_string(&path)
+                .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
+            let syntax = syn::parse_file(&text)
+                .map_err(|error| format!("failed to parse {}: {error}", path.display()))?;
+            let mut visitor = WorthQueryPathVisitor::default();
+            syn::visit::Visit::visit_file(&mut visitor, &syntax);
+            if visitor.found {
+                diagnostics.push(Diagnostic::new(
+                    DiagnosticCode::Bc2001BandDependencyViolation,
+                    package,
+                    format!(
+                        "raw `worth_query` production source edge in `{}` is denied: {}",
+                        path.display(), contract.guidance
+                    ),
+                ));
+            }
+        }
+    }
+    Ok(diagnostics)
+}
+
+#[derive(Default)]
+struct WorthQueryPathVisitor {
+    found: bool,
+}
+
+impl<'ast> syn::visit::Visit<'ast> for WorthQueryPathVisitor {
+    fn visit_path(&mut self, path: &'ast syn::Path) {
+        if path
+            .segments
+            .first()
+            .is_some_and(|segment| segment.ident == "worth_query")
+        {
+            self.found = true;
+        }
+        syn::visit::visit_path(self, path);
+    }
+
+    fn visit_item_use(&mut self, item: &'ast syn::ItemUse) {
+        if use_tree_starts_with_worth_query(&item.tree) {
+            self.found = true;
+        }
+        syn::visit::visit_item_use(self, item);
+    }
+}
+
+fn use_tree_starts_with_worth_query(tree: &syn::UseTree) -> bool {
+    matches!(tree, syn::UseTree::Path(path) if path.ident == "worth_query")
+}
+
+#[cfg(test)]
+mod worth_ui_query_edge_tests {
+    use super::*;
+
+    fn contract() -> crate::config::WorthUiQueryEdgeContract {
+        crate::config::WorthUiQueryEdgeContract {
+            workspace: "worth-ui".to_owned(),
+            engine_package: "worth-query".to_owned(),
+            allowed_production_consumers: vec!["worth-ui-query-binding".to_owned()],
+            guidance: "consume binding-owned artifacts".to_owned(),
+        }
+    }
+
+    fn fixture_root(label: &str) -> std::path::PathBuf {
+        std::env::temp_dir().join(format!(
+            "worth-ui-query-edge-{label}-{}",
+            std::process::id()
+        ))
+    }
+
+    fn write_crate(root: &Path, package: &str, dependency: bool, source: &str) {
+        let crate_root = root.join("worth-ui").join("crates").join(package);
+        std::fs::create_dir_all(crate_root.join("src")).expect("fixture source directory");
+        let dependency = dependency
+            .then_some("worth-query = { path = \"../../worth-query\" }")
+            .unwrap_or_default();
+        std::fs::write(
+            crate_root.join("Cargo.toml"),
+            format!("[package]\nname = \"{package}\"\nversion = \"0.1.0\"\n[dependencies]\n{dependency}\n"),
+        )
+        .expect("fixture manifest");
+        std::fs::write(crate_root.join("src/lib.rs"), source).expect("fixture source");
+    }
+
+    #[test]
+    fn binding_crate_is_the_only_admitted_production_query_edge() {
+        let root = fixture_root("allowed");
+        write_crate(
+            &root,
+            "worth-ui-query-binding",
+            true,
+            "pub fn binding_edge() {}",
+        );
+        assert!(validate_worth_ui_query_edge(&root, &contract())
+            .expect("edge validation")
+            .is_empty());
+        std::fs::remove_dir_all(root).expect("fixture cleanup");
+    }
+
+    #[test]
+    fn direct_runtime_dependency_reports_the_admitted_path() {
+        let root = fixture_root("runtime-dependency");
+        write_crate(&root, "worth-ui-runtime", true, "pub fn runtime() {}");
+        let diagnostics = validate_worth_ui_query_edge(&root, &contract()).expect("edge validation");
+        assert_eq!(diagnostics.len(), 1);
+        assert!(diagnostics[0]
+            .message()
+            .contains("consume binding-owned artifacts"));
+        std::fs::remove_dir_all(root).expect("fixture cleanup");
+    }
+
+    #[test]
+    fn raw_facade_reexport_reports_the_admitted_path() {
+        let root = fixture_root("facade-reexport");
+        write_crate(
+            &root,
+            "worth-ui",
+            false,
+            "pub use worth_query::facade::read::*;",
+        );
+        let diagnostics = validate_worth_ui_query_edge(&root, &contract()).expect("edge validation");
+        assert_eq!(diagnostics.len(), 1);
+        assert!(diagnostics[0].message().contains("raw `worth_query`"));
+        std::fs::remove_dir_all(root).expect("fixture cleanup");
+    }
 }
 
 fn is_query_framework_package(dependency: &str, contract: &QueryAudienceContract) -> bool {

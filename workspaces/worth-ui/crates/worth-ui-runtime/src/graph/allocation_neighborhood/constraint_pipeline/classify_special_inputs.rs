@@ -1,7 +1,7 @@
 use crate::evidence::UiConstraintPropagationEdgeFamily;
 use crate::evidence::UiLayoutOperatorSpecialInputRequirement;
 
-use super::types::ConstraintAuthorityContext;
+use super::admission_parts::ConstraintAuthorityContext;
 
 pub(super) fn classify_special_input_requirements(
     context: &ConstraintAuthorityContext<'_>,

@@ -1,5 +1,6 @@
 use crate::declaration::stable_text_digest;
 use crate::graph::UiGraphNodeIdentity;
+use worth_foundational::CanonicalF32;
 
 use crate::evidence::{
     UiConstraintAxisScope, UiMeasurementCoordinateSpace, UiMeasurementRoundingPosture,
@@ -25,8 +26,8 @@ pub enum UiConstraintHostIntrinsicKind {
 pub struct UiConstraintChildIntrinsicContribution {
     contributor_graph_node_identity: UiGraphNodeIdentity,
     axis_scope: UiConstraintAxisScope,
-    primary_extent_bits: u32,
-    cross_extent_bits: Option<u32>,
+    primary_extent: CanonicalF32,
+    cross_extent: Option<CanonicalF32>,
     source_posture: UiConstraintIntrinsicSourcePosture,
     host_kind: UiConstraintHostIntrinsicKind,
     unit_posture: UiMeasurementUnitPosture,
@@ -39,8 +40,8 @@ impl UiConstraintChildIntrinsicContribution {
     pub fn new(
         contributor_graph_node_identity: UiGraphNodeIdentity,
         axis_scope: UiConstraintAxisScope,
-        primary_extent_bits: u32,
-        cross_extent_bits: Option<u32>,
+        primary_extent: CanonicalF32,
+        cross_extent: Option<CanonicalF32>,
         source_posture: UiConstraintIntrinsicSourcePosture,
         host_kind: UiConstraintHostIntrinsicKind,
         unit_posture: UiMeasurementUnitPosture,
@@ -50,9 +51,9 @@ impl UiConstraintChildIntrinsicContribution {
         let identity_digest = stable_text_digest("worth-ui.constraint-child-intrinsic")
             ^ contributor_graph_node_identity.digest().rotate_left(7)
             ^ axis_scope_digest(axis_scope).rotate_left(13)
-            ^ (primary_extent_bits as u64).rotate_left(19)
-            ^ cross_extent_bits
-                .map(|value| value as u64)
+            ^ u64::from(primary_extent.bits()).rotate_left(19)
+            ^ cross_extent
+                .map(|value| u64::from(value.bits()))
                 .unwrap_or_default()
                 .rotate_left(23)
             ^ source_digest(source_posture).rotate_left(29)
@@ -63,8 +64,8 @@ impl UiConstraintChildIntrinsicContribution {
         Self {
             contributor_graph_node_identity,
             axis_scope,
-            primary_extent_bits,
-            cross_extent_bits,
+            primary_extent,
+            cross_extent,
             source_posture,
             host_kind,
             unit_posture,
@@ -83,11 +84,11 @@ impl UiConstraintChildIntrinsicContribution {
     }
 
     pub fn primary_extent(&self) -> f32 {
-        f32::from_bits(self.primary_extent_bits)
+        self.primary_extent.as_f32()
     }
 
     pub fn cross_extent(&self) -> Option<f32> {
-        self.cross_extent_bits.map(f32::from_bits)
+        self.cross_extent.map(CanonicalF32::as_f32)
     }
 
     pub fn source_posture(&self) -> UiConstraintIntrinsicSourcePosture {

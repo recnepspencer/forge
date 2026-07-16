@@ -1,7 +1,5 @@
 use std::collections::BTreeSet;
 
-use worth_query::facade::foundation::worth_ui_query_binding_evidence_identity;
-
 use super::evidence::WorthUiQueryBindingEvidence;
 use crate::runtime::query_binding::{WorthUiQueryBindingIdentity, WorthUiQueryBindingPosture};
 use crate::runtime::{WorthUiQuerySupportReceipt, WorthUiQuerySupportStatus};
@@ -17,7 +15,7 @@ pub(super) struct WorthUiQueryBindingEvidenceAccumulator {
     live_compatibility_digest: Option<String>,
     denial_presentation_digest: Option<String>,
     query_support_status: Option<WorthUiQuerySupportStatus>,
-    query_support_receipt_digest: Option<String>,
+    query_support_contract_identity: Option<String>,
     runtime_surfaces: BTreeSet<WorthUiRuntimeDependencyHookKind>,
     inspection_links: BTreeSet<String>,
     projection_links: BTreeSet<String>,
@@ -29,34 +27,34 @@ impl WorthUiQueryBindingEvidenceAccumulator {
         view_binding: &WorthUiBoundViewBindingReference,
     ) {
         let query = view_binding.query_semantics();
-        self.query_capability_digest = Some(query.query_capability().digest_basis());
-        self.query_composition_profile_digest =
-            Some(query.query_composition_profile_digest().to_owned());
-        self.result_shape_digest = Some(query.result_shape().digest_basis());
-        self.basis_capability_digest = Some(query.basis_posture().digest_basis());
-        self.live_compatibility_digest = Some(query.live_compatibility().digest_basis());
+        let definition = query.definition();
+        self.query_capability_digest = Some("installed-domain".to_owned());
+        self.query_composition_profile_digest = Some(definition.identity().as_str().to_owned());
+        self.result_shape_digest = Some(format!("{:?}", definition.shape()));
+        self.basis_capability_digest = Some("installed-authority".to_owned());
+        self.live_compatibility_digest = Some(format!("{:?}", definition.lifecycle()));
         self.denial_presentation_digest =
             Some(query.denial_presentation().digest_basis().to_owned());
         self.inspection_links.insert(query_evidence_identity(
             "inspection",
             [
-                query.query_capability().digest_basis(),
-                query.result_shape().digest_basis(),
+                definition.identity().as_str().to_owned(),
+                format!("{:?}", definition.shape()),
             ],
         ));
         self.projection_links.insert(query_evidence_identity(
             "projection",
-            [query.result_shape().digest_basis()],
+            [format!("{:?}", definition.shape())],
         ));
     }
 
     pub(super) fn record_runtime_hook(&mut self, hook: &WorthUiRuntimeDependencyHook) {
-        self.query_capability_digest = Some(hook.query_capability().digest_basis());
-        self.query_composition_profile_digest =
-            Some(hook.query_composition_profile_digest().to_owned());
-        self.result_shape_digest = Some(hook.result_shape().digest_basis());
-        self.basis_capability_digest = Some(hook.basis_posture().digest_basis());
-        self.live_compatibility_digest = Some(hook.live_compatibility().digest_basis());
+        let definition = hook.definition();
+        self.query_capability_digest = Some("installed-domain".to_owned());
+        self.query_composition_profile_digest = Some(definition.identity().as_str().to_owned());
+        self.result_shape_digest = Some(format!("{:?}", definition.shape()));
+        self.basis_capability_digest = Some("installed-authority".to_owned());
+        self.live_compatibility_digest = Some(format!("{:?}", definition.lifecycle()));
         self.denial_presentation_digest =
             Some(hook.denial_presentation().digest_basis().to_owned());
         self.runtime_surfaces.insert(hook.kind());
@@ -64,11 +62,12 @@ impl WorthUiQueryBindingEvidenceAccumulator {
 
     pub(super) fn record_query_support_receipt(&mut self, receipt: WorthUiQuerySupportReceipt) {
         self.query_support_status = Some(receipt.status());
-        self.query_support_receipt_digest = Some(query_evidence_identity(
-            "support-receipt",
+        self.query_support_contract_identity = Some(query_evidence_identity(
+            "support-contract",
             [
                 format!("status:{:?}", receipt.status()),
                 format!("runtime_hooks:{}", receipt.runtime_hook_count()),
+                format!("identity:{}", receipt.contract_identity().as_u64()),
             ],
         ));
     }
@@ -90,8 +89,8 @@ impl WorthUiQueryBindingEvidenceAccumulator {
                 "support-admission",
                 [
                     query_capability_digest,
-                    self.query_support_receipt_digest
-                        .unwrap_or_else(|| "support_receipt:missing".to_owned()),
+                    self.query_support_contract_identity
+                        .unwrap_or_else(|| "support_contract:missing".to_owned()),
                 ],
             ),
             self.basis_capability_digest
@@ -118,11 +117,7 @@ impl WorthUiQueryBindingEvidenceAccumulator {
 }
 
 fn query_evidence_identity<const N: usize>(surface: &'static str, values: [String; N]) -> String {
-    let identity = worth_ui_query_binding_evidence_identity(surface, &values);
-    format!(
-        "query-evidence:{}",
-        identity.terminal_projection_for_reporting()
-    )
+    format!("query-binding-evidence:{surface}:{}", values.join("|"))
 }
 
 fn digest_runtime_surface(
@@ -153,13 +148,13 @@ mod tests {
     use super::query_evidence_identity;
 
     #[test]
-    fn query_evidence_identity_distinguishes_same_local_surface_with_different_query_basis() {
+    fn query_evidence_identity_distinguishes_different_declared_result_shapes() {
         let collection = query_evidence_identity("projection", ["result_shape:collection".into()]);
         let detail = query_evidence_identity("projection", ["result_shape:detail".into()]);
 
         assert_ne!(collection, detail);
-        assert!(collection.starts_with("query-evidence:"));
-        assert!(detail.starts_with("query-evidence:"));
+        assert!(collection.starts_with("query-binding-evidence:"));
+        assert!(detail.starts_with("query-binding-evidence:"));
     }
 
     #[test]

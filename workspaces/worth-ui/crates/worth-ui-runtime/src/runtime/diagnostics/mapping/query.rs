@@ -84,12 +84,15 @@ fn query_live_rebind_digest(denial: &WorthUiQueryLiveRebindPlanDenial) -> u64 {
                 *admitted_candidate_artifact_digest,
             ],
         ),
-        WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportReceiptChanged {
-            admitted_receipt_digest,
-            current_receipt_digest,
+        WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportContractChanged {
+            admitted_contract_identity,
+            current_contract_identity,
         } => fold_all(
             0xB1_00_00_05,
-            [*admitted_receipt_digest, *current_receipt_digest],
+            [
+                admitted_contract_identity.as_u64(),
+                current_contract_identity.as_u64(),
+            ],
         ),
     }
 }

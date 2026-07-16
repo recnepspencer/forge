@@ -1,15 +1,18 @@
 use std::sync::Arc;
 
 use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
+use worth_query::facade::foundation::{
+    snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
+    WorthQuerySnapshotIdentity,
+};
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::declaration::UiDeclarationSupportRowSchemaKind;
 use worth_ui::facade::graph::{
-    snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
     UiGraphAxisParticipation, UiGraphParticipationAxis, UiGraphParticipationStatus,
     UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchOriginClass,
     UiGraphTouchRuntimeLane, UiGraphTouchTargetClass, UiGraphTouchTiming, UiGraphWorldProfile,
-    WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
+    UiGraphSessionLabel,
 };
 use worth_ui::facade::obligations::{
     UiObligationCheckKind, UiObligationFamily, UiObligationSelectionReason,
@@ -24,7 +27,7 @@ use worth_ui_dsl::{
 #[test]
 fn structural_hot_reload_touch_selects_closed_structural_matrix_with_stable_identity() {
     let app = touch_app(UiGraphWorldProfile::hot_reload_candidate(
-        WorthQuerySessionLabel::scoped_strs("worth-ui", ["phase4", "hot-reload"])
+        UiGraphSessionLabel::new("worth-ui.phase4.hot-reload")
             .expect("hot-reload label should admit"),
     ));
     let graph = app.graph();
@@ -328,8 +331,10 @@ fn query_snapshot_world_profile(
     )
     .expect("runtime current snapshot basis should resolve");
 
-    UiGraphWorldProfile::query_snapshot_basis(basis.clone(), snapshot_resolution_report(&basis))
-        .expect("query snapshot basis world should admit")
+    let prerequisites = worth_ui_query_binding::WorthUiQueryPrerequisiteBoundary::new()
+        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
+        .expect("query prerequisites should admit");
+    UiGraphWorldProfile::query_snapshot_basis(prerequisites)
 }
 
 fn obligation_by_family<'a>(

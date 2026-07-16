@@ -25,12 +25,7 @@ fn hook_from_query_semantics(
     WorthUiRuntimeDependencyHook::new(
         kind,
         view_binding.view_binding().id().clone(),
-        query.query_capability().clone(),
-        query.query_composition_profile_digest(),
-        query.view_shape().clone(),
-        query.result_shape().clone(),
-        query.basis_posture().clone(),
-        query.live_compatibility().clone(),
+        query.definition().clone(),
         query.denial_presentation().clone(),
     )
 }

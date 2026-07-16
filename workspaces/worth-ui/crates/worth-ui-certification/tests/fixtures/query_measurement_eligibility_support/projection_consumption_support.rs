@@ -99,11 +99,10 @@ fn consume_completion(
         schema_basis_authority,
     )
     .expect("runtime current snapshot basis should resolve from the ordinary read");
-    let world_profile = UiGraphWorldProfile::query_snapshot_basis(
-        basis.clone(),
-        snapshot_resolution_report(&basis),
-    )
-    .expect("query snapshot basis world should admit");
+    let prerequisites = worth_ui_query_binding::WorthUiQueryPrerequisiteBoundary::new()
+        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
+        .expect("query prerequisites should admit");
+    let world_profile = UiGraphWorldProfile::query_snapshot_basis(prerequisites);
     (world_profile, completion.consume_projection(projection))
 }
 

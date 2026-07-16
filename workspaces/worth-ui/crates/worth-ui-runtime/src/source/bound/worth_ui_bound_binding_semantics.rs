@@ -1,11 +1,8 @@
-use worth_query::facade::runtime::ViewShapeDescriptor;
-
 use crate::capability::{
     AdmittedCapability, CommandDescriptor, CommandId, CommandProjectionDescriptor,
     CommandProjectionId, CommandReadinessBinding, CommandRuntimeIntentBinding,
     FrozenThemeTokenEntry, FrozenViewBindingEntry, IconDescriptor, IconId,
-    QueryBasisPostureReference, QueryDenialPresentation, QueryLiveCompatibility,
-    QueryResultShapeReference, QueryViewCapabilityReference, ThemeTokenId, ViewBindingId,
+    QueryDenialPresentation, ThemeTokenId, ViewBindingId,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -37,12 +34,7 @@ pub(crate) struct WorthUiBoundCommandReference {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiBoundQueryViewSemantics {
-    query_capability: QueryViewCapabilityReference,
-    query_composition_profile_digest: String,
-    view_shape: ViewShapeDescriptor,
-    result_shape: QueryResultShapeReference,
-    basis_posture: QueryBasisPostureReference,
-    live_compatibility: QueryLiveCompatibility,
+    definition: worth_ui_query_binding::WorthUiQueryViewDefinition,
     denial_presentation: QueryDenialPresentation,
 }
 
@@ -94,47 +86,17 @@ impl WorthUiBoundCommandReference {
 
 impl WorthUiBoundQueryViewSemantics {
     pub(crate) fn new(
-        query_capability: QueryViewCapabilityReference,
-        query_composition_profile_digest: String,
-        view_shape: ViewShapeDescriptor,
-        result_shape: QueryResultShapeReference,
-        basis_posture: QueryBasisPostureReference,
-        live_compatibility: QueryLiveCompatibility,
+        definition: worth_ui_query_binding::WorthUiQueryViewDefinition,
         denial_presentation: QueryDenialPresentation,
     ) -> Self {
         Self {
-            query_capability,
-            query_composition_profile_digest,
-            view_shape,
-            result_shape,
-            basis_posture,
-            live_compatibility,
+            definition,
             denial_presentation,
         }
     }
 
-    pub(crate) fn query_capability(&self) -> &QueryViewCapabilityReference {
-        &self.query_capability
-    }
-
-    pub(crate) fn query_composition_profile_digest(&self) -> &str {
-        &self.query_composition_profile_digest
-    }
-
-    pub(crate) fn view_shape(&self) -> &ViewShapeDescriptor {
-        &self.view_shape
-    }
-
-    pub(crate) fn result_shape(&self) -> &QueryResultShapeReference {
-        &self.result_shape
-    }
-
-    pub(crate) fn basis_posture(&self) -> &QueryBasisPostureReference {
-        &self.basis_posture
-    }
-
-    pub(crate) fn live_compatibility(&self) -> &QueryLiveCompatibility {
-        &self.live_compatibility
+    pub(crate) fn definition(&self) -> &worth_ui_query_binding::WorthUiQueryViewDefinition {
+        &self.definition
     }
 
     pub(crate) fn denial_presentation(&self) -> &QueryDenialPresentation {

@@ -1,41 +1,73 @@
 //! Allocation truth progression: candidate -> preview or committed receipt.
 
+#[path = "committed_truth/candidate.rs"]
 mod candidate;
+#[path = "transaction/commit_outcome.rs"]
 mod commit_outcome;
+#[path = "committed_truth/committed_allocation.rs"]
 mod committed_allocation;
+#[path = "committed_truth/committed_catalog_binding.rs"]
 mod committed_catalog_binding;
+#[path = "committed_truth/committed_evidence.rs"]
 mod committed_evidence;
+#[path = "committed_truth/committed_lowering_input.rs"]
 mod committed_lowering_input;
+#[path = "committed_truth/committed_receipt.rs"]
 mod committed_receipt;
+#[path = "transaction/denial.rs"]
 mod denial;
+#[path = "transaction/denial_report.rs"]
 mod denial_report;
+#[path = "committed_truth/durable_semantic_state.rs"]
 mod durable_semantic_state;
+#[path = "committed_truth/equivalence_basis.rs"]
 mod equivalence_basis;
+#[path = "committed_truth/geometry_evidence.rs"]
 mod geometry_evidence;
+#[path = "ledger_lifecycle/ledger_denial.rs"]
 mod ledger_denial;
+#[path = "ledger_lifecycle/ledger_state.rs"]
 mod ledger_state;
+#[path = "transaction/prepared_portal_commit.rs"]
 mod prepared_portal_commit;
+#[path = "transaction/prepared_replan.rs"]
 mod prepared_replan;
+#[path = "reuse/preview_candidate.rs"]
 mod preview_candidate;
+#[path = "reuse/preview_isolation.rs"]
 mod preview_isolation;
+#[path = "reuse/receipt_budget.rs"]
 mod receipt_budget;
+#[path = "transaction/receipt_commit.rs"]
 mod receipt_commit;
+#[path = "report_freshness/receipt_generation.rs"]
 mod receipt_generation;
+#[path = "report_freshness/receipt_identity.rs"]
 mod receipt_identity;
+#[path = "ledger_lifecycle/receipt_ledger.rs"]
 mod receipt_ledger;
+#[path = "ledger_lifecycle/receipt_ledger_entry.rs"]
 mod receipt_ledger_entry;
 #[cfg(test)]
+#[path = "ledger_lifecycle/receipt_ledger_test_support.rs"]
 mod receipt_ledger_test_support;
 #[cfg(test)]
 pub(crate) use receipt_ledger_test_support::{
     detached_non_portal_receipt, UiNonPortalReceiptLawCandidate,
 };
+#[path = "report_freshness/receipt_report.rs"]
 mod receipt_report;
+#[path = "transaction/replan_commit_mode.rs"]
 mod replan_commit_mode;
+#[path = "transaction/replan_transaction.rs"]
 mod replan_transaction;
+#[path = "reuse/reuse_verdict.rs"]
 mod reuse_verdict;
+#[path = "transaction/transaction_outcome.rs"]
 mod transaction_outcome;
+#[path = "committed_truth/truth_revision.rs"]
 mod truth_revision;
+#[path = "report_freshness/viewport_inspection.rs"]
 mod viewport_inspection;
 
 pub use candidate::UiAllocationCandidate;
@@ -92,4 +124,5 @@ pub(crate) use preview_isolation::UiPreviewPaintIsolationPort;
 pub(crate) use receipt_commit::project_allocation_preview;
 pub(crate) use receipt_ledger::UiAllocationReceiptLedger;
 pub(in crate::runtime) use receipt_ledger_entry::UiPreparedAllocationCatalogLedgerCommit;
+#[path = "ledger_lifecycle/activation_catalog_commit.rs"]
 mod activation_catalog_commit;

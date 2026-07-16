@@ -57,6 +57,16 @@ pub(crate) struct RuleContracts {
     pub(crate) query_audience: QueryAudienceContract,
     pub(crate) replay_surfaces: Vec<ReplaySurfaceConfig>,
     pub(crate) band_rules: Vec<BandRuleConfig>,
+    #[serde(default)]
+    pub(crate) worth_ui_query_edge: Option<WorthUiQueryEdgeContract>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct WorthUiQueryEdgeContract {
+    pub(crate) workspace: String,
+    pub(crate) engine_package: String,
+    pub(crate) allowed_production_consumers: Vec<String>,
+    pub(crate) guidance: String,
 }
 
 /// Machine-owned Query audience matrix: one engine package plus leaf facade rows.

@@ -1,6 +1,6 @@
 use crate::capability::{
     CommandDescriptor, CommandId, CommandProjectionCommandReference, CommandProjectionDescriptor,
-    CommandProjectionId, CommandProjectionSurface, CommandReadinessBinding,
+    CommandProjectionId, CommandProjectionSurface, CommandReadinessBinding, CommandReadinessStatus,
     CommandRuntimeIntentBinding, ComponentChildPolicy, ComponentDescriptor, ComponentId,
     ComponentPropSchema, ComponentStateOwnership, IconDescriptor, IconFamily, IconId,
     IconSourceDescriptor, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
@@ -40,8 +40,8 @@ pub(super) fn app_with_view_binding_descriptor(
                 "Inspect",
             )
             .with_icon(IconId::new("workspace.icon.inspect").unwrap())
-            .with_readiness(CommandReadinessBinding::from_query_readiness_status(
-                worth_query::facade::foundation::WorthQueryDeclarationEntryReadinessStatus::Deferred,
+            .with_readiness(CommandReadinessBinding::from_status(
+                CommandReadinessStatus::Deferred,
             ))
             .with_runtime_intent_binding(CommandRuntimeIntentBinding::named(
                 "workspace.runtime.inspect",

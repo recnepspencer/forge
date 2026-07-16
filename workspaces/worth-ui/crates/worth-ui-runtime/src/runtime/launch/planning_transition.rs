@@ -33,8 +33,10 @@ pub(crate) enum UiAllocationPlanningCatalogAdmissionDenial {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum UiAllocationCatalogPreparationDenial {
-    PlanningAdmission,
-    CatalogPlanning,
+    PlanningAdmission(UiAllocationPlanningCatalogAdmissionDenial),
+    CatalogPlanning(
+        crate::runtime::invalidation_narrowing::UiAllocationActivationCatalogDenial,
+    ),
     ReceiptCommit(crate::runtime::UiAllocationReceiptCommitOutcome),
 }
 
@@ -55,10 +57,10 @@ impl WorthUiRuntime {
     > {
         let input = self
             .admit_allocation_planning_catalog(pending, admitted)
-            .map_err(|_| UiAllocationCatalogPreparationDenial::PlanningAdmission)?;
+            .map_err(UiAllocationCatalogPreparationDenial::PlanningAdmission)?;
         let catalog = self
             .plan_allocation_catalog(input)
-            .map_err(|_| UiAllocationCatalogPreparationDenial::CatalogPlanning)?;
+            .map_err(UiAllocationCatalogPreparationDenial::CatalogPlanning)?;
         self.seal_allocation_catalog_activation(
             catalog,
             pending.frame_epoch(),

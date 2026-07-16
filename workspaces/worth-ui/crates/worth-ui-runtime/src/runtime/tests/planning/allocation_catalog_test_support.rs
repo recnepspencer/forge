@@ -11,16 +11,13 @@ use crate::declaration::{
     UiDeclaredMeasurementPolicyPosture,
 };
 use crate::evidence::measurement::projection::fact_test_support::{
-    capability_report, display_field_projection_consumption, display_field_projection_context,
+    capability_report, display_field_projection_context,
     host_result_portal_anchor, host_result_scroll_container_viewport, host_result_viewport_extent,
     viewport_extent_policy,
 };
-use crate::evidence::{
-    admit_measurement_basis, consume_declared_measurement_projection_facts,
-    MeasurementEvidenceInput, UiMeasurementBasis,
-};
+use crate::evidence::{admit_measurement_basis, MeasurementEvidenceInput, UiMeasurementBasis};
 use crate::facade::{WorthUi, WorthUiApp};
-use crate::graph::{UiGraphNodeIdentity, UiGraphSnapshot};
+use crate::graph::{UiGraphNodeIdentity, UiGraphSnapshot, UiGraphWorldProfile};
 use crate::obligations::selection::UiSelectedObligationSet;
 
 pub(crate) fn admitted_disjoint_planning_admissions(
@@ -56,9 +53,10 @@ pub(crate) fn admitted_split_planning_admissions(
     admitted_planning_admissions(label, count, "operator:split")
 }
 
-pub(crate) fn admitted_scroll_planning_admissions(
+pub(crate) fn admitted_scroll_planning_admissions_from_settlement(
     label: &str,
     count: usize,
+    settlement: &worth_ui_query_binding::WorthUiQueryMeasurementFactSettlement,
 ) -> (
     UiGraphSnapshot,
     Vec<(UiMeasurementBasis, UiSelectedObligationSet)>,
@@ -67,6 +65,9 @@ pub(crate) fn admitted_scroll_planning_admissions(
         label,
         count,
         "operator:scroll",
+        Some(UiGraphWorldProfile::installed_query_basis(
+            settlement.basis_authority().clone(),
+        )),
         |ordinal, identity, target, app, capability, generation| {
             if ordinal == 0 {
                 let viewport = host_result_viewport_extent(949, capability, generation);
@@ -87,16 +88,16 @@ pub(crate) fn admitted_scroll_planning_admissions(
             let outer_viewport =
                 host_result_viewport_extent(960 + ordinal as u64, capability, generation);
             let policy = scroll_owner_policy();
-            let (prerequisites, attempt) =
-                display_field_projection_consumption(&format!("{label}-scroll-{ordinal}"));
-            let query = consume_declared_measurement_projection_facts(
+            let dependencies = crate::declaration::declared_query_measurement_dependencies(&policy)
+                .expect("scroll policy declares Query measurement dependencies");
+            let query = crate::evidence::admit_declared_measurement_projection_fact_receipt(
                 identity.clone(),
                 generation,
-                &policy,
-                prerequisites,
-                &attempt,
+                dependencies,
+                settlement.resolution_mode(),
+                settlement.receipt().clone(),
             )
-            .expect("scroll content-total Query fact admits");
+            .expect("installed scroll content-total Query fact admits");
             admit_measurement_basis(
                 identity,
                 target,
@@ -125,6 +126,7 @@ pub(crate) fn admitted_portal_planning_admissions(
         label,
         count,
         "operator:portal-anchor",
+        None,
         |ordinal, identity, target, app, capability, generation| {
             if ordinal == 0 {
                 let viewport = host_result_viewport_extent(979, capability, generation);
@@ -191,6 +193,7 @@ fn admitted_planning_admissions(
         label,
         count,
         operator,
+        None,
         |_, identity, target, app, capability, generation| {
             let viewport_extent = host_result_viewport_extent(900, capability, generation);
             admit_measurement_basis(
@@ -212,6 +215,7 @@ fn admitted_planning_admissions_with(
     label: &str,
     count: usize,
     operator: &str,
+    world_profile: Option<crate::graph::UiGraphWorldProfile>,
     basis: impl Fn(
         usize,
         crate::declaration::UiDeclarationIdentity,
@@ -225,7 +229,10 @@ fn admitted_planning_admissions_with(
     Vec<(UiMeasurementBasis, UiSelectedObligationSet)>,
 ) {
     assert!(count > 0);
-    let (_, _, world_profile) = display_field_projection_context(label);
+    let world_profile = world_profile.unwrap_or_else(|| {
+        let (_, _, world_profile) = display_field_projection_context(label);
+        world_profile
+    });
     let package = (0..count.saturating_sub(1)).fold(
         WorthUiDslPackage::named("worth-ui.runtime.allocation-planning.catalog"),
         |package, ordinal| {

@@ -222,13 +222,7 @@ fn query_link_from_view_binding(
     WorthUiQueryInspectionLink::new(
         role,
         view_binding.view_binding().clone(),
-        query_semantics.query_capability().clone(),
-        query_semantics
-            .query_composition_profile_digest()
-            .to_owned(),
-        query_semantics.result_shape().clone(),
-        query_semantics.basis_posture().clone(),
-        query_semantics.live_compatibility().clone(),
+        query_semantics.definition().clone(),
         query_semantics.denial_presentation().clone(),
     )
 }

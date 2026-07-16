@@ -1,14 +1,7 @@
-use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily, WorthQueryCapabilityFamily,
-    WorthQuerySupportReport,
-};
-use worth_query::facade::runtime::{QuerySubscriptionFamily, ViewShapeDescriptor};
-
 use crate::capability::{
     CapabilitySnapshot, CapabilitySupportCatalog, ComponentChildPolicy, ComponentDescriptor,
-    ComponentId, ComponentPropSchema, ComponentStateOwnership, QueryBasisPostureReference,
-    QueryDenialPresentation, QueryLiveCompatibility, QueryResultShapeReference,
-    QueryViewCapabilityReference, RegisteredCapabilitySet, RegistrationCandidate,
+    ComponentId, ComponentPropSchema, ComponentStateOwnership, RegisteredCapabilitySet,
+    RegistrationCandidate,
     SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass, SurfaceStateClass,
     ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
     ThemeTokenSource, ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
@@ -37,40 +30,20 @@ pub(super) fn standard_artifact_input() -> WorthUiArtifactInput {
 }
 
 pub(super) fn admitted_app() -> WorthUiApp {
-    let query_support = WorthQuerySupportReport::runtime_backed_default();
-    let query_capability = query_support
-        .support_matrix()
-        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
-        .expect("query composition support posture");
-    let query_composition = query_support
-        .query_composition_support_profile()
-        .expect("query composition profile");
-    let basis_support =
-        discover_basis_lifecycle_support(BasisFamily::CurrentHead, "subscription_declaration");
+    let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(
+        "workspace.view_binding.selection",
+    )
+    .expect("query definition should admit");
 
     WorthUi::app()
         .register_component(component_descriptor("workspace.component.dashboard"))
         .register_component(component_descriptor("workspace.component.inspector_panel"))
         .register_view_binding(
-            ViewBindingDescriptor::query_owned(
+            ViewBindingDescriptor::from_definition(
                 ViewBindingId::new("workspace.view_binding.selection").unwrap(),
                 ViewBindingFamily::collection(),
-            )
-            .with_query_capability_posture(
-                QueryViewCapabilityReference::from_query_capability_descriptor(query_capability),
-            )
-            .with_query_composition_support(query_composition)
-            .with_view_shape(ViewShapeDescriptor::table())
-            .with_result_shape(QueryResultShapeReference::from_result_shape_family(
-                ResultShapeFamily::Collection,
-            ))
-            .with_basis_posture(QueryBasisPostureReference::from_basis_support_discovery(
-                &basis_support,
-            ))
-            .with_live_compatibility(QueryLiveCompatibility::declaration_only(
-                QuerySubscriptionFamily::CollectionMembership,
-            ))
-            .with_denial_presentation(QueryDenialPresentation::structured_status()),
+                definition,
+            ),
         )
         .register_surface(
             SurfaceDescriptor::new(

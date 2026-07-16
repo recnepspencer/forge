@@ -8,7 +8,7 @@ use worth_ui::facade::admission::{
 };
 use worth_ui::facade::graph::{
     UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming, UiGraphWorldProfile,
-    WorthQuerySessionLabel,
+    UiGraphSessionLabel,
 };
 use worth_ui::facade::obligations::{UiObligationDispatchStopPosture, UiObligationFamily};
 use worth_ui_host_contract::{
@@ -94,7 +94,7 @@ fn measurement_admission_keeps_wrong_world_and_capability_gated_denials_distinct
     let wrong_world_target = UiAdmissionTarget::graph_node(
         touch.target().graph_node_identity(),
         UiAdmissionWorld::from_graph_world_profile(UiGraphWorldProfile::preview_session_label(
-            WorthQuerySessionLabel::scoped_strs("worth-ui", ["measurement", "preview"])
+            UiGraphSessionLabel::new("worth-ui.measurement.preview")
                 .expect("preview label should admit"),
         )),
     )
@@ -144,7 +144,7 @@ fn measurement_admission_keeps_wrong_world_and_capability_gated_denials_distinct
             ),
             observed: UiAdmissionWorld::from_graph_world_profile(
                 UiGraphWorldProfile::preview_session_label(
-                    WorthQuerySessionLabel::scoped_strs("worth-ui", ["measurement", "preview"],)
+                    UiGraphSessionLabel::new("worth-ui.measurement.preview")
                         .expect("preview label should admit"),
                 ),
             ),

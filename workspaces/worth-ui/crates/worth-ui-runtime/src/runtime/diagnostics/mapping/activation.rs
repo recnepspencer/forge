@@ -159,7 +159,7 @@ fn activation_staging_reason_digest(
         crate::runtime::WorthUiActivationStagingDenialReason::ExecutionPlanLoweringInputMismatch => 4,
         crate::runtime::WorthUiActivationStagingDenialReason::ActiveArtifactDigestMismatch => 5,
         crate::runtime::WorthUiActivationStagingDenialReason::CandidateArtifactDigestMismatch => 6,
-        crate::runtime::WorthUiActivationStagingDenialReason::AdmittedQuerySupportReceiptChanged => 7,
+        crate::runtime::WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged => 7,
         crate::runtime::WorthUiActivationStagingDenialReason::ActiveRuntimeMutatedDuringStaging => 8,
     }
 }

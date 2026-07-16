@@ -1,5 +1,6 @@
 use super::binding_app_fixture::admitted_app;
 use super::binding_phase_fixture::bound_artifact_input;
+use crate::capability::CommandReadinessStatus;
 use crate::source::WorthUiBoundArtifactInputNode;
 
 #[test]
@@ -39,8 +40,8 @@ fn nested_command_and_surface_semantics_preserve_typed_identity() {
         "workspace.command_projection.inspect_actions"
     );
     assert_eq!(
-        command.semantics().readiness().strongest_status().as_str(),
-        "deferred"
+        command.semantics().readiness().strongest_status(),
+        CommandReadinessStatus::Deferred
     );
     assert_eq!(
         command
@@ -53,7 +54,7 @@ fn nested_command_and_surface_semantics_preserve_typed_identity() {
 }
 
 #[test]
-fn query_bound_view_reference_preserves_query_owned_posture() {
+fn query_bound_view_reference_preserves_the_single_admitted_definition() {
     let app = admitted_app();
     let snapshot = app.capabilities();
     let bound = bound_artifact_input(snapshot);
@@ -70,28 +71,19 @@ fn query_bound_view_reference_preserves_query_owned_posture() {
     let semantics = binding.view_binding_reference().query_semantics();
     let descriptor = binding.view_binding_reference().entry().descriptor();
 
-    assert!(semantics.query_capability().is_admitted());
-    assert!(!semantics.query_composition_profile_digest().is_empty());
+    assert_eq!(semantics.definition(), descriptor.definition());
     assert_eq!(
-        semantics.query_capability(),
-        descriptor.query_capability().unwrap()
-    );
-    assert_eq!(semantics.view_shape(), descriptor.view_shape().unwrap());
-    assert_eq!(
-        semantics.result_shape().digest_basis(),
-        descriptor.result_shape().unwrap().digest_basis()
+        semantics.definition().lifecycle(),
+        worth_ui_query_binding::WorthUiQueryViewLifecycle::Snapshot
     );
     assert_eq!(
-        semantics.basis_posture().digest_basis(),
-        descriptor.basis_posture().unwrap().digest_basis()
+        semantics.definition().shape(),
+        worth_ui_query_binding::WorthUiQueryViewShape::Collection
     );
-    assert_eq!(
-        semantics.live_compatibility().digest_basis(),
-        descriptor.live_compatibility().unwrap().digest_basis()
-    );
+    assert_eq!(semantics.definition().required_facts().len(), 1);
     assert_eq!(
         semantics.denial_presentation(),
-        descriptor.denial_presentation().unwrap()
+        descriptor.denial_presentation()
     );
 }
 

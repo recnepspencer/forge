@@ -8,7 +8,7 @@
 mod admit_edges;
 mod classify_special_inputs;
 mod collect_authority;
-mod types;
+mod admission_parts;
 mod verify_construct;
 
 #[cfg(test)]

@@ -135,10 +135,20 @@ pub(super) fn query_receipt_compatibility(
         );
     }
 
+    if let crate::graph::UiGraphWorldProfile::InstalledQueryBasis { authority } = world_profile {
+        if authority.query_authority() != receipt.query_authority() {
+            return Some(UiMeasurementGenerationCompatibility::IncompatibleWorld {
+                expected_query_basis_digest: receipt.query_basis_digest().into(),
+                observed_world_basis_digest: None,
+            });
+        }
+        return None;
+    }
+
     let observed_world_basis_digest = match world_profile {
-        crate::graph::UiGraphWorldProfile::QuerySnapshotBasis {
-            resolution_report, ..
-        } => Some(resolution_report.basis_digest().as_str()),
+        crate::graph::UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } => {
+            Some(prerequisites.basis_digest_for_diagnostics())
+        }
         _ => None,
     };
     if observed_world_basis_digest != Some(receipt.query_basis_digest()) {

@@ -7,7 +7,7 @@ use super::{
 };
 use std::cell::RefCell;
 use std::rc::Rc;
-use worth_query::facade::foundation::ProjectionConsumptionWarningKind;
+use worth_ui_query_binding::WorthUiQueryProjectionWarningKind;
 
 /// Submission-only capability for an admitted Query projection settlement.
 ///
@@ -67,8 +67,8 @@ fn query_warning_posture(
     let mut preview = false;
     for warning in settlement.warning_kinds() {
         match warning {
-            ProjectionConsumptionWarningKind::QueryContextRowBound => row_bound = true,
-            ProjectionConsumptionWarningKind::PreviewDerivedContext => preview = true,
+            WorthUiQueryProjectionWarningKind::QueryContextRowBound => row_bound = true,
+            WorthUiQueryProjectionWarningKind::PreviewDerivedContext => preview = true,
         }
     }
     match (row_bound, preview) {

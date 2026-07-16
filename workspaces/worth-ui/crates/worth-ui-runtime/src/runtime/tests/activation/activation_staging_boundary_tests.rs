@@ -279,17 +279,17 @@ fn staging_rejects_plan_lowering_input_with_same_digest_but_stale_reconciliation
 }
 
 #[test]
-fn changed_admitted_query_support_receipt_cannot_enter_staging() {
+fn changed_admitted_query_support_contract_cannot_enter_staging() {
     let mut inputs = activation_staging_inputs();
     inputs.admitted = inputs
         .admitted
-        .with_admitted_query_support_receipt_digest_for_test(u64::MAX);
+        .with_admitted_query_contract_for_test("stale-activation-contract");
 
     let denial = inputs.stage_denial();
 
     assert_eq!(
         denial.reason(),
-        WorthUiActivationStagingDenialReason::AdmittedQuerySupportReceiptChanged
+        WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged
     );
     assert_eq!(denial.counters().receipt_verification_count(), 1);
     assert_eq!(denial.counters().verified_input_count(), 0);

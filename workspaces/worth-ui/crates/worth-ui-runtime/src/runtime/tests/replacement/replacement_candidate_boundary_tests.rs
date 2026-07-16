@@ -199,7 +199,10 @@ fn default_snapshot_digest() -> crate::capability::CapabilitySnapshotDigest {
 fn test_lowering_basis(snapshot_digest: u64) -> WorthUiCandidateLoweringBasis {
     WorthUiCandidateLoweringBasis::from_raw_parts_for_test(
         snapshot_digest,
-        WorthUiQuerySupportReceipt::for_test(WorthUiQuerySupportStatus::Supported, 42),
+        WorthUiQuerySupportReceipt::for_test(
+            WorthUiQuerySupportStatus::Supported,
+            "replacement-candidate",
+        ),
     )
 }
 

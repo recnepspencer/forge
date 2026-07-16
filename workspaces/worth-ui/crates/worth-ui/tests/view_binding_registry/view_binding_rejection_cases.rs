@@ -1,220 +1,71 @@
-use worth_query::facade::runtime::ViewShapeDescriptor;
-use worth_ui::facade::{
-    CapabilityDiagnosticCode, QueryDenialPresentation, QueryResultShapeReference,
-    ViewBindingDescriptor, ViewBindingFamily, WorthUi,
+use worth_ui::facade::WorthUi;
+use worth_ui::facade::query_binding::{
+    WorthUiQueryBindingRegistrationDenialKind, WorthUiQueryViewDefinition,
 };
 
-use super::view_binding_assertions::{assert_diagnostic_codes, assert_registered_view_binding_ids};
 use super::view_binding_fixtures::{
-    admitted_basis_posture, deferred_basis_view_binding, denied_query_live_compatibility,
-    detail_view_binding, pseudo_query_view_binding, query_live_compatibility, table_view_binding,
-    unsupported_query_capability_binding, view_binding_id, with_query_support_and_composition,
+    detail_view_binding_from, table_view_binding_from, test_installed_domain,
 };
 
 #[test]
-fn view_binding_without_query_support_posture_rejected() {
-    let report = WorthUi::app()
-        .register_view_binding(
-            ViewBindingDescriptor::query_owned(
-                view_binding_id("workspace.view_binding.missing_query_support"),
-                ViewBindingFamily::collection(),
-            )
-            .with_view_shape(ViewShapeDescriptor::table())
-            .with_result_shape(QueryResultShapeReference::from_result_shape_family(
-                worth_query::facade::foundation::ResultShapeFamily::Collection,
-            ))
-            .with_live_compatibility(query_live_compatibility())
-            .with_denial_presentation(QueryDenialPresentation::structured_status()),
-        )
-        .freeze_with_registration_report();
-
-    assert!(report.has_errors());
-    assert!(report.accepted_snapshot().view_bindings().is_empty());
-    assert_diagnostic_codes(
-        report.registration_diagnostics(),
-        &[
-            CapabilityDiagnosticCode::MissingViewBindingQuerySupportPosture,
-            CapabilityDiagnosticCode::MissingViewBindingViewShape,
-            CapabilityDiagnosticCode::MissingViewBindingBasisPosture,
-        ],
-    );
-}
-
-#[test]
-fn unsupported_query_support_posture_rejected() {
-    let report = WorthUi::app()
-        .register_view_binding(unsupported_query_capability_binding(
-            "workspace.view_binding.unsupported_query",
-        ))
-        .freeze_with_registration_report();
-
-    assert!(report.has_errors());
-    assert_diagnostic_codes(
-        report.registration_diagnostics(),
-        &[
-            CapabilityDiagnosticCode::UnsupportedViewBindingQuerySupportPosture,
-            CapabilityDiagnosticCode::MissingViewBindingViewShape,
-            CapabilityDiagnosticCode::MissingViewBindingLiveCompatibility,
-        ],
-    );
-}
-
-#[test]
-fn view_binding_without_basis_posture_rejected() {
-    let report = WorthUi::app()
-        .register_view_binding(with_query_support_and_composition(
-            ViewBindingDescriptor::query_owned(
-                view_binding_id("workspace.view_binding.missing_basis"),
-                ViewBindingFamily::collection(),
-            )
-            .with_view_shape(ViewShapeDescriptor::table())
-            .with_result_shape(QueryResultShapeReference::from_result_shape_family(
-                worth_query::facade::foundation::ResultShapeFamily::Collection,
-            ))
-            .with_live_compatibility(query_live_compatibility())
-            .with_denial_presentation(QueryDenialPresentation::structured_status()),
-        ))
-        .freeze_with_registration_report();
-
-    assert!(report.has_errors());
-    assert_diagnostic_codes(
-        report.registration_diagnostics(),
-        &[CapabilityDiagnosticCode::MissingViewBindingBasisPosture],
-    );
-}
-
-#[test]
-fn unsupported_basis_posture_rejected() {
-    let report = WorthUi::app()
-        .register_view_binding(deferred_basis_view_binding(
-            "workspace.view_binding.deferred_basis",
-        ))
-        .freeze_with_registration_report();
-
-    assert!(report.has_errors());
-    assert_diagnostic_codes(
-        report.registration_diagnostics(),
-        &[CapabilityDiagnosticCode::UnsupportedViewBindingBasisPosture],
-    );
-}
-
-#[test]
-fn view_binding_without_result_shape_rejected() {
-    let report = WorthUi::app()
-        .register_view_binding(with_query_support_and_composition(
-            ViewBindingDescriptor::query_owned(
-                view_binding_id("workspace.view_binding.no_result_shape"),
-                ViewBindingFamily::collection(),
-            )
-            .with_view_shape(ViewShapeDescriptor::table())
-            .with_basis_posture(admitted_basis_posture())
-            .with_live_compatibility(query_live_compatibility())
-            .with_denial_presentation(QueryDenialPresentation::structured_status()),
-        ))
-        .freeze_with_registration_report();
-
-    assert!(report.has_errors());
-    assert_diagnostic_codes(
-        report.registration_diagnostics(),
-        &[CapabilityDiagnosticCode::MissingViewBindingResultShape],
-    );
-}
-
-#[test]
-fn view_binding_without_live_compatibility_rejected() {
-    let report = WorthUi::app()
-        .register_view_binding(
-            with_query_support_and_composition(
-                ViewBindingDescriptor::query_owned(
-                    view_binding_id("workspace.view_binding.no_live_compatibility"),
-                    ViewBindingFamily::collection(),
-                )
-                .with_view_shape(ViewShapeDescriptor::table())
-                .with_result_shape(QueryResultShapeReference::from_result_shape_family(
-                    worth_query::facade::foundation::ResultShapeFamily::Collection,
-                ))
-                .with_basis_posture(admitted_basis_posture()),
-            )
-            .with_denial_presentation(QueryDenialPresentation::structured_status()),
-        )
-        .freeze_with_registration_report();
-
-    assert!(report.has_errors());
-    assert_diagnostic_codes(
-        report.registration_diagnostics(),
-        &[CapabilityDiagnosticCode::MissingViewBindingLiveCompatibility],
-    );
-}
-
-#[test]
-fn unsupported_live_compatibility_rejected() {
-    let report = WorthUi::app()
-        .register_view_binding(
-            table_view_binding("workspace.view_binding.denied_live_compatibility")
-                .with_live_compatibility(denied_query_live_compatibility()),
-        )
-        .freeze_with_registration_report();
-
-    assert!(report.has_errors());
-    assert_diagnostic_codes(
-        report.registration_diagnostics(),
-        &[CapabilityDiagnosticCode::UnsupportedViewBindingLiveCompatibility],
+fn invalid_query_definition_identity_stops_before_registry_mutation() {
+    let denial = WorthUiQueryViewDefinition::measurement_snapshot("")
+        .expect_err("empty identity cannot create a semantic definition");
+    assert_eq!(
+        denial,
+        worth_ui::facade::query_binding::WorthUiQueryViewIdentityError::Empty
     );
 }
 
 #[test]
 fn duplicate_view_binding_id_rejected_before_snapshot_freeze() {
-    let report = WorthUi::app()
-        .register_view_binding(table_view_binding("workspace.view_binding.duplicate"))
-        .register_view_binding(detail_view_binding("workspace.view_binding.duplicate"))
-        .freeze_with_registration_report();
-
-    assert!(report.has_errors());
-    assert!(report.accepted_snapshot().view_bindings().is_empty());
-    assert_diagnostic_codes(
-        report.registration_diagnostics(),
-        &[
-            CapabilityDiagnosticCode::DuplicateCapabilityId,
-            CapabilityDiagnosticCode::DuplicateCapabilityId,
-        ],
+    let installed = test_installed_domain("duplicate-view-binding");
+    let builder = WorthUi::app()
+        .register_query_view(table_view_binding_from(
+            &installed,
+            "workspace.view_binding.duplicate",
+        ))
+        .expect("first installed view should register");
+    let denial = match builder.register_query_view(detail_view_binding_from(
+            &installed,
+            "workspace.view_binding.duplicate",
+        )) {
+        Ok(_) => panic!("duplicate semantic identity should stop at Query registration"),
+        Err(denial) => denial,
+    };
+    let worth_ui::facade::app::WorthUiQueryViewRegistrationError::Binding(denial) = denial else {
+        panic!("duplicate valid identity should be a binding denial");
+    };
+    assert_eq!(
+        denial.kind(),
+        WorthUiQueryBindingRegistrationDenialKind::DuplicateViewIdentity,
     );
+    assert_eq!(denial.identity().as_str(), "workspace.view_binding.duplicate");
 }
 
 #[test]
-fn local_pseudo_query_binding_rejected() {
-    let report = WorthUi::app()
-        .register_view_binding(pseudo_query_view_binding(
-            "workspace.view_binding.pseudo_query",
+fn foreign_installed_domain_is_rejected_before_registry_mutation() {
+    let left = test_installed_domain("left-installed-domain");
+    let foreign = test_installed_domain("foreign-installed-domain");
+    let builder = WorthUi::app()
+        .register_query_view(table_view_binding_from(
+            &left,
+            "workspace.view_binding.tasks",
         ))
-        .freeze_with_registration_report();
-
-    assert!(report.has_errors());
-    assert_diagnostic_codes(
-        report.registration_diagnostics(),
-        &[
-            CapabilityDiagnosticCode::MissingViewBindingQuerySupportPosture,
-            CapabilityDiagnosticCode::MissingViewBindingViewShape,
-            CapabilityDiagnosticCode::MissingViewBindingBasisPosture,
-            CapabilityDiagnosticCode::MissingViewBindingResultShape,
-            CapabilityDiagnosticCode::MissingViewBindingLiveCompatibility,
-            CapabilityDiagnosticCode::MissingViewBindingDenialPresentation,
-            CapabilityDiagnosticCode::LocalPseudoQueryViewBinding,
-        ],
+        .expect("first installed view should register");
+    let denial = match builder.register_query_view(table_view_binding_from(
+        &foreign,
+        "workspace.view_binding.foreign",
+    )) {
+        Ok(_) => panic!("foreign installed authority must stop before registry mutation"),
+        Err(denial) => denial,
+    };
+    let worth_ui::facade::app::WorthUiQueryViewRegistrationError::Binding(denial) = denial else {
+        panic!("valid foreign view identity should be a binding denial");
+    };
+    assert_eq!(
+        denial.kind(),
+        WorthUiQueryBindingRegistrationDenialKind::ForeignInstalledDomain,
     );
-}
-
-#[test]
-fn rejected_view_binding_does_not_poison_valid_view_binding() {
-    let report = WorthUi::app()
-        .register_view_binding(pseudo_query_view_binding(
-            "workspace.view_binding.pseudo_query",
-        ))
-        .register_view_binding(table_view_binding("workspace.view_binding.tasks"))
-        .freeze_with_registration_report();
-
-    assert!(report.has_errors());
-    assert_registered_view_binding_ids(
-        report.accepted_snapshot().view_bindings(),
-        &["workspace.view_binding.tasks"],
-    );
+    assert_eq!(denial.identity().as_str(), "workspace.view_binding.foreign");
 }

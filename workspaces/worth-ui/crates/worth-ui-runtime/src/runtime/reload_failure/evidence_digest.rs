@@ -119,10 +119,14 @@ pub(crate) fn query_live_rebind_denial_digest(denial: &WorthUiQueryLiveRebindPla
                 ^ comparison_candidate_artifact_digest
                 ^ admitted_candidate_artifact_digest.rotate_left(11)
         }
-        WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportReceiptChanged {
-            admitted_receipt_digest,
-            current_receipt_digest,
-        } => 0xE0_00_00_05 ^ admitted_receipt_digest ^ current_receipt_digest.rotate_left(11),
+        WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportContractChanged {
+            admitted_contract_identity,
+            current_contract_identity,
+        } => {
+            0xE0_00_00_05
+                ^ admitted_contract_identity.as_u64()
+                ^ current_contract_identity.as_u64().rotate_left(11)
+        }
     }
 }
 
@@ -217,7 +221,7 @@ fn activation_staging_reason_digest(reason: WorthUiActivationStagingDenialReason
         WorthUiActivationStagingDenialReason::ExecutionPlanLoweringInputMismatch => 0xF2_00_00_04,
         WorthUiActivationStagingDenialReason::ActiveArtifactDigestMismatch => 0xF2_00_00_05,
         WorthUiActivationStagingDenialReason::CandidateArtifactDigestMismatch => 0xF2_00_00_06,
-        WorthUiActivationStagingDenialReason::AdmittedQuerySupportReceiptChanged => 0xF2_00_00_07,
+        WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged => 0xF2_00_00_07,
         WorthUiActivationStagingDenialReason::ActiveRuntimeMutatedDuringStaging => 0xF2_00_00_08,
     }
 }

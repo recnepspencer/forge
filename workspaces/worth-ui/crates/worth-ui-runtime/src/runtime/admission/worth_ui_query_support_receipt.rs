@@ -1,6 +1,3 @@
-use worth_query::facade::foundation::{BasisSupportPosture, WorthQueryCapabilityStatus};
-use worth_query::facade::runtime::QuerySubscriptionSupportPosture;
-
 use crate::runtime::candidate::WorthUiCandidateDependencyMetadata;
 use crate::source::WorthUiRuntimeDependencyHook;
 
@@ -15,7 +12,7 @@ pub enum WorthUiQuerySupportStatus {
 pub struct WorthUiQuerySupportReceipt {
     status: WorthUiQuerySupportStatus,
     runtime_hook_count: usize,
-    receipt_digest: u64,
+    contract_identity: worth_ui_query_binding::WorthUiQueryBindingContractIdentity,
 }
 
 impl WorthUiQuerySupportReceipt {
@@ -27,22 +24,22 @@ impl WorthUiQuerySupportReceipt {
             .basis()
             .dependency_graph();
         let mut hook_count = 0usize;
-        let mut hook_digest = 0x7175_6572_795f_0003u64;
+        let mut definitions = Vec::new();
         let mut status = WorthUiQuerySupportStatus::Supported;
-        for (handle, hooks) in graph.runtime_hooks() {
-            hook_digest ^= handle.node_index() as u64;
-            hook_digest = hook_digest.rotate_left(5);
+        for (_handle, hooks) in graph.runtime_hooks() {
             for hook in hooks {
                 hook_count += 1;
                 status = status.combine(support_status_for_runtime_hook(hook));
-                hook_digest ^= fold_text(&hook.digest_basis());
-                hook_digest = hook_digest.rotate_left(11);
+                definitions.push(hook.definition().digest());
             }
         }
         Self {
             status,
             runtime_hook_count: hook_count,
-            receipt_digest: hook_digest ^ (hook_count as u64).rotate_left(17),
+            contract_identity:
+                worth_ui_query_binding::WorthUiQueryBindingContractIdentity::from_definitions(
+                    definitions,
+                ),
         }
     }
 
@@ -54,25 +51,37 @@ impl WorthUiQuerySupportReceipt {
         self.runtime_hook_count
     }
 
-    pub fn receipt_digest(self) -> u64 {
-        self.receipt_digest
+    pub fn contract_identity(
+        self,
+    ) -> worth_ui_query_binding::WorthUiQueryBindingContractIdentity {
+        self.contract_identity
     }
 
     #[cfg(test)]
-    pub(crate) fn for_test(status: WorthUiQuerySupportStatus, receipt_digest: u64) -> Self {
-        Self::with_runtime_hook_count_for_test(status, 1, receipt_digest)
+    pub(crate) fn for_test(
+        status: WorthUiQuerySupportStatus,
+        contract_label: &str,
+    ) -> Self {
+        Self::with_runtime_hook_count_for_test(status, 1, contract_label)
     }
 
     #[cfg(test)]
     pub(crate) fn with_runtime_hook_count_for_test(
         status: WorthUiQuerySupportStatus,
         runtime_hook_count: usize,
-        receipt_digest: u64,
+        contract_label: &str,
     ) -> Self {
+        let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(
+            contract_label,
+        )
+        .expect("test Query contract label must be valid");
         Self {
             status,
             runtime_hook_count,
-            receipt_digest,
+            contract_identity:
+                worth_ui_query_binding::WorthUiQueryBindingContractIdentity::from_definitions([
+                    definition.digest(),
+                ]),
         }
     }
 }
@@ -88,200 +97,33 @@ impl WorthUiQuerySupportStatus {
 }
 
 fn support_status_for_runtime_hook(
-    hook: &WorthUiRuntimeDependencyHook,
+    _hook: &WorthUiRuntimeDependencyHook,
 ) -> WorthUiQuerySupportStatus {
-    capability_support_status(hook)
-        .combine(basis_support_status(hook))
-        .combine(live_support_status(hook))
-}
-
-fn capability_support_status(hook: &WorthUiRuntimeDependencyHook) -> WorthUiQuerySupportStatus {
-    match hook.query_capability().status() {
-        WorthQueryCapabilityStatus::Admitted => WorthUiQuerySupportStatus::Supported,
-        WorthQueryCapabilityStatus::DeferredDebt => WorthUiQuerySupportStatus::Deferred,
-        WorthQueryCapabilityStatus::Unsupported => WorthUiQuerySupportStatus::Unsupported,
-    }
-}
-
-fn basis_support_status(hook: &WorthUiRuntimeDependencyHook) -> WorthUiQuerySupportStatus {
-    match hook.basis_posture().posture() {
-        BasisSupportPosture::Admitted | BasisSupportPosture::Advisory => {
-            WorthUiQuerySupportStatus::Supported
-        }
-        BasisSupportPosture::Deferred => WorthUiQuerySupportStatus::Deferred,
-        BasisSupportPosture::Denied | BasisSupportPosture::Unsupported => {
-            WorthUiQuerySupportStatus::Unsupported
-        }
-    }
-}
-
-fn live_support_status(hook: &WorthUiRuntimeDependencyHook) -> WorthUiQuerySupportStatus {
-    match hook.live_compatibility().posture() {
-        QuerySubscriptionSupportPosture::RuntimeBackedCertified => {
-            WorthUiQuerySupportStatus::Supported
-        }
-        QuerySubscriptionSupportPosture::RuntimeBackedDeferred => {
-            WorthUiQuerySupportStatus::Deferred
-        }
-        QuerySubscriptionSupportPosture::RuntimeBackedDenied
-        | QuerySubscriptionSupportPosture::UncertifiedDenied => {
-            WorthUiQuerySupportStatus::Unsupported
-        }
-    }
-}
-
-fn fold_text(text: &str) -> u64 {
-    let mut digest = 0xcbf2_9ce4_8422_2325u64;
-    for byte in text.as_bytes() {
-        digest ^= u64::from(*byte);
-        digest = digest.wrapping_mul(0x100_0000_01b3);
-    }
-    digest
+    WorthUiQuerySupportStatus::Supported
 }
 
 #[cfg(test)]
 mod tests {
-    use worth_query::facade::foundation::{
-        discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily,
-        WorthQueryCapabilityFamily, WorthQueryConfig, WorthQueryQueryConfig,
-        WorthQueryRelationalConfig, WorthQueryRuntimeBridgeConfig, WorthQuerySignalConfig,
-        WorthQuerySupportReport,
-    };
-    use worth_query::facade::runtime::{
-        QuerySubscriptionFamily, QuerySubscriptionSupportPosture, ViewShapeDescriptor,
-    };
-
-    use crate::capability::{
-        QueryBasisPostureReference, QueryDenialPresentation, QueryLiveCompatibility,
-        QueryResultShapeReference, QueryViewCapabilityReference, ViewBindingId,
-    };
+    use crate::capability::{QueryDenialPresentation, ViewBindingId};
     use crate::runtime::admission::worth_ui_query_support_receipt::support_status_for_runtime_hook;
     use crate::runtime::admission::WorthUiQuerySupportStatus;
     use crate::source::{WorthUiRuntimeDependencyHook, WorthUiRuntimeDependencyHookKind};
 
     #[test]
-    fn runtime_hook_support_status_preserves_query_deferred_live_posture() {
-        let hook = runtime_hook_with_query_postures(
-            runtime_backed_query_capability(),
-            BasisFamily::CurrentHead,
-            "subscription_declaration",
-            QuerySubscriptionSupportPosture::RuntimeBackedDeferred,
-        );
-
-        assert_eq!(
-            support_status_for_runtime_hook(&hook),
-            WorthUiQuerySupportStatus::Deferred
-        );
-    }
-
-    #[test]
-    fn runtime_hook_support_status_preserves_query_denied_live_posture() {
-        let hook = runtime_hook_with_query_postures(
-            runtime_backed_query_capability(),
-            BasisFamily::CurrentHead,
-            "subscription_declaration",
-            QuerySubscriptionSupportPosture::UncertifiedDenied,
-        );
-
-        assert_eq!(
-            support_status_for_runtime_hook(&hook),
-            WorthUiQuerySupportStatus::Unsupported
-        );
-    }
-
-    #[test]
-    fn runtime_hook_support_status_preserves_disabled_query_capability() {
-        let hook = runtime_hook_with_query_postures(
-            disabled_query_capability(),
-            BasisFamily::CurrentHead,
-            "subscription_declaration",
-            QuerySubscriptionSupportPosture::RuntimeBackedCertified,
-        );
-
-        assert_eq!(
-            support_status_for_runtime_hook(&hook),
-            WorthUiQuerySupportStatus::Unsupported
-        );
-    }
-
-    #[test]
-    fn runtime_hook_support_status_preserves_deferred_basis_posture() {
-        let hook = runtime_hook_with_query_postures(
-            runtime_backed_query_capability(),
-            BasisFamily::StoreBacked,
-            "observation",
-            QuerySubscriptionSupportPosture::RuntimeBackedCertified,
-        );
-
-        assert_eq!(
-            support_status_for_runtime_hook(&hook),
-            WorthUiQuerySupportStatus::Deferred
-        );
-    }
-
-    #[test]
-    fn runtime_hook_support_status_unsupported_dominates_deferred_posture() {
-        let hook = runtime_hook_with_query_postures(
-            disabled_query_capability(),
-            BasisFamily::StoreBacked,
-            "observation",
-            QuerySubscriptionSupportPosture::RuntimeBackedDeferred,
-        );
-
-        assert_eq!(
-            support_status_for_runtime_hook(&hook),
-            WorthUiQuerySupportStatus::Unsupported
-        );
-    }
-
-    fn runtime_hook_with_query_postures(
-        query_capability: QueryViewCapabilityReference,
-        basis_family: BasisFamily,
-        basis_context: &'static str,
-        live_posture: QuerySubscriptionSupportPosture,
-    ) -> WorthUiRuntimeDependencyHook {
-        let basis_support = discover_basis_lifecycle_support(basis_family, basis_context);
-
-        WorthUiRuntimeDependencyHook::new(
+    fn admitted_definition_makes_runtime_hook_supported() {
+        let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_live(
+            "workspace.view_binding.selection",
+        )
+        .expect("definition should admit");
+        let hook = WorthUiRuntimeDependencyHook::new(
             WorthUiRuntimeDependencyHookKind::QueryLiveView,
             ViewBindingId::new("workspace.view_binding.selection").unwrap(),
-            query_capability,
-            "query-composition-profile",
-            ViewShapeDescriptor::table(),
-            QueryResultShapeReference::from_result_shape_family(ResultShapeFamily::Collection),
-            QueryBasisPostureReference::from_basis_support_discovery(&basis_support),
-            QueryLiveCompatibility::from_subscription_posture(
-                QuerySubscriptionFamily::CollectionMembership,
-                live_posture,
-            ),
+            definition,
             QueryDenialPresentation::structured_status(),
-        )
-    }
-
-    fn runtime_backed_query_capability() -> QueryViewCapabilityReference {
-        query_capability_from_report(WorthQuerySupportReport::runtime_backed_default())
-    }
-
-    fn disabled_query_capability() -> QueryViewCapabilityReference {
-        query_capability_from_report(
-            WorthQuerySupportReport::from_config(
-                WorthQueryConfig::runtime_backed_default()
-                    .with_query(WorthQueryQueryConfig::disabled())
-                    .with_signal(WorthQuerySignalConfig::disabled())
-                    .with_runtime_bridge(WorthQueryRuntimeBridgeConfig::disabled())
-                    .with_relational(WorthQueryRelationalConfig::disabled()),
-            )
-            .expect("disabled query config still produces support posture"),
-        )
-    }
-
-    fn query_capability_from_report(
-        query_support: WorthQuerySupportReport,
-    ) -> QueryViewCapabilityReference {
-        let query_capability = query_support
-            .support_matrix()
-            .descriptor(WorthQueryCapabilityFamily::QueryComposition)
-            .expect("query composition support posture");
-        QueryViewCapabilityReference::from_query_capability_descriptor(query_capability)
+        );
+        assert_eq!(
+            support_status_for_runtime_hook(&hook),
+            WorthUiQuerySupportStatus::Supported
+        );
     }
 }

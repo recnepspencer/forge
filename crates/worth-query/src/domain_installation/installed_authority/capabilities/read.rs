@@ -194,6 +194,21 @@ impl<D> WorthQueryInstalledDomainProjectionOutcome<D> {
     pub fn into_outcome(self) -> WorthQueryProjectionOutcome {
         self.outcome
     }
+
+    /// Preserve installed-domain execution provenance while transferring the
+    /// projection into a downstream domain binding.
+    ///
+    /// Downstream bindings must consume both values together. Extracting only
+    /// the ordinary projection outcome intentionally gives up the installed
+    /// authority needed to prove which runtime and package authorized it.
+    pub fn into_parts(
+        self,
+    ) -> (
+        WorthQueryProjectionOutcome,
+        WorthQueryInstalledDomainExecutionReceipt,
+    ) {
+        (self.outcome, self.receipt)
+    }
 }
 
 impl<D> WorthQueryInstalledDomainHandle<D> {

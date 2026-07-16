@@ -28,7 +28,7 @@ pub enum WorthUiReloadCounterStopStage {
 pub struct WorthUiReloadLoweringCounterReceipt {
     stopped_at: WorthUiReloadCounterStopStage,
     packets: Vec<WorthUiMeasurementCounterPacket>,
-    carried_query_receipt_digests: Vec<u64>,
+    carried_query_contract_identities: Vec<u64>,
     query_support_rediscovery_count: u32,
 }
 
@@ -43,7 +43,7 @@ pub struct WorthUiReloadLoweringCounterReceiptBuilder {
     capture_richness: WorthUiCounterCaptureRichness,
     packets: Vec<WorthUiMeasurementCounterPacket>,
     pending_query_rebind_counters: Option<WorthUiQueryLiveRebindCounters>,
-    carried_query_receipt_digests: Vec<u64>,
+    carried_query_contract_identities: Vec<u64>,
     query_support_rediscovery_count: u32,
     construction_denial: Option<WorthUiReloadCounterBoundaryDenialReason>,
 }
@@ -55,7 +55,7 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
             capture_richness: WorthUiCounterCaptureRichness::Standard,
             packets: Vec::new(),
             pending_query_rebind_counters: None,
-            carried_query_receipt_digests: Vec::new(),
+            carried_query_contract_identities: Vec::new(),
             query_support_rediscovery_count: 0,
             construction_denial: None,
         }
@@ -138,10 +138,10 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
         mut self,
         receipt: WorthUiQuerySupportReceipt,
     ) -> Self {
-        self.carried_query_receipt_digests
-            .push(receipt.receipt_digest());
-        self.carried_query_receipt_digests.sort();
-        self.carried_query_receipt_digests.dedup();
+        self.carried_query_contract_identities
+            .push(receipt.contract_identity().as_u64());
+        self.carried_query_contract_identities.sort();
+        self.carried_query_contract_identities.dedup();
         self
     }
 
@@ -208,7 +208,7 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
         Ok(WorthUiReloadLoweringCounterReceipt {
             stopped_at: self.stopped_at,
             packets: self.packets,
-            carried_query_receipt_digests: self.carried_query_receipt_digests,
+            carried_query_contract_identities: self.carried_query_contract_identities,
             query_support_rediscovery_count: self.query_support_rediscovery_count,
         })
     }
@@ -226,7 +226,7 @@ impl WorthUiReloadLoweringCounterReceiptBuilder {
             builder = builder.record(row);
         }
         if needs_query_evidence {
-            for evidence in phase_rows::query_evidence_rows(&self.carried_query_receipt_digests) {
+            for evidence in phase_rows::query_evidence_rows(&self.carried_query_contract_identities) {
                 builder = builder.with_query_evidence(evidence);
             }
         }
@@ -261,11 +261,11 @@ impl WorthUiReloadLoweringCounterReceipt {
     }
 
     pub fn carried_query_receipt_count(&self) -> u32 {
-        self.carried_query_receipt_digests.len() as u32
+        self.carried_query_contract_identities.len() as u32
     }
 
-    pub fn carried_query_receipt_digests(&self) -> &[u64] {
-        &self.carried_query_receipt_digests
+    pub fn carried_query_contract_identities(&self) -> &[u64] {
+        &self.carried_query_contract_identities
     }
 
     pub fn query_support_rediscovery_count(&self) -> u32 {

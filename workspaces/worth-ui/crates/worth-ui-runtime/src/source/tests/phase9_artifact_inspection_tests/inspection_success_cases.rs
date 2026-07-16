@@ -71,7 +71,7 @@ fn artifact_inspection_explains_source_and_capability_origin() {
         .any(|link| {
             link.role() == WorthUiQueryInspectionLinkRole::BindingViewBindingQuery
                 && link.view_binding().id().as_str() == "workspace.view_binding.selection"
-                && !link.query_composition_profile_digest().is_empty()
+                && link.definition().digest().as_u64() != 0
         }));
     assert_eq!(surface_inspection.handle(), &surface_handle);
     assert_eq!(inspection.provenance_map().handles(), inspection.handles());
@@ -212,12 +212,7 @@ fn query_link_semantics_survive_on_the_inspection_lane() {
         .first()
         .expect("surface query link");
 
-    assert_eq!(binding_link.result_shape(), surface_link.result_shape());
-    assert_eq!(binding_link.basis_posture(), surface_link.basis_posture());
-    assert_eq!(
-        binding_link.live_compatibility(),
-        surface_link.live_compatibility()
-    );
+    assert_eq!(binding_link.definition(), surface_link.definition());
     assert_eq!(
         binding_link.denial_presentation(),
         surface_link.denial_presentation()

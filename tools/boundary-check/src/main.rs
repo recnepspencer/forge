@@ -14,7 +14,7 @@ mod subworkspace_rules;
 
 use crate::cargo_graph::discover_road1_packages;
 use crate::config::Road1Config;
-use crate::dependency_rules::validate_dependency_rules;
+use crate::dependency_rules::{validate_dependency_rules, validate_worth_ui_query_edge};
 use crate::diagnostics::{render_human, render_json, Diagnostic};
 use crate::hook_authority::validate_hook_authority;
 use crate::legacy_references::validate_legacy_references;
@@ -141,6 +141,15 @@ fn run(
         &config.rule_contracts,
         &config.law_substrates,
     ));
+    if let Some(contract) = &config.rule_contracts.worth_ui_query_edge {
+        diagnostics.extend(validate_worth_ui_query_edge(&root, contract).map_err(|error| {
+            vec![Diagnostic::new(
+                crate::diagnostics::DiagnosticCode::Bc5002SubworkspaceContractViolation,
+                "worth-ui-query-edge",
+                error,
+            )]
+        })?);
+    }
     diagnostics.extend(validate_query_audience_rules(
         &packages,
         &config.rule_contracts.query_audience,

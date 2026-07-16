@@ -7,7 +7,7 @@ use worth_ui::facade::declaration::{
 };
 use worth_ui::facade::graph::{
     UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming, UiGraphWorldProfile,
-    WorthQuerySessionLabel,
+    UiGraphSessionLabel,
 };
 use worth_ui::facade::obligations::{
     UiObligationCheckKind, UiObligationDispatchStopPosture, UiObligationFamily,
@@ -37,7 +37,7 @@ fn verdict_stop_posture_keeps_support_and_world_denials_structurally_distinct() 
         .freeze();
     let preview_app = WorthUi::app()
         .with_graph_world_profile(UiGraphWorldProfile::preview_session_label(
-            WorthQuerySessionLabel::scoped_strs("worth-ui", ["phase5", "preview"])
+            UiGraphSessionLabel::new("worth-ui.phase5.preview")
                 .expect("preview label should admit"),
         ))
         .with_dsl_package(
@@ -133,7 +133,7 @@ fn verdict_stop_posture_keeps_support_and_world_denials_structurally_distinct() 
             expected: UiAdmissionWorld::authoritative(),
             observed: UiAdmissionWorld::from_graph_world_profile(
                 UiGraphWorldProfile::preview_session_label(
-                    WorthQuerySessionLabel::scoped_strs("worth-ui", ["phase5", "preview"])
+                    UiGraphSessionLabel::new("worth-ui.phase5.preview")
                         .expect("preview label should admit"),
                 ),
             ),

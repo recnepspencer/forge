@@ -67,7 +67,8 @@ pub use closeout::{
 // --- identity ---
 pub use identity::{
     UiGraphGeneration, UiGraphGenerationRelation, UiGraphNodeIdentity, UiGraphSnapshotComparable,
-    UiGraphWorldDifferenceKind, UiGraphWorldProfile, UiGraphWorldProfileError,
+    UiGraphSessionIdentityError, UiGraphSessionLabel, UiGraphWorldDifferenceKind,
+    UiGraphWorldProfile, UiPreviewSessionIdentity,
     UiRepeatedInstanceBasis, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
     UiRuntimeDataInstanceKeyKind, UiRuntimeDataInstanceKeyToken,
 };

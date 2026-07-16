@@ -55,9 +55,20 @@ impl crate::runtime::WorthUiRuntime {
         )
     }
 
-    pub(crate) fn query_admission(
+    pub(crate) fn install_query_binding_for_test(
         &mut self,
-    ) -> worth_ui_query_binding::WorthUiQueryAllocationAdmission<'_> {
-        self.query_binding.allocation_admission()
+        plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
+    ) {
+        self.query_binding = plan.activate();
+    }
+
+    pub(crate) fn admit_query_projection_for_test(
+        &mut self,
+        outcome: worth_ui_query_binding::WorthUiQueryProjectionOutcome,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiQueryMeasurementFactSettlement,
+        worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,
+    > {
+        self.query_binding.admit(outcome)
     }
 }

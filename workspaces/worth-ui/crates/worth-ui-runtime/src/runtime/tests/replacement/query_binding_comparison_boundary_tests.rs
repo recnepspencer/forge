@@ -4,7 +4,7 @@ use super::dependency_impact_narrowing_test_support::{
 };
 use super::query_binding::WorthUiQueryBindingEvidenceIndex;
 use super::query_binding_comparison_test_support::{
-    basis_drift_query_app, denial_presentation_drift_query_app, phase11_pipeline, query_artifact,
+    denial_presentation_drift_query_app, lifecycle_drift_query_app, phase11_pipeline, query_artifact,
     standard_query_app,
 };
 use crate::runtime::{
@@ -38,9 +38,9 @@ fn same_query_owned_binding_identity_preserves_binding_comparison() {
 }
 
 #[test]
-fn query_binding_posture_drift_detected_before_subscription_reuse() {
+fn query_binding_lifecycle_drift_detected_before_subscription_reuse() {
     let active_app = standard_query_app();
-    let candidate_app = basis_drift_query_app();
+    let candidate_app = lifecycle_drift_query_app();
     let active = query_artifact(&active_app, "workspace.view_binding.selection");
     let candidate = query_artifact(&candidate_app, "workspace.view_binding.selection");
     let (runtime, admitted, narrowing, plan) = phase11_pipeline(&active_app, active, candidate);
@@ -58,9 +58,12 @@ fn query_binding_posture_drift_detected_before_subscription_reuse() {
     );
     assert_eq!(
         binding.posture_drifts(),
-        &[WorthUiQueryBindingPostureDriftFamily::BasisCapability]
+        &[
+            WorthUiQueryBindingPostureDriftFamily::SupportAdmission,
+            WorthUiQueryBindingPostureDriftFamily::LiveCompatibility,
+        ]
     );
-    assert_eq!(comparison.counters().posture_drift_count(), 1);
+    assert_eq!(comparison.counters().posture_drift_count(), 2);
     assert_eq!(comparison.counters().rebind_required_count(), 1);
 }
 
@@ -100,7 +103,7 @@ fn query_binding_comparison_does_not_use_ui_local_status_enums() {
 }
 
 #[test]
-fn same_rendered_query_label_with_different_query_basis_rebinds_or_denies() {
+fn different_query_binding_identity_rebinds_or_retires() {
     let app = standard_query_app();
     let active = query_artifact(&app, "workspace.view_binding.selection");
     let candidate = query_artifact(&app, "workspace.view_binding.detail");

@@ -1,18 +1,6 @@
 use std::{collections::BTreeMap, path::Path};
 
-use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily, WorthQueryCapabilityFamily,
-    WorthQuerySupportReport,
-};
-use worth_query::facade::runtime::{
-    QuerySubscriptionFamily, QuerySubscriptionSupportPosture, ViewShapeDescriptor,
-};
-
-use crate::capability::{
-    QueryBasisPostureReference, QueryDenialPresentation, QueryLiveCompatibility,
-    QueryResultShapeReference, QueryViewCapabilityReference, ViewBindingDescriptor,
-    ViewBindingFamily, ViewBindingId,
-};
+use crate::capability::WorthUiQueryViewRegistration;
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::admission::{
     WorthUiCandidateAdmission, WorthUiCandidateAdmissionDenial, WorthUiQuerySupportReceipt,
@@ -67,7 +55,10 @@ fn snapshot_mismatch_rejected_before_equivalence_comparison() {
         ["app/panels/inspector.wui"],
         WorthUiCandidateLoweringBasis::from_raw_parts_for_test(
             active_basis.snapshot_digest() ^ 0x55aa,
-            WorthUiQuerySupportReceipt::for_test(WorthUiQuerySupportStatus::Supported, 10),
+            WorthUiQuerySupportReceipt::for_test(
+                WorthUiQuerySupportStatus::Supported,
+                "snapshot-mismatch",
+            ),
         ),
     );
 
@@ -145,7 +136,10 @@ fn deferred_query_support_rejected_before_plan_lowering() {
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime.replacement_admission_basis();
     let query_receipt =
-        WorthUiQuerySupportReceipt::for_test(WorthUiQuerySupportStatus::Deferred, 123);
+        WorthUiQuerySupportReceipt::for_test(
+            WorthUiQuerySupportStatus::Deferred,
+            "deferred-query-support",
+        );
     let candidate = candidate_with_lowering_basis(
         ["app/panels/inspector.wui"],
         WorthUiCandidateLoweringBasis::from_raw_parts_for_test(
@@ -175,7 +169,10 @@ fn unsupported_query_support_rejected_before_plan_lowering() {
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime.replacement_admission_basis();
     let query_receipt =
-        WorthUiQuerySupportReceipt::for_test(WorthUiQuerySupportStatus::Unsupported, 456);
+        WorthUiQuerySupportReceipt::for_test(
+            WorthUiQuerySupportStatus::Unsupported,
+            "unsupported-query-support",
+        );
     let candidate = candidate_with_lowering_basis(
         ["app/panels/inspector.wui"],
         WorthUiCandidateLoweringBasis::from_raw_parts_for_test(
@@ -201,7 +198,7 @@ fn unsupported_query_support_rejected_before_plan_lowering() {
 
 #[test]
 fn query_support_receipt_is_derived_from_runtime_dependency_metadata() {
-    let app = query_bound_app(QuerySubscriptionSupportPosture::RuntimeBackedCertified);
+    let app = query_bound_app();
     let artifact = query_bound_artifact(&app);
     let runtime = launch_runtime(&app, artifact.clone());
     let active_basis = runtime.replacement_admission_basis();
@@ -230,7 +227,7 @@ fn query_support_receipt_is_derived_from_runtime_dependency_metadata() {
 }
 
 #[test]
-fn admitted_candidate_cannot_swap_query_support_receipts_after_admission() {
+fn admitted_candidate_cannot_swap_query_support_contracts_after_admission() {
     let app = WorthUi::app().freeze();
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime.replacement_admission_basis();
@@ -239,14 +236,15 @@ fn admitted_candidate_cannot_swap_query_support_receipts_after_admission() {
     let admitted = WorthUiCandidateAdmission::for_active_basis(active_basis)
         .admit(candidate)
         .expect("candidate admits before receipt tampering");
-    let admitted_digest = admitted.report().query_support_receipt().receipt_digest();
+    let admitted_identity = admitted.report().query_support_receipt().contract_identity();
+    let changed_identity = query_contract_identity("changed-after-admission");
 
     assert_eq!(
-        admitted.verify_test_receipt_digest(admitted_digest ^ 0x99),
+        admitted.verify_test_query_contract("changed-after-admission"),
         Err(
-            WorthUiCandidateAdmissionDenial::QuerySupportReceiptChanged {
-                admitted_receipt_digest: admitted_digest,
-                current_receipt_digest: admitted_digest ^ 0x99,
+            WorthUiCandidateAdmissionDenial::QuerySupportContractChanged {
+                admitted_contract_identity: admitted_identity,
+                current_contract_identity: changed_identity,
             }
         )
     );
@@ -297,46 +295,29 @@ fn launch_runtime(
         .expect("runtime launches from canonical artifact")
 }
 
-fn query_bound_app(live_posture: QuerySubscriptionSupportPosture) -> WorthUiApp {
+fn query_bound_app() -> WorthUiApp {
+    let installed = worth_ui_query_binding::certification::worth_ui_installed_test_domain(
+        "candidate-admission-query-app",
+    );
+    let view = installed
+        .live_measurement_view("workspace.view_binding.selection")
+        .expect("installed live view should admit");
     WorthUi::app()
-        .register_view_binding(query_bound_view_binding(live_posture))
+        .register_query_view(WorthUiQueryViewRegistration::new(view))
+        .expect("installed live view should register")
         .freeze()
 }
 
-fn query_bound_view_binding(
-    live_posture: QuerySubscriptionSupportPosture,
-) -> ViewBindingDescriptor {
-    let support_report = WorthQuerySupportReport::runtime_backed_default();
-    let query_capability = support_report
-        .support_matrix()
-        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
-        .expect("query composition support posture");
-    let query_composition = support_report
-        .query_composition_support_profile()
-        .expect("query composition profile");
-    let basis_support =
-        discover_basis_lifecycle_support(BasisFamily::CurrentHead, "subscription_declaration");
-
-    ViewBindingDescriptor::query_owned(
-        ViewBindingId::new("workspace.view_binding.selection").unwrap(),
-        ViewBindingFamily::collection(),
+fn query_contract_identity(
+    label: &str,
+) -> worth_ui_query_binding::WorthUiQueryBindingContractIdentity {
+    let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(
+        label,
     )
-    .with_query_capability_posture(
-        QueryViewCapabilityReference::from_query_capability_descriptor(query_capability),
-    )
-    .with_query_composition_support(query_composition)
-    .with_view_shape(ViewShapeDescriptor::table())
-    .with_result_shape(QueryResultShapeReference::from_result_shape_family(
-        ResultShapeFamily::Collection,
-    ))
-    .with_basis_posture(QueryBasisPostureReference::from_basis_support_discovery(
-        &basis_support,
-    ))
-    .with_live_compatibility(QueryLiveCompatibility::from_subscription_posture(
-        QuerySubscriptionFamily::CollectionMembership,
-        live_posture,
-    ))
-    .with_denial_presentation(QueryDenialPresentation::structured_status())
+    .expect("test Query contract label admits");
+    worth_ui_query_binding::WorthUiQueryBindingContractIdentity::from_definitions([
+        definition.digest(),
+    ])
 }
 
 fn query_bound_artifact(app: &WorthUiApp) -> WorthUiArtifact {

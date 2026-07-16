@@ -115,8 +115,7 @@ impl WorthQueryEvidenceIdentity {
         Ok(self.digest_token.cmp(&other.digest_token))
     }
 
-    #[cfg(test)]
-    pub(crate) fn canonical_digest(&self) -> &CanonicalDerivedDigest {
+    pub fn canonical_digest(&self) -> &CanonicalDerivedDigest {
         &self.canonical_digest
     }
 }

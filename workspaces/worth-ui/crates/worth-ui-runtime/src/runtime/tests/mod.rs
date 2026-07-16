@@ -124,8 +124,6 @@ pub(crate) mod production_catalog_activation_test_support;
 mod query_binding_comparison_boundary_tests;
 #[path = "replacement/query_binding_comparison_test_support.rs"]
 mod query_binding_comparison_test_support;
-#[path = "replacement/query_binding_posture_drift_boundary_tests.rs"]
-mod query_binding_posture_drift_boundary_tests;
 #[path = "replacement/query_live_rebind_boundary_tests.rs"]
 mod query_live_rebind_boundary_tests;
 #[path = "execution/realtime_overlay_lane_boundary_tests.rs"]

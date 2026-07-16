@@ -19,8 +19,10 @@ certification-support = []
 [dependencies]
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
-worth-query = { path = "../../../../crates/worth-query" }
 worth-ui-dsl = { path = "../worth-ui-dsl" }
 worth-ui-inspection = { path = "../worth-ui-inspection" }
 worth-ui-query-binding = { path = "../worth-ui-query-binding" }
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }
+
+[dev-dependencies]
+worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }

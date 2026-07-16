@@ -1,6 +1,6 @@
 use crate::capability::{
     CommandDescriptor, CommandId, CommandProjectionCommandReference, CommandProjectionDescriptor,
-    CommandProjectionId, CommandProjectionSurface, CommandReadinessBinding,
+    CommandProjectionId, CommandProjectionSurface, CommandReadinessBinding, CommandReadinessStatus,
     CommandRuntimeIntentBinding, ComponentChildPolicy, ComponentDescriptor, ComponentExecutionLane,
     ComponentId, ComponentPropSchema, ComponentStateOwnership, IconDescriptor, IconFamily, IconId,
     IconSourceDescriptor, MeasurementConstraint, MeasurementValue, MosaicChildRule,
@@ -20,12 +20,6 @@ use crate::capability::{
     ViewBindingDescriptor, ViewBindingId,
 };
 use crate::facade::{WorthUi, WorthUiApp};
-use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily, WorthQueryCapabilityFamily,
-    WorthQuerySupportReport,
-};
-use worth_query::facade::runtime::{QuerySubscriptionFamily, ViewShapeDescriptor};
-
 pub(super) fn component_descriptor_variant_app() -> WorthUiApp {
     phase10_test_app(Phase10AppVariant::ComponentDescriptor)
 }
@@ -69,8 +63,8 @@ fn phase10_test_app(variant: Phase10AppVariant) -> WorthUiApp {
                 "Inspect",
             )
             .with_icon(IconId::new("workspace.icon.inspect").unwrap())
-            .with_readiness(CommandReadinessBinding::from_query_readiness_status(
-                worth_query::facade::foundation::WorthQueryDeclarationEntryReadinessStatus::Deferred,
+            .with_readiness(CommandReadinessBinding::from_status(
+                CommandReadinessStatus::Deferred,
             ))
             .with_runtime_intent_binding(CommandRuntimeIntentBinding::named(
                 "workspace.runtime.inspect",
@@ -165,40 +159,15 @@ fn default_inspector_surface() -> SurfaceDescriptor {
 }
 
 fn query_owned_view_binding_descriptor() -> ViewBindingDescriptor {
-    let query_support = WorthQuerySupportReport::runtime_backed_default();
-    let query_capability = query_support
-        .support_matrix()
-        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
-        .expect("query composition support posture");
-    let query_composition = query_support
-        .query_composition_support_profile()
-        .expect("query composition profile");
-    let basis_support =
-        discover_basis_lifecycle_support(BasisFamily::CurrentHead, "subscription_declaration");
-
-    ViewBindingDescriptor::query_owned(
+    let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(
+        "workspace.view_binding.selection",
+    )
+    .expect("query definition should admit");
+    ViewBindingDescriptor::from_definition(
         ViewBindingId::new("workspace.view_binding.selection").unwrap(),
         crate::capability::ViewBindingFamily::collection(),
+        definition,
     )
-    .with_query_capability_posture(
-        crate::capability::QueryViewCapabilityReference::from_query_capability_descriptor(
-            query_capability,
-        ),
-    )
-    .with_query_composition_support(query_composition)
-    .with_view_shape(ViewShapeDescriptor::table())
-    .with_result_shape(
-        crate::capability::QueryResultShapeReference::from_result_shape_family(
-            ResultShapeFamily::Collection,
-        ),
-    )
-    .with_basis_posture(
-        crate::capability::QueryBasisPostureReference::from_basis_support_discovery(&basis_support),
-    )
-    .with_live_compatibility(crate::capability::QueryLiveCompatibility::declaration_only(
-        QuerySubscriptionFamily::CollectionMembership,
-    ))
-    .with_denial_presentation(crate::capability::QueryDenialPresentation::structured_status())
 }
 
 fn component(id: &str) -> ComponentDescriptor {

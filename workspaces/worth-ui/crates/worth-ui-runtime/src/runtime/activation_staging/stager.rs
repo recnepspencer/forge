@@ -182,12 +182,12 @@ fn reject_changed_query_support_receipt(
     counters.record_receipt_verification();
     match admitted.verify_receipts_unchanged() {
         Ok(()) => Ok(()),
-        Err(WorthUiCandidateAdmissionDenial::QuerySupportReceiptChanged { .. }) => {
+        Err(WorthUiCandidateAdmissionDenial::QuerySupportContractChanged { .. }) => {
             Err(WorthUiActivationStagingDenial::new(
                 active_artifact_digest,
                 candidate_artifact_digest,
                 frame_epoch,
-                WorthUiActivationStagingDenialReason::AdmittedQuerySupportReceiptChanged,
+                WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged,
                 *counters,
             ))
         }
@@ -195,7 +195,7 @@ fn reject_changed_query_support_receipt(
             active_artifact_digest,
             candidate_artifact_digest,
             frame_epoch,
-            WorthUiActivationStagingDenialReason::AdmittedQuerySupportReceiptChanged,
+            WorthUiActivationStagingDenialReason::AdmittedQuerySupportContractChanged,
             *counters,
         )),
     }

@@ -31,14 +31,6 @@ pub(crate) enum WorthUiBindingDiagnosticCode {
     DeferredSemanticThemeTokenReference,
     UnsupportedSemanticThemeTokenReference,
     PlatformInternalSemanticThemeTokenReference,
-    LocalPseudoQueryClaimRejected,
-    MissingQueryCapabilityPosture,
-    MissingQueryCompositionSupportProfile,
-    MissingQueryViewShape,
-    MissingQueryResultShape,
-    MissingQueryBasisPosture,
-    MissingQueryLiveCompatibility,
-    MissingQueryDenialPresentation,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

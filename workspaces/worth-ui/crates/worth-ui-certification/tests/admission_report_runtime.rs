@@ -1,5 +1,9 @@
 use std::sync::Arc;
 use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
+use worth_query::facade::foundation::{
+    snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
+    WorthQuerySnapshotIdentity,
+};
 use worth_ui::facade::admission::{
     UiAdmissionAggregation, UiAdmissionFamily, UiAdmissionTarget, UiAdmissionWorld,
     UiLegalityPosture, UiLegalityReason, UiSupportPosture, UiSupportReason,
@@ -7,18 +11,15 @@ use worth_ui::facade::admission::{
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 
-use worth_ui::facade::graph::{
-    snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
-    UiGraphWorldProfile, WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
-};
+use worth_ui::facade::graph::{UiGraphSessionLabel, UiGraphWorldProfile};
 use worth_ui::facade::inspection::UiInspectionAdmissionPosture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
 use worth_ui_query_binding::{
-    WorthUiQueryBasisPosture, WorthUiQueryBindingSubsystem, WorthUiQueryCausalExplanationLane,
-    WorthUiQueryInspectionLane, WorthUiQueryProjectionConsumptionLane,
+    WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
+    WorthUiQueryPrerequisiteBoundary, WorthUiQueryProjectionConsumptionLane,
 };
 
 #[test]
@@ -74,7 +75,7 @@ fn admission_report_keeps_support_truth_separate_from_legality_truth() {
     ));
     let observed_world =
         UiAdmissionWorld::from_graph_world_profile(UiGraphWorldProfile::preview_session_label(
-            WorthQuerySessionLabel::scoped_strs("worth-ui", ["preview", "report"])
+            UiGraphSessionLabel::new("worth-ui.preview.report")
                 .expect("preview label should admit"),
         ));
     let wrong_world_report = boundary.report(UiAdmissionTarget::graph_node(
@@ -306,27 +307,25 @@ fn query_snapshot_world_profile() -> UiGraphWorldProfile {
     )
     .expect("runtime current snapshot basis should resolve");
 
-    UiGraphWorldProfile::query_snapshot_basis(basis.clone(), snapshot_resolution_report(&basis))
-        .expect("query snapshot basis world should admit")
+    let prerequisites = worth_ui_query_binding::WorthUiQueryPrerequisiteBoundary::new()
+        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
+        .expect("query prerequisites should admit");
+    UiGraphWorldProfile::query_snapshot_basis(prerequisites)
 }
 
 fn query_prerequisites(
     world_profile: &UiGraphWorldProfile,
     query_basis: worth_ui::facade::admission::UiAdmissionQueryBasis,
-) -> worth_ui::facade::query_binding::WorthUiQueryPrerequisiteEvidence {
-    let UiGraphWorldProfile::QuerySnapshotBasis {
-        basis,
-        resolution_report,
-    } = world_profile
+) -> worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence {
+    let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } = world_profile
     else {
         panic!("query report proofs require query snapshot worlds");
     };
 
-    WorthUiQueryBindingSubsystem::bootstrap()
-        .prerequisites()
+    WorthUiQueryPrerequisiteBoundary::new()
         .assemble(
-            basis.clone(),
-            resolution_report.clone(),
+            prerequisites.basis().clone(),
+            prerequisites.resolution_report().clone(),
             match query_basis {
                 worth_ui::facade::admission::UiAdmissionQueryBasis::GraphAligned => {
                     WorthUiQueryBasisPosture::GraphAligned

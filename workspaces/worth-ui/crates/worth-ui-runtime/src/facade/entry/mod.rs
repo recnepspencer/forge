@@ -4,5 +4,5 @@ mod app;
 mod app_builder;
 mod builder;
 pub use app::{WorthUi, WorthUiApp};
-pub use app_builder::{WorthUiAppBuilder, WorthUiBuilder};
+pub use app_builder::{WorthUiAppBuilder, WorthUiBuilder, WorthUiQueryViewRegistrationError};
 pub use builder::CapabilityRegistrationBuilder;

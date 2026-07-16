@@ -1,7 +1,6 @@
-use worth_query::facade::foundation::WorthQueryDeclarationEntryReadinessStatus;
 use worth_ui::facade::{
     CapabilityDiagnosticCode, CommandCategory, CommandDescriptor, CommandId, CommandProjectionId,
-    CommandReadinessBinding, CommandRuntimeIntentBinding, WorthUi,
+    CommandReadinessBinding, CommandReadinessStatus, CommandRuntimeIntentBinding, WorthUi,
 };
 
 #[test]
@@ -118,10 +117,8 @@ fn command_with_missing_projection_does_not_poison_valid_command() {
 }
 
 #[test]
-fn command_readiness_binding_preserves_structured_query_status() {
-    let readiness = CommandReadinessBinding::from_query_readiness_status(
-        WorthQueryDeclarationEntryReadinessStatus::Deferred,
-    );
+fn command_readiness_binding_preserves_structured_ui_status() {
+    let readiness = CommandReadinessBinding::from_status(CommandReadinessStatus::Deferred);
     let app = WorthUi::app()
         .register_command(
             command_descriptor("workspace.rebuild", "Rebuild Workspace").with_readiness(readiness),
@@ -135,7 +132,7 @@ fn command_readiness_binding_preserves_structured_query_status() {
         .expect("registered command");
     assert_eq!(
         descriptor.readiness().strongest_status(),
-        WorthQueryDeclarationEntryReadinessStatus::Deferred
+        CommandReadinessStatus::Deferred
     );
 }
 

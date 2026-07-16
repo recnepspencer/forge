@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use worth_foundational::facade::FoundationalIdentityKind;
-use worth_query::facade::foundation::QueryExternalIdentityToken;
+use worth_foundational::facade::{
+    FoundationalExternalIdentityToken, FoundationalIdentityKind,
+};
 
 use crate::declaration::{stable_text_digest, UiDeclarationIdentityDigest};
 
@@ -31,7 +32,7 @@ pub struct UiRuntimeDataInstanceKeyKind;
 impl FoundationalIdentityKind for UiRuntimeDataInstanceKeyKind {}
 
 pub type UiRuntimeDataInstanceKeyToken =
-    QueryExternalIdentityToken<Arc<str>, UiRuntimeDataInstanceKeyKind>;
+    FoundationalExternalIdentityToken<Arc<str>, UiRuntimeDataInstanceKeyKind>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiRepeatedInstanceBasis {

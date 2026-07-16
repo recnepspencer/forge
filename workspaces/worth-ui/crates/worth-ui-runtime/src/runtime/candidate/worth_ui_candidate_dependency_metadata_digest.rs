@@ -71,7 +71,7 @@ fn runtime_hooks_digest_basis(report: &WorthUiArtifactDependencyReport) -> Strin
         digest_basis.push_str(&artifact_handle_digest_basis(handle));
         digest_basis.push('=');
         for hook in hooks {
-            digest_basis.push_str(&hook.digest_basis());
+            digest_basis.push_str(&hook.artifact_identity_material());
             digest_basis.push(',');
         }
         digest_basis.push(';');
@@ -116,7 +116,7 @@ fn dependency_target_digest_basis(target: &WorthUiArtifactDependencyTarget) -> S
             format!("artifact:{}", artifact_handle_digest_basis(handle))
         }
         WorthUiArtifactDependencyTarget::RuntimeHook(hook) => {
-            format!("runtime-hook:{}", hook.digest_basis())
+            format!("runtime-hook:{}", hook.artifact_identity_material())
         }
     }
 }

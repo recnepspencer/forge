@@ -135,7 +135,7 @@ pub(super) fn admission_target_for_touch(
     {
         if let Ok(bound_target) = target
             .clone()
-            .with_query_prerequisites_from_query_authority(authority.authority())
+            .with_query_prerequisites_from_query_authority(authority)
         {
             target = bound_target;
         }
@@ -250,11 +250,11 @@ fn project_query_basis_compatibility(
 
 fn query_basis_digest_from_authority(authority: &UiQueryMeasurementBasisAuthority) -> Box<str> {
     match authority {
-        UiQueryMeasurementBasisAuthority::AdmittedPrerequisites { basis_digest, .. } => {
-            basis_digest.as_str().into()
+        UiQueryMeasurementBasisAuthority::AdmittedPrerequisites { prerequisites } => {
+            prerequisites.basis_digest_for_diagnostics().into()
         }
-        UiQueryMeasurementBasisAuthority::ProjectionConsumption { basis_digest, .. } => {
-            basis_digest.clone()
+        UiQueryMeasurementBasisAuthority::ProjectionConsumption { authority } => {
+            authority.basis_digest_for_diagnostics().into()
         }
     }
 }

@@ -1,15 +1,6 @@
-use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily, WorthQueryCapabilityFamily,
-    WorthQuerySupportReport,
-};
-use worth_query::facade::runtime::{
-    QuerySubscriptionFamily, QuerySubscriptionSupportPosture, ViewShapeDescriptor,
-};
-
 use crate::capability::{
-    CommandDescriptor, CommandId, ComponentId, QueryBasisPostureReference, QueryDenialPresentation,
-    QueryLiveCompatibility, QueryResultShapeReference, QueryViewCapabilityReference, SurfaceId,
-    ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
+    CommandDescriptor, CommandId, ComponentId, SurfaceId, ViewBindingDescriptor,
+    ViewBindingFamily, ViewBindingId,
 };
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::tests::replacement_impact_test_support::impact_test_app;
@@ -116,7 +107,7 @@ pub(super) fn candidate_with_forged_query_support_hook_count(
         WorthUiQuerySupportReceipt::with_runtime_hook_count_for_test(
             WorthUiQuerySupportStatus::Supported,
             runtime_hook_count,
-            99,
+            "dependency-impact-narrowing",
         ),
     );
     let bundle = WorthUiCandidateArtifactBundle::from_optional_parts_for_test(
@@ -138,37 +129,13 @@ pub(super) fn candidate_with_forged_query_support_hook_count(
 }
 
 fn query_bound_view_binding(id: &str) -> ViewBindingDescriptor {
-    let support_report = WorthQuerySupportReport::runtime_backed_default();
-    let query_capability = support_report
-        .support_matrix()
-        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
-        .expect("query composition support posture");
-    let query_composition = support_report
-        .query_composition_support_profile()
-        .expect("query composition profile");
-    let basis_support =
-        discover_basis_lifecycle_support(BasisFamily::CurrentHead, "subscription_declaration");
-
-    ViewBindingDescriptor::query_owned(
+    let definition = worth_ui_query_binding::WorthUiQueryViewDefinition::measurement_snapshot(id)
+        .expect("query definition should admit");
+    ViewBindingDescriptor::from_definition(
         ViewBindingId::new(id).expect("valid view binding id"),
         ViewBindingFamily::collection(),
+        definition,
     )
-    .with_query_capability_posture(
-        QueryViewCapabilityReference::from_query_capability_descriptor(query_capability),
-    )
-    .with_query_composition_support(query_composition)
-    .with_view_shape(ViewShapeDescriptor::table())
-    .with_result_shape(QueryResultShapeReference::from_result_shape_family(
-        ResultShapeFamily::Collection,
-    ))
-    .with_basis_posture(QueryBasisPostureReference::from_basis_support_discovery(
-        &basis_support,
-    ))
-    .with_live_compatibility(QueryLiveCompatibility::from_subscription_posture(
-        QuerySubscriptionFamily::CollectionMembership,
-        QuerySubscriptionSupportPosture::RuntimeBackedCertified,
-    ))
-    .with_denial_presentation(QueryDenialPresentation::structured_status())
 }
 
 fn command_id(id: &str) -> CommandId {

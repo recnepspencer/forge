@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
 use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
+use worth_query::facade::foundation::{
+    snapshot_resolution_report, QueryExternalIdentityToken, QueryExternalSchemaBasisToken,
+    WorthQuerySnapshotIdentity,
+};
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
-    snapshot_resolution_report, BridgePreviewSessionIdentity, QueryExternalIdentityToken,
-    QueryExternalSchemaBasisToken, UiGraphInstantiationPlan, UiGraphWorldDifferenceKind,
+    UiGraphInstantiationPlan, UiGraphWorldDifferenceKind, UiPreviewSessionIdentity,
     UiGraphWorldProfile, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
-    WorthQuerySnapshotIdentity,
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
@@ -94,10 +96,10 @@ fn unrelated_sibling_churn_does_not_rewrite_primary_runtime_graph_identity() {
 #[test]
 fn graph_world_profile_compare_distinguishes_preview_session_identity_worlds() {
     let alpha_world = UiGraphWorldProfile::preview_session_identity(
-        BridgePreviewSessionIdentity::from_stable_name("preview-session:alpha"),
+        UiPreviewSessionIdentity::new("preview-session:alpha").expect("preview identity"),
     );
     let beta_world = UiGraphWorldProfile::preview_session_identity(
-        BridgePreviewSessionIdentity::from_stable_name("preview-session:beta"),
+        UiPreviewSessionIdentity::new("preview-session:beta").expect("preview identity"),
     );
 
     let alpha = WorthUi::app()
@@ -283,6 +285,8 @@ fn query_snapshot_world_profile(
     )
     .expect("runtime current snapshot basis should resolve");
 
-    UiGraphWorldProfile::query_snapshot_basis(basis.clone(), snapshot_resolution_report(&basis))
-        .expect("query snapshot basis world profile should admit matching report")
+    let prerequisites = worth_ui_query_binding::WorthUiQueryPrerequisiteBoundary::new()
+        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
+        .expect("query prerequisites should admit");
+    UiGraphWorldProfile::query_snapshot_basis(prerequisites)
 }

@@ -164,14 +164,14 @@ fn unexpected_recovery_posture_rejected_for_non_recovery_family() {
 }
 
 #[test]
-fn unsupported_query_posture_cannot_be_projected_as_failed() {
+fn mismatched_ui_outcome_source_cannot_be_projected_as_failed() {
     let report = WorthUi::app()
         .register_runtime_outcome_projection(
             RuntimeOutcomeProjectionDescriptor::new(
                 projection_id("workspace.outcome.unsupported_as_failed"),
                 RuntimeOutcomeFamily::failed(),
-                worth_ui::facade::RuntimeOutcomeSourceReference::from_query_ordinary_posture_kind(
-                    worth_query::facade::foundation::WorthQueryOrdinaryPostureKind::Unsupported,
+                worth_ui::facade::RuntimeOutcomeSourceReference::new(
+                    RuntimeOutcomeFamily::recoverable(),
                 ),
             )
             .with_recovery_posture(RuntimeOutcomeRecoveryPosture::retry_hint()),

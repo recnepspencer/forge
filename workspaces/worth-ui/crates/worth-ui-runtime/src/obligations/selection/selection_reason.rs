@@ -30,6 +30,7 @@ impl UiObligationWorldProfileClass {
             UiGraphWorldProfile::HostObservation { .. } => Self::HostObservation,
             UiGraphWorldProfile::TestCertification { .. } => Self::TestCertification,
             UiGraphWorldProfile::QuerySnapshotBasis { .. } => Self::QuerySnapshotBasis,
+            UiGraphWorldProfile::InstalledQueryBasis { .. } => Self::QuerySnapshotBasis,
         }
     }
 }

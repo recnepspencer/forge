@@ -12,7 +12,7 @@ use crate::evidence::{
 };
 use worth_ui_query_binding::{
     WorthUiQueryAuthorityHandle, WorthUiQueryBasisPosture, WorthUiQueryMeasurementFactReceiptError,
-    WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
 };
 
 use super::UiAdmissionBoundary;
@@ -31,7 +31,7 @@ impl<'a> UiAdmissionBoundary<'a> {
         );
         let target = base_target
             .clone()
-            .with_query_prerequisites_from_query_authority(query_authority.authority())
+            .with_query_prerequisites_from_query_authority(&query_authority)
             .unwrap_or(base_target);
         let selected = self.select_obligations_for_target(touch, target);
         let measurement_admission = self.admit_measurement_requirement(&selected)?;
@@ -53,18 +53,6 @@ impl<'a> UiAdmissionBoundary<'a> {
         let dependencies = declared_query_measurement_dependencies(measurement_policy)?;
         let required_families = dependencies.fact_families().to_vec().into_boxed_slice();
         let target = measurement_admission.target().clone();
-        let query_basis_digest = target
-            .query_prerequisites()
-            .map(|prerequisites| prerequisites.resolution_report().basis_digest().clone());
-        let query_resolution_mode = target
-            .query_prerequisites()
-            .map(|prerequisites| prerequisites.resolution_report().resolution_mode().clone());
-        let query_projection_contract_digest =
-            target.query_prerequisites().and_then(|prerequisites| {
-                prerequisites
-                    .projection_contract_digest()
-                    .map(|digest| digest.into())
-            });
         let admission = |posture, projection_fact_receipt: Option<UiProjectionFactReceipt>| {
             UiQueryMeasurementEligibility::new(
                 target.clone(),
@@ -74,9 +62,6 @@ impl<'a> UiAdmissionBoundary<'a> {
                 measurement_admission.selected_measurement_obligation_identity_digest(),
                 measurement_admission.selected_support_authority_generation(),
                 measurement_admission.boundary_support_authority_generation(),
-                query_basis_digest.clone(),
-                query_resolution_mode.clone(),
-                query_projection_contract_digest.clone(),
                 required_families.clone(),
                 projection_fact_receipt,
                 posture,
@@ -129,9 +114,8 @@ impl<'a> UiAdmissionBoundary<'a> {
             WorthUiQueryBasisPosture::GraphAligned => {}
         }
 
-        let observed_authority = observed_basis_authority(query_authority.authority());
-        let query_receipt = match worth_ui_query_binding::WorthUiQueryBindingSubsystem::bootstrap()
-            .prerequisites()
+        let observed_authority = observed_basis_authority(&query_authority);
+        let query_receipt = match WorthUiQueryPrerequisiteBoundary::new()
             .measurement_fact_receipt_from_query_authority(
                 current_prerequisites.clone(),
                 query_authority,
@@ -156,15 +140,12 @@ impl<'a> UiAdmissionBoundary<'a> {
             }
         };
 
-        if !query_prerequisite_authority_matches(
-            current_prerequisites,
-            query_receipt.prerequisites(),
-        ) {
+        if !query_receipt.binds_prerequisites(current_prerequisites) {
             return Some(admission(
-                stale_basis_posture(
+                stale_basis_posture_from_query_authority(
                     target.world().clone(),
                     current_prerequisites,
-                    query_receipt.prerequisites(),
+                    observed_authority.clone(),
                 ),
                 None,
             ));
@@ -172,10 +153,10 @@ impl<'a> UiAdmissionBoundary<'a> {
 
         if current_receipt_stale {
             return Some(admission(
-                stale_basis_posture(
+                stale_basis_posture_from_query_authority(
                     target.world().clone(),
                     current_prerequisites,
-                    query_receipt.prerequisites(),
+                    observed_authority,
                 ),
                 None,
             ));
@@ -185,6 +166,7 @@ impl<'a> UiAdmissionBoundary<'a> {
             declaration_identity,
             measurement_admission.selected_support_authority_generation(),
             dependencies,
+            current_prerequisites.resolution_mode(),
             query_receipt,
         ) {
             Ok(receipt) => Some(admission(
@@ -238,25 +220,6 @@ fn measurement_policy_posture<'a>(
     row.declared_measurement_policy_posture()
 }
 
-fn query_prerequisite_authority_matches(
-    current: &WorthUiQueryPrerequisiteEvidence,
-    observed: &WorthUiQueryPrerequisiteEvidence,
-) -> bool {
-    current == observed
-}
-
-fn stale_basis_posture(
-    world: crate::admission::UiAdmissionWorld,
-    current: &WorthUiQueryPrerequisiteEvidence,
-    observed: &WorthUiQueryPrerequisiteEvidence,
-) -> UiQueryMeasurementEligibilityPosture {
-    UiQueryMeasurementEligibilityPosture::StaleBasisGeneration {
-        world,
-        expected: prerequisite_basis_authority(current),
-        observed: prerequisite_basis_authority(observed),
-    }
-}
-
 fn stale_basis_posture_from_query_authority(
     world: crate::admission::UiAdmissionWorld,
     current: &WorthUiQueryPrerequisiteEvidence,
@@ -270,15 +233,10 @@ fn stale_basis_posture_from_query_authority(
 }
 
 fn observed_basis_authority(
-    authority: &worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
+    authority: &WorthUiQueryAuthorityHandle,
 ) -> UiQueryMeasurementBasisAuthority {
     UiQueryMeasurementBasisAuthority::ProjectionConsumption {
-        basis_digest: authority
-            .contract()
-            .basis_digest()
-            .unwrap_or_default()
-            .into(),
-        projection_contract_digest: authority.contract().contract_digest().into(),
+        authority: authority.clone(),
     }
 }
 
@@ -286,8 +244,6 @@ fn prerequisite_basis_authority(
     prerequisites: &WorthUiQueryPrerequisiteEvidence,
 ) -> UiQueryMeasurementBasisAuthority {
     UiQueryMeasurementBasisAuthority::AdmittedPrerequisites {
-        basis_digest: prerequisites.resolution_report().basis_digest().clone(),
-        resolution_mode: prerequisites.resolution_report().resolution_mode().clone(),
-        projection_contract_digest: prerequisites.projection_contract_digest().map(Into::into),
+        prerequisites: prerequisites.clone(),
     }
 }

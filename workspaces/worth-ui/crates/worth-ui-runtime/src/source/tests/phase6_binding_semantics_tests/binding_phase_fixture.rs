@@ -1,12 +1,8 @@
-use std::collections::BTreeMap;
-
-use crate::capability::{CapabilitySnapshot, FrozenViewBindingEntry};
+use crate::capability::CapabilitySnapshot;
 use crate::source::{
     WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer, WorthUiBoundArtifactInput,
-    WorthUiLegallyStructuredArtifactInput, WorthUiLegallyStructuredArtifactInputBindingNode,
-    WorthUiLegallyStructuredArtifactInputModule, WorthUiLegallyStructuredArtifactInputNode,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredToArtifactInputLowerer,
-    WorthUiStructuralLegalityLowerer,
+    WorthUiLegallyStructuredArtifactInput, WorthUiRustAuthoredArtifactInput,
+    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiStructuralLegalityLowerer,
 };
 
 use super::binding_app_fixture::standard_artifact_input;
@@ -41,39 +37,3 @@ pub(super) fn bound_artifact_input_for(
         .expect("phase 6 binding semantics should succeed")
 }
 
-pub(super) fn legally_structured_with_binding_entry(
-    snapshot: &CapabilitySnapshot,
-    binding_entry: FrozenViewBindingEntry,
-) -> WorthUiLegallyStructuredArtifactInput {
-    let baseline = legally_structured_artifact_input(snapshot);
-    let mut modules = BTreeMap::new();
-
-    for module_id in baseline.module_ids() {
-        let module = baseline.module(module_id).unwrap();
-        let nodes = module
-            .nodes()
-            .iter()
-            .cloned()
-            .map(|node| match node {
-                WorthUiLegallyStructuredArtifactInputNode::Binding(binding_node) => {
-                    WorthUiLegallyStructuredArtifactInputNode::Binding(
-                        WorthUiLegallyStructuredArtifactInputBindingNode::new(
-                            binding_node.view_binding().clone(),
-                            binding_entry.clone(),
-                            binding_node.authored_identity().map(str::to_owned),
-                            binding_node.structure().clone(),
-                            binding_node.provenance().clone(),
-                        ),
-                    )
-                }
-                other => other,
-            })
-            .collect();
-        modules.insert(
-            module_id.clone(),
-            WorthUiLegallyStructuredArtifactInputModule::new(module_id.clone(), nodes),
-        );
-    }
-
-    WorthUiLegallyStructuredArtifactInput::new(modules, baseline.module_ids().to_vec())
-}

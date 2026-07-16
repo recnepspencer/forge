@@ -59,7 +59,7 @@ fn unknown_geometry_relationships_are_explicit_not_empty_folklore() {
 
 #[test]
 fn initial_activation_does_not_invent_scroll_or_viewport_evidence() {
-    let (_runtime, _, _, _, _, _, scroll_aggregate) =
+    let (_runtime, _, _, _, _, _, scroll_aggregate, _) =
         super::production_catalog_activation_test_support::runtime_with_scroll_catalog();
     let (_runtime, _, _, aggregate) =
         super::production_catalog_activation_test_support::runtime_with_portal_catalog();

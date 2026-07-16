@@ -162,7 +162,7 @@ impl CapabilityRegistrationBuilder {
     }
 
     /// Register a Query-owned view binding presentation capability.
-    pub fn register_view_binding(mut self, descriptor: ViewBindingDescriptor) -> Self {
+    pub(crate) fn register_view_binding(mut self, descriptor: ViewBindingDescriptor) -> Self {
         self.registration_candidates
             .push(descriptor.registration_candidate());
         self.view_binding_registry.push(descriptor);

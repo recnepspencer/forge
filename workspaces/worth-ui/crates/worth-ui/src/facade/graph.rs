@@ -1,8 +1,5 @@
 pub use worth_ui_runtime::facade::graph::{
-    project_aspect_evidence_ref, project_aspect_evidence_refs, snapshot_resolution_report,
-    BasisAuthorityFamily, BridgePreviewSessionIdentity, QueryExternalIdentityToken,
-    QueryExternalSchemaBasisToken, QuerySchemaBasisAuthority, ResolvedSnapshotBasis,
-    SchemaBasisDigest, SnapshotLineageClass, SnapshotResolutionReport, UiAspectEvidenceLane,
+    project_aspect_evidence_ref, project_aspect_evidence_refs, UiAspectEvidenceLane,
     UiAspectEvidenceRefProjection, UiAspectEvidenceSubjectKind, UiGraphAspectConsumer,
     UiGraphAspectConsumerKind, UiGraphAspectPublisher, UiGraphAspectPublisherKind,
     UiGraphAttachmentPosture, UiGraphAuthority, UiGraphAxisParticipation,
@@ -30,8 +27,9 @@ pub use worth_ui_runtime::facade::graph::{
     UiGraphTouchAuthority, UiGraphTouchDenial, UiGraphTouchDescriptor, UiGraphTouchOriginClass,
     UiGraphTouchOriginReceipt, UiGraphTouchOriginWitness, UiGraphTouchRuntimeLane,
     UiGraphTouchTarget, UiGraphTouchTargetClass, UiGraphTouchTiming, UiGraphTouchWorld,
-    UiGraphWorldDifferenceKind, UiGraphWorldProfile, UiGraphWorldProfileError,
+    UiGraphSessionIdentityError, UiGraphSessionLabel, UiGraphWorldDifferenceKind,
+    UiGraphWorldProfile, UiPreviewSessionIdentity,
     UiMountedReceiptIdentity, UiRepeatedInstanceBasis, UiRepeatedInstanceBasisDenial,
     UiRepeatedInstanceBasisKind, UiRuntimeDataInstanceKeyKind, UiRuntimeDataInstanceKeyToken,
-    UiRuntimeInstanceBasisAdmission, WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
+    UiRuntimeInstanceBasisAdmission,
 };

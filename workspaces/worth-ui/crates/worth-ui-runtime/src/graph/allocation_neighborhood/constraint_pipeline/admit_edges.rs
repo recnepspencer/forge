@@ -19,7 +19,7 @@ use super::super::constraint_scroll_owner_planning_input::admit_scroll_owner_pla
 use super::super::constraint_sibling_negotiation::admit_sibling_negotiation;
 use super::super::constraint_summary::derive_constraint_summary;
 use super::super::constraint_viewport_planning_input::admit_viewport_planning_input;
-use super::types::{
+use super::admission_parts::{
     ConstraintAuthorityContext, PropagationEdgeAdmissionParts, SpecialInputAdmissionParts,
 };
 

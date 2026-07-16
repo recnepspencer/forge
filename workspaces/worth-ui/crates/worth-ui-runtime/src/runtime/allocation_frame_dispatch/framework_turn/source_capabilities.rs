@@ -160,14 +160,13 @@ impl WorthUiHostMeasurementTurnSource<'_> {
 impl WorthUiQueryProjectionTurnSource<'_> {
     pub fn admit_and_submit(
         &mut self,
-        prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-        authority: worth_query::facade::read::WorthQueryProjectionOutcome,
+        outcome: worth_ui_query_binding::WorthUiQueryProjectionOutcome,
     ) -> Result<
         UiAllocationFrameGatewayOutcome,
         worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,
     > {
         self.runtime
-            .admit_and_submit_query_projection(prerequisites, authority)
+            .admit_and_submit_query_projection(outcome)
     }
 }
 

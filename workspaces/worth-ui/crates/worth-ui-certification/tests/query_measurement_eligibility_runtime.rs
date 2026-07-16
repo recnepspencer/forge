@@ -58,7 +58,7 @@ fn query_backed_measurement_eligibility_stays_distinct_and_bounds_required_famil
         eligibility.required_families(),
         &[WorthUiQueryMeasurementFactFamily::ScrollContentExtent]
     );
-    assert!(eligibility.query_basis_digest().is_some());
+    assert!(eligibility.query_basis_digest_for_diagnostics().is_some());
     assert!(eligibility.query_resolution_mode().is_some());
     let receipt = eligibility.projection_fact_receipt().expect(
         "eligible query-backed measurement should carry the consumed projection fact receipt",
@@ -164,32 +164,24 @@ fn query_measurement_eligibility_from_projection_consumption_rejects_cross_basis
             expected, observed, ..
         } => match (expected, observed) {
             (
-                UiQueryMeasurementBasisAuthority::AdmittedPrerequisites {
-                    basis_digest: expected_basis_digest,
-                    resolution_mode: expected_resolution_mode,
-                    projection_contract_digest: expected_projection_contract_digest,
-                },
-                UiQueryMeasurementBasisAuthority::ProjectionConsumption {
-                    basis_digest: observed_basis_digest,
-                    projection_contract_digest: observed_projection_contract_digest,
-                },
+                UiQueryMeasurementBasisAuthority::AdmittedPrerequisites { prerequisites },
+                UiQueryMeasurementBasisAuthority::ProjectionConsumption { authority },
             ) => {
                 assert_ne!(
-                    expected_basis_digest.as_str(),
-                    observed_basis_digest.as_ref()
+                    prerequisites.basis_digest_for_diagnostics(),
+                    authority.basis_digest_for_diagnostics()
                 );
                 assert_eq!(
-                    expected_resolution_mode,
+                    prerequisites.resolution_mode(),
                     measurement_admission
                         .target()
                         .query_prerequisites()
                         .expect("current target should retain query prerequisites")
-                        .resolution_report()
                         .resolution_mode()
                 );
                 assert_ne!(
-                    expected_projection_contract_digest.as_deref(),
-                    Some(observed_projection_contract_digest.as_ref())
+                    prerequisites.projection_contract_digest(),
+                    Some(authority.projection_contract_digest_for_diagnostics())
                 );
             }
             authorities => {
@@ -349,24 +341,20 @@ fn query_measurement_eligibility_from_projection_consumption_rejects_same_basis_
         } => match (expected, observed) {
             (
                 UiQueryMeasurementBasisAuthority::AdmittedPrerequisites {
-                    basis_digest: expected_basis_digest,
-                    resolution_mode: expected_resolution_mode,
-                    projection_contract_digest: expected_projection_contract_digest,
+                    prerequisites: expected,
                 },
                 UiQueryMeasurementBasisAuthority::AdmittedPrerequisites {
-                    basis_digest: observed_basis_digest,
-                    resolution_mode: observed_resolution_mode,
-                    projection_contract_digest: observed_projection_contract_digest,
+                    prerequisites: observed,
                 },
             ) => {
                 assert_eq!(
-                    expected_basis_digest.as_str(),
-                    observed_basis_digest.as_str()
+                    expected.basis_digest_for_diagnostics(),
+                    observed.basis_digest_for_diagnostics()
                 );
-                assert_eq!(expected_resolution_mode, observed_resolution_mode);
+                assert_eq!(expected.resolution_mode(), observed.resolution_mode());
                 assert_ne!(
-                    expected_projection_contract_digest.as_deref(),
-                    observed_projection_contract_digest.as_deref()
+                    expected.projection_contract_digest(),
+                    observed.projection_contract_digest()
                 );
             }
             authorities => {

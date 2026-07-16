@@ -124,7 +124,8 @@ fn artifact_equivalence_report() -> WorthUiRuntimeDiagnosticReport {
         &runtime,
         artifact_from_modules(&app, [surface_module("workspace.surface.main")]),
     );
-    let stale_admitted = admitted.with_admitted_query_support_receipt_digest_for_test(u64::MAX);
+    let stale_admitted =
+        admitted.with_admitted_query_contract_for_test("stale-diagnostic-contract");
     let denial = runtime
         .compare_admitted_replacement(&stale_admitted)
         .expect_err("changed admission receipt denies before artifact comparison");

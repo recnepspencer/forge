@@ -18,7 +18,7 @@ impl WorthUiQueryLiveRebindPlanner {
         reject_comparison_plan_mismatch(comparison, node_plan)?;
         reject_narrowing_mismatch(comparison, narrowing)?;
         reject_admitted_mismatch(comparison, admitted)?;
-        reject_changed_query_support_receipt(admitted)?;
+        reject_changed_query_support_contract(admitted)?;
 
         let entries = comparison.entries().iter().map(decide_entry).collect();
         Ok(WorthUiQueryLiveRebindPlan::new(
@@ -29,18 +29,18 @@ impl WorthUiQueryLiveRebindPlanner {
     }
 }
 
-fn reject_changed_query_support_receipt(
+fn reject_changed_query_support_contract(
     admitted: &WorthUiAdmittedReplacementCandidate,
 ) -> Result<(), WorthUiQueryLiveRebindPlanDenial> {
     match admitted.verify_receipts_unchanged() {
         Ok(()) => Ok(()),
-        Err(WorthUiCandidateAdmissionDenial::QuerySupportReceiptChanged {
-            admitted_receipt_digest,
-            current_receipt_digest,
+        Err(WorthUiCandidateAdmissionDenial::QuerySupportContractChanged {
+            admitted_contract_identity,
+            current_contract_identity,
         }) => Err(
-            WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportReceiptChanged {
-                admitted_receipt_digest,
-                current_receipt_digest,
+            WorthUiQueryLiveRebindPlanDenial::AdmittedQuerySupportContractChanged {
+                admitted_contract_identity,
+                current_contract_identity,
             },
         ),
         Err(_) => {

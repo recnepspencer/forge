@@ -20,6 +20,7 @@ impl WorthUiRuntime {
         retained_allocation_planning_evidence: Rc<
             WorthUiRetainedAllocationPlanningEvidenceRegistry,
         >,
+        query_binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
     ) -> Result<Self, WorthUiRuntimeLaunchDenial> {
         let WorthUiRuntimeLaunch {
             artifact,
@@ -66,7 +67,7 @@ impl WorthUiRuntime {
             pending_allocation_frame_handoff: None,
             pending_narrowed_allocation_frame: None,
             allocation_source_order_ledger: Default::default(),
-            query_binding: worth_ui_query_binding::WorthUiQueryBindingSubsystem::bootstrap(),
+            query_binding,
             transient_interaction_admission: Default::default(),
             host_measurement_source: Rc::new(RefCell::new(Default::default())),
             durable_resize_source: Default::default(),

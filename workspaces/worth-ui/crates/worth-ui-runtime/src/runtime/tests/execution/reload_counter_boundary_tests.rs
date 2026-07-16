@@ -117,13 +117,19 @@ fn query_rebind_counter_receipt_carries_query_evidence_independent_of_builder_or
         .find(|packet| packet.family() == WorthUiRuntimeCounterFamily::QueryRebindPlanning)
         .expect("query rebind packet should be present");
 
-    assert_eq!(receipt.carried_query_receipt_digests(), &[44]);
+    assert_eq!(
+        receipt.carried_query_contract_identities(),
+        &[query_support_receipt().contract_identity().as_u64()]
+    );
     assert_eq!(query_packet.query_evidence().len(), 1);
     assert_eq!(
         query_packet.query_evidence()[0].kind(),
         WorthUiMeasurementQueryEvidenceKind::SubscriptionSelectionDiagnostics
     );
-    assert_eq!(query_packet.query_evidence()[0].evidence_digest(), 44);
+    assert_eq!(
+        query_packet.query_evidence()[0].evidence_digest(),
+        query_support_receipt().contract_identity().as_u64()
+    );
 }
 
 #[test]
@@ -344,7 +350,10 @@ fn query_rebind_counters() -> WorthUiQueryLiveRebindCounters {
 }
 
 fn query_support_receipt() -> WorthUiQuerySupportReceipt {
-    WorthUiQuerySupportReceipt::for_test(WorthUiQuerySupportStatus::Supported, 44)
+    WorthUiQuerySupportReceipt::for_test(
+        WorthUiQuerySupportStatus::Supported,
+        "reload-counter-boundary",
+    )
 }
 
 fn plan_lowering_counters() -> WorthUiPlanLoweringCounters {

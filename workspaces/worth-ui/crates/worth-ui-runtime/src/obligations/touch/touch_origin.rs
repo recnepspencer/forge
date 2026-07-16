@@ -1,4 +1,4 @@
-use crate::declaration::{stable_text_digest, UiDeclarationArtifact, UiDeclarationIdentity};
+use crate::declaration::{UiDeclarationArtifact, UiDeclarationIdentity};
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum UiGraphTouchOriginClass {
@@ -24,10 +24,31 @@ impl UiGraphTouchOriginReceipt {
         }
     }
 
-    pub(crate) fn query_fact_change(authority_projection: &str) -> Self {
+    pub(crate) fn query_fact_change(
+        prerequisites: &worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+    ) -> Self {
+        let canonical = prerequisites.canonical_basis_digest();
+        let authority_digest = canonical
+            .value()
+            .bytes()
+            .iter()
+            .take(8)
+            .enumerate()
+            .fold(0u64, |digest, (index, byte)| {
+                digest | (u64::from(*byte) << (index * 8))
+            });
         Self {
             class: UiGraphTouchOriginClass::QueryFactChange,
-            authority_digest: stable_text_digest(authority_projection),
+            authority_digest,
+        }
+    }
+
+    pub(crate) fn installed_query_fact_change(
+        authority: &worth_ui_query_binding::WorthUiQueryBasisAuthority,
+    ) -> Self {
+        Self {
+            class: UiGraphTouchOriginClass::QueryFactChange,
+            authority_digest: authority.identity().as_u64(),
         }
     }
 
@@ -87,12 +108,23 @@ impl UiGraphTouchOriginWitness {
         }
     }
 
-    pub(crate) const fn mounted_receipt_transition_only(
+    pub(crate) fn query_basis(
         receipt: UiGraphTouchOriginReceipt,
+        prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
     ) -> Self {
         Self {
             receipt,
-            authority: UiGraphTouchOriginAuthority::MountedReceiptTransitionOnly,
+            authority: UiGraphTouchOriginAuthority::QueryBasis { prerequisites },
+        }
+    }
+
+    pub(crate) fn installed_query_basis(
+        receipt: UiGraphTouchOriginReceipt,
+        authority: worth_ui_query_binding::WorthUiQueryBasisAuthority,
+    ) -> Self {
+        Self {
+            receipt,
+            authority: UiGraphTouchOriginAuthority::InstalledQueryBasis { authority },
         }
     }
 
@@ -128,7 +160,12 @@ pub(crate) enum UiGraphTouchOriginAuthority {
     DeclarationInstances {
         declaration_identity: UiDeclarationIdentity,
     },
-    MountedReceiptTransitionOnly,
+    QueryBasis {
+        prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+    },
+    InstalledQueryBasis {
+        authority: worth_ui_query_binding::WorthUiQueryBasisAuthority,
+    },
     AuthoredProvenanceDigests {
         digests: Vec<u64>,
     },

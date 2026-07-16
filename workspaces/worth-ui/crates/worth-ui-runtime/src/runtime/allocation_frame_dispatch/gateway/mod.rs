@@ -22,6 +22,6 @@ pub use source_fact::{
 pub(crate) use state::UiAllocationFrameGatewayState;
 
 #[cfg(test)]
-mod query_test_support;
+pub(crate) mod query_test_support;
 #[cfg(test)]
 mod tests;

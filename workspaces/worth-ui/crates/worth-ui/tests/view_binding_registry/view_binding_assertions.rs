@@ -1,17 +1,4 @@
-use worth_ui::facade::{
-    CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic, FrozenViewBindingCapabilities,
-};
-
-pub(crate) fn assert_diagnostic_codes(
-    diagnostics: &[CapabilityRegistrationDiagnostic],
-    expected_codes: &[CapabilityDiagnosticCode],
-) {
-    let actual_codes = diagnostics
-        .iter()
-        .map(|diagnostic| diagnostic.code())
-        .collect::<Vec<_>>();
-    assert_eq!(actual_codes, expected_codes);
-}
+use worth_ui::facade::FrozenViewBindingCapabilities;
 
 pub(crate) fn assert_registered_view_binding_ids(
     view_bindings: &FrozenViewBindingCapabilities,

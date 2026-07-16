@@ -1292,12 +1292,12 @@ version = "0.1.0"
 dependencies = [
  "trybuild",
  "worth-foundational",
- "worth-query",
  "worth-relational",
  "worth-runtime-bridge",
  "worth-signal",
  "worth-ui-dsl",
  "worth-ui-inspection",
+ "worth-ui-query-binding",
  "worth-ui-runtime",
 ]
 
@@ -1366,7 +1366,6 @@ version = "0.1.0"
 dependencies = [
  "worth-foundational",
  "worth-proof",
- "worth-query",
  "worth-ui-dsl",
  "worth-ui-host-contract",
  "worth-ui-inspection",

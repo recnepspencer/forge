@@ -15,7 +15,7 @@ use worth_ui_dsl::{
 };
 use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
 use worth_ui_query_binding::{
-    WorthUiQueryAuthorityHandle, WorthUiQueryBasisPosture, WorthUiQueryBindingSubsystem,
+    WorthUiQueryAuthorityHandle, WorthUiQueryBasisPosture, WorthUiQueryPrerequisiteBoundary,
     WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
     WorthUiQueryPrerequisiteEvidence, WorthUiQueryProjectionConsumptionLane,
 };
@@ -77,7 +77,7 @@ pub fn target_bound_to_projection_consumption(
     authority: &WorthUiQueryAuthorityHandle,
 ) -> UiAdmissionTarget {
     available_measurement_target(touch)
-        .with_query_prerequisites_from_query_authority(authority.authority())
+        .with_query_prerequisites_from_query_authority(authority)
         .expect("query-backed measurement target should bind real projection consumption authority")
 }
 
@@ -85,19 +85,15 @@ pub fn synthetic_query_prerequisites_for_world(
     world_profile: &UiGraphWorldProfile,
     query_basis: UiAdmissionQueryBasis,
 ) -> WorthUiQueryPrerequisiteEvidence {
-    let UiGraphWorldProfile::QuerySnapshotBasis {
-        basis,
-        resolution_report,
-    } = world_profile
+    let UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } = world_profile
     else {
         panic!("query measurement eligibility tests require query snapshot worlds");
     };
 
-    WorthUiQueryBindingSubsystem::bootstrap()
-        .prerequisites()
+    WorthUiQueryPrerequisiteBoundary::new()
         .assemble(
-            basis.clone(),
-            resolution_report.clone(),
+            prerequisites.basis().clone(),
+            prerequisites.resolution_report().clone(),
             match query_basis {
                 UiAdmissionQueryBasis::GraphAligned => WorthUiQueryBasisPosture::GraphAligned,
                 UiAdmissionQueryBasis::WrongWorldProjection => {
