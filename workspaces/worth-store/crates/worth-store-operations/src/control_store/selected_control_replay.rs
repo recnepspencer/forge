@@ -19,7 +19,7 @@ use super::{
         SelectedControlReplayDenial,
     },
     OperationalControlRecord, OperationalControlRecordKind, OperationalControlReplayBudget,
-    OperationalControlReplayResource, OperationalOperationId, OperationalWorkflowKind,
+    OperationalControlReplayResource, OperationalOperationId,
 };
 use std::collections::HashMap;
 use worth_store_physical_backend::ControlMediaFault;
@@ -29,7 +29,7 @@ pub(crate) struct SelectedControlReplay {
     pub(super) archived: ArchivedWorkflowIndex,
     pub(super) completed_backups: u64,
     pub(super) abandoned_backups: u64,
-    budget: OperationalControlReplayBudget,
+    pub(super) budget: OperationalControlReplayBudget,
     pub(super) active_recovery_object_bytes: u64,
     consumed_authorizations: HashMap<[u8; 32], ([u8; 32], OperationalOperationId)>,
     pub(super) repair_journals: HashMap<OperationalOperationId, ReplayedRepairJournal>,
@@ -74,42 +74,7 @@ impl SelectedControlReplay {
         let (operation, kind) = record.into_replay_parts();
         match kind {
             OperationalControlRecordKind::WorkflowOpened { workflow } => {
-                let archived = self
-                    .archived
-                    .lookup(&operation)
-                    .map_err(SelectedControlReplayDenial::DerivedIndex)?;
-                if self.workflows.contains_key(&operation) || archived.is_some() {
-                    return invalid(
-                        record_index,
-                        operation,
-                        OperationalControlHistoryViolationKind::DuplicateWorkflowOpen,
-                    );
-                }
-                if workflow == OperationalWorkflowKind::Backup {
-                    let required = self.workflows.len().saturating_add(1);
-                    if required > self.budget.max_active_workflows() {
-                        return Err(SelectedControlReplayDenial::BudgetExceeded {
-                            resource: OperationalControlReplayResource::ActiveWorkflows,
-                            required: u64::try_from(required).unwrap_or(u64::MAX),
-                            limit: u64::try_from(self.budget.max_active_workflows())
-                                .unwrap_or(u64::MAX),
-                        });
-                    }
-                    self.workflows
-                        .try_reserve(1)
-                        .map_err(|_| SelectedControlReplayDenial::AllocationFailed)?;
-                    self.workflows
-                        .insert(
-                            operation,
-                            ReplayedWorkflow::BackupAwaitingSourceLease {
-                                opened_record_index: record_index,
-                            },
-                        );
-                } else {
-                    self.archived
-                        .insert(&operation, ArchivedWorkflowKind::NonBackup(workflow))
-                        .map_err(SelectedControlReplayDenial::DerivedIndex)?;
-                }
+                self.observe_workflow_open(record_index, operation, workflow)?;
             }
             OperationalControlRecordKind::SourceLeasePersisted {
                 recovery,
@@ -328,6 +293,32 @@ impl SelectedControlReplay {
                     SelectedControlReplayDenial::Invalid(
                         super::OperationalControlHistoryViolation::new(
                             record_index, operation, kind)))?,
+            OperationalControlRecordKind::OperationalOwnerReceiptPersisted {
+                workflow, ..
+            } => match self
+                .archived
+                .lookup(&operation)
+                .map_err(SelectedControlReplayDenial::DerivedIndex)?
+            {
+                Some(ArchivedWorkflowKind::NonBackup(observed)) if observed == workflow => {}
+                Some(ArchivedWorkflowKind::NonBackup(observed)) => {
+                    return invalid(record_index, operation, wrong_workflow(observed));
+                }
+                Some(ArchivedWorkflowKind::BackupTerminal) => {
+                    return invalid(
+                        record_index,
+                        operation,
+                        OperationalControlHistoryViolationKind::RecordAfterTerminal,
+                    );
+                }
+                None => {
+                    return invalid(
+                        record_index,
+                        operation,
+                        OperationalControlHistoryViolationKind::RecordBeforeWorkflowOpen,
+                    );
+                }
+            },
             OperationalControlRecordKind::RepairDispositionRecorded {
                 plan_fingerprint, disposition_tag, disposition_basis,
             } => observe_disposition(&mut self.repair_journals, &operation, plan_fingerprint,

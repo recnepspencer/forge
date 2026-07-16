@@ -75,6 +75,12 @@ pub(crate) enum PersistedOperationalControlRecordKind {
         node_fingerprint: [u8; 32],
         owner_tag: u8,
     },
+    OperationalOwnerReceiptPersisted {
+        workflow: PersistedWorkflowKind,
+        plan_fingerprint: [u8; 32],
+        receipt_fingerprint: [u8; 32],
+        owner_tag: u8,
+    },
     RepairDispositionRecorded {
         plan_fingerprint: [u8; 32],
         disposition_tag: u8,
@@ -262,6 +268,11 @@ impl PersistedOperationalControlRecordKind {
             Self::RepairOwnerEffectStarted { plan_fingerprint, node_fingerprint, owner_tag } =>
                 OperationalControlRecordKind::RepairOwnerEffectStarted {
                     plan_fingerprint, node_fingerprint, owner_tag },
+            Self::OperationalOwnerReceiptPersisted { workflow, plan_fingerprint,
+                receipt_fingerprint, owner_tag } =>
+                OperationalControlRecordKind::OperationalOwnerReceiptPersisted {
+                    workflow: workflow.into(), plan_fingerprint,
+                    receipt_fingerprint, owner_tag },
             Self::RepairDispositionRecorded { plan_fingerprint, disposition_tag,
                 disposition_basis } =>
                 OperationalControlRecordKind::RepairDispositionRecorded {

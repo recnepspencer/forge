@@ -18,6 +18,10 @@ impl ReplicationPeerId {
     pub(crate) fn admit(raw: String) -> Option<Self> {
         (!raw.is_empty()).then_some(Self(raw))
     }
+
+    pub fn from_declared_peer(raw: impl Into<String>) -> Option<Self> {
+        Self::admit(raw.into())
+    }
 }
 
 impl ReplicationSourceEpoch {
@@ -41,5 +45,9 @@ impl ReplicationLineageIdentity {
 
     pub(crate) fn admit(raw: String) -> Option<Self> {
         (!raw.is_empty()).then_some(Self(raw))
+    }
+
+    pub fn from_declared_lineage(raw: impl Into<String>) -> Option<Self> {
+        Self::admit(raw.into())
     }
 }

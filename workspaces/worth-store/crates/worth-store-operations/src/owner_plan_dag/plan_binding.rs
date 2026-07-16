@@ -15,6 +15,8 @@ pub(crate) enum DestructiveOperationKind {
     PointInTimeRecoveryCutover,
     RollbackCutover,
     AuthorityAffectingRepairCutover,
+    ReplicaBootstrap,
+    ReplicaPromotion,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -118,5 +120,7 @@ pub(crate) const fn operation_tag(operation: DestructiveOperationKind) -> u8 {
         DestructiveOperationKind::PointInTimeRecoveryCutover => 7,
         DestructiveOperationKind::RollbackCutover => 8,
         DestructiveOperationKind::AuthorityAffectingRepairCutover => 9,
+        DestructiveOperationKind::ReplicaBootstrap => 10,
+        DestructiveOperationKind::ReplicaPromotion => 11,
     }
 }

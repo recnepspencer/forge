@@ -236,10 +236,10 @@ pub use recovery_publication::{
     ReopenRecoveryPublicationRequest,
 };
 pub use recovery_source_lease::{
-    AdmittedPitrSourceCut, AdmittedRollbackSourceCut, PitrReachabilityLease,
-    RecoveredRecoverySourceLease, RecoverySourceLeaseDenial, RecoverySourceLeaseKind,
-    RecoverySourceLeaseRegistry, RecoverySourceLeaseReleaseReceipt, RecoverySourceLeaseRequest,
-    RollbackReachabilityLease,
+    AdmittedPitrSourceCut, AdmittedRollbackSourceCut, BootstrapReachabilityLease,
+    PitrReachabilityLease, RecoveredRecoverySourceLease, RecoverySourceLeaseDenial,
+    RecoverySourceLeaseKind, RecoverySourceLeaseRegistry, RecoverySourceLeaseReleaseReceipt,
+    RecoverySourceLeaseRequest, ResolvedBootstrapSourceCut, RollbackReachabilityLease,
 };
 pub use root_protocol::{
     readmit_current_root_for_read_plan, reject_checkpoint_root_as_current_read_authority,

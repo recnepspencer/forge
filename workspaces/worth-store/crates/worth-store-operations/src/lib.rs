@@ -120,6 +120,7 @@ mod control_store;
 mod facade;
 pub mod layout_projection;
 mod owner_plan_dag;
+mod operational_audit;
 #[cfg(test)]
 mod phase_1_6_tests;
 #[cfg(test)]

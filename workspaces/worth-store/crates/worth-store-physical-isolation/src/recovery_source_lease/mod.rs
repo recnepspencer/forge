@@ -3,33 +3,14 @@ use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
+mod bootstrap_lease;
 mod record;
+mod request;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Clone)]
-pub struct RecoverySourceLeaseRequest {
-    operation_identity: [u8; 32],
-    source_identity: [u8; 32],
-    source_root: PathBuf,
-    artifact_names: Vec<String>,
-}
-
-impl RecoverySourceLeaseRequest {
-    pub fn new(
-        operation_identity: [u8; 32],
-        source_identity: [u8; 32],
-        source_root: impl Into<PathBuf>,
-        artifact_names: Vec<String>,
-    ) -> Self {
-        Self {
-            operation_identity,
-            source_identity,
-            source_root: source_root.into(),
-            artifact_names,
-        }
-    }
-}
+pub use bootstrap_lease::{BootstrapReachabilityLease, ResolvedBootstrapSourceCut};
+pub use request::RecoverySourceLeaseRequest;
 
 #[derive(Debug)]
 pub enum RecoverySourceLeaseDenial {
@@ -51,7 +32,7 @@ impl From<std::io::Error> for RecoverySourceLeaseDenial {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct RecoverySourceReachabilityLease {
+pub(super) struct RecoverySourceReachabilityLease {
     identity: [u8; 32],
     operation_identity: [u8; 32],
     source_identity: [u8; 32],
@@ -165,6 +146,7 @@ pub struct RecoverySourceLeaseRegistry {
 pub enum RecoverySourceLeaseKind {
     PointInTimeRecovery,
     Rollback,
+    ReplicaBootstrap,
 }
 
 impl RecoverySourceLeaseKind {
@@ -172,6 +154,7 @@ impl RecoverySourceLeaseKind {
         match self {
             Self::PointInTimeRecovery => 1,
             Self::Rollback => 2,
+            Self::ReplicaBootstrap => 3,
         }
     }
 
@@ -179,6 +162,7 @@ impl RecoverySourceLeaseKind {
         match tag {
             1 => Ok(Self::PointInTimeRecovery),
             2 => Ok(Self::Rollback),
+            3 => Ok(Self::ReplicaBootstrap),
             _ => Err(RecoverySourceLeaseDenial::LeaseConflict),
         }
     }
@@ -188,9 +172,10 @@ impl RecoverySourceLeaseKind {
 pub enum RecoveredRecoverySourceLease {
     PointInTimeRecovery(PitrReachabilityLease),
     Rollback(RollbackReachabilityLease),
+    ReplicaBootstrap(BootstrapReachabilityLease),
 }
 
-fn release_lease(
+pub(super) fn release_lease(
     lease: RecoverySourceReachabilityLease,
 ) -> Result<RecoverySourceLeaseReleaseReceipt, RecoverySourceLeaseDenial> {
     if lease.durable_record.exists() {
@@ -236,6 +221,16 @@ impl RecoverySourceLeaseRegistry {
     ) -> Result<AdmittedRollbackSourceCut, RecoverySourceLeaseDenial> {
         Ok(AdmittedRollbackSourceCut(
             self.admit(request, RecoverySourceLeaseKind::Rollback)?,
+        ))
+    }
+
+
+    pub fn admit_bootstrap_source_cut(
+        &self,
+        request: RecoverySourceLeaseRequest,
+    ) -> Result<ResolvedBootstrapSourceCut, RecoverySourceLeaseDenial> {
+        Ok(ResolvedBootstrapSourceCut(
+            self.admit(request, RecoverySourceLeaseKind::ReplicaBootstrap)?,
         ))
     }
 
@@ -324,6 +319,9 @@ impl RecoverySourceLeaseRegistry {
                 RecoverySourceLeaseKind::Rollback => {
                     RecoveredRecoverySourceLease::Rollback(RollbackReachabilityLease(lease))
                 }
+                RecoverySourceLeaseKind::ReplicaBootstrap => {
+                    RecoveredRecoverySourceLease::ReplicaBootstrap(BootstrapReachabilityLease(lease))
+                }
             });
         }
         Ok(recovered)
@@ -344,6 +342,10 @@ impl RecoverySourceLeaseRegistry {
                 }
                 RecoveredRecoverySourceLease::Rollback(lease) => {
                     expected_kind == RecoverySourceLeaseKind::Rollback
+                        && lease.operation_identity() == operation_identity
+                }
+                RecoveredRecoverySourceLease::ReplicaBootstrap(lease) => {
+                    expected_kind == RecoverySourceLeaseKind::ReplicaBootstrap
                         && lease.operation_identity() == operation_identity
                 }
             });

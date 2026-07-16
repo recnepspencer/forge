@@ -51,11 +51,16 @@
 //! ```
 
 mod admission;
+mod bootstrap;
+mod disaster_recovery;
+mod divergence;
 mod identity;
 mod observation;
 mod progress;
 mod progress_store;
+mod promotion;
 mod publication;
+mod rejoin;
 mod runtime;
 #[cfg(test)]
 mod tests;
@@ -64,6 +69,27 @@ pub use admission::{
     admit_replication_source, AdmittedReplicationSource, ReplicationSourceAdmissionDenial,
     ReplicationSourceAdmissionOutcome, ReplicationSourceAdmissionOutcomeView,
     ReplicationSourceDeclaration,
+};
+pub use bootstrap::{
+    LoweredReplicaBootstrapPlan, ReplicaBootstrapDenial, ReplicaBootstrapExecutionPort,
+    ReplicaBootstrapExecutionReport, ReplicaBootstrapIntent, ReplicaBootstrapOwner,
+    ReplicaBootstrapReceipt,
+};
+pub use disaster_recovery::{
+    DisasterRecoveryBundleDenial, DisasterRecoveryComponent, DisasterRecoveryComponentFamily,
+    MaterializedDisasterRecoveryBundle, ReplicationDisasterRecoveryOwner,
+};
+pub use divergence::{
+    DivergentReplicaHistoryReport, ReplicaHistoryClassification, ReplicaHistoryObservation,
+    ReplicaRecoveryFrontier, ReplicaRecoveryFrontierDenial,
+};
+pub use promotion::{
+    LoweredReplicaPromotionPlan, ReplicaPromotionCandidate, ReplicaPromotionDenial,
+    ReplicaPromotionIntent, ReplicaPromotionOwner, ReplicaPromotionReceipt,
+};
+pub use rejoin::{
+    OldPrimaryDivergenceDisposition, OldPrimaryRejoinDenial, OldPrimaryRejoinPlan,
+    ReplicationRejoinOwner,
 };
 pub use identity::{
     ReplicationCapsuleId, ReplicationLineageIdentity, ReplicationPeerId, ReplicationSourceEpoch,

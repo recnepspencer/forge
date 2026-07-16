@@ -1,7 +1,6 @@
 pub(crate) use super::control_record_kind::{
     OperationalControlRecordKind, RecoveryPublicationControlBinding,
 };
-#[cfg(test)]
 use super::OperationalWorkflowKind;
 use super::{BackupMaterializationRecoveryPlan, OperationalOperationId, OperationalTransitionId};
 use worth_store_authority::StoreCurrentAuthorityIdentity;
@@ -227,6 +226,28 @@ impl OperationalControlRecord {
             kind: OperationalControlRecordKind::RepairOwnerEffectStarted {
                 plan_fingerprint,
                 node_fingerprint,
+                owner_tag,
+            },
+        }
+    }
+
+    pub(crate) fn operational_owner_receipt_persisted(
+        authority_identity: StoreCurrentAuthorityIdentity,
+        operation_id: OperationalOperationId,
+        transition_id: OperationalTransitionId,
+        workflow: OperationalWorkflowKind,
+        plan_fingerprint: [u8; 32],
+        receipt_fingerprint: [u8; 32],
+        owner_tag: u8,
+    ) -> Self {
+        Self {
+            authority_identity,
+            operation_id,
+            transition_id,
+            kind: OperationalControlRecordKind::OperationalOwnerReceiptPersisted {
+                workflow,
+                plan_fingerprint,
+                receipt_fingerprint,
                 owner_tag,
             },
         }

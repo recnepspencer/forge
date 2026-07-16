@@ -320,6 +320,8 @@ fn cutover_basis(
         DestructiveOperationKind::PointInTimeRecoveryCutover => 7,
         DestructiveOperationKind::RollbackCutover => 8,
         DestructiveOperationKind::AuthorityAffectingRepairCutover => 9,
+        DestructiveOperationKind::ReplicaBootstrap => 10,
+        DestructiveOperationKind::ReplicaPromotion => 11,
     }]);
     digest.update(resolved.verified().verification_identity());
     digest.update(resolved.current().frontier.identity());

@@ -3,6 +3,8 @@ mod cutover;
 mod point_in_time_recovery;
 mod recovery_owner_plan;
 mod repair;
+mod replica_bootstrap;
+mod replica_promotion;
 mod restore;
 mod rollback;
 
@@ -78,6 +80,18 @@ pub use repair::{
     RepairExecutionDenial, RepairExecutionDisposition, RepairExecutionInterrupted, RepairIntent,
     RepairJournalDenial, RepairLoweringDenial, RepairPlanExplanation, RepairReadinessDenial,
     RepairResolutionDenial, UnrecoverableDamageReport,
+};
+pub use replica_bootstrap::{
+    AuthorizedReplicaBootstrapPlan, EvidenceBoundReplicaBootstrapPlan,
+    ExecutedReplicaBootstrap, ExecutionReadyReplicaBootstrap, LoweredReplicaBootstrapOwnerPlanDag,
+    ReplicaBootstrapExecutionDenial, ReplicaBootstrapIntent, ReplicaBootstrapLoweringDenial,
+    ReplicaBootstrapReadinessDenial, ReplicaBootstrapResolutionDenial,
+};
+pub use replica_promotion::{
+    AuthorizedReplicaPromotionPlan, EvidenceBoundReplicaPromotionPlan,
+    ExecutedReplicaPromotion, ExecutionReadyReplicaPromotion, LoweredReplicaPromotionOwnerPlanDag,
+    ReplicaPromotionExecutionDenial, ReplicaPromotionIntent, ReplicaPromotionLoweringDenial,
+    ReplicaPromotionReadinessDenial, ReplicaPromotionResolutionDenial,
 };
 pub use restore::{
     AuthorizedBackupRestorePlan, BackupRestoreExecutionDenial, BackupRestoreIntent,

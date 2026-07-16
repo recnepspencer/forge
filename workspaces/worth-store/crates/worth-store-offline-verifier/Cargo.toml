@@ -15,6 +15,7 @@ worth-store-physical-format.workspace = true
 worth-store-physical-integrity.workspace = true
 worth-store-physical-isolation.workspace = true
 worth-store-recovery-physics.workspace = true
+worth-store-replication.workspace = true
 worth-store-security.workspace = true
 worth-store-wal.workspace = true
 

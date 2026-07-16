@@ -17,9 +17,11 @@ mod blob_corruption_observation;
 mod blob_corruption_observation_tests;
 mod boundary;
 mod custody_capsule_observation;
+mod disaster_recovery_verification;
 #[cfg(test)]
 mod custody_capsule_observation_tests;
 mod export_bundle_observation;
+mod forensic_acquisition;
 mod handoff;
 mod inspection;
 mod media_acquisition;
@@ -47,10 +49,19 @@ pub use boundary::OfflineVerifierBoundarySeam;
 pub use custody_capsule_observation::{
     OfflineCustodyCapsuleObservation, OfflineCustodyCapsuleObservationDenial,
 };
+pub use disaster_recovery_verification::{
+    verify_disaster_recovery_bundle, DisasterRecoveryVerificationCounters,
+    DisasterRecoveryVerificationDenial, IndependentlyVerifiedDisasterRecoveryBundle,
+};
 pub use export_bundle_observation::{
     inspect_offline_export_bundle, OfflineExportBundleObservation,
     OfflineExportBundleObservationDenial, OfflineExportChunkDeclaration,
     OfflineExportDigestEvidence,
+};
+pub use forensic_acquisition::{
+    ForensicAcquisitionCounters, ForensicAcquisitionDenial, ForensicAcquisitionRequest,
+    ForensicAcquisitionSession, ForensicBundle, ForensicBundleRange, ForensicCustodyRecord,
+    ForensicRangePosture,
 };
 pub use handoff::{
     map_offline_damage_hint_to_handoff, reject_offline_classification_as_blob_authority,

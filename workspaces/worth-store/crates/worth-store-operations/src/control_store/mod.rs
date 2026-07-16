@@ -11,6 +11,7 @@ mod operational_media_path;
 mod persisted_record;
 mod persisted_record_codec;
 mod persisted_record_codec_io;
+mod publication_binding_codec;
 #[cfg(test)]
 mod persisted_record_codec_tests;
 mod prepared_publication_handle;
@@ -25,6 +26,7 @@ mod selected_control_replay_backup_completion;
 mod selected_control_replay_contract;
 mod selected_control_replay_finish;
 mod selected_control_replay_state;
+mod selected_control_replay_workflow_open;
 mod selected_control_state;
 mod selected_recovery_handles;
 mod terminal_fence_release_handle;

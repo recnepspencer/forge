@@ -66,6 +66,12 @@ pub enum OperationalControlRecordKind {
         node_fingerprint: [u8; 32],
         owner_tag: u8,
     },
+    OperationalOwnerReceiptPersisted {
+        workflow: OperationalWorkflowKind,
+        plan_fingerprint: [u8; 32],
+        receipt_fingerprint: [u8; 32],
+        owner_tag: u8,
+    },
     RepairDispositionRecorded {
         plan_fingerprint: [u8; 32],
         disposition_tag: u8,

@@ -1103,6 +1103,7 @@ dependencies = [
  "worth-store-physical-integrity",
  "worth-store-physical-isolation",
  "worth-store-recovery-physics",
+ "worth-store-replication",
  "worth-store-security",
  "worth-store-wal",
 ]
@@ -1128,6 +1129,7 @@ dependencies = [
  "worth-store-physical-isolation",
  "worth-store-readiness",
  "worth-store-recovery-physics",
+ "worth-store-replication",
  "worth-store-security",
  "worth-store-test-support",
  "worth-store-tiering",
@@ -1290,6 +1292,7 @@ dependencies = [
  "worth-proof",
  "worth-store-authority",
  "worth-store-physical-backend",
+ "worth-store-physical-isolation",
  "worth-store-recovery-physics",
  "worth-store-security",
  "worth-store-wal",

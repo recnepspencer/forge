@@ -1,6 +1,10 @@
 use worth_store_physical_backend::MAX_OPERATIONAL_CONTROL_PAYLOAD_BYTES;
 
 use super::persisted_record_codec_io::{ControlRecordDecoder, ControlRecordEncoder};
+use super::publication_binding_codec::{
+    decode_admission_policy, decode_authority_posture, encode_admission_policy,
+    encode_authority_posture,
+};
 use super::{
     OperationalControlRecord, OperationalControlRecordKind, OperationalWorkflowKind,
     PersistedControlRecordDecodeDenial, PersistedOperationalControlRecord,
@@ -142,6 +146,15 @@ fn encode_kind(
             plan_fingerprint, node_fingerprint, owner_tag,
         } => { output.u8(21)?; output.bytes(plan_fingerprint)?;
             output.bytes(node_fingerprint)?; output.u8(*owner_tag) }
+        OperationalControlRecordKind::OperationalOwnerReceiptPersisted {
+            workflow, plan_fingerprint, receipt_fingerprint, owner_tag,
+        } => {
+            output.u8(22)?;
+            output.u8(workflow_tag(*workflow))?;
+            output.bytes(plan_fingerprint)?;
+            output.bytes(receipt_fingerprint)?;
+            output.u8(*owner_tag)
+        }
         OperationalControlRecordKind::RepairDispositionRecorded {
             plan_fingerprint, disposition_tag, disposition_basis,
         } => { output.u8(15)?; output.bytes(plan_fingerprint)?; output.u8(*disposition_tag)?;
@@ -293,74 +306,14 @@ fn decode_kind(
             node_fingerprint: input.array()?,
             owner_tag: input.u8()?,
         },
+        22 => PersistedOperationalControlRecordKind::OperationalOwnerReceiptPersisted {
+            workflow: workflow_from_tag(input.u8()?)?,
+            plan_fingerprint: input.array()?,
+            receipt_fingerprint: input.array()?,
+            owner_tag: input.u8()?,
+        },
         _ => return Err(PersistedControlRecordDecodeDenial::InvalidEncoding),
     })
-}
-
-fn encode_authority_posture(
-    output: &mut ControlRecordEncoder,
-    posture: worth_store_authority::RecoveryAuthorityAdmissionPosture,
-) -> Result<(), OperationalControlEncodingDenial> {
-    output.bytes(&posture.verification_identity())?;
-    for region in posture.regions() {
-        output.bytes(&region.identity())?;
-        output.u64(region.count())?;
-    }
-    Ok(())
-}
-
-fn decode_authority_posture(
-    input: &mut ControlRecordDecoder<'_>,
-) -> Result<
-    worth_store_authority::RecoveryAuthorityAdmissionPosture,
-    PersistedControlRecordDecodeDenial,
-> {
-    let verification_identity = input.array()?;
-    let mut regions = [worth_store_authority::RecoveryAuthorityRegionPosture::observed([0; 32], 0)
-        .ok_or(PersistedControlRecordDecodeDenial::InvalidEncoding)?; 5];
-    for region in &mut regions {
-        *region = worth_store_authority::RecoveryAuthorityRegionPosture::observed(
-            input.array()?,
-            input.u64()?,
-        )
-        .ok_or(PersistedControlRecordDecodeDenial::InvalidEncoding)?;
-    }
-    worth_store_authority::RecoveryAuthorityAdmissionPosture::from_independent_post_verification(
-        verification_identity,
-        regions,
-    )
-    .ok_or(PersistedControlRecordDecodeDenial::InvalidEncoding)
-}
-
-fn encode_admission_policy(
-    output: &mut ControlRecordEncoder,
-    policy: worth_store_authority::RecoveryAuthorityAdmissionPolicy,
-) -> Result<(), OperationalControlEncodingDenial> {
-    output.u8(match policy.kind() {
-        worth_store_authority::RecoveryAuthorityAdmissionPolicyKind::FullyTrustedOnly => 1,
-        worth_store_authority::RecoveryAuthorityAdmissionPolicyKind::ExactDeclaredResidualPosture => 2,
-    })?;
-    output.bytes(&policy.admitted_posture_identity())?;
-    output.bytes(&policy.decision_basis())
-}
-
-fn decode_admission_policy(
-    input: &mut ControlRecordDecoder<'_>,
-) -> Result<
-    worth_store_authority::RecoveryAuthorityAdmissionPolicy,
-    PersistedControlRecordDecodeDenial,
-> {
-    let kind = match input.u8()? {
-        1 => worth_store_authority::RecoveryAuthorityAdmissionPolicyKind::FullyTrustedOnly,
-        2 => worth_store_authority::RecoveryAuthorityAdmissionPolicyKind::ExactDeclaredResidualPosture,
-        _ => return Err(PersistedControlRecordDecodeDenial::InvalidEncoding),
-    };
-    worth_store_authority::RecoveryAuthorityAdmissionPolicy::from_persisted(
-        kind,
-        input.array()?,
-        input.array()?,
-    )
-    .ok_or(PersistedControlRecordDecodeDenial::InvalidEncoding)
 }
 
 const fn workflow_tag(kind: OperationalWorkflowKind) -> u8 {

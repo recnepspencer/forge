@@ -203,6 +203,7 @@ fn receipt_fingerprint(owner: StoreOwnerKind, plan: [u8; 32]) -> [u8; 32] {
         StoreOwnerKind::LayoutIndexes => 5,
         StoreOwnerKind::BlobChunks => 6,
         StoreOwnerKind::Authority => 7,
+        StoreOwnerKind::Replication => 8,
     }]);
     digest.update(plan);
     digest.finalize().into()

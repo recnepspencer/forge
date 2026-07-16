@@ -60,6 +60,11 @@ pub use crate::owner_plan_dag::{
     OwnerPlanNodeExplanation, OwnerPlanNodeIdentity, OwnerPlanPrerequisiteExplanation,
     StoreOwnerKind,
 };
+pub use crate::operational_audit::{
+    derive_operational_audit_records, AuditCausalParent, AuditCompletenessDenial,
+    AuditCompletenessReceipt, ExpectedAuditTransitionSet, OperationLocalSequence,
+    OperationalAuditDerivationDenial, OperationalAuditRecord, OperationalAuditTransitionKind,
+};
 pub use crate::repair::blast_radius::{
     RepairBlastRadiusCounterSnapshot, RepairBlastRadiusDeclaration, RepairBlastRadiusDenial,
     RepairBlastRadiusPlan, RepairBlastRadiusReadiness, RepairPhysicalRegion, RepairReadPlan,
@@ -138,6 +143,14 @@ pub use crate::workflow::{
     RollbackReadmissionOutcome, RollbackResolutionDenial, RollbackSourceAdmissionDenial,
     UnpersistedBackupReachabilityLease, UnrecordedBackupMaterialization, UnrecoverableDamageReport,
     UnreleasedIndependentBackupVerification,
+    AuthorizedReplicaBootstrapPlan, EvidenceBoundReplicaBootstrapPlan, ExecutedReplicaBootstrap,
+    ExecutionReadyReplicaBootstrap, LoweredReplicaBootstrapOwnerPlanDag,
+    ReplicaBootstrapExecutionDenial, ReplicaBootstrapIntent, ReplicaBootstrapLoweringDenial,
+    ReplicaBootstrapReadinessDenial, ReplicaBootstrapResolutionDenial,
+    AuthorizedReplicaPromotionPlan, EvidenceBoundReplicaPromotionPlan, ExecutedReplicaPromotion,
+    ExecutionReadyReplicaPromotion, LoweredReplicaPromotionOwnerPlanDag,
+    ReplicaPromotionExecutionDenial, ReplicaPromotionIntent, ReplicaPromotionLoweringDenial,
+    ReplicaPromotionReadinessDenial, ReplicaPromotionResolutionDenial,
 };
 pub use worth_store_authority::BackupRestoreAdmissionPolicy;
 pub use worth_store_offline_verifier::{

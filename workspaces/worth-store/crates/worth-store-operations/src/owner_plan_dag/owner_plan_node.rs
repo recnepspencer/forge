@@ -18,6 +18,7 @@ pub enum StoreOwnerKind {
     LayoutIndexes,
     BlobChunks,
     Authority,
+    Replication,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -38,6 +39,11 @@ pub enum OwnerPlanEffect {
     EstablishWriteFence,
     PublishNonCurrentRoot,
     ReadmitCurrentAuthority,
+    BootstrapReplica,
+    FenceOldPrimary,
+    PromoteReplica,
+    ResolveOldPrimaryRejoin,
+    HoldBootstrapSourceLease,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -256,6 +262,7 @@ pub(crate) const fn owner_tag(owner: StoreOwnerKind) -> u8 {
         StoreOwnerKind::LayoutIndexes => 5,
         StoreOwnerKind::BlobChunks => 6,
         StoreOwnerKind::Authority => 7,
+        StoreOwnerKind::Replication => 8,
     }
 }
 
@@ -277,5 +284,10 @@ pub(crate) const fn effect_tag(effect: OwnerPlanEffect) -> u8 {
         OwnerPlanEffect::EstablishWriteFence => 14,
         OwnerPlanEffect::PublishNonCurrentRoot => 15,
         OwnerPlanEffect::ReadmitCurrentAuthority => 16,
+        OwnerPlanEffect::BootstrapReplica => 17,
+        OwnerPlanEffect::FenceOldPrimary => 18,
+        OwnerPlanEffect::PromoteReplica => 19,
+        OwnerPlanEffect::ResolveOldPrimaryRejoin => 20,
+        OwnerPlanEffect::HoldBootstrapSourceLease => 21,
     }
 }
