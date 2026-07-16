@@ -5,7 +5,10 @@ mod fork;
 mod fork_snapshot;
 mod lifecycle;
 mod merge_runtime;
+mod retirement;
+mod retirement_batch;
 mod snapshotting;
+mod targeted_transaction;
 
 pub use basis::{
     bridge_signal_branch_basis_trust_boundary, BoundaryBridgedSignalBranchBasisArtifact,
@@ -21,4 +24,18 @@ pub(in crate::logic::transaction::runtime) use branches::{
 pub use fork::{
     SignalBranchForkDenial, SignalBranchForkReceipt, SignalBranchForkRequest,
     SignalBranchForkRequestBasis,
+};
+pub use retirement::{
+    PlannedSignalBranchRetirement, SignalBranchRetirementDenial, SignalBranchRetirementReason,
+    SignalBranchRetirementReceipt, SignalBranchRetirementRequest,
+};
+pub use retirement_batch::{
+    PlannedSignalBranchRetirementBatch, SignalBranchRetirementBatchDenial,
+    SignalBranchRetirementBatchReceipt, SignalBranchRetirementBatchRequest,
+};
+pub use targeted_transaction::{
+    BranchTargetedTransactionDenial, BranchTargetedTransactionExecutionOutcome,
+    BranchTargetedTransactionRequest, ExecutedBranchTargetedTransactionReceipt,
+    LoweredBranchTargetedTransactionPlan, SignalBranchTransactionHead,
+    ValidatedBranchTargetedTransactionRequest,
 };

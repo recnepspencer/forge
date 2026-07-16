@@ -12,7 +12,7 @@ operation that passed admission.
 Start here when a patch behaved differently than expected:
 
 ```ts
-const effect = line.diagnostics().lastEffect;
+const effect = line.effects().get(effectId)?.envelope;
 
 console.log(effect?.profile?.name);
 console.log(effect?.optimistic.kind);
@@ -21,8 +21,8 @@ console.log(effect?.locus.kind);
 console.log(effect?.patch.jsonPath);
 ```
 
-If `lastEffect` is `null`, the line has not admitted an effect yet, or the last
-attempt denied before changing the line.
+Use `lastEffect` when you only need the most recently admitted effect for
+diagnostics. Use `line.effects().get(effectId)` when request identity matters.
 
 ## What This Feature Is
 
@@ -42,7 +42,9 @@ by application code.
 ## Stable Entry Points
 
 - `line.diagnostics().lastEffect`
+- `line.effects().get(effectId)?.envelope`
 - `line.history().verificationPackage().lifecycle.lastEffect`
+- `line.history().rollbackEffect(effectId)`
 - `line.history().rollbackLastEffect()`
 - `signals.resource.branch.planEffectMerge({ merge, effect })`
 - `signals.resource.branch.mergeEffect({ merge, effect })`
@@ -88,13 +90,15 @@ verification, merge planning, and merge execution.
 ## Small Example
 
 ```ts
-line.patch(tasks.patch.itemAspect({
+const admission = await line.patch(tasks.patch.itemAspect({
   itemId: "task:1",
   aspect: "title",
   value: "Draft",
 }));
+if (!("effectId" in admission)) throw new Error("effect was not admitted");
 
-const effect = line.diagnostics().lastEffect;
+const effect = line.effects().get(admission.effectId)?.envelope;
+if (!effect) throw new Error("effect envelope is unavailable");
 
 console.log(effect.effectId);
 console.log(effect.provenance);
@@ -103,17 +107,18 @@ console.log(effect.optimistic.rollback.kind);
 console.log(effect.locus.kind);
 ```
 
-This example reads the envelope from the line that produced it. That is the
-stable path.
+This example reads the envelope by its runtime-issued request identity.
 
 ## Real Example
 
 ```ts
-const effect = line.diagnostics().lastEffect;
+const inspected = line.effects().get(effectId);
+if (!inspected) throw new Error("effect is unknown");
+const effect = inspected.envelope;
 
-if (effect.optimistic.rollback.kind === "exactBranchRestoreAvailable") {
+if (effect.optimistic.rollback.kind === "effectBranchRetirementAvailable") {
   console.log(effect.optimistic.rollback.branchId);
-  console.log(effect.optimistic.rollback.snapshotId);
+  console.log(effect.optimistic.rollback.dependencyBasisBranchId);
 }
 
 if (effect.patch.jsonPath) {
@@ -125,7 +130,7 @@ if (effect.patch.jsonPath) {
 const plan = signals.resource.branch.planEffectMerge({
   merge: {
     source_branch_id: effect.optimistic.branchId,
-    target_branch_id: 0,
+    target_branch_id: canonicalBranchId,
   },
   effect,
 });
@@ -133,9 +138,10 @@ const plan = signals.resource.branch.planEffectMerge({
 console.log(plan.kind);
 ```
 
-Use the effect for rollback and JSON path details. Use `planEffectMerge(...)`
-to find out whether that same effect can be explained inside a native branch
-merge plan.
+Use the effect for targeted rejection and JSON path details. Use
+`planEffectMerge(...)` only for an explicit native branch workflow with a
+known canonical target. Ordinary request confirmation goes through
+`line.effects().confirm(effectId, ...)`.
 
 ## How It Relates To Other Features
 
@@ -157,8 +163,8 @@ whole objects. Use `effect.plan.planId` and
 Use `effect.counters` to understand why a topology or JSON path operation was
 cheap or broad.
 
-If `line.diagnostics().lastEffect` is `null`, either the line has not admitted a
-resource effect or the attempted operation denied before creating one.
+If `line.effects().get(effectId)` is `null`, the identity is unknown to that
+line. Terminal effect summaries remain inspectable after their branches retire.
 
 ## Anti-Patterns
 
@@ -167,6 +173,7 @@ resource effect or the attempted operation denied before creating one.
   admission.
 - Do not infer rollback from visible value changes. Read
   `effect.optimistic.rollback`.
+- Do not use `lastEffect` as authority when several effects are open.
 - Do not assume `locusProof` exists for raw or unsupported loci. The envelope
   can still name a generic resource locus without response topology proof.
 

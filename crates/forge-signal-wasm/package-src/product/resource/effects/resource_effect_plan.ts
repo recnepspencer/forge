@@ -6,19 +6,44 @@ function createLocalPatchEffectPlan(
   materialization,
   previousDiagnostics,
   inverseDescriptor,
+  patch,
+  requestMetadata = {},
 ) {
+  const metadata = normalizeLocalEffectRequestMetadata(requestMetadata);
   return createResourceEffectPlan({
     materialization,
     requestDescriptor: materialization.requestState.readDescriptor(),
     previousDiagnostics,
     admissionKind: "localPatch",
     provenance: "localPatch",
-    sequence: previousDiagnostics.patchCount + 1,
-    idempotencyKey: null,
-    serverCorrelationId: null,
+    sequence: materialization.issueEffectAdmissionSequence(),
+    idempotencyKey: metadata.idempotencyKey,
+    serverCorrelationId: metadata.serverCorrelationId,
     previousEffect: null,
     inverseDescriptor,
+    dependencies: patch.dependencies ?? [],
+    dependencyCloseoutPolicy:
+      patch.dependencyCloseoutPolicy ?? "independent",
   });
+}
+
+function normalizeLocalEffectRequestMetadata(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("resource line patch options must be an object");
+  }
+  const idempotencyKey = value.idempotencyKey ?? null;
+  const serverCorrelationId = value.serverCorrelationId ?? idempotencyKey;
+  for (const [name, candidate] of [
+    ["idempotencyKey", idempotencyKey],
+    ["serverCorrelationId", serverCorrelationId],
+  ]) {
+    if (candidate !== null && (
+      typeof candidate !== "string" || candidate.length === 0
+    )) {
+      throw new TypeError(`resource line patch ${name} must be a non-empty string`);
+    }
+  }
+  return Object.freeze({ idempotencyKey, serverCorrelationId });
 }
 
 function createDeliveryEffectPlan(
@@ -58,6 +83,9 @@ function createResourceEffectPlan(options) {
     requestDescriptor,
     admissionKind: options.admissionKind,
     inverseDescriptor: options.inverseDescriptor ?? null,
+    dependencies: Object.freeze([...(options.dependencies ?? [])]),
+    dependencyCloseoutPolicy:
+      options.dependencyCloseoutPolicy ?? "independent",
   });
   return Object.freeze({
     [RESOURCE_EFFECT_PLAN_BRAND]: "resourceEffectPlan",
@@ -72,6 +100,9 @@ function createResourceEffectPlan(options) {
     lineIdentity,
     requestDescriptor,
     branchPosture,
+    dependencies: Object.freeze([...(options.dependencies ?? [])]),
+    dependencyCloseoutPolicy:
+      options.dependencyCloseoutPolicy ?? "independent",
     responseLensProof: options.materialization.patch.responseLensProof,
     inverseDescriptor: options.inverseDescriptor ?? null,
     counters: Object.freeze({

@@ -46,6 +46,7 @@ pub struct MergePlanProofReport {
     pub selected_identity_matcher_digest: String,
     pub selected_source_only_policy_digest: String,
     pub selected_deletion_policy_digest: String,
+    #[serde(with = "crate::diagnostics::model::replay_strategy_witness_serde")]
     pub strategy_witness: SignalMergeStrategyWitness,
     pub scoped_merge_proof: ScopedMergeProofPacket,
 }
@@ -66,6 +67,7 @@ pub struct MergeResultProofReport {
     pub selected_identity_matcher_digest: String,
     pub selected_source_only_policy_digest: String,
     pub selected_deletion_policy_digest: String,
+    #[serde(with = "crate::diagnostics::model::replay_strategy_witness_serde")]
     pub strategy_witness: SignalMergeStrategyWitness,
     pub compatibility_witness: SignalMergeCompatibilityWitness,
     pub scoped_merge_proof: ScopedMergeProofPacket,
@@ -149,6 +151,11 @@ pub struct ReplayArtifactProofInput {
     pub merge_plan_digest: Option<String>,
     pub merge_result_digest: Option<String>,
     pub lineage_digest: Option<String>,
+    #[serde(
+        default,
+        serialize_with = "crate::diagnostics::model::replay_strategy_witness_serde::serialize_option",
+        deserialize_with = "crate::diagnostics::model::replay_strategy_witness_serde::deserialize_option"
+    )]
     pub strategy_witness: Option<SignalMergeStrategyWitness>,
     pub compatibility_witness: Option<SignalMergeCompatibilityWitness>,
     pub scoped_merge_proof: Option<ScopedMergeProofPacket>,

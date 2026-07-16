@@ -591,6 +591,48 @@ where
         restored.branch_basis_stale_count = restored
             .branch_basis_stale_count
             .max(current.branch_basis_stale_count);
+        restored.branch_retirement_plan_count = restored
+            .branch_retirement_plan_count
+            .max(current.branch_retirement_plan_count);
+        restored.branch_retirement_execution_count = restored
+            .branch_retirement_execution_count
+            .max(current.branch_retirement_execution_count);
+        restored.branch_retirement_denial_count = restored
+            .branch_retirement_denial_count
+            .max(current.branch_retirement_denial_count);
+        restored.branch_retirement_reclaimed_branch_state_count = restored
+            .branch_retirement_reclaimed_branch_state_count
+            .max(current.branch_retirement_reclaimed_branch_state_count);
+        restored.branch_retirement_reclaimed_snapshot_state_count = restored
+            .branch_retirement_reclaimed_snapshot_state_count
+            .max(current.branch_retirement_reclaimed_snapshot_state_count);
+        restored.branch_retirement_reclaimed_runtime_meta_count = restored
+            .branch_retirement_reclaimed_runtime_meta_count
+            .max(current.branch_retirement_reclaimed_runtime_meta_count);
+        restored.branch_retirement_retained_proof_count = restored
+            .branch_retirement_retained_proof_count
+            .max(current.branch_retirement_retained_proof_count);
+        restored.branch_targeted_transaction_plan_count = restored
+            .branch_targeted_transaction_plan_count
+            .max(current.branch_targeted_transaction_plan_count);
+        restored.branch_targeted_transaction_execution_count = restored
+            .branch_targeted_transaction_execution_count
+            .max(current.branch_targeted_transaction_execution_count);
+        restored.branch_targeted_transaction_denial_count = restored
+            .branch_targeted_transaction_denial_count
+            .max(current.branch_targeted_transaction_denial_count);
+        restored.branch_targeted_transaction_stale_count = restored
+            .branch_targeted_transaction_stale_count
+            .max(current.branch_targeted_transaction_stale_count);
+        restored.branch_targeted_transaction_active_switch_avoided_count = restored
+            .branch_targeted_transaction_active_switch_avoided_count
+            .max(current.branch_targeted_transaction_active_switch_avoided_count);
+        restored.branch_targeted_transaction_touched_node_count = restored
+            .branch_targeted_transaction_touched_node_count
+            .max(current.branch_targeted_transaction_touched_node_count);
+        restored.branch_local_suppressed_observation_count = restored
+            .branch_local_suppressed_observation_count
+            .max(current.branch_local_suppressed_observation_count);
         restored.decision_log_event_count = restored
             .decision_log_event_count
             .max(current.decision_log_event_count);

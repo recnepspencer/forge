@@ -61,8 +61,7 @@ function resourceRecoveryActions(blockers, options) {
       || blocker.kind === "resource:mergeMappingUnavailable"
     ) {
       if (
-        options.resourceSource?.rollback?.kind === "compactInverseAvailable"
-        || options.resourceSource?.rollback?.kind === "exactBranchRestoreAvailable"
+        options.resourceSource?.effects?.targetedRejectionAvailable === true
       ) {
         actions.push(recoveryAction("rollbackLastResourceEffect", blocker));
       }

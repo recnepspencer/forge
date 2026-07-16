@@ -96,12 +96,11 @@ export function createHistory(verificationPackage) {
     rollbackLastEffect() {
       return Object.freeze({
         kind: "unavailable",
-        reason: "noEffect",
+        reason: "noOpenEffect",
         detail: "resource effect rollback is unavailable because the line has no recorded resource effect",
         effectId: null,
         basisCurrentId: "basis-1",
         basisAdvanceCount: 0,
-        rollback: null,
       });
     },
   });

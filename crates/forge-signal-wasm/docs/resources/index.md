@@ -52,6 +52,9 @@ If you are building ordinary app code, the default lane is:
   [Inspecting And Debugging Resources](./debugging/README.md)
 - "How do optimistic effects, rollback, or merge/rebase work?"
   [Effects And Recovery](./effects/README.md)
+- "How do several optimistic requests settle independently or depend on one
+  another?"
+  [Concurrent Optimistic Effects](./effects/concurrency-and-dependencies.md)
 - "How do I use this resource line as a form source?"
   [Using Resources In Forms](./forms/README.md)
 - "How do I bind this resource to a route?"

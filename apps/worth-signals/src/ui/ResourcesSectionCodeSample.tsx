@@ -1,8 +1,10 @@
 import React from "react";
+
 import { tokenizeCodeLine } from "./SignalsSectionCodeSample";
 import "./signalsSection.css";
 
-export const RESOURCES_CODE_SAMPLE = `const po = signals.api({
+export const RESOURCES_CODE_SAMPLE = `const signals = await createSignals(); // worker-first
+const po = signals.api({
   baseUrl: "/api/procurement",
   effects: signals.resource.effects.branchNative(),
 });
@@ -11,19 +13,26 @@ const poLines = po.url("/orders/:orderId/lines")
   .response(signals.resource.response.array({ itemId: (line) => line.id }))
   .list({ load: ({ orderId }) => client.fetchLines(orderId) });
 
-const saveLine = po.url("/orders/:orderId/lines/:lineId")
-  .response(signals.resource.response.detail<PoLine>()({ label: "label", sync: "sync" }))
-  .update({
-    // a confirmation replaces one item — it cannot clobber the rest of the screen
-    reconciles: [{ family: poLines, params: ({ orderId }) => ({ orderId }),
-      collection: { kind: "item" }, fallback: "partialReconciliation" }],
-    load: ({ orderId, lineId, body }) => client.saveLine(orderId, lineId, body),
-  });
+const admission = await line.patch(resourcePatch.dependsOn(
+  poLines.patch.insert({ itemId, placement: "append", nextItem }),
+  parentEffectIds,
+));
 
-// every optimistic patch is an admitted effect, not a cache overwrite
-line.patch(poLines.patch.insert({ itemId, placement: "append", nextItem }));
-line.diagnostics().lastEffect;  // provenance, confirmation, rollback posture
-line.history().lifecycle;       // the record of what the screen showed, and when`;
+if (!("effectId" in admission)) throw new Error("effect not admitted");
+
+try {
+  const saved = await client.saveLine(nextItem);
+  await line.effects().confirm(admission.effectId, {
+    responseId: saved.requestId,
+    serverPatch: poLines.patch.insert({
+      itemId, placement: "append", nextItem: saved.line,
+    }),
+  });
+} catch (failure) {
+  await line.effects().reject(admission.effectId, {
+    responseId: failure.responseId,
+  });
+}`;
 
 interface ResourcesCodeSampleProps {
   liveLine: string | null;
@@ -42,9 +51,7 @@ export function ResourcesSectionCodeSample({ liveLine }: ResourcesCodeSampleProp
   return (
     <figure className="signals-code-card">
       <figcaption className="signals-code-head">
-        <span className="signals-code-dots" aria-hidden="true">
-          <i /><i /><i />
-        </span>
+        <span className="signals-code-dots" aria-hidden="true"><i /><i /><i /></span>
         <span className="signals-code-filename">po-lines.ts</span>
         <button onClick={handleCopy} type="button">{copied ? "Copied" : "Copy"}</button>
       </figcaption>

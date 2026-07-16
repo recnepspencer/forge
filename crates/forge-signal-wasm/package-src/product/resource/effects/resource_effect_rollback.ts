@@ -1,26 +1,6 @@
 function createResourceEffectRollback(effectPlan) {
   const branchPosture = effectPlan.branchPosture;
   switch (branchPosture.kind) {
-    case "speculativeBranch":
-      if (branchPosture.rollbackMode === "CompactInversePatch") {
-        return Object.freeze({
-          kind: "compactInverseAvailable",
-          mode: branchPosture.rollbackMode,
-          branchId: branchPosture.branchId,
-          snapshotId: branchPosture.snapshotId,
-          inverse: branchPosture.inverse,
-          detail:
-            "resource effect rollback can apply the compact inverse captured before speculative mutation",
-        });
-      }
-      return Object.freeze({
-        kind: "exactBranchRestoreAvailable",
-        mode: branchPosture.restoreMode,
-        branchId: branchPosture.branchId,
-        snapshotId: branchPosture.snapshotId,
-        detail:
-          "resource effect rollback can restore the exact branch snapshot captured before speculative application",
-      });
     case "optimisticUnavailable":
       return Object.freeze({
         kind: "unavailable",

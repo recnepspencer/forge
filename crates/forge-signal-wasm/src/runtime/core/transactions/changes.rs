@@ -3,7 +3,7 @@ use forge_signal::facade::{Aspect, ChangedRegion};
 use crate::expression::model::SignalValue;
 
 #[derive(Debug, Clone)]
-pub(super) enum SetChange {
+pub(in crate::runtime::core) enum SetChange {
     Source {
         id: String,
         value: SignalValue,

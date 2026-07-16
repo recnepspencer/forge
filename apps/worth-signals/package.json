@@ -7,6 +7,7 @@
     "refresh:signal": "powershell -NoProfile -Command \"Set-Location ../../packages/forge-signal; npm run build:wasm\"",
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "test:demo5": "node --test tests/demo_five_concurrency.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

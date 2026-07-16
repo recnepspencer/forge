@@ -4,6 +4,8 @@ import { createResourceEffectOptimisticLifecycle } from "./resource_effect_optim
 import { createResourceEffectPatchCounters } from "./resource_effect_patch_counters.js";
 import { createResourceEffectPatchDigest } from "./resource_effect_patch_digest.js";
 import { lowerResponseLensProofToEffectLocusWithOptions } from "../response/resource_response_effect_locus_lowering.js";
+import { createEnvelopeBranchPosture } from "./resource_effect_branch_posture_digest.js";
+import { createResourceEffectProfileDigest } from "./resource_effect_profile_digest.js";
 
 const RESOURCE_EFFECT_ENVELOPE_VERSION = "resource-effect-envelope-v1";
 const RESOURCE_EFFECT_AUTHORITY_VERSION = "resource-effect-authority-v1";
@@ -18,9 +20,10 @@ function resetResourceEffectEnvelopeAuthorityForTesting() {
   nextResourceEffectAuthoritySequence = 1;
 }
 
-function createLocalPatchEffectEnvelope(effectPlan, patch, result) {
+function createLocalPatchEffectEnvelope(effectPlan, patch, result, branchAcquisition = null) {
   return createResourceEffectEnvelope({
     effectPlan,
+    branchAcquisition,
     delivery: null,
     patch: Object.freeze({
       kind: patch.kind,
@@ -71,6 +74,10 @@ function createResourceEffectEnvelope(options) {
   const requestDescriptor = effectPlan.requestDescriptor;
   const lineIdentity = effectPlan.lineIdentity;
   const patch = options.patch;
+  const branchPosture = createEnvelopeBranchPosture(
+    effectPlan.branchPosture,
+    options.branchAcquisition ?? null,
+  );
   const rawLocus = createEffectLocus(patch, options.delivery, effectPlan);
   const patchDigest = createResourceEffectPatchDigest(patch);
   const locusProof = lowerResponseLensProofToEffectLocusWithOptions(
@@ -90,7 +97,7 @@ function createResourceEffectEnvelope(options) {
       admissionKind: effectPlan.admissionKind,
       causalSequence: effectPlan.causalSequence,
       retryLineageId: effectPlan.retryLineageId,
-      branch: effectPlan.branchPosture,
+      branch: branchPosture,
     }),
     family: Object.freeze({
       kind: lineIdentity.family.kind,
@@ -101,12 +108,13 @@ function createResourceEffectEnvelope(options) {
       scopeId: lineIdentity.scopeId,
       canonicalKey: lineIdentity.canonicalParams.canonicalKey,
     }),
-    profile: createProfileDigest(requestDescriptor.effects),
-    branchLifecycle: createResourceEffectBranchLifecycle(effectPlan),
+    profile: createResourceEffectProfileDigest(requestDescriptor.effects),
+    branchLifecycle: createResourceEffectBranchLifecycle(effectPlan, branchPosture),
     optimistic: createResourceEffectOptimisticLifecycle(
       effectPlan,
       locus,
       patch,
+      branchPosture,
     ),
     request: Object.freeze({
       correlationId: requestDescriptor.context.correlationId,
@@ -219,20 +227,6 @@ function alignLocusWithResponseLensProof(locus, locusProof) {
     kind: "jsonItemAspect",
     itemId: locus.itemId,
     aspect: locus.aspect,
-  });
-}
-
-function createProfileDigest(profile) {
-  if (profile === null) {
-    return null;
-  }
-  return Object.freeze({
-    name: profile.name,
-    optimism: profile.optimism,
-    confirmation: profile.confirmation,
-    rollback: profile.rollback,
-    rebase: profile.rebase,
-    preimage: profile.preimage,
   });
 }
 

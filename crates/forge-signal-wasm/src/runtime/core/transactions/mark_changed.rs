@@ -69,6 +69,7 @@ impl RuntimeCore {
         match result {
             Ok(result) => {
                 self.apply_pending_callback_dependency_patches()?;
+                self.advance_current_authored_graph_generation();
                 let active_branch_id = self.runtime.current_branch().id.0;
                 self.branch_states
                     .insert(active_branch_id, self.snapshot_branch_state());

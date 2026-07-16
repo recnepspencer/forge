@@ -81,6 +81,24 @@ export function createRootHistoryFacade(rootSession) {
     branches() {
       return rootSession.branchesSummary();
     },
+    worker_branch_basis(branchId) {
+      return rootSession.workerBranchBasis(branchId);
+    },
+    fork_branch(request) {
+      return withNotification(rootSession.forkResourceBranch(request));
+    },
+    apply_transaction_to_branch(request) {
+      return withNotification(rootSession.applyResourceBranchTransaction(request));
+    },
+    retire_branch(request) {
+      return withNotification(rootSession.retireResourceBranch(request));
+    },
+    retire_branches(request) {
+      return withNotification(rootSession.retireResourceBranches(request));
+    },
+    closeout_effect_branch(request) {
+      return withNotification(rootSession.closeoutResourceEffectBranch(request));
+    },
     create_branch(name) {
       return withNotification(rootSession.createHistoryBranch(name));
     },

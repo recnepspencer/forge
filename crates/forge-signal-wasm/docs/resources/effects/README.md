@@ -13,7 +13,10 @@ This is where you decide and inspect:
 ## Start Here
 
 - [Branch-Native Effects](./branch-native-effects.md)
-  The common path for optimistic, merge-aware resource writes.
+  The common path for isolated optimistic resource writes.
+- [Concurrent Optimistic Effects](./concurrency-and-dependencies.md)
+  Siblings, parent/child dependencies, random response order, and targeted
+  closeout.
 - [Effect Envelopes And Closeout](./effect-envelopes-and-closeout.md)
   What the runtime records for each effect and how to inspect profile support.
 - [Merge And Rebase](./merge-and-rebase.md)
@@ -23,9 +26,9 @@ This is where you decide and inspect:
 
 ## The Main Mental Model
 
-The line owns visible value.
-The effect profile decides what kind of write behavior is honest.
-The effect envelope is the record that connects those two truths.
+Confirmed server data is canonical. Open effect branches form a derived visible
+projection. The effect profile decides which behavior is admitted, and each
+runtime-issued effect identity is the handle for one request's closeout.
 
 ## Related Docs
 

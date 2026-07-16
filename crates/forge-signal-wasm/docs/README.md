@@ -101,6 +101,7 @@ the broader signal app model.
   Grouped line reads, retained history, delivery/compatibility inspection, and
   exact recovery.
 - [Effects And Recovery](./resources/effects/README.md)
+- [Concurrent Optimistic Effects](./resources/effects/concurrency-and-dependencies.md)
   Effect profiles, branch-native envelopes, merge/rebase, and rollback.
 - [Using Resources In Forms](./resources/forms/README.md)
   Resource-line form sources, settlement, drift, merge, and mutation-response

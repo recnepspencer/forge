@@ -2,102 +2,104 @@
 
 ## What This Feature Is
 
-This page covers the resource-aware merge planning and execution path for one
-effect envelope.
+Effect merge binds one runtime-issued resource effect to native branch merge
+proof. Use it when you are explicitly merging application branches. Ordinary
+request confirmation already closes its own effect branch; it does not require
+application code to call `mergeEffect(...)`.
 
 ## Why You Use It
 
-Use it when you need to know:
-
-- can this exact effect rebase onto another branch?
-- are the conflicts real resource conflicts or native-only conflicts?
-- is resource-topology mapping unavailable?
+- preview one resource edit inside an application branch merge;
+- distinguish a real conflict from missing resource-topology mapping;
+- retain resource locus and native proof in the merge result.
 
 ## Stable Entry Points
 
-- `signals.resource.branch.planEffectMerge(...)`
-- `signals.resource.branch.mergeEffect(...)`
-- `line.diagnostics().lastEffect`
+- `signals.resource.branch.planEffectMerge({ merge, effect })`
+- `signals.resource.branch.mergeEffect({ merge, effect })`
+- `signals.resource.branch.planMerge(...)` for native-only branch preview
 
 ## Core Mental Model
 
-Native branch merge proof is not enough on its own. Resource-aware merge binds
-that native merge to one resource locus and tells you whether the resource patch
-can be rebased honestly.
+Native merge proof describes branch state and conflict isolation. The effect
+envelope describes the resource locus: the exact item, aspect, field, region,
+JSON path, summary, insert, delete, or line replacement that changed.
+
+The resource layer binds those two proofs. It does not perform a hidden partial
+object merge. When a narrow effect is accepted, resource-locus materialization
+reconstructs the declared locus while native proof decides whether that locus
+conflicts.
 
 ## How It Executes
 
-`planEffectMerge(...)` returns:
-
-- a planned effect merge
-- a native merge-plan denial
-- a resource-effect merge denial
-
-When planned, the result tells you whether the resource effect is:
-
-- `rebaseAvailable`
-- `conflict`
-- `mappingUnavailable`
+`planEffectMerge(...)` is read-only and returns `rebaseAvailable`, `conflict`,
+or `mappingUnavailable` within its resource artifact. `mergeEffect(...)`
+executes the accepted native merge and carries the corresponding resource
+artifact.
 
 ## Small Example
 
 ```ts
-const effect = line.diagnostics().lastEffect;
+const effect = line.effects().get(effectId);
+if (!effect) throw new Error("unknown effect");
 
-const preview = signals.resource.branch.planEffectMerge({
-  merge: { source_branch_id: effect.optimistic.branchId, target_branch_id: 0 },
-  effect,
+const plan = await signals.resource.branch.planEffectMerge({
+  merge: {
+    source_branch_id: effect.branchId,
+    target_branch_id: targetBranchId,
+  },
+  effect: effect.envelope,
 });
-
-console.log(preview.kind);
 ```
+
+The targeted effect summary supplies both stable branch IDs and the sealed
+envelope required by the merge API.
 
 ## Real Example
 
 ```ts
-const effect = line.diagnostics().lastEffect;
-const preview = signals.resource.branch.planEffectMerge({
+const result = await signals.resource.branch.mergeEffect({
   merge: {
-    source_branch_id: effect.optimistic.branchId,
-    target_branch_id: 0,
+    source_branch_id: envelope.optimistic.branchId,
+    target_branch_id: releaseBranchId,
   },
-  effect,
+  effect: envelope,
 });
 
-if (preview.kind === "planned") {
-  console.log(preview.resourceEffect.rebaseArtifact.kind);
-  console.log(preview.resourceEffect.policyBinding.resourceGranularity);
+if (result.kind === "planned" || result.kind === "merged") {
+  audit(result.resourceEffect.policyBinding);
+  audit(result.resourceEffect.mergeArtifact ?? result.resourceEffect.rebaseArtifact);
 }
 ```
 
 ## How It Relates To Other Features
 
-- Use [Branch-Native Effects](./branch-native-effects.md) before this if you do
-  not already have a real effect envelope.
-- Use [Forms](../forms/README.md) when you want field- and section-level merge
-  projection in a resource-backed form.
+- [Branch-Native Effects](./branch-native-effects.md) creates effect branches.
+- [Concurrent Optimistic Effects](./concurrency-and-dependencies.md) covers
+  request closeout and derived projection.
+- [History And Restore](../../resource-contracts/history-and-restore.md) covers
+  retained historical targets, not branch merging.
 
 ## Inspection And Debugging
 
-Check:
-
-- preview kind
-- `resourceEffect.rebaseArtifact.kind`
-- conflict count
-- mapping-unavailable detail
+Inspect result kind, conflicts, policy binding, resource locus, topology proof,
+and mapping detail. Treat `mappingUnavailable` as a denial, not a conflict or
+success.
 
 ## Anti-Patterns
 
-- Do not run plain native merge preview and assume it is enough for resource
-  rebasing.
-- Do not treat `mappingUnavailable` as the same thing as `conflict`.
+- Do not call native `planMerge(...)` and claim resource-locus proof.
+- Do not pass copied or hand-built effect envelopes.
+- Do not describe native per-aspect proof as a partial object merge.
+- Do not call explicit merge APIs for normal `confirm(effectId)` closeout.
 
 ## Current Limits
 
-Resource-aware merge still depends on native merge proof and resource-topology
-mapping. When either boundary is unavailable, the result stays explicit.
+Rebase support depends on the selected effect profile, native merge proof, and
+resource topology mapping. Unsupported boundaries remain typed denials.
 
 ## Related Docs
 
-- [Effect Merge And Rebase](../merge-and-rebase.md)
-- [Forms](../forms/handle-resource-drift-and-merge.md)
+- [Concurrent Optimistic Effects](./concurrency-and-dependencies.md)
+- [Effect Envelopes And Closeout](./effect-envelopes-and-closeout.md)
+- [Response Topology Proof](../verification/response-topology-proof.md)

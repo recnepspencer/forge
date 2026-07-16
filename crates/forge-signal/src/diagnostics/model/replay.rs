@@ -27,6 +27,7 @@ pub enum ReplayEventKind {
     BranchCreated,
     BranchSwitched,
     BranchMerged,
+    BranchRetired,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

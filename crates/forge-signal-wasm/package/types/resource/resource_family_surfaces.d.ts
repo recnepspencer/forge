@@ -24,12 +24,14 @@ import type {
   ResourceItemAspectMap,
   ResourceLineReconciliation,
   ResourcePatchForReconcile,
-  ResourcePatchResult,
+  ResourcePatchExecutionOptions,
+  ResourcePatchExecutionResult,
   ResourceReconcileAspectMap,
   ResourceReconcileSummaryPatchScope,
   ResourceReconcileSummaryMap,
   ResourceValueSummaryMap,
 } from "./resource_reconciliation.js";
+import type { ResourceLineEffects } from "./resource_effect_branch_dag.js";
 
 type ExactResourceParams<TExpected, TActual extends TExpected> =
   Exclude<keyof TActual, keyof TExpected> extends never ? TActual : never;
@@ -169,7 +171,9 @@ export interface ResourcePatchCapableLine<
 > extends ResourceLine<TParams, TValue | null> {
   patch(
     patch: ResourcePatchForReconcile<TValue, TItem, TReconcile, TFamilyKind>,
-  ): ResourcePatchResult;
+    options?: ResourcePatchExecutionOptions,
+  ): ResourcePatchExecutionResult | Promise<ResourcePatchExecutionResult>;
+  effects(): ResourceLineEffects<TValue>;
   deliver(
     packet: ResourceDeliveryForReconcile<TValue, TItem, TReconcile, TFamilyKind>,
   ): ResourceDeliveryResult;
@@ -197,7 +201,9 @@ export interface ResourceDetailPatchCapableLine<
 > extends ResourceLine<TParams, TValue | null> {
   patch(
     patch: ResourcePatchForReconcile<TValue, never, TReconcile, "detail">,
-  ): ResourcePatchResult;
+    options?: ResourcePatchExecutionOptions,
+  ): ResourcePatchExecutionResult | Promise<ResourcePatchExecutionResult>;
+  effects(): ResourceLineEffects<TValue>;
   deliver(
     packet: ResourceDeliveryForReconcile<TValue, never, TReconcile, "detail">,
   ): ResourceDeliveryResult;

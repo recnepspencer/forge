@@ -7,7 +7,7 @@ import {
   createMutationResponsePlanFixture,
 } from "../fixtures/resource_line_fixture.mjs";
 
-test("signals.form rollbackLastResourceEffect restores resource line source truth and records reset history", async () => {
+test("signals.form rollbackLastResourceEffect rejects the last open effect and records reset history", async () => {
   await withSignals((signals) => {
     const source = createDetailPatchLineFixture({
       effectProfile: signals.resource.effects.branchNative(),
@@ -35,9 +35,10 @@ test("signals.form rollbackLastResourceEffect restores resource line source trut
 
     const rollback = form.rollbackLastResourceEffect();
     assert.equal(rollback.mode, "resourceRollback");
-    assert.equal(rollback.resultKind, "rolledBack");
-    assert.equal(rollback.resourceRollback.kind, "rolledBack");
-    assert.equal(rollback.resourceRollback.mode, "CompactInversePatch");
+    assert.equal(rollback.resultKind, "effectRejected");
+    assert.equal(rollback.resourceRollback.kind, "effectRejected");
+    assert.equal(rollback.resourceRollback.terminalKind, "rejectedAndRetired");
+    assert.deepEqual(rollback.resourceRollback.retiredEffectIds, ["effect-1"]);
     assert.deepEqual(form.source(), {
       title: "Ship docs",
       status: "draft",
@@ -118,7 +119,7 @@ test("signals.form verification stays bounded across repeated resource rollback 
       const execution = form.executeAction("submit");
       assert.equal(execution.resultKind, "fulfilled");
       const rollback = form.rollbackLastResourceEffect();
-      assert.equal(rollback.resultKind, "rolledBack");
+      assert.equal(rollback.resultKind, "effectRejected");
     }
 
     const verification = form.verification();

@@ -75,6 +75,37 @@ where
     D: Deserializer<'de>,
 {
     let record = StrategyWitnessRecord::deserialize(deserializer)?;
+    decode_record(record)
+}
+
+pub fn serialize_option<S>(
+    witness: &Option<SignalMergeStrategyWitness>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    witness
+        .as_ref()
+        .map(StrategyWitnessRecord::from)
+        .serialize(serializer)
+}
+
+pub fn deserialize_option<'de, D>(
+    deserializer: D,
+) -> Result<Option<SignalMergeStrategyWitness>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Option::<StrategyWitnessRecord>::deserialize(deserializer)?
+        .map(decode_record)
+        .transpose()
+}
+
+fn decode_record<E>(record: StrategyWitnessRecord) -> Result<SignalMergeStrategyWitness, E>
+where
+    E: serde::de::Error,
+{
     let merge_strategy = SignalMergeStrategyIdentity::new(
         record.merge_strategy.merge_strategy,
         record.merge_strategy.selected_strategy_name,
@@ -85,7 +116,7 @@ where
         record.merge_strategy.merge_base_basis,
         record.merge_strategy.lowered_strategy_bundle_digest,
     )
-    .map_err(|denial| serde::de::Error::custom(denial.message()))?;
+    .map_err(|denial| E::custom(denial.message()))?;
     let invalidation_strategy = SignalInvalidationStrategyIdentity::new(
         record.invalidation_strategy.boundary_witness_kind,
         record.invalidation_strategy.conflict_isolation_name,
@@ -95,7 +126,7 @@ where
         record.invalidation_strategy.identity_matcher_digest,
         record.invalidation_strategy.identity_matcher_basis,
     )
-    .map_err(|denial| serde::de::Error::custom(denial.message()))?;
+    .map_err(|denial| E::custom(denial.message()))?;
     let delivery_strategy = SignalDeliveryStrategyIdentity::new(
         record.delivery_strategy.conflict_policy_name,
         record.delivery_strategy.conflict_policy_digest,
@@ -122,7 +153,7 @@ where
         record.delivery_strategy.retained_artifact_carry_policies,
         record.delivery_strategy.causality_carry_policies,
     )
-    .map_err(|denial| serde::de::Error::custom(denial.message()))?;
+    .map_err(|denial| E::custom(denial.message()))?;
 
     match SignalMergeStrategyWitness::try_from_identities(
         Some(merge_strategy),
@@ -130,8 +161,8 @@ where
         Some(delivery_strategy),
     ) {
         TransitionOutcome::Success(witness) => Ok(witness),
-        TransitionOutcome::Denied(denial) => Err(serde::de::Error::custom(denial.message())),
-        outcome => Err(serde::de::Error::custom(format!(
+        TransitionOutcome::Denied(denial) => Err(E::custom(denial.message())),
+        outcome => Err(E::custom(format!(
             "unexpected strategy witness outcome during replay decode: {outcome:?}"
         ))),
     }

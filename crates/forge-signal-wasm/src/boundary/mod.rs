@@ -5,6 +5,7 @@ pub mod diagnostics;
 pub mod errors;
 pub mod facade;
 pub mod history;
+mod history_branch_commands;
 pub mod observation;
 pub mod restore_tokens;
 pub mod runtime;

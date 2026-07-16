@@ -54,64 +54,16 @@ export function createFormResetStore() {
         });
       }
       const canonicalization = latestResourceCanonicalization(context.form);
-      if (canonicalization === null) {
-        return recordArtifact({
-          mode: "resourceRollback",
-          resultKind: "unavailable",
-          reason: options.reason ?? "resource rollback is unavailable because the form has no recorded resource canonicalization proof",
-          before,
-          after: before,
-          resourceRollback: unavailableRollback(
-            "runtimeRejected",
-            "form rollback requires recorded resource canonicalization proof for exact draft restoration",
-          ),
-        });
-      }
-      const rollback = historyRead.rollbackLastEffect();
-      if (isPromiseLike(rollback)) {
-        return rollback.then((settledRollback) => {
-          if (settledRollback.kind === "unavailable") {
-            return recordArtifact({
-              mode: "resourceRollback",
-              resultKind: "unavailable",
-              reason: options.reason ?? settledRollback.detail,
-              before,
-              after: before,
-              resourceRollback: normalizeRollbackResult(settledRollback),
-            });
-          }
-          context.writeDraft(canonicalization.previousDraftValue);
-          const after = readFormStateSnapshot(context.form);
-          return recordArtifact({
-            mode: "resourceRollback",
-            resultKind: "rolledBack",
-            reason: options.reason ?? "resource rollback restored visible source truth and cleared local draft edits",
-            before,
-            after,
-            resourceRollback: normalizeRollbackResult(settledRollback),
-          });
-        });
-      }
-      if (rollback.kind === "unavailable") {
-        return recordArtifact({
-          mode: "resourceRollback",
-          resultKind: "unavailable",
-          reason: options.reason ?? rollback.detail,
-          before,
-          after: before,
-          resourceRollback: normalizeRollbackResult(rollback),
-        });
-      }
-      context.writeDraft(canonicalization.previousDraftValue);
-      const after = readFormStateSnapshot(context.form);
-      return recordArtifact({
-        mode: "resourceRollback",
-        resultKind: "rolledBack",
-        reason: options.reason ?? "resource rollback restored visible source truth and cleared local draft edits",
+      const settlement = historyRead.rollbackLastEffect();
+      const complete = (result) => completeTargetedEffectRejection({
+        result,
+        canonicalization,
+        context,
+        options,
         before,
-        after,
-        resourceRollback: normalizeRollbackResult(rollback),
+        recordArtifact,
       });
+      return isPromiseLike(settlement) ? settlement.then(complete) : complete(settlement);
     },
     history() {
       return Object.freeze([...history]);
@@ -153,31 +105,64 @@ function latestResourceCanonicalization(form) {
     .find((artifact) => artifact.resourceLine !== null) ?? null;
 }
 
-function normalizeRollbackResult(rollback) {
-  if (rollback.kind === "unavailable") {
-    return unavailableRollback(rollback.reason, rollback.detail);
+function completeTargetedEffectRejection({
+  result,
+  canonicalization,
+  context,
+  options,
+  before,
+  recordArtifact,
+}) {
+  if (result.kind === "unavailable") {
+    return recordArtifact({
+      mode: "resourceRollback",
+      resultKind: "unavailable",
+      reason: options.reason ?? result.detail,
+      before,
+      after: before,
+      resourceRollback: unavailableRollback(result.reason, result.detail),
+    });
   }
+  if (result.kind !== "rejectedAndRetired") {
+    throw new TypeError(
+      `form resource effect rejection expected rejectedAndRetired, received ${result.kind}`,
+    );
+  }
+  if (canonicalization !== null) {
+    context.writeDraft(canonicalization.previousDraftValue);
+  }
+  const after = readFormStateSnapshot(context.form);
+  return recordArtifact({
+    mode: "resourceRollback",
+    resultKind: "effectRejected",
+    reason: options.reason ?? (
+      canonicalization === null
+        ? "the last open resource effect was rejected; no form canonicalization draft required restoration"
+        : "the last open resource effect was rejected and the submitted form draft was restored"
+    ),
+    before,
+    after,
+    resourceRollback: targetedRejectionArtifact(result),
+  });
+}
+
+function targetedRejectionArtifact(result) {
+  const retiredEffectIds = Object.freeze(
+    (result.retired ?? []).map((entry) => entry.effectId),
+  );
+  const digestSource = {
+    kind: "effectRejected",
+    effectId: result.effectId,
+    terminalKind: result.kind,
+    retiredEffectIds,
+    projectionKind: result.projection.kind,
+    projectionDigest: result.projection.projectionDigest,
+    retirement: result.retired ?? Object.freeze([]),
+  };
   return Object.freeze({
-    kind: "rolledBack",
-    mode: rollback.mode,
-    effectId: rollback.effectId,
-    branchId: rollback.branchId,
-    snapshotId: rollback.snapshotId,
-    basisCurrentId: rollback.basisCurrentId,
-    basisAdvanceCount: rollback.basisAdvanceCount,
-    rollback: rollback.rollback,
-    reloadStatus: rollback.reloadStatus,
-    digest: stableValueDigest({
-      kind: rollback.kind,
-      mode: rollback.mode,
-      effectId: rollback.effectId,
-      branchId: rollback.branchId,
-      snapshotId: rollback.snapshotId,
-      basisCurrentId: rollback.basisCurrentId,
-      basisAdvanceCount: rollback.basisAdvanceCount,
-      rollback: rollback.rollback,
-      reloadStatus: rollback.reloadStatus,
-    }),
+    ...digestSource,
+    retirementDigest: stableValueDigest(digestSource.retirement),
+    digest: stableValueDigest(digestSource),
   });
 }
 

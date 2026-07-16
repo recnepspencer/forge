@@ -33,7 +33,7 @@ test("sparse page responses lower item replacement through loaded page loci", as
       effects: signals.resource.effects.branchNative(),
     });
     const line = tasks.line({});
-    line.patch(tasks.patch.item({
+    await line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", page: "page-a", title: "Replaced" },
     }));
@@ -57,7 +57,7 @@ test("sparse page responses lower item replacement through loaded page loci", as
       reconstruction: "replacePageItem",
       reconstructionBreadth: 1,
     });
-    assert.equal(itemEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(itemEffect.optimistic.rollback.kind, "effectBranchRetirementAvailable");
     assert.equal(itemEffect.profile.rebase, "nativeMergePlan");
     const mergePlan = signals.resource.branch.planMerge({
       source_branch_id: itemEffect.optimistic.branchId,
@@ -92,7 +92,7 @@ test("sparse page responses lower item replacement through loaded page loci", as
     });
     assert.equal(singlePageItemReplacementCount, 2);
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Aspect",
@@ -102,7 +102,7 @@ test("sparse page responses lower item replacement through loaded page loci", as
     assert.equal(aspectEffect.locusProof.locus, "itemAspect");
     assert.deepEqual(aspectEffect.locusProof.cost, itemEffect.locusProof.cost);
     assert.equal(readTask(line.value(), "page-a", "task:1").title, "Aspect");
-    assert.equal(singlePageItemReplacementCount, 3);
+    assert.equal(singlePageItemReplacementCount, 5);
   } finally {
     await runtime.cleanup();
   }
@@ -116,7 +116,7 @@ test("sparse page broad replacements preserve sparse topology proof", async () =
     const tasks = createTaskSparseApi(signals, response, "/sparse-broad");
     const line = tasks.line({});
 
-    line.patch(tasks.patch.replace({
+    await line.patch(tasks.patch.replace({
       pages: {
         "page-b": [{ id: "task:2", page: "page-b", title: "Broad" }],
       },

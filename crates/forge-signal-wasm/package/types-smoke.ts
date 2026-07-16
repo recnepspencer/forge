@@ -966,16 +966,18 @@ const taskFormActionAttempt = taskForm.attemptAction("saveDraft");
 const taskFormActionAttemptDigest: string = taskFormActionAttempt.resultDigest;
 const taskFormActionHistoryCount: number = taskForm.actionHistory().length;
 const taskFormActionExecution = taskForm.executeAction("saveDraft");
-const taskFormActionExecutionDigest: string = taskFormActionExecution.executionDigest;
-const taskFormActionExecutionSettlement = taskFormActionExecution.resultKind === "pending"
-  ? taskForm.fulfillAction(taskFormActionExecution.operationId, {
-      reason: "type smoke settled",
-      messages: [{
-        code: "task.settled",
-        scope: "action",
-      }],
-    })
-  : taskFormActionExecution;
+const taskFormActionExecutionSettlement = Promise.resolve(taskFormActionExecution)
+  .then((execution) => execution.resultKind === "pending"
+    ? taskForm.fulfillAction(execution.operationId, {
+        reason: "type smoke settled",
+        messages: [{
+          code: "task.settled",
+          scope: "action",
+        }],
+      })
+    : execution);
+const taskFormActionExecutionDigest: Promise<string> =
+  Promise.resolve(taskFormActionExecution).then((execution) => execution.executionDigest);
 const taskFormActionExecutionHistoryCount: number =
   taskForm.actionExecutionHistory().length;
 const taskFormVerificationDigest: string = taskForm.verification().packageDigest;

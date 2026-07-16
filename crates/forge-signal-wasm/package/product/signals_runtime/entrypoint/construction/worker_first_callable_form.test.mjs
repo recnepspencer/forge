@@ -4,11 +4,6 @@ import { Worker as NodeWorker } from "node:worker_threads";
 
 import { loadSignalsModule } from "../../module_loading/load_signals_module.mjs";
 
-async function settleWorkerResourceLine() {
-  await Promise.resolve();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-}
-
 function assertEquivalentFormTruth(left, right) {
   assert.deepEqual(left.source(), right.source());
   assert.deepEqual(left.draft(), right.draft());
@@ -38,7 +33,9 @@ function comparableRollback(result) {
     mode: result.mode,
     resultKind: result.resultKind,
     kind: result.resourceRollback.kind,
-    rollbackMode: result.resourceRollback.mode ?? null,
+    terminalKind: result.resourceRollback.terminalKind ?? null,
+    retiredEffectCount: result.resourceRollback.retiredEffectIds?.length ?? null,
+    projectionKind: result.resourceRollback.projectionKind ?? null,
   };
 }
 
@@ -49,6 +46,16 @@ function comparableReplayRestore(result) {
     kind: result.resourceReplayRestore.kind,
     replayRestoreMode: result.resourceReplayRestore.mode ?? null,
   };
+}
+
+async function rollbackRemainingFormEffects(form, line) {
+  const results = [];
+  while (line.effects().open().length > 0) {
+    results.push(comparableRollback(
+      await form.rollbackLastResourceEffect(),
+    ));
+  }
+  return results;
 }
 
 test("default worker-first root exposes form factories over active imported-graph handles", async () => {
@@ -76,8 +83,9 @@ test("default worker-first root exposes form factories over active imported-grap
   const compatibilityImportedGraph = compatibilityImportedSignals.importGraph(definition, snapshot);
   await compatibilityImportedGraph.ready();
 
+  let workerSignals = null;
   try {
-    const workerSignals = await createSignals();
+    workerSignals = await createSignals();
     const workerImportedGraph = workerSignals.importGraph(definition, snapshot);
     await workerImportedGraph.ready();
 
@@ -143,6 +151,7 @@ test("default worker-first root exposes form factories over active imported-grap
     scopedForm.fields.title.set("Scoped title");
     assert.equal(scopedForm.effective().title, "Scoped title");
   } finally {
+    await workerSignals?.terminate();
     compatibilityImportedSignals.free();
     compatibilitySignals.free();
     await cleanup();
@@ -177,7 +186,14 @@ test("default worker-first root preserves resource-line form action and restore 
     ).detail({
       load: ({ taskId }) => ({ id: taskId, title: "Draft", status: "editing" }),
     }).line({ taskId: "task-1" });
-    await settleWorkerResourceLine();
+    try {
+      await Promise.all([
+        workerLine.awaitSettlement({ timeoutMs: 5_000 }),
+        compatibilityLine.awaitSettlement({ timeoutMs: 5_000 }),
+      ]);
+    } catch (error) {
+      throw new Error(`resource settlement parity failed: worker=${JSON.stringify(workerLine.status())} compatibility=${JSON.stringify(compatibilityLine.status())}`, { cause: error });
+    }
 
     const workerForm = workerSignals.form({
       source: workerSignals.form.source.resourceLine(workerLine, { id: "worker-resource-form" }),
@@ -205,8 +221,8 @@ test("default worker-first root preserves resource-line form action and restore 
     compatibilityForm.fields.title.set("Published docs");
     compatibilityForm.fields.status.set("review");
 
-    const workerExecution = workerForm.executeAction("submit");
-    const compatibilityExecution = compatibilityForm.executeAction("submit");
+    const workerExecution = await workerForm.executeAction("submit");
+    const compatibilityExecution = await compatibilityForm.executeAction("submit");
     assert.deepEqual(
       comparableResourceExecution(workerExecution),
       comparableResourceExecution(compatibilityExecution),
@@ -221,11 +237,15 @@ test("default worker-first root preserves resource-line form action and restore 
     );
     assertEquivalentFormTruth(workerForm, compatibilityForm);
     assert.equal(workerForm.resetHistory().length, compatibilityForm.resetHistory().length);
+    assert.deepEqual(
+      await rollbackRemainingFormEffects(workerForm, workerLine),
+      await rollbackRemainingFormEffects(compatibilityForm, compatibilityLine),
+    );
 
     workerForm.fields.title.set("Published docs again");
     compatibilityForm.fields.title.set("Published docs again");
-    workerForm.executeAction("submit");
-    compatibilityForm.executeAction("submit");
+    await workerForm.executeAction("submit");
+    await compatibilityForm.executeAction("submit");
     workerForm.fields.title.set("Local draft after submit");
     compatibilityForm.fields.title.set("Local draft after submit");
 
@@ -244,12 +264,26 @@ test("default worker-first root preserves resource-line form action and restore 
       workerForm.replayRestoreHistory().length,
       compatibilityForm.replayRestoreHistory().length,
     );
+    assert.equal(
+      workerLine.effects().open().length,
+      compatibilityLine.effects().open().length,
+    );
+    assert.equal(workerLine.effects().open().length > 0, true);
+    assert.deepEqual(
+      await rollbackRemainingFormEffects(workerForm, workerLine),
+      await rollbackRemainingFormEffects(compatibilityForm, compatibilityLine),
+    );
+    assert.equal(workerLine.effects().open().length, 0);
+    assert.equal(compatibilityLine.effects().open().length, 0);
   } finally {
-    workerLine?.free();
-    compatibilityLine?.free();
-    await workerSignals?.terminate();
-    compatibilitySignals?.free();
-    await cleanup();
-    globalThis.Worker = previousWorker;
+    try {
+      workerLine?.free();
+      compatibilityLine?.free();
+    } finally {
+      await workerSignals?.terminate();
+      compatibilitySignals?.free();
+      await cleanup();
+      globalThis.Worker = previousWorker;
+    }
   }
 });

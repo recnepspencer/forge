@@ -21,6 +21,7 @@ use super::types::SignalWorkerRuntime;
 
 mod branch_history;
 mod test_support;
+mod test_support_branches;
 
 #[wasm_bindgen]
 impl SignalWorkerRuntime {

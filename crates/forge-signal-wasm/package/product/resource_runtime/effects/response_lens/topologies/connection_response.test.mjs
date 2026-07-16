@@ -33,7 +33,7 @@ test("connection responses lower item replacement through connection loci", asyn
       effects: signals.resource.effects.branchNative(),
     });
     const line = tasks.line({});
-    line.patch(tasks.patch.item({
+    await line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", title: "Replaced" },
     }));
@@ -57,7 +57,7 @@ test("connection responses lower item replacement through connection loci", asyn
       reconstruction: "replaceNode",
       reconstructionBreadth: 1,
     });
-    assert.equal(itemEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(itemEffect.optimistic.rollback.kind, "effectBranchRetirementAvailable");
     assert.equal(itemEffect.profile.rebase, "nativeMergePlan");
     const mergePlan = signals.resource.branch.planMerge({
       source_branch_id: itemEffect.optimistic.branchId,
@@ -80,7 +80,7 @@ test("connection responses lower item replacement through connection loci", asyn
     assert.deepEqual(deliveryEffect.locusProof.cost, itemEffect.locusProof.cost);
     assert.equal(singleNodeReplacementCount, 2);
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Aspect",
@@ -90,7 +90,7 @@ test("connection responses lower item replacement through connection loci", asyn
     assert.equal(aspectEffect.locusProof.locus, "itemAspect");
     assert.deepEqual(aspectEffect.locusProof.cost, itemEffect.locusProof.cost);
     assert.equal(readTask(line.value(), "task:1").title, "Aspect");
-    assert.equal(singleNodeReplacementCount, 3);
+    assert.equal(singleNodeReplacementCount, 5);
   } finally {
     await runtime.cleanup();
   }
@@ -104,7 +104,7 @@ test("connection broad replacements preserve connection topology proof", async (
     const tasks = createTaskConnectionApi(signals, response, "/connection-broad");
     const line = tasks.line({});
 
-    line.patch(tasks.patch.replace({
+    await line.patch(tasks.patch.replace({
       edges: [createTaskEdge({ id: "task:2", title: "Broad" })],
       pageInfo: { hasNextPage: false },
     }));

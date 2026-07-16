@@ -24,7 +24,7 @@ test("JSON path item aspects patch local delivery and rollback through jsonItemA
       });
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "t1",
       aspect: "priority",
       value: 2,
@@ -41,10 +41,10 @@ test("JSON path item aspects patch local delivery and rollback through jsonItemA
     });
     assert.equal(localEffect.locusProof.locus, "jsonItemAspect");
     assert.equal(localEffect.locusProof.effectLocusDigest.includes("priority"), true);
-    assert.equal(localEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(localEffect.optimistic.rollback.kind, "effectBranchRetirementAvailable");
 
-    const rollback = line.history().rollbackLastEffect();
-    assert.equal(rollback.kind, "rolledBack");
+    const rollback = await line.effects().reject(localEffect.effectId);
+    assert.equal(rollback.kind, "rejectedAndRetired");
     assert.deepEqual(line.value().tasks[0], {
       id: "t1",
       metadata: { priority: 1, label: "Loaded" },
@@ -155,7 +155,7 @@ test("JSON path item aspects cross arrays with explicit indexes", async () => {
       });
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "t1",
       aspect: "firstTagLabel",
       value: "new",

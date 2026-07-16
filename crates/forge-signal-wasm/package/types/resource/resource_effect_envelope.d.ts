@@ -101,15 +101,25 @@ export type ResourceEffectBranchPosture =
       readonly proofBreadth: 0;
     }
   | {
-      readonly kind: "speculativeBranch";
+      readonly kind: "effectOwnedBranch";
       readonly profileName: string;
       readonly optimism: "branchSpeculative";
       readonly rollback: "branchRestore" | "branchRestoreOrInverse";
-      readonly rollbackMode: "SameRuntimeBranchExact" | "CompactInversePatch";
+      readonly rollbackMode: "EffectBranchRetirement";
       readonly branchId: number;
       readonly snapshotId: number;
-      readonly restoreMode: "SameRuntimeBranchExact" | null;
-      readonly inverse: ResourceEffectCompactInverseDescriptor | null;
+      readonly restoreMode: null;
+      readonly dependencyBasisBranchId: number | null;
+      readonly nativeAncestryProof: {
+        readonly parentBranchId: number;
+        readonly parentAuthoredStateDigest: string;
+        readonly authority: "nativeForkAncestry";
+      };
+      readonly semanticDependencyProof: {
+        readonly effectIds: readonly string[];
+        readonly authority: "resourceEffectDependencySet";
+        readonly proofDigest: string;
+      };
       readonly proofBreadth: number;
     }
   | {
@@ -157,20 +167,22 @@ export type ResourceEffectServerConfirmation =
 
 export type ResourceEffectBranchLifecycle =
   | {
-      readonly kind: "selectedExistingBranch";
-      readonly acquisition: "currentRuntimeBranch";
-      readonly creation: "notCreatedByResourceRuntime";
-      readonly reuse: "currentBranchReuse";
-      readonly ownership: "signalsRuntimeOwned";
+      readonly kind: "effectOwnedBranch";
+      readonly acquisition: "explicitForkPlan";
+      readonly creation: "createdByResourceRuntime";
+      readonly reuse: "forbidden";
+      readonly ownership: "resourceEffectOwned";
       readonly branchId: number;
       readonly snapshotId: number;
-      readonly restoreMode: "SameRuntimeBranchExact" | null;
+      readonly dependencyBasisBranchId: number | null;
+      readonly nativeAncestryProof: Readonly<Record<string, unknown>>;
+      readonly semanticDependencyProof: Readonly<Record<string, unknown>>;
       readonly disposal: {
-        readonly kind: "notOwnedByResourceRuntime";
+        readonly kind: "retireOwnedBranch";
         readonly detail: string;
       };
       readonly leakDenial: {
-        readonly kind: "noResourceOwnedBranch";
+        readonly kind: "retirementReceiptRequired";
         readonly detail: string;
       };
     }
@@ -207,19 +219,10 @@ export type ResourceEffectBranchLifecycle =
 
 export type ResourceEffectRollback =
   | {
-      readonly kind: "exactBranchRestoreAvailable";
-      readonly mode: "SameRuntimeBranchExact";
+      readonly kind: "effectBranchRetirementAvailable";
+      readonly mode: "EffectBranchRetirement";
       readonly branchId: number;
-      readonly snapshotId: number;
-      readonly detail: string;
-    }
-  | {
-      readonly kind: "compactInverseAvailable";
-      readonly mode: "CompactInversePatch";
-      readonly branchId: number;
-      readonly snapshotId: number;
-      readonly inverse: ResourceEffectCompactInverseDescriptor;
-      readonly detail: string;
+      readonly dependencyBasisBranchId: number | null;
     }
   | {
       readonly kind: "unavailable";
@@ -239,10 +242,9 @@ export type ResourceEffectOptimisticLifecycle =
   | {
       readonly kind: "applied";
       readonly admissionKind: "localPatch" | "delivery";
-      readonly branchPosture: "speculativeBranch";
+      readonly branchPosture: "effectOwnedBranch";
       readonly branchId: number;
       readonly snapshotId: number;
-      readonly restoreMode: "SameRuntimeBranchExact" | null;
       readonly rollback: ResourceEffectRollback;
       readonly confirmation: "pendingServer";
       readonly detail: string;

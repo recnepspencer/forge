@@ -200,6 +200,7 @@ export type FormResourceVisibleSelectionKind =
   | "unavailable"
   | "committed"
   | "speculative"
+  | "derivedEffectProjectionBranch"
   | "confirmed"
   | "restored"
   | "merged";
@@ -216,6 +217,8 @@ export interface FormResourceVisibleSelectionReport {
     | "refresh"
     | "revalidate"
     | "localPatch"
+    | "openResourceEffects"
+    | "effectSettlement"
     | "optimismUnavailable"
     | "delivery"
     | "historyRestore"
@@ -230,6 +233,9 @@ export interface FormResourceVisibleSelectionReport {
   readonly rollbackKind: string | null;
   readonly confirmationKind: string | null;
   readonly previousEffectId: string | null;
+  readonly orderedEffectIds?: readonly string[];
+  readonly affectedEffectIds?: readonly string[];
+  readonly projectionDigest?: string | null;
   readonly detail: string;
   readonly branchProof: FormResourceVisibleSelectionProof;
   readonly rebaseProof: FormResourceVisibleSelectionProof;
@@ -251,6 +257,12 @@ export interface FormResourceSourceReport {
   readonly effectProfile: {
     readonly profile: ResourceEffectProfileDigest | null;
     readonly closeoutMatrixDigest: string | null;
+  };
+  readonly effects: {
+    readonly openCount: number;
+    readonly openEffectIds: readonly string[];
+    readonly lastOpenEffectId: string | null;
+    readonly targetedRejectionAvailable: boolean;
   };
   readonly rollback: FormResourceRollbackDigest | null;
   readonly visibleSelection: FormResourceVisibleSelectionReport;

@@ -33,7 +33,7 @@ test("response contracts lower compiled lens proof into branch-native effect loc
       });
 
     const line = tasks.line({});
-    line.patch(
+    await line.patch(
       tasks.patch.itemAspect({
         itemId: "t1",
         aspect: "title",
@@ -61,7 +61,7 @@ test("response contracts lower compiled lens proof into branch-native effect loc
       effect.locusProof,
     );
 
-    line.patch(
+    await line.patch(
       tasks.patch.summary({
         summary: "total",
         value: 2,
@@ -169,7 +169,7 @@ test("response JSON object aspects lower to JSON item-aspect effect loci", async
         }),
       });
     const line = tasks.line({});
-    line.patch(
+    await line.patch(
       tasks.patch.itemAspect({
         itemId: "t1",
         aspect: "metadata",

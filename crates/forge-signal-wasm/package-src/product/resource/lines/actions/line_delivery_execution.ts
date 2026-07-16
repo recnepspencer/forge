@@ -200,6 +200,7 @@ function executeLineDelivery(materialization, packet) {
     );
     patchLineBindingState(materialization.binding, {
       value: patchOutcome.nextValue,
+      canonicalValue: patchOutcome.nextValue,
       status,
       freshness,
       diagnostics,

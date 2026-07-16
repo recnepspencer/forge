@@ -396,6 +396,7 @@ Start with the resource docs cluster when that is your main use case:
 
 - [API Resources Overview](./docs/resources/overview.md)
 - [Branch-Native Resource Effects](./docs/resources/branch-native-effects.md)
+- [Concurrent Optimistic Effects](./docs/resources/effects/concurrency-and-dependencies.md)
 - [Resource Family Authoring Reference](./docs/api-reference/resource-family-authoring.md)
 - [Resource Line Reference](./docs/api-reference/resource-line.md)
 - [Resource Recipes](./docs/learn/recipes.md)

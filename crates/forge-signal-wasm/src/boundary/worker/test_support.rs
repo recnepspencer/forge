@@ -1,15 +1,9 @@
 use wasm_bindgen::prelude::JsValue;
 
-use forge_signal::facade::adapters::BranchStateProofReport;
-
+use super::SignalWorkerRuntime;
 use crate::recipe::model::TransactionOp;
 use crate::runtime::adapters::RuntimeEnvelope;
-use crate::runtime::adapters::{
-    MergePlanArtifactSummary, MergePlanProofEnvelope, MergeResultArtifactSummary,
-    MergeResultProofEnvelope,
-};
-use crate::runtime::core::MergePolicyPreviewRequest;
-use crate::runtime::summaries::{ReplaySummary, RuntimeSnapshotEnvelope};
+use crate::runtime::summaries::RuntimeSnapshotEnvelope;
 use crate::runtime::worker_host::{
     WorkerBrowserHistoryIngress, WorkerBrowserHistoryIngressReport,
     WorkerCallbackCapabilityExportCertificationPackage,
@@ -25,9 +19,6 @@ use crate::runtime::worker_host::{
     WorkerOutputDeliveryRequest, WorkerPortableGraphPublication, WorkerRuntimeBootstrapRecord,
     WorkerRuntimeEnvelopeImportReport, WorkerRuntimeShellLock,
 };
-use forge_signal::facade::history::RuntimeSnapshot;
-
-use super::SignalWorkerRuntime;
 
 impl SignalWorkerRuntime {
     pub(crate) fn bootstrap_record_for_test(
@@ -169,191 +160,6 @@ impl SignalWorkerRuntime {
         self.shell
             .borrow_mut()
             .restore_snapshot(snapshot)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn current_branch_for_test(
-        &self,
-    ) -> Result<forge_signal::facade::history::RuntimeBranch, JsValue> {
-        Ok(self.shell.borrow().current_branch())
-    }
-
-    pub(crate) fn branches_for_test(
-        &self,
-    ) -> Result<Vec<forge_signal::facade::history::RuntimeBranch>, JsValue> {
-        Ok(self.shell.borrow().branches())
-    }
-
-    pub(crate) fn replay_for_branch_for_test(
-        &self,
-        branch_id: u64,
-    ) -> Result<ReplaySummary, JsValue> {
-        self.shell
-            .borrow_mut()
-            .replay_for_branch(branch_id)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn branch_snapshot_id_for_test(&self, branch_id: u64) -> Result<u64, JsValue> {
-        self.shell
-            .borrow_mut()
-            .branch_snapshot_id(branch_id)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn branch_snapshot_envelope_for_test(
-        &self,
-        branch_id: u64,
-    ) -> Result<RuntimeSnapshotEnvelope, JsValue> {
-        self.shell
-            .borrow_mut()
-            .branch_snapshot_envelope(branch_id)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn branch_snapshot_for_test(
-        &self,
-        branch_id: u64,
-    ) -> Result<RuntimeSnapshot, JsValue> {
-        self.shell
-            .borrow_mut()
-            .branch_snapshot(branch_id)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn create_branch_for_test(
-        &self,
-        name: String,
-    ) -> Result<forge_signal::facade::history::RuntimeBranch, JsValue> {
-        self.shell
-            .borrow_mut()
-            .create_branch(name)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn switch_branch_for_test(
-        &self,
-        branch_id: u64,
-    ) -> Result<crate::runtime::worker_host::WorkerBranchTruthEnvelope, JsValue> {
-        self.shell
-            .borrow_mut()
-            .switch_branch(branch_id)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn restore_branch_snapshot_for_test(
-        &self,
-        branch_id: u64,
-        snapshot: RuntimeSnapshot,
-    ) -> Result<crate::runtime::worker_host::WorkerBranchTruthEnvelope, JsValue> {
-        self.shell
-            .borrow_mut()
-            .restore_branch_snapshot(branch_id, snapshot)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn restore_branch_snapshot_by_id_for_test(
-        &self,
-        branch_id: u64,
-        snapshot_id: u64,
-    ) -> Result<crate::runtime::worker_host::WorkerBranchTruthEnvelope, JsValue> {
-        self.shell
-            .borrow_mut()
-            .restore_branch_snapshot_by_id(branch_id, snapshot_id)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn branch_state_proof_for_test(
-        &self,
-        branch_id: u64,
-    ) -> Result<BranchStateProofReport, JsValue> {
-        self.shell
-            .borrow()
-            .branch_state_proof(branch_id)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn plan_merge_branches_for_test(
-        &self,
-        source_branch_id: u64,
-        target_branch_id: u64,
-    ) -> Result<MergePlanArtifactSummary, JsValue> {
-        self.shell
-            .borrow_mut()
-            .plan_merge_branches(source_branch_id, target_branch_id)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn plan_merge_branches_with_proof_for_test(
-        &self,
-        source_branch_id: u64,
-        target_branch_id: u64,
-    ) -> Result<MergePlanProofEnvelope, JsValue> {
-        self.shell
-            .borrow_mut()
-            .plan_merge_branches_with_proof(source_branch_id, target_branch_id)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn merge_branches_for_test(
-        &self,
-        source_branch_id: u64,
-        target_branch_id: u64,
-    ) -> Result<MergeResultArtifactSummary, JsValue> {
-        self.shell
-            .borrow_mut()
-            .merge_branches(source_branch_id, target_branch_id)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn merge_branches_with_proof_for_test(
-        &self,
-        source_branch_id: u64,
-        target_branch_id: u64,
-    ) -> Result<MergeResultProofEnvelope, JsValue> {
-        self.shell
-            .borrow_mut()
-            .merge_branches_with_proof(source_branch_id, target_branch_id)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn plan_merge_policy_preview_for_test(
-        &self,
-        request: MergePolicyPreviewRequest,
-    ) -> Result<MergePlanArtifactSummary, JsValue> {
-        self.shell
-            .borrow_mut()
-            .plan_merge_policy_preview(request)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn plan_merge_policy_preview_with_proof_for_test(
-        &self,
-        request: MergePolicyPreviewRequest,
-    ) -> Result<MergePlanProofEnvelope, JsValue> {
-        self.shell
-            .borrow_mut()
-            .plan_merge_policy_preview_with_proof(request)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn merge_branches_policy_preview_for_test(
-        &self,
-        request: MergePolicyPreviewRequest,
-    ) -> Result<MergeResultArtifactSummary, JsValue> {
-        self.shell
-            .borrow_mut()
-            .merge_branches_policy_preview(request)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn merge_branches_policy_preview_with_proof_for_test(
-        &self,
-        request: MergePolicyPreviewRequest,
-    ) -> Result<MergeResultProofEnvelope, JsValue> {
-        self.shell
-            .borrow_mut()
-            .merge_branches_policy_preview_with_proof(request)
             .map_err(JsValue::from)
     }
 

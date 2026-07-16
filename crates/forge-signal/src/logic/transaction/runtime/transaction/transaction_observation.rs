@@ -39,6 +39,7 @@ pub struct ClassifiedObservationEventSummary {
 pub enum ObservationBoundaryOutcome {
     Delivered,
     RollbackSuppressed,
+    BranchLocalSuppressed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,6 +62,7 @@ pub struct ObservationBoundarySummary {
     pub trigger_matched_event_count: u32,
     pub delivered_event_count: u32,
     pub rollback_suppressed_event_count: u32,
+    pub branch_local_suppressed_event_count: u32,
     pub boundary_events: Vec<CommittedObservationEventSummary>,
 }
 
@@ -430,6 +432,12 @@ impl TransactionObservationScratch {
             } else {
                 0
             };
+        let branch_local_suppressed_event_count =
+            if matches!(outcome, ObservationBoundaryOutcome::BranchLocalSuppressed) {
+                boundary_events.len() as u32
+            } else {
+                0
+            };
 
         self.staged_candidates.clear();
         self.staged_observers_by_node.clear();
@@ -441,6 +449,7 @@ impl TransactionObservationScratch {
                 trigger_matched_event_count,
                 delivered_event_count,
                 rollback_suppressed_event_count,
+                branch_local_suppressed_event_count,
                 boundary_events,
             },
         )

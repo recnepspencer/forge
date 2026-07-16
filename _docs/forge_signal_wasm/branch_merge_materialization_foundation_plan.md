@@ -1,6 +1,14 @@
 # Branch Merge Materialization And Aspect Policy Foundation Plan
 
-> **Status:** Planned engineering spec
+> **Status:** Superseded design record
+>
+> **Superseded by:**
+> [branch_merge_resolution_and_materialization_plan.md](./branch_merge_resolution_and_materialization_plan.md)
+>
+> The replacement corrects this plan's authority placement. Native
+> `forge-signal` owns derived execution, not application-value merge truth.
+> Standalone value history and manual resolution live in the explicit
+> TypeScript local truth authority.
 >
 > **Roadmap parent:** [wasm_product_roadmap.md](./wasm_product_roadmap.md)
 >

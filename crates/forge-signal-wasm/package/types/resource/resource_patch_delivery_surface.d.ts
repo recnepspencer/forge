@@ -83,6 +83,28 @@ export type ResourcePatchResult =
   | NarrowedItemAspectPatchResult
   | NarrowedSummaryPatchResult;
 
+/** A branch-native patch result carries the identity required for targeted closeout. */
+export type AdmittedResourceEffectPatchResult = ResourcePatchResult & {
+  readonly effectId: string;
+};
+
+export interface DuplicateResourceEffectAdmissionResult {
+  readonly kind: "duplicateEffectAdmission";
+  readonly effectId: string;
+  readonly retryLineageId: string;
+  readonly originalResult: ResourcePatchResult;
+}
+
+export type ResourcePatchExecutionResult =
+  | ResourcePatchResult
+  | AdmittedResourceEffectPatchResult
+  | DuplicateResourceEffectAdmissionResult;
+
+export interface ResourcePatchExecutionOptions {
+  readonly idempotencyKey?: string | null;
+  readonly serverCorrelationId?: string | null;
+}
+
 export interface ResourceLineReconciliation<
   TItem,
   TAspectMap extends ResourceItemAspectMap<TItem> = {},
@@ -110,6 +132,10 @@ export interface ResourceLineReconciliation<
 }
 
 export interface ResourcePatchFactory {
+  dependsOn<TPatch extends object>(
+    patch: TPatch,
+    dependencies: ReadonlyArray<string | { readonly effectId: string }>,
+  ): TPatch;
   replace<TValue>(nextValue: TValue): ReplaceResourcePatch<TValue>;
   field<TField extends string, TValue>(options: {
     field: TField;

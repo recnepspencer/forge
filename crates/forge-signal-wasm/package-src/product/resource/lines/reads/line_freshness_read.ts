@@ -1,5 +1,7 @@
+import { readLineBindingState } from "../state/line_binding_state.js";
+
 function readLineFreshness(materialization) {
-  return materialization.binding.freshnessSignal();
+  return readLineBindingState(materialization.binding).freshness;
 }
 
 export { readLineFreshness };

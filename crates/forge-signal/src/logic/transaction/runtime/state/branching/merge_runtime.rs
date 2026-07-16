@@ -211,7 +211,12 @@ where
         plan: &BranchMergePlan,
     ) -> Result<BranchMergeResult, SignalError> {
         let raw_request = request.normalized_request().request();
-        let summary = match self.execute_branch_merge_plan(request, plan) {
+        self.branches
+            .mark_merge_participants(raw_request.source_branch.id, raw_request.target_branch.id);
+        let execution = self.execute_branch_merge_plan(request, plan);
+        self.branches
+            .clear_merge_participants(raw_request.source_branch.id, raw_request.target_branch.id);
+        let summary = match execution {
             Ok(summary) => summary,
             Err(error) => {
                 crate::diagnostics::recorder::record_branch_merge_failure(
@@ -223,6 +228,8 @@ where
                 return Err(error);
             }
         };
+        self.branches
+            .advance_branch_head_generation(raw_request.target_branch.id);
         crate::diagnostics::recorder::record_branch_merge_summary(
             &mut self.graph,
             &summary,

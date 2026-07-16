@@ -8,14 +8,11 @@ test("local patches create a sealed branch-native effect envelope across diagnos
   const runtime = await createRealResourceTestRuntime();
   try {
     const branch = createBranchHead(runtime.signals, "effect-envelope");
-    const snapshotId = Number(
-      runtime.signals.history().branch_snapshot_id(branch.id),
-    );
     const line = createEffectCollectionLine(runtime, {
       effects: runtime.mod.resourceEffects.branchNative(),
     });
 
-    const result = line.patch(
+    const result = await line.patch(
       runtime.mod.resourcePatch.itemAspect({
         itemId: "demo:1",
         aspect: "title",
@@ -29,6 +26,7 @@ test("local patches create a sealed branch-native effect envelope across diagnos
       itemId: "demo:1",
       aspect: "title",
       field: null,
+      effectId: line.effects().open()[0].effectId,
     });
     const effect = line.diagnostics().lastEffect;
     assert.equal(effect.version, "resource-effect-envelope-v1");
@@ -39,58 +37,25 @@ test("local patches create a sealed branch-native effect envelope across diagnos
     assert.equal(effect.plan.planId, effect.effectId);
     assert.match(effect.plan.causalSequence, /localPatch#1$/);
     assert.equal(effect.plan.retryLineageId, null);
-    assert.deepEqual(effect.plan.branch, {
-      kind: "speculativeBranch",
-      profileName: "branchNative",
-      optimism: "branchSpeculative",
-      rollback: "branchRestoreOrInverse",
-      rollbackMode: "SameRuntimeBranchExact",
-      branchId: branch.id,
-      snapshotId,
-      restoreMode: "SameRuntimeBranchExact",
-      inverse: null,
-      proofBreadth: 2,
-    });
+    assert.equal(effect.plan.branch.kind, "effectOwnedBranch");
+    assert.notEqual(effect.plan.branch.branchId, Number(branch.id));
+    assert.equal(
+      effect.plan.branch.nativeAncestryProof.parentBranchId,
+      Number(branch.id),
+    );
+    assert.deepEqual(effect.plan.branch.semanticDependencyProof.effectIds, []);
     assert.equal(effect.profile.name, "branchNative");
     assert.equal(effect.profile.rollback, "branchRestoreOrInverse");
-    assert.deepEqual(effect.branchLifecycle, {
-      kind: "selectedExistingBranch",
-      acquisition: "currentRuntimeBranch",
-      creation: "notCreatedByResourceRuntime",
-      reuse: "currentBranchReuse",
-      ownership: "signalsRuntimeOwned",
-      branchId: branch.id,
-      snapshotId,
-      restoreMode: "SameRuntimeBranchExact",
-      disposal: {
-        kind: "notOwnedByResourceRuntime",
-        detail:
-          "resource effect selected an existing Signals branch and must not dispose branch state it did not create",
-      },
-      leakDenial: {
-        kind: "noResourceOwnedBranch",
-        detail:
-          "resource effect did not create package-local speculative branch state that could survive disposal",
-      },
-    });
-    assert.deepEqual(effect.optimistic, {
-      kind: "applied",
-      admissionKind: "localPatch",
-      branchPosture: "speculativeBranch",
-      branchId: branch.id,
-      snapshotId,
-      restoreMode: "SameRuntimeBranchExact",
-      rollback: {
-        kind: "exactBranchRestoreAvailable",
-        mode: "SameRuntimeBranchExact",
-        branchId: branch.id,
-        snapshotId,
-        detail:
-          "resource effect rollback can restore the exact branch snapshot captured before speculative application",
-      },
-      confirmation: "pendingServer",
-      detail:
-        "resource effect was applied under a branch-native speculative posture and awaits server confirmation",
+    assert.equal(effect.branchLifecycle.kind, "effectOwnedBranch");
+    assert.equal(effect.branchLifecycle.ownership, "resourceEffectOwned");
+    assert.equal(effect.branchLifecycle.disposal.kind, "retireOwnedBranch");
+    assert.equal(effect.optimistic.kind, "applied");
+    assert.equal(effect.optimistic.branchPosture, "effectOwnedBranch");
+    assert.deepEqual(effect.optimistic.rollback, {
+      kind: "effectBranchRetirementAvailable",
+      branchId: effect.plan.branch.branchId,
+      dependencyBasisBranchId: null,
+      mode: "EffectBranchRetirement",
     });
     assert.deepEqual(effect.request, {
       correlationId: "trace-demo",
@@ -123,7 +88,7 @@ test("local patches create a sealed branch-native effect envelope across diagnos
       basisAdvanceCountBefore: 0,
       planningBreadth: 1,
       executionBreadth: 1,
-      branchProofBreadth: 2,
+      branchProofBreadth: 4,
       branchLifecycleBreadth: 1,
       optimisticLifecycleBreadth: 1,
       serverConfirmationBreadth: 0,

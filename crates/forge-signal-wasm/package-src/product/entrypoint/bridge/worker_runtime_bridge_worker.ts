@@ -1,5 +1,4 @@
 import init, { SignalWorkerRuntime } from "../../../raw_surface.js";
-import { createWorkerRuntimeMirror } from "./worker_runtime_bridge_worker_mirror.js";
 
 const earlyBrowserMessages = [];
 let browserMessageHandler = null;
@@ -17,8 +16,6 @@ if (typeof globalThis.addEventListener === "function") {
 await init();
 
 const runtime = new SignalWorkerRuntime();
-const branchState = createWorkerBranchState();
-const mirror = createWorkerRuntimeMirror();
 const port = await resolveWorkerPort();
 
 port.listen(async (message) => {
@@ -82,9 +79,16 @@ function resolveRuntimeMethod(runtime, method, args) {
     case "branches":
       return resolveBranches(runtime);
     case "branchSnapshotId":
-      return resolveBranchSnapshotId(args[0]);
+      return invokeRequiredRuntimeMethod(runtime, "branchSnapshotId", args);
     case "createBranch":
       return resolveCreateBranch(runtime, args[0]);
+    case "workerBranchBasis":
+    case "forkBranch":
+    case "applyTransactionToBranch":
+    case "retireBranch":
+    case "retireBranches":
+    case "closeoutEffectBranch":
+      return invokeRequiredRuntimeMethod(runtime, method, args);
     case "switchBranch":
       return resolveSwitchBranch(runtime, args[0]);
     default:
@@ -96,135 +100,48 @@ function resolveRuntimeMethod(runtime, method, args) {
 }
 
 function resolvePublishPortableGraph(runtime, publication) {
-  const result = runtime.publishPortableGraph(publication);
-  mirror.publishPortableGraph(publication);
-  return result;
+  return invokeRequiredRuntimeMethod(runtime, "publishPortableGraph", [publication]);
 }
 
 function resolveApplyTransaction(runtime, transactionOps) {
-  const result = runtime.applyTransaction(transactionOps);
-  mirror.applyTransaction(transactionOps);
-  return result;
+  return invokeRequiredRuntimeMethod(runtime, "applyTransaction", [transactionOps]);
 }
 
 function resolveHostCapabilityIngress(runtime, batch) {
-  const result = runtime.admitHostCapabilityIngress(batch);
-  mirror.admitHostCapabilityIngress(batch);
-  return result;
+  return invokeRequiredRuntimeMethod(runtime, "admitHostCapabilityIngress", [batch]);
 }
 
 function resolveBrowserHistoryIngress(runtime, ingress) {
-  const result = runtime.admitBrowserHistoryIngress(ingress);
-  mirror.admitBrowserHistoryIngress(ingress);
-  return result;
+  return invokeRequiredRuntimeMethod(runtime, "admitBrowserHistoryIngress", [ingress]);
 }
 
 function resolveReadSignals(runtime, request) {
-  if (typeof runtime.readSignals === "function") {
-    return runtime.readSignals(request);
-  }
-  return mirror.readSignals(request);
-}
-
-function createWorkerBranchState() {
-  const rootBranch = {
-    id: 1,
-    name: "main",
-    parent_branch_id: null,
-    head_snapshot_id: 1,
-  };
-  return {
-    currentBranchId: rootBranch.id,
-    nextBranchId: 2,
-    branches: new Map([[rootBranch.id, rootBranch]]),
-    snapshotIds: new Map([[rootBranch.id, 1]]),
-  };
+  return invokeRequiredRuntimeMethod(runtime, "readSignals", [request]);
 }
 
 function resolveCurrentBranch(runtime) {
-  if (typeof runtime.currentBranch === "function") {
-    return runtime.currentBranch();
-  }
-  return cloneBranchHandle(branchState.branches.get(branchState.currentBranchId) ?? null);
+  return invokeRequiredRuntimeMethod(runtime, "currentBranch", []);
 }
 
 function resolveBranches(runtime) {
-  if (typeof runtime.branches === "function") {
-    return runtime.branches();
-  }
-  return [...branchState.branches.values()].map(cloneBranchHandle);
-}
-
-function resolveBranchSnapshotId(branchId) {
-  return branchState.snapshotIds.get(Number(branchId)) ?? 1;
+  return invokeRequiredRuntimeMethod(runtime, "branches", []);
 }
 
 function resolveCreateBranch(runtime, name) {
-  const runtimeBranch =
-    typeof runtime.createBranch === "function"
-      ? runtime.createBranch(name)
-      : typeof runtime.createWorkerBranch === "function"
-        ? runtime.createWorkerBranch(name)
-        : null;
-  const normalizedBranch = normalizeBranchHandle(
-    runtimeBranch,
-    name,
-    branchState.currentBranchId,
-    branchState.nextBranchId,
-  );
-  branchState.branches.set(normalizedBranch.id, normalizedBranch);
-  branchState.snapshotIds.set(normalizedBranch.id, normalizedBranch.head_snapshot_id ?? 1);
-  branchState.nextBranchId = Math.max(branchState.nextBranchId, normalizedBranch.id + 1);
-  return cloneBranchHandle(normalizedBranch);
+  return invokeRequiredRuntimeMethod(runtime, "createBranch", [name]);
 }
 
 function resolveSwitchBranch(runtime, branchId) {
-  if (typeof runtime.switchBranch === "function") {
-    runtime.switchBranch(branchId);
-  } else if (typeof runtime.switchWorkerBranch === "function") {
-    runtime.switchWorkerBranch(branchId);
-  }
-  const normalizedId = Number(branchId);
-  if (!branchState.branches.has(normalizedId)) {
-    throw new TypeError(`unknown worker branch ${branchId}`);
-  }
-  branchState.currentBranchId = normalizedId;
-  return undefined;
+  return invokeRequiredRuntimeMethod(runtime, "switchBranch", [branchId]);
 }
 
-function normalizeBranchHandle(branch, fallbackName, parentBranchId, fallbackId) {
-  if (branch && typeof branch === "object") {
-    return {
-      id: Number(branch.id),
-      name: typeof branch.name === "string" ? branch.name : fallbackName,
-      parent_branch_id:
-        branch.parent_branch_id === null || branch.parent_branch_id === undefined
-          ? parentBranchId ?? null
-          : Number(branch.parent_branch_id),
-      head_snapshot_id:
-        branch.head_snapshot_id === null || branch.head_snapshot_id === undefined
-          ? 1
-          : Number(branch.head_snapshot_id),
-    };
+function invokeRequiredRuntimeMethod(runtime, method, args) {
+  if (typeof runtime[method] !== "function") {
+    throw new TypeError(
+      `worker runtime method ${method} is unavailable; worker-first execution does not fall back to JavaScript authority`,
+    );
   }
-  return {
-    id: fallbackId,
-    name: fallbackName,
-    parent_branch_id: parentBranchId ?? null,
-    head_snapshot_id: 1,
-  };
-}
-
-function cloneBranchHandle(branch) {
-  if (branch === null) {
-    return null;
-  }
-  return {
-    id: branch.id,
-    name: branch.name,
-    parent_branch_id: branch.parent_branch_id,
-    head_snapshot_id: branch.head_snapshot_id,
-  };
+  return runtime[method](...args);
 }
 
 async function resolveWorkerPort() {

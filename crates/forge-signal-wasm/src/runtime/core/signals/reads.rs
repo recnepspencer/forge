@@ -9,7 +9,7 @@ use crate::runtime::summaries::CallbackDependencyPatchSummary;
 use super::super::aspects::aspect_versions_summary;
 use super::super::debug::{perf_now_ms, wasm_debug};
 use super::super::evaluation::evaluate_node;
-use super::super::state::SharedStore;
+use super::super::state::{PendingCallbackDependencyPatch, SharedStore};
 use super::super::{RuntimeCore, DEFAULT_ASPECT};
 
 impl RuntimeCore {
@@ -167,16 +167,35 @@ impl RuntimeCore {
     pub(in crate::runtime::core) fn apply_pending_callback_dependency_patches(
         &mut self,
     ) -> Result<(), ForgeSignalJsError> {
-        let (pending, runtime_read_breadth) = {
-            let mut store = self.lock_store()?;
-            let pending = store
-                .pending_callback_dependency_patches
-                .drain(..)
-                .collect::<Vec<_>>();
-            let runtime_read_breadth = store.pending_callback_runtime_read_breadth;
-            store.pending_callback_runtime_read_breadth = 0;
-            (pending, runtime_read_breadth)
-        };
+        let (pending, runtime_read_breadth) = self.take_pending_callback_dependency_patches()?;
+        let mut graph = self.runtime.graph_mut();
+        for patch in &pending {
+            graph
+                .set_dependencies(patch.node, patch.dependencies.clone())
+                .map_err(ForgeSignalJsError::from)?;
+        }
+        drop(graph);
+        self.record_committed_callback_dependency_patches(pending, runtime_read_breadth)
+    }
+
+    pub(in crate::runtime::core) fn take_pending_callback_dependency_patches(
+        &self,
+    ) -> Result<(Vec<PendingCallbackDependencyPatch>, u64), ForgeSignalJsError> {
+        let mut store = self.lock_store()?;
+        let pending = store
+            .pending_callback_dependency_patches
+            .drain(..)
+            .collect::<Vec<_>>();
+        let runtime_read_breadth = store.pending_callback_runtime_read_breadth;
+        store.pending_callback_runtime_read_breadth = 0;
+        Ok((pending, runtime_read_breadth))
+    }
+
+    pub(in crate::runtime::core) fn record_committed_callback_dependency_patches(
+        &mut self,
+        pending: Vec<PendingCallbackDependencyPatch>,
+        runtime_read_breadth: u64,
+    ) -> Result<(), ForgeSignalJsError> {
         self.web_metrics.compute_callback_runtime_read_breadth = self
             .web_metrics
             .compute_callback_runtime_read_breadth
@@ -184,13 +203,8 @@ impl RuntimeCore {
         if pending.is_empty() {
             return Ok(());
         }
-
         let mut diagnostic_updates = Vec::with_capacity(pending.len());
-        let mut graph = self.runtime.graph_mut();
         for patch in pending {
-            graph
-                .set_dependencies(patch.node, patch.dependencies.clone())
-                .map_err(ForgeSignalJsError::from)?;
             let added = patch
                 .reads
                 .len()
@@ -247,7 +261,6 @@ impl RuntimeCore {
                 patch.id, added, removed, retained, patch.runtime_read_breadth
             ));
         }
-        drop(graph);
         let mut diagnostics = self.lock_callback_diagnostics()?;
         for (id, current_reads, host_capability_reads, dependency_patch, runtime_read_breadth) in
             diagnostic_updates

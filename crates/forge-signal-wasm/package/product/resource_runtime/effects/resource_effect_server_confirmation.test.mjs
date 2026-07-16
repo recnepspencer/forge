@@ -10,7 +10,7 @@ test("same-locus server delivery records preserved speculative truth when visibl
     createBranchHead(runtime.signals, "effect-confirm-preserved");
     const line = createEffectConfirmationLine(runtime);
 
-    line.patch(
+    await line.patch(
       runtime.mod.resourcePatch.itemAspect({
         itemId: "demo:1",
         aspect: "title",
@@ -56,7 +56,7 @@ test("broad server delivery with unchanged visible value still records canonical
     createBranchHead(runtime.signals, "effect-confirm-broad-canonical");
     const line = createEffectConfirmationLine(runtime);
 
-    line.patch(
+    await line.patch(
       runtime.mod.resourcePatch.itemAspect({
         itemId: "demo:1",
         aspect: "title",
@@ -99,7 +99,7 @@ test("server delivery records canonical server truth when it changes speculative
     createBranchHead(runtime.signals, "effect-confirm-canonical");
     const line = createEffectConfirmationLine(runtime);
 
-    line.patch(
+    await line.patch(
       runtime.mod.resourcePatch.itemAspect({
         itemId: "demo:1",
         aspect: "title",

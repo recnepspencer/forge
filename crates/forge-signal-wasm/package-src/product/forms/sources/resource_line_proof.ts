@@ -24,6 +24,7 @@ export function readResourceLineProof(line, request, summary, status, freshness,
     mutationResponse,
     mutationResponsePlanCount,
   );
+  const effects = readOpenEffectProof(line);
   return Object.freeze({
     effectProfile: Object.freeze({
       profile: effectProfile,
@@ -32,6 +33,7 @@ export function readResourceLineProof(line, request, summary, status, freshness,
         : stableValueDigest(resourceEffects.closeoutMatrix(request.effects)),
     }),
     rollback: normalizeRollbackDigest(summary.current.visibleSelection, effectProfile),
+    effects,
     visibleSelection,
     settlement: readFormResourceSettlementReport(
       status,
@@ -51,6 +53,25 @@ export function readResourceLineProof(line, request, summary, status, freshness,
         ? null
         : stableValueDigest(resourceMutationResponses.closeoutMatrix()),
     }),
+  });
+}
+
+function readOpenEffectProof(line) {
+  if (typeof line.effects !== "function") {
+    return Object.freeze({
+      openCount: 0,
+      openEffectIds: Object.freeze([]),
+      lastOpenEffectId: null,
+      targetedRejectionAvailable: false,
+    });
+  }
+  const open = line.effects().open();
+  const openEffectIds = Object.freeze(open.map((effect) => effect.effectId));
+  return Object.freeze({
+    openCount: openEffectIds.length,
+    openEffectIds,
+    lastOpenEffectId: openEffectIds.at(-1) ?? null,
+    targetedRejectionAvailable: openEffectIds.length > 0,
   });
 }
 

@@ -229,11 +229,11 @@ logAccess(user.id, request.url, "allowed?");`,
   },
   {
     id: 5,
-    title: "The Write That Admits It's Guessing",
-    purpose: "Two optimistic writes overlap and one fails — watch the callback model and the runtime disagree about what is true.",
-    preface: "Optimistic UI puts something on screen the server has not confirmed yet. That is fine — until two of those guesses overlap and one of them fails. The left window is the callback model exactly as TanStack Query's documentation recommends: snapshot in onMutate, restore in onError, invalidate on settle. The right window is the Worth runtime, where every optimistic patch is an admitted effect with provenance, and a server confirmation reconciles one item instead of overwriting the screen. Same clicks, same server, different truths.",
+    title: "Every Write Is a Branch",
+    purpose: "Concurrent optimistic writes — an independent sibling, a failing parent, and its dependent child — settle out of order while a server-truth referee judges both screens live.",
+    preface: "Optimistic UI puts something on screen the server has not confirmed yet. That is fine — until several of those guesses overlap and one of them fails. The left window is the callback model exactly as TanStack Query's documentation recommends: snapshot in onMutate, restore in onError, invalidate on settle. In the right window every optimistic write forks its own effect branch: rejection retires one branch, confirmation merges one branch, and a dependent write is a child branch that closes out with its parent. A server-truth strip referees both screens, and each wears a live badge saying whether it still agrees with the server.",
     difficulty: "Intermediate",
-    primaryMessage: "Worth writes are effects with provenance — confirmations are item-scoped and cannot clobber the screen.",
+    primaryMessage: "One write, one branch. Rejection retires a branch — it never restores a shared snapshot.",
     forgeCode: `const po = signals.api({
   baseUrl: "/api/procurement",
   effects: signals.resource.effects.branchNative(),
@@ -243,16 +243,18 @@ const poLines = po.url("/orders/:orderId/lines")
   .response(signals.resource.response.array({ itemId: (line) => line.id }))
   .list({ load: ({ orderId }) => client.fetchLines(orderId) });
 
-const saveLine = po.url("/orders/:orderId/lines/:lineId")
-  .update({
-    // a confirmation replaces one item — nothing else on screen is touched
-    reconciles: [{ family: poLines, params: ({ orderId }) => ({ orderId }),
-      collection: { kind: "item" } }],
-    load: ({ orderId, lineId, body }) => client.saveLine(orderId, lineId, body),
-  });
+// each admitted write owns a native branch; dependencies are declared
+const admission = await line.patch(resourcePatch.dependsOn(
+  poLines.patch.insert({ itemId, placement: "append", nextItem }),
+  [parentEffectId],
+));
 
-line.diagnostics().lastEffect;  // provenance, confirmation, rollback posture
-line.history().lifecycle;       // what the screen showed, and when`,
+// settlement is per-effect: merge one branch, or retire one branch
+await line.effects().confirm(admission.effectId, { serverPatch });
+await line.effects().reject(admission.effectId, { responseId });
+
+line.effects().get(effectId);   // branch, dependencies, terminal receipt
+line.effects().projection();    // the derived visible fold — rebuildable`,
     alternativeName: "React Query (TanStack Query)",
     alternativeCode: `const addLine = useMutation({
   mutationFn: saveLine,
@@ -273,12 +275,13 @@ line.history().lifecycle;       // what the screen showed, and when`,
   },
 });`,
     explanationAlternative: "The rollback is your code restoring your closure variable. The cache cannot tell speculative rows from confirmed ones, so a failed write's rollback silently un-confirms whatever settled after its snapshot — and no record remains that the screen ever changed.",
-    explanationForge: "Every optimistic patch is an admitted effect with an envelope: provenance, confirmation kind, rollback posture. Server confirmations reconcile exactly one item, so overlapping writes cannot clobber each other, and the whole incident stays inspectable in line.history().lifecycle.",
+    explanationForge: "Every admitted write owns a native effect branch with an explicit fork basis and declared dependencies. Rejection retires exactly one branch (and closes out its dependents by policy); confirmation reconciles one resource locus and merges one branch. The visible value is a derived projection — rebuildable from canonical truth plus open effects — and every claim on screen is a runtime-issued receipt.",
     whatYouGet: [
-      "Effect envelopes with provenance on every write",
-      "Item-scoped server confirmations that preserve pending rows",
-      "Recorded lifecycle history of what the screen showed",
-      "useManagedResourceWrite — the whole lifecycle in one hook"
+      "One effect branch per optimistic write, drawn live as a graph",
+      "Declared parent/child dependencies with typed closeout",
+      "A server-truth referee and live agreement badges on both screens",
+      "Arbitrary-order settlement: ten branches converge with zero residue",
+      "Clickable runtime receipts — branch, dependencies, terminal outcome"
     ],
     relatedDocsPath: "resources/index"
   },

@@ -36,7 +36,7 @@ test("tree responses lower item replacement through recursive tree loci", async 
       effects: signals.resource.effects.branchNative(),
     });
     const line = tasks.line({});
-    line.patch(tasks.patch.item({
+    await line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", title: "Replaced", children: [] },
     }));
@@ -60,7 +60,7 @@ test("tree responses lower item replacement through recursive tree loci", async 
       reconstruction: "replaceNode",
       reconstructionBreadth: 1,
     });
-    assert.equal(itemEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(itemEffect.optimistic.rollback.kind, "effectBranchRetirementAvailable");
     assert.equal(itemEffect.profile.rebase, "nativeMergePlan");
     const mergePlan = signals.resource.branch.planMerge({
       source_branch_id: itemEffect.optimistic.branchId,
@@ -95,7 +95,7 @@ test("tree responses lower item replacement through recursive tree loci", async 
     });
     assert.equal(singleNodeReplacementCount, 2);
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Aspect",
@@ -105,7 +105,7 @@ test("tree responses lower item replacement through recursive tree loci", async 
     assert.equal(aspectEffect.locusProof.locus, "itemAspect");
     assert.deepEqual(aspectEffect.locusProof.cost, itemEffect.locusProof.cost);
     assert.equal(readTreeNode(line.value(), ["root", "task:1"]).title, "Aspect");
-    assert.equal(singleNodeReplacementCount, 3);
+    assert.equal(singleNodeReplacementCount, 5);
   } finally {
     await runtime.cleanup();
   }
@@ -137,7 +137,7 @@ test("tree branch-native inverse capture stays on declared descendant path", asy
     });
     const line = tasks.line({});
 
-    line.patch(tasks.patch.item({
+    await line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", title: "Path Local", children: [] },
     }));
@@ -166,7 +166,7 @@ test("tree broad replacements preserve recursive tree topology proof", async () 
     const tasks = createTaskTreeApi(signals, response, "/tree-broad");
     const line = tasks.line({});
 
-    line.patch(tasks.patch.replace({
+    await line.patch(tasks.patch.replace({
       roots: [{ id: "root:2", title: "Broad", children: [] }],
     }));
     const effect = line.diagnostics().lastEffect;

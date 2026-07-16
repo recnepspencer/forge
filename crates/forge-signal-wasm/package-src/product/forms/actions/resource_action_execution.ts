@@ -130,6 +130,14 @@ function executePatchResourceAction(line, fieldDeclarations, plan) {
     return deniedResourceAction(plan.id, staged.reason);
   }
   const lowered = applyLoweredPatchPlans(line, staged.loweredPlans);
+  if (isPromiseLike(lowered)) {
+    return lowered.then((settled) =>
+      createPatchResourceExecution(line, plan, settled));
+  }
+  return createPatchResourceExecution(line, plan, lowered);
+}
+
+function createPatchResourceExecution(line, plan, lowered) {
   const proof = readResourceLineExecutionProof(line);
   const canonicalValue = cloneFormValue(line.value());
   const resourceSubmission = Object.freeze({
@@ -184,8 +192,25 @@ function deniedEmptyPatchResourceAction(actionId) {
 
 function applyLoweredPatchPlans(line, loweredPlans) {
   const lowered = [];
-  for (const loweredPlan of loweredPlans) {
+  const applyAt = (position) => {
+    if (position >= loweredPlans.length) {
+      return Object.freeze(lowered);
+    }
+    const loweredPlan = loweredPlans[position];
     const patchResult = line.patch(loweredPlan.patch);
+    if (isPromiseLike(patchResult)) {
+      return patchResult.then((settled) => {
+        recordLoweredPatch(line, lowered, loweredPlan, settled);
+        return applyAt(position + 1);
+      });
+    }
+    recordLoweredPatch(line, lowered, loweredPlan, patchResult);
+    return applyAt(position + 1);
+  };
+  return applyAt(0);
+}
+
+function recordLoweredPatch(line, lowered, loweredPlan, patchResult) {
     const latest = line.diagnosticsSummary().latest;
     lowered.push(Object.freeze({
       field: loweredPlan.field,
@@ -199,8 +224,12 @@ function applyLoweredPatchPlans(line, loweredPlans) {
       effectDigest: latest.effect === null ? null : stableValueDigest(latest.effect),
       basisId: latest.basisCurrentId ?? null,
     }));
-  }
-  return Object.freeze(lowered);
+}
+
+function isPromiseLike(value) {
+  return value !== null
+    && (typeof value === "object" || typeof value === "function")
+    && typeof value.then === "function";
 }
 
 function readResourceLineExecutionProof(line) {

@@ -19,7 +19,7 @@ test("discriminated tuple responses lower item replacement through active varian
       effects: signals.resource.effects.branchNative(),
     });
     const line = tasks.line({});
-    line.patch(tasks.patch.item({
+    await line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", title: "Replaced" },
     }));
@@ -41,7 +41,7 @@ test("discriminated tuple responses lower item replacement through active varian
       reconstruction: "replaceVariantItems",
       reconstructionBreadth: 1,
     });
-    assert.equal(itemEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(itemEffect.optimistic.rollback.kind, "effectBranchRetirementAvailable");
     assert.equal(itemEffect.profile.rebase, "nativeMergePlan");
     const mergePlan = signals.resource.branch.planMerge({
       source_branch_id: itemEffect.optimistic.branchId,
@@ -63,7 +63,7 @@ test("discriminated tuple responses lower item replacement through active varian
     assert.equal(deliveryEffect.locus.kind, "discriminatedTuple");
     assert.deepEqual(deliveryEffect.locusProof.cost, itemEffect.locusProof.cost);
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Aspect",
@@ -86,7 +86,7 @@ test("discriminated tuple broad replacements preserve active variant topology pr
     const tasks = createTaskTupleApi(signals, response, "/tuple-broad");
     const line = tasks.line({});
 
-    line.patch(tasks.patch.replace({
+    await line.patch(tasks.patch.replace({
       kind: "secondary",
       secondary: [{ id: "task:2", title: "Broad" }],
       meta: { total: 1 },

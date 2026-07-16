@@ -3,12 +3,14 @@ import { createDeferredReactiveHistoryAvailability } from "../history/line_histo
 import {
   readMutationResponseSummaryDigest,
 } from "../../mutation/resource_mutation_response_diagnostics_projection.js";
+import { readLineBindingState } from "../state/line_binding_state.js";
 
 function readLineDiagnosticsSummary(materialization, options = undefined) {
-  const diagnostics = materialization.binding.diagnosticsSignal();
-  const status = materialization.binding.statusSignal();
-  const freshness = materialization.binding.freshnessSignal();
-  const visibleValue = materialization.binding.valueSignal();
+  const state = readLineBindingState(materialization.binding);
+  const diagnostics = state.diagnostics;
+  const status = state.status;
+  const freshness = state.freshness;
+  const visibleValue = state.value;
   const includeExplainability = options?.includeExplainability !== false;
   const history = includeExplainability
     ? readLineHistoryAvailability(materialization)

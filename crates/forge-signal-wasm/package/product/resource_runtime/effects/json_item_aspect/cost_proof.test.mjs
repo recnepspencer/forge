@@ -12,7 +12,7 @@ test("JSON path item aspect effects expose path proof and traversal cost counter
     const tasks = createJsonPathTaskApi(signals);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "t1",
       aspect: "firstTagLabel",
       value: "Local",
@@ -71,7 +71,7 @@ test("JSON path proof names immutable-copy writes over frozen JSON containers", 
     const tasks = createJsonPathTaskApi(signals, frozenMetadata);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "t1",
       aspect: "firstTagLabel",
       value: "Copied",

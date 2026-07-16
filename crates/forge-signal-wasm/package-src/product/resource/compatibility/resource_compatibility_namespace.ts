@@ -9,7 +9,12 @@ import {
 } from "./resource_external_definition.js";
 import { resourceExternalDelivery } from "./resource_external_delivery.js";
 
-function createResourceCompatibilityNamespace(signalNamespace, rawSignals, resourceLineEpoch) {
+function createResourceCompatibilityNamespace(
+  signalNamespace,
+  rawSignals,
+  resourceLineEpoch,
+  effectProjectionCoordinator,
+) {
   return Object.freeze({
     delivery: resourceExternalDelivery,
     detail(definition) {
@@ -20,6 +25,7 @@ function createResourceCompatibilityNamespace(signalNamespace, rawSignals, resou
         nextResourceFamilyId(rawSignals, "detail"),
         admitted.declaration,
         admitted.compatibility,
+        effectProjectionCoordinator,
       );
     },
     collection(definition) {
@@ -30,6 +36,7 @@ function createResourceCompatibilityNamespace(signalNamespace, rawSignals, resou
         nextResourceFamilyId(rawSignals, "collection"),
         admitted.declaration,
         admitted.compatibility,
+        effectProjectionCoordinator,
       );
     },
     paged(definition) {
@@ -40,6 +47,7 @@ function createResourceCompatibilityNamespace(signalNamespace, rawSignals, resou
         nextResourceFamilyId(rawSignals, "paged"),
         admitted.declaration,
         admitted.compatibility,
+        effectProjectionCoordinator,
       );
     },
   });

@@ -1,1 +1,2 @@
+mod worker_branch_commands;
 mod worker_host_branch_lifecycle_parity;
