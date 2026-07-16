@@ -30,6 +30,7 @@ mod recovery_budget;
 mod recovery_completion;
 mod recovery_evidence;
 mod recovery_integrity_handoff_receipt;
+mod replica_bootstrap_source;
 mod redo_replay;
 mod replay_receipt;
 mod rollback_recovery;
@@ -212,6 +213,11 @@ pub use recovery_evidence::{
     NON_APPLICABLE_FOUNDATIONAL_SURFACES, RECOVERY_ADMISSION_MECHANISMS,
 };
 pub use recovery_integrity_handoff_receipt::RecoveryIntegrityHandoffReceipt;
+pub use replica_bootstrap_source::{
+    BootstrapSourceArtifact, BootstrapSourceArtifactFamily, BootstrapSourceResolutionCounters,
+    BootstrapSourceResolutionDenial, BootstrapSourceResolutionRequest,
+    RecoveryPhysicsBootstrapSourceOwner, ResolvedBootstrapRecoverySourceCut,
+};
 pub use redo_replay::{
     AdmittedRedoFrame, MiddleWalCorruptionDenial, MissingAcknowledgedWalRangeDenial,
     RecoveredPhysicalState, RecoveryRedoPlan, RedoApplicationCursor, RedoApplicationPageFact,
