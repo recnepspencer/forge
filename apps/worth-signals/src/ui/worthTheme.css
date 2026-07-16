@@ -1,0 +1,379 @@
+:root {
+  --worth-bg: #0a0a0b;
+  --worth-bg-2: #0e0e11;
+  --worth-elev: #121216;
+  --worth-line: rgba(255, 255, 255, 0.08);
+  --worth-line-2: rgba(255, 255, 255, 0.14);
+  --worth-text: #eef0f3;
+  --worth-muted: #9a9aa6;
+  --worth-muted-2: #71717c;
+  --worth-accent: #ff9248;
+  --worth-accent-2: #ffce6b;
+  --worth-glow: rgba(255, 146, 72, 0.18);
+
+  --bg-darker: var(--worth-bg);
+  --bg-primary: var(--worth-bg);
+  --bg-secondary: var(--worth-bg-2);
+  --bg-tertiary: var(--worth-elev);
+  --text-primary: var(--worth-text);
+  --text-secondary: var(--worth-muted);
+  --text-muted: var(--worth-muted-2);
+  --border-light: var(--worth-line);
+  --border-active: var(--worth-line-2);
+}
+
+body {
+  background:
+    radial-gradient(circle at 50% -12rem, var(--worth-glow), transparent 38rem),
+    var(--worth-bg);
+  color: var(--worth-text);
+}
+
+::selection {
+  background: rgba(255, 146, 72, 0.3);
+  color: var(--worth-text);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--worth-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a221d;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--worth-accent);
+}
+
+.site-shell,
+.xai-landing,
+.xai-carousel-home {
+  background-color: var(--worth-bg);
+  color: var(--worth-text);
+}
+
+.nav-bar {
+  min-height: 64px;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+  background: rgba(10, 10, 11, 0.68);
+  border-bottom-color: var(--worth-line);
+  backdrop-filter: saturate(140%) blur(12px);
+  -webkit-backdrop-filter: saturate(140%) blur(12px);
+}
+
+.nav-link {
+  color: var(--worth-muted);
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--worth-accent-2);
+}
+
+.site-footer {
+  background: var(--worth-bg);
+  border-top-color: var(--worth-line);
+}
+
+.site-footer strong {
+  color: var(--worth-accent-2);
+}
+
+.site-footer p,
+.site-footer-links a {
+  color: var(--worth-muted);
+}
+
+.site-footer-links a:hover {
+  color: var(--worth-accent);
+}
+
+.xai-carousel-home {
+  background:
+    radial-gradient(circle at 50% -14rem, rgba(255, 255, 255, 0.09), transparent 35rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 28rem),
+    var(--worth-bg);
+}
+
+.xai-carousel-home::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--worth-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--worth-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(circle at 50% 18%, #000, transparent 68%);
+  opacity: 0.26;
+}
+
+.xai-carousel-shell {
+  position: relative;
+  z-index: 1;
+}
+
+.xai-eyebrow,
+.xai-section-eyebrow {
+  border-color: rgba(255, 146, 72, 0.34);
+  background: rgba(255, 146, 72, 0.07);
+  color: var(--worth-accent-2);
+}
+
+.xai-carousel-title h1,
+.xai-slide-copy h2,
+.xai-demo-route-copy h1,
+.docs-article h1,
+.docs-article h2,
+.docs-article h3 {
+  color: var(--worth-text);
+}
+
+.xai-carousel-title h1 {
+  max-width: 23ch;
+  font-size: clamp(2.6rem, 5.7vw, 4.6rem);
+}
+
+.xai-audience-points {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: min(58rem, 100%);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.xai-audience-points li {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--worth-line);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.xai-audience-points strong {
+  color: var(--worth-text);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.xai-audience-points span {
+  color: var(--worth-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .xai-audience-points {
+    grid-template-columns: 1fr;
+  }
+}
+
+.xai-carousel-title p,
+.xai-slide-copy p,
+.xai-demo-route-copy p,
+.xai-demo-preface p,
+.docs-article p,
+.docs-article li,
+.docs-article blockquote {
+  color: var(--worth-muted);
+}
+
+.xai-button-primary,
+.forms-primary-button {
+  border-color: transparent;
+  background: linear-gradient(120deg, var(--worth-accent), var(--worth-accent-2));
+  color: #1a1206;
+  box-shadow: 0 8px 34px var(--worth-glow);
+}
+
+.xai-button-primary:hover,
+.forms-primary-button:hover:not(:disabled) {
+  border-color: transparent;
+  filter: brightness(1.06);
+  box-shadow: 0 12px 42px rgba(255, 146, 72, 0.28);
+}
+
+.xai-carousel-actions .xai-button-primary {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: linear-gradient(180deg, #ffffff, #dfe3e8);
+  color: #0a0a0b;
+  box-shadow: 0 12px 38px rgba(255, 255, 255, 0.12);
+}
+
+.xai-carousel-actions .xai-button-primary:hover {
+  box-shadow: 0 16px 46px rgba(255, 255, 255, 0.2);
+}
+
+.xai-button-secondary,
+.forms-secondary-button,
+.resources-control-button,
+.xai-demo-pager-button {
+  border-color: var(--worth-line-2);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--worth-text);
+}
+
+.xai-button-secondary:hover,
+.forms-secondary-button:hover:not(:disabled),
+.resources-control-button:hover,
+.xai-demo-pager-button:hover {
+  border-color: rgba(255, 146, 72, 0.5);
+  background: rgba(255, 146, 72, 0.08);
+  color: var(--worth-accent-2);
+}
+
+.xai-install-command {
+  border-color: rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.08), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.025)),
+    rgba(10, 10, 11, 0.72);
+  color: var(--worth-text);
+  box-shadow:
+    0 22px 64px rgba(0, 0, 0, 0.34),
+    0 0 36px rgba(255, 255, 255, 0.035),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.xai-install-command button {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--worth-text);
+}
+
+.xai-install-command button:hover {
+  background: linear-gradient(180deg, #ffffff, #dfe3e8);
+  color: #0a0a0b;
+}
+
+.xai-carousel-slide {
+  background:
+    radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--section-accent) 36%, transparent), transparent 15rem),
+    linear-gradient(145deg, color-mix(in srgb, var(--section-accent) 16%, transparent), transparent 52%),
+    rgba(14, 14, 17, 0.98);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--section-accent) 16%, transparent),
+    0 32px 95px rgba(0, 0, 0, 0.5),
+    0 0 70px color-mix(in srgb, var(--section-accent) 16%, transparent);
+}
+
+.xai-carousel-arrow {
+  border-color: color-mix(in srgb, var(--section-accent) 48%, var(--worth-line-2));
+  background:
+    radial-gradient(circle at 50% 15%, color-mix(in srgb, var(--section-accent) 30%, transparent), transparent 62%),
+    rgba(14, 14, 17, 0.86);
+  color: color-mix(in srgb, var(--section-accent) 82%, white);
+}
+
+.xai-carousel-slide .xai-button-primary {
+  border-color: color-mix(in srgb, var(--section-accent) 68%, white);
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--section-accent) 84%, white),
+    var(--section-accent)
+  );
+  color: #0a0a0b;
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--section-accent) 24%, transparent);
+}
+
+.xai-carousel-slide .xai-button-primary:hover {
+  box-shadow: 0 18px 42px color-mix(in srgb, var(--section-accent) 34%, transparent);
+}
+
+.xai-carousel-slide .xai-button-secondary {
+  border-color: color-mix(in srgb, var(--section-accent) 42%, var(--worth-line-2));
+  background: color-mix(in srgb, var(--section-accent) 9%, var(--worth-elev));
+  color: color-mix(in srgb, var(--section-accent) 80%, white);
+}
+
+.xai-carousel-slide .xai-button-secondary:hover {
+  border-color: color-mix(in srgb, var(--section-accent) 68%, white);
+  background: color-mix(in srgb, var(--section-accent) 16%, var(--worth-elev));
+}
+
+.xai-demo-route-hero,
+.xai-demo-route-body,
+.docs-page {
+  background: var(--worth-bg);
+}
+
+.xai-demo-preface,
+.xai-demo-offline,
+.docs-sidebar,
+.docs-code-block,
+.docs-empty,
+.forms-code-card,
+.forms-live-card,
+.forms-diagnostics-card,
+.resources-control-bar,
+.resources-window,
+.resources-feedback-guide,
+.resources-diagnostics-grid,
+.router-browser-card,
+.router-state-card,
+.router-test-card,
+.composition-card {
+  border-color: var(--worth-line);
+  background: var(--worth-bg-2);
+}
+
+.xai-demo-preface span,
+.xai-demo-route-count,
+.docs-nav-items a.active,
+.docs-article a,
+.forms-card-topline,
+.resources-control-bar > span,
+.resources-feedback-guide > span {
+  color: var(--worth-accent-2);
+}
+
+.docs-article code,
+.docs-code-head button,
+.docs-empty button {
+  border-color: rgba(255, 146, 72, 0.28);
+  background: rgba(255, 146, 72, 0.1);
+  color: var(--worth-accent-2);
+}
+
+.xai-demo-route-count button.active,
+.router-role-toggle button.is-active,
+.router-browser-nav button.is-active {
+  border-color: rgba(255, 146, 72, 0.42);
+  background: rgba(255, 146, 72, 0.14);
+  color: var(--worth-accent-2);
+}
+
+.docs-sidebar {
+  border-right-color: var(--worth-line);
+}
+
+.docs-nav-items a {
+  color: var(--worth-muted);
+}
+
+.docs-nav-items a:hover {
+  color: var(--worth-text);
+}
+
+.glass-panel,
+.xai-preview-panel,
+.xai-visual-card,
+.xai-compare-card,
+.xai-section-band,
+.xai-closing-band {
+  border-color: var(--worth-line);
+  background: var(--worth-bg-2);
+}
+
+@media (max-width: 720px) {
+  .nav-bar {
+    min-height: 58px;
+  }
+}

@@ -59,8 +59,18 @@ export function createReplayArtifactProofReport(
   expected,
   replayed,
 ) {
-  const frozenExpected = freezeObject({ ...expected });
-  const frozenReplayed = freezeObject({ ...replayed });
+  const frozenExpected = freezeObject({
+    strategyWitness: null,
+    compatibilityWitness: null,
+    scopedMergeProof: null,
+    ...expected,
+  });
+  const frozenReplayed = freezeObject({
+    strategyWitness: null,
+    compatibilityWitness: null,
+    scopedMergeProof: null,
+    ...replayed,
+  });
   const mismatchClasses = [];
   compareOptionalDigest(
     frozenExpected.registryBundleDigest,

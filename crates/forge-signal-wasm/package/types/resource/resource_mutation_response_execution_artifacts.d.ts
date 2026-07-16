@@ -4,11 +4,21 @@ import type {
 } from "./resource_mutation_response_target_basis.js";
 import type { ResourceMutationResponseTargetEffectProof } from "./resource_mutation_response_lifecycle_proof.js";
 
-export interface ResourceMutationResponsePartialReconciliationArtifact {
+export interface ResourceMutationResponseMissingFieldPartialArtifact {
   readonly kind: "missingResponseField";
   readonly field: string;
   readonly digest: string;
 }
+
+export interface ResourceMutationResponseDuplicateDeliveryPartialArtifact {
+  readonly kind: "duplicateDeliverySuppressed";
+  readonly packetId: string;
+  readonly digest: string;
+}
+
+export type ResourceMutationResponsePartialReconciliationArtifact =
+  | ResourceMutationResponseMissingFieldPartialArtifact
+  | ResourceMutationResponseDuplicateDeliveryPartialArtifact;
 
 export interface ResourceMutationResponseFallbackExecutionArtifact {
   readonly artifactId: string;

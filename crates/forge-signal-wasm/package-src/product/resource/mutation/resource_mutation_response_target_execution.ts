@@ -105,6 +105,15 @@ function createExactMutationResponseTargetExecution(
     );
   }
   const packetId = `${planId}:${target.targetId}`;
+  if (targetMaterialization.delivery.has(packetId)) {
+    return createFallbackMutationResponseExecutionArtifact(
+      target,
+      lineIdentity,
+      submittedTarget,
+      null,
+      createDuplicateDeliveryPartialArtifact(packetId),
+    );
+  }
   const currentBasisId = targetMaterialization.requestState.currentBasisId();
   const delivery = createMutationResponseTargetDelivery(
     target.reconciliation,
@@ -180,7 +189,9 @@ function createFallbackMutationResponseExecutionArtifact(
         staleness?.detail
         ?? (partial?.kind === "missingResponseField"
           ? createMissingResponseFieldDetail(target, partial.field)
-          : createMutationResponseFallbackDetail(target, lineIdentity)),
+          : partial?.kind === "duplicateDeliverySuppressed"
+            ? createDuplicateDeliveryDetail(target, lineIdentity, partial.packetId)
+            : createMutationResponseFallbackDetail(target, lineIdentity)),
     }),
   });
 }
@@ -299,6 +310,24 @@ function createMissingResponseFieldPartialArtifact(field) {
     field,
     digest: `mutation-response-partial|missing-field:${field}`,
   });
+}
+
+function createDuplicateDeliveryPartialArtifact(packetId) {
+  return Object.freeze({
+    kind: "duplicateDeliverySuppressed",
+    packetId,
+    digest: `mutation-response-partial|duplicate-delivery:${packetId}`,
+  });
+}
+
+function createDuplicateDeliveryDetail(target, lineIdentity, packetId) {
+  return [
+    `${target.family.kind} ${target.family.familyId}`,
+    `line ${lineIdentity.canonicalKey}`,
+    `stays in ${target.fallback} posture because delivery packet ${packetId}`,
+    "was already consumed by an earlier mutation response;",
+    "refresh resident truth to reflect this response",
+  ].join(" ");
 }
 
 function createMissingResponseFieldDetail(target, field) {
