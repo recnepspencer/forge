@@ -13,7 +13,7 @@ test("branch-native resource merge and rebase artifacts form one closeout verifi
     const groupedTasks = createGroupedTasks(signals);
     const groupedLine = groupedTasks.line({});
 
-    groupedLine.patch(groupedTasks.patch.item({
+    await groupedLine.patch(groupedTasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", group: "todo", title: "Grouped" },
     }));
@@ -34,7 +34,7 @@ test("branch-native resource merge and rebase artifacts form one closeout verifi
 
     const rawLine = createRawTasks(runtime).line({ workspaceId: "demo" });
     createBranchHead(signals, "closeout-unmapped-rebase");
-    rawLine.patch(runtime.mod.resourcePatch.itemAspect({
+    await rawLine.patch(runtime.mod.resourcePatch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Raw",

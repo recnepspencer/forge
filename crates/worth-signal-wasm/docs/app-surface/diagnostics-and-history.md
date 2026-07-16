@@ -12,12 +12,12 @@ Use them when you need:
 - export and restore artifacts
 - host-capability event explanations
 
-This is the inspection lane for `worth-signal-wasm`. It does not own runtime
+This is the inspection lane for `worth-signals-wasm`. It does not own runtime
 truth. It explains runtime truth.
 
 ## Why You Use It
 
-- answer â€œwhy did this signal or graph output change?â€
+- answer Ã¢â‚¬Å“why did this signal or graph output change?Ã¢â‚¬Â
 - inspect a published graph without dropping to raw ids first
 - compare graph contracts over time
 - inspect replay and lineage artifacts
@@ -32,7 +32,7 @@ the same runtime truth model that owns derivation, replay, and restore.
 Compared with something like Redux tooling:
 
 - Redux DevTools gives you action history and state snapshots
-- `worth-signal-wasm` diagnostics/history can explain dependency causality,
+- `worth-signals-wasm` diagnostics/history can explain dependency causality,
   callback frontier changes, graph contract drift, replay artifacts, and exact
   restore posture
 

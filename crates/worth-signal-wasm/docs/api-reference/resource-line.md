@@ -114,7 +114,7 @@ executing exact replay.
 ## Small Example
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -162,7 +162,7 @@ import {
   createSignals,
   resourceAuth,
   resourceRequestContext,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 

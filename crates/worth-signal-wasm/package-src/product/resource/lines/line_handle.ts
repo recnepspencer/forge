@@ -218,9 +218,8 @@ function createLineHandle(lineBacking) {
     const materialization = requireCurrentMaterialization(lineBacking);
     const handle = createResourceViewHandle(
       materialization.lineScope.computed(
-        () => readLineSummary(
+        () => readReactiveLineSummary(
           requireCurrentMaterialization(lineBacking),
-          { includeExplainability: false },
         ),
         {
           debugName: "resourceLineSummary",
@@ -349,6 +348,18 @@ function createLineHandle(lineBacking) {
       return createLineView(lineBacking, project);
     },
   });
+}
+
+function readReactiveLineSummary(materialization) {
+  const binding = materialization.binding;
+  binding.valueSignal();
+  binding.processingSignal();
+  binding.uploadSignal();
+  binding.downloadSignal();
+  binding.statusSignal();
+  binding.freshnessSignal();
+  binding.diagnosticsSignal();
+  return readLineSummary(materialization, { includeExplainability: false });
 }
 
 export { createLineHandle };

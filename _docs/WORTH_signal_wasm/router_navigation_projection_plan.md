@@ -1,4 +1,4 @@
-# worth-signal-wasm Router And Navigation Projection Plan
+# worth-signals-wasm Router And Navigation Projection Plan
 
 > **Status:** Planned engineering spec
 >
@@ -30,7 +30,7 @@
 
 ## Goal
 
-Build a graph-native router and navigation surface in `worth-signal-wasm` that
+Build a graph-native router and navigation surface in `worth-signals-wasm` that
 can replace framework-router-shaped usage without inventing a second
 navigation, guard, loader, or browser-history truth engine, and without
 pretending worker-first runtime truth is still a future deployment detail.
@@ -362,7 +362,7 @@ This milestone freezes the intended ownership boundary:
 2. **browser host boundary**
    - owns raw `location`, `history`, `popstate`, and direct URL mutation
    - does not own typed route meaning
-3. **`worth-signal-wasm` router surface**
+3. **`worth-signals-wasm` router surface**
    - owns typed route schema authoring, URL normalization, route projection,
      navigation intent lowering, browser-history integration, and route-facing
      diagnostics/history surfaces

@@ -22,7 +22,7 @@ implementation, certification, hostile-test, and closeout evidence.
 
 It is the closeout ledger for the hostile question:
 
-> Can `worth-signal-wasm` recommend worker-first execution as the canonical
+> Can `worth-signals-wasm` recommend worker-first execution as the canonical
 > product posture for runtime-owned graph work without moving semantic truth
 > back to the main thread, hiding fallback, or pretending browser capabilities
 > and live JavaScript closures are portable worker data?
@@ -30,7 +30,7 @@ It is the closeout ledger for the hostile question:
 ## Closeout Summary
 
 Milestone 9 is implemented as a worker-first runtime placement substrate for
-`worth-signal-wasm`.
+`worth-signals-wasm`.
 
 The implementation now includes:
 
@@ -223,18 +223,18 @@ The final Phase 7 test topology is:
 Final verification commands:
 
 ```powershell
-cargo fmt -p worth-signal-wasm --check
-cargo test -p worth-signal-wasm phase7 -- --nocapture
-cargo test -p worth-signal-wasm
+cargo fmt -p worth-signals-wasm --check
+cargo test -p worth-signals-wasm phase7 -- --nocapture
+cargo test -p worth-signals-wasm
 git diff --check
 ```
 
 Final result at closeout:
 
-- `cargo fmt -p worth-signal-wasm --check` passed
-- `cargo test -p worth-signal-wasm phase7 -- --nocapture` passed with `32`
+- `cargo fmt -p worth-signals-wasm --check` passed
+- `cargo test -p worth-signals-wasm phase7 -- --nocapture` passed with `32`
   tests
-- `cargo test -p worth-signal-wasm` passed with `208` unit tests, the
+- `cargo test -p worth-signals-wasm` passed with `208` unit tests, the
   compile-fail suite, and doc-tests
 - `git diff --check` passed, with only existing CRLF normalization warnings
 
@@ -278,7 +278,7 @@ runtime/boundary suites listed above.
 Milestone 9 is complete and can be treated as closed.
 
 Worker-first runtime placement is now the honest default execution posture for
-serious `worth-signal-wasm` applications: runtime-owned work lives off the UI
+serious `worth-signals-wasm` applications: runtime-owned work lives off the UI
 thread, host authority remains explicit, callback portability limits are
 machine-visible, and compatibility mode is a parity lane rather than a hidden
 fallback engine.

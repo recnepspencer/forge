@@ -1,10 +1,10 @@
 export function createReactiveFormBindings(signalNamespace, formId, formRef) {
   const formScope = signalNamespace.scope(`${formId}:reactive`);
-  const summaryState = formScope.input(readSummary(formRef()), {
+  const summaryState = formScope.input(null, {
     debugName: `${formId}.summaryState`,
   });
   const summarySignal = formScope.computed(
-    () => summaryState(),
+    () => summaryState() ?? readSummary(formRef()),
     {
       debugName: `${formId}.summary`,
     },
@@ -78,7 +78,6 @@ const FORM_MUTATION_METHODS = Object.freeze([
   "reportFieldInteraction",
   "reportSubmitIntent",
   "clearSubmitIntent",
-  "recordLayoutMeasurement",
   "reset",
   "rollbackLastResourceEffect",
   "replayExactResourceSource",

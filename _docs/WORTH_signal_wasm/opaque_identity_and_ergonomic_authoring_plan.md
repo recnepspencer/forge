@@ -1,4 +1,4 @@
-# worth-signal-wasm Opaque Identity And Ergonomic Authoring Plan
+# worth-signals-wasm Opaque Identity And Ergonomic Authoring Plan
 
 > **Status:** Planned engineering spec
 >
@@ -14,7 +14,7 @@
 
 ## Goal
 
-Make the main `worth-signal-wasm` app-authoring lane substantially easier
+Make the main `worth-signals-wasm` app-authoring lane substantially easier
 without reducing runtime truth, graph truth, diagnostics truth, or restore
 truth.
 

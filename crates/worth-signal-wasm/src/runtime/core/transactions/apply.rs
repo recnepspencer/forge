@@ -3,7 +3,7 @@ use worth_signal::facade::{specialist::EvaluationVerdict, SignalError};
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
-use crate::boundary::errors::WORTHSignalJsError;
+use crate::boundary::errors::WorthSignalJsError;
 use crate::runtime::summaries::RunSummary;
 
 use super::super::debug::{perf_now_ms, wasm_debug};
@@ -19,7 +19,7 @@ impl RuntimeCore {
         family_id: &str,
         key: &str,
         changed_regions: Vec<worth_signal::facade::ChangedRegion>,
-    ) -> Result<RunSummary, WORTHSignalJsError> {
+    ) -> Result<RunSummary, WorthSignalJsError> {
         let id = self.ensure_source_key(family_id, key, None)?;
         self.mark_changed_with_regions(&id, changed_regions)
     }
@@ -29,7 +29,7 @@ impl RuntimeCore {
         family_id: &str,
         key: &str,
         aspect_ids: Vec<crate::recipe::model::WasmAspectId>,
-    ) -> Result<RunSummary, WORTHSignalJsError> {
+    ) -> Result<RunSummary, WorthSignalJsError> {
         let id = self.ensure_source_key(family_id, key, None)?;
         self.mark_changed_on_aspects(&id, aspect_ids)
     }
@@ -37,13 +37,13 @@ impl RuntimeCore {
     pub fn apply_transaction(
         &mut self,
         ops: Vec<TransactionOp>,
-    ) -> Result<RunSummary, WORTHSignalJsError> {
+    ) -> Result<RunSummary, WorthSignalJsError> {
         let started_at = perf_now_ms();
-        wasm_debug(format!("[worth-signal-wasm] tx:start ops={}", ops.len()));
+        wasm_debug(format!("[worth-signals-wasm] tx:start ops={}", ops.len()));
         let previous = self.lock_store()?.clone();
         let changes = self.collect_changes(&ops)?;
         wasm_debug(format!(
-            "[worth-signal-wasm] tx:collect-done changes={} elapsed_ms={:.1}",
+            "[worth-signals-wasm] tx:collect-done changes={} elapsed_ms={:.1}",
             changes.len(),
             perf_now_ms() - started_at
         ));
@@ -56,12 +56,12 @@ impl RuntimeCore {
         let committed_dependency_patches_for_tx = committed_dependency_patches.clone();
 
         let result = self.runtime.transaction(&mut self.store, move |tx| {
-            wasm_debug("[worth-signal-wasm] tx:apply-start");
+            wasm_debug("[worth-signals-wasm] tx:apply-start");
             apply_set_changes(tx, &store, &dense_grids, &changes)?;
 
-            wasm_debug("[worth-signal-wasm] tx:evaluate-dirty-start");
+            wasm_debug("[worth-signals-wasm] tx:evaluate-dirty-start");
             tx.evaluate_dirty(&evaluator)?;
-            wasm_debug("[worth-signal-wasm] tx:evaluate-dirty-done");
+            wasm_debug("[worth-signals-wasm] tx:evaluate-dirty-done");
             let (pending, runtime_read_breadth) =
                 apply_pending_dependency_patches_in_transaction(tx, &store)?;
             *committed_dependency_patches_for_tx
@@ -76,7 +76,7 @@ impl RuntimeCore {
                 let (pending, runtime_read_breadth) = committed_dependency_patches
                     .lock()
                     .map_err(|_| {
-                        WORTHSignalJsError::internal(
+                        WorthSignalJsError::internal(
                             "dependency patch receipt mutex poisoned".to_string(),
                         )
                     })?
@@ -89,7 +89,7 @@ impl RuntimeCore {
                     .insert(active_branch_id, self.snapshot_branch_state());
                 self.notify_diagnostics_subscribers();
                 wasm_debug(format!(
-                    "[worth-signal-wasm] tx:done touched={} evaluated={} elapsed_ms={:.1}",
+                    "[worth-signals-wasm] tx:done touched={} evaluated={} elapsed_ms={:.1}",
                     result.touched_nodes,
                     result.evaluation_summary.nodes_evaluated,
                     perf_now_ms() - started_at
@@ -108,22 +108,22 @@ impl RuntimeCore {
             }
             Err(err) => {
                 wasm_debug(format!(
-                    "[worth-signal-wasm] tx:error elapsed_ms={:.1} message={}",
+                    "[worth-signals-wasm] tx:error elapsed_ms={:.1} message={}",
                     perf_now_ms() - started_at,
                     err
                 ));
                 self.restore_store(previous)?;
-                Err(WORTHSignalJsError::from(err))
+                Err(WorthSignalJsError::from(err))
             }
         }
     }
 
-    pub fn evaluate_dirty(&mut self) -> Result<RunSummary, WORTHSignalJsError> {
+    pub fn evaluate_dirty(&mut self) -> Result<RunSummary, WorthSignalJsError> {
         let evaluator = self.evaluator();
         let report = self
             .runtime
             .evaluate_dirty(&self.store, &evaluator)
-            .map_err(WORTHSignalJsError::from)?;
+            .map_err(WorthSignalJsError::from)?;
         self.notify_diagnostics_subscribers();
         Ok(RunSummary {
             touched_nodes: report.task_count,

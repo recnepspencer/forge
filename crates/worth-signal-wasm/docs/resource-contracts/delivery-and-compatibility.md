@@ -99,7 +99,7 @@ import {
   resourceParamIdentity,
   resourceParams,
   resourcePatch,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -145,7 +145,7 @@ import {
   resourceParams,
   resourcePatch,
   resourceRequestContext,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 

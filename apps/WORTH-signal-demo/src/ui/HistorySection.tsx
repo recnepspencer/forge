@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 import { DemoSixGear } from "./demos/DemoSixGear";
 import { HistoryMergeModal } from "./HistoryMergeModal";

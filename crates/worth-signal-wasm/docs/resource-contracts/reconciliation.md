@@ -99,7 +99,7 @@ Common rejection cases:
 import {
   createSignals,
   resourcePatch,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -135,7 +135,7 @@ item.
 import {
   createSignals,
   resourcePatch,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 

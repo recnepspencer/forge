@@ -8,6 +8,23 @@ function flushMicrotasks() {
   return new Promise((resolve) => queueMicrotask(resolve));
 }
 
+function notificationBarrier() {
+  let resolveNotification;
+  const notification = new Promise((resolve) => {
+    resolveNotification = resolve;
+  });
+  return {
+    notify: resolveNotification,
+    wait: () => Promise.race([
+      notification,
+      new Promise((_, reject) => setTimeout(
+        () => reject(new Error("timed out waiting for the React summary signal")),
+        5_000,
+      )),
+    ]),
+  };
+}
+
 test("resource summary signals stay readable through the React store without eager history explainability reads", async () => {
   const runtime = await createRealRequestRuntime();
   const { createReactSignalsStore, cleanup } = await loadStoreModule();
@@ -23,9 +40,11 @@ test("resource summary signals stay readable through the React store without eag
     const summarySignal = line.summarySignal();
     const store = createReactSignalsStore(runtime.signals);
     let notificationCount = 0;
+    const notification = notificationBarrier();
 
     const unsubscribe = store.subscribeSignal(summarySignal, () => {
       notificationCount += 1;
+      notification.notify();
     });
 
     const initialSummary = store.getSignalSnapshot(summarySignal);
@@ -34,11 +53,11 @@ test("resource summary signals stay readable through the React store without eag
     assert.equal(initialSummary.explainability.replay.kind, "unavailable");
     assert.match(initialSummary.explainability.replay.detail, /deferred/i);
 
-    line.patch(user.patch.field({
+    await line.patch(user.patch.field({
       field: "name",
       value: "Updated",
     }));
-    await flushMicrotasks();
+    await notification.wait();
 
     const patchedSummary = store.getSignalSnapshot(summarySignal);
     assert.equal(notificationCount, 1);
@@ -74,18 +93,20 @@ test("resource summary signals stay readable for async initial detail loads with
     const summarySignal = line.summarySignal();
     const store = createReactSignalsStore(runtime.signals);
     let notificationCount = 0;
+    const notification = notificationBarrier();
 
     const unsubscribe = store.subscribeSignal(summarySignal, () => {
       notificationCount += 1;
+      notification.notify();
     });
 
     const pendingSummary = store.getSignalSnapshot(summarySignal);
     assert.equal(pendingSummary.current.status.kind, "pending");
 
     resolveLoad();
+    await line.awaitSettlement({ timeoutMs: 5_000 });
+    await notification.wait();
     await flushMicrotasks();
-    await flushMicrotasks();
-
     const fulfilledSummary = store.getSignalSnapshot(summarySignal);
     assert.equal(fulfilledSummary.current.status.kind, "fulfilled");
     assert.deepEqual(line.value(), { id: "u1", name: "First" });

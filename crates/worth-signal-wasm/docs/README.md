@@ -1,4 +1,4 @@
-# worth-signal-wasm Documentation
+# worth-signals-wasm Documentation
 
 These docs are organized by product layer, not by filename history.
 

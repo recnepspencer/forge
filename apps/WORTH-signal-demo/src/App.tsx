@@ -4,7 +4,7 @@ import { Layout } from "./ui/Layout";
 import { LandingPage } from "./ui/LandingPage";
 import { DocsPage } from "./ui/DocsPage";
 import { DemosContainer } from "./ui/Demos";
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 import "./ui/landingShell.css";
 import "./ui/landingPage.css";
 import "./ui/landingMarketing.css";

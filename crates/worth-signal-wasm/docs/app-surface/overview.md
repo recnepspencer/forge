@@ -2,7 +2,7 @@
 
 ## What This Feature Is
 
-The app surface is the main public API for `worth-signal-wasm`.
+The app surface is the main public API for `worth-signals-wasm`.
 
 It gives you:
 
@@ -76,7 +76,7 @@ over that runtime truth.
 ## Small Example
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -104,7 +104,7 @@ diagnostics; it is optional metadata, not part of local identity.
 ## Real Example
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 

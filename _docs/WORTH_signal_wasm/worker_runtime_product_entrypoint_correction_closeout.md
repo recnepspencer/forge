@@ -16,7 +16,7 @@ correction.
 It answers the hostile package-level question the substrate closeout could not
 answer by itself:
 
-> Does the shipped `worth-signal-wasm` package now make `createSignals()` an
+> Does the shipped `worth-signals-wasm` package now make `createSignals()` an
 > honest worker-first front door, with explicit compatibility recovery,
 > explicit worker-unavailable artifacts, aligned docs and types, and no hidden
 > reintroduction of main-thread runtime authority?
@@ -160,7 +160,7 @@ git diff --check
 /Users/spenstar/.nvm/versions/node/v22.13.1/bin/node --experimental-wasm-modules --test --test-force-exit \
   crates/worth-signal-wasm/package/product/signals_runtime/entrypoint/construction/*.test.mjs
 wasm-pack build crates/worth-signal-wasm --target bundler --release --out-dir pkg
-node scripts/wasm/prepare-worth-signal-wasm-package.mjs crates/worth-signal-wasm/pkg
+node scripts/wasm/prepare-worth-signals-wasm-package.mjs crates/worth-signal-wasm/pkg
 /Users/spenstar/.nvm/versions/node/v22.13.1/bin/node --experimental-wasm-modules --test --test-force-exit \
   crates/worth-signal-wasm/package/product/signals.runtime.test.mjs
 ```
@@ -171,7 +171,7 @@ Captured result on 2026-05-21:
 - `git diff --check` passed
 - construction aggregate passed with `36/36`
 - `wasm-pack build crates/worth-signal-wasm --target bundler --release --out-dir pkg` passed
-- `node scripts/wasm/prepare-worth-signal-wasm-package.mjs crates/worth-signal-wasm/pkg` passed
+- `node scripts/wasm/prepare-worth-signals-wasm-package.mjs crates/worth-signal-wasm/pkg` passed
 - `signals.runtime.test.mjs` passed with `271/271`
 
 The refreshed aggregate rerun also caught and closed two real post-closeout
@@ -193,5 +193,5 @@ The following remain intentionally explicit, not accidental unfinished work:
 - host-capability reads inside worker-first callback capture remain denied until
   a distinct explicit host-read lowering lane exists
 
-Those boundaries are aligned with the placement spec and the correction planâ€™s
+Those boundaries are aligned with the placement spec and the correction planÃ¢â‚¬â„¢s
 single-runtime-authority rule.

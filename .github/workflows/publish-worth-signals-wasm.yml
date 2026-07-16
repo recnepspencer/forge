@@ -1,15 +1,14 @@
-name: Publish WORTH Signal Wasm
+name: Publish Worth Signals Wasm
 
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   publish:
-    name: Publish private npm package
+    name: Publish public npm package
     runs-on: ubuntu-latest
 
     steps:
@@ -27,7 +26,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          registry-url: https://npm.pkg.github.com
+          registry-url: https://registry.npmjs.org
 
       - name: Install wasm package dev dependencies
         working-directory: crates/worth-signal-wasm
@@ -38,12 +37,15 @@ jobs:
 
       - name: Prepare npm metadata
         env:
-          WORTH_SIGNAL_WASM_SCOPE: aust-group
-          WORTH_SIGNAL_WASM_REPOSITORY_URL: https://github.com/AuST-Group/WORTH.git
-        run: node scripts/wasm/prepare-worth-signal-wasm-package.mjs crates/worth-signal-wasm/pkg
+          WORTH_SIGNAL_WASM_PACKAGE_NAME: worth-signals-wasm
+          WORTH_SIGNAL_WASM_REPOSITORY_URL: https://github.com/recnepspencer/forge.git
+        run: node scripts/wasm/prepare-worth-signals-wasm-package.mjs crates/worth-signal-wasm/pkg
 
-      - name: Publish to GitHub Packages
+      - name: Verify npm package
+        run: node scripts/wasm/verify-worth-signals-wasm-package.mjs crates/worth-signal-wasm/pkg
+
+      - name: Publish to npm
         working-directory: crates/worth-signal-wasm/pkg
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.AUST_GROUP_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
-        run: npm publish
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public

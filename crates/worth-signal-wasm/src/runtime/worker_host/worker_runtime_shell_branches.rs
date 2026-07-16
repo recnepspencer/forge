@@ -17,14 +17,14 @@ impl WorkerRuntimeShell {
     pub fn worker_branch_basis(
         &self,
         branch_id: u64,
-    ) -> Result<WorkerBranchBasisReceipt, WORTHSignalJsError> {
+    ) -> Result<WorkerBranchBasisReceipt, WorthSignalJsError> {
         self.core.worker_branch_basis(branch_id)
     }
 
     pub fn fork_worker_branch(
         &mut self,
         request: WorkerForkBranchRequest,
-    ) -> Result<WorkerForkBranchReceipt, WORTHSignalJsError> {
+    ) -> Result<WorkerForkBranchReceipt, WorthSignalJsError> {
         let receipt = self.core.fork_worker_branch(request)?;
         self.clear_worker_boundary_certification_evidence();
         Ok(receipt)
@@ -33,7 +33,7 @@ impl WorkerRuntimeShell {
     pub fn apply_transaction_to_worker_branch(
         &mut self,
         request: WorkerApplyTransactionToBranchRequest,
-    ) -> Result<WorkerApplyTransactionToBranchReceipt, WORTHSignalJsError> {
+    ) -> Result<WorkerApplyTransactionToBranchReceipt, WorthSignalJsError> {
         let receipt = self.core.apply_transaction_to_worker_branch(request)?;
         self.clear_worker_boundary_certification_evidence();
         Ok(receipt)
@@ -42,7 +42,7 @@ impl WorkerRuntimeShell {
     pub fn retire_worker_branch(
         &mut self,
         request: WorkerRetireBranchRequest,
-    ) -> Result<WorkerRetireBranchReceipt, WORTHSignalJsError> {
+    ) -> Result<WorkerRetireBranchReceipt, WorthSignalJsError> {
         let receipt = self.core.retire_worker_branch(request)?;
         self.clear_worker_boundary_certification_evidence();
         Ok(receipt)
@@ -51,7 +51,7 @@ impl WorkerRuntimeShell {
     pub fn retire_worker_branches(
         &mut self,
         request: WorkerRetireBranchesRequest,
-    ) -> Result<WorkerRetireBranchesReceipt, WORTHSignalJsError> {
+    ) -> Result<WorkerRetireBranchesReceipt, WorthSignalJsError> {
         let receipt = self.core.retire_worker_branches(request)?;
         self.clear_worker_boundary_certification_evidence();
         Ok(receipt)
@@ -60,7 +60,7 @@ impl WorkerRuntimeShell {
     pub fn closeout_worker_effect_branch(
         &mut self,
         request: WorkerCloseoutEffectBranchRequest,
-    ) -> Result<WorkerCloseoutEffectBranchReceipt, WORTHSignalJsError> {
+    ) -> Result<WorkerCloseoutEffectBranchReceipt, WorthSignalJsError> {
         let receipt = self.core.closeout_worker_effect_branch(request)?;
         self.clear_worker_boundary_certification_evidence();
         Ok(receipt)

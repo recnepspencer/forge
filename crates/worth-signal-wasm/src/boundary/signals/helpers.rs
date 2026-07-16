@@ -3,7 +3,7 @@ use std::rc::Rc;
 use js_sys::Reflect;
 use wasm_bindgen::prelude::*;
 
-use crate::boundary::errors::WORTHSignalJsError;
+use crate::boundary::errors::WorthSignalJsError;
 use crate::boundary::serde::{from_js, to_js};
 #[cfg(test)]
 use crate::expression::model::SignalValue;
@@ -49,8 +49,8 @@ pub(crate) fn flush_deferred_runtime_callbacks() {
     crate::runtime::diagnostics_callbacks::flush_deferred_callbacks();
 }
 
-pub(super) fn output_callback_deferred_error(id: String) -> WORTHSignalJsError {
-    WORTHSignalJsError::callback_deferred(
+pub(super) fn output_callback_deferred_error(id: String) -> WorthSignalJsError {
+    WorthSignalJsError::callback_deferred(
         "outputCallbackDeferred",
         "output callback authoring is intentionally deferred; use outputSpec(...) for now",
         Some(id),
@@ -88,7 +88,7 @@ pub(super) fn define_test_input(
     core: &crate::runtime::core::SharedCore,
     id: &str,
     initial: SignalValue,
-) -> Result<InputSignal, WORTHSignalJsError> {
+) -> Result<InputSignal, WorthSignalJsError> {
     core.borrow_mut()
         .define_web_input(id.to_owned(), initial, None::<InputOptions>)?;
     Ok(InputSignal {
@@ -101,7 +101,7 @@ pub(super) fn define_test_input(
 pub(super) fn apply_transaction_for_test(
     core: &crate::runtime::core::SharedCore,
     builder: &SignalsTransaction,
-) -> Result<(), WORTHSignalJsError> {
+) -> Result<(), WorthSignalJsError> {
     let ops = builder.drain_ops();
     core.borrow_mut().apply_transaction(ops)?;
     Ok(())
@@ -112,9 +112,9 @@ pub(super) fn set_for_test(
     tx: &SignalsTransaction,
     input: &InputSignal,
     value: SignalValue,
-) -> Result<(), WORTHSignalJsError> {
+) -> Result<(), WorthSignalJsError> {
     if !Rc::ptr_eq(&tx.core, &input.core) {
-        return Err(WORTHSignalJsError::invalid_input(
+        return Err(WorthSignalJsError::invalid_input(
             "input handle belongs to a different Signals runtime",
         ));
     }

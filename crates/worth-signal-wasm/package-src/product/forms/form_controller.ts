@@ -375,7 +375,6 @@ export function createFormController(signalNamespace, declaration, options = {})
     },
   });
   reactiveBindings.wrapControllerMutations(form);
-  reactiveBindings.noteMutation();
   return Object.freeze(form);
 
   function authoritativeSource() { return canonicalizations.sourceFor(sourceAuthority.read()); }

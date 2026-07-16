@@ -33,7 +33,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not $RepositoryUrl) {
-    $RepositoryUrl = "https://github.com/recnepspencer/WORTH.git"
+    $RepositoryUrl = "https://github.com/recnepspencer/forge.git"
 }
 
 $packageNameWasExplicit =
@@ -46,7 +46,7 @@ $scopeWasExplicit =
 
 if (-not $packageNameWasExplicit) {
     if (-not $scopeWasExplicit) {
-        $PackageName = "worth-signal-wasm"
+        $PackageName = "worth-signals-wasm"
     }
     else {
         $PackageName = $null
@@ -56,6 +56,9 @@ if (-not $packageNameWasExplicit) {
 $cratePath = Resolve-Path $CrateDir
 
 wasm-pack build $cratePath --target bundler --release --out-dir $OutDir
+if ($LASTEXITCODE -ne 0) {
+    throw "wasm-pack build failed with exit code $LASTEXITCODE"
+}
 
 $pkgPath = Join-Path $cratePath $OutDir
 $env:WORTH_SIGNAL_WASM_SCOPE = $Scope
@@ -64,10 +67,16 @@ $env:WORTH_SIGNAL_WASM_REPOSITORY_URL = $RepositoryUrl
 $env:WORTH_SIGNAL_WASM_REGISTRY = $Registry
 $env:WORTH_SIGNAL_WASM_PUBLISH_ACCESS = $Access
 $env:WORTH_SIGNAL_WASM_NOTICE_MODE = $NoticeMode
-node scripts/wasm/prepare-worth-signal-wasm-package.mjs $pkgPath
+node scripts/wasm/prepare-worth-signals-wasm-package.mjs $pkgPath
+if ($LASTEXITCODE -ne 0) {
+    throw "package preparation failed with exit code $LASTEXITCODE"
+}
 
 if (-not $SkipVerify) {
-    node scripts/wasm/verify-worth-signal-wasm-package.mjs $pkgPath
+    node scripts/wasm/verify-worth-signals-wasm-package.mjs $pkgPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "package verification failed with exit code $LASTEXITCODE"
+    }
 }
 
 Push-Location $pkgPath
@@ -77,9 +86,15 @@ try {
     }
     elseif ($Access) {
         npm publish --access $Access
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm publish failed with exit code $LASTEXITCODE"
+        }
     }
     else {
         npm publish
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm publish failed with exit code $LASTEXITCODE"
+        }
     }
 }
 finally {

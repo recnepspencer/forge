@@ -1,4 +1,4 @@
-# worth-signal-wasm Runtime-Truth Test Plan
+# worth-signals-wasm Runtime-Truth Test Plan
 
 > **Status:** Completed closeout note
 >

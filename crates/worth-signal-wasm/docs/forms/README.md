@@ -1,7 +1,7 @@
 # Forms Docs
 
 These docs cover the shipped `signals.form(...)` surface in
-`worth-signal-wasm`.
+`worth-signals-wasm`.
 
 The current rewrite is organized around the questions people actually ask:
 

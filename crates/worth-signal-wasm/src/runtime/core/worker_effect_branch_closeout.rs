@@ -3,7 +3,7 @@ use worth_signal::facade::history::{
     RuntimeBranchId, SignalBranchRetirementBatchRequest, SignalBranchRetirementRequest,
 };
 
-use crate::boundary::errors::WORTHSignalJsError;
+use crate::boundary::errors::WorthSignalJsError;
 
 use super::worker_branch_command_model::{
     WorkerCloseoutEffectBranchReceipt, WorkerCloseoutEffectBranchRequest,
@@ -17,7 +17,7 @@ impl RuntimeCore {
     pub fn retire_worker_branches(
         &mut self,
         request: WorkerRetireBranchesRequest,
-    ) -> Result<WorkerRetireBranchesReceipt, WORTHSignalJsError> {
+    ) -> Result<WorkerRetireBranchesReceipt, WorthSignalJsError> {
         let mut terminal_bases = Vec::with_capacity(request.retirements.len());
         let mut native_requests = Vec::with_capacity(request.retirements.len());
         for retirement in &request.retirements {
@@ -57,7 +57,7 @@ impl RuntimeCore {
     pub fn closeout_worker_effect_branch(
         &mut self,
         request: WorkerCloseoutEffectBranchRequest,
-    ) -> Result<WorkerCloseoutEffectBranchReceipt, WORTHSignalJsError> {
+    ) -> Result<WorkerCloseoutEffectBranchReceipt, WorthSignalJsError> {
         let effect_request = request.effect_retirement;
         let dependency_request = request.dependency_basis_retirement;
         let terminal_basis = self.worker_branch_basis(effect_request.branch_id)?;
@@ -119,12 +119,12 @@ impl RuntimeCore {
     fn native_retirement_request(
         &mut self,
         request: &WorkerRetireBranchRequest,
-    ) -> Result<SignalBranchRetirementRequest, WORTHSignalJsError> {
+    ) -> Result<SignalBranchRetirementRequest, WorthSignalJsError> {
         let branch = self
             .runtime
             .branch_handle(RuntimeBranchId(request.branch_id))
             .ok_or_else(|| {
-                WORTHSignalJsError::invalid_input(
+                WorthSignalJsError::invalid_input(
                     "closeoutEffectBranch references an unknown retirement branch",
                 )
             })?;

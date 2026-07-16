@@ -17,7 +17,7 @@ projecting every still-open effect over canonical truth.
 ## Minimal Flow
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 const tasks = signals.api({

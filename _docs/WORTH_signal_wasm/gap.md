@@ -1,7 +1,7 @@
 # WORTH Signal Wasm Gap Report
 
 This document records product-surface and runtime-surface gaps discovered while
-using and evaluating the current `worth-signal-wasm` library.
+using and evaluating the current `worth-signals-wasm` library.
 
 The goal is not to blame application code for every failure mode. Some observed
 failures were triggered by local workarounds, but those workarounds also exposed
@@ -154,7 +154,7 @@ These combinations should be checked explicitly:
 
 This is an especially important audit lane.
 
-The library should be checked for â€œstatus-only command endpointsâ€ where the
+The library should be checked for Ã¢â‚¬Å“status-only command endpointsÃ¢â‚¬Â where the
 honest outcome is:
 
 - accepted write line
@@ -202,8 +202,8 @@ without lying about any of the three.
 ### Problem Statement
 
 The current docs talk a lot about exact versus fallback reconciliation, but they
-do not appear to present a first-class â€œoptional resource lineâ€ or â€œdisabled
-line subscriptionâ€ pattern for React.
+do not appear to present a first-class Ã¢â‚¬Å“optional resource lineÃ¢â‚¬Â or Ã¢â‚¬Å“disabled
+line subscriptionÃ¢â‚¬Â pattern for React.
 
 The visible type surface appears to give us shapes like:
 
@@ -252,9 +252,9 @@ Required properties:
 - hook-order safe
 - no fake network request
 - no synthetic null or sentinel signal hacks required by app code
-- explicit â€œinactive / no selection / not mounted by intentâ€ posture
-- diagnostics that distinguish â€œinactive by author intentâ€ from â€œloadingâ€,
-  â€œerrorâ€, â€œfallbackâ€, or â€œstaleâ€
+- explicit Ã¢â‚¬Å“inactive / no selection / not mounted by intentÃ¢â‚¬Â posture
+- diagnostics that distinguish Ã¢â‚¬Å“inactive by author intentÃ¢â‚¬Â from Ã¢â‚¬Å“loadingÃ¢â‚¬Â,
+  Ã¢â‚¬Å“errorÃ¢â‚¬Â, Ã¢â‚¬Å“fallbackÃ¢â‚¬Â, or Ã¢â‚¬Å“staleÃ¢â‚¬Â
 
 ### Concrete Audit Questions
 
@@ -265,7 +265,7 @@ The audit should answer:
 2. Does the non-React surface already support an explicit inactive posture that
    the React adapter fails to expose?
 3. Is component boundary splitting the intended official answer today?
-4. Does the diagnostics surface have vocabulary for â€œintentionally inactiveâ€?
+4. Does the diagnostics surface have vocabulary for Ã¢â‚¬Å“intentionally inactiveÃ¢â‚¬Â?
 5. Does `family.line(...)` materialize too eagerly for conditional UI cases?
 
 ### Current Workaround Classes
@@ -311,8 +311,8 @@ contract:
 
 ### Acceptance Criteria For Closing The Gap
 
-This gap is not closed until a React consumer can honestly express â€œnothing is
-selected right nowâ€ without:
+This gap is not closed until a React consumer can honestly express Ã¢â‚¬Å“nothing is
+selected right nowÃ¢â‚¬Â without:
 
 - violating hook order
 - issuing a fake request
@@ -1146,7 +1146,7 @@ across adjacent product lanes.
 
 ### Why This Looks Like A Real Library Gap
 
-The `worth-signal-wasm` planning docs already acknowledge this pressure:
+The `worth-signals-wasm` planning docs already acknowledge this pressure:
 
 - `web_runtime_spec.md` says the package should feel native in web codebases
   and warns against apps building their own subscription layer because wasm
@@ -2390,7 +2390,7 @@ const form = useSignalsForm({
 
 **Acceptance signal**
 
-- a typical modal CRUD form can be authored directly against the libraryâ€™s
+- a typical modal CRUD form can be authored directly against the libraryÃ¢â‚¬â„¢s
   React form surface without a large app-local facade
 
 ### Gap 9: No First-Class Subscription-Based "Await Settlement" Lane
@@ -3009,7 +3009,7 @@ dialog.loading.set(true);
 **Wrapper reduction goal**
 
 - app foundations should not need to re-invent dialog authority beside the
-  libraryâ€™s much richer form authority surface
+  libraryÃ¢â‚¬â„¢s much richer form authority surface
 
 **Acceptance signal**
 

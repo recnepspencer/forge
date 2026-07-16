@@ -1,6 +1,6 @@
 import React from "react";
-import { createSignals } from "worth-signal-wasm";
-import { createReactSignalsStore, useResourceLine } from "worth-signal-wasm/react";
+import { createSignals } from "worth-signals-wasm";
+import { createReactSignalsStore, useResourceLine } from "worth-signals-wasm/react";
 import { DxCorner } from "./DxCorner";
 import { ResourceLinesSectionCodeSample } from "./ResourceLinesSectionCodeSample";
 
@@ -156,7 +156,7 @@ function FreshnessPill({ freshness }: { freshness: { kind: string; reason?: stri
   return (
     <span className={`rl-pill rl-pill-freshness${stale ? " rl-pill-stale" : " rl-pill-ok"}`}>
       {freshness.kind}
-      {stale && freshness.reason ? <em> · {freshness.reason}</em> : null}
+      {stale && freshness.reason ? <em> Â· {freshness.reason}</em> : null}
     </span>
   );
 }
@@ -176,7 +176,7 @@ function TapeRow({ entry }: { entry: LifecycleEntryView }): React.ReactElement {
         </details>
       </div>
       <span className="rl-tape-meta">
-        {entry.statusKind} · {entry.freshnessKind}
+        {entry.statusKind} Â· {entry.freshnessKind}
       </span>
     </li>
   );
@@ -332,7 +332,7 @@ function StorefrontWorkbench({ WORTH }: { WORTH: StorefrontWORTH }): React.React
     : null;
 
   const liveCodeLine = lastEffect
-    ? `// → "${String(lastEffect.provenance ?? "unknown")}"${lastDelivery ? ` · packet ${lastDelivery.packetId} · ${lastDelivery.field} patched` : ""}`
+    ? `// â†’ "${String(lastEffect.provenance ?? "unknown")}"${lastDelivery ? ` Â· packet ${lastDelivery.packetId} Â· ${lastDelivery.field} patched` : ""}`
     : null;
 
   return (
@@ -353,10 +353,10 @@ function StorefrontWorkbench({ WORTH }: { WORTH: StorefrontWORTH }): React.React
               {item.name}
             </button>
           ))}
-          {catalog === null ? <span className="rl-catalog-loading">loading catalog…</span> : null}
+          {catalog === null ? <span className="rl-catalog-loading">loading catalogâ€¦</span> : null}
         </div>
         <span className="rl-catalog-meta">
-          {WORTH.catalogLine.history().lifecycle.length} recorded events · its own recorder, its own truth
+          {WORTH.catalogLine.history().lifecycle.length} recorded events Â· its own recorder, its own truth
         </span>
       </section>
 
@@ -364,29 +364,29 @@ function StorefrontWorkbench({ WORTH }: { WORTH: StorefrontWORTH }): React.React
         <article className={`rl-product-card${ambush ? " is-alarmed" : ""}`}>
           <header className="rl-product-head">
             <div>
-              <h3>{product?.name ?? "Loading product…"}</h3>
+              <h3>{product?.name ?? "Loading productâ€¦"}</h3>
               <span className="rl-line-identity">{`product.line({ productId: "${selectedId}" })`}</span>
             </div>
             <StatusPill kind={status.kind} />
           </header>
 
           <dl className="rl-product-fields">
-            <div className={shock && shock.field === "price" && (ambush || revealed) ? "rl-field-flash" : ""} key={`price-${product?.price ?? "…"}`}>
+            <div className={shock && shock.field === "price" && (ambush || revealed) ? "rl-field-flash" : ""} key={`price-${product?.price ?? "â€¦"}`}>
               <dt>Price</dt>
-              <dd>{product ? money(product.price) : "—"}</dd>
+              <dd>{product ? money(product.price) : "â€”"}</dd>
             </div>
-            <div key={`inv-${product?.inventory ?? "…"}`}>
+            <div key={`inv-${product?.inventory ?? "â€¦"}`}>
               <dt>Inventory</dt>
-              <dd>{product ? `${product.inventory} in stock` : "—"}</dd>
+              <dd>{product ? `${product.inventory} in stock` : "â€”"}</dd>
             </div>
             <div>
               <dt>Status</dt>
-              <dd>{product?.status ?? "—"}</dd>
+              <dd>{product?.status ?? "â€”"}</dd>
             </div>
           </dl>
 
           <div className="rl-familiar-divider" aria-hidden="true">
-            <span>everything above is any fetch · everything below exists because this read is a line</span>
+            <span>everything above is any fetch Â· everything below exists because this read is a line</span>
           </div>
 
           <div className="rl-line-facts">
@@ -394,7 +394,7 @@ function StorefrontWorkbench({ WORTH }: { WORTH: StorefrontWORTH }): React.React
             <span className="rl-pill rl-pill-provenance">
               last effect: {lastEffect ? String(lastEffect.provenance ?? "unknown") : "none"}
             </span>
-            <code className="rl-facts-caption">line.freshness() · line.diagnostics().lastEffect</code>
+            <code className="rl-facts-caption">line.freshness() Â· line.diagnostics().lastEffect</code>
           </div>
 
           {revealed ? (
@@ -415,7 +415,7 @@ function StorefrontWorkbench({ WORTH }: { WORTH: StorefrontWORTH }): React.React
                 type="button"
               >
                 Server: push another change
-                <span>line.deliver(…)</span>
+                <span>line.deliver(â€¦)</span>
               </button>
             </div>
           ) : null}
@@ -429,7 +429,7 @@ function StorefrontWorkbench({ WORTH }: { WORTH: StorefrontWORTH }): React.React
           <button className="rl-shock-button" onClick={reveal} type="button">
             <strong>Wait. Why did that change?</strong>
             <span>
-              {shock.field} just went {money(shock.from)} → {money(shock.to)} and you didn’t touch anything.
+              {shock.field} just went {money(shock.from)} â†’ {money(shock.to)} and you didnâ€™t touch anything.
             </span>
           </button>
         ) : null}
@@ -440,13 +440,13 @@ function StorefrontWorkbench({ WORTH }: { WORTH: StorefrontWORTH }): React.React
           {shock && selectedId === FOCUS_PRODUCT_ID ? (
             <div className="rl-answer-banner">
               <p className="rl-answer-main">
-                A backend delivery patched <strong>{shock.field}</strong> {money(shock.from)} → {money(shock.to)} — packet{" "}
+                A backend delivery patched <strong>{shock.field}</strong> {money(shock.from)} â†’ {money(shock.to)} â€” packet{" "}
                 <code>{shock.packetId}</code>
-                {lastDelivery ? <> · basis <code>{lastDelivery.nextBasisId}</code></> : null}. No user action involved.
+                {lastDelivery ? <> Â· basis <code>{lastDelivery.nextBasisId}</code></> : null}. No user action involved.
               </p>
               <p className="rl-answer-sub">
                 The value on screen changed behind your back, and the read itself kept the receipt. Every stack does this
-                to its users — most just have nothing to consult afterwards.
+                to its users â€” most just have nothing to consult afterwards.
               </p>
               <code className="rl-facts-caption">line.diagnostics().lastEffect</code>
             </div>
@@ -469,7 +469,7 @@ function StorefrontWorkbench({ WORTH }: { WORTH: StorefrontWORTH }): React.React
             ))}
           </ul>
           <p className="rl-recorder-footnote">
-            Every row is read from the runtime. Switch products above — each line carries its own recorder.
+            Every row is read from the runtime. Switch products above â€” each line carries its own recorder.
           </p>
         </section>
       ) : null}
@@ -485,18 +485,18 @@ function StorefrontWorkbench({ WORTH }: { WORTH: StorefrontWORTH }): React.React
         <DxCorner
           code={RESOURCE_LINES_DX_SAMPLE}
           filename="product-price.tsx"
-          subtitle="Audit-grade server state with a smaller day-to-day surface than a query library: one handle owns fetch, freshness, patches, and history — no query keys, no cache-sync glue."
+          subtitle="Audit-grade server state with a smaller day-to-day surface than a query library: one handle owns fetch, freshness, patches, and history â€” no query keys, no cache-sync glue."
           receipts={[
             {
               claim: "No query keys to invent.",
-              api: "product.line({ productId }) — identity is the params",
+              api: "product.line({ productId }) â€” identity is the params",
             },
             {
               claim: "Actions live on the handle you already hold.",
-              api: "line.refresh() · line.invalidate() · line.deliver(…)",
+              api: "line.refresh() Â· line.invalidate() Â· line.deliver(â€¦)",
             },
             {
-              claim: "Loading, refreshing, empty, error — already decided.",
+              claim: "Loading, refreshing, empty, error â€” already decided.",
               api: "useResourceView(line).contentState",
             },
           ]}
@@ -528,12 +528,12 @@ export function ResourceLinesSection({ onNavigate }: ResourceLinesSectionProps):
   return (
     <div className="accent-resources rl-section">
       {bootError ? <div className="signals-runtime-message">{bootError}</div> : null}
-      {!WORTH && !bootError ? <div className="signals-runtime-message">Connecting to the Worth runtime…</div> : null}
+      {!WORTH && !bootError ? <div className="signals-runtime-message">Connecting to the Worth runtimeâ€¦</div> : null}
       {WORTH ? <StorefrontWorkbench WORTH={WORTH} /> : null}
 
       <div className="signals-docs-row">
         <button onClick={() => onNavigate("#/docs/resources/index")} type="button">
-          Explore resource lines in the documentation <span aria-hidden="true">→</span>
+          Explore resource lines in the documentation <span aria-hidden="true">â†’</span>
         </button>
       </div>
     </div>

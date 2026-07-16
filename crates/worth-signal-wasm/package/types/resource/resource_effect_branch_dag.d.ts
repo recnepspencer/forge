@@ -32,7 +32,6 @@ export interface ResourceOptimisticProjectionReceipt<TValue = unknown> {
   readonly projectionDigest: string;
   readonly canonicalAuthority: false;
   readonly affectedEffectIds?: readonly string[];
-  readonly affectedEffectIds?: readonly string[];
   readonly plan: {
     readonly strategy: "affectedLocusRebuild" | "measuredBroadRebuild";
     readonly affectedLocusKeys: readonly string[];

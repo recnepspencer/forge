@@ -21,9 +21,9 @@ any screen where responses can arrive in a different order from requests.
 
 ## Stable Entry Points
 
-- `await createSignals()` â€” worker-first by default
+- `await createSignals()` Ã¢â‚¬â€ worker-first by default
 - `signals.resource.effects.branchNative()`
-- `line.patch(patch)` â€” returns the admitted `effectId` in branch-native mode
+- `line.patch(patch)` Ã¢â‚¬â€ returns the admitted `effectId` in branch-native mode
 - `resourcePatch.dependsOn(patch, effectIds)`
 - `line.effects().get(effectId)`
 - `line.effects().open()`
@@ -78,7 +78,7 @@ a duplicate-settlement receipt.
 ## Small Example
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 const tasks = signals.api({
@@ -123,7 +123,7 @@ what removes the optimistic row.
 This example admits two siblings and an edit that depends on a create:
 
 ```ts
-import { resourcePatch } from "worth-signal-wasm";
+import { resourcePatch } from "worth-signals-wasm";
 
 const create = await line.patch(tasks.patch.insert({
   itemId: draft.id,

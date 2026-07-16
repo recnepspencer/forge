@@ -148,7 +148,8 @@ test("Demo 5 create-edit dependencies handle transformed success and rejection",
 test("Demo 5 has no compatibility or rejection-time repair shortcut", async () => {
   const WORTHPanel = await readFile(new URL("../src/ui/ResourcesWORTHPanel.tsx", import.meta.url), "utf8");
   const section = await readFile(new URL("../src/ui/ResourcesSection.tsx", import.meta.url), "utf8");
-  const bridge = await readFile(new URL("../src/runtime/WORTHSignalWasmBridge.ts", import.meta.url), "utf8");
+  const viteConfig = await readFile(new URL("../vite.config.ts", import.meta.url), "utf8");
+  const packageManifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 
   assert.match(WORTHPanel, /createSignals\(\)/u);
   assert.doesNotMatch(WORTHPanel, /mainThreadCompatibility/u);
@@ -159,7 +160,9 @@ test("Demo 5 has no compatibility or rejection-time repair shortcut", async () =
   assert.match(WORTHPanel, /createRuntimeReceipt/u);
   assert.doesNotMatch(WORTHPanel, /dependencyCancelled\.current|for \(let attempt/u);
   assert.match(section, /evidence === "refetchCompleted"/u);
-  assert.match(bridge, /createPackagedSignals/u);
+  assert.equal(packageManifest.dependencies["worth-signals-wasm"], "1.2.0");
+  assert.doesNotMatch(viteConfig, /find: "worth-signals-wasm/u);
+  assert.doesNotMatch(viteConfig, /WORTHSignalWasmBridge/u);
 });
 
 test("Demo 5 ledger claims are runtime-issued receipt fields", async () => {

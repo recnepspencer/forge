@@ -15,7 +15,7 @@ const publishNoticeMode = process.env.WORTH_SIGNAL_WASM_NOTICE_MODE ?? "none";
 
 const normalizedScope = scope ? scope.toLowerCase() : null;
 const repoUrl = process.env.WORTH_SIGNAL_WASM_REPOSITORY_URL
-  ?? "https://github.com/recnepspencer/WORTH.git";
+  ?? "https://github.com/recnepspencer/forge.git";
 const pkgDir = path.resolve(
   process.argv[2] ?? "crates/worth-signal-wasm/pkg",
 );
@@ -55,7 +55,7 @@ const cargoManifest = await readFile(cargoManifestPath, "utf8");
 const crateVersionMatch = cargoManifest.match(/^version\s*=\s*"([^"]+)"\s*$/mu);
 
 if (!crateVersionMatch) {
-  throw new Error(`Could not determine worth-signal-wasm version from ${cargoManifestPath}`);
+  throw new Error(`Could not determine worth-signals-wasm version from ${cargoManifestPath}`);
 }
 
 const crateVersion = crateVersionMatch[1];
@@ -274,14 +274,14 @@ async function instantiateResponse(responseOrPromise, importObject) {
 
 export default init;
 export {
-    ComputedSignal, DisposableHandle, InputSignal, OutputSignal, SignalAdapters, SignalApp, SignalDiagnostics, SignalHistory, SignalRuntime, SignalSpecialist, SignalWorkerRuntime, Signals, SignalsTransaction, createSignals, WORTHSignalCoreProfile, WORTHSignalMaxAspects, start
+    ComputedSignal, DisposableHandle, InputSignal, OutputSignal, SignalAdapters, SignalApp, SignalDiagnostics, SignalHistory, SignalRuntime, SignalSpecialist, SignalWorkerRuntime, Signals, SignalsTransaction, createSignals, WorthSignalCoreProfile, WorthSignalMaxAspects, start
 } from "./worth_signal_wasm_bg.js";
 `;
   await writeFile(path.join(pkgDir, "worth_signal_wasm.js"), source, "utf8");
 }
 
 packageJson.name = packageNameOverride
-  ?? (normalizedScope ? `@${normalizedScope}/worth-signal-wasm` : "worth-signal-wasm");
+  ?? (normalizedScope ? `@${normalizedScope}/worth-signals-wasm` : "worth-signals-wasm");
 packageJson.version = crateVersion;
 packageJson.license = "UNLICENSED";
 packageJson.repository = {

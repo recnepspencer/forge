@@ -17,8 +17,7 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@WORTH/signal": ["../../packages/worth-signal/src/index.d.ts"],
-      "worth-signal-wasm": ["../../crates/worth-signal-wasm/pkg/index.d.ts"]
+      "@WORTH/signal": ["../../packages/worth-signal/src/index.d.ts"]
     },
 
     /* Linting */

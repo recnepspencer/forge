@@ -1,4 +1,4 @@
-# worth-signal-wasm Test Requirements
+# worth-signals-wasm Test Requirements
 
 > **Status:** Completed certification spec
 >
@@ -12,7 +12,7 @@
 
 ## Purpose
 
-This document defines the certification bar for the `worth-signal-wasm`
+This document defines the certification bar for the `worth-signals-wasm`
 resource/API product surface.
 
 It is not a list of example tests.
@@ -1131,7 +1131,7 @@ replay/restore digest.
 
 ## Certification Closeout Rule
 
-The `worth-signal-wasm` API-surface milestone is not closed until:
+The `worth-signals-wasm` API-surface milestone is not closed until:
 
 - every named suite in this document has a real owning proof lane
 - suite 0 exists as a real hostile end-to-end certification lane rather than a

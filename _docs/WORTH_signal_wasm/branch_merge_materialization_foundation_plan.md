@@ -26,7 +26,7 @@
 ## Goal
 
 Make branch merge execution a real web-product foundation: native merge proof
-decides semantic merge truth, and `worth-signal-wasm` materializes that truth
+decides semantic merge truth, and `worth-signals-wasm` materializes that truth
 into web-visible state through declared, proof-bearing materialization
 strategies.
 
@@ -270,7 +270,7 @@ Execution consumes the intent and denies if the basis no longer matches.
 
 ### Materialization Strategy Authority
 
-`worth-signal-wasm` owns the strategy that maps native merge proof into
+`worth-signals-wasm` owns the strategy that maps native merge proof into
 web-visible state.
 
 The first admitted strategy is:

@@ -98,11 +98,11 @@ test("concurrency docs are linked and available to the in-app docs browser", asy
   }
 
   const docsContent = await readFile(
-    path.join(workspaceDir, "apps", "worth-signals", "src", "state", "docsContent.ts"),
+    path.join(workspaceDir, "apps", "WORTH-signal-demo", "src", "state", "docsContent.ts"),
     "utf8",
   );
   const demo = await readFile(
-    path.join(workspaceDir, "apps", "worth-signals", "src", "ui", "ResourcesSection.tsx"),
+    path.join(workspaceDir, "apps", "WORTH-signal-demo", "src", "ui", "ResourcesSection.tsx"),
     "utf8",
   );
   assert.match(docsContent, /worth-signal-wasm\/docs\/\*\*\/\*\.md/);

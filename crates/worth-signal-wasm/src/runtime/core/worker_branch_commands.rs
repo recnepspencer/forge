@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::boundary::errors::WORTHSignalJsError;
+use crate::boundary::errors::WorthSignalJsError;
 use crate::recipe::model::TransactionOp;
 use crate::runtime::summaries::RunSummary;
 use worth_proof::TransitionOutcome;
@@ -28,7 +28,7 @@ impl RuntimeCore {
     pub fn worker_branch_basis(
         &self,
         branch_id: u64,
-    ) -> Result<WorkerBranchBasisReceipt, WORTHSignalJsError> {
+    ) -> Result<WorkerBranchBasisReceipt, WorthSignalJsError> {
         let branch = self
             .runtime
             .branch_handle(RuntimeBranchId(branch_id))
@@ -55,7 +55,7 @@ impl RuntimeCore {
     pub fn fork_worker_branch(
         &mut self,
         request: WorkerForkBranchRequest,
-    ) -> Result<WorkerForkBranchReceipt, WORTHSignalJsError> {
+    ) -> Result<WorkerForkBranchReceipt, WorthSignalJsError> {
         let parent_basis = self.worker_branch_basis(request.parent_branch_id)?;
         require_basis(&request.expected_parent_basis, &parent_basis, "forkBranch")?;
         let parent_state = self.state_for_branch(request.parent_branch_id);
@@ -80,7 +80,7 @@ impl RuntimeCore {
     pub fn apply_transaction_to_worker_branch(
         &mut self,
         request: WorkerApplyTransactionToBranchRequest,
-    ) -> Result<WorkerApplyTransactionToBranchReceipt, WORTHSignalJsError> {
+    ) -> Result<WorkerApplyTransactionToBranchReceipt, WorthSignalJsError> {
         let before_basis = self.worker_branch_basis(request.branch_id)?;
         require_basis(
             &request.expected_basis,
@@ -151,7 +151,7 @@ impl RuntimeCore {
         };
         let (pending, runtime_read_breadth) = dependency_patches
             .lock()
-            .map_err(|_| WORTHSignalJsError::internal("dependency patch receipt mutex poisoned"))?
+            .map_err(|_| WorthSignalJsError::internal("dependency patch receipt mutex poisoned"))?
             .take()
             .unwrap_or_default();
         self.record_committed_callback_dependency_patches(pending, runtime_read_breadth)?;
@@ -177,7 +177,7 @@ impl RuntimeCore {
     pub fn retire_worker_branch(
         &mut self,
         request: WorkerRetireBranchRequest,
-    ) -> Result<WorkerRetireBranchReceipt, WORTHSignalJsError> {
+    ) -> Result<WorkerRetireBranchReceipt, WorthSignalJsError> {
         let terminal_basis = self.worker_branch_basis(request.branch_id)?;
         require_basis(&request.expected_basis, &terminal_basis, "retireBranch")?;
         let branch = self
@@ -218,7 +218,7 @@ impl RuntimeCore {
     fn install_companion_state(
         &mut self,
         state: &BranchRuntimeState,
-    ) -> Result<(), WORTHSignalJsError> {
+    ) -> Result<(), WorthSignalJsError> {
         self.ensure_callback_snapshot_availability(&state.store)?;
         self.restore_branch_metadata(state.metadata.clone());
         self.lock_store()?.restore_snapshot(state.store.clone());
@@ -228,7 +228,7 @@ impl RuntimeCore {
     fn validate_targeted_transaction_shape(
         &self,
         ops: &[TransactionOp],
-    ) -> Result<(), WORTHSignalJsError> {
+    ) -> Result<(), WorthSignalJsError> {
         for op in ops {
             match op {
                 TransactionOp::Set { id, .. } | TransactionOp::SetWithRegions { id, .. } => {
@@ -251,7 +251,7 @@ impl RuntimeCore {
                     }
                 }
                 TransactionOp::SetManyKeyed { family_id, .. } => {
-                    return Err(WORTHSignalJsError::invalid_input(format!(
+                    return Err(WorthSignalJsError::invalid_input(format!(
                         "branch-targeted transaction cannot materialize keyed family `{family_id}`; publish authored keys before forking"
                     )));
                 }
@@ -262,12 +262,12 @@ impl RuntimeCore {
                     ..
                 } => {
                     let Some(family) = self.dense_grids.get(family_id) else {
-                        return Err(WORTHSignalJsError::invalid_input(format!(
+                        return Err(WorthSignalJsError::invalid_input(format!(
                             "branch-targeted transaction references unknown dense family `{family_id}`"
                         )));
                     };
                     if family.width != *width || family.height != *height {
-                        return Err(WORTHSignalJsError::invalid_input(format!(
+                        return Err(WorthSignalJsError::invalid_input(format!(
                             "branch-targeted dense family `{family_id}` shape does not match its authored graph"
                         )));
                     }
@@ -311,11 +311,11 @@ pub(super) fn require_basis(
     expected: &WorkerBranchBasisReceipt,
     observed: &WorkerBranchBasisReceipt,
     operation: &str,
-) -> Result<(), WORTHSignalJsError> {
+) -> Result<(), WorthSignalJsError> {
     if expected == observed {
         return Ok(());
     }
-    Err(WORTHSignalJsError::invalid_input(format!(
+    Err(WorthSignalJsError::invalid_input(format!(
         "{operation} denied a stale worker branch basis: expected generation {}/{}, observed {}/{}",
         expected.native_head_generation,
         expected.authored_graph_generation,
@@ -327,7 +327,7 @@ pub(super) fn require_basis(
 pub(super) fn expect_success<T: std::fmt::Debug, D: std::fmt::Debug>(
     outcome: TransitionOutcome<T, D>,
     operation: &str,
-) -> Result<T, WORTHSignalJsError> {
+) -> Result<T, WorthSignalJsError> {
     match outcome {
         TransitionOutcome::Success(value) => Ok(value),
         other => Err(outcome_error(operation, other)),
@@ -344,16 +344,16 @@ fn outcome_error<
 >(
     operation: &str,
     outcome: TransitionOutcome<T, D, De, S, R, F>,
-) -> WORTHSignalJsError {
-    WORTHSignalJsError::invalid_input(format!("{operation} denied: {outcome:?}"))
+) -> WorthSignalJsError {
+    WorthSignalJsError::invalid_input(format!("{operation} denied: {outcome:?}"))
 }
 
-fn unknown_branch(branch_id: u64) -> WORTHSignalJsError {
-    WORTHSignalJsError::invalid_input(format!("unknown worker branch `{branch_id}`"))
+fn unknown_branch(branch_id: u64) -> WorthSignalJsError {
+    WorthSignalJsError::invalid_input(format!("unknown worker branch `{branch_id}`"))
 }
 
-fn unknown_target_signal(id: &str) -> WORTHSignalJsError {
-    WORTHSignalJsError::invalid_input(format!(
+fn unknown_target_signal(id: &str) -> WorthSignalJsError {
+    WorthSignalJsError::invalid_input(format!(
         "branch-targeted transaction references unknown authored signal `{id}`"
     ))
 }

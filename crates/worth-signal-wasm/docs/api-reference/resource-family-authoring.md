@@ -105,7 +105,7 @@ The family shape rules are strict on purpose:
 ## Small Example
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -138,7 +138,7 @@ import {
   resourceProcessingJob,
   resourceRequestContext,
   resourceUploadTransport,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 

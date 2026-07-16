@@ -1,5 +1,5 @@
 import React from "react";
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 import { useSignal } from "./Demos";
 import { SignalsCodeSample } from "./SignalsSectionCodeSample";
 import "./signalsSection.css";
@@ -300,7 +300,7 @@ function AmountCard({
         </div>
         <small id="transfer-policy-threshold">
           {hasDraft
-            ? `Draft ${wholeCurrency.format(stagedAmount)} — release to commit the transaction`
+            ? `Draft ${wholeCurrency.format(stagedAmount)} â€” release to commit the transaction`
             : `Transfers at or above ${wholeCurrency.format(REVIEW_THRESHOLD)} route to manual review.`}
         </small>
       </div>
@@ -349,7 +349,7 @@ function DecisionCard({
       </header>
       <strong aria-live="polite">{value}</strong>
       <small>{caption}</small>
-      <footer className="signals-card-why-hint">why did this change? →</footer>
+      <footer className="signals-card-why-hint">why did this change? â†’</footer>
     </article>
   );
 }
@@ -364,24 +364,24 @@ function AuditRow({ entry }: { entry: AuditEntry }): React.ReactElement {
       <div className="signals-audit-body">
         {entry.kind === "created" ? (
           <p className="signals-audit-main">
-            graph created — amount {wholeCurrency.format(entry.amountTo)} · fee {currency.format(entry.feeTo)} · reviewLane {entry.laneTo}
+            graph created â€” amount {wholeCurrency.format(entry.amountTo)} Â· fee {currency.format(entry.feeTo)} Â· reviewLane {entry.laneTo}
           </p>
         ) : (
           <>
             <p className="signals-audit-main">
-              amount {wholeCurrency.format(entry.amountFrom)} → <strong>{wholeCurrency.format(entry.amountTo)}</strong>
+              amount {wholeCurrency.format(entry.amountFrom)} â†’ <strong>{wholeCurrency.format(entry.amountTo)}</strong>
             </p>
             <p className="signals-audit-chips">
               <span className="signals-chip signals-chip-fee">
-                fee recomputed {currency.format(entry.feeFrom)} → {currency.format(entry.feeTo)}
+                fee recomputed {currency.format(entry.feeFrom)} â†’ {currency.format(entry.feeTo)}
               </span>
               {laneChanged ? (
                 <span className="signals-chip signals-chip-flipped">
-                  reviewLane changed {entry.laneFrom} → {entry.laneTo}
+                  reviewLane changed {entry.laneFrom} â†’ {entry.laneTo}
                 </span>
               ) : (
                 <span className="signals-chip signals-chip-unchanged">
-                  reviewLane recomputed — output unchanged ({entry.laneTo})
+                  reviewLane recomputed â€” output unchanged ({entry.laneTo})
                 </span>
               )}
             </p>
@@ -394,7 +394,7 @@ function AuditRow({ entry }: { entry: AuditEntry }): React.ReactElement {
       </div>
       <span className="signals-audit-meta">
         {entry.recomputedCount !== null
-          ? `${entry.recomputedCount} recomputed${entry.stageCount !== null ? ` · ${entry.stageCount} stages` : ""}`
+          ? `${entry.recomputedCount} recomputed${entry.stageCount !== null ? ` Â· ${entry.stageCount} stages` : ""}`
           : "initial"}
       </span>
     </li>
@@ -443,7 +443,7 @@ function WhyPanel({
           </div>
           <div>
             <dt>reads</dt>
-            <dd>{reads.length > 0 ? reads.join(", ") : "none — source input"}</dd>
+            <dd>{reads.length > 0 ? reads.join(", ") : "none â€” source input"}</dd>
           </div>
           <div>
             <dt>state</dt>
@@ -453,11 +453,11 @@ function WhyPanel({
             <dt>last outcome</dt>
             <dd className={why.outputChange === "Refreshed" ? "is-changed" : ""}>
               {why.outputChange === "Refreshed"
-                ? "recomputed · output changed"
+                ? "recomputed Â· output changed"
                 : why.outputChange === "Unchanged"
-                  ? "recomputed · output unchanged"
+                  ? "recomputed Â· output unchanged"
                   : why.outputChange
-                    ? `recomputed · ${why.outputChange.toLowerCase()}`
+                    ? `recomputed Â· ${why.outputChange.toLowerCase()}`
                     : "no recompute recorded"}
             </dd>
           </div>
@@ -465,8 +465,8 @@ function WhyPanel({
             <div>
               <dt>dependency versions</dt>
               <dd>
-                cached v{versions.cached} · current v{versions.current}
-                {versions.cached === versions.current ? " — in sync" : " — stale"}
+                cached v{versions.cached} Â· current v{versions.current}
+                {versions.cached === versions.current ? " â€” in sync" : " â€” stale"}
               </dd>
             </div>
           ) : null}
@@ -547,8 +547,8 @@ function TransferWorkbench({ graph }: { graph: TransferGraph }): React.ReactElem
   const manualReview = reviewLane === "Manual review";
   const latestEntry = entries[0];
   const liveWhyLine = latestEntry && latestEntry.kind === "commit"
-    ? `// → { state: "Clean", outputChange: "${latestEntry.laneOutcome ?? "Unchanged"}", reads: ["amount"] }`
-    : `// → { state: "Clean", outputChange: —, reads: ["amount"] }`;
+    ? `// â†’ { state: "Clean", outputChange: "${latestEntry.laneOutcome ?? "Unchanged"}", reads: ["amount"] }`
+    : `// â†’ { state: "Clean", outputChange: â€”, reads: ["amount"] }`;
 
   return (
     <>
@@ -598,7 +598,7 @@ function TransferWorkbench({ graph }: { graph: TransferGraph }): React.ReactElem
           </ul>
           {entries.length > VISIBLE_AUDIT_ROWS ? (
             <p className="signals-audit-more">
-              Showing the latest {VISIBLE_AUDIT_ROWS} of {entries.length} records — the export carries all of them.
+              Showing the latest {VISIBLE_AUDIT_ROWS} of {entries.length} records â€” the export carries all of them.
             </p>
           ) : null}
           <p className="signals-audit-footnote">
@@ -647,12 +647,12 @@ export function SignalsSection({ onNavigate }: SignalsSectionProps): React.React
   return (
     <div className="accent-signals signals-section">
       {bootError ? <div className="signals-runtime-message">{bootError}</div> : null}
-      {!graph && !bootError ? <div className="signals-runtime-message">Connecting to the Worth runtime…</div> : null}
+      {!graph && !bootError ? <div className="signals-runtime-message">Connecting to the Worth runtimeâ€¦</div> : null}
       {graph ? <TransferWorkbench graph={graph} /> : null}
 
       <div className="signals-docs-row">
         <button onClick={() => onNavigate("#/docs/learn/feature-index")} type="button">
-          Explore signals in the documentation <span aria-hidden="true">→</span>
+          Explore signals in the documentation <span aria-hidden="true">â†’</span>
         </button>
       </div>
     </div>

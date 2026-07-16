@@ -1,7 +1,7 @@
 use worth_signal::facade::specialist::EvaluationOutput;
 use worth_signal::facade::{EvaluationContext, SignalError};
 
-use crate::boundary::errors::WORTHSignalJsError;
+use crate::boundary::errors::WorthSignalJsError;
 use crate::expression::model::SignalValue;
 use crate::runtime::specialist::VersionSummary;
 use crate::runtime::summaries::CallbackDependencyPatchSummary;
@@ -16,7 +16,7 @@ impl RuntimeCore {
     pub fn set_runtime_policy(
         &mut self,
         policy: crate::runtime::policy::RuntimePolicySpec,
-    ) -> Result<(), WORTHSignalJsError> {
+    ) -> Result<(), WorthSignalJsError> {
         self.runtime
             .set_runtime_policy(policy.clone().into_native()?);
         self.policy = policy;
@@ -27,7 +27,7 @@ impl RuntimeCore {
         super::super::debug::take_wasm_debug_events()
     }
 
-    pub fn read_value(&mut self, id: &str) -> Result<SignalValue, WORTHSignalJsError> {
+    pub fn read_value(&mut self, id: &str) -> Result<SignalValue, WorthSignalJsError> {
         let node = self.node_for_id(id)?;
         let should_recompute_recipe = self
             .lock_store()?
@@ -37,25 +37,25 @@ impl RuntimeCore {
             .unwrap_or(false);
         if should_recompute_recipe {
             worth_signal::facade::core::mark_dirty(self.runtime.graph_mut(), node, DEFAULT_ASPECT)
-                .map_err(WORTHSignalJsError::from)?;
+                .map_err(WorthSignalJsError::from)?;
         }
         let evaluator = self.evaluator();
         self.runtime
             .read(node, &self.store, &evaluator)
-            .map_err(WORTHSignalJsError::from)?;
+            .map_err(WorthSignalJsError::from)?;
         self.runtime.clear_live_branch_mutation_residue();
         self.apply_pending_callback_dependency_patches()?;
         let store = self.lock_store()?;
         store
             .read_value(id)
-            .ok_or_else(|| WORTHSignalJsError::invalid_input(format!("unknown signal id `{id}`")))
+            .ok_or_else(|| WorthSignalJsError::invalid_input(format!("unknown signal id `{id}`")))
     }
 
-    pub fn peek_value(&self, id: &str) -> Result<SignalValue, WORTHSignalJsError> {
+    pub fn peek_value(&self, id: &str) -> Result<SignalValue, WorthSignalJsError> {
         let store = self.lock_store()?;
         if let Some(recipe) = store.recipes.get(id) {
             if !recipe.initialized {
-                return Err(WORTHSignalJsError::invalid_input(format!(
+                return Err(WorthSignalJsError::invalid_input(format!(
                     "signal id `{id}` is not initialized for callback peek reads"
                 )));
             }
@@ -65,13 +65,13 @@ impl RuntimeCore {
             .sources
             .get(id)
             .map(|source| source.value.clone())
-            .ok_or_else(|| WORTHSignalJsError::invalid_input(format!("unknown signal id `{id}`")))
+            .ok_or_else(|| WorthSignalJsError::invalid_input(format!("unknown signal id `{id}`")))
     }
 
     pub fn read_values(
         &mut self,
         ids: Vec<String>,
-    ) -> Result<Vec<SignalValue>, WORTHSignalJsError> {
+    ) -> Result<Vec<SignalValue>, WorthSignalJsError> {
         if ids.is_empty() {
             return Ok(Vec::new());
         }
@@ -91,7 +91,7 @@ impl RuntimeCore {
                     node,
                     DEFAULT_ASPECT,
                 )
-                .map_err(WORTHSignalJsError::from)?;
+                .map_err(WorthSignalJsError::from)?;
             }
             nodes.push(node);
         }
@@ -103,11 +103,11 @@ impl RuntimeCore {
             .targets(nodes)
             .on_demand()
             .read_many(&self.store, &evaluator)
-            .map_err(WORTHSignalJsError::from)?;
+            .map_err(WorthSignalJsError::from)?;
         self.runtime.clear_live_branch_mutation_residue();
         self.apply_pending_callback_dependency_patches()?;
         wasm_debug(format!(
-            "[worth-signal-wasm] read-many ids={} elapsed_ms={:.1}",
+            "[worth-signals-wasm] read-many ids={} elapsed_ms={:.1}",
             ids.len(),
             perf_now_ms() - read_started_at
         ));
@@ -116,7 +116,7 @@ impl RuntimeCore {
         ids.into_iter()
             .map(|id| {
                 store.read_value(&id).ok_or_else(|| {
-                    WORTHSignalJsError::invalid_input(format!("unknown signal id `{id}`"))
+                    WorthSignalJsError::invalid_input(format!("unknown signal id `{id}`"))
                 })
             })
             .collect()
@@ -125,7 +125,7 @@ impl RuntimeCore {
     pub fn read_versions(
         &mut self,
         ids: Vec<String>,
-    ) -> Result<Vec<VersionSummary>, WORTHSignalJsError> {
+    ) -> Result<Vec<VersionSummary>, WorthSignalJsError> {
         let mut versions = Vec::with_capacity(ids.len());
         let evaluator = self.evaluator();
         for id in ids {
@@ -133,7 +133,7 @@ impl RuntimeCore {
             let version = self
                 .runtime
                 .read(node, &self.store, &evaluator)
-                .map_err(WORTHSignalJsError::from)?;
+                .map_err(WorthSignalJsError::from)?;
             self.runtime.clear_live_branch_mutation_residue();
             self.apply_pending_callback_dependency_patches()?;
             let produced_aspects = self.catalog.get(&id).map(|entry| {
@@ -166,13 +166,13 @@ impl RuntimeCore {
 
     pub(in crate::runtime::core) fn apply_pending_callback_dependency_patches(
         &mut self,
-    ) -> Result<(), WORTHSignalJsError> {
+    ) -> Result<(), WorthSignalJsError> {
         let (pending, runtime_read_breadth) = self.take_pending_callback_dependency_patches()?;
         let mut graph = self.runtime.graph_mut();
         for patch in &pending {
             graph
                 .set_dependencies(patch.node, patch.dependencies.clone())
-                .map_err(WORTHSignalJsError::from)?;
+                .map_err(WorthSignalJsError::from)?;
         }
         drop(graph);
         self.record_committed_callback_dependency_patches(pending, runtime_read_breadth)
@@ -180,7 +180,7 @@ impl RuntimeCore {
 
     pub(in crate::runtime::core) fn take_pending_callback_dependency_patches(
         &self,
-    ) -> Result<(Vec<PendingCallbackDependencyPatch>, u64), WORTHSignalJsError> {
+    ) -> Result<(Vec<PendingCallbackDependencyPatch>, u64), WorthSignalJsError> {
         let mut store = self.lock_store()?;
         let pending = store
             .pending_callback_dependency_patches
@@ -195,7 +195,7 @@ impl RuntimeCore {
         &mut self,
         pending: Vec<PendingCallbackDependencyPatch>,
         runtime_read_breadth: u64,
-    ) -> Result<(), WORTHSignalJsError> {
+    ) -> Result<(), WorthSignalJsError> {
         self.web_metrics.compute_callback_runtime_read_breadth = self
             .web_metrics
             .compute_callback_runtime_read_breadth
@@ -257,7 +257,7 @@ impl RuntimeCore {
                 patch.runtime_read_breadth as u64,
             ));
             wasm_debug(format!(
-                "[worth-signal-wasm] callback-patch id={} added={} removed={} retained={} runtime_reads={}",
+                "[worth-signals-wasm] callback-patch id={} added={} removed={} retained={} runtime_reads={}",
                 patch.id, added, removed, retained, patch.runtime_read_breadth
             ));
         }

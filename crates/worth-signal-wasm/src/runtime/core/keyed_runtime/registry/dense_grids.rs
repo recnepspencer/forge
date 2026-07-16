@@ -32,7 +32,7 @@ impl RuntimeCore {
 
         let started_at = perf_now_ms();
         wasm_debug(format!(
-            "[worth-signal-wasm] dense-grid:init family={family_id} size={}x{} cells={}",
+            "[worth-signals-wasm] dense-grid:init family={family_id} size={}x{} cells={}",
             width,
             height,
             checked_grid_cells(width, height)?
@@ -89,7 +89,7 @@ impl RuntimeCore {
 
             if index > 0 && index % 10_000 == 0 {
                 wasm_debug(format!(
-                    "[worth-signal-wasm] dense-grid:init progress family={family_id} built={index}"
+                    "[worth-signals-wasm] dense-grid:init progress family={family_id} built={index}"
                 ));
             }
         }
@@ -118,7 +118,7 @@ impl RuntimeCore {
         self.dense_grids
             .insert(family_id.to_owned(), family.clone());
         wasm_debug(format!(
-            "[worth-signal-wasm] dense-grid:ready family={family_id} elapsed_ms={:.1}",
+            "[worth-signals-wasm] dense-grid:ready family={family_id} elapsed_ms={:.1}",
             perf_now_ms() - started_at
         ));
         Ok(family)
@@ -133,7 +133,7 @@ impl RuntimeCore {
         if let Some(existing) = self.dense_grids.get(family_id) {
             if existing.width == width && existing.height == height {
                 wasm_debug(format!(
-                    "[worth-signal-wasm] dense-grid:coords family={family_id} size={}x{} reused",
+                    "[worth-signals-wasm] dense-grid:coords family={family_id} size={}x{} reused",
                     width, height
                 ));
                 return Ok(());
@@ -210,7 +210,7 @@ impl RuntimeCore {
             }),
         );
         wasm_debug(format!(
-            "[worth-signal-wasm] dense-grid:coords family={family_id} size={}x{} elapsed_ms={:.1}",
+            "[worth-signals-wasm] dense-grid:coords family={family_id} size={}x{} elapsed_ms={:.1}",
             width,
             height,
             perf_now_ms() - started_at
@@ -257,7 +257,7 @@ impl RuntimeCore {
         }
 
         wasm_debug(format!(
-            "[worth-signal-wasm] keyed-set:coords-fast-path family={family_id} size={}x{} entries={}",
+            "[worth-signals-wasm] keyed-set:coords-fast-path family={family_id} size={}x{} entries={}",
             width,
             height,
             values.len()

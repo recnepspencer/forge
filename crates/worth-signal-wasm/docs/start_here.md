@@ -16,7 +16,7 @@ For API-backed state, the normal lane is:
 Small example:
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 

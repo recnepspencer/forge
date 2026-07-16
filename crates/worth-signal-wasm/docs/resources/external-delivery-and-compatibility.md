@@ -21,7 +21,7 @@ import {
   resourceParamIdentity,
   resourceParams,
   resourceRequestContext,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 

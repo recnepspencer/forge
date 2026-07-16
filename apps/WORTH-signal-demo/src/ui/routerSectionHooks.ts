@@ -1,5 +1,5 @@
 import React from "react";
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 import {
   ROLE_TRAINED_REV,

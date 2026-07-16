@@ -296,7 +296,7 @@ function requireSignalsFormStore<TSignals extends SignalsWithFormLike>(
 function requireSignalsFormFactory(signals: SignalsWithFormLike): SignalsWithFormLike["form"] {
   if (typeof signals.form !== "function") {
     throw new TypeError(
-      "useSignalsForm(...) requires a worth-signal-wasm signals runtime with signals.form(...) available.",
+      "useSignalsForm(...) requires a worth-signals-wasm signals runtime with signals.form(...) available.",
     );
   }
   return signals.form;

@@ -42,7 +42,7 @@ that same front door, plus explicit typed worker-unavailable artifacts.
 ## Goal
 
 Make `createSignals()` the honest canonical worker-first product constructor for
-`worth-signal-wasm`, while keeping main-thread compatibility available only as
+`worth-signals-wasm`, while keeping main-thread compatibility available only as
 an explicit secondary construction lane.
 
 ## Why This Plan Exists
@@ -356,7 +356,7 @@ Phase 5 gate:
 
 This correction is not done because one demo can `await createSignals()`.
 
-It is done only when `worth-signal-wasm` ships:
+It is done only when `worth-signals-wasm` ships:
 
 - an async `createSignals()` contract that constructs the canonical
   worker-first runtime posture

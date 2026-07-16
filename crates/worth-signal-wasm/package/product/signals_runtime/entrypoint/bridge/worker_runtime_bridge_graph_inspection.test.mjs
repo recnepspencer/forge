@@ -129,6 +129,7 @@ test("createWorkerRuntimeBridge preserves graph inspection parity for published 
         trigger_matched_event_count: 0,
         delivered_event_count: 0,
         rollback_suppressed_event_count: 0,
+        branch_local_suppressed_event_count: 0,
         boundary_events: [],
       },
       callbackNodes: [],

@@ -5,7 +5,7 @@ use super::merge_state::{merge_branch_metadata, merge_branch_store};
 use super::state::BranchRuntimeState;
 use super::MergePolicyPreviewRequest;
 use super::RuntimeCore;
-use crate::boundary::errors::WORTHSignalJsError;
+use crate::boundary::errors::WorthSignalJsError;
 use crate::runtime::adapters::{
     MergePlanArtifactSummary, MergePlanProofEnvelope, MergeResultArtifactSummary,
     MergeResultProofEnvelope,
@@ -16,7 +16,7 @@ impl RuntimeCore {
         &mut self,
         source_branch_id: u64,
         target_branch_id: u64,
-    ) -> Result<MergeResultArtifactSummary, WORTHSignalJsError> {
+    ) -> Result<MergeResultArtifactSummary, WorthSignalJsError> {
         self.merge_branches_raw(source_branch_id, target_branch_id)
             .map(Into::into)
     }
@@ -25,7 +25,7 @@ impl RuntimeCore {
         &mut self,
         source_branch_id: u64,
         target_branch_id: u64,
-    ) -> Result<MergeResultProofEnvelope, WORTHSignalJsError> {
+    ) -> Result<MergeResultProofEnvelope, WorthSignalJsError> {
         let raw_result = self.merge_branches_raw(source_branch_id, target_branch_id)?;
         let proof = self.merge_result_proof_report(&raw_result)?;
         let result = raw_result.into();
@@ -36,7 +36,7 @@ impl RuntimeCore {
         &mut self,
         source_branch_id: u64,
         target_branch_id: u64,
-    ) -> Result<MergePlanArtifactSummary, WORTHSignalJsError> {
+    ) -> Result<MergePlanArtifactSummary, WorthSignalJsError> {
         self.plan_merge_branches_raw(source_branch_id, target_branch_id)
             .map(Into::into)
     }
@@ -45,18 +45,18 @@ impl RuntimeCore {
         &mut self,
         source_branch_id: u64,
         target_branch_id: u64,
-    ) -> Result<BranchMergePlan, WORTHSignalJsError> {
+    ) -> Result<BranchMergePlan, WorthSignalJsError> {
         let source = self
             .runtime
             .branch_handle(RuntimeBranchId(source_branch_id))
             .ok_or_else(|| {
-                WORTHSignalJsError::invalid_input(format!("unknown branch `{source_branch_id}`"))
+                WorthSignalJsError::invalid_input(format!("unknown branch `{source_branch_id}`"))
             })?;
         let target = self
             .runtime
             .branch_handle(RuntimeBranchId(target_branch_id))
             .ok_or_else(|| {
-                WORTHSignalJsError::invalid_input(format!("unknown branch `{target_branch_id}`"))
+                WorthSignalJsError::invalid_input(format!("unknown branch `{target_branch_id}`"))
             })?;
         self.runtime
             .merge()
@@ -64,14 +64,14 @@ impl RuntimeCore {
             .into_branch(target)
             .plan()
             .map(|planned| planned.plan().clone())
-            .map_err(WORTHSignalJsError::from)
+            .map_err(WorthSignalJsError::from)
     }
 
     pub fn plan_merge_branches_with_proof(
         &mut self,
         source_branch_id: u64,
         target_branch_id: u64,
-    ) -> Result<MergePlanProofEnvelope, WORTHSignalJsError> {
+    ) -> Result<MergePlanProofEnvelope, WorthSignalJsError> {
         let raw_plan = self.plan_merge_branches_raw(source_branch_id, target_branch_id)?;
         let proof = self.merge_plan_proof_report(&raw_plan)?;
         let plan = raw_plan.into();
@@ -81,19 +81,19 @@ impl RuntimeCore {
     pub fn plan_merge_policy_preview(
         &mut self,
         request: MergePolicyPreviewRequest,
-    ) -> Result<MergePlanArtifactSummary, WORTHSignalJsError> {
+    ) -> Result<MergePlanArtifactSummary, WorthSignalJsError> {
         self.plan_merge_policy_preview_raw(request).map(Into::into)
     }
 
     fn plan_merge_policy_preview_raw(
         &mut self,
         request: MergePolicyPreviewRequest,
-    ) -> Result<BranchMergePlan, WORTHSignalJsError> {
+    ) -> Result<BranchMergePlan, WorthSignalJsError> {
         let source = self
             .runtime
             .branch_handle(RuntimeBranchId(request.source_branch_id))
             .ok_or_else(|| {
-                WORTHSignalJsError::invalid_input(format!(
+                WorthSignalJsError::invalid_input(format!(
                     "unknown branch `{}`",
                     request.source_branch_id
                 ))
@@ -102,7 +102,7 @@ impl RuntimeCore {
             .runtime
             .branch_handle(RuntimeBranchId(request.target_branch_id))
             .ok_or_else(|| {
-                WORTHSignalJsError::invalid_input(format!(
+                WorthSignalJsError::invalid_input(format!(
                     "unknown branch `{}`",
                     request.target_branch_id
                 ))
@@ -125,13 +125,13 @@ impl RuntimeCore {
         merge
             .plan()
             .map(|planned| planned.plan().clone())
-            .map_err(WORTHSignalJsError::from)
+            .map_err(WorthSignalJsError::from)
     }
 
     pub fn plan_merge_policy_preview_with_proof(
         &mut self,
         request: MergePolicyPreviewRequest,
-    ) -> Result<MergePlanProofEnvelope, WORTHSignalJsError> {
+    ) -> Result<MergePlanProofEnvelope, WorthSignalJsError> {
         let raw_plan = self.plan_merge_policy_preview_raw(request)?;
         let proof = self.merge_plan_proof_report(&raw_plan)?;
         let plan = raw_plan.into();
@@ -141,7 +141,7 @@ impl RuntimeCore {
     pub fn merge_branches_policy_preview(
         &mut self,
         request: MergePolicyPreviewRequest,
-    ) -> Result<MergeResultArtifactSummary, WORTHSignalJsError> {
+    ) -> Result<MergeResultArtifactSummary, WorthSignalJsError> {
         self.merge_branches_policy_preview_raw(request)
             .map(Into::into)
     }
@@ -149,12 +149,12 @@ impl RuntimeCore {
     fn merge_branches_policy_preview_raw(
         &mut self,
         request: MergePolicyPreviewRequest,
-    ) -> Result<BranchMergeResult, WORTHSignalJsError> {
+    ) -> Result<BranchMergeResult, WorthSignalJsError> {
         let source = self
             .runtime
             .branch_handle(RuntimeBranchId(request.source_branch_id))
             .ok_or_else(|| {
-                WORTHSignalJsError::invalid_input(format!(
+                WorthSignalJsError::invalid_input(format!(
                     "unknown branch `{}`",
                     request.source_branch_id
                 ))
@@ -163,7 +163,7 @@ impl RuntimeCore {
             .runtime
             .branch_handle(RuntimeBranchId(request.target_branch_id))
             .ok_or_else(|| {
-                WORTHSignalJsError::invalid_input(format!(
+                WorthSignalJsError::invalid_input(format!(
                     "unknown branch `{}`",
                     request.target_branch_id
                 ))
@@ -183,13 +183,13 @@ impl RuntimeCore {
             merge = merge.deletion_policy_named(policy_name);
         }
 
-        merge.run().map_err(WORTHSignalJsError::from)
+        merge.run().map_err(WorthSignalJsError::from)
     }
 
     pub fn merge_branches_policy_preview_with_proof(
         &mut self,
         request: MergePolicyPreviewRequest,
-    ) -> Result<MergeResultProofEnvelope, WORTHSignalJsError> {
+    ) -> Result<MergeResultProofEnvelope, WorthSignalJsError> {
         let raw_result = self.merge_branches_policy_preview_raw(request)?;
         let proof = self.merge_result_proof_report(&raw_result)?;
         let result = raw_result.into();
@@ -202,7 +202,7 @@ impl RuntimeCore {
         &mut self,
         source_branch_id: u64,
         target_branch_id: u64,
-    ) -> Result<BranchMergeResult, WORTHSignalJsError> {
+    ) -> Result<BranchMergeResult, WorthSignalJsError> {
         let current_branch_id = self.runtime.current_branch().id.0;
         let current_state = self.snapshot_branch_state();
         self.branch_states
@@ -232,17 +232,17 @@ impl RuntimeCore {
             .runtime
             .branch_handle(RuntimeBranchId(source_branch_id))
             .ok_or_else(|| {
-                WORTHSignalJsError::invalid_input(format!("unknown branch `{source_branch_id}`"))
+                WorthSignalJsError::invalid_input(format!("unknown branch `{source_branch_id}`"))
             })?;
         let target = self
             .runtime
             .branch_handle(RuntimeBranchId(target_branch_id))
             .ok_or_else(|| {
-                WORTHSignalJsError::invalid_input(format!("unknown branch `{target_branch_id}`"))
+                WorthSignalJsError::invalid_input(format!("unknown branch `{target_branch_id}`"))
             })?;
         self.runtime
             .merge_branch(source, target)
-            .map_err(WORTHSignalJsError::from)
+            .map_err(WorthSignalJsError::from)
             .map(|result| {
                 let merged_store = merge_branch_store(
                     &target_state.store,

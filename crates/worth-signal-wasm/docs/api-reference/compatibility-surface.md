@@ -3,7 +3,7 @@
 ## What This Feature Is
 
 The compatibility surface is the lower-level runtime-facing lane in
-`worth-signal-wasm`.
+`worth-signals-wasm`.
 
 It exposes `SignalApp`, `SignalRuntime`, lower-level definition registration,
 keyed-family helpers, aspect-aware reads, and lower-level diagnostics/history
@@ -25,7 +25,7 @@ This surface is supported, but it is intentionally secondary to the main
 This surface gives you direct access to the lower-level structural runtime
 shape instead of the newer handle-first app lane.
 
-What distinguishes it is not â€œmore powerâ€ in some vague sense. It is that this
+What distinguishes it is not Ã¢â‚¬Å“more powerÃ¢â‚¬Â in some vague sense. It is that this
 lane exposes:
 
 - explicit named source and recipe definitions
@@ -289,7 +289,7 @@ about lower-level runtime structure.
 ## Anti-Patterns
 
 - starting new ordinary app code on `SignalApp` or `SignalRuntime`
-- treating the compatibility surface as a more â€œrealâ€ state model than the app
+- treating the compatibility surface as a more Ã¢â‚¬Å“realÃ¢â‚¬Â state model than the app
   surface
 - using lower-level keyed/grid helpers when ordinary graph/controller code
   already fits

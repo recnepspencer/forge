@@ -1,8 +1,8 @@
-# worth-signal-wasm
+# worth-signals-wasm
 
 Framework-agnostic browser bindings for Worth Signal.
 
-`worth-signal-wasm` gives you one package for three jobs:
+`worth-signals-wasm` gives you one package for three jobs:
 
 - local reactive app state
 - API-backed resource state
@@ -25,19 +25,19 @@ instead of `require(...)`.
 ## Install
 
 ```bash
-npm install worth-signal-wasm
+npm install worth-signals-wasm
 ```
 
 React adapter:
 
 ```bash
-npm install worth-signal-wasm react
+npm install worth-signals-wasm react
 ```
 
 Before publishing a new version from this repo, always run the package proof:
 
 ```powershell
-scripts/wasm/publish-worth-signal-wasm.ps1 -SkipPublish
+scripts/wasm/publish-worth-signals-wasm.ps1 -SkipPublish
 ```
 
 ## What This Package Is Good At
@@ -64,14 +64,14 @@ scripts/wasm/publish-worth-signal-wasm.ps1 -SkipPublish
 - If you want API-backed state, jump to
   [API Resources Overview](./docs/resources/overview.md).
 - If you want package setup and local package workflow, start with
-  [Consuming worth-signal-wasm](./docs/package/install-and-publish.md).
+  [Consuming worth-signals-wasm](./docs/package/install-and-publish.md).
 
 ## The Main Authoring Model
 
 The normal app lane is handle-based and id-less:
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -97,7 +97,7 @@ key.
 This is the simplest useful example of the app lane:
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -116,7 +116,7 @@ console.log(doubled());
 This example shows the surface we actually want for ordinary feature code:
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -291,7 +291,7 @@ allow local user intent.
 
 ## Aspects
 
-`worth-signal-wasm` supports real Worth Signal aspects on the web surface.
+`worth-signals-wasm` supports real Worth Signal aspects on the web surface.
 
 That means one node can carry multiple semantic change lanes, and explicit
 named/spec reads can subscribe to only the lanes they actually care about.
@@ -325,7 +325,7 @@ import {
   createSignals,
   hostCapabilityPlan,
   visibilityCapability,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals({
   hostCapabilities: hostCapabilityPlan({
@@ -366,7 +366,7 @@ import {
   createSignals,
   resourceParamIdentity,
   resourceParams,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -600,7 +600,7 @@ The optional React adapter is intentionally thin. React reads and writes the
 same signal state; it does not become a second state engine.
 
 ```ts
-import { createReactSignalsStore } from "worth-signal-wasm/react";
+import { createReactSignalsStore } from "worth-signals-wasm/react";
 
 const store = createReactSignalsStore(signals);
 ```
@@ -608,7 +608,7 @@ const store = createReactSignalsStore(signals);
 Simple:
 
 ```tsx
-import { useSignalValue } from "worth-signal-wasm/react";
+import { useSignalValue } from "worth-signals-wasm/react";
 
 function Counter() {
   const countValue = useSignalValue(count, store);
@@ -627,7 +627,7 @@ Complex:
 import {
   useOutputValue,
   useSignalsDiagnostics,
-} from "worth-signal-wasm/react";
+} from "worth-signals-wasm/react";
 
 function ItemPanel() {
   const effectiveItem = useOutputValue(itemWorkspace.output("effectiveItem"), store);
@@ -659,7 +659,7 @@ If worker construction is unavailable, recover explicitly instead of expecting
 the package to fall back on its own:
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 let signals;
 
@@ -681,7 +681,7 @@ worker lane or when you deliberately need the main-thread runtime posture.
 ## Docs
 
 - [Documentation Index](./docs/README.md)
-- [Consuming worth-signal-wasm](./docs/package/install-and-publish.md)
+- [Consuming worth-signals-wasm](./docs/package/install-and-publish.md)
 - [App Surface Reference](./docs/app-surface/overview.md)
 - [API Resources Overview](./docs/resources/overview.md)
 - [Resource Family Authoring Reference](./docs/api-reference/resource-family-authoring.md)

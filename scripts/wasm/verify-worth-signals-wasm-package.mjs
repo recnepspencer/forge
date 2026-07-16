@@ -3,8 +3,8 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { buildRuntimeSmokeSource } from "./verify-worth-signal-wasm-runtime-smoke-source.mjs";
-import { buildTypeSmokeSource } from "./verify-worth-signal-wasm-type-smoke-source.mjs";
+import { buildRuntimeSmokeSource } from "./verify-worth-signals-wasm-runtime-smoke-source.mjs";
+import { buildTypeSmokeSource } from "./verify-worth-signals-wasm-type-smoke-source.mjs";
 import {
   assertDocsStayOnCurrentPackageStory,
   execFileAsync,
@@ -12,7 +12,7 @@ import {
   normalizeTarEntries,
   runNpm,
   tarballFileName,
-} from "./verify-worth-signal-wasm-package-support.mjs";
+} from "./verify-worth-signals-wasm-package-support.mjs";
 
 const pkgDir = path.resolve(process.argv[2] ?? "crates/worth-signal-wasm/pkg");
 const packageJsonPath = path.join(pkgDir, "package.json");
@@ -265,7 +265,7 @@ async function main() {
     "expected tarball to exclude stale product-side .mjs artifacts",
   );
 
-  const tempDir = await mkdtemp(path.join(tmpdir(), "worth-signal-wasm-package-verify-"));
+  const tempDir = await mkdtemp(path.join(tmpdir(), "worth-signals-wasm-package-verify-"));
   try {
     await installSmokeDependencies(tempDir, tarballPath);
     await runRuntimeSmoke(tempDir, packageJson.name);

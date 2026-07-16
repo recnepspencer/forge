@@ -61,17 +61,17 @@ export async function assertDocsStayOnCurrentPackageStory(pkgDir, packageName) {
   const readme = await readFile(path.join(pkgDir, "README.md"), "utf8");
 
   assert.equal(
-    readme.includes("worth-signal-wasm-dev"),
+    readme.includes("worth-signals-wasm-dev"),
     false,
-    "package README must not refer to the obsolete worth-signal-wasm-dev package name",
+    "package README must not refer to the obsolete worth-signals-wasm-dev package name",
   );
   assert.equal(
-    joinedDocs.includes("worth-signal-wasm-dev"),
+    joinedDocs.includes("worth-signals-wasm-dev"),
     false,
-    "package docs must not refer to the obsolete worth-signal-wasm-dev package name",
+    "package docs must not refer to the obsolete worth-signals-wasm-dev package name",
   );
   assert.equal(
-    readme.includes("npm install worth-signal-wasm"),
+    readme.includes("npm install worth-signals-wasm"),
     true,
     "package README should teach the public install command",
   );

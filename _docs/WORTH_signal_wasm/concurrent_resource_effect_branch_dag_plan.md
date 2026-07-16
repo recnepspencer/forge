@@ -40,7 +40,7 @@ reconciliation builds more write families on top of it.
 - **`worth-signal` temporal/async roadmap:** Protect runtime-owned lifecycle and
   out-of-order completion convergence across replay, restore, and branches. This
   work extends that parity discipline without moving resource semantics into core.
-- **`worth-signal-wasm` product roadmap:** Protect product layers as consumers of
+- **`worth-signals-wasm` product roadmap:** Protect product layers as consumers of
   native truth. This is a Milestone 11 follow-on because explicit fork basis and
   merge materialization must precede resource effect concurrency, and it must
   close before mutation-response reconciliation.
@@ -141,7 +141,7 @@ path.
 **Relevant subsystems**
 
 - `worth-signal` transaction admission, lowering, execution, and branch state
-- `worth-signal-wasm` runtime core transaction and branch facades
+- `worth-signals-wasm` runtime core transaction and branch facades
 - branch-targeted receipts and stale-basis denials
 
 **Relevant APIs**
@@ -183,8 +183,8 @@ path.
 ### Phase 3: Worker-First Live Branch Authority
 
 Expose explicit fork basis, targeted transactions, and retirement through the
-worker-owned runtime, and make the worker's live graph headâ€”not cached import
-contextâ€”the source of branch acquisition truth.
+worker-owned runtime, and make the worker's live graph headÃ¢â‚¬â€not cached import
+contextÃ¢â‚¬â€the source of branch acquisition truth.
 
 **Relevant subsystems**
 
@@ -680,11 +680,11 @@ The workspace's 400-line default remains in force for feature code and tests.
 This milestone permits narrow edits to the following pre-existing aggregate
 surfaces without requiring an unrelated whole-file partition:
 
-- `package-src/product/signals.ts` â€” callable entrypoint and named-export
+- `package-src/product/signals.ts` Ã¢â‚¬â€ callable entrypoint and named-export
   compatibility aggregate; this milestone adds only the certification export.
-- `package/types-smoke.ts` â€” existing whole-package declaration smoke aggregate;
+- `package/types-smoke.ts` Ã¢â‚¬â€ existing whole-package declaration smoke aggregate;
   this milestone updates only the now-asynchronous form action assertion.
-- `package/types/resource/resource_reconciliation.d.ts` â€” existing public
+- `package/types/resource/resource_reconciliation.d.ts` Ã¢â‚¬â€ existing public
   reconciliation declaration aggregate; this milestone adds only the patch
   execution result and options re-exports.
 
@@ -706,7 +706,7 @@ No new feature implementation, fixture, or focused test file is exempt.
 ## Must Preserve
 
 - native `worth-signal` ownership of branch, transaction, merge, and lifecycle law
-- `worth-signal-wasm` ownership of web translation and resource product semantics
+- `worth-signals-wasm` ownership of web translation and resource product semantics
 - one canonical resource effect envelope and one confirmed canonical truth
 - explicit response topology and resource locus declarations
 - exact history restore as a separate, honest capability

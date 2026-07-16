@@ -1,8 +1,8 @@
-# worth-signal-wasm Product Roadmap
+# worth-signals-wasm Product Roadmap
 
 ## Purpose
 
-This document defines the remaining product roadmap for `worth-signal-wasm`
+This document defines the remaining product roadmap for `worth-signals-wasm`
 after callback-computed closeout.
 
 It is a future-only roadmap. It does not treat the wasm package as unfinished
@@ -22,7 +22,7 @@ The governing rule is authority-specific:
 - package projections, diagnostics, demos, and UI consume those authorities;
   they do not redefine them
 
-`worth-signal-wasm` may author, type, route, explain, and package host-facing
+`worth-signals-wasm` may author, type, route, explain, and package host-facing
 surfaces. It may also own process-local standalone value truth when no
 relational runtime exists, but that authority must be structurally named,
 produce one canonical commit artifact, project one-way into Signal, and remain
@@ -755,7 +755,7 @@ Engineering spec:
 ### Goal
 
 Make dedicated web-worker deployment the preferred execution posture for
-`worth-signal-wasm` so most invalidation, recomputation, async/resource
+`worth-signals-wasm` so most invalidation, recomputation, async/resource
 lifecycle, routing/resource/forms continuity, and diagnostics/history work
 leave the UI thread, while browser-only host facts and host-side effects remain
 explicit main-thread boundaries.

@@ -74,7 +74,7 @@ impl RuntimeCore {
                 self.branch_states
                     .insert(active_branch_id, self.snapshot_branch_state());
                 wasm_debug(format!(
-                    "[worth-signal-wasm] tx:regions-done touched={} evaluated={} elapsed_ms={:.1}",
+                    "[worth-signals-wasm] tx:regions-done touched={} evaluated={} elapsed_ms={:.1}",
                     result.touched_nodes,
                     result.evaluation_summary.nodes_evaluated,
                     perf_now_ms() - started_at
@@ -93,7 +93,7 @@ impl RuntimeCore {
             }
             Err(err) => {
                 wasm_debug(format!(
-                    "[worth-signal-wasm] tx:regions-error elapsed_ms={:.1} message={}",
+                    "[worth-signals-wasm] tx:regions-error elapsed_ms={:.1} message={}",
                     perf_now_ms() - started_at,
                     err
                 ));

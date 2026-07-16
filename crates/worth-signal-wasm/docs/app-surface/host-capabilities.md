@@ -3,7 +3,7 @@
 ## What This Feature Is
 
 Host capabilities are the typed browser- and runtime-fact lane in
-`worth-signal-wasm`.
+`worth-signals-wasm`.
 
 Use them when derived signal code needs approved host inputs such as:
 
@@ -26,7 +26,7 @@ runtime-owned dependencies registered when the signals instance is created.
 
 ## What Distinguishes This
 
-Host capability is not just â€œhelpers for browser globals.â€ It admits host facts
+Host capability is not just Ã¢â‚¬Å“helpers for browser globals.Ã¢â‚¬Â It admits host facts
 into the reactive runtime as typed, inspectable dependencies.
 
 That is different from the usual frontend pattern where code reads
@@ -40,7 +40,7 @@ What this enables here is:
 - diagnostics that can attribute reevaluation or denial to one host source
 
 Without this lane, values like `window.innerWidth`,
-`document.visibilityState`, or `Date.now()` can influence a callbackâ€™s return
+`document.visibilityState`, or `Date.now()` can influence a callbackÃ¢â‚¬â„¢s return
 value but do not become tracked reactive dependencies.
 
 ## Stable Entry Points
@@ -56,7 +56,7 @@ import {
   onlineCapability,
   clockCapability,
   persistenceCapability,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 ```
 
 Stable entry points today:
@@ -139,7 +139,7 @@ import {
   createSignals,
   hostCapabilityPlan,
   visibilityCapability,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals({
   hostCapabilities: hostCapabilityPlan({
@@ -180,7 +180,7 @@ import {
   persistenceCapability,
   viewportCapability,
   visibilityCapability,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 let persistedDraft = { mode: "draft", revision: 1 };
 

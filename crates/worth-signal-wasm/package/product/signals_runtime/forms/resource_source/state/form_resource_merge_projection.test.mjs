@@ -23,7 +23,7 @@ test("signals.form projects resource merge conflicts into fields sections messag
     });
 
     form.fields.title.set("Local");
-    form.executeAction("submit");
+    await form.executeAction("submit");
     const effect = line.diagnostics().lastEffect;
     const resourceWithConflictHistory = runtime.mod.createResourceNamespace(null, {
       history() {
@@ -108,7 +108,7 @@ test("signals.form projects mapping-unavailable resource merge posture without i
       }),
     });
 
-    line.patch(mod.resourcePatch.itemAspect({
+    await line.patch(mod.resourcePatch.itemAspect({
       itemId: "demo:1",
       aspect: "title",
       value: "Unmapped conflict",
@@ -164,7 +164,7 @@ test("signals.form marks stored merge previews stale when the backing resource e
     });
 
     form.fields.title.set("Local");
-    form.executeAction("submit");
+    await form.executeAction("submit");
     const effect = line.diagnostics().lastEffect;
     form.previewResourceMerge({
       source_branch_id: effect.optimistic.branchId,
@@ -172,7 +172,7 @@ test("signals.form marks stored merge previews stale when the backing resource e
     });
 
     form.fields.title.set("Local again");
-    form.executeAction("submit");
+    await form.executeAction("submit");
 
     assert.equal(form.resourceMerge().current.stale, true);
     assert.equal(
@@ -262,7 +262,7 @@ test("signals.form verification stays bounded across repeated resource merge pre
     });
 
     form.fields.title.set("Local");
-    form.executeAction("submit");
+    await form.executeAction("submit");
     const effect = line.diagnostics().lastEffect;
     const resourceWithConflictHistory = runtime.mod.createResourceNamespace(null, {
       history() {

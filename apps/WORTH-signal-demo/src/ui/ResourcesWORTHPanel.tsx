@@ -4,7 +4,7 @@ import {
   resourcePatch,
   type ResourceEffectSettlementResult,
   type ResourcePatchExecutionResult,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 import { useSignal } from "./Demos";
 import { BranchDagStrip, type DagLaneDatum } from "./ResourcesModelStrips";
@@ -247,7 +247,7 @@ export function ResourcesWORTHPanel({
         bumpDag();
         pushPanelEvent(setEvents, createPanelEvent(
           "info",
-          `Adding ${draft.label}â€¦`,
+          `Adding ${draft.label}Ã¢â‚¬Â¦`,
           parentId ? "admitted on a derived dependency basis" : "admitted on its own effect branch",
         ));
         return effectId;
@@ -345,13 +345,13 @@ export function ResourcesWORTHPanel({
   return (
     <div className="po-column">
       <PlatformOwner
-        description="One effect branch per write Â· isolated closeout Â· runtime receipts"
+        description="One effect branch per write Ã‚Â· isolated closeout Ã‚Â· runtime receipts"
         title="Worth Signals"
         variant="worth"
       />
       <PoPanel
         agreement={agreement}
-        caption="worker-first Â· branchNative() Â· line.effects().confirm / reject"
+        caption="worker-first Ã‚Â· branchNative() Ã‚Â· line.effects().confirm / reject"
         error={bootError}
         events={events}
         highlightId={highlightId}
@@ -371,7 +371,7 @@ export function ResourcesWORTHPanel({
       {selectedReceipt ? (
         <details className="po-receipt" open>
           <summary>
-            runtime receipt â€” {selectedLabel ?? selectedEffectId}
+            runtime receipt Ã¢â‚¬â€ {selectedLabel ?? selectedEffectId}
             <button className="po-receipt-export" onClick={exportReceipts} type="button">Export all (JSON)</button>
           </summary>
           <pre>{JSON.stringify(selectedReceipt, null, 2)}</pre>

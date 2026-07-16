@@ -16,7 +16,7 @@
 ## Goal
 
 Make manual aspect-level branch resolution honest in standalone
-`worth-signal-wasm` without turning native `worth-signal` into an application
+`worth-signals-wasm` without turning native `worth-signal` into an application
 truth store.
 
 The TypeScript product runtime owns one explicit, in-memory local truth

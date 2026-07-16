@@ -1,4 +1,4 @@
-# worth-signal-wasm Composition API Plan
+# worth-signals-wasm Composition API Plan
 
 > **Status:** Closed engineering spec
 >
@@ -19,7 +19,7 @@
 
 ## Goal
 
-Make `worth-signal-wasm` support a real controller-first composition API where
+Make `worth-signals-wasm` support a real controller-first composition API where
 application code authors inputs and computed nodes as ordinary code, composes
 feature controllers through typed signal handles, and publishes an explicit
 graph boundary through a real `signals.graph(...)` product API.
@@ -86,7 +86,7 @@ examples. It must become a real exported, typed, tested product surface.
 
 ## Why This Spec Exists
 
-`worth-signal-wasm` is now in a much better place than the earlier callback
+`worth-signals-wasm` is now in a much better place than the earlier callback
 milestone:
 
 - `createSignals()` is real
