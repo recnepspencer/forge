@@ -1,6 +1,7 @@
 use crate::clock::RuntimeInstant;
 use crate::data::aspect::Aspect;
 use crate::data::checkpoint::CheckpointBarrier;
+use crate::data::dependency::DependencyEdge;
 use crate::data::dirty_set::DomainImpact;
 use crate::data::effect_mapping::EffectMapping;
 use crate::data::error::SignalError;
@@ -136,6 +137,24 @@ where
         dirty: &DirtyBatch,
     ) -> Result<SemanticBatchCommit, SignalError> {
         self.mark_dirty_batch(dirty)
+    }
+
+    /// Replaces a node's dependency edges as part of this transaction.
+    ///
+    /// The original node image and both sides of the subscriber topology are
+    /// retained in the transaction rollback packet. This keeps dynamic
+    /// dependency discovery atomic with the value changes that discovered it.
+    pub fn set_dependencies(
+        &mut self,
+        node: NodeId,
+        dependencies: impl IntoIterator<Item = DependencyEdge>,
+    ) -> Result<(), SignalError> {
+        self.ensure_rollback_packets();
+        self.scratch
+            .graph_patches
+            .stage_original(self.graph, node)?;
+        let result = self.graph.set_dependencies(node, dependencies);
+        self.apply_result(result)
     }
 
     pub fn batch_changes<'tx>(&'tx mut self) -> BatchChangeSession<'tx, 'a, D, I, E, Ctx, T> {

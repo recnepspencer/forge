@@ -45,7 +45,8 @@ internal subsystem name you happen to remember.
   Grouped line reads, retained history, delivery/compatibility inspection, and
   exact recovery paths.
 - [Effects And Recovery](./effects/README.md)
-  Branch-native effects, envelopes, merge/rebase, and rollback posture.
+  Concurrent branch-native effects, dependencies, envelopes, merge/rebase, and
+  targeted rollback.
 - [Using Resources In Forms](./forms/README.md)
   Resource-line form sources, settlement, drift, merge, mutation-response
   readback, and replay/restore.
@@ -69,6 +70,7 @@ These pages are still real and supported as deeper companion docs:
 - [Downloads](./downloads.md)
 - [Line Inspection](./line-inspection.md)
 - [Branch-Native Resource Effects](./branch-native-effects.md)
+- [Concurrent Optimistic Effects](./effects/concurrency-and-dependencies.md)
 - [Effect Merge And Rebase](./merge-and-rebase.md)
 - [JSON Path Effects](./json-effects.md)
 - [External Delivery And Compatibility](./external-delivery-and-compatibility.md)

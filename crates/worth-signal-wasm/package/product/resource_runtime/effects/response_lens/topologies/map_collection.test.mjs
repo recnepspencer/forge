@@ -37,7 +37,7 @@ test("map-backed responses lower item replacement through map collection loci", 
       effects: signals.resource.effects.branchNative(),
     });
     const line = tasks.line({});
-    line.patch(tasks.patch.item({
+    await line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", title: "Replaced" },
     }));
@@ -66,7 +66,7 @@ test("map-backed responses lower item replacement through map collection loci", 
       reconstruction: "replaceEntry",
       reconstructionBreadth: 1,
     });
-    assert.equal(itemEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(itemEffect.optimistic.rollback.kind, "effectBranchRetirementAvailable");
     assert.equal(itemEffect.profile.rebase, "nativeMergePlan");
     const mergePlan = signals.resource.branch.planMerge({
       source_branch_id: itemEffect.optimistic.branchId,
@@ -91,7 +91,7 @@ test("map-backed responses lower item replacement through map collection loci", 
     assert.equal(deliveryEffect.locusProof.locus, "mapCollection");
     assert.equal(singleEntryReplacementCount, 2);
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Aspect",
@@ -107,7 +107,7 @@ test("map-backed responses lower item replacement through map collection loci", 
       reconstruction: "replaceEntry",
       reconstructionBreadth: 1,
     });
-    assert.equal(singleEntryReplacementCount, 3);
+    assert.equal(singleEntryReplacementCount, 5);
     assert.equal(fullMapReplacementCount, 0);
     assert.equal(readTask(line.value(), "task:1").title, "Aspect");
   } finally {
@@ -168,7 +168,7 @@ test("map-backed responses admit structural ReadonlyMap entry views", async () =
     const tasks = createTaskMapApi(signals, response, "/readonly-map-view");
     const line = tasks.line({});
 
-    line.patch(tasks.patch.item({
+    await line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", title: "Readonly View" },
     }));
@@ -218,7 +218,7 @@ test("map-backed broad replacements preserve map topology proof", async () => {
     const tasks = createTaskMapApi(signals, response, "/map-collection-broad");
     const line = tasks.line({});
 
-    line.patch(tasks.patch.replace({
+    await line.patch(tasks.patch.replace({
       taskMapEntries: [["task:1", { id: "task:1", title: "Broad" }]],
     }));
     const effect = line.diagnostics().lastEffect;

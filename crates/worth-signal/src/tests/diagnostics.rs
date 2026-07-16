@@ -383,6 +383,7 @@ fn restore_snapshot_payload_preserving_history_keeps_latest_observation_in_sync_
         trigger_matched_event_count: 1,
         delivered_event_count: 1,
         rollback_suppressed_event_count: 0,
+        branch_local_suppressed_event_count: 0,
         boundary_events: Vec::new(),
     };
     let current_observation = ObservationBoundarySummary {
@@ -390,6 +391,7 @@ fn restore_snapshot_payload_preserving_history_keeps_latest_observation_in_sync_
         trigger_matched_event_count: 1,
         delivered_event_count: 0,
         rollback_suppressed_event_count: 1,
+        branch_local_suppressed_event_count: 0,
         boundary_events: Vec::new(),
     };
 

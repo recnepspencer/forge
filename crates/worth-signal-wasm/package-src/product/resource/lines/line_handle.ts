@@ -18,6 +18,7 @@ import { readLineUpload } from "./reads/line_upload_read.js";
 import { readLineValue } from "./reads/line_value_read.js";
 import { createLineView } from "./line_view_factory.js";
 import { requireCurrentMaterialization } from "./state/line_handle_helpers.js";
+import { readLineBindingState } from "./state/line_binding_state.js";
 import { createResourceViewHandle } from "../views/view_handle.js";
 
 function isPartialConfirmationKind(confirmationKind) {
@@ -38,7 +39,7 @@ function readAwaitSettlementResult(lineBacking) {
   const summary = readLineSummary(materialization);
   const freshness = readLineFreshness(materialization);
   const diagnosticsSummary = readLineDiagnosticsSummary(materialization);
-  const diagnostics = materialization.binding.diagnosticsSignal();
+  const diagnostics = readLineBindingState(materialization.binding).diagnostics;
   const mutationResponse = "lastMutationResponsePlan" in diagnostics
     ? diagnostics.lastMutationResponsePlan
     : null;
@@ -294,7 +295,7 @@ function createLineHandle(lineBacking) {
     mutationResponse() {
       const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "mutationResponse");
-      const diagnostics = materialization.binding.diagnosticsSignal();
+      const diagnostics = readLineBindingState(materialization.binding).diagnostics;
       return "lastMutationResponsePlan" in diagnostics
         ? diagnostics.lastMutationResponsePlan
         : null;

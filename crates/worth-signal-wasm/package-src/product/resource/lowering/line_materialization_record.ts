@@ -14,8 +14,12 @@ function createLineMaterializationRecord(
   rematerialize,
   migrateIdentity,
   resourceLineEpoch,
+  effectBranchDagFactory,
+  effectProjectionCoordinator,
 ) {
-  return Object.freeze({
+  let effectBranchDag = null;
+  let nextEffectAdmissionSequence = 1;
+  const record = {
     lineIdentity,
     requestDescriptor,
     requestState,
@@ -31,7 +35,22 @@ function createLineMaterializationRecord(
     rematerialize,
     migrateIdentity,
     resourceLineEpoch,
+    effectProjectionCoordinator,
+    issueEffectAdmissionSequence() {
+      return nextEffectAdmissionSequence++;
+    },
+    unregisterEffectProjection() {
+      effectProjectionCoordinator.unregisterLine(lineIdentity.runtimeLineId);
+    },
+  };
+  Object.defineProperty(record, "effectBranchDag", {
+    enumerable: true,
+    get() {
+      effectBranchDag ??= effectBranchDagFactory(record);
+      return effectBranchDag;
+    },
   });
+  return Object.freeze(record);
 }
 
 export { createLineMaterializationRecord };

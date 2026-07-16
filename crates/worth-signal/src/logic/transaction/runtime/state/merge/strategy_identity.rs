@@ -52,7 +52,7 @@ impl SignalAspectPolicyInventoryEntry {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SignalMergeStrategyIdentity {
     merge_strategy: BranchMergeStrategy,
     selected_strategy_name: MergeStrategyName,
@@ -136,7 +136,7 @@ impl SignalMergeStrategyIdentity {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SignalInvalidationStrategyIdentity {
     boundary_witness_kind: MergeBoundaryWitnessKind,
     conflict_isolation_name: ConflictIsolationPolicyName,
@@ -208,7 +208,7 @@ impl SignalInvalidationStrategyIdentity {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SignalDeliveryStrategyIdentity {
     conflict_policy_name: ConflictPolicyName,
     conflict_policy_digest: String,

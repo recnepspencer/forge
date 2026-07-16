@@ -18,8 +18,8 @@ export const demoRegistry: DemoMetadata[] = [
   {
     id: 1,
     title: "Explainable Transfer Decision",
-    purpose: "Move one transfer amount and watch the runtime itself report what recomputed, what changed, and what stayed the same — an audit trail read from the runtime, not kept by the UI.",
-    preface: "Drag the amount across the $10,000 policy threshold. Every committed change lands as one transaction, and every row in the audit trail is read back from signals.diagnostics() after the commit — including the moments where the review lane recomputed but its answer did not change. Click any value to ask the runtime why.",
+    purpose: "Move one transfer amount and watch the runtime itself report what recomputed, what changed, and what stayed the same â€” an audit trail read from the runtime, not kept by the UI.",
+    preface: "Drag the amount across the $10,000 policy threshold. Every committed change lands as one transaction, and every row in the audit trail is read back from signals.diagnostics() after the commit â€” including the moments where the review lane recomputed but its answer did not change. Click any value to ask the runtime why.",
     difficulty: "Beginner",
     primaryMessage: "One input. Two decisions. A runtime that shows its work.",
     WORTHCode: `import { createSignals } from "worth-signal-wasm";
@@ -47,7 +47,7 @@ const reviewLane = useMemo(
   [amount],
 );`,
     explanationAlternative: "React can compute the same two values, but it cannot testify about them: useMemo keeps no record of what recomputed, what was skipped, or why. The audit trail on this page has no React equivalent.",
-    explanationWORTH: "Worth owns the input, both derived decisions, and the evidence. After each transaction the runtime reports what recomputed, what changed, and what stayed the same — the same trail this page exports as JSON.",
+    explanationWORTH: "Worth owns the input, both derived decisions, and the evidence. After each transaction the runtime reports what recomputed, what changed, and what stayed the same â€” the same trail this page exports as JSON.",
     whatYouGet: [
       "Transactional commits with one propagation record per change",
       "An audit trail read from signals.diagnostics(), not app state",
@@ -60,7 +60,7 @@ const reviewLane = useMemo(
     id: 2,
     title: "The Read That Keeps a Record",
     purpose: "This looks like an ordinary product page backed by an ordinary fetch. It isn't. Give it a few seconds.",
-    preface: "Every resource read here materializes as a line: a query result with a flight recorder attached. When server truth changes — whether you asked for it or not — the line keeps the receipt: status, freshness, provenance, and a lifecycle tape you can export.",
+    preface: "Every resource read here materializes as a line: a query result with a flight recorder attached. When server truth changes â€” whether you asked for it or not â€” the line keeps the receipt: status, freshness, provenance, and a lifecycle tape you can export.",
     difficulty: "Intermediate",
     primaryMessage: "When a value changes behind your back, the read itself can tell you why.",
     WORTHCode: `const api = signals.api({ baseUrl: "/api/storefront" });
@@ -74,7 +74,7 @@ const product = api.url("/products/:productId").detail({
 
 const line = product.line({ productId: "p-204" });
 
-// the server pushes new truth — no user action involved
+// the server pushes new truth â€” no user action involved
 line.deliver(product.delivery.field({
   packetId: "pkt-08", basisId: "srv-v1", nextBasisId: "srv-v2",
   field: "price", value: 188,
@@ -93,14 +93,14 @@ line.history().lifecycle;                 // the full tape`,
 queryClient.setQueryData(["product", productId], next);
 
 // the value changed on screen. why? when? from where?
-// there is nothing to consult — the cache keeps no record.`,
-    explanationAlternative: "Server-state hooks can fetch the data, and a push can rewrite the cache — but nothing records why a value changed. When users ask what happened, the answer lives in log aggregation, if anywhere.",
-    explanationWORTH: "Worth materializes the read as a line. A server delivery lands with provenance, the lifecycle tape records it, and the value on screen can testify about its own history — exportable as JSON.",
+// there is nothing to consult â€” the cache keeps no record.`,
+    explanationAlternative: "Server-state hooks can fetch the data, and a push can rewrite the cache â€” but nothing records why a value changed. When users ask what happened, the answer lives in log aggregation, if anywhere.",
+    explanationWORTH: "Worth materializes the read as a line. A server delivery lands with provenance, the lifecycle tape records it, and the value on screen can testify about its own history â€” exportable as JSON.",
     whatYouGet: [
       "A real backend push landing as a delivery effect with provenance",
       "Status and freshness as runtime truth, not app conventions",
       "A lifecycle tape read from line.history(), entry by entry",
-      "Per-line recorders — switch products, each read has its own",
+      "Per-line recorders â€” switch products, each read has its own",
       "An exportable JSON line history"
     ],
     relatedDocsPath: "resources/index"
@@ -108,10 +108,10 @@ queryClient.setQueryData(["product", productId], next);
   {
     id: 3,
     title: "The Form That Knows It Has Company",
-    purpose: "A payout policy under dual control. Two simulated coworkers edit, comment, and lock fields around you — and the form itself decides, per person, who can write what and whether submit is allowed.",
-    preface: "Three people hold the same form: you and two simulated coworkers, each with their own runtime-owned form controller over shared server truth. When Dana leases the limit field, one report produces three different verdicts — she can write, you cannot, and Priya's submit blocks only because her draft touches the leased field. Mostly watch; reach in whenever you like.",
+    purpose: "A payout policy under dual control. Two simulated coworkers edit, comment, and lock fields around you â€” and the form itself decides, per person, who can write what and whether submit is allowed.",
+    preface: "Three people hold the same form: you and two simulated coworkers, each with their own runtime-owned form controller over shared server truth. When Dana leases the limit field, one report produces three different verdicts â€” she can write, you cannot, and Priya's submit blocks only because her draft touches the leased field. Mostly watch; reach in whenever you like.",
     difficulty: "Beginner",
-    primaryMessage: "One collaboration report in. One verdict out — per actor, with reasons.",
+    primaryMessage: "One collaboration report in. One verdict out â€” per actor, with reasons.",
     WORTHCode: `const form = signals.form({
   source: payoutPolicy,
   collaboration: {
@@ -126,7 +126,7 @@ queryClient.setQueryData(["product", productId], next);
   }),
 });
 
-// your transport relays whatever is happening…
+// your transport relays whatever is happeningâ€¦
 channel.on("collaboration", (event) => {
   form.reportCollaboration({
     posture: event.posture,
@@ -135,11 +135,11 @@ channel.on("collaboration", (event) => {
   });
 });
 
-// …the runtime decides what it means for this client
+// â€¦the runtime decides what it means for this client
 form.fieldWritePosture("limit");
-// → { canWrite: false, collaborator: "...", reason: "..." }
+// â†’ { canWrite: false, collaborator: "...", reason: "..." }
 form.readiness();
-// → blocked only if YOUR patch plan touches a leased field`,
+// â†’ blocked only if YOUR patch plan touches a leased field`,
     alternativeName: "React Hook Form + socket glue",
     alternativeCode: `const form = useForm({ values: policy });
 
@@ -153,10 +153,10 @@ socket.on("lock", (msg) => setLocks(...));
 <button disabled={
   form.formState.isDirty && locks[touchedField]
 } />`,
-    explanationAlternative: "The form library owns field state; the lock state lives in app code beside it. Nothing can verify that the disabled props, submit guards, and socket handlers agree — and nothing records why a submit was refused.",
-    explanationWORTH: "Collaboration posture lives inside the form controller. One reported lease produces per-actor write posture and patch-plan-aware submit verdicts, each carrying the blocker and the collaborator's name — inspectable and exportable.",
+    explanationAlternative: "The form library owns field state; the lock state lives in app code beside it. Nothing can verify that the disabled props, submit guards, and socket handlers agree â€” and nothing records why a submit was refused.",
+    explanationWORTH: "Collaboration posture lives inside the form controller. One reported lease produces per-actor write posture and patch-plan-aware submit verdicts, each carrying the blocker and the collaborator's name â€” inspectable and exportable.",
     whatYouGet: [
-      "Three real form controllers over one shared source — per-actor truth",
+      "Three real form controllers over one shared source â€” per-actor truth",
       "Field leases that block writes with the owner's name attached",
       "Patch-plan-aware submit verdicts: leases only block drafts that touch them",
       "Presence, comments, and a collaboration event recorder",
@@ -167,8 +167,8 @@ socket.on("lock", (msg) => setLocks(...));
   {
     id: 4,
     title: "The Route That Checks Your Training",
-    purpose: "A manufacturing execution portal where opening a batch step is an admission decision — checked against role, training, and the effective SOP revision, with the audit trail as a by-product.",
-    preface: "You are an operator trained on SOP-042 rev B. Partway through the session, document control makes rev C effective — and the step you executed minutes ago now denies you, with the reason naming the revision. Proceed under a recorded deviation, then replay the whole session under different facts: the inspector's question, answered by the runtime.",
+    purpose: "A manufacturing execution portal where opening a batch step is an admission decision â€” checked against role, training, and the effective SOP revision, with the audit trail as a by-product.",
+    preface: "You are an operator trained on SOP-042 rev B. Partway through the session, document control makes rev C effective â€” and the step you executed minutes ago now denies you, with the reason naming the revision. Proceed under a recorded deviation, then replay the whole session under different facts: the inspector's question, answered by the runtime.",
     difficulty: "Intermediate",
     primaryMessage: "Execution is an access decision. The router keeps the receipts.",
     WORTHCode: `const stepExecution = signals.router.prerequisite(
@@ -213,27 +213,27 @@ export async function loader({ request }) {
 }
 
 // the audit trail is a separate project:
-// middleware, log shipping, retention, correlation…
+// middleware, log shipping, retention, correlationâ€¦
 logAccess(user.id, request.url, "allowed?");`,
-    explanationAlternative: "Guards are booleans scattered across loaders, and the audit trail is a separate logging pipeline that has to be kept honest by convention. Replaying a session under different facts — the question an auditor actually asks — has no runtime answer at all.",
-    explanationWORTH: "Admission is declared on the route and evaluated against live session facts. Every attempt — admitted, denied, or under deviation — lands as a recorded decision with its reason, and the same session can be re-asked under different facts in one call.",
+    explanationAlternative: "Guards are booleans scattered across loaders, and the audit trail is a separate logging pipeline that has to be kept honest by convention. Replaying a session under different facts â€” the question an auditor actually asks â€” has no runtime answer at all.",
+    explanationWORTH: "Admission is declared on the route and evaluated against live session facts. Every attempt â€” admitted, denied, or under deviation â€” lands as a recorded decision with its reason, and the same session can be re-asked under different facts in one call.",
     whatYouGet: [
       "Admission prerequisites that return decisions with reasons, not booleans",
-      "Live facts — role, training, effective revision — checked at every ingress",
+      "Live facts â€” role, training, effective revision â€” checked at every ingress",
       "A recorded audit trail where denials are records too",
       "Deviation-based override as one prerequisite branch, permanently recorded",
-      "Session replay under different facts — the inspector's question, answered",
+      "Session replay under different facts â€” the inspector's question, answered",
       "Route-owned resource lines with intent prefetch"
     ],
     relatedDocsPath: "router/index"
   },
   {
     id: 5,
-    title: "The Write That Admits It's Guessing",
-    purpose: "Two optimistic writes overlap and one fails — watch the callback model and the runtime disagree about what is true.",
-    preface: "Optimistic UI puts something on screen the server has not confirmed yet. That is fine — until two of those guesses overlap and one of them fails. The left window is the callback model exactly as TanStack Query's documentation recommends: snapshot in onMutate, restore in onError, invalidate on settle. The right window is the Worth runtime, where every optimistic patch is an admitted effect with provenance, and a server confirmation reconciles one item instead of overwriting the screen. Same clicks, same server, different truths.",
+    title: "Every Write Is a Branch",
+    purpose: "Concurrent optimistic writes â€” an independent sibling, a failing parent, and its dependent child â€” settle out of order while a server-truth referee judges both screens live.",
+    preface: "Optimistic UI puts something on screen the server has not confirmed yet. That is fine â€” until several of those guesses overlap and one of them fails. The left window is the callback model exactly as TanStack Query's documentation recommends: snapshot in onMutate, restore in onError, invalidate on settle. In the right window every optimistic write forks its own effect branch: rejection retires one branch, confirmation merges one branch, and a dependent write is a child branch that closes out with its parent. A server-truth strip referees both screens, and each wears a live badge saying whether it still agrees with the server.",
     difficulty: "Intermediate",
-    primaryMessage: "Worth writes are effects with provenance — confirmations are item-scoped and cannot clobber the screen.",
+    primaryMessage: "One write, one branch. Rejection retires a branch â€” it never restores a shared snapshot.",
     WORTHCode: `const po = signals.api({
   baseUrl: "/api/procurement",
   effects: signals.resource.effects.branchNative(),
@@ -243,16 +243,18 @@ const poLines = po.url("/orders/:orderId/lines")
   .response(signals.resource.response.array({ itemId: (line) => line.id }))
   .list({ load: ({ orderId }) => client.fetchLines(orderId) });
 
-const saveLine = po.url("/orders/:orderId/lines/:lineId")
-  .update({
-    // a confirmation replaces one item — nothing else on screen is touched
-    reconciles: [{ family: poLines, params: ({ orderId }) => ({ orderId }),
-      collection: { kind: "item" } }],
-    load: ({ orderId, lineId, body }) => client.saveLine(orderId, lineId, body),
-  });
+// each admitted write owns a native branch; dependencies are declared
+const admission = await line.patch(resourcePatch.dependsOn(
+  poLines.patch.insert({ itemId, placement: "append", nextItem }),
+  [parentEffectId],
+));
 
-line.diagnostics().lastEffect;  // provenance, confirmation, rollback posture
-line.history().lifecycle;       // what the screen showed, and when`,
+// settlement is per-effect: merge one branch, or retire one branch
+await line.effects().confirm(admission.effectId, { serverPatch });
+await line.effects().reject(admission.effectId, { responseId });
+
+line.effects().get(effectId);   // branch, dependencies, terminal receipt
+line.effects().projection();    // the derived visible fold â€” rebuildable`,
     alternativeName: "React Query (TanStack Query)",
     alternativeCode: `const addLine = useMutation({
   mutationFn: saveLine,
@@ -262,7 +264,7 @@ line.history().lifecycle;       // what the screen showed, and when`,
     queryClient.setQueryData(["po", "lines"], (cur = []) => [...cur, line]);
     return { previous };
   },
-  // restores a whole-cache snapshot — including anything
+  // restores a whole-cache snapshot â€” including anything
   // that was confirmed after the snapshot was taken
   onError: (_err, _line, ctx) =>
     queryClient.setQueryData(["po", "lines"], ctx?.previous),
@@ -272,13 +274,14 @@ line.history().lifecycle;       // what the screen showed, and when`,
       queryClient.invalidateQueries({ queryKey: ["po", "lines"] });
   },
 });`,
-    explanationAlternative: "The rollback is your code restoring your closure variable. The cache cannot tell speculative rows from confirmed ones, so a failed write's rollback silently un-confirms whatever settled after its snapshot — and no record remains that the screen ever changed.",
-    explanationWORTH: "Every optimistic patch is an admitted effect with an envelope: provenance, confirmation kind, rollback posture. Server confirmations reconcile exactly one item, so overlapping writes cannot clobber each other, and the whole incident stays inspectable in line.history().lifecycle.",
+    explanationAlternative: "The rollback is your code restoring your closure variable. The cache cannot tell speculative rows from confirmed ones, so a failed write's rollback silently un-confirms whatever settled after its snapshot â€” and no record remains that the screen ever changed.",
+    explanationWORTH: "Every admitted write owns a native effect branch with an explicit fork basis and declared dependencies. Rejection retires exactly one branch (and closes out its dependents by policy); confirmation reconciles one resource locus and merges one branch. The visible value is a derived projection â€” rebuildable from canonical truth plus open effects â€” and every claim on screen is a runtime-issued receipt.",
     whatYouGet: [
-      "Effect envelopes with provenance on every write",
-      "Item-scoped server confirmations that preserve pending rows",
-      "Recorded lifecycle history of what the screen showed",
-      "useManagedResourceWrite — the whole lifecycle in one hook"
+      "One effect branch per optimistic write, drawn live as a graph",
+      "Declared parent/child dependencies with typed closeout",
+      "A server-truth referee and live agreement badges on both screens",
+      "Arbitrary-order settlement: ten branches converge with zero residue",
+      "Clickable runtime receipts â€” branch, dependencies, terminal outcome"
     ],
     relatedDocsPath: "resources/index"
   },

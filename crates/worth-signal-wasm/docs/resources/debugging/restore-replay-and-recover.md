@@ -10,7 +10,7 @@ Use it when you need:
 
 - exact replay of a line value
 - exact restore of branch-backed visible truth
-- rollback of the latest resource effect
+- targeted rejection of one open resource effect
 - typed reasons when those paths are unavailable
 
 ## Stable Entry Points
@@ -18,6 +18,7 @@ Use it when you need:
 - `line.history().availability`
 - `line.history().replayExact()`
 - `line.history().restoreExact()`
+- `line.history().rollbackEffect(effectId)`
 - `line.history().rollbackLastEffect()`
 - `line.history().verificationPackage()`
 
@@ -27,7 +28,7 @@ Replay, restore, and rollback are related, but they are not interchangeable.
 
 - replay replays exact line truth
 - restore restores exact branch-backed line truth
-- rollback rolls back the latest effect when the effect profile admitted it
+- effect rollback rejects one effect-owned branch and rebuilds the projection
 
 ## How It Executes
 
@@ -52,7 +53,7 @@ const history = line.history();
 console.log(history.availability.restoreExact);
 console.log(history.availability.replayExact);
 
-const rollback = history.rollbackLastEffect();
+const rollback = await history.rollbackEffect(failedEffectId);
 console.log(rollback.kind);
 
 const verification = history.verificationPackage();
@@ -76,13 +77,14 @@ path is actually admitted before you try to run it.
 ## Anti-Patterns
 
 - Do not assume `rollbackLastEffect()` is the same as exact restore.
+- Do not use the latest effect as authority when several requests are open.
 - Do not hide unavailable recovery results. They carry the reason you need for
   honest UI and logs.
 
 ## Current Limits
 
-Exact replay and restore depend on retained runtime history. Rollback depends on
-the effect profile and the proof the runtime captured for that effect.
+Exact replay and restore depend on retained runtime history. Effect rollback
+depends on the runtime-issued effect identity and its retained branch proof.
 
 ## Related Docs
 

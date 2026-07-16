@@ -3,11 +3,69 @@ use worth_signal::facade::history::{RuntimeBranch, RuntimeSnapshot};
 
 use crate::boundary::errors::WorthSignalJsError;
 use crate::recipe::model::TransactionOp;
+use crate::runtime::core::{
+    WorkerApplyTransactionToBranchReceipt, WorkerApplyTransactionToBranchRequest,
+    WorkerBranchBasisReceipt, WorkerCloseoutEffectBranchReceipt, WorkerCloseoutEffectBranchRequest,
+    WorkerForkBranchReceipt, WorkerForkBranchRequest, WorkerRetireBranchReceipt,
+    WorkerRetireBranchRequest, WorkerRetireBranchesReceipt, WorkerRetireBranchesRequest,
+};
 use crate::runtime::summaries::{ReplaySummary, RuntimeSnapshotEnvelope};
 
 use super::{WorkerBranchTruthEnvelope, WorkerCommittedTransactionEnvelope, WorkerRuntimeShell};
 
 impl WorkerRuntimeShell {
+    pub fn worker_branch_basis(
+        &self,
+        branch_id: u64,
+    ) -> Result<WorkerBranchBasisReceipt, WORTHSignalJsError> {
+        self.core.worker_branch_basis(branch_id)
+    }
+
+    pub fn fork_worker_branch(
+        &mut self,
+        request: WorkerForkBranchRequest,
+    ) -> Result<WorkerForkBranchReceipt, WORTHSignalJsError> {
+        let receipt = self.core.fork_worker_branch(request)?;
+        self.clear_worker_boundary_certification_evidence();
+        Ok(receipt)
+    }
+
+    pub fn apply_transaction_to_worker_branch(
+        &mut self,
+        request: WorkerApplyTransactionToBranchRequest,
+    ) -> Result<WorkerApplyTransactionToBranchReceipt, WORTHSignalJsError> {
+        let receipt = self.core.apply_transaction_to_worker_branch(request)?;
+        self.clear_worker_boundary_certification_evidence();
+        Ok(receipt)
+    }
+
+    pub fn retire_worker_branch(
+        &mut self,
+        request: WorkerRetireBranchRequest,
+    ) -> Result<WorkerRetireBranchReceipt, WORTHSignalJsError> {
+        let receipt = self.core.retire_worker_branch(request)?;
+        self.clear_worker_boundary_certification_evidence();
+        Ok(receipt)
+    }
+
+    pub fn retire_worker_branches(
+        &mut self,
+        request: WorkerRetireBranchesRequest,
+    ) -> Result<WorkerRetireBranchesReceipt, WORTHSignalJsError> {
+        let receipt = self.core.retire_worker_branches(request)?;
+        self.clear_worker_boundary_certification_evidence();
+        Ok(receipt)
+    }
+
+    pub fn closeout_worker_effect_branch(
+        &mut self,
+        request: WorkerCloseoutEffectBranchRequest,
+    ) -> Result<WorkerCloseoutEffectBranchReceipt, WORTHSignalJsError> {
+        let receipt = self.core.closeout_worker_effect_branch(request)?;
+        self.clear_worker_boundary_certification_evidence();
+        Ok(receipt)
+    }
+
     pub fn apply_committed_transaction(
         &mut self,
         ops: Vec<TransactionOp>,

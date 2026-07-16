@@ -38,7 +38,7 @@ test("named collection responses lower item replacement through named collection
       effects: signals.resource.effects.branchNative(),
     });
     const line = tasks.line({});
-    line.patch(tasks.patch.item({
+    await line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", collection: "backlog", title: "Replaced" },
     }));
@@ -62,7 +62,7 @@ test("named collection responses lower item replacement through named collection
       reconstruction: "replaceCollectionItem",
       reconstructionBreadth: 1,
     });
-    assert.equal(itemEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(itemEffect.optimistic.rollback.kind, "effectBranchRetirementAvailable");
     assert.equal(itemEffect.profile.rebase, "nativeMergePlan");
     const mergePlan = signals.resource.branch.planMerge({
       source_branch_id: itemEffect.optimistic.branchId,
@@ -97,7 +97,7 @@ test("named collection responses lower item replacement through named collection
     });
     assert.equal(singleCollectionItemReplacementCount, 2);
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Aspect",
@@ -107,7 +107,7 @@ test("named collection responses lower item replacement through named collection
     assert.equal(aspectEffect.locusProof.locus, "itemAspect");
     assert.deepEqual(aspectEffect.locusProof.cost, itemEffect.locusProof.cost);
     assert.equal(readTask(line.value(), "backlog", "task:1").title, "Aspect");
-    assert.equal(singleCollectionItemReplacementCount, 3);
+    assert.equal(singleCollectionItemReplacementCount, 5);
   } finally {
     await runtime.cleanup();
   }
@@ -121,7 +121,7 @@ test("named collection broad replacements preserve named topology proof", async 
     const tasks = createTaskNamedApi(signals, response, "/named-broad");
     const line = tasks.line({});
 
-    line.patch(tasks.patch.replace({
+    await line.patch(tasks.patch.replace({
       collections: {
         active: [{ id: "task:2", collection: "active", title: "Broad" }],
       },
@@ -160,7 +160,7 @@ test("multiple collection responses expose the named collection topology lane", 
     const tasks = createTaskNamedApi(signals, response, "/multiple");
     const line = tasks.line({});
 
-    line.patch(tasks.patch.item({
+    await line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", collection: "backlog", title: "Multiple" },
     }));

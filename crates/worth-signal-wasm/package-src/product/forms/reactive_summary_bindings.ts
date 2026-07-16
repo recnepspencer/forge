@@ -1,29 +1,17 @@
 export function createReactiveFormBindings(signalNamespace, formId, formRef) {
   const formScope = signalNamespace.scope(`${formId}:reactive`);
-  const revisionSignal = formScope.input(0, {
-    debugName: `${formId}.revision`,
+  const summaryState = formScope.input(readSummary(formRef()), {
+    debugName: `${formId}.summaryState`,
   });
   const summarySignal = formScope.computed(
-    () => {
-      revisionSignal();
-      const form = formRef();
-      return Object.freeze({
-        source: form.source(),
-        draft: form.draft(),
-        effective: form.effective(),
-        dirty: form.dirty(),
-        patchPlan: form.patchPlan(),
-        readiness: form.readiness(),
-        visibleMessages: form.visibleMessages(),
-      });
-    },
+    () => summaryState(),
     {
       debugName: `${formId}.summary`,
     },
   );
 
   function noteMutation() {
-    revisionSignal.set(revisionSignal.get() + 1);
+    summaryState.set(readSummary(formRef()));
   }
 
   function summarySignalHandle() {
@@ -40,6 +28,18 @@ export function createReactiveFormBindings(signalNamespace, formId, formRef) {
       wrapMutationMethods(form, FORM_MUTATION_METHODS, noteMutation);
       return form;
     },
+  });
+}
+
+function readSummary(form) {
+  return Object.freeze({
+    source: form.source(),
+    draft: form.draft(),
+    effective: form.effective(),
+    dirty: form.dirty(),
+    patchPlan: form.patchPlan(),
+    readiness: form.readiness(),
+    visibleMessages: form.visibleMessages(),
   });
 }
 

@@ -1,22 +1,29 @@
 import { createResourceEffectServerConfirmation } from "./resource_effect_server_confirmation.js";
 import { createResourceEffectRollback } from "./resource_effect_rollback.js";
 
-function createResourceEffectOptimisticLifecycle(effectPlan, currentLocus, patch) {
-  const branchPosture = effectPlan.branchPosture;
+function createResourceEffectOptimisticLifecycle(effectPlan, currentLocus, patch, resolvedBranchPosture = effectPlan.branchPosture) {
+  const branchPosture = resolvedBranchPosture;
   switch (branchPosture.kind) {
-    case "speculativeBranch":
+    case "effectOwnedBranch":
       return Object.freeze({
         kind: "applied",
         admissionKind: effectPlan.admissionKind,
         branchPosture: branchPosture.kind,
         branchId: branchPosture.branchId,
         snapshotId: branchPosture.snapshotId,
-        restoreMode: branchPosture.restoreMode,
-        rollback: createResourceEffectRollback(effectPlan),
+        rollback: Object.freeze({
+          kind: "effectBranchRetirementAvailable",
+          branchId: branchPosture.branchId,
+          dependencyBasisBranchId: branchPosture.dependencyBasisBranchId,
+          mode: "EffectBranchRetirement",
+        }),
         confirmation: "pendingServer",
-        detail:
-          "resource effect was applied under a branch-native speculative posture and awaits server confirmation",
+        detail: "resource effect is isolated in an effect-owned branch and projected through derived visible truth",
       });
+    case "effectOwnedBranchPlanned":
+      throw new TypeError(
+        "resource effect optimistic lifecycle requires completed branch acquisition",
+      );
     case "optimisticUnavailable":
       return Object.freeze({
         kind: "unavailable",

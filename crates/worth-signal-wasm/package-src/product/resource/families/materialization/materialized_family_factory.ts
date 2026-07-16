@@ -21,6 +21,7 @@ function createMaterializedFamily(
   familyId,
   declaration,
   compatibility,
+  effectProjectionCoordinator,
 ) {
   const familyScope = signalNamespace.scope(familyId);
   const familyIdentity = createFamilyIdentity(kind, familyId);
@@ -68,6 +69,7 @@ function createMaterializedFamily(
         return lineCounter;
       },
       options?.initialBindingFactory ?? null,
+      effectProjectionCoordinator,
     );
     linesByCanonicalKey.set(canonicalParamIdentity.canonicalKey, created);
     return created;

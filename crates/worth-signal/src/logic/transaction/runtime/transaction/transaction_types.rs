@@ -476,6 +476,12 @@ impl<T: Copy + Ord> TransactionRollbackPacketSet<T> {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::logic::transaction::runtime) enum TransactionCommitPosture {
+    Visible,
+    BranchLocal,
+}
+
 pub struct SignalTransaction<'a, D, I, E, Ctx, T = ()>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
@@ -499,6 +505,7 @@ where
     pub(in crate::logic::transaction::runtime) finished: bool,
     pub(in crate::logic::transaction::runtime) execution_state: TransactionExecutionState,
     pub(in crate::logic::transaction::runtime) started_at: RuntimeInstant,
+    pub(in crate::logic::transaction::runtime) commit_posture: TransactionCommitPosture,
 }
 
 pub struct BatchChangeSession<'tx, 'a, D, I, E, Ctx, T = ()>

@@ -1,6 +1,25 @@
 const RESOURCE_PATCH = Symbol("WorthSignal.resourcePatch");
 
 const resourcePatch = Object.freeze({
+  dependsOn(patch, dependencies) {
+    if (!patch || patch[RESOURCE_PATCH] !== "resourcePatch") {
+      throw new TypeError(
+        "resourcePatch.dependsOn(...) requires a resourcePatch value",
+      );
+    }
+    if (!Array.isArray(dependencies)) {
+      throw new TypeError(
+        "resourcePatch.dependsOn(...) requires an array of effect ids",
+      );
+    }
+    return Object.freeze({
+      ...patch,
+      dependencies: Object.freeze(dependencies.map((dependency) =>
+        typeof dependency === "string" ? dependency : dependency?.effectId)),
+      dependencyCloseoutPolicy: "cancelOnDependencyRejection",
+      [RESOURCE_PATCH]: "resourcePatch",
+    });
+  },
   replace(nextValue) {
     return Object.freeze({
       kind: "replace",

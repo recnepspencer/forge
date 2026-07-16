@@ -193,6 +193,7 @@ pub(super) struct BranchRuntimeMetadata {
 pub(super) struct BranchRuntimeState {
     pub(super) metadata: BranchRuntimeMetadata,
     pub(super) store: RuntimeStoreSnapshot,
+    pub(super) authored_graph_generation: u64,
 }
 
 #[derive(Debug, Clone, Default)]

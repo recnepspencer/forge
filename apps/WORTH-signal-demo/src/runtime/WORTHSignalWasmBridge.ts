@@ -1,13 +1,28 @@
 import initializeRawSignals, * as rawSurface from "../../../../crates/worth-signal-wasm/pkg/raw_surface.js";
 import type { Signals as RawSignals } from "../../../../crates/worth-signal-wasm/pkg/raw_surface.js";
-import { resourcePolicyProfiles, wrapSignals } from "../../../../crates/worth-signal-wasm/package-src/product/signals.ts";
+import { createSignals as createPackagedSignals } from "../../../../crates/worth-signal-wasm/pkg/index.js";
+import * as packagedSignalsModule from "../../../../crates/worth-signal-wasm/pkg/index.js";
+import type {
+  CallableSignals,
+  CreateSignalsOptions,
+} from "../../../../crates/worth-signal-wasm/pkg/index.js";
+import type {
+  resourcePatch as typedResourcePatch,
+  resourcePolicyProfiles as typedResourcePolicyProfiles,
+  wrapSignals as typedWrapSignals,
+} from "../../../../crates/worth-signal-wasm/package-src/product/signals.ts";
 
-interface CompatibilityCreateSignalsOptions {
-  deployment?: "workerFirst" | "mainThreadCompatibility";
-  hostCapabilities?: unknown;
-}
+// Every product export must come from the packaged pkg/ build. Mixing pkg with
+// package-src modules creates a second brand-symbol instance, and packaged
+// runtimes then reject package-src values (e.g. resourcePatch.dependsOn).
+const { resourcePatch, resourcePolicyProfiles, wrapSignals } =
+  packagedSignalsModule as unknown as {
+    resourcePatch: typeof typedResourcePatch;
+    resourcePolicyProfiles: typeof typedResourcePolicyProfiles;
+    wrapSignals: typeof typedWrapSignals;
+  };
 
-export { resourcePolicyProfiles };
+export { resourcePatch, resourcePolicyProfiles };
 
 const { createRawSignals } = rawSurface as unknown as {
   createRawSignals: () => RawSignals;
@@ -21,8 +36,8 @@ async function ensureRuntimeInitialized(): Promise<void> {
 }
 
 export async function createSignals(
-  options?: CompatibilityCreateSignalsOptions,
-): Promise<ReturnType<typeof wrapSignals>> {
+  options?: CreateSignalsOptions,
+): Promise<CallableSignals> {
   const normalizedOptions = options ?? {};
   const { deployment = "workerFirst", hostCapabilities, ...unknownOptions } = normalizedOptions;
   const unknownKeys = Object.keys(unknownOptions);
@@ -33,8 +48,11 @@ export async function createSignals(
     throw new TypeError('createSignals deployment must be "workerFirst" or "mainThreadCompatibility"');
   }
 
-  await ensureRuntimeInitialized();
+  if (deployment === "workerFirst") {
+    return createPackagedSignals(normalizedOptions);
+  }
 
+  await ensureRuntimeInitialized();
   const productOptions = hostCapabilities === undefined ? undefined : { hostCapabilities };
-  return wrapSignals(createRawSignals(), productOptions);
+  return wrapSignals(createRawSignals(), productOptions) as unknown as CallableSignals;
 }

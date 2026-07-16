@@ -1,5 +1,7 @@
+import { readLineBindingState } from "../state/line_binding_state.js";
+
 function readLineUpload(materialization) {
-  return materialization.binding.uploadSignal();
+  return readLineBindingState(materialization.binding).upload;
 }
 
 export { readLineUpload };

@@ -83,7 +83,7 @@ test("response-derived reconciliation keeps sealed proof attachment internal", a
       });
 
     const line = tasks.line({});
-    line.patch(
+    await line.patch(
       tasks.patch.itemAspect({
         itemId: "t1",
         aspect: "title",
@@ -184,7 +184,7 @@ test("response-derived reconciliation still validates proof and summary shape", 
       });
 
     const line = tasks.line({});
-    line.patch(tasks.patch.summary({ summary: "total", value: 2 }));
+    await line.patch(tasks.patch.summary({ summary: "total", value: 2 }));
 
     assert.deepEqual(line.value(), {
       tasks: [{ id: "t1", title: "First" }],

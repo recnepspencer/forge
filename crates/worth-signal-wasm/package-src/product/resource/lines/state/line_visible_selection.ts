@@ -12,8 +12,21 @@ function createInitialVisibleSelection(requestDescriptor, hasVisibleValue) {
   });
 }
 
-function createPatchedVisibleSelection(previousSelection, effectEnvelope) {
+function createPatchedVisibleSelection(previousSelection, effectEnvelope, projection = null) {
   const optimistic = effectEnvelope.optimistic;
+  if (projection?.kind === "derivedEffectProjectionBranch") {
+    return Object.freeze({
+      kind: "derivedEffectProjectionBranch",
+      source: "openResourceEffects",
+      effectId: effectEnvelope.effectId,
+      branchId: Number(projection.branch.id),
+      snapshotId: projection.basis.snapshotId,
+      basisId: effectEnvelope.request.basisId,
+      affectedEffectIds: projection.affectedEffectIds,
+      projectionDigest: projection.projectionDigest,
+      detail: projection.detail,
+    });
+  }
   if (optimistic.kind === "applied") {
     return Object.freeze({
       kind: "speculative",
@@ -125,10 +138,37 @@ function createRestoredVisibleSelection(
   });
 }
 
+function createEffectSettlementVisibleSelection(previousSelection, settlement) {
+  const projection = settlement.projection;
+  if (projection.kind === "derivedEffectProjectionBranch") {
+    return Object.freeze({
+      kind: "derivedEffectProjectionBranch",
+      source: "effectSettlement",
+      effectId: settlement.effectId,
+      branchId: Number(projection.branch.id),
+      snapshotId: projection.basis.snapshotId,
+      basisId: previousSelection.basisId ?? null,
+      affectedEffectIds: projection.affectedEffectIds,
+      projectionDigest: projection.projectionDigest,
+      detail: projection.detail,
+    });
+  }
+  return Object.freeze({
+    kind: "committed",
+    source: "effectSettlement",
+    effectId: settlement.effectId,
+    branchId: projection.basis.branchId,
+    snapshotId: projection.basis.snapshotId,
+    basisId: previousSelection.basisId ?? null,
+    detail: "all open effects settled; visible resource truth is canonical",
+  });
+}
+
 export {
   createDeliveredVisibleSelection,
   createInitialVisibleSelection,
   createPatchedVisibleSelection,
   createReloadFulfilledVisibleSelection,
   createRestoredVisibleSelection,
+  createEffectSettlementVisibleSelection,
 };

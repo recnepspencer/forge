@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::collections::VecDeque;
 #[cfg(test)]
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
@@ -68,6 +69,12 @@ pub struct WebCallbackRegistry {
     callbacks: BTreeMap<u64, RegisteredWebCallback>,
     generations: BTreeMap<u64, u64>,
     stats: WebCallbackStats,
+    pending: VecDeque<PendingWebCallback>,
+}
+
+enum PendingWebCallback {
+    Watch(ObservationCallbackToken, WebObservationNotice),
+    Effect(ObservationCallbackToken),
 }
 
 #[derive(Default)]
@@ -109,11 +116,62 @@ pub fn dispose_callback(scope_id: u64, token: ObservationCallbackToken) -> bool 
 }
 
 pub fn invoke_watch(scope_id: u64, token: ObservationCallbackToken, notice: WebObservationNotice) {
-    with_registry_mut(scope_id, |registry| registry.invoke_watch(token, notice));
+    with_registry_mut(scope_id, |registry| registry.enqueue_watch(token, notice));
 }
 
 pub fn invoke_effect(scope_id: u64, token: ObservationCallbackToken) {
-    with_registry_mut(scope_id, |registry| registry.invoke_effect(token));
+    with_registry_mut(scope_id, |registry| registry.enqueue_effect(token));
+}
+
+pub fn flush_deferred_callbacks() {
+    while let Some((scope_id, invocation)) = take_pending_wasm_invocation() {
+        let success = match invocation {
+            PendingWasmInvocation::Watch(function, notice) => to_js(&notice)
+                .ok()
+                .is_some_and(|payload| function.call1(&JsValue::NULL, &payload).is_ok()),
+            PendingWasmInvocation::Effect(function) => function.call0(&JsValue::NULL).is_ok(),
+        };
+        WEB_RUNTIME_CALLBACKS.with(|state| {
+            if let Some(registry) = state.borrow_mut().registries.get_mut(&scope_id) {
+                registry.record_callback_invocation(success);
+            }
+        });
+    }
+}
+
+enum PendingWasmInvocation {
+    Watch(Function, WebObservationNotice),
+    Effect(Function),
+}
+
+fn take_pending_wasm_invocation() -> Option<(u64, PendingWasmInvocation)> {
+    WEB_RUNTIME_CALLBACKS.with(|state| {
+        let mut state = state.borrow_mut();
+        for (scope_id, registry) in &mut state.registries {
+            while let Some(pending) = registry.pending.pop_front() {
+                match pending {
+                    PendingWebCallback::Watch(token, notice) => {
+                        if let Some(RegisteredWebCallback::WasmWatch(function)) =
+                            registry.registered_callback(token)
+                        {
+                            return Some((
+                                *scope_id,
+                                PendingWasmInvocation::Watch(function, notice),
+                            ));
+                        }
+                    }
+                    PendingWebCallback::Effect(token) => {
+                        if let Some(RegisteredWebCallback::WasmEffect(function)) =
+                            registry.registered_callback(token)
+                        {
+                            return Some((*scope_id, PendingWasmInvocation::Effect(function)));
+                        }
+                    }
+                }
+            }
+        }
+        None
+    })
 }
 
 pub fn callback_stats(scope_id: u64) -> WebCallbackStats {
@@ -163,17 +221,15 @@ impl WebCallbackRegistry {
         true
     }
 
-    pub fn invoke_watch(&mut self, token: ObservationCallbackToken, notice: WebObservationNotice) {
+    pub fn enqueue_watch(&mut self, token: ObservationCallbackToken, notice: WebObservationNotice) {
         let Some(callback) = self.registered_callback(token) else {
             return;
         };
         match callback {
             RegisteredWebCallback::WasmWatch(function) => {
-                if let Ok(payload) = to_js(&notice) {
-                    self.record_callback_invocation(
-                        function.call1(&JsValue::NULL, &payload).is_ok(),
-                    );
-                }
+                let _ = function;
+                self.pending
+                    .push_back(PendingWebCallback::Watch(token, notice));
             }
             #[cfg(test)]
             RegisteredWebCallback::NativeWatch(callback) => {
@@ -187,13 +243,14 @@ impl WebCallbackRegistry {
         }
     }
 
-    pub fn invoke_effect(&mut self, token: ObservationCallbackToken) {
+    pub fn enqueue_effect(&mut self, token: ObservationCallbackToken) {
         let Some(callback) = self.registered_callback(token) else {
             return;
         };
         match callback {
             RegisteredWebCallback::WasmEffect(function) => {
-                self.record_callback_invocation(function.call0(&JsValue::NULL).is_ok());
+                let _ = function;
+                self.pending.push_back(PendingWebCallback::Effect(token));
             }
             #[cfg(test)]
             RegisteredWebCallback::NativeEffect(callback) => {

@@ -57,7 +57,8 @@ This is the task-first companion for the rewritten resource docs.
   [Restore, Replay, And Recover](./debugging/restore-replay-and-recover.md)
 - optimistic effects, merge previews, or rollback posture:
   [Effects And Recovery](./effects/README.md),
-  [Branch-Native Effects](./effects/branch-native-effects.md), and
+  [Branch-Native Effects](./effects/branch-native-effects.md),
+  [Concurrent Optimistic Effects](./effects/concurrency-and-dependencies.md), and
   [Rollback And Recovery](./effects/rollback-and-recovery.md)
 - resource-backed forms, settlement, drift, or merge readback:
   [Using Resources In Forms](./forms/README.md),

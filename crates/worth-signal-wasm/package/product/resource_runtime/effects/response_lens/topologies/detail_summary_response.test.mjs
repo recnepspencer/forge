@@ -15,7 +15,7 @@ test("detail responses close whole-response effect topology proof", async () => 
     });
     const line = users.line({ userId: "user:1" });
 
-    line.patch(signalsMod.resourcePatch.replace({
+    await line.patch(signalsMod.resourcePatch.replace({
       id: "user:1",
       name: "Local",
     }));
@@ -35,7 +35,7 @@ test("detail responses close whole-response effect topology proof", async () => 
         reconstructionBreadth: 1,
       },
     });
-    assert.equal(localEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(localEffect.optimistic.rollback.kind, "effectBranchRetirementAvailable");
     assert.equal(localEffect.profile.rebase, "nativeMergePlan");
     const mergePlan = signals.resource.branch.planMerge({
       source_branch_id: localEffect.optimistic.branchId,
@@ -90,7 +90,7 @@ test("summary responses close whole-response effect topology proof", async () =>
     });
     const line = totals.line({});
 
-    line.patch(signalsMod.resourcePatch.replace({ open: 2, closed: 1 }));
+    await line.patch(signalsMod.resourcePatch.replace({ open: 2, closed: 1 }));
     const localEffect = line.diagnostics().lastEffect;
 
     assert.deepEqual(line.value(), { open: 2, closed: 1 });
@@ -107,7 +107,7 @@ test("summary responses close whole-response effect topology proof", async () =>
         reconstructionBreadth: 1,
       },
     });
-    assert.equal(localEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(localEffect.optimistic.rollback.kind, "effectBranchRetirementAvailable");
     assert.equal(localEffect.profile.rebase, "nativeMergePlan");
     const mergePlan = signals.resource.branch.planMerge({
       source_branch_id: localEffect.optimistic.branchId,

@@ -9,7 +9,7 @@ import { createLineLifecycleState } from "../../lines/state/line_lifecycle_state
 import { createLineBackingRef } from "../../lines/state/line_backing_ref.js";
 import { createLineRegistryEntry } from "../../lines/state/line_registry_entry.js";
 import { createLineDeliveryState } from "../../lines/state/line_delivery_state.js";
-import { createIdentityMigratedDiagnostics } from "../../lines/state/line_diagnostics_value.js";
+import { createIdentityMigratedDiagnostics } from "../../lines/state/line_identity_migration_diagnostics.js";
 import {
   patchLineBindingState,
   readLineBindingState,
@@ -19,6 +19,7 @@ import { createLineRequestState } from "../../requests/line_request_state.js";
 import { recordMutationResponsePlanIfPresent } from "../../mutation/resource_mutation_response_execution.js";
 import { createBinding } from "./materialized_family_binding.js";
 import { createResolvedRequestDescriptor } from "./resolved_request_descriptor.js";
+import { createResourceEffectBranchDag } from "../../effects/runtime/resource_effect_branch_dag.js";
 
 function createMaterializedLine(
   canonicalParamIdentity,
@@ -30,6 +31,7 @@ function createMaterializedLine(
   resourceLineEpoch,
   nextLineCounter,
   initialBindingFactory = null,
+  effectProjectionCoordinator,
 ) {
   let currentCanonicalParamIdentity = canonicalParamIdentity;
   let currentCanonicalKey = canonicalParamIdentity.canonicalKey;
@@ -93,6 +95,8 @@ function createMaterializedLine(
       sharedLifecycleHistory,
       requestStateOverride,
       requestDescriptorOverride,
+      null,
+      effectProjectionCoordinator,
     );
   }
 
@@ -145,7 +149,9 @@ function createMaterializedLine(
     );
     const previousCanonicalKey = currentCanonicalKey;
     const previousRuntimeLineId = currentMaterialization.lineIdentity.runtimeLineId;
-    const previousVisibleValue = readLineBindingState(currentMaterialization.binding).value;
+    const previousState = readLineBindingState(currentMaterialization.binding);
+    const previousVisibleValue = previousState.value;
+    const previousCanonicalValue = previousState.canonicalValue;
     currentCanonicalParamIdentity = nextCanonicalParamIdentity;
     currentCanonicalKey = nextCanonicalKey;
     linesByCanonicalKey.delete(previousCanonicalKey);
@@ -157,6 +163,7 @@ function createMaterializedLine(
     if (previousVisibleValue !== null) {
       patchLineBindingState(migratedMaterialization.binding, {
         value: previousVisibleValue,
+        canonicalValue: previousCanonicalValue,
       });
     }
     sharedRequestState = migratedMaterialization.requestState;
@@ -210,6 +217,7 @@ function createMaterializedLine(
       sharedRequestState,
       null,
       initialBindingFactory,
+      effectProjectionCoordinator,
     ));
   sharedRequestState = materialization.requestState;
   recordLineHistoryEntry(
@@ -253,6 +261,7 @@ function createConcreteMaterialization(
   requestStateOverride,
   requestDescriptorOverride = null,
   bindingFactoryOverride = null,
+  effectProjectionCoordinator,
 ) {
   const lineCounter = nextLineCounter();
   const lineScope = familyScope.scope(`line${lineCounter}`);
@@ -308,6 +317,11 @@ function createConcreteMaterialization(
     rematerialize,
     migrateIdentity,
     resourceLineEpoch,
+    (record) => createResourceEffectBranchDag(
+      record,
+      effectProjectionCoordinator,
+    ),
+    effectProjectionCoordinator,
   );
 }
 
@@ -359,9 +373,11 @@ function createMigratedRequestDescriptor(
 }
 
 function disposeLineMaterialization(materialization) {
+  materialization.unregisterEffectProjection();
   materialization.lifecycle.markReleased();
   materialization.lifecycle.releaseOwnedViews();
   materialization.binding.valueSignal.free();
+  materialization.binding.canonicalValueSignal.free();
   materialization.binding.readableValueSignal.free();
   materialization.binding.processingSignal.free();
   materialization.binding.uploadSignal.free();

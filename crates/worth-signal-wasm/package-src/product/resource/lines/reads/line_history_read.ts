@@ -4,7 +4,10 @@ import {
   readHistoryRuntimeErrorDetail,
 } from "../history/line_history_availability.js";
 import { readLineBasisHistory } from "../history/line_basis_history_read.js";
-import { executeLineEffectRollback } from "../history/line_effect_rollback.js";
+import {
+  executeLineEffectRollback,
+  executeLineLastEffectRollback,
+} from "../history/line_effect_rollback.js";
 import { executeLineHistoryExactReplay } from "../history/line_history_replay.js";
 import { executeLineHistoryExactRestore } from "../history/line_history_restore.js";
 import { readLineHistorySignalId } from "../history/line_history_signal_id.js";
@@ -64,7 +67,15 @@ function readLineHistory(materialization) {
   });
   Object.defineProperty(historyRead, "rollbackLastEffect", {
     value() {
-      return executeLineEffectRollback(materialization, historyRead);
+      return executeLineLastEffectRollback(materialization, historyRead);
+    },
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+  Object.defineProperty(historyRead, "rollbackEffect", {
+    value(effectId) {
+      return executeLineEffectRollback(materialization, historyRead, effectId);
     },
     enumerable: false,
     configurable: false,

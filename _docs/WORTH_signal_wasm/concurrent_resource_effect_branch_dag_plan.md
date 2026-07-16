@@ -183,8 +183,8 @@ path.
 ### Phase 3: Worker-First Live Branch Authority
 
 Expose explicit fork basis, targeted transactions, and retirement through the
-worker-owned runtime, and make the worker's live graph head—not cached import
-context—the source of branch acquisition truth.
+worker-owned runtime, and make the worker's live graph headâ€”not cached import
+contextâ€”the source of branch acquisition truth.
 
 **Relevant subsystems**
 
@@ -224,6 +224,9 @@ context—the source of branch acquisition truth.
 
 - Worker commands are batchable self-describing envelopes, not scalar bridge
   chatter for each node or lifecycle field.
+- Published authored signal nodes participate in native worker branch capture;
+  the JS authored registry retains handle translation only and cannot own a
+  second restorable value snapshot.
 - Authored graph generation is part of branch-basis equivalence proof.
 - Main-thread compatibility lowers through the same request and result contracts.
 
@@ -470,6 +473,8 @@ requiring consumers to operate native branches directly.
 - new `line.history().rollbackEffect(effectId)`
 - retained `line.history().rollbackLastEffect()` as a convenience lowering to a
   targeted effect, never to shared snapshot restore
+- retained `form.rollbackLastResourceEffect()` lowering through the same targeted
+  resource effect closeout path
 - enriched effect envelope branch, dependency, projection, and closeout receipts
 
 **Warnings**
@@ -508,14 +513,230 @@ requiring consumers to operate native branches directly.
 
 ### Phase 9: Demo 5 Concurrent Request Proof
 
+Turn Demo 5 into an executable product proof of mixed sibling and dependent
+optimistic effects under worker-first random settlement.
+
+**Relevant subsystems**
+
+- `apps/worth-signals` Demo 5 resource comparison route
+- scripted purchase-order server and scenario controller
+- runtime effect ledger, branch/dependency visualization, and code sample
+
+**Relevant APIs**
+
+- default `await createSignals()` worker-first construction
+- `branchNative()`, concurrent resource executions, `line.effects()`, and
+  closeout receipts
+- runtime-derived canonical, projected, pending, dependency, and terminal views
+
+**Warnings**
+
+- The current Worth panel manually issues a compensating delete after rejection.
+  That shortcut must be removed; rejection must be visible solely because the
+  effect branch closed and the derived projection changed.
+- React may render receipts and projections but may not compose resource truth,
+  choose winners, or maintain a shadow optimistic ledger.
+- `ResourcesSection.tsx` is already over the workspace line limit. The demo work
+  must split scenario orchestration, TanStack comparison, Worth runtime panel,
+  receipts, and presentation into responsibility-owned files.
+
+**Test requirements**
+
+- `Demo 5 Ten Concurrent Requests Test`: launch ten deterministic requests,
+  settle five successfully and five unsuccessfully in a seeded random order, and
+  assert the Worth view always ends at the server-confirmed set.
+- `Demo 5 Parent Child Outcome Matrix Test`: include an edit dependent on an
+  optimistic create and demonstrate parent success, transformed success, and
+  rejection without stale child residue.
+- `Demo 5 No Shortcut Test`: statically or behaviorally prove the Worth panel has
+  no rejection-time compensating patch, React-side value compositor, or explicit
+  main-thread compatibility construction.
+- `Demo 5 Runtime Receipt Fidelity Test`: compare displayed branch, dependency,
+  reconciliation, and retirement claims with the runtime-issued receipts.
+
+**Engineering decisions**
+
+- Keep the side-by-side callback comparison, but make the Worth side prove the
+  runtime path rather than narrate a manually repaired result.
+- Provide deterministic seeds and a rerun control so reviewers can reproduce
+  settlement permutations while still seeing genuinely varied sequences.
+- The primary scenario displays sibling branches; an explicit dependent operation
+  exposes the parent/child policy without turning every request into a chain.
+
+**Open questions**
+
+- None.
+
 ### Phase 10: Feature Documentation And Migration Guidance
+
+Rewrite the public mental model around effect-owned branches, dependency DAGs,
+derived projection, targeted rollback, and worker-first parity.
+
+**Relevant subsystems**
+
+- resource effects feature docs and resource-contract reference
+- worker-first construction and history/restore guidance
+- feature index, resource overview, recipes, and in-app Worth Signals docs
+
+**Relevant APIs**
+
+- `branchNative()` effect branch lifecycle
+- `line.effects()` and targeted rollback
+- dependency declarations, closeout results, and merge/reconciliation artifacts
+- separate `restoreExact()` history semantics
+
+**Warnings**
+
+- Existing docs say optimistic patches land on the visible line/current branch
+  and teach exact snapshot restore as preferred effect rollback. Those statements
+  become incorrect and must be removed, not softened with caveats.
+- Documentation must not call native per-aspect conflict proof a partial object
+  merge. Resource-locus materialization is the mechanism that preserves fields.
+- Examples must use worker-first construction unless they are explicitly teaching
+  the compatibility lane.
+
+**Test requirements**
+
+- `Concurrent Effect Documentation Example Test`: execute a documented ten-effect
+  example and prove its final canonical and projected values and receipts.
+- `Documentation Claim And Type Surface Test`: type-check every new snippet and
+  assert documented result variants match packaged declarations.
+- `Documentation Link And In-App Navigation Test`: verify new concurrency and
+  migration pages are reachable from the feature index, resource overview,
+  effects index, and Worth Signals documentation browser.
+
+**Engineering decisions**
+
+- Add a focused `resources/effects/concurrency-and-dependencies.md` page.
+- Revise `branch-native-effects.md`, `rollback-and-recovery.md`,
+  `merge-and-rebase.md`, and `resource-contracts/history-and-restore.md`.
+- Update the resource effects index, resource overview, feature index, recipes,
+  and worker-first guidance so the new pages are part of the primary journey.
+- Add a migration section explaining that effect rejection retires a branch,
+  while explicit historical restore still restores a retained target.
+- Document sibling, single-parent, and multi-dependency examples plus same-locus
+  conflict policy and unsupported-locus admission denial.
+
+**Open questions**
+
+- None.
 
 ### Phase 11: Cross-Layer Certification And Release Gate
 
+Close the milestone only through one sealed evidence bundle spanning native core,
+worker boundary, resource product, forms integration, Demo 5, and documentation.
+
+**Relevant subsystems**
+
+- Rust branch and transaction certification
+- wasm worker-host and compatibility parity suites
+- package runtime, type smoke, resource/form integration, and demo build tests
+- documentation example and link verification
+
+**Relevant APIs**
+
+- sealed `ConcurrentResourceEffectBranchDagCertificationRun`
+- scenario matrix, performance envelope, parity digest, residue report, and docs
+  proof inputs
+
+**Warnings**
+
+- A green two-request example is not closeout evidence. The release gate requires
+  randomized breadth, mixed dependencies, conflicts, retries, and both deployments.
+- Runtime state equality alone is insufficient; lifecycle decisions, denial
+  classes, proof digests, projection truth, and retained branch counts must agree.
+- No closeout may rely on manually inspected screenshots as correctness proof.
+
+**Test requirements**
+
+- `Concurrent Effect Branch DAG Property Test`: generate mixed DAGs, loci,
+  dependency policies, outcomes, retries, and response permutations and compare
+  final truth with a small declarative reference model.
+- `Worker First Compatibility Full Parity Test`: run the hostile matrix in both
+  deployments and compare canonical, projection, effect lifecycle, history,
+  diagnostics, and complexity digests.
+- `Concurrent Effect Boundedness Slope Test`: increase unrelated graph and effect
+  population while holding affected locus/dependency breadth fixed and assert
+  exact counters remain fixed.
+- `Concurrent Effect Crash Restore Replay Test`: interrupt between response
+  recording, canonical reconciliation, projection refresh, and retirement, then
+  reconstruct without duplicate commits, missing effects, or leaked branches.
+
+**Engineering decisions**
+
+- Certification requires native, worker, package, Demo 5, and docs evidence; no
+  layer can self-certify the whole capability.
+- The closeout bundle records exact scenario-family and counter-family coverage.
+- Milestone 12 mutation-response reconciliation remains blocked until this gate is
+  sealed, because its write families inherit this lifecycle.
+
+**Open questions**
+
+- None.
+
+## File-Size Exemptions
+
+The workspace's 400-line default remains in force for feature code and tests.
+This milestone permits narrow edits to the following pre-existing aggregate
+surfaces without requiring an unrelated whole-file partition:
+
+- `package-src/product/signals.ts` â€” callable entrypoint and named-export
+  compatibility aggregate; this milestone adds only the certification export.
+- `package/types-smoke.ts` â€” existing whole-package declaration smoke aggregate;
+  this milestone updates only the now-asynchronous form action assertion.
+- `package/types/resource/resource_reconciliation.d.ts` â€” existing public
+  reconciliation declaration aggregate; this milestone adds only the patch
+  execution result and options re-exports.
+
+No new feature implementation, fixture, or focused test file is exempt.
+
 ## Must Ship
+
+- native retirement, targeted transaction, and worker branch command authority
+- effect-owned branches with separate semantic dependency proof
+- resource-locus reconciliation for every branch-native advertised effect family
+- rebuildable incremental optimistic projection branch
+- arbitrary-order settlement, dependency closeout, and residue-free retirement
+- concurrent public inspection and targeted rollback surfaces
+- worker-first and compatibility parity
+- Demo 5 ten-request mixed dependency proof
+- corrected feature docs, executable examples, and migration guidance
+- sealed cross-layer certification bundle
 
 ## Must Preserve
 
+- native `worth-signal` ownership of branch, transaction, merge, and lifecycle law
+- `worth-signal-wasm` ownership of web translation and resource product semantics
+- one canonical resource effect envelope and one confirmed canonical truth
+- explicit response topology and resource locus declarations
+- exact history restore as a separate, honest capability
+- forms, router, and UI surfaces as consumers rather than truth engines
+- typed denial for unsupported topology, mapping, basis, dependency, and policy
+- existing server correlation, retry lineage, and idempotency proof
+
 ## Acceptance Evidence
 
+- all named per-phase hostile tests are green
+- property-generated ten-plus-effect workloads converge under random settlement
+- worker-first and compatibility proof digests match for admitted workloads
+- failed and settled effects leave zero heavy branch residue
+- disjoint resource loci on one native node never clobber each other
+- dependent effects cancel or rebase only through declared proof
+- projection destruction and rebuild are equivalent
+- exact counters prove work scales with affected branch, dependency, and locus
+- Demo 5 executes the real worker-first runtime without compensating patches
+- public docs and packaged types teach the same lifecycle
+
 ## Sequencing Notes
+
+This plan is a Milestone 11 follow-on and must execute after the explicit fork
+basis and merge materialization foundation. It must close before the existing
+mutation-response reconciliation milestone, because create, update, remove,
+identity migration, and multi-family write convergence would otherwise inherit
+shared rollback and incomplete resource-line materialization.
+
+The phase order is strict. Native lifetime and atomic targeting precede worker
+exposure; worker authority precedes resource branch acquisition; branch
+acquisition precedes locus reconciliation and projection; those precede
+settlement and public APIs; the demo and docs consume the finished surface; and
+the certification gate closes the program.

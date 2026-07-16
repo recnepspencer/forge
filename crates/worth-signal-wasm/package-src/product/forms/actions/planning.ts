@@ -26,7 +26,6 @@ export function planActions(actionDeclarations, form, fieldDeclarations, sourceD
   const host = form.host();
   const resourceSource = form.resourceSource();
   const resourceMerge = form.resourceMerge();
-  const canonicalizationHistory = form.canonicalizationHistory();
   const steps = form.steps();
   const routeAuthority = form.routeAuthority();
   const navigation = form.navigation();
@@ -41,7 +40,6 @@ export function planActions(actionDeclarations, form, fieldDeclarations, sourceD
       host,
       resourceSource,
       resourceMerge,
-      canonicalizationHistory,
       sourceDeclaration,
       fieldDeclarations,
       steps,
@@ -97,7 +95,6 @@ function actionPlan(declaration, context) {
   const resourceRecoveryBlockers = resourceRecoveryActionBlockers(
     declaration,
     context.resourceSource,
-    context.canonicalizationHistory,
   );
   const blockers = actionReadinessBlockers(
     declaration,
@@ -283,25 +280,17 @@ function resourceLifecycleActionRecoversBlocker(resourceAction, blocker) {
   return false;
 }
 
-function resourceRecoveryActionBlockers(declaration, resourceSource, canonicalizationHistory) {
+function resourceRecoveryActionBlockers(declaration, resourceSource) {
   if (declaration.resourceAction?.kind !== "rollbackLastEffect") {
     return Object.freeze([]);
   }
-  if (resourceSource?.rollback?.kind === "compactInverseAvailable") {
+  if (resourceSource?.effects?.targetedRejectionAvailable === true) {
     return Object.freeze([]);
-  }
-  const latest = canonicalizationHistory.at(-1);
-  if (latest?.resourceLine !== null && latest?.resourceLine !== undefined) {
-    return Object.freeze([Object.freeze({
-      kind: "resource:actionUnavailable",
-      action: declaration.id,
-      reason: "declared rollbackLastEffect action requires a rollback-capable resource line at the current resource basis",
-    })]);
   }
   return Object.freeze([Object.freeze({
     kind: "resource:actionUnavailable",
     action: declaration.id,
-    reason: "declared rollbackLastEffect action requires recorded resource canonicalization proof",
+    reason: "declared rollbackLastEffect action requires an open resource effect that can be rejected by identity",
   })]);
 }
 

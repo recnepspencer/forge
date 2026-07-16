@@ -7,8 +7,8 @@ use crate::diagnostics::replay::ReplayEventKind;
 use crate::logic::events::EventFlushError;
 
 use super::super::transaction_types::{
-    SignalTransaction, StagedEventOperation, TransactionOutcome, TransactionReplayEntry,
-    TransactionResult,
+    SignalTransaction, StagedEventOperation, TransactionCommitPosture, TransactionOutcome,
+    TransactionReplayEntry, TransactionResult,
 };
 use crate::diagnostics::ExecutionFailurePhase;
 use crate::logic::transaction::runtime::transaction::ObservationBoundaryOutcome;
@@ -40,160 +40,184 @@ where
 
         self.scratch.staged_patch_count = self.scratch.graph_patches.touched_count() as u64;
 
-        if let Err(err) = self
-            .event_bus
-            .begin(self.runtime_ctx)
-            .map_err(|e| SignalError::invalid_input(format!("event bus begin failed: {e:?}")))
+        if matches!(self.commit_posture, TransactionCommitPosture::BranchLocal)
+            && !self.scratch.staged_event_operations.is_empty()
         {
+            let err = SignalError::invalid_input(
+                "branch-local transactions cannot publish event-bus operations before reconciliation",
+            );
             return self.fail_and_rollback(
-                "event bus begin failed",
+                "branch-local event publication denied",
                 Some(err.clone()),
                 None,
                 ExecutionFailurePhase::CommitPromotion,
-                true,
+                false,
                 Err(err),
                 commit_start,
             );
         }
 
-        let mut current_epoch_events = 0u32;
-        let mut next_epoch_ordinal = 0u32;
-        for operation in std::mem::take(&mut self.scratch.staged_event_operations) {
-            match operation {
-                StagedEventOperation::Emit(event) => {
-                    current_epoch_events += 1;
-                    self.event_bus.emit(event)
-                }
-                StagedEventOperation::Flush(barrier) => {
-                    let flush_start = RuntimeInstant::now();
-                    let completed_subscribers = match self
-                        .event_bus
-                        .flush(barrier, self.runtime_ctx)
-                    {
-                        Ok(completed_subscribers) => completed_subscribers,
-                        Err(flush_err) => {
-                            self.scratch.staged_event_flush_nanos +=
-                                flush_start.elapsed().as_nanos();
-                            self.scratch
-                                .semantic_delta
-                                .event_epochs
-                                .push(match &flush_err {
-                                    EventFlushError::Registry(source) => EventEpochSummary {
-                                        ordinal: next_epoch_ordinal,
-                                        barrier,
-                                        emitted_event_count: current_epoch_events,
-                                        subscriber_count: self.event_bus.resolved_order().len()
-                                            as u32,
-                                        committed_subscriber_count: 0,
-                                        failed_subscriber_position: None,
-                                        subscriber_outcomes: Vec::new(),
-                                        outcome: EventEpochOutcome::Failed,
-                                        failure_subscriber: None,
-                                        message: Some(format!(
+        if matches!(self.commit_posture, TransactionCommitPosture::Visible) {
+            if let Err(err) = self
+                .event_bus
+                .begin(self.runtime_ctx)
+                .map_err(|e| SignalError::invalid_input(format!("event bus begin failed: {e:?}")))
+            {
+                return self.fail_and_rollback(
+                    "event bus begin failed",
+                    Some(err.clone()),
+                    None,
+                    ExecutionFailurePhase::CommitPromotion,
+                    true,
+                    Err(err),
+                    commit_start,
+                );
+            }
+
+            let mut current_epoch_events = 0u32;
+            let mut next_epoch_ordinal = 0u32;
+            for operation in std::mem::take(&mut self.scratch.staged_event_operations) {
+                match operation {
+                    StagedEventOperation::Emit(event) => {
+                        current_epoch_events += 1;
+                        self.event_bus.emit(event)
+                    }
+                    StagedEventOperation::Flush(barrier) => {
+                        let flush_start = RuntimeInstant::now();
+                        let completed_subscribers = match self
+                            .event_bus
+                            .flush(barrier, self.runtime_ctx)
+                        {
+                            Ok(completed_subscribers) => completed_subscribers,
+                            Err(flush_err) => {
+                                self.scratch.staged_event_flush_nanos +=
+                                    flush_start.elapsed().as_nanos();
+                                self.scratch
+                                    .semantic_delta
+                                    .event_epochs
+                                    .push(match &flush_err {
+                                        EventFlushError::Registry(source) => EventEpochSummary {
+                                            ordinal: next_epoch_ordinal,
+                                            barrier,
+                                            emitted_event_count: current_epoch_events,
+                                            subscriber_count: self.event_bus.resolved_order().len()
+                                                as u32,
+                                            committed_subscriber_count: 0,
+                                            failed_subscriber_position: None,
+                                            subscriber_outcomes: Vec::new(),
+                                            outcome: EventEpochOutcome::Failed,
+                                            failure_subscriber: None,
+                                            message: Some(format!(
                                             "subscriber registry invalid during flush: {source:?}"
                                         )),
-                                    },
+                                        },
+                                        EventFlushError::Subscriber {
+                                            subscriber_name,
+                                            completed_subscribers,
+                                            failed_subscriber_requires,
+                                            failed_subscriber_provides,
+                                            failed_subscriber_staged,
+                                            source,
+                                            ..
+                                        } => EventEpochSummary {
+                                            ordinal: next_epoch_ordinal,
+                                            barrier,
+                                            emitted_event_count: current_epoch_events,
+                                            subscriber_count: self.event_bus.resolved_order().len()
+                                                as u32,
+                                            committed_subscriber_count: completed_subscribers.len()
+                                                as u32,
+                                            failed_subscriber_position: Some(
+                                                completed_subscribers.len() as u32 + 1,
+                                            ),
+                                            subscriber_outcomes: completed_subscribers
+                                                .iter()
+                                                .map(|subscriber| EventSubscriberOutcome {
+                                                    subscriber_name: subscriber.name.to_string(),
+                                                    outcome: EventSubscriberOutcomeKind::Committed,
+                                                    requires_data_ids: subscriber
+                                                        .requires_data_ids
+                                                        .clone(),
+                                                    provides_data_ids: subscriber
+                                                        .provides_data_ids
+                                                        .clone(),
+                                                    staged_data_ids: subscriber
+                                                        .staged_data_ids
+                                                        .clone(),
+                                                })
+                                                .chain(std::iter::once(EventSubscriberOutcome {
+                                                    subscriber_name: (*subscriber_name).to_string(),
+                                                    outcome: EventSubscriberOutcomeKind::Failed,
+                                                    requires_data_ids: failed_subscriber_requires
+                                                        .clone(),
+                                                    provides_data_ids: failed_subscriber_provides
+                                                        .clone(),
+                                                    staged_data_ids: failed_subscriber_staged
+                                                        .clone(),
+                                                }))
+                                                .collect(),
+                                            outcome: EventEpochOutcome::Failed,
+                                            failure_subscriber: Some(
+                                                (*subscriber_name).to_string(),
+                                            ),
+                                            message: Some(source.to_string()),
+                                        },
+                                    });
+                                let err = match &flush_err {
+                                    EventFlushError::Registry(source) => {
+                                        SignalError::event_flush_failed(
+                                            "registry",
+                                            format!("{source:?}"),
+                                        )
+                                    }
                                     EventFlushError::Subscriber {
                                         subscriber_name,
-                                        completed_subscribers,
-                                        failed_subscriber_requires,
-                                        failed_subscriber_provides,
-                                        failed_subscriber_staged,
                                         source,
                                         ..
-                                    } => EventEpochSummary {
-                                        ordinal: next_epoch_ordinal,
-                                        barrier,
-                                        emitted_event_count: current_epoch_events,
-                                        subscriber_count: self.event_bus.resolved_order().len()
-                                            as u32,
-                                        committed_subscriber_count: completed_subscribers.len()
-                                            as u32,
-                                        failed_subscriber_position: Some(
-                                            completed_subscribers.len() as u32 + 1,
-                                        ),
-                                        subscriber_outcomes: completed_subscribers
-                                            .iter()
-                                            .map(|subscriber| EventSubscriberOutcome {
-                                                subscriber_name: subscriber.name.to_string(),
-                                                outcome: EventSubscriberOutcomeKind::Committed,
-                                                requires_data_ids: subscriber
-                                                    .requires_data_ids
-                                                    .clone(),
-                                                provides_data_ids: subscriber
-                                                    .provides_data_ids
-                                                    .clone(),
-                                                staged_data_ids: subscriber.staged_data_ids.clone(),
-                                            })
-                                            .chain(std::iter::once(EventSubscriberOutcome {
-                                                subscriber_name: (*subscriber_name).to_string(),
-                                                outcome: EventSubscriberOutcomeKind::Failed,
-                                                requires_data_ids: failed_subscriber_requires
-                                                    .clone(),
-                                                provides_data_ids: failed_subscriber_provides
-                                                    .clone(),
-                                                staged_data_ids: failed_subscriber_staged.clone(),
-                                            }))
-                                            .collect(),
-                                        outcome: EventEpochOutcome::Failed,
-                                        failure_subscriber: Some((*subscriber_name).to_string()),
-                                        message: Some(source.to_string()),
-                                    },
-                                });
-                            let err = match &flush_err {
-                                EventFlushError::Registry(source) => {
-                                    SignalError::event_flush_failed(
-                                        "registry",
-                                        format!("{source:?}"),
-                                    )
-                                }
-                                EventFlushError::Subscriber {
-                                    subscriber_name,
-                                    source,
-                                    ..
-                                } => SignalError::event_flush_failed(
-                                    (*subscriber_name).to_string(),
-                                    source.to_string(),
-                                ),
-                            };
-                            return self.fail_and_rollback(
-                                "event bus flush failed",
-                                Some(err.clone()),
-                                None,
-                                ExecutionFailurePhase::CommitPromotion,
-                                true,
-                                Err(err),
-                                commit_start,
-                            );
-                        }
-                    };
-                    self.scratch.staged_event_flush_nanos += flush_start.elapsed().as_nanos();
-                    self.scratch
-                        .semantic_delta
-                        .event_epochs
-                        .push(EventEpochSummary {
-                            ordinal: next_epoch_ordinal,
-                            barrier,
-                            emitted_event_count: current_epoch_events,
-                            subscriber_count: completed_subscribers.len() as u32,
-                            committed_subscriber_count: completed_subscribers.len() as u32,
-                            failed_subscriber_position: None,
-                            subscriber_outcomes: completed_subscribers
-                                .iter()
-                                .map(|subscriber| EventSubscriberOutcome {
-                                    subscriber_name: subscriber.name.to_string(),
-                                    outcome: EventSubscriberOutcomeKind::Committed,
-                                    requires_data_ids: subscriber.requires_data_ids.clone(),
-                                    provides_data_ids: subscriber.provides_data_ids.clone(),
-                                    staged_data_ids: subscriber.staged_data_ids.clone(),
-                                })
-                                .collect(),
-                            outcome: EventEpochOutcome::Committed,
-                            failure_subscriber: None,
-                            message: None,
-                        });
-                    current_epoch_events = 0;
-                    next_epoch_ordinal += 1;
+                                    } => SignalError::event_flush_failed(
+                                        (*subscriber_name).to_string(),
+                                        source.to_string(),
+                                    ),
+                                };
+                                return self.fail_and_rollback(
+                                    "event bus flush failed",
+                                    Some(err.clone()),
+                                    None,
+                                    ExecutionFailurePhase::CommitPromotion,
+                                    true,
+                                    Err(err),
+                                    commit_start,
+                                );
+                            }
+                        };
+                        self.scratch.staged_event_flush_nanos += flush_start.elapsed().as_nanos();
+                        self.scratch
+                            .semantic_delta
+                            .event_epochs
+                            .push(EventEpochSummary {
+                                ordinal: next_epoch_ordinal,
+                                barrier,
+                                emitted_event_count: current_epoch_events,
+                                subscriber_count: completed_subscribers.len() as u32,
+                                committed_subscriber_count: completed_subscribers.len() as u32,
+                                failed_subscriber_position: None,
+                                subscriber_outcomes: completed_subscribers
+                                    .iter()
+                                    .map(|subscriber| EventSubscriberOutcome {
+                                        subscriber_name: subscriber.name.to_string(),
+                                        outcome: EventSubscriberOutcomeKind::Committed,
+                                        requires_data_ids: subscriber.requires_data_ids.clone(),
+                                        provides_data_ids: subscriber.provides_data_ids.clone(),
+                                        staged_data_ids: subscriber.staged_data_ids.clone(),
+                                    })
+                                    .collect(),
+                                outcome: EventEpochOutcome::Committed,
+                                failure_subscriber: None,
+                                message: None,
+                            });
+                        current_epoch_events = 0;
+                        next_epoch_ordinal += 1;
+                    }
                 }
             }
         }
@@ -229,6 +253,8 @@ where
         self.branches
             .branch_mutation_ledger_mut(current_branch.id, current_branch.head_snapshot_id)
             .absorb_records(self.graph.pending_branch_mutation_records());
+        self.branches
+            .advance_branch_head_generation(current_branch.id);
         self.graph.clear_branch_mutation_nodes();
         self.telemetry.transaction.transaction_commit_count += 1;
         self.telemetry.transaction.staged_node_patch_count += self.scratch.staged_patch_count;
@@ -249,12 +275,26 @@ where
                 execution_record_id: None,
                 semantic_segment_id: None,
             });
+        let observation_outcome = match self.commit_posture {
+            TransactionCommitPosture::Visible => ObservationBoundaryOutcome::Delivered,
+            TransactionCommitPosture::BranchLocal => {
+                ObservationBoundaryOutcome::BranchLocalSuppressed
+            }
+        };
         let (deliveries, observation) = self
             .scratch
             .observations
-            .drain_delivery_boundary(ObservationBoundaryOutcome::Delivered);
+            .drain_delivery_boundary(observation_outcome);
         let delivered_observation_count =
-            self.observations.deliver_committed(self.graph, &deliveries) as u64;
+            if matches!(self.commit_posture, TransactionCommitPosture::Visible) {
+                self.observations.deliver_committed(self.graph, &deliveries) as u64
+            } else {
+                self.telemetry
+                    .transaction
+                    .branch_local_suppressed_observation_count +=
+                    u64::from(observation.branch_local_suppressed_event_count);
+                0
+            };
         self.telemetry.transaction.delivered_observation_count += delivered_observation_count;
         self.scratch.semantic_delta.observation = observation;
         Ok(self.finalize_semantic_delta(

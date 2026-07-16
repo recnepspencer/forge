@@ -12,7 +12,7 @@ test("resource effect merge execution binds native result proof to resource loci
     const tasks = createBranchMergeTasks(signals);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Executed Through Resource Effect",
@@ -64,7 +64,7 @@ test("resource effect merge execution binds effect policy into native execution"
     const tasks = createBranchMergeTasks(signals);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Execution Policy Bound",
@@ -116,7 +116,7 @@ test("resource effect merge execution denies branch mismatch before native execu
     const tasks = createBranchMergeTasks(signals);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Execution Denial",

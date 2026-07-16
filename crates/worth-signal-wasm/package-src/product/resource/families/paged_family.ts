@@ -8,6 +8,7 @@ function createPagedFamily(
   familyId,
   declaration,
   compatibility,
+  effectProjectionCoordinator,
 ) {
   return createMaterializedFamily(
     RESOURCE_FAMILY_KINDS.paged,
@@ -16,6 +17,7 @@ function createPagedFamily(
     familyId,
     validatePagedDeclaration(declaration),
     compatibility,
+    effectProjectionCoordinator,
   );
 }
 

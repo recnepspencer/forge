@@ -11,16 +11,25 @@ helpers. It exists to sequence the remaining work required to turn the closed
 callback/runtime substrate into a broader application-facing product line
 without splitting reactive truth across multiple convenience layers.
 
-The governing rule remains:
+The governing rule is authority-specific:
 
-- runtime truth stays canonical
-- package surfaces stay productized
-- later products consume semantics; they do not redefine them
+- native `worth-signal` owns derived execution, invalidation, recomputation,
+  branch lifecycle, and reconstructible runtime history
+- platform application truth remains Query/Relational authority carried into
+  Signal through the runtime bridge
+- standalone browser application values may use one explicit, in-memory
+  TypeScript local truth authority inside the product runtime
+- package projections, diagnostics, demos, and UI consume those authorities;
+  they do not redefine them
 
 `worth-signal-wasm` may author, type, route, explain, and package host-facing
-surfaces, but it must not define temporal semantics that belong to core
-`worth-signal`, authority semantics that belong to `worth-relational`, or
-adapter-local truth engines that drift away from the runtime.
+surfaces. It may also own process-local standalone value truth when no
+relational runtime exists, but that authority must be structurally named,
+produce one canonical commit artifact, project one-way into Signal, and remain
+explicitly weaker than relational durability. It must not define temporal or
+derived-execution semantics that belong to core `worth-signal`, impersonate
+authority semantics that belong to `WORTH-relational`, or hide truth engines
+inside adapters, resources, forms, router code, demos, or UI state.
 
 ## Shipped Baseline
 
@@ -77,6 +86,11 @@ Rules for every remaining wasm product item:
   library-grade rather than becoming bags of host-specific flags
 - later package products must not require main-thread execution for graph work
   that does not actually depend on browser-owned host boundaries
+- any standalone TypeScript truth layer must remain physically separate from
+  native Signal state, use typed basis and commit artifacts, and prove that all
+  Signal state can be destroyed and rebuilt from local truth alone
+- no native Rust Signal type may own standalone application-value history,
+  manual merge decisions, or custom resolved values
 
 ## Critical Path
 
@@ -941,9 +955,9 @@ advanced response topology automatic by lowering them into one branch-native
 resource effect model.
 
 This milestone exists because the closed collection response contract slice is
-correct and useful, but the next product layer must not build a weaker
-TypeScript optimistic/cache engine beside the existing `worth-signal` branch,
-snapshot, restore, replay, merge, aspect, and proof substrate.
+correct and useful, but the next product layer must not build an implicit
+optimistic/cache authority inside resource helpers beside the existing
+`worth-signal` branch, snapshot, restore, replay, aspect, and proof substrate.
 
 Response lenses remain part of the milestone, but they are now topology
 lowering strategies into resource effect loci rather than the foundational
@@ -990,7 +1004,7 @@ authority model.
   responses, and summary responses
 - diagnostics/history derived from the canonical effect envelope
 - runtime-issued proof brands for branch summaries, lowered effect plans,
-  compiled response lenses, and effect loci so object-shape WORTHry denies at
+  compiled response lenses, and effect loci so object-shape forgery denies at
   admission
 
 ### Must Preserve
@@ -999,8 +1013,10 @@ authority model.
 - the shipped collection response contract behavior as a valid subset
 - runtime-owned lifecycle, freshness, delivery, branch, replay, restore, and
   diagnostics truth
-- native signal branch and merge authority; resource code must consume it, not
-  recreate it
+- native Signal branch lifecycle and derived-execution authority; resource code
+  must consume it without claiming that Signal owns application values
+- confirmed standalone resource values must have one explicit TypeScript local
+  authority rather than coordinator-local or UI-local shadow truth
 - response lenses as topology lowering rather than resource truth authority
 - detail, collection, paged, summary, membership, entity-store, JSON aspect,
   item aspect, and broad-response distinctions
@@ -1034,7 +1050,9 @@ This milestone is complete only when the wasm product surface can prove:
   API/scope/route settings rather than embedded in response topology
 - local patch, delivery patch, optimistic write, confirmation, failure,
   rollback, branch restore, merge, and rebase derive from one effect envelope
-- optimistic resource truth lives on signal branches by default
+- optimistic execution is isolated on Signal branches by default while
+  confirmed standalone resource values remain owned by the product's explicit
+  local truth boundary
 - resource line visible truth derives from explicit branch selection proof
 - server confirmation can admit canonicalized server truth instead of merely
   keeping the speculative value
@@ -1044,8 +1062,9 @@ This milestone is complete only when the wasm product surface can prove:
   a second response patch engine
 - rollback is exact branch restore, inverse effect, or explicit unavailable
   artifact
-- rebase and conflict explanation use native branch merge plans plus
-  resource-locus evidence
+- rebase and conflict explanation preserve native branch execution evidence
+  beside resource-locus value evidence without promoting derived proof into
+  application truth authority
 - direct arrays, object envelopes, custom collections, and paged responses
   preserve the behavior already closed by the current response contract slice
 - JSON and advanced topology effects prove admitted local, delivery,
@@ -1078,10 +1097,13 @@ Why it belongs here:
   not normalize weaker JS-side resource effect machinery while native signal
   branches already exist
 
-## Milestone 11: Branch Merge Materialization And Aspect Policy Foundation
+## Milestone 11 Foundation: Native Branch Execution Substrate (Retained)
 
-Engineering spec:
+Superseded design record:
 [branch_merge_materialization_foundation_plan.md](./branch_merge_materialization_foundation_plan.md)
+
+Current completion spec:
+[branch_merge_resolution_and_materialization_plan.md](./branch_merge_resolution_and_materialization_plan.md)
 
 Predecessor milestone:
 [resource_response_lens_contracts_plan.md](./resource_response_lens_contracts_plan.md)
@@ -1091,109 +1113,245 @@ Successor milestone:
 
 ### Goal
 
-Make branch merge execution a real web-product foundation: native merge proof
-decides semantic merge truth, and `worth-signal-wasm` materializes that truth
-into web-visible state through declared, proof-bearing materialization
-strategies.
+Retain the native branch capabilities that later standalone truth work consumes:
+explicit fork basis, scoped derived-execution requests, targeted transactions,
+branch lifecycle, proof-bearing heads, invalidation, recomputation, and worker
+translation.
 
-This milestone exists because Milestone 10 closed the branch-native resource
-effect model and claimed product exposure for native branch/merge controls.
-The native runtime already has much of the policy substrate, but it does not
-yet expose scoped merge/cherry-pick as request-level merge proof, wasm/product
-merge requests do not expose every needed policy dimension yet, and wasm
-branch-local store materialization can still adopt source values where a
-declared materialization strategy is required.
-
-This milestone also depends on `worth-foundational` Milestone 9 so scoped merge
-and cherry-pick have shared transition vocabulary before `worth-signal` and
-`worth-signal-wasm` adopt them.
+The earlier design record incorrectly treated native merge proof as application
+value truth. The completion spec supersedes that authority placement. Native
+Signal remains reconstructible derived execution; TypeScript owns standalone
+application-value truth and manual merge resolution.
 
 ### Must Ship
 
-- native `worth-signal` scoped merge/cherry-pick request, plan, result, denial,
-  and counter proof for selected nodes and selected aspects, lowered into
-  `worth-foundational` scoped merge vocabulary
-- wasm and product merge request support for source-only policy, aspect policy
-  bindings, and native scoped merge request fields
-- executable merge intent with source/target basis checking
-- forwarding of requested policy into native merge preview and execution
-- materialization strategy planning between native merge result proof and wasm
-  store mutation
-- first admitted materialization strategy for plain object aspect fields
-- selected-node and selected-aspect materialization for admitted v1 shapes
-- typed unavailable posture for unsupported materialization shapes such as
-  controller contracts, resource lines, collections, deletion, tombstones,
-  identity correspondence, and partial merge topologies not admitted in v1
-- native/wasm explicit branch fork basis API for creating children from a
-  declared branch and snapshot basis
-- named proof families for policy boundary, executable intent, materialization
-  planning, object aspect materialization, disjoint merge, same-aspect
-  conflicts, fork basis, native scoped merge, partial merge honesty, and demo
-  no-shortcut verification
+- explicit native branch fork basis and branch-head proof
+- branch-targeted transactions with stale-head denial
+- branch retirement and retained lifecycle evidence
+- scoped derived-execution planning and proof where reconstructible Signal state
+  benefits from it
+- worker commands carrying native and authored execution basis together
+- exact invalidation, recomputation, diagnostics, replay, and boundedness proof
 
 ### Must Preserve
 
-- native `worth-signal` remains the authority for merge policy and scoped
-  merge/cherry-pick execution semantics, while `worth-foundational` owns the
-  shared boundary vocabulary
-- wasm translates requests and materializes branch-local web store snapshots;
-  it does not invent merge policy
-- wasm does not implement cherry-pick by filtering native merge records after
-  native planning
-- existing whole-value materialization remains valid when native proof admits it
-- unsupported topologies do not silently downgrade to source adoption
-- `setWithAspects(...)` remains the authoring surface for aspect-scoped writes
-- UI and demos may render merge proof but may not compute merged truth
+- Signal branches remain derived execution state over host-owned values
+- native receipts attest execution and lifecycle, never local application truth
+- native merge remains available only for reconstructible Signal-owned state
+- application-value history, aspect deltas, conflict policy, human choices, and
+  custom values do not enter Rust Signal
+- worker and compatibility deployments preserve the same derived semantics
 
 ### Explicit Boundary
 
-Milestone 11 includes native scoped merge/cherry-pick authority, merge policy
-exposure, executable merge intent, materialization strategy planning, plain
-object aspect materialization, explicit branch fork basis, stale merge intent
-denial, partial merge materialization posture, and product/demo readiness for
-honest merge proof.
-
-Milestone 11 does not include generic aspect-capacity rewrite, full nested
-object merge inference, arbitrary user-supplied merge functions,
-mutation-response reconciliation, network transport, UI toast/banner/modal
-execution, wasm-only cherry-pick filtering, or Three.js visual work.
+This retained foundation includes native derived-branch lifecycle and execution
+capabilities. It does not include standalone application truth, value history,
+manual merge policy, local truth commits, custom resolutions, or UI merge work.
 
 ### Acceptance Evidence
 
-This milestone is complete only when the wasm product surface can prove:
-
-- merge policy dimensions are accepted, validated, forwarded, and proof-visible
-  through merge preview and execution
-- native selected-node and selected-aspect merge scopes are proof-visible
-  through merge preview and execution
-- executable merge intents deny stale source or target bases before side effects
-- store mutation consumes a lowered materialization plan
-- disjoint aspect edits on one object node preserve source and target changes
-  after merge
-- same-aspect edits conflict unless explicitly resolved by admitted policy
-- explicit branch fork basis creates children from the declared branch/snapshot
-  rather than the active branch by accident
-- scoped merge executes only through native scope proof and admitted wasm
-  materialization strategy
-- unsupported materialization emits typed unavailable posture rather than broad
-  replacement or silent source adoption
-- lookup, strategy-selection, reconstruction, and downstream invalidation
-  breadth are visible in proof or cost artifacts
-- the landing-page gear demo can consume runtime branch/aspect truth without a
-  React-side merge compositor
+This foundation remains valid only while tests prove explicit basis, stale-head
+denial, targeted branch isolation, retirement without heavy residue, worker
+parity, rebuild equivalence, and the inability of native artifacts to construct
+TypeScript local truth authority.
 
 Why it belongs here:
 
-- it comes immediately after Milestone 10 because it closes a discovered gap in
-  branch/merge policy exposure and branch-local materialization that Milestone
-  10 needs
-- it comes before mutation-response reconciliation because create/update/remove
-  reconciliation will depend on branch-native merge, rollback, replay, and
-  diagnostics truth that must not lose disjoint changes or rely on local merge
-  folklore
-- it belongs before roadmap completion because demos, resource effects, and
-  later write reconciliation must not normalize local merge engines beside the
-  native branch substrate
+- it supplies derived execution primitives used by the concurrent effect DAG
+  and the standalone local truth projection boundary
+- it remains below value authority so the same Signal crate composes honestly
+  inside the larger Query/Relational platform
+
+## Milestone 11 Foundation Follow-On: Concurrent Resource Effect Branch DAG (Completed)
+
+Engineering spec:
+[concurrent_resource_effect_branch_dag_plan.md](./concurrent_resource_effect_branch_dag_plan.md)
+
+Predecessor milestone:
+[resource_response_lens_contracts_plan.md](./resource_response_lens_contracts_plan.md)
+
+Successor milestone:
+[branch_merge_resolution_and_materialization_plan.md](./branch_merge_resolution_and_materialization_plan.md)
+
+### Goal
+
+Replace shared-branch optimistic rollback with effect-owned native branches that
+support independent siblings, explicit dependent children, arbitrary response
+order, worker-first execution, resource-locus reconciliation, and a rebuildable
+visible projection.
+
+This follow-on exists because Milestone 10 claimed speculative branch lifecycle,
+but the resource effect path can still select the current runtime branch and
+capture a snapshot on it. Milestone 11 supplies explicit fork basis and merge
+materialization foundations, but resource-line materialization and concurrent
+effect ownership remain unresolved. Mutation-response reconciliation must not
+inherit that gap.
+
+### Must Ship
+
+- native branch retirement with retained lineage and zero heavy-state residue
+- atomic branch-targeted transaction execution with expected-head proof
+- worker-first explicit fork, targeted transaction, and retirement commands
+- live worker branch basis that includes authored graph generation rather than
+  cached import-context snapshot posture
+- one effect-owned native branch per admitted optimistic effect
+- separate proof types for native execution ancestry and semantic effect
+  dependency, including siblings, children, and multi-dependency effects
+- resource-locus three-way reconciliation that never replaces a whole native
+  value node for a narrower admitted locus
+- one disposable native projection branch for visible canonical-plus-open-effect
+  truth
+- arbitrary-order success, failure, retry, duplicate, supersession, dependency
+  cancellation, and proof-bearing rebase closeout
+- targeted concurrent effect inspection and rollback APIs
+- worker-first and explicit main-thread compatibility parity
+- Worth Signals Demo 5 proof with ten concurrent requests, mixed sibling and
+  dependent effects, five successes, five failures, and seeded random settlement
+- feature documentation and migration guidance for effect branches, dependency
+  DAGs, projection, targeted rollback, and history restore separation
+
+### Must Preserve
+
+- native `worth-signal` branch, transaction, derivation, and lifecycle authority
+- one canonical resource effect envelope for speculative intent
+- one explicit confirmed local resource truth authority outside native Signal
+- response lenses and resource loci as declared topology lowering
+- exact history restore as a separate capability rather than optimistic rollback
+- runtime truth singularity across worker-first and compatibility deployments
+- UI, forms, router, demo, and docs as consumers of runtime receipts rather than
+  local optimistic truth engines
+
+### Explicit Boundary
+
+This completed follow-on includes native retirement and targeted branch transactions,
+worker branch command parity, effect branch acquisition, semantic dependency
+planning, resource-locus reconciliation, derived projection, concurrent
+settlement, public inspection, Demo 5, docs, and a sealed hostile certification
+bundle.
+
+It does not include network transport ownership, arbitrary topology inference,
+user-supplied merge functions, UI feedback execution, or treating branch
+ancestry as semantic dependency. Unsupported loci deny optimistic admission
+rather than silently adopting whole-line state.
+
+### Acceptance Evidence
+
+This follow-on is complete only when the wasm product surface can prove:
+
+- ten or more effects converge under arbitrary success/failure response
+  permutations with no cross-effect erase or resurrection
+- independent siblings settle independently while dependent children wait,
+  cancel, or rebase only through declared policy and proof
+- disjoint loci stored in one native value node preserve every successful change
+- same-locus conflicts converge by server revision or declared deterministic
+  order, never response arrival order
+- worker-first and compatibility modes produce equivalent truth, lifecycle,
+  diagnostics, history, and boundedness digests
+- projection state can be destroyed and rebuilt from canonical truth plus open
+  effect envelopes
+- every settled effect branch releases heavy state while retaining audit lineage
+- Demo 5 contains no compensating rejection patch or React-side merge compositor
+- documentation examples execute against the packaged public surface
+- exact counters show settlement and reprojection scale with affected branch,
+  dependency, and locus breadth rather than total graph or open-effect population
+
+Why it belongs here:
+
+- it consumes the retained explicit fork-basis and targeted-execution substrate
+- it corrects the concurrency and worker-first authority gap in Milestone 10
+  before more mutation families normalize that behavior
+- it precedes manual merge completion because Demo 5's confirmed local state
+  must move onto the explicit TypeScript truth boundary before Demo 6 adds
+  human resolution
+
+## Milestone 11 Completion: Standalone Local Truth Merge And Signal Projection
+
+Engineering spec:
+[branch_merge_resolution_and_materialization_plan.md](./branch_merge_resolution_and_materialization_plan.md)
+
+Predecessor milestone:
+[concurrent_resource_effect_branch_dag_plan.md](./concurrent_resource_effect_branch_dag_plan.md)
+
+Successor milestone:
+[resource_mutation_response_reconciliation_plan.md](./resource_mutation_response_reconciliation_plan.md)
+
+### Goal
+
+Add one explicit, in-memory TypeScript local truth authority for standalone
+browser application values; support proof-bearing sibling, parent/child,
+selected-aspect, repeated partial, and manually resolved merges there; and
+project each canonical commit one-way into rebuildable native Signal execution.
+
+This completion exists because Signal is both the standalone WASM derived
+runtime and a lower layer in the larger Rust platform. Application value
+history and manual resolution must not be placed in native Signal merely
+because WASM does not embed Relational.
+
+### Must Ship
+
+- declared local truth schemas and top-level plain-object aspect materializers
+- one canonical `LocalTruthCommit` pipeline with immutable snapshots, branch
+  heads, checkpoints, bounded history, and per-locus integration lineage
+- exact common-basis and delta extraction for sibling and parent/child branches
+- automatic policy, reviewable conflicts, source/target choices, and custom
+  values authored on local truth resolution branches
+- sealed executable merge plans and atomic local truth merge publication
+- one-way committed-truth-to-Signal targeted projection with exact aspect
+  invalidation, derived stale posture, and deterministic rebuild
+- worker-first and explicit main-thread compatibility parity
+- Demo 5 migration off coordinator-local authority shadow
+- complete gear-based Demo 6 manual merge certification
+- platform boundary docs, public types, examples, hostile tests, and counters
+
+### Must Preserve
+
+- native Signal owns derived execution, not application values or value merge
+  policy
+- the larger Rust platform remains Query -> Relational -> Bridge -> Signal
+- the TypeScript authority is process-local and does not claim relational
+  durability, MVCC, or cross-process recovery
+- UI renders runtime artifacts and submits issued choices; it never composes
+  merged values
+- committed truth survives Signal derivation failure and can rebuild every
+  Signal branch and projection
+- work remains bounded by visited ancestry and semantic delta
+
+### Explicit Boundary
+
+This completion includes standalone local value authority, aspect declarations,
+branch history, manual merge review and resolution, atomic truth commit, Signal
+projection, Demo 5 hardening, Demo 6, and documentation.
+
+It does not include durable/shared persistence, platform Query mutation
+workflow, Relational merge execution, nested or collection merge inference,
+identity migration, arbitrary merge callbacks, network transport, or UI-owned
+truth.
+
+### Acceptance Evidence
+
+This completion is closed only when the package proves:
+
+- no Rust type or journal owns local application-value history or manual choices
+- every local mutation and merge emits one canonical commit or no mutation
+- repeated partial merges retain exact per-locus source integration lineage
+- stale bases, reviews, policies, schemas, and resolution branches deny before
+  commit
+- all native Signal and UI state can be destroyed and rebuilt from local truth
+- derived projection failure cannot roll back or corrupt committed truth
+- worker-first and compatibility modes converge on identical semantic digests
+- Demo 5 retains arbitrary-order concurrent effect convergence
+- Demo 6 contains no React/Three.js object merge compositor
+- exact counters expose ancestry, delta, conflict, publication, invalidation,
+  recomputation, rebuild, and bridge breadth
+
+Why it belongs here:
+
+- it follows the concurrent effect DAG because that work supplies isolated
+  branches, targeted transactions, retirement, and rebuildable projections
+- it precedes mutation-response reconciliation because create/update/remove and
+  identity work need an honest local truth commit before updating read families
+- it closes the WASM-only authority gap without contaminating native Signal or
+  creating a speculative Relational dependency
 
 ## Milestone 12: Resource Mutation Response Reconciliation And Detail Lenses
 
@@ -1201,7 +1359,7 @@ Engineering spec:
 [resource_mutation_response_reconciliation_plan.md](./resource_mutation_response_reconciliation_plan.md)
 
 Predecessor milestone:
-[branch_merge_materialization_foundation_plan.md](./branch_merge_materialization_foundation_plan.md)
+[branch_merge_resolution_and_materialization_plan.md](./branch_merge_resolution_and_materialization_plan.md)
 
 ### Goal
 
@@ -1212,7 +1370,8 @@ collection response lane.
 
 This milestone exists because Milestone 10 correctly closed the branch-native
 effect substrate and advanced response topology lowering, and Milestone 11
-closes the discovered branch merge materialization gap. The remaining
+completion closes the standalone local truth and Signal projection boundary.
+The remaining
 consumer-facing asymmetry is still real: collections have strong ergonomic
 topology, while writes and detail resources still ask application code to
 compose lower-level primitives.
@@ -1249,10 +1408,11 @@ compose lower-level primitives.
 
 ### Must Preserve
 
-- Milestone 10's canonical branch-native resource effect envelope
+- Milestone 10's canonical speculative resource effect envelope
+- Milestone 11's explicit standalone local truth commit authority
 - response lenses as topology lowering rather than resource truth authority
-- read family authority over line truth, lifecycle, freshness, diagnostics,
-  history, delivery basis, branch posture, and visible truth
+- read-family ownership of declared line behavior, lifecycle, freshness,
+  diagnostics, delivery basis, branch posture, and projections over local truth
 - the distinction between read response topology and mutation payload topology
 - whole-response detail replacement as a legal broad effect, while no longer
   treating it as the full detail story
@@ -1298,9 +1458,9 @@ This milestone is complete only when the wasm product surface can prove:
 
 Why it belongs here:
 
-- it comes after Milestone 11 because it depends on branch-native effects,
-  response-lens proof, rollback, diagnostics/history, merge/rebase posture, and
-  honest aspect-aware branch store execution
+- it comes after Milestone 11 completion because it depends on one canonical
+  local truth commit, manual/automatic merge decisions, Signal projection,
+  branch-native effects, response-lens proof, and rollback evidence
 - it closes the product asymmetry exposed by workflow/editor writes: collection
   topology is elegant, but details, creates, updates, removes, and canonical
   write-result reconciliation still need first-class product treatment
@@ -1320,10 +1480,16 @@ This roadmap is complete only when:
 - API surface ergonomics are hardened enough that common app authoring does not
   require substrate-shaped ceremony
 - branch-native resource effects let local patch, delivery, optimistic write,
-  rollback, rebase, and advanced response topology consume signal branch truth
-  without manual route patch plumbing or a second optimistic cache
-- branch merge materialization turns native merge proof into web-visible branch
-  truth through declared strategies instead of UI merge folklore
+  rollback, rebase, and advanced response topology consume explicit local truth
+  plus derived Signal branch execution without manual route patch plumbing or
+  an implicit optimistic cache
+- concurrent resource effects own isolated native branches, represent sibling
+  and dependent work explicitly, settle in arbitrary order, and derive one
+  rebuildable visible projection without shared snapshot rollback
+- standalone branch merge resolution lives in one TypeScript local truth
+  authority, records exact aspect lineage and manual decisions, then projects
+  committed truth into rebuildable Signal state instead of native or UI merge
+  folklore
 - mutation response reconciliation lets create, update, remove, canonical
   server responses, granular detail effects, identity migration, placement,
   deletion, partial responses, and multi-family target updates converge without
@@ -1333,5 +1499,6 @@ This roadmap is complete only when:
 - worker-first deployment keeps most runtime work off the UI thread while
   preserving explicit main-thread host boundaries and one canonical runtime
   truth
-- no milestone creates a second reactive or async truth engine beside the
-  runtime
+- no milestone creates a second reactive or async engine beside Signal, and no
+  convenience surface creates a second application-value authority beside the
+  explicit standalone local truth layer or the platform's Relational authority

@@ -369,7 +369,7 @@ test("signals.form lowers declared resource-line recovery actions into exact rep
     const rollbackExecution = form.executeAction("rollbackResourceEffect");
     assert.equal(rollbackExecution.resultKind, "fulfilled");
     assert.equal(rollbackExecution.resourceRecovery.mode, "resourceRollback");
-    assert.equal(rollbackExecution.resourceRecovery.resultKind, "rolledBack");
+    assert.equal(rollbackExecution.resourceRecovery.resultKind, "effectRejected");
     assert.deepEqual(form.draft(), {
       title: "Published docs",
       status: "review",

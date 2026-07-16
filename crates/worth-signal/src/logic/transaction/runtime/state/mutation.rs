@@ -3,7 +3,8 @@ use crate::data::error::SignalError;
 
 use super::super::computation::{DefinedComputation, Recipe};
 use super::super::transaction::{
-    SignalTransaction, TransactionExecutionState, TransactionResult, TransactionScratch,
+    SignalTransaction, TransactionCommitPosture, TransactionExecutionState, TransactionResult,
+    TransactionScratch,
 };
 use super::runtime_state::SignalRuntime;
 
@@ -49,6 +50,7 @@ where
             finished: false,
             execution_state: TransactionExecutionState::default(),
             started_at: RuntimeInstant::now(),
+            commit_posture: TransactionCommitPosture::Visible,
         }
     }
 

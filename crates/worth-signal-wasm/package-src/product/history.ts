@@ -163,6 +163,32 @@ export function wrapHistory(rawHistory) {
     create_branch(name) {
       return withHistoryMutationNotification(rawHistory.create_branch(name), listeners);
     },
+    worker_branch_basis(branchId) {
+      return rawHistory.worker_branch_basis(
+        normalizeBranchId(branchId, "history.worker_branch_basis"),
+      );
+    },
+    fork_branch(request) {
+      return withHistoryMutationNotification(rawHistory.fork_branch(request), listeners);
+    },
+    apply_transaction_to_branch(request) {
+      return withHistoryMutationNotification(
+        rawHistory.apply_transaction_to_branch(request),
+        listeners,
+      );
+    },
+    retire_branch(request) {
+      return withHistoryMutationNotification(rawHistory.retire_branch(request), listeners);
+    },
+    retire_branches(request) {
+      return withHistoryMutationNotification(rawHistory.retire_branches(request), listeners);
+    },
+    closeout_effect_branch(request) {
+      return withHistoryMutationNotification(
+        rawHistory.closeout_effect_branch(request),
+        listeners,
+      );
+    },
     switch_branch(branchId) {
       return withHistoryMutationNotification(
         rawHistory.switch_branch(normalizeBranchId(branchId, "history.switch_branch")),

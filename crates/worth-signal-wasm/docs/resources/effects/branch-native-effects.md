@@ -2,120 +2,135 @@
 
 ## What This Feature Is
 
-This is the normal optimistic lane for resource writes that should participate
-in branch history, merge planning, rollback, and visible-selection proof.
+`branchNative()` is the optimistic resource profile for requests that must stay
+isolated while they are unresolved. Each admitted patch gets its own Signals
+branch and effect identity. The runtime derives the visible value from confirmed
+server data plus the still-open branches.
 
 ## Why You Use It
 
-Use `branchNative()` when you want:
-
-- local optimistic patches on the visible line
-- merge-aware or rebase-aware resource effects
-- exact restore or compact inverse rollback when available
-- one effect envelope you can inspect later
+- show an edit immediately without maintaining a second UI cache;
+- let overlapping requests succeed or fail independently;
+- reconcile a server response at the declared item, field, region, JSON path,
+  aspect, summary, insert, delete, or replacement locus;
+- inspect branch, projection, dependency, and retirement proof.
 
 ## Stable Entry Points
 
+- `await createSignals()`
 - `signals.resource.effects.branchNative()`
-- `signals.resource.effects.serverCanonical()`
-- `signals.resource.effects.pessimistic()`
-- `signals.resource.effects.deliveryAuthoritative()`
-- `signals.resource.effects.nonReversible()`
-- `signals.resource.effects.sensitive()`
 - `line.patch(...)`
-- `line.deliver(...)`
-- `line.diagnostics().lastEffect`
+- `line.effects()`
+- `line.history().rollbackEffect(effectId)`
+- `signals.resource.branch.planEffectMerge(...)`
+
+Other profiles such as `pessimistic()`, `serverCanonical()`, and
+`nonReversible()` deliberately make different optimism or recovery promises.
 
 ## Core Mental Model
 
-An effect profile does not just choose optimism. It also chooses:
+The application branch is not the optimistic write container. Each effect owns
+a child branch. Confirmed server data remains canonical; open effects form a
+derived projection exposed through `line.value()`.
 
-- confirmation posture
-- rollback posture
-- rebase posture
-- preimage retention posture
-
-`branchNative()` is the profile for local optimistic branch speculation when the
-runtime can honestly admit it.
+An effect identity is the handle for closeout. A branch ID proves native
+ancestry. A dependency ID says which request must settle first. Keep those
+roles separate.
 
 ## How It Executes
 
-When you patch or deliver through a family using an effect profile, the runtime
-issues an effect envelope and attaches it to diagnostics and history. That
-envelope records whether the write was speculative, committed-only, or denied
-for optimism.
+1. The patch helper validates the resource locus.
+2. `line.patch(...)` admits an effect branch and returns its `effectId`.
+3. The projection includes the effect immediately.
+4. `confirm(effectId)` reconciles server truth and retires the branch.
+5. `reject(effectId)` retires the branch without changing canonical value.
+6. The projection rebuilds from the remaining open effects.
+
+Unsupported loci, incompatible dependency generations, missing branch proof,
+and invalid policies deny before visible state changes.
 
 ## Small Example
 
 ```ts
+const signals = await createSignals();
 const tasks = signals.api({
   effects: signals.resource.effects.branchNative(),
 }).url("/tasks")
-  .items((task: { id: string; title: string }) => task.id)
-  .aspect("title", (task) => task.title, (task, title: string) => ({
-    ...task,
-    title,
-  }))
-  .list({
-    load: () => [{ id: "t1", title: "Loaded" }],
-  });
+  .response(signals.resource.response.array({ itemId: (task) => task.id }))
+  .list({ load: () => client.listTasks() });
 
 const line = tasks.line({});
-line.patch(tasks.patch.itemAspect({ itemId: "t1", aspect: "title", value: "Draft" }));
+await line.awaitSettlement();
+const admission = await line.patch(tasks.patch.item({
+  itemId: "task:1",
+  nextItem: { id: "task:1", title: "Draft" },
+}));
 
-console.log(line.diagnostics().lastEffect?.profile?.name);
+if ("effectId" in admission) {
+  await line.effects().confirm(admission.effectId);
+}
 ```
 
 ## Real Example
 
 ```ts
-const line = tasks.line({});
+const openBefore = line.effects().open();
+const result = await line.patch(patch, {
+  idempotencyKey: request.id,
+  serverCorrelationId: request.correlationId,
+});
 
-line.patch(tasks.patch.itemAspect({
-  itemId: "t1",
-  aspect: "title",
-  value: "Committed After Snapshot Rejection",
-}));
+if (!("effectId" in result)) throw new Error("branch-native admission required");
 
-const effect = line.diagnostics().lastEffect;
-
-console.log(effect.plan.branch.kind);
-console.log(effect.optimistic.rollback.kind);
-console.log(effect.branchLifecycle.kind);
+try {
+  const response = await request.send();
+  const closeout = await line.effects().confirm(result.effectId, {
+    responseId: response.id,
+    serverRevision: response.revision,
+    serverPatch: response.patch,
+  });
+  audit(closeout.reconciliation, closeout.retirement);
+} catch (failure) {
+  const closeout = await line.effects().reject(result.effectId, {
+    responseId: failure.responseId,
+  });
+  audit(closeout.retired, closeout.projection);
+}
 ```
 
-That read tells you whether the line really became speculative or whether the
-runtime kept the write committed-only or optimism-unavailable instead.
+The application reports the outcome. It does not calculate the next visible
+value or apply an inverse patch.
 
 ## How It Relates To Other Features
 
-- Use [Choose An Effect Profile](../updating/choose-an-effect-profile.md) when
-  you are still deciding between profiles.
-- Use [Rollback And Recovery](./rollback-and-recovery.md) when the main question
-  is how far recovery goes.
-- Use [Merge And Rebase](./merge-and-rebase.md) when you need to bind a concrete
-  effect to a native merge preview.
+- [Concurrent Optimistic Effects](./concurrency-and-dependencies.md) covers
+  siblings and dependency DAGs.
+- [Rollback And Recovery](./rollback-and-recovery.md) covers targeted rejection.
+- [Merge And Rebase](./merge-and-rebase.md) covers explicit branch merge plans.
 
 ## Inspection And Debugging
 
-Inspect:
-
-- `line.diagnostics().lastEffect`
-- `line.history().verificationPackage().lifecycle.lastEffect`
-- `line.history().rollbackLastEffect()`
+- Use `line.effects().open()` for all open effects.
+- Use `line.effects().get(effectId)` for one effect.
+- Use `line.effects().projection()` for canonical versus projected posture.
+- Use `line.diagnostics().lastEffect` only as a recent diagnostic breadcrumb.
+- Use settlement receipts for reconciliation and retirement evidence.
 
 ## Anti-Patterns
 
-- Do not assume `branchNative()` always produces speculative branch truth.
-- Do not promise rollback if the envelope says rollback is unavailable.
-- Do not synthesize your own effect record beside the runtime.
+- Do not treat the current application branch as the effect branch.
+- Do not choose closeout from `lastEffect` when several effects are open.
+- Do not restore a shared snapshot or issue a compensating patch on rejection.
+- Do not hand-build effect envelopes or dependency indexes.
 
 ## Current Limits
 
-Broad replacement or missing runtime branch proof can make optimism or exact
-rollback unavailable. The runtime reports that explicitly instead of pretending.
+Admission requires a supported resource locus and native branch proof. Same-
+locus conflict resolution is deterministic, but it does not invent domain
+merging for two incompatible server responses.
 
 ## Related Docs
 
-- [Branch-Native Resource Effects](../branch-native-effects.md)
-- [Rollback And Recovery](./rollback-and-recovery.md)
+- [Concurrent Optimistic Effects](./concurrency-and-dependencies.md)
+- [Effect Envelopes And Closeout](./effect-envelopes-and-closeout.md)
+- [History And Restore](../../resource-contracts/history-and-restore.md)

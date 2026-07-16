@@ -47,6 +47,9 @@ function createInitialLineBinding(
   const valueSignal = wrapInternalLineMutableSignal(lineScope.input(null, {
     debugName: `${familyKind}ResourceValue`,
   }), lineScope);
+  const canonicalValueSignal = wrapInternalLineMutableSignal(lineScope.input(null, {
+    debugName: `${familyKind}ResourceCanonicalValue`,
+  }), lineScope);
   const readableValueSignal = lineScope.computed(() => valueSignal(), {
     debugName: `${familyKind}ResourceLine`,
   });
@@ -80,6 +83,7 @@ function createInitialLineBinding(
   ), lineScope);
   const initialState = createLineBindingState({
     value: null,
+    canonicalValue: null,
     processing: initialProcessing,
     upload: initialUpload,
     download: initialDownload,
@@ -96,6 +100,7 @@ function createInitialLineBinding(
   });
   const binding = Object.freeze({
     valueSignal,
+    canonicalValueSignal,
     readableValueSignal,
     processingSignal,
     uploadSignal,
@@ -228,6 +233,7 @@ function applyFulfilledInitialLoad(
   replaceLineBindingState(binding, {
     ...readLineBindingState(binding),
     value: loaded.value,
+    canonicalValue: loaded.value,
     processing: loaded.processing,
     upload: loaded.upload,
     download: loaded.download,
@@ -311,6 +317,9 @@ function wrapInternalLineMutableSignal(handle, lineScope) {
 }
 
 function createInternalLineWatch(signalId, lineScope) {
+  if (typeof lineScope.watch === "function") {
+    return (callback) => lineScope.watch(signalId, callback);
+  }
   const rawSignalsSymbol = Object.getOwnPropertySymbols(lineScope).find(
     (symbol) => String(symbol) === "Symbol(WorthSignal.rawSignals)",
   );

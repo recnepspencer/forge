@@ -1,10 +1,14 @@
+use worth_signal::facade::SignalTransaction;
 use worth_signal::facade::{specialist::EvaluationVerdict, SignalError};
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
 
-use crate::boundary::errors::WorthSignalJsError;
+use crate::boundary::errors::WORTHSignalJsError;
 use crate::runtime::summaries::RunSummary;
 
 use super::super::debug::{perf_now_ms, wasm_debug};
 use super::super::keyed_families::set_rgba_signal_value;
+use super::super::state::{DenseGridFamily, PendingCallbackDependencyPatch, SharedStore};
 use super::super::RuntimeCore;
 use super::changes::SetChange;
 use crate::recipe::model::TransactionOp;
@@ -15,7 +19,7 @@ impl RuntimeCore {
         family_id: &str,
         key: &str,
         changed_regions: Vec<worth_signal::facade::ChangedRegion>,
-    ) -> Result<RunSummary, WorthSignalJsError> {
+    ) -> Result<RunSummary, WORTHSignalJsError> {
         let id = self.ensure_source_key(family_id, key, None)?;
         self.mark_changed_with_regions(&id, changed_regions)
     }
@@ -25,7 +29,7 @@ impl RuntimeCore {
         family_id: &str,
         key: &str,
         aspect_ids: Vec<crate::recipe::model::WasmAspectId>,
-    ) -> Result<RunSummary, WorthSignalJsError> {
+    ) -> Result<RunSummary, WORTHSignalJsError> {
         let id = self.ensure_source_key(family_id, key, None)?;
         self.mark_changed_on_aspects(&id, aspect_ids)
     }
@@ -33,7 +37,7 @@ impl RuntimeCore {
     pub fn apply_transaction(
         &mut self,
         ops: Vec<TransactionOp>,
-    ) -> Result<RunSummary, WorthSignalJsError> {
+    ) -> Result<RunSummary, WORTHSignalJsError> {
         let started_at = perf_now_ms();
         wasm_debug(format!("[worth-signal-wasm] tx:start ops={}", ops.len()));
         let previous = self.lock_store()?.clone();
@@ -46,95 +50,40 @@ impl RuntimeCore {
         let store = self.store.clone();
         let dense_grids = self.dense_grids.clone();
         let evaluator = self.evaluator();
+        let committed_dependency_patches = Arc::new(Mutex::new(
+            None::<(Vec<PendingCallbackDependencyPatch>, u64)>,
+        ));
+        let committed_dependency_patches_for_tx = committed_dependency_patches.clone();
 
         let result = self.runtime.transaction(&mut self.store, move |tx| {
             wasm_debug("[worth-signal-wasm] tx:apply-start");
-            {
-                let mut locked = store
-                    .lock()
-                    .map_err(|_| SignalError::internal("runtime store mutex poisoned"))?;
-                for change in &changes {
-                    match change {
-                        SetChange::Source {
-                            id,
-                            value,
-                            node,
-                            changed_regions,
-                            aspects,
-                        } => {
-                            let source = locked.sources.get_mut(id).ok_or_else(|| {
-                                SignalError::invalid_input(format!("unknown source `{id}`"))
-                            })?;
-                            source.value = value.clone();
-                            source.version =
-                                super::super::aspects::bump_aspects(source.version, aspects);
-                            if changed_regions.is_empty() {
-                                for aspect in aspects {
-                                    tx.mark_changed(*node, *aspect)?;
-                                }
-                            } else {
-                                for aspect in aspects {
-                                    tx.mark_changed_with_regions(*node, *aspect, changed_regions)?;
-                                }
-                            }
-                        }
-                        SetChange::DenseGridRgba {
-                            family_id,
-                            rgba,
-                            aspects,
-                        } => {
-                            let family = dense_grids.get(family_id).ok_or_else(|| {
-                                SignalError::invalid_input(format!(
-                                    "unknown dense grid family `{family_id}`"
-                                ))
-                            })?;
-                            wasm_debug(format!(
-                                "[worth-signal-wasm] tx:dense-apply-start family={family_id} cells={}",
-                                family.ids.len()
-                            ));
-                            for index in 0..family.ids.len() {
-                                let offset = index * 4;
-                                let source = locked.sources.get_mut(&family.ids[index]).ok_or_else(|| {
-                                    SignalError::invalid_input(format!(
-                                        "unknown dense source `{}`",
-                                        family.ids[index]
-                                    ))
-                                })?;
-                                set_rgba_signal_value(
-                                    &mut source.value,
-                                    rgba[offset],
-                                    rgba[offset + 1],
-                                    rgba[offset + 2],
-                                    rgba[offset + 3],
-                                );
-                                source.version =
-                                    super::super::aspects::bump_aspects(source.version, aspects);
-                                for aspect in aspects {
-                                    tx.mark_changed(family.nodes[index], *aspect)?;
-                                }
-                                if index > 0 && index % 10_000 == 0 {
-                                    wasm_debug(format!(
-                                        "[worth-signal-wasm] tx:dense-apply progress family={family_id} applied={index}"
-                                    ));
-                                }
-                            }
-                            wasm_debug(format!(
-                                "[worth-signal-wasm] tx:dense-apply-done family={family_id}"
-                            ));
-                        }
-                    }
-                }
-            }
+            apply_set_changes(tx, &store, &dense_grids, &changes)?;
 
             wasm_debug("[worth-signal-wasm] tx:evaluate-dirty-start");
             tx.evaluate_dirty(&evaluator)?;
             wasm_debug("[worth-signal-wasm] tx:evaluate-dirty-done");
+            let (pending, runtime_read_breadth) =
+                apply_pending_dependency_patches_in_transaction(tx, &store)?;
+            *committed_dependency_patches_for_tx
+                .lock()
+                .map_err(|_| SignalError::internal("dependency patch receipt mutex poisoned"))? =
+                Some((pending, runtime_read_breadth));
             Ok(())
         });
 
         match result {
             Ok(result) => {
-                self.apply_pending_callback_dependency_patches()?;
+                let (pending, runtime_read_breadth) = committed_dependency_patches
+                    .lock()
+                    .map_err(|_| {
+                        WORTHSignalJsError::internal(
+                            "dependency patch receipt mutex poisoned".to_string(),
+                        )
+                    })?
+                    .take()
+                    .unwrap_or_default();
+                self.record_committed_callback_dependency_patches(pending, runtime_read_breadth)?;
+                self.advance_current_authored_graph_generation();
                 let active_branch_id = self.runtime.current_branch().id.0;
                 self.branch_states
                     .insert(active_branch_id, self.snapshot_branch_state());
@@ -164,17 +113,17 @@ impl RuntimeCore {
                     err
                 ));
                 self.restore_store(previous)?;
-                Err(WorthSignalJsError::from(err))
+                Err(WORTHSignalJsError::from(err))
             }
         }
     }
 
-    pub fn evaluate_dirty(&mut self) -> Result<RunSummary, WorthSignalJsError> {
+    pub fn evaluate_dirty(&mut self) -> Result<RunSummary, WORTHSignalJsError> {
         let evaluator = self.evaluator();
         let report = self
             .runtime
             .evaluate_dirty(&self.store, &evaluator)
-            .map_err(WorthSignalJsError::from)?;
+            .map_err(WORTHSignalJsError::from)?;
         self.notify_diagnostics_subscribers();
         Ok(RunSummary {
             touched_nodes: report.task_count,
@@ -198,4 +147,92 @@ impl RuntimeCore {
             commit_nanos: report.semantic_finalize_nanos.to_string(),
         })
     }
+}
+
+pub(in crate::runtime::core) fn apply_set_changes(
+    tx: &mut SignalTransaction<'_, (), (), (), SharedStore, ()>,
+    store: &SharedStore,
+    dense_grids: &BTreeMap<String, Arc<DenseGridFamily>>,
+    changes: &[SetChange],
+) -> Result<(), SignalError> {
+    let mut locked = store
+        .lock()
+        .map_err(|_| SignalError::internal("runtime store mutex poisoned"))?;
+    for change in changes {
+        match change {
+            SetChange::Source {
+                id,
+                value,
+                node,
+                changed_regions,
+                aspects,
+            } => {
+                let source = locked
+                    .sources
+                    .get_mut(id)
+                    .ok_or_else(|| SignalError::invalid_input(format!("unknown source `{id}`")))?;
+                source.value = value.clone();
+                source.version = super::super::aspects::bump_aspects(source.version, aspects);
+                for aspect in aspects {
+                    if changed_regions.is_empty() {
+                        tx.mark_changed(*node, *aspect)?;
+                    } else {
+                        tx.mark_changed_with_regions(*node, *aspect, changed_regions)?;
+                    }
+                }
+            }
+            SetChange::DenseGridRgba {
+                family_id,
+                rgba,
+                aspects,
+            } => {
+                let family = dense_grids.get(family_id).ok_or_else(|| {
+                    SignalError::invalid_input(format!("unknown dense grid family `{family_id}`"))
+                })?;
+                for index in 0..family.ids.len() {
+                    let offset = index * 4;
+                    let source = locked.sources.get_mut(&family.ids[index]).ok_or_else(|| {
+                        SignalError::invalid_input(format!(
+                            "unknown dense source `{}`",
+                            family.ids[index]
+                        ))
+                    })?;
+                    set_rgba_signal_value(
+                        &mut source.value,
+                        rgba[offset],
+                        rgba[offset + 1],
+                        rgba[offset + 2],
+                        rgba[offset + 3],
+                    );
+                    source.version = super::super::aspects::bump_aspects(source.version, aspects);
+                    for aspect in aspects {
+                        tx.mark_changed(family.nodes[index], *aspect)?;
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+pub(in crate::runtime::core) fn apply_pending_dependency_patches_in_transaction(
+    tx: &mut SignalTransaction<'_, (), (), (), SharedStore, ()>,
+    store: &SharedStore,
+) -> Result<(Vec<PendingCallbackDependencyPatch>, u64), SignalError> {
+    let (pending, runtime_read_breadth) = {
+        let mut locked = store
+            .lock()
+            .map_err(|_| SignalError::internal("runtime store mutex poisoned"))?;
+        let pending = locked
+            .pending_callback_dependency_patches
+            .drain(..)
+            .collect::<Vec<_>>();
+        let runtime_read_breadth = locked.pending_callback_runtime_read_breadth;
+        locked.pending_callback_runtime_read_breadth = 0;
+        (pending, runtime_read_breadth)
+    };
+    for patch in &pending {
+        tx.set_dependencies(patch.node, patch.dependencies.clone())?;
+    }
+    Ok((pending, runtime_read_breadth))
 }

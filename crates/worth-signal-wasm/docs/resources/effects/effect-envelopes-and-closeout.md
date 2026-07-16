@@ -17,6 +17,8 @@ Use it when you need to inspect:
 ## Stable Entry Points
 
 - `line.diagnostics().lastEffect`
+- `line.effects().get(effectId)?.envelope`
+- `line.effects().open()`
 - `line.history().verificationPackage().lifecycle.lastEffect`
 - `signals.resource.effects.closeoutMatrix(profile)`
 
@@ -55,7 +57,8 @@ console.log(matrix.rows[0].effectFamily);
 ## Real Example
 
 ```ts
-const effect = line.diagnostics().lastEffect;
+const effect = line.effects().get(effectId)?.envelope;
+if (!effect) throw new Error("effect is unknown");
 const profile = signals.resource.effects.branchNative();
 const matrix = signals.resource.effects.closeoutMatrix(profile);
 
@@ -80,13 +83,15 @@ inspection digest.
 
 ## Inspection And Debugging
 
-Start with the envelope on `lastEffect`. If the question becomes "should this
-profile ever support this?", check the closeout matrix for that profile.
+Start with `line.effects().get(effectId)?.envelope` when investigating a
+request. Use `lastEffect` only for recent diagnostics. If the question becomes
+"should this profile ever support this?", check the closeout matrix.
 
 ## Anti-Patterns
 
 - Do not use the closeout matrix to explain one concrete effect.
 - Do not treat an effect envelope as a general family declaration.
+- Do not use `lastEffect` to choose among concurrent requests.
 
 ## Current Limits
 

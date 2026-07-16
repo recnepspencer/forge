@@ -9,6 +9,7 @@ use crate::boundary::serde::{
 };
 use crate::runtime::summaries::RuntimeSnapshotEnvelope;
 
+use super::signals::flush_deferred_runtime_callbacks;
 use super::types::SignalHistory;
 
 #[wasm_bindgen]
@@ -91,10 +92,13 @@ impl SignalHistory {
     }
 
     pub fn switch_branch(&self, branch_id: u64) -> Result<(), JsValue> {
-        self.core
+        let result = self
+            .core
             .borrow_mut()
             .switch_branch(branch_id)
-            .map_err(JsValue::from)
+            .map_err(JsValue::from);
+        flush_deferred_runtime_callbacks();
+        result
     }
 
     pub fn replay_for_branch(&self, branch_id: u64) -> Result<JsValue, JsValue> {

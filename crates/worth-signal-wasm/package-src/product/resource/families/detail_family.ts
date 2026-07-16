@@ -8,6 +8,7 @@ function createDetailFamily(
   familyId,
   declaration,
   compatibility,
+  effectProjectionCoordinator,
 ) {
   return createMaterializedFamily(
     RESOURCE_FAMILY_KINDS.detail,
@@ -16,6 +17,7 @@ function createDetailFamily(
     familyId,
     validateDetailDeclaration(declaration),
     compatibility,
+    effectProjectionCoordinator,
   );
 }
 

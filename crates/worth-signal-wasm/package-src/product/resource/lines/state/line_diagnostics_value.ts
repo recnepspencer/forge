@@ -212,7 +212,7 @@ function createInvalidatedDiagnostics(previous, cause, scope) {
   );
 }
 
-function createPatchedDiagnostics(previous, patch, result, effectEnvelope) {
+function createPatchedDiagnostics(previous, patch, result, effectEnvelope, projection = null) {
   return freezeWithVisibleSelection(
     {
       ...previous,
@@ -222,7 +222,7 @@ function createPatchedDiagnostics(previous, patch, result, effectEnvelope) {
       lastPatchedItemId: result.itemId,
       lastPatchedField: result.field,
       lastPatchedRegion: result.region,
-      lastPatchedPath: result.path,
+      lastPatchedPath: result.path ?? null,
       lastPatchedAspect: result.aspect,
       lastPatchedSummary: result.summary,
       lastEffect: effectEnvelope,
@@ -232,6 +232,7 @@ function createPatchedDiagnostics(previous, patch, result, effectEnvelope) {
     createPatchedVisibleSelection(
       previous.visibleSelection,
       effectEnvelope,
+      projection,
     ),
   );
 }
@@ -248,7 +249,7 @@ function createInverseRollbackDiagnostics(previous, rollback, result) {
       lastPatchedItemId: result.itemId,
       lastPatchedField: result.field,
       lastPatchedRegion: result.region,
-      lastPatchedPath: result.path,
+      lastPatchedPath: result.path ?? null,
       lastPatchedAspect: result.aspect,
       lastPatchedSummary: result.summary,
       preservedVisibleValueOnLastRejection: false,
@@ -302,7 +303,7 @@ function createDeliveredDiagnostics(previous, delivery) {
       lastPatchedItemId: delivery.patchedItemId,
       lastPatchedField: delivery.patchedField,
       lastPatchedRegion: delivery.patchedRegion,
-      lastPatchedPath: delivery.patchedPath,
+      lastPatchedPath: delivery.patchedPath ?? null,
       lastPatchedAspect: delivery.patchedAspect,
       lastPatchedSummary: delivery.patchedSummary,
       lastDeliveryKind: delivery.deliveryKind,
@@ -329,20 +330,6 @@ function createMutationResponsePlannedDiagnostics(previous, mutationResponsePlan
         ("mutationResponsePlanCount" in previous
           ? previous.mutationResponsePlanCount
           : 0) + 1,
-    },
-    previous.visibleSelection,
-  );
-}
-
-function createIdentityMigratedDiagnostics(previous, identityMigration) {
-  return freezeWithVisibleSelection(
-    {
-      ...previous,
-      identityMigrationCount:
-        ("identityMigrationCount" in previous
-          ? previous.identityMigrationCount
-          : 0) + 1,
-      lastIdentityMigration: identityMigration,
     },
     previous.visibleSelection,
   );
@@ -396,7 +383,6 @@ export {
   createInvalidatedDiagnostics,
   createDeliveredDiagnostics,
   createInitialLineDiagnostics,
-  createIdentityMigratedDiagnostics,
   createMutationResponsePlannedDiagnostics,
   createInverseRollbackDiagnostics,
   createPatchedDiagnostics,

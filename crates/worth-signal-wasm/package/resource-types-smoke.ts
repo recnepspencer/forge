@@ -19,3 +19,4 @@ import "./resource_types_smoke/api/transfer/resource_api_transfer_authoring_deni
 import "./resource_types_smoke/api/effects/resource_api_effect_profiles_usage.ts";
 import "./resource_types_smoke/api/effects/resource_api_effect_profiles_denials.ts";
 import "./resource_types_smoke/resource_effect_envelope_usage.ts";
+import "./resource_types_smoke/concurrent_effect_certification_usage.ts";

@@ -4,6 +4,7 @@ import type {
 } from "../diagnostics.js";
 import type { ResourceLineVerificationPackage } from "./resource_verification.js";
 import type { ResourceEffectEnvelope } from "./resource_effect_envelope.js";
+import type { ResourceEffectSettlementResult } from "./resource_effect_branch_dag.js";
 import type {
   ResourceLineContinuity,
   ResourceLineFreshness,
@@ -272,37 +273,20 @@ export type ResourceLineExactRestoreResult =
   | ResourceLineExactRestoreResultRestored
   | ResourceLineExactRestoreResultUnavailable;
 
-export interface ResourceLineEffectRollbackResultRolledBack {
-  readonly kind: "rolledBack";
-  readonly mode: "SameRuntimeBranchExact" | "CompactInversePatch";
-  readonly effectId: string;
-  readonly branchId: number;
-  readonly snapshotId: number;
-  readonly basisCurrentId: string | null;
-  readonly basisAdvanceCount: number;
-  readonly rollback: ResourceEffectEnvelope["optimistic"]["rollback"];
-  readonly reloadStatus: ResourceLineStatus;
-}
-
 export interface ResourceLineEffectRollbackResultUnavailable {
   readonly kind: "unavailable";
   readonly reason:
-    | "noEffect"
-    | "notApplicable"
-    | "rollbackUnavailable"
-    | "unsupportedByRuntime"
-    | "branchHeadUnavailable"
-    | "runtimeRejected"
-    | "restoreUnavailable";
+    | "noOpenEffect"
+    | "unknownEffect"
+    | "effectAlreadySettled";
   readonly detail: string;
   readonly effectId: string | null;
   readonly basisCurrentId: string | null;
   readonly basisAdvanceCount: number;
-  readonly rollback: ResourceEffectEnvelope["optimistic"]["rollback"] | null;
 }
 
-export type ResourceLineEffectRollbackResult =
-  | ResourceLineEffectRollbackResultRolledBack
+export type ResourceLineEffectRollbackResult<TValue = unknown> =
+  | ResourceEffectSettlementResult<TValue>
   | ResourceLineEffectRollbackResultUnavailable;
 
 export interface ResourceLineExactReplayResultReplayed {
@@ -346,6 +330,7 @@ export interface ResourceLineHistory {
   readonly lifecycle: readonly ResourceLineHistoryEntry[];
   replayExact(): ResourceLineExactReplayResult;
   restoreExact(): ResourceLineExactRestoreResult;
-  rollbackLastEffect(): ResourceLineEffectRollbackResult;
+  rollbackEffect(effectId: string): Promise<ResourceLineEffectRollbackResult>;
+  rollbackLastEffect(): Promise<ResourceLineEffectRollbackResult>;
   verificationPackage(): ResourceLineVerificationPackage;
 }

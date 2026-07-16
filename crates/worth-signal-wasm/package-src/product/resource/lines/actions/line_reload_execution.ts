@@ -242,6 +242,7 @@ function applyFulfilledReload(
   replaceLineBindingState(materialization.binding, {
     ...readLineBindingState(materialization.binding),
     value: loaded.value,
+    canonicalValue: loaded.value,
     processing: loaded.processing,
     upload: loaded.upload,
     download: loaded.download,

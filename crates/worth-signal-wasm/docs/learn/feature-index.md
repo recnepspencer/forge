@@ -73,6 +73,7 @@ home.
 - effect profiles, effect envelopes, merge/rebase, and rollback:
   [Effects And Recovery](../resources/effects/README.md),
   [Branch-Native Effects](../resources/effects/branch-native-effects.md),
+  [Concurrent Optimistic Effects](../resources/effects/concurrency-and-dependencies.md),
   [Effect Envelopes And Closeout](../resources/effects/effect-envelopes-and-closeout.md), and
   [Rollback And Recovery](../resources/effects/rollback-and-recovery.md)
 - resource-backed form sources, settlement, drift, merge, mutation-response
@@ -295,6 +296,9 @@ home.
 - branch-native optimistic effects, response-lens topology declarations, JSON
   effects, advanced topology effects, and UI lifecycle events:
   [Branch-Native Resource Effects](../resources/branch-native-effects.md)
+- concurrent optimistic effects, dependency DAGs, derived projection, and
+  targeted settlement:
+  [Concurrent Optimistic Effects](../resources/effects/concurrency-and-dependencies.md)
 - sealed effect envelopes:
   [Effect Envelope Contract](../resource-contracts/effect-envelope.md)
 - resource effect merge and rebase:

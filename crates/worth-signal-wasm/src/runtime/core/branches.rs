@@ -58,13 +58,33 @@ impl RuntimeCore {
     }
 
     pub(super) fn snapshot_branch_state(&self) -> BranchRuntimeState {
+        let branch_id = self.runtime.current_branch().id.0;
         BranchRuntimeState {
             metadata: self.snapshot_branch_metadata(),
             store: self
                 .lock_store()
                 .map(|store| store.snapshot(&self.catalog))
                 .unwrap_or_default(),
+            authored_graph_generation: self
+                .branch_states
+                .get(&branch_id)
+                .map(|state| state.authored_graph_generation)
+                .unwrap_or_default(),
         }
+    }
+
+    pub(super) fn advance_current_authored_graph_generation(&mut self) {
+        let branch_id = self.runtime.current_branch().id.0;
+        let next_generation = self
+            .branch_states
+            .get(&branch_id)
+            .map(|state| state.authored_graph_generation)
+            .unwrap_or_default()
+            .saturating_add(1);
+        self.branch_states
+            .entry(branch_id)
+            .or_default()
+            .authored_graph_generation = next_generation;
     }
 
     pub(super) fn restore_branch_metadata(&mut self, metadata: BranchRuntimeMetadata) {

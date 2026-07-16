@@ -53,6 +53,14 @@ mod worker_runtime_shell_merge;
 mod worker_signal_readback;
 mod worker_unavailable_compatibility_artifact;
 
+#[allow(unused_imports)]
+pub use crate::runtime::core::WorkerBranchRetirementReason;
+pub use crate::runtime::core::{
+    WorkerApplyTransactionToBranchReceipt, WorkerApplyTransactionToBranchRequest,
+    WorkerBranchBasisReceipt, WorkerCloseoutEffectBranchReceipt, WorkerCloseoutEffectBranchRequest,
+    WorkerForkBranchReceipt, WorkerForkBranchRequest, WorkerRetireBranchReceipt,
+    WorkerRetireBranchRequest, WorkerRetireBranchesReceipt, WorkerRetireBranchesRequest,
+};
 pub use branch_lifecycle_truth_report::WorkerBranchLifecycleTruthReport;
 pub use committed_transaction_envelope::WorkerCommittedTransactionEnvelope;
 pub(crate) use committed_truth_digest::committed_truth_digest_for_runtime;

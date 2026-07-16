@@ -1,6 +1,6 @@
 import { freezeObject } from "../graph_support.js";
 
-export function createWorkerFirstRootObservationManager() {
+export function createWorkerFirstRootObservationManager(options) {
   let currentContext = null;
   let nextObserverId = 1;
   let nextHandleId = 1;
@@ -14,7 +14,7 @@ export function createWorkerFirstRootObservationManager() {
         throw new TypeError("worker-first root watch(...) requires a callback");
       }
       const handle = createObserverHandle(bridge, target, callback, false);
-      void syncLifecycle(bridge);
+      void syncLifecycle(bridge).then(() => notifyObservers(currentContext, currentContext, null));
       return handle;
     },
     effect(bridge, target, callback) {
@@ -22,7 +22,7 @@ export function createWorkerFirstRootObservationManager() {
         throw new TypeError("worker-first root effect(...) requires a callback");
       }
       const handle = createObserverHandle(bridge, target, callback, true);
-      void syncLifecycle(bridge);
+      void syncLifecycle(bridge).then(() => notifyObservers(currentContext, currentContext, null));
       return handle;
     },
     nuke(bridge, handle) {
@@ -45,6 +45,9 @@ export function createWorkerFirstRootObservationManager() {
       await syncLifecycle(bridge);
       notifyObservers(previousContext, nextContext, deliveryPacket);
     },
+    deliverCurrent(deliveryPacket = null) {
+      notifyObservers(currentContext, currentContext, deliveryPacket);
+    },
     async clearContext(bridge) {
       currentContext = null;
       await syncLifecycle(bridge);
@@ -58,7 +61,7 @@ export function createWorkerFirstRootObservationManager() {
 
   function createObserverHandle(bridge, target, callback, effectOnly) {
     const signalId = normalizeObservedTargetId(target);
-    if (currentContext === null || !currentContext.signalValueById.has(signalId)) {
+    if (!hasObservedSignal(signalId, currentContext)) {
       throw new TypeError(
         `worker-first root ${effectOnly ? "effect" : "watch"}(...) requires a signal from the active imported graph`,
       );
@@ -86,7 +89,7 @@ export function createWorkerFirstRootObservationManager() {
       signalId,
       effectOnly,
       callback,
-      previousValue: currentContext.signalValueById.get(signalId),
+      previousValue: readObservedSignal(signalId, currentContext),
     });
     return handle;
   }
@@ -127,7 +130,10 @@ export function createWorkerFirstRootObservationManager() {
       return desiredSignalIds;
     }
     for (const observer of observers.values()) {
-      if (currentContext.publishedOutputIds.has(observer.signalId)) {
+      if (
+        currentContext?.publishedOutputIds.has(observer.signalId)
+        || options.hasAuthoredSignal(observer.signalId)
+      ) {
         desiredSignalIds.add(observer.signalId);
       }
     }
@@ -135,14 +141,11 @@ export function createWorkerFirstRootObservationManager() {
   }
 
   function notifyObservers(previousContext, nextContext, deliveryPacket) {
-    if (nextContext === null) {
-      return;
-    }
     for (const observer of observers.values()) {
-      if (!nextContext.signalValueById.has(observer.signalId)) {
+      if (!hasObservedSignal(observer.signalId, nextContext)) {
         continue;
       }
-      const nextValue = nextContext.signalValueById.get(observer.signalId);
+      const nextValue = readObservedSignal(observer.signalId, nextContext);
       const deliveryEvent = findWorkerDeliveryEvent(deliveryPacket, observer.signalId);
       if (deliveryEvent) {
         observer.previousValue = nextValue;
@@ -168,7 +171,12 @@ export function createWorkerFirstRootObservationManager() {
         );
         continue;
       }
-      const previousValue = previousContext?.signalValueById?.get(observer.signalId) ?? observer.previousValue;
+      const previousValue = (
+        !options.hasAuthoredSignal(observer.signalId)
+        && previousContext?.signalValueById.has(observer.signalId)
+      )
+        ? previousContext.signalValueById.get(observer.signalId)
+        : observer.previousValue;
       if (deepEqualObservationValue(previousValue, nextValue)) {
         observer.previousValue = nextValue;
         continue;
@@ -192,6 +200,18 @@ export function createWorkerFirstRootObservationManager() {
         }),
       );
     }
+  }
+
+  function hasObservedSignal(signalId, context) {
+    return context?.signalValueById.has(signalId)
+      || options.hasAuthoredSignal(signalId);
+  }
+
+  function readObservedSignal(signalId, context) {
+    if (context?.signalValueById.has(signalId)) {
+      return context.signalValueById.get(signalId);
+    }
+    return options.readAuthoredSignal(signalId);
   }
 }
 

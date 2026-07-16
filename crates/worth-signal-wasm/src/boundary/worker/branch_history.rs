@@ -8,6 +8,10 @@ use crate::boundary::restore_tokens::{
 use crate::boundary::serde::{from_js, from_json_wire, to_js, to_js_structured, to_json_wire};
 use crate::runtime::core::MergePolicyPreviewRequest;
 use crate::runtime::summaries::RuntimeSnapshotEnvelope;
+use crate::runtime::worker_host::{
+    WorkerApplyTransactionToBranchRequest, WorkerCloseoutEffectBranchRequest,
+    WorkerForkBranchRequest, WorkerRetireBranchRequest, WorkerRetireBranchesRequest,
+};
 
 use super::SignalWorkerRuntime;
 
@@ -50,6 +54,42 @@ impl SignalWorkerRuntime {
     #[wasm_bindgen(js_name = createBranch)]
     pub fn create_branch(&self, name: String) -> Result<JsValue, JsValue> {
         to_js(&self.create_branch_for_test(name)?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = workerBranchBasis)]
+    pub fn worker_branch_basis(&self, branch_id: u64) -> Result<JsValue, JsValue> {
+        to_js(&self.worker_branch_basis_for_test(branch_id)?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = forkBranch)]
+    pub fn fork_worker_branch(&self, request: JsValue) -> Result<JsValue, JsValue> {
+        let request: WorkerForkBranchRequest = from_js(request).map_err(JsValue::from)?;
+        to_js(&self.fork_worker_branch_for_test(request)?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = applyTransactionToBranch)]
+    pub fn apply_transaction_to_worker_branch(&self, request: JsValue) -> Result<JsValue, JsValue> {
+        let request: WorkerApplyTransactionToBranchRequest =
+            from_js(request).map_err(JsValue::from)?;
+        to_js(&self.apply_transaction_to_worker_branch_for_test(request)?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = retireBranch)]
+    pub fn retire_worker_branch(&self, request: JsValue) -> Result<JsValue, JsValue> {
+        let request: WorkerRetireBranchRequest = from_js(request).map_err(JsValue::from)?;
+        to_js(&self.retire_worker_branch_for_test(request)?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = retireBranches)]
+    pub fn retire_worker_branches(&self, request: JsValue) -> Result<JsValue, JsValue> {
+        let request: WorkerRetireBranchesRequest = from_js(request).map_err(JsValue::from)?;
+        to_js(&self.retire_worker_branches_for_test(request)?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = closeoutEffectBranch)]
+    pub fn closeout_worker_effect_branch(&self, request: JsValue) -> Result<JsValue, JsValue> {
+        let request: WorkerCloseoutEffectBranchRequest = from_js(request).map_err(JsValue::from)?;
+        to_js(&self.closeout_worker_effect_branch_for_test(request)?).map_err(JsValue::from)
     }
 
     #[wasm_bindgen(js_name = switchBranch)]

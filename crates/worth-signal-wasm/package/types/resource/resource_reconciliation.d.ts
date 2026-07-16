@@ -24,6 +24,8 @@ import type {
   ResourceExternalDeliveryFactory,
   ResourceLineReconciliation,
   ResourcePatchFactory,
+  ResourcePatchExecutionOptions,
+  ResourcePatchExecutionResult,
   ResourcePatchResult,
 } from "./resource_patch_delivery_surface.js";
 export type {
@@ -48,6 +50,8 @@ export type {
   ResourceExternalDeliveryFactory,
   ResourceLineReconciliation,
   ResourcePatchFactory,
+  ResourcePatchExecutionOptions,
+  ResourcePatchExecutionResult,
   ResourcePatchResult,
 } from "./resource_patch_delivery_surface.js";
 

@@ -1,27 +1,30 @@
-function createResourceEffectBranchLifecycle(effectPlan) {
-  const branchPosture = effectPlan.branchPosture;
+function createResourceEffectBranchLifecycle(effectPlan, branchPosture = effectPlan.branchPosture) {
   switch (branchPosture.kind) {
-    case "speculativeBranch":
+    case "effectOwnedBranch":
       return Object.freeze({
-        kind: "selectedExistingBranch",
-        acquisition: "currentRuntimeBranch",
-        creation: "notCreatedByResourceRuntime",
-        reuse: "currentBranchReuse",
-        ownership: "signalsRuntimeOwned",
+        kind: "effectOwnedBranch",
+        acquisition: "explicitForkPlan",
+        creation: "createdByResourceRuntime",
+        reuse: "forbidden",
+        ownership: "resourceEffectOwned",
         branchId: branchPosture.branchId,
         snapshotId: branchPosture.snapshotId,
-        restoreMode: branchPosture.restoreMode,
+        dependencyBasisBranchId: branchPosture.dependencyBasisBranchId,
+        nativeAncestryProof: branchPosture.nativeAncestryProof,
+        semanticDependencyProof: branchPosture.semanticDependencyProof,
         disposal: Object.freeze({
-          kind: "notOwnedByResourceRuntime",
-          detail:
-            "resource effect selected an existing Signals branch and must not dispose branch state it did not create",
+          kind: "retireOwnedBranch",
+          detail: "effect closeout retires the effect-owned native branch",
         }),
         leakDenial: Object.freeze({
-          kind: "noResourceOwnedBranch",
-          detail:
-            "resource effect did not create package-local speculative branch state that could survive disposal",
+          kind: "retirementReceiptRequired",
+          detail: "terminal effect state requires native branch retirement proof",
         }),
       });
+    case "effectOwnedBranchPlanned":
+      throw new TypeError(
+        "resource effect envelope cannot be issued before its effect-owned branch is acquired",
+      );
     case "optimisticUnavailable":
       return Object.freeze({
         kind: "unavailable",

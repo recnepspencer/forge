@@ -64,6 +64,9 @@ import {
   resourceRequestContext,
 } from "./resource/facade.js";
 import {
+  sealConcurrentResourceEffectBranchDagCertificationRun,
+} from "./resource/effects/certification/concurrent_resource_effect_branch_dag_certification.js";
+import {
   forbidOpaqueIdOption,
   isPlainObject,
   looksLikeInputMetadataOptions,
@@ -374,6 +377,7 @@ export {
   resourceUploadTransport,
   resourceRequestContext,
   resourceResponse,
+  sealConcurrentResourceEffectBranchDagCertificationRun,
   viewportCapability,
   visibilityCapability,
 };
