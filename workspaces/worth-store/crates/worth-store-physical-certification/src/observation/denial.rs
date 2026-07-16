@@ -9,6 +9,8 @@ pub enum ObservationDenial {
         observer: ObserverKind,
     },
     MissingExecutedProductionBoundaryTrace,
+    ScheduleExecutionMismatch,
+    StorageExecutionDidNotReachScheduledSeam,
     ExecutionReceiptPlanMismatch,
     MissingIndependentVerifierObservation,
     MissingRecoveryOutcomeObservation,

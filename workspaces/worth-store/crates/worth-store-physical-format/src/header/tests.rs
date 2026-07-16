@@ -5,6 +5,8 @@ use crate::{
     PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
 };
 
+mod denial_and_owner_cases;
+
 #[test]
 fn identical_frame_headers_decode_to_replay_comparable_witnesses() {
     let authority = header_authority();
@@ -29,6 +31,60 @@ fn identical_frame_headers_decode_to_replay_comparable_witnesses() {
     assert_eq!(first.witness().owner(), second.witness().owner());
     assert_eq!(first.witness().payload_length(), 7);
     assert_eq!(first.counters().frame_header_decode_count(), 1);
+}
+
+#[test]
+fn complete_header_decode_rejects_trailing_physical_residue() {
+    let authority = header_authority();
+    let reference = validated_slot_reference(7);
+    let mut bytes = header_bytes(
+        PhysicalFrameKind::RecordFrame.tag(),
+        7,
+        PhysicalPublicationState::Published,
+        b"payload",
+        0,
+        0,
+    );
+    bytes.extend_from_slice(b"unframed-residue");
+
+    let denial = authority
+        .decode_frame_header(reference, &bytes, PhysicalFrameKind::RecordFrame)
+        .expect_err("trailing bytes are not part of the framed payload");
+
+    assert_eq!(
+        denial.kind(),
+        PhysicalHeaderDecodeDenialKind::PayloadLengthMismatch
+    );
+}
+
+#[test]
+fn prefix_decode_supports_bounded_streaming_without_admitting_payload() {
+    let authority = header_authority();
+    let reference = validated_slot_reference(7);
+    let bytes = header_bytes(
+        PhysicalFrameKind::RecordFrame.tag(),
+        7,
+        PhysicalPublicationState::Published,
+        b"payload-lives-outside-the-prefix-buffer",
+        0,
+        0,
+    );
+
+    let report = authority
+        .decode_frame_header_prefix(
+            reference,
+            &bytes[..PHYSICAL_HEADER_LENGTH as usize],
+            PhysicalFrameKind::RecordFrame,
+        )
+        .expect("fixed header is independently decodable");
+
+    assert_eq!(
+        report.witness().payload_length() as usize,
+        bytes.len() - PHYSICAL_HEADER_LENGTH as usize
+    );
+    assert!(authority
+        .payload_view(&bytes[..PHYSICAL_HEADER_LENGTH as usize], report.witness())
+        .is_err());
 }
 
 #[test]
@@ -148,153 +204,6 @@ fn payload_view_revalidates_every_witness_header_fact_before_exposure() {
     }
 }
 
-#[test]
-fn unknown_kind_denies_before_payload_view() {
-    let authority = header_authority();
-    let bytes = header_bytes(
-        0xEE,
-        9,
-        PhysicalPublicationState::Published,
-        b"payload",
-        0,
-        0,
-    );
-
-    let denial = authority
-        .decode_frame_header(
-            validated_slot_reference(9),
-            &bytes,
-            PhysicalFrameKind::RecordFrame,
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        denial.kind(),
-        PhysicalHeaderDecodeDenialKind::UnknownHeaderKind
-    );
-    assert_eq!(denial.counters().unknown_kind_denial_count(), 1);
-    assert_eq!(
-        denial
-            .counters()
-            .logical_decode_after_invalid_header_count(),
-        0
-    );
-}
-
-#[test]
-fn unsupported_version_denies_before_payload_view() {
-    let authority = header_authority();
-    let mut bytes = header_bytes(
-        PhysicalFrameKind::RecordFrame.tag(),
-        9,
-        PhysicalPublicationState::Published,
-        b"payload",
-        0,
-        0,
-    );
-    bytes[1..3].copy_from_slice(&2u16.to_le_bytes());
-
-    let denial = authority
-        .decode_frame_header(
-            validated_slot_reference(9),
-            &bytes,
-            PhysicalFrameKind::RecordFrame,
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        denial.kind(),
-        PhysicalHeaderDecodeDenialKind::UnsupportedVersion
-    );
-    assert_eq!(denial.counters().unsupported_version_denial_count(), 1);
-}
-
-#[test]
-fn length_mismatch_denies_before_payload_view() {
-    let authority = header_authority();
-    let mut bytes = header_bytes(
-        PhysicalFrameKind::RecordFrame.tag(),
-        9,
-        PhysicalPublicationState::Published,
-        b"payload",
-        0,
-        0,
-    );
-    bytes.truncate(PHYSICAL_HEADER_LENGTH as usize + 2);
-
-    let denial = authority
-        .decode_frame_header(
-            validated_slot_reference(9),
-            &bytes,
-            PhysicalFrameKind::RecordFrame,
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        denial.kind(),
-        PhysicalHeaderDecodeDenialKind::PayloadLengthMismatch
-    );
-    assert_eq!(denial.counters().length_mismatch_denial_count(), 1);
-}
-
-#[test]
-fn reserved_checksum_or_lsn_use_denies_without_integrity_claim() {
-    let authority = header_authority();
-    let bytes = header_bytes(
-        PhysicalFrameKind::RecordFrame.tag(),
-        9,
-        PhysicalPublicationState::Published,
-        b"payload",
-        11,
-        0,
-    );
-
-    let denial = authority
-        .decode_frame_header(
-            validated_slot_reference(9),
-            &bytes,
-            PhysicalFrameKind::RecordFrame,
-        )
-        .unwrap_err();
-
-    assert_eq!(
-        denial.kind(),
-        PhysicalHeaderDecodeDenialKind::ReservedFieldMisuse
-    );
-    assert_eq!(
-        denial.reserved_field(),
-        Some(PhysicalHeaderReservedField::ChecksumSlot)
-    );
-    assert_eq!(denial.counters().reserved_field_denial_count(), 1);
-}
-
-#[test]
-fn page_header_uses_page_generation_owner() {
-    let authority = header_authority();
-    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
-    let cell = generations
-        .page_cell(segment(1), page(2))
-        .with_page_generation(generation(4));
-    let bytes = header_bytes(
-        PhysicalPageKind::DataPage.tag(),
-        4,
-        PhysicalPublicationState::Published,
-        b"page",
-        0,
-        0,
-    );
-
-    let report = authority
-        .decode_page_header(cell, &bytes, PhysicalPageKind::DataPage)
-        .unwrap();
-
-    assert_eq!(
-        report.witness().kind().tag(),
-        PhysicalPageKind::DataPage.tag()
-    );
-    assert_eq!(report.counters().page_header_decode_count(), 1);
-}
-
 fn header_authority() -> PhysicalHeaderAuthority {
     PhysicalHeaderAuthority::for_canonical_physical_format(
         PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
@@ -326,6 +235,14 @@ fn header_bytes(
     bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
     bytes.extend_from_slice(&generation_value.to_le_bytes());
     bytes.push(publication.code());
+    bytes.extend_from_slice(&1u64.to_le_bytes());
+    bytes.extend_from_slice(&2u64.to_le_bytes());
+    let tertiary = if PhysicalPageKind::from_tag(kind_tag).is_some() {
+        0
+    } else {
+        3
+    };
+    bytes.extend_from_slice(&u16::to_le_bytes(tertiary));
     bytes.extend_from_slice(&checksum_slot.to_le_bytes());
     bytes.extend_from_slice(&recovery_lsn.to_le_bytes());
     bytes.extend_from_slice(payload);
@@ -361,7 +278,7 @@ impl WitnessReuseMutation {
         match self {
             Self::UnsupportedVersion => bytes[1..3].copy_from_slice(&2u16.to_le_bytes()),
             Self::GenerationDrift => bytes[9..17].copy_from_slice(&4u64.to_le_bytes()),
-            Self::ReservedChecksumUse => bytes[18..22].copy_from_slice(&5u32.to_le_bytes()),
+            Self::ReservedChecksumUse => bytes[36..40].copy_from_slice(&5u32.to_le_bytes()),
             Self::PayloadLengthDrift => bytes[5..9].copy_from_slice(&4u32.to_le_bytes()),
         }
     }

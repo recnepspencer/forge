@@ -1,4 +1,4 @@
-# worth-signal-wasm Web Runtime Spec
+# worth-signals-wasm Web Runtime Spec
 
 > **Status:** Completed 2026-04-29
 >
@@ -13,7 +13,7 @@
 
 ## Goal
 
-Make `worth-signal-wasm` a framework-agnostic web runtime product with an
+Make `worth-signals-wasm` a framework-agnostic web runtime product with an
 app-first API:
 
 - `createSignals()`
@@ -60,7 +60,7 @@ It is slow semantic drift:
   complete
 - apps invent their own `computed` or `output` semantics because the package
   does not provide them
-- `worth-signal-wasm` becomes a partial kernel wrapper plus a growing pile of
+- `worth-signals-wasm` becomes a partial kernel wrapper plus a growing pile of
   helpers
 - the collapsed facade becomes the new structural gravity well
 - framework-specific glue quietly becomes the real product instead of the web
@@ -115,7 +115,7 @@ This web runtime must survive this hostile condition:
 
 - `worth-signal` remains the owner of derived computation, transactions,
   rollback semantics, and committed observation semantics.
-- `worth-signal-wasm` remains a framework-agnostic web runtime, not a
+- `worth-signals-wasm` remains a framework-agnostic web runtime, not a
   React-only package.
 - framework-specific adapters may come later, and they may live in separate
   in-crate domain folders so long as they do not redefine core semantics or
@@ -519,7 +519,7 @@ The wasm/web product surface must expose counters or internal cert surfaces for:
 - owns derived computation, transactions, invalidation, observation semantics,
   rollback semantics, and diagnostics truth
 
-`worth-signal-wasm`
+`worth-signals-wasm`
 - owns web-facing authoring, host callback marshalling, typed handles,
   framework-agnostic web API shape, and app/public projection concepts such as
   `output`

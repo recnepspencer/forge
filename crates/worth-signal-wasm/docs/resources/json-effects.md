@@ -27,7 +27,9 @@ delivered patches lower through the `jsonItemAspect` effect locus.
 - `signals.resource.response.map<T>()(...)`
 - `signals.resource.response.entityStore<T>()(...)`
 - family-owned `patch.itemAspect(...)`
+- `line.effects().get(effectId)?.envelope.patch.jsonPath`
 - `line.diagnostics().lastEffect.patch.jsonPath`
+- `line.history().rollbackEffect(effectId)`
 - `line.history().rollbackLastEffect()`
 
 JSON path aspects are response-owned. They are not accepted as caller-supplied
@@ -115,13 +117,15 @@ const response = signals.resource.response.objectItems<{
   }),
 });
 
-line.patch(tasks.patch.itemAspect({
+const admission = await line.patch(tasks.patch.itemAspect({
   itemId: "task:1",
   aspect: "reviewLabel",
   value: "needs-design",
 }));
+if (!("effectId" in admission)) throw new Error("effect was not admitted");
 
-const effect = line.diagnostics().lastEffect;
+const effect = line.effects().get(admission.effectId)?.envelope;
+if (!effect) throw new Error("effect envelope is unavailable");
 
 console.log(effect.locus.kind);
 console.log(effect.patch.jsonPath?.presence);
@@ -139,8 +143,8 @@ materialize missing intermediate containers.
   `patch.jsonPath` and cost counters.
 - [Response Topology Proof](../resource-contracts/response-topology-proof.md)
   explains how the enclosing response topology is proved.
-- [History And Restore](../resource-contracts/history-and-restore.md) explains
-  compact inverse and exact branch rollback.
+- [History And Restore](../resource-contracts/history-and-restore.md) separates
+  targeted effect rejection from explicit exact history restore.
 
 ## Inspection And Debugging
 

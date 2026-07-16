@@ -12,7 +12,7 @@ use super::super::RuntimeCore;
 use super::changes::SetChange;
 
 impl RuntimeCore {
-    pub(super) fn collect_changes(
+    pub(in crate::runtime::core) fn collect_changes(
         &mut self,
         ops: &[TransactionOp],
     ) -> Result<Vec<SetChange>, WorthSignalJsError> {

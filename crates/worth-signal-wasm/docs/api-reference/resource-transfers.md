@@ -96,7 +96,7 @@ The line then exposes:
 import {
   createSignals,
   resourceUploadResult,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -138,7 +138,7 @@ import {
   createSignals,
   resourceProcessingResult,
   resourceUploadResult,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 let callCount = 0;

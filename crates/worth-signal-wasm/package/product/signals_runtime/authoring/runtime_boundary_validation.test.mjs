@@ -107,7 +107,7 @@ test("wrapSignals rejects raw handles, foreign-runtime handles, and non-input mu
 
     assert.throws(
       () => firstSignals.read(rawHandle),
-      /signals\.read expects a string id or a product signal handle created by this package/,
+      /signals\.read expects a string id, a product signal handle created by this package/,
     );
     assert.throws(
       () => firstSignals.watch(secondInput, () => {}),

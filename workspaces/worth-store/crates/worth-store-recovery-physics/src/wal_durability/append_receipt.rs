@@ -37,6 +37,18 @@ pub(crate) enum WalDurabilityFailure {
     LostFlush,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct WalAppendByteObservation {
+    expected: u64,
+    observed: u64,
+}
+
+impl WalAppendByteObservation {
+    pub(crate) const fn new(expected: u64, observed: u64) -> Self {
+        Self { expected, observed }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalAppendReceipt<P: BackendDurabilityProfile> {
     profile: PhantomData<P>,
@@ -56,8 +68,7 @@ impl<P: BackendDurabilityProfile> WalAppendReceipt<P> {
         generation: WalSegmentGeneration,
         lsn_range: WalLsnRange,
         frame_digest: WalFrameDigest,
-        expected_bytes: u64,
-        observed_bytes: u64,
+        bytes: WalAppendByteObservation,
         completed_barriers: WalDurabilityBarrierSet,
         failure: Option<WalDurabilityFailure>,
     ) -> Self {
@@ -67,8 +78,8 @@ impl<P: BackendDurabilityProfile> WalAppendReceipt<P> {
             generation,
             lsn_range,
             frame_digest,
-            expected_bytes,
-            observed_bytes,
+            expected_bytes: bytes.expected,
+            observed_bytes: bytes.observed,
             completed_barriers,
             failure,
         }

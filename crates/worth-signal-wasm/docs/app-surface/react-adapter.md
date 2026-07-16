@@ -2,7 +2,7 @@
 
 ## What This Feature Is
 
-The React adapter is the thin React-facing consumer for a `worth-signal-wasm`
+The React adapter is the thin React-facing consumer for a `worth-signals-wasm`
 signals instance.
 
 It does not create a second state engine. It subscribes to signal truth that
@@ -950,8 +950,8 @@ standardized artifact from any already-settled managed write.
 ## Small Example
 
 ```tsx
-import { createSignals } from "worth-signal-wasm";
-import { createReactSignalsStore, useSignalValue } from "worth-signal-wasm/react";
+import { createSignals } from "worth-signals-wasm";
+import { createReactSignalsStore, useSignalValue } from "worth-signals-wasm/react";
 
 const signals = await createSignals();
 const count = signals.input(1);
@@ -975,13 +975,13 @@ shared runtime.
 ## Real Example
 
 ```tsx
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 import {
   createReactSignalsStore,
   useOutputValue,
   useSignalValue,
   useSignalsDiagnostics,
-} from "worth-signal-wasm/react";
+} from "worth-signals-wasm/react";
 
 const signals = await createSignals();
 

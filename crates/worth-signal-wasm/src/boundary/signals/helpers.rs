@@ -38,8 +38,15 @@ pub(super) fn apply_transaction_ops(
     let summary = core
         .borrow_mut()
         .apply_transaction(ops)
-        .map_err(JsValue::from)?;
+        .map_err(JsValue::from);
+    flush_deferred_runtime_callbacks();
+    let summary = summary?;
     to_js(&summary).map_err(JsValue::from)
+}
+
+pub(crate) fn flush_deferred_runtime_callbacks() {
+    crate::runtime::web_callbacks::flush_deferred_callbacks();
+    crate::runtime::diagnostics_callbacks::flush_deferred_callbacks();
 }
 
 pub(super) fn output_callback_deferred_error(id: String) -> WorthSignalJsError {

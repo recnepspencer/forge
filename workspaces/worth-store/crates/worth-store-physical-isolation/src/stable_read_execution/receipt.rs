@@ -51,7 +51,12 @@ impl StablePhysicalReadReceipt {
         self.io_posture
     }
 
-    pub fn lower_to_foundational_evidence(&self) -> StablePhysicalReadFoundationalEvidence {
+    pub fn lower_to_foundational_evidence(
+        &self,
+    ) -> Result<
+        StablePhysicalReadFoundationalEvidence,
+        worth_foundational::FoundationalBoundaryEvidenceProvenanceConstructionDenial,
+    > {
         StablePhysicalReadFoundationalEvidence::lower(self)
     }
 }
@@ -117,31 +122,25 @@ pub fn stable_physical_read_plan_for_certification_seed(
             LatchAcquisitionStep::shared(PhysicalLatchKey::page(root.epoch(), page_epoch)),
         ]))
         .expect("certification latch plan should lower");
-    let scratch_usage = footprint.protected().scratch_usage().with_latch_lowering();
+    let counters = ReadPlanCounterSnapshot::from_plan(
+        &footprint,
+        &latch_plan,
+        PhysicalReadPlanRetryPosture::Current,
+    );
     admit_seed_stable_read_plan(SeedStableReadPlan::new(
         root,
         crate::physical_epoch_vector_for_current_root(root)
             .expect("certification root epoch vector should admit"),
         footprint,
         latch_plan,
-        PhysicalReadReachabilityBarrier::from_footprint_basis(
-            PhysicalReadProtectedFootprintBasis::for_certification_test(1),
+        crate::physical_read_plan::PhysicalReadPlanCompletion::new(
+            PhysicalReadReachabilityBarrier::from_footprint_basis(
+                PhysicalReadProtectedFootprintBasis::for_certification_test(1),
+                release,
+            ),
             release,
-        ),
-        release,
-        PhysicalReadPlanRetryPosture::Current,
-        ReadPlanCounterSnapshot::new(
-            1,
-            1,
-            3,
-            2,
-            0,
-            guarded_bytes,
-            1,
-            1,
-            scratch_usage.protected_reference_capacity() as u64,
-            scratch_usage.scratch_allocations(),
-            scratch_usage.allocation_events(),
+            PhysicalReadPlanRetryPosture::Current,
+            counters,
         ),
     ))
     .expect("certification stable read plan should admit")

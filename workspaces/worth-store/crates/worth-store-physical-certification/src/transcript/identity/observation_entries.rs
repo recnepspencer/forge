@@ -22,6 +22,10 @@ pub(super) fn observation_entries(parts: &ExecutedTranscriptParts) -> Vec<Canoni
 fn generic_trace_observation_entries(trace: &ObservedPhysicalTrace) -> Vec<CanonicalBasisEntry> {
     let mut entries = vec![
         text_entry(
+            "transcript.trace.observation_basis",
+            format!("{:?}", trace.observation_basis()),
+        ),
+        text_entry(
             "transcript.trace.independent_verifier",
             trace
                 .independent_verifier()

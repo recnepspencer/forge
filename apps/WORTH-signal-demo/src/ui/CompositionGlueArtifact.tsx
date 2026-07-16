@@ -313,7 +313,7 @@ export function CompositionGlueArtifact() {
           />
         ))}
         <div className="xai-glue-resolution">
-          <span className="xai-glue-node xai-glue-node-center">WORTH</span>
+          <span className="xai-glue-node xai-glue-node-center">Worth</span>
         </div>
       </div>
     </div>

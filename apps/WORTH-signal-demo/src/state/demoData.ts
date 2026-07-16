@@ -17,291 +17,271 @@ export interface DemoMetadata {
 export const demoRegistry: DemoMetadata[] = [
   {
     id: 1,
-    title: "Local Reactive Signals",
-    purpose: "Show the smallest useful WORTH primitive and what it gives you for local reactive state.",
-    preface: "This is the spreadsheet version of local state: one source cell changes, and every dependent cell updates from the same graph. Change the title and watch slug, readiness, and output update without separate useMemo wiring or duplicate component state.",
+    title: "Explainable Transfer Decision",
+    purpose: "Move one transfer amount and watch the runtime itself report what recomputed, what changed, and what stayed the same Ã¢â‚¬â€ an audit trail read from the runtime, not kept by the UI.",
+    preface: "Drag the amount across the $10,000 policy threshold. Every committed change lands as one transaction, and every row in the audit trail is read back from signals.diagnostics() after the commit Ã¢â‚¬â€ including the moments where the review lane recomputed but its answer did not change. Click any value to ask the runtime why.",
     difficulty: "Beginner",
-    primaryMessage: "WORTH gives you more structured local reactivity than plain ad-hoc component state.",
-    WORTHCode: `import { createSignals } from "worth-signal-wasm";
+    primaryMessage: "One input. Two decisions. A runtime that shows its work.",
+    WORTHCode: `import { createSignals } from "worth-signals-wasm";
 const signals = await createSignals();
 
-const count = signals.input(0);
-const doubled = signals.computed(() => count() * 2);
-const status = signals.computed(() =>
-  count() >= 10 ? "OPTIMAL SYSTEM DENSITY" : "BOOTSTRAP INITIALIZATION"
+const amount = signals.input(8_000);
+const fee = signals.computed(() => amount() * 0.004);
+const reviewLane = signals.computed(() =>
+  amount() >= 10_000 ? "Manual review" : "Automatic"
 );
-const panel = signals.output(() => ({
-  count: count(),
-  doubled: doubled(),
-  status: status(),
-}));
+
+// land the change as one unit
+signals.transaction((tx) => tx.set(amount, 12_000));
+
+// ask the runtime what actually happened
+signals.diagnostics().why(reviewLane.id);
 `,
     alternativeName: "React useState + useMemo",
     alternativeCode: `import { useState, useMemo } from "react";
 
-const [count, setCount] = useState(0);
-
-// Double-computation danger & dependencies array wiring
-const doubled = useMemo(() => count * 2, [count]);
-const status = useMemo(() => 
-  count >= 10 ? "Optimal Load" : "Bootstrap"
-, [count]);`,
-    explanationAlternative: "React local state can model the same UI, but the reactive contract is split between state setters, memo dependency arrays, and component rerender semantics. Observation and diagnostics are separate concerns you still have to author yourself.",
-    explanationWORTH: "The same handle-based runtime gives you writable input, derived computed truth, and a published output projection without switching mental models. This first demo stays on the stable local graph lane instead of pretending extra observer surfaces are already frictionless in React.",
+const [amount, setAmount] = useState(8_000);
+const fee = useMemo(() => amount * 0.004, [amount]);
+const reviewLane = useMemo(
+  () => amount >= 10_000 ? "Manual review" : "Automatic",
+  [amount],
+);`,
+    explanationAlternative: "React can compute the same two values, but it cannot testify about them: useMemo keeps no record of what recomputed, what was skipped, or why. The audit trail on this page has no React equivalent.",
+    explanationWORTH: "Worth owns the input, both derived decisions, and the evidence. After each transaction the runtime reports what recomputed, what changed, and what stayed the same Ã¢â‚¬â€ the same trail this page exports as JSON.",
     whatYouGet: [
-      "Runtime-owned input, computed, and output handles",
-      "Published output projection from the same handle graph",
-      "One handle model instead of separate local state plus observer glue"
+      "Transactional commits with one propagation record per change",
+      "An audit trail read from signals.diagnostics(), not app state",
+      "Per-value explanations via why(): reads, state, output change",
+      "An exportable JSON decision trail backed by runtime history"
     ],
     relatedDocsPath: "learn/feature-index"
   },
   {
     id: 2,
-    title: "Resource Lines",
-    purpose: "Show that every resource read materializes as inspectable line truth with value, status, freshness, diagnostics, and history.",
-    preface: "Think of a line like a query result with a black box recorder attached. The catalog line and the selected product detail line are separate reads, so refreshing the list, receiving a backend patch, or invalidating a detail can affect different truth surfaces. Click the line tabs and products, then watch the inspector name the line, latest effect, freshness, and history.",
+    title: "The Read That Keeps a Record",
+    purpose: "This looks like an ordinary product page backed by an ordinary fetch. It isn't. Give it a few seconds.",
+    preface: "Every resource read here materializes as a line: a query result with a flight recorder attached. When server truth changes Ã¢â‚¬â€ whether you asked for it or not Ã¢â‚¬â€ the line keeps the receipt: status, freshness, provenance, and a lifecycle tape you can export.",
     difficulty: "Intermediate",
-    primaryMessage: "WORTH resource lines make server truth inspectable before writes enter the story.",
-    WORTHCode: `const api = signals.api({
-  baseUrl: "/api",
-  effects: signals.resource.effects.branchNative(),
+    primaryMessage: "When a value changes behind your back, the read itself can tell you why.",
+    WORTHCode: `const api = signals.api({ baseUrl: "/api/storefront" });
+
+const product = api.url("/products/:productId").detail({
+  reconcile: signals.resource.detailFields({
+    price: { read: (v) => v.price, write: (v, price) => ({ ...v, price }) },
+  }),
+  load: ({ productId }) => fetchProduct(productId),
 });
 
-const productDetail = signals.resource.response.detail<Product>()({
-  status: "status",
-  price: "price",
-  inventory: "inventory",
-});
+const line = product.line({ productId: "p-204" });
 
-const products = api
-  .url("/products")
-  .response(signals.resource.response.array<Product>()({
-    id: "id",
-    summary: { total: "total", lowStock: "lowStock" },
-  }))
-  .list({ load: loadProducts });
+// the server pushes new truth Ã¢â‚¬â€ no user action involved
+line.deliver(product.delivery.field({
+  packetId: "pkt-08", basisId: "srv-v1", nextBasisId: "srv-v2",
+  field: "price", value: 188,
+}));
 
-const product = api
-  .url("/products/:productId")
-  .response(productDetail)
-  .detail({ load: loadProduct });
-
-const catalogLine = products.line({});
-const detailLine = product.line({ productId });
-
-const catalog = useResourceLine(catalogLine, store);
-const detail = useResourceLine(detailLine, store);
-
-console.log(catalog.status().kind);
-console.log(catalog.freshness().kind);
-console.log(catalogLine.diagnostics().lastEffect);
-console.log(catalogLine.history().entries());`,
+// the line kept the receipt
+line.diagnostics().lastEffect.provenance; // "deliveredPatch"
+line.history().lifecycle;                 // the full tape`,
     alternativeName: "Generic server-state query",
-    alternativeCode: `const catalog = useQuery({
-  queryKey: ["products"],
-  queryFn: loadProducts,
-});
-
-const detail = useQuery({
+    alternativeCode: `const detail = useQuery({
   queryKey: ["product", productId],
   queryFn: () => loadProduct(productId),
 });
 
-const lineState = {
-  value: catalog.data,
-  status: catalog.status,
-  stale: catalog.isStale,
-  history: appAuthoredHistory,
-  diagnostics: appAuthoredDiagnostics,
-};`,
-    explanationAlternative: "Server-state hooks can fetch the data, but the app usually authors separate conventions for freshness, diagnostics, history, and line identity.",
-    explanationWORTH: "WORTH materializes resource reads as line truth. The line carries value, status, freshness, diagnostics, history, and effect evidence as one runtime-owned object.",
+// websocket pushes new truth into the cache
+queryClient.setQueryData(["product", productId], next);
+
+// the value changed on screen. why? when? from where?
+// there is nothing to consult Ã¢â‚¬â€ the cache keeps no record.`,
+    explanationAlternative: "Server-state hooks can fetch the data, and a push can rewrite the cache Ã¢â‚¬â€ but nothing records why a value changed. When users ask what happened, the answer lives in log aggregation, if anywhere.",
+    explanationWORTH: "Worth materializes the read as a line. A server delivery lands with provenance, the lifecycle tape records it, and the value on screen can testify about its own history Ã¢â‚¬â€ exportable as JSON.",
     whatYouGet: [
-      "Catalog and detail line identities",
-      "Line status and freshness",
-      "Declared response summaries",
-      "Diagnostics and history attached to the line",
-      "Delivery, invalidation, refresh, and rollback surfaces"
+      "A real backend push landing as a delivery effect with provenance",
+      "Status and freshness as runtime truth, not app conventions",
+      "A lifecycle tape read from line.history(), entry by entry",
+      "Per-line recorders Ã¢â‚¬â€ switch products, each read has its own",
+      "An exportable JSON line history"
     ],
     relatedDocsPath: "resources/index"
   },
   {
     id: 3,
-    title: "Structured Form Model",
-    purpose: "Show what signals.form(...) buys you in a simple but real form.",
-    preface: "This is like React Hook Form plus your query-backed policy checks plus your submit-disable logic, but one controller owns the result. Edit the product fields and watch dirty state, backend-dependent validation, reset posture, and submit readiness move together instead of being recomputed in component glue.",
+    title: "The Form That Knows It Has Company",
+    purpose: "A payout policy under dual control. Two simulated coworkers edit, comment, and lock fields around you Ã¢â‚¬â€ and the form itself decides, per person, who can write what and whether submit is allowed.",
+    preface: "Three people hold the same form: you and two simulated coworkers, each with their own runtime-owned form controller over shared server truth. When Dana leases the limit field, one report produces three different verdicts Ã¢â‚¬â€ she can write, you cannot, and Priya's submit blocks only because her draft touches the leased field. Mostly watch; reach in whenever you like.",
     difficulty: "Beginner",
-    primaryMessage: "WORTH forms are not just fields and validation wiring; they expose a full form model.",
-    WORTHCode: `const articleFields = signals.resource.detailFields({
-  title: {
-    read: (value) => value.title,
-    write: (value, title) => ({ ...value, title }),
+    primaryMessage: "One collaboration report in. One verdict out Ã¢â‚¬â€ per actor, with reasons.",
+    WORTHCode: `const form = signals.form({
+  source: payoutPolicy,
+  collaboration: {
+    mode: "fieldLease",
+    actorId: session.userId,
+    supportsPresence: true,
+    supportsComments: true,
   },
-  status: {
-    read: (value) => value.status,
-    write: (value, status) => ({ ...value, status }),
-  },
-});
-
-const articleDetail = api.url("/articles/:articleId").detail({
-  reconcile: articleFields,
-  load: ({ articleId }) => fetchArticle(articleId),
-});
-
-const form = signals.form({
-  source: signals.form.source.resourceLine(articleDetail.line({ articleId: "article-12" }), {
-    id: "article-form",
-  }),
   fields: ({ field }) => ({
-    title: field("title"),
-    status: field("status"),
+    limit: field("limit"),
+    justification: field("justification"),
   }),
-  actions: ({ submit }) => ({
-    submit: submit({
-      resourceEffectProfile: signals.resource.effects.branchNative(),
-    }),
-  }),
-});`,
-    alternativeName: "React Hook Form + React Query + Zod",
-    alternativeCode: `const query = useQuery({
-  queryKey: ["article", articleId],
-  queryFn: () => fetchArticle(articleId),
 });
 
-const form = useForm({
-  values: query.data,
-  resolver: zodResolver(schema),
+// your transport relays whatever is happeningÃ¢â‚¬Â¦
+channel.on("collaboration", (event) => {
+  form.reportCollaboration({
+    posture: event.posture,
+    leasedFields: event.leases,
+    presence: event.presence,
+  });
 });
 
-const onSubmit = form.handleSubmit(async (values) => {
-  await patchArticle(articleId, values);
-  queryClient.setQueryData(["article", articleId], values);
-});`,
-    explanationAlternative: "You assemble separate layers for source loading, validation, form state, submit wiring, and post-submit cache reconciliation. Each layer works, but the shape is spread across multiple libraries and app glue.",
-    explanationWORTH: "WORTH keeps source truth, draft truth, validation, readiness, and resource-backed submit planning on one form surface. The submit path can be inspected through the same controller instead of being split across fetch, form, and cache code.",
+// Ã¢â‚¬Â¦the runtime decides what it means for this client
+form.fieldWritePosture("limit");
+// Ã¢â€ â€™ { canWrite: false, collaborator: "...", reason: "..." }
+form.readiness();
+// Ã¢â€ â€™ blocked only if YOUR patch plan touches a leased field`,
+    alternativeName: "React Hook Form + socket glue",
+    alternativeCode: `const form = useForm({ values: policy });
+
+// hand-rolled lock state beside the form library
+const [locks, setLocks] = useState({});
+socket.on("lock", (msg) => setLocks(...));
+
+// disabled props, submit guards, and tooltips
+// are all app conventions the form cannot verify
+<input disabled={locks.limit && locks.limit !== me} />
+<button disabled={
+  form.formState.isDirty && locks[touchedField]
+} />`,
+    explanationAlternative: "The form library owns field state; the lock state lives in app code beside it. Nothing can verify that the disabled props, submit guards, and socket handlers agree Ã¢â‚¬â€ and nothing records why a submit was refused.",
+    explanationWORTH: "Collaboration posture lives inside the form controller. One reported lease produces per-actor write posture and patch-plan-aware submit verdicts, each carrying the blocker and the collaborator's name Ã¢â‚¬â€ inspectable and exportable.",
     whatYouGet: [
-      "Unified source, draft, and effective value layers",
-      "Built-in semantic dirty diffing",
-      "Reactive validation and readiness blockers",
-      "Resource-backed submit planning and execution"
+      "Three real form controllers over one shared source Ã¢â‚¬â€ per-actor truth",
+      "Field leases that block writes with the owner's name attached",
+      "Patch-plan-aware submit verdicts: leases only block drafts that touch them",
+      "Presence, comments, and a collaboration event recorder",
+      "An exportable JSON collaboration report"
     ],
     relatedDocsPath: "forms/index"
   },
   {
     id: 4,
-    title: "Navigation Authority",
-    purpose: "Show that WORTH routing can drive a real commerce admin with role-based page access, breadcrumb policy, retained history, and replayable session outcomes.",
-    preface: "This is routing as an admission pipeline, not just path matching. Switch roles and choose routes: the router admits, redirects, or denies the browser ingress, warms route-local resources, and records a story you can replay under another role instead of inventing a separate guard/history adapter.",
+    title: "The Route That Checks Your Training",
+    purpose: "A manufacturing execution portal where opening a batch step is an admission decision Ã¢â‚¬â€ checked against role, training, and the effective SOP revision, with the audit trail as a by-product.",
+    preface: "You are an operator trained on SOP-042 rev B. Partway through the session, document control makes rev C effective Ã¢â‚¬â€ and the step you executed minutes ago now denies you, with the reason naming the revision. Proceed under a recorded deviation, then replay the whole session under different facts: the inspector's question, answered by the runtime.",
     difficulty: "Intermediate",
-    primaryMessage: "WORTH routing owns richer navigation truth than standard route libraries.",
-    WORTHCode: `const routes = signals.router.define({
-  home: signals.router.route("/"),
-  sales: signals.router.route("/sales", {
-    breadcrumb: signals.router.breadcrumb({
-      id: "sales",
-      label: "Sales Stats",
-    }),
+    primaryMessage: "Execution is an access decision. The router keeps the receipts.",
+    WORTHCode: `const stepExecution = signals.router.prerequisite(
+  "stepExecution",
+  async ({ facts, allow, forbidden }) => {
+    if (facts.trainedRev !== facts.effectiveRev) {
+      return forbidden({
+        reason: "trainingSupersededByRevision",
+        detail: \`Trained on rev \${facts.trainedRev}; effective is \${facts.effectiveRev}.\`,
+      });
+    }
+    return allow({ reason: "trainingCurrent" });
+  },
+);
+
+const routes = signals.router.define({
+  stepExecute: signals.router.route("/batches/:batchId/steps/:stepId", {
+    admission: [stepExecution],
+    resources: {
+      page: signals.router.resourceLine(stepFamily, { prefetch: "intent" }),
+    },
   }),
-  catalog: signals.router.route("/products", {
-    breadcrumb: signals.router.breadcrumb({
-      id: "catalog",
-      label: "Product Catalog",
-    }),
-  }),
-  editProduct: signals.router.route("/products/:productId/edit", {
-    breadcrumb: signals.router.breadcrumb({
-      id: "edit-product",
-      label: "Edit Product",
-      parent: signals.router.breadcrumbParent({
-        carry: true,
-        fallback: signals.router.breadcrumbTrail([
-          signals.router.breadcrumbEntry({
-            id: "catalog",
-            label: "Product Catalog",
-            target: "/products",
-          }),
-          signals.router.breadcrumbEntry({
-            id: "product-parent",
-            label: "Trailblazer Jacket",
-            target: ({ href }) => href.replace("/edit", ""),
-          }),
-        ]),
-      }),
-    }),
-  }),
-  restricted: signals.router.route("/permission-denied"),
 });
 
-const story = signals.router.browserHistory.story();
-const editRef = routes.editProduct.to({ params: { productId: "p-118" } });
-const allowedHref = canEdit ? editRef.href : routes.restricted.to({}).href;
-const ingress = signals.router.browserHistory.push(allowedHref);
-const report = await routes.admitBrowserHistoryIngress(ingress);
-
+// every navigation is an admission decision with a recorded outcome
+const ingress = signals.router.browserHistory.push(href);
+const report = await routes.admitBrowserHistoryIngress(ingress, session.facts);
 story.record(report);
 
-console.log(editRef.href);
-console.log(report.diagnostics().routeId);
-console.log(story.breadcrumbTrail().entries.map((entry) => entry.label));
-console.log(story.admittedEntries().map((entry) => entry.routeId));`,
-    alternativeName: "React Router v6",
-    alternativeCode: `import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+// the inspector's question, answered by the runtime
+const replay = routes.simulateSequence(story.events().map((e) => e.targetHref));
+await replay.run({ facts: { role: "operator", trainedRev: "B", effectiveRev: "C" } });`,
+    alternativeName: "React Router v6 + audit pipeline",
+    alternativeCode: `// guards scattered across loaders
+export async function loader({ request }) {
+  const user = await getUser(request);
+  if (!user.trainedOn("SOP-042")) {
+    // which revision? checked where? logged how?
+    return redirect("/denied");
+  }
+  return fetchStep(params);
+}
 
-// Standard string wiring
-<Link to={\`/items/\${itemId}\`}>Item Details</Link>
-
-// Separate libraries needed to construct breadcrumbs
-const breadcrumbs = [
-  { path: "/", label: "Home" },
-  { path: \`/items/\${itemId}\`, label: \`Item \${itemId}\` }
-];`,
-    explanationAlternative: "Ordinary router demos stop at matching and component switching. Once you need route-owned breadcrumbs, retained session history, and role-based outcomes that can be replayed across a real admin flow, the app usually grows its own navigation framework beside the router.",
-    explanationWORTH: "WORTH lets the router own more than path matching. Route references generate hrefs, browser-history ingress admits boundary truth, breadcrumb policy is declared on routes, and the same admitted session can be replayed after role-based access decisions change which pages the user can actually reach.",
+// the audit trail is a separate project:
+// middleware, log shipping, retention, correlationÃ¢â‚¬Â¦
+logAccess(user.id, request.url, "allowed?");`,
+    explanationAlternative: "Guards are booleans scattered across loaders, and the audit trail is a separate logging pipeline that has to be kept honest by convention. Replaying a session under different facts Ã¢â‚¬â€ the question an auditor actually asks Ã¢â‚¬â€ has no runtime answer at all.",
+    explanationWORTH: "Admission is declared on the route and evaluated against live session facts. Every attempt Ã¢â‚¬â€ admitted, denied, or under deviation Ã¢â‚¬â€ lands as a recorded decision with its reason, and the same session can be re-asked under different facts in one call.",
     whatYouGet: [
-      "Typed page references for sales, catalog, add, and edit routes",
-      "Role-sensitive route outcomes and permission redirects",
-      "Router-owned breadcrumb policy and entry provenance",
-      "Retained browser-history story entries",
-      "Navigation verification and projection tools",
-      "Replayable routed session outcomes by user type"
+      "Admission prerequisites that return decisions with reasons, not booleans",
+      "Live facts Ã¢â‚¬â€ role, training, effective revision Ã¢â‚¬â€ checked at every ingress",
+      "A recorded audit trail where denials are records too",
+      "Deviation-based override as one prerequisite branch, permanently recorded",
+      "Session replay under different facts Ã¢â‚¬â€ the inspector's question, answered",
+      "Route-owned resource lines with intent prefetch"
     ],
     relatedDocsPath: "router/index"
   },
   {
     id: 5,
-    title: "Optimistic Resource Writes",
-    purpose: "Show what WORTH resources provide when a write changes visible server truth.",
-    preface: "Both sides do the same optimistic add. The TanStack side is the normal callback model: snapshot, patch cache, confirm, rollback, toast. The WORTH side treats the optimistic insert as a resource-line effect, so the interesting output is not just whether the mutation succeeded; it is lifecycle, rollback posture, diagnostics, and feedback you can inspect afterward.",
+    title: "Every Write Is a Branch",
+    purpose: "Concurrent optimistic writes Ã¢â‚¬â€ an independent sibling, a failing parent, and its dependent child Ã¢â‚¬â€ settle out of order while a server-truth referee judges both screens live.",
+    preface: "Optimistic UI puts something on screen the server has not confirmed yet. That is fine Ã¢â‚¬â€ until several of those guesses overlap and one of them fails. The left window is the callback model exactly as TanStack Query's documentation recommends: snapshot in onMutate, restore in onError, invalidate on settle. In the right window every optimistic write forks its own effect branch: rejection retires one branch, confirmation merges one branch, and a dependent write is a child branch that closes out with its parent. A server-truth strip referees both screens, and each wears a live badge saying whether it still agrees with the server.",
     difficulty: "Intermediate",
-    primaryMessage: "WORTH optimistic writes are branch-native, inspectable, and rollback-aware.",
-    WORTHCode: `const api = signals.api({ baseUrl: "/api" });
-
-const taskDetail = api.url("/tasks/:taskId").detail({
-  load: ({ taskId }) => fetchTask(taskId),
+    primaryMessage: "One write, one branch. Rejection retires a branch Ã¢â‚¬â€ it never restores a shared snapshot.",
+    WORTHCode: `const po = signals.api({
+  baseUrl: "/api/procurement",
+  effects: signals.resource.effects.branchNative(),
 });
 
-// Compile a single resource line instance
-const line = taskDetail.line({ taskId: "t-4" });
+const poLines = po.url("/orders/:orderId/lines")
+  .response(signals.resource.response.array({ itemId: (line) => line.id }))
+  .list({ load: ({ orderId }) => client.fetchLines(orderId) });
 
-console.log(line.summary()); // loading -> settled
-console.log(line.value());   // raw data`,
+// each admitted write owns a native branch; dependencies are declared
+const admission = await line.patch(resourcePatch.dependsOn(
+  poLines.patch.insert({ itemId, placement: "append", nextItem }),
+  [parentEffectId],
+));
+
+// settlement is per-effect: merge one branch, or retire one branch
+await line.effects().confirm(admission.effectId, { serverPatch });
+await line.effects().reject(admission.effectId, { responseId });
+
+line.effects().get(effectId);   // branch, dependencies, terminal receipt
+line.effects().projection();    // the derived visible fold Ã¢â‚¬â€ rebuildable`,
     alternativeName: "React Query (TanStack Query)",
-    alternativeCode: `import { useQuery } from "@tanstack/react-query";
-
-const { data, isLoading, refetch } = useQuery({
-  queryKey: ["task", taskId],
-  queryFn: () => fetchTask(taskId),
-});
-
-// Manual synchronization blocks needed to patches
-// or reconcile updates into the local query caches`,
-    explanationAlternative: "Operates as a generic data-fetching store. Requires separate manual mutations, cache-patching scripts, and event listeners to keep loaded elements in sync.",
-    explanationWORTH: "Materializes a specific Resource Line. Supports built-in loading/settled wrappers, automatic mutation response reconciliation, and local optimistic patching profiles.",
+    alternativeCode: `const addLine = useMutation({
+  mutationFn: saveLine,
+  onMutate: async (line) => {
+    await queryClient.cancelQueries({ queryKey: ["po", "lines"] });
+    const previous = queryClient.getQueryData(["po", "lines"]);
+    queryClient.setQueryData(["po", "lines"], (cur = []) => [...cur, line]);
+    return { previous };
+  },
+  // restores a whole-cache snapshot Ã¢â‚¬â€ including anything
+  // that was confirmed after the snapshot was taken
+  onError: (_err, _line, ctx) =>
+    queryClient.setQueryData(["po", "lines"], ctx?.previous),
+  onSettled: () => {
+    // even the recommended fix needs a concurrency guard
+    if (queryClient.isMutating() === 1)
+      queryClient.invalidateQueries({ queryKey: ["po", "lines"] });
+  },
+});`,
+    explanationAlternative: "The rollback is your code restoring your closure variable. The cache cannot tell speculative rows from confirmed ones, so a failed write's rollback silently un-confirms whatever settled after its snapshot Ã¢â‚¬â€ and no record remains that the screen ever changed.",
+    explanationWORTH: "Every admitted write owns a native effect branch with an explicit fork basis and declared dependencies. Rejection retires exactly one branch (and closes out its dependents by policy); confirmation reconciles one resource locus and merges one branch. The visible value is a derived projection Ã¢â‚¬â€ rebuildable from canonical truth plus open effects Ã¢â‚¬â€ and every claim on screen is a runtime-issued receipt.",
     whatYouGet: [
-      "Dynamic line-level data cache handles",
-      "Reactive loading/settled state objects",
-      "Optimistic write patches",
-      "Reconciliation and fallback support"
+      "One effect branch per optimistic write, drawn live as a graph",
+      "Declared parent/child dependencies with typed closeout",
+      "A server-truth referee and live agreement badges on both screens",
+      "Arbitrary-order settlement: ten branches converge with zero residue",
+      "Clickable runtime receipts Ã¢â‚¬â€ branch, dependencies, terminal outcome"
     ],
     relatedDocsPath: "resources/index"
   },
@@ -309,9 +289,9 @@ const { data, isLoading, refetch } = useQuery({
     id: 6,
     title: "Route-Coupled Resource Form",
     purpose: "Show the first stacked composed example linking routes, resources, and forms.",
-    preface: "This is the adapter-tax demo. TanStack, Formik, and a router are not the problem; the problem is the layer you write to translate query status into form status, mutation status into route-leave rules, server results into cache patches, and lifecycle events into toasts. The WORTH block shows the same workflow when those contracts already line up.",
+    preface: "This is the adapter-tax demo. TanStack, Formik, and a router are not the problem; the problem is the layer you write to translate query status into form status, mutation status into route-leave rules, server results into cache patches, and lifecycle events into toasts. The Worth block shows the same workflow when those contracts already line up.",
     difficulty: "Advanced",
-    primaryMessage: "WORTH primitives compose into workflows without requiring a separate orchestration layer.",
+    primaryMessage: "Worth primitives compose into workflows without requiring a separate orchestration layer.",
     WORTHCode: `// Combine Routing + Resources + Forms in a single flow
 const routes = signals.router.define({
   detail: signals.router.route("/tasks/:taskId"),

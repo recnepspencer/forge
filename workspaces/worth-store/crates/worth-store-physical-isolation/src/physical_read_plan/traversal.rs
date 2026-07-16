@@ -4,9 +4,10 @@ use crate::{
 };
 
 use super::{
-    CompactProtectedReferenceSet, PhysicalReadPlanAdmissionDenial, PhysicalReadPlanFootprint,
-    PhysicalReadPlanRetryPosture, ProtectedPhysicalReference, ReadPlanAdmissionScratchArena,
-    ReadPlanCounterSnapshot, SeedStableReadPlan, ValidatedRootObservation,
+    CompactProtectedReferenceSet, PhysicalReadPlanAdmissionDenial, PhysicalReadPlanCompletion,
+    PhysicalReadPlanFootprint, PhysicalReadPlanRetryPosture, ProtectedPhysicalReference,
+    ReadPlanAdmissionScratchArena, ReadPlanCounterSnapshot, SeedStableReadPlan,
+    ValidatedRootObservation,
 };
 
 #[derive(Debug, Clone)]
@@ -50,12 +51,14 @@ impl TraversalAdmissionGuard {
                 self.validated.epoch_vector(),
                 footprint,
                 latch_plan,
-                self.validated.reachability_barrier(),
-                intent
-                    .release()
-                    .ok_or(PhysicalReadPlanAdmissionDenial::MissingReleaseSemantics)?,
-                self.validated.retry_posture(),
-                counters,
+                PhysicalReadPlanCompletion::new(
+                    self.validated.reachability_barrier(),
+                    intent
+                        .release()
+                        .ok_or(PhysicalReadPlanAdmissionDenial::MissingReleaseSemantics)?,
+                    self.validated.retry_posture(),
+                    counters,
+                ),
             ),
         })
     }
@@ -125,18 +128,5 @@ fn counters(
     latch_plan: &LatchAcquisitionPlan,
     retry_posture: PhysicalReadPlanRetryPosture,
 ) -> ReadPlanCounterSnapshot {
-    let scratch_usage = footprint.protected().scratch_usage().with_latch_lowering();
-    ReadPlanCounterSnapshot::new(
-        footprint.protected().references().len() as u64,
-        footprint.protected().ranges().ranges().len() as u64,
-        latch_plan.steps().len() as u64,
-        1 + footprint.protected().references().len() as u64,
-        retry_posture.retry_decisions(),
-        footprint.resident_bytes(),
-        footprint.protected().references().len() as u64,
-        1,
-        scratch_usage.protected_reference_capacity() as u64,
-        scratch_usage.scratch_allocations(),
-        scratch_usage.allocation_events(),
-    )
+    ReadPlanCounterSnapshot::from_plan(footprint, latch_plan, retry_posture)
 }

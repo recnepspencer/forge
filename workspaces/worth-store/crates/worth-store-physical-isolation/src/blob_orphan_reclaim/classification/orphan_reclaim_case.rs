@@ -5,6 +5,6 @@ pub(crate) enum OrphanReclaimCase {
     DeniedMissingRemovalEvidence,
     DeniedIdentityNotCovered,
     CoverageAdmitted {
-        receipt: ReclaimReachabilityRemovalReceipt,
+        receipt: Box<ReclaimReachabilityRemovalReceipt>,
     },
 }

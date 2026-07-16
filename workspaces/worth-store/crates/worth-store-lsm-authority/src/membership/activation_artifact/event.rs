@@ -20,6 +20,7 @@ pub(crate) struct PersistedMembershipActivation {
     pub(crate) output_identity: BlobWalRecordIdentity,
     pub(crate) output_scope: WalFrameDurablePublicationScope,
     pub(crate) output_path: PathBuf,
+    pub(crate) output_offset: u64,
     pub(crate) output_bytes: u64,
     pub(crate) scope: CheckpointDurablePublicationScope,
 }
@@ -38,6 +39,7 @@ impl PersistedMembershipActivation {
             output_identity: output.identity(),
             output_scope: output.scope().clone(),
             output_path: output.persisted_path().to_path_buf(),
+            output_offset: output.persisted_offset(),
             output_bytes: output.persisted_bytes(),
             scope,
         }
@@ -74,6 +76,7 @@ impl PersistedMembershipActivation {
         writer.bytes(self.output_scope.frame_digest().as_bytes())?;
         writer.u64(self.output_scope.expected_bytes());
         writer.path(&self.output_path)?;
+        writer.u64(self.output_offset);
         writer.u64(self.output_bytes);
         writer.u64(self.scope.checkpoint().checkpoint_epoch());
         writer.u64(self.scope.covered_lsn_start());
@@ -115,6 +118,7 @@ impl PersistedMembershipActivation {
         )
         .ok_or(LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
         let output_path = reader.path()?;
+        let output_offset = reader.u64()?;
         let output_bytes = reader.u64()?;
         let checkpoint = StoreCheckpointRecordIdentity::new(reader.u64()?);
         let covered_lsn_start = reader.u64()?;
@@ -136,6 +140,7 @@ impl PersistedMembershipActivation {
             output_identity,
             output_scope,
             output_path,
+            output_offset,
             output_bytes,
             scope,
         })

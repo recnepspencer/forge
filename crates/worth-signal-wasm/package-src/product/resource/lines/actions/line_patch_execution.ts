@@ -17,7 +17,7 @@ import {
   readLineBindingState,
 } from "../state/line_binding_state.js";
 
-function executeLinePatch(materialization, patch) {
+function executeLinePatch(materialization, patch, options = {}) {
   const patchValue = requireResourcePatch(
     patch,
     materialization.patch.familyKind,
@@ -40,7 +40,23 @@ function executeLinePatch(materialization, patch) {
     materialization,
     previousDiagnostics,
     createLinePatchInverseDescriptor(materialization, patchValue, currentValue),
+    patchValue,
+    options,
   );
+  if (effectPlan.branchPosture.kind === "effectOwnedBranchPlanned") {
+    return executeBranchNativeLinePatch(
+      materialization,
+      patchValue,
+      previousState,
+      effectPlan,
+    );
+  }
+  if (effectPlan.branchPosture.kind === "optimisticUnavailable") {
+    const error = new TypeError(effectPlan.branchPosture.detail);
+    error.name = "ResourceEffectBranchUnavailable";
+    error.code = effectPlan.branchPosture.reason;
+    throw error;
+  }
   const patchOutcome =
     applyPatchValue(materialization, patchValue, currentValue);
   const effectEnvelope = createLocalPatchEffectEnvelope(
@@ -56,6 +72,7 @@ function executeLinePatch(materialization, patch) {
   );
   patchLineBindingState(materialization.binding, {
     value: patchOutcome.nextValue,
+    canonicalValue: patchOutcome.nextValue,
     diagnostics,
   });
   recordLineHistoryEntry(
@@ -64,6 +81,47 @@ function executeLinePatch(materialization, patch) {
     "patched",
   );
   return patchOutcome.result;
+}
+
+async function executeBranchNativeLinePatch(
+  materialization,
+  patchValue,
+  previousState,
+  effectPlan,
+) {
+  const admitted = await materialization.effectBranchDag.admit(
+    effectPlan,
+    patchValue,
+    previousState,
+  );
+  if (admitted.kind === "duplicateAdmission") {
+    return Object.freeze({
+      kind: "duplicateEffectAdmission",
+      effectId: admitted.effectId,
+      retryLineageId: admitted.retryLineageId,
+      originalResult: admitted.originalResult,
+    });
+  }
+  const diagnostics = createPatchedDiagnostics(
+    previousState.diagnostics,
+    patchValue,
+    admitted.patchOutcome.diagnostics,
+    admitted.envelope,
+    admitted.projection,
+  );
+  patchLineBindingState(materialization.binding, {
+    value: admitted.projection.projectedValue,
+    diagnostics,
+  });
+  recordLineHistoryEntry(
+    materialization.lifecycleHistory,
+    materialization.binding,
+    "patched",
+  );
+  return Object.freeze({
+    ...admitted.patchOutcome.result,
+    effectId: admitted.envelope.effectId,
+  });
 }
 
 function applyPatchValue(materialization, patchValue, currentValue) {

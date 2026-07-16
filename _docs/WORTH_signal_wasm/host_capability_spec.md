@@ -19,14 +19,14 @@
 > **Core test requirements:** [_docs/worth_signal/test-requirements.md](../../../_docs/worth_signal/test-requirements.md)
 >
 > **Primary architectural driver:** add a typed host-capability lane to
-> `worth-signal-wasm` so browser/runtime-local facts can participate in
+> `worth-signals-wasm` so browser/runtime-local facts can participate in
 > callback-authored product surfaces without turning ambient closure reads into
 > fake reactive truth.
 
 ## Goal
 
 Make host-derived runtime facts first-class product resources in
-`worth-signal-wasm` so ordinary TypeScript can consume approved browser/runtime
+`worth-signals-wasm` so ordinary TypeScript can consume approved browser/runtime
 inputs through typed capability handles instead of through ambient closure
 folklore.
 
@@ -136,7 +136,7 @@ then the milestone has failed.
   means captured signal reads only unless a typed host capability is involved
 - core async substrate work is a prerequisite for this roadmap sequence, but
   this milestone does not redefine core async lifecycle truth
-- `worth-signal-wasm` may own host-facing capability packaging, registration,
+- `worth-signals-wasm` may own host-facing capability packaging, registration,
   and bridge artifacts, but it may not turn host capabilities into a second
   source of derivation semantics separate from the runtime
 - React remains a consumer of the product lane, not the owner of capability

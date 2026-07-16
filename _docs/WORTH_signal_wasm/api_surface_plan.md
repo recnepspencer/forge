@@ -1,4 +1,4 @@
-# worth-signal-wasm API Surface Plan
+# worth-signals-wasm API Surface Plan
 
 > **Status:** Completed engineering spec
 >
@@ -23,7 +23,7 @@
 
 ## Goal
 
-Build a first-class TypeScript API surface in `worth-signal-wasm` that can
+Build a first-class TypeScript API surface in `worth-signals-wasm` that can
 replace query-library-shaped frontend usage now, simplify a broad slice of the
 frontend API integration layer, and remain structurally clean enough that later
 network/query systems can be integrated without rewriting the product model.
@@ -264,7 +264,7 @@ This milestone freezes the intended ownership boundary:
    - may later supply richer read-definition, subscription, or delivery input
      into the local API surface
    - must not force a second local truth engine or a second lifecycle model
-3. **`worth-signal-wasm` API surface**
+3. **`worth-signals-wasm` API surface**
    - own TypeScript-facing resource authoring and local resource materialization
    - host materialized resource lines inside the local runtime
    - expose diagnostics/history/freshness/readiness surfaces for app code
@@ -1102,7 +1102,7 @@ This slice is intentionally out of scope for:
 - timeout policy
 - replay/history-integrated reload diagnostics
 
-The explicit intent is to move async reloads out of the â€œdenied foreverâ€ lane
+The explicit intent is to move async reloads out of the Ã¢â‚¬Å“denied foreverÃ¢â‚¬Â lane
 without pretending that all broader runtime policy has already landed.
 
 #### Phase 2 implementation slice D

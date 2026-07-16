@@ -17,7 +17,7 @@ certification evidence.
 
 It is the closeout ledger for the hostile question:
 
-> Can `worth-signal-wasm` now admit browser- and runtime-local facts through a
+> Can `worth-signals-wasm` now admit browser- and runtime-local facts through a
 > typed product lane without letting ambient closure reads, React lifecycle,
 > or portable transport shortcuts become a second reactive truth engine?
 
@@ -53,7 +53,7 @@ The implementation now includes:
 The direct closeout gates are:
 
 - [host_capabilities.certification.test.mjs](../package-src/product/host_capabilities.certification.test.mjs)
-- [verify-worth-signal-wasm-package.mjs](../../../scripts/wasm/verify-worth-signal-wasm-package.mjs)
+- [verify-worth-signals-wasm-package.mjs](../../../scripts/wasm/verify-worth-signals-wasm-package.mjs)
 
 Those two surfaces matter together:
 
@@ -137,7 +137,7 @@ node crates/worth-signal-wasm/package-src/product/host_capabilities.certificatio
 node crates/worth-signal-wasm/package-src/product/host_capabilities.runtime.test.mjs
 node crates/worth-signal-wasm/package-src/product/signals.runtime.test.mjs
 node crates/worth-signal-wasm/react/store.runtime.test.mjs
-powershell -ExecutionPolicy Bypass -File scripts/wasm/publish-worth-signal-wasm.ps1 -SkipPublish
+powershell -ExecutionPolicy Bypass -File scripts/wasm/publish-worth-signals-wasm.ps1 -SkipPublish
 ```
 
 ## Deferred Follow-On Work

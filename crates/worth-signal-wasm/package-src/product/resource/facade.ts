@@ -32,14 +32,18 @@ import {
   resetResourceEffectEnvelopeAuthorityForTesting,
 } from "./effects/resource_effect_envelope.js";
 import { createResourceLineEpoch } from "./lines/state/resource_line_epoch.js";
+import { createResourceEffectProjectionCoordinator } from "./effects/projection/resource_effect_projection_coordinator.js";
 
 function createResourceNamespace(signalNamespace, rawSignals) {
   const resourceLineEpoch = createResourceLineEpoch();
+  const effectProjectionCoordinator =
+    createResourceEffectProjectionCoordinator();
   return Object.freeze({
     compatibility: createResourceCompatibilityNamespace(
       signalNamespace,
       rawSignals,
       resourceLineEpoch,
+      effectProjectionCoordinator,
     ),
     branch: createResourceBranchNamespace(rawSignals),
     detail(declaration) {
@@ -48,6 +52,8 @@ function createResourceNamespace(signalNamespace, rawSignals) {
         resourceLineEpoch,
         nextResourceFamilyId(rawSignals, "detail"),
         declaration,
+        undefined,
+        effectProjectionCoordinator,
       );
     },
     collection(declaration) {
@@ -56,6 +62,8 @@ function createResourceNamespace(signalNamespace, rawSignals) {
         resourceLineEpoch,
         nextResourceFamilyId(rawSignals, "collection"),
         declaration,
+        undefined,
+        effectProjectionCoordinator,
       );
     },
     paged(declaration) {
@@ -64,6 +72,8 @@ function createResourceNamespace(signalNamespace, rawSignals) {
         resourceLineEpoch,
         nextResourceFamilyId(rawSignals, "paged"),
         declaration,
+        undefined,
+        effectProjectionCoordinator,
       );
     },
     effects: resourceEffects,

@@ -1,5 +1,6 @@
 mod cargo_graph;
 mod config;
+mod configured_dependency_denials;
 mod dependency_rules;
 mod diagnostics;
 mod hook_authority;
@@ -14,6 +15,7 @@ mod subworkspace_rules;
 
 use crate::cargo_graph::discover_road1_packages;
 use crate::config::Road1Config;
+use crate::configured_dependency_denials::validate_configured_dependency_denials;
 use crate::dependency_rules::{validate_dependency_rules, validate_worth_ui_query_edge};
 use crate::diagnostics::{render_human, render_json, Diagnostic};
 use crate::hook_authority::validate_hook_authority;
@@ -126,6 +128,17 @@ fn run(
                 error,
             )]
         })?,
+    );
+    diagnostics.extend(
+        validate_configured_dependency_denials(&root, &config.dependency_denials).map_err(
+            |error| {
+                vec![Diagnostic::new(
+                    crate::diagnostics::DiagnosticCode::Bc2001BandDependencyViolation,
+                    "configured-dependency-denials",
+                    error,
+                )]
+            },
+        )?,
     );
 
     let packages = discover_road1_packages(&root, &config.subworkspaces).map_err(|error| {

@@ -25,14 +25,6 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: "worth-signal-wasm/react",
-        replacement: path.resolve(__dirname, "../../crates/worth-signal-wasm/react/index.ts"),
-      },
-      {
-        find: "worth-signal-wasm",
-        replacement: path.resolve(__dirname, "./src/runtime/WORTHSignalWasmBridge.ts"),
-      },
-      {
         find: "@WORTH/signal/wasm",
         replacement: path.resolve(__dirname, "../../crates/worth-signal-wasm/pkg/worth_signal_wasm.js"),
       },

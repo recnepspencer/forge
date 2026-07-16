@@ -1,16 +1,16 @@
-# Consuming worth-signal-wasm
+# Consuming worth-signals-wasm
 
 ## What This Guide Is
 
 This guide covers how to install, build, verify, and consume the public
-`worth-signal-wasm` package.
+`worth-signals-wasm` package.
 
 Use this when you need the package entrypoints, local package workflow, or the
 smallest useful examples for the shipped surface.
 
 The root package is intentionally mixed:
 
-- `import init from "worth-signal-wasm"` gives the raw wasm init entry
+- `import init from "worth-signals-wasm"` gives the raw wasm init entry
 - named imports like `createSignals` and `hostCapabilityPlan` give the modern
   app-facing surface
 
@@ -24,8 +24,8 @@ The root package is intentionally mixed:
 
 If you just want to start coding, you only need:
 
-1. `npm install worth-signal-wasm`
-2. `import { createSignals } from "worth-signal-wasm"`
+1. `npm install worth-signals-wasm`
+2. `import { createSignals } from "worth-signals-wasm"`
 3. the small example below
 
 The rest of this guide is for local package work and publishing from this repo.
@@ -49,21 +49,21 @@ Package contract note:
 
 Package-preparation and proof entrypoints:
 
-- `scripts/wasm/publish-worth-signal-wasm.ps1 -SkipPublish`
-- `scripts/wasm/verify-worth-signal-wasm-package.mjs`
+- `scripts/wasm/publish-worth-signals-wasm.ps1 -SkipPublish`
+- `scripts/wasm/verify-worth-signals-wasm-package.mjs`
 
 ## Install Shapes
 
 ### Public npm package
 
 ```bash
-npm install worth-signal-wasm
+npm install worth-signals-wasm
 ```
 
 ### Public npm package with React adapter
 
 ```bash
-npm install worth-signal-wasm react
+npm install worth-signals-wasm react
 ```
 
 ### Local prepared package during development
@@ -77,13 +77,13 @@ wasm-pack build crates/worth-signal-wasm --target bundler --out-dir pkg
 Prepare the package:
 
 ```powershell
-node scripts/wasm/prepare-worth-signal-wasm-package.mjs crates/worth-signal-wasm/pkg
+node scripts/wasm/prepare-worth-signals-wasm-package.mjs crates/worth-signal-wasm/pkg
 ```
 
 Verify the package:
 
 ```powershell
-node scripts/wasm/verify-worth-signal-wasm-package.mjs crates/worth-signal-wasm/pkg
+node scripts/wasm/verify-worth-signals-wasm-package.mjs crates/worth-signal-wasm/pkg
 ```
 
 Then consume the local folder:
@@ -91,7 +91,7 @@ Then consume the local folder:
 ```json
 {
   "dependencies": {
-    "worth-signal-wasm": "file:../path/to/worth/crates/worth-signal-wasm/pkg"
+    "worth-signals-wasm": "file:../path/to/worth/crates/worth-signal-wasm/pkg"
   }
 }
 ```
@@ -102,8 +102,8 @@ If you are publishing from this workspace, use this flow:
 
 ```powershell
 wasm-pack build crates/worth-signal-wasm --target bundler --out-dir pkg
-node scripts/wasm/prepare-worth-signal-wasm-package.mjs crates/worth-signal-wasm/pkg
-node scripts/wasm/verify-worth-signal-wasm-package.mjs crates/worth-signal-wasm/pkg
+node scripts/wasm/prepare-worth-signals-wasm-package.mjs crates/worth-signal-wasm/pkg
+node scripts/wasm/verify-worth-signals-wasm-package.mjs crates/worth-signal-wasm/pkg
 cd crates/worth-signal-wasm/pkg
 npm publish --access public
 ```
@@ -111,7 +111,7 @@ npm publish --access public
 Or use the one-command release gate:
 
 ```powershell
-scripts/wasm/publish-worth-signal-wasm.ps1 -SkipPublish
+scripts/wasm/publish-worth-signals-wasm.ps1 -SkipPublish
 ```
 
 Good to know:
@@ -126,7 +126,7 @@ Good to know:
 ### Main callable surface
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 ```
 
 ### Host capability helpers
@@ -136,7 +136,7 @@ import {
   createSignals,
   hostCapabilityPlan,
   visibilityCapability,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 ```
 
 ### Resource helpers
@@ -146,7 +146,7 @@ import {
   createSignals,
   resourceParamIdentity,
   resourceParams,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 ```
 
 ### React adapter
@@ -157,7 +157,7 @@ import {
   useOutputValue,
   useSignalValue,
   useSignalsDiagnostics,
-} from "worth-signal-wasm/react";
+} from "worth-signals-wasm/react";
 ```
 
 ## Small Example
@@ -165,7 +165,7 @@ import {
 This is the simplest useful example for the current app lane:
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -191,7 +191,7 @@ This is a more realistic consumer shape that uses local state, linked state,
 controller composition, and graph publication:
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -359,7 +359,7 @@ const signals = await createSignals();
 If worker-first construction is unavailable, recover explicitly:
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 let signals;
 

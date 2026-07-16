@@ -35,7 +35,7 @@ pub(crate) fn localize_verified_read_damage(
         BlobCorruptionPlacementClass::LocalPhysical,
         damage_case,
     )
-    .map_err(BlobStreamingReadDenial::CorruptionReferenceEdgeMismatch)
+    .map_err(|denial| BlobStreamingReadDenial::CorruptionReferenceEdgeMismatch(Box::new(denial)))
 }
 
 pub(crate) fn assemble_streaming_corruption_denial(
@@ -47,7 +47,7 @@ pub(crate) fn assemble_streaming_corruption_denial(
     BlobStreamingReadDenial::CorruptedChunk {
         ordinal,
         damage_case,
-        diagnostics,
+        diagnostics: Box::new(diagnostics),
         counters,
     }
 }

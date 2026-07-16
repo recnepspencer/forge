@@ -9,13 +9,14 @@ use worth_store_physical_format::{
     ReclaimedByteInterpretation,
 };
 use worth_store_physical_isolation::{
-    admit_seed_stable_read_plan, CompactProtectedReferenceSet, CurrentPhysicalRoot,
-    ExecutedReachabilityEvidence, HazardLeaseEpochIndexSnapshot, HazardLeaseTable,
-    HazardLeaseTableCapacity, PhysicalReadPlanReleaseSemantics,
-    PostProtectionPhysicalReadObservation, ProtectedPhysicalReferenceSet, ProtectedReferenceLease,
-    PublishedReaderHazard, ReadPlanAdmissionScratchArena, ReclaimCandidateSet,
-    ReclaimEligibilityProof, ReleasedOldReachability, S6ReclaimReachabilityRemovalEvidence,
-    TraversalAdmissionGuard, UnprotectedReadIntent,
+    admit_seed_stable_read_plan, BackupReachabilityLeaseIndexSnapshot,
+    CompactProtectedReferenceSet, CurrentPhysicalRoot, ExecutedReachabilityEvidence,
+    HazardLeaseEpochIndexSnapshot, HazardLeaseTable, HazardLeaseTableCapacity,
+    PhysicalReadPlanReleaseSemantics, PostProtectionPhysicalReadObservation,
+    ProtectedPhysicalReferenceSet, ProtectedReferenceLease, PublishedReaderHazard,
+    ReadPlanAdmissionScratchArena, ReclaimCandidateSet, ReclaimEligibilityProof,
+    ReleasedOldReachability, S6ReclaimReachabilityRemovalEvidence, TraversalAdmissionGuard,
+    UnprotectedReadIntent,
 };
 use worth_store_reclaim_policy::{
     AdmittedReclaimPolicy, PhysicalStoreReclaimPolicyExecutor, ReclaimPermit,
@@ -185,6 +186,7 @@ pub fn real_reachability_for_region(
         world.executed_reachability(),
         HazardLeaseTable::with_capacity(HazardLeaseTableCapacity::bounded_slots(1).unwrap())
             .live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
     )
     .unwrap();
     let removal = proof.admit_reachability_removal().unwrap();

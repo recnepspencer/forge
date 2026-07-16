@@ -393,18 +393,26 @@ pub mod runtime {
     pub use crate::logic::transaction::SignalRuntimeConfig as RuntimeConfig;
     pub use crate::logic::transaction::TransactionExecutionRequest as TransactionRunRequest;
     pub use crate::logic::transaction::{
-        bridge_signal_branch_basis_trust_boundary, BatchChangeSession, PlannedRuntimeMerge, Recipe,
-        RequiredDerivedRebuildSet, RuntimeMerge, SignalBranchBasis, SignalBranchBasisArtifact,
-        SignalBranchBasisCompactExplanation, SignalBranchBasisDenial, SignalBranchBasisIdentity,
-        SignalBranchBasisValidationOutcome, SignalBranchForkDenial, SignalBranchForkReceipt,
-        SignalBranchForkRequest, SignalBranchForkRequestBasis, SignalBranchHeadPosture,
-        SignalBranchRestorePosture, SignalRuntime, SignalRuntimeBuilder, SignalTransaction,
+        bridge_signal_branch_basis_trust_boundary, BatchChangeSession,
+        BranchTargetedTransactionDenial, BranchTargetedTransactionExecutionOutcome,
+        BranchTargetedTransactionRequest, ExecutedBranchTargetedTransactionReceipt,
+        LoweredBranchTargetedTransactionPlan, PlannedRuntimeMerge, PlannedSignalBranchRetirement,
+        PlannedSignalBranchRetirementBatch, Recipe, RequiredDerivedRebuildSet, RuntimeMerge,
+        SignalBranchBasis, SignalBranchBasisArtifact, SignalBranchBasisCompactExplanation,
+        SignalBranchBasisDenial, SignalBranchBasisIdentity, SignalBranchBasisValidationOutcome,
+        SignalBranchForkDenial, SignalBranchForkReceipt, SignalBranchForkRequest,
+        SignalBranchForkRequestBasis, SignalBranchHeadPosture, SignalBranchRestorePosture,
+        SignalBranchRetirementBatchDenial, SignalBranchRetirementBatchReceipt,
+        SignalBranchRetirementBatchRequest, SignalBranchRetirementDenial,
+        SignalBranchRetirementReason, SignalBranchRetirementReceipt, SignalBranchRetirementRequest,
+        SignalBranchTransactionHead, SignalRuntime, SignalRuntimeBuilder, SignalTransaction,
         TemporalCertificationBuilder, TemporalCertificationBundle,
         TemporalCertificationBundleMismatchClass, TemporalCertificationBundleParityReport,
         TemporalCertificationFailure, TemporalCertificationFamily, TemporalCertificationRecord,
         TemporalCertificationSummary, TemporalEligibilityFact, TemporalReconstructabilityArtifact,
         TemporalReplayMismatchClass, TemporalReplayParityReport, TemporalStateRebuildProof,
         TemporalTransactionEvidence, TransactionOutcome, TransactionResult, TransactionTiming,
+        ValidatedBranchTargetedTransactionRequest,
     };
     pub use crate::logic::transaction::{
         temporal_certification_builder, temporal_certification_bundle,
@@ -671,10 +679,14 @@ pub mod history {
     pub use crate::diagnostics::ReplayView;
     pub use crate::diagnostics::SnapshotRestoreKind;
     pub use crate::logic::transaction::{
-        BoundaryBridgedSignalBranchBasisArtifact, SignalBranchBasis, SignalBranchBasisArtifact,
+        BoundaryBridgedSignalBranchBasisArtifact, PlannedSignalBranchRetirement,
+        PlannedSignalBranchRetirementBatch, SignalBranchBasis, SignalBranchBasisArtifact,
         SignalBranchBasisDenial, SignalBranchBasisIdentity, SignalBranchBasisValidationOutcome,
         SignalBranchForkDenial, SignalBranchForkReceipt, SignalBranchForkRequest,
         SignalBranchForkRequestBasis, SignalBranchHeadPosture, SignalBranchRestorePosture,
+        SignalBranchRetirementBatchDenial, SignalBranchRetirementBatchReceipt,
+        SignalBranchRetirementBatchRequest, SignalBranchRetirementDenial,
+        SignalBranchRetirementReason, SignalBranchRetirementReceipt, SignalBranchRetirementRequest,
         StaleSignalBranchBasisArtifact,
     };
     pub use crate::state::SignalBranchHandle as RuntimeBranch;
@@ -735,16 +747,23 @@ pub use self::runtime::*;
 #[cfg(not(test))]
 pub use self::runtime::{
     bridge_signal_branch_basis_trust_boundary, mark_dirty_batch, BatchChange, BatchChangeResult,
-    BatchChangeSession, ChangeBatch, ChangeBatchCommit, History, IntervalWakeRegeneration,
-    PreviousValueRevision, ReadyTemporalWake, RecipeInstance, RetiredTemporalWake, RunSummary,
-    RuntimeConfig, RuntimeMerge, RuntimePolicy, ScheduledTemporalWake, SignalBranchBasis,
-    SignalBranchBasisArtifact, SignalBranchBasisDenial, SignalBranchBasisIdentity,
-    SignalBranchBasisValidationOutcome, SignalBranchForkDenial, SignalBranchForkReceipt,
-    SignalBranchForkRequest, SignalBranchForkRequestBasis, SignalBranchHeadPosture,
-    SignalBranchRestorePosture, SignalRuntime, SignalTransaction, TemporalFrontierSnapshot,
-    TemporalPreviousValueAccess, TemporalPreviousValueReference, TemporalWakeId,
-    TemporalWakeReschedule, TemporalWakeRetirementReason, TemporalWakeReuse, TemporalWakeSummary,
-    TransactionOutcome, TransactionResult, TransactionTiming, WakeOrdinal,
+    BatchChangeSession, BranchTargetedTransactionDenial, BranchTargetedTransactionExecutionOutcome,
+    BranchTargetedTransactionRequest, ChangeBatch, ChangeBatchCommit,
+    ExecutedBranchTargetedTransactionReceipt, History, IntervalWakeRegeneration,
+    LoweredBranchTargetedTransactionPlan, PlannedSignalBranchRetirement,
+    PlannedSignalBranchRetirementBatch, PreviousValueRevision, ReadyTemporalWake, RecipeInstance,
+    RetiredTemporalWake, RunSummary, RuntimeConfig, RuntimeMerge, RuntimePolicy,
+    ScheduledTemporalWake, SignalBranchBasis, SignalBranchBasisArtifact, SignalBranchBasisDenial,
+    SignalBranchBasisIdentity, SignalBranchBasisValidationOutcome, SignalBranchForkDenial,
+    SignalBranchForkReceipt, SignalBranchForkRequest, SignalBranchForkRequestBasis,
+    SignalBranchHeadPosture, SignalBranchRestorePosture, SignalBranchRetirementBatchDenial,
+    SignalBranchRetirementBatchReceipt, SignalBranchRetirementBatchRequest,
+    SignalBranchRetirementDenial, SignalBranchRetirementReason, SignalBranchRetirementReceipt,
+    SignalBranchRetirementRequest, SignalBranchTransactionHead, SignalRuntime, SignalTransaction,
+    TemporalFrontierSnapshot, TemporalPreviousValueAccess, TemporalPreviousValueReference,
+    TemporalWakeId, TemporalWakeReschedule, TemporalWakeRetirementReason, TemporalWakeReuse,
+    TemporalWakeSummary, TransactionOutcome, TransactionResult, TransactionTiming,
+    ValidatedBranchTargetedTransactionRequest, WakeOrdinal,
 };
 #[cfg(test)]
 pub use self::runtime::{

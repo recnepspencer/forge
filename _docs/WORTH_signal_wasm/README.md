@@ -1,6 +1,6 @@
-# worth-signal-wasm Engineering Docs
+# worth-signals-wasm Engineering Docs
 
-This folder holds the engineering-side material for `worth-signal-wasm`:
+This folder holds the engineering-side material for `worth-signals-wasm`:
 specs, milestone plans, closeouts, and the crate roadmap.
 
 Product-facing package docs live separately in:

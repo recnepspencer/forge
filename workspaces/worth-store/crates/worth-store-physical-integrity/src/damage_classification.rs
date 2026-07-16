@@ -7,7 +7,7 @@ use worth_store_physical_format::PhysicalReferenceScope;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DamageClassification {
     IntactPhysicalBoundary(IntactPhysicalBoundary),
-    RebuildableDerivedDamage(RebuildableDerivedDamage),
+    RebuildableDerivedDamage(Box<RebuildableDerivedDamage>),
     QuarantinedPhysicalDamage(QuarantinedPhysicalDamage),
     UnrecoverableAuthorityDamage(UnrecoverableAuthorityDamage),
     IndeterminatePhysicalDamage(IndeterminatePhysicalDamage),

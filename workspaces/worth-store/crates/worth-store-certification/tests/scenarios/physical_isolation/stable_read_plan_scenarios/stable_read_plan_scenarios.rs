@@ -5,17 +5,18 @@ use worth_store_test_support::harness::recovery::compaction_observation as compa
 use worth_store_physical_certification::{
     admit_physical_counter_evidence, lower_physical_simulation_plan,
     physical_isolation_stable_read_plan_fault_event, physical_scenario, CounterContractKind,
-    CounterContractOracle, ExecutedPhysicalSimulationObservation, ExecutedTranscriptParts,
-    FixtureCapabilityDeclaration, FixtureMutationBoundary, LargeStoreFixtureProfile, ObserverKind,
-    OracleFamilyKind, PhysicalCertificationEvidenceBundle, PhysicalDriverKind,
-    PhysicalExecutedCounterEvidence, PhysicalFaultEvent, PhysicalFaultEventKind,
-    PhysicalFixtureBuilder, PhysicalInterleavingSchedule, PhysicalScenarioActor,
-    PhysicalScenarioExpectation, PhysicalScenarioFault, PhysicalScenarioFaultKind,
-    PhysicalScenarioIntent, PhysicalScenarioSchedule, PhysicalSimulationCapabilitySet,
-    PhysicalSimulationObserver, PhysicalSimulationPlan, PhysicalSimulationProfile,
-    PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily, PhysicalSimulationTranscript,
-    ReusablePhysicalOracleFamily, ShortcutRejectionObservation, SimulationEvidencePolicy,
-    SimulationPlanningContext, StateSpaceBudget, SupportedObserverSet, SupportedOracleFamilySet,
+    CounterContractOracle, ExecutedTranscriptParts, FixtureCapabilityDeclaration,
+    FixtureMutationBoundary, LargeStoreFixtureProfile, ObserverKind, OracleFamilyKind,
+    PhysicalCertificationEvidenceBundle, PhysicalDriverKind, PhysicalExecutedCounterEvidence,
+    PhysicalFaultEvent, PhysicalFaultEventKind, PhysicalFixtureBuilder,
+    PhysicalInterleavingSchedule, PhysicalScenarioActor, PhysicalScenarioExpectation,
+    PhysicalScenarioFault, PhysicalScenarioFaultKind, PhysicalScenarioIntent,
+    PhysicalScenarioSchedule, PhysicalSimulationBoundaryObservation,
+    PhysicalSimulationCapabilitySet, PhysicalSimulationObserver, PhysicalSimulationPlan,
+    PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
+    PhysicalSimulationTranscript, ReusablePhysicalOracleFamily, ShortcutRejectionObservation,
+    SimulationEvidencePolicy, SimulationPlanningContext, StateSpaceBudget, SupportedObserverSet,
+    SupportedOracleFamilySet,
 };
 use worth_store_test_support::{
     admitted_developer_smoke_driver_contracts, developer_smoke_replay_seed,
@@ -229,9 +230,10 @@ fn expected_fault_kind(fault: PhysicalScenarioFaultKind) -> Option<PhysicalFault
 fn executed_trace(
     plan: &PhysicalSimulationPlan,
 ) -> worth_store_physical_certification::ObservedPhysicalTrace {
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(plan).unwrap();
     PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(plan, &execution)
+        .observe_boundary_observation(plan, &execution)
         .unwrap()
         .with_compaction_interlock_observation(
             compaction_interlock_trace::store_compaction_observation(),

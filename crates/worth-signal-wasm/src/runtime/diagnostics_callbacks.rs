@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::collections::VecDeque;
 #[cfg(test)]
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
@@ -33,6 +34,7 @@ struct DiagnosticsCallbackRegistry {
     free_slots: Vec<u64>,
     callbacks: BTreeMap<u64, RegisteredDiagnosticsCallback>,
     generations: BTreeMap<u64, u64>,
+    pending: VecDeque<DiagnosticsCallbackToken>,
 }
 
 #[derive(Default)]
@@ -71,7 +73,29 @@ pub fn dispose_diagnostics_callback(scope_id: u64, token: DiagnosticsCallbackTok
 }
 
 pub fn notify_diagnostics_callbacks(scope_id: u64) {
-    with_registry_mut(scope_id, DiagnosticsCallbackRegistry::notify_all);
+    with_registry_mut(scope_id, DiagnosticsCallbackRegistry::enqueue_all);
+}
+
+pub fn flush_deferred_callbacks() {
+    while let Some(function) = take_pending_wasm_callback() {
+        let _ = function.call0(&JsValue::NULL);
+    }
+}
+
+fn take_pending_wasm_callback() -> Option<Function> {
+    WEB_RUNTIME_DIAGNOSTICS_CALLBACKS.with(|state| {
+        let mut state = state.borrow_mut();
+        for registry in state.registries.values_mut() {
+            while let Some(token) = registry.pending.pop_front() {
+                if let Some(RegisteredDiagnosticsCallback::Wasm(function)) =
+                    registry.registered_callback(token)
+                {
+                    return Some(function);
+                }
+            }
+        }
+        None
+    })
 }
 
 fn with_registry_mut<R>(scope_id: u64, f: impl FnOnce(&mut DiagnosticsCallbackRegistry) -> R) -> R {
@@ -117,12 +141,23 @@ impl DiagnosticsCallbackRegistry {
         true
     }
 
-    fn notify_all(&mut self) {
-        let callbacks = self.callbacks.values().cloned().collect::<Vec<_>>();
-        for callback in callbacks {
+    fn enqueue_all(&mut self) {
+        let callbacks = self
+            .callbacks
+            .iter()
+            .map(|(slot, callback)| {
+                let token = DiagnosticsCallbackToken {
+                    slot: *slot,
+                    generation: self.generations.get(slot).copied().unwrap_or(0),
+                };
+                (token, callback.clone())
+            })
+            .collect::<Vec<_>>();
+        for (token, callback) in callbacks {
             match callback {
                 RegisteredDiagnosticsCallback::Wasm(function) => {
-                    let _ = function.call0(&JsValue::NULL);
+                    let _ = function;
+                    self.pending.push_back(token);
                 }
                 #[cfg(test)]
                 RegisteredDiagnosticsCallback::Native(callback) => {
@@ -130,6 +165,16 @@ impl DiagnosticsCallbackRegistry {
                 }
             }
         }
+    }
+
+    fn registered_callback(
+        &self,
+        token: DiagnosticsCallbackToken,
+    ) -> Option<RegisteredDiagnosticsCallback> {
+        if self.generations.get(&token.slot).copied()? != token.generation {
+            return None;
+        }
+        self.callbacks.get(&token.slot).cloned()
     }
 }
 

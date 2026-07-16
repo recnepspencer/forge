@@ -1,6 +1,7 @@
 use worth_store_physical_isolation::{
     admit_seed_stable_read_plan, CompactProtectedReferenceSet, ExecutedReachabilityEvidence,
-    HazardLeaseKind, HazardLeaseTable, HazardLeaseTableCapacity, PhysicalReadPlanReleaseSemantics,
+    BackupReachabilityLeaseIndexSnapshot, HazardLeaseKind, HazardLeaseTable,
+    HazardLeaseTableCapacity, PhysicalReadPlanReleaseSemantics,
     PhysicalReadReachabilityBarrier, PostProtectionPhysicalReadObservation,
     ProtectedPhysicalReferenceSet, ProtectedReferenceLease, PublishedReaderHazard,
     ReadPlanAdmissionScratchArena, ReclaimCandidateSet, ReclaimDenial, ReclaimEligibilityProof,
@@ -119,6 +120,7 @@ pub fn eligibility_after_releases(worlds: [ReclaimFixture; 2]) -> Vec<bool> {
     assert!(ReclaimEligibilityProof::admit(
         worlds[0].executed_reachability(),
         table.live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
     )
     .unwrap()
     .try_reclaim()
@@ -128,6 +130,7 @@ pub fn eligibility_after_releases(worlds: [ReclaimFixture; 2]) -> Vec<bool> {
     let after_first = ReclaimEligibilityProof::admit(
         worlds[0].executed_reachability(),
         table.live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
     )
     .unwrap()
     .decision()
@@ -136,6 +139,7 @@ pub fn eligibility_after_releases(worlds: [ReclaimFixture; 2]) -> Vec<bool> {
     let after_second = ReclaimEligibilityProof::admit(
         worlds[0].executed_reachability(),
         table.live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
     )
     .unwrap()
     .decision()
@@ -149,7 +153,11 @@ pub fn assert_reclaim_eligible_from_live_table(
     expected_live_entries: u64,
 ) {
     let proof =
-        ReclaimEligibilityProof::admit(world.executed_reachability(), table.live_index_snapshot())
+        ReclaimEligibilityProof::admit(
+            world.executed_reachability(),
+            table.live_index_snapshot(),
+            BackupReachabilityLeaseIndexSnapshot::empty(),
+        )
             .unwrap();
 
     assert!(proof.decision().is_eligible());
@@ -169,7 +177,11 @@ pub fn assert_reclaim_blocked_by_live_hazard(
     expected_live_entries: u64,
 ) {
     let proof =
-        ReclaimEligibilityProof::admit(world.executed_reachability(), table.live_index_snapshot())
+        ReclaimEligibilityProof::admit(
+            world.executed_reachability(),
+            table.live_index_snapshot(),
+            BackupReachabilityLeaseIndexSnapshot::empty(),
+        )
             .unwrap();
 
     assert!(matches!(

@@ -20,7 +20,7 @@
 ## Goal
 
 Make host-computed signals a core WORTH Signal capability and make the primary
-`worth-signal-wasm` computed authoring experience callback first:
+`worth-signals-wasm` computed authoring experience callback first:
 
 ```ts
 const count = signal(1);
@@ -42,7 +42,7 @@ This milestone is not complete if it only hides AST recipes behind a prettier
 TypeScript wrapper.
 
 This milestone is also not complete if the core host-computed lifecycle lives
-only in `worth-signal-wasm`. The JavaScript callback is host-specific; the
+only in `worth-signals-wasm`. The JavaScript callback is host-specific; the
 host-computed node contract is core runtime infrastructure.
 
 ## Why This Spec Exists
@@ -78,7 +78,7 @@ The honest fix is not a JavaScript-local computed cache. The honest fix is a
 host callback computed node:
 
 - TypeScript owns ergonomic callable handles and callback invocation.
-- `worth-signal-wasm` owns callback registration, marshalling, and lowered
+- `worth-signals-wasm` owns callback registration, marshalling, and lowered
   node declarations.
 - `worth-signal` continues to own derived execution, dependency graph
   mutation, invalidation, observation, rollback, and diagnostics truth.
@@ -86,7 +86,7 @@ host callback computed node:
 After QA, this spec makes one sequencing correction explicit:
 
 - `worth-signal` must own the generic host-computed substrate.
-- `worth-signal-wasm` must implement that substrate for JavaScript callbacks.
+- `worth-signals-wasm` must implement that substrate for JavaScript callbacks.
 
 The wasm package may prototype integration details, but the milestone is not
 architecturally complete if dynamic dependency replacement, host-computed
@@ -150,7 +150,7 @@ This section records the traps this milestone must not dodge.
 ### Finding 1: WASM-Only Callback Semantics Would Be The Wrong Authority
 
 If host-computed dependency patching and rollback live only in
-`worth-signal-wasm`, the core runtime will have two computed stories:
+`worth-signals-wasm`, the core runtime will have two computed stories:
 runtime-native computed nodes and wasm-private callback computed nodes.
 
 Why it matters:
@@ -327,7 +327,7 @@ Required correction:
 - callback computed nodes are real runtime nodes, not TypeScript-local caches
 - generic host-computed dependency patching and rollback semantics belong in
   `worth-signal`; JavaScript callback invocation belongs in
-  `worth-signal-wasm`
+  `worth-signals-wasm`
 - callable signal handles are the default value-read syntax for the callback
   surface
 - dependency capture is runtime-visible and diagnostic-bearing
@@ -372,7 +372,7 @@ Normative consequence:
   computed nodes
 - core `worth-signal` host-computed substrate for dynamic dependency capture,
   dependency patching, rollback, observation, and diagnostics
-- callback registration and lifecycle ownership in `worth-signal-wasm`
+- callback registration and lifecycle ownership in `worth-signals-wasm`
 - host callback invocation with typed return-value marshalling
 - active dependency capture across callable signal reads
 - dynamic dependency replacement after each successful evaluation
@@ -403,7 +403,7 @@ not claim that a JavaScript function body is portable runtime data.
 The target primary authoring surface is:
 
 ```ts
-import { computed, signal, type Signal } from "worth-signal-wasm";
+import { computed, signal, type Signal } from "worth-signals-wasm";
 
 const count = signal(1);
 const doubleCount: Signal<number> = computed(() => count() * 2);
@@ -514,7 +514,7 @@ This milestone has two implementation ownership lanes.
 - performance counters for host-computed dependency capture and patching
 - failure/denial taxonomy that is independent of JavaScript
 
-`worth-signal-wasm` must own:
+`worth-signals-wasm` must own:
 
 - JavaScript callback registry
 - JavaScript callback invocation
@@ -526,12 +526,12 @@ This milestone has two implementation ownership lanes.
 - active JS read collector bridge into the core captured-read-set contract
 - package exports and React harness coverage
 
-`worth-signal-wasm` ownership here does not permit ambient process-global
+`worth-signals-wasm` ownership here does not permit ambient process-global
 callback folklore. Watch/effect and compute-callback capability registries must
 still be runtime-scoped, generation-aware, lifecycle-inspectable resources
 rather than bare global id maps that happen to live in wasm glue.
 
-`worth-signal-wasm` must not own:
+`worth-signals-wasm` must not own:
 
 - dependency patch commit semantics
 - rollback semantics for dependency replacement
@@ -576,7 +576,7 @@ must preserve distinct concepts equivalent to:
 - `HostComputedFailure`
 - `CommittedHostComputedArtifact`
 
-`worth-signal-wasm` then implements a JavaScript evaluator adapter for that
+`worth-signals-wasm` then implements a JavaScript evaluator adapter for that
 generic host-computed family.
 
 ### Dependency Capture
@@ -921,7 +921,7 @@ Host computed support must add a sibling path that:
   semantics as expression recipes
 
 The implementation may keep JavaScript invocation inside
-`worth-signal-wasm`, but the semantic path for dependency patching, commit,
+`worth-signals-wasm`, but the semantic path for dependency patching, commit,
 rollback, and diagnostics must be in `worth-signal`.
 
 ### Required Module Ownership
@@ -935,10 +935,10 @@ Expected ownership:
 - `worth-signal` host-computed evaluation admission
 - `worth-signal` host-computed dependency patching
 - `worth-signal` host-computed diagnostics/certification
-- `worth-signal-wasm` JavaScript callback registry
-- `worth-signal-wasm` JavaScript read collector bridge
-- `worth-signal-wasm` TypeScript callable authoring facade
-- `worth-signal-wasm/react` consumption tests and adapter typing
+- `worth-signals-wasm` JavaScript callback registry
+- `worth-signals-wasm` JavaScript read collector bridge
+- `worth-signals-wasm` TypeScript callable authoring facade
+- `worth-signals-wasm/react` consumption tests and adapter typing
 
 The exact filenames may differ, but a single "callback helpers" file or
 monolithic wasm facade expansion is out of spec.
@@ -1177,7 +1177,7 @@ Must prove:
 ## Must Preserve
 
 - `worth-signal` remains derived computation runtime, not truth storage
-- `worth-signal-wasm` remains framework-agnostic
+- `worth-signals-wasm` remains framework-agnostic
 - React remains a consumer of runtime truth
 - transactions remain the only write boundary
 - callback evaluation remains read-only
@@ -1428,7 +1428,7 @@ boundary. It must land before any serious form/resource/router product surface
 because those layers will naturally depend on callback computed ergonomics and
 dynamic dependency truth.
 
-The milestone also belongs before presenting `worth-signal-wasm` as a polished
+The milestone also belongs before presenting `worth-signals-wasm` as a polished
 React state library. Without callback computed support, the package still asks
 normal React users to author internal expression trees for everyday derived
 state.
@@ -1519,7 +1519,7 @@ substantially working.
 ## Post-Milestone Crate Hardening
 
 Finishing this milestone honestly is necessary, but it is not the same thing as
-making `worth-signal-wasm` feel mature as a public crate. The milestone should
+making `worth-signals-wasm` feel mature as a public crate. The milestone should
 close the runtime-truth, rollback, dependency, snapshot, and diagnostics
 obligations first. After that, the crate should receive an explicit hardening
 pass aimed at product quality and long-term maintainability rather than merely
@@ -1817,8 +1817,8 @@ not match the real import surface.
 
 - `npm pack` contains every file transitively required by the public entrypoints
 - a clean temp consumer can import:
-  - `worth-signal-wasm`
-  - `worth-signal-wasm/react`
+  - `worth-signals-wasm`
+  - `worth-signals-wasm/react`
 - a clean temp TypeScript consumer can type-check the canonical happy path
 - package docs do not point users back at obsolete private or scoped package
   names unless intentionally describing a separate lane
@@ -2062,7 +2062,7 @@ derived state.
 This milestone is closed.
 
 It completed the product and runtime work needed to make callback-first
-`computed(() => ...)` a real `worth-signal-wasm` authoring lane rather than a
+`computed(() => ...)` a real `worth-signals-wasm` authoring lane rather than a
 JavaScript-local convenience cache.
 
 What is now true:
@@ -2095,7 +2095,7 @@ measurement contracts. That follow-on work now lives in
 
 ## Crate Maturity Done When
 
-`worth-signal-wasm` is mature only when, after the milestone closes, ordinary
+`worth-signals-wasm` is mature only when, after the milestone closes, ordinary
 React and TypeScript users can learn one obvious callback-first product surface
 and are mechanically steered away from the main misuse classes this document
 identified.

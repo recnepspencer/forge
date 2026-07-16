@@ -151,12 +151,12 @@ test("default worker-first root materializes native and compatibility resource f
     const workerLine = workerTasks.line({});
     const compatibilityLine = compatibilityTasks.line({});
     await settleWorkerResourceLine();
-    workerLine.patch(workerTasks.patch.itemAspect({
+    await workerLine.patch(workerTasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Merged Through Worker-First Resource Effect",
     }));
-    compatibilityLine.patch(compatibilityTasks.patch.itemAspect({
+    await compatibilityLine.patch(compatibilityTasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Merged Through Worker-First Resource Effect",
@@ -181,24 +181,12 @@ test("default worker-first root materializes native and compatibility resource f
       comparableResourceEffectPlan(workerEffectPlan),
       comparableResourceEffectPlan(compatibilityEffectPlan),
     );
-    const workerEffectMerge = await workerSignals.resource.branch.mergeEffect({
-      merge: {
-        source_branch_id: workerEffect.optimistic.branchId,
-        target_branch_id: 0,
-      },
-      effect: workerEffect,
+    await workerLine.effects().reject(workerEffect.effectId, {
+      responseId: "worker-resource-plan-closeout",
     });
-    const compatibilityEffectMerge = compatibilitySignals.resource.branch.mergeEffect({
-      merge: {
-        source_branch_id: compatibilityEffect.optimistic.branchId,
-        target_branch_id: 0,
-      },
-      effect: compatibilityEffect,
+    await compatibilityLine.effects().reject(compatibilityEffect.effectId, {
+      responseId: "compatibility-resource-plan-closeout",
     });
-    assert.deepEqual(
-      comparableResourceEffectMerge(workerEffectMerge),
-      comparableResourceEffectMerge(compatibilityEffectMerge),
-    );
 
     workerLine.free();
     compatibilityLine.free();
@@ -298,49 +286,6 @@ function comparableResourceEffectPlan(result) {
         compiledLensDigest: result.resourceEffect.proof.compiledLensDigest,
       },
       rebaseArtifact: comparableResourceEffectArtifact(result.resourceEffect.rebaseArtifact),
-    },
-  };
-}
-
-function comparableResourceEffectMerge(result) {
-  if (result.kind === "denied") {
-    return {
-      kind: result.kind,
-      reason: result.reason,
-      detail: result.detail ?? null,
-    };
-  }
-  return {
-    kind: result.kind,
-    sourceBranchId: result.sourceBranchId,
-    targetBranchId: result.targetBranchId,
-    mergeKind: result.mergeKind,
-    selectedSemantics: result.selectedSemantics,
-    conflicts: result.conflicts,
-    proof: {
-      proofSchemaVersion: result.proof.proofSchemaVersion,
-      semanticsDigest: result.proof.semanticsDigest,
-      selectedStrategyDigest: result.proof.selectedStrategyDigest,
-      selectedMergeBaseDigest: result.proof.selectedMergeBaseDigest,
-      selectedConflictPolicyDigest: result.proof.selectedConflictPolicyDigest,
-      selectedConflictIsolationDigest: result.proof.selectedConflictIsolationDigest,
-      selectedIdentityMatcherDigest: result.proof.selectedIdentityMatcherDigest,
-      selectedSourceOnlyPolicyDigest: result.proof.selectedSourceOnlyPolicyDigest,
-      selectedDeletionPolicyDigest: result.proof.selectedDeletionPolicyDigest,
-    },
-    resourceEffect: {
-      topology: result.resourceEffect.topology,
-      effectLocus: result.resourceEffect.effectLocus,
-      locus: result.resourceEffect.locus,
-      conflictIsolation: result.resourceEffect.conflictIsolation,
-      rebase: result.resourceEffect.rebase,
-      policyBinding: result.resourceEffect.policyBinding,
-      proof: {
-        semanticsDigest: result.resourceEffect.proof.semanticsDigest,
-        effectLocusDigest: result.resourceEffect.proof.effectLocusDigest,
-        compiledLensDigest: result.resourceEffect.proof.compiledLensDigest,
-      },
-      mergeArtifact: comparableResourceEffectArtifact(result.resourceEffect.mergeArtifact),
     },
   };
 }

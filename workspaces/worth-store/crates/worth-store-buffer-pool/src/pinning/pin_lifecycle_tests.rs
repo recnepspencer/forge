@@ -10,7 +10,7 @@ use worth_store_contracts::{
 use worth_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness,
-    PhysicalPageId, PhysicalPublicationState, PhysicalRecordSlot, PhysicalReferenceAuthority,
+    PhysicalPageId, PhysicalRecordSlot, PhysicalReferenceAuthority,
     PhysicalReferenceValidationWitness, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
 };
 use worth_store_readiness::{
@@ -20,7 +20,7 @@ use worth_store_readiness::{
 #[test]
 fn explicit_pin_view_and_unpin_produce_normal_lifecycle_receipt() {
     let mut table = resident_frame_table(8192, 1);
-    let frame_bytes = frame_bytes(7, b"resident-payload");
+    let frame_bytes = frame_bytes(7, 2, b"resident-payload");
     let request = load_request_from_frame(7, 2, &frame_bytes);
     let payload = header_authority()
         .payload_view(&frame_bytes, request.header())
@@ -136,7 +136,7 @@ fn panic_unwind_defensively_cleans_without_normal_receipt() {
 fn mismatched_payload_admission_cannot_enter_resident_bytes() {
     let mut table = resident_frame_table(8192, 1);
     let request = load_request(7, 2, 5);
-    let other_frame = frame_bytes(8, b"other");
+    let other_frame = frame_bytes(8, 2, b"other");
     let other_request = load_request_from_frame(8, 2, &other_frame);
     let mismatched_payload = header_authority()
         .payload_view(&other_frame, other_request.header())
@@ -159,7 +159,7 @@ fn admit_payload_frame(
     page_value: u64,
     payload: &[u8],
 ) -> crate::ResidentFrameAdmission {
-    let frame = frame_bytes(generation_value, payload);
+    let frame = frame_bytes(generation_value, page_value, payload);
     let request = load_request_from_frame(generation_value, page_value, &frame);
     let payload = header_authority()
         .payload_view(&frame, request.header())
@@ -195,7 +195,7 @@ fn load_request(
     page_value: u64,
     payload_len: usize,
 ) -> ResidentFrameLoadRequest {
-    let frame = frame_bytes(generation_value, &vec![0xAB; payload_len]);
+    let frame = frame_bytes(generation_value, page_value, &vec![0xAB; payload_len]);
     load_request_from_frame(generation_value, page_value, &frame)
 }
 
@@ -245,16 +245,15 @@ fn header_authority() -> PhysicalHeaderAuthority {
     )
 }
 
-fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
+fn frame_bytes(generation_value: u64, page_value: u64, payload: &[u8]) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalFrameKind::RecordFrame.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation_value.to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
+        .slot_cell(segment(1), page(page_value), slot(3))
+        .with_slot_generation(generation(generation_value));
+    bytes.extend_from_slice(&header_authority().encode_record_frame_header(
+        cell,
+        payload.len().try_into().expect("bounded fixture payload"),
+    ));
     bytes.extend_from_slice(payload);
     bytes
 }

@@ -40,5 +40,5 @@ pub fn evaluate_blob_closeout_request(
 pub fn certify_native_blob_store_closeout(
     input: BlobCloseoutCertificationInput,
 ) -> Result<BlobStoreCloseoutCertificate, BlobCloseoutDenial> {
-    evaluate_blob_closeout_request(BlobCloseoutRequest::Canonical(input))
+    evaluate_blob_closeout_request(BlobCloseoutRequest::Canonical(Box::new(input)))
 }

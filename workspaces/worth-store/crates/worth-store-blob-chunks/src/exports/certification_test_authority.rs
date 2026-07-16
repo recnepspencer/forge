@@ -7,7 +7,7 @@ pub use crate::handoffs::{
 };
 pub use crate::harness_execution::{
     execute_blob_harness, BlobHarnessExecutedWitness, BlobHarnessExecutionInput,
-    BlobHarnessObservedYieldpoint,
+    BlobHarnessExerciseShape, BlobHarnessObservedYieldpoint, BlobHarnessStorageShape,
 };
 use crate::BoundaryBridgedCanonicalExportArtifact;
 pub use crate::ExecutedBlobLifecycleEvidenceBundle;
@@ -23,6 +23,18 @@ pub fn bridge_blob_export_trust_boundary(
     witness: &BlobHarnessExecutedWitness,
 ) -> BoundaryBridgedCanonicalExportArtifact {
     witness.bridged_export_artifact().clone()
+}
+
+/// Builds canonical backup bytes through the ordinary blob integrity owner.
+/// Certification callers receive the production artifact, never a forged row.
+pub fn blob_backup_artifact_for_bytes(case: &str, bytes: &[u8]) -> crate::BlobBackupChunkArtifact {
+    let proof = crate::harness_execution::integrity_proof_for_scope(
+        case,
+        crate::handoffs::BlobHarnessSecurityScopeClass::ScopePreserving,
+        bytes,
+    );
+    crate::BlobBackupChunkArtifact::from_integrity_proof(&proof, bytes)
+        .expect("production blob integrity proof must lower to canonical backup bytes")
 }
 
 pub fn execute_readmitted_blob_import(case: &str) -> crate::ImportedBlobWitness {

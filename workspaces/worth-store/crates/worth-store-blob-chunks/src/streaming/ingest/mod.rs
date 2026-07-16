@@ -15,6 +15,8 @@ mod types;
 mod verification;
 
 #[cfg(test)]
+mod ingest_test_support;
+#[cfg(test)]
 mod ingest_tests;
 #[cfg(test)]
 mod pressure_tests;
@@ -27,6 +29,7 @@ pub use counters::BlobStreamingIngestCounterSnapshot;
 pub use denial::{reject_full_blob_vec_as_streaming_ingest, BlobStreamingIngestDenial};
 pub use frontier::BlobStreamingContentFrontier;
 pub use large_record_envelope::{LargeRecordStreamingEnvelope, LargeRecordStreamingEnvelopeDenial};
+pub use orchestration::BlobStreamingIngestExecution;
 pub use receipt_construction::{
     BlobStreamingCounterBackedPerformanceReceipt, BlobStreamingResidencyProof,
 };

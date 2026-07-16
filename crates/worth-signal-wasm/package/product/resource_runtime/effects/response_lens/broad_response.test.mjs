@@ -40,7 +40,7 @@ test("response broad replacements lower through compiled lens proof", async () =
       });
 
     const line = tasks.line({});
-    line.patch(
+    await line.patch(
       signalsMod.resourcePatch.replace({
         tasks: [{ id: "t2", title: "Replacement" }],
         total: 1,
@@ -208,7 +208,7 @@ test("detail response broad replacements lower through compiled lens proof", asy
 
     const line = user.line({ userId: "u1" });
     assert.equal("patch" in line, true);
-    line.patch(
+    await line.patch(
       signalsMod.resourcePatch.replace({ id: "u1", name: "Renamed" }),
     );
 
@@ -257,7 +257,7 @@ test("summary response broad replacements lower through compiled lens proof", as
       });
 
     const line = totals.line({});
-    line.patch(
+    await line.patch(
       signalsMod.resourcePatch.replace({ open: 2, closed: 1 }),
     );
 

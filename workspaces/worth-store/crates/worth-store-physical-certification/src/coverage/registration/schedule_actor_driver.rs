@@ -39,7 +39,7 @@ impl PhysicalCoverageRegistry {
                 .ok_or(CoverageGapDenial::MissingPlanBeforeDependentSurface {
                     surface: CoverageSurfaceKind::Actor,
                 })?;
-        if plan.actors().len() == 0 {
+        if plan.actors().is_empty() {
             return Err(CoverageGapDenial::EmptyActorRegistration);
         }
         self.rows.push(PhysicalCoverageMatrixRow::generated(

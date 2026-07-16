@@ -1,4 +1,4 @@
-# worth-signal-wasm Controller Scope And Graph Lifecycle Plan
+# worth-signals-wasm Controller Scope And Graph Lifecycle Plan
 
 > **Status:** Planned engineering spec
 >
@@ -25,7 +25,7 @@
 
 ## Goal
 
-Make `worth-signal-wasm` support a mature application-graph surface where:
+Make `worth-signals-wasm` support a mature application-graph surface where:
 
 - controller-local names are actually local
 - repeated feature instances do not collide
@@ -622,7 +622,7 @@ It must define enough identity law that future code can safely express:
 - nested subgraphs
 - future dynamic graph families
 
-without reducing correctness to â€œchoose different strings carefully.â€
+without reducing correctness to Ã¢â‚¬Å“choose different strings carefully.Ã¢â‚¬Â
 
 ### Significant-code bridge rule
 
@@ -1581,7 +1581,7 @@ At minimum, include:
 - graph expose misuse denial
 - export/import compatibility denial where required
 
-If the wrong thing can happen and still â€œmostly works,â€ it needs a denial test.
+If the wrong thing can happen and still Ã¢â‚¬Å“mostly works,Ã¢â‚¬Â it needs a denial test.
 
 ### Required Self-Check
 

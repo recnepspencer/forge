@@ -69,14 +69,18 @@ pub fn encode_leaf_record(
 }
 
 pub fn decode_leaf_record(bytes: &[u8]) -> Option<BaselineBTreeLeafRecord> {
-    if bytes.len() != 6 || bytes[0] != b'L' {
+    if bytes.len() != 6 || bytes[0] != b'L' || bytes[1] & !0b11 != 0 {
+        return None;
+    }
+    let slots = [
+        PhysicalRecordSlot::from_raw(u16::from_le_bytes([bytes[2], bytes[3]])).ok()?,
+        PhysicalRecordSlot::from_raw(u16::from_le_bytes([bytes[4], bytes[5]])).ok()?,
+    ];
+    if slots[0] == slots[1] {
         return None;
     }
     Some(BaselineBTreeLeafRecord {
-        slots: [
-            PhysicalRecordSlot::from_raw(u16::from_le_bytes([bytes[2], bytes[3]])).ok()?,
-            PhysicalRecordSlot::from_raw(u16::from_le_bytes([bytes[4], bytes[5]])).ok()?,
-        ],
+        slots,
         sibling_links_present: bytes[1] & 0b01 != 0,
         tombstones_present: bytes[1] & 0b10 != 0,
     })
@@ -104,6 +108,11 @@ pub fn decode_root_record(bytes: &[u8]) -> Option<BaselineBTreeRootNode> {
     if bytes.len() != 56 || bytes[0] != b'R' {
         return None;
     }
+    let left_child = decode_slot_cell(&bytes[4..30])?;
+    let right_child = decode_slot_cell(&bytes[30..56])?;
+    if left_child == right_child {
+        return None;
+    }
     Some(BaselineBTreeRootNode {
         corruption_marker: match bytes[1] {
             0 => BaselineBTreeCorruptionMarker::Header,
@@ -112,8 +121,8 @@ pub fn decode_root_record(bytes: &[u8]) -> Option<BaselineBTreeRootNode> {
         },
         separator_slot: PhysicalRecordSlot::from_raw(u16::from_le_bytes([bytes[2], bytes[3]]))
             .ok()?,
-        left_child: decode_slot_cell(&bytes[4..30])?,
-        right_child: decode_slot_cell(&bytes[30..56])?,
+        left_child,
+        right_child,
     })
 }
 

@@ -1,5 +1,5 @@
 {
-  "name": "worth-signal-demo",
+  "name": "worth-signals",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,6 +7,7 @@
     "refresh:signal": "powershell -NoProfile -Command \"Set-Location ../../packages/worth-signal; npm run build:wasm\"",
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "test:demo5": "node --test tests/demo_five_concurrency.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -15,7 +16,7 @@
     "@tanstack/react-query": "^5.100.14",
     "@types/three": "^0.184.1",
     "flubber": "^0.4.2",
-    "worth-signal-wasm": "file:../../crates/worth-signal-wasm/pkg",
+    "worth-signals-wasm": "1.2.0",
     "lucide-react": "^1.7.0",
     "motion": "^12.38.0",
     "react": "^19.2.4",

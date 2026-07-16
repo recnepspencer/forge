@@ -33,7 +33,7 @@ pub fn execute_reopened_recovery_fixture(
     .verify_fresh_runtime_reopen(artifacts)
     .map_err(|denial| match denial {
         FreshRuntimeReopenHarnessDenial::Admission(denial) => {
-            ReopenedRecoveryDenial::Admission(denial)
+            ReopenedRecoveryDenial::Admission(*denial)
         }
         FreshRuntimeReopenHarnessDenial::Verifier(_) => {
             ReopenedRecoveryDenial::Runtime(RuntimeRecoveryReportDenial::VerifierConclusionMismatch)

@@ -218,7 +218,7 @@ fn admit_entry(identity: &str) -> RecoveryEntryAdmission {
     let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {
         panic!("intact typed S.3/S.2/S.1 evidence admits recovery entry");
     };
-    admission
+    *admission
 }
 
 fn recovery_memory_envelope() -> RecoveryMemoryEnvelope {

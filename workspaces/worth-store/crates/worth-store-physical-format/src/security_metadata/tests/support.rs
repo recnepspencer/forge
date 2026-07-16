@@ -97,6 +97,14 @@ fn header_bytes(kind_tag: u8, generation_value: u64, payload: &[u8]) -> Vec<u8> 
     bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
     bytes.extend_from_slice(&generation_value.to_le_bytes());
     bytes.push(PhysicalPublicationState::Published.code());
+    bytes.extend_from_slice(&1u64.to_le_bytes());
+    bytes.extend_from_slice(&2u64.to_le_bytes());
+    let tertiary = if PhysicalPageKind::from_tag(kind_tag).is_some() {
+        0_u16
+    } else {
+        3_u16
+    };
+    bytes.extend_from_slice(&tertiary.to_le_bytes());
     bytes.extend_from_slice(&0u32.to_le_bytes());
     bytes.extend_from_slice(&0u64.to_le_bytes());
     bytes.extend_from_slice(payload);

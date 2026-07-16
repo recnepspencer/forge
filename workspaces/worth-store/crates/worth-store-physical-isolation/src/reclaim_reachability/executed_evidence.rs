@@ -60,7 +60,7 @@ impl ExecutedReachabilityEvidence {
     }
 
     #[cfg(any(test, feature = "certification-authority"))]
-    pub(crate) fn for_certification_reference(
+    pub fn for_certification_reference(
         reference: crate::CurrentGenerationPhysicalReference,
     ) -> Self {
         let candidates = ReclaimCandidateSet::for_certification_reference(reference);

@@ -24,6 +24,7 @@ pub(super) struct CompleteMembershipWorld {
     pub selected: LsmCompactionMembership,
     pub anchor: AdmittedWalAppendReceipt,
     pub record_paths: [std::path::PathBuf; 3],
+    pub record_frame_offsets: [u64; 3],
 }
 
 pub(super) struct ReplacementWorld {
@@ -33,8 +34,11 @@ pub(super) struct ReplacementWorld {
     pub replacement: AdmittedLsmMembershipReplacement,
     pub anchor: AdmittedWalAppendReceipt,
     pub record_paths: [std::path::PathBuf; 3],
+    pub record_frame_offsets: [u64; 3],
     pub activation_path: std::path::PathBuf,
     pub output_path: std::path::PathBuf,
+    pub output_frame_offset: u64,
+    pub output_offset: u64,
 }
 
 pub(super) fn admission_and_key(
@@ -105,6 +109,11 @@ pub(super) fn complete_membership() -> CompleteMembershipWorld {
             publication_durable.persisted_path().to_path_buf(),
             tombstone_durable.persisted_path().to_path_buf(),
         ],
+        record_frame_offsets: [
+            anchor.persisted_frame_offset(),
+            publication_durable.persisted_frame_offset(),
+            tombstone_durable.persisted_frame_offset(),
+        ],
         anchor,
     }
 }
@@ -170,6 +179,7 @@ pub(super) fn replacement_world() -> ReplacementWorld {
         selected,
         anchor,
         record_paths,
+        record_frame_offsets,
     } = complete_membership();
     let (physical_intent, physical_publication) = physical_compaction_fixture();
     let output_scope = wal_scope(
@@ -191,6 +201,8 @@ pub(super) fn replacement_world() -> ReplacementWorld {
     )
     .unwrap();
     let output_path = output.persisted_path().to_path_buf();
+    let output_frame_offset = output.persisted_frame_offset();
+    let output_offset = output.persisted_offset();
     let activation = worth_store_lsm_authority::prepare_lsm_membership_activation(
         &selected,
         output,
@@ -215,8 +227,11 @@ pub(super) fn replacement_world() -> ReplacementWorld {
         replacement,
         anchor,
         record_paths,
+        record_frame_offsets,
         activation_path,
         output_path,
+        output_frame_offset,
+        output_offset,
     }
 }
 

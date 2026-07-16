@@ -55,7 +55,8 @@ here.
   [Restore, Replay, And Recover](../resources/debugging/restore-replay-and-recover.md)
 - optimistic effects, merge/rebase, or rollback posture:
   [Effects And Recovery](../resources/effects/README.md),
-  [Branch-Native Effects](../resources/effects/branch-native-effects.md), and
+  [Branch-Native Effects](../resources/effects/branch-native-effects.md),
+  [Concurrent Optimistic Effects](../resources/effects/concurrency-and-dependencies.md), and
   [Rollback And Recovery](../resources/effects/rollback-and-recovery.md)
 - resource-backed forms, settlement, drift, merge, or replay/restore:
   [Using Resources In Forms](../resources/forms/README.md),
@@ -146,6 +147,8 @@ here.
 - branch-native optimistic effects, response topology proof, JSON effects, or UI
   lifecycle event reads:
   [Branch-Native Resource Effects](../resources/branch-native-effects.md)
+- concurrent optimistic requests, dependency closeout, or random response order:
+  [Concurrent Optimistic Effects](../resources/effects/concurrency-and-dependencies.md)
 - effect envelope fields:
   [Effect Envelope Contract](../resource-contracts/effect-envelope.md)
 - effect merge or rebase:

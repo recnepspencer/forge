@@ -1,8 +1,6 @@
-use worth_store_operations_vocabulary::BackupExportCustodyReadiness;
-
 use crate::{AdmittedBlobPlacement, LifecycleReceipt};
 
-use super::chunk_bytes::BlobExportedChunkBytes;
+use super::{chunk_bytes::BlobExportedChunkBytes, AdmittedBlobCustody};
 
 #[derive(Debug)]
 pub struct BlobExportIntent<'a> {
@@ -10,7 +8,7 @@ pub struct BlobExportIntent<'a> {
     publication: &'a crate::BlobChunkRootPublication,
     reachability: &'a crate::BlobChunkReachabilityProofSet,
     placement: &'a AdmittedBlobPlacement,
-    custody: &'a BackupExportCustodyReadiness,
+    custody: &'a AdmittedBlobCustody,
     export_name: String,
     exported_chunks: Vec<BlobExportedChunkBytes<'a>>,
 }
@@ -21,7 +19,7 @@ impl<'a> BlobExportIntent<'a> {
         publication: &'a crate::BlobChunkRootPublication,
         reachability: &'a crate::BlobChunkReachabilityProofSet,
         placement: &'a AdmittedBlobPlacement,
-        custody: &'a BackupExportCustodyReadiness,
+        custody: &'a AdmittedBlobCustody,
     ) -> Self {
         Self {
             lifecycle,
@@ -63,7 +61,7 @@ impl<'a> BlobExportIntent<'a> {
         self.placement
     }
 
-    pub(crate) fn custody(&self) -> &BackupExportCustodyReadiness {
+    pub(crate) fn custody(&self) -> &AdmittedBlobCustody {
         self.custody
     }
 

@@ -12,12 +12,12 @@
 
 ## Purpose
 
-This document maps the `worth-signal-wasm` API-surface milestone to concrete
+This document maps the `worth-signals-wasm` API-surface milestone to concrete
 implementation and certification evidence.
 
 It is the closeout ledger for the hostile question:
 
-> Can `worth-signal-wasm` now host detail, collection, paged, request-shaped,
+> Can `worth-signals-wasm` now host detail, collection, paged, request-shaped,
 > patch-capable, diagnostics-rich, branch-aware, download-aware, delivery-aware,
 > and externally-compatible resource lines as one coherent local product model
 > without minting a second async, freshness, cache, or delivery truth engine?

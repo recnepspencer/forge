@@ -3,14 +3,14 @@ use super::{
     BackgroundPacingCounterSnapshot, BackgroundPacingDenial, BackgroundResourceBudget,
 };
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BackgroundPacingOutcome {
     Yield(BackgroundPacingYield),
     Deferred(BackgroundPacingDeferred),
     Denied(BackgroundPacingDenied),
     StaleRebindRequired(BackgroundPacingStaleRebindRequired),
-    Throttled(BackgroundPacingThrottle),
-    AdmittedWithDebt(BackgroundPacingAdmittedWithDebt),
+    Throttled(Box<BackgroundPacingThrottle>),
+    AdmittedWithDebt(Box<BackgroundPacingAdmittedWithDebt>),
     Violation(BackgroundPacingViolation),
 }
 
@@ -21,7 +21,7 @@ pub struct BackgroundPacingYield {
 }
 
 impl BackgroundPacingOutcome {
-    pub const fn class(self) -> BackgroundIoPressureClass {
+    pub fn class(&self) -> BackgroundIoPressureClass {
         match self {
             Self::Yield(outcome) => outcome.class(),
             Self::Deferred(outcome) => outcome.class(),

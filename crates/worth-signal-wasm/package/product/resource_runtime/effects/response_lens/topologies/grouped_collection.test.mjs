@@ -33,7 +33,7 @@ test("grouped responses lower item replacement through grouped collection loci",
       effects: signals.resource.effects.branchNative(),
     });
     const line = tasks.line({});
-    line.patch(tasks.patch.item({
+    await line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", group: "todo", title: "Replaced" },
     }));
@@ -57,7 +57,7 @@ test("grouped responses lower item replacement through grouped collection loci",
       reconstruction: "replaceGroupItem",
       reconstructionBreadth: 1,
     });
-    assert.equal(itemEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(itemEffect.optimistic.rollback.kind, "effectBranchRetirementAvailable");
     assert.equal(itemEffect.profile.rebase, "nativeMergePlan");
     const mergePlan = signals.resource.branch.planMerge({
       source_branch_id: itemEffect.optimistic.branchId,
@@ -81,7 +81,7 @@ test("grouped responses lower item replacement through grouped collection loci",
     assert.deepEqual(deliveryEffect.locusProof.cost, itemEffect.locusProof.cost);
     assert.equal(singleGroupItemReplacementCount, 2);
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Aspect",
@@ -91,7 +91,7 @@ test("grouped responses lower item replacement through grouped collection loci",
     assert.equal(aspectEffect.locusProof.locus, "itemAspect");
     assert.deepEqual(aspectEffect.locusProof.cost, itemEffect.locusProof.cost);
     assert.equal(readTask(line.value(), "todo", "task:1").title, "Aspect");
-    assert.equal(singleGroupItemReplacementCount, 3);
+    assert.equal(singleGroupItemReplacementCount, 5);
   } finally {
     await runtime.cleanup();
   }
@@ -105,7 +105,7 @@ test("grouped broad replacements preserve grouped topology proof", async () => {
     const tasks = createTaskGroupedApi(signals, response, "/grouped-broad");
     const line = tasks.line({});
 
-    line.patch(tasks.patch.replace({
+    await line.patch(tasks.patch.replace({
       groups: {
         done: [{ id: "task:2", group: "done", title: "Broad" }],
       },

@@ -21,6 +21,7 @@ pub enum ScheduleReplayDenial {
         actor_id: String,
         yieldpoint: String,
     },
+    ShrinkInputDoesNotReproduceFailure,
     ScheduleCanonicalBasisDenied(CanonicalBasisConstructionDenial),
     ScheduleDigestDerivationDenied(CanonicalDigestDerivationDenial),
 }

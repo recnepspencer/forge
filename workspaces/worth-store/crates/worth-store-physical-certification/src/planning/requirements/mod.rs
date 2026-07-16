@@ -301,6 +301,10 @@ impl RequiredActorSet {
     pub fn len(&self) -> usize {
         self.actors.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.actors.is_empty()
+    }
 }
 
 pub(super) fn baseline_capabilities() -> PhysicalSimulationCapabilitySet {

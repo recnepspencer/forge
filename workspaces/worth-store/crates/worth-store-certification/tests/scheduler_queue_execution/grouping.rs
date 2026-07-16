@@ -35,7 +35,7 @@ fn grouped_certification_preserves_secondary_replay_identity() {
     )
     .observe_queue_depth(1)
     .observe_read_ahead(1, scope);
-    let outcome = execute_grouped_ready_queue_plans(grouped, completion);
+    let outcome = execute_grouped_ready_queue_plans(*grouped, completion);
 
     let certified = S6CertifiedQueueExecutionEvidence::from_outcome(&outcome)
         .expect("executed grouped outcome should certify");

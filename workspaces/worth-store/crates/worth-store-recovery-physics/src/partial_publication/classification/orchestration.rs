@@ -70,7 +70,7 @@ impl PartialPublicationClassification {
                 reject_torn_publication(denial.clone(), evidence.persisted_digest())
             }
             PartialPublicationEvidenceKind::NoUndoHazard(classification) => {
-                reject_no_undo_hazard(classification.clone(), evidence.persisted_digest())
+                reject_no_undo_hazard(classification.as_ref().clone(), evidence.persisted_digest())
             }
             PartialPublicationEvidenceKind::InsufficientPersistedEvidence { ambiguity_digest } => {
                 classify_ambiguity(ambiguity_digest)
@@ -110,7 +110,7 @@ impl PartialPublicationClassification {
                 reject_torn_publication(denial.clone(), evidence.persisted_digest())
             }
             PartialPublicationEvidenceKind::NoUndoHazard(classification) => {
-                reject_no_undo_hazard(classification.clone(), evidence.persisted_digest())
+                reject_no_undo_hazard(classification.as_ref().clone(), evidence.persisted_digest())
             }
             PartialPublicationEvidenceKind::InsufficientPersistedEvidence { ambiguity_digest } => {
                 classify_ambiguity(ambiguity_digest)

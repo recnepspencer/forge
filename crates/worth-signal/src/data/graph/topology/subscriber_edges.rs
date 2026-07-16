@@ -95,7 +95,7 @@ impl SignalGraph {
         Ok(())
     }
 
-    pub(in crate::data::graph) fn reconcile_subscriber_sets(
+    pub(crate) fn reconcile_subscriber_sets(
         &mut self,
         node: NodeId,
         current_sources: &[NodeId],

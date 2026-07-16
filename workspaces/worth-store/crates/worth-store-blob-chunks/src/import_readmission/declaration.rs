@@ -1,4 +1,4 @@
-use worth_store_operations_vocabulary::ImportPlacementSource;
+use super::BlobImportPlacementSource;
 use worth_store_security::{
     StoreCustodyPosture, StoreRawSecurityScopeDeclaration, StoreSecurityScopeIdentity,
 };
@@ -24,9 +24,30 @@ pub struct BlobImportDeclaration {
     chunk_tree_root: ChunkTreeRoot,
     logical_content_digest: LogicalContentDigest,
     chunk_scope: StoreRawSecurityScopeDeclaration,
-    placement_source: ImportPlacementSource,
+    placement_source: BlobImportPlacementSource,
     export_custody_scope: StoreSecurityScopeIdentity,
     chunk_rows: Vec<BlobImportChunkDeclaration>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlobImportTransferDeclaration {
+    placement_source: BlobImportPlacementSource,
+    export_custody_scope: StoreSecurityScopeIdentity,
+    chunk_rows: Vec<BlobImportChunkDeclaration>,
+}
+
+impl BlobImportTransferDeclaration {
+    pub fn new(
+        placement_source: BlobImportPlacementSource,
+        export_custody_scope: StoreSecurityScopeIdentity,
+        chunk_rows: Vec<BlobImportChunkDeclaration>,
+    ) -> Self {
+        Self {
+            placement_source,
+            export_custody_scope,
+            chunk_rows,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,9 +80,7 @@ impl BlobImportDeclaration {
         chunk_tree_root: ChunkTreeRoot,
         logical_content_digest: LogicalContentDigest,
         chunk_scope: StoreRawSecurityScopeDeclaration,
-        placement_source: ImportPlacementSource,
-        export_custody_scope: StoreSecurityScopeIdentity,
-        chunk_rows: Vec<BlobImportChunkDeclaration>,
+        transfer: BlobImportTransferDeclaration,
     ) -> Self {
         Self {
             object_id,
@@ -69,9 +88,9 @@ impl BlobImportDeclaration {
             chunk_tree_root,
             logical_content_digest,
             chunk_scope,
-            placement_source,
-            export_custody_scope,
-            chunk_rows,
+            placement_source: transfer.placement_source,
+            export_custody_scope: transfer.export_custody_scope,
+            chunk_rows: transfer.chunk_rows,
         }
     }
 }
@@ -85,21 +104,23 @@ pub fn bridge_canonical_export_trust_boundary(
         bundle.chunk_tree_root().clone(),
         bundle.digest_evidence().logical_content_digest().clone(),
         lower_chunk_scope(bundle.security_metadata()),
-        ImportPlacementSource::InlineInBundle,
-        bundle.custody().identity(),
-        bundle
-            .offline_declarations()
-            .iter()
-            .map(|row| {
-                BlobImportChunkDeclaration::portable(
-                    row.ordinal(),
-                    row.chunk_identity(),
-                    row.stored_digest(),
-                    row.checksum_digest(),
-                    row.bytes(),
-                )
-            })
-            .collect(),
+        BlobImportTransferDeclaration::new(
+            BlobImportPlacementSource::InlineInBundle,
+            bundle.custody().identity(),
+            bundle
+                .offline_declarations()
+                .iter()
+                .map(|row| {
+                    BlobImportChunkDeclaration::portable(
+                        row.ordinal(),
+                        row.chunk_identity(),
+                        row.stored_digest(),
+                        row.checksum_digest(),
+                        row.bytes(),
+                    )
+                })
+                .collect(),
+        ),
     ))
 }
 
@@ -146,7 +167,7 @@ impl BlobImportDeclaration {
         &self.chunk_rows
     }
 
-    pub const fn placement_source(&self) -> ImportPlacementSource {
+    pub const fn placement_source(&self) -> BlobImportPlacementSource {
         self.placement_source
     }
 
@@ -160,7 +181,7 @@ impl BlobImportDeclaration {
         self
     }
 
-    pub fn with_placement_source(mut self, placement_source: ImportPlacementSource) -> Self {
+    pub fn with_placement_source(mut self, placement_source: BlobImportPlacementSource) -> Self {
         self.placement_source = placement_source;
         self
     }

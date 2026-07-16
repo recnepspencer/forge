@@ -26,14 +26,14 @@
 > **Closeout:** [worker_runtime_placement_closeout.md](./worker_runtime_placement_closeout.md)
 >
 > **Primary architectural driver:** make worker-first deployment the canonical
-> `worth-signal-wasm` execution posture so runtime-owned derived work leaves the
+> `worth-signals-wasm` execution posture so runtime-owned derived work leaves the
 > UI thread without creating a second main-thread truth engine or pretending
 > that browser-only host capabilities and live JavaScript closures are portable
 > runtime data.
 
 ## Summary
 
-Milestone 9 makes worker-first execution a first-class `worth-signal-wasm`
+Milestone 9 makes worker-first execution a first-class `worth-signals-wasm`
 product capability.
 
 This milestone is not "spawn a worker and proxy some calls."
@@ -63,7 +63,7 @@ resource authority, the milestone is incomplete.
 
 ## 1. Goal
 
-Make dedicated worker deployment the canonical `worth-signal-wasm` execution
+Make dedicated worker deployment the canonical `worth-signals-wasm` execution
 posture so that:
 
 - most runtime-owned derived work no longer runs on the UI thread
@@ -152,7 +152,7 @@ The design fails if:
 - `worth-signal` remains the owner of derived computation, async lifecycle,
   temporal legality, observation truth, diagnostics truth, rollback, branch,
   and replay semantics.
-- `worth-signal-wasm` remains the owner of web-facing authoring, host callback
+- `worth-signals-wasm` remains the owner of web-facing authoring, host callback
   marshalling, host capability integration, browser-history integration, and
   product-facing output/effect surfaces.
 - browser APIs such as DOM, `window`, history mutation, visibility, viewport,
@@ -955,12 +955,12 @@ Phase 2 closeout evidence:
   plus an unpublished-region frontier denial artifact. Callback-authored,
   main-thread-hosted, unavailable, and fallback slices remain Phase 4 work.
 - Verification commands used for closeout:
-  - `cargo fmt -p worth-signal-wasm`
-  - `cargo check -p worth-signal-wasm`
-  - `cargo test -p worth-signal-wasm --lib worker_runtime`
-  - `cargo test -p worth-signal-wasm --lib worker_runtime_bootstrap`
-  - `cargo test -p worth-signal-wasm --lib`
-  - `cargo test -p worth-signal-wasm --test worker_boundary_type_surface_compile_fail`
+  - `cargo fmt -p worth-signals-wasm`
+  - `cargo check -p worth-signals-wasm`
+  - `cargo test -p worth-signals-wasm --lib worker_runtime`
+  - `cargo test -p worth-signals-wasm --lib worker_runtime_bootstrap`
+  - `cargo test -p worth-signals-wasm --lib`
+  - `cargo test -p worth-signals-wasm --test worker_boundary_type_surface_compile_fail`
 
 ### Phase 3: Main-Thread Host Capability And Host Effect Bridges
 
@@ -1454,7 +1454,7 @@ Implementation evidence so far:
 
 Milestone 9 is not done because a demo app becomes smoother in Chrome.
 
-It is done only when `worth-signal-wasm` ships:
+It is done only when `worth-signals-wasm` ships:
 
 - a worker-owned runtime posture for graph state, invalidation,
   recomputation, async/resource lifecycle, route/resource/forms continuity,
@@ -1631,7 +1631,7 @@ At minimum:
 
 ## 16. Acceptance Evidence
 
-Milestone 9 is complete only when `worth-signal-wasm` can certify all of the
+Milestone 9 is complete only when `worth-signals-wasm` can certify all of the
 following with canonical machine-checkable artifacts:
 
 - the `Worker Compatibility Truth Equivalence Test`
@@ -1750,7 +1750,7 @@ This milestone belongs before roadmap completion because:
 
 ## 21. Milestone Done When
 
-Milestone 9 is done only when `worth-signal-wasm` can run as a worker-first web
+Milestone 9 is done only when `worth-signals-wasm` can run as a worker-first web
 runtime product where:
 
 - one worker-owned runtime remains the canonical authority for derived
@@ -1771,5 +1771,5 @@ At that point, worker-first deployment becomes what it should be:
 - not a compatibility footnote
 - not a second runtime
 
-but the honest default execution posture for serious `worth-signal-wasm`
+but the honest default execution posture for serious `worth-signals-wasm`
 applications.

@@ -48,6 +48,9 @@ For ordinary app code, the default lane is:
 - branch-native optimistic effects, response-lens topology declarations, JSON
   effects, advanced topology effects, and UI lifecycle events:
   [Branch-Native Resource Effects](./branch-native-effects.md)
+- concurrent sibling effects, parent/child dependencies, random response order,
+  derived projection, and targeted closeout:
+  [Concurrent Optimistic Effects](./effects/concurrency-and-dependencies.md)
 - sealed effect envelopes behind diagnostics, history, rollback, merge,
   authority, and counters:
   [Effect Envelope Contract](../resource-contracts/effect-envelope.md)
@@ -84,6 +87,9 @@ For ordinary app code, the default lane is:
   [Downloads](./downloads.md)
 - "How do I understand whether exact restore is available?"
   [History And Restore](../resource-contracts/history-and-restore.md)
+- "How do I keep one failed optimistic request from erasing successful
+  siblings?"
+  [Concurrent Optimistic Effects](./effects/concurrency-and-dependencies.md)
 - "How do I explain an effect envelope, merge artifact, rollback kind, topology
   proof, JSON path proof, or closeout matrix?"
   [Effect Envelope Contract](../resource-contracts/effect-envelope.md),

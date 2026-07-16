@@ -97,7 +97,7 @@ Current shipped posture:
 ## Small Example
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -124,7 +124,7 @@ This is the quickest useful inspection pattern:
 import {
   createSignals,
   resourcePatch,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 

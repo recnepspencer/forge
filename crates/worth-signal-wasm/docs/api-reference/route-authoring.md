@@ -10,7 +10,7 @@ start with:
 ## What This Feature Is
 
 This is the recommended way to declare API-backed resources in
-`worth-signal-wasm`.
+`worth-signals-wasm`.
 
 Use `signals.api(...)` when you want to:
 
@@ -139,7 +139,7 @@ That means:
 ## Small Example
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -172,7 +172,7 @@ Use this shape when:
 ## Real Example
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 

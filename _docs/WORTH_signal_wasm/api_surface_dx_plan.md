@@ -1,4 +1,4 @@
-# worth-signal-wasm API Surface DX Hardening Plan
+# worth-signals-wasm API Surface DX Hardening Plan
 
 > **Status:** Planned engineering spec
 >
@@ -14,7 +14,7 @@
 
 ## Goal
 
-Harden the shipped `worth-signal-wasm` API surface so normal application
+Harden the shipped `worth-signals-wasm` API surface so normal application
 authoring becomes materially easier, clearer, and less repetitive without
 changing the already-closed runtime semantics underneath it.
 
@@ -134,7 +134,7 @@ construction unless the module is intentionally escaping the common lane.
   The most important thing it protects is response topology automation. The DX
   lane should hand off advanced response-shape patching to response lenses
   rather than expanding into manual per-route reconciliation folklore.
-- `worth-signal-wasm/test-requirements.md`
+- `worth-signals-wasm/test-requirements.md`
   The most important thing it protects is proof quality. The new authoring lane
   must certify raw-vs-builder equivalence, inheritance honesty, and hostile
   nonstandard endpoint behavior instead of only shipping pleasant docs.

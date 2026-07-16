@@ -178,7 +178,7 @@ export function HistoryMergeModal({
       }
       const choices = conflicts.map((conflict) => conflictForm?.fields[conflict.key]?.value() ?? "source");
       if (choices.some((choice) => choice === "target")) {
-        onUnavailable("WORTH Forms captured mixed conflict choices, but this runtime only exposes source-resolution or reject-shared-state merge execution.");
+        onUnavailable("Worth Forms captured mixed conflict choices, but this runtime only exposes source-resolution or reject-shared-state merge execution.");
         setBusy(false);
         return;
       }
@@ -198,7 +198,7 @@ export function HistoryMergeModal({
       <div className="history-merge-modal" role="dialog" aria-modal="true" aria-label="Merge branches">
         <div className="history-merge-header">
           <p className="history-kicker">Runtime branch merge</p>
-          <h3>{phase === "pick" ? "Choose two branches" : "Resolve conflicts with WORTH Forms"}</h3>
+          <h3>{phase === "pick" ? "Choose two branches" : "Resolve conflicts with Worth Forms"}</h3>
         </div>
 
         {phase === "pick" && (

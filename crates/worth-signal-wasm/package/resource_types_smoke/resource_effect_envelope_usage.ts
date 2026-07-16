@@ -9,13 +9,13 @@ import {
   resourceResponse,
   resourceValueSummaries,
   type ResourceEffectBranchLifecycle,
-  type ResourceEffectCompactInverseDescriptor,
   type ResourceEffectEnvelope,
   type ResourceEffectLocusProof,
   type ResourceEffectRollback,
   type ResourceResponseLensDenialProof,
   type ResourceResponseLensProof,
   type ResourceLineEffectRollbackResult,
+  type ResourceEffectSettlementResult,
   type ResourceLineVisibleSelection,
 } from "../index.js";
 
@@ -58,11 +58,25 @@ const tasks = signals.resource.collection({
 
 const taskLine = tasks.line({ workspaceId: "demo" });
 
-taskLine.patch(
+const patch = resourcePatch.itemAspect({
+  itemId: "task:1",
+  aspect: "title",
+  value: "Patched",
+});
+await taskLine.patch(
+  patch,
+  { idempotencyKey: "task:1:title:patched" },
+);
+await taskLine.patch(
+  patch,
+  { idempotencyKey: "task:1:title:patched" },
+);
+
+await taskLine.patch(
   resourcePatch.itemAspect({
-    itemId: "task:1",
+    itemId: "task:2",
     aspect: "title",
-    value: "Patched",
+    value: "Second",
   }),
 );
 
@@ -72,14 +86,51 @@ const latestBranchLifecycle: ResourceEffectBranchLifecycle | undefined =
   latestEffect?.branchLifecycle;
 const latestRollback: ResourceEffectRollback | undefined =
   latestEffect?.optimistic.rollback;
-const latestInverse: ResourceEffectCompactInverseDescriptor | null =
-  latestRollback?.kind === "compactInverseAvailable"
-    ? latestRollback.inverse
-    : null;
+const openEffects = taskLine.effects().open();
+const projection = taskLine.effects().projection();
 const latestLocusProof: ResourceEffectLocusProof | null | undefined =
   latestEffect?.locusProof;
+const inspectedEffect = taskLine.effects().get(openEffects[0]!.effectId);
+const inspectedEnvelope: ResourceEffectEnvelope | undefined =
+  inspectedEffect?.envelope;
+const admitted = await taskLine.patch(resourcePatch.itemAspect({
+  itemId: "task:1",
+  aspect: "title",
+  value: "Concurrent",
+}));
+if (!("effectId" in admitted)) throw new Error("branch-native admission required");
+const dependentAdmission = await taskLine.patch(resourcePatch.dependsOn(
+  resourcePatch.itemAspect({
+    itemId: "task:1",
+    aspect: "title",
+    value: "Dependent",
+  }),
+  [admitted.effectId],
+));
+if (!("effectId" in dependentAdmission)) {
+  throw new Error("dependent branch-native admission required");
+}
+const recordedSettlement = await taskLine.effects().confirm(
+  dependentAdmission.effectId,
+  { responseId: "response:dependent" },
+);
+const parentSettlement = await taskLine.effects().confirm(admitted.effectId, {
+  responseId: "response:parent",
+});
 const rollbackResult: ResourceLineEffectRollbackResult =
-  taskLine.history().rollbackLastEffect();
+  await taskLine.history().rollbackEffect(openEffects[0]!.effectId);
+const lastRollbackResult: ResourceLineEffectRollbackResult =
+  await taskLine.history().rollbackLastEffect();
+const exhaustiveSettlement = (result: ResourceEffectSettlementResult) => {
+  switch (result.kind) {
+    case "merged":
+    case "supersededAndRetired":
+    case "rejectedAndRetired":
+    case "responseRecorded":
+    case "duplicateSettlement":
+      return result.kind;
+  }
+};
 const visibleSelection: ResourceLineVisibleSelection =
   taskLine.diagnostics().visibleSelection;
 const response = resourceResponse.array<Task>({
@@ -149,9 +200,15 @@ void latestEffect?.branchLifecycle.disposal.kind;
 void latestEffect?.branchLifecycle.leakDenial.kind;
 void latestEffect?.optimistic.kind;
 void latestRollback?.kind;
-void latestInverse?.cost.retainedResponsePreimage;
+void openEffects[0]?.dependencyEffectIds;
+void openEffects[0]?.dependencyCloseoutPolicy;
+void inspectedEffect?.terminal;
+void recordedSettlement.kind;
+void parentSettlement.kind;
+void projection?.projectionDigest;
 void rollbackResult.kind;
-void rollbackResult.rollback?.kind;
+void lastRollbackResult.kind;
+void exhaustiveSettlement;
 void visibleSelection.kind;
 void taskLine.diagnosticsSummary().current.visibleSelection.kind;
 void latestEffect?.counters.planningBreadth;
@@ -240,3 +297,4 @@ void taskLine.history().verificationPackage().lifecycle.lastEffect?.effectId;
 void taskLine.history().verificationPackage()
   .deliveryProvenance.lastEffect?.provenance;
 void latestBranchLifecycle?.kind;
+void inspectedEnvelope?.effectId;

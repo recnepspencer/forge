@@ -48,7 +48,7 @@ test("mutation response exact reconciliation keeps rollback and merge/rebase pos
       merge: mergeRequest,
       effect,
     });
-    const rollbackResult = residentLine.history().rollbackLastEffect();
+    const rollbackResult = await residentLine.history().rollbackLastEffect();
     const residentVerification = residentLine.history().verificationPackage();
     const writeVerification = saveLine.history().verificationPackage();
 
@@ -70,18 +70,12 @@ test("mutation response exact reconciliation keeps rollback and merge/rebase pos
     });
     assert.deepEqual(rollbackResult, {
       kind: "unavailable",
-      reason: "notApplicable",
+      reason: "noOpenEffect",
       detail:
-        "committed-only resource effects do not carry speculative rollback state",
-      effectId: effect.effectId,
+        "resource effect rollback is unavailable because the line has no open resource effect",
+      effectId: null,
       basisCurrentId: null,
       basisAdvanceCount: 0,
-      rollback: {
-        kind: "notApplicable",
-        reason: "deliveryAuthority",
-        detail:
-          "committed-only resource effects do not carry speculative rollback state",
-      },
     });
     assert.deepEqual(residentLine.value(), { id: "task:1", status: "published" });
     assert.equal(residentLine.history().lifecycle.at(-1)?.event, "delivered");

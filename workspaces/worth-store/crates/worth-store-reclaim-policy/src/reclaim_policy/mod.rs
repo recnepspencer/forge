@@ -26,6 +26,7 @@ pub use permit::{ReclaimPermit, ReclaimPermitDenial};
 pub use posture::ReclaimPolicyPosture;
 pub use proof_authority::ReclaimPolicyProofAuthority;
 pub use reachability::{ReclaimPolicyReachabilityDenial, ReclaimPolicyReachabilityProof};
+pub(super) use receipt::AdmittedReclaimPolicyBasis;
 pub use receipt::{AdmittedReclaimPolicy, ReclaimPolicyExecutionReceipt};
 pub use request::ReclaimPolicyRequest;
 pub use security_scope::ReclaimPolicySecurityScope;

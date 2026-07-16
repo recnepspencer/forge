@@ -1,5 +1,7 @@
+import { readLineBindingState } from "../state/line_binding_state.js";
+
 function readLineValue(materialization) {
-  return materialization.binding.valueSignal();
+  return readLineBindingState(materialization.binding).value;
 }
 
 export { readLineValue };

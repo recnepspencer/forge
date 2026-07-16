@@ -6,6 +6,8 @@ export * from "./resource/resource_declarations.js";
 export * from "./resource/resource_family_surfaces.js";
 export * from "./resource/resource_request_descriptor.js";
 export * from "./resource/resource_effect_envelope.js";
+export * from "./resource/resource_effect_branch_dag.js";
+export * from "./resource/resource_effect_branch_dag_certification.js";
 export {
   type ApiFactory,
   type ApiNamespace,

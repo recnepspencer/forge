@@ -1,7 +1,9 @@
 pub use crate::import_readmission::{
-    bridge_canonical_export_trust_boundary, parse_import_declaration_json,
-    BlobImportChunkDeclaration, BlobImportDeclaration, BlobImportReadmissionAuthority,
-    BlobImportReadmissionCounters, BlobImportReadmissionDenial, BlobImportReadmissionReceipt,
-    BlobImportedChunkEvidence, BoundaryBridgedCanonicalExportArtifact, ImportedBlobWitness,
-    ReadmittedBlobImport,
+    admit_blob_import_source_custody, bridge_canonical_export_trust_boundary,
+    parse_import_declaration_json, AdmittedBlobImportSourceCustody, BlobImportChunkDeclaration,
+    BlobImportDeclaration, BlobImportPlacementDisposition, BlobImportPlacementPlan,
+    BlobImportPlacementSource, BlobImportReadmissionAuthority, BlobImportReadmissionCounters,
+    BlobImportReadmissionDenial, BlobImportReadmissionReceipt, BlobImportSourceCustodyDenial,
+    BlobImportTransferDeclaration, BlobImportedChunkEvidence,
+    BoundaryBridgedCanonicalExportArtifact, ImportedBlobWitness, ReadmittedBlobImport,
 };

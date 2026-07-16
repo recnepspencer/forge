@@ -49,7 +49,7 @@ test("entity-store responses lower item replacement through entity-store effect 
         }),
       });
     const line = tasks.line({});
-    line.patch(tasks.patch.item({
+    await line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", title: "Replaced" },
     }));
@@ -78,7 +78,7 @@ test("entity-store responses lower item replacement through entity-store effect 
       reconstruction: "replaceEntity",
       reconstructionBreadth: 1,
     });
-    assert.equal(itemEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(itemEffect.optimistic.rollback.kind, "effectBranchRetirementAvailable");
     assert.equal(itemEffect.profile.rebase, "nativeMergePlan");
     const mergePlan = signals.resource.branch.planMerge({
       source_branch_id: itemEffect.optimistic.branchId,
@@ -108,7 +108,7 @@ test("entity-store responses lower item replacement through entity-store effect 
     assert.equal(deliveryEffect.locus.kind, "entityStore");
     assert.equal(deliveryEffect.locusProof.locus, "entityStore");
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Aspect",
@@ -129,14 +129,17 @@ test("entity-store responses lower item replacement through entity-store effect 
       reconstructionBreadth: 1,
     });
     assert.equal(fullRecordReplacementCount, 0);
-    assert.equal(singleEntityReplacementCount, 3);
+    assert.equal(singleEntityReplacementCount, 5);
 
     const beforeValue = line.value();
     const beforeEffect = line.diagnostics().lastEffect;
-    assert.throws(() => line.patch(tasks.patch.item({
-      itemId: "task:1",
-      nextItem: { id: "task:2", title: "Wrong identity" },
-    })), /preserve item identity/);
+    await assert.rejects(
+      line.patch(tasks.patch.item({
+        itemId: "task:1",
+        nextItem: { id: "task:2", title: "Wrong identity" },
+      })),
+      /preserve item identity/,
+    );
     assert.deepEqual(line.value(), beforeValue);
     assert.deepEqual(line.diagnostics().lastEffect, beforeEffect);
   } finally {
@@ -168,7 +171,7 @@ test("entity-store broad replacements preserve normalized topology proof", async
       });
     const line = tasks.line({});
 
-    line.patch(tasks.patch.replace({
+    await line.patch(tasks.patch.replace({
       entities: { "task:2": { id: "task:2", title: "Broad" } },
     }));
     const effect = line.diagnostics().lastEffect;

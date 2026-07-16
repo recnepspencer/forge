@@ -1,6 +1,14 @@
 # Branch Merge Materialization And Aspect Policy Foundation Plan
 
-> **Status:** Planned engineering spec
+> **Status:** Superseded design record
+>
+> **Superseded by:**
+> [branch_merge_resolution_and_materialization_plan.md](./branch_merge_resolution_and_materialization_plan.md)
+>
+> The replacement corrects this plan's authority placement. Native
+> `worth-signal` owns derived execution, not application-value merge truth.
+> Standalone value history and manual resolution live in the explicit
+> TypeScript local truth authority.
 >
 > **Roadmap parent:** [wasm_product_roadmap.md](./wasm_product_roadmap.md)
 >
@@ -18,7 +26,7 @@
 ## Goal
 
 Make branch merge execution a real web-product foundation: native merge proof
-decides semantic merge truth, and `worth-signal-wasm` materializes that truth
+decides semantic merge truth, and `worth-signals-wasm` materializes that truth
 into web-visible state through declared, proof-bearing materialization
 strategies.
 
@@ -262,7 +270,7 @@ Execution consumes the intent and denies if the basis no longer matches.
 
 ### Materialization Strategy Authority
 
-`worth-signal-wasm` owns the strategy that maps native merge proof into
+`worth-signals-wasm` owns the strategy that maps native merge proof into
 web-visible state.
 
 The first admitted strategy is:

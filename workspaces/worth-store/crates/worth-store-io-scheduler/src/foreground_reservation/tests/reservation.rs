@@ -77,9 +77,11 @@ fn foreground_capacity_pressure_denies_before_reservation_receipt() {
         admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
             ForegroundReservationCapacityAuthority::store_owned(),
             point_read_lane(),
-            &backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo),
-            &io_qos_readiness_admission(),
-            &io_qos_security_scope_admission(),
+            ForegroundReservationAdmissionBoundary::new(
+                &backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo),
+                &io_qos_readiness_admission(),
+                &io_qos_security_scope_admission(),
+            ),
             ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead),
             ForegroundResourceBudget::new(),
             ForegroundResourceBudget::new(),

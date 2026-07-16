@@ -1,7 +1,7 @@
 use crate::{
     courtroom::harness::test_support::integrity_handoff_test_support::{
         forged_inspection_envelope_counter_denial_kind, intact_readiness,
-        manifest_receipt_swap_denial_kind,
+        manifest_receipt_swap_denial_kind, CERTIFICATION_INSPECTION_BYTE_LIMIT,
     },
     courtroom::harness::test_support::pre_decode_physical_admission_test_support::checksum_scope,
     courtroom::harness::test_support::recovery_blocking_damage_test_support::{
@@ -75,9 +75,18 @@ fn recovery_handoff_payload_exposes_required_integrity_surfaces_and_exact_counte
         ChecksumAlgorithmId::crc32c()
     );
     assert_eq!(payload.checksum_basis().scope(), &checksum_scope());
-    assert_eq!(payload.inspection_envelope().resident_byte_limit(), 128);
-    assert_eq!(payload.inspection_envelope().protected_read_limit(), 128);
-    assert_eq!(payload.inspection_envelope().streaming_window_limit(), 128);
+    assert_eq!(
+        payload.inspection_envelope().resident_byte_limit(),
+        CERTIFICATION_INSPECTION_BYTE_LIMIT
+    );
+    assert_eq!(
+        payload.inspection_envelope().protected_read_limit(),
+        CERTIFICATION_INSPECTION_BYTE_LIMIT
+    );
+    assert_eq!(
+        payload.inspection_envelope().streaming_window_limit(),
+        CERTIFICATION_INSPECTION_BYTE_LIMIT
+    );
     assert_eq!(counters.vetted_record_count(), 5);
     assert_eq!(counters.quarantine_summary_count(), 1);
     assert_eq!(counters.recovery_blocking_count(), 0);

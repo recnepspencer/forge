@@ -208,14 +208,18 @@ fn execution_input(
     let metadata = plan.blob_harness_metadata().unwrap();
     let topology = plan.blob_harness_topology().unwrap();
     BlobHarnessExecutionInput::new(
-        materialized_profile.blob_profile().envelope().profile(),
-        metadata.size_class(),
-        metadata.placement_class(),
-        metadata.security_scope_class(),
-        metadata.access_mode(),
-        metadata.failure_point(),
-        metadata.actor_mix(),
-        topology,
+        worth_store_blob_chunks::certification_test_authority::BlobHarnessStorageShape::new(
+            materialized_profile.blob_profile().envelope().profile(),
+            metadata.size_class(),
+            metadata.placement_class(),
+            metadata.security_scope_class(),
+        ),
+        worth_store_blob_chunks::certification_test_authority::BlobHarnessExerciseShape::new(
+            metadata.access_mode(),
+            metadata.failure_point(),
+            metadata.actor_mix(),
+            topology,
+        ),
     )
 }
 

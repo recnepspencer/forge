@@ -1,139 +1,22 @@
+mod exploration;
+mod identity;
+mod owner_execution;
+
 use worth_store_physical_certification::{
     lower_physical_simulation_plan, physical_scenario, ForbiddenShortcutSet,
     PartialOrderReductionPosture, PhysicalActorStep, PhysicalInterleavingSchedule,
     PhysicalScenarioActor, PhysicalScenarioActorRole, PhysicalScenarioExpectation,
     PhysicalScenarioIntent, PhysicalScenarioSchedule, PhysicalSimulationCapabilitySet,
     PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
-    ReplaySeed, ScheduleOrderingAuthorityKind, SimulationEvidencePolicy, SimulationPlanningContext,
-    StateSpaceBudget, SupportedObserverSet, SupportedOracleFamilySet,
+    ReplaySeed, SimulationEvidencePolicy, SimulationPlanningContext, StateSpaceBudget,
+    SupportedObserverSet, SupportedOracleFamilySet,
 };
 use worth_store_test_support::{
-    admitted_developer_smoke_driver_contracts, deterministic_developer_smoke_schedule,
-    developer_smoke_state_space_budget, NativeStoreAspectFixture,
+    admitted_developer_smoke_driver_contracts, developer_smoke_state_space_budget,
+    NativeStoreAspectFixture,
 };
 
 const ROOT_PUBLICATION_YIELDPOINT: &str = "root-publication-before-observe";
-
-#[test]
-fn same_plan_seed_profile_actors_and_budget_reproduce_schedule_identity() {
-    let plan = lower_physical_simulation_plan(
-        physical_isolation_scenario(
-            "store.physical.s5.deterministic.schedule",
-            "schedule",
-            PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
-            PhysicalScenarioActor::foreground_reader("reader"),
-        ),
-        complete_context(PhysicalSimulationProfile::DeveloperSmoke),
-    )
-    .unwrap();
-    let first = deterministic_developer_smoke_schedule(&plan).unwrap();
-    let second = deterministic_developer_smoke_schedule(&plan).unwrap();
-
-    assert_eq!(first.actor_steps(), second.actor_steps());
-    assert_eq!(
-        first.actor_step_sequence().canonical_steps(),
-        first.actor_steps()
-    );
-    assert_eq!(
-        first.identity().digest_bytes(),
-        second.identity().digest_bytes()
-    );
-    assert_eq!(first.seed(), ReplaySeed::from_u64(0x5eed_45));
-    assert_eq!(first.profile(), PhysicalSimulationProfile::DeveloperSmoke);
-    assert_eq!(
-        first.ordering_authority().kind(),
-        ScheduleOrderingAuthorityKind::DeterministicActorSteps
-    );
-    assert_actor_step(
-        &first.actor_steps()[0],
-        0,
-        "reader",
-        PhysicalScenarioActorRole::ForegroundReader,
-    );
-    assert_actor_step(
-        &first.actor_steps()[1],
-        1,
-        "reclaimer",
-        PhysicalScenarioActorRole::MaintenanceReclaimer,
-    );
-    assert_eq!(first.actor_step_sequence().unique_actor_ids().len(), 2);
-    assert_exploration_cost(&first, 32, 2, 30);
-}
-
-#[test]
-fn replay_identity_changes_when_seed_budget_scenario_profile_or_actors_change() {
-    let baseline = schedule_for(
-        "store.physical.s5.identity.baseline",
-        "identity-baseline",
-        PhysicalSimulationProfile::DeveloperSmoke,
-        PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
-        PhysicalScenarioActor::foreground_reader("reader"),
-        ReplaySeed::from_u64(0x5eed_45),
-        developer_smoke_state_space_budget(),
-    );
-    let different_seed = schedule_for(
-        "store.physical.s5.identity.baseline",
-        "identity-baseline",
-        PhysicalSimulationProfile::DeveloperSmoke,
-        PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
-        PhysicalScenarioActor::foreground_reader("reader"),
-        ReplaySeed::from_u64(0x5eed_46),
-        developer_smoke_state_space_budget(),
-    );
-    let different_budget = schedule_for(
-        "store.physical.s5.identity.baseline",
-        "identity-baseline",
-        PhysicalSimulationProfile::DeveloperSmoke,
-        PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
-        PhysicalScenarioActor::foreground_reader("reader"),
-        ReplaySeed::from_u64(0x5eed_45),
-        StateSpaceBudget::bounded_steps(64).unwrap(),
-    );
-    let different_scenario = schedule_for(
-        "store.physical.s5.identity.other-scenario",
-        "identity-other-scenario",
-        PhysicalSimulationProfile::DeveloperSmoke,
-        PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
-        PhysicalScenarioActor::foreground_reader("reader"),
-        ReplaySeed::from_u64(0x5eed_45),
-        developer_smoke_state_space_budget(),
-    );
-    let different_profile = schedule_for(
-        "store.physical.s5.identity.baseline",
-        "identity-baseline",
-        PhysicalSimulationProfile::CiCertification,
-        PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
-        PhysicalScenarioActor::foreground_reader("reader"),
-        ReplaySeed::from_u64(0x5eed_45),
-        developer_smoke_state_space_budget(),
-    );
-    let different_actor_id = schedule_for(
-        "store.physical.s5.identity.baseline",
-        "identity-baseline",
-        PhysicalSimulationProfile::DeveloperSmoke,
-        PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
-        PhysicalScenarioActor::foreground_reader("reader-2"),
-        ReplaySeed::from_u64(0x5eed_45),
-        developer_smoke_state_space_budget(),
-    );
-    let different_actor_role = schedule_for(
-        "store.physical.s5.identity.baseline",
-        "identity-baseline",
-        PhysicalSimulationProfile::DeveloperSmoke,
-        PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
-        PhysicalScenarioActor::foreground_writer("reader"),
-        ReplaySeed::from_u64(0x5eed_45),
-        developer_smoke_state_space_budget(),
-    );
-
-    assert_digest_differs(&baseline, &different_seed);
-    assert_digest_differs(&baseline, &different_budget);
-    assert_digest_differs(&baseline, &different_scenario);
-    assert_digest_differs(&baseline, &different_profile);
-    assert_digest_differs(&baseline, &different_actor_id);
-    assert_digest_differs(&baseline, &different_actor_role);
-    assert_exploration_cost(&different_budget, 64, 2, 62);
-}
 
 fn schedule_for(
     scenario_name: &'static str,
@@ -218,6 +101,27 @@ fn physical_isolation_scenario(
         )
         .actor(first_actor)
         .actor(second_actor)
+        .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
+            ROOT_PUBLICATION_YIELDPOINT,
+        ))
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
+        .certify_definition()
+        .unwrap()
+}
+
+fn physical_isolation_scenario_with_three_actors(
+) -> worth_store_physical_certification::CertifiedPhysicalScenario {
+    physical_scenario("store.physical.interleaving.exploration")
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
+        .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
+        .fixture(
+            NativeStoreAspectFixture::segment_header("exploration", 9)
+                .boundary_fact()
+                .clone(),
+        )
+        .actor(PhysicalScenarioActor::foreground_reader("reader"))
+        .actor(PhysicalScenarioActor::maintenance_reclaimer("reclaimer"))
+        .actor(PhysicalScenarioActor::foreground_writer("writer"))
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             ROOT_PUBLICATION_YIELDPOINT,
         ))

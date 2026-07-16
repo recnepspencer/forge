@@ -3,10 +3,20 @@ name = "worth-store-formal-models"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "Roadmap 2 S.9 model-to-code vocabulary and checked model manifests."
+description = "Checked physical protocol semantics and owner-to-model refinement bindings."
 
 [dependencies]
-worth-store-contracts.workspace = true
+sha2 = "0.10"
+worth-store-layout-indexes.workspace = true
+worth-store-lsm-authority.workspace = true
+worth-store-operations.workspace = true
+worth-store-physical-backend.workspace = true
+worth-store-physical-integrity.workspace = true
+worth-store-physical-isolation.workspace = true
+worth-store-recovery-physics.workspace = true
+worth-store-replication.workspace = true
+worth-store-security.workspace = true
+worth-store-wal.workspace = true
 
 [lints]
 workspace = true

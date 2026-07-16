@@ -3,10 +3,10 @@ import "./landingInstallCommand.css";
 
 export function LandingInstallCommand() {
   const [copied, setCopied] = React.useState(false);
-  const command = "npm install worth-signal-wasm";
+  const command = "npm install worth-signals-wasm";
 
   return (
-    <div className="xai-install-command" aria-label="Install WORTH Signal WASM">
+    <div className="xai-install-command" aria-label="Install Worth Signals WASM">
       <code>{command}</code>
       <button
         onClick={() => {

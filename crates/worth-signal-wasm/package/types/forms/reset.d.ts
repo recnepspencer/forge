@@ -1,8 +1,5 @@
-import type { ResourceEffectRollback } from "../resource/resource_effect_envelope.js";
-import type { ResourceLineStatus } from "../resource/resource_lifecycle.js";
-
 export type FormResetMode = "acceptCanonicalValue" | "resourceRollback";
-export type FormResetResultKind = "reset" | "rolledBack" | "noOp" | "unavailable";
+export type FormResetResultKind = "reset" | "effectRejected" | "noOp" | "unavailable";
 
 export interface FormResetRollbackUnavailable {
   readonly kind: "unavailable";
@@ -11,22 +8,21 @@ export interface FormResetRollbackUnavailable {
   readonly digest: string;
 }
 
-export interface FormResetRollbackApplied {
-  readonly kind: "rolledBack";
-  readonly mode: "SameRuntimeBranchExact" | "CompactInversePatch";
+export interface FormResetEffectRejected {
+  readonly kind: "effectRejected";
   readonly effectId: string;
-  readonly branchId: number;
-  readonly snapshotId: number;
-  readonly basisCurrentId: string | null;
-  readonly basisAdvanceCount: number;
-  readonly rollback: ResourceEffectRollback;
-  readonly reloadStatus: ResourceLineStatus;
+  readonly terminalKind: "rejectedAndRetired";
+  readonly retiredEffectIds: readonly string[];
+  readonly projectionKind: "derivedEffectProjectionBranch" | "canonical";
+  readonly projectionDigest: string;
+  readonly retirement: readonly Readonly<Record<string, unknown>>[];
+  readonly retirementDigest: string;
   readonly digest: string;
 }
 
 export type FormResetRollbackArtifact =
   | FormResetRollbackUnavailable
-  | FormResetRollbackApplied;
+  | FormResetEffectRejected;
 
 export interface FormResetArtifact {
   readonly kind: "formReset";

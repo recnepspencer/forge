@@ -1,5 +1,7 @@
+import { readLineBindingState } from "../state/line_binding_state.js";
+
 function readLineProcessing(materialization) {
-  return materialization.binding.processingSignal();
+  return readLineBindingState(materialization.binding).processing;
 }
 
 export { readLineProcessing };

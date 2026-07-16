@@ -1,3 +1,4 @@
+use super::event::PhysicalFaultEventKind;
 use super::locus::{ExpectedFaultLocalization, PhysicalArtifactFaultLocus};
 use crate::{PhysicalBoundarySeam, PhysicalBoundaryYieldpoint};
 
@@ -20,6 +21,8 @@ pub enum FaultDeliveryDenial {
     MissingFreshRuntimeEvidence,
     MissingObservedFaultBoundary,
     NoFaultParityMismatch,
+    FaultHasNoProductionStorageInjection(PhysicalFaultEventKind),
+    ProductionStorageFaultWasNotExecuted,
     UnboundFaultYieldpoint {
         scheduled_yieldpoint: String,
         delivery_yieldpoint: String,

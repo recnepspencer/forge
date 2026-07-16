@@ -118,7 +118,7 @@ fn aspect_boundary_struct_fact(order: FieldAuthoringOrder) -> StoreAspectBoundar
 
 fn struct_value(order: FieldAuthoringOrder) -> StructAspectValue {
     let builder = aspects().vocabulary().struct_value();
-    let struct_value = match order {
+    match order {
         FieldAuthoringOrder::SegmentFirst => builder
             .with_field(
                 "segment",
@@ -133,9 +133,7 @@ fn struct_value(order: FieldAuthoringOrder) -> StructAspectValue {
             ),
     }
     .finish()
-    .unwrap();
-
-    struct_value
+    .unwrap()
 }
 
 fn aspect_key(raw: &str) -> AspectKey {

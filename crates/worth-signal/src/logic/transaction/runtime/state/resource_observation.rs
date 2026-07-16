@@ -55,7 +55,8 @@ where
                 ObservationBoundaryOutcome::Delivered => {
                     delivered_width = delivered_width.saturating_add(1)
                 }
-                ObservationBoundaryOutcome::RollbackSuppressed => {
+                ObservationBoundaryOutcome::RollbackSuppressed
+                | ObservationBoundaryOutcome::BranchLocalSuppressed => {
                     denied_width = denied_width.saturating_add(1)
                 }
             }

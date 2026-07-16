@@ -1,19 +1,18 @@
 use crate::{
-    CheckpointInterlockObservation, ObservationDenial, ObservedPhysicalTrace, ObserverKind,
-    PhysicalInterleavingSchedule, PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput,
-    PhysicalScenarioActorRole, PhysicalSimulationPlan, RecoveryOutcomeKind,
-    RecoveryOutcomeObservation, ShortcutRejectionObservation,
+    CheckpointInterlockObservation, ObservationDenial, PhysicalInterleavingSchedule,
+    PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput, PhysicalScenarioActorRole,
+    PhysicalSimulationPlan, RecoveryOutcomeObservation, ShortcutRejectionObservation,
 };
 use worth_store_physical_isolation::{
     CheckpointInterlockEvidenceOrigin, CheckpointInterlockFoundationalEvidence,
 };
 
-const FRESH_RUNTIME_RECOVERY_YIELDPOINT: &str = "fresh-runtime-replay-open";
+use super::checkpoint_recovery_lane::PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalIsolationCheckpointPublicationLaneBinding {
-    plan_identity: [u8; 32],
-    schedule_identity: [u8; 32],
+    pub(super) plan_identity: [u8; 32],
+    pub(super) schedule_identity: [u8; 32],
     checkpoint_actor_step_index: usize,
 }
 
@@ -33,17 +32,6 @@ pub struct CheckpointCrashReplayObservation {
     recovery_actor_step_index: usize,
     recovery_plan_identity: [u8; 32],
     recovery_schedule_identity: [u8; 32],
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput {
-    checkpoint_plan_identity: [u8; 32],
-    checkpoint_schedule_identity: [u8; 32],
-    checkpoint_origin: CheckpointInterlockEvidenceOrigin,
-    recovery_plan_identity: [u8; 32],
-    recovery_schedule_identity: [u8; 32],
-    recovery_actor_step_index: usize,
-    observation: RecoveryOutcomeObservation,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -167,57 +155,6 @@ impl PhysicalIsolationCheckpointPublicationScheduledLaneOutput {
     }
 }
 
-impl PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput {
-    pub fn from_fresh_runtime_recovery_trace(
-        binding: &PhysicalIsolationCheckpointPublicationLaneBinding,
-        checkpoint_schedule: &PhysicalInterleavingSchedule,
-        recovery_plan: &PhysicalSimulationPlan,
-        recovery_schedule: &PhysicalInterleavingSchedule,
-        recovery_actor_step_index: usize,
-        recovery_trace: &ObservedPhysicalTrace,
-        expected_origin: &CheckpointInterlockEvidenceOrigin,
-        evidence: CheckpointInterlockFoundationalEvidence,
-    ) -> Result<Self, ObservationDenial> {
-        if checkpoint_schedule.identity().digest_bytes() != &binding.schedule_identity {
-            return Err(ObservationDenial::CheckpointPublicationLaneScheduleMismatch);
-        }
-        require_evidence_origin_matches(expected_origin, evidence.origin())?;
-        if !recovery_schedule.replay_identity_matches_plan(recovery_plan)
-            || recovery_trace.plan_identity().digest_bytes()
-                != recovery_plan.identity().digest_bytes()
-            || recovery_trace.observer() != ObserverKind::RecoveryOutcomeObserver
-        {
-            return Err(ObservationDenial::CheckpointPublicationCrashRecoveryTraceMismatch);
-        }
-        require_role_yieldpoint_step_matches_schedule(
-            recovery_schedule,
-            recovery_actor_step_index,
-            PhysicalScenarioActorRole::RecoveryDriver,
-            FRESH_RUNTIME_RECOVERY_YIELDPOINT,
-            ObservationDenial::CheckpointPublicationCrashLaneScheduleMismatch,
-        )?;
-        let observation = *recovery_trace
-            .recovery_outcome()
-            .ok_or(ObservationDenial::MissingRecoveryOutcomeObservation)?;
-        if observation.kind() == RecoveryOutcomeKind::MixedRoot {
-            return Err(ObservationDenial::CheckpointPublicationCrashOutcomeMixedRoot);
-        }
-        Ok(Self {
-            checkpoint_plan_identity: binding.plan_identity,
-            checkpoint_schedule_identity: binding.schedule_identity,
-            checkpoint_origin: expected_origin.clone(),
-            recovery_plan_identity: *recovery_plan.identity().digest_bytes(),
-            recovery_schedule_identity: *recovery_schedule.identity().digest_bytes(),
-            recovery_actor_step_index,
-            observation,
-        })
-    }
-
-    pub const fn observation(&self) -> RecoveryOutcomeObservation {
-        self.observation
-    }
-}
-
 impl PhysicalIsolationCheckpointPublicationCrashLaneOutput {
     pub fn from_schedule_step_recovery(
         binding: &PhysicalIsolationCheckpointPublicationLaneBinding,
@@ -324,7 +261,7 @@ impl PhysicalIsolationCheckpointPublicationShortcutRejectionOutput {
     }
 }
 
-fn require_evidence_origin_matches(
+pub(super) fn require_evidence_origin_matches(
     expected_origin: &CheckpointInterlockEvidenceOrigin,
     observed_origin: &CheckpointInterlockEvidenceOrigin,
 ) -> Result<(), ObservationDenial> {
@@ -335,7 +272,7 @@ fn require_evidence_origin_matches(
     }
 }
 
-fn require_role_yieldpoint_step_matches_schedule(
+pub(super) fn require_role_yieldpoint_step_matches_schedule(
     schedule: &PhysicalInterleavingSchedule,
     actor_step_index: usize,
     role: PhysicalScenarioActorRole,

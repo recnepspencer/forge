@@ -2,9 +2,9 @@ use worth_foundational::{
     boundary_evidence, BoundaryArtifactField, BoundaryArtifactId, BoundaryArtifactLocator,
     FoundationalBoundaryEvidenceExecutedReceiptArtifact,
     FoundationalBoundaryEvidenceFreshnessPosture, FoundationalBoundaryEvidenceProvenanceArtifact,
+    FoundationalBoundaryEvidenceProvenanceConstructionDenial,
     FoundationalBoundaryEvidenceReceiptBoundary, FoundationalBoundaryEvidenceSourceBasis,
 };
-use worth_proof::TransitionOutcome;
 
 use super::PhysicalIsolationEntryIdentity;
 
@@ -17,7 +17,9 @@ pub struct PhysicalIsolationEntryFoundationalEvidence {
 }
 
 impl PhysicalIsolationEntryFoundationalEvidence {
-    pub(crate) fn lower(identity: &PhysicalIsolationEntryIdentity) -> Self {
+    pub(crate) fn lower(
+        identity: &PhysicalIsolationEntryIdentity,
+    ) -> Result<Self, FoundationalBoundaryEvidenceProvenanceConstructionDenial> {
         let source_basis = source_basis(identity);
         let freshness_posture =
             FoundationalBoundaryEvidenceFreshnessPosture::ReconstructedFromReplay;
@@ -25,17 +27,17 @@ impl PhysicalIsolationEntryFoundationalEvidence {
             .provenance()
             .replay_derived(source_basis.clone())
             .with_freshness(freshness_posture)
-            .success_or_panic("S.5 entry foundational provenance");
+            .into_result()?;
         let executed_receipt = boundary_evidence()
             .receipt()
             .execution(receipt_boundary(identity))
             .with_provenance(provenance.clone());
-        Self {
+        Ok(Self {
             executed_receipt,
             provenance,
             source_basis,
             freshness_posture,
-        }
+        })
     }
 
     pub const fn executed_receipt(&self) -> &FoundationalBoundaryEvidenceExecutedReceiptArtifact {
@@ -75,25 +77,4 @@ fn receipt_boundary(
         BoundaryArtifactId::new(identity.boundary_artifact_id()),
         BoundaryArtifactField::Payload,
     ))
-}
-
-trait PhysicalIsolationEntryOutcomeExt<T> {
-    fn success_or_panic(self, context: &str) -> T;
-}
-
-impl<T, D, De, St, R, F> PhysicalIsolationEntryOutcomeExt<T>
-    for TransitionOutcome<T, D, De, St, R, F>
-where
-    D: core::fmt::Debug,
-    De: core::fmt::Debug,
-    St: core::fmt::Debug,
-    R: core::fmt::Debug,
-    F: core::fmt::Debug,
-{
-    fn success_or_panic(self, context: &str) -> T {
-        match self {
-            TransitionOutcome::Success(value) => value,
-            _ => panic!("{context}: expected success"),
-        }
-    }
 }

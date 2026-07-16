@@ -42,27 +42,38 @@ impl DurableMembershipEvent {
 pub(super) fn rebuild_from_store(
     session: &mut LsmMembershipSession,
 ) -> Result<(), LsmMembershipDenial> {
+    const MAX_MEMBERSHIP_ARTIFACT_BYTES: u64 = 4 * 1024 * 1024;
+
     let artifacts = session.store.scan().map_err(|_| LsmMembershipDenial::Io)?;
     session.reopen_counters.artifacts_examined = artifacts.artifacts().len() as u64;
     session.reopen_counters.bytes_examined = artifacts.counters().bytes_read();
     let mut events = Vec::new();
     for artifact in artifacts.artifacts() {
+        let read = artifact
+            .read_bounded(MAX_MEMBERSHIP_ARTIFACT_BYTES)
+            .map_err(|_| LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
+        session.reopen_counters.bytes_examined = session
+            .reopen_counters
+            .bytes_examined
+            .saturating_add(read.bytes_read());
+        let bytes = read.bytes();
         if let Some(record) = decode_record_artifact(
             artifact.path(),
-            artifact.bytes(),
+            artifact.offset(),
+            bytes,
             session.readmission_authority,
         )? {
             events.push(DurableMembershipEvent::Record(record));
             continue;
         }
-        if has_activation_magic(artifact.bytes()) {
-            let activation = decode_activation(artifact.bytes(), session.readmission_authority)
+        if has_activation_magic(bytes) {
+            let activation = decode_activation(bytes, session.readmission_authority)
                 .map_err(|_| LsmMembershipDenial::ManifestMembershipMismatch)?;
             events.push(DurableMembershipEvent::Activation {
                 activation,
-                identity: PublishedLsmMembershipIdentity::from_activation_bytes(artifact.bytes()),
+                identity: PublishedLsmMembershipIdentity::from_activation_bytes(bytes),
                 path: artifact.path().to_path_buf(),
-                bytes: artifact.bytes().len() as u64,
+                bytes: read.bytes_read(),
             });
         }
     }
@@ -126,6 +137,7 @@ fn replay_activation(
         output_identity,
         output_scope,
         output_path,
+        output_offset,
         output_bytes,
         scope,
     } = activation;
@@ -179,6 +191,7 @@ fn replay_activation(
         output_identity,
         &output_scope,
         &output_path,
+        output_offset,
         output_bytes,
     ) {
         return Err(LsmMembershipDenial::ReplacementOutputMismatch);
@@ -196,8 +209,11 @@ fn replay_activation(
         output_identity,
         output_scope,
         scope,
-        output_path,
-        output_bytes,
+        super::super::replacement::PublishedLsmMembershipOutputArtifact::new(
+            output_path,
+            output_offset,
+            output_bytes,
+        ),
     ));
     state.version = state.version.saturating_add(1);
     Ok(())
@@ -205,6 +221,7 @@ fn replay_activation(
 
 fn decode_record_artifact(
     path: &Path,
+    offset: u64,
     artifact: &[u8],
     authority: LsmMembershipReadmissionAuthority,
 ) -> Result<Option<LsmMembershipRecord>, LsmMembershipDenial> {
@@ -251,6 +268,7 @@ fn decode_record_artifact(
         durable_scope: scope,
         key,
         persisted_path: path.to_path_buf(),
+        persisted_offset: offset,
         persisted_bytes: artifact.len() as u64,
     }))
 }

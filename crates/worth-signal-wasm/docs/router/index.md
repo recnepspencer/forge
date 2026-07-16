@@ -2,7 +2,7 @@
 
 ## What This Feature Is
 
-The router is the typed navigation surface for `worth-signal-wasm`. You declare
+The router is the typed navigation surface for `worth-signals-wasm`. You declare
 routes and layouts with `signals.router.*(...)`, resolve a route tree with
 `signals.router.define(...)`, and then use that resolved tree to project, admit,
 speculate, restore, and inspect navigation truth.
@@ -71,7 +71,7 @@ For ordered route rehearsal and playback:
 ## Small Example
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 

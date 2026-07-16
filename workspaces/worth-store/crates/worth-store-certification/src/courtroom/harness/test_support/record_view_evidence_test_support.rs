@@ -9,10 +9,9 @@ use worth_store_contracts::{
 use worth_store_physical_format::{
     FramedRecordView, PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalFrameKind,
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority,
-    PhysicalHeaderDecodeWitness, PhysicalPageId, PhysicalPageRecordAuthority,
-    PhysicalPublicationState, PhysicalRecordSlot, PhysicalReferenceAuthority,
-    PhysicalReferenceValidationWitness, PhysicalSegmentId, SlotAppendRequest, SlotGenerationCell,
-    PHYSICAL_HEADER_LENGTH,
+    PhysicalHeaderDecodeWitness, PhysicalPageId, PhysicalPageRecordAuthority, PhysicalRecordSlot,
+    PhysicalReferenceAuthority, PhysicalReferenceValidationWitness, PhysicalSegmentId,
+    SlotAppendRequest, SlotGenerationCell,
 };
 use worth_store_readiness::{
     close_physical_substrate_readiness, prove_physical_substrate_readiness,
@@ -79,7 +78,11 @@ pub(crate) fn admit_payload_frame(
     page_value: u64,
     payload: &[u8],
 ) -> worth_store_buffer_pool::ResidentFrameAdmission {
-    let frame = record_frame_bytes(generation_value, payload);
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let frame = crate::physical_fixture_encoding::record_frame_bytes(
+        slot_cell(&generations, generation_value, page_value),
+        payload,
+    );
     let request = load_request_from_frame(generation_value, page_value, &frame);
     let payload = header_authority()
         .payload_view(&frame, request.header())
@@ -109,14 +112,15 @@ pub(crate) fn framed_record(
     let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = page_cell(&generations, 5, page_value);
     let slot_cell = slot_cell(&generations, generation_value, page_value);
-    let empty_page = page_bytes(generation(5), &[]);
+    let empty_page = crate::physical_fixture_encoding::data_page_bytes(page_cell, &[]);
     let append = records
         .append_record(
             admitted_page(&records, page_cell, &empty_page),
             SlotAppendRequest::ordinary(slot_cell, payload),
         )
         .unwrap();
-    let reopened_page = page_bytes(generation(5), append.page_payload());
+    let reopened_page =
+        crate::physical_fixture_encoding::data_page_bytes(page_cell, append.page_payload());
     let reopened_page = Box::leak(reopened_page.into_boxed_slice());
     let validation = references
         .validate_page_slot(append.reference_admission(), slot_cell)
@@ -202,31 +206,6 @@ fn slot_cell(
     generations
         .slot_cell(segment(1), page(page_value), slot(3))
         .with_slot_generation(generation(slot_generation))
-}
-
-fn page_bytes(generation: PhysicalGeneration, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(worth_store_physical_format::PhysicalPageKind::DataPage.tag());
-    write_physical_header_tail(&mut bytes, generation, payload);
-    bytes
-}
-
-fn record_frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalFrameKind::RecordFrame.tag());
-    write_physical_header_tail(&mut bytes, generation(generation_value), payload);
-    bytes
-}
-
-fn write_physical_header_tail(bytes: &mut Vec<u8>, generation: PhysicalGeneration, payload: &[u8]) {
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation.get().to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
-    bytes.extend_from_slice(payload);
 }
 
 fn segment(value: u64) -> PhysicalSegmentId {

@@ -28,6 +28,7 @@ import {
   createSignalsRuntimeContract,
 } from "../runtime_contract.js";
 import { readRootHistoryFacade } from "./worker_first_root_history.js";
+import { createWorkerFirstObservationNamespace } from "./worker_first_observation_namespace.js";
 import { decorateWorkerFirstScopedHandle } from "./worker_first_scope_handle.js";
 import {
   canonicalWorkerFirstScopedSignalId,
@@ -64,7 +65,7 @@ function createNamespace(rootSession, path) {
   const contract = createSignalsRuntimeContract({
     surfaceFamily: "workerFirstScoped",
     deployment: "workerFirst",
-    scopeId: descriptor.id,
+    scopeId: descriptor.id || null,
     capabilities: {
       callableSurface: false,
       scopedAuthoring: true,
@@ -116,6 +117,7 @@ function createNamespace(rootSession, path) {
       history ??= readRootHistoryFacade(rootSession);
       return history;
     },
+    ...createWorkerFirstObservationNamespace(rootSession),
     scope(localScopeId) {
       requireNonEmptyString(localScopeId, `${operationPrefix}.scope`);
       return createWorkerFirstScopedNamespace(rootSession, [...path, localScopeId]);

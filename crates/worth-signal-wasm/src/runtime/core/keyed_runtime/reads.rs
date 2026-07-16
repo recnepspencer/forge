@@ -44,7 +44,7 @@ impl RuntimeCore {
         let mut packed = Vec::with_capacity(keys.len().saturating_mul(fields.len()));
         self.pack_fields_from_targets(&targets, &fields, &mut packed, &mut read_stats)?;
         wasm_debug(format!(
-            "[worth-signal-wasm] packed-many:read family={family_id} keys={} elapsed_ms={:.1} runtime_read_ms={:.1} field_extract_ms={:.1} source_reads={} recipe_reads={} recipe_cold_reads={} fields_packed={}",
+            "[worth-signals-wasm] packed-many:read family={family_id} keys={} elapsed_ms={:.1} runtime_read_ms={:.1} field_extract_ms={:.1} source_reads={} recipe_reads={} recipe_cold_reads={} fields_packed={}",
             read_stats.key_reads,
             perf_now_ms() - started_at,
             read_stats.runtime_read_ms,
@@ -67,7 +67,7 @@ impl RuntimeCore {
         let ensure_started_at = perf_now_ms();
         let targets = self.ensure_keyed_grid_targets(family_id, columns, rows)?;
         wasm_debug(format!(
-            "[worth-signal-wasm] packed-grid:ensure family={family_id} elapsed_ms={:.1} source_hits={} source_created={} recipe_hits={} recipe_created={}",
+            "[worth-signals-wasm] packed-grid:ensure family={family_id} elapsed_ms={:.1} source_hits={} source_created={} recipe_hits={} recipe_created={}",
             perf_now_ms() - ensure_started_at,
             targets.1.source_hits,
             targets.1.source_created,
@@ -79,7 +79,7 @@ impl RuntimeCore {
         let mut packed = Vec::with_capacity(checked_packed_capacity(columns, rows, fields.len())?);
         self.pack_fields_from_targets(&targets.0, &fields, &mut packed, &mut read_stats)?;
         wasm_debug(format!(
-            "[worth-signal-wasm] packed-grid:extract family={family_id} elapsed_ms={:.1} runtime_read_ms={:.1} field_extract_ms={:.1} keys={} source_reads={} recipe_reads={} recipe_cold_reads={} fields_packed={}",
+            "[worth-signals-wasm] packed-grid:extract family={family_id} elapsed_ms={:.1} runtime_read_ms={:.1} field_extract_ms={:.1} keys={} source_reads={} recipe_reads={} recipe_cold_reads={} fields_packed={}",
             perf_now_ms() - extract_started_at,
             read_stats.runtime_read_ms,
             read_stats.field_extract_ms,
@@ -117,7 +117,7 @@ impl RuntimeCore {
             height,
         )?;
         wasm_debug(format!(
-            "[worth-signal-wasm] packed-rect:ensure family={family_id} row={} start={} size={}x{} elapsed_ms={:.1} source_hits={} source_created={} recipe_hits={} recipe_created={}",
+            "[worth-signals-wasm] packed-rect:ensure family={family_id} row={} start={} size={}x{} elapsed_ms={:.1} source_hits={} source_created={} recipe_hits={} recipe_created={}",
             row,
             start_column,
             width,
@@ -139,7 +139,7 @@ impl RuntimeCore {
         )?);
         self.pack_fields_from_targets(&targets.0, &fields, &mut packed, &mut read_stats)?;
         wasm_debug(format!(
-            "[worth-signal-wasm] packed-rect:extract family={family_id} row={} start={} size={}x{} elapsed_ms={:.1} runtime_read_ms={:.1} field_extract_ms={:.1} keys={} source_reads={} recipe_reads={} recipe_cold_reads={} fields_packed={}",
+            "[worth-signals-wasm] packed-rect:extract family={family_id} row={} start={} size={}x{} elapsed_ms={:.1} runtime_read_ms={:.1} field_extract_ms={:.1} keys={} source_reads={} recipe_reads={} recipe_cold_reads={} fields_packed={}",
             row,
             start_column,
             clamped_width,
@@ -167,7 +167,7 @@ impl RuntimeCore {
         let evaluate_started_at = perf_now_ms();
         let read_stats = self.bulk_evaluate_targets(&targets.0)?;
         wasm_debug(format!(
-            "[worth-signal-wasm] keyed-grid:prewarm family={family_id} size={}x{} ensure_ms={:.1} evaluate_ms={:.1} source_hits={} source_created={} recipe_hits={} recipe_created={} source_reads={} recipe_reads={} recipe_cold_reads={} runtime_read_ms={:.1}",
+            "[worth-signals-wasm] keyed-grid:prewarm family={family_id} size={}x{} ensure_ms={:.1} evaluate_ms={:.1} source_hits={} source_created={} recipe_hits={} recipe_created={} source_reads={} recipe_reads={} recipe_cold_reads={} runtime_read_ms={:.1}",
             columns,
             rows,
             perf_now_ms() - ensure_started_at,

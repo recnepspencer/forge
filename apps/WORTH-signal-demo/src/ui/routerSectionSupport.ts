@@ -1,6 +1,15 @@
-import { resourcePolicyProfiles } from "worth-signal-wasm";
+import { resourcePolicyProfiles } from "worth-signals-wasm";
 
-export type SessionRole = "loggedOut" | "user" | "admin";
+export type PlantRole = "operator" | "supervisor" | "qa";
+
+export type SopRevision = "B" | "C";
+
+export interface SessionFacts {
+  role: PlantRole;
+  trainedRev: SopRevision;
+  effectiveRev: SopRevision;
+  underDeviation: boolean;
+}
 
 export interface RouterSectionModel {
   readonly routes: any;
@@ -8,290 +17,244 @@ export interface RouterSectionModel {
   readonly routeOptions: ReadonlyArray<{ path: string; label: string }>;
 }
 
-export interface CatalogPageJson {
-  readonly summary: string;
-  readonly items: ReadonlyArray<{ name: string; price: string }>;
-}
-
-export interface OrderPageJson {
-  readonly orderId: string;
-  readonly customer: string;
-  readonly shipment: string;
-  readonly payment: string;
-}
-
-export interface AdminProductsPageJson {
-  readonly updatedAt: string;
-  readonly rows: ReadonlyArray<{ name: string; status: string }>;
-}
-
-export interface RevenueReportPageJson {
-  readonly updatedAt: string;
-  readonly totals: ReadonlyArray<{ label: string; value: string }>;
-}
-
-export const roleLabels: Record<SessionRole, string> = {
-  loggedOut: "Logged out",
-  user: "User",
-  admin: "Admin",
+export const roleLabels: Record<PlantRole, string> = {
+  operator: "Operator",
+  supervisor: "Line supervisor",
+  qa: "QA specialist",
 };
 
-const routeOptions = [
-  { path: "/catalog", label: "Catalog" },
-  { path: "/orders/123", label: "Order details" },
-  { path: "/admin/products", label: "Admin products" },
-  { path: "/reports/revenue", label: "Revenue report" },
+/** Training on SOP-042 by role; the operator trained before the rev bump. */
+export const ROLE_TRAINED_REV: Record<PlantRole, SopRevision> = {
+  operator: "B",
+  supervisor: "C",
+  qa: "B",
+};
+
+export const ROUTE_OPTIONS = [
+  { path: "/line/overview", label: "Line overview" },
+  { path: "/batches/B-2214/record", label: "Batch record" },
+  { path: "/batches/B-2214/steps/4", label: "Execute step 4" },
+  { path: "/batches/B-2214/release", label: "Quality release" },
 ] as const;
 
-const fakeApiJson = {
-  catalog: {
-    summary: "3 products loaded",
-    items: [
-      { name: "Carry-On", price: "$120" },
-      { name: "Weekender", price: "$168" },
-      { name: "Travel Kit", price: "$42" },
-    ],
-  } satisfies CatalogPageJson,
-  orders: {
-    "123": {
-      orderId: "123",
-      customer: "Maya Chen",
-      shipment: "US priority",
-      payment: "Paid by card",
-    } satisfies OrderPageJson,
+export interface ReplayPersona {
+  id: string;
+  label: string;
+  facts: Omit<SessionFacts, "underDeviation">;
+}
+
+export const REPLAY_PERSONAS: ReplayPersona[] = [
+  {
+    id: "operator-revB",
+    label: "Operator Â· trained rev B",
+    facts: { role: "operator", trainedRev: "B", effectiveRev: "C" },
   },
-  adminProducts: {
-    updatedAt: "Synced 2m ago",
-    rows: [
-      { name: "Carry-On", status: "Price edit enabled" },
-      { name: "Shipping policy", status: "Route-coupled form available" },
+  {
+    id: "operator-revC",
+    label: "Operator Â· retrained rev C",
+    facts: { role: "operator", trainedRev: "C", effectiveRev: "C" },
+  },
+  {
+    id: "qa",
+    label: "QA specialist",
+    facts: { role: "qa", trainedRev: "B", effectiveRev: "C" },
+  },
+];
+
+const pageData = {
+  overview: {
+    line: "Line L-03 Â· Infusion pump assembly",
+    shift: "Day shift Â· 2 of 3 stations active",
+    wip: [
+      { batch: "B-2213", status: "Quality release pending" },
+      { batch: "B-2214", status: "In process Â· step 4 of 7" },
     ],
-  } satisfies AdminProductsPageJson,
-  revenueReport: {
-    updatedAt: "Latest warehouse close",
-    totals: [
-      { label: "Gross revenue", value: "$182,400" },
-      { label: "Net sales", value: "$164,090" },
-      { label: "Return rate", value: "1.8%" },
+  },
+  batchRecord: {
+    batch: "B-2214",
+    product: "IP-400 infusion pump",
+    status: "In process",
+    steps: [
+      { step: "1 Â· Line clearance", status: "complete" },
+      { step: "2 Â· Sub-assembly install", status: "complete" },
+      { step: "3 Â· Firmware load", status: "complete" },
+      { step: "4 Â· Torque verification", status: "pending" },
+      { step: "5 Â· Leak test", status: "not started" },
     ],
-  } satisfies RevenueReportPageJson,
+  },
+  stepFour: {
+    step: "Step 4 Â· Torque verification",
+    sop: "SOP-042 Â· Torque verification procedure",
+    spec: "0.9 â€“ 1.1 NÂ·m on fasteners F1â€“F4",
+    instrument: "Calibrated driver TD-118 Â· cal due 2026-09-02",
+  },
+  release: {
+    batch: "B-2214",
+    checklist: [
+      { item: "All steps executed", state: "blocked Â· step 4 pending" },
+      { item: "Deviations reviewed", state: "0 open" },
+      { item: "Device history record complete", state: "pending" },
+    ],
+  },
 } as const;
+
+export type OverviewPage = typeof pageData.overview;
+export type BatchRecordPage = typeof pageData.batchRecord;
+export type StepFourPage = typeof pageData.stepFour;
+export type ReleasePage = typeof pageData.release;
 
 function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
 async function loadJson<T>(value: T): Promise<T> {
-  await new Promise((resolve) => window.setTimeout(resolve, 300));
+  await new Promise((resolve) => window.setTimeout(resolve, 260));
   return cloneJson(value);
 }
 
-async function waitForPolicy(): Promise<void> {
-  await new Promise((resolve) => window.setTimeout(resolve, 300));
+async function policyDelay(): Promise<void> {
+  await new Promise((resolve) => window.setTimeout(resolve, 220));
 }
 
 export function buildRouterSectionModel(signals: any): RouterSectionModel {
   const api = signals.api({
-    baseUrl: "/router-demo-api",
+    baseUrl: "/mes-demo-api",
     effects: signals.resource.effects.branchNative(),
   });
   const defaultPolicy = resourcePolicyProfiles.stable();
 
-  const catalogFamily = api.url("/catalog")
-    .items((item: { name: string }) => item.name)
-    .reconcile(
-      (value: CatalogPageJson) => value.items,
-      (value: CatalogPageJson, nextItems: CatalogPageJson["items"]) => ({
-        ...value,
-        items: [...nextItems],
-      }),
-    )
-    .summary(
-      "summary",
-      (value: CatalogPageJson) => value.summary,
-      (value: CatalogPageJson, summary: string) => ({ ...value, summary }),
-    )
-    .list({
-      policy: defaultPolicy,
-      load: async () => loadJson(fakeApiJson.catalog),
-    });
-
-  const orderFamily = api.url("/orders/:orderId").detail({
+  const overviewFamily = api.url("/line/overview").detail({
     policy: defaultPolicy,
-    load: async ({ orderId }: { orderId: string }) =>
-      loadJson(fakeApiJson.orders[orderId as keyof typeof fakeApiJson.orders]),
+    load: async () => loadJson(pageData.overview),
+  });
+  const batchRecordFamily = api.url("/batches/:batchId/record").detail({
+    policy: defaultPolicy,
+    load: async () => loadJson(pageData.batchRecord),
+  });
+  const stepFamily = api.url("/batches/:batchId/steps/:stepId").detail({
+    policy: defaultPolicy,
+    load: async () => loadJson(pageData.stepFour),
+  });
+  const releaseFamily = api.url("/batches/:batchId/release").detail({
+    policy: defaultPolicy,
+    load: async () => loadJson(pageData.release),
   });
 
-  const adminProductsFamily = api.url("/admin/products").detail({
-    policy: defaultPolicy,
-    load: async () => loadJson(fakeApiJson.adminProducts),
-  });
-
-  const revenueReportFamily = api.url("/reports/revenue").detail({
-    policy: defaultPolicy,
-    load: async () => loadJson(fakeApiJson.revenueReport),
-  });
-
-  const requiresSession = signals.router.prerequisite(
-    "requiresSession",
-    async ({ facts, allow, redirect }: any) => {
-      await waitForPolicy();
-      return facts.role === "loggedOut"
-        ? redirect({
-            href: "/sign-in",
-            reason: "signInRequired",
-            detail: "Route requires an authenticated session.",
-          })
-        : allow({ reason: "sessionPresent" });
+  const stepExecution = signals.router.prerequisite(
+    "stepExecution",
+    async ({ facts, allow, forbidden }: any) => {
+      await policyDelay();
+      if (facts.role !== "operator" && facts.role !== "supervisor") {
+        return forbidden({
+          reason: "executionRequiresProductionRole",
+          detail: "Batch step execution requires a production role.",
+        });
+      }
+      if (facts.trainedRev === facts.effectiveRev) {
+        return allow({ reason: "trainingCurrent" });
+      }
+      if (facts.underDeviation) {
+        return allow({ reason: "deviationRecorded" });
+      }
+      return forbidden({
+        reason: "trainingSupersededByRevision",
+        detail: `Trained on SOP-042 rev ${facts.trainedRev}; effective revision is now ${facts.effectiveRev}.`,
+      });
     },
   );
 
-  const adminOnly = signals.router.prerequisite(
-    "adminOnly",
+  const qaRelease = signals.router.prerequisite(
+    "qaRelease",
     async ({ facts, allow, forbidden }: any) => {
-      await waitForPolicy();
-      return facts.role === "admin"
-        ? allow({ reason: "adminRolePresent" })
+      await policyDelay();
+      return facts.role === "qa"
+        ? allow({ reason: "qualityRolePresent" })
         : forbidden({
-            reason: "adminRoleRequired",
-            detail: "Route requires the admin role.",
+            reason: "releaseRequiresQuality",
+            detail: "Quality release is restricted to the quality unit.",
           });
     },
   );
 
   const routes = signals.router.define({
-    catalog: signals.router.route("/catalog", {
+    overview: signals.router.route("/line/overview", {
       resources: {
-        page: signals.router.resourceLine(catalogFamily, {
+        page: signals.router.resourceLine(overviewFamily, {
           params: () => ({}),
           prefetch: "intent",
         }),
       },
     }),
-    orderDetails: signals.router.route("/orders/:orderId", {
-      admission: [requiresSession],
+    batchRecord: signals.router.route("/batches/:batchId/record", {
       resources: {
-        page: signals.router.resourceLine(orderFamily, {
-          params: ({ params }: any) => ({ orderId: params.orderId }),
+        page: signals.router.resourceLine(batchRecordFamily, {
+          params: ({ params }: any) => ({ batchId: params.batchId }),
           prefetch: "intent",
         }),
       },
     }),
-    adminProducts: signals.router.route("/admin/products", {
-      admission: [requiresSession, adminOnly],
+    stepExecute: signals.router.route("/batches/:batchId/steps/:stepId", {
+      admission: [stepExecution],
       resources: {
-        page: signals.router.resourceLine(adminProductsFamily, {
-          params: () => ({}),
+        page: signals.router.resourceLine(stepFamily, {
+          params: ({ params }: any) => ({ batchId: params.batchId, stepId: params.stepId }),
           prefetch: "intent",
         }),
       },
     }),
-    revenueReport: signals.router.route("/reports/revenue", {
-      admission: [requiresSession, adminOnly],
+    release: signals.router.route("/batches/:batchId/release", {
+      admission: [qaRelease],
       resources: {
-        page: signals.router.resourceLine(revenueReportFamily, {
-          params: () => ({}),
+        page: signals.router.resourceLine(releaseFamily, {
+          params: ({ params }: any) => ({ batchId: params.batchId }),
           prefetch: "intent",
         }),
       },
     }),
-    signIn: signals.router.route("/sign-in"),
   });
 
   return {
     routes,
-    initialTarget: routeOptions[0].path,
-    routeOptions,
+    initialTarget: ROUTE_OPTIONS[2].path,
+    routeOptions: ROUTE_OPTIONS,
   };
 }
 
-export function formatBrowserResult(
-  role: SessionRole,
-  report: any,
-  story: any,
-  pageLine: any,
-): string {
-  const outcome = report?.outcome?.();
-  const inspection = story?.inspection?.() ?? null;
-  const auditability = story?.auditability?.() ?? null;
-  const admittedHistory = story?.admittedEntries?.() ?? [];
-  const boundaryEvents = story?.events?.() ?? [];
-  const inspectionSummary = inspection?.summary?.() ?? null;
-  const auditabilitySummary = auditability?.summary?.() ?? null;
-
-  return JSON.stringify(
-    {
-      role,
-      current: {
-        attemptedHref: report?.rawLocationHref ?? null,
-        visibleHref: story?.current?.()?.href ?? null,
-        outcomeKind: outcome?.kind ?? null,
-        routeId: story?.current?.()?.routeId ?? null,
-      },
-      page:
-        pageLine && outcome?.kind === "admitted"
-          ? {
-              status: pageLine.status().kind,
-              freshness: pageLine.freshness().kind,
-            }
-          : null,
-      history: {
-        entries: admittedHistory.length,
-        events: boundaryEvents.length,
-        visibleSource: auditabilitySummary?.currentVisibleRouteSource ?? null,
-        latestBoundary: auditabilitySummary?.latestBoundaryArtifact ?? null,
-        chain: admittedHistory.map((entry: any) => ({
-          href: entry.href,
-          routeId: entry.routeId,
-        })),
-        boundaryEvents: boundaryEvents.map((event: any) => ({
-          targetHref: event.targetHref,
-          outcomeKind: event.outcomeKind,
-          boundaryArtifact: event.boundaryArtifact,
-        })),
-      },
-      inspection: inspectionSummary
-        ? {
-            currentEntryAvailable: inspectionSummary.currentEntryAvailable,
-            backProvenanceAvailable: inspectionSummary.backProvenanceAvailable,
-            convergedBoundaryEventCount: inspectionSummary.convergedBoundaryEventCount,
-            notAdmittedBoundaryEventCount: inspectionSummary.notAdmittedBoundaryEventCount,
-          }
-        : null,
-    },
-    null,
-    2,
-  );
+export interface OutcomeView {
+  kind: string;
+  tone: "admitted" | "deviation" | "redirected" | "denied";
+  label: string;
+  reason: string | null;
+  detail: string | null;
 }
 
-export function formatSequenceResult(
-  role: SessionRole,
-  result: any,
-): string {
-  return JSON.stringify(
-    {
-      role,
-      steps:
-        result?.steps?.map((step: any) => ({
-          targetHref: step.targetHref,
-          outcomeKind: step.report.outcome().kind,
-          routeId: step.current?.routeId ?? null,
-          href: step.current?.href ?? null,
-          boundaryArtifact: step.event.boundaryArtifact,
-        })) ?? [],
-      current: result?.story?.current?.()
-        ? {
-            routeId: result.story.current().routeId,
-            href: result.story.current().href,
-          }
-        : null,
-      history:
-        result?.story?.admittedEntries?.().map((entry: any) => ({
-          routeId: entry.routeId,
-          href: entry.href,
-        })) ?? [],
-    },
-    null,
-    2,
-  );
+export function describeOutcome(report: any, underDeviation: boolean): OutcomeView {
+  const outcome = report?.outcome?.() ?? null;
+  const kind = outcome?.kind ?? "unknown";
+  const artifact = (() => {
+    try {
+      return outcome?.artifact?.() ?? null;
+    } catch {
+      return null;
+    }
+  })();
+  const reason = artifact?.reason ?? null;
+  const detail = artifact?.detail ?? null;
+
+  if (kind === "admitted") {
+    if (underDeviation && reason === null) {
+      return { kind, tone: "deviation", label: "admitted Â· deviation", reason: "deviationRecorded", detail };
+    }
+    return {
+      kind,
+      tone: reason === "deviationRecorded" ? "deviation" : "admitted",
+      label: reason === "deviationRecorded" ? "admitted Â· deviation" : "admitted",
+      reason,
+      detail,
+    };
+  }
+  if (kind === "redirect") {
+    return { kind, tone: "redirected", label: "redirected", reason, detail };
+  }
+  return { kind, tone: "denied", label: "denied", reason, detail };
 }

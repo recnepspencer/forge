@@ -154,10 +154,10 @@ fn assert_counter(performance: &RecoveryCounterPerformanceReceipt, name: &str, e
     assert_eq!(observed, expected);
 }
 
-fn surface<'a>(
-    surfaces: &'a [worth_store_recovery_physics::RecoveryPerformanceSurface],
+fn surface(
+    surfaces: &[worth_store_recovery_physics::RecoveryPerformanceSurface],
     kind: RecoveryPerformanceSurfaceKind,
-) -> &'a worth_store_recovery_physics::RecoveryPerformanceSurface {
+) -> &worth_store_recovery_physics::RecoveryPerformanceSurface {
     surfaces
         .iter()
         .find(|surface| surface.kind() == kind)

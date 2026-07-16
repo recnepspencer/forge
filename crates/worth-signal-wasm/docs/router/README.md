@@ -1,6 +1,6 @@
 # Router Docs
 
-These docs cover the shipped router surface in `worth-signal-wasm`.
+These docs cover the shipped router surface in `worth-signals-wasm`.
 
 The router is a graph-native navigation product. It owns typed route
 authoring, projection, admission, browser-history truth, recovery,

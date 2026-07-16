@@ -1,4 +1,4 @@
-# worth-signal-wasm Router Test Requirements
+# worth-signals-wasm Router Test Requirements
 
 > **Status:** Planned certification spec
 >
@@ -10,7 +10,7 @@
 
 ## Purpose
 
-This document defines the certification bar for the `worth-signal-wasm`
+This document defines the certification bar for the `worth-signals-wasm`
 router and navigation product surface.
 
 It is not a list of example route tests.

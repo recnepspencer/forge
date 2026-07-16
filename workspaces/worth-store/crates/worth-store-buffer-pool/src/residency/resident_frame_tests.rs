@@ -10,7 +10,7 @@ use worth_store_contracts::{
 use worth_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness,
-    PhysicalPageId, PhysicalPageKind, PhysicalPublicationState, PhysicalRecordSlot,
+    PhysicalPageId, PhysicalPageKind, PhysicalRecordSlot,
     PhysicalReferenceAuthority, PhysicalReferenceValidationWitness, PhysicalSegmentId,
     PHYSICAL_HEADER_LENGTH,
 };
@@ -276,11 +276,7 @@ fn frame_header_witness(
     header_authority()
         .decode_frame_header(
             validated_slot_reference(generation_value, page_value),
-            &header_bytes(
-                PhysicalFrameKind::RecordFrame.tag(),
-                generation_value,
-                payload_len,
-            ),
+            &frame_bytes(generation_value, page_value, payload_len),
             PhysicalFrameKind::RecordFrame,
         )
         .unwrap()
@@ -294,7 +290,7 @@ fn page_header_witness(generation_value: u64, page_value: u64) -> PhysicalHeader
     header_authority()
         .decode_page_header(
             cell,
-            &header_bytes(PhysicalPageKind::DataPage.tag(), generation_value, 4),
+            &page_bytes(generation_value, page_value, 4),
             PhysicalPageKind::DataPage,
         )
         .unwrap()
@@ -307,16 +303,29 @@ fn header_authority() -> PhysicalHeaderAuthority {
     )
 }
 
-fn header_bytes(kind_tag: u8, generation_value: u64, payload_len: usize) -> Vec<u8> {
+fn frame_bytes(generation_value: u64, page_value: u64, payload_len: usize) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload_len);
-    bytes.push(kind_tag);
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload_len as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation_value.to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
+        .slot_cell(segment(1), page(page_value), slot(3))
+        .with_slot_generation(generation(generation_value));
+    bytes.extend_from_slice(&header_authority().encode_record_frame_header(
+        cell,
+        payload_len.try_into().expect("bounded fixture payload"),
+    ));
+    bytes.resize(PHYSICAL_HEADER_LENGTH as usize + payload_len, 0xAB);
+    bytes
+}
+
+fn page_bytes(generation_value: u64, page_value: u64, payload_len: usize) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload_len);
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
+        .page_cell(segment(1), page(page_value))
+        .with_page_generation(generation(generation_value));
+    bytes.extend_from_slice(&header_authority().encode_page_header(
+        cell,
+        PhysicalPageKind::DataPage,
+        payload_len.try_into().expect("bounded fixture payload"),
+    ));
     bytes.resize(PHYSICAL_HEADER_LENGTH as usize + payload_len, 0xAB);
     bytes
 }

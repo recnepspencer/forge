@@ -292,7 +292,14 @@ class WorkerFirstRootAuthoredRuntime {
   invalidate(message) { invalidateWorkerFirstAuthoredInputs(this.#authoredInputs, message); invalidateWorkerFirstAuthoredReadables(this.#authoredReadables, message); }
 
   async settlePendingPublications() {
-    if (this.#pendingPublications.size > 0) await Promise.all([...this.#pendingPublications]);
+    while (this.#pendingPublications.size > 0) {
+      await Promise.all([...this.#pendingPublications]);
+    }
+  }
+
+  hasAuthoredSignalId(id) {
+    return this.#authoredInputs.has(id)
+      || hasWorkerFirstAuthoredReadableId(this.#authoredReadables, id);
   }
 
   async refreshAllReadables() {

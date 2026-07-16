@@ -22,6 +22,7 @@ pub use admission::BlobStreamingReadAdmission;
 pub use counters::BlobStreamingReadCounterSnapshot;
 pub use denial::{reject_full_blob_vec_as_streaming_read, BlobStreamingReadDenial};
 pub use observation::{BlobStreamingReadObservation, BlobStreamingReadObservedChunk};
+pub use orchestration::BlobStreamingReadExecution;
 pub use receipt_construction::BlobStreamingReadCounterBackedPerformanceReceipt;
 pub use request::{BlobStreamingReadRequest, BlobStreamingReadWindow};
 pub use types::BlobStreamingVerifiedRead;

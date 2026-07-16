@@ -4,199 +4,74 @@ import test from "node:test";
 import { createRealResourceTestRuntime } from "../runtime_fixture/real_resource_runtime.mjs";
 import { createBranchHead } from "../runtime_fixture/real_resource_signals.mjs";
 
-test("branch-speculative patches preserve rejected restore-target lookup detail", async () => {
-  const runtime = await createRealResourceTestRuntime({
-    current_branch(history) {
-      return {
-        ...history.current_branch(),
-        head_snapshot_id: null,
-      };
-    },
-    branch_snapshot_id() {
-      throw new Error("snapshot index was compacted");
-    },
-  });
-  try {
-    const branch = createBranchHead(runtime.signals, "effect-snapshot-rejected");
-    const line = createEffectCollectionLine(runtime, {
-      effects: runtime.mod.resourceEffects.branchNative(),
-    });
-
-    line.patch(
-      runtime.mod.resourcePatch.itemAspect({
-        itemId: "demo:1",
-        aspect: "title",
-        value: "Committed After Snapshot Rejection",
-      }),
-    );
-
-    assert.deepEqual(line.diagnostics().lastEffect.plan.branch, {
-      kind: "optimisticUnavailable",
-      profileName: "branchNative",
-      optimism: "branchSpeculative",
-      rollback: "branchRestoreOrInverse",
-      reason: "runtimeRejected",
-      detail:
-        "resource effect branch speculation is unavailable because branch_snapshot_id(...) rejected restore-target lookup: snapshot index was compacted",
-      branchId: branch.id,
-      snapshotId: null,
-      inverseAvailable: false,
-      proofBreadth: 2,
-    });
-    assert.deepEqual(line.history().lifecycle.at(-1).lastEffect.optimistic, {
-      kind: "unavailable",
-      admissionKind: "localPatch",
-      branchPosture: "optimisticUnavailable",
-      reason: "runtimeRejected",
-      detail:
-        "resource effect branch speculation is unavailable because branch_snapshot_id(...) rejected restore-target lookup: snapshot index was compacted",
-      branchId: branch.id,
-      snapshotId: null,
-      inverseAvailable: false,
-      rollback: {
-        kind: "unavailable",
-        reason: "runtimeRejected",
-        detail:
-          "resource effect branch speculation is unavailable because branch_snapshot_id(...) rejected restore-target lookup: snapshot index was compacted",
-        branchId: branch.id,
-        snapshotId: null,
-        inverseAvailable: false,
-      },
-    });
-  } finally {
-    await runtime.cleanup();
-  }
-});
-
-test("branch-speculative patches record compact inverse posture when exact restore is unsafe", async () => {
+test("branch-native effects isolate rollback in an effect-owned branch", async () => {
   const runtime = await createRealResourceTestRuntime({
     restore_branch_snapshot_by_id: undefined,
   });
   try {
-    const branch = createBranchHead(runtime.signals, "effect-denial");
-    const snapshotId = Number(
-      runtime.signals.history().branch_snapshot_id(branch.id),
-    );
+    const canonical = createBranchHead(runtime.signals, "effect-owned-posture");
     const line = createEffectCollectionLine(runtime, {
       effects: runtime.mod.resourceEffects.branchNative(),
     });
+    const baselineBranchCount = runtime.signals.history().branches().length;
 
-    line.patch(
-      runtime.mod.resourcePatch.itemAspect({
-        itemId: "demo:1",
-        aspect: "title",
-        value: "Committed Without Speculation",
-      }),
-    );
+    await line.patch(titlePatch(runtime, "Optimistic"));
 
     const effect = line.diagnostics().lastEffect;
+    assert.equal(effect.plan.branch.kind, "effectOwnedBranch");
+    assert.notEqual(effect.plan.branch.branchId, Number(canonical.id));
+    assert.equal(
+      effect.plan.branch.nativeAncestryProof.parentBranchId,
+      Number(canonical.id),
+    );
+    assert.deepEqual(effect.plan.branch.semanticDependencyProof.effectIds, []);
     assert.deepEqual(effect.optimistic.rollback, {
-      kind: "compactInverseAvailable",
-      mode: "CompactInversePatch",
-      branchId: branch.id,
-      snapshotId,
-      inverse: {
-        kind: "compactPatchInverse",
-        mode: "CompactInversePatch",
-        preimage: "aspectValue",
-        scope: "aspect",
-        itemId: "demo:1",
-        field: null,
-        aspect: "title",
-        summary: null,
-        patch: {
-          kind: "itemAspect",
-          itemId: "demo:1",
-          aspect: "title",
-          value: "Loaded",
-        },
-        cost: {
-          retainedValueCount: 1,
-          retainedResponsePreimage: false,
-        },
-      },
-      detail:
-        "resource effect rollback can apply the compact inverse captured before speculative mutation",
+      kind: "effectBranchRetirementAvailable",
+      branchId: effect.plan.branch.branchId,
+      dependencyBasisBranchId: null,
+      mode: "EffectBranchRetirement",
     });
-    assert.equal(effect.counters.rollbackReadinessBreadth, 1);
-    assert.equal(line.value().items[0].title, "Committed Without Speculation");
+    assert.equal(line.effects().open().length, 1);
+    assert.equal(
+      runtime.signals.history().branches().length,
+      baselineBranchCount + 2,
+    );
+
+    await line.effects().reject(effect.effectId);
+    assert.equal(runtime.signals.history().branches().length, baselineBranchCount);
+    assert.equal(line.value().items[0].title, "Loaded");
   } finally {
     await runtime.cleanup();
   }
 });
 
-test("branch-speculative patches deny optimism when exact restore and compact inverse are both unavailable", async () => {
-  const runtime = await createRealResourceTestRuntime({
-    restore_branch_snapshot_by_id: undefined,
-  });
+test("branch-native admission fails typed and leak-free without command authority", async () => {
+  const runtime = await createRealResourceTestRuntime({ fork_branch: undefined });
   try {
-    const branch = createBranchHead(runtime.signals, "effect-inverse-denial");
-    const snapshotId = Number(
-      runtime.signals.history().branch_snapshot_id(branch.id),
-    );
+    createBranchHead(runtime.signals, "effect-command-denial");
     const line = createEffectCollectionLine(runtime, {
       effects: runtime.mod.resourceEffects.branchNative(),
     });
+    const baselineBranchCount = runtime.signals.history().branches().length;
 
-    line.patch(
-      runtime.mod.resourcePatch.replace({
-        items: [{ id: "demo:1", title: "Broad Replacement" }],
-      }),
+    assert.throws(
+      () => line.patch(titlePatch(runtime, "Denied")),
+      (error) => error.name === "ResourceEffectBranchUnavailable"
+        && error.code === "unsupportedByRuntime",
     );
 
-    assert.deepEqual(line.diagnostics().lastEffect.optimistic.rollback, {
-      kind: "unavailable",
-      reason: "restoreUnavailable",
-      detail:
-        "resource effect branch speculation is unavailable because the Signals runtime cannot restore a captured exact branch snapshot by id and the local patch does not carry an admissible safe compact inverse",
-      branchId: branch.id,
-      snapshotId,
-      inverseAvailable: false,
-    });
+    assert.equal(line.value().items[0].title, "Loaded");
+    assert.equal(line.effects().open().length, 0);
+    assert.equal(runtime.signals.history().branches().length, baselineBranchCount);
   } finally {
     await runtime.cleanup();
   }
 });
 
-test("branch-speculative patches explain missing branch proof without route-local fallback", async () => {
-  const runtime = await createRealResourceTestRuntime({
-    current_branch: undefined,
-  });
-  try {
-    const line = createEffectCollectionLine(runtime, {
-      effects: runtime.mod.resourceEffects.sensitive(),
-    });
-
-    line.patch(
-      runtime.mod.resourcePatch.itemAspect({
-        itemId: "demo:1",
-        aspect: "title",
-        value: "Committed Without Branch Proof",
-      }),
-    );
-
-    assert.deepEqual(line.diagnostics().lastEffect.plan.branch, {
-      kind: "optimisticUnavailable",
-      profileName: "sensitive",
-      optimism: "branchSpeculative",
-      rollback: "branchRestore",
-      reason: "unsupportedByRuntime",
-      detail:
-        "resource effect branch speculation is unavailable because the Signals runtime does not expose current_branch(...)",
-      branchId: null,
-      snapshotId: null,
-      inverseAvailable: false,
-      proofBreadth: 0,
-    });
-  } finally {
-    await runtime.cleanup();
-  }
-});
-
-test("non-optimistic local patches stay committed-only without branch proof reads", async () => {
+test("pessimistic effects remain committed-only without branch reads", async () => {
   const runtime = await createRealResourceTestRuntime({
     current_branch() {
-      throw new Error("branch proof must not be read for pessimistic effects");
+      throw new Error("committed effects must not read branch proof");
     },
   });
   try {
@@ -204,46 +79,25 @@ test("non-optimistic local patches stay committed-only without branch proof read
       effects: runtime.mod.resourceEffects.pessimistic(),
     });
 
-    line.patch(
-      runtime.mod.resourcePatch.itemAspect({
-        itemId: "demo:1",
-        aspect: "title",
-        value: "Pessimistic Commit",
-      }),
-    );
+    await line.patch(titlePatch(runtime, "Committed"));
 
-    assert.deepEqual(line.diagnostics().lastEffect.plan.branch, {
-      kind: "committedOnly",
-      profileName: "pessimistic",
-      optimism: "none",
-      rollback: "unavailable",
-      reason: "profileDisablesOptimism",
-      detail:
-        'resource effect profile "pessimistic" disables optimistic branch application',
-      proofBreadth: 0,
-    });
-    assert.deepEqual(line.diagnostics().lastEffect.optimistic, {
-      kind: "committed",
-      admissionKind: "localPatch",
-      branchPosture: "committedOnly",
-      reason: "profileDisablesOptimism",
-      detail:
-        'resource effect profile "pessimistic" disables optimistic branch application',
-      rollback: {
-        kind: "notApplicable",
-        reason: "profileDisablesOptimism",
-        detail:
-          "committed-only resource effects do not carry speculative rollback state",
-      },
-      confirmation: {
-        kind: "notApplicable",
-        detail: "local resource effects await server confirmation",
-      },
-    });
+    const effect = line.diagnostics().lastEffect;
+    assert.equal(effect.plan.branch.kind, "committedOnly");
+    assert.equal(effect.optimistic.kind, "committed");
+    assert.equal(effect.branchLifecycle.kind, "notApplicable");
+    assert.equal(line.value().items[0].title, "Committed");
   } finally {
     await runtime.cleanup();
   }
 });
+
+function titlePatch(runtime, value) {
+  return runtime.mod.resourcePatch.itemAspect({
+    itemId: "demo:1",
+    aspect: "title",
+    value,
+  });
+}
 
 function createEffectCollectionLine(runtime, options) {
   const { mod, resource } = runtime;
@@ -263,9 +117,7 @@ function createEffectCollectionLine(runtime, options) {
         },
       }),
     }),
-    load: () => ({
-      items: [{ id: "demo:1", title: "Loaded" }],
-    }),
+    load: () => ({ items: [{ id: "demo:1", title: "Loaded" }] }),
   });
   return family.line({ workspaceId: "demo" });
 }

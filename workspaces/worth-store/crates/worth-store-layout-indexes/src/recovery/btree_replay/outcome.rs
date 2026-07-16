@@ -28,7 +28,7 @@ pub fn btree_replay_cases() -> impl Iterator<Item = BTreeReplayCaseId> {
 
 #[derive(Debug)]
 enum BTreeReplayCase {
-    Replayed(crate::BaselineBTreeReplayRecoveryExecution),
+    Replayed(Box<crate::BaselineBTreeReplayRecoveryExecution>),
     Denied(BTreeReplayDenied),
 }
 
@@ -49,7 +49,7 @@ impl BTreeReplayOutcome {
     ) -> Self {
         Self {
             case: match result {
-                Ok(execution) => BTreeReplayCase::Replayed(execution),
+                Ok(execution) => BTreeReplayCase::Replayed(Box::new(execution)),
                 Err(denial) => BTreeReplayCase::Denied(denial),
             },
         }
@@ -70,7 +70,7 @@ impl BTreeReplayOutcome {
         self,
     ) -> Result<crate::BaselineBTreeReplayRecoveryExecution, BTreeReplayDenied> {
         match self.case {
-            BTreeReplayCase::Replayed(execution) => Ok(execution),
+            BTreeReplayCase::Replayed(execution) => Ok(*execution),
             BTreeReplayCase::Denied(denial) => Err(denial),
         }
     }

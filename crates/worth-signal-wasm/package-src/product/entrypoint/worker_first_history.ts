@@ -50,6 +50,24 @@ export function createWorkerFirstHistoryFacade(session) {
     create_branch(name) {
       return session.bridge.createBranch(name);
     },
+    worker_branch_basis(branchId) {
+      return session.bridge.workerBranchBasis(branchId);
+    },
+    fork_branch(request) {
+      return session.bridge.forkBranch(request);
+    },
+    apply_transaction_to_branch(request) {
+      return session.bridge.applyTransactionToBranch(request);
+    },
+    retire_branch(request) {
+      return session.bridge.retireBranch(request);
+    },
+    retire_branches(request) {
+      return session.bridge.retireBranches(request);
+    },
+    closeout_effect_branch(request) {
+      return session.bridge.closeoutEffectBranch(request);
+    },
     switch_branch(branchId) {
       return session.bridge.switchBranch(branchId);
     },

@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
 import { createBranchHead, createRealResourceSignals } from "../runtime_fixture/real_resource_signals.mjs";
 import { createRealRequestRuntime } from "../runtime_fixture/real_request_runtime.mjs";
 
@@ -55,7 +54,7 @@ test("resource branch namespace binds merge plans to resource effect loci", asyn
     const tasks = createBranchMergeTasks(signals);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Merged Through Resource Effect",
@@ -125,7 +124,7 @@ test("resource effect merge planning binds effect policy into native previews", 
     const tasks = createBranchMergeTasks(signals);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Policy Bound",
@@ -176,7 +175,7 @@ test("resource effect merge planning projects native conflicts onto resource loc
     const tasks = createBranchMergeTasks(signals);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Conflict Target",
@@ -267,7 +266,7 @@ test("resource effect merge planning denies branch-mismatched effects", async ()
     const tasks = createBranchMergeTasks(signals);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Branch Bound",
@@ -301,7 +300,7 @@ test("resource effect merge planning denies contradictory caller policies", asyn
     const tasks = createBranchMergeTasks(signals);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Policy Denial",
@@ -335,7 +334,7 @@ test("resource effect merge planning denies tampered issued effect envelopes", a
     const tasks = createBranchMergeTasks(signals);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "task:1",
       aspect: "title",
       value: "Tamper Target",

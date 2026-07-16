@@ -52,6 +52,26 @@ export function readFormResourceVisibleSelectionReport(visibleSelection) {
         branchProof,
         rebaseProof,
       });
+    case "derivedEffectProjectionBranch":
+      return freezeVisibleSelection({
+        kind: "derivedEffectProjectionBranch",
+        source: visibleSelection.source,
+        effectId: visibleSelection.effectId,
+        branchId: visibleSelection.branchId,
+        snapshotId: visibleSelection.snapshotId,
+        basisId: visibleSelection.basisId,
+        unavailableReason: null,
+        rollbackKind: null,
+        confirmationKind: null,
+        previousEffectId: null,
+        orderedEffectIds: Object.freeze([
+          ...(visibleSelection.orderedEffectIds ?? []),
+        ]),
+        projectionDigest: visibleSelection.projectionDigest ?? null,
+        detail: visibleSelection.detail,
+        branchProof,
+        rebaseProof,
+      });
     case "confirmed":
       return freezeVisibleSelection({
         kind: "confirmed",
@@ -109,6 +129,7 @@ function normalizeBranchProof(visibleSelection) {
   const admitted = visibleSelection.branchId !== null
     && (
       visibleSelection.kind === "speculative"
+      || visibleSelection.kind === "derivedEffectProjectionBranch"
       || visibleSelection.kind === "confirmed"
       || visibleSelection.kind === "restored"
       || visibleSelection.kind === "merged"

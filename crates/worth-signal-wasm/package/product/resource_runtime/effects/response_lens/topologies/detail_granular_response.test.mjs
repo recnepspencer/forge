@@ -17,7 +17,7 @@ test("detail field responses close narrow field effect topology proof", async ()
     });
     const line = users.line({ userId: "user:1" });
 
-    line.patch(users.patch.field({
+    await line.patch(users.patch.field({
       field: "name",
       value: "Local",
     }));
@@ -89,7 +89,7 @@ test("detail JSON path responses close narrow JSON path effect topology proof", 
       });
     const line = workflow.line({ workflowId: "workflow:1" });
 
-    line.patch(workflow.patch.jsonPath({
+    await line.patch(workflow.patch.jsonPath({
       path: "title",
       value: "Local",
     }));
@@ -176,7 +176,7 @@ test("detail region responses close narrow region effect topology proof", async 
       });
     const line = workflow.line({ workflowId: "workflow:1" });
 
-    line.patch(workflow.patch.region({
+    await line.patch(workflow.patch.region({
       region: "graph",
       value: { nodes: [{ id: "n2" }] },
     }));

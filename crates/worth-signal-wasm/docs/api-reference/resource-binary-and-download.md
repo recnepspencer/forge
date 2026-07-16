@@ -88,7 +88,7 @@ The runtime then:
 ```ts
 import {
   createSignals,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -122,7 +122,7 @@ console.log(line.download());
 ```ts
 import {
   createSignals,
-} from "worth-signal-wasm";
+} from "worth-signals-wasm";
 
 const signals = await createSignals();
 let downloadReady = false;

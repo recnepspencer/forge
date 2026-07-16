@@ -18,12 +18,19 @@ mod temporal;
 pub(in crate::logic::transaction::runtime) use branching::BranchManager;
 pub use branching::{
     bridge_signal_branch_basis_trust_boundary, BoundaryBridgedSignalBranchBasisArtifact,
-    SignalBranchBasis, SignalBranchBasisArtifact, SignalBranchBasisAuthority,
-    SignalBranchBasisCompactExplanation, SignalBranchBasisDenial, SignalBranchBasisIdentity,
-    SignalBranchBasisReadmissionAuthority, SignalBranchBasisReady,
+    BranchTargetedTransactionDenial, BranchTargetedTransactionExecutionOutcome,
+    BranchTargetedTransactionRequest, ExecutedBranchTargetedTransactionReceipt,
+    LoweredBranchTargetedTransactionPlan, PlannedSignalBranchRetirement,
+    PlannedSignalBranchRetirementBatch, SignalBranchBasis, SignalBranchBasisArtifact,
+    SignalBranchBasisAuthority, SignalBranchBasisCompactExplanation, SignalBranchBasisDenial,
+    SignalBranchBasisIdentity, SignalBranchBasisReadmissionAuthority, SignalBranchBasisReady,
     SignalBranchBasisValidationOutcome, SignalBranchForkDenial, SignalBranchForkReceipt,
     SignalBranchForkRequest, SignalBranchForkRequestBasis, SignalBranchHeadPosture,
-    SignalBranchRestorePosture, StaleSignalBranchBasisArtifact, SIGNAL_BRANCH_BASIS_SCHEMA_VERSION,
+    SignalBranchRestorePosture, SignalBranchRetirementBatchDenial,
+    SignalBranchRetirementBatchReceipt, SignalBranchRetirementBatchRequest,
+    SignalBranchRetirementDenial, SignalBranchRetirementReason, SignalBranchRetirementReceipt,
+    SignalBranchRetirementRequest, SignalBranchTransactionHead, StaleSignalBranchBasisArtifact,
+    ValidatedBranchTargetedTransactionRequest, SIGNAL_BRANCH_BASIS_SCHEMA_VERSION,
 };
 pub use builder::SignalRuntimeBuilder;
 pub use guided::{PlannedRuntimeMerge, RuntimeHistory, RuntimeMerge};

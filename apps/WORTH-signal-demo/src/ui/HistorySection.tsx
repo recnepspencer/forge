@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 import { DemoSixGear } from "./demos/DemoSixGear";
 import { HistoryMergeModal } from "./HistoryMergeModal";
@@ -166,7 +166,7 @@ function HistoryWorkbench({ runtime }: { runtime: GearRuntime }) {
 
   const controls = (closeButton: boolean) => (
     <>
-      <p className="history-kicker">WORTH runtime state</p>
+      <p className="history-kicker">Worth runtime state</p>
       <h3>{activeBranch.name}</h3>
       {gearParamSpecs.map((spec) => (
         <label key={spec.key}>
@@ -299,12 +299,12 @@ export function HistorySection({ onNavigate }: HistorySectionProps) {
         <p>
           Replay, undo, forks, and merge-aware surfaces can live above the same
           runtime when history is modeled as retained truth instead of ad hoc
-          snapshots. This gear is just Three.js; the timeline is WORTH
+          snapshots. This gear is just Three.js; the timeline is Worth
           <code> history()</code>.
         </p>
       </div>
       {bootError && <div className="history-error">{bootError}</div>}
-      {!runtime && !bootError && <div className="history-loading">Booting WORTH runtime...</div>}
+      {!runtime && !bootError && <div className="history-loading">Booting Worth runtime...</div>}
       {runtime && <HistoryWorkbench runtime={runtime} />}
       <div className="xai-section-actions">
         <button className="xai-button xai-button-secondary" type="button" onClick={() => onNavigate("#/docs/resources/branch-native-effects")}>

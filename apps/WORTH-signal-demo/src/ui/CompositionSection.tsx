@@ -98,7 +98,7 @@ export function CompositionSection({ onNavigate }: CompositionSectionProps) {
         </article>
 
         <article className="composition-card composition-card-WORTH">
-          <div className="forms-card-topline"><span>WORTH runtime handoff</span></div>
+          <div className="forms-card-topline"><span>Worth runtime handoff</span></div>
           <h3>One runtime contract</h3>
           <WORTHCode />
         </article>

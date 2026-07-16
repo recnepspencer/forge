@@ -50,7 +50,7 @@ impl S6BackgroundPacingCertificationEvidence {
         self.debt
     }
 
-    const fn from_outcome(outcome: BackgroundPacingOutcome) -> Self {
+    fn from_outcome(outcome: BackgroundPacingOutcome) -> Self {
         match outcome {
             BackgroundPacingOutcome::Yield(receipt) => Self {
                 outcome: S6BackgroundPacingOutcomeKind::Yield,

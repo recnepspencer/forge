@@ -2,82 +2,102 @@
 
 ## What This Feature Is
 
-This page explains what kind of recovery a resource effect can honestly claim.
+Effect rollback rejects one open optimistic request by identity. It retires that
+effect branch and rebuilds the visible projection. It does not restore a shared
+snapshot and cannot erase successful siblings.
+
+Historical restore is a different feature: it moves a line to an explicit
+retained history target.
 
 ## Why You Use It
 
-Use it when you need to answer:
-
-- can I roll back the latest effect exactly?
-- is compact inverse the real fallback?
-- is this write committed-only and therefore not rollback-capable?
+- report one failed server request without disturbing concurrent work;
+- cancel a parent and its dependent descendants;
+- expose a deterministic "reject latest open effect" convenience action;
+- keep explicit time-travel restore separate from request failure.
 
 ## Stable Entry Points
 
-- `line.diagnostics().lastEffect.optimistic.rollback`
+- `line.effects().reject(effectId, options)`
+- `line.history().rollbackEffect(effectId)`
 - `line.history().rollbackLastEffect()`
 - `line.history().restoreExact()`
 
 ## Core Mental Model
 
-Rollback is effect-owned.
-Exact restore is history-owned.
+An open effect owns a branch. Rejecting it retires that branch. Canonical server
+truth does not move; only the projection changes.
 
-Sometimes they line up. Sometimes the effect only has compact inverse. Sometimes
-there is no honest rollback at all.
+`rollbackLastEffect()` finds the last open effect in stable admission order and
+lowers to the same targeted rejection path. It is convenience, not shared
+snapshot rollback.
+
+`restoreExact()` restores an explicit retained historical target. Use it for
+time travel or recovery, never as the failure handler for one concurrent request.
 
 ## How It Executes
 
-The runtime can report:
-
-- `exactBranchRestoreAvailable`
-- `compactInverseAvailable`
-- `unavailable`
-- `notApplicable`
+Targeted rejection returns `rejectedAndRetired` with canonical value,
+projection, closeout, retirement, and any dependency-cancelled descendants.
+Unavailable requests return a typed result with `noOpenEffect`,
+`unknownEffect`, or `effectAlreadySettled`.
 
 ## Small Example
 
 ```ts
-const rollback = line.diagnostics().lastEffect?.optimistic.rollback;
-console.log(rollback?.kind);
+const result = await line.history().rollbackEffect(effectId);
+
+if (result.kind === "rejectedAndRetired") {
+  console.log(result.projection.projectedValue);
+}
 ```
 
 ## Real Example
 
 ```ts
-const effect = line.diagnostics().lastEffect;
-const rollbackResult = line.history().rollbackLastEffect();
+const failed = await line.effects().reject(parentEffectId, {
+  responseId: response.id,
+});
 
-console.log(effect.optimistic.rollback.kind);
-console.log(rollbackResult.kind);
-console.log(line.history().availability.restoreExact.kind);
+for (const retired of failed.retired ?? []) {
+  cancelTransportFor(retired.effectId);
+}
+
+console.log(failed.canonicalValue); // unchanged by rejection
+console.log(failed.projection);     // rebuilt from remaining open effects
 ```
 
 ## How It Relates To Other Features
 
-- Use [Restore, Replay, And Recover](../debugging/restore-replay-and-recover.md)
-  for the broader retained-history lane.
-- Use [Branch-Native Effects](./branch-native-effects.md) for profile-level
-  optimistic behavior.
+- [Concurrent Optimistic Effects](./concurrency-and-dependencies.md) explains
+  sibling and parent/child settlement.
+- [History And Restore](../../resource-contracts/history-and-restore.md) covers
+  explicit restore and replay.
+- Resource-backed form rollback actions lower through the same targeted effect
+  rejection path.
 
 ## Inspection And Debugging
 
-Inspect both:
-
-- the claimed rollback posture on the effect
-- the actual rollback result from history
+Inspect the target with `line.effects().get(effectId)` before closeout. Inspect
+the returned projection, retirement, and `retired` descendants afterward.
+If closeout is interrupted, retry `confirm(...)` or `reject(...)` with the same
+`responseId`; the runtime resumes any recorded native-closeout checkpoint
+without duplicating branch retirement or canonical commit.
 
 ## Anti-Patterns
 
-- Do not call compact inverse "exact restore."
-- Do not promise rollback for `pessimistic()` or other committed-only cases.
+- Do not call `restoreExact()` because one request failed.
+- Do not apply a delete or inverse patch after `reject(...)`.
+- Do not infer the target from the current visible value.
+- Do not call compact inverse rollback "exact restore."
 
 ## Current Limits
 
-Broad replacements and missing retained branch proof can make exact rollback
-unavailable even when the line still has meaningful diagnostics.
+Only open effects can be rejected. Explicit replay and restore availability
+depends on the retained history posture of the runtime.
 
 ## Related Docs
 
+- [Branch-Native Effects](./branch-native-effects.md)
+- [Concurrent Optimistic Effects](./concurrency-and-dependencies.md)
 - [History And Restore](../../resource-contracts/history-and-restore.md)
-- [Restore, Replay, And Recover](../debugging/restore-replay-and-recover.md)

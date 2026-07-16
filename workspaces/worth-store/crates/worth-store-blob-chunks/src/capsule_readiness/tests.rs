@@ -228,8 +228,7 @@ pub(crate) fn capsule_lane(case: &str, bytes: &'static [u8], chunk_size: u64) ->
     let generation = crate::BlobGeneration::published(1);
     let lifecycle =
         crate::lifecycle::generation_registry_test_support::lifecycle_receipt_for_publication_with_identity(
-            case,
-            case,
+            crate::lifecycle::generation_registry_test_support::PublicationIdentityCase::new(case, case),
             1,
             publication.chunk_tree_root().clone(),
             publication.logical_content_digest().clone(),
@@ -245,8 +244,7 @@ pub(crate) fn capsule_lane(case: &str, bytes: &'static [u8], chunk_size: u64) ->
     );
     let changed_lifecycle =
         crate::lifecycle::generation_registry_test_support::lifecycle_receipt_for_publication_with_identity(
-            &format!("{case}.changed"),
-            &format!("{case}.changed"),
+            crate::lifecycle::generation_registry_test_support::PublicationIdentityCase::new(&format!("{case}.changed"), &format!("{case}.changed")),
             1,
             changed_publication.0.chunk_tree_root().clone(),
             changed_publication.0.logical_content_digest().clone(),

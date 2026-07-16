@@ -24,7 +24,7 @@ test("resource effect merge planning and execution carry host-declared region ev
       });
     const line = tasks.line({});
 
-    line.patch(tasks.patch.item({
+    await line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", group: "todo", title: "Region Bound" },
     }));

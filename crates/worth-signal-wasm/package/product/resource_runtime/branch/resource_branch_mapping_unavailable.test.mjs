@@ -11,7 +11,7 @@ test("resource effect merge planning emits mapping-unavailable artifacts without
     createBranchHead(signals, "feature/effect-merge-unavailable-plan");
     const line = createEffectCollectionLine(runtime);
 
-    line.patch(runtime.mod.resourcePatch.itemAspect({
+    await line.patch(runtime.mod.resourcePatch.itemAspect({
       itemId: "demo:1",
       aspect: "title",
       value: "Unmapped Planning Conflict",
@@ -77,7 +77,7 @@ test("resource effect merge execution emits mapping-unavailable artifacts withou
     createBranchHead(signals, "feature/effect-merge-unavailable-execution");
     const line = createEffectCollectionLine(runtime);
 
-    line.patch(runtime.mod.resourcePatch.itemAspect({
+    await line.patch(runtime.mod.resourcePatch.itemAspect({
       itemId: "demo:1",
       aspect: "title",
       value: "Unmapped Execution Conflict",

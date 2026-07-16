@@ -6,7 +6,7 @@ use crate::membership::{
 
 #[derive(Debug)]
 enum LookupCase {
-    Admitted(PublishedLsmMembershipReplacement),
+    Admitted(Box<PublishedLsmMembershipReplacement>),
     Denied(LsmMembershipDenial),
 }
 
@@ -25,7 +25,7 @@ impl LsmPublishedMembershipLookupOutcome {
     fn issue(result: Result<PublishedLsmMembershipReplacement, LsmMembershipDenial>) -> Self {
         Self {
             case: match result {
-                Ok(replacement) => LookupCase::Admitted(replacement),
+                Ok(replacement) => LookupCase::Admitted(Box::new(replacement)),
                 Err(denial) => LookupCase::Denied(denial),
             },
         }
@@ -54,7 +54,7 @@ impl LsmPublishedMembershipLookupOutcome {
 
     pub fn into_result(self) -> Result<PublishedLsmMembershipReplacement, LsmMembershipDenial> {
         match self.case {
-            LookupCase::Admitted(replacement) => Ok(replacement),
+            LookupCase::Admitted(replacement) => Ok(*replacement),
             LookupCase::Denied(denial) => Err(denial),
         }
     }

@@ -64,12 +64,9 @@ impl WalDurabilityBarrierSet {
     }
 
     pub fn first_missing_from(self, required: Self) -> Option<WalDurabilityBarrier> {
-        for barrier in ALL_BARRIERS {
-            if required.contains(barrier) && !self.contains(barrier) {
-                return Some(barrier);
-            }
-        }
-        None
+        ALL_BARRIERS
+            .into_iter()
+            .find(|&barrier| required.contains(barrier) && !self.contains(barrier))
     }
 }
 

@@ -227,7 +227,7 @@ test("full mutation response reconciliation closeout keeps create save partial f
       taskId: "stale-1",
       body: {},
     });
-    staleDetailLine.patch(staleDetail.patch.field({
+    await staleDetailLine.patch(staleDetail.patch.field({
       field: "status",
       value: "local-newer",
     }));

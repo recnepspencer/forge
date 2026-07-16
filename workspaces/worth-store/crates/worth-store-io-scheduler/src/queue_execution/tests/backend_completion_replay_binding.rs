@@ -45,7 +45,7 @@ fn grouped_ready_execution_rejects_single_plan_backend_completion() {
     };
     let scope = speculative_scope(grouped.first());
     let completion_builder = completion_for_plan(grouped.first(), 1, Some(scope), 0, None);
-    let execution = execute_grouped_ready_queue_plans(grouped, completion_builder.complete());
+    let execution = execute_grouped_ready_queue_plans(*grouped, completion_builder.complete());
 
     let QueueExecutionOutcome::Violation(violation) = execution else {
         panic!("single-plan backend completion must not claim grouped execution");

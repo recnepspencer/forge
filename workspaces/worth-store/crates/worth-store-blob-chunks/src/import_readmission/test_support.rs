@@ -8,32 +8,31 @@ use worth_store_aspect_native::{
     StoreAspectAuthorityInput, StoreAspectBoundaryFact, StoreAspectIdentity,
 };
 use worth_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
-use worth_store_operations_vocabulary::{
-    BackupExportCustodyDeclaration, BackupExportCustodyMode, BackupExportCustodyReadiness,
-};
 use worth_store_security::{
     store_custody_domain_boundary_fact, store_key_scope_generation_boundary_fact,
     store_offline_transfer_boundary_fact, store_tenant_scope_authority_boundary_fact,
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass,
     StoreCustodyDomainBoundaryEvidence, StoreCustodyDomainBoundaryFact,
     StoreKeyScopeGenerationBoundaryEvidence, StoreKeyScopeGenerationBoundaryFact,
-    StoreKeyVersionPosture, StoreOfflineExportImportBoundaryEvidence,
-    StoreOfflineExportImportBoundaryFact, StoreRawSecurityScopeDeclaration,
-    StoreSecurityScopeAdmissionExpectation, StoreTenantScope,
+    StoreOfflineExportImportBoundaryEvidence, StoreOfflineExportImportBoundaryFact,
+    StoreRawSecurityScopeDeclaration, StoreSecurityScopeAdmissionExpectation, StoreTenantScope,
     StoreTenantScopeAuthorityBoundaryEvidence, StoreTenantScopeAuthorityBoundaryFact,
     StoreTrustBoundaryCrossing, StoreTrustBoundaryReadmissionTrigger,
 };
 
 use crate::placement::admission::test_support::admit_inline_placement;
 use crate::reachability::BlobChunkReachabilityRegistry;
-use crate::test_support::{admitted_multichunk_sequence_for_scope, blob_scope, current_authority};
+use crate::test_support::{
+    admitted_blob_custody, admitted_multichunk_sequence_for_scope, blob_scope, current_authority,
+};
 use crate::{
-    AuthenticatedFrameDigest, BlobAuthorityClassification, BlobChunkByteWindow, BlobChunkProofLeaf,
-    BlobChunkRootPublication, BlobExportAuthority, BlobExportIntent, BlobExportPublishedBundle,
-    BlobGeneration, BlobGenerationRegistry, BlobGenerationRegistryAdmission,
-    BlobImportReadmissionAuthority, BlobImportedChunkEvidence, BlobLifecycleAdmission,
-    BlobLifecycleDeclaration, BlobLifecycleReadinessAuthority, BlobLifecycleReplayInput,
-    BlobLifecycleStoreAuthority, BlobObjectId, ScopedBlobChunk,
+    AdmittedBlobCustody, AuthenticatedFrameDigest, BlobAuthorityClassification,
+    BlobChunkByteWindow, BlobChunkProofLeaf, BlobChunkRootPublication, BlobCustodyPurpose,
+    BlobExportAuthority, BlobExportIntent, BlobExportPublishedBundle, BlobGeneration,
+    BlobGenerationRegistry, BlobGenerationRegistryAdmission, BlobImportReadmissionAuthority,
+    BlobImportedChunkEvidence, BlobLifecycleAdmission, BlobLifecycleDeclaration,
+    BlobLifecycleReadinessAuthority, BlobLifecycleReplayInput, BlobLifecycleStoreAuthority,
+    BlobObjectId, ScopedBlobChunk,
 };
 
 pub(crate) struct ImportLane<'a> {
@@ -56,14 +55,16 @@ pub(crate) fn import_lane(
     let publication = BlobChunkRootPublication::publish(sequence.clone()).expect("publication");
     let ordered_leaves = sequence.proof_frontier().ordered_leaves().to_vec();
     let declaration = BlobLifecycleDeclaration::new(
-        BlobObjectId::from_declared_digest(
-            crate::lifecycle::generation_registry_test_support::digest(&format!(
-                "sha256:{case}.object"
-            )),
+        crate::lifecycle::BlobLifecycleIdentityBasis::new(
+            BlobObjectId::from_declared_digest(
+                crate::lifecycle::generation_registry_test_support::digest(&format!(
+                    "sha256:{case}.object"
+                )),
+            ),
+            BlobGeneration::published(1),
+            publication.chunk_tree_root().clone(),
+            publication.logical_content_digest().clone(),
         ),
-        BlobGeneration::published(1),
-        publication.chunk_tree_root().clone(),
-        publication.logical_content_digest().clone(),
         ordered_leaves[0].security_metadata(),
         ordered_leaves[0].stored_digest().clone(),
         AuthenticatedFrameDigest::from_declared_digest(
@@ -300,18 +301,8 @@ pub(super) fn blob_import_expectation() -> StoreSecurityScopeAdmissionExpectatio
     )
 }
 
-pub(crate) fn export_readiness(case: &str) -> BackupExportCustodyReadiness {
-    let authority = current_authority(case, "export");
-    let admission = BackupExportCustodyDeclaration::native(
-        &authority,
-        BackupExportCustodyMode::Export,
-        StoreKeyVersionPosture::Current,
-    )
-    .expect("custody declaration should admit")
-    .admit_with_current_authority(&authority)
-    .expect("custody admission should succeed");
-    BackupExportCustodyReadiness::from_admitted_custody(admission)
-        .expect("export readiness should build")
+pub(crate) fn export_readiness(case: &str) -> AdmittedBlobCustody {
+    admitted_blob_custody(case, BlobCustodyPurpose::Export)
 }
 
 fn boundary_fact(identity_key: &str, value: &str) -> StoreAspectBoundaryFact {

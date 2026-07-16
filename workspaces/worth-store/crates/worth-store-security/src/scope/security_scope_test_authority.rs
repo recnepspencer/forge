@@ -10,10 +10,71 @@ use worth_store_authority::{require_current_store_authority, StoreCurrentAuthori
 use worth_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 
 use crate::{
-    admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
+    admit_readmitted_trust_boundary_security_scope, admit_store_security_scope,
+    store_offline_transfer_boundary_fact, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
+    StoreOfflineExportImportBoundaryEvidence, StoreOfflineExportImportBoundaryFact,
+    StoreRawSecurityScopeDeclaration, StoreReadmittedSecurityScope,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
+
+pub fn readmitted_wal_security_scope_for_test() -> StoreReadmittedSecurityScope {
+    readmitted_wal_security_scope("store.physical.default_instance")
+}
+
+pub fn readmitted_foreign_wal_security_scope_for_test() -> StoreReadmittedSecurityScope {
+    readmitted_wal_security_scope("store.physical.foreign_instance")
+}
+
+fn readmitted_wal_security_scope(identity_key: &str) -> StoreReadmittedSecurityScope {
+    let authority = current_authority(identity_key, "test-current");
+    let authenticity = StoreAuthenticityRequirement::required(
+        crate::StoreAuthenticityRequirementClass::AuthenticatedWalRecord,
+    );
+    let expectation = StoreSecurityScopeAdmissionExpectation::new(
+        StoreKeyScope::WalCheckpointEnvelope,
+        StoreTenantScope::TenantPhysicalBoundary,
+        authenticity,
+        StoreCustodyPosture::Readmitted,
+    );
+    let raw = StoreRawSecurityScopeDeclaration::deserialized_unadmitted(
+        authority.physical_witness(),
+        StoreKeyScope::WalCheckpointEnvelope,
+        StoreKeyVersionPosture::Current,
+        StoreTenantScope::TenantPhysicalBoundary,
+        Some(authenticity),
+        Some(StoreCustodyPosture::ImportedUnreadmitted),
+    );
+    let trigger = crate::StoreTrustBoundaryReadmissionTrigger::offline_export_import(
+        StoreOfflineExportImportBoundaryFact::from_readmission_candidate(
+            StoreOfflineExportImportBoundaryEvidence::from_category_facts(
+                store_offline_transfer_boundary_fact(boundary_fact(
+                    "store.trust_boundary.offline_transfer",
+                    "exported",
+                ))
+                .expect("exported transfer fact must admit"),
+                store_offline_transfer_boundary_fact(boundary_fact(
+                    "store.trust_boundary.offline_transfer",
+                    "current",
+                ))
+                .expect("current transfer fact must admit"),
+            )
+            .expect("different offline transfer facts must bind"),
+            raw,
+            &authority,
+            expectation,
+        )
+        .expect("readmission trigger must bind to its candidate"),
+    );
+    admit_readmitted_trust_boundary_security_scope(
+        &authority,
+        raw,
+        StoreKeyVersionPosture::Current,
+        expectation,
+        trigger,
+    )
+    .expect("test WAL scope must readmit through the production trust boundary")
+}
 
 pub fn admitted_store_internal_security_scope_for_io_qos_test() -> StoreAdmittedSecurityScope {
     admitted_scope(

@@ -153,7 +153,7 @@ export function DemoSix({ signals, demo, onNavigate }: DemoSixProps) {
   const [stagedParams, setStagedParams] = useState<GearParams | null>(null);
   const [lastPlan, setLastPlan] = useState<MergePlanView | null>(null);
   const [lastMerge, setLastMerge] = useState<MergeResultProofView | null>(null);
-  const [lastEvent, setLastEvent] = useState("Runtime booted. Gear parameters are WORTH input signals.");
+  const [lastEvent, setLastEvent] = useState("Runtime booted. Gear parameters are Worth input signals.");
   const debounceRef = useRef<number | null>(null);
 
   const displayParams = stagedParams ?? runtimeParams;
@@ -210,7 +210,7 @@ export function DemoSix({ signals, demo, onNavigate }: DemoSixProps) {
       [key]: rawValue,
     });
     setStagedParams(next);
-    setLastEvent(`${key} staged; WORTH commit will happen after the debounce boundary.`);
+    setLastEvent(`${key} staged; Worth commit will happen after the debounce boundary.`);
     if (debounceRef.current != null) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
       commitParams(next, `${key} -> ${formatNumber(next[key])}`);
@@ -295,7 +295,7 @@ export function DemoSix({ signals, demo, onNavigate }: DemoSixProps) {
         <section className="demo-six-hero">
           <DemoSixGear params={displayParams} />
           <div className="demo-six-state">
-            <p className="demo-six-kicker">Three.js geometry from WORTH signal truth</p>
+            <p className="demo-six-kicker">Three.js geometry from Worth signal truth</p>
             <h3>{activeBranch?.name ?? "main"}</h3>
             <dl>
               {gearParamSpecs.map((spec) => (

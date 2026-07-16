@@ -152,16 +152,6 @@ fn pre_wait_denial(
     LatchDeniedBeforeWaitEvidence::new(denial, counters)
 }
 
-impl PartialEq for LatchAcquisitionStep {
-    fn eq(&self, other: &Self) -> bool {
-        self.key() == other.key()
-            && self.mode() == other.mode()
-            && self.is_upgrade() == other.is_upgrade()
-    }
-}
-
-impl Eq for LatchAcquisitionStep {}
-
 impl PartialOrd for LatchAcquisitionStep {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))

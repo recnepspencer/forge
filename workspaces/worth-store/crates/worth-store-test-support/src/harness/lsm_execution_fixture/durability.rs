@@ -6,13 +6,15 @@ use worth_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority, StoreDurabilityAdmission,
-    StoreDurabilityBoundaryReached, StoreDurabilityDenial, StoreDurabilityFileSyncKind,
-    StoreDurabilityOrderingBarrierDurable, StoreDurabilityRequirement, StoreDurabilityRuntime,
-    StoreDurabilityWriteAccepted, WalDurabilityBarrier, WalDurabilityBarrierSet,
+    StoreDurabilityAppendInput, StoreDurabilityBoundaryReached, StoreDurabilityDenial,
+    StoreDurabilityFileSyncKind, StoreDurabilityOrderingBarrierDurable, StoreDurabilityRequirement,
+    StoreDurabilityRuntime, StoreDurabilityWriteAccepted, WalDurabilityBarrier,
+    WalDurabilityBarrierSet,
 };
 use worth_store_wal::{
-    admit_durable_append, AdmittedWalAppendReceipt, BlobWalRecordEnvelope, BlobWalRecordIdentity,
-    BlobWalRecordKind, CheckpointDurablePublicationScope, DurablePublicationDeclaration,
+    admit_durable_append, prepare_wal_frame_append, AdmittedWalAppendReceipt,
+    BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind,
+    CheckpointDurablePublicationScope, DurablePublicationDeclaration,
     WalFrameDurablePublicationScope,
 };
 
@@ -100,16 +102,38 @@ pub(crate) fn wal_receipt(
     let requirement = StoreDurabilityRequirement::wal_ordering_barrier(
         WalDurabilityBarrierSet::of(WalDurabilityBarrier::WalFileFsync),
     );
-    reach_boundary(
-        admitted(requirement).submit_write(scope).backend_accepted(),
-        StoreDurabilityFileSyncKind::Fdatasync,
-        false,
-        false,
-        artifact,
-    )
-    .expect("WAL boundary")
-    .ordering_barrier_durable()
-    .expect("WAL ordering barrier")
+    let accepted = admitted(requirement)
+        .submit_write(scope.clone())
+        .backend_accepted();
+    let proof = execution_directory(|directory| {
+        let append = prepare_wal_frame_append(
+            directory,
+            scope.segment_id(),
+            scope.generation(),
+            scope.lsn_start(),
+            scope.lsn_end(),
+            scope.frame_digest(),
+            artifact,
+        )
+        .expect("valid WAL frame append");
+        StoreDurabilityRuntime::new()
+            .persist_append_and_execute(
+                directory,
+                StoreDurabilityAppendInput::new(
+                    append.relative_path(),
+                    append.encoded_frame(),
+                    append.observed_file_bytes(),
+                    append.valid_prefix_bytes(),
+                ),
+                &accepted,
+            )
+            .expect("physical WAL append execution")
+    });
+    accepted
+        .reach_durability_boundary(proof)
+        .expect("WAL boundary")
+        .ordering_barrier_durable()
+        .expect("WAL ordering barrier")
 }
 
 pub(crate) fn manifest_receipt(

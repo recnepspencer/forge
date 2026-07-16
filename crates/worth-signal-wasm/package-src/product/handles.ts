@@ -168,6 +168,7 @@ export function unwrapSignalTarget(target, rawSignals, operation = "signal opera
   if (
     target
     && typeof target === "function"
+    && !isProductSignalHandle(target)
     && typeof target.id === "string"
     && typeof target.get === "function"
   ) {

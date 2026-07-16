@@ -11,5 +11,6 @@ mod transition_success;
 
 pub use actors::{
     execute_blob_harness, BlobHarnessExecutedWitness, BlobHarnessExecutionInput,
-    BlobHarnessObservedYieldpoint,
+    BlobHarnessExerciseShape, BlobHarnessObservedYieldpoint, BlobHarnessStorageShape,
 };
+pub(crate) use scope_admission::integrity_proof_for_scope;

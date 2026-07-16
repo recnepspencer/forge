@@ -209,7 +209,7 @@ export const DemoShell: React.FC<DemoShellProps> = ({
                           cursor: "pointer",
                         }}
                       >
-                        WORTH
+                        Worth
                       </button>
                       <button
                         onClick={() => setActiveTab("alternative")}

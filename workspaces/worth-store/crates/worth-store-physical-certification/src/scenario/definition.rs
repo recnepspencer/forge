@@ -23,6 +23,17 @@ pub struct PhysicalSimulationScenarioDefinition {
     expectation: PhysicalScenarioExpectation,
 }
 
+pub(crate) struct NativeScenarioDefinitionParts {
+    pub(crate) label: String,
+    pub(crate) family: PhysicalSimulationScenarioFamily,
+    pub(crate) intent: PhysicalScenarioIntent,
+    pub(crate) fixtures: Vec<StoreAspectBoundaryFact>,
+    pub(crate) actors: Vec<PhysicalScenarioActor>,
+    pub(crate) schedule: PhysicalScenarioSchedule,
+    pub(crate) fault: PhysicalScenarioFault,
+    pub(crate) expectation: PhysicalScenarioExpectation,
+}
+
 impl PhysicalSimulationScenarioDefinition {
     pub(crate) fn from_builder(
         builder: PhysicalScenarioBuilder,
@@ -39,40 +50,33 @@ impl PhysicalSimulationScenarioDefinition {
         let expectation = builder
             .expectation
             .ok_or(PhysicalScenarioDefinitionDenial::MissingExpectation)?;
-        Self::from_native_parts(
-            builder.label,
+        Self::from_native_parts(NativeScenarioDefinitionParts {
+            label: builder.label,
             family,
             intent,
-            builder.fixtures,
-            builder.actors,
+            fixtures: builder.fixtures,
+            actors: builder.actors,
             schedule,
-            builder.fault,
+            fault: builder.fault,
             expectation,
-        )
+        })
     }
 
     pub(crate) fn from_native_parts(
-        label: String,
-        family: PhysicalSimulationScenarioFamily,
-        intent: PhysicalScenarioIntent,
-        fixtures: Vec<StoreAspectBoundaryFact>,
-        actors: Vec<PhysicalScenarioActor>,
-        schedule: PhysicalScenarioSchedule,
-        fault: PhysicalScenarioFault,
-        expectation: PhysicalScenarioExpectation,
+        parts: NativeScenarioDefinitionParts,
     ) -> Result<Self, PhysicalScenarioDefinitionDenial> {
-        require_named_production_boundary_yieldpoint(&schedule)?;
-        let actors = PhysicalScenarioActorSet::from_actors(actors)?;
-        let fixtures = PhysicalScenarioFixtureSet::from_fixtures(fixtures)?;
+        require_named_production_boundary_yieldpoint(&parts.schedule)?;
+        let actors = PhysicalScenarioActorSet::from_actors(parts.actors)?;
+        let fixtures = PhysicalScenarioFixtureSet::from_fixtures(parts.fixtures)?;
         Ok(Self {
-            label,
-            family,
-            intent,
+            label: parts.label,
+            family: parts.family,
+            intent: parts.intent,
             fixtures,
             actors,
-            schedule,
-            fault,
-            expectation,
+            schedule: parts.schedule,
+            fault: parts.fault,
+            expectation: parts.expectation,
         })
     }
 

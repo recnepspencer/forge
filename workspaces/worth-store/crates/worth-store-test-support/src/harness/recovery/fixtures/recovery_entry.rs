@@ -29,5 +29,5 @@ fn admit_recovery_entry_from_recovery_handoff(
     let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {
         panic!("intact test support recovery handoff admits recovery entry");
     };
-    admission
+    *admission
 }

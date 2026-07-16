@@ -107,9 +107,7 @@ pub(super) fn capacity_admission(
     admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
         ForegroundReservationCapacityAuthority::store_owned(),
         lane,
-        backend,
-        readiness,
-        security,
+        ForegroundReservationAdmissionBoundary::new(backend, readiness, security),
         arbitration,
         requested,
         available,

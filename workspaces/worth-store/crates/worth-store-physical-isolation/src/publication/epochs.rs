@@ -61,7 +61,7 @@ impl RootPublicationEpoch {
         self.old
     }
 
-    pub const fn new(self) -> RootEpoch {
+    pub const fn new_epoch(self) -> RootEpoch {
         self.new
     }
 }
@@ -84,7 +84,7 @@ impl ManifestPublicationEpoch {
         self.old
     }
 
-    pub const fn new(self) -> ManifestEpoch {
+    pub const fn new_epoch(self) -> ManifestEpoch {
         self.new
     }
 }

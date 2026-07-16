@@ -45,6 +45,18 @@ pub(crate) struct S6StoreExecutionEvidenceBinding {
     counter_strengths: S6StoreCounterStrengthWitness,
 }
 
+struct S6ObservedLaneSet<'a> {
+    foreground_reservation: &'a S6ForegroundReservationCertificationEvidence,
+    background_pacing: &'a S6BackgroundPacingCertificationEvidence,
+    queue_execution: &'a S6CertifiedQueueExecutionEvidence,
+    secure_io_preservation: worth_store_io_scheduler::SecureIoPreservationReceipt,
+    access_policy_rows: &'a [S6AccessPolicyEvidenceRow],
+    post_admission_violations: &'a [S6PostAdmissionViolationEvidenceRow],
+    flush_durability: &'a [S6FlushDurabilityEvidenceRow],
+    harness_closeout: &'a IoPressureHarnessCloseoutEvidence,
+    qualification_matrix: &'a S6BackendQualificationMatrixCertification,
+}
+
 impl S6StoreCounterStrengthWitness {
     fn from_source_counters(
         post_admission_violations: &[S6PostAdmissionViolationEvidenceRow],
@@ -88,7 +100,7 @@ impl S6StoreExecutionEvidenceBinding {
         harness_closeout: &IoPressureHarnessCloseoutEvidence,
         qualification_matrix: &S6BackendQualificationMatrixCertification,
     ) -> Result<Self, S6CertificationMaterializationDenial> {
-        let required_lane_mask = observed_lane_mask(
+        let required_lane_mask = observed_lane_mask(S6ObservedLaneSet {
             foreground_reservation,
             background_pacing,
             queue_execution,
@@ -98,7 +110,7 @@ impl S6StoreExecutionEvidenceBinding {
             flush_durability,
             harness_closeout,
             qualification_matrix,
-        );
+        });
         if required_lane_mask != all_required_lane_mask() {
             return Err(
                 S6CertificationMaterializationDenial::StoreEvidenceReadmissionBindingMismatch,
@@ -149,48 +161,39 @@ impl S6StoreExecutionEvidenceBinding {
     }
 }
 
-fn observed_lane_mask(
-    foreground_reservation: &S6ForegroundReservationCertificationEvidence,
-    background_pacing: &S6BackgroundPacingCertificationEvidence,
-    queue_execution: &S6CertifiedQueueExecutionEvidence,
-    secure_io_preservation: worth_store_io_scheduler::SecureIoPreservationReceipt,
-    access_policy_rows: &[S6AccessPolicyEvidenceRow],
-    post_admission_violations: &[S6PostAdmissionViolationEvidenceRow],
-    flush_durability: &[S6FlushDurabilityEvidenceRow],
-    harness_closeout: &IoPressureHarnessCloseoutEvidence,
-    qualification_matrix: &S6BackendQualificationMatrixCertification,
-) -> u16 {
+fn observed_lane_mask(lanes: S6ObservedLaneSet<'_>) -> u16 {
     lane_bit(S6StoreEvidenceLane::BackendAdmission)
         | present_lane(
-            foreground_counter_rows(foreground_reservation) > 0,
+            foreground_counter_rows(lanes.foreground_reservation) > 0,
             S6StoreEvidenceLane::ForegroundReservation,
         )
         | present_lane(
-            background_counter_rows(background_pacing) > 0,
+            background_counter_rows(lanes.background_pacing) > 0,
             S6StoreEvidenceLane::BackgroundPacing,
         )
         | present_lane(
-            queue_execution.counters().submitted_units() > 0,
+            lanes.queue_execution.counters().submitted_units() > 0,
             S6StoreEvidenceLane::QueueExecution,
         )
         | present_lane(
-            secure_io_preservation.counters().scope_checks() > 0,
+            lanes.secure_io_preservation.counters().scope_checks() > 0,
             S6StoreEvidenceLane::SecurityScopePreservation,
         )
         | present_lane(
-            !flush_durability.is_empty(),
+            !lanes.flush_durability.is_empty(),
             S6StoreEvidenceLane::FlushDurability,
         )
         | present_lane(
-            !access_policy_rows.is_empty(),
+            !lanes.access_policy_rows.is_empty(),
             S6StoreEvidenceLane::AccessPolicy,
         )
         | present_lane(
-            !post_admission_violations.is_empty(),
+            !lanes.post_admission_violations.is_empty(),
             S6StoreEvidenceLane::PostAdmissionViolation,
         )
         | present_lane(
-            !harness_closeout
+            !lanes
+                .harness_closeout
                 .harness_evidence()
                 .executed_replay_coverage_rows()
                 .rows()
@@ -198,7 +201,7 @@ fn observed_lane_mask(
             S6StoreEvidenceLane::HarnessReplay,
         )
         | present_lane(
-            qualification_matrix.row_count() > 0,
+            lanes.qualification_matrix.row_count() > 0,
             S6StoreEvidenceLane::QualificationMatrix,
         )
 }

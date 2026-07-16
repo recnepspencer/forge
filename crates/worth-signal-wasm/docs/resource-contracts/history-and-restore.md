@@ -1,137 +1,118 @@
 # History And Restore
 
-Use this page when the question is not just "what is the line doing now?" but
-"what history does it retain, can it restore exactly, and what does the runtime
- actually admit here?"
+## What This Feature Is
 
-## What This Covers
+Resource history records what a line retained across loads, deliveries,
+effects, closeout, branches, and explicit restore. It exposes two different
+recovery jobs: reject one open request effect, or restore an explicit historical
+target.
+
+## Why You Use It
+
+- inspect lifecycle, basis, branch, replay, and verification evidence;
+- reject a known open effect without touching siblings;
+- restore a retained historical target for deliberate recovery or time travel;
+- receive typed unavailability instead of guessing what the runtime retained.
+
+## Stable Entry Points
 
 - `line.history().availability`
 - `line.history().lifecycle`
 - `line.history().basis`
-- `line.history().branch`
-- `line.history().replay`
-- `line.history().lineage`
-- `line.history().replayExact()`
-- `line.history().restoreExact()`
-- `line.history().rollbackLastEffect()`
 - `line.history().verificationPackage()`
+- `line.history().rollbackEffect(effectId)`
+- `line.history().rollbackLastEffect()`
+- `line.history().restoreExact()`
+- `line.history().replayExact()`
 
-## Happy Path
+## Core Mental Model
 
-```ts
-import { createSignals } from "worth-signal-wasm";
+Effect rejection and historical restore have different targets and different
+result vocabularies.
 
-const signals = await createSignals();
+- `rollbackEffect(effectId)` rejects one open effect branch. Canonical server
+  truth stays in place and the optimistic projection rebuilds.
+- `rollbackLastEffect()` deterministically finds the latest open effect and
+  lowers to `rollbackEffect(...)`.
+- `restoreExact()` moves the line to an explicit retained history target. It is
+  not a request failure mechanism.
 
-const productDetail = signals.api({
-  baseUrl: "/api",
-}).url("/products/:productId").detail({
-  load: ({ productId }) => ({ id: productId }),
-});
+No effect rollback path restores a shared line snapshot.
 
-const line = productDetail.line({ productId: "p1" });
+## How It Executes
 
-console.log(line.history().availability);
-console.log(line.history().verificationPackage());
-```
+Targeted rollback returns the same settlement results as
+`line.effects().reject(...)`, including `rejectedAndRetired`, projection,
+retirement, and dependent closeout. It can instead return `unavailable` with
+`noOpenEffect`, `unknownEffect`, or `effectAlreadySettled`.
 
-Start here when you need to know:
+Exact restore returns `restored` with its branch and snapshot identity, or a
+typed `unavailable` reason. Exact replay remains typed by runtime support.
 
-- whether exact replay or exact restore are supported on this runtime
-- what lifecycle and basis events happened over time
-- whether two runs can be compared through one stable verification artifact
-- whether the last resource effect can roll back exactly, by compact inverse,
-  or not at all
-
-## Exact Restore Mental Model
-
-`restoreExact()` is a real supported same-runtime action when the runtime can
-resolve a branch snapshot target.
-
-That means:
-
-- support is explicit in `line.history().availability.restoreExact`
-- the action result is typed
-- restore still goes through the line model, so request basis and diagnostics
-  stay coherent
-
-## Exact Replay Mental Model
-
-`replayExact()` is also a typed action surface, but on the shipped wasm Signals
-runtime it currently reports typed unavailability rather than pretending exact
-signal replay exists.
-
-That is still useful because the runtime gives a typed unavailable result
-instead of leaving callers to guess.
-
-## Effect Rollback Mental Model
-
-`rollbackLastEffect()` is the resource-effect rollback surface. It consumes the
-last runtime-issued effect envelope recorded on the line and returns a typed
-result.
-
-The result can be:
-
-- `rolledBack` with mode `SameRuntimeBranchExact`
-- `rolledBack` with mode `CompactInversePatch`
-- `rollbackUnavailable`
-- `noEffect`
-
-The effect envelope tells you what rollback can do before you call it:
+## Small Example
 
 ```ts
-const effect = line.diagnostics().lastEffect;
+const open = line.effects().open();
+const result = open.length === 0
+  ? await line.history().rollbackLastEffect()
+  : await line.history().rollbackEffect(open[0].effectId);
 
-console.log(effect?.optimistic.rollback.kind);
-
-const rollback = line.history().rollbackLastEffect();
-
-console.log(rollback.kind);
-console.log(rollback.rollback);
+console.log(result.kind);
 ```
 
-Exact branch rollback is preferred when the same runtime branch snapshot is
-available. Compact inverse rollback is used only when the effect captured an
-exact compact preimage for the changed item, aspect, or summary. If neither is
-available, rollback returns a typed unavailable result and preserves the visible
-value.
+## Real Example
 
-## Rollback Kinds
+```ts
+const history = line.history();
+const before = history.verificationPackage();
 
-- `exactBranchRestoreAvailable`: the effect carries a same-runtime branch and
-  snapshot that can restore the line exactly.
-- `compactInverseAvailable`: exact branch restore is unavailable, but the
-  runtime retained a compact inverse patch.
-- `unavailable`: the effect wanted optimism, but restore or inverse data was
-  not available.
-- `notApplicable`: the effect was committed-only, delivery-authoritative, or
-  otherwise not speculative.
+const rejected = await history.rollbackEffect(failedEffectId);
+if (rejected.kind === "rejectedAndRetired") {
+  audit({
+    effectId: rejected.effectId,
+    retirement: rejected.retirement,
+    projection: rejected.projection,
+  });
+}
 
-Optional JSON path writes are deliberately conservative. If an absent optional
-terminal would require a lossy inverse that restores `null` instead of absence,
-the runtime refuses to claim compact inverse rollback.
+// A separate operator action may deliberately restore retained history.
+if (history.availability.restoreExact.kind === "available") {
+  const restored = history.restoreExact();
+  audit({ before, restored });
+}
+```
 
-## Restore Versus Rollback
+## How It Relates To Other Features
 
-Use `restoreExact()` when you are restoring the line to an explicit retained
-history target. Use `rollbackLastEffect()` when you are undoing the last
-resource effect according to the effect envelope's rollback data.
+- [Concurrent Optimistic Effects](../resources/effects/concurrency-and-dependencies.md)
+  explains effect identities and dependency closeout.
+- [Rollback And Recovery](../resources/effects/rollback-and-recovery.md) is the
+  task-first effect rejection guide.
+- [Inspection And History Contract](./inspection-and-history.md) lists the
+  lower-level history fields.
 
-Both surfaces are typed and inspectable. Neither asks application code to guess
-from the current visible value.
+## Inspection And Debugging
 
-## Where To Go Next
+Use `line.effects()` to identify concurrent open work. Use lifecycle and the
+verification package for retained evidence. Compare the returned settlement or
+restore receipt to the action you actually requested.
 
-- grouped current-state reads:
-  [Line Inspection](../resources/line-inspection.md)
-- branch-native effects and profile selection:
-  [Branch-Native Resource Effects](../resources/branch-native-effects.md)
-- effect envelope fields:
-  [Effect Envelope Contract](./effect-envelope.md)
-- effect merge and rebase:
-  [Effect Merge And Rebase](../resources/merge-and-rebase.md)
-- external basis movement and compatibility delivery:
-  [External Delivery And Compatibility](../resources/external-delivery-and-compatibility.md)
-- lower-level history reference:
-  [Inspection And History Contract](./inspection-and-history.md)
+## Anti-Patterns
+
+- Do not use `lastEffect` as the target when several effects are open.
+- Do not call `restoreExact()` to undo one failed request.
+- Do not label compact inverse or effect rejection as exact historical restore.
+- Do not infer support from a method existing; read `availability` and the typed
+  result.
+
+## Current Limits
+
+Only open effects can be rejected. Historical restore and replay depend on
+same-runtime retained proof and can be unavailable. Retired effect summaries
+remain inspectable, while live dependency and locus indexes are released.
+
+## Related Docs
+
+- [Concurrent Optimistic Effects](../resources/effects/concurrency-and-dependencies.md)
+- [Branch-Native Effects](../resources/effects/branch-native-effects.md)
+- [Effect Envelope Contract](./effect-envelope.md)

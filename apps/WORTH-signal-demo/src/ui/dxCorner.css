@@ -1,0 +1,73 @@
+.dx-corner {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.dx-corner > h2 {
+  margin: 0;
+  color: rgba(245, 247, 251, 0.92);
+  font-size: 1.15rem;
+  font-weight: 680;
+}
+
+.dx-sub {
+  margin: -0.35rem 0 0;
+  max-width: 62ch;
+  color: rgba(223, 228, 236, 0.6);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.dx-receipts {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dx-receipts li {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dx-receipts p {
+  margin: 0;
+  color: rgba(223, 228, 236, 0.82);
+  font-size: 0.82rem;
+  font-weight: 620;
+  line-height: 1.4;
+}
+
+.dx-receipts code {
+  overflow: hidden;
+  color: rgba(223, 228, 236, 0.55);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accent-signals .dx-receipts code {
+  color: rgba(125, 199, 255, 0.75);
+}
+
+.accent-resources .dx-receipts code {
+  color: rgba(121, 223, 177, 0.75);
+}
+
+.accent-forms .dx-receipts code {
+  color: rgba(245, 183, 109, 0.75);
+}
+
+@media (min-width: 780px) {
+  .dx-receipts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

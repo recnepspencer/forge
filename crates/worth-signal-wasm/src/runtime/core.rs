@@ -27,14 +27,18 @@ mod evaluation;
 mod keyed_families;
 mod keyed_runtime;
 mod merge;
+mod merge_state;
 mod runtime_async_lifecycle_certification;
 mod signals;
 mod snapshots;
 mod state;
 mod transactions;
+mod worker_branch_command_model;
+mod worker_branch_commands;
 mod worker_callback_definition_publication;
 mod worker_callback_reattachment_import;
 mod worker_definition_publication_plan;
+mod worker_effect_branch_closeout;
 mod worker_main_thread_hosted_callbacks;
 mod worker_placement_declaration_candidates;
 
@@ -48,6 +52,13 @@ use self::state::{
     WebRuntimeMetrics,
 };
 pub use self::state::{MergePolicyPreviewRequest, SharedCore, WebSignalKind};
+pub use self::worker_branch_command_model::{
+    WorkerApplyTransactionToBranchReceipt, WorkerApplyTransactionToBranchRequest,
+    WorkerBranchBasisReceipt, WorkerBranchRetirementReason, WorkerCloseoutEffectBranchReceipt,
+    WorkerCloseoutEffectBranchRequest, WorkerForkBranchReceipt, WorkerForkBranchRequest,
+    WorkerRetireBranchReceipt, WorkerRetireBranchRequest, WorkerRetireBranchesReceipt,
+    WorkerRetireBranchesRequest,
+};
 pub(crate) use self::worker_callback_definition_publication::DefinitionEnvelopeCallbackReattachment;
 pub(crate) use self::worker_callback_reattachment_import::RuntimeEnvelopeCallbackReattachment;
 pub(crate) use self::worker_main_thread_hosted_callbacks::{

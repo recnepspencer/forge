@@ -16,7 +16,7 @@ export interface FormControllerActionBindings {
   attemptAction(actionId: string): FormActionResultArtifact;
   actionHistory(): ReadonlyArray<FormActionResultArtifact>;
   debugAction(actionId: string): FormActionDebugReport;
-  executeAction(actionId: string): FormActionExecutionArtifact;
+  executeAction(actionId: string): FormActionExecutionArtifact | Promise<FormActionExecutionArtifact>;
   fulfillAction(operationId: number, payload?: {
     readonly reason?: string;
     readonly messages?: ReadonlyArray<{

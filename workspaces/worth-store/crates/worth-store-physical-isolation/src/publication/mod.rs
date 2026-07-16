@@ -1,3 +1,4 @@
+mod attempt;
 mod crash_matrix;
 mod denial;
 mod epochs;
@@ -11,8 +12,12 @@ mod readiness;
 mod receipt;
 mod root_candidate;
 mod runtime;
+mod store;
 mod swap;
+#[cfg(test)]
+mod tests;
 
+pub use attempt::PhysicalRootPublicationAttempt;
 pub use crash_matrix::PublicationCrashRecoveryOutcome;
 pub use denial::PhysicalPublicationDenial;
 pub use epochs::{ManifestPublicationEpoch, PublicationEpochPair, RootPublicationEpoch};

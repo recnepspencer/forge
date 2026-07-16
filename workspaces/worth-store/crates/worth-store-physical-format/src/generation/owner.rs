@@ -2,6 +2,7 @@ use crate::{
     AllocationClassKind, FreeSpaceReuseAddress, PhysicalExtentId, PhysicalGeneration,
     PhysicalPageId, PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId,
 };
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PhysicalCellReuseDomain {
@@ -13,7 +14,7 @@ pub enum PhysicalCellReuseDomain {
     Segment,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PhysicalGenerationOwner {
     domain: PhysicalCellReuseDomain,
     segment_id: Option<PhysicalSegmentId>,
@@ -176,5 +177,56 @@ impl PhysicalGenerationOwner {
 
     pub const fn generation(self) -> PhysicalGeneration {
         self.generation
+    }
+
+    pub fn stable_fingerprint(self) -> [u8; 32] {
+        let mut digest = Sha256::new();
+        digest.update(b"worth-store-physical-generation-owner-v1");
+        digest.update([
+            domain_tag(self.domain),
+            allocation_tag(self.allocation_class),
+        ]);
+        digest.update(
+            self.segment_id
+                .map_or(0, PhysicalSegmentId::get)
+                .to_be_bytes(),
+        );
+        digest.update(self.page_id.map_or(0, PhysicalPageId::get).to_be_bytes());
+        digest.update(
+            self.extent_id
+                .map_or(0, PhysicalExtentId::get)
+                .to_be_bytes(),
+        );
+        digest.update(self.slot.map_or(0, PhysicalRecordSlot::get).to_be_bytes());
+        digest.update(
+            self.root_reference
+                .map_or(0, PhysicalRootReference::get)
+                .to_be_bytes(),
+        );
+        digest.update(self.generation.get().to_be_bytes());
+        digest.finalize().into()
+    }
+}
+
+const fn domain_tag(domain: PhysicalCellReuseDomain) -> u8 {
+    match domain {
+        PhysicalCellReuseDomain::SlotAllocation => 1,
+        PhysicalCellReuseDomain::ExtentAllocation => 2,
+        PhysicalCellReuseDomain::FreeSpaceReuse => 3,
+        PhysicalCellReuseDomain::RootPublication => 4,
+        PhysicalCellReuseDomain::Page => 5,
+        PhysicalCellReuseDomain::Segment => 6,
+    }
+}
+
+const fn allocation_tag(class: Option<AllocationClassKind>) -> u8 {
+    match class {
+        None => 0,
+        Some(AllocationClassKind::OrdinaryRecordPage) => 1,
+        Some(AllocationClassKind::LargeRecordExtent) => 2,
+        Some(AllocationClassKind::RootManifest) => 3,
+        Some(AllocationClassKind::SegmentManifest) => 4,
+        Some(AllocationClassKind::ExtentManifest) => 5,
+        Some(AllocationClassKind::FreeSpaceMap) => 6,
     }
 }

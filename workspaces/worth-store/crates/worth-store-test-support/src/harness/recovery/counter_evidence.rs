@@ -8,7 +8,7 @@ use worth_store_io_scheduler::IoQueueExecutionRecorder;
 use worth_store_physical_certification::{
     admit_physical_counter_evidence, lower_physical_simulation_plan, physical_scenario,
     CompactionInterlockObservation, CounterContractKind, CounterExpectationKind,
-    CounterStrengthJustification, CounterStrengthPosture, ExecutedPhysicalSimulationObservation,
+    CounterStrengthJustification, CounterStrengthPosture, PhysicalSimulationBoundaryObservation,
     ForbiddenShortcutSet, HostileCounterEvidenceRow, HostileResourceEnvelopeObservation,
     PhysicalCounterEvidenceReceipt, PhysicalCounterExecutionSources,
     PhysicalExecutedCounterEvidence, PhysicalInterleavingSchedule, PhysicalScenarioActor,
@@ -59,10 +59,7 @@ pub fn hostile_satisfied_rows(plan: &PhysicalSimulationPlan) -> Vec<HostileCount
         .collect()
 }
 
-pub fn replace_row(
-    rows: &mut Vec<HostileCounterEvidenceRow>,
-    replacement: HostileCounterEvidenceRow,
-) {
+pub fn replace_row(rows: &mut [HostileCounterEvidenceRow], replacement: HostileCounterEvidenceRow) {
     let Some(row) = rows.iter_mut().find(|row| row.kind() == replacement.kind()) else {
         panic!("replacement row must target an existing row");
     };
@@ -151,9 +148,10 @@ pub fn execution_sources_with_schedule(
 pub fn observed_trace(
     plan: &PhysicalSimulationPlan,
 ) -> worth_store_physical_certification::ObservedPhysicalTrace {
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(plan).unwrap();
     PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(plan, &execution)
+        .observe_boundary_observation(plan, &execution)
         .unwrap()
         .with_compaction_interlock_observation(compaction_observation())
         .complete()
@@ -163,9 +161,10 @@ pub fn observed_trace(
 pub fn publication_only_trace(
     plan: &PhysicalSimulationPlan,
 ) -> worth_store_physical_certification::ObservedPhysicalTrace {
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(plan).unwrap();
     PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(plan, &execution)
+        .observe_boundary_observation(plan, &execution)
         .unwrap()
         .with_compaction_interlock_observation(
             compaction_interlock_trace::publication_only_compaction_observation(),
@@ -177,9 +176,10 @@ pub fn publication_only_trace(
 pub fn shortcut_trace(
     plan: &PhysicalSimulationPlan,
 ) -> worth_store_physical_certification::ObservedPhysicalTrace {
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(plan).unwrap();
     PhysicalSimulationObserver::shortcut_rejection()
-        .observe_executed_plan(plan, &execution)
+        .observe_boundary_observation(plan, &execution)
         .unwrap()
         .with_compaction_interlock_observation(compaction_observation())
         .with_shortcut_rejection_observation(ShortcutRejectionObservation::private_mutation_denied())
@@ -190,9 +190,10 @@ pub fn shortcut_trace(
 pub fn json_shortcut_trace(
     plan: &PhysicalSimulationPlan,
 ) -> worth_store_physical_certification::ObservedPhysicalTrace {
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(plan).unwrap();
     PhysicalSimulationObserver::shortcut_rejection()
-        .observe_executed_plan(plan, &execution)
+        .observe_boundary_observation(plan, &execution)
         .unwrap()
         .with_compaction_interlock_observation(compaction_observation())
         .with_shortcut_rejection_observation(ShortcutRejectionObservation::json_authority_denied())

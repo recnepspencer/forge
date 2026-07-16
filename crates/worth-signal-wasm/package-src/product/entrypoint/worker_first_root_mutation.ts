@@ -2,7 +2,10 @@ import { buildActiveImportContext } from "./sessions/support/worker_first_root_i
 
 export function createWorkerFirstRootMutation(deps) {
   const pendingMutations = new Set();
-  const trackMutation = (mutation) => {
+  let operationTail = Promise.resolve();
+  const trackMutation = (operation) => {
+    const mutation = operationTail.then(operation, operation);
+    operationTail = mutation.catch(() => {});
     const tracked = Promise.resolve(mutation).finally(() => {
       pendingMutations.delete(tracked);
     });
@@ -11,19 +14,19 @@ export function createWorkerFirstRootMutation(deps) {
   };
   return Object.freeze({
     applyImportMutation(controller, transactionOps, outputIds) {
-      return trackMutation(applyImportMutation(deps, controller, transactionOps, outputIds));
+      return trackMutation(() => applyImportMutation(deps, controller, transactionOps, outputIds));
     },
     applyActiveTransaction(transactionOps) {
-      return trackMutation(applyActiveTransaction(deps, transactionOps));
+      return trackMutation(() => applyActiveTransaction(deps, transactionOps));
     },
     applyActiveInputMutation(id, mutation) {
-      return trackMutation(applyActiveInputMutation(deps, id, mutation));
+      return trackMutation(() => applyActiveInputMutation(deps, id, mutation));
     },
     applyAuthoredInputMutation(id, mutation) {
-      return trackMutation(applyAuthoredInputMutation(deps, id, mutation));
+      return trackMutation(() => applyAuthoredInputMutation(deps, id, mutation));
     },
     async settlePendingMutations() {
-      if (pendingMutations.size > 0) {
+      while (pendingMutations.size > 0) {
         await Promise.all([...pendingMutations]);
       }
     },
@@ -106,7 +109,8 @@ async function applyActiveInputMutation(deps, id, mutation) {
     );
   }
   const transactionOps = [buildActiveInputMutationOperation(id, mutation)];
-  return deps.applyImportMutation(
+  return applyImportMutation(
+    deps,
     deps.activeImportController(),
     transactionOps,
     activeImportContext.definition.descriptors.map((entry) => entry.publishedId),
@@ -135,13 +139,17 @@ async function applyWorkerOwnedTransaction(deps, transactionOps) {
   const activeImportController = deps.activeImportController();
   const activeImportContext = deps.activeImportContext();
   if (activeImportController === null || activeImportContext === null) {
+    await deps.observations.syncLifecycle(deps.bridge);
     const transaction = await deps.bridge.applyTransaction(transactionOps);
     await deps.refreshBranchCache();
     deps.authoredRuntime.applyCommittedInputs(transactionOps);
     await deps.authoredRuntime.refreshReadables(extractChangedSignalIds(transactionOps));
+    const deliveryPacket = await deps.bridge.deliverLatestObservation().catch(() => null);
+    deps.observations.deliverCurrent(deliveryPacket);
     return transaction.runSummary;
   }
-  return deps.applyImportMutation(
+  return applyImportMutation(
+    deps,
     activeImportController,
     transactionOps,
     activeImportContext.definition.descriptors.map((entry) => entry.publishedId),

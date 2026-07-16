@@ -7,7 +7,7 @@ pub struct ProtectedReferenceRangeSet {
     ranges: Vec<ProtectedReferenceRange>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ProtectedReferenceRange {
     family: PhysicalReferenceRangeFamily,
     start: u64,
@@ -22,7 +22,7 @@ pub(crate) struct ProtectedRangeIntersection {
     overlapping_ranges: u64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum PhysicalReferenceRangeFamily {
     Segment {
         segment_id: u64,

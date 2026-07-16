@@ -14,6 +14,7 @@ pub enum PhysicalHeaderDecodeDenialKind {
     HeaderLengthMismatch,
     PayloadLengthMismatch,
     InvalidGeneration,
+    OwnerCoordinateMismatch,
     InvalidPublicationState,
     ReservedFieldMisuse,
 }

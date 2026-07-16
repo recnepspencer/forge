@@ -5,6 +5,7 @@ mod access_planning;
 #[cfg(test)]
 mod architecture_residue_tests;
 mod artifact_family;
+mod backup_verification;
 mod blob_basis;
 pub mod bootstrap;
 mod catalog;
@@ -47,6 +48,11 @@ pub use access::AdmittedAccessIntent;
 pub use artifact_family::{
     artifact_family_admission_cases, AdmittedPhysicalArtifactFamily, ArtifactFamilyAdmissionCaseId,
     ArtifactFamilyAdmissionOutcome, ArtifactFamilyAdmissionView,
+};
+pub use backup_verification::{
+    verify_bounded_layout_index_artifact, verify_bounded_layout_index_artifact_from_reader,
+    BoundedLayoutIndexDenial, BoundedLayoutIndexObservation, BoundedLayoutIndexVerificationRequest,
+    LayoutIndexBackupFormat,
 };
 pub use blob_basis::{BlobGenerationBasis, BlobIdentityKeyBasis};
 pub use bootstrap::{
@@ -96,22 +102,23 @@ pub use maintenance::{
     DerivedIndexRebuildCounterSnapshot, DerivedIndexRebuildDenied,
     DerivedIndexRebuildExecutionCaseId, DerivedIndexRebuildOutcome, DerivedIndexRebuildPlan,
     DerivedIndexRebuildReceipt, DerivedIndexRebuildRequest, DerivedIndexRebuildScope,
-    DerivedIndexRebuildSourceInput, DerivedIndexResultIdentity, ExactBTreePublicationCaseId,
-    ExactBTreePublicationDenied, ExactBTreePublicationEvidence, ExactBTreePublicationOutcome,
-    ExactBTreePublicationRequest, ExactBTreePublicationView, IndexLagWitness,
-    IndexMaintenanceFailureOutcome, IndexMaintenanceMode, IndexPublicationProtocol,
-    LayoutExactPublication, LayoutLsmMaintenance, LayoutMutationAdmission,
-    LayoutMutationAdmissionCaseId, LayoutMutationAdmissionOutcome, LayoutMutationAdmissionView,
-    LayoutMutationPlan, LayoutParityVerification, LayoutRebuildAdmission,
-    LayoutRebuildCandidateReadmission, LayoutRebuildExecution, LazyMaintenanceCapability,
-    LiveExactMaintenance, LiveExactMaintenanceCaseId, LiveExactMaintenanceOutcome,
-    LiveExactMaintenanceRequest, LiveExactMaintenanceView, LiveExactMaintenanceWitness,
-    LiveMaintenancePosture, LiveMaintenancePostureAdmission, LiveMaintenancePostureCaseId,
-    LiveMaintenancePostureOutcome, LiveMaintenancePostureView, LiveMaintenanceRequest,
-    LsmCompactionAdmissionRequest, LsmCompactionMaintenanceAdmissionOutcome,
-    LsmCompactionMaintenanceAdmissionView, LsmMaintenanceAdmissionDenialKind,
-    LsmMaintenanceAdmissionDenied, LsmMaintenanceDisposition, LsmMaintenanceOperation,
-    LsmMaintenanceOwnerCaseDeclaration, LsmMaintenanceOwnerCaseId,
+    DerivedIndexRebuildSourceInput, DerivedIndexRepairExecutionDenial, DerivedIndexRepairPlan,
+    DerivedIndexRepairReceipt, DerivedIndexRepairRequest, DerivedIndexResultIdentity,
+    ExactBTreePublicationCaseId, ExactBTreePublicationDenied, ExactBTreePublicationEvidence,
+    ExactBTreePublicationOutcome, ExactBTreePublicationRequest, ExactBTreePublicationView,
+    IndexLagWitness, IndexMaintenanceFailureOutcome, IndexMaintenanceMode,
+    IndexPublicationProtocol, LayoutExactPublication, LayoutLsmMaintenance,
+    LayoutMutationAdmission, LayoutMutationAdmissionCaseId, LayoutMutationAdmissionOutcome,
+    LayoutMutationAdmissionView, LayoutMutationPlan, LayoutOperationalRepairOwner,
+    LayoutParityVerification, LayoutRebuildAdmission, LayoutRebuildCandidateReadmission,
+    LayoutRebuildExecution, LazyMaintenanceCapability, LiveExactMaintenance,
+    LiveExactMaintenanceCaseId, LiveExactMaintenanceOutcome, LiveExactMaintenanceRequest,
+    LiveExactMaintenanceView, LiveExactMaintenanceWitness, LiveMaintenancePosture,
+    LiveMaintenancePostureAdmission, LiveMaintenancePostureCaseId, LiveMaintenancePostureOutcome,
+    LiveMaintenancePostureView, LiveMaintenanceRequest, LsmCompactionAdmissionRequest,
+    LsmCompactionMaintenanceAdmissionOutcome, LsmCompactionMaintenanceAdmissionView,
+    LsmMaintenanceAdmissionDenialKind, LsmMaintenanceAdmissionDenied, LsmMaintenanceDisposition,
+    LsmMaintenanceOperation, LsmMaintenanceOwnerCaseDeclaration, LsmMaintenanceOwnerCaseId,
     LsmMaintenanceOwnerCaseObservation, LsmReplayAdmissionRequest,
     LsmReplayMaintenanceAdmissionOutcome, LsmReplayMaintenanceAdmissionView,
     LsmRunPublicationAdmissionOutcome, LsmRunPublicationAdmissionRequest,
@@ -249,3 +256,8 @@ pub(crate) use strategy::{
 };
 
 pub(crate) use declarations::layout_declarations;
+mod operational_repair;
+pub use operational_repair::{
+    LayoutRepairConsequence, LayoutRepairConsequenceDenial, LayoutRepairConsequenceOwner,
+    LayoutRepairConsequencePlan, LayoutRepairConsequenceReceipt,
+};

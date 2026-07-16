@@ -1,4 +1,4 @@
-use worth_store_operations_vocabulary::{ImportPlacementDisposition, ImportPlacementSource};
+use super::{BlobImportPlacementDisposition, BlobImportPlacementSource};
 use worth_store_security::{StoreKeyVersionPosture, StoreTrustBoundaryCrossing};
 
 use super::test_support::{collect_current_chunks, import_lane, readmission_trigger};
@@ -51,11 +51,11 @@ fn export_followed_by_readmitted_import_reconstructs_same_identity_digests_scope
     assert_eq!(witness.stored_digest(), lane.reachability.stored_digest());
     assert_eq!(
         placement_plan.disposition(),
-        ImportPlacementDisposition::AlreadyPresentLocally
+        BlobImportPlacementDisposition::AlreadyPresentLocally
     );
     assert_eq!(
         placement_plan.source(),
-        ImportPlacementSource::InlineInBundle
+        BlobImportPlacementSource::InlineInBundle
     );
     assert_eq!(witness.counters().imported_declarations(), 1);
     assert_eq!(witness.counters().readmitted_chunks(), 1);
@@ -213,21 +213,23 @@ fn imported_json_and_hostile_boundary_cases_deny_before_witness_construction() {
             base_decl.chunk_tree_root().clone(),
             base_decl.logical_content_digest().clone(),
             base_decl.chunk_scope(),
-            ImportPlacementSource::ExternalByReference,
-            base_decl.export_custody_scope(),
-            base_decl
-                .chunk_rows()
-                .iter()
-                .map(|row| {
-                    BlobImportChunkDeclaration::portable(
-                        row.ordinal(),
-                        row.chunk_identity(),
-                        row.stored_digest(),
-                        row.checksum_digest(),
-                        row.bytes(),
-                    )
-                })
-                .collect(),
+            crate::BlobImportTransferDeclaration::new(
+                BlobImportPlacementSource::ExternalByReference,
+                base_decl.export_custody_scope(),
+                base_decl
+                    .chunk_rows()
+                    .iter()
+                    .map(|row| {
+                        BlobImportChunkDeclaration::portable(
+                            row.ordinal(),
+                            row.chunk_identity(),
+                            row.stored_digest(),
+                            row.checksum_digest(),
+                            row.bytes(),
+                        )
+                    })
+                    .collect(),
+            ),
         ));
     let deduped = import_authority
         .readmit_import_declaration_after_boundary(
@@ -245,11 +247,11 @@ fn imported_json_and_hostile_boundary_cases_deny_before_witness_construction() {
         .expect("placement planning should see explicit external reference");
     assert_eq!(
         deduped_plan.disposition(),
-        ImportPlacementDisposition::DedupedLocally
+        BlobImportPlacementDisposition::DedupedLocally
     );
     assert_eq!(
         deduped_plan.source(),
-        ImportPlacementSource::ExternalByReference
+        BlobImportPlacementSource::ExternalByReference
     );
 
     let missing = import_authority
@@ -268,11 +270,11 @@ fn imported_json_and_hostile_boundary_cases_deny_before_witness_construction() {
         .expect("placement planning should see missing external chunks");
     assert_eq!(
         requires_fetch.disposition(),
-        ImportPlacementDisposition::RequiresFetch
+        BlobImportPlacementDisposition::RequiresFetch
     );
     assert_eq!(
         requires_fetch.source(),
-        ImportPlacementSource::ExternalByReference
+        BlobImportPlacementSource::ExternalByReference
     );
     let missing_witness = missing.admit_imported_blob(&requires_fetch);
     let missing_counters = match missing_witness {

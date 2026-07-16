@@ -1,6 +1,7 @@
-use worth_store_operations_vocabulary::BackupExportCustodyMode;
-
-use crate::{BlobChunkRootPublication, BlobExportAuthority, BlobExportPublishedBundle};
+use crate::{
+    AdmittedBlobCustody, BlobChunkRootPublication, BlobCustodyPurpose, BlobExportAuthority,
+    BlobExportPublishedBundle,
+};
 
 use super::backend::{current_authority, export_readiness};
 use super::chunk_sequence::{chunk_window_for_ordinal, GeneratedBlobSequence};
@@ -36,7 +37,7 @@ pub(super) fn publish_export_bundle(
 
 fn publish_streamed_export_bundle(
     authority: &BlobExportAuthority,
-    custody: &worth_store_operations_vocabulary::BackupExportCustodyReadiness,
+    custody: &AdmittedBlobCustody,
     export_name: &str,
     lane: &ExecutedBlobLane,
     publication: &BlobChunkRootPublication,
@@ -107,29 +108,31 @@ fn publish_streamed_export_bundle(
         crate::export_bundle::prepare_export_artifact(export_name, publication.canonical_basis())?;
     let counters = crate::BlobExportBundleCounters::start().with_evidence(counts);
     Ok(BlobExportPublishedBundle::new(
-        lane.lifecycle.declaration().object_id().clone(),
-        lane.lifecycle.declaration().generation(),
-        publication.chunk_tree_root().clone(),
-        lane.lifecycle.declaration().security_metadata(),
-        crate::BlobExportManifest::new(export_name.to_owned(), manifest_rows),
-        crate::BlobExportCustodyEvidence::new(custody.identity(), custody.mode()),
-        crate::BlobExportDigestEvidence::new(
-            lane.lifecycle
-                .declaration()
-                .logical_content_digest()
-                .clone(),
-            export_digest,
-            &offline_declarations,
-        ),
-        offline_declarations,
-        canonical_export,
-        counters,
+        crate::export_bundle::BlobExportPublishedBundleParts {
+            object_id: lane.lifecycle.declaration().object_id().clone(),
+            generation: lane.lifecycle.declaration().generation(),
+            chunk_tree_root: publication.chunk_tree_root().clone(),
+            security_metadata: lane.lifecycle.declaration().security_metadata(),
+            manifest: crate::BlobExportManifest::new(export_name.to_owned(), manifest_rows),
+            custody: crate::BlobExportCustodyEvidence::new(custody.identity(), custody.purpose()),
+            digest_evidence: crate::BlobExportDigestEvidence::new(
+                lane.lifecycle
+                    .declaration()
+                    .logical_content_digest()
+                    .clone(),
+                export_digest,
+                &offline_declarations,
+            ),
+            offline_declarations,
+            canonical_export,
+            counters,
+        },
     ))
 }
 
 fn verify_streamed_export_common(
     export_name: &str,
-    custody: &worth_store_operations_vocabulary::BackupExportCustodyReadiness,
+    custody: &AdmittedBlobCustody,
     lane: &ExecutedBlobLane,
     publication: &BlobChunkRootPublication,
 ) -> Result<(), crate::BlobExportBundleDenial> {
@@ -152,9 +155,9 @@ fn verify_streamed_export_common(
             counters: crate::BlobExportBundleCounters::start(),
         });
     }
-    match custody.mode() {
-        Some(BackupExportCustodyMode::Export) | None => {}
-        Some(BackupExportCustodyMode::Backup | BackupExportCustodyMode::PointInTimeRecovery) => {
+    match custody.purpose() {
+        BlobCustodyPurpose::Export => {}
+        BlobCustodyPurpose::Backup | BlobCustodyPurpose::PointInTimeRecovery => {
             return Err(crate::BlobExportBundleDenial::CustodyNotExportReady {
                 counters: crate::BlobExportBundleCounters::start(),
             });

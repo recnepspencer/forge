@@ -1,4 +1,4 @@
-# worth-signal-wasm React Adapter Spec
+# worth-signals-wasm React Adapter Spec
 
 > **Status:** Completed 2026-04-29
 >
@@ -7,13 +7,13 @@
 > **Core prerequisite:** [_docs/worth_signal/milestone-11-closeout.md](../../../_docs/worth_signal/milestone-11-closeout.md)
 >
 > **Primary architectural driver:** add a React domain inside
-> `worth-signal-wasm` that feels native in a React codebase without inventing a
+> `worth-signals-wasm` that feels native in a React codebase without inventing a
 > second store engine, weakening committed observation semantics, or smearing
 > framework glue back into the framework-agnostic runtime
 
 ## Goal
 
-Add a React domain to `worth-signal-wasm` that provides a clean, minimal,
+Add a React domain to `worth-signals-wasm` that provides a clean, minimal,
 production-grade adapter surface for React apps:
 
 - `createSignals()` remains the runtime entrypoint
@@ -73,7 +73,7 @@ This adapter must survive this hostile condition:
 
 ## Explicit Assumptions
 
-- the React adapter lives inside `worth-signal-wasm` in a separate `react`
+- the React adapter lives inside `worth-signals-wasm` in a separate `react`
   domain folder
 - the adapter is secondary to the framework-agnostic runtime, not a new top
   level product surface
@@ -153,13 +153,13 @@ Normative consequence:
 The intended React-domain surface is:
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 import {
   createReactSignalsStore,
   useOutputValue,
   useSignalValue,
   useSignalsDiagnostics,
-} from "worth-signal-wasm/react";
+} from "worth-signals-wasm/react";
 
 const signals = createSignals();
 const store = createReactSignalsStore(signals);

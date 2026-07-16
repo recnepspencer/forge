@@ -1,3 +1,6 @@
+#[path = "../../../support/recovery/independent_verifier_observation.rs"]
+mod independent_verifier_observation;
+
 use worth_store_test_support::harness::recovery::counter_evidence as counter_support;
 
 use worth_foundational::{BoundaryArtifactField, BoundaryArtifactId, BoundaryArtifactLocator};
@@ -5,12 +8,12 @@ use worth_store_physical_backend::ProductionStorageBoundarySeam;
 use worth_store_physical_certification::PhysicalProofOracleVerdict;
 use worth_store_physical_certification::{
     CounterContractOracle, DetachedSimulationReplayParts, ExecutedTranscriptParts,
-    FixtureCapabilityDeclaration, FixtureMutationBoundary, IndependentVerifierObservation,
-    LargeStoreFixtureProfile, ObservedPhysicalTrace, PhysicalArtifactFaultLocus,
-    PhysicalCertificationEvidenceBundle, PhysicalFaultEvent, PhysicalFixtureBuilder,
-    PhysicalInterleavingSchedule, PhysicalProofOracleKind, PhysicalSimulationObserver,
-    PhysicalSimulationPlan, ProductionBackedPhysicalFixture, ReusablePhysicalOracleFamily,
-    SimulationReplayBundle, StateSpaceBudget, TranscriptReplayDenial,
+    FixtureCapabilityDeclaration, FixtureMutationBoundary, LargeStoreFixtureProfile,
+    ObservedPhysicalTrace, PhysicalArtifactFaultLocus, PhysicalCertificationEvidenceBundle,
+    PhysicalFaultEvent, PhysicalFixtureBuilder, PhysicalInterleavingSchedule,
+    PhysicalProofOracleKind, PhysicalSimulationObserver, PhysicalSimulationPlan,
+    ProductionBackedPhysicalFixture, ReusablePhysicalOracleFamily, SimulationReplayBundle,
+    StateSpaceBudget, TranscriptReplayDenial,
 };
 use worth_store_test_support::{
     developer_smoke_replay_seed, production_backed_physical_fixture_materialization,
@@ -269,16 +272,18 @@ fn physical_isolation_readiness_verdict(
 
 fn observed_trace_with_verifier(plan: &PhysicalSimulationPlan) -> ObservedPhysicalTrace {
     let execution =
-        worth_store_physical_certification::ExecutedPhysicalSimulationObservation::from_executed_plan(
+        worth_store_physical_certification::PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(
             plan,
         )
         .unwrap();
     PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(plan, &execution)
+        .observe_boundary_observation(plan, &execution)
         .unwrap()
-        .with_independent_verifier_observation(IndependentVerifierObservation::agreement(
-            worth_store_physical_certification::OfflineVerifierBoundarySeam::LayoutWalkBeforeRuntimeRecovery,
-        ))
+        .with_independent_verifier_observation(
+            independent_verifier_observation::observed_runtime_comparison(
+                independent_verifier_observation::RuntimeComparisonFixture::Equivalent,
+            ),
+        )
         .with_compaction_interlock_observation(counter_support::compaction_observation())
         .complete()
         .unwrap()

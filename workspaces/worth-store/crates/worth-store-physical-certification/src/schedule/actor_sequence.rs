@@ -50,4 +50,8 @@ impl PhysicalActorStepSequence {
     pub fn len(&self) -> usize {
         self.steps.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.steps.is_empty()
+    }
 }

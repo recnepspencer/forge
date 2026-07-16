@@ -4,163 +4,99 @@ import test from "node:test";
 import { createRealResourceTestRuntime } from "../runtime_fixture/real_resource_runtime.mjs";
 import { createBranchHead } from "../runtime_fixture/real_resource_signals.mjs";
 
-test("visible selection names speculative confirmed and restored resource truth", async () => {
+test("visible selection identifies derived projection without granting authority", async () => {
   const runtime = await createRealResourceTestRuntime();
   try {
-    const branch = createBranchHead(runtime.signals, "visible-selection");
-    const snapshotId = Number(
-      runtime.signals.history().branch_snapshot_id(branch.id),
+    createBranchHead(runtime.signals, "visible-projection");
+    const line = createEffectCollectionLine(
+      runtime,
+      runtime.mod.resourceEffects.branchNative(),
     );
-    const line = createEffectCollectionLine(runtime, {
-      effects: runtime.mod.resourceEffects.branchNative(),
-    });
     assert.equal(line.diagnostics().visibleSelection.kind, "committed");
 
-    line.patch(
-      runtime.mod.resourcePatch.itemAspect({
-        itemId: "demo:1",
-        aspect: "title",
-        value: "Speculative",
-      }),
-    );
-    const speculativeEffect = line.diagnostics().lastEffect;
-    assert.deepEqual(line.diagnostics().visibleSelection, {
-      kind: "speculative",
-      source: "localPatch",
-      effectId: speculativeEffect.effectId,
-      branchId: branch.id,
-      snapshotId,
-      basisId: "basis-1",
-      rollbackKind: "exactBranchRestoreAvailable",
-      detail:
-        "resource line visible truth is the selected speculative branch effect",
-    });
-    assert.deepEqual(
-      line.history().lifecycle.at(-1).visibleSelection,
-      line.diagnostics().visibleSelection,
-    );
+    await line.patch(titlePatch(runtime, "Projected"));
+    const effect = line.effects().open()[0];
+    const selection = line.diagnostics().visibleSelection;
 
-    line.history().rollbackLastEffect();
-    assert.deepEqual(line.diagnostics().visibleSelection, {
-      kind: "restored",
-      source: "exactBranchRestore",
-      effectId: speculativeEffect.effectId,
-      branchId: branch.id,
-      snapshotId,
-      basisId: "basis-1",
-      rollbackKind: "exactBranchRestoreAvailable",
-      detail:
-        "resource effect rollback can restore the exact branch snapshot captured before speculative application",
-    });
-
-    line.patch(
-      runtime.mod.resourcePatch.itemAspect({
-        itemId: "demo:1",
-        aspect: "title",
-        value: "Confirmed",
-      }),
-    );
-    const confirmedLocalEffect = line.diagnostics().lastEffect;
-    line.deliver(
-      runtime.mod.resourceDelivery.patch({
-        packetId: "pkt-confirm",
-        basisId: "basis-1",
-        nextBasisId: "basis-2",
-        patch: runtime.mod.resourcePatch.itemAspect({
-          itemId: "demo:1",
-          aspect: "title",
-          value: "Confirmed",
-        }),
-      }),
-    );
-    assert.equal(line.diagnostics().visibleSelection.kind, "confirmed");
-    assert.equal(
-      line.diagnostics().visibleSelection.previousEffectId,
-      confirmedLocalEffect.effectId,
-    );
+    assert.equal(selection.kind, "derivedEffectProjectionBranch");
+    assert.equal(selection.source, "openResourceEffects");
+    assert.deepEqual(selection.affectedEffectIds, [effect.effectId]);
+    assert.equal(selection.branchId, line.effects().projection().branch.id);
+    assert.equal(line.effects().projection().canonicalAuthority, false);
     assert.deepEqual(
       line.history().verificationPackage().continuity.visibleSelection,
-      line.diagnostics().visibleSelection,
+      selection,
     );
+
+    await line.effects().reject(effect.effectId);
+    assert.equal(line.diagnostics().visibleSelection.kind, "committed");
+    assert.equal(line.diagnostics().visibleSelection.source, "effectSettlement");
+    assert.equal(line.value().items[0].title, "Loaded");
   } finally {
     await runtime.cleanup();
   }
 });
 
-test("visible selection distinguishes committed fallback and compact inverse restore", async () => {
-  const runtime = await createRealResourceTestRuntime({
-    restore_branch_snapshot_by_id: undefined,
-  });
+test("settlement keeps projection visible while sibling work remains open", async () => {
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const branch = createBranchHead(runtime.signals, "visible-selection-inverse");
-    const snapshotId = Number(
-      runtime.signals.history().branch_snapshot_id(branch.id),
+    createBranchHead(runtime.signals, "visible-open-sibling");
+    const line = createEffectCollectionLine(
+      runtime,
+      runtime.mod.resourceEffects.branchNative(),
     );
-    const line = createEffectCollectionLine(runtime, {
-      effects: runtime.mod.resourceEffects.branchNative(),
-    });
+    await line.patch(titlePatch(runtime, "First"));
+    await line.patch(titlePatch(runtime, "Second"));
+    const [first, second] = line.effects().open();
 
-    line.patch(
-      runtime.mod.resourcePatch.itemAspect({
-        itemId: "demo:1",
-        aspect: "title",
-        value: "Compact Speculative",
-      }),
-    );
-    const compactEffect = line.diagnostics().lastEffect;
-    assert.deepEqual(line.diagnosticsSummary().current.visibleSelection, {
-      kind: "speculative",
-      source: "localPatch",
-      effectId: compactEffect.effectId,
-      branchId: branch.id,
-      snapshotId,
-      basisId: "basis-1",
-      rollbackKind: "compactInverseAvailable",
-      detail:
-        "resource line visible truth is the selected speculative branch effect",
-    });
+    await line.effects().reject(first.effectId);
 
-    line.history().rollbackLastEffect();
-    assert.equal(line.diagnostics().visibleSelection.kind, "restored");
-    assert.equal(line.diagnostics().visibleSelection.source, "compactInverse");
-    assert.equal(
-      line.diagnostics().visibleSelection.rollbackKind,
-      "compactInverseAvailable",
-    );
-
-    line.patch(
-      runtime.mod.resourcePatch.replace({
-        items: [{ id: "demo:1", title: "Broad Committed" }],
-      }),
-    );
-    assert.deepEqual(line.diagnostics().visibleSelection, {
-      kind: "committed",
-      source: "optimismUnavailable",
-      effectId: line.diagnostics().lastEffect.effectId,
-      branchId: "branch-demo",
-      snapshotId: null,
-      basisId: "basis-1",
-      unavailableReason: "restoreUnavailable",
-      detail:
-        "resource line visible truth is committed directly because speculative branch visibility was unavailable",
-    });
+    const selection = line.diagnostics().visibleSelection;
+    assert.equal(selection.kind, "derivedEffectProjectionBranch");
+    assert.equal(selection.source, "effectSettlement");
+    assert.deepEqual(selection.affectedEffectIds, [first.effectId]);
+    assert.equal(line.value().items[0].title, "Second");
+    await line.effects().confirm(second.effectId);
+    assert.equal(line.diagnostics().visibleSelection.kind, "committed");
   } finally {
     await runtime.cleanup();
   }
 });
 
-function createEffectCollectionLine(runtime, options) {
+test("committed-only patch selection remains canonical", async () => {
+  const runtime = await createRealResourceTestRuntime();
+  try {
+    const line = createEffectCollectionLine(
+      runtime,
+      runtime.mod.resourceEffects.pessimistic(),
+    );
+
+    await line.patch(titlePatch(runtime, "Committed"));
+
+    assert.equal(line.diagnostics().visibleSelection.kind, "committed");
+    assert.equal(line.diagnostics().visibleSelection.source, "localPatch");
+    assert.equal(line.value().items[0].title, "Committed");
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+function titlePatch(runtime, value) {
+  return runtime.mod.resourcePatch.itemAspect({
+    itemId: "demo:1",
+    aspect: "title",
+    value,
+  });
+}
+
+function createEffectCollectionLine(runtime, effects) {
   const { mod, resource } = runtime;
   const family = resource.collection({
     params: mod.resourceParams(),
     normalizeParams: ({ workspaceId }) =>
       mod.resourceParamIdentity({ workspaceId }, workspaceId),
-    requestContext: mod.resourceRequestContext({
-      correlationId: "trace-demo",
-      branchId: "branch-demo",
-      basisId: "basis-1",
-    }),
-    effects: options.effects,
+    requestContext: mod.resourceRequestContext({ basisId: "basis-1" }),
+    effects,
     itemIdentity: (item) => item.id,
     reconcile: mod.resourceCollectionShape({
       items: (value) => value.items,
@@ -172,9 +108,7 @@ function createEffectCollectionLine(runtime, options) {
         },
       }),
     }),
-    load: () => ({
-      items: [{ id: "demo:1", title: "Loaded" }],
-    }),
+    load: () => ({ items: [{ id: "demo:1", title: "Loaded" }] }),
   });
   return family.line({ workspaceId: "demo" });
 }

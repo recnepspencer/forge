@@ -9,10 +9,9 @@ import {
   attachErrorListener,
   attachMessageListener,
   deserializeError,
-  normalizeWorkerBranchId,
-  normalizeWorkerMergePreviewRequest,
   normalizeWorkerUrl,
 } from "./worker_runtime_bridge_support.js";
+import { createWorkerRuntimeBridgeHistory } from "./worker_runtime_bridge_history.js";
 
 export function createWorkerRuntimeBridge(options = {}) {
   return new WorkerRuntimeBridge(options);
@@ -21,6 +20,7 @@ export function createWorkerRuntimeBridge(options = {}) {
 class WorkerRuntimeBridge {
   #nextRequestId = 0;
   #pending = new Map();
+  #history;
   #worker;
   #terminated = false;
   #terminating = null;
@@ -35,6 +35,9 @@ class WorkerRuntimeBridge {
       ? normalizeWorkerUrl(options.workerUrl)
       : new URL("./worker_runtime_bridge_worker.js", import.meta.url);
     this.#worker = new globalThis.Worker(workerUrl, { type: "module" });
+    this.#history = createWorkerRuntimeBridgeHistory(
+      (method, ...args) => this.#request(method, ...args),
+    );
     attachMessageListener(this.#worker, (message) => {
       const pending = this.#pending.get(message?.id);
       if (!pending) {
@@ -125,157 +128,36 @@ class WorkerRuntimeBridge {
     return this.#request("recentHistory");
   }
 
-  currentBranch() {
-    return this.#request("currentBranch");
-  }
-
-  branches() {
-    return this.#request("branches");
-  }
-
-  createBranch(name) {
-    return this.#request("createBranch", name);
-  }
-
-  switchBranch(branchId) {
-    return this.#request("switchBranch", normalizeWorkerBranchId(branchId, "switchBranch"));
-  }
-
-  planMergeBranches(sourceBranchId, targetBranchId) {
-    return this.#request(
-      "planMergeBranches",
-      normalizeWorkerBranchId(sourceBranchId, "planMergeBranches.sourceBranchId"),
-      normalizeWorkerBranchId(targetBranchId, "planMergeBranches.targetBranchId"),
-    );
-  }
-
-  planMergeBranchesWithProof(sourceBranchId, targetBranchId) {
-    return this.#request(
-      "planMergeBranchesWithProof",
-      normalizeWorkerBranchId(sourceBranchId, "planMergeBranchesWithProof.sourceBranchId"),
-      normalizeWorkerBranchId(targetBranchId, "planMergeBranchesWithProof.targetBranchId"),
-    );
-  }
-
-  mergeBranches(sourceBranchId, targetBranchId) {
-    return this.#request(
-      "mergeBranches",
-      normalizeWorkerBranchId(sourceBranchId, "mergeBranches.sourceBranchId"),
-      normalizeWorkerBranchId(targetBranchId, "mergeBranches.targetBranchId"),
-    );
-  }
-
-  mergeBranchesWithProof(sourceBranchId, targetBranchId) {
-    return this.#request(
-      "mergeBranchesWithProof",
-      normalizeWorkerBranchId(sourceBranchId, "mergeBranchesWithProof.sourceBranchId"),
-      normalizeWorkerBranchId(targetBranchId, "mergeBranchesWithProof.targetBranchId"),
-    );
-  }
-
-  planMergePolicyPreview(request) {
-    return this.#request(
-      "planMergePolicyPreview",
-      normalizeWorkerMergePreviewRequest(request, "planMergePolicyPreview"),
-    );
-  }
-
-  planMergePolicyPreviewWithProof(request) {
-    return this.#request(
-      "planMergePolicyPreviewWithProof",
-      normalizeWorkerMergePreviewRequest(request, "planMergePolicyPreviewWithProof"),
-    );
-  }
-
-  mergeBranchesPolicyPreview(request) {
-    return this.#request(
-      "mergeBranchesPolicyPreview",
-      normalizeWorkerMergePreviewRequest(request, "mergeBranchesPolicyPreview"),
-    );
-  }
-
-  mergeBranchesPolicyPreviewWithProof(request) {
-    return this.#request(
-      "mergeBranchesPolicyPreviewWithProof",
-      normalizeWorkerMergePreviewRequest(request, "mergeBranchesPolicyPreviewWithProof"),
-    );
-  }
-
-  replayForBranch(branchId) {
-    return this.#request("replayForBranch", normalizeWorkerBranchId(branchId, "replayForBranch"));
-  }
-
-  branchSnapshotId(branchId) {
-    return this.#request("branchSnapshotId", normalizeWorkerBranchId(branchId, "branchSnapshotId"));
-  }
-
-  branchSnapshotEnvelope(branchId) {
-    return this.#request("branchSnapshotEnvelope", normalizeWorkerBranchId(branchId, "branchSnapshotEnvelope"));
-  }
-
-  branchSnapshotArtifact(branchId) {
-    return this.#request(
-      "branchSnapshotArtifact",
-      normalizeWorkerBranchId(branchId, "branchSnapshotArtifact"),
-    );
-  }
-
-  branchSnapshotEnvelopeArtifact(branchId) {
-    return this.#request(
-      "branchSnapshotEnvelopeArtifact",
-      normalizeWorkerBranchId(branchId, "branchSnapshotEnvelopeArtifact"),
-    );
-  }
-
-  branchSnapshotEnvelopeWire(branchId) {
-    return this.#request(
-      "branchSnapshotEnvelopeWire",
-      normalizeWorkerBranchId(branchId, "branchSnapshotEnvelopeWire"),
-    );
-  }
-
-  branchSnapshotEnvelopePortableWire(branchId) {
-    return this.#request(
-      "branchSnapshotEnvelopePortableWire",
-      normalizeWorkerBranchId(branchId, "branchSnapshotEnvelopePortableWire"),
-    );
-  }
-
-  restoreBranchSnapshotArtifact(branchId, snapshot) {
-    return this.#request(
-      "restoreBranchSnapshotArtifact",
-      normalizeWorkerBranchId(branchId, "restoreBranchSnapshotArtifact"),
-      snapshot,
-    );
-  }
-
-  restoreBranchSnapshotWire(branchId, snapshot) {
-    return this.#request(
-      "restoreBranchSnapshotWire",
-      normalizeWorkerBranchId(branchId, "restoreBranchSnapshotWire"),
-      snapshot,
-    );
-  }
-
-  restoreBranchSnapshotPortableWire(branchId, snapshot) {
-    return this.#request(
-      "restoreBranchSnapshotPortableWire",
-      normalizeWorkerBranchId(branchId, "restoreBranchSnapshotPortableWire"),
-      snapshot,
-    );
-  }
-
-  restoreBranchSnapshotById(branchId, snapshotId) {
-    return this.#request(
-      "restoreBranchSnapshotById",
-      normalizeWorkerBranchId(branchId, "restoreBranchSnapshotById"),
-      normalizeWorkerBranchId(snapshotId, "restoreBranchSnapshotById.snapshotId"),
-    );
-  }
-
-  branchStateProof(branchId) {
-    return this.#request("branchStateProof", normalizeWorkerBranchId(branchId, "branchStateProof"));
-  }
+  currentBranch() { return this.#history.currentBranch(); }
+  branches() { return this.#history.branches(); }
+  createBranch(name) { return this.#history.createBranch(name); }
+  workerBranchBasis(branchId) { return this.#history.workerBranchBasis(branchId); }
+  forkBranch(request) { return this.#history.forkBranch(request); }
+  applyTransactionToBranch(request) { return this.#history.applyTransactionToBranch(request); }
+  retireBranch(request) { return this.#history.retireBranch(request); }
+  retireBranches(request) { return this.#history.retireBranches(request); }
+  closeoutEffectBranch(request) { return this.#history.closeoutEffectBranch(request); }
+  switchBranch(branchId) { return this.#history.switchBranch(branchId); }
+  planMergeBranches(source, target) { return this.#history.planMergeBranches(source, target); }
+  planMergeBranchesWithProof(source, target) { return this.#history.planMergeBranchesWithProof(source, target); }
+  mergeBranches(source, target) { return this.#history.mergeBranches(source, target); }
+  mergeBranchesWithProof(source, target) { return this.#history.mergeBranchesWithProof(source, target); }
+  planMergePolicyPreview(request) { return this.#history.planMergePolicyPreview(request); }
+  planMergePolicyPreviewWithProof(request) { return this.#history.planMergePolicyPreviewWithProof(request); }
+  mergeBranchesPolicyPreview(request) { return this.#history.mergeBranchesPolicyPreview(request); }
+  mergeBranchesPolicyPreviewWithProof(request) { return this.#history.mergeBranchesPolicyPreviewWithProof(request); }
+  replayForBranch(branchId) { return this.#history.replayForBranch(branchId); }
+  branchSnapshotId(branchId) { return this.#history.branchSnapshotId(branchId); }
+  branchSnapshotEnvelope(branchId) { return this.#history.branchSnapshotEnvelope(branchId); }
+  branchSnapshotArtifact(branchId) { return this.#history.branchSnapshotArtifact(branchId); }
+  branchSnapshotEnvelopeArtifact(branchId) { return this.#history.branchSnapshotEnvelopeArtifact(branchId); }
+  branchSnapshotEnvelopeWire(branchId) { return this.#history.branchSnapshotEnvelopeWire(branchId); }
+  branchSnapshotEnvelopePortableWire(branchId) { return this.#history.branchSnapshotEnvelopePortableWire(branchId); }
+  restoreBranchSnapshotArtifact(branchId, snapshot) { return this.#history.restoreBranchSnapshotArtifact(branchId, snapshot); }
+  restoreBranchSnapshotWire(branchId, snapshot) { return this.#history.restoreBranchSnapshotWire(branchId, snapshot); }
+  restoreBranchSnapshotPortableWire(branchId, snapshot) { return this.#history.restoreBranchSnapshotPortableWire(branchId, snapshot); }
+  restoreBranchSnapshotById(branchId, snapshotId) { return this.#history.restoreBranchSnapshotById(branchId, snapshotId); }
+  branchStateProof(branchId) { return this.#history.branchStateProof(branchId); }
 
   replayFor(id) {
     return this.#request("replayFor", id);

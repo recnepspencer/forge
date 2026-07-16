@@ -1,5 +1,6 @@
 use crate::scenario::{
-    certify_scenario_definition, BlobHarnessScenarioMetadata, PhysicalSimulationScenarioDefinition,
+    certify_scenario_definition, BlobHarnessScenarioMetadata, NativeScenarioDefinitionParts,
+    PhysicalSimulationScenarioDefinition,
 };
 use crate::{
     lower_physical_simulation_plan, AdmittedDriverContractSet, CertifiedPhysicalScenario,
@@ -67,20 +68,21 @@ fn certify_blob_seed_scenario(
     seed: &BlobHarnessScenarioSeed,
     materialized_profile: &BlobHarnessMaterializedProfile,
 ) -> Result<CertifiedPhysicalScenario, BlobHarnessLoweringDenial> {
-    let definition = PhysicalSimulationScenarioDefinition::from_native_parts(
-        "s7.blob-harness.seed".to_owned(),
-        PhysicalSimulationScenarioFamily::BlobHarnessSeed,
-        PhysicalScenarioIntent::BlobHarnessSeed,
-        vec![blob_harness_seed_fixture(seed, materialized_profile)],
-        blob_seed_actors(seed),
-        blob_seed_schedule(seed),
-        blob_seed_fault(seed),
-        PhysicalScenarioExpectation::non_claiming_blob_harness_seed(
-            seed.topology(),
-            blob_seed_metadata(seed),
-        ),
-    )
-    .map_err(BlobHarnessLoweringDenial::ScenarioDefinition)?;
+    let definition =
+        PhysicalSimulationScenarioDefinition::from_native_parts(NativeScenarioDefinitionParts {
+            label: "s7.blob-harness.seed".to_owned(),
+            family: PhysicalSimulationScenarioFamily::BlobHarnessSeed,
+            intent: PhysicalScenarioIntent::BlobHarnessSeed,
+            fixtures: vec![blob_harness_seed_fixture(seed, materialized_profile)],
+            actors: blob_seed_actors(seed),
+            schedule: blob_seed_schedule(seed),
+            fault: blob_seed_fault(seed),
+            expectation: PhysicalScenarioExpectation::non_claiming_blob_harness_seed(
+                seed.topology(),
+                blob_seed_metadata(seed),
+            ),
+        })
+        .map_err(BlobHarnessLoweringDenial::ScenarioDefinition)?;
     certify_scenario_definition(definition).map_err(BlobHarnessLoweringDenial::ScenarioDefinition)
 }
 

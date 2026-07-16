@@ -16,7 +16,7 @@ For API-backed state, the normal lane is:
 Small example:
 
 ```ts
-import { createSignals } from "worth-signal-wasm";
+import { createSignals } from "worth-signals-wasm";
 
 const signals = await createSignals();
 
@@ -114,7 +114,8 @@ console.log(form.readiness());
   [Restore, Replay, And Recover](./resources/debugging/restore-replay-and-recover.md)
 - optimistic effects, merge/rebase, or rollback posture:
   [Effects And Recovery](./resources/effects/README.md),
-  [Branch-Native Effects](./resources/effects/branch-native-effects.md), and
+  [Branch-Native Effects](./resources/effects/branch-native-effects.md),
+  [Concurrent Optimistic Effects](./resources/effects/concurrency-and-dependencies.md), and
   [Rollback And Recovery](./resources/effects/rollback-and-recovery.md)
 - resource-backed forms, settlement, drift, or merge preview projection:
   [Using Resources In Forms](./resources/forms/README.md),
@@ -150,6 +151,9 @@ console.log(form.readiness());
 - branch-native optimistic effects, response topology proof, JSON effects, and
   UI lifecycle events:
   [Branch-Native Resource Effects](./resources/branch-native-effects.md)
+- concurrent optimistic effects, dependency DAGs, derived projection, and
+  targeted settlement:
+  [Concurrent Optimistic Effects](./resources/effects/concurrency-and-dependencies.md)
 - effect envelopes, merge/rebase, rollback proof, topology proof, JSON path
   proof, or closeout matrices:
   [Effect Envelope Contract](./resource-contracts/effect-envelope.md),

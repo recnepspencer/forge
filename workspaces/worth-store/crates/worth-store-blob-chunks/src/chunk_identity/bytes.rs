@@ -15,6 +15,10 @@ impl BlobChunkOrdinal {
     pub const fn get(self) -> u64 {
         self.0
     }
+
+    pub(crate) const fn from_raw(value: u64) -> Self {
+        Self(value)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,6 +41,10 @@ impl BlobChunkByteRange {
 
     pub const fn len(self) -> u64 {
         self.len
+    }
+
+    pub const fn is_empty(self) -> bool {
+        self.len == 0
     }
 
     pub const fn end(self) -> u64 {

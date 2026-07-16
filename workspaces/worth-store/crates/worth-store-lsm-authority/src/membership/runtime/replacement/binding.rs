@@ -50,6 +50,7 @@ pub(in crate::membership::runtime) fn replacement_output_matches(
     identity: BlobWalRecordIdentity,
     scope: &WalFrameDurablePublicationScope,
     path: &Path,
+    offset: u64,
     bytes: u64,
 ) -> bool {
     selected.expected_output_identity() == Some(identity)
@@ -57,11 +58,16 @@ pub(in crate::membership::runtime) fn replacement_output_matches(
             record.durable_scope().segment_id() == scope.segment_id()
                 && record.durable_scope().generation() == scope.generation()
         })
-        && scope.lsn_start() <= identity.sequence()
-        && scope.lsn_end() >= identity.sequence()
+        && selected
+            .record_set()
+            .iter()
+            .map(|record| record.durable_scope().lsn_end())
+            .max()
+            .is_some_and(|expected| scope.lsn_start() == expected)
         && scope.expected_bytes() == bytes
-        && durable_artifact::persisted_artifact_matches(
+        && durable_artifact::persisted_artifact_range_matches(
             path,
+            offset,
             bytes,
             &durable_artifact::lsm_membership_output_bytes(scope),
         )

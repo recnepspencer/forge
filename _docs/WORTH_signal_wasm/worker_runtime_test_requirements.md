@@ -1,4 +1,4 @@
-# worth-signal-wasm Worker Runtime Test Requirements
+# worth-signals-wasm Worker Runtime Test Requirements
 
 > **Status:** Planned certification spec
 >
@@ -10,7 +10,7 @@
 
 ## Purpose
 
-This document defines the certification bar for the `worth-signal-wasm`
+This document defines the certification bar for the `worth-signals-wasm`
 worker-first runtime placement milestone.
 
 It is not a list of example tests.

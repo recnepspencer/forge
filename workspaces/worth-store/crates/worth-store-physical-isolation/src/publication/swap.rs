@@ -1,5 +1,6 @@
-use super::{CopyOnWritePublicationPlan, PhysicalPublicationDenial, PhysicalPublicationReceipt};
+use super::{CopyOnWritePublicationPlan, PhysicalPublicationReceipt};
 use crate::CurrentPhysicalRoot;
+use worth_store_physical_backend::StorageBoundaryExecutionIdentity;
 
 #[derive(Debug, Clone, Copy)]
 pub struct PublishedCopyOnWriteRootSwap {
@@ -14,7 +15,18 @@ pub struct ReadCopyUpdateRootPublication {
 }
 
 impl ReadCopyUpdateRootPublication {
-    pub fn publish(plan: CopyOnWritePublicationPlan) -> Result<Self, PhysicalPublicationDenial> {
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub fn publish(
+        plan: CopyOnWritePublicationPlan,
+    ) -> Result<Self, super::PhysicalPublicationDenial> {
+        let current_root = plan.intent().old_root();
+        super::PhysicalRootPublicationRuntime::open_for_testing(current_root)?.publish(plan)
+    }
+
+    pub(super) fn from_durable_publication(
+        plan: CopyOnWritePublicationPlan,
+        storage_boundary_execution: Option<StorageBoundaryExecutionIdentity>,
+    ) -> Self {
         let root_swap = PublishedCopyOnWriteRootSwap::from_plan(&plan);
         let receipt = PhysicalPublicationReceipt::from_publish(
             plan.intent(),
@@ -22,8 +34,9 @@ impl ReadCopyUpdateRootPublication {
             plan.release_posture(),
             plan.readiness().free_reuse(),
             plan.counters().with_root_swap(),
+            storage_boundary_execution,
         );
-        Ok(Self { root_swap, receipt })
+        Self { root_swap, receipt }
     }
 
     pub const fn receipt(&self) -> &PhysicalPublicationReceipt {

@@ -25,7 +25,7 @@ pub const CASES: [(&str, &str); 28] = [
     ),
     (
         "physical_compaction_owner_case_id_is_not_constructible.rs",
-        "private fields",
+        "enum has no tuple variants to construct",
     ),
     (
         "physical_compaction_owner_case_is_not_constructible.rs",

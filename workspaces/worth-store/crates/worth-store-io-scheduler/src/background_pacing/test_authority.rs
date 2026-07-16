@@ -129,9 +129,11 @@ fn background_capacity_for_lane(
         admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
             crate::foreground_reservation::ForegroundReservationCapacityAuthority::store_owned(),
             lane,
-            &foreground_backend,
-            &readiness,
-            &security,
+            crate::foreground_reservation::ForegroundReservationAdmissionBoundary::new(
+                &foreground_backend,
+                &readiness,
+                &security,
+            ),
             arbitration,
             lane.requested_budget(),
             full_foreground_capacity(),

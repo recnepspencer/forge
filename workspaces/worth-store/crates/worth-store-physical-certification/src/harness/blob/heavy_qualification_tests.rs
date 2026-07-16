@@ -49,14 +49,18 @@ fn canonical_pattern_profiles_execute_with_shared_evidence_schema() {
     for pattern in DeterministicBytePatternProfile::canonical_heavy_blob_patterns() {
         let witness = execute_blob_harness(
             BlobHarnessExecutionInput::new(
+                worth_store_blob_chunks::certification_test_authority::BlobHarnessStorageShape::new(
                 seed.profile().envelope().profile(),
                 seed.size_class(),
                 seed.placement_class(),
                 seed.security_scope(),
+                ),
+                worth_store_blob_chunks::certification_test_authority::BlobHarnessExerciseShape::new(
                 seed.access_mode(),
                 seed.failure_point(),
                 seed.actor_mix(),
                 seed.topology(),
+                ),
             )
             .with_heavy_temp_file_materialization()
             .with_heavy_byte_pattern_profile(pattern),
@@ -79,14 +83,18 @@ fn chaos_corpus_lane_is_explicitly_non_canonical() {
     let local_seed = local_scenario_seed();
     let witness = execute_blob_harness(
         BlobHarnessExecutionInput::new(
-            local_seed.profile().envelope().profile(),
-            local_seed.size_class(),
-            local_seed.placement_class(),
-            local_seed.security_scope(),
-            local_seed.access_mode(),
-            local_seed.failure_point(),
-            local_seed.actor_mix(),
-            local_seed.topology(),
+            worth_store_blob_chunks::certification_test_authority::BlobHarnessStorageShape::new(
+                local_seed.profile().envelope().profile(),
+                local_seed.size_class(),
+                local_seed.placement_class(),
+                local_seed.security_scope(),
+            ),
+            worth_store_blob_chunks::certification_test_authority::BlobHarnessExerciseShape::new(
+                local_seed.access_mode(),
+                local_seed.failure_point(),
+                local_seed.actor_mix(),
+                local_seed.topology(),
+            ),
         )
         .with_heavy_temp_file_materialization()
         .with_non_canonical_chaos_stress(),

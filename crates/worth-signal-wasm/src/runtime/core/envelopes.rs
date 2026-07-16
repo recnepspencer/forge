@@ -19,7 +19,7 @@ use crate::runtime::adapters::{
 };
 use crate::runtime::summaries::{public_callback_read_ids, RuntimeSnapshotEnvelope};
 
-use super::merge::build_branch_state_proof_basis;
+use super::merge_state::build_branch_state_proof_basis;
 use super::state::{
     BranchRuntimeState, CallbackDiagnosticState, CatalogEntry, DenseGridFamily, RuntimeStore,
     StoredRecipeDefinition, WebRuntimeMetrics, WebSignalKind,

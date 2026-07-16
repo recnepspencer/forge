@@ -1,6 +1,8 @@
-function freezeLineState(state) {
+function freezeLineState(state, canonicalRevision) {
   return Object.freeze({
     value: state.value,
+    canonicalValue: state.canonicalValue,
+    canonicalRevision,
     processing: state.processing,
     upload: state.upload,
     download: state.download,
@@ -12,7 +14,7 @@ function freezeLineState(state) {
 
 function createLineBindingState(initialState) {
   return {
-    current: freezeLineState(initialState),
+    current: freezeLineState(initialState, 0),
   };
 }
 
@@ -21,8 +23,11 @@ function readLineBindingState(binding) {
 }
 
 function replaceLineBindingState(binding, nextState) {
-  const frozenNextState = freezeLineState(nextState);
   const previousState = binding.state.current;
+  const canonicalRevision = previousState.canonicalValue === nextState.canonicalValue
+    ? previousState.canonicalRevision
+    : previousState.canonicalRevision + 1;
+  const frozenNextState = freezeLineState(nextState, canonicalRevision);
   binding.state.current = frozenNextState;
   publishLineBindingState(binding, frozenNextState, previousState);
   return frozenNextState;
@@ -36,8 +41,20 @@ function patchLineBindingState(binding, patch) {
 }
 
 function publishLineBindingState(binding, nextState, previousState = null) {
+  const statusChanged = previousState === null
+    || previousState.status !== nextState.status;
+  const enteringPending = statusChanged && nextState.status.kind === "pending";
+  if (enteringPending) {
+    binding.statusSignal.set(nextState.status);
+  }
   if (previousState === null || previousState.value !== nextState.value) {
     binding.valueSignal.set(nextState.value);
+  }
+  if (
+    previousState === null
+    || previousState.canonicalValue !== nextState.canonicalValue
+  ) {
+    binding.canonicalValueSignal.set(nextState.canonicalValue);
   }
   if (
     previousState === null
@@ -54,9 +71,6 @@ function publishLineBindingState(binding, nextState, previousState = null) {
   ) {
     binding.downloadSignal.set(nextState.download);
   }
-  if (previousState === null || previousState.status !== nextState.status) {
-    binding.statusSignal.set(nextState.status);
-  }
   if (
     previousState === null
     || previousState.freshness !== nextState.freshness
@@ -68,6 +82,9 @@ function publishLineBindingState(binding, nextState, previousState = null) {
     || previousState.diagnostics !== nextState.diagnostics
   ) {
     binding.diagnosticsSignal.set(nextState.diagnostics);
+  }
+  if (statusChanged && !enteringPending) {
+    binding.statusSignal.set(nextState.status);
   }
 }
 

@@ -24,7 +24,6 @@ members = [
     "crates/worth-store-modes",
     "crates/worth-store-offline-verifier",
     "crates/worth-store-operations",
-    "crates/worth-store-operations-vocabulary",
     "crates/worth-store-physical-backend",
     "crates/worth-store-physical-certification",
     "crates/worth-store-physical-format",
@@ -73,7 +72,6 @@ worth-store-maintenance = { path = "crates/worth-store-maintenance" }
 worth-store-modes = { path = "crates/worth-store-modes" }
 worth-store-offline-verifier = { path = "crates/worth-store-offline-verifier" }
 worth-store-operations = { path = "crates/worth-store-operations" }
-worth-store-operations-vocabulary = { path = "crates/worth-store-operations-vocabulary" }
 worth-store-physical-backend = { path = "crates/worth-store-physical-backend" }
 worth-store-physical-certification = { path = "crates/worth-store-physical-certification" }
 worth-store-physical-format = { path = "crates/worth-store-physical-format" }

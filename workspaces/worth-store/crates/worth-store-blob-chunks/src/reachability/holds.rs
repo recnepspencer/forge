@@ -1,14 +1,11 @@
 use worth_store_contracts::StableDigest;
-use worth_store_operations_vocabulary::{
-    BackupExportCustodyMode, BackupExportCustodyReadiness, S10BackupExportCustodyHandoff,
-};
 use worth_store_physical_isolation::{ReadDuringCheckpointVerdict, StablePhysicalReadPlan};
 
 use crate::{
-    reachability::edges::BlobReachabilityAuthorityKey, BlobCorruptionGuard,
-    BlobGenerationPublished, BlobReachabilityCounterSnapshot, BlobReachabilityDenial,
-    BlobReachabilityEdgeKind, BlobResumeCheckpoint, BlobResumeCheckpointStateKind,
-    BlobRetentionHold, BlobRetentionHoldKind,
+    reachability::edges::BlobReachabilityAuthorityKey, AdmittedBlobCustody, BlobCorruptionGuard,
+    BlobCustodyPurpose, BlobGenerationPublished, BlobReachabilityCounterSnapshot,
+    BlobReachabilityDenial, BlobReachabilityEdgeKind, BlobResumeCheckpoint,
+    BlobResumeCheckpointStateKind, BlobRetentionHold, BlobRetentionHoldKind,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -63,14 +60,11 @@ impl BlobReachabilityProtectedHold {
         ))
     }
 
-    pub(crate) fn from_export_readiness(
-        readiness: &BackupExportCustodyReadiness,
+    pub(crate) fn from_export_custody(
+        custody: &AdmittedBlobCustody,
         authority: BlobReachabilityAuthorityKey,
     ) -> Result<Self, BlobReachabilityDenial> {
-        if !matches!(
-            readiness.mode(),
-            Some(BackupExportCustodyMode::Export) | None
-        ) {
+        if custody.purpose() != BlobCustodyPurpose::Export {
             return Err(invalid_hold_denial());
         }
         Ok(Self::from_authority_parts(
@@ -79,24 +73,19 @@ impl BlobReachabilityProtectedHold {
             1,
             format!(
                 "export:{}:{}",
-                readiness.mode_label(),
-                readiness
-                    .receipt()
-                    .receipt_id()
-                    .security_scope_fingerprint()
+                custody.purpose().label(),
+                custody.receipt().receipt_id().security_scope_fingerprint()
             ),
         ))
     }
 
-    pub(crate) fn from_backup_repair_backup_handoff(
-        handoff: &S10BackupExportCustodyHandoff,
+    pub(crate) fn from_backup_custody(
+        custody: &AdmittedBlobCustody,
         authority: BlobReachabilityAuthorityKey,
     ) -> Result<Self, BlobReachabilityDenial> {
-        let readiness = handoff.readiness();
         if !matches!(
-            readiness.mode(),
-            Some(BackupExportCustodyMode::Backup)
-                | Some(BackupExportCustodyMode::PointInTimeRecovery)
+            custody.purpose(),
+            BlobCustodyPurpose::Backup | BlobCustodyPurpose::PointInTimeRecovery
         ) {
             return Err(invalid_hold_denial());
         }
@@ -106,8 +95,8 @@ impl BlobReachabilityProtectedHold {
             1,
             format!(
                 "backup:{}:{}",
-                readiness.mode_label(),
-                handoff.receipt().receipt_id().security_scope_fingerprint()
+                custody.purpose().label(),
+                custody.receipt().receipt_id().security_scope_fingerprint()
             ),
         ))
     }

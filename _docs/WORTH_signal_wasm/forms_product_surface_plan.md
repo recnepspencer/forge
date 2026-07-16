@@ -1,4 +1,4 @@
-# worth-signal-wasm Forms Product Surface Plan
+# worth-signals-wasm Forms Product Surface Plan
 
 > **Status:** Planned engineering spec
 >
@@ -20,7 +20,7 @@
 
 ## Goal
 
-Build a first-class forms product surface for `worth-signal-wasm` that gives app
+Build a first-class forms product surface for `worth-signals-wasm` that gives app
 authors one obvious form story while preserving runtime-owned truth.
 
 The target product shape is:

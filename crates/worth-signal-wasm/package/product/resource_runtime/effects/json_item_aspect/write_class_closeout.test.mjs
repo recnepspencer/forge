@@ -18,9 +18,8 @@ test("JSON path aspect writes deny non-plain object values before effects", asyn
       new Map([["label", "mapped"]]),
       new CustomJsonLikeValue("custom"),
     ]) {
-      assert.throws(
-        () =>
-          line.patch(tasks.patch.itemAspect({
+      await assert.rejects(
+        line.patch(tasks.patch.itemAspect({
             itemId: "t1",
             aspect: "payload",
             value: rejectedValue,
@@ -67,7 +66,7 @@ test("JSON path aspect writes admit null-prototype JSON dictionaries", async () 
     const dictionary = Object.create(null);
     dictionary.label = "dictionary";
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "t1",
       aspect: "payload",
       value: dictionary,
@@ -110,7 +109,7 @@ test("JSON path aspect writes preserve null-prototype containers during reconstr
     const tasks = createJsonMetadataApi(signals, metadata);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "t1",
       aspect: "payloadLabel",
       value: "line-copied",
@@ -128,7 +127,10 @@ test("JSON path aspect writes preserve null-prototype containers during reconstr
       "plainOrNullCopy",
     );
 
-    assert.equal(line.history().rollbackLastEffect().kind, "rolledBack");
+    assert.equal(
+      (await line.effects().reject(effect.effectId)).kind,
+      "rejectedAndRetired",
+    );
     assert.equal(line.value().tasks[0].metadata.payload.label, "dictionary");
     assert.equal(line.value().tasks[0].metadata.payload.keep, true);
   } finally {
@@ -146,7 +148,7 @@ test("JSON path immutable-copy policy covers sealed and non-extensible container
     const tasks = createJsonMetadataApi(signals, sealedMetadata);
     const line = tasks.line({});
 
-    line.patch(tasks.patch.itemAspect({
+    await line.patch(tasks.patch.itemAspect({
       itemId: "t1",
       aspect: "payloadLabel",
       value: "copied",
@@ -158,6 +160,7 @@ test("JSON path immutable-copy policy covers sealed and non-extensible container
     assert.notEqual(line.value().tasks[0].metadata, sealedMetadata);
     assert.notEqual(line.value().tasks[0].metadata.payload, sealedPayload);
     assert.equal(sealedEffect.patch.jsonPath.policy.extensibility, "immutableCopy");
+    await line.effects().reject(sealedEffect.effectId);
 
     const nonExtensiblePayload = Object.preventExtensions({
       label: "closed",
@@ -169,7 +172,7 @@ test("JSON path immutable-copy policy covers sealed and non-extensible container
     const nextTasks = createJsonMetadataApi(signals, nonExtensibleMetadata);
     const nextLine = nextTasks.line({});
 
-    nextLine.patch(nextTasks.patch.itemAspect({
+    await nextLine.patch(nextTasks.patch.itemAspect({
       itemId: "t1",
       aspect: "payloadLabel",
       value: "reconstructed",
@@ -179,6 +182,7 @@ test("JSON path immutable-copy policy covers sealed and non-extensible container
     assert.equal(nextLine.value().tasks[0].metadata.payload.label, "reconstructed");
     assert.notEqual(nextLine.value().tasks[0].metadata, nonExtensibleMetadata);
     assert.notEqual(nextLine.value().tasks[0].metadata.payload, nonExtensiblePayload);
+    await nextLine.effects().reject(nextLine.effects().open()[0].effectId);
   } finally {
     await runtime.cleanup();
   }

@@ -75,7 +75,6 @@ export const DemosContainer: React.FC<DemosContainerProps> = ({ demoId, onNaviga
             <span className="xai-eyebrow">{`Demo 0${demo.id}`}</span>
             <h1>{demo.title}</h1>
             <p>{demo.purpose}</p>
-            <code>{demo.primaryMessage}</code>
           </div>
           <div className="xai-demo-route-nav-row">
             {previousDemoId ? (

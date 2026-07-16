@@ -57,21 +57,23 @@ pub(crate) fn construct_proof_set(
     let reachable_chunks = collect_unique_reachable_chunks(registry);
     let counters = exact_current_counters_for(registry, &reachable_chunks);
     BlobChunkReachabilityProofSet::construct(
-        authority,
-        reachable_chunks,
-        first_edge.stored_digest().clone(),
-        first_edge.security_metadata(),
-        registry
-            .edges()
-            .iter()
-            .map(|edge| edge.identity().clone())
-            .collect(),
-        registry
-            .holds()
-            .iter()
-            .map(|hold| hold.identity().clone())
-            .collect(),
-        collect_orphan_candidates(registry),
-        counters,
+        crate::reachability::types::BlobReachabilityProofSetParts {
+            authority,
+            reachable_chunks,
+            stored_digest: first_edge.stored_digest().clone(),
+            security_metadata: first_edge.security_metadata(),
+            reference_edges: registry
+                .edges()
+                .iter()
+                .map(|edge| edge.identity().clone())
+                .collect(),
+            protected_holds: registry
+                .holds()
+                .iter()
+                .map(|hold| hold.identity().clone())
+                .collect(),
+            orphan_candidates: collect_orphan_candidates(registry),
+            counters,
+        },
     )
 }

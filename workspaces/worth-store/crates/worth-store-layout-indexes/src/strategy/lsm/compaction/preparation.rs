@@ -7,7 +7,7 @@ use super::super::{
 
 #[derive(Debug)]
 enum CompactionPreparationCase {
-    Admitted(PreparedLsmCompaction),
+    Admitted(Box<PreparedLsmCompaction>),
     Denied(BaselineLsmExecutionAdmissionDenial),
 }
 
@@ -26,7 +26,7 @@ impl LsmCompactionPreparationOutcome {
     fn issue(result: Result<PreparedLsmCompaction, BaselineLsmExecutionAdmissionDenial>) -> Self {
         Self {
             case: match result {
-                Ok(value) => CompactionPreparationCase::Admitted(value),
+                Ok(value) => CompactionPreparationCase::Admitted(Box::new(value)),
                 Err(denial) => CompactionPreparationCase::Denied(denial),
             },
         }
@@ -45,7 +45,7 @@ impl LsmCompactionPreparationOutcome {
 
     pub fn into_result(self) -> Result<PreparedLsmCompaction, BaselineLsmExecutionAdmissionDenial> {
         match self.case {
-            CompactionPreparationCase::Admitted(value) => Ok(value),
+            CompactionPreparationCase::Admitted(value) => Ok(*value),
             CompactionPreparationCase::Denied(denial) => Err(denial),
         }
     }

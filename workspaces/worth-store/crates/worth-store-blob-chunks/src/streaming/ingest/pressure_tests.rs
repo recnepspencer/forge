@@ -117,13 +117,15 @@ fn run_ingest(
         .expect("streaming allocation should record");
     BlobStreamingIngest::run_bounded(
         request(),
-        BlobStreamingWindow::bounded(4).unwrap(),
-        allocation,
-        envelopes,
-        pressure,
+        crate::BlobStreamingIngestExecution::new(
+            BlobStreamingWindow::bounded(4).unwrap(),
+            allocation,
+            envelopes,
+            pressure,
+            CounterEvidenceStrength::Exact,
+        ),
         source_frames(),
         &mut TestChunkWriter,
-        CounterEvidenceStrength::Exact,
     )
 }
 

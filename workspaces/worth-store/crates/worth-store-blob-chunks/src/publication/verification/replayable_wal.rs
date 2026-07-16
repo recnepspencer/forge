@@ -14,8 +14,8 @@ pub(crate) fn verify_replayable_report(
     }
 }
 
-pub(crate) fn replayable_durable_wal<'a>(
-    report: &'a CrashBoundaryLayoutReport,
-) -> Option<&'a worth_store_recovery_physics::UnacknowledgedDurableWal> {
+pub(crate) fn replayable_durable_wal(
+    report: &CrashBoundaryLayoutReport,
+) -> Option<&worth_store_recovery_physics::UnacknowledgedDurableWal> {
     report.replayable_durable_wal()
 }

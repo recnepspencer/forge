@@ -1,8 +1,4 @@
 use worth_store_contracts::DurableArtifactFamilyId;
-use worth_store_offline_verifier::{
-    OfflineCustodyCapsuleObservation, OfflineExportBundleObservation,
-    OfflineRepairBlastRadiusObservation,
-};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OfflineVerifierAuthorityPosture {
@@ -30,34 +26,19 @@ pub struct OfflineVerifierLayoutProjection {
     evidence_items: u64,
 }
 
-pub fn project_offline_export_bundle(
-    observation: &OfflineExportBundleObservation,
-) -> OfflineVerifierLayoutProjection {
+pub fn project_offline_export_bundle(evidence_items: u64) -> OfflineVerifierLayoutProjection {
+    projection(OfflineVerifierEvidenceKind::ExportBundle, evidence_items)
+}
+
+pub fn project_offline_custody_capsule(evidence_items: u64) -> OfflineVerifierLayoutProjection {
+    projection(OfflineVerifierEvidenceKind::CustodyCapsule, evidence_items)
+}
+
+pub fn project_offline_repair_blast_radius(evidence_items: u64) -> OfflineVerifierLayoutProjection {
     projection(
-        OfflineVerifierEvidenceKind::ExportBundle,
-        observation.declarations().len() as u64 + observation.digest_evidence_count(),
+        OfflineVerifierEvidenceKind::RepairBlastRadius,
+        evidence_items,
     )
-}
-
-pub fn project_offline_custody_capsule(
-    observation: &OfflineCustodyCapsuleObservation,
-) -> OfflineVerifierLayoutProjection {
-    let _observed_evidence = (
-        observation.raw_declaration(),
-        observation.readmission_trigger(),
-    );
-    projection(OfflineVerifierEvidenceKind::CustodyCapsule, 2)
-}
-
-pub fn project_offline_repair_blast_radius(
-    observation: &OfflineRepairBlastRadiusObservation,
-) -> OfflineVerifierLayoutProjection {
-    let _observed_evidence = (
-        observation.raw_declaration(),
-        observation.physical_region(),
-        observation.evidence_kind(),
-    );
-    projection(OfflineVerifierEvidenceKind::RepairBlastRadius, 3)
 }
 
 impl OfflineVerifierLayoutProjection {

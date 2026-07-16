@@ -83,7 +83,7 @@ impl S6PostAdmissionViolationEvidenceRow {
         })
     }
 
-    pub fn from_background_pacing_outcome(outcome: BackgroundPacingOutcome) -> Option<Self> {
+    pub fn from_background_pacing_outcome(outcome: &BackgroundPacingOutcome) -> Option<Self> {
         let BackgroundPacingOutcome::Violation(violation) = outcome else {
             return None;
         };
@@ -142,7 +142,7 @@ impl StoreOwnedS6CertificationMaterializationSources {
         reject_access_policy_mismatch(&backend_witness, foreground_receipt, &access_policy_rows)?;
         let post_admission_violations = derive_post_admission_violations(
             &queue_outcome,
-            background_outcome,
+            &background_outcome,
             &access_policy_rows,
         );
         Ok(Self {
@@ -163,7 +163,7 @@ impl StoreOwnedS6CertificationMaterializationSources {
 
 fn derive_post_admission_violations(
     queue_outcome: &QueueExecutionOutcome,
-    background_outcome: BackgroundPacingOutcome,
+    background_outcome: &BackgroundPacingOutcome,
     access_policy_rows: &[S6AccessPolicyEvidenceRow],
 ) -> Vec<S6PostAdmissionViolationEvidenceRow> {
     let mut rows = Vec::new();
@@ -241,9 +241,10 @@ impl S6CertificationEvidenceSources {
             sources.foreground_receipt,
             sources.foreground_receipt,
         )?;
+        let expected_background_outcome = sources.background_outcome.clone();
         let background_pacing = certify_io_qos_background_pacing(
             sources.background_outcome,
-            sources.background_outcome,
+            expected_background_outcome,
         )?;
         let queue_execution =
             S6CertifiedQueueExecutionEvidence::from_outcome(&sources.queue_outcome)?;

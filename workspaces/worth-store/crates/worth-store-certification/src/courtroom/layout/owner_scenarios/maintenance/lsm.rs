@@ -20,6 +20,12 @@ use super::super::fixture_admission::security_scope;
 use super::LayoutOwnerObservationLedger;
 
 pub(super) fn execute(ledger: &mut LayoutOwnerObservationLedger) {
+    for observation in execute_observations() {
+        ledger.record_lsm_maintenance(observation);
+    }
+}
+
+pub(crate) fn execute_observations() -> Vec<LsmMaintenanceOwnerCaseObservation> {
     let current = wal_security(SecurityScopeFixtureAuthority::Current);
     let foreign = wal_security(SecurityScopeFixtureAuthority::Foreign);
     let page = page_security();
@@ -28,12 +34,13 @@ pub(super) fn execute(ledger: &mut LayoutOwnerObservationLedger) {
         zero_budget(),
     ];
 
+    let mut observations = Vec::new();
     let mut publication = BTreeSet::new();
     let mut compaction = BTreeSet::new();
     for security in [&current, &foreign, &page] {
         for budget in budgets {
             retain_once(
-                ledger,
+                &mut observations,
                 &mut publication,
                 layout_lsm_maintenance()
                     .admit_run_publication(LsmRunPublicationAdmissionRequest::new(
@@ -45,7 +52,7 @@ pub(super) fn execute(ledger: &mut LayoutOwnerObservationLedger) {
                     .owner_case_observation(),
             );
             retain_once(
-                ledger,
+                &mut observations,
                 &mut compaction,
                 layout_lsm_maintenance()
                     .admit_compaction(LsmCompactionAdmissionRequest::new(
@@ -69,7 +76,7 @@ pub(super) fn execute(ledger: &mut LayoutOwnerObservationLedger) {
         for source in &replay_sources {
             for budget in budgets {
                 retain_once(
-                    ledger,
+                    &mut observations,
                     &mut replay,
                     layout_lsm_maintenance()
                         .admit_replay(LsmReplayAdmissionRequest::new(
@@ -85,15 +92,16 @@ pub(super) fn execute(ledger: &mut LayoutOwnerObservationLedger) {
             }
         }
     }
+    observations
 }
 
 fn retain_once(
-    ledger: &mut LayoutOwnerObservationLedger,
+    observations: &mut Vec<LsmMaintenanceOwnerCaseObservation>,
     seen: &mut BTreeSet<worth_store_layout_indexes::LsmMaintenanceOwnerCaseId>,
     observed: LsmMaintenanceOwnerCaseObservation,
 ) {
     if seen.insert(observed.id()) {
-        ledger.record_lsm_maintenance(observed);
+        observations.push(observed);
     }
 }
 

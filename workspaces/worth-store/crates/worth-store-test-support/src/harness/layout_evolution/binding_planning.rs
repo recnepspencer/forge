@@ -7,11 +7,13 @@ use worth_store_layout_indexes::{ObserveOwnerCase, OwnerCaseObservation};
 
 use super::world;
 
-pub(super) fn observe() -> (
+type BindingPlanningObservations = (
     Vec<OwnerCaseObservation<LayoutBindingAdmissionCaseId>>,
     Vec<OwnerCaseObservation<MigrationPlanningCaseId>>,
     Vec<OwnerCaseObservation<RollbackPlanningCaseId>>,
-) {
+);
+
+pub(super) fn observe() -> BindingPlanningObservations {
     (
         observe_binding(),
         observe_migration_planning(),

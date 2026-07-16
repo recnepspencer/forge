@@ -494,6 +494,11 @@ impl DiagnosticsState {
         self.active_branch = branch_id;
     }
 
+    pub(crate) fn retire_branch_from_catalog(&mut self, branch_id: SignalBranchId) {
+        debug_assert_ne!(self.active_branch, branch_id);
+        self.branch_catalog.remove(&branch_id);
+    }
+
     pub fn set_branch_head_snapshot(
         &mut self,
         branch_id: SignalBranchId,

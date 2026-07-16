@@ -6,11 +6,23 @@ license.workspace = true
 description = "Roadmap 1 replication, capsules, export/import, and integrity verification."
 
 [dependencies]
+fs4 = "0.8"
+sha2 = "0.10"
+worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-authority.workspace = true
-worth-store-blob-chunks.workspace = true
-worth-store-contracts.workspace = true
-worth-store-offline-verifier.workspace = true
-worth-store-physical-integrity.workspace = true
+worth-store-physical-backend.workspace = true
+worth-store-physical-isolation.workspace = true
+worth-store-recovery-physics.workspace = true
+worth-store-security.workspace = true
+
+[features]
+default = []
+certification-test-authority = []
+
+[dev-dependencies]
+worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
+worth-store-security = { workspace = true, features = ["certification-test-authority"] }
+worth-store-wal.workspace = true
 
 [lints]
 workspace = true

@@ -14,6 +14,16 @@ pub(crate) struct Road1Config {
     /// Compile-time law substrates legal outside the band grammar (e.g. worth-proof).
     #[serde(default)]
     pub(crate) law_substrates: Vec<LawSubstrateConfig>,
+    #[serde(default)]
+    pub(crate) dependency_denials: Vec<DependencyDenialConfig>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct DependencyDenialConfig {
+    pub(crate) workspace_manifest: String,
+    pub(crate) sources: Vec<String>,
+    pub(crate) forbidden_targets: Vec<String>,
+    pub(crate) guidance: String,
 }
 
 /// One machine-owned law substrate: package identity plus legal tier/band sets.

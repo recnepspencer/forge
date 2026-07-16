@@ -73,7 +73,7 @@ pub(crate) fn assemble_movement_denial(
                 unreachable!("classifier ensures violated");
             };
             BlobPlacementMovementDenial::ForegroundReservationViolated {
-                violation,
+                violation: Box::new(violation),
                 counters: counters.record_tier_move_retry().record_protected_denial(),
             }
         }

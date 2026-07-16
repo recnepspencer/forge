@@ -3,7 +3,6 @@ mod backup_export_custody_counters;
 mod backup_export_custody_declaration;
 mod backup_export_custody_denial;
 mod backup_export_custody_emission;
-mod backup_export_custody_handoff;
 mod backup_export_custody_readiness;
 #[cfg(any(test, feature = "certification-test-authority"))]
 mod backup_export_custody_test_support;
@@ -12,13 +11,12 @@ mod backup_export_custody_tests;
 
 pub use backup_export_custody_admission::BackupExportCustodyAdmission;
 pub use backup_export_custody_counters::BackupExportCustodyCounterSnapshot;
-pub use backup_export_custody_declaration::BackupExportCustodyDeclaration;
+pub use backup_export_custody_declaration::{
+    BackupExportCustodyDeclaration, BackupExportCustodyMode,
+};
 pub use backup_export_custody_denial::BackupExportCustodyDenial;
 pub use backup_export_custody_emission::{
     BackupExportCapsuleEmission, BackupExportTerminalProjectionPreparation,
-};
-pub use backup_export_custody_handoff::{
-    S10BackupExportCustodyHandoff, S10BackupExportCustodyPermission,
 };
 pub use backup_export_custody_readiness::BackupExportCustodyReadiness;
 

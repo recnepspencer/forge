@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_store_roadmap_2.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/worth_store_roadmap_2.md)
+> **Roadmap parent:** [physical-database-roadmap.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/physical-database-roadmap.md)
 >
 > **Vision parent:** [worth_store_vision.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/worth_store_vision.md)
 >
@@ -90,11 +90,11 @@ already done.
   semantics. S.0 preserves that semantic survival work while clarifying that
   physical media survival, bounded memory, native chunks, and operator-grade
   repair are Roadmap 2 responsibilities.
-- `worth_store_roadmap.md`
-  protects the semantic durability sequence and now explicitly gates post-13.3
-  platform work on Roadmap 2. S.0 must update or annotate any Roadmap 1 phrasing
-  that implies physical database readiness before the gate has closed.
-- `worth_store_roadmap_2.md`
+- `runtime-integration-roadmap.md`
+  defines Part II as a fresh consumer of the closed physical foundation. S.0
+  must prevent retired semantic implementation claims from being mistaken for
+  physical database readiness or earned runtime-integration credit.
+- `physical-database-roadmap.md`
   protects the physical database backtrack. S.0 is the first gate because the
   project needs claim hygiene before building pages, buffers, integrity,
   recovery physics, I/O, blob chunks, backup, security, and certification.
@@ -804,8 +804,8 @@ Required surfaces:
 
 Required scan scopes:
 
-- `_docs/worth-store/worth_store_roadmap.md`
-- `_docs/worth-store/worth_store_roadmap_2.md`
+- `_docs/worth-store/runtime-integration-roadmap.md`
+- `_docs/worth-store/physical-database-roadmap.md`
 - `_docs/worth-store/milestone-*.md`
 - `_docs/worth-store/*-closeout.md`
 - `_docs/worth-store/test-requirements.md`

@@ -1,18 +1,20 @@
+#[path = "../../../support/recovery/independent_verifier_observation.rs"]
+mod independent_verifier_observation;
+
 use worth_store_test_support::harness::recovery::compaction_observation as compaction_interlock_trace;
 
 use worth_store_physical_certification::{
     expected_error_text_oracle_attempt, fixture_label_oracle_attempt, log_only_oracle_attempt,
     lower_physical_simulation_plan, physical_scenario, same_run_self_comparison_oracle_attempt,
     test_support_oracle_verdict_attempt, BlockedReclaimUntilReleaseOracle, ForbiddenShortcutSet,
-    IndependentVerifierAgreementOracle, IndependentVerifierObservation,
-    IndependentVerifierObservationKind, NoMixedRootOracle, ObservationDenial, ObserverKind,
-    OfflineVerifierBoundarySeam, OracleDenial, OracleFamilyKind, PhysicalOracleNonClaim,
-    PhysicalProofOracleKind, PhysicalProofOracleVerdictKind, PhysicalScenarioActor,
-    PhysicalScenarioExpectation, PhysicalScenarioIntent, PhysicalScenarioSchedule,
-    PhysicalSimulationCapabilitySet, PhysicalSimulationObserver, PhysicalSimulationPlan,
-    PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
-    ReusablePhysicalOracleFamily, SimulationEvidencePolicy, SimulationPlanningContext,
-    SupportedObserverSet, SupportedOracleFamilySet,
+    IndependentVerifierAgreementOracle, IndependentVerifierObservationKind, NoMixedRootOracle,
+    ObservationDenial, ObserverKind, OfflineVerifierBoundarySeam, OracleDenial, OracleFamilyKind,
+    PhysicalOracleNonClaim, PhysicalProofOracleKind, PhysicalProofOracleVerdictKind,
+    PhysicalScenarioActor, PhysicalScenarioExpectation, PhysicalScenarioIntent,
+    PhysicalScenarioSchedule, PhysicalSimulationCapabilitySet, PhysicalSimulationObserver,
+    PhysicalSimulationPlan, PhysicalSimulationProfile, PhysicalSimulationProfileSet,
+    PhysicalSimulationScenarioFamily, ReusablePhysicalOracleFamily, SimulationEvidencePolicy,
+    SimulationPlanningContext, SupportedObserverSet, SupportedOracleFamilySet,
 };
 use worth_store_test_support::{
     admitted_developer_smoke_driver_contracts, NativeStoreAspectFixture,
@@ -80,9 +82,11 @@ fn independent_verifier_oracle_requires_independent_observation() {
         .with_compaction_interlock_observation(
             compaction_interlock_trace::store_compaction_observation(),
         )
-        .with_independent_verifier_observation(IndependentVerifierObservation::agreement(
-            OfflineVerifierBoundarySeam::RuntimeVerifierComparison,
-        ))
+        .with_independent_verifier_observation(
+            independent_verifier_observation::observed_runtime_comparison(
+                independent_verifier_observation::RuntimeComparisonFixture::Equivalent,
+            ),
+        )
         .complete()
         .unwrap();
 
@@ -115,9 +119,11 @@ fn independent_verifier_disagreement_is_typed_failed_verdict_evidence() {
         .with_compaction_interlock_observation(
             compaction_interlock_trace::store_compaction_observation(),
         )
-        .with_independent_verifier_observation(IndependentVerifierObservation::disagreement(
-            OfflineVerifierBoundarySeam::RuntimeVerifierComparison,
-        ))
+        .with_independent_verifier_observation(
+            independent_verifier_observation::observed_runtime_comparison(
+                independent_verifier_observation::RuntimeComparisonFixture::ArtifactDigestMismatch,
+            ),
+        )
         .complete()
         .unwrap();
 

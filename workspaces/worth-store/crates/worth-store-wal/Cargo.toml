@@ -6,6 +6,7 @@ license.workspace = true
 description = "Roadmap 1 WAL-coordinated durable mode and semantic write-path contracts."
 
 [dependencies]
+sha2 = "0.10"
 worth-store-authority.workspace = true
 worth-store-contracts.workspace = true
 worth-store-modes.workspace = true
@@ -21,6 +22,7 @@ certification-authority = [
 ]
 
 [dev-dependencies]
+tempfile = "3"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-aspect-native.workspace = true
