@@ -1,4 +1,5 @@
-import { createRawSignals } from "../../../../crates/worth-signal-wasm/pkg/raw_surface.js";
+import initializeRawSignals, * as rawSurface from "../../../../crates/worth-signal-wasm/pkg/raw_surface.js";
+import type { Signals as RawSignals } from "../../../../crates/worth-signal-wasm/pkg/raw_surface.js";
 import { resourcePolicyProfiles, wrapSignals } from "../../../../crates/worth-signal-wasm/package-src/product/signals.ts";
 
 interface CompatibilityCreateSignalsOptions {
@@ -7,6 +8,17 @@ interface CompatibilityCreateSignalsOptions {
 }
 
 export { resourcePolicyProfiles };
+
+const { createRawSignals } = rawSurface as unknown as {
+  createRawSignals: () => RawSignals;
+};
+
+let initialization: Promise<undefined> | null = null;
+
+async function ensureRuntimeInitialized(): Promise<void> {
+  initialization ??= initializeRawSignals();
+  await initialization;
+}
 
 export async function createSignals(
   options?: CompatibilityCreateSignalsOptions,
@@ -21,13 +33,8 @@ export async function createSignals(
     throw new TypeError('createSignals deployment must be "workerFirst" or "mainThreadCompatibility"');
   }
 
-  if (deployment === "workerFirst") {
-    return hostCapabilities === undefined
-      ? wrapSignals(createRawSignals())
-      : wrapSignals(createRawSignals(), { hostCapabilities });
-  }
+  await ensureRuntimeInitialized();
 
-  return hostCapabilities === undefined
-    ? wrapSignals(createRawSignals())
-    : wrapSignals(createRawSignals(), { hostCapabilities });
+  const productOptions = hostCapabilities === undefined ? undefined : { hostCapabilities };
+  return wrapSignals(createRawSignals(), productOptions);
 }

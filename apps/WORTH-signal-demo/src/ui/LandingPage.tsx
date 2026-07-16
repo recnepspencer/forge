@@ -19,8 +19,8 @@ const capabilitySlides = [
     id: 1,
     accent: "signals",
     eyebrow: "Signals",
-    headline: "State changes once. Everything derived follows.",
-    body: "Start with the smallest WORTH primitive: retained local state, derived outputs, and one coherent update path.",
+    headline: "Keeps state and derived values synchronized.",
+    body: "Update state once. Every dependent value follows automatically.",
     seed: 11,
     values: [18, 42, 128, 7, 3, 89, 64, 21],
   },
@@ -28,8 +28,8 @@ const capabilitySlides = [
     id: 2,
     accent: "resources",
     eyebrow: "Resource Lines",
-    headline: "Every read gets a lifecycle.",
-    body: "Materialize catalog and detail lines, then inspect value, status, freshness, diagnostics, and history from the runtime.",
+    headline: "Gives every read a visible lifecycle.",
+    body: "See loading, freshness, errors, history, and diagnostics in one place.",
     seed: 17,
     values: [22, 4, 88, 12, 5, 71, 39, 8],
   },
@@ -37,8 +37,8 @@ const capabilitySlides = [
     id: 3,
     accent: "forms",
     eyebrow: "Forms",
-    headline: "Form readiness belongs to the runtime.",
-    body: "Source truth, draft edits, validation, dirty state, and submit posture stay in one controller instead of scattered component glue.",
+    headline: "Keeps form state in one controller.",
+    body: "Drafts, validation, dirty state, and submission stay coordinated.",
     seed: 23,
     values: [12, 62, 4, 98, 2, 71, 31, 9],
   },
@@ -46,8 +46,8 @@ const capabilitySlides = [
     id: 4,
     accent: "router",
     eyebrow: "Router",
-    headline: "Routes can own more than matching.",
-    body: "Browser ingress, role-sensitive admission, breadcrumbs, and replayable session history live behind one route authority.",
+    headline: "Centralizes routing decisions.",
+    body: "Handle navigation, access, breadcrumbs, and replayable history in one place.",
     seed: 37,
     values: [5, 240, 33, 18, 4, 72, 12, 9],
   },
@@ -55,8 +55,8 @@ const capabilitySlides = [
     id: 5,
     accent: "resources",
     eyebrow: "Optimistic Resources",
-    headline: "Optimistic writes should be inspectable.",
-    body: "Items appear immediately, then the resource line records whether the write was confirmed, reconciled, or rolled back.",
+    headline: "Makes optimistic updates traceable.",
+    body: "Apply changes immediately, then confirm, reconcile, or roll them back.",
     seed: 41,
     values: [204, 16, 74, 1, 32, 68, 11, 2],
   },
@@ -64,8 +64,8 @@ const capabilitySlides = [
     id: 6,
     accent: "composition",
     eyebrow: "Composition",
-    headline: "The adapter layer is the tax.",
-    body: "See route, form, resource, write lifecycle, and diagnostics compose without building a second app framework beside React.",
+    headline: "Eliminates the adapter layers.",
+    body: "Signals, forms, routes, resources, and diagnostics work together directly.",
     seed: 59,
     values: [3, 77, 91, 8, 144, 24, 12, 6],
   },
@@ -167,13 +167,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
     <main className="xai-landing xai-carousel-home">
       <section className="container xai-carousel-shell">
         <div className="xai-carousel-title">
-          <span className="xai-eyebrow">WORTH signal demo</span>
-          <h1>A runtime for UI state that has to stay coordinated.</h1>
-          <p>
-            Walk through five focused demos, one capability at a time. Start
-            with signals, then see how WORTH carries the same runtime discipline
-            into forms, routes, resources, and composed workflows.
-          </p>
+          <h1>Worth Signals makes application behavior explicit, inspectable, and reproducible</h1>
+          <ul className="xai-audience-points">
+            <li>
+              <strong>Regulated industries</strong>
+              <span>Software that can explain what happened and why.</span>
+            </li>
+            <li>
+              <strong>Startups</strong>
+              <span>Fewer custom layers, faster debugging, and more shipping velocity.</span>
+            </li>
+            <li>
+              <strong>Every application</strong>
+              <span>Clearer state management and code that is easier to change.</span>
+            </li>
+          </ul>
           <div className="xai-carousel-actions">
             <button className="xai-button xai-button-primary" onClick={() => onNavigate("#/demos/1")} type="button">
               Start with signals
@@ -183,7 +191,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           <LandingInstallCommand />
         </div>
 
-        <div className="xai-carousel-stage">
+        <div className={`xai-carousel-stage accent-${active.accent}`}>
           <MotionDiv
             animate={{ backgroundColor: accentGlowColors[previousSlide.accent as keyof typeof accentGlowColors] }}
             className="xai-card-glow xai-card-glow-left"

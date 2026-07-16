@@ -1,199 +1,533 @@
-.resource-lines-section {
+.rl-section {
   display: grid;
-  gap: 1.3rem;
+  gap: 1.6rem;
 }
 
-.resource-lines-code-card,
-.resource-lines-panel {
-  display: grid;
-  gap: 0.9rem;
-  padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  background: rgba(7, 7, 8, 0.96);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
-}
+/* ------------------------------- catalog strip ------------------------------ */
 
-.resource-lines-code-card h3,
-.resource-lines-detail h3 {
-  margin: 0;
-  color: #f5f7fb;
-}
-
-.resource-lines-code-block,
-.resource-lines-terminal {
-  overflow-x: auto;
-  margin: 0;
-  padding: 0.95rem;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 10px;
-  background: #060708;
-  color: #d9e0ea;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.79rem;
-  line-height: 1.65;
-}
-
-.resource-lines-code-line {
-  min-height: 1.6em;
-  white-space: pre;
-}
-
-.resource-lines-tok { color: #e6edf3; }
-.resource-lines-tok-plain { color: #9fb0c5; }
-.resource-lines-tok-kw,
-.resource-lines-tok-op { color: #ff7b72; }
-.resource-lines-tok-fn { color: #d2a8ff; }
-.resource-lines-tok-var { color: #79c0ff; }
-.resource-lines-tok-str { color: #a5d6ff; }
-.resource-lines-tok-prop { color: #ffa657; }
-
-.resource-lines-workbench {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 0.78fr);
-}
-
-.resource-lines-terminal-card {
-  grid-column: 1 / -1;
-}
-
-.resource-lines-tabs {
+.rl-catalog-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
-}
-
-.resource-lines-tabs button,
-.resource-lines-actions button {
-  appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #101113;
-  color: rgba(245, 247, 251, 0.84);
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.resource-lines-tabs button {
-  padding: 0.52rem 0.72rem;
-  border-radius: 999px;
-}
-
-.resource-lines-tabs button.is-active,
-.resource-lines-actions button:hover {
-  border-color: rgba(121, 223, 177, 0.42);
-  color: #eafff5;
-  background: rgba(121, 223, 177, 0.1);
-}
-
-.resource-lines-list {
-  display: grid;
-  gap: 0.58rem;
-}
-
-.resource-lines-help {
-  margin: 0;
-  max-width: 44rem;
-  color: rgba(223, 228, 236, 0.68);
-  font-size: 0.86rem;
-  line-height: 1.55;
-}
-
-.resource-lines-list button {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
-  width: 100%;
-  padding: 0.82rem 0.88rem;
+  gap: 0.7rem 1.1rem;
+  padding: 0.75rem 1.1rem;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.025);
-  color: inherit;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.rl-line-identity {
+  color: rgba(121, 223, 177, 0.72);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.rl-catalog-products {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.rl-catalog-products button {
+  padding: 0.32rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(223, 228, 236, 0.72);
   cursor: pointer;
-  text-align: left;
+  font: inherit;
+  font-size: 0.76rem;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
 }
 
-.resource-lines-list button.is-selected {
-  border-color: rgba(121, 223, 177, 0.36);
-  background: linear-gradient(90deg, rgba(121, 223, 177, 0.1), rgba(255, 255, 255, 0.025));
-}
-
-.resource-lines-list span {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.resource-lines-list strong {
+.rl-catalog-products button:hover {
+  border-color: rgba(121, 223, 177, 0.45);
   color: #f5f7fb;
 }
 
-.resource-lines-list em,
-.resource-lines-detail dt {
-  color: rgba(223, 228, 236, 0.62);
-  font-size: 0.74rem;
-  font-style: normal;
+.rl-catalog-products button.is-selected {
+  border-color: rgba(121, 223, 177, 0.55);
+  background: rgba(121, 223, 177, 0.08);
+  color: #79dfb1;
 }
 
-.resource-lines-list b {
-  color: #b8f2cf;
-  font-size: 0.72rem;
+.rl-catalog-loading {
+  color: rgba(223, 228, 236, 0.45);
+  font-size: 0.76rem;
+}
+
+.rl-catalog-meta {
+  margin-left: auto;
+  color: rgba(223, 228, 236, 0.4);
+  font-size: 0.7rem;
+}
+
+/* -------------------------------- product card ------------------------------ */
+
+.rl-focus {
+  display: grid;
+  gap: 1rem;
+}
+
+.rl-product-card {
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.5rem 1.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(121, 223, 177, 0.04), transparent 40%),
+    var(--worth-bg-2);
+  transition: border-color 300ms ease, box-shadow 300ms ease;
+}
+
+.rl-product-card.is-alarmed {
+  border-color: rgba(245, 183, 109, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(245, 183, 109, 0.14),
+    0 22px 60px rgba(0, 0, 0, 0.35),
+    0 0 52px rgba(245, 183, 109, 0.07);
+}
+
+.rl-product-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.rl-product-head h3 {
+  margin: 0 0 0.3rem;
+  color: #f5f7fb;
+  font-size: 1.25rem;
+  font-weight: 680;
+}
+
+.rl-product-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin: 0;
+}
+
+.rl-product-fields > div {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.rl-product-fields dt {
+  color: rgba(223, 228, 236, 0.5);
+  font-size: 0.7rem;
+  font-weight: 720;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.resource-lines-detail dl {
-  display: grid;
-  gap: 0.55rem;
+.rl-product-fields dd {
   margin: 0;
+  color: #f5f7fb;
+  font-size: clamp(1.2rem, 2.4vw, 1.7rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 640;
 }
 
-.resource-lines-detail dl div {
+.rl-field-flash {
+  animation: rl-flash 1.6s ease;
+}
+
+@keyframes rl-flash {
+  0% {
+    border-color: rgba(245, 183, 109, 0.85);
+    background: rgba(245, 183, 109, 0.16);
+  }
+  100% {
+    border-color: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rl-field-flash {
+    animation: none;
+    border-color: rgba(245, 183, 109, 0.55);
+  }
+}
+
+/* ---------------------------- familiar/new divider --------------------------- */
+
+.rl-familiar-divider {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  align-items: center;
+  gap: 0.9rem;
+  color: rgba(223, 228, 236, 0.38);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.resource-lines-detail dd {
+.rl-familiar-divider::before,
+.rl-familiar-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(121, 223, 177, 0.25), transparent);
+}
+
+.rl-line-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.8rem;
+}
+
+.rl-pill {
+  padding: 0.22rem 0.7rem;
+  border-radius: 999px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+.rl-pill em {
+  font-style: normal;
+  opacity: 0.75;
+}
+
+.rl-pill-ok {
+  border: 1px solid rgba(121, 223, 177, 0.32);
+  background: rgba(121, 223, 177, 0.07);
+  color: #79dfb1;
+}
+
+.rl-pill-busy {
+  border: 1px solid rgba(125, 199, 255, 0.32);
+  background: rgba(125, 199, 255, 0.07);
+  color: #7dc7ff;
+}
+
+.rl-pill-bad,
+.rl-pill-stale {
+  border: 1px solid rgba(245, 183, 109, 0.42);
+  background: rgba(245, 183, 109, 0.09);
+  color: #f5b76d;
+}
+
+.rl-pill-provenance {
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  color: rgba(223, 228, 236, 0.6);
+}
+
+.rl-facts-caption {
+  margin-left: auto;
+  color: rgba(121, 223, 177, 0.45);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.66rem;
+}
+
+.rl-quiet-caption {
+  margin: 0;
+  color: rgba(223, 228, 236, 0.35);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+/* -------------------------------- action row -------------------------------- */
+
+.rl-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.rl-action-row button {
+  display: grid;
+  gap: 0.15rem;
+  justify-items: start;
+  padding: 0.6rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #f5f7fb;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 620;
+  text-align: left;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.rl-action-row button span {
+  color: rgba(121, 223, 177, 0.6);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.66rem;
+  font-weight: 400;
+}
+
+.rl-action-row button:hover {
+  border-color: rgba(121, 223, 177, 0.45);
+  background: rgba(121, 223, 177, 0.06);
+}
+
+/* -------------------------------- shock button ------------------------------- */
+
+.rl-shock-button {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: center;
+  width: 100%;
+  padding: 1.5rem 2rem;
+  border: 1px solid rgba(245, 183, 109, 0.55);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(245, 183, 109, 0.14), transparent 68%),
+    rgba(20, 15, 8, 0.9);
+  color: #f5f7fb;
+  cursor: pointer;
+  font: inherit;
+  animation: rl-shock-in 480ms cubic-bezier(0.16, 1, 0.3, 1), rl-shock-pulse 2.2s ease-in-out 600ms infinite;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.rl-shock-button strong {
+  font-size: clamp(1.35rem, 3.2vw, 2rem);
+  font-weight: 740;
+  letter-spacing: -0.01em;
+  color: #f5b76d;
+}
+
+.rl-shock-button span {
+  color: rgba(223, 228, 236, 0.72);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.rl-shock-button:hover {
+  border-color: #f5b76d;
+  box-shadow: 0 0 60px rgba(245, 183, 109, 0.18);
+}
+
+@keyframes rl-shock-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes rl-shock-pulse {
+  0%, 100% {
+    box-shadow: 0 0 24px rgba(245, 183, 109, 0.08);
+  }
+  50% {
+    box-shadow: 0 0 56px rgba(245, 183, 109, 0.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rl-shock-button {
+    animation: none;
+  }
+}
+
+/* --------------------------------- recorder --------------------------------- */
+
+.rl-recorder {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1.15rem 1.4rem 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: var(--worth-bg-2);
+  scroll-margin-top: 5.5rem;
+}
+
+.rl-answer-banner {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid rgba(245, 183, 109, 0.35);
+  border-radius: 12px;
+  background: rgba(245, 183, 109, 0.06);
+}
+
+.rl-answer-main {
   margin: 0;
   color: #f5f7fb;
-  font-weight: 750;
+  font-size: 0.95rem;
+  line-height: 1.55;
 }
 
-.resource-lines-actions {
+.rl-answer-main strong {
+  color: #f5b76d;
+}
+
+.rl-answer-main code {
+  padding: 0.05rem 0.35rem;
+  border-radius: 6px;
+  background: rgba(245, 183, 109, 0.12);
+  color: #f5b76d;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+}
+
+.rl-answer-sub {
+  margin: 0;
+  color: rgba(223, 228, 236, 0.6);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.rl-answer-banner .rl-facts-caption {
+  margin-left: 0;
+}
+
+.rl-tape {
   display: grid;
-  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.resource-lines-actions button {
+.rl-tape-row {
   display: grid;
-  gap: 0.18rem;
-  padding: 0.72rem 0.78rem;
-  border-radius: 12px;
-  text-align: left;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.9rem;
+  align-items: baseline;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+  animation: rl-row-in 300ms ease;
 }
 
-.resource-lines-actions strong {
-  color: #f5f7fb;
+.rl-tape-row:last-child {
+  border-bottom: 0;
+}
+
+@keyframes rl-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rl-tape-row {
+    animation: none;
+  }
+}
+
+.rl-tape-seq {
+  min-width: 2.2rem;
+  color: rgba(121, 223, 177, 0.7);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+}
+
+.rl-tape-row.is-delivery .rl-tape-seq {
+  color: #f5b76d;
+}
+
+.rl-tape-body {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.rl-tape-headline {
+  margin: 0;
+  color: rgba(223, 228, 236, 0.88);
   font-size: 0.84rem;
+  font-weight: 620;
 }
 
-.resource-lines-actions span {
-  color: rgba(223, 228, 236, 0.58);
-  font-size: 0.75rem;
-  line-height: 1.35;
+.rl-tape-row.is-delivery .rl-tape-headline {
+  color: #f5b76d;
 }
 
-.resource-lines-terminal {
-  white-space: pre-wrap;
-  word-break: break-word;
+.rl-tape-row.is-invalidation .rl-tape-headline {
+  color: rgba(245, 183, 109, 0.8);
 }
 
-@media (max-width: 840px) {
-  .resource-lines-workbench {
+.rl-tape-detail {
+  margin: 0;
+  color: rgba(223, 228, 236, 0.55);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.rl-tape-meta {
+  color: rgba(223, 228, 236, 0.42);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.rl-raw summary {
+  color: rgba(223, 228, 236, 0.4);
+  cursor: pointer;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+.rl-raw summary:hover {
+  color: rgba(121, 223, 177, 0.75);
+}
+
+.rl-raw pre {
+  max-height: 15rem;
+  overflow: auto;
+  margin: 0.45rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  background: #0b0d11;
+  color: rgba(223, 231, 243, 0.78);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
+.rl-recorder-footnote {
+  margin: 0.5rem 0 0;
+  color: rgba(223, 228, 236, 0.5);
+  font-size: 0.76rem;
+}
+
+/* --------------------------------- responsive -------------------------------- */
+
+@media (max-width: 720px) {
+  .rl-product-fields {
     grid-template-columns: 1fr;
+  }
+
+  .rl-catalog-meta {
+    margin-left: 0;
+  }
+
+  .rl-facts-caption {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .rl-tape-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .rl-tape-meta {
+    grid-column: 2;
   }
 }

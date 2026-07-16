@@ -6,16 +6,23 @@
   position: relative;
   z-index: 1;
   display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 1.2rem;
   padding: 0 2rem;
 }
 
 .xai-demo-route-copy {
-  display: grid;
-  gap: 0.85rem;
+  display: contents;
+}
+
+.xai-demo-route-copy .xai-eyebrow {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
 }
 
 .xai-demo-route-copy h1 {
+  grid-column: 1 / -1;
   margin: 0;
   color: #f5f7fb;
   font-size: 3.5rem;
@@ -30,18 +37,8 @@
   line-height: 1.65;
 }
 
-.xai-demo-route-copy code {
-  display: block;
-  max-width: 44rem;
-  padding: 0.9rem 1rem;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(223, 228, 236, 0.7);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.83rem;
-  line-height: 1.6;
-  white-space: pre-wrap;
+.xai-demo-route-copy > p {
+  grid-column: 1 / -1;
 }
 
 .xai-demo-preface {
@@ -110,10 +107,12 @@
 
 .xai-demo-route-nav-row {
   display: flex;
+  grid-column: 2;
+  grid-row: 1;
   align-items: center;
-  justify-content: end;
+  justify-content: flex-end;
   gap: 0.75rem;
-  min-width: min(100%, 29rem);
+  min-width: 0;
 }
 
 .xai-demo-route-count button {
@@ -153,17 +152,6 @@
   color: #f5f7fb;
 }
 
-@media (min-width: 920px) {
-  .xai-demo-route-shell {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
-  }
-
-  .xai-demo-route-nav-row {
-    justify-self: end;
-  }
-}
-
 @media (max-width: 720px) {
   .xai-demo-route-body,
   .xai-demo-route-shell {
@@ -176,7 +164,7 @@
   }
 
   .xai-demo-route-nav-row {
-    justify-content: start;
+    justify-content: flex-end;
     flex-wrap: wrap;
   }
 

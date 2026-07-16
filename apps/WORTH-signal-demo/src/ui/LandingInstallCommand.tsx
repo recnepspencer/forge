@@ -6,7 +6,7 @@ export function LandingInstallCommand() {
   const command = "npm install worth-signal-wasm";
 
   return (
-    <div className="xai-install-command" aria-label="Install WORTH Signal WASM">
+    <div className="xai-install-command" aria-label="Install Worth Signals WASM">
       <code>{command}</code>
       <button
         onClick={() => {

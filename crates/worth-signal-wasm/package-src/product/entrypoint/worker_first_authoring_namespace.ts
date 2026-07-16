@@ -64,7 +64,7 @@ function createNamespace(rootSession, path) {
   const contract = createSignalsRuntimeContract({
     surfaceFamily: "workerFirstScoped",
     deployment: "workerFirst",
-    scopeId: descriptor.id,
+    scopeId: descriptor.id || null,
     capabilities: {
       callableSurface: false,
       scopedAuthoring: true,

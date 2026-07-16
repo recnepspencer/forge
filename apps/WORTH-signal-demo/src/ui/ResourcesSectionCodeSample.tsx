@@ -1,79 +1,70 @@
-function CodeLine({ children }: { children?: React.ReactNode }) {
-  return <div className="resources-code-line">{children}</div>;
+import React from "react";
+import { tokenizeCodeLine } from "./SignalsSectionCodeSample";
+import "./signalsSection.css";
+
+export const RESOURCES_CODE_SAMPLE = `const po = signals.api({
+  baseUrl: "/api/procurement",
+  effects: signals.resource.effects.branchNative(),
+});
+
+const poLines = po.url("/orders/:orderId/lines")
+  .response(signals.resource.response.array({ itemId: (line) => line.id }))
+  .list({ load: ({ orderId }) => client.fetchLines(orderId) });
+
+const saveLine = po.url("/orders/:orderId/lines/:lineId")
+  .response(signals.resource.response.detail<PoLine>()({ label: "label", sync: "sync" }))
+  .update({
+    // a confirmation replaces one item — it cannot clobber the rest of the screen
+    reconciles: [{ family: poLines, params: ({ orderId }) => ({ orderId }),
+      collection: { kind: "item" }, fallback: "partialReconciliation" }],
+    load: ({ orderId, lineId, body }) => client.saveLine(orderId, lineId, body),
+  });
+
+// every optimistic patch is an admitted effect, not a cache overwrite
+line.patch(poLines.patch.insert({ itemId, placement: "append", nextItem }));
+line.diagnostics().lastEffect;  // provenance, confirmation, rollback posture
+line.history().lifecycle;       // the record of what the screen showed, and when`;
+
+interface ResourcesCodeSampleProps {
+  liveLine: string | null;
 }
 
-function Tok({
-  kind,
-  children,
-}: {
-  kind: "kw" | "fn" | "var" | "str" | "prop" | "op" | "plain" | "comment";
-  children: React.ReactNode;
-}) {
-  return <span className={`resources-tok resources-tok-${kind}`}>{children}</span>;
-}
+export function ResourcesSectionCodeSample({ liveLine }: ResourcesCodeSampleProps): React.ReactElement {
+  const [copied, setCopied] = React.useState(false);
+  const lines = RESOURCES_CODE_SAMPLE.split("\n");
 
-function TanStackSample() {
+  const handleCopy = (): void => {
+    void navigator.clipboard.writeText(RESOURCES_CODE_SAMPLE);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
   return (
-    <div className="resources-code-block" role="presentation">
-      <CodeLine><Tok kind="comment">// packingListQuery and addPackingItem are app-level helpers.</Tok></CodeLine>
-      <CodeLine />
-      <CodeLine><Tok kind="kw">const</Tok> <Tok kind="var">items</Tok> <Tok kind="op">=</Tok> <Tok kind="fn">useQuery</Tok>(<Tok kind="var">packingListQuery</Tok>);</CodeLine>
-      <CodeLine><Tok kind="kw">const</Tok> <Tok kind="var">addItem</Tok> <Tok kind="op">=</Tok> <Tok kind="fn">useMutation</Tok>({`{`}</CodeLine>
-      <CodeLine>{`  mutationFn: addPackingItem,`}</CodeLine>
-      <CodeLine>{`  onMutate: async () => {`}</CodeLine>
-      <CodeLine>{`    const previous = queryClient.getQueryData<ListItem[]>(["items"]);`}</CodeLine>
-      <CodeLine>{`    queryClient.setQueryData(["items"], (current = []) => [...current, optimisticItem]);`}</CodeLine>
-      <CodeLine>{`    toast.info("Adding item...");`}</CodeLine>
-      <CodeLine>{`    return { previous };`}</CodeLine>
-      <CodeLine>{`  },`}</CodeLine>
-      <CodeLine>{`  onError: (_error, _body, context) => {`}</CodeLine>
-      <CodeLine>{`    queryClient.setQueryData(["items"], context?.previous);`}</CodeLine>
-      <CodeLine>{`    toast.error("Failed to add item");`}</CodeLine>
-      <CodeLine>{`  },`}</CodeLine>
-      <CodeLine>{`  onSuccess: (saved) => {`}</CodeLine>
-      <CodeLine>{`    queryClient.setQueryData(["items"], (current = []) => current.map((item) => item.id === saved.id ? saved : item));`}</CodeLine>
-      <CodeLine>{`    toast.success("Item added successfully");`}</CodeLine>
-      <CodeLine>{`  },`}</CodeLine>
-      <CodeLine>{`});`}</CodeLine>
-    </div>
-  );
-}
-
-function WORTHSample() {
-  return (
-    <div className="resources-code-block" role="presentation">
-      <CodeLine><Tok kind="comment">// packingCatalog is declared once with response lenses and branchNative effects.</Tok></CodeLine>
-      <CodeLine />
-      <CodeLine><Tok kind="kw">const</Tok> <Tok kind="var">catalog</Tok> <Tok kind="op">=</Tok> <Tok kind="fn">useResourceCatalog</Tok>(<Tok kind="var">packingCatalog</Tok>, <Tok kind="var">store</Tok>);</CodeLine>
-      <CodeLine><Tok kind="kw">const</Tok> <Tok kind="var">list</Tok> <Tok kind="op">=</Tok> <Tok kind="fn">useResourceLine</Tok>(<Tok kind="var">catalog</Tok>.<Tok kind="prop">items</Tok>, {`{}`}, <Tok kind="var">store</Tok>);</CodeLine>
-      <CodeLine />
-      <CodeLine><Tok kind="kw">const</Tok> <Tok kind="var">write</Tok> <Tok kind="op">=</Tok> <Tok kind="fn">useManagedResourceWrite</Tok>({`{`}</CodeLine>
-      <CodeLine>{`  line: (body) => catalog.confirmItem.line({ itemId: body.id, body }),`}</CodeLine>
-      <CodeLine>{`  feedback: { success: "Item added successfully", error: "Failed to add item" },`}</CodeLine>
-      <CodeLine>{`  onFeedback: (feedback) => toastBridge.consume(feedback),`}</CodeLine>
-      <CodeLine>{`});`}</CodeLine>
-      <CodeLine />
-      <CodeLine><Tok kind="var">list</Tok>.<Tok kind="prop">line</Tok>.<Tok kind="fn">patch</Tok>(<Tok kind="var">catalog</Tok>.<Tok kind="prop">items</Tok>.<Tok kind="prop">patch</Tok>.<Tok kind="fn">insert</Tok>({`{ itemId, placement: "append", nextItem }`}));</CodeLine>
-      <CodeLine><Tok kind="kw">await</Tok> <Tok kind="var">write</Tok>.<Tok kind="fn">execute</Tok>({`{ id: itemId, outcome: "confirm" }`});</CodeLine>
-      <CodeLine><Tok kind="fn">console</Tok>.<Tok kind="fn">log</Tok>(<Tok kind="var">list</Tok>.<Tok kind="prop">diagnosticsSummary</Tok>.<Tok kind="prop">latest</Tok>);</CodeLine>
-      <CodeLine><Tok kind="fn">console</Tok>.<Tok kind="fn">log</Tok>(<Tok kind="var">write</Tok>.<Tok kind="prop">lastResult</Tok>?.<Tok kind="prop">recovery</Tok>.<Tok kind="fn">summary</Tok>());</CodeLine>
-    </div>
-  );
-}
-
-export function ResourcesSectionCodeSample() {
-  return (
-    <div className="resources-code-grid">
-      <article className="resources-code-card">
-        <div className="forms-card-topline"><span>TanStack authoring</span></div>
-        <h3>Optimistic insert, rollback snapshot, and toast wiring live in feature code.</h3>
-        <TanStackSample />
-      </article>
-      <article className="resources-code-card">
-        <div className="forms-card-topline"><span>WORTH authoring</span></div>
-        <h3>The runtime owns the write lifecycle, and React maps that operation view into toasts.</h3>
-        <WORTHSample />
-      </article>
-    </div>
+    <figure className="signals-code-card">
+      <figcaption className="signals-code-head">
+        <span className="signals-code-dots" aria-hidden="true">
+          <i /><i /><i />
+        </span>
+        <span className="signals-code-filename">po-lines.ts</span>
+        <button onClick={handleCopy} type="button">{copied ? "Copied" : "Copy"}</button>
+      </figcaption>
+      <pre className="signals-code-block"><code>
+        {lines.map((line, lineIndex) => (
+          <span className="signals-code-line" key={lineIndex}>
+            <span aria-hidden="true" className="signals-code-lineno">{lineIndex + 1}</span>
+            <span className="signals-code-text">{tokenizeCodeLine(line, `l${lineIndex}`)}</span>
+          </span>
+        ))}
+        {liveLine ? (
+          <span className="signals-code-line signals-code-line-live">
+            <span aria-hidden="true" className="signals-code-lineno">→</span>
+            <span className="signals-code-text">
+              <span className="signals-tok signals-tok-live">{liveLine}</span>
+              <span className="signals-code-live-tag">live from this page</span>
+            </span>
+          </span>
+        ) : null}
+      </code></pre>
+    </figure>
   );
 }

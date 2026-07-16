@@ -1,15 +1,32 @@
-export interface ListItem {
+export interface PoLine {
   id: string;
   label: string;
-  sync: "saved" | "syncing";
+  qty: string;
+  sync: "syncing" | "synced";
 }
 
-export interface SaveItemBody {
-  id: string;
-  outcome?: "confirm" | "reject";
+/** Write payload: each submission attempt is a distinct request. */
+export interface PoWriteBody extends PoLine {
+  attempt: number;
 }
 
-export type SaveItemResponse = ListItem;
+export type PanelVariant = "tanstack" | "worth";
+
+export type ScenarioPhase =
+  | "idle"
+  | "firstInFlight"
+  | "overlap"
+  | "confirmed"
+  | "diverged"
+  | "healed"
+  | "settledSolo";
+
+export type ClaimSync = "absent" | "saving" | "synced";
+
+export interface ClaimEntry {
+  atMs: number;
+  sync: ClaimSync;
+}
 
 export interface PanelEvent {
   id: string;
@@ -18,90 +35,95 @@ export interface PanelEvent {
   detail: string;
 }
 
-export interface ResourceDemoDiagnosticBlock {
-  label: string;
-  value: unknown;
-  mode?: "json" | "rows";
+export interface LedgerRow {
+  id: string;
+  atMs: number;
+  title: string;
+  detail: string;
+  payload: unknown;
 }
 
-export interface ResourceDemoDiagnostics {
-  schema: "resource-demo-diagnostics.v1";
-  runtime: "tanstack" | "WORTH";
-  blocks: readonly ResourceDemoDiagnosticBlock[];
-}
+export const PO_NUMBER = "PO-1142";
+export const PO_URL = "procure.worth.example/orders/PO-1142";
 
-export const RESOURCE_DEMO_DIAGNOSTICS_JSON_SCHEMA = Object.freeze({
-  $id: "resource-demo-diagnostics.v1",
-  type: "object",
-  required: ["schema", "runtime", "blocks"],
-  properties: {
-    schema: { const: "resource-demo-diagnostics.v1" },
-    runtime: { enum: ["tanstack", "WORTH"] },
-    blocks: {
-      type: "array",
-      items: {
-        type: "object",
-        required: ["label", "value"],
-        properties: {
-          label: { type: "string" },
-          mode: { enum: ["json", "rows"] },
-          value: {},
-        },
-      },
-    },
-  },
+export const EXISTING_LINE: PoLine = Object.freeze({
+  id: "line-071",
+  label: "Nitrile gloves",
+  qty: "40 cases",
+  sync: "synced",
 });
 
-const API_BASE = "/api/resource-comparison";
-const API_URLS = {
-  items: `${API_BASE}/items.json`,
-  saveItem: `${API_BASE}/items/:itemId`,
-} as const;
+/** Added first; its vendor-qualification check is slow — and fails. */
+export const LINE_RISKY: PoLine = Object.freeze({
+  id: "line-072",
+  label: "Calibration kit",
+  qty: "3 units",
+  sync: "syncing",
+});
 
-const NETWORK_DELAY_MS = 300;
-const NEXT_ITEM_ID = "item-packing-cubes";
-const NEXT_ITEM_LABEL = "Packing cubes";
-const SEED_ITEMS: readonly ListItem[] = Object.freeze([
-  { id: "item-carry-on", label: "Northstar Carry-On", sync: "saved" },
-  { id: "item-garment-sleeve", label: "Garment sleeve", sync: "saved" },
-]);
+/** Added second, while the first is still saving; confirms quickly. */
+export const LINE_SAFE: PoLine = Object.freeze({
+  id: "line-073",
+  label: "Sterile tubing",
+  qty: "12 cases",
+  sync: "syncing",
+});
 
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
+export const REJECT_MESSAGE = "Vendor is not qualified for calibrated equipment.";
+
+export const FETCH_DELAY_MS = 1_200;
+export const CONFIRM_SAFE_AFTER_MS = 1_400;
+export const REJECT_RISKY_AFTER_MS = 3_000;
+export const SOLO_REJECT_AFTER_MS = 5_500;
+
+interface PendingSave {
+  resolve: (line: PoLine) => void;
+  reject: (reason: Error) => void;
+  line: PoLine;
 }
 
-function cloneItem(item: ListItem): ListItem {
-  return { ...item };
+export interface PoServer {
+  fetchLines(): Promise<PoLine[]>;
+  save(line: PoLine): Promise<PoLine>;
+  settle(lineId: string, accepted: boolean): void;
+  reset(): void;
 }
 
-function cloneItems(items: readonly ListItem[]): ListItem[] {
-  return items.map(cloneItem);
-}
-
-export function createComparisonStore() {
-  let items = cloneItems(SEED_ITEMS);
+export function createPoServer(): PoServer {
+  let lines: PoLine[] = [{ ...EXISTING_LINE }];
+  const pending = new Map<string, PendingSave>();
 
   return {
-    async fetchItems(): Promise<ListItem[]> {
-      await wait(NETWORK_DELAY_MS);
-      return cloneItems(items);
+    fetchLines() {
+      return new Promise((resolve) => {
+        window.setTimeout(() => resolve(lines.map((line) => ({ ...line }))), FETCH_DELAY_MS);
+      });
     },
-    async confirmItem(id: string, outcome: SaveItemBody["outcome"] = "confirm"): Promise<SaveItemResponse> {
-      await wait(NETWORK_DELAY_MS);
-      if (outcome === "reject") {
-        throw new Error(`Server rejected item "${id}".`);
+    save(line) {
+      return new Promise((resolve, reject) => {
+        pending.set(line.id, { resolve, reject, line });
+      });
+    },
+    settle(lineId, accepted) {
+      const entry = pending.get(lineId);
+      pending.delete(lineId);
+      if (!entry) return;
+      if (accepted) {
+        const saved: PoLine = {
+          id: entry.line.id,
+          label: entry.line.label,
+          qty: entry.line.qty,
+          sync: "synced",
+        };
+        lines = [...lines.filter((line) => line.id !== saved.id), saved];
+        entry.resolve(saved);
+      } else {
+        entry.reject(new Error(REJECT_MESSAGE));
       }
-      const existing = items.find((item) => item.id === id);
-      const saved = existing
-        ? { ...existing, sync: "saved" as const }
-        : { id, label: NEXT_ITEM_LABEL, sync: "saved" as const };
-      items = existing
-        ? items.map((item) => (item.id === id ? saved : item))
-        : [...items, saved];
-      return cloneItem(saved);
     },
-    reset(): void {
-      items = cloneItems(SEED_ITEMS);
+    reset() {
+      lines = [{ ...EXISTING_LINE }];
+      pending.clear();
     },
   };
 }
@@ -119,61 +141,49 @@ export function createPanelEvent(
   };
 }
 
-function formatJsonBlock(label: string, value: unknown): string[] {
-  return [`> ${label}`, ...JSON.stringify(value, null, 2).split("\n")];
+export function claimSyncOf(lines: readonly PoLine[] | null | undefined, lineId: string): ClaimSync {
+  const row = lines?.find((line) => line.id === lineId);
+  if (!row) return "absent";
+  return row.sync === "synced" ? "synced" : "saving";
 }
 
-export function formatItemRows(items: readonly ListItem[] | null): string[] {
-  return items ? items.map((item) => `${item.id}: ${item.label} (${item.sync})`) : ["null"];
+export function formatOffset(atMs: number, baseMs: number | null): string {
+  if (baseMs === null) return "—";
+  return `t+${((atMs - baseMs) / 1000).toFixed(1)}s`;
 }
 
-function formatTextBlock(label: string, lines: readonly string[]): string[] {
-  return [`> ${label}`, ...lines];
+interface EffectEnvelopeLike {
+  effectId?: string;
+  provenance?: string;
+  profile?: { name?: string } | null;
+  patch?: { kind?: string | null; scope?: string | null; itemId?: string | null } | null;
+  optimistic?: {
+    kind?: string;
+    detail?: string;
+    confirmation?: unknown;
+    rollback?: { kind?: string } | null;
+  } | null;
 }
 
-export function renderResourceDemoDiagnostics(diagnostics: ResourceDemoDiagnostics | null): string[] {
-  if (!diagnostics) return [];
-  return diagnostics.blocks.flatMap((block, index) => [
-    ...(index === 0 ? [] : [""]),
-    ...(block.mode === "rows"
-      ? formatTextBlock(block.label, block.value as readonly string[])
-      : formatJsonBlock(block.label, block.value)),
-  ]);
-}
-
-export function latestMutationSummary(latest: unknown, unavailableReason = "no mutation response admitted"): Record<string, unknown> {
-  if (!latest || typeof latest !== "object") {
-    return {
-      status: "notAvailable",
-      reason: unavailableReason,
-    };
-  }
-  const record = latest as Record<string, unknown>;
-  const outcomes = record.mutationResponseTargetOutcomes;
-  const targets = Array.isArray(outcomes) ? outcomes.map((target) => {
-    const row = target as Record<string, unknown>;
-    return `${row.outcomeKind ?? "unknown"} ${row.executionKind ?? "target"} -> ${row.locus ?? row.canonicalKey ?? "unknown"}`;
-  }) : [];
+export function summarizeEffectEnvelope(effect: unknown): Record<string, unknown> | null {
+  if (!effect || typeof effect !== "object") return null;
+  const envelope = effect as EffectEnvelopeLike;
+  const confirmation = envelope.optimistic?.confirmation;
   return {
-    status: record.mutationResponseConfirmationKind ? "available" : "notAvailable",
-    confirmation: record.mutationResponseConfirmationKind ?? null,
-    targets: targets.length ? targets : null,
-    fallback: record.mutationResponseFallbackReasonDigest ?? null,
-    declaredTargets: record.mutationResponseNoHiddenMutationDigest ? "all declared targets accounted for" : null,
-    reason: record.mutationResponseConfirmationKind ? null : unavailableReason,
+    effectId: envelope.effectId ?? null,
+    provenance: envelope.provenance ?? null,
+    profile: envelope.profile?.name ?? null,
+    patch: envelope.patch
+      ? { kind: envelope.patch.kind ?? null, scope: envelope.patch.scope ?? null, itemId: envelope.patch.itemId ?? null }
+      : null,
+    optimistic: envelope.optimistic
+      ? {
+          kind: envelope.optimistic.kind ?? null,
+          rollback: envelope.optimistic.rollback?.kind ?? null,
+          ...(confirmation && typeof confirmation === "object"
+            ? { confirmation }
+            : {}),
+        }
+      : null,
   };
 }
-
-export function summarizeRecovery(result: {
-  recovery: { summary(): { severity: unknown; reason: unknown; recommendedFollowup: unknown } };
-}): string {
-  const { severity, reason, recommendedFollowup } = result.recovery.summary();
-  return `${severity}: ${reason}; followup=${recommendedFollowup}`;
-}
-
-export const comparisonApiUrls = API_URLS;
-export const optimisticItem = Object.freeze({
-  id: NEXT_ITEM_ID,
-  label: NEXT_ITEM_LABEL,
-  sync: "syncing",
-}) satisfies ListItem;

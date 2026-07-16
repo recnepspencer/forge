@@ -1,140 +1,191 @@
+import {
+  roleLabels,
+  type OutcomeView,
+  type PlantRole,
+  type SopRevision,
+} from "./routerSectionSupport";
 import type {
-  AdminProductsPageJson,
-  CatalogPageJson,
-  OrderPageJson,
-  RevenueReportPageJson,
+  BatchRecordPage,
+  OverviewPage,
+  ReleasePage,
+  StepFourPage,
 } from "./routerSectionSupport";
 
-interface RouterSectionBrowserSurfaceProps {
-  outcome: any;
-  statusKind: string | null;
-  pageData: unknown;
+interface BrowserSurfaceProps {
+  activeTarget: string;
+  deviationGranted: boolean;
+  effectiveRev: SopRevision;
   isNavigating: boolean;
+  onGrantDeviation: () => void;
+  onNavigate: (target: string) => void;
+  outcome: OutcomeView | null;
+  pageValue: unknown;
+  role: PlantRole;
+  routeOptions: ReadonlyArray<{ path: string; label: string }>;
+  trainedRev: SopRevision;
+}
+
+function OverviewView({ page }: { page: OverviewPage }) {
+  return (
+    <div className="mfg-page">
+      <h4>{page.line}</h4>
+      <p className="mfg-page-sub">{page.shift}</p>
+      <ul className="mfg-page-rows">
+        {page.wip.map((entry) => (
+          <li key={entry.batch}>
+            <strong>{entry.batch}</strong>
+            <span>{entry.status}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function BatchRecordView({ page }: { page: BatchRecordPage }) {
+  return (
+    <div className="mfg-page">
+      <h4>{page.batch} · {page.product}</h4>
+      <p className="mfg-page-sub">{page.status}</p>
+      <ul className="mfg-page-rows">
+        {page.steps.map((entry) => (
+          <li className={entry.status === "pending" ? "is-pending" : ""} key={entry.step}>
+            <strong>{entry.step}</strong>
+            <span>{entry.status}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function StepView({ deviationGranted, page }: { deviationGranted: boolean; page: StepFourPage }) {
+  return (
+    <div className="mfg-page">
+      {deviationGranted ? (
+        <p className="mfg-deviation-ribbon">Executing under deviation DEV-0113 — recorded in the audit trail.</p>
+      ) : null}
+      <h4>{page.step}</h4>
+      <p className="mfg-page-sub">{page.sop}</p>
+      <ul className="mfg-page-rows">
+        <li><strong>Spec</strong><span>{page.spec}</span></li>
+        <li><strong>Instrument</strong><span>{page.instrument}</span></li>
+      </ul>
+      <button className="mfg-execute-button" type="button">Record torque readings</button>
+    </div>
+  );
+}
+
+function ReleaseView({ page }: { page: ReleasePage }) {
+  return (
+    <div className="mfg-page">
+      <h4>Quality release · {page.batch}</h4>
+      <p className="mfg-page-sub">Device history record checklist</p>
+      <ul className="mfg-page-rows">
+        {page.checklist.map((entry) => (
+          <li key={entry.item}>
+            <strong>{entry.item}</strong>
+            <span>{entry.state}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DeniedView({
+  canDeviate,
+  onGrantDeviation,
+  outcome,
+}: {
+  canDeviate: boolean;
+  onGrantDeviation: () => void;
+  outcome: OutcomeView;
+}) {
+  return (
+    <div className="mfg-denied">
+      <p className="mfg-denied-title">
+        Access denied · <code>{outcome.reason ?? outcome.kind}</code>
+      </p>
+      {outcome.detail ? <p className="mfg-denied-detail">{outcome.detail}</p> : null}
+      <p className="mfg-denied-note">This attempt is already in the audit trail — denials are records too.</p>
+      {canDeviate ? (
+        <button className="mfg-deviation-button" onClick={onGrantDeviation} type="button">
+          Proceed under deviation DEV-0113
+          <span>emergency execution · justification recorded</span>
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 export function RouterSectionBrowserSurface({
-  outcome,
-  statusKind,
-  pageData,
+  activeTarget,
+  deviationGranted,
+  effectiveRev,
   isNavigating,
-}: RouterSectionBrowserSurfaceProps) {
-  if (!outcome || isNavigating || (outcome.kind === "admitted" && statusKind !== "fulfilled")) {
-    return (
-      <div className="router-browser-stage is-loading">
-        <div className="router-page-header">
-          <strong>{outcome?.kind === "admitted" ? outcome.routeId : "Route transition"}</strong>
-          <span>Loading route resources</span>
-        </div>
-        <div className="router-spinner" aria-hidden="true" />
-        <div className="router-report-skeleton">
-          <span />
-          <span />
-          <span />
-        </div>
-      </div>
-    );
-  }
+  onGrantDeviation,
+  onNavigate,
+  outcome,
+  pageValue,
+  role,
+  routeOptions,
+  trainedRev,
+}: BrowserSurfaceProps) {
+  const denied = outcome?.tone === "denied";
+  const canDeviate =
+    denied && outcome?.reason === "trainingSupersededByRevision" && !deviationGranted;
 
-  if (outcome.kind === "redirect") {
-    return (
-      <div className="router-browser-stage is-redirected">
-        <div className="router-page-header">
-          <strong>Sign in</strong>
-          <span>Continue to the requested route</span>
-        </div>
-        <div className="router-auth-card">
-          <span>Email</span>
-          <div />
-          <span>Password</span>
-          <div />
-        </div>
-      </div>
-    );
-  }
-
-  if (outcome.kind !== "admitted") {
-    return (
-      <div className="router-browser-stage is-denied">
-        <div className="router-page-header">
-          <strong>Permission required</strong>
-          <span>Upgrade session access</span>
-        </div>
-        <div className="router-denied-banner">Admin permission required.</div>
-      </div>
-    );
-  }
-
-  if (outcome.routeId === "catalog") {
-    const catalog = pageData as CatalogPageJson;
-    return (
-      <div className="router-browser-stage is-catalog">
-        <div className="router-page-header">
-          <strong>Catalog</strong>
-          <span>{catalog.summary}</span>
-        </div>
-        <div className="router-catalog-grid">
-          {catalog.items.map((item) => (
-            <div className="router-product-tile" key={item.name}>
-              <strong>{item.name}</strong>
-              <span>{item.price}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (outcome.routeId === "orderDetails") {
-    const order = pageData as OrderPageJson;
-    return (
-      <div className="router-browser-stage is-order">
-        <div className="router-page-header">
-          <strong>Order #{order.orderId}</strong>
-          <span>{order.payment}</span>
-        </div>
-        <div className="router-order-card">
-          <span>Customer</span>
-          <strong>{order.customer}</strong>
-        </div>
-        <div className="router-order-card">
-          <span>Shipment</span>
-          <strong>{order.shipment}</strong>
-        </div>
-      </div>
-    );
-  }
-
-  if (outcome.routeId === "adminProducts") {
-    const adminProducts = pageData as AdminProductsPageJson;
-    return (
-      <div className="router-browser-stage is-admin">
-        <div className="router-page-header">
-          <strong>Admin products</strong>
-          <span>{adminProducts.updatedAt}</span>
-        </div>
-        {adminProducts.rows.map((row) => (
-          <div className="router-admin-row" key={row.name}>
-            <span>{row.name}</span>
-            <strong>{row.status}</strong>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  const report = pageData as RevenueReportPageJson;
   return (
-    <div className="router-browser-stage is-report">
-      <div className="router-page-header">
-        <strong>Revenue report</strong>
-        <span>{report.updatedAt}</span>
+    <article className="mfg-browser-card">
+      <header className="mfg-browser-chrome">
+        <span className="signals-code-dots" aria-hidden="true"><i /><i /><i /></span>
+        <code className="mfg-browser-url">mes.worth.example{activeTarget}</code>
+        <span className="mfg-role-badge">
+          {roleLabels[role]} · SOP-042 rev {trainedRev}
+        </span>
+      </header>
+
+      <nav aria-label="Portal navigation" className="mfg-browser-nav">
+        {routeOptions.map((option) => (
+          <button
+            className={option.path === activeTarget ? "is-active" : ""}
+            key={option.path}
+            onClick={() => onNavigate(option.path)}
+            type="button"
+          >
+            {option.label}
+            {option.path.includes("/steps/") && effectiveRev !== trainedRev ? (
+              <i aria-hidden="true" className="mfg-nav-alert" />
+            ) : null}
+          </button>
+        ))}
+      </nav>
+
+      <div className="mfg-browser-body">
+        {isNavigating ? (
+          <div className="mfg-browser-loading" role="status">
+            <span className="mfg-spinner" aria-hidden="true" />
+            <span>admitting…</span>
+          </div>
+        ) : denied && outcome ? (
+          <DeniedView canDeviate={canDeviate} onGrantDeviation={onGrantDeviation} outcome={outcome} />
+        ) : pageValue ? (
+          activeTarget.includes("/steps/") ? (
+            <StepView deviationGranted={deviationGranted} page={pageValue as StepFourPage} />
+          ) : activeTarget.includes("/record") ? (
+            <BatchRecordView page={pageValue as BatchRecordPage} />
+          ) : activeTarget.includes("/release") ? (
+            <ReleaseView page={pageValue as ReleasePage} />
+          ) : (
+            <OverviewView page={pageValue as OverviewPage} />
+          )
+        ) : (
+          <div className="mfg-browser-loading">
+            <span>waiting for the route</span>
+          </div>
+        )}
       </div>
-      {report.totals.map((entry) => (
-        <div className="router-admin-row" key={entry.label}>
-          <span>{entry.label}</span>
-          <strong>{entry.value}</strong>
-        </div>
-      ))}
-    </div>
+    </article>
   );
 }

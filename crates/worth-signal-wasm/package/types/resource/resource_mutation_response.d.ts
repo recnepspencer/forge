@@ -221,7 +221,7 @@ export interface ResourceMutationResponseTargetOutcomeSummary {
     | "invalidate"
     | null;
   readonly fallbackKind: ResourceMutationResponseFallbackKind | null;
-  readonly partialKind: "missingResponseField" | null;
+  readonly partialKind: "missingResponseField" | "duplicateDeliverySuppressed" | null;
   readonly partialField: string | null;
   readonly staleReason: ResourceMutationResponseTargetStaleness["reason"] | null;
   readonly locus: string | null;

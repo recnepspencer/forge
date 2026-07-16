@@ -1,147 +1,140 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createSignals } from "worth-signal-wasm";
-import {
-  createReactSignalsStore,
-  useManagedResourceWrite,
-  useResourceLine,
-} from "worth-signal-wasm/react";
 
-import { DemoPreface } from "./DemoPreface";
+import { useSignal } from "./Demos";
+import { DxCorner } from "./DxCorner";
 import { ResourcesSectionCodeSample } from "./ResourcesSectionCodeSample";
-import { DiagnosticsComparison, ResourceFeedbackGuide, ResourcePanel } from "./ResourcesSectionParts";
+import {
+  CallbackAftermath,
+  ClaimTimeline,
+  EffectLedger,
+  PoPanel,
+  RevealBanner,
+} from "./ResourcesSectionParts";
 import "./resourcesSection.css";
 import {
-  comparisonApiUrls,
-  createComparisonStore,
+  CONFIRM_SAFE_AFTER_MS,
+  LINE_RISKY,
+  LINE_SAFE,
+  PO_NUMBER,
+  REJECT_RISKY_AFTER_MS,
+  SOLO_REJECT_AFTER_MS,
+  claimSyncOf,
   createPanelEvent,
-  formatItemRows,
-  optimisticItem,
-  summarizeRecovery,
-  type ListItem,
+  createPoServer,
+  summarizeEffectEnvelope,
+  type ClaimEntry,
+  type ClaimSync,
+  type LedgerRow,
   type PanelEvent,
-  type ResourceDemoDiagnostics,
-  type SaveItemBody,
+  type PanelVariant,
+  type PoLine,
+  type PoWriteBody,
+  type ScenarioPhase,
 } from "./resourcesSectionSupport";
 
-const QueryProvider = QueryClientProvider as unknown as (props: { children?: React.ReactNode; client: QueryClient }) =>
-  React.ReactNode | Promise<React.ReactNode>;
-
-const inactiveResourceFamily = Object.freeze({ line() { throw new Error("inactive resource line"); } });
-const inactiveReactStore = Object.freeze({ subscribeSignal: () => () => {}, getSignalSnapshot: () => null });
-
-interface ResourcesSectionProps { onNavigate: (path: string) => void; }
-
-interface Deferred<T> {
-  promise: Promise<T>;
-  resolve: (value: T) => void;
-  reject: (reason?: unknown) => void;
-}
-
-interface PanelController {
-  apply: () => Promise<void>; confirm: () => Promise<void>; fail: () => Promise<void>; reset: () => Promise<void>;
-}
+const QueryProvider = QueryClientProvider as unknown as (props: {
+  children?: React.ReactNode;
+  client: QueryClient;
+}) => React.ReactNode | Promise<React.ReactNode>;
 
 type SignalsRuntime = Awaited<ReturnType<typeof createSignals>>;
-type ScenarioPhase = "idle" | "optimistic" | "confirmed" | "rolledBack";
-function createDeferred<T>(): Deferred<T> {
-  let resolve!: (value: T) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((nextResolve, nextReject) => {
-    resolve = nextResolve;
-    reject = nextReject;
-  });
-  return { promise, resolve, reject };
+
+interface PanelController {
+  addLine(line: PoLine): void;
+  settle(lineId: string, accepted: boolean): void;
+  reset(): void | Promise<void>;
 }
 
-function pushEvent(setter: (value: PanelEvent[] | ((current: PanelEvent[]) => PanelEvent[])) => void, event: PanelEvent): void {
+interface PanelProps {
+  baseMs: number | null;
+  highlightId: string | null;
+  onClaim: (variant: PanelVariant, sync: ClaimSync) => void;
+  onController: (controller: PanelController | null) => void;
+}
+
+function pushEvent(
+  setter: (value: PanelEvent[] | ((current: PanelEvent[]) => PanelEvent[])) => void,
+  event: PanelEvent,
+): void {
   setter((current) => [event, ...current].slice(0, 4));
 }
 
-function TanStackPanel({
-  onController,
-  onDiagnosticsChange,
-}: {
-  onController: (controller: PanelController | null) => void;
-  onDiagnosticsChange: (diagnostics: ResourceDemoDiagnostics) => void;
-}) {
-  const store = useMemo(() => createComparisonStore(), []);
+const DX_SAMPLE = `export function AddPoLine({ orderId, draft }: AddPoLineProps) {
+  const write = useManagedResourceWrite({
+    line: (body: PoLineDraft) =>
+      saveLine.line({ orderId, lineId: body.id, body }),
+    feedback: { success: "Line added", error: "The vendor check failed" },
+    onFeedback: (feedback) => toast(feedback.title, feedback.description),
+  });
+
+  return (
+    <button disabled={write.pending} onClick={() => void write.execute(draft)}>
+      Add line
+    </button>
+  );
+}`;
+
+function TanStackPanel({ baseMs, highlightId, onClaim, onController }: PanelProps) {
+  void baseMs;
+  const store = useMemo(() => createPoServer(), []);
   const queryClient = useQueryClient();
-  const pendingDeferredRef = useRef<Deferred<ListItem> | null>(null);
-  const [pendingDeferred, setPendingDeferred] = useState<Deferred<ListItem> | null>(null);
-  const [rollbackSnapshot, setRollbackSnapshot] = useState<readonly ListItem[] | null>(null);
   const [events, setEvents] = useState<PanelEvent[]>([]);
-  const items = useQuery({ queryKey: ["section4", "items"], queryFn: () => store.fetchItems() });
+
+  const query = useQuery({
+    queryKey: ["po", "lines"],
+    queryFn: () => store.fetchLines(),
+  });
+
   const mutation = useMutation({
-    mutationFn: (deferred: Deferred<ListItem>) => deferred.promise,
-    onMutate: async () => {
-      const previous = queryClient.getQueryData<readonly ListItem[]>(["section4", "items"]) ?? null;
-      setRollbackSnapshot(previous);
-      queryClient.setQueryData(["section4", "items"], (current: readonly ListItem[] = []) => [...current, optimisticItem]);
-      pushEvent(setEvents, createPanelEvent("info", "Adding item...", "onMutate inserted the optimistic row."));
+    mutationFn: (line: PoLine) => store.save(line),
+    onMutate: async (line) => {
+      await queryClient.cancelQueries({ queryKey: ["po", "lines"] });
+      const previous = queryClient.getQueryData<readonly PoLine[]>(["po", "lines"]) ?? [];
+      queryClient.setQueryData(["po", "lines"], (current: readonly PoLine[] = []) => [
+        ...current,
+        { ...line, sync: "syncing" as const },
+      ]);
+      pushEvent(setEvents, createPanelEvent("info", `Adding ${line.label}…`, "onMutate snapshotted the cache and inserted the row."));
       return { previous };
     },
     onSuccess: (saved) => {
-      queryClient.setQueryData(["section4", "items"], (current: readonly ListItem[] = []) =>
-        current.map((item) => (item.id === saved.id ? saved : item)),
+      queryClient.setQueryData(["po", "lines"], (current: readonly PoLine[] = []) =>
+        current.map((line) => (line.id === saved.id ? saved : line)),
       );
-      setRollbackSnapshot(null);
-      pendingDeferredRef.current = null;
-      setPendingDeferred(null);
-      pushEvent(setEvents, createPanelEvent("success", "Item added successfully", "onSuccess replaced the optimistic row."));
+      pushEvent(setEvents, createPanelEvent("success", `${saved.label} confirmed`, "onSuccess replaced the optimistic row."));
     },
-    onError: (_error, _vars, context) => {
-      queryClient.setQueryData(["section4", "items"], context?.previous ?? []);
-      setRollbackSnapshot(null);
-      pendingDeferredRef.current = null;
-      setPendingDeferred(null);
-      pushEvent(setEvents, createPanelEvent("error", "Failed to add item", "onError restored the previous cache snapshot."));
+    onError: (_error, line, context) => {
+      queryClient.setQueryData(["po", "lines"], context?.previous ?? []);
+      pushEvent(setEvents, createPanelEvent("error", `${line.label} failed`, "onError restored the snapshot taken in this mutation's onMutate."));
+    },
+    onSettled: () => {
+      if (queryClient.isMutating() === 1) {
+        void queryClient.invalidateQueries({ queryKey: ["po", "lines"] });
+      }
     },
   });
 
-  const diagnostics = useMemo<ResourceDemoDiagnostics>(() => ({
-    schema: "resource-demo-diagnostics.v1",
-    runtime: "tanstack",
-    blocks: [
-        { label: "queryClient.getQueryData(['section4', 'items'])", mode: "rows", value: formatItemRows(items.data ?? null) },
-      { label: "mutation.status", value: mutation.status },
-      { label: "rollback source", value: rollbackSnapshot ? `feature snapshot with ${rollbackSnapshot.length} rows` : "none captured" },
-      { label: "toastFeed[0]", value: events[0] ? `${events[0].tone}: ${events[0].title}` : "none" },
-    ],
-  }), [events, items.data, mutation.status, rollbackSnapshot]);
+  const lines = (query.data ?? null) as readonly PoLine[] | null;
 
-  useEffect(() => onDiagnosticsChange(diagnostics), [diagnostics, onDiagnosticsChange]);
-
-  const reset = useCallback(async () => {
-    store.reset();
-    pendingDeferredRef.current = null;
-    setPendingDeferred(null);
-    setRollbackSnapshot(null);
-    setEvents([]);
-    await queryClient.invalidateQueries({ queryKey: ["section4", "items"] });
-  }, [queryClient, store]);
+  useEffect(() => {
+    onClaim("tanstack", claimSyncOf(lines, LINE_SAFE.id));
+  }, [lines, onClaim]);
 
   const controller = useMemo<PanelController>(() => ({
-    apply: async () => {
-      if (mutation.isPending) return;
-      await queryClient.ensureQueryData({ queryKey: ["section4", "items"], queryFn: () => store.fetchItems() });
-      const deferred = createDeferred<ListItem>();
-      pendingDeferredRef.current = deferred;
-      setPendingDeferred(deferred);
-      mutation.mutate(deferred);
+    addLine: (line) => {
+      mutation.mutate({ ...line });
     },
-    confirm: async () => {
-      const deferred = pendingDeferredRef.current ?? pendingDeferred;
-      if (!deferred) return;
-      deferred.resolve(await store.confirmItem(optimisticItem.id));
+    settle: (lineId, accepted) => {
+      store.settle(lineId, accepted);
     },
-    fail: async () => {
-      const deferred = pendingDeferredRef.current ?? pendingDeferred;
-      if (!deferred) return;
-      deferred.reject(new Error("Server rejected the item."));
+    reset: async () => {
+      store.reset();
+      setEvents([]);
+      await queryClient.resetQueries({ queryKey: ["po", "lines"] });
     },
-    reset,
-  }), [mutation, pendingDeferred, queryClient, reset, store]);
+  }), [mutation, queryClient, store]);
 
   useEffect(() => {
     onController(controller);
@@ -149,248 +142,447 @@ function TanStackPanel({
   }, [controller, onController]);
 
   return (
-    <ResourcePanel
-      error={items.error instanceof Error ? items.error.message : null}
-      events={events}
-      items={items.data ?? null}
-      loading={items.isLoading}
-      title="App-owned optimistic callbacks"
-      variant="TanStack"
-    />
+    <div className="po-column">
+      <PoPanel
+        caption='useQuery({ queryKey: ["po", "lines"] }) · onMutate / onError / onSettled'
+        error={query.error instanceof Error ? query.error.message : null}
+        events={events}
+        highlightId={highlightId}
+        lines={lines}
+        loading={query.isLoading}
+        refetching={query.isFetching && !query.isLoading}
+        title="TanStack Query"
+        variant="tanstack"
+      />
+      <CallbackAftermath cacheLines={lines} mutationStatus={mutation.status} />
+    </div>
   );
 }
 
-function WORTHPanel({
-  onController,
-  onDiagnosticsChange,
-}: {
-  onController: (controller: PanelController | null) => void;
-  onDiagnosticsChange: (diagnostics: ResourceDemoDiagnostics) => void;
-}) {
-  const store = useMemo(() => createComparisonStore(), []);
+function WORTHPanel({ baseMs, highlightId, onClaim, onController }: PanelProps) {
+  const store = useMemo(() => createPoServer(), []);
   const [signals, setSignals] = useState<SignalsRuntime | null>(null);
-  const reactStore = useMemo(() => signals ? createReactSignalsStore(signals) : null, [signals]);
   const [bootError, setBootError] = useState<string | null>(null);
   const [events, setEvents] = useState<PanelEvent[]>([]);
-  const [lastRollback, setLastRollback] = useState<unknown>(null);
+  const [ledger, setLedger] = useState<LedgerRow[]>([]);
+  const [tick, setTick] = useState(0);
+  const bootRef = useRef(false);
+  const initRef = useRef(false);
+  const attemptRef = useRef(0);
+  const timersRef = useRef<number[]>([]);
 
   useEffect(() => {
+    if (bootRef.current) return;
+    bootRef.current = true;
     createSignals({ deployment: "mainThreadCompatibility" })
       .then(setSignals)
-      .catch((error) => setBootError(error instanceof Error ? error.message : "Could not boot the WORTH runtime."));
+      .catch((error) => setBootError(error instanceof Error ? error.message : "Could not boot the Worth runtime."));
+  }, []);
+
+  useEffect(() => () => {
+    timersRef.current.forEach((id) => window.clearTimeout(id));
+  }, []);
+
+  const pulse = useCallback(() => {
+    [80, 320, 720, 1500].forEach((delay) => {
+      timersRef.current.push(window.setTimeout(() => setTick((value) => value + 1), delay));
+    });
+  }, []);
+
+  const pushLedger = useCallback((title: string, detail: string, payload: unknown) => {
+    setLedger((current) => [
+      ...current,
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        atMs: performance.now(),
+        title,
+        detail,
+        payload,
+      },
+    ]);
   }, []);
 
   const WORTH = useMemo(() => {
     if (!signals) return null;
     const api = signals.api({
-      baseUrl: comparisonApiUrls.items.replace(/\/items\.json$/, ""),
+      baseUrl: "/api/procurement",
       effects: signals.resource.effects.branchNative(),
     });
-    const itemsResponse = signals.resource.response.array({ itemId: (item: ListItem) => item.id });
-    const itemsFamily = api.url("/items").response(itemsResponse).list({
-      load: () => store.fetchItems(),
-    });
-    const saveItem = api.url("/items/:itemId")
-      .response(signals.resource.response.detail<ListItem>()({ label: "label", sync: "sync" }))
-      .update({
-        reconciles: [{
-          family: itemsFamily,
-          params: () => ({}),
-          collection: { kind: "item" },
-          fallback: "partialReconciliation",
-        }],
-        load: ({ body, itemId }: { body: SaveItemBody; itemId: string | number }) =>
-          store.confirmItem(String(itemId), body.outcome),
+    const linesFamily = api
+      .url("/orders/:orderId/lines")
+      .response(signals.resource.response.array({ itemId: (line: PoLine) => line.id }))
+      .list({
+        load: () => store.fetchLines(),
       });
-    return { itemsFamily, itemsLine: itemsFamily.line({}), saveItem };
+    const saveLine = api
+      .url("/orders/:orderId/lines/:lineId")
+      .response(signals.resource.response.detail<PoLine>()({ label: "label", qty: "qty", sync: "sync" }))
+      .update({
+        reconciles: [
+          {
+            family: linesFamily,
+            params: () => ({ orderId: PO_NUMBER }),
+            collection: { kind: "item" },
+            fallback: "partialReconciliation",
+          },
+        ],
+        load: ({ body }: { body: PoWriteBody }) => store.save(body),
+      });
+    return { linesFamily, line: linesFamily.line({ orderId: PO_NUMBER }), saveLine };
   }, [signals, store]);
 
   useEffect(() => {
-    WORTH?.itemsLine.refresh();
-  }, [WORTH]);
-
-  const write = useManagedResourceWrite<SaveItemBody, ReturnType<NonNullable<typeof WORTH>["saveItem"]["line"]>>({
-    line(body) {
-      if (!WORTH) {
-        throw new Error("WORTH runtime is not ready.");
-      }
-      return WORTH.saveItem.line({ body, itemId: body.id });
-    },
-    feedback: {
-      success: "Item added successfully",
-      error: "Failed to add item",
-    },
-    onFeedback(feedback) {
-      pushEvent(
-        setEvents,
-        createPanelEvent(
-          feedback.kind === "success" ? "success" : feedback.kind === "error" ? "error" : "info",
-          feedback.title,
-          feedback.description ?? `managed write result: ${feedback.resultKind}`,
-        ),
+    if (!WORTH || initRef.current) return;
+    initRef.current = true;
+    WORTH.line.refresh();
+    void WORTH.line.awaitSettlement().then(() => {
+      const value = WORTH.line.value() as readonly PoLine[] | null;
+      pushLedger(
+        "resident truth loaded",
+        `initial load fulfilled — ${value?.length ?? 0} line(s) on ${PO_NUMBER}`,
+        null,
       );
-    },
-  });
+      pulse();
+    });
+  }, [WORTH, pulse, pushLedger]);
 
-  const lineView = useResourceLine<readonly ListItem[] | null, null>(
-    WORTH?.itemsFamily ?? inactiveResourceFamily,
-    WORTH ? {} : { enabled: false },
-    (reactStore ?? inactiveReactStore) as Parameters<typeof useResourceLine>[2],
-    { inactiveValue: null },
-  );
-  const items = lineView.value;
-  const statusKind = WORTH ? WORTH.itemsLine.status().kind : "booting";
-  const diagnostics = useMemo<ResourceDemoDiagnostics>(() => {
-    const latestResult = write.lastResult;
-    const lastEffect = WORTH?.itemsLine.diagnostics().lastEffect ?? null;
-    const lifecycle = WORTH?.itemsLine.history().lifecycle ?? [];
-    return {
-      schema: "resource-demo-diagnostics.v1",
-      runtime: "WORTH",
-      blocks: [
-        { label: "useResourceLine(...).value", mode: "rows", value: formatItemRows(items ?? null) },
-        { label: "line.diagnostics().lastEffect", value: lastEffect ? {
-          provenance: lastEffect.provenance ?? null,
-          optimisticKind: lastEffect.optimistic?.kind ?? null,
-          rollbackKind: lastEffect.optimistic?.rollback?.kind ?? null,
-        } : null },
-        { label: "useManagedResourceWrite(...).lastResult", value: latestResult ? {
-          resultKind: latestResult.resultKind,
-          confirmation: latestResult.confirmationKind,
-          recovery: summarizeRecovery(latestResult),
-        } : null },
-        { label: "line.history().rollbackLastEffect()", value: lastRollback },
-        { label: "line.history().lifecycle.slice(-3)", value: lifecycle.slice(-3).map((entry: any) => ({
-          event: entry.event,
-          lastPatchKind: entry.lastPatchKind,
-          lastPatchedItemId: entry.lastPatchedItemId,
-          visibleSelection: entry.visibleSelection ? {
-            kind: entry.visibleSelection.kind,
-            source: entry.visibleSelection.source,
-            effectId: entry.visibleSelection.effectId ?? null,
-            branchId: entry.visibleSelection.branchId ?? null,
-            snapshotId: entry.visibleSelection.snapshotId ?? null,
-            rollbackKind: entry.visibleSelection.rollbackKind ?? null,
-          } : null,
-        })) },
-        { label: "toastFeed[0]", value: events[0] ? `${events[0].tone}: ${events[0].title}` : "none" },
-      ],
-    };
-  }, [events, WORTH, items, lastRollback, lineView.diagnosticsSummary, write.lastResult]);
+  const lineSignal = useMemo(() => (WORTH ? WORTH.line.signal() : null), [WORTH]);
+  const watchedValue = useSignal<readonly PoLine[] | null>(signals as unknown, lineSignal);
+  void tick;
+  void watchedValue;
+  const lines = WORTH ? ((WORTH.line.value() as readonly PoLine[] | null) ?? watchedValue ?? null) : null;
+  const loading = !WORTH || (!lines && !bootError);
 
-  useEffect(() => onDiagnosticsChange(diagnostics), [diagnostics, onDiagnosticsChange]);
-
-  const reset = useCallback(async () => {
-    if (!WORTH) return;
-    store.reset();
-    setEvents([]);
-    setLastRollback(null);
-    write.reset();
-    WORTH.itemsLine.invalidate();
-    WORTH.itemsLine.refresh();
-    await WORTH.itemsLine.awaitSettlement();
-  }, [WORTH, store, write]);
+  useEffect(() => {
+    onClaim("worth", claimSyncOf(lines, LINE_SAFE.id));
+  }, [lines, onClaim]);
 
   const controller = useMemo<PanelController>(() => ({
-    apply: async () => {
+    addLine: (poLine) => {
       if (!WORTH) return;
-      write.reset();
-      setLastRollback(null);
-      WORTH.itemsLine.patch(WORTH.itemsFamily.patch.insert({
-        itemId: optimisticItem.id,
+      const draft: PoLine = { ...poLine, sync: "syncing" };
+      WORTH.line.patch(WORTH.linesFamily.patch.insert({
+        itemId: draft.id,
         placement: "append",
-        nextItem: optimisticItem,
+        nextItem: draft,
       }));
-      pushEvent(setEvents, createPanelEvent("info", "Adding item...", "branchNative admitted an optimistic list insert."));
+      pushLedger(
+        `optimistic insert admitted — ${draft.label}`,
+        "localPatch on the current branch; the envelope records its own rollback posture",
+        summarizeEffectEnvelope(WORTH.line.diagnostics().lastEffect),
+      );
+      pushEvent(setEvents, createPanelEvent("info", `Adding ${draft.label}…`, "the insert is an admitted effect, not a cache overwrite"));
+
+      const execution = WORTH.saveLine.execute(
+        { orderId: PO_NUMBER, lineId: draft.id, body: { ...draft, attempt: ++attemptRef.current } },
+        { freeOnSettle: true },
+      );
+      void execution.settled().then((result: any) => {
+        if (result?.resultKind === "rejected") {
+          const message: string = result?.status?.message ?? "server rejected the write";
+          pushEvent(setEvents, createPanelEvent("error", `${draft.label} failed`, message));
+          pushLedger(
+            `server rejected ${draft.label}`,
+            `${message} — write freshness: ${result?.freshness?.reason ?? "n/a"}`,
+            {
+              resultKind: result?.resultKind ?? null,
+              message,
+              freshness: result?.freshness ?? null,
+            },
+          );
+          WORTH.line.patch(WORTH.linesFamily.patch.delete({ itemId: draft.id }));
+          pushLedger(
+            `compensating patch removed ${draft.label}`,
+            "item-scoped delete — no snapshot restore, nothing else on screen was touched",
+            summarizeEffectEnvelope(WORTH.line.diagnostics().lastEffect),
+          );
+        } else {
+          pushEvent(setEvents, createPanelEvent("success", `${draft.label} confirmed`, "the delivered patch replaced exactly one row"));
+          pushLedger(
+            `server confirmed ${draft.label}`,
+            "delivered item patch consumed canonical server truth — other pending rows preserved",
+            {
+              mutationConfirmation: result?.mutationResponse?.confirmation?.kind ?? null,
+              lastEffect: summarizeEffectEnvelope(WORTH.line.diagnostics().lastEffect),
+            },
+          );
+        }
+        pulse();
+      }).catch(() => pulse());
+      pulse();
     },
-    confirm: async () => {
-      await write.execute({ id: optimisticItem.id, outcome: "confirm" });
+    settle: (lineId, accepted) => {
+      store.settle(lineId, accepted);
     },
-    fail: async () => {
-      const result = await write.execute({ id: optimisticItem.id, outcome: "reject" });
-      if (result.resultKind === "rejected") {
-        const rollback = WORTH?.itemsLine.history().rollbackLastEffect() ?? null;
-        setLastRollback(rollback);
-      }
+    reset: async () => {
+      store.reset();
+      setEvents([]);
+      setLedger([]);
+      if (!WORTH) return;
+      WORTH.line.invalidate();
+      WORTH.line.refresh();
+      await WORTH.line.awaitSettlement().catch(() => null);
+      const value = WORTH.line.value() as readonly PoLine[] | null;
+      pushLedger("resident truth loaded", `reset — ${value?.length ?? 0} line(s) on ${PO_NUMBER}`, null);
+      pulse();
     },
-    reset,
-  }), [WORTH, reset, write]);
+  }), [WORTH, pulse, pushLedger, store]);
 
   useEffect(() => {
     onController(controller);
     return () => onController(null);
   }, [controller, onController]);
 
+  const exportLedger = useCallback(() => {
+    if (!WORTH) return;
+    let lifecycle: unknown = null;
+    try {
+      lifecycle = WORTH.line.history().lifecycle.map((entry: any) => ({
+        event: entry.event,
+        lastPatchKind: entry.lastPatchKind ?? null,
+        lastPatchedItemId: entry.lastPatchedItemId ?? null,
+      }));
+    } catch {
+      lifecycle = "lifecycle unavailable";
+    }
+    const artifact = {
+      exportedAt: new Date().toISOString(),
+      scenario: "po-overlapping-optimistic-writes",
+      source: "line.diagnostics().lastEffect envelopes + line.history().lifecycle, read from the Worth runtime",
+      ledger,
+      lifecycle,
+      visibleValue: WORTH.line.value(),
+    };
+    const blob = new Blob([JSON.stringify(artifact, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "worth-effect-ledger.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }, [WORTH, ledger]);
+
   return (
-    <ResourcePanel
-      error={bootError}
-      events={events}
-      items={items}
-      loading={!WORTH || statusKind === "booting" || statusKind === "pending"}
-      title="Runtime-owned optimistic lifecycle"
-      variant="WORTH"
-    />
+    <div className="po-column">
+      <PoPanel
+        caption="useResourceLine(poLines, { orderId }) · effects: branchNative()"
+        error={bootError}
+        events={events}
+        highlightId={highlightId}
+        lines={lines}
+        loading={loading}
+        title="Worth runtime"
+        variant="worth"
+      />
+      <EffectLedger baseMs={baseMs} onExport={exportLedger} rows={ledger} />
+    </div>
   );
+}
+
+interface ResourcesSectionProps {
+  onNavigate: (path: string) => void;
 }
 
 export function ResourcesSection({ onNavigate }: ResourcesSectionProps) {
   const tanstackController = useRef<PanelController | null>(null);
   const WORTHController = useRef<PanelController | null>(null);
   const queryClient = useMemo(() => new QueryClient(), []);
-  const [phase, setPhase] = useState<ScenarioPhase>("idle");
-  const [tanstackDiagnostics, setTanstackDiagnostics] = useState<ResourceDemoDiagnostics | null>(null);
-  const [WORTHDiagnostics, setWORTHDiagnostics] = useState<ResourceDemoDiagnostics | null>(null);
+  const timersRef = useRef<number[]>([]);
+  const baseMsRef = useRef<number | null>(null);
+  const phaseRef = useRef<ScenarioPhase>("idle");
 
-  const runBoth = useCallback(async (action: keyof PanelController, nextPhase: ScenarioPhase) => {
-    await tanstackController.current?.[action]();
-    await WORTHController.current?.[action]();
-    setPhase(nextPhase);
+  const [phase, setPhaseState] = useState<ScenarioPhase>("idle");
+  const [baseMs, setBaseMs] = useState<number | null>(null);
+  const [confirmedAtMs, setConfirmedAtMs] = useState<number | null>(null);
+  const [healedAtMs, setHealedAtMs] = useState<number | null>(null);
+  const [claims, setClaims] = useState<Record<PanelVariant, ClaimEntry[]>>({ tanstack: [], worth: [] });
+
+  const setPhase = useCallback((next: ScenarioPhase) => {
+    phaseRef.current = next;
+    setPhaseState(next);
   }, []);
 
+  useEffect(() => () => {
+    timersRef.current.forEach((id) => window.clearTimeout(id));
+  }, []);
+
+  const schedule = useCallback((callback: () => void, delay: number) => {
+    timersRef.current.push(window.setTimeout(callback, delay));
+  }, []);
+
+  const clearSchedules = useCallback(() => {
+    timersRef.current.forEach((id) => window.clearTimeout(id));
+    timersRef.current = [];
+  }, []);
+
+  const settleBoth = useCallback((lineId: string, accepted: boolean) => {
+    tanstackController.current?.settle(lineId, accepted);
+    WORTHController.current?.settle(lineId, accepted);
+  }, []);
+
+  const handleClaim = useCallback((variant: PanelVariant, sync: ClaimSync) => {
+    if (baseMsRef.current === null) return;
+    setClaims((current) => {
+      const list = current[variant];
+      if (list[list.length - 1]?.sync === sync) return current;
+      return { ...current, [variant]: [...list, { atMs: performance.now(), sync }] };
+    });
+    if (variant === "tanstack" && sync === "synced" && phaseRef.current === "diverged") {
+      setHealedAtMs(performance.now());
+      phaseRef.current = "healed";
+      setPhaseState("healed");
+    }
+  }, []);
+
+  const startFirstLine = useCallback(() => {
+    const now = performance.now();
+    baseMsRef.current = now;
+    setBaseMs(now);
+    setClaims({ tanstack: [{ atMs: now, sync: "absent" }], worth: [{ atMs: now, sync: "absent" }] });
+    tanstackController.current?.addLine(LINE_RISKY);
+    WORTHController.current?.addLine(LINE_RISKY);
+    setPhase("firstInFlight");
+    schedule(() => {
+      if (phaseRef.current !== "firstInFlight") return;
+      settleBoth(LINE_RISKY.id, false);
+      setPhase("settledSolo");
+    }, SOLO_REJECT_AFTER_MS);
+  }, [schedule, setPhase, settleBoth]);
+
+  const startSecondLine = useCallback(() => {
+    clearSchedules();
+    tanstackController.current?.addLine(LINE_SAFE);
+    WORTHController.current?.addLine(LINE_SAFE);
+    setPhase("overlap");
+    schedule(() => {
+      settleBoth(LINE_SAFE.id, true);
+      setConfirmedAtMs(performance.now());
+      setPhase("confirmed");
+    }, CONFIRM_SAFE_AFTER_MS);
+    schedule(() => {
+      settleBoth(LINE_RISKY.id, false);
+      setPhase("diverged");
+    }, REJECT_RISKY_AFTER_MS);
+  }, [clearSchedules, schedule, setPhase, settleBoth]);
+
+  const resetBoth = useCallback(() => {
+    clearSchedules();
+    baseMsRef.current = null;
+    setBaseMs(null);
+    setConfirmedAtMs(null);
+    setHealedAtMs(null);
+    setClaims({ tanstack: [], worth: [] });
+    setPhase("idle");
+    void tanstackController.current?.reset();
+    void WORTHController.current?.reset();
+  }, [clearSchedules, setPhase]);
+
+  const highlightId = phase === "diverged" || phase === "healed" ? LINE_SAFE.id : null;
+
   return (
-    <div className="xai-section-band accent-resources">
-      <div className="xai-section-heading">
-        <span className="xai-section-eyebrow">05 / Optimistic Resources</span>
-        <h2>Optimistic updates should be inspectable.</h2>
-        <p>Add one item to the same list in both implementations, then inspect the actual runtime output below.</p>
-      </div>
+    <div className="accent-resources po-section">
+      <p className="po-intro">
+        Two people add lines to the same purchase order. Both writes are optimistic. The first one
+        is going to fail — <em>after</em> the second one is confirmed. The left window is the
+        callback model, written the way TanStack Query&apos;s own documentation recommends. The
+        right window is the Worth runtime. Both get identical clicks and an identical server.
+      </p>
 
-      <DemoPreface demoId={5} />
-
-      <ResourceFeedbackGuide />
-
-      <div className="resources-control-bar">
-        <span>One shared add-item flow. Both windows move together.</span>
-        <div className="resources-control-actions">
-          <button className="resources-control-button" disabled={phase !== "idle"} onClick={() => void runBoth("apply", "optimistic")} type="button">
-            Add item optimistically
+      <div className="po-control-bar">
+        <span>One scripted server. Both windows move together.</span>
+        <div className="po-control-actions">
+          <button
+            className="po-control-button"
+            disabled={phase !== "idle"}
+            onClick={startFirstLine}
+            type="button"
+          >
+            Add “Calibration kit”
           </button>
-          <button className="resources-control-button" disabled={phase !== "optimistic"} onClick={() => void runBoth("confirm", "confirmed")} type="button">
-            Confirm from server
+          <button
+            className="po-control-button"
+            disabled={phase !== "firstInFlight"}
+            onClick={startSecondLine}
+            type="button"
+          >
+            Add “Sterile tubing” — while the kit is still saving
           </button>
-          <button className="resources-control-button" disabled={phase !== "optimistic"} onClick={() => void runBoth("fail", "rolledBack")} type="button">
-            Fail from server
-          </button>
-          <button className="resources-control-button resources-control-button-ghost" onClick={() => void runBoth("reset", "idle")} type="button">
+          <button
+            className="po-control-button po-control-button-ghost"
+            disabled={phase === "idle"}
+            onClick={resetBoth}
+            type="button"
+          >
             Reset both
-          </button>
-          <button className="resources-control-button resources-control-button-ghost" onClick={() => onNavigate("#/demos/5")} type="button">
-            Open full demo
           </button>
         </div>
       </div>
 
-      <div className="resources-live-grid">
+      {phase === "settledSolo" ? (
+        <aside className="po-solo-note" role="status">
+          The vendor check failed, and one failed write at a time is the easy case — both sides
+          rolled it back cleanly. Reset and add the tubing <strong>while the kit is still
+          saving</strong>. That&apos;s where they stop agreeing.
+        </aside>
+      ) : null}
+
+      <RevealBanner baseMs={baseMs} confirmedAtMs={confirmedAtMs} healedAtMs={healedAtMs} phase={phase} />
+
+      <div className="po-grid">
         <QueryProvider client={queryClient}>
-          <TanStackPanel onController={(controller) => { tanstackController.current = controller; }} onDiagnosticsChange={setTanstackDiagnostics} />
+          <TanStackPanel
+            baseMs={baseMs}
+            highlightId={highlightId}
+            onClaim={handleClaim}
+            onController={(controller) => { tanstackController.current = controller; }}
+          />
         </QueryProvider>
-        <WORTHPanel onController={(controller) => { WORTHController.current = controller; }} onDiagnosticsChange={setWORTHDiagnostics} />
+        <WORTHPanel
+          baseMs={baseMs}
+          highlightId={highlightId}
+          onClaim={handleClaim}
+          onController={(controller) => { WORTHController.current = controller; }}
+        />
       </div>
 
-      <ResourcesSectionCodeSample />
+      {baseMs !== null && phase !== "firstInFlight" && phase !== "settledSolo" ? (
+        <ClaimTimeline baseMs={baseMs} claims={claims} confirmedAtMs={confirmedAtMs} />
+      ) : null}
 
-      <DiagnosticsComparison WORTHDiagnostics={WORTHDiagnostics} tanstackDiagnostics={tanstackDiagnostics} />
+      <section className="signals-code-section" aria-labelledby="po-code-title">
+        <h2 id="po-code-title">The write is a declaration — the receipts are a by-product</h2>
+        <ResourcesSectionCodeSample
+          liveLine={phase === "diverged" || phase === "healed"
+            ? '// → optimistic.confirmation: "consumedCanonicalServerTruth" · one row replaced'
+            : null}
+        />
+      </section>
+
+      <DxCorner
+        code={DX_SAMPLE}
+        filename="add-po-line.tsx"
+        receipts={[
+          {
+            claim: "Speculative vs confirmed is provenance, not vibes.",
+            api: 'diagnostics().lastEffect.optimistic · "consumedCanonicalServerTruth"',
+          },
+          {
+            claim: "Confirmations reconcile one item — they can't clobber the screen.",
+            api: 'reconciles: [{ collection: { kind: "item" } }]',
+          },
+          {
+            claim: "One hook owns the whole write lifecycle.",
+            api: "useManagedResourceWrite({ line, feedback })",
+          },
+        ]}
+        subtitle="This is the whole optimistic write — apply, confirm, reject, feedback. The snapshot bookkeeping you just watched go wrong on the left is not your job here."
+      />
+
+      <div className="signals-docs-row">
+        <button onClick={() => onNavigate("#/docs/resources/index")} type="button">
+          Explore resources in the documentation <span aria-hidden="true">→</span>
+        </button>
+      </div>
     </div>
   );
 }
-

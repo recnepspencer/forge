@@ -30,7 +30,6 @@
   padding: 0;
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
   cursor: pointer;
 }
 
@@ -41,40 +40,32 @@
   font-size: inherit;
 }
 
-.brand-mark {
-  width: 1.15rem;
-  height: 1.15rem;
-  position: relative;
-  display: inline-block;
+.worth-logo {
+  display: block;
+  width: 116px;
+  height: 50px;
+  overflow: visible;
 }
 
-.brand-mark::before,
-.brand-mark::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 2px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(199, 208, 221, 0.72));
-  transform-origin: center;
+.worth-logo-line {
+  fill: none;
+  stroke: url(#worth-logo-gold);
+  stroke-width: 1.65;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  stroke-miterlimit: 8;
 }
 
-.brand-mark::before {
-  clip-path: polygon(0 0, 58% 0, 100% 42%, 42% 42%);
-}
-
-.brand-mark::after {
-  clip-path: polygon(0 58%, 58% 58%, 100% 100%, 42% 100%);
-}
-
-.brand-wordmark {
-  color: #f5f7fb;
-  font-size: 1.02rem;
-  font-weight: 650;
-  letter-spacing: -0.035em;
+.worth-logo-wordmark {
+  fill: url(#worth-logo-gold);
+  font-family: "Oxanium", "Outfit", "Segoe UI", sans-serif;
+  font-size: 16.5px;
+  font-weight: 300;
+  letter-spacing: 0.015em;
 }
 
 .nav-links {
-  justify-content: center;
+  justify-content: flex-end;
   gap: 1.35rem;
 }
 
@@ -185,8 +176,9 @@
 }
 
 @media (max-width: 430px) {
-  .brand-wordmark {
-    font-size: 0.96rem;
+  .worth-logo {
+    width: 104px;
+    height: 45px;
   }
 
   .nav-links {

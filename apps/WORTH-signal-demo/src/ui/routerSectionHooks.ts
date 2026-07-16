@@ -2,32 +2,56 @@ import React from "react";
 import { createSignals } from "worth-signal-wasm";
 
 import {
+  ROLE_TRAINED_REV,
+  REPLAY_PERSONAS,
   buildRouterSectionModel,
-  formatBrowserResult,
-  formatSequenceResult,
+  describeOutcome,
   roleLabels,
-  type SessionRole,
+  type OutcomeView,
+  type PlantRole,
+  type SopRevision,
 } from "./routerSectionSupport";
 
+const REV_BUMP_DELAY_MS = 14_000;
+const REPLAY_WINDOW = 6;
+
+export interface AccessLogEntry {
+  id: number;
+  at: string;
+  role: PlantRole;
+  trainedRev: SopRevision;
+  effectiveRev: SopRevision;
+  target: string;
+  outcome: OutcomeView;
+  raw: unknown;
+}
+
+export interface ReplayRow {
+  target: string;
+  outcomes: Record<string, OutcomeView>;
+}
+
 interface RouterSectionState {
+  accessLog: AccessLogEntry[];
+  activeTarget: string;
   bootError: string | null;
-  browserPath: string;
-  browserResult: string;
-  currentOutcome: any;
+  currentOutcome: OutcomeView | null;
+  deviationGranted: boolean;
+  effectiveRev: SopRevision;
+  grantDeviation: () => void;
   isNavigating: boolean;
   model: any;
-  pageStatusKind: string | null;
+  navigate: (target: string) => void;
   pageValue: any;
-  replayOutput: string;
-  replayResult: any;
-  replayRole: SessionRole;
-  role: SessionRole;
+  replayRows: ReplayRow[];
+  revBumped: boolean;
+  role: PlantRole;
   routeOptions: ReadonlyArray<{ path: string; label: string }>;
-  setActiveTarget: React.Dispatch<React.SetStateAction<string>>;
-  setReplayRole: React.Dispatch<React.SetStateAction<SessionRole>>;
-  setRole: React.Dispatch<React.SetStateAction<SessionRole>>;
+  setRole: (role: PlantRole) => void;
   signalsReady: boolean;
-  activeTarget: string;
+  story: any;
+  storyRevision: number;
+  trainedRev: SopRevision;
 }
 
 function useStorySubscription(story: any): number {
@@ -53,17 +77,27 @@ export function useRouterSectionState(): RouterSectionState {
   const [signals, setSignals] = React.useState<any>(null);
   const [model, setModel] = React.useState<any>(null);
   const [story, setStory] = React.useState<any>(null);
-  const [role, setRole] = React.useState<SessionRole>("admin");
-  const [activeTarget, setActiveTarget] = React.useState("/catalog");
+  const [bootError, setBootError] = React.useState<string | null>(null);
+
+  const [role, setRoleState] = React.useState<PlantRole>("operator");
+  const [effectiveRev, setEffectiveRev] = React.useState<SopRevision>("B");
+  const [deviationGranted, setDeviationGranted] = React.useState(false);
+  const [activeTarget, setActiveTarget] = React.useState<string>("");
+  const [navNonce, setNavNonce] = React.useState(0);
+
   const [currentReport, setCurrentReport] = React.useState<any>(null);
   const [pageLine, setPageLine] = React.useState<any>(null);
-  const [pageRevision, setPageRevision] = React.useState(0);
-  const [replayRole, setReplayRole] = React.useState<SessionRole>("admin");
-  const [replayResult, setReplayResult] = React.useState<any>(null);
-  const [bootError, setBootError] = React.useState<string | null>(null);
+  const [, setPageRevision] = React.useState(0);
   const [isNavigating, setIsNavigating] = React.useState(false);
+
+  const [accessLog, setAccessLog] = React.useState<AccessLogEntry[]>([]);
+  const [replayRows, setReplayRows] = React.useState<ReplayRow[]>([]);
+  const logIdRef = React.useRef(0);
   const navigationTokenRef = React.useRef(0);
   const storyRevision = useStorySubscription(story);
+
+  const trainedRev = ROLE_TRAINED_REV[role];
+  const revBumped = effectiveRev !== "B";
 
   React.useEffect(() => {
     let cancelled = false;
@@ -91,18 +125,42 @@ export function useRouterSectionState(): RouterSectionState {
     };
   }, []);
 
+  // Document control bumps SOP-042 to rev C partway through the session.
+  React.useEffect(() => {
+    if (!model || revBumped) {
+      return;
+    }
+    const handle = window.setTimeout(() => setEffectiveRev("C"), REV_BUMP_DELAY_MS);
+    return () => window.clearTimeout(handle);
+  }, [model, revBumped]);
+
+  // A role switch is a fresh actor session: new story, same persistent access log.
+  const setRole = React.useCallback((nextRole: PlantRole) => {
+    setRoleState(nextRole);
+    setDeviationGranted(false);
+  }, []);
+
   React.useEffect(() => {
     if (!signals || !model) {
       return;
     }
-
     setStory(signals.router.browserHistory.story());
     setCurrentReport(null);
     setPageLine(null);
   }, [signals, model, role]);
 
+  const navigate = React.useCallback((target: string) => {
+    setActiveTarget(target);
+    setNavNonce((value) => value + 1);
+  }, []);
+
+  const grantDeviation = React.useCallback(() => {
+    setDeviationGranted(true);
+    setNavNonce((value) => value + 1);
+  }, []);
+
   React.useEffect(() => {
-    if (!signals || !model || !story) {
+    if (!signals || !model || !story || !activeTarget) {
       return;
     }
 
@@ -112,12 +170,19 @@ export function useRouterSectionState(): RouterSectionState {
     setPageLine(null);
     setPageRevision((value) => value + 1);
 
+    const facts = {
+      role,
+      trainedRev: ROLE_TRAINED_REV[role],
+      effectiveRev,
+      underDeviation: deviationGranted,
+    };
+
     (async () => {
       const ingress =
         navigationKind === "load"
           ? signals.router.browserHistory.load(activeTarget, { routeIdentity: "router-section" })
           : signals.router.browserHistory.push(activeTarget, { routeIdentity: "router-section" });
-      const report = await model.routes.admitBrowserHistoryIngress(ingress, { role });
+      const report = await model.routes.admitBrowserHistoryIngress(ingress, facts);
 
       if (token !== navigationTokenRef.current) {
         return;
@@ -126,15 +191,37 @@ export function useRouterSectionState(): RouterSectionState {
       story.record(report);
       setCurrentReport(report);
 
-      const outcome = report.outcome();
-      if (outcome.kind !== "admitted" || !outcome.route().resourceNames().includes("page")) {
+      const outcome = describeOutcome(report, deviationGranted);
+      logIdRef.current += 1;
+      setAccessLog((current) => [
+        {
+          id: logIdRef.current,
+          at: new Date().toLocaleTimeString("en-US", { hour12: false }),
+          role: facts.role,
+          trainedRev: facts.trainedRev,
+          effectiveRev: facts.effectiveRev,
+          target: activeTarget,
+          outcome,
+          raw: {
+            facts,
+            outcomeKind: outcome.kind,
+            reason: outcome.reason,
+            detail: outcome.detail,
+            rawLocationHref: report.rawLocationHref ?? null,
+          },
+        },
+        ...current,
+      ]);
+
+      const rawOutcome = report.outcome();
+      if (rawOutcome.kind !== "admitted" || !rawOutcome.route().resourceNames().includes("page")) {
         setPageLine(null);
         setPageRevision((value) => value + 1);
         setIsNavigating(false);
         return;
       }
 
-      const nextLine = outcome.route().resource("page").line();
+      const nextLine = rawOutcome.route().resource("page").line();
       setPageLine(nextLine);
       setPageRevision((value) => value + 1);
       nextLine.invalidate();
@@ -151,87 +238,82 @@ export function useRouterSectionState(): RouterSectionState {
         setIsNavigating(false);
       }
     });
-  }, [signals, model, story, role, activeTarget]);
+    // effectiveRev is a deliberate dependency: a revision bump re-admits the
+    // page you are standing on, and both outcomes land in the access log
+  }, [signals, model, story, role, activeTarget, navNonce, effectiveRev, deviationGranted]);
 
-  const replayTargets = React.useMemo(
-    () => story?.events?.().map((event: any) => event.targetHref).filter(Boolean) ?? [],
-    [story, storyRevision],
-  );
+  const replayTargets = React.useMemo(() => {
+    const chronological = [...accessLog].reverse().map((entry) => entry.target);
+    const window = chronological.slice(-REPLAY_WINDOW);
+    return window.filter((target, index) => window.indexOf(target) === index);
+  }, [accessLog]);
 
   React.useEffect(() => {
-    if (!model) {
-      return;
-    }
-
-    if (replayTargets.length === 0) {
-      setReplayResult(null);
+    if (!model || replayTargets.length === 0) {
+      setReplayRows([]);
       return;
     }
 
     let cancelled = false;
 
     (async () => {
-      const scenario = model.routes.simulateSequence(replayTargets);
-      const result = await scenario.run({ facts: { role: replayRole } });
+      const rows: ReplayRow[] = replayTargets.map((target) => ({ target, outcomes: {} }));
+      for (const persona of REPLAY_PERSONAS) {
+        const scenario = model.routes.simulateSequence(replayTargets);
+        const result = await scenario.run({
+          facts: { ...persona.facts, underDeviation: false },
+        });
+        if (cancelled) {
+          return;
+        }
+        result?.steps?.forEach((step: any, index: number) => {
+          if (rows[index]) {
+            rows[index].outcomes[persona.id] = describeOutcome(step.report, false);
+          }
+        });
+      }
       if (!cancelled) {
-        setReplayResult(result);
+        setReplayRows(rows);
       }
     })().catch((error) => {
-      console.error("Failed to replay router section workflow", error);
+      console.error("Failed to replay router section session", error);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [model, replayRole, replayTargets]);
+  }, [model, replayTargets, effectiveRev]);
 
-  const currentOutcome = currentReport?.outcome?.() ?? null;
+  const currentOutcome = React.useMemo(
+    () => (currentReport ? describeOutcome(currentReport, deviationGranted) : null),
+    [currentReport, deviationGranted],
+  );
+
   const pageStatusKind = pageLine?.status?.().kind ?? null;
   const pageValue = pageLine && pageStatusKind === "fulfilled" ? pageLine.value() : null;
 
-  const browserPath = React.useMemo(() => {
-    if (!currentReport) {
-      return activeTarget;
-    }
-
-    const outcome = currentReport.outcome();
-    if (outcome.kind === "redirect") {
-      return outcome.artifact().href ?? currentReport.rawLocationHref;
-    }
-
-    return story?.current?.()?.href ?? currentReport.rawLocationHref;
-  }, [activeTarget, currentReport, story, storyRevision]);
-
-  const browserResult = React.useMemo(
-    () => formatBrowserResult(role, currentReport, story, pageLine),
-    [role, currentReport, story, storyRevision, pageLine, pageStatusKind, pageRevision],
-  );
-
-  const replayOutput = React.useMemo(
-    () => formatSequenceResult(replayRole, replayResult),
-    [replayRole, replayResult],
-  );
-
   return {
+    accessLog,
+    activeTarget,
     bootError,
-    browserPath,
-    browserResult,
     currentOutcome,
+    deviationGranted,
+    effectiveRev,
+    grantDeviation,
     isNavigating,
     model,
-    pageStatusKind,
+    navigate,
     pageValue,
-    replayOutput,
-    replayResult,
-    replayRole,
+    replayRows,
+    revBumped,
     role,
     routeOptions: model?.routeOptions ?? [],
-    setActiveTarget,
-    setReplayRole,
     setRole,
     signalsReady: Boolean(signals && model && story),
-    activeTarget,
+    story,
+    storyRevision,
+    trainedRev,
   };
 }
 
-export { roleLabels, type SessionRole };
+export { roleLabels, type PlantRole };

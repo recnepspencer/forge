@@ -395,7 +395,7 @@ const form = signals.form({
                 RESOURCE-BACKED FIELD CONSTRUCTION
               </span>
               <span style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>
-                authored WORTH surface
+                authored Worth surface
               </span>
             </div>
             <pre
@@ -477,7 +477,7 @@ const form = signals.form({
           <code style={{ marginLeft: "0.35rem", color: "var(--text-primary)" }}>
             /public/api/articles/article-12.json
           </code>
-          . The submit action is a real WORTH resource-backed submit, but it
+          . The submit action is a real Worth resource-backed submit, but it
           patches the resident resource line locally for the demo instead of
           pretending to perform a live backend write.
         </div>
@@ -579,7 +579,7 @@ const form = signals.form({
             <input
               type="text"
               className="form-input"
-              placeholder="e.g. dev@WORTH.sh"
+              placeholder="e.g. dev@worth.sh"
               disabled={isLoading}
               value={emailVal || ""}
               onChange={(event) => {
