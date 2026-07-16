@@ -9,14 +9,14 @@ pub struct BlobCompactionResidue {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlobCompactionRestartOutcome {
-    ResumeAdmittedRewrite(BlobCompactionRewritePlan),
+    ResumeAdmittedRewrite(Box<BlobCompactionRewritePlan>),
     RollBackToPreCompactionPlacement { root: ChunkTreeRoot },
     ResidueLocalized(BlobCompactionResidue),
 }
 
 impl BlobCompactionRestartOutcome {
     pub fn resume(plan: BlobCompactionRewritePlan) -> Self {
-        Self::ResumeAdmittedRewrite(plan)
+        Self::ResumeAdmittedRewrite(Box::new(plan))
     }
 
     pub fn roll_back(plan: &BlobCompactionRewritePlan) -> Self {

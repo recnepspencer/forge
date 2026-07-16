@@ -5,9 +5,8 @@ use crate::{
 use worth_store_physical_format::{
     PageGenerationCell, PageRecordCounterSnapshot, PhysicalBinaryEncodingWitness,
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
-    PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalPublicationState, PhysicalRecordSlot,
-    PhysicalReferenceAuthority, PhysicalSegmentId, RecordPagePayload, SlotAppendRequest,
-    SlotDirectoryEntryState, PHYSICAL_HEADER_LENGTH,
+    PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalRecordSlot, PhysicalReferenceAuthority,
+    PhysicalSegmentId, RecordPagePayload, SlotAppendRequest, SlotDirectoryEntryState,
 };
 
 #[test]
@@ -81,7 +80,7 @@ fn moved_slot_denial_certifies_from_real_page_record_denial() {
     let slot_cell = generations
         .slot_cell(segment(7), page(11), slot(1))
         .with_slot_generation(generation(9));
-    let empty_page = page_bytes(generation(5), &[]);
+    let empty_page = crate::physical_fixture_encoding::data_page_bytes(page_cell, &[]);
     let append = records
         .append_record(
             admitted_page(&records, page_cell, &empty_page),
@@ -90,7 +89,7 @@ fn moved_slot_denial_certifies_from_real_page_record_denial() {
         .unwrap();
     let mut page_payload = append.page_payload().to_vec();
     page_payload[4] = SlotDirectoryEntryState::Moved.code();
-    let reopened_page = page_bytes(generation(5), &page_payload);
+    let reopened_page = crate::physical_fixture_encoding::data_page_bytes(page_cell, &page_payload);
     let validation = references
         .validate_page_slot(references.admit_page_slot(slot_cell), slot_cell)
         .unwrap();
@@ -140,20 +139,6 @@ fn record_authority() -> PhysicalPageRecordAuthority {
             PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
         ),
     )
-}
-
-fn page_bytes(generation: PhysicalGeneration, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalPageKind::DataPage.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation.get().to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
-    bytes.extend_from_slice(payload);
-    bytes
 }
 
 fn segment(value: u64) -> PhysicalSegmentId {

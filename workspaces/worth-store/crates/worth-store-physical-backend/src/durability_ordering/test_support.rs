@@ -40,8 +40,11 @@ where
     ScriptedDurabilityBackend: PhysicalStoreDurabilityExecutor<S, Error = ()>,
 {
     let mut backend = ScriptedDurabilityBackend {
-        observation: observation
-            .with_persisted_artifact(std::path::PathBuf::from("scripted-durability-artifact"), 1),
+        observation: observation.with_persisted_artifact(
+            std::path::PathBuf::from("scripted-durability-artifact"),
+            0,
+            1,
+        ),
     };
     match StoreDurabilityExecutionSession::for_owned_backend(&mut backend).execute(accepted) {
         Ok(proof) => proof,

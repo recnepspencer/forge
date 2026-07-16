@@ -97,7 +97,7 @@ pub(super) fn verifier_fixture() -> VerifierFixture {
         &[FreeSpaceManifestEntry::new(free_space)],
     );
     let page_bytes = record_page_bytes(headers.clone(), byte_order, page_cell, slot_cell);
-    let extent_bytes = extent_record_bytes(byte_order, generation, b"large");
+    let extent_bytes = extent_record_bytes(byte_order, extent_cell, b"large");
     let layout = PersistedPhysicalLayout::builder()
         .root_manifest(root_manifest.clone())
         .segment_manifest(segment_manifest.clone())
@@ -132,7 +132,7 @@ pub(super) fn record_page_bytes(
     slot_cell: crate::SlotGenerationCell,
 ) -> Vec<u8> {
     let authority = PhysicalPageRecordAuthority::for_canonical_physical_format(headers);
-    let empty_page = page_bytes(byte_order, page_cell.generation(), &[]);
+    let empty_page = page_bytes(byte_order, page_cell, &[]);
     let header = authority
         .decode_record_page_header(page_cell, &empty_page, PhysicalPageKind::DataPage)
         .unwrap();
@@ -145,55 +145,33 @@ pub(super) fn record_page_bytes(
             crate::SlotAppendRequest::ordinary(slot_cell, b"small"),
         )
         .unwrap();
-    page_bytes(byte_order, page_cell.generation(), append.page_payload())
+    page_bytes(byte_order, page_cell, append.page_payload())
 }
 
 pub(super) fn page_bytes(
     byte_order: PhysicalByteOrder,
-    generation: PhysicalGeneration,
+    page_cell: crate::PageGenerationCell,
     payload: &[u8],
 ) -> Vec<u8> {
-    let mut bytes = header_bytes(
+    let mut bytes = crate::header::encode_page_header(
         byte_order,
-        PhysicalPageKind::DataPage.tag(),
-        generation,
-        payload.len(),
-    );
+        PhysicalPageKind::DataPage,
+        page_cell,
+        payload.len() as u32,
+    )
+    .to_vec();
     bytes.extend_from_slice(payload);
     bytes
 }
 
 pub(super) fn extent_record_bytes(
     byte_order: PhysicalByteOrder,
-    generation: PhysicalGeneration,
+    extent_cell: crate::ExtentGenerationCell,
     payload: &[u8],
 ) -> Vec<u8> {
-    let mut bytes = header_bytes(
-        byte_order,
-        PhysicalFrameKind::ExtentRecordFrame.tag(),
-        generation,
-        payload.len(),
-    );
+    let mut bytes =
+        crate::header::encode_extent_frame_header(byte_order, extent_cell, payload.len() as u32)
+            .to_vec();
     bytes.extend_from_slice(payload);
-    bytes
-}
-
-pub(super) fn header_bytes(
-    byte_order: PhysicalByteOrder,
-    tag: u8,
-    generation: PhysicalGeneration,
-    payload_len: usize,
-) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload_len);
-    bytes.push(tag);
-    bytes.extend_from_slice(
-        &byte_order.write_u16(crate::PhysicalFormatVersion::initial_format_version().value()),
-    );
-    bytes.extend_from_slice(&byte_order.write_u16(PHYSICAL_HEADER_LENGTH));
-    bytes.extend_from_slice(&byte_order.write_u32(payload_len as u32));
-    bytes.extend_from_slice(&byte_order.write_u64(generation.get()));
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&byte_order.write_u32(0));
-    bytes.extend_from_slice(&byte_order.write_u64(0));
     bytes
 }

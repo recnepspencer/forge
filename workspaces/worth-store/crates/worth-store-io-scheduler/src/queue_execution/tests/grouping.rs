@@ -42,7 +42,7 @@ fn grouped_ready_execution_proves_and_counts_both_plans() {
     let scope = speculative_scope(grouped.first());
     let completion_builder = completion_for_group(&grouped, 1, Some(scope), 0, None)
         .observe_mechanical_adaptation(2, 1, 1);
-    let execution = execute_grouped_ready_queue_plans(grouped, completion_builder.complete());
+    let execution = execute_grouped_ready_queue_plans(*grouped, completion_builder.complete());
 
     let QueueExecutionOutcome::Executed(executed) = execution else {
         panic!("grouped ready plans should execute with scheduler grouping evidence");
@@ -67,7 +67,7 @@ fn grouped_backpressure_preserves_grouping_speculation_and_adaptation_counters()
     let completion_builder = completion_for_group(&grouped, 1, Some(scope), 0, None)
         .observe_mechanical_adaptation(2, 1, 1)
         .observe_backpressure(BackendQueueExecutionBackpressure::QueueDepthSaturated);
-    let execution = execute_grouped_ready_queue_plans(grouped, completion_builder.complete());
+    let execution = execute_grouped_ready_queue_plans(*grouped, completion_builder.complete());
 
     let QueueExecutionOutcome::Backpressured(backpressured) = execution else {
         panic!("backend saturation should be typed backpressure");

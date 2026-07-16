@@ -4,10 +4,10 @@ use worth_store_buffer_pool::{
 };
 use worth_store_physical_format::{
     PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
-    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness,
-    PhysicalPageId, PhysicalPageKind, PhysicalPublicationState, PhysicalRecordSlot,
+    PhysicalGenerationAuthority, PhysicalGenerationOwner, PhysicalHeaderAuthority,
+    PhysicalHeaderDecodeWitness, PhysicalPageId, PhysicalPageKind, PhysicalRecordSlot,
     PhysicalReferenceAuthority, PhysicalReferenceValidationWitness, PhysicalRootManifest,
-    PhysicalRootReference, PhysicalSegmentId, SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
+    PhysicalRootReference, PhysicalSegmentId, SlotGenerationCell,
 };
 use worth_store_physical_integrity::ProtectedPhysicalByteView;
 
@@ -31,7 +31,7 @@ pub(super) fn page_payload_with_record(payload: &[u8]) -> Vec<u8> {
             header_authority(),
         );
     let cell = page_cell(1, 2, 7);
-    let empty = page_bytes(7, &[]);
+    let empty = page_bytes(cell, &[]);
     let header = records
         .decode_record_page_header(cell, &empty, PhysicalPageKind::DataPage)
         .unwrap();
@@ -83,11 +83,7 @@ pub(super) fn page_witness(
     cell: PageGenerationCell,
 ) -> PhysicalHeaderDecodeWitness {
     header_authority()
-        .decode_page_header(
-            cell,
-            &page_bytes(cell.generation().get(), payload),
-            PhysicalPageKind::DataPage,
-        )
+        .decode_page_header(cell, &page_bytes(cell, payload), PhysicalPageKind::DataPage)
         .unwrap()
         .witness()
 }
@@ -99,7 +95,7 @@ pub(super) fn frame_witness(
     header_authority()
         .decode_frame_header(
             validation,
-            &frame_bytes(validation.owner().generation().get(), payload),
+            &frame_bytes(slot_cell_for_owner(validation.owner()), payload),
             PhysicalFrameKind::RecordFrame,
         )
         .unwrap()
@@ -139,7 +135,7 @@ fn admit_payload_frame(
     page: u64,
     payload: &[u8],
 ) -> worth_store_buffer_pool::ResidentFrameAdmission {
-    let frame = frame_bytes(generation, payload);
+    let frame = frame_bytes(slot_cell(1, page, 3, generation), payload);
     let request = ResidentFrameLoadRequest::from_physical_format_physical_frame(
         validation(1, page, 3, generation),
         frame_witness(payload, validation(1, page, 3, generation)),
@@ -169,29 +165,38 @@ fn root_publication(root: u64) -> worth_store_physical_format::RootPublicationCe
         .with_root_publication_generation(physical_generation(1))
 }
 
-fn frame_bytes(generation: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalFrameKind::RecordFrame.tag());
-    write_header_tail(&mut bytes, generation, payload);
-    bytes
-}
-
-fn page_bytes(generation: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalPageKind::DataPage.tag());
-    write_header_tail(&mut bytes, generation, payload);
-    bytes
-}
-
-fn write_header_tail(bytes: &mut Vec<u8>, generation: u64, payload: &[u8]) {
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation.to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
+fn frame_bytes(cell: SlotGenerationCell, payload: &[u8]) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(
+        usize::from(worth_store_physical_format::PHYSICAL_HEADER_LENGTH) + payload.len(),
+    );
+    bytes.extend_from_slice(&header_authority().encode_record_frame_header(
+        cell,
+        u32::try_from(payload.len()).expect("test payload length should fit the physical format"),
+    ));
     bytes.extend_from_slice(payload);
+    bytes
+}
+
+fn page_bytes(cell: PageGenerationCell, payload: &[u8]) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(
+        usize::from(worth_store_physical_format::PHYSICAL_HEADER_LENGTH) + payload.len(),
+    );
+    bytes.extend_from_slice(&header_authority().encode_page_header(
+        cell,
+        PhysicalPageKind::DataPage,
+        u32::try_from(payload.len()).expect("test payload length should fit the physical format"),
+    ));
+    bytes.extend_from_slice(payload);
+    bytes
+}
+
+fn slot_cell_for_owner(owner: PhysicalGenerationOwner) -> SlotGenerationCell {
+    slot_cell(
+        owner.segment_id().expect("slot owner segment").get(),
+        owner.page_id().expect("slot owner page").get(),
+        u64::from(owner.slot().expect("slot owner slot").get()),
+        owner.generation().get(),
+    )
 }
 
 fn segment_id(value: u64) -> PhysicalSegmentId {

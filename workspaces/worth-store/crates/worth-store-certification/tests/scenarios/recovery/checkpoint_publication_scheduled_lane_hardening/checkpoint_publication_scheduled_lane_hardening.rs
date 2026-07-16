@@ -154,13 +154,15 @@ fn checkpoint_crash_lane_rejects_recovery_driver_without_fresh_runtime_replay() 
         PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
             &binding,
             &checkpoint_schedule,
-            &recovery_plan,
-            &checkpoint_schedule,
-            actor_step_index(
+            worth_store_physical_certification::CheckpointPublicationRecoveryExecution::new(
+                &recovery_plan,
                 &checkpoint_schedule,
-                PhysicalScenarioActorRole::RecoveryDriver,
+                actor_step_index(
+                    &checkpoint_schedule,
+                    PhysicalScenarioActorRole::RecoveryDriver,
+                ),
+                &recovery_trace,
             ),
-            &recovery_trace,
             &checkpoint_origin(),
             checkpoint_evidence(),
         )
@@ -195,13 +197,15 @@ fn checkpoint_crash_lane_rejects_mixed_recovery_outcome_receipt() {
         PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
             &binding,
             &checkpoint_schedule,
-            &recovery_plan,
-            &recovery_schedule,
-            actor_step_index(
+            worth_store_physical_certification::CheckpointPublicationRecoveryExecution::new(
+                &recovery_plan,
                 &recovery_schedule,
-                PhysicalScenarioActorRole::RecoveryDriver,
+                actor_step_index(
+                    &recovery_schedule,
+                    PhysicalScenarioActorRole::RecoveryDriver,
+                ),
+                &mixed_recovery_trace,
             ),
-            &mixed_recovery_trace,
             &checkpoint_origin(),
             checkpoint_evidence(),
         )
@@ -228,13 +232,15 @@ fn checkpoint_crash_lane_rejects_recovery_receipt_from_unrelated_checkpoint_sche
         PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
             &binding,
             &checkpoint_schedule,
-            &recovery_plan,
-            &recovery_schedule,
-            actor_step_index(
+            worth_store_physical_certification::CheckpointPublicationRecoveryExecution::new(
+                &recovery_plan,
                 &recovery_schedule,
-                PhysicalScenarioActorRole::RecoveryDriver,
+                actor_step_index(
+                    &recovery_schedule,
+                    PhysicalScenarioActorRole::RecoveryDriver,
+                ),
+                &recovery_trace(&recovery_plan),
             ),
-            &recovery_trace(&recovery_plan),
             &checkpoint_origin(),
             checkpoint_evidence(),
         )

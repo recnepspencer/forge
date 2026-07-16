@@ -17,7 +17,7 @@ use super::{
 
 #[derive(Debug)]
 enum CompactionPublicationCase {
-    Admitted(PublishedLsmCompaction),
+    Admitted(Box<PublishedLsmCompaction>),
     Denied(BaselineLsmExecutionAdmissionDenial),
 }
 
@@ -36,7 +36,7 @@ impl LsmCompactionPublicationOutcome {
     fn issue(result: Result<PublishedLsmCompaction, BaselineLsmExecutionAdmissionDenial>) -> Self {
         Self {
             case: match result {
-                Ok(value) => CompactionPublicationCase::Admitted(value),
+                Ok(value) => CompactionPublicationCase::Admitted(Box::new(value)),
                 Err(denial) => CompactionPublicationCase::Denied(denial),
             },
         }
@@ -57,7 +57,7 @@ impl LsmCompactionPublicationOutcome {
         self,
     ) -> Result<PublishedLsmCompaction, BaselineLsmExecutionAdmissionDenial> {
         match self.case {
-            CompactionPublicationCase::Admitted(value) => Ok(value),
+            CompactionPublicationCase::Admitted(value) => Ok(*value),
             CompactionPublicationCase::Denied(denial) => Err(denial),
         }
     }

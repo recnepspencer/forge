@@ -1,6 +1,3 @@
-use worth_store_operations_vocabulary::{
-    BackupExportCustodyReadiness, S10BackupExportCustodyHandoff,
-};
 use worth_store_physical_isolation::{ReadDuringCheckpointVerdict, StablePhysicalReadPlan};
 
 use crate::reachability::receipt_construction::proof_set::{
@@ -11,8 +8,8 @@ use crate::reachability::transitions::admit_hold::transition_admit_hold;
 use crate::reachability::types::{BlobChunkReachabilityProofSet, BlobChunkReachabilityRegistry};
 use crate::reachability::verification::authority_match::require_registry_bound_hold_authority;
 use crate::{
-    BlobChunkProofLeaf, BlobLifecycleDeclaration, BlobReachabilityDenial, BlobReachabilityEdge,
-    BlobReachabilityProtectedHold, BlobRetentionHold, ScopedBlobChunk,
+    AdmittedBlobCustody, BlobChunkProofLeaf, BlobLifecycleDeclaration, BlobReachabilityDenial,
+    BlobReachabilityEdge, BlobReachabilityProtectedHold, BlobRetentionHold, ScopedBlobChunk,
 };
 
 impl BlobChunkReachabilityRegistry {
@@ -44,20 +41,26 @@ impl BlobChunkReachabilityRegistry {
         let orphan_candidates = collect_orphan_candidates(self);
         let counters = exact_current_counters_for(self, &reachable_chunks);
         Ok(BlobChunkReachabilityProofSet::construct(
-            crate::reachability::BlobReachabilityAuthorityKey::from_declaration(declaration),
-            reachable_chunks,
-            declaration.stored_chunk_digest().clone(),
-            declaration.security_metadata(),
-            self.edges()
-                .iter()
-                .map(|edge| edge.identity().clone())
-                .collect(),
-            self.holds()
-                .iter()
-                .map(|hold| hold.identity().clone())
-                .collect(),
-            orphan_candidates,
-            counters,
+            crate::reachability::types::BlobReachabilityProofSetParts {
+                authority: crate::reachability::BlobReachabilityAuthorityKey::from_declaration(
+                    declaration,
+                ),
+                reachable_chunks,
+                stored_digest: declaration.stored_chunk_digest().clone(),
+                security_metadata: declaration.security_metadata(),
+                reference_edges: self
+                    .edges()
+                    .iter()
+                    .map(|edge| edge.identity().clone())
+                    .collect(),
+                protected_holds: self
+                    .holds()
+                    .iter()
+                    .map(|hold| hold.identity().clone())
+                    .collect(),
+                orphan_candidates,
+                counters,
+            },
         ))
     }
 
@@ -88,20 +91,19 @@ impl BlobChunkReachabilityRegistry {
 
     pub fn admit_export_hold(
         &mut self,
-        readiness: &BackupExportCustodyReadiness,
+        custody: &AdmittedBlobCustody,
     ) -> Result<(), BlobReachabilityDenial> {
         let authority = require_registry_bound_hold_authority(self)?;
-        let hold = BlobReachabilityProtectedHold::from_export_readiness(readiness, authority)?;
+        let hold = BlobReachabilityProtectedHold::from_export_custody(custody, authority)?;
         self.admit_hold(hold)
     }
 
-    pub fn admit_backup_repair_backup_hold(
+    pub fn admit_backup_hold(
         &mut self,
-        handoff: &S10BackupExportCustodyHandoff,
+        custody: &AdmittedBlobCustody,
     ) -> Result<(), BlobReachabilityDenial> {
         let authority = require_registry_bound_hold_authority(self)?;
-        let hold =
-            BlobReachabilityProtectedHold::from_backup_repair_backup_handoff(handoff, authority)?;
+        let hold = BlobReachabilityProtectedHold::from_backup_custody(custody, authority)?;
         self.admit_hold(hold)
     }
 

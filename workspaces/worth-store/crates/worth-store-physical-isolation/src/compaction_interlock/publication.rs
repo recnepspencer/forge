@@ -14,7 +14,7 @@ pub struct CompactionRewritePublication {
 impl CompactionRewritePublication {
     const OWNER_CASE: super::CompactionOwnerCaseDeclaration =
         super::CompactionOwnerCaseDeclaration::declared_by_owner(
-            super::CompactionOwnerCaseId::owned("physical.compaction.publish_rewrite"),
+            super::CompactionOwnerCaseId::PublishRewrite,
             super::CompactionCutoverState::RewriteLowered,
             super::CompactionCutoverState::PublicationCommitted,
         );

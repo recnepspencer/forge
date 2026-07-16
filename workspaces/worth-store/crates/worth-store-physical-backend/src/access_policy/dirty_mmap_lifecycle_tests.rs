@@ -14,9 +14,8 @@ use worth_store_contracts::{
 use worth_store_physical_format::{
     PhysicalAlignmentClass, PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness,
-    PhysicalPageId, PhysicalPublicationState, PhysicalRecordSlot, PhysicalReference,
-    PhysicalReferenceAuthority, PhysicalReferenceValidationWitness, PhysicalSegmentId,
-    SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
+    PhysicalPageId, PhysicalRecordSlot, PhysicalReference, PhysicalReferenceAuthority,
+    PhysicalReferenceValidationWitness, PhysicalSegmentId, SlotGenerationCell,
 };
 use worth_store_readiness::{
     close_physical_substrate_readiness, prove_physical_substrate_readiness,
@@ -226,15 +225,11 @@ fn header_authority() -> PhysicalHeaderAuthority {
 }
 
 fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalFrameKind::RecordFrame.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation_value.to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(&header_authority().encode_record_frame_header(
+        reference_cell(generation_value, 2),
+        payload.len().try_into().expect("bounded fixture payload"),
+    ));
     bytes.extend_from_slice(payload);
     bytes
 }

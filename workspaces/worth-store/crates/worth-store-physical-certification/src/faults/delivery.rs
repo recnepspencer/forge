@@ -14,7 +14,8 @@ pub type FaultDeliveryProofBasis =
 pub type LoweredFaultDeliveryRecipe = Recipe<Lowered, FaultDeliveryPlan, FaultDeliveryProofBasis>;
 pub type ExecutionReadyFaultDeliveryRecipe =
     ExecutionReadyRecipe<FaultDeliveryPlan, FaultDeliveryProofBasis>;
-pub type ExecutedFaultDeliveryRecipe = ExecutedRecipe<FaultDeliveryPlan, FaultDeliveryProofBasis>;
+pub type BoundaryObservedFaultDeliveryRecipe =
+    ExecutedRecipe<FaultDeliveryPlan, FaultDeliveryProofBasis>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FaultDeliveryPlan {
@@ -102,12 +103,14 @@ impl FaultDeliveryPlan {
             ))
     }
 
-    pub fn execute_ready(ready: ExecutionReadyFaultDeliveryRecipe) -> ExecutedFaultDeliveryRecipe {
+    pub fn record_observed_boundary(
+        ready: ExecutionReadyFaultDeliveryRecipe,
+    ) -> BoundaryObservedFaultDeliveryRecipe {
         ready.execute()
     }
 
-    pub fn receipt_from_executed(
-        executed: ExecutedFaultDeliveryRecipe,
+    pub fn receipt_from_observed_boundary(
+        executed: BoundaryObservedFaultDeliveryRecipe,
     ) -> Result<FaultDeliveryReceipt, FaultDeliveryDenial> {
         let (plan, _) = executed.into_parts();
         let actual_boundary = plan
@@ -134,7 +137,7 @@ impl FaultDeliveryPlan {
     ) -> Result<FaultDeliveryReceipt, FaultDeliveryDenial> {
         let lowered = Self::lower(event, binding, yieldpoint)?;
         let ready = Self::admit_execution_ready(lowered, actual_boundary)?;
-        Self::receipt_from_executed(Self::execute_ready(ready))
+        Self::receipt_from_observed_boundary(Self::record_observed_boundary(ready))
     }
 
     pub const fn proof_event_kind(&self) -> PhysicalFaultEventKind {

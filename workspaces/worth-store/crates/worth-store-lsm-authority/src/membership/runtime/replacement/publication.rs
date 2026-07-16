@@ -1,6 +1,6 @@
 use crate::membership::activation_artifact::{encode_activation, PersistedMembershipActivation};
 use crate::membership::durable_artifact::{
-    lsm_membership_output_bytes, persisted_artifact_matches,
+    lsm_membership_output_bytes, persisted_artifact_matches, persisted_artifact_range_matches,
 };
 use crate::membership::{LsmCompactionMembership, LsmMembershipDenial, LsmMembershipKey};
 use crate::{
@@ -32,6 +32,8 @@ pub struct AdmittedLsmReplacementOutput {
     envelope: BlobWalRecordEnvelope,
     scope: WalFrameDurablePublicationScope,
     persisted_path: std::path::PathBuf,
+    persisted_frame_offset: u64,
+    persisted_offset: u64,
     persisted_bytes: u64,
     key: LsmMembershipKey,
     selected_identities: [BlobWalRecordIdentity; 3],
@@ -58,13 +60,19 @@ pub fn admit_lsm_replacement_output(
         record.durable_scope().segment_id() == scope.segment_id()
             && record.durable_scope().generation() == scope.generation()
     });
+    let expected_output_lsn = selected
+        .record_set()
+        .iter()
+        .map(|record| record.durable_scope().lsn_end())
+        .max()
+        .ok_or(LsmMembershipDenial::ReplacementOutputMismatch)?;
     if !store_scope_matches
-        || scope.lsn_start() > identity.sequence()
-        || scope.lsn_end() < identity.sequence()
+        || scope.lsn_start() != expected_output_lsn
         || scope.expected_bytes() != durable.persisted_bytes()
         || scope.frame_digest() != expected_digest
-        || !persisted_artifact_matches(
+        || !persisted_artifact_range_matches(
             durable.persisted_path(),
+            durable.persisted_offset(),
             durable.persisted_bytes(),
             &lsm_membership_output_bytes(scope),
         )
@@ -81,6 +89,8 @@ pub fn admit_lsm_replacement_output(
         envelope,
         scope: scope.clone(),
         persisted_path: durable.persisted_path().to_path_buf(),
+        persisted_frame_offset: durable.persisted_frame_offset(),
+        persisted_offset: durable.persisted_offset(),
         persisted_bytes: durable.persisted_bytes(),
         key: selected.key(),
         selected_identities: selected.identities(),
@@ -239,6 +249,14 @@ impl AdmittedLsmReplacementOutput {
         self.persisted_bytes
     }
 
+    pub const fn persisted_offset(&self) -> u64 {
+        self.persisted_offset
+    }
+
+    pub const fn persisted_frame_offset(&self) -> u64 {
+        self.persisted_frame_offset
+    }
+
     pub(in crate::membership::runtime) fn binds(&self, selected: &LsmCompactionMembership) -> bool {
         self.key == selected.key()
             && self.selected_identities == selected.identities()
@@ -289,7 +307,28 @@ pub struct PublishedLsmMembershipReplacement {
     output_scope: WalFrameDurablePublicationScope,
     activation_scope: CheckpointDurablePublicationScope,
     output_path: std::path::PathBuf,
+    output_offset: u64,
     output_bytes: u64,
+}
+
+pub(in crate::membership::runtime) struct PublishedLsmMembershipOutputArtifact {
+    path: std::path::PathBuf,
+    offset: u64,
+    bytes: u64,
+}
+
+impl PublishedLsmMembershipOutputArtifact {
+    pub(in crate::membership::runtime) fn new(
+        path: std::path::PathBuf,
+        offset: u64,
+        bytes: u64,
+    ) -> Self {
+        Self {
+            path,
+            offset,
+            bytes,
+        }
+    }
 }
 
 impl PublishedLsmMembershipReplacement {
@@ -300,8 +339,7 @@ impl PublishedLsmMembershipReplacement {
         output: BlobWalRecordIdentity,
         output_scope: WalFrameDurablePublicationScope,
         activation_scope: CheckpointDurablePublicationScope,
-        output_path: std::path::PathBuf,
-        output_bytes: u64,
+        artifact: PublishedLsmMembershipOutputArtifact,
     ) -> Self {
         Self {
             identity,
@@ -310,8 +348,9 @@ impl PublishedLsmMembershipReplacement {
             output,
             output_scope,
             activation_scope,
-            output_path,
-            output_bytes,
+            output_path: artifact.path,
+            output_offset: artifact.offset,
+            output_bytes: artifact.bytes,
         }
     }
 
@@ -340,8 +379,9 @@ impl PublishedLsmMembershipReplacement {
     }
 
     pub(in crate::membership) fn artifact_is_current(&self) -> bool {
-        persisted_artifact_matches(
+        persisted_artifact_range_matches(
             &self.output_path,
+            self.output_offset,
             self.output_bytes,
             &lsm_membership_output_bytes(&self.output_scope),
         )

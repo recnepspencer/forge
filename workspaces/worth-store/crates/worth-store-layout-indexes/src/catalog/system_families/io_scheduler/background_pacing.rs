@@ -31,7 +31,7 @@ pub struct BackgroundPacingLayoutReport {
 }
 
 pub fn project_background_pacing(outcome: BackgroundPacingOutcome) -> BackgroundPacingLayoutReport {
-    let (interference_posture, admitted_budget, counters) = pacing_basis(outcome);
+    let (interference_posture, admitted_budget, counters) = pacing_basis(&outcome);
     BackgroundPacingLayoutReport {
         family_id: DurableArtifactFamilyId::BackgroundPacingRecord,
         access_shape: AccessShape::BoundedScan,
@@ -79,7 +79,7 @@ impl BackgroundPacingLayoutReport {
 }
 
 fn pacing_basis(
-    outcome: BackgroundPacingOutcome,
+    outcome: &BackgroundPacingOutcome,
 ) -> (
     BackgroundPacingInterferencePosture,
     BackgroundResourceBudget,

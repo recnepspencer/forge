@@ -150,8 +150,10 @@ fn root_candidate_for_object_generation(
 ) {
     let (root, stored_digest) = root_publication_with_bytes(content_case, bytes);
     let receipt = lifecycle_receipt_for_publication_with_identity(
-        content_case,
-        object_case,
+        crate::lifecycle::generation_registry_test_support::PublicationIdentityCase::new(
+            content_case,
+            object_case,
+        ),
         generation_sequence,
         root.chunk_tree_root().clone(),
         root.logical_content_digest().clone(),

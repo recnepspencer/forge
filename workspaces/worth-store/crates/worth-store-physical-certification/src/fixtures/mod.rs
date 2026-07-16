@@ -19,7 +19,11 @@ pub use builder::{FixtureNeedsBoundary, FixtureNeedsMaterialization, PhysicalFix
 pub use capability::FixtureCapabilityDeclaration;
 pub use denial::SyntheticFixtureAuthorityDenied;
 pub use manifest::PersistedStoreFixtureManifest;
+pub(crate) use manifest::ReopenedFixtureManifestParts;
 pub use materialization::{ProductionBackedFixtureMaterialization, ProductionBackedFixtureSource};
 pub use mutation_boundary::{FixtureMutationBoundary, FixtureMutationBoundarySet};
 pub use production_backed::ProductionBackedPhysicalFixture;
-pub use profile::{FixtureProfileNonClaim, FixtureScaleDeclaration, LargeStoreFixtureProfile};
+pub use profile::{
+    FixtureActivityScale, FixtureProfileNonClaim, FixtureScaleDeclaration, FixtureStorageScale,
+    LargeStoreFixtureProfile,
+};

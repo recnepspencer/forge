@@ -79,8 +79,10 @@ fn crash_event_delivers_through_fresh_runtime_boundary_plan() {
         ObservedFaultBoundary::fresh_runtime_crash_recovery(&fresh_runtime_crash_evidence()),
     )
     .unwrap();
-    let receipt =
-        FaultDeliveryPlan::receipt_from_executed(FaultDeliveryPlan::execute_ready(ready)).unwrap();
+    let receipt = FaultDeliveryPlan::receipt_from_observed_boundary(
+        FaultDeliveryPlan::record_observed_boundary(ready),
+    )
+    .unwrap();
 
     assert_eq!(missing, FaultDeliveryDenial::MissingFreshRuntimeEvidence);
     assert_eq!(receipt.event_kind(), PhysicalFaultEventKind::Crash);
@@ -149,13 +151,15 @@ fn fault_delivery_rejects_unbound_and_wrong_seam_yieldpoints() {
     .unwrap();
 
     assert_eq!(
-        FaultDeliveryPlan::receipt_from_executed(FaultDeliveryPlan::execute_ready(
-            FaultDeliveryPlan::admit_execution_ready(
-                lowered,
-                observed_checksum_mismatch_boundary(),
-            )
-            .unwrap()
-        ))
+        FaultDeliveryPlan::receipt_from_observed_boundary(
+            FaultDeliveryPlan::record_observed_boundary(
+                FaultDeliveryPlan::admit_execution_ready(
+                    lowered,
+                    observed_checksum_mismatch_boundary(),
+                )
+                .unwrap()
+            ),
+        )
         .unwrap()
         .event_kind(),
         PhysicalFaultEventKind::ByteCorruption

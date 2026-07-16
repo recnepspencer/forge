@@ -6,6 +6,7 @@ license.workspace = true
 description = "Roadmap 2 S.4 WAL, checkpoint, LSN, and physical recovery rules."
 
 [dependencies]
+sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-aspect-native.workspace = true

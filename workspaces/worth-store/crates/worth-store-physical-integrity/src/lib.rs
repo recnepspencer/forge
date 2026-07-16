@@ -2,33 +2,21 @@
 #![doc = include_str!("physical_integrity_compile_fail_proofs.md")]
 
 mod admission;
-mod authenticity_decode_gate;
-mod authenticity_integrity_counters;
 mod authority;
 mod blob_chunks;
 mod checksums;
-mod chunk_integrity;
 mod compaction_source_clearance;
-mod container_integrity;
 mod containers;
 mod damage_classification;
 mod damage_handoff;
 mod evidence;
 mod generation_integrity;
-mod index_page_integrity;
 mod index_pages;
-mod inspection_lease;
-mod integrity_checked_physical_form;
-mod logical_decode_gate;
 mod manifests;
-mod offline_scrub_input;
-mod physical_integrity_admission;
-mod physical_integrity_request;
-mod protected_physical_byte_view;
+mod offline_classification;
+mod operational_repair;
 mod quarantine;
 mod scrub;
-mod scrub_scheduler_demand;
-mod wal_frame_integrity;
 mod wal_frames;
 
 pub use admission::entry::entry_admission::IntegrityEntryAdmission;
@@ -46,6 +34,25 @@ pub use admission::physical_scope::physical_scope_denial::{
 };
 pub use admission::physical_scope::physical_scope_family_inputs::ScopedPhysicalValidatorInput;
 pub use admission::physical_scope::physical_scope_request::PhysicalScopeAdmissionRequest;
+pub use admission::pre_decode::authenticity_decode_gate::{
+    AuthenticityPolicyPhysicalDecodeGate, AuthenticityRequiredPhysicalDecodeGate,
+};
+pub use admission::pre_decode::authenticity_integrity_counters::{
+    AuthenticityPolicyDecodeCounters, AuthenticityRequiredDecodeCounters,
+};
+pub use admission::pre_decode::inspection_lease::IntegrityInspectionLease;
+pub use admission::pre_decode::integrity_checked_physical_form::{
+    IntegrityCheckedFrame, IntegrityCheckedPage, IntegrityCheckedPhysicalFormKind,
+};
+pub use admission::pre_decode::logical_decode_gate::{
+    LogicalDecodeGate, LogicalDecodeGateEvidence, LogicalDecodeGateIdentity, LogicalDecoder,
+};
+pub use admission::pre_decode::physical_integrity_admission::{
+    PhysicalIntegrityAdmission, PhysicalIntegrityAdmissionSeed,
+};
+pub use admission::pre_decode::physical_integrity_request::{
+    DeclaredPhysicalChecksum, PhysicalIntegrityAdmissionRequest,
+};
 pub use admission::pre_decode::pre_decode_counters::{
     PreDecodeAdmissionCounters, SemanticDecoderInvocationCounter, SkippedLogicalDecodeCounter,
 };
@@ -54,16 +61,11 @@ pub use admission::pre_decode::pre_decode_denial::test_pre_decode_denial_for_kin
 pub use admission::pre_decode::pre_decode_denial::{
     PreDecodePhysicalDenial, PreDecodePhysicalDenialKind,
 };
-pub use authenticity_decode_gate::{
-    AuthenticityPolicyPhysicalDecodeGate, AuthenticityRequiredPhysicalDecodeGate,
-};
-pub use authenticity_integrity_counters::{
-    AuthenticityPolicyDecodeCounters, AuthenticityRequiredDecodeCounters,
-};
 pub use authority::integrity_authority_claim_basis::{
     checkpoint_authority_digest, frame_authority_digest, manifest_authority_digest,
     page_authority_digest, wal_frame_authority_digest,
 };
+pub use blob_chunks::chunk_integrity::ChunkIntegrityAuthority;
 pub use blob_chunks::chunk_integrity_counters::ChunkIntegrityCounters;
 pub use blob_chunks::chunk_integrity_denials::{
     ChunkDamageLocality, ChunkIntegrityDenial, ChunkIntegrityDenialKind,
@@ -90,12 +92,11 @@ pub use checksums::checksum_execution::ExecutedPhysicalChecksum;
 pub(crate) use checksums::checksum_foundational_identity::foundational_identity_for_checksum_basis;
 pub use checksums::checksum_foundational_identity::FoundationalChecksumEvidenceIdentity;
 pub use checksums::checksum_scope::ChecksumScopeDeclaration;
-pub use chunk_integrity::ChunkIntegrityAuthority;
 pub use compaction_source_clearance::{
     CompactionSourceClearanceDenial, CompactionSourceClearanceKind,
     CompactionSourceIntegrityClearance,
 };
-pub use container_integrity::PhysicalContainerIntegrity;
+pub use containers::container_integrity::PhysicalContainerIntegrity;
 pub use containers::container_integrity_boundaries::PhysicalBoundaryLocalization;
 pub use containers::container_integrity_counters::ContainerIntegrityCounters;
 pub use containers::container_integrity_denials::{
@@ -139,7 +140,7 @@ pub use evidence::integrity_evidence_source::{
     IntegrityEvidenceMaterializationPath, StoreExecutedIntegrityEvidence,
 };
 pub use generation_integrity::GenerationIntegrityReport;
-pub use index_page_integrity::DerivedIndexIntegrityAuthority;
+pub use index_pages::index_page_integrity::DerivedIndexIntegrityAuthority;
 pub use index_pages::index_page_integrity_counters::IndexPageIntegrityCounters;
 pub use index_pages::index_page_integrity_denials::{
     IndexPageIntegrityDenial, IndexPageIntegrityDenialKind,
@@ -151,13 +152,6 @@ pub use index_pages::index_page_integrity_reports::{
     UnrecoverableAuthorityDamage,
 };
 pub use index_pages::index_page_integrity_request::DerivedIndexIntegrityInspectionRequest;
-pub use inspection_lease::IntegrityInspectionLease;
-pub use integrity_checked_physical_form::{
-    IntegrityCheckedFrame, IntegrityCheckedPage, IntegrityCheckedPhysicalFormKind,
-};
-pub use logical_decode_gate::{
-    LogicalDecodeGate, LogicalDecodeGateEvidence, LogicalDecodeGateIdentity, LogicalDecoder,
-};
 pub(crate) use manifests::manifest_allocation_map::allocation_map_report;
 pub use manifests::manifest_integrity::ManifestIntegrityAuthority;
 pub use manifests::manifest_integrity_counters::ManifestIntegrityCounters;
@@ -176,15 +170,20 @@ pub use manifests::manifest_integrity_request::{
 };
 pub(crate) use manifests::manifest_root_posture::admit_root_posture;
 pub(crate) use manifests::manifest_source_precedence::deny_derived_override;
-pub use offline_scrub_input::{
+pub use scrub::offline_scrub_input::{
     OfflineScrubInspectionInput, OfflineScrubInspectionInputDenial, OfflineScrubVerifierBasis,
 };
-pub use physical_integrity_admission::{
-    PhysicalIntegrityAdmission, PhysicalIntegrityAdmissionSeed,
-};
-pub use physical_integrity_request::{DeclaredPhysicalChecksum, PhysicalIntegrityAdmissionRequest};
 
-pub use protected_physical_byte_view::ProtectedPhysicalByteView;
+pub use admission::pre_decode::protected_physical_byte_view::ProtectedPhysicalByteView;
+pub use offline_classification::{
+    classify_offline_integrity, OfflineIntegrityObservation, OfflineIntegrityPosture,
+};
+pub use operational_repair::{
+    IntegrityOperationalRepairOwner, IntegrityRepairArtifactFamily,
+    IntegrityRepairClassificationDenial, IntegrityRepairClassificationPlan,
+    IntegrityRepairClassificationReceipt, IntegrityRepairOwnerBinding, IntegrityRepairRegion,
+    IntegrityRepairRegionClass,
+};
 pub use quarantine::quarantine_authority::PhysicalQuarantineAuthority;
 pub use quarantine::quarantine_denial::{QuarantineSealDenial, QuarantineSealDenialKind};
 pub use quarantine::quarantine_finding::ExecutedQuarantineFinding;
@@ -211,11 +210,11 @@ pub use scrub::scrub_planning_memory_envelope::{
     ScrubPlanningMemoryEnvelope, ScrubPlanningMemoryEnvelopeDenial,
 };
 pub use scrub::scrub_resume::ScrubResumeToken;
+pub use scrub::scrub_scheduler_demand::scrub_scan_scheduler_demand;
 pub use scrub::scrub_window::{
     ScrubLocalitySummary, ScrubMode, ScrubWindow, ScrubWindowOrdinal, ScrubWindowSource,
 };
-pub use scrub_scheduler_demand::scrub_scan_scheduler_demand;
-pub use wal_frame_integrity::WalFrameIntegrityAuthority;
+pub use wal_frames::wal_frame_integrity::WalFrameIntegrityAuthority;
 pub use wal_frames::wal_frame_integrity_counters::WalFrameIntegrityCounters;
 pub use wal_frames::wal_frame_integrity_denials::{
     CheckpointAdjacentDamageDenial, WalFrameDamageDenial, WalFrameDamageDenialKind,

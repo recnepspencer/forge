@@ -1,9 +1,8 @@
 use worth_store_physical_format::{
     PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness,
-    PhysicalPageId, PhysicalPageKind, PhysicalPublicationState, PhysicalRecordSlot,
-    PhysicalReferenceAuthority, PhysicalReferenceValidationWitness, PhysicalSegmentId,
-    SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
+    PhysicalPageId, PhysicalPageKind, PhysicalRecordSlot, PhysicalReferenceAuthority,
+    PhysicalReferenceValidationWitness, PhysicalSegmentId, SlotGenerationCell,
 };
 
 pub(crate) fn current_validation() -> PhysicalReferenceValidationWitness {
@@ -32,7 +31,7 @@ pub(crate) fn frame_witness(payload: &[u8]) -> PhysicalHeaderDecodeWitness {
     header_authority()
         .decode_frame_header(
             current_validation(),
-            &record_frame_bytes(7, payload),
+            &crate::physical_fixture_encoding::record_frame_bytes(slot_cell(7), payload),
             PhysicalFrameKind::RecordFrame,
         )
         .unwrap()
@@ -43,7 +42,7 @@ pub(crate) fn page_witness(payload: &[u8]) -> PhysicalHeaderDecodeWitness {
     header_authority()
         .decode_page_header(
             current_page_cell(),
-            &page_bytes(5, payload),
+            &crate::physical_fixture_encoding::data_page_bytes(current_page_cell(), payload),
             PhysicalPageKind::DataPage,
         )
         .unwrap()
@@ -64,31 +63,6 @@ fn slot_cell(generation: u64) -> SlotGenerationCell {
             PhysicalRecordSlot::from_raw(3).unwrap(),
         )
         .with_slot_generation(PhysicalGeneration::from_raw(generation).unwrap())
-}
-
-fn record_frame_bytes(generation: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalFrameKind::RecordFrame.tag());
-    write_header_tail(&mut bytes, generation, payload);
-    bytes
-}
-
-fn page_bytes(generation: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalPageKind::DataPage.tag());
-    write_header_tail(&mut bytes, generation, payload);
-    bytes
-}
-
-fn write_header_tail(bytes: &mut Vec<u8>, generation: u64, payload: &[u8]) {
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation.to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
-    bytes.extend_from_slice(payload);
 }
 
 fn segment(value: u64) -> PhysicalSegmentId {

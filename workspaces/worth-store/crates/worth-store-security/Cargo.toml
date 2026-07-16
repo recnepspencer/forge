@@ -9,6 +9,7 @@ description = "Roadmap 2 S.11 security, compliance, tenant boundaries, and audit
 certification-test-authority = []
 
 [dependencies]
+sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-aspect-native.workspace = true

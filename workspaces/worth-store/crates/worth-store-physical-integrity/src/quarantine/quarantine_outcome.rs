@@ -31,7 +31,7 @@ impl QuarantineSealCounterSnapshot {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum QuarantineSealCase {
-    Sealed(QuarantineRecord),
+    Sealed(Box<QuarantineRecord>),
     Denied(QuarantineSealDenial),
 }
 
@@ -50,7 +50,7 @@ pub enum QuarantineSealOutcomeView<'a> {
 impl QuarantineSealOutcome {
     pub(crate) fn sealed(record: QuarantineRecord) -> Self {
         Self {
-            case: QuarantineSealCase::Sealed(record),
+            case: QuarantineSealCase::Sealed(Box::new(record)),
             counters: QuarantineSealCounterSnapshot::sealed(),
         }
     }
@@ -78,7 +78,7 @@ impl QuarantineSealOutcome {
 
     pub fn into_result(self) -> Result<QuarantineRecord, QuarantineSealDenial> {
         match self.case {
-            QuarantineSealCase::Sealed(record) => Ok(record),
+            QuarantineSealCase::Sealed(record) => Ok(*record),
             QuarantineSealCase::Denied(denial) => Err(denial),
         }
     }

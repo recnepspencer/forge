@@ -69,7 +69,9 @@ fn execution_consumes_handle_admits_guard_and_releases_plan() {
         admitted_plan_allocations
     );
     assert_eq!(receipt.counters().diagnostic_materializations(), 0);
-    let foundational = receipt.lower_to_foundational_evidence();
+    let foundational = receipt
+        .lower_to_foundational_evidence()
+        .expect("stable read receipt provenance is admissible");
     assert_eq!(
         foundational.executed_receipt().receipt_kind(),
         FoundationalBoundaryEvidenceReceiptKind::Execution

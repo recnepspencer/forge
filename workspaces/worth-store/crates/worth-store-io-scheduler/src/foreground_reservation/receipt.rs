@@ -62,12 +62,31 @@ pub enum ForegroundReservationAdmissionOutcome {
     StaleRebindRequired(ForegroundReservationStaleRebindRequired),
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct ForegroundReservationBackendBasis {
+    requirement: IoSchedulerBackendCapabilityRequirement,
+    profile: BackendTargetProfile,
+    evidence_class: CapabilityEvidenceClass,
+}
+
+impl ForegroundReservationBackendBasis {
+    pub(crate) const fn new(
+        requirement: IoSchedulerBackendCapabilityRequirement,
+        profile: BackendTargetProfile,
+        evidence_class: CapabilityEvidenceClass,
+    ) -> Self {
+        Self {
+            requirement,
+            profile,
+            evidence_class,
+        }
+    }
+}
+
 impl ForegroundReservationReceipt {
     pub(crate) const fn admitted(
         lane: ForegroundIoLaneKind,
-        backend_requirement: IoSchedulerBackendCapabilityRequirement,
-        backend_profile: BackendTargetProfile,
-        backend_evidence_class: CapabilityEvidenceClass,
+        backend: ForegroundReservationBackendBasis,
         envelope: ForegroundLatencyEnvelope,
         arbitration: ForegroundArbitrationDeclaration,
         counters: ForegroundReservationCounterSnapshot,
@@ -76,9 +95,9 @@ impl ForegroundReservationReceipt {
         Self {
             state: ForegroundReservationState::ReservationAdmitted,
             lane,
-            backend_requirement,
-            backend_profile,
-            backend_evidence_class,
+            backend_requirement: backend.requirement,
+            backend_profile: backend.profile,
+            backend_evidence_class: backend.evidence_class,
             envelope,
             arbitration,
             counters,

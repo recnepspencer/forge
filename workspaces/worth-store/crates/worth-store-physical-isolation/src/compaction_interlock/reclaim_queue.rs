@@ -18,7 +18,7 @@ pub struct DrainedCompactionReclaim {
 impl CompactionDeferredReclaimQueue {
     const OWNER_CASE: super::CompactionOwnerCaseDeclaration =
         super::CompactionOwnerCaseDeclaration::declared_by_owner(
-            super::CompactionOwnerCaseId::owned("physical.compaction.defer_reclaim"),
+            super::CompactionOwnerCaseId::DeferReclaim,
             super::CompactionCutoverState::PublicationCommitted,
             super::CompactionCutoverState::ReclaimDeferred,
         );
@@ -101,9 +101,7 @@ impl CompactionDeferredReclaimQueue {
 impl DrainedCompactionReclaim {
     const OWNER_CASE: super::CompactionOwnerCaseDeclaration =
         super::CompactionOwnerCaseDeclaration::declared_by_owner(
-            super::CompactionOwnerCaseId::owned(
-                "physical.compaction.drain_reclaim_after_read_release",
-            ),
+            super::CompactionOwnerCaseId::DrainReclaimAfterReadRelease,
             super::CompactionCutoverState::ReclaimDeferred,
             super::CompactionCutoverState::Reclaimed,
         );

@@ -58,13 +58,15 @@ fn run_ingest(
     let (allocation, envelopes) = allocation_receipt_and_envelope(envelope_bytes);
     BlobStreamingIngest::run_bounded(
         request(),
-        BlobStreamingWindow::bounded(window_bytes)?,
-        allocation,
-        envelopes,
-        pressure_admission(),
+        crate::BlobStreamingIngestExecution::new(
+            BlobStreamingWindow::bounded(window_bytes)?,
+            allocation,
+            envelopes,
+            pressure_admission(),
+            CounterEvidenceStrength::Exact,
+        ),
         frames,
         &mut TestChunkWriter,
-        CounterEvidenceStrength::Exact,
     )
 }
 

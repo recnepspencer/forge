@@ -25,10 +25,12 @@ pub(super) fn execute_lifecycle(
 ) -> ExecutedBlobLane {
     let lifecycle_leaf = generated.sequence.proof_frontier().first_leaf();
     let declaration = BlobLifecycleDeclaration::new(
-        BlobObjectId::from_declared_digest(stable_digest(&format!("sha256:{case}.object"))),
-        BlobGeneration::published(1),
-        publication.chunk_tree_root().clone(),
-        publication.logical_content_digest().clone(),
+        crate::lifecycle::BlobLifecycleIdentityBasis::new(
+            BlobObjectId::from_declared_digest(stable_digest(&format!("sha256:{case}.object"))),
+            BlobGeneration::published(1),
+            publication.chunk_tree_root().clone(),
+            publication.logical_content_digest().clone(),
+        ),
         lifecycle_leaf.security_metadata(),
         lifecycle_leaf.stored_digest().clone(),
         AuthenticatedFrameDigest::from_declared_digest(stable_digest(&format!(

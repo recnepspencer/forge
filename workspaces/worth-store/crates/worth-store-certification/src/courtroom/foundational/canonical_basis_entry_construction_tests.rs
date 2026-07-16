@@ -13,8 +13,7 @@ use worth_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATI
 use worth_store_physical_format::{
     prepare_physical_page_header_canonical_basis, PhysicalBinaryEncodingWitness,
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority,
-    PhysicalHeaderDecodeWitness, PhysicalPageId, PhysicalPageKind, PhysicalPublicationState,
-    PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
+    PhysicalHeaderDecodeWitness, PhysicalPageId, PhysicalPageKind, PhysicalSegmentId,
 };
 
 #[test]
@@ -198,7 +197,7 @@ fn decoded_page_header() -> PhysicalHeaderDecodeWitness {
     let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment(11), page(13))
         .with_page_generation(generation);
-    let bytes = page_bytes(generation, b"native-basis");
+    let bytes = crate::physical_fixture_encoding::data_page_bytes(cell, b"native-basis");
     header_authority()
         .decode_page_header(cell, &bytes, PhysicalPageKind::DataPage)
         .unwrap()
@@ -210,20 +209,6 @@ fn header_authority() -> PhysicalHeaderAuthority {
         PhysicalBinaryEncodingWitness::physical_format_canonical()
             .expect("static S.1 fixture encoding witness is valid"),
     )
-}
-
-fn page_bytes(generation: PhysicalGeneration, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalPageKind::DataPage.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation.get().to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
-    bytes.extend_from_slice(payload);
-    bytes
 }
 
 fn aspect_boundary_fact() -> StoreAspectBoundaryFact {

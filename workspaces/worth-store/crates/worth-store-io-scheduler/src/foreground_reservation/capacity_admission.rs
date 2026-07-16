@@ -66,6 +66,26 @@ pub struct ForegroundReservationCapacityAdmissionRequest {
     policy_receipt: FoundationalPolicyAdmissionReceipt,
 }
 
+pub(crate) struct ForegroundReservationAdmissionBoundary<'a> {
+    backend: &'a IoSchedulerBackendCapabilityAdmission,
+    stable_readiness: &'a IoSchedulerIsolationAdmission,
+    security_scope: &'a IoSchedulerSecurityScopeAdmission,
+}
+
+impl<'a> ForegroundReservationAdmissionBoundary<'a> {
+    pub(crate) const fn new(
+        backend: &'a IoSchedulerBackendCapabilityAdmission,
+        stable_readiness: &'a IoSchedulerIsolationAdmission,
+        security_scope: &'a IoSchedulerSecurityScopeAdmission,
+    ) -> Self {
+        Self {
+            backend,
+            stable_readiness,
+            security_scope,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForegroundReservationCapacityAdmissionDenial {
     InsufficientCapacity(ForegroundReservationResourceShortfall),
@@ -156,26 +176,24 @@ impl ForegroundReservationCapacityAdmission {
 }
 
 impl ForegroundReservationCapacityAdmissionRequest {
-    pub fn new(
+    pub(crate) fn new(
         authority_witness: AuthorityWitness<ForegroundReservationCapacityAuthority>,
         lane: ForegroundLaneDeclaration,
-        backend: &IoSchedulerBackendCapabilityAdmission,
-        stable_readiness: &IoSchedulerIsolationAdmission,
-        security_scope: &IoSchedulerSecurityScopeAdmission,
+        boundary: ForegroundReservationAdmissionBoundary<'_>,
         arbitration: ForegroundArbitrationDeclaration,
         admitted: ForegroundResourceBudget,
         assumed_backend_limits: ForegroundResourceBudget,
         policy_receipt: FoundationalPolicyAdmissionReceipt,
     ) -> Self {
-        let readiness_counters = stable_readiness.counters();
+        let readiness_counters = boundary.stable_readiness.counters();
         Self {
             authority_witness,
             lane,
-            backend_requirement: backend.requirement(),
-            backend_profile: backend.profile(),
-            backend_evidence_class: backend.evidence_class(),
+            backend_requirement: boundary.backend.requirement(),
+            backend_profile: boundary.backend.profile(),
+            backend_evidence_class: boundary.backend.evidence_class(),
             arbitration,
-            security_scope_identity: security_scope.permission().identity(),
+            security_scope_identity: boundary.security_scope.permission().identity(),
             stable_read_wait_count: readiness_counters.wait_count(),
             stable_read_retry_count: readiness_counters.retry_count(),
             requested: lane.requested_budget(),

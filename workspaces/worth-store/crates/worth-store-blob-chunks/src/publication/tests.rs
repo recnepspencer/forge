@@ -283,12 +283,9 @@ fn non_replayable_recovery_classification_cannot_commit_publication_record() {
     let staged =
         BlobReachabilityStaging::stage(candidate, reachability).expect("reachability should stage");
     let payload = BlobPublicationWalPayload::from_staged_reachability(&staged);
-    assert!(matches!(
-        CrashBoundaryLayoutReport::admit_observations(
-            PartialPublicationObservationSet::new()
-                .with_insufficient_persisted_evidence("ambiguous"),
-        ),
-        Err(_)
-    ));
+    assert!(CrashBoundaryLayoutReport::admit_observations(
+        PartialPublicationObservationSet::new().with_insufficient_persisted_evidence("ambiguous"),
+    )
+    .is_err());
     let _ = (staged, payload);
 }

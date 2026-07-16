@@ -2,6 +2,7 @@ use super::conclusion::classify_recovery_record_set;
 use super::counter_projection::project_recovery_counters;
 use super::decoded_recovery_record_set::DecodedRecoveryRecords;
 use super::recovered_state_projection::project_recovered_physical_state;
+use super::verification_report::OfflineInspectionMeasurements;
 use super::{
     FreshRuntimeReopenHarnessEvidence, OfflineRecoveryVerificationReport,
     PersistedRecoveryArtifactDigest, PersistedRecoveryArtifacts, RecoveryProfileId,
@@ -45,9 +46,11 @@ impl RecoveryOfflineVerifier {
             RecoveryRuntimeClassification::Recovered,
             recovery_state,
             counters,
-            artifacts.records().len(),
-            artifacts.total_bytes(),
-            decoded.semantic_decode_attempts(),
+            OfflineInspectionMeasurements::new(
+                artifacts.records().len(),
+                artifacts.total_bytes(),
+                decoded.semantic_decode_attempts(),
+            ),
         ))
     }
 
@@ -59,7 +62,7 @@ impl RecoveryOfflineVerifier {
             .verify_persisted_artifacts(artifacts)
             .map_err(FreshRuntimeReopenHarnessDenial::Verifier)?;
         FreshRuntimeReopenHarnessEvidence::from_persisted_artifact_reopen(report, artifacts)
-            .map_err(FreshRuntimeReopenHarnessDenial::Admission)
+            .map_err(|denial| FreshRuntimeReopenHarnessDenial::Admission(Box::new(denial)))
     }
 
     fn require_profile_match(
@@ -89,5 +92,5 @@ pub enum RecoveryOfflineVerifierDenial {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FreshRuntimeReopenHarnessDenial {
     Verifier(RecoveryOfflineVerifierDenial),
-    Admission(ReopenedRecoveryArtifactAdmissionDenial),
+    Admission(Box<ReopenedRecoveryArtifactAdmissionDenial>),
 }

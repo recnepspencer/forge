@@ -49,6 +49,7 @@ pub use latency_interference::{
 pub use queue_execution::{S6CertifiedQueueExecutionEvidence, S6QueueExecutionCertificationDenial};
 pub use reclaim_policy::{S6ReclaimPolicyEvidenceOutcomeKind, S6ReclaimPolicyEvidenceRow};
 
+pub(crate) use materialized_closeout::S6ReadinessCertificationProofTopologyParts;
 pub use materialized_closeout::{
     S6MaterializedCertificationAdoptionDenial, S6MaterializedCertificationAdoptionReceipt,
     S6ReadinessCertificationCounterEvidence, S6ReadinessCertificationCounterFamily,

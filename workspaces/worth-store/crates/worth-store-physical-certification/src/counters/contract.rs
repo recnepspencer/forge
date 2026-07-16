@@ -77,12 +77,12 @@ impl PhysicalCounterContract {
     }
 
     pub fn bounded(kind: CounterContractKind, maximum: u64) -> Result<Self, CounterContractDenial> {
-        Ok(Self::try_new(
+        Self::try_new(
             kind,
             PhysicalCounterExpectation::bounded(maximum)
                 .map_err(CounterContractDenial::InvalidExpectation)?,
         )
-        .map_err(CounterContractDenial::OverExact)?)
+        .map_err(CounterContractDenial::OverExact)
     }
 
     pub const fn kind(&self) -> CounterContractKind {

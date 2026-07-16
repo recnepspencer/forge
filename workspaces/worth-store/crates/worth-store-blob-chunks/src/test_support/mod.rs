@@ -1,3 +1,5 @@
+#[cfg(any(test, feature = "certification-test-authority"))]
+mod custody;
 #[cfg(test)]
 mod dedupe;
 #[cfg(any(test, feature = "certification-test-authority"))]
@@ -9,6 +11,8 @@ mod physical;
 #[cfg(test)]
 mod streaming;
 
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub(crate) use custody::*;
 #[cfg(test)]
 pub(crate) use dedupe::*;
 #[cfg(any(test, feature = "certification-test-authority"))]

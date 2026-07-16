@@ -132,14 +132,18 @@ fn blob_identity_harness_witness(
     )
     .expect("blob topology should admit");
     execute_blob_harness(BlobHarnessExecutionInput::new(
-        BlobHarnessEnvelopeProfile::Local,
-        BlobHarnessSizeClass::LocalDeterministic,
-        BlobHarnessPlacementClass::StoreLocal,
-        BlobHarnessSecurityScopeClass::ScopePreserving,
-        access_mode,
-        BlobHarnessFailurePoint::NoFaultSeed,
-        actor_mix,
-        topology,
+        worth_store_blob_chunks::certification_test_authority::BlobHarnessStorageShape::new(
+            BlobHarnessEnvelopeProfile::Local,
+            BlobHarnessSizeClass::LocalDeterministic,
+            BlobHarnessPlacementClass::StoreLocal,
+            BlobHarnessSecurityScopeClass::ScopePreserving,
+        ),
+        worth_store_blob_chunks::certification_test_authority::BlobHarnessExerciseShape::new(
+            access_mode,
+            BlobHarnessFailurePoint::NoFaultSeed,
+            actor_mix,
+            topology,
+        ),
     ))
 }
 

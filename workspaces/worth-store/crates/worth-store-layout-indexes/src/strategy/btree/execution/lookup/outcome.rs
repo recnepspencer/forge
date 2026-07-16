@@ -61,7 +61,7 @@ impl StableBTreeLookupExecution {
 
 #[derive(Debug, PartialEq, Eq)]
 enum BTreeLookupExecutionCase {
-    Executed(StableBTreeLookupExecution),
+    Executed(Box<StableBTreeLookupExecution>),
     Denied(BaselineBTreeExecutionDenial),
 }
 
@@ -83,7 +83,7 @@ impl BTreeLookupExecutionOutcome {
     ) -> Self {
         Self {
             case: match result {
-                Ok(executed) => BTreeLookupExecutionCase::Executed(executed),
+                Ok(executed) => BTreeLookupExecutionCase::Executed(Box::new(executed)),
                 Err(denial) => BTreeLookupExecutionCase::Denied(denial),
             },
         }
@@ -125,7 +125,7 @@ impl BTreeLookupExecutionOutcome {
 
     pub fn into_result(self) -> Result<StableBTreeLookupExecution, BaselineBTreeExecutionDenial> {
         match self.case {
-            BTreeLookupExecutionCase::Executed(executed) => Ok(executed),
+            BTreeLookupExecutionCase::Executed(executed) => Ok(*executed),
             BTreeLookupExecutionCase::Denied(denial) => Err(denial),
         }
     }

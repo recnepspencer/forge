@@ -7,7 +7,7 @@ pub struct LatchUpgradeAuthority {
     _private: (),
 }
 
-#[derive(Debug, Clone, Copy, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LatchAcquisitionStep {
     Acquire {
         key: PhysicalLatchKey,

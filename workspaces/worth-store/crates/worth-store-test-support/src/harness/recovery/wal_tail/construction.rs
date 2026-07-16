@@ -13,10 +13,9 @@ use worth_store_physical_format::{
     CheckpointAdjacencyPosture, ChecksumCoverageMap, ManifestMembershipProof,
     PhysicalBinaryEncodingWitness, PhysicalFormatDeclaration, PhysicalFrameKind,
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalGenerationOwner,
-    PhysicalHeaderAuthority, PhysicalManifestUniverseBuilder, PhysicalPageId,
-    PhysicalPublicationState, PhysicalRecordSlot, PhysicalReferenceAuthority,
-    PhysicalReferenceScope, PhysicalReferenceValidationWitness, PhysicalRootReference,
-    PhysicalSegmentId, RootManifestIntegrityPosture, SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
+    PhysicalHeaderAuthority, PhysicalManifestUniverseBuilder, PhysicalPageId, PhysicalRecordSlot,
+    PhysicalReferenceAuthority, PhysicalReferenceScope, PhysicalReferenceValidationWitness,
+    PhysicalRootReference, PhysicalSegmentId, RootManifestIntegrityPosture, SlotGenerationCell,
 };
 use worth_store_physical_integrity::{
     ChecksumAlgorithmClaim, ChecksumScopeDeclaration, DeclaredPhysicalChecksum,
@@ -63,7 +62,7 @@ pub(super) fn inspect_wal_payload_for_owner(
     let checked = integrity_admission
         .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
             reference,
-            wal_header_witness(&frame_bytes(owner.generation().get(), payload), reference),
+            wal_header_witness(&frame_bytes(cell, payload), reference),
             PhysicalFrameKind::RecordFrame,
             DeclaredPhysicalChecksum::new(crc32c(payload).into()),
         ))
@@ -113,7 +112,7 @@ fn admit_wal_payload_frame(
     payload: &[u8],
     reference: PhysicalReferenceValidationWitness,
 ) -> worth_store_buffer_pool::ResidentFrameAdmission {
-    let frame = frame_bytes(reference.owner().generation().get(), payload);
+    let frame = frame_bytes(wal_slot_cell_for_owner(reference.owner()), payload);
     let request = ResidentFrameLoadRequest::from_physical_format_physical_frame(
         reference,
         wal_header_witness(&frame, reference),
@@ -267,16 +266,14 @@ fn wal_slot_cell_for_owner(owner: PhysicalGenerationOwner) -> SlotGenerationCell
         .with_slot_generation(owner.generation())
 }
 
-fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalFrameKind::RecordFrame.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation_value.to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
+fn frame_bytes(cell: SlotGenerationCell, payload: &[u8]) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(
+        usize::from(worth_store_physical_format::PHYSICAL_HEADER_LENGTH) + payload.len(),
+    );
+    bytes.extend_from_slice(&physical_header().encode_record_frame_header(
+        cell,
+        u32::try_from(payload.len()).expect("test payload length should fit the physical format"),
+    ));
     bytes.extend_from_slice(payload);
     bytes
 }

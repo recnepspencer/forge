@@ -43,7 +43,7 @@ impl BlobCompactionIntent {
             read_hold,
             pacing: BlobCompactionPacingAdmission::admitted_compaction(0),
             cold: BlobCompactionColdReadiness::Available(ColdPlacementState::HotAvailable),
-            physical: BlobCompactionPhysicalInterlock::Admitted(physical),
+            physical: BlobCompactionPhysicalInterlock::Admitted(Box::new(physical)),
         }
     }
 
@@ -64,7 +64,7 @@ impl BlobCompactionIntent {
             read_hold,
             pacing: BlobCompactionPacingAdmission::admitted_compaction(0),
             cold: BlobCompactionColdReadiness::Available(ColdPlacementState::HotAvailable),
-            physical: BlobCompactionPhysicalInterlock::Admitted(physical),
+            physical: BlobCompactionPhysicalInterlock::Admitted(Box::new(physical)),
         }
     }
 

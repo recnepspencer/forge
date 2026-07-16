@@ -41,7 +41,7 @@ simulation/certification harness that later milestones already consume.
 - `perf_laws.md` protects visible cost: security metadata must carry exact
   counter surfaces so encryption/authenticity readiness does not hide broad
   scans, unbounded rewrap work, or per-page allocation surprises.
-- `worth_store_roadmap_2.md` protects the physical database foundation gate:
+- `physical-database-roadmap.md` protects the physical database foundation gate:
   S.5.1 belongs between physically stable reads and I/O/blob/backup/security
   work because key scope, tenant scope, authenticity class, and custody posture
   must become physical metadata before later systems depend on those paths.

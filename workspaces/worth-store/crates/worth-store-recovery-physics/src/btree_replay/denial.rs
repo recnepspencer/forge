@@ -5,7 +5,7 @@ use worth_store_physical_format::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BTreeReplaySourceDenial {
     BootstrapCatalog(PhysicalBootstrapCatalogDenial),
-    PhysicalOpen(PhysicalStoreRuntimeDenial),
+    PhysicalOpen(Box<PhysicalStoreRuntimeDenial>),
     RootManifestMissing,
     AmbiguousRootManifest {
         candidates: usize,
@@ -32,6 +32,6 @@ impl From<PhysicalBootstrapCatalogDenial> for BTreeReplaySourceDenial {
 
 impl From<PhysicalStoreRuntimeDenial> for BTreeReplaySourceDenial {
     fn from(value: PhysicalStoreRuntimeDenial) -> Self {
-        Self::PhysicalOpen(value)
+        Self::PhysicalOpen(Box::new(value))
     }
 }

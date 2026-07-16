@@ -3,7 +3,7 @@ use worth_store_tiering::ColdPlacementState;
 
 use super::BlobPlacementMovementCounterSnapshot;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlobPlacementMovementDenial {
     StaleMovementPlan {
         counters: BlobPlacementMovementCounterSnapshot,
@@ -18,7 +18,7 @@ pub enum BlobPlacementMovementDenial {
         counters: BlobPlacementMovementCounterSnapshot,
     },
     ForegroundReservationViolated {
-        violation: ReservationViolatedWithCause,
+        violation: Box<ReservationViolatedWithCause>,
         counters: BlobPlacementMovementCounterSnapshot,
     },
     ForegroundReservationScopeMismatch {

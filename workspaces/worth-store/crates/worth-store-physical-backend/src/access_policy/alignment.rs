@@ -66,7 +66,9 @@ impl DirectIoAlignmentRequirement {
         self.reference == reference
             && self.lifecycle.kind() == lifecycle.kind()
             && self.byte_length > 0
-            && self.byte_length % self.page_alignment.bytes() as u32 == 0
+            && self
+                .byte_length
+                .is_multiple_of(self.page_alignment.bytes() as u32)
             && self.page_aligned
             && self.sector_aligned
             && self.buffer_lifetime_stable

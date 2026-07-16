@@ -1,6 +1,4 @@
-use worth_store_operations_vocabulary::{
-    admit_backup_import_source_custody_scope, BackupImportSourceCustodyScope,
-};
+use super::{admit_blob_import_source_custody, AdmittedBlobImportSourceCustody};
 
 use super::counters::BlobImportReadmissionCounters;
 use super::declaration::{BlobImportChunkDeclaration, BlobImportDeclaration};
@@ -8,19 +6,17 @@ use super::denial::BlobImportReadmissionDenial;
 
 pub(crate) struct ClassifiedImportDeclaration {
     chunk_rows: Vec<BlobImportChunkDeclaration>,
-    export_custody_scope: BackupImportSourceCustodyScope,
+    export_custody_scope: AdmittedBlobImportSourceCustody,
 }
 
 pub(crate) fn classify_import_declaration(
     declaration: &BlobImportDeclaration,
     counters: BlobImportReadmissionCounters,
 ) -> Result<ClassifiedImportDeclaration, BlobImportReadmissionDenial> {
-    let export_custody_scope = admit_backup_import_source_custody_scope(
-        declaration.export_custody_scope(),
-    )
-    .map_err(|_| BlobImportReadmissionDenial::CustodyDomainMismatch {
-        counters: counters.record_stale_scope_denial(),
-    })?;
+    let export_custody_scope = admit_blob_import_source_custody(declaration.export_custody_scope())
+        .map_err(|_| BlobImportReadmissionDenial::CustodyDomainMismatch {
+            counters: counters.record_stale_scope_denial(),
+        })?;
     let mut rows = declaration.chunk_rows().to_vec();
     rows.sort_by(|left, right| {
         left.ordinal()
@@ -47,7 +43,7 @@ impl ClassifiedImportDeclaration {
         &self.chunk_rows
     }
 
-    pub(crate) const fn export_custody_scope(&self) -> BackupImportSourceCustodyScope {
+    pub(crate) const fn export_custody_scope(&self) -> AdmittedBlobImportSourceCustody {
         self.export_custody_scope
     }
 }

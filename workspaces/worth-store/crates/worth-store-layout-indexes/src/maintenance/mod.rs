@@ -2,6 +2,9 @@ mod live;
 mod lsm;
 mod maintenance_mode;
 mod mutation_shape;
+mod operational_repair;
+#[cfg(test)]
+mod operational_repair_tests;
 mod publication;
 mod rebuild;
 #[cfg(test)]
@@ -39,6 +42,10 @@ pub use lsm::{
 };
 pub use maintenance_mode::IndexMaintenanceMode;
 pub use mutation_shape::PhysicalMutationShape;
+pub use operational_repair::{
+    DerivedIndexRepairExecutionDenial, DerivedIndexRepairPlan, DerivedIndexRepairReceipt,
+    DerivedIndexRepairRequest, LayoutOperationalRepairOwner,
+};
 pub use publication::{
     exact_btree_publication_cases, layout_exact_publication, ExactBTreePublicationCaseId,
     ExactBTreePublicationDenied, ExactBTreePublicationEvidence, ExactBTreePublicationOutcome,

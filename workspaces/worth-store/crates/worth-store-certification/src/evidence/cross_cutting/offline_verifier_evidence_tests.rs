@@ -6,11 +6,10 @@ use crate::{
 use worth_store_physical_format::{
     AllocationClassKind, FreeSpaceManifestEntry, ManifestDiscoveryAuthority, OfflineManifestCodec,
     OfflinePhysicalVerifier, OfflineVerifierDenialKind, PersistedExtentBytes, PersistedPageBytes,
-    PersistedPhysicalLayout, PhysicalBinaryEncodingWitness, PhysicalByteOrder, PhysicalExtentId,
-    PhysicalFrameKind, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority,
-    PhysicalPageId, PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalPublicationState,
-    PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalRootManifest, PhysicalRootReference,
-    PhysicalSegmentId, SlotAppendRequest, PHYSICAL_HEADER_LENGTH,
+    PersistedPhysicalLayout, PhysicalBinaryEncodingWitness, PhysicalExtentId, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalPageKind,
+    PhysicalPageRecordAuthority, PhysicalRecordSlot, PhysicalReferenceAuthority,
+    PhysicalRootManifest, PhysicalRootReference, PhysicalSegmentId, SlotAppendRequest,
 };
 
 #[test]
@@ -183,8 +182,9 @@ impl FullLayoutFixture {
             byte_order,
             &[FreeSpaceManifestEntry::new(free_space)],
         );
-        let page_bytes = record_page_bytes(headers.clone(), byte_order, page_cell, slot_cell);
-        let extent_bytes = extent_record_bytes(byte_order, generation, b"large");
+        let page_bytes = record_page_bytes(headers.clone(), page_cell, slot_cell);
+        let extent_bytes =
+            crate::physical_fixture_encoding::extent_frame_bytes(extent_cell, b"large");
         Self {
             verifier: OfflinePhysicalVerifier::for_canonical_physical_format(headers),
             layout: PersistedPhysicalLayout::builder()
@@ -256,12 +256,11 @@ impl FullLayoutFixture {
 
 fn record_page_bytes(
     headers: PhysicalHeaderAuthority,
-    byte_order: PhysicalByteOrder,
     page_cell: worth_store_physical_format::PageGenerationCell,
     slot_cell: worth_store_physical_format::SlotGenerationCell,
 ) -> Vec<u8> {
     let authority = PhysicalPageRecordAuthority::for_canonical_physical_format(headers);
-    let empty_page = page_bytes(byte_order, page_cell.generation(), &[]);
+    let empty_page = crate::physical_fixture_encoding::data_page_bytes(page_cell, &[]);
     let header = authority
         .decode_record_page_header(page_cell, &empty_page, PhysicalPageKind::DataPage)
         .unwrap();
@@ -271,55 +270,5 @@ fn record_page_bytes(
     let append = authority
         .append_record(payload, SlotAppendRequest::ordinary(slot_cell, b"small"))
         .unwrap();
-    page_bytes(byte_order, page_cell.generation(), append.page_payload())
-}
-
-fn page_bytes(
-    byte_order: PhysicalByteOrder,
-    generation: PhysicalGeneration,
-    payload: &[u8],
-) -> Vec<u8> {
-    let mut bytes = header_bytes(
-        byte_order,
-        PhysicalPageKind::DataPage.tag(),
-        generation,
-        payload.len(),
-    );
-    bytes.extend_from_slice(payload);
-    bytes
-}
-
-fn extent_record_bytes(
-    byte_order: PhysicalByteOrder,
-    generation: PhysicalGeneration,
-    payload: &[u8],
-) -> Vec<u8> {
-    let mut bytes = header_bytes(
-        byte_order,
-        PhysicalFrameKind::ExtentRecordFrame.tag(),
-        generation,
-        payload.len(),
-    );
-    bytes.extend_from_slice(payload);
-    bytes
-}
-
-fn header_bytes(
-    byte_order: PhysicalByteOrder,
-    tag: u8,
-    generation: PhysicalGeneration,
-    payload_len: usize,
-) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload_len);
-    bytes.push(tag);
-    bytes.extend_from_slice(&byte_order.write_u16(
-        worth_store_physical_format::PhysicalFormatVersion::initial_format_version().value(),
-    ));
-    bytes.extend_from_slice(&byte_order.write_u16(PHYSICAL_HEADER_LENGTH));
-    bytes.extend_from_slice(&byte_order.write_u32(payload_len as u32));
-    bytes.extend_from_slice(&byte_order.write_u64(generation.get()));
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&byte_order.write_u32(0));
-    bytes.extend_from_slice(&byte_order.write_u64(0));
-    bytes
+    crate::physical_fixture_encoding::data_page_bytes(page_cell, append.page_payload())
 }

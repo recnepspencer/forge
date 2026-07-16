@@ -8,8 +8,11 @@ use worth_store_layout_indexes::materialization::{
     LayoutMaterializationSourceKind, MaterializationDenial,
 };
 use worth_store_offline_verifier::OfflineCustodyCapsuleObservation;
+use worth_store_physical_format::PhysicalStoreIdentity;
+use worth_store_physical_isolation::ReadCopyUpdateRootPublication;
 use worth_store_recovery_physics::{
-    CheckpointManifestMaterialization, CheckpointPageImageMaterialization,
+    CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
+    CheckpointManifestSourceMaterialization, CheckpointPageImageMaterialization,
     PersistedRecoveryArtifactMaterialization, RecoveryOfflineVerifier, RecoveryProfileId,
     WalRedoFrameMaterialization,
 };
@@ -23,8 +26,79 @@ use super::admit_restored_layout_materialization;
 use crate::backup::export::{backup_capsule_authenticity, current_authority, readmission_trigger};
 use crate::{
     BackupExportCustodyDeclaration, BackupExportCustodyMode, BackupImportCustodyReadmission,
-    RestoredLayoutMaterializationView,
+    ImportPublicationDenial, RestoredLayoutMaterializationView,
 };
+
+#[test]
+fn import_publication_is_bound_to_the_exact_physical_owner_outcome() {
+    let authority = current_authority("restore.publication.binding");
+    let family = admitted_page_family(&authority);
+    let physical_family = family.declaration().family();
+    let catalog = worth_store_test_support::harness::layout::admitted_layout_bootstrap_catalog();
+    let materialization = admit_restored_layout_materialization(
+        physical_family,
+        family,
+        &catalog,
+        &reopened_artifact("restore-publication"),
+        &readmitted_custody(&authority),
+    )
+    .into_materialized()
+    .unwrap();
+    let store = PhysicalStoreIdentity::from_aspect_identity(authority.identity().clone());
+    let inputs = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(
+        &store,
+        "restore-publication-root",
+        41,
+    );
+    let plan = worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(&inputs);
+    let readiness = crate::admit_import_publication_readiness(materialization, &plan, &authority)
+        .into_result()
+        .expect("restored materialization and physical plan share current authority");
+    let publication = ReadCopyUpdateRootPublication::publish(plan).unwrap();
+    let published = crate::complete_import_publication(readiness, publication)
+        .into_result()
+        .expect("exact physical owner outcome completes import publication");
+
+    assert_eq!(
+        published.authority_identity(),
+        &authority.authority_identity()
+    );
+    assert_eq!(
+        published.physical_publication().receipt().new_root(),
+        inputs.new_root
+    );
+}
+
+#[test]
+fn another_physical_publication_cannot_complete_import_readiness() {
+    let authority = current_authority("restore.publication.substitution");
+    let family = admitted_page_family(&authority);
+    let catalog = worth_store_test_support::harness::layout::admitted_layout_bootstrap_catalog();
+    let materialization = admit_restored_layout_materialization(
+        family.declaration().family(),
+        family,
+        &catalog,
+        &reopened_artifact("restore-substitution"),
+        &readmitted_custody(&authority),
+    )
+    .into_materialized()
+    .unwrap();
+    let store = PhysicalStoreIdentity::from_aspect_identity(authority.identity().clone());
+    let expected = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(&store, "restore-expected", 42);
+    let substituted = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(&store, "restore-substituted", 43);
+    let expected_plan = worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(&expected);
+    let readiness =
+        crate::admit_import_publication_readiness(materialization, &expected_plan, &authority)
+            .into_result()
+            .unwrap();
+    let substituted_plan = worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(&substituted);
+    let publication = ReadCopyUpdateRootPublication::publish(substituted_plan).unwrap();
+
+    assert!(matches!(
+        crate::complete_import_publication(readiness, publication),
+        TransitionOutcome::Denied(ImportPublicationDenial::PhysicalPublicationBindingMismatch)
+    ));
+}
 
 #[test]
 fn verified_restore_content_and_current_custody_issue_exact_materialization() {
@@ -200,29 +274,25 @@ fn reopened_artifact(
         "posix",
         recovery_profile.clone(),
         CheckpointManifestMaterialization::new(
-            &format!("checkpoint-{seed}"),
-            &format!("root-{seed}"),
+            format!("checkpoint-{seed}"),
+            format!("root-{seed}"),
             19,
-            "checkpoint",
-            1,
-            4096,
-            1,
-            4096,
-            1,
+            CheckpointManifestSourceMaterialization::new("checkpoint", 1),
+            CheckpointManifestBudgetMaterialization::new(4096, 1, 4096, 1),
         ),
         WalRedoFrameMaterialization::new(
-            &format!("wal-{seed}"),
+            format!("wal-{seed}"),
             20,
             1,
-            &format!("sha256:op-{seed}"),
-            &format!("sha256:idem-{seed}"),
+            format!("sha256:op-{seed}"),
+            format!("sha256:idem-{seed}"),
         ),
         CheckpointPageImageMaterialization::new(
-            &format!("page-{seed}"),
+            format!("page-{seed}"),
             1,
             7,
             19,
-            &format!("sha256:page-{seed}"),
+            format!("sha256:page-{seed}"),
         ),
     )
     .materialize()

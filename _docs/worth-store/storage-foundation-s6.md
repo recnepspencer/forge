@@ -40,7 +40,7 @@ interference through counters rather than folklore.
 - `perf_laws.md` protects visible cost. S.6 must expose queue-depth,
   foreground-wait, background-yield, sync, flush, bandwidth, stall, and
   interference counters at the boundary where claims are made.
-- `worth_store_roadmap_2.md` places S.6 after stable reads and security-scope
+- `physical-database-roadmap.md` places S.6 after stable reads and security-scope
   metadata because I/O pacing can be honest only after bytes are stable and
   security scope can survive the physical path.
 - `crates/worth-foundational/docs/FOUNDATIONAL_README.md` protects the rule:

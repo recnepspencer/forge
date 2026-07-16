@@ -13,15 +13,15 @@ mod authority_sealed {
     pub trait Sealed<P> {}
 }
 
-#[cfg(feature = "certification-test-authority")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BackendDurabilityBarrierDenialKind {
     UnsupportedDurabilityCapability,
     AdversarialLostFlush,
     BarrierNotRequiredByProfile,
+    BarrierNotCompleted,
+    ProfileMismatch,
 }
 
-#[cfg(feature = "certification-test-authority")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BackendDurabilityBarrierDenial {
     profile_id: BackendDurabilityProfileId,
@@ -29,9 +29,8 @@ pub struct BackendDurabilityBarrierDenial {
     kind: BackendDurabilityBarrierDenialKind,
 }
 
-#[cfg(feature = "certification-test-authority")]
 impl BackendDurabilityBarrierDenial {
-    const fn new<P: BackendDurabilityProfile>(
+    pub(crate) const fn new<P: BackendDurabilityProfile>(
         barrier: WalDurabilityBarrier,
         kind: BackendDurabilityBarrierDenialKind,
     ) -> Self {
@@ -63,8 +62,7 @@ pub struct WalDurabilityBarrierReceipt<P: BackendDurabilityProfile, S> {
 }
 
 impl<P: BackendDurabilityProfile, S> WalDurabilityBarrierReceipt<P, S> {
-    #[cfg(feature = "certification-test-authority")]
-    const fn certified(scope: S, barrier: WalDurabilityBarrier) -> Self {
+    pub(crate) const fn from_executed_scope(scope: S, barrier: WalDurabilityBarrier) -> Self {
         Self {
             profile: PhantomData,
             scope,
@@ -129,7 +127,9 @@ fn certify_required_barrier<P: BackendDurabilityProfile, S: Clone + Eq>(
     barrier: WalDurabilityBarrier,
 ) -> Result<WalDurabilityBarrierReceipt<P, S>, BackendDurabilityBarrierDenial> {
     if P::REQUIRED_BARRIERS.contains(barrier) {
-        Ok(WalDurabilityBarrierReceipt::certified(scope, barrier))
+        Ok(WalDurabilityBarrierReceipt::from_executed_scope(
+            scope, barrier,
+        ))
     } else {
         Err(BackendDurabilityBarrierDenial::new::<P>(
             barrier,

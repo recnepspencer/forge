@@ -6,6 +6,7 @@
 
 pub mod access;
 
+mod backup_bundle;
 mod binary_format;
 mod blob_manifest;
 mod bootstrap;
@@ -19,6 +20,7 @@ mod generation;
 mod header;
 mod manifest;
 mod offline_verifier;
+mod offline_walk;
 mod page_record;
 mod payload;
 mod physical_store_runtime;
@@ -31,6 +33,13 @@ pub use access::counters::PhysicalLayoutAccessCounterSnapshot;
 pub use access::grammar::{
     PhysicalLayoutAccessConstraint, PhysicalLayoutAccessFamily, PhysicalLayoutAccessPattern,
     UnsupportedPhysicalLayoutAccess,
+};
+pub use backup_bundle::{
+    backup_canonical_artifact_closure_digest, BackupBundleArtifactCoverage,
+    BackupBundleArtifactFamily, BackupBundleArtifactFormat, BackupBundleArtifactManifestRow,
+    BackupBundleFormatAuthority, BackupBundleFormatDenial, BackupBundleManifest,
+    BackupBundleManifestConstructionDenial, BackupBundleManifestReadLimits,
+    BackupBundleManifestReadObservation, BackupBundlePhysicalOwner, MaterializedBackupBundle,
 };
 pub use binary_format::{
     AllocationClassKind, FreeSpaceMapVocabulary, PhysicalAlgorithmReviewConclusion,
@@ -103,11 +112,12 @@ pub use manifest::{
     AllocationClassManifestEntry, ExtentManifestEntry, ExtentManifestVocabulary,
     FreeSpaceManifestEntry, ManifestDiscoveryAuthority, ManifestDiscoveryCounterSnapshot,
     ManifestDiscoveryDenial, ManifestDiscoveryDenialKind, ManifestDiscoveryReport,
-    ManifestVocabularyKind, PhysicalManifestUniverseBuilder, PhysicalReclaimRegion,
-    PhysicalReclaimRegionDenial, PhysicalRootManifest, PhysicalRootManifestRebuildRow,
-    PhysicalRootManifestRebuildSource, PhysicalRootManifestRebuildWitness,
-    PhysicalRootManifestVocabulary, ReclaimedByteInterpretation, SegmentManifestEntry,
-    SegmentManifestVocabulary, SegmentPageManifestEntry,
+    ManifestVocabularyKind, PhysicalCurrentReachabilitySource, PhysicalManifestUniverseBuilder,
+    PhysicalReclaimRegion, PhysicalReclaimRegionDenial, PhysicalRootManifest,
+    PhysicalRootManifestRebuildRow, PhysicalRootManifestRebuildSource,
+    PhysicalRootManifestRebuildWitness, PhysicalRootManifestVocabulary,
+    ReclaimedByteInterpretation, SegmentManifestEntry, SegmentManifestVocabulary,
+    SegmentPageManifestEntry,
 };
 pub use offline_verifier::{
     ManifestTraversalReport, MinimalManifestVerifierReport, OfflineManifestCodec,
@@ -116,6 +126,14 @@ pub use offline_verifier::{
     PersistedExtentBytes, PersistedPageBytes, PersistedPhysicalLayout,
     PersistedPhysicalLayoutBuilder, PhysicalLayoutReport, RuntimeLayoutObservation,
     RuntimeLayoutObservationSource,
+};
+pub use offline_walk::{
+    classify_offline_artifact_family, observe_bounded_physical_bytes,
+    verify_bounded_extent_artifact, verify_bounded_extent_artifact_from_reader,
+    verify_bounded_page_artifact, verify_bounded_page_artifact_from_reader,
+    verify_bounded_root_manifest_artifact, verify_bounded_root_manifest_artifact_from_reader,
+    BoundedPhysicalArtifactDenial, BoundedPhysicalArtifactObservation,
+    OfflinePhysicalArtifactFamily, OfflineStructuralObservation, VerifiedRootManifestArtifact,
 };
 pub use page_record::{
     PageRecordCounterSnapshot, PageRecordDenial, PageRecordDenialKind, PhysicalPageRecordAuthority,

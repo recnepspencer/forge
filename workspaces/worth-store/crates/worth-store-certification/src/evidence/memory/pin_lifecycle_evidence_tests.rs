@@ -10,8 +10,8 @@ use worth_store_contracts::{
 use worth_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness,
-    PhysicalPageId, PhysicalPublicationState, PhysicalRecordSlot, PhysicalReferenceAuthority,
-    PhysicalReferenceValidationWitness, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
+    PhysicalPageId, PhysicalRecordSlot, PhysicalReferenceAuthority,
+    PhysicalReferenceValidationWitness, PhysicalSegmentId,
 };
 use worth_store_readiness::{
     close_physical_substrate_readiness, prove_physical_substrate_readiness,
@@ -154,7 +154,8 @@ fn leak_report_evidence_consumes_recorded_leak_counters() {
 }
 
 fn admit_payload_frame(table: &mut ResidentFrameTable, payload: &[u8]) -> ResidentFrameAdmission {
-    let frame = frame_bytes(7, payload);
+    let frame =
+        crate::physical_fixture_encoding::record_frame_bytes(slot_generation_cell(), payload);
     let request = load_request_from_frame(&frame);
     let payload = header_authority()
         .payload_view(&frame, request.header())
@@ -163,7 +164,8 @@ fn admit_payload_frame(table: &mut ResidentFrameTable, payload: &[u8]) -> Reside
 }
 
 fn load_request_from_payload(payload: &[u8]) -> ResidentFrameLoadRequest {
-    let frame = frame_bytes(7, payload);
+    let frame =
+        crate::physical_fixture_encoding::record_frame_bytes(slot_generation_cell(), payload);
     load_request_from_frame(&frame)
 }
 
@@ -196,11 +198,8 @@ fn load_request_from_frame(frame_bytes: &[u8]) -> ResidentFrameLoadRequest {
 }
 
 fn validated_slot_reference() -> PhysicalReferenceValidationWitness {
-    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let references = PhysicalReferenceAuthority::for_canonical_physical_format();
-    let cell = generations
-        .slot_cell(segment(1), page(2), slot(3))
-        .with_slot_generation(generation(7));
+    let cell = slot_generation_cell();
     let admitted = references.admit_page_slot(cell);
     references.validate_page_slot(admitted, cell).unwrap()
 }
@@ -222,18 +221,10 @@ fn header_authority() -> PhysicalHeaderAuthority {
     )
 }
 
-fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalFrameKind::RecordFrame.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation_value.to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
-    bytes.extend_from_slice(payload);
-    bytes
+fn slot_generation_cell() -> worth_store_physical_format::SlotGenerationCell {
+    PhysicalGenerationAuthority::for_canonical_physical_format()
+        .slot_cell(segment(1), page(2), slot(3))
+        .with_slot_generation(generation(7))
 }
 
 fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {

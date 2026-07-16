@@ -34,11 +34,16 @@ pub enum OracleVerdictKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScheduleShrinkTrace {
+    failure: ScheduleFailureSignature,
+    minimized_steps: Vec<PhysicalActorStep>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScheduleFailureSignature {
     failure_class: ScheduleFailureClass,
     fault_locus: PhysicalFaultLocus,
     counter_mismatch: CounterMismatchSummary,
     oracle_verdict: OracleVerdictSummary,
-    minimized_steps: Vec<PhysicalActorStep>,
 }
 
 impl PhysicalFaultLocus {
@@ -102,38 +107,50 @@ impl OracleVerdictSummary {
 }
 
 impl ScheduleShrinkTrace {
-    pub fn preserve_failure(
-        failure_class: ScheduleFailureClass,
-        fault_locus: PhysicalFaultLocus,
-        counter_mismatch: CounterMismatchSummary,
-        oracle_verdict: OracleVerdictSummary,
-        minimized_steps: impl IntoIterator<Item = PhysicalActorStep>,
+    pub fn shrink_reproducing_failure(
+        failure: ScheduleFailureSignature,
+        candidate_steps: impl IntoIterator<Item = PhysicalActorStep>,
+        mut observe_failure: impl FnMut(&[PhysicalActorStep]) -> Option<ScheduleFailureSignature>,
     ) -> Result<Self, ScheduleReplayDenial> {
-        let minimized_steps: Vec<_> = minimized_steps.into_iter().collect();
-        require_fault_locus_step(&fault_locus, &minimized_steps)?;
+        let mut minimized_steps: Vec<_> = candidate_steps.into_iter().collect();
+        require_fault_locus_step(&failure.fault_locus, &minimized_steps)?;
+        if observe_failure(&minimized_steps).as_ref() != Some(&failure) {
+            return Err(ScheduleReplayDenial::ShrinkInputDoesNotReproduceFailure);
+        }
+        let mut index = 0;
+        while index < minimized_steps.len() {
+            if step_is_fault_locus(&failure.fault_locus, &minimized_steps[index]) {
+                index += 1;
+                continue;
+            }
+            let mut candidate = minimized_steps.clone();
+            candidate.remove(index);
+            if observe_failure(&candidate).as_ref() == Some(&failure) {
+                minimized_steps = candidate;
+            } else {
+                index += 1;
+            }
+        }
         Ok(Self {
-            failure_class,
-            fault_locus,
-            counter_mismatch,
-            oracle_verdict,
+            failure,
             minimized_steps,
         })
     }
 
     pub const fn failure_class(&self) -> ScheduleFailureClass {
-        self.failure_class
+        self.failure.failure_class
     }
 
     pub const fn fault_locus(&self) -> &PhysicalFaultLocus {
-        &self.fault_locus
+        &self.failure.fault_locus
     }
 
     pub const fn counter_mismatch(&self) -> &CounterMismatchSummary {
-        &self.counter_mismatch
+        &self.failure.counter_mismatch
     }
 
     pub const fn oracle_verdict(&self) -> &OracleVerdictSummary {
-        &self.oracle_verdict
+        &self.failure.oracle_verdict
     }
 
     pub fn minimized_steps(&self) -> &[PhysicalActorStep] {
@@ -145,13 +162,34 @@ fn require_fault_locus_step(
     fault_locus: &PhysicalFaultLocus,
     minimized_steps: &[PhysicalActorStep],
 ) -> Result<(), ScheduleReplayDenial> {
-    if minimized_steps.iter().any(|step| {
-        step.actor_id() == fault_locus.actor_id() && step.yieldpoint() == fault_locus.yieldpoint()
-    }) {
+    if minimized_steps
+        .iter()
+        .any(|step| step_is_fault_locus(fault_locus, step))
+    {
         return Ok(());
     }
     Err(ScheduleReplayDenial::ShrinkErasedFaultLocus {
         actor_id: fault_locus.actor_id().to_owned(),
         yieldpoint: fault_locus.yieldpoint().to_owned(),
     })
+}
+
+impl ScheduleFailureSignature {
+    pub const fn new(
+        failure_class: ScheduleFailureClass,
+        fault_locus: PhysicalFaultLocus,
+        counter_mismatch: CounterMismatchSummary,
+        oracle_verdict: OracleVerdictSummary,
+    ) -> Self {
+        Self {
+            failure_class,
+            fault_locus,
+            counter_mismatch,
+            oracle_verdict,
+        }
+    }
+}
+
+fn step_is_fault_locus(fault_locus: &PhysicalFaultLocus, step: &PhysicalActorStep) -> bool {
+    step.actor_id() == fault_locus.actor_id() && step.yieldpoint() == fault_locus.yieldpoint()
 }

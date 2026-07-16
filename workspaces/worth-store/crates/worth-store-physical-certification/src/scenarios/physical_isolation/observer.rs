@@ -1,7 +1,7 @@
 use crate::{
     CheckpointInterlockObservation, CompactionInterlockObservation, CoverageGapDenial,
-    ExecutedPhysicalSimulationObservation, IndependentVerifierObservation, ObservedPhysicalTrace,
-    PhysicalInterleavingSchedule, PhysicalIsolationCompactionMutationObservationSet,
+    IndependentVerifierObservation, ObservedPhysicalTrace, PhysicalInterleavingSchedule,
+    PhysicalIsolationCompactionMutationObservationSet, PhysicalSimulationBoundaryObservation,
     PhysicalSimulationObserver, PhysicalSimulationPlan, PhysicalSimulationScenarioFamily,
     ShortcutRejectionObservation,
 };
@@ -65,12 +65,16 @@ impl PhysicalIsolationTraceFixtures {
 
 pub fn observe_physical_isolation_trace(
     plan: &PhysicalSimulationPlan,
-    _schedule: &PhysicalInterleavingSchedule,
+    schedule: &PhysicalInterleavingSchedule,
     fixtures: PhysicalIsolationTraceFixtures,
 ) -> Result<ObservedPhysicalTrace, CoverageGapDenial> {
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
+    if !schedule.replay_identity_matches_plan(plan) {
+        return Err(CoverageGapDenial::PlanScheduleIdentityMismatch);
+    }
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(plan).unwrap();
     let builder = PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(plan, &execution)
+        .observe_boundary_observation(plan, &execution)
         .unwrap()
         .with_shortcut_rejection_observation(
             ShortcutRejectionObservation::private_mutation_denied(),

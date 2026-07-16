@@ -9,7 +9,9 @@ mod facade;
 mod locality_verification;
 mod parsing;
 mod placement;
+mod placement_plan;
 mod security_readmission;
+mod source_custody;
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) mod test_support;
 #[cfg(test)]
@@ -22,7 +24,7 @@ pub use chunk_evidence::BlobImportedChunkEvidence;
 pub use counters::BlobImportReadmissionCounters;
 pub use declaration::{
     bridge_canonical_export_trust_boundary, BlobImportChunkDeclaration, BlobImportDeclaration,
-    BoundaryBridgedCanonicalExportArtifact,
+    BlobImportTransferDeclaration, BoundaryBridgedCanonicalExportArtifact,
 };
 pub use denial::BlobImportReadmissionDenial;
 pub(crate) use denial::{
@@ -30,4 +32,11 @@ pub(crate) use denial::{
     reject_placement_only_evidence_as_imported_blob_witness,
 };
 pub use parsing::parse_import_declaration_json;
+pub use placement_plan::{
+    BlobImportPlacementDisposition, BlobImportPlacementPlan, BlobImportPlacementSource,
+};
+pub use source_custody::{
+    admit_blob_import_source_custody, AdmittedBlobImportSourceCustody,
+    BlobImportSourceCustodyDenial,
+};
 pub use witness::{BlobImportReadmissionReceipt, ImportedBlobWitness};

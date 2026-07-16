@@ -34,7 +34,35 @@ impl PhysicalInterleavingSchedule {
         budget: StateSpaceBudget,
         ordering_authority: AdmittedScheduleOrderingAuthority,
     ) -> Result<Self, ScheduleReplayDenial> {
-        let actor_steps = PhysicalActorStepSequence::from_steps(actor_steps_from_plan(plan)?)?;
+        let actor_steps = actor_steps_from_plan(plan, seed)?;
+        Self::from_ordered_actor_steps(plan, seed, budget, ordering_authority, actor_steps)
+    }
+
+    pub(crate) fn from_ordered_actors(
+        plan: &PhysicalSimulationPlan,
+        seed: ReplaySeed,
+        budget: StateSpaceBudget,
+        actors: &[crate::PhysicalScenarioActor],
+    ) -> Result<Self, ScheduleReplayDenial> {
+        let ordering_authority =
+            ScheduleOrderingAuthorityAttempt::deterministic_actor_steps().admit()?;
+        let yieldpoint = plan.yieldpoint_binding().declared_yieldpoint().name();
+        let actor_steps = actors
+            .iter()
+            .enumerate()
+            .map(|(index, actor)| PhysicalActorStep::from_actor(index as u32, actor, yieldpoint))
+            .collect::<Result<Vec<_>, _>>()?;
+        Self::from_ordered_actor_steps(plan, seed, budget, ordering_authority, actor_steps)
+    }
+
+    fn from_ordered_actor_steps(
+        plan: &PhysicalSimulationPlan,
+        seed: ReplaySeed,
+        budget: StateSpaceBudget,
+        ordering_authority: AdmittedScheduleOrderingAuthority,
+        actor_steps: Vec<PhysicalActorStep>,
+    ) -> Result<Self, ScheduleReplayDenial> {
+        let actor_steps = PhysicalActorStepSequence::from_steps(actor_steps)?;
         let required_steps = actor_steps.len() as u32;
         if required_steps > budget.max_steps() {
             return Err(ScheduleReplayDenial::StateSpaceBudgetExceeded {
@@ -45,7 +73,7 @@ impl PhysicalInterleavingSchedule {
         let exploration_cost = ScheduleExplorationCost::new(
             budget,
             required_steps,
-            budget.max_steps() - required_steps,
+            0,
             PartialOrderReductionPosture::NotApplied,
         );
         let identity = ScheduleReplayIdentity::from_parts(ScheduleReplayIdentityParts {
@@ -122,11 +150,29 @@ impl PhysicalInterleavingSchedule {
 
 fn actor_steps_from_plan(
     plan: &PhysicalSimulationPlan,
+    seed: ReplaySeed,
 ) -> Result<Vec<PhysicalActorStep>, ScheduleReplayDenial> {
     let yieldpoint = plan.yieldpoint_binding().declared_yieldpoint().name();
-    plan.actors()
+    let mut actors = plan.actors().iter().cloned().collect::<Vec<_>>();
+    deterministically_permute_actors(&mut actors, seed);
+    actors
         .iter()
         .enumerate()
         .map(|(index, actor)| PhysicalActorStep::from_actor(index as u32, actor, yieldpoint))
         .collect()
+}
+
+fn deterministically_permute_actors(actors: &mut [crate::PhysicalScenarioActor], seed: ReplaySeed) {
+    let mut state = seed.value();
+    for upper in (1..actors.len()).rev() {
+        state = next_replay_word(state);
+        actors.swap(upper, (state as usize) % (upper + 1));
+    }
+}
+
+const fn next_replay_word(mut state: u64) -> u64 {
+    state ^= state << 13;
+    state ^= state >> 7;
+    state ^= state << 17;
+    state
 }

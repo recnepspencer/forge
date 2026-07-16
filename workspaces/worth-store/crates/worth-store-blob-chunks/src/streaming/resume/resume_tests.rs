@@ -40,13 +40,15 @@ fn public_streaming_ingest_requires_and_records_resume_session_admission() {
     let ingest = run_resumable_streaming_ingest(
         request(),
         resume_admission,
-        BlobStreamingWindow::bounded(4).unwrap(),
-        allocation,
-        envelopes,
-        pressure,
+        crate::BlobStreamingIngestExecution::new(
+            BlobStreamingWindow::bounded(4).unwrap(),
+            allocation,
+            envelopes,
+            pressure,
+            CounterEvidenceStrength::Exact,
+        ),
         source_frames(),
         &mut TestChunkWriter,
-        CounterEvidenceStrength::Exact,
     )
     .unwrap();
 
@@ -76,13 +78,15 @@ fn public_streaming_ingest_denies_request_not_bound_to_resume_session() {
     let denial = run_resumable_streaming_ingest(
         request_for_total_bytes(8),
         resume_admission,
-        BlobStreamingWindow::bounded(4).unwrap(),
-        allocation,
-        envelopes,
-        pressure,
+        crate::BlobStreamingIngestExecution::new(
+            BlobStreamingWindow::bounded(4).unwrap(),
+            allocation,
+            envelopes,
+            pressure,
+            CounterEvidenceStrength::Exact,
+        ),
         source_frames(),
         &mut TestChunkWriter,
-        CounterEvidenceStrength::Exact,
     )
     .expect_err("mismatched request must not enter resume-bound ingest");
 

@@ -23,7 +23,7 @@ pub enum BlobCloseoutShortcutInput {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlobCloseoutRequest {
-    Canonical(BlobCloseoutCertificationInput),
+    Canonical(Box<BlobCloseoutCertificationInput>),
     Shortcut(BlobCloseoutShortcutInput),
 }
 

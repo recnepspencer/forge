@@ -20,26 +20,28 @@ pub struct BlobChunkReachabilityProofSet {
     pub(super) counters: BlobReachabilityCounterSnapshot,
 }
 
+pub(crate) struct BlobReachabilityProofSetParts {
+    pub(crate) authority: BlobReachabilityAuthorityKey,
+    pub(crate) reachable_chunks: Vec<BlobChunkIdentity>,
+    pub(crate) stored_digest: StoredChunkDigest,
+    pub(crate) security_metadata: BlobChunkSecurityMetadataWitness,
+    pub(crate) reference_edges: Vec<StableDigest>,
+    pub(crate) protected_holds: Vec<StableDigest>,
+    pub(crate) orphan_candidates: Vec<BlobChunkIdentity>,
+    pub(crate) counters: BlobReachabilityCounterSnapshot,
+}
+
 impl BlobChunkReachabilityProofSet {
-    pub(crate) fn construct(
-        authority: BlobReachabilityAuthorityKey,
-        reachable_chunks: Vec<BlobChunkIdentity>,
-        stored_digest: StoredChunkDigest,
-        security_metadata: BlobChunkSecurityMetadataWitness,
-        reference_edges: Vec<StableDigest>,
-        protected_holds: Vec<StableDigest>,
-        orphan_candidates: Vec<BlobChunkIdentity>,
-        counters: BlobReachabilityCounterSnapshot,
-    ) -> Self {
+    pub(crate) fn construct(parts: BlobReachabilityProofSetParts) -> Self {
         Self {
-            authority,
-            reachable_chunks,
-            stored_digest,
-            security_metadata,
-            reference_edges,
-            protected_holds,
-            orphan_candidates,
-            counters,
+            authority: parts.authority,
+            reachable_chunks: parts.reachable_chunks,
+            stored_digest: parts.stored_digest,
+            security_metadata: parts.security_metadata,
+            reference_edges: parts.reference_edges,
+            protected_holds: parts.protected_holds,
+            orphan_candidates: parts.orphan_candidates,
+            counters: parts.counters,
         }
     }
 

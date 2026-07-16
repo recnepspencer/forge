@@ -33,7 +33,7 @@ fn execution_request_carries_admitted_scope_profile_and_requirement() {
             StoreDurabilityFileSyncKind::Fdatasync,
         )
         .with_ordering_barrier_completed()
-        .with_persisted_artifact(std::path::PathBuf::from("request-artifact"), 1),
+        .with_persisted_artifact(std::path::PathBuf::from("request-artifact"), 0, 1),
     };
 
     let proof = StoreDurabilityExecutionSession::for_owned_backend(&mut backend)

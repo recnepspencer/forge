@@ -77,7 +77,7 @@ fn io_qos_background_pacing_certification_preserves_all_outcomes() {
     ];
 
     for (actual, expected, expected_kind, expected_debt) in cases {
-        let expected_counters = counters_for(expected);
+        let expected_counters = counters_for(&expected);
         let evidence = certify_io_qos_background_pacing(actual, expected)
             .expect("independently built equivalent background pacing should certify");
         assert_eq!(evidence.outcome(), expected_kind);

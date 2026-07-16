@@ -20,4 +20,10 @@ impl StoreCurrentAuthorityIdentity {
     pub const fn fingerprint(self) -> [u8; 32] {
         self.0
     }
+
+    /// Reconstructs comparison-only identity from a checksummed durable record.
+    /// This value cannot mint or substitute for a current-authority witness.
+    pub const fn from_persisted_fingerprint(fingerprint: [u8; 32]) -> Self {
+        Self(fingerprint)
+    }
 }

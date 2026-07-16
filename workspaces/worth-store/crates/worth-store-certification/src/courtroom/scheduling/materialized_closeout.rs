@@ -73,6 +73,24 @@ pub struct S6ReadinessCertificationProofTopology {
     freshness_readmitted_boundaries: usize,
 }
 
+pub(crate) struct S6ReadinessCertificationProofTopologyParts {
+    pub(crate) resolution_success: bool,
+    pub(crate) lowering_success: bool,
+    pub(crate) readiness_success: bool,
+    pub(crate) execution_success: bool,
+    pub(crate) resolved_current: bool,
+    pub(crate) lowered_current: bool,
+    pub(crate) readmitted_current: bool,
+    pub(crate) ready_stage_execution_ready: bool,
+    pub(crate) executed_stage_executed: bool,
+    pub(crate) executed_current: bool,
+    pub(crate) identity_bound: bool,
+    pub(crate) lane_binding_bound: bool,
+    pub(crate) readiness_readmission_boundaries: usize,
+    pub(crate) executed_readmission_boundaries: usize,
+    pub(crate) freshness_readmitted_boundaries: usize,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct S6MaterializedCertificationAdoptionReceipt {
     canonical_execution_identity_tag: u64,
@@ -172,39 +190,23 @@ impl S6ReadinessResidualDebtEvidenceRow {
 }
 
 impl S6ReadinessCertificationProofTopology {
-    pub const fn new(
-        resolution_success: bool,
-        lowering_success: bool,
-        readiness_success: bool,
-        execution_success: bool,
-        resolved_current: bool,
-        lowered_current: bool,
-        readmitted_current: bool,
-        ready_stage_execution_ready: bool,
-        executed_stage_executed: bool,
-        executed_current: bool,
-        identity_bound: bool,
-        lane_binding_bound: bool,
-        readiness_readmission_boundaries: usize,
-        executed_readmission_boundaries: usize,
-        freshness_readmitted_boundaries: usize,
-    ) -> Self {
+    pub(crate) const fn new(parts: S6ReadinessCertificationProofTopologyParts) -> Self {
         Self {
-            resolution_success,
-            lowering_success,
-            readiness_success,
-            execution_success,
-            resolved_current,
-            lowered_current,
-            readmitted_current,
-            ready_stage_execution_ready,
-            executed_stage_executed,
-            executed_current,
-            identity_bound,
-            lane_binding_bound,
-            readiness_readmission_boundaries,
-            executed_readmission_boundaries,
-            freshness_readmitted_boundaries,
+            resolution_success: parts.resolution_success,
+            lowering_success: parts.lowering_success,
+            readiness_success: parts.readiness_success,
+            execution_success: parts.execution_success,
+            resolved_current: parts.resolved_current,
+            lowered_current: parts.lowered_current,
+            readmitted_current: parts.readmitted_current,
+            ready_stage_execution_ready: parts.ready_stage_execution_ready,
+            executed_stage_executed: parts.executed_stage_executed,
+            executed_current: parts.executed_current,
+            identity_bound: parts.identity_bound,
+            lane_binding_bound: parts.lane_binding_bound,
+            readiness_readmission_boundaries: parts.readiness_readmission_boundaries,
+            executed_readmission_boundaries: parts.executed_readmission_boundaries,
+            freshness_readmitted_boundaries: parts.freshness_readmitted_boundaries,
         }
     }
 

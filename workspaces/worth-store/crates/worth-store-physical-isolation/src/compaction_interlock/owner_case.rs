@@ -12,15 +12,41 @@ pub enum CompactionCutoverState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CompactionOwnerCaseId(&'static str);
+pub enum CompactionOwnerCaseId {
+    LowerRewrite,
+    PublishRewrite,
+    AdmitRecoveryVisibility,
+    DeferReclaim,
+    DrainReclaimAfterReadRelease,
+    InPlaceOverwriteDenied,
+    EarlyReclaimDenied,
+    StaleEpochReuseDenied,
+    BackendResidueCandidateSelectionDenied,
+    LatchHierarchyInversionDenied,
+    MixedRootReadDenied,
+}
 
 impl CompactionOwnerCaseId {
-    pub(super) const fn owned(name: &'static str) -> Self {
-        Self(name)
-    }
-
     pub const fn name(self) -> &'static str {
-        self.0
+        match self {
+            Self::LowerRewrite => "physical.compaction.lower_rewrite",
+            Self::PublishRewrite => "physical.compaction.publish_rewrite",
+            Self::AdmitRecoveryVisibility => "physical.compaction.admit_recovery_visibility",
+            Self::DeferReclaim => "physical.compaction.defer_reclaim",
+            Self::DrainReclaimAfterReadRelease => {
+                "physical.compaction.drain_reclaim_after_read_release"
+            }
+            Self::InPlaceOverwriteDenied => "physical.compaction.deny_in_place_overwrite",
+            Self::EarlyReclaimDenied => "physical.compaction.deny_early_reclaim",
+            Self::StaleEpochReuseDenied => "physical.compaction.deny_stale_epoch_reuse",
+            Self::BackendResidueCandidateSelectionDenied => {
+                "physical.compaction.deny_backend_residue"
+            }
+            Self::LatchHierarchyInversionDenied => {
+                "physical.compaction.deny_latch_hierarchy_inversion"
+            }
+            Self::MixedRootReadDenied => "physical.compaction.deny_mixed_root_read",
+        }
     }
 }
 

@@ -5,7 +5,7 @@ use super::super::{
 
 #[derive(Debug)]
 enum MembershipActivationCase {
-    Admitted(worth_store_lsm_authority::LsmMembershipActivationDeclaration),
+    Admitted(Box<worth_store_lsm_authority::LsmMembershipActivationDeclaration>),
     Denied(BaselineLsmExecutionAdmissionDenial),
 }
 
@@ -29,7 +29,7 @@ impl LsmMembershipActivationOutcome {
     ) -> Self {
         Self {
             case: match result {
-                Ok(value) => MembershipActivationCase::Admitted(value),
+                Ok(value) => MembershipActivationCase::Admitted(Box::new(value)),
                 Err(denial) => MembershipActivationCase::Denied(denial),
             },
         }
@@ -51,7 +51,7 @@ impl LsmMembershipActivationOutcome {
         BaselineLsmExecutionAdmissionDenial,
     > {
         match self.case {
-            MembershipActivationCase::Admitted(value) => Ok(value),
+            MembershipActivationCase::Admitted(value) => Ok(*value),
             MembershipActivationCase::Denied(denial) => Err(denial),
         }
     }

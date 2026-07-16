@@ -31,9 +31,7 @@ fn every_required_resource_unit_denies_when_capacity_is_insufficient() {
             ForegroundReservationCapacityAdmissionRequest::new(
                 ForegroundReservationCapacityAuthority::store_owned(),
                 lane,
-                &backend,
-                &readiness,
-                &security,
+                ForegroundReservationAdmissionBoundary::new(&backend, &readiness, &security),
                 arbitration,
                 requested,
                 available,

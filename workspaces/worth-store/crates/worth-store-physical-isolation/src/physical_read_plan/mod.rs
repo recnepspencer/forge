@@ -26,6 +26,7 @@ pub use handle::StablePhysicalReadHandle;
 pub use hazard::PublishedReaderHazard;
 pub use intent::UnprotectedReadIntent;
 pub(crate) use known_footprint_admission::admit_known_footprint_read;
+pub(crate) use plan::PhysicalReadPlanCompletion;
 pub use plan::{
     admit_seed_stable_read_plan, physical_epoch_vector_for_current_root, SeedStableReadPlan,
     StablePhysicalReadPlan, StablePhysicalReadPlanAdmission,

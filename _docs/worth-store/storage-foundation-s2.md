@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_store_roadmap_2.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/worth_store_roadmap_2.md)
+> **Roadmap parent:** [physical-database-roadmap.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/physical-database-roadmap.md)
 >
 > **Primary prerequisite:** `S.1 Physical Page, Segment, And Extent Substrate`
 >
@@ -63,11 +63,11 @@ copied, streamed, or materialized at any point in an operation?
   protects visible cost. S.2 must expose resident-byte, pinned-page,
   dirty-page, allocation, copy, eviction, hit/miss, read-ahead, write-behind,
   and materialization counters at the boundary being claimed.
-- `worth_store_roadmap_2.md`
+- `physical-database-roadmap.md`
   places S.2 after physical page/segment/extent structure and before physical
   integrity. The roadmap requires bounded resident memory and exact allocation
   behavior for stores larger than memory.
-- `worth_store_roadmap.md`
+- `runtime-integration-roadmap.md`
   keeps canonical semantic truth above physical storage. S.2 may make physical
   memory behavior explicit, but it must not become a semantic runtime arena or
   replace `worth-relational` ownership of in-memory truth.

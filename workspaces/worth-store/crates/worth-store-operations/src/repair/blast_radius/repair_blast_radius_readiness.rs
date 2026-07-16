@@ -5,8 +5,7 @@ use worth_store_security::{
 };
 
 use crate::{
-    RepairBlastRadiusCounterSnapshot, RepairBlastRadiusDenial, RepairPhysicalRegion,
-    RepairReadPlan, S10RepairBlastRadiusHandoff,
+    RepairBlastRadiusCounterSnapshot, RepairBlastRadiusDenial, RepairPhysicalRegion, RepairReadPlan,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -54,10 +53,6 @@ impl RepairBlastRadiusReadiness {
                 counters: self.counters.rejected_cross_scope_region().denied(),
             })
         }
-    }
-
-    pub fn from_backup_repair_handoff(handoff: S10RepairBlastRadiusHandoff) -> Self {
-        handoff.into_readiness()
     }
 
     pub fn physical_region(&self) -> &RepairPhysicalRegion {

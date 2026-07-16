@@ -118,8 +118,7 @@ pub(crate) fn publish_shared_scope_generation(
         root_publication_with_bytes_and_chunk_size(scope_case, bytes, chunk_size);
     let receipt = crate::lifecycle::generation_registry_test_support::
         lifecycle_receipt_for_publication_with_identity(
-            scope_case,
-            object_case,
+            crate::lifecycle::generation_registry_test_support::PublicationIdentityCase::new(scope_case, object_case),
             generation_sequence,
             root.chunk_tree_root().clone(),
             root.logical_content_digest().clone(),

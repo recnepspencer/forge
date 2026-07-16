@@ -26,7 +26,7 @@ pub struct DeadlockDetectionReport {
 
 #[derive(Debug)]
 pub enum LatchWaitForGraphAdmissionDenial {
-    BoundExceeded(LatchDeniedBeforeWaitEvidence),
+    BoundExceeded(Box<LatchDeniedBeforeWaitEvidence>),
     Evidence(LatchCounterEvidenceDenial),
 }
 
@@ -75,9 +75,9 @@ impl LatchWaitForGraph {
         max_edges: usize,
     ) -> Result<Self, LatchWaitForGraphAdmissionDenial> {
         if edges.len() > max_edges {
-            return Err(LatchWaitForGraphAdmissionDenial::BoundExceeded(
+            return Err(LatchWaitForGraphAdmissionDenial::BoundExceeded(Box::new(
                 wait_graph_bound_denial_evidence(edges.len())?,
-            ));
+            )));
         }
         Ok(Self { edges, max_edges })
     }

@@ -18,9 +18,9 @@ pub use ingest::{
     reject_scalar_backend_api_as_streaming_ingest, BlobStreamingChunkWriter,
     BlobStreamingContentFrontier, BlobStreamingCounterBackedPerformanceReceipt,
     BlobStreamingIngest, BlobStreamingIngestCounterSnapshot, BlobStreamingIngestDenial,
-    BlobStreamingIngestRequest, BlobStreamingPressureAdmission, BlobStreamingResidencyProof,
-    BlobStreamingSourceFrame, BlobStreamingWindow, BlobStreamingWrittenChunk,
-    LargeRecordStreamingEnvelope, LargeRecordStreamingEnvelopeDenial,
+    BlobStreamingIngestExecution, BlobStreamingIngestRequest, BlobStreamingPressureAdmission,
+    BlobStreamingResidencyProof, BlobStreamingSourceFrame, BlobStreamingWindow,
+    BlobStreamingWrittenChunk, LargeRecordStreamingEnvelope, LargeRecordStreamingEnvelopeDenial,
 };
 pub use operation_counters::BlobChunkStreamingCounterSnapshot;
 #[cfg(test)]
@@ -28,8 +28,9 @@ pub(crate) use read::test_support::layout_runtime_case;
 pub use read::{
     reject_full_blob_vec_as_streaming_read, BlobStreamingReadAdmission,
     BlobStreamingReadCounterBackedPerformanceReceipt, BlobStreamingReadCounterSnapshot,
-    BlobStreamingReadDenial, BlobStreamingReadObservation, BlobStreamingReadObservedChunk,
-    BlobStreamingReadRequest, BlobStreamingReadWindow, BlobStreamingVerifiedRead,
+    BlobStreamingReadDenial, BlobStreamingReadExecution, BlobStreamingReadObservation,
+    BlobStreamingReadObservedChunk, BlobStreamingReadRequest, BlobStreamingReadWindow,
+    BlobStreamingVerifiedRead,
 };
 pub use resume::{
     run_resumable_streaming_ingest, BlobStreamingResumeAdmission, BlobStreamingResumePosture,

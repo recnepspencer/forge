@@ -13,7 +13,7 @@ use worth_store_wal::{
 };
 
 use super::super::{
-    begin_durability_fixture, durable_record_binding, manifest_receipt_for_artifact,
+    begin_durability_fixture, durable_record_binding_with_lsn, manifest_receipt_for_artifact,
     physical_compaction_fixture, wal_receipt, wal_scope, PreExecutionBudgetEnvelope,
     StoreKeyVersionPosture, StoreLegacySecurityPosture, WalRecordFamily,
 };
@@ -26,6 +26,7 @@ pub(super) struct LsmExecutionWorld {
     pub physical_publication: CompactionRewritePublication,
     pub output: AdmittedWalAppendReceipt,
     pub output_path: std::path::PathBuf,
+    pub output_offset: u64,
 }
 
 pub(super) fn world(request_sequence: u64, record_sequences: [u64; 3]) -> LsmExecutionWorld {
@@ -49,7 +50,14 @@ pub(super) fn world(request_sequence: u64, record_sequences: [u64; 3]) -> LsmExe
     ];
     let records: [(BlobWalRecordEnvelope, AdmittedWalAppendReceipt); 3] =
         std::array::from_fn(|index| {
-            durable_record_binding(key, record_sequences[index], kinds[index])
+            durable_record_binding_with_lsn(
+                key,
+                record_sequences[index],
+                kinds[index],
+                1,
+                1,
+                41 + index as u64,
+            )
         });
     let mut session =
         worth_store_lsm_authority::open_lsm_membership(&records[0].1, security.witnesses())
@@ -65,13 +73,14 @@ pub(super) fn world(request_sequence: u64, record_sequences: [u64; 3]) -> LsmExe
         .unwrap();
     let (physical_intent, physical_publication) = physical_compaction_fixture();
     let output_scope = wal_scope(
-        record_sequences[2].checked_add(1).unwrap(),
+        request_sequence.checked_add(1).unwrap(),
         plan.output_frame_digest(&physical_intent),
         4096,
     );
     let output_artifact = LsmMembershipArtifactDeclaration::compaction_output(&output_scope);
     let output = admit_durable_append(&wal_receipt(output_scope, output_artifact.bytes())).unwrap();
     let output_path = output.persisted_path().to_path_buf();
+    let output_offset = output.persisted_offset();
     LsmExecutionWorld {
         session,
         plan,
@@ -80,6 +89,7 @@ pub(super) fn world(request_sequence: u64, record_sequences: [u64; 3]) -> LsmExe
         physical_publication,
         output,
         output_path,
+        output_offset,
     }
 }
 

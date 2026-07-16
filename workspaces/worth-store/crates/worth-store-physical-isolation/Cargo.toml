@@ -6,12 +6,15 @@ license.workspace = true
 description = "Roadmap 2 S.5 latches, epochs, stable read plans, and reclaim barriers."
 
 [dependencies]
+fs4 = "0.8"
+sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-authority.workspace = true
 worth-store-budgets.workspace = true
 worth-store-buffer-pool.workspace = true
 worth-store-contracts.workspace = true
+worth-store-physical-backend.workspace = true
 worth-store-physical-format.workspace = true
 worth-store-physical-integrity.workspace = true
 worth-store-recovery-physics.workspace = true
@@ -23,7 +26,9 @@ certification-authority = ["worth-store-recovery-physics/certification-test-auth
 phase20-layout-rule-construction = []
 
 [dev-dependencies]
+tempfile = "3"
 worth-store-layout-indexes = { path = "../worth-store-layout-indexes" }
+worth-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
 worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
 worth-store-wal = { workspace = true, features = ["certification-authority"] }
 

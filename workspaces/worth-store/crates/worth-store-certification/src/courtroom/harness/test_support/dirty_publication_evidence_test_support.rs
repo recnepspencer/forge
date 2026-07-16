@@ -9,8 +9,8 @@ use worth_store_contracts::{
 use worth_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness,
-    PhysicalPageId, PhysicalPublicationState, PhysicalRecordSlot, PhysicalReferenceAuthority,
-    PhysicalReferenceValidationWitness, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
+    PhysicalPageId, PhysicalRecordSlot, PhysicalReferenceAuthority,
+    PhysicalReferenceValidationWitness, PhysicalSegmentId,
 };
 use worth_store_readiness::{
     close_physical_substrate_readiness, prove_physical_substrate_readiness,
@@ -22,7 +22,10 @@ pub(crate) fn admit_payload_frame(
     page_value: u64,
     payload: &[u8],
 ) -> ResidentFrameAdmission {
-    let frame = frame_bytes(generation_value, payload);
+    let frame = crate::physical_fixture_encoding::record_frame_bytes(
+        slot_cell(generation_value, page_value),
+        payload,
+    );
     let request = load_request_from_frame(generation_value, page_value, &frame);
     let payload = header_authority()
         .payload_view(&frame, request.header())
@@ -99,18 +102,13 @@ fn header_authority() -> PhysicalHeaderAuthority {
     )
 }
 
-fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalFrameKind::RecordFrame.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation_value.to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
-    bytes.extend_from_slice(payload);
-    bytes
+fn slot_cell(
+    generation_value: u64,
+    page_value: u64,
+) -> worth_store_physical_format::SlotGenerationCell {
+    PhysicalGenerationAuthority::for_canonical_physical_format()
+        .slot_cell(segment(1), page(page_value), slot(3))
+        .with_slot_generation(generation(generation_value))
 }
 
 fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {

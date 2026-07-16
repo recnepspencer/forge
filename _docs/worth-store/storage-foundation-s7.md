@@ -41,7 +41,7 @@ simulation harness extension slots into real blob lifecycle authority.
   exact chunk, byte, allocation, residency, dedupe, reachability, placement,
   and reclaim counters, with tests that fail if whole-object materialization
   sneaks in.
-- `worth_store_roadmap_2.md` protects the physical database foundation.
+- `physical-database-roadmap.md` protects the physical database foundation.
   Roadmap 2 requires S.7 to make multi-GB blobs native, constant-memory,
   content-addressed, secure-scope-preserving, partially replicable, and
   retention-safe before S.8 layout discipline and later S.10/S.11/S.12 work.

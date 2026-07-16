@@ -26,7 +26,8 @@ pub use fresh_runtime_execution::{
     FreshRuntimeRecoveryExecution, FreshRuntimeRecoveryWitness, RecoveryRuntimeClassification,
 };
 pub use persisted_artifact_materialization::{
-    CheckpointManifestMaterialization, CheckpointPageImageMaterialization,
+    CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
+    CheckpointManifestSourceMaterialization, CheckpointPageImageMaterialization,
     PersistedRecoveryArtifactMaterialization, WalRedoFrameMaterialization,
 };
 pub use persisted_artifacts::{

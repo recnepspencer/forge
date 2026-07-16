@@ -1,13 +1,14 @@
+use crate::header::encode_record_frame_header;
 use crate::page_record::slot_directory::append_occupied_entry;
 use crate::{
     FramedRecordPayload, FramedRecordView, PageGenerationCell, PageRecordCounterSnapshot,
     PageRecordDenial, PageRecordDenialKind, PhysicalByteOrder, PhysicalFrameKind,
-    PhysicalGeneration, PhysicalGenerationOwner, PhysicalHeaderAuthority,
-    PhysicalHeaderDecodeDenial, PhysicalHeaderDecodeDenialKind, PhysicalHeaderDecodeReport,
-    PhysicalHeaderDecodeWitness, PhysicalHeaderKind, PhysicalPageKind, PhysicalPublicationState,
-    PhysicalReference, PhysicalReferenceAdmissionWitness, PhysicalReferenceAuthority,
-    PhysicalReferenceValidationWitness, RecordPagePayload, RecordPlacementWitness, SlotDirectory,
-    SlotDirectoryEntry, SlotDirectoryEntryState, SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
+    PhysicalGenerationOwner, PhysicalHeaderAuthority, PhysicalHeaderDecodeDenial,
+    PhysicalHeaderDecodeDenialKind, PhysicalHeaderDecodeReport, PhysicalHeaderDecodeWitness,
+    PhysicalHeaderKind, PhysicalPageKind, PhysicalReference, PhysicalReferenceAdmissionWitness,
+    PhysicalReferenceAuthority, PhysicalReferenceValidationWitness, RecordPagePayload,
+    RecordPlacementWitness, SlotDirectory, SlotDirectoryEntry, SlotDirectoryEntryState,
+    SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,11 +53,8 @@ impl PhysicalPageRecordAuthority {
         let counters = PageRecordCounterSnapshot::for_append(0);
         reject_page_slot_cell_mismatch(page.page_owner(), request.slot_cell(), counters)?;
         let admission = self.references.admit_page_slot(request.slot_cell());
-        let frame_bytes = encode_record_frame(
-            self.byte_order(),
-            request.slot_cell().generation(),
-            request.payload(),
-        );
+        let frame_bytes =
+            encode_record_frame(self.byte_order(), request.slot_cell(), request.payload());
         let page_payload = append_occupied_entry(
             page.bytes(),
             self.byte_order(),
@@ -355,20 +353,15 @@ fn frame_slice(
 
 fn encode_record_frame(
     byte_order: PhysicalByteOrder,
-    generation: PhysicalGeneration,
+    owner: SlotGenerationCell,
     payload: &[u8],
 ) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalFrameKind::RecordFrame.tag());
-    bytes.extend_from_slice(
-        &byte_order.write_u16(crate::PhysicalFormatVersion::initial_format_version().value()),
-    );
-    bytes.extend_from_slice(&byte_order.write_u16(PHYSICAL_HEADER_LENGTH));
-    bytes.extend_from_slice(&byte_order.write_u32(payload.len() as u32));
-    bytes.extend_from_slice(&byte_order.write_u64(generation.get()));
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&byte_order.write_u32(0));
-    bytes.extend_from_slice(&byte_order.write_u64(0));
+    bytes.extend_from_slice(&encode_record_frame_header(
+        byte_order,
+        owner,
+        payload.len() as u32,
+    ));
     bytes.extend_from_slice(payload);
     bytes
 }

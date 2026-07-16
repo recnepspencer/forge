@@ -8,8 +8,8 @@ use worth_store_physical_backend::{
 use crate::{WalLsnRange, WalSegmentGeneration, WalSegmentId};
 
 use super::{
-    IllegalAcknowledgmentDenial, IllegalAcknowledgmentDenialKind, WalAppendReceipt,
-    WalDurabilityFailure, WalFrameDigest,
+    IllegalAcknowledgmentDenial, IllegalAcknowledgmentDenialKind, WalAppendByteObservation,
+    WalAppendReceipt, WalDurabilityFailure, WalFrameDigest,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -150,8 +150,7 @@ impl<P: BackendDurabilityProfile> WalAppendProgress<P> {
             self.plan.generation,
             self.plan.lsn_range,
             self.plan.frame_digest,
-            self.plan.expected_bytes,
-            self.observed_bytes,
+            WalAppendByteObservation::new(self.plan.expected_bytes, self.observed_bytes),
             self.completed_barriers,
             self.failure,
         ))

@@ -112,20 +112,20 @@ fn extensions_targets_own_capability_and_workload_semantics() {
 
     assert_eq!(
         layout_customization_catalog().admit(support_trust),
-        TransitionOutcome::Denied(FutureLayoutCustomizationDenial::StoreDenied(
+        TransitionOutcome::Denied(FutureLayoutCustomizationDenial::StoreDenied(Box::new(
             StoreLayoutCustomizationDenial::NoStrategySupportsRequestedCapability {
                 capability: FutureLayoutCapabilityRequest::verifier_declared_scan(page_domain),
                 key_domain: page_domain.witness(),
             }
-        ))
+        )))
     );
     assert_eq!(
         layout_customization_catalog().admit(aspect_projection),
-        TransitionOutcome::Denied(FutureLayoutCustomizationDenial::StoreDenied(
+        TransitionOutcome::Denied(FutureLayoutCustomizationDenial::StoreDenied(Box::new(
             StoreLayoutCustomizationDenial::RebuildableProjectionNotYetSupported {
                 key_domain: page_domain.witness(),
             }
-        ))
+        )))
     );
 }
 

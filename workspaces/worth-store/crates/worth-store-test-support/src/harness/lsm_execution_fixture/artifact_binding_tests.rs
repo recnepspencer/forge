@@ -91,7 +91,15 @@ fn artifact_swap_after_record_admission_is_denied_before_membership_admission() 
     let (envelope, durable) = durable_record_binding(key, 91, BlobWalRecordKind::LsmValue);
     let record = LsmMembershipRecord::admit(envelope, &durable, key).unwrap();
     let mut index = open_lsm_index(&durable).unwrap();
-    std::fs::write(durable.persisted_path(), b"substituted-after-admission").unwrap();
+    use std::io::{Seek, SeekFrom, Write};
+    let mut artifact = std::fs::OpenOptions::new()
+        .write(true)
+        .open(durable.persisted_path())
+        .unwrap();
+    artifact
+        .seek(SeekFrom::Start(durable.persisted_offset()))
+        .unwrap();
+    artifact.write_all(b"substituted-after-admission").unwrap();
 
     assert_eq!(
         worth_store_lsm_authority::persist_lsm_membership_record(&mut index, record).into_result(),

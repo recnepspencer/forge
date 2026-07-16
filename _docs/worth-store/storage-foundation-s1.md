@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_store_roadmap_2.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/worth_store_roadmap_2.md)
+> **Roadmap parent:** [physical-database-roadmap.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/physical-database-roadmap.md)
 >
 > **Vision parent:** [worth_store_vision.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/worth_store_vision.md)
 >
@@ -137,12 +137,12 @@ without heap-shaped shortcuts.
   protects the thesis that Store makes truth survive without owning truth
   semantics. S.1 gives survival a physical byte substrate while preserving
   canonical commit envelopes as semantic authority.
-- `worth_store_roadmap.md`
-  protects the first semantic durability sequence and now gates post-13.3
-  platform work on Roadmap 2. S.1 belongs after S.0 reclassification and before
-  S.2 memory residency because physical ids must exist before pages can be
-  leased, pinned, or evicted.
-- `worth_store_roadmap_2.md`
+- `runtime-integration-roadmap.md`
+  requires Part II to consume the closed physical substrate without inheriting
+  the retired semantic Store topology. S.1 belongs after S.0 reclassification
+  and before S.2 memory residency because physical ids must exist before pages
+  can be leased, pinned, or evicted.
+- `physical-database-roadmap.md`
   protects the database-foundation backtrack. Its S.1 sketch requires fixed
   pages, variable extents, physical headers, slot directories, manifests,
   allocation classes, free-space maps, root manifests, and legacy-backend

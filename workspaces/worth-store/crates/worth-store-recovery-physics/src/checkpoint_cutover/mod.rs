@@ -1,3 +1,4 @@
+mod backup_artifact;
 mod checkpoint_capture_mode;
 mod checkpoint_counters;
 mod checkpoint_durability;
@@ -15,6 +16,12 @@ mod wal_retention;
 #[cfg(test)]
 mod tests;
 
+pub use backup_artifact::{
+    verify_bounded_checkpoint_backup_artifact,
+    verify_bounded_checkpoint_backup_artifact_from_reader, BoundedCheckpointBackupDenial,
+    BoundedCheckpointBackupObservation, BoundedCheckpointBackupVerificationRequest,
+    CheckpointBackupArtifact,
+};
 pub use checkpoint_capture_mode::{
     FuzzyCheckpointCertificationModeDenial, FuzzyCheckpointCertificationModeDenialKind,
     SharpCheckpointCertificationMode,

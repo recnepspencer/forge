@@ -1,7 +1,3 @@
-use worth_store_operations_vocabulary::{
-    classify_capsule_chunk_availability, CapsuleChunkAvailabilityPosture,
-};
-
 use crate::capsule_readiness::counters::BlobCapsuleReadinessCounters;
 use crate::capsule_readiness::declaration::{
     BlobCapsuleMaterializationPolicy, BlobCapsuleSliceDeclaration,
@@ -19,6 +15,8 @@ use crate::{
     BlobGenerationObservation, BlobObjectClassification, BlobObjectId,
     BlobStreamingReadObservation, BlobStreamingVerifiedRead, ChunkTreeRoot, LogicalContentDigest,
 };
+
+use super::{classify_blob_capsule_placement_availability, BlobCapsulePlacementAvailability};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlannedBlobCapsuleSlice {
@@ -42,7 +40,7 @@ pub struct ClassifiedBlobCapsuleSlice {
     pub(super) planned: PlannedBlobCapsuleSlice,
     placement_scope: worth_store_security::StoreSecurityScopeIdentity,
     pub(super) placement_class: BlobPlacementClass,
-    pub(super) availability_posture: CapsuleChunkAvailabilityPosture,
+    pub(super) availability_posture: BlobCapsulePlacementAvailability,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -167,7 +165,8 @@ impl BlobCapsuleMaterializationAuthority {
         placement: &AdmittedBlobPlacement,
         quarantines: &[BlobChunkQuarantine],
     ) -> Result<ClassifiedBlobCapsuleSlice, BlobCapsuleReadinessDenial> {
-        let availability_posture = classify_capsule_chunk_availability(placement.cold_state());
+        let availability_posture =
+            classify_blob_capsule_placement_availability(placement.cold_state());
         if current_scope.identity() != self.reachability.security_metadata().identity() {
             return Err(BlobCapsuleReadinessDenial::StaleSecurityScope {
                 counters: planned.counters.record_denied_chunk(),
@@ -182,7 +181,8 @@ impl BlobCapsuleMaterializationAuthority {
         }
         if !matches!(
             availability_posture,
-            CapsuleChunkAvailabilityPosture::HotReady | CapsuleChunkAvailabilityPosture::ColdReady
+            BlobCapsulePlacementAvailability::HotReady
+                | BlobCapsulePlacementAvailability::ColdReady
         ) {
             return Err(BlobCapsuleReadinessDenial::ColdPlacementUnavailable {
                 counters: planned.counters.record_denied_chunk(),

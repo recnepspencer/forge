@@ -26,25 +26,29 @@ pub struct ReclaimPolicyExecutionReceipt {
     counters: ReclaimPolicyCounterSnapshot,
 }
 
+pub(crate) struct AdmittedReclaimPolicyBasis {
+    pub(super) backend: AdmittedBackendCapabilityWitness,
+    pub(super) region: PhysicalReclaimRegion,
+    pub(super) posture: ReclaimPolicyPosture,
+    pub(super) reachability: ReclaimPolicyReachabilityProof,
+    pub(super) security_scope: ReclaimPolicySecurityScope,
+    pub(super) permit: ReclaimPermit,
+    pub(super) handoff_policy: ReclaimLaterHandoffPolicy,
+}
+
 impl AdmittedReclaimPolicy {
     pub(crate) const fn new(
-        backend: AdmittedBackendCapabilityWitness,
-        region: PhysicalReclaimRegion,
-        posture: ReclaimPolicyPosture,
-        reachability: ReclaimPolicyReachabilityProof,
-        security_scope: ReclaimPolicySecurityScope,
-        permit: ReclaimPermit,
-        handoff_policy: ReclaimLaterHandoffPolicy,
+        basis: AdmittedReclaimPolicyBasis,
         counters: ReclaimPolicyCounterSnapshot,
     ) -> Self {
         Self {
-            backend,
-            region,
-            posture,
-            reachability,
-            security_scope,
-            permit,
-            handoff_policy,
+            backend: basis.backend,
+            region: basis.region,
+            posture: basis.posture,
+            reachability: basis.reachability,
+            security_scope: basis.security_scope,
+            permit: basis.permit,
+            handoff_policy: basis.handoff_policy,
             counters,
         }
     }

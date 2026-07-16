@@ -6,8 +6,8 @@ use s5_interleaving_harness_support::{
     independent_verifier_observation, replay_bundle_from_trace, schedule, trace_fixtures,
 };
 use worth_store_physical_certification::{
-    lower_physical_simulation_plan, CoverageGapDenial, ExecutedPhysicalSimulationObservation,
-    OracleDenial, OracleFamilyKind, PhysicalIsolationInterleavingOracle,
+    lower_physical_simulation_plan, CoverageGapDenial, OracleDenial, OracleFamilyKind,
+    PhysicalIsolationInterleavingOracle, PhysicalSimulationBoundaryObservation,
     PhysicalSimulationObserver, PhysicalSimulationScenarioFamily, ReusablePhysicalOracleFamily,
     ShortcutRejectionObservation,
 };
@@ -187,9 +187,10 @@ fn future_chunk_trace_polluted_with_compaction_mutations(
 fn base_raw_trace_builder(
     plan: &worth_store_physical_certification::PhysicalSimulationPlan,
 ) -> worth_store_physical_certification::PhysicalObservationBuilder<'_> {
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(plan).unwrap();
     PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(plan, &execution)
+        .observe_boundary_observation(plan, &execution)
         .unwrap()
         .with_compaction_interlock_observation(compaction_interlock_observation())
         .with_shortcut_rejection_observation(ShortcutRejectionObservation::private_mutation_denied())

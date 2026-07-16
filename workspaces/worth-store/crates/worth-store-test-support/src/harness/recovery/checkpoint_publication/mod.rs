@@ -14,7 +14,7 @@ use crate::{
 use worth_store_physical_certification::{
     lower_physical_simulation_plan, physical_scenario,
     reject_same_run_self_comparison_evidence_attempt, shortcut_denial_from_evidence_bundle_denial,
-    DetachedSimulationReplayParts, ExecutedPhysicalSimulationObservation, ExecutedTranscriptParts,
+    DetachedSimulationReplayParts, ExecutedTranscriptParts, PhysicalSimulationBoundaryObservation,
     FixtureCapabilityDeclaration, FixtureMutationBoundary, ForbiddenShortcutSet,
     LargeStoreFixtureProfile, PhysicalFixtureBuilder, PhysicalInterleavingSchedule,
     PhysicalIsolationCheckpointPublicationCrashLaneOutput,
@@ -37,9 +37,10 @@ use worth_store_physical_isolation::{
 pub fn checkpoint_trace(
     plan: &PhysicalSimulationPlan,
 ) -> worth_store_physical_certification::ObservedPhysicalTrace {
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(plan).unwrap();
     PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(plan, &execution)
+        .observe_boundary_observation(plan, &execution)
         .unwrap()
         .with_scheduled_checkpoint_publication_lane(scheduled_checkpoint_lane_output(plan))
         .unwrap()
@@ -53,9 +54,10 @@ pub fn checkpoint_trace(
 pub fn checkpoint_crash_replay_trace(
     plan: &PhysicalSimulationPlan,
 ) -> worth_store_physical_certification::ObservedPhysicalTrace {
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(plan).unwrap();
     PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(plan, &execution)
+        .observe_boundary_observation(plan, &execution)
         .unwrap()
         .with_scheduled_checkpoint_publication_lane(scheduled_checkpoint_lane_output(plan))
         .unwrap()
@@ -71,9 +73,10 @@ pub fn checkpoint_crash_replay_trace(
 pub fn checkpoint_crash_replay_trace_without_crash_lane(
     plan: &PhysicalSimulationPlan,
 ) -> worth_store_physical_certification::ObservedPhysicalTrace {
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(plan).unwrap();
     PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(plan, &execution)
+        .observe_boundary_observation(plan, &execution)
         .unwrap()
         .with_scheduled_checkpoint_publication_lane(scheduled_checkpoint_lane_output(plan))
         .unwrap()
@@ -119,9 +122,10 @@ pub fn recovery_trace(
 pub fn checkpoint_shortcut_trace(
     plan: &PhysicalSimulationPlan,
 ) -> worth_store_physical_certification::ObservedPhysicalTrace {
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(plan).unwrap();
     PhysicalSimulationObserver::shortcut_rejection()
-        .observe_executed_plan(plan, &execution)
+        .observe_boundary_observation(plan, &execution)
         .unwrap()
         .with_scheduled_checkpoint_shortcut_rejection_lane(
             scheduled_checkpoint_same_run_shortcut_output(plan),
@@ -219,13 +223,15 @@ pub fn scheduled_checkpoint_crash_lane_output(
         PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
             &binding,
             &checkpoint_schedule,
-            &recovery_plan,
-            &recovery_schedule,
-            actor_step_index(
+            worth_store_physical_certification::CheckpointPublicationRecoveryExecution::new(
+                &recovery_plan,
                 &recovery_schedule,
-                PhysicalScenarioActorRole::RecoveryDriver,
+                actor_step_index(
+                    &recovery_schedule,
+                    PhysicalScenarioActorRole::RecoveryDriver,
+                ),
+                &recovery_trace,
             ),
-            &recovery_trace,
             &checkpoint_origin(),
             checkpoint_evidence(),
         )

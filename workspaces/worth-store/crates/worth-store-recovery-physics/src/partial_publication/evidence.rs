@@ -56,11 +56,11 @@ impl PartialPublicationEvidence {
     ) -> Self {
         let persisted_digest = format!("unadmitted-durable-page:{:?}", denial.kind());
         Self {
-            kind: PartialPublicationEvidenceKind::NoUndoHazard(
+            kind: PartialPublicationEvidenceKind::NoUndoHazard(Box::new(
                 NoUndoPartialPublicationClassification::from_unadmitted_durable_page_mutation(
                     denial,
                 ),
-            ),
+            )),
             persisted_digest,
         }
     }
@@ -69,7 +69,7 @@ impl PartialPublicationEvidence {
         let classification =
             NoUndoPartialPublicationClassification::from_page_flush_recovery_receipt(&receipt);
         Self {
-            kind: PartialPublicationEvidenceKind::NoUndoHazard(classification),
+            kind: PartialPublicationEvidenceKind::NoUndoHazard(Box::new(classification)),
             persisted_digest: format!(
                 "page-flush-recovery:{:?}:{:?}",
                 receipt.page_lsn(),
@@ -104,6 +104,6 @@ pub(crate) enum PartialPublicationEvidenceKind {
     LiveAcknowledgmentMemoryOnly,
     LogOnly,
     TornPublication(TornPublicationDenial),
-    NoUndoHazard(NoUndoPartialPublicationClassification),
+    NoUndoHazard(Box<NoUndoPartialPublicationClassification>),
     InsufficientPersistedEvidence { ambiguity_digest: String },
 }

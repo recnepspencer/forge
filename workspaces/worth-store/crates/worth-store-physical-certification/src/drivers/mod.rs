@@ -2,6 +2,7 @@ mod admission;
 mod boundary;
 mod capability_profile;
 mod contract;
+mod contract_set;
 mod receipts;
 mod yieldpoint;
 mod yieldpoint_requirements;

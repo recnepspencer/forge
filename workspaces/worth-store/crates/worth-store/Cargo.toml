@@ -18,7 +18,6 @@ worth-store-claim-boundaries.workspace = true
 worth-store-compatibility.workspace = true
 worth-store-contracts.workspace = true
 worth-store-extensions.workspace = true
-worth-store-formal-models.workspace = true
 worth-store-io-scheduler.workspace = true
 worth-store-layout-indexes.workspace = true
 worth-store-live-query.workspace = true

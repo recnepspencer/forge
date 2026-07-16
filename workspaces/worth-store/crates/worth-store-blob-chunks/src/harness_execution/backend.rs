@@ -1,37 +1,25 @@
+use crate::{AdmittedBlobCustody, BlobCustodyPurpose};
 use worth_foundational::{aspects, AspectContract, AspectValue, InternedString, ScalarAspectType};
 use worth_store_aspect_native::{
     StoreAspectAuthorityInput, StoreAspectBoundaryFact, StoreAspectIdentity,
     StorePhysicalBoundaryWitness,
 };
 use worth_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
-use worth_store_operations_vocabulary::{
-    BackupExportCustodyDeclaration, BackupExportCustodyMode, BackupExportCustodyReadiness,
-};
 use worth_store_physical_backend::{
     AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionRequest,
     BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet, BackendMediaAssumptionSet,
     BackendRebindTriggers, BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
 };
 use worth_store_physical_format::{
-    PhysicalBinaryEncodingWitness, PhysicalChunkChecksumAuthority,
+    PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalChunkChecksumAuthority,
     PhysicalChunkPayloadIntegrityWitness, PhysicalGeneration, PhysicalGenerationAuthority,
     PhysicalHeaderAuthority, PhysicalPageId, PhysicalPageKind, PhysicalPageRecordAuthority,
-    PhysicalPublicationState, PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId,
-    SlotAppendRequest, StorePhysicalChunkWriteReceipt, PHYSICAL_HEADER_LENGTH,
+    PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId, SlotAppendRequest,
+    StorePhysicalChunkWriteReceipt,
 };
-use worth_store_security::StoreKeyVersionPosture;
 
-pub(super) fn export_readiness(case: &str) -> BackupExportCustodyReadiness {
-    let authority = current_authority(case, "blob-harness-export-readiness");
-    BackupExportCustodyDeclaration::native(
-        &authority,
-        BackupExportCustodyMode::Export,
-        StoreKeyVersionPosture::Current,
-    )
-    .expect("custody declaration")
-    .admit_with_current_authority(&authority)
-    .and_then(BackupExportCustodyReadiness::from_admitted_custody)
-    .expect("custody readiness")
+pub(super) fn export_readiness(case: &str) -> AdmittedBlobCustody {
+    crate::test_support::admitted_blob_custody(case, BlobCustodyPurpose::Export)
 }
 
 pub(super) fn admitted_backend() -> AdmittedBackendCapabilityWitness {
@@ -137,14 +125,14 @@ fn record_receipt(bytes: &[u8]) -> StorePhysicalChunkWriteReceipt {
         .with_slot_generation(generation(9));
     let append = records
         .append_record(
-            admitted_page(&records, page_cell, &page_bytes(generation(5), &[])),
+            admitted_page(&records, page_cell, &page_bytes(page_cell, &[])),
             SlotAppendRequest::ordinary(slot_cell, bytes),
         )
         .expect("append");
     let validation = references
         .validate_page_slot(append.reference_admission(), slot_cell)
         .expect("validation");
-    let reopened_page = page_bytes(generation(5), append.page_payload());
+    let reopened_page = page_bytes(page_cell, append.page_payload());
     let located = records
         .locate_record(
             admitted_page(&records, page_cell, &reopened_page),
@@ -167,16 +155,17 @@ fn admitted_page<'a>(
         .expect("payload")
 }
 
-fn page_bytes(generation: PhysicalGeneration, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalPageKind::DataPage.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation.get().to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
+fn page_bytes(cell: PageGenerationCell, payload: &[u8]) -> Vec<u8> {
+    let binary = PhysicalBinaryEncodingWitness::physical_format_canonical().expect("encoding");
+    let headers = PhysicalHeaderAuthority::for_canonical_physical_format(binary);
+    let mut bytes = Vec::with_capacity(
+        usize::from(worth_store_physical_format::PHYSICAL_HEADER_LENGTH) + payload.len(),
+    );
+    bytes.extend_from_slice(&headers.encode_page_header(
+        cell,
+        PhysicalPageKind::DataPage,
+        payload.len().try_into().expect("bounded test payload"),
+    ));
     bytes.extend_from_slice(payload);
     bytes
 }

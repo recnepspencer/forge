@@ -156,7 +156,7 @@ pub const CASES: &[(&str, &str)] = &[
         ),
         (
             "lsm_replacement_output_is_not_constructible.rs",
-            "are private",
+            "due to private fields",
         ),
         (
             "generic_checkpoint_cannot_replace_lsm_membership.rs",

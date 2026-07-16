@@ -66,9 +66,9 @@ impl World {
                 crate::foreground_reservation::ForegroundReservationCapacityAuthority::store_owned(
                 ),
                 lane,
-                &backend,
-                &readiness,
-                &security,
+                crate::foreground_reservation::ForegroundReservationAdmissionBoundary::new(
+                    &backend, &readiness, &security,
+                ),
                 arbitration,
                 lane.requested_budget(),
                 foreground_capacity_budget(),

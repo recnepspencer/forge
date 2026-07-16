@@ -21,6 +21,10 @@ pub enum PhysicalPublicationDenial {
     ReclaimBeforeReadPlanRelease {
         old_reachability: PhysicalReadProtectedFootprintBasis,
     },
+    PublicationStoreIo,
+    PersistedRootMismatch,
+    ConcurrentRootPublication,
+    MissingRecoveryPublicationBinding,
 }
 
 impl From<PhysicalOrderingContractDenial> for PhysicalPublicationDenial {

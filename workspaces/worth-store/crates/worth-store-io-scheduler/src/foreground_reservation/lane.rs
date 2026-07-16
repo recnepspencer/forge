@@ -96,37 +96,31 @@ impl ForegroundLaneDeclaration {
     }
 
     pub const fn backend_requirement_is_store_owned(self) -> bool {
-        match (self.lane, self.backend_requirement) {
+        matches!(
+            (self.lane, self.backend_requirement),
             (
                 ForegroundIoLaneKind::PointRead,
                 IoSchedulerBackendCapabilityRequirement::DirectIo,
-            )
-            | (
+            ) | (
                 ForegroundIoLaneKind::RangeRead,
                 IoSchedulerBackendCapabilityRequirement::DirectIo,
-            )
-            | (
+            ) | (
                 ForegroundIoLaneKind::CommitCriticalWalWrite,
                 IoSchedulerBackendCapabilityRequirement::Fsync,
-            )
-            | (
+            ) | (
                 ForegroundIoLaneKind::OrdinaryPageWrite,
                 IoSchedulerBackendCapabilityRequirement::BufferedFile,
-            )
-            | (
+            ) | (
                 ForegroundIoLaneKind::InteractiveRead,
                 IoSchedulerBackendCapabilityRequirement::DirectIo,
-            )
-            | (
+            ) | (
                 ForegroundIoLaneKind::InternalForegroundRead,
                 IoSchedulerBackendCapabilityRequirement::DirectIo,
-            )
-            | (
+            ) | (
                 ForegroundIoLaneKind::InternalForegroundRead,
                 IoSchedulerBackendCapabilityRequirement::SecureFrameIo,
-            ) => true,
-            _ => false,
-        }
+            )
+        )
     }
 
     pub const fn envelope(self) -> Option<ForegroundLatencyEnvelope> {

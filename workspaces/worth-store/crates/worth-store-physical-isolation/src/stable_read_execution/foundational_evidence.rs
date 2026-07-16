@@ -1,17 +1,16 @@
+use super::StablePhysicalReadReceipt;
 use worth_foundational::{
     boundary_evidence, BoundaryArtifactField, BoundaryArtifactId, BoundaryArtifactLocator,
     FoundationalBoundaryEvidenceExecutedReceiptArtifact,
-    FoundationalBoundaryEvidenceFreshnessPosture, FoundationalBoundaryEvidenceReceiptBoundary,
-    FoundationalBoundaryEvidenceSourceBasis, FoundationalDiagnosticCodeId,
-    FoundationalDiagnosticEvidencePosture, FoundationalDiagnosticLocator,
-    FoundationalDiagnosticOutcomeKind, FoundationalDiagnosticProvenanceReadyRow,
-    FoundationalDiagnosticRow, FoundationalDiagnosticScopeId,
-    FoundationalDiagnosticSemanticLabelSet, FoundationalDiagnosticSeverity,
-    FoundationalDiagnosticSubject,
+    FoundationalBoundaryEvidenceFreshnessPosture,
+    FoundationalBoundaryEvidenceProvenanceConstructionDenial,
+    FoundationalBoundaryEvidenceReceiptBoundary, FoundationalBoundaryEvidenceSourceBasis,
+    FoundationalDiagnosticCodeId, FoundationalDiagnosticEvidencePosture,
+    FoundationalDiagnosticLocator, FoundationalDiagnosticOutcomeKind,
+    FoundationalDiagnosticProvenanceReadyRow, FoundationalDiagnosticRow,
+    FoundationalDiagnosticScopeId, FoundationalDiagnosticSemanticLabelSet,
+    FoundationalDiagnosticSeverity, FoundationalDiagnosticSubject,
 };
-use worth_proof::TransitionOutcome;
-
-use super::StablePhysicalReadReceipt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StablePhysicalReadFoundationalEvidence {
@@ -20,14 +19,16 @@ pub struct StablePhysicalReadFoundationalEvidence {
 }
 
 impl StablePhysicalReadFoundationalEvidence {
-    pub(crate) fn lower(receipt: &StablePhysicalReadReceipt) -> Self {
+    pub(crate) fn lower(
+        receipt: &StablePhysicalReadReceipt,
+    ) -> Result<Self, FoundationalBoundaryEvidenceProvenanceConstructionDenial> {
         let locator = receipt_locator(receipt);
         let source_basis = FoundationalBoundaryEvidenceSourceBasis::boundary_artifact(locator);
         let provenance = boundary_evidence()
             .provenance()
             .replay_derived(source_basis)
             .with_freshness(FoundationalBoundaryEvidenceFreshnessPosture::ReconstructedFromReplay)
-            .success_or_panic("S.5 stable read execution provenance");
+            .into_result()?;
         let executed_receipt = boundary_evidence()
             .receipt()
             .execution(FoundationalBoundaryEvidenceReceiptBoundary::boundary_artifact(locator))
@@ -47,10 +48,10 @@ impl StablePhysicalReadFoundationalEvidence {
                 FoundationalDiagnosticEvidencePosture::RetainedDirect,
             ),
         )];
-        Self {
+        Ok(Self {
             executed_receipt,
             diagnostic_rows,
-        }
+        })
     }
 
     pub const fn executed_receipt(&self) -> &FoundationalBoundaryEvidenceExecutedReceiptArtifact {
@@ -76,24 +77,4 @@ fn code(value: &str) -> FoundationalDiagnosticCodeId {
 
 fn scope(value: &str) -> FoundationalDiagnosticScopeId {
     FoundationalDiagnosticScopeId::new(value).unwrap()
-}
-
-trait SuccessOrPanic<T> {
-    fn success_or_panic(self, context: &str) -> T;
-}
-
-impl<T, D, De, St, R, F> SuccessOrPanic<T> for TransitionOutcome<T, D, De, St, R, F>
-where
-    D: core::fmt::Debug,
-    De: core::fmt::Debug,
-    St: core::fmt::Debug,
-    R: core::fmt::Debug,
-    F: core::fmt::Debug,
-{
-    fn success_or_panic(self, context: &str) -> T {
-        match self {
-            TransitionOutcome::Success(value) => value,
-            _ => panic!("{context}: expected success"),
-        }
-    }
 }

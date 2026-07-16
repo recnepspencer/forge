@@ -1,11 +1,17 @@
-use std::io;
-use std::path::Path;
-
-use crate::{BackendTargetProfile, CapabilityEvidenceClass, WalDurabilityBarrierSet};
+use crate::{
+    BackendDurabilityBarrierDenial, BackendDurabilityBarrierDenialKind, BackendDurabilityProfile,
+    BackendDurabilitySupport, BackendTargetProfile, CapabilityEvidenceClass, WalDurabilityBarrier,
+    WalDurabilityBarrierReceipt, WalDurabilityBarrierSet,
+};
 
 use super::{
-    physical_target::StoreDurabilityTarget, StoreDurabilityCounterSnapshot,
-    StoreDurabilityRequirement, StoreDurabilityWriteAccepted,
+    StoreDurabilityCounterSnapshot, StoreDurabilityRequirement, StoreDurabilityWriteAccepted,
+};
+
+mod file_runtime;
+
+pub use file_runtime::{
+    StoreDurabilityAppendInput, StoreDurabilityExecutionBoundary, StoreDurabilityRuntime,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -25,6 +31,7 @@ pub struct StoreDurabilityExecutionProof<S> {
     delayed_syncs: u64,
     failed_syncs: u64,
     persisted_path: std::path::PathBuf,
+    persisted_offset: u64,
     persisted_bytes: u64,
     _seal: StoreDurabilityExecutionSeal,
 }
@@ -60,6 +67,7 @@ pub(crate) struct StoreDurabilityExecutionObservation {
     delayed_syncs: u64,
     failed_syncs: u64,
     persisted_path: Option<std::path::PathBuf>,
+    persisted_offset: u64,
     persisted_bytes: u64,
 }
 
@@ -113,111 +121,10 @@ impl StoreOwnedDurabilityExecution {
             persisted_path: observation
                 .persisted_path
                 .expect("physical completion must bind the persisted artifact"),
+            persisted_offset: observation.persisted_offset,
             persisted_bytes: observation.persisted_bytes,
             _seal: StoreDurabilityExecutionSeal,
         }
-    }
-}
-
-/// Ordinary physical-backend durability executor. Callers submit an admitted
-/// write; only this owner derives completion facts from the required steps.
-#[derive(Debug, Default)]
-pub struct StoreDurabilityRuntime {
-    executions: u64,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StoreDurabilityExecutionBoundary {
-    FileSynchronized,
-    Complete,
-}
-
-impl StoreDurabilityRuntime {
-    pub const fn new() -> Self {
-        Self { executions: 0 }
-    }
-
-    pub fn persist_and_execute<S: Clone>(
-        &mut self,
-        root: &Path,
-        payload: &[u8],
-        accepted: &StoreDurabilityWriteAccepted<S>,
-    ) -> io::Result<StoreDurabilityExecutionProof<S>> {
-        self.persist_and_execute_to(
-            root,
-            payload,
-            accepted,
-            StoreDurabilityExecutionBoundary::Complete,
-        )
-    }
-
-    pub fn persist_and_execute_to<S: Clone>(
-        &mut self,
-        root: &Path,
-        payload: &[u8],
-        accepted: &StoreDurabilityWriteAccepted<S>,
-        boundary: StoreDurabilityExecutionBoundary,
-    ) -> io::Result<StoreDurabilityExecutionProof<S>> {
-        let mut target = StoreDurabilityTarget::persist(root, accepted.requirement(), payload)?;
-        let mut backend = FileDurabilityBackend {
-            target: &mut target,
-            boundary,
-        };
-        let proof = StoreOwnedDurabilityExecution::execute_with_backend(&mut backend, accepted)?;
-        self.executions = self.executions.saturating_add(1);
-        Ok(proof)
-    }
-
-    pub const fn executions(&self) -> u64 {
-        self.executions
-    }
-}
-
-struct FileDurabilityBackend<'target> {
-    target: &'target mut StoreDurabilityTarget,
-    boundary: StoreDurabilityExecutionBoundary,
-}
-
-impl<S> PhysicalStoreDurabilityExecutor<S> for FileDurabilityBackend<'_> {
-    type Error = io::Error;
-
-    fn execute_durability(
-        &mut self,
-        request: StoreDurabilityExecutionRequest<S>,
-    ) -> Result<StoreDurabilityExecutionObservation, Self::Error> {
-        let requirement = request.requirement();
-        match requirement.required_file_sync() {
-            StoreDurabilityFileSyncKind::Fdatasync => self.target.sync_data()?,
-            StoreDurabilityFileSyncKind::Fsync => self.target.sync_all()?,
-        }
-        let mut observation = StoreDurabilityExecutionObservation::new(
-            requirement.required_barriers(),
-            requirement.required_file_sync(),
-        );
-        if self.boundary == StoreDurabilityExecutionBoundary::FileSynchronized {
-            return Ok(observation.with_persisted_artifact(
-                self.target.persisted_path(false).to_path_buf(),
-                self.target.bytes_written(),
-            ));
-        }
-        if requirement.requires_rename_durable() {
-            self.target.rename_publication()?;
-            observation = observation.with_rename_completed();
-        }
-        if requirement.requires_directory_sync() {
-            self.target
-                .sync_parent_namespace(requirement.requires_rename_durable())?;
-            observation = observation.with_directory_sync_completed();
-        }
-        if requirement.requires_ordering_barrier() {
-            observation = observation.with_ordering_barrier_completed();
-        }
-        let rename_completed = observation.rename_completed;
-        observation = observation.with_persisted_artifact(
-            self.target.persisted_path(rename_completed).to_path_buf(),
-            self.target.bytes_written(),
-        );
-        Ok(observation)
     }
 }
 
@@ -279,12 +186,18 @@ impl StoreDurabilityExecutionObservation {
             delayed_syncs: 0,
             failed_syncs: 0,
             persisted_path: None,
+            persisted_offset: 0,
             persisted_bytes: 0,
         }
     }
 
     pub(crate) const fn with_directory_sync_completed(mut self) -> Self {
         self.directory_sync_completed = true;
+        self
+    }
+
+    const fn with_completed_barriers(mut self, barriers: WalDurabilityBarrierSet) -> Self {
+        self.completed_barriers = self.completed_barriers.union(barriers);
         self
     }
 
@@ -301,9 +214,11 @@ impl StoreDurabilityExecutionObservation {
     pub(super) fn with_persisted_artifact(
         mut self,
         persisted_path: std::path::PathBuf,
+        persisted_offset: u64,
         persisted_bytes: u64,
     ) -> Self {
         self.persisted_path = Some(persisted_path);
+        self.persisted_offset = persisted_offset;
         self.persisted_bytes = persisted_bytes;
         self
     }
@@ -338,6 +253,53 @@ impl<'backend, Backend> StoreDurabilityExecutionSession<'backend, Backend> {
 }
 
 impl<S> StoreDurabilityExecutionProof<S> {
+    pub fn certify_completed_barrier<P>(
+        &self,
+        barrier: WalDurabilityBarrier,
+    ) -> Result<WalDurabilityBarrierReceipt<P, S>, BackendDurabilityBarrierDenial>
+    where
+        P: BackendDurabilityProfile,
+        S: Clone,
+    {
+        match P::SUPPORT {
+            BackendDurabilitySupport::UnsupportedDurabilityCapability => {
+                return Err(BackendDurabilityBarrierDenial::new::<P>(
+                    barrier,
+                    BackendDurabilityBarrierDenialKind::UnsupportedDurabilityCapability,
+                ));
+            }
+            BackendDurabilitySupport::AdversarialLostFlush => {
+                return Err(BackendDurabilityBarrierDenial::new::<P>(
+                    barrier,
+                    BackendDurabilityBarrierDenialKind::AdversarialLostFlush,
+                ));
+            }
+            BackendDurabilitySupport::Certified => {}
+        }
+        if self.binding.profile != P::TARGET {
+            return Err(BackendDurabilityBarrierDenial::new::<P>(
+                barrier,
+                BackendDurabilityBarrierDenialKind::ProfileMismatch,
+            ));
+        }
+        if !P::REQUIRED_BARRIERS.contains(barrier) {
+            return Err(BackendDurabilityBarrierDenial::new::<P>(
+                barrier,
+                BackendDurabilityBarrierDenialKind::BarrierNotRequiredByProfile,
+            ));
+        }
+        if !self.completed_barriers.contains(barrier) {
+            return Err(BackendDurabilityBarrierDenial::new::<P>(
+                barrier,
+                BackendDurabilityBarrierDenialKind::BarrierNotCompleted,
+            ));
+        }
+        Ok(WalDurabilityBarrierReceipt::from_executed_scope(
+            self.binding.scope.clone(),
+            barrier,
+        ))
+    }
+
     pub const fn completed_barriers(&self) -> WalDurabilityBarrierSet {
         self.completed_barriers
     }
@@ -368,6 +330,10 @@ impl<S> StoreDurabilityExecutionProof<S> {
 
     pub const fn persisted_bytes(&self) -> u64 {
         self.persisted_bytes
+    }
+
+    pub const fn persisted_offset(&self) -> u64 {
+        self.persisted_offset
     }
 
     pub(crate) fn binds_accepted(&self, accepted: &StoreDurabilityWriteAccepted<S>) -> bool

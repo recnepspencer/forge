@@ -20,14 +20,14 @@ fn append_and_reopen_locate_by_slot_yields_stable_framed_record() {
         .slot_cell(segment(7), page(11), slot(1))
         .with_slot_generation(generation(9));
 
-    let empty_page = page_bytes(generation(5), &[]);
+    let empty_page = page_bytes(page_cell, &[]);
     let append = records
         .append_record(
             admitted_page(&records, page_cell, &empty_page),
             SlotAppendRequest::ordinary(slot_cell, b"stable bytes"),
         )
         .unwrap();
-    let reopened_page = page_bytes(generation(5), append.page_payload());
+    let reopened_page = page_bytes(page_cell, append.page_payload());
     let validation = references
         .validate_page_slot(append.reference_admission(), slot_cell)
         .unwrap();
@@ -55,7 +55,7 @@ fn manifest_page_payload_cannot_enter_record_page_authority() {
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
-    let manifest_page = page_bytes_for_kind(PhysicalPageKind::ManifestPage, generation(5), &[]);
+    let manifest_page = page_bytes_for_kind(PhysicalPageKind::ManifestPage, page_cell, &[]);
     let header = records
         .decode_record_page_header(page_cell, &manifest_page, PhysicalPageKind::ManifestPage)
         .unwrap();
@@ -80,7 +80,7 @@ fn append_rejects_slot_cell_for_different_page_before_write() {
     let wrong_page_slot = generations
         .slot_cell(segment(7), page(12), slot(1))
         .with_slot_generation(generation(9));
-    let empty_page = page_bytes(generation(5), &[]);
+    let empty_page = page_bytes(page_cell, &[]);
 
     let denial = records
         .append_record(
@@ -109,14 +109,14 @@ fn out_of_range_slot_denies_before_frame_payload_view() {
         .slot_cell(segment(7), page(11), slot(2))
         .with_slot_generation(generation(9));
 
-    let empty_page = page_bytes(generation(5), &[]);
+    let empty_page = page_bytes(page_cell, &[]);
     let append = records
         .append_record(
             admitted_page(&records, page_cell, &empty_page),
             SlotAppendRequest::ordinary(slot_one, b"one"),
         )
         .unwrap();
-    let reopened_page = page_bytes(generation(5), append.page_payload());
+    let reopened_page = page_bytes(page_cell, append.page_payload());
     let validation = references
         .validate_page_slot(references.admit_page_slot(slot_two), slot_two)
         .unwrap();
@@ -149,7 +149,7 @@ fn locate_rejects_reference_for_different_page_before_slot_lookup() {
         .slot_cell(segment(7), page(12), slot(1))
         .with_slot_generation(generation(9));
     let page_payload = one_record_page_payload(&records, page_cell, slot_cell);
-    let reopened_page = page_bytes(generation(5), &page_payload);
+    let reopened_page = page_bytes(page_cell, &page_payload);
     let validation = references
         .validate_page_slot(references.admit_page_slot(wrong_page_slot), wrong_page_slot)
         .unwrap();
@@ -183,7 +183,7 @@ fn locate_rejects_reference_for_different_segment_before_slot_lookup() {
         .slot_cell(segment(8), page(11), slot(1))
         .with_slot_generation(generation(9));
     let page_payload = one_record_page_payload(&records, page_cell, slot_cell);
-    let reopened_page = page_bytes(generation(5), &page_payload);
+    let reopened_page = page_bytes(page_cell, &page_payload);
     let validation = references
         .validate_page_slot(
             references.admit_page_slot(wrong_segment_slot),
@@ -217,21 +217,21 @@ fn appending_second_slot_rebases_existing_frame_offsets() {
         .slot_cell(segment(7), page(11), slot(2))
         .with_slot_generation(generation(10));
 
-    let empty_page = page_bytes(generation(5), &[]);
+    let empty_page = page_bytes(page_cell, &[]);
     let first = records
         .append_record(
             admitted_page(&records, page_cell, &empty_page),
             SlotAppendRequest::ordinary(slot_one, b"first"),
         )
         .unwrap();
-    let first_page = page_bytes(generation(5), first.page_payload());
+    let first_page = page_bytes(page_cell, first.page_payload());
     let second = records
         .append_record(
             admitted_page(&records, page_cell, &first_page),
             SlotAppendRequest::ordinary(slot_two, b"second"),
         )
         .unwrap();
-    let reopened_page = page_bytes(generation(5), second.page_payload());
+    let reopened_page = page_bytes(page_cell, second.page_payload());
 
     let located_first = records
         .locate_record(
@@ -269,7 +269,7 @@ fn moved_slot_without_admitted_reference_denies_before_payload_view() {
         .with_slot_generation(generation(9));
     let mut page_payload = one_record_page_payload(&records, page_cell, slot_cell);
     page_payload[4] = SlotDirectoryEntryState::Moved.code();
-    let reopened_page = page_bytes(generation(5), &page_payload);
+    let reopened_page = page_bytes(page_cell, &page_payload);
     let validation = references
         .validate_page_slot(references.admit_page_slot(slot_cell), slot_cell)
         .unwrap();
@@ -303,7 +303,7 @@ fn malformed_slot_entry_preserves_locate_counters_before_payload_view() {
         .with_slot_generation(generation(9));
     let mut page_payload = one_record_page_payload(&records, page_cell, slot_cell);
     page_payload[4] = 0xff;
-    let reopened_page = page_bytes(generation(5), &page_payload);
+    let reopened_page = page_bytes(page_cell, &page_payload);
     let validation = references
         .validate_page_slot(references.admit_page_slot(slot_cell), slot_cell)
         .unwrap();
@@ -334,7 +334,7 @@ fn frame_length_mismatch_denies_before_record_payload_view() {
         .with_slot_generation(generation(9));
     let mut page_payload = one_record_page_payload(&records, page_cell, slot_cell);
     page_payload[12..16].copy_from_slice(&(PHYSICAL_HEADER_LENGTH as u32).to_le_bytes());
-    let reopened_page = page_bytes(generation(5), &page_payload);
+    let reopened_page = page_bytes(page_cell, &page_payload);
     let validation = references
         .validate_page_slot(references.admit_page_slot(slot_cell), slot_cell)
         .unwrap();

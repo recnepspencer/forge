@@ -129,7 +129,7 @@ pub(crate) fn canonical_root_manifest(
 ) -> Result<CanonicalRootManifestAccess, PhysicalStoreRuntimeDenial> {
     let witness = facade
         .storage_ref()
-        .admit_bootstrap_open_witness(&facade.headers_ref())
+        .admit_bootstrap_open_witness(facade.headers_ref())
         .map_err(map_bootstrap_denial)?;
     decode_canonical_root_manifest(&witness, facade.headers_ref())
 }
@@ -196,10 +196,10 @@ fn decode_canonical_root_manifest(
 
     let _ = headers;
     Err(map_bootstrap_denial(
-        PhysicalBootstrapCatalogDenial::ManifestDecodeDenied(
+        PhysicalBootstrapCatalogDenial::ManifestDecodeDenied(Box::new(
             decode_denial
                 .expect("bootstrap open witness always carries at least one root candidate"),
-        ),
+        )),
     ))
 }
 
@@ -251,11 +251,11 @@ fn map_bootstrap_denial(denial: PhysicalBootstrapCatalogDenial) -> PhysicalStore
                 }
                 _ => PhysicalStoreRuntimeDenialKind::OfflineVerifierDenied,
             };
-            PhysicalStoreRuntimeDenial::new(kind).with_verifier_denial(denial)
+            PhysicalStoreRuntimeDenial::new(kind).with_verifier_denial(*denial)
         }
         PhysicalBootstrapCatalogDenial::ManifestDiscoveryDenied(denial) => {
             PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::ManifestDiscoveryDenied)
-                .with_manifest_denial(denial)
+                .with_manifest_denial(*denial)
         }
         PhysicalBootstrapCatalogDenial::BootstrapChecksumDenied(_) => {
             PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::OfflineVerifierDenied)

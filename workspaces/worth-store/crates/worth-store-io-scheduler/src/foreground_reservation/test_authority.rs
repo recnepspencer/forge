@@ -46,9 +46,11 @@ pub fn admitted_point_read_reservation_for_security_scope_for_certification_test
     let receipt = admitted_point_read_reservation_for_certification_test();
     ForegroundReservationReceipt::admitted(
         receipt.lane(),
-        receipt.backend_requirement(),
-        receipt.backend_profile(),
-        receipt.backend_evidence_class(),
+        super::ForegroundReservationBackendBasis::new(
+            receipt.backend_requirement(),
+            receipt.backend_profile(),
+            receipt.backend_evidence_class(),
+        ),
         receipt.envelope(),
         receipt.arbitration(),
         receipt.counters(),
@@ -184,9 +186,7 @@ fn capacity_admission(
     admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
         super::ForegroundReservationCapacityAuthority::store_owned(),
         lane,
-        backend,
-        readiness,
-        security,
+        super::ForegroundReservationAdmissionBoundary::new(backend, readiness, security),
         arbitration,
         requested,
         available,

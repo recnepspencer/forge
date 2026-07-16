@@ -10,6 +10,7 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct HazardLeaseTable {
     slots: Vec<HazardLeaseSlotEntry>,
+    free_slots: Vec<usize>,
     index: HazardLeaseEpochIndex,
     counters: HazardLeaseCounterSnapshot,
 }
@@ -42,6 +43,7 @@ impl HazardLeaseTable {
             })
             .collect();
         Self {
+            free_slots: (0..capacity.slots).rev().collect(),
             slots,
             index: HazardLeaseEpochIndex::default(),
             counters: HazardLeaseCounterSnapshot::default(),
@@ -53,14 +55,10 @@ impl HazardLeaseTable {
         root: CurrentPhysicalRoot,
         lease: ProtectedReferenceLease,
     ) -> Result<ActiveHazardLease, HazardLeaseDenial> {
-        let Some((index, entry)) = self
-            .slots
-            .iter_mut()
-            .enumerate()
-            .find(|(_, entry)| entry.lease.is_none())
-        else {
+        let Some(index) = self.free_slots.pop() else {
             return Err(HazardLeaseDenial::TableFull);
         };
+        let entry = &mut self.slots[index];
         let slot = HazardLeaseSlot::from_index(index);
         let generation = entry.generation;
         let index_entry = HazardLeaseEpochIndexEntry::new(
@@ -81,9 +79,9 @@ impl HazardLeaseTable {
         &mut self,
         active: ActiveHazardLease,
     ) -> Result<HazardLeaseReleaseReceipt, HazardLeaseDenial> {
-        let (receipt, root_epoch) = {
+        self.remove_indexed_lease(active)?;
+        let receipt = {
             let (entry, lease) = self.take_matching_lease(active)?;
-            let root_epoch = entry.root.map(|root| root.epoch());
             let receipt = HazardLeaseReleaseReceipt::new(
                 active.slot,
                 active.generation,
@@ -92,12 +90,9 @@ impl HazardLeaseTable {
             );
             entry.generation = entry.generation.next();
             entry.root = None;
-            (receipt, root_epoch)
+            receipt
         };
-        if let Some(root_epoch) = root_epoch {
-            self.index
-                .remove(root_epoch, active.slot, active.generation);
-        }
+        self.free_slots.push(active.slot.get() as usize);
         self.counters = self.counters.with_release();
         Ok(receipt)
     }
@@ -106,9 +101,9 @@ impl HazardLeaseTable {
         &mut self,
         active: ActiveHazardLease,
     ) -> Result<ReadHandleRevocationReceipt, HazardLeaseDenial> {
-        let (receipt, root_epoch) = {
+        self.remove_indexed_lease(active)?;
+        let receipt = {
             let (entry, lease) = self.take_matching_lease(active)?;
-            let root_epoch = entry.root.map(|root| root.epoch());
             let receipt = ReadHandleRevocationReceipt::new(
                 active.slot,
                 active.generation,
@@ -116,12 +111,9 @@ impl HazardLeaseTable {
             );
             entry.generation = entry.generation.next();
             entry.root = None;
-            (receipt, root_epoch)
+            receipt
         };
-        if let Some(root_epoch) = root_epoch {
-            self.index
-                .remove(root_epoch, active.slot, active.generation);
-        }
+        self.free_slots.push(active.slot.get() as usize);
         self.counters = self.counters.with_revocation();
         Ok(receipt)
     }
@@ -130,9 +122,9 @@ impl HazardLeaseTable {
         &mut self,
         active: ActiveHazardLease,
     ) -> Result<OwnedCopyStableReadReceipt, HazardLeaseDenial> {
-        let (receipt, root_epoch) = {
+        self.remove_indexed_lease(active)?;
+        let receipt = {
             let (entry, lease) = self.take_matching_lease(active)?;
-            let root_epoch = entry.root.map(|root| root.epoch());
             let receipt = OwnedCopyStableReadReceipt::new(
                 active.slot,
                 active.generation,
@@ -140,12 +132,9 @@ impl HazardLeaseTable {
             );
             entry.generation = entry.generation.next();
             entry.root = None;
-            (receipt, root_epoch)
+            receipt
         };
-        if let Some(root_epoch) = root_epoch {
-            self.index
-                .remove(root_epoch, active.slot, active.generation);
-        }
+        self.free_slots.push(active.slot.get() as usize);
         self.counters = self.counters.with_owned_copy();
         Ok(receipt)
     }
@@ -179,6 +168,47 @@ impl HazardLeaseTable {
             return Err(HazardLeaseDenial::LeaseAlreadyReleased { slot: active.slot });
         };
         Ok((entry, lease))
+    }
+
+    fn remove_indexed_lease(&mut self, active: ActiveHazardLease) -> Result<(), HazardLeaseDenial> {
+        let root_epoch = {
+            let entry = self.matching_slot_entry(active)?;
+            entry
+                .root
+                .expect("an active lease always retains its admitted root")
+                .epoch()
+        };
+        if self
+            .index
+            .remove(root_epoch, active.slot, active.generation)
+        {
+            Ok(())
+        } else {
+            Err(HazardLeaseDenial::InternalIndexInconsistency { slot: active.slot })
+        }
+    }
+
+    fn matching_slot_entry(
+        &mut self,
+        active: ActiveHazardLease,
+    ) -> Result<&HazardLeaseSlotEntry, HazardLeaseDenial> {
+        let Some(entry) = self.slots.get(active.slot.get() as usize) else {
+            self.counters = self.counters.with_stale_release_denial();
+            return Err(HazardLeaseDenial::UnknownLeaseSlot { slot: active.slot });
+        };
+        if entry.generation != active.generation {
+            self.counters = self.counters.with_stale_release_denial();
+            return Err(HazardLeaseDenial::StaleLeaseGeneration {
+                slot: active.slot,
+                expected: entry.generation,
+                observed: active.generation,
+            });
+        }
+        if entry.lease.is_none() {
+            self.counters = self.counters.with_stale_release_denial();
+            return Err(HazardLeaseDenial::LeaseAlreadyReleased { slot: active.slot });
+        }
+        Ok(entry)
     }
 }
 

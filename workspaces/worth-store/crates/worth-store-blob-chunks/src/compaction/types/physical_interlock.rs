@@ -2,7 +2,7 @@ use worth_store_physical_isolation::{CompactionReadInterlockDenial, CompactionRe
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlobCompactionPhysicalInterlock {
-    Admitted(CompactionReadInterlockPlan),
+    Admitted(Box<CompactionReadInterlockPlan>),
     Denied(CompactionReadInterlockDenial),
 }
 

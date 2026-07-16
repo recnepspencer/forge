@@ -50,24 +50,29 @@ impl BlobExportAuthority {
         let offline_declarations = classification.offline_declarations().to_vec();
         let counters = BlobExportBundleCounters::start().with_evidence(classification.counts());
         Ok(BlobExportPublishedBundle::new(
-            intent.lifecycle().declaration().object_id().clone(),
-            intent.lifecycle().declaration().generation(),
-            intent.publication().chunk_tree_root().clone(),
-            intent.lifecycle().declaration().security_metadata(),
-            manifest,
-            BlobExportCustodyEvidence::new(intent.custody().identity(), intent.custody().mode()),
-            BlobExportDigestEvidence::new(
-                intent
-                    .lifecycle()
-                    .declaration()
-                    .logical_content_digest()
-                    .clone(),
-                export_digest,
-                &offline_declarations,
-            ),
-            offline_declarations,
-            canonical_export,
-            counters,
+            super::BlobExportPublishedBundleParts {
+                object_id: intent.lifecycle().declaration().object_id().clone(),
+                generation: intent.lifecycle().declaration().generation(),
+                chunk_tree_root: intent.publication().chunk_tree_root().clone(),
+                security_metadata: intent.lifecycle().declaration().security_metadata(),
+                manifest,
+                custody: BlobExportCustodyEvidence::new(
+                    intent.custody().identity(),
+                    intent.custody().purpose(),
+                ),
+                digest_evidence: BlobExportDigestEvidence::new(
+                    intent
+                        .lifecycle()
+                        .declaration()
+                        .logical_content_digest()
+                        .clone(),
+                    export_digest,
+                    &offline_declarations,
+                ),
+                offline_declarations,
+                canonical_export,
+                counters,
+            },
         ))
     }
 }

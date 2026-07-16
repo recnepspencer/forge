@@ -4,7 +4,7 @@ use super::{
 };
 
 /// Sealed background-pacing capability issued only from verified background pacing outcomes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BackgroundPacingCapability {
     class: BackgroundIoPressureClass,
     counters: BackgroundPacingCounterSnapshot,
@@ -15,7 +15,7 @@ impl BackgroundPacingCapability {
     pub fn from_admitted_outcome(
         outcome: BackgroundPacingOutcome,
     ) -> Result<Self, BackgroundPacingDenial> {
-        let counters = match outcome {
+        let counters = match &outcome {
             BackgroundPacingOutcome::AdmittedWithDebt(outcome) => outcome.counters(),
             BackgroundPacingOutcome::Throttled(outcome) => outcome.counters(),
             BackgroundPacingOutcome::Yield(outcome) => outcome.counters(),
@@ -41,15 +41,15 @@ impl BackgroundPacingCapability {
         })
     }
 
-    pub const fn class(self) -> BackgroundIoPressureClass {
+    pub const fn class(&self) -> BackgroundIoPressureClass {
         self.class
     }
 
-    pub const fn counters(self) -> BackgroundPacingCounterSnapshot {
+    pub const fn counters(&self) -> BackgroundPacingCounterSnapshot {
         self.counters
     }
 
-    pub const fn outcome(self) -> BackgroundPacingOutcome {
+    pub fn into_outcome(self) -> BackgroundPacingOutcome {
         self.outcome
     }
 }

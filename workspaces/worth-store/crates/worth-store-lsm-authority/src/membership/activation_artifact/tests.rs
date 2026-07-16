@@ -76,6 +76,7 @@ fn activation() -> PersistedMembershipActivation {
         output_scope: WalFrameDurablePublicationScope::new(1, 2, 13, 14, "output-digest", 4096)
             .unwrap(),
         output_path: PathBuf::from("output.bin"),
+        output_offset: 0,
         output_bytes: 4096,
         scope: CheckpointDurablePublicationScope::new(
             StoreCheckpointRecordIdentity::new(7),

@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_store_roadmap_2.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/worth_store_roadmap_2.md)
+> **Roadmap parent:** [physical-database-roadmap.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/physical-database-roadmap.md)
 >
 > **Primary prerequisite:** `S.3 Physical Integrity, Scrub, Quarantine, And Corruption Localization`
 >
@@ -64,11 +64,11 @@ truth source.
   protects visible cost. S.4 must expose exact WAL-tail, checkpoint-validation,
   replayed-frame, skipped-frame, page-redo, recovery-scan, and recovery-budget
   counters at the boundaries that claim bounded recovery.
-- `worth_store_roadmap_2.md`
+- `physical-database-roadmap.md`
   places S.4 after physical integrity and before physical isolation. Recovery
   must consume S.3-vetted records and produce byte-stability assumptions that
   S.5 can later protect under maintenance interleavings.
-- `worth_store_roadmap.md`
+- `runtime-integration-roadmap.md`
   keeps semantic durable truth above physical recovery mechanics. S.4 may
   recover physical pages and roots, but it does not redefine transaction,
   branch, snapshot, or canonical commit meaning.

@@ -288,101 +288,21 @@
 //! let _forged = StoreOwnedAccessPolicyExecution { _private: () };
 //! ```
 mod access_policy;
+mod backup_materialization;
+mod directory_durability;
 mod durability_ordering;
 mod durability_profile;
 mod execution;
 pub mod external_recovery_compile_fail;
+mod facade;
 mod heavy_fixture;
 mod io_capability;
+mod media_topology;
+mod offline_media;
 mod operation;
 mod operation_boundary;
+mod operational_control;
 mod placement_observation;
-pub use worth_store_physical_format::PhysicalReference;
-
-pub use access_policy::{
-    AccessPolicyAdmission, AccessPolicyBufferLifecycle, AccessPolicyBufferLifecycleKind,
-    AccessPolicyCounterSnapshot, AccessPolicyCounterStrength, AccessPolicyDenial,
-    AccessPolicyDenialKind, AccessPolicyExecutionObservation, AccessPolicyExecutionReceipt,
-    AccessPolicyExecutionRequest, AccessPolicyExecutionSession, AccessPolicyRequest,
-    AccessPolicySecurityScope, AccessPolicyViolation, AccessPolicyViolationKind,
-    AdmittedAccessPolicy, DirectIoAlignmentRequirement, MixedAccessCoherenceBasis,
-    MixedAccessTransition, MmapFaultHandling, MmapFaultPosture, MmapPunchHolePosture,
-    MmapTruncatePosture, MmapVisibilityPosture, MmapWritebackPosture, PageCachePolicyKind,
-    PageCachePolicyProof, PhysicalStoreAccessPolicyExecutor, StoreAccessMode, StoreAccessOperation,
-    StoreAccessPolicyProofAuthority, StoreOwnedAccessPolicyExecution,
-};
-pub use durability_ordering::{
-    StoreDurabilityAdmission, StoreDurabilityAdmissionOutcome, StoreDurabilityBoundaryReached,
-    StoreDurabilityCounterSnapshot, StoreDurabilityCounterStrength, StoreDurabilityDenial,
-    StoreDurabilityDenialKind, StoreDurabilityExecutionBoundary, StoreDurabilityExecutionProof,
-    StoreDurabilityFileSyncKind, StoreDurabilityOperation, StoreDurabilityOrderingBarrierDurable,
-    StoreDurabilityParentNamespaceDurable, StoreDurabilityPersistedArtifact,
-    StoreDurabilityPublicationKind, StoreDurabilityRenameDurable, StoreDurabilityRequirement,
-    StoreDurabilityRuntime, StoreDurabilityState, StoreDurabilityWriteAccepted,
-    StoreDurabilityWriteSubmitted,
-};
-#[cfg(feature = "certification-test-authority")]
-pub use durability_profile::{
-    AdversarialLostFlushAuthority, AdversarialReorderedFlushAuthority,
-    BackendDurabilityBarrierAuthority, BackendDurabilityBarrierDenial,
-    BackendDurabilityBarrierDenialKind, MmapFlushNotDurabilityCertifiedAuthority,
-    PosixFileFsyncDirFsyncAuthority, SimulatedStrictDurabilityAuthority,
-    WindowsFlushFileBuffersAuthority,
-};
-pub use durability_profile::{
-    AdversarialLostFlushProfile, AdversarialReorderedFlushProfile, BackendDurabilityProfile,
-    BackendDurabilityProfileId, BackendDurabilitySupport, MmapFlushNotDurabilityCertifiedProfile,
-    PosixFileFsyncDirFsyncProfile, SimulatedStrictDurableProfile, WalDurabilityBarrier,
-    WalDurabilityBarrierReceipt, WalDurabilityBarrierSet, WindowsFlushFileBuffersProfile,
-};
-pub use execution::queue::{
-    preserve_secure_io_for_backend_completion, BackendQueueExecutionAdaptation,
-    BackendQueueExecutionAuthority, BackendQueueExecutionBackpressure,
-    BackendQueueExecutionBudgetBinding, BackendQueueExecutionCompletion,
-    BackendQueueExecutionCompletionBuilder, BackendQueueExecutionObservedCounters,
-    BackendQueueExecutionPlanBinding, BackendQueueExecutionPosture,
-    BackendQueueExecutionPostureDenial, BackendQueueExecutionReplayBinding,
-    BackendQueueExecutionRunError, BackendQueueExecutionSession, BackendQueueExecutionTicket,
-    BackendQueueExecutionTicketDenial, BackendQueueSpeculativeScope,
-    BackendSecureIoPreservationDenial, BackendSecureIoPreservationReceipt, BackendSecureIoScope,
-    StoreOwnedBackendQueueExecution,
-};
-pub use heavy_fixture::{
-    cleanup_heavy_fixture_materialization, preflight_heavy_fixture_directory,
-    HeavyFixtureBackendProfile, HeavyFixtureCleanupReceipt, HeavyFixtureDiskPreflightReceipt,
-    HeavyFixtureMaterializationDirectory, HeavyFixtureTempFileMaterialization,
-};
-pub use io_capability::{
-    reject_certification_only_evidence, reject_copied_qualification_row,
-    reject_environment_variable, reject_raw_backend_label, reject_raw_config_string,
-    reject_raw_os_name, reject_raw_probe_observation, reject_same_process_metric_projection,
-    reject_terminal_projection, AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionDenial,
-    BackendCapabilityAdmissionRequest, BackendCapabilityClaimOutcome,
-    BackendCapabilityClaimWitness, BackendCapabilityEvidenceBasis, BackendCapabilityKind,
-    BackendCapabilityRebindRequired, BackendCapabilityStale, BackendCapabilitySupportPosture,
-    BackendCapabilitySupportSet, BackendMediaAssumptionSet, BackendRebindTriggers,
-    BackendTargetProfile, CapabilityConfidenceLimits, CapabilityConfidenceScope,
-    CapabilityEvidenceClass, CapabilityResidualRisk, PhysicalBackendCapabilityAdmissionAuthority,
-};
-pub use operation::PhysicalStoreBackend;
-pub use operation_boundary::ProductionStorageBoundarySeam;
-pub use placement_observation::{
-    BlobBackendChunkWriteObservation, BlobBackendChunkWriteObservationKind,
-    BlobBackendChunkWriteSession, BlobBackendResidueObservation, BlobBackendResidueObservationKind,
-    BlobBackendResidueScanObservation, BlobBackendResidueScanRequest,
-    BlobBackendResidueScanSession, BlobPhysicalManifestObservation,
-    BlobPhysicalManifestObservationDenial, BlobPhysicalManifestTraversalObservation,
-    BlobPhysicalManifestTraversalRequest, BlobPhysicalManifestTraversalSession,
-    BlobPhysicalManifestValidation, ExternalPlacementCleanupExecutionError,
-    ExternalPlacementCleanupObservation, ExternalPlacementCleanupReceipt,
-    ExternalPlacementCleanupRequest, ExternalPlacementCleanupSession,
-    ExternalPlacementMissingDenial, ExternalPlacementOrphanScanReceipt,
-    ExternalPlacementRecoverabilityDenial, ExternalPlacementRecoveryProbe,
-    ExternalPlacementRecoveryProbeExecutionError, ExternalPlacementRecoveryProbeObservation,
-    ExternalPlacementRecoveryProbeRequest, ExternalPlacementRecoveryProbeSession,
-    PhysicalStoreBlobManifestTraverser, PhysicalStoreBlobResidueScanner,
-    PhysicalStoreExternalPlacementCleanupExecutor, PhysicalStoreExternalPlacementRecoveryProber,
-    StoreExternalPlacementRecoverabilityEvidence, StoreOwnedBlobBackendResidueScan,
-    StoreOwnedBlobPhysicalManifestTraversal, StoreOwnedExternalPlacementCleanup,
-    StoreOwnedExternalPlacementRecoveryProbe,
-};
+mod recovery_staging;
+mod storage_boundary_control;
+pub use facade::*;

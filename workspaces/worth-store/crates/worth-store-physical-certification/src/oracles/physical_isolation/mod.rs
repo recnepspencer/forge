@@ -1,7 +1,7 @@
-mod physical_isolation;
+mod interleaving;
 mod readiness;
 
-pub use physical_isolation::PhysicalIsolationInterleavingOracle;
+pub use interleaving::PhysicalIsolationInterleavingOracle;
 pub use readiness::{
     BlockedReclaimUntilReleaseOracle, NoMixedRootOracle, OldReaderSeesOldRootOracle,
     PostSwapReaderSeesNewRootOracle,

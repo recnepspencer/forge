@@ -132,7 +132,7 @@ fn execute_scenario_with_fixture(
     if scenario.failure_kind() == SecurityScopeFailureKind::MissingAuthenticityRequirement {
         let readmission = evaluate_deserialized_security_scope_readmission(
             fixture.current_authority(),
-            missing_authenticity_declaration(&fixture),
+            missing_authenticity_declaration(fixture),
             StoreSecurityScopeAdmissionExpectation::platform_page_envelope(),
         );
         let lower_store_counters = readmission.counters();
@@ -261,7 +261,7 @@ fn request_for_scenario<'a>(
             key_version_posture,
             tenant_scope,
             authenticity_requirement.expect("native scenarios carry authenticity"),
-            custody_posture.expect("native scenarios carry custody"),
+            StoreCustodyPosture::InternalStoreCustody,
         ),
     };
     StoreSecurityScopeAdmissionRequest::from_raw_declaration(
