@@ -298,7 +298,7 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState, MappingState>
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn with_diagnostics_sink(mut self, sink: Arc<dyn DiagnosticSink>) -> Self {
         self.diagnostic_sink = Some(sink);
         self

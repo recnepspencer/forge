@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::domain_capabilities::identity::domain_capability_scope_encoder;
 use crate::evidence_identity::{WorthQueryEvidenceIdentity, WorthQueryEvidenceTag};
 use worth_relational::facade::merge::RelationalMergeInspectionArtifact;
@@ -139,10 +137,6 @@ impl WorthQueryWorkflowRuntimeBindingSemantics {
                 .seal(),
         }
     }
-
-    pub(crate) fn semantics_for_reporting(&self) -> String {
-        self.semantics_identity().as_str().to_string()
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -271,10 +265,6 @@ impl WorthQueryWorkflowLoweringSemantics {
             }
         }
     }
-
-    pub(crate) fn semantics_for_reporting(&self) -> String {
-        self.semantics_identity().as_str().to_string()
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -380,10 +370,6 @@ impl WorthQueryWorkflowInspectionSemantics {
             }
         }
     }
-
-    pub(crate) fn semantics_for_reporting(&self) -> String {
-        self.semantics_identity().as_str().to_string()
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -466,10 +452,6 @@ impl WorthQueryWorkflowRuntimeSemantics {
                 self.freshness_policy.as_str(),
             )
             .seal()
-    }
-
-    pub(crate) fn semantics_for_reporting(&self) -> String {
-        self.semantics_identity().as_str().to_string()
     }
 }
 

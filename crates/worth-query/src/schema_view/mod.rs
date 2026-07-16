@@ -7,8 +7,9 @@ use crate::authoring::{AspectName, FieldName, RelationName};
 use crate::basis::QuerySchemaBasisAuthority;
 use crate::identity::SchemaBasisDigest;
 
-pub use field::{SchemaFieldKind, SchemaFieldView};
+pub use field::SchemaFieldView;
 pub use relation::SchemaRelationView;
+pub use worth_foundational::facade::ScalarAspectType;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySchemaView {

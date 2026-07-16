@@ -7,7 +7,7 @@ mod suggestions;
 pub use artifacts::{
     AgentAdvisoryArtifact, AgentAdvisoryContributionRecord, AgentAdvisoryError,
     AgentExperimentProposalScreening, AgentExplorationAdmissionChecked,
-    AgentGroupedContributionStopKind,
+    AgentGroupedContributionStopKind, AgentQueryContributionStopKind,
 };
 pub use batch::{AgentExplorationBatch, AgentExplorationBatchBuilder};
 pub use operations::{

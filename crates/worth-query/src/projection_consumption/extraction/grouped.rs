@@ -137,7 +137,7 @@ where
                 | ProjectionFactKind::SourceReference
                 | ProjectionFactKind::EffectContinuity
                 | ProjectionFactKind::DisplayField
-                | ProjectionFactKind::DerivedScalarField => {}
+                | ProjectionFactKind::DerivedField => {}
             }
         }
     }

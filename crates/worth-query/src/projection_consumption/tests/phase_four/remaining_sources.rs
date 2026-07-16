@@ -35,7 +35,7 @@ fn read_result_extracts_identity_and_payload_fields_without_reopening_authority(
                         .expect("projection fact field segment should admit"),
                 ]),
             )
-            .derived_scalar_field_path(
+            .derived_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
                     worth_foundational::facade::FieldKey::new("metrics")
                         .expect("projection fact field segment should admit"),
@@ -63,7 +63,10 @@ fn read_result_extracts_identity_and_payload_fields_without_reopening_authority(
             .canonical_field_path(),
         &canonical_field_path("profile.display_name")
     );
-    assert_eq!(consumed.derived_scalar_fields()[1].value(), &int_value(2));
+    assert_eq!(
+        consumed.derived_fields()[1].native_value().scalar(),
+        Some(&int_value(2))
+    );
     assert_eq!(consumed.counters().source_row_width_consumed(), 6);
     assert_eq!(consumed.counters().authority_reopen_count(), 0);
 }

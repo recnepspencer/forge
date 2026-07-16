@@ -8,7 +8,7 @@ use worth_query::facade::runtime::{
     WorthQueryGraphReadRequiredCapabilityOwner, WorthQueryRuntimeError,
 };
 
-mod support;
+use crate::support;
 
 use support::graph_index_inventory::runtime_profiles::{
     profile_requiring_store_backed_graph_index, profile_without_graph_support,

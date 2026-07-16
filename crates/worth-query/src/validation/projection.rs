@@ -1,5 +1,5 @@
 use crate::canonicalization::CanonicalProjectionEntry;
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind};
+use crate::schema_view::QuerySchemaView;
 
 use super::{
     failure::ValidationFailureArtifact, QueryValidationCounters, QueryValidationError,
@@ -50,16 +50,9 @@ pub(crate) fn validate_projection_entries(
             counters.record_rejection();
             counters.record_projection_widening_denial();
             rejection_matrix.record_projection_rejection();
-            let error = if matches!(field.kind(), SchemaFieldKind::StructuredContent) {
-                QueryValidationError::UnsupportedStructuredContentProjection {
-                    aspect: key.aspect().to_string(),
-                    field: key.field().to_string(),
-                }
-            } else {
-                QueryValidationError::NonQueryableField {
-                    aspect: key.aspect().to_string(),
-                    field: key.field().to_string(),
-                }
+            let error = QueryValidationError::NonQueryableField {
+                aspect: key.aspect().to_string(),
+                field: key.field().to_string(),
             };
             return Err(ValidationFailureArtifact::new(
                 error,

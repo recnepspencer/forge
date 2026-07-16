@@ -127,6 +127,13 @@ pub(crate) fn collect_touched_structural_set(
                         spec.client_key.clone(),
                     ));
                 }
+                MutationIntent::Create(CreateIntent::EntityAspects(spec)) => {
+                    planned_entity_creates.push(PlannedEntityCreate::new(
+                        spec.partition_id,
+                        spec.kind_id,
+                        spec.client_key.clone(),
+                    ));
+                }
                 MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
                     for client_key in spec.client_keys.iter() {
                         planned_entity_creates.push(PlannedEntityCreate::new(
@@ -137,6 +144,17 @@ pub(crate) fn collect_touched_structural_set(
                     }
                 }
                 MutationIntent::Create(CreateIntent::Relation(spec)) => {
+                    include_existing_entity_reference(&mut visible_entities, &spec.source);
+                    include_existing_entity_reference(&mut visible_entities, &spec.target);
+                    planned_relation_creates.push(PlannedRelationCreate::new(
+                        spec.partition_id,
+                        spec.kind_id,
+                        spec.client_key.clone(),
+                        spec.source.clone(),
+                        spec.target.clone(),
+                    ));
+                }
+                MutationIntent::Create(CreateIntent::RelationAspects(spec)) => {
                     include_existing_entity_reference(&mut visible_entities, &spec.source);
                     include_existing_entity_reference(&mut visible_entities, &spec.target);
                     planned_relation_creates.push(PlannedRelationCreate::new(
@@ -165,6 +183,9 @@ pub(crate) fn collect_touched_structural_set(
                 MutationIntent::Entity(EntityMutationIntent::UpdateFields(spec)) => {
                     visible_entities.insert(spec.entity_id);
                 }
+                MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(spec)) => {
+                    visible_entities.insert(spec.entity_id);
+                }
                 MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => {
                     visible_entities.insert(spec.entity_id);
                 }
@@ -182,6 +203,16 @@ pub(crate) fn collect_touched_structural_set(
                         spec.source.clone(),
                         spec.target.clone(),
                     ));
+                    if let Some(metadata) = state_view.relation_metadata(spec.relation_id) {
+                        include_relation_metadata(
+                            &mut visible_entities,
+                            &mut touched_partitions,
+                            metadata,
+                        );
+                    }
+                }
+                MutationIntent::Relation(RelationMutationIntent::ApplyAspectPatch(spec)) => {
+                    visible_relations.insert(spec.relation_id);
                     if let Some(metadata) = state_view.relation_metadata(spec.relation_id) {
                         include_relation_metadata(
                             &mut visible_entities,

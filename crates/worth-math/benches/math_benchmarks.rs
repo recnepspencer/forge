@@ -19,7 +19,10 @@ fn orient2d_random(c: &mut Criterion) {
         b.iter(|| {
             for chunk in points.chunks(3) {
                 if chunk.len() == 3 {
-                    black_box(orient2d(chunk[0], chunk[1], chunk[2]));
+                    black_box(
+                        orient2d(chunk[0], chunk[1], chunk[2])
+                            .expect("generated 2D benchmark points should be valid"),
+                    );
                 }
             }
         });
@@ -40,7 +43,10 @@ fn orient3d_random(c: &mut Criterion) {
         b.iter(|| {
             for chunk in points.chunks(4) {
                 if chunk.len() == 4 {
-                    black_box(orient3d(chunk[0], chunk[1], chunk[2], chunk[3]));
+                    black_box(
+                        orient3d(chunk[0], chunk[1], chunk[2], chunk[3])
+                            .expect("generated 3D benchmark points should be valid"),
+                    );
                 }
             }
         });
@@ -59,7 +65,10 @@ fn orient2d_near_collinear(c: &mut Criterion) {
     c.bench_function("orient2d_near_collinear_10k", |b| {
         b.iter(|| {
             for (a, b_pt, c) in &points {
-                black_box(orient2d(*a, *b_pt, *c));
+                black_box(
+                    orient2d(*a, *b_pt, *c)
+                        .expect("generated near-collinear benchmark points should be valid"),
+                );
             }
         });
     });

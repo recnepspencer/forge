@@ -1,7 +1,7 @@
 use super::canonical_predicate_bundle;
 use crate::authoring::{
-    EqualityPredicate, IntegerComparisonPredicate, PresencePredicate, ScalarPredicateValue,
-    SetMembershipPredicate, StringContainsPredicate,
+    EqualityPredicate, NativeComparisonPredicate, PresencePredicate, SetMembershipPredicate,
+    StringContainsPredicate, WorthQueryPredicateOperand,
 };
 use crate::harness::fixtures::schema_view::detail_schema_view;
 use crate::validation::{validate_canonical_bundle, QueryValidationError};
@@ -12,11 +12,11 @@ fn contradictory_predicates_reject_explicitly() {
         canonical_predicate_bundle(|query| {
             query
                 .where_equal(
-                    EqualityPredicate::new("profile", "age", ScalarPredicateValue::Integer(18))
+                    EqualityPredicate::new("profile", "age", WorthQueryPredicateOperand::int64(18))
                         .expect("predicate should build"),
                 )
                 .where_greater_than(
-                    IntegerComparisonPredicate::greater_than("profile", "age", 18)
+                    NativeComparisonPredicate::greater_than("profile", "age", 18)
                         .expect("predicate should build"),
                 )
         }),
@@ -44,14 +44,14 @@ fn equality_outside_membership_rejects_explicitly() {
                         "profile",
                         "age",
                         [
-                            ScalarPredicateValue::Integer(18),
-                            ScalarPredicateValue::Integer(21),
+                            WorthQueryPredicateOperand::int64(18),
+                            WorthQueryPredicateOperand::int64(21),
                         ],
                     )
                     .expect("predicate should build"),
                 )
                 .where_equal(
-                    EqualityPredicate::new("profile", "age", ScalarPredicateValue::Integer(34))
+                    EqualityPredicate::new("profile", "age", WorthQueryPredicateOperand::int64(34))
                         .expect("predicate should build"),
                 )
         }),
@@ -75,11 +75,11 @@ fn empty_integer_range_rejects_explicitly() {
         canonical_predicate_bundle(|query| {
             query
                 .where_greater_than(
-                    IntegerComparisonPredicate::greater_than("profile", "age", 65)
+                    NativeComparisonPredicate::greater_than("profile", "age", 65)
                         .expect("predicate should build"),
                 )
                 .where_less_than(
-                    IntegerComparisonPredicate::less_than("profile", "age", 65)
+                    NativeComparisonPredicate::less_than("profile", "age", 65)
                         .expect("predicate should build"),
                 )
         }),
@@ -105,7 +105,7 @@ fn membership_predicate_without_schema_capability_rejects() {
                 SetMembershipPredicate::new(
                     "profile",
                     "private_note",
-                    [ScalarPredicateValue::String("secret".to_string())],
+                    [WorthQueryPredicateOperand::string("secret".to_string())],
                 )
                 .expect("predicate should build"),
             )
@@ -157,7 +157,7 @@ fn incompatible_predicate_family_rejects() {
                 EqualityPredicate::new(
                     "profile",
                     "age",
-                    ScalarPredicateValue::String("too-old".to_string()),
+                    WorthQueryPredicateOperand::string("too-old".to_string()),
                 )
                 .expect("predicate should build"),
             )
@@ -172,7 +172,7 @@ fn incompatible_predicate_family_rejects() {
             aspect: "profile".to_string(),
             field: "age".to_string(),
             predicate_family: "equality",
-            field_kind: "Integer",
+            field_kind: "Int64",
         }
     );
 }
@@ -209,7 +209,7 @@ fn workflow_predicate_context_rejects_explicitly() {
                 EqualityPredicate::new(
                     "workflow",
                     "status",
-                    ScalarPredicateValue::String("done".to_string()),
+                    WorthQueryPredicateOperand::string("done".to_string()),
                 )
                 .expect("predicate should build"),
             )

@@ -82,17 +82,13 @@ impl UiAdmittedAllocationStreamFrame {
     pub(crate) fn epoch(&self) -> UiAllocationFrameEpoch {
         self.epoch
     }
+    #[cfg(test)]
     pub fn ingress(&self) -> super::super::mailbox::UiAllocationFrameIngressView<'_> {
         self.ingress.view()
     }
     #[cfg(test)]
     pub(crate) fn counters(&self) -> UiAllocationFrameDispatcherCounters {
         self.counters
-    }
-
-    #[cfg(test)]
-    pub(crate) fn duplicate_witness(&self) -> &UiAllocationFrameDuplicateWitness {
-        &self.duplicate_witness
     }
 
     #[cfg(test)]

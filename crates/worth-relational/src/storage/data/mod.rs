@@ -27,7 +27,7 @@ pub enum RecordLifecycleState {
     Reusable,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct EntityReadRecord {
     pub entity_id: EntityId,
     pub lineage_id: Option<LineageId>,
@@ -38,7 +38,7 @@ pub struct EntityReadRecord {
     pub authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RelationReadRecord {
     pub relation_id: RelationId,
     pub kind: KindResolution,
@@ -50,7 +50,7 @@ pub struct RelationReadRecord {
     pub authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RelationalReadView {
     pub(crate) snapshot: SnapshotHandle,
     pub(crate) entities: Vec<EntityReadRecord>,

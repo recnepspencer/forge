@@ -112,6 +112,10 @@ pub use state_preparation::{
     aspect_state_digest_preparation_basis, prepare_aspect_state_for_canonical_basis,
     prepare_aspect_state_for_digest,
 };
+pub use value_lowering::{
+    prepare_aspect_value_identity_basis, prepare_struct_aspect_value_identity_basis,
+    CanonicalAspectValueIdentityBasis,
+};
 
 use crate::facade::ResponsibilityArea;
 

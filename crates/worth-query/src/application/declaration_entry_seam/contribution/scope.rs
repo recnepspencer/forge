@@ -26,10 +26,12 @@ impl WorthQueryDeclarationEntryContributionProofScope {
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn admitted_plan_digest(&self) -> Option<&str> {
         self.admitted_plan_digest.as_deref()
     }
 
+    #[cfg(test)]
     pub(crate) fn lower_runtime_boundary_digest(&self) -> Option<&str> {
         self.lower_runtime_boundary_digest.as_deref()
     }

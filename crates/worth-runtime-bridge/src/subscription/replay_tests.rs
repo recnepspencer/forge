@@ -1,4 +1,3 @@
-use crate::facade::runtime::BridgeSubscriptionDeclarationFamilyKind;
 use crate::facade::{
     BridgeCommittedPatchEnvelope, BridgeRuntimePolicy, BridgeSubscriptionBasisRequest,
     BridgeSubscriptionDeliveryIntentClass, NormalizedSubscriptionSliceIntent,
@@ -9,6 +8,7 @@ use crate::input::envelope::{
 };
 use crate::mapping::SubscriptionSliceKind;
 use crate::snapshot::{SnapshotReadPacket, TruthSnapshotIdentity, TruthSnapshotReader};
+use crate::subscription::BridgeSubscriptionDeclarationFamilyKind;
 use crate::truth_identity_fixtures::{truth_branch, truth_snapshot};
 
 use super::{

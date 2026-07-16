@@ -4,15 +4,15 @@ use std::marker::PhantomData;
 mod authority_rich;
 
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
-    WorthQueryDeclarationBridgeContinuationContract, WorthQueryDeclarationCanonicalEntry,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationLegalityContract, WorthQueryDeclarationProgressionContract,
-    WorthQueryDeclarationRouteContract, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext, WorthQueryNeighborhoodCapableGrouping,
-    WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
-    WorthQuerySignalNotCompatiblePosture, WorthQuerySingleOnlyGrouping,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationBridgeContinuationContract,
+    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
+    WorthQueryDeclarationProgressionContract, WorthQueryDeclarationRouteContract,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
+    WorthQuerySignalCompatiblePosture, WorthQuerySignalNotCompatiblePosture,
+    WorthQuerySingleOnlyGrouping,
 };
 
 pub(super) use authority_rich::AuthorityRichFamily;
@@ -55,8 +55,11 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for CollaborativeWorld {
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("entry.orchestration.{}", self.0)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("entry.orchestration.{}", self.0) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -260,14 +263,14 @@ impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for ConflictingAspectFami
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) struct WorldSensitiveFamily;
+pub(super) struct RebindRequiredFamily;
 
-impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for WorldSensitiveFamily {
+impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for RebindRequiredFamily {
     type PrimaryAuthority = WorthQueryRelationalTruthAuthority;
     type SignalCompatibility = WorthQuerySignalNotCompatiblePosture;
     type GroupedPosture = WorthQuerySingleOnlyGrouping;
     fn semantic_family_key() -> &'static str {
-        "WorldSensitiveFamily"
+        "RebindRequiredFamily"
     }
     fn legality_contract() -> WorthQueryDeclarationLegalityContract {
         WorthQueryDeclarationLegalityContract::authoritative_hot_artifact()
@@ -277,13 +280,9 @@ impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for WorldSensitiveFamily 
     }
     fn progression_contract(
         _handle_identity_digest: &str,
-        operating_context_identity_digest: &str,
+        _operating_context_identity_digest: &str,
     ) -> WorthQueryDeclarationProgressionContract {
-        if operating_context_identity_digest.contains("restricted") {
-            WorthQueryDeclarationProgressionContract::rebind_required()
-        } else {
-            WorthQueryDeclarationProgressionContract::admitted_current()
-        }
+        WorthQueryDeclarationProgressionContract::rebind_required()
     }
 }
 
@@ -319,7 +318,7 @@ impl_input!(
     ExpensiveAutomationFamily,
     AspectRichFamily,
     ConflictingAspectFamily,
-    WorldSensitiveFamily,
+    RebindRequiredFamily,
     AuthorityRichFamily
 );
 
@@ -355,7 +354,9 @@ pub(super) fn admitted_handle(
                 GeometryDomain,
                 ConflictingAspectFamily,
             >(),
-            crate::application::domain_test_support::family::<GeometryDomain, WorldSensitiveFamily>(
+            crate::application::domain_test_support::family::<GeometryDomain, RebindRequiredFamily>(
+            ),
+            crate::application::domain_test_support::family::<GeometryDomain, AuthorityRichFamily>(
             ),
         ],
     )

@@ -1,7 +1,9 @@
 mod artifacts;
 mod execution;
+mod installed_authority;
 mod outcome;
 mod readmission;
+mod readmission_stop;
 mod request;
 mod transcript;
 
@@ -22,6 +24,11 @@ pub use readmission::{
     WorthQueryPreparedContinuationBasisWitness, WorthQueryPreparedContinuationDriftKind,
     WorthQueryPreparedContinuationExecutionReadmission,
     WorthQueryPreparedContinuationFreshnessPosture,
+};
+pub use readmission_stop::{
+    WorthQueryContinuationExecutionReadmissionNextAction,
+    WorthQueryContinuationExecutionReadmissionStop,
+    WorthQueryContinuationExecutionReadmissionStopKind,
 };
 pub use request::{
     WorthQueryExecutePreparedContinuationRequest, WorthQueryPreparedContinuationRequest,

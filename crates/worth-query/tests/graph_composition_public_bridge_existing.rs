@@ -7,10 +7,10 @@ use worth_query::facade::runtime::{
     WorthQueryGraphCompositionLifecycleOutcomeKind, WorthQueryGraphCompositionProgramStepKind,
     WorthQueryInspection, WorthQueryLiveView, WorthQueryMutationAuthorityIdentity,
     WorthQueryNamingAttachmentAuthorityLabel, WorthQueryNamingMutationFamily,
-    WorthQueryNamingPriorAuthorityLabel, WorthQueryNamingTargetAuthorityLabel, WorthQueryNativeRow,
+    WorthQueryNamingPriorAuthorityLabel, WorthQueryNamingTargetAuthorityLabel, WorthQueryUnrefinedLiveShape,
     WorthQueryRuntimeError,
 };
-mod support;
+use crate::support;
 
 use support::aspect_touch as touch;
 use support::public_bridge_runtime::{public_graph_support_profile, PublicBridgeRuntimeHarness};
@@ -84,7 +84,7 @@ fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle()
     let mut workspace = runtime
         .workspace("public.graph-composition-existing-retarget")
         .expect("runtime should open a named workspace");
-    let relations: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let relations: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "public.graph-composition-existing-retarget-relations",
             |q| {

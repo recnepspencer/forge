@@ -6,7 +6,7 @@ fn ordinary_runtime_backed_read_path_keeps_forbidden_fallback_seams_at_exact_zer
     let mut workspace = runtime
         .workspace("runtime.tests.hostile-read-bootstrap")
         .expect("task runtime should open a named workspace");
-    let tasks: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("runtime.tests.hostile-read-bootstrap.tasks", |q| {
             q.from("Task")
                 .select([identity_id_field_key(), title_value_field_key()])

@@ -62,12 +62,12 @@ fn ordinary_batch_reuses_touch_vocabulary_without_graph_lifecycle_overclaim() {
             "Task",
         ),
         aspects: vec![
-            WorthQueryAdmittedAspectValue::new(
+            WorthQueryAuthoredAspectMutation::new(
                 test_aspect_touch("identity.id"),
                 test_string_aspect_value("task-ordinary"),
             )
             .unwrap(),
-            WorthQueryAdmittedAspectValue::new(
+            WorthQueryAuthoredAspectMutation::new(
                 test_aspect_touch("title.value"),
                 test_string_aspect_value("Ordinary task"),
             )

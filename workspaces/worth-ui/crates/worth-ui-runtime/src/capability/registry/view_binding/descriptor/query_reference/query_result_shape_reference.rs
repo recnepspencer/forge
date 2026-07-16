@@ -1,7 +1,4 @@
-use worth_query::facade::foundation::{
-    CanonicalResultShapeArtifact,
-    ResultShapeFamily,
-};
+use worth_query::facade::foundation::{CanonicalResultShapeArtifact, ResultShapeFamily};
 use worth_query::facade::runtime::ValidatedResultShapeArtifact;
 
 #[derive(Clone, Debug, Eq, PartialEq)]

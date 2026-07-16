@@ -209,8 +209,8 @@ impl ProjectionConsumptionDeclarationBuilder {
         self
     }
 
-    pub fn derived_scalar_field_path(mut self, field: ProjectionFactFieldPath) -> Self {
-        self.requested = self.requested.derived_scalar_field_path(field);
+    pub fn derived_field_path(mut self, field: ProjectionFactFieldPath) -> Self {
+        self.requested = self.requested.derived_field_path(field);
         self
     }
 

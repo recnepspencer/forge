@@ -50,6 +50,6 @@ short path for one job instead of reading each surface in isolation.
 - [Choosing The Right Surface](../choosing/README.md)
 - [Typed Binding Pipeline](../typed-binding-pipeline.md)
 - [Recovery Boundary](../recovery-boundary.md)
-- [Preview Inspection And Mutation Planning](./preview-inspection-and-mutation-planning.md)
+- Preview Inspection And Mutation Planning
 - [Runtime-Preflight Workflow Contributions](./runtime-preflight-workflow-contributions.md)
-- [Workflow Lanes: Common, Checked, Proof, And Raw](./workflow-lanes-common-checked-proof-raw.md)
+- Workflow Lanes: Common, Checked, Proof, And Raw

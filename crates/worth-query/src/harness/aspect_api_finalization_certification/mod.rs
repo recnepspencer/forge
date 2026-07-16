@@ -2,6 +2,7 @@ mod digests;
 mod fixture;
 mod rejections;
 mod rows;
+#[cfg(test)]
 mod tests;
 
 use crate::harness::certification::{digest_parts, CertificationMatrix};

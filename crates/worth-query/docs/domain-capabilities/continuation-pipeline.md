@@ -219,7 +219,7 @@ truth and stops at preparation instead of implying later execution happened.
 ## Real Example
 
 ```rust
-let envelope = handle.orchestrate_declaration_entry(
+let envelope = handle.declare_review_progress_describe_plan_receipt_and_envelope(
     geometry_session.prepare_preview_for_active_face_selection()?,
 )?;
 
@@ -295,7 +295,7 @@ What this example is showing:
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
   is the signal-facing composition lane that can reuse retained signal truth
   and optionally stop at `Compatible` before continuation preparation begins.
-- [Configured Domain Handles](./configured-domain-handles.md) remain the
+- Runtime-Installed Domain Handles remain the
   admitted-world boundary that preparation and execution both verify.
 
 Use bridge routing when you want the retained bridge continuation artifact
@@ -433,7 +433,7 @@ mutation path.
 
 ## Related Docs
 
-- [Configured Domain Handles](./configured-domain-handles.md)
+- Runtime-Installed Domain Handles
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)

@@ -2,8 +2,10 @@ mod artifacts;
 mod grammar;
 mod lower;
 mod materialization;
+#[cfg(test)]
 mod ordinary;
 mod products;
+#[cfg(test)]
 mod proof;
 mod sequencing;
 
@@ -53,12 +55,14 @@ pub use sequencing::{
     WorthQueryDeclarationEntryOrchestrationAutomationStep,
 };
 
+#[cfg(test)]
+pub(crate) use lower::worth_query_checked_declaration_entry_orchestration_on_handle;
 pub(crate) use lower::{
-    worth_query_checked_declaration_entry_orchestration_on_handle,
     worth_query_lower_declaration_entry_product_orchestration_from_progressed_on_handle,
     WorthQueryDeclarationEntryProductChecked,
 };
 pub(crate) use materialization::materialized_profile_for_tier;
+#[cfg(test)]
 pub(crate) use ordinary::worth_query_declaration_entry_orchestration_on_handle;
 pub(crate) use products::{
     worth_query_checked_declaration_envelope_orchestration_from_progressed_on_handle,
@@ -66,11 +70,15 @@ pub(crate) use products::{
     worth_query_checked_declaration_route_orchestration_from_progressed_on_handle,
     worth_query_declaration_envelope_orchestration_from_progressed_on_handle,
     worth_query_declaration_envelope_orchestration_from_progressed_proof_on_handle,
-    worth_query_declaration_receipt_orchestration_from_progressed_on_handle,
     worth_query_declaration_receipt_orchestration_from_progressed_proof_on_handle,
-    worth_query_declaration_route_orchestration_from_progressed_on_handle,
     worth_query_declaration_route_orchestration_from_progressed_proof_on_handle,
 };
+#[cfg(test)]
+pub(crate) use products::{
+    worth_query_declaration_receipt_orchestration_from_progressed_on_handle,
+    worth_query_declaration_route_orchestration_from_progressed_on_handle,
+};
+#[cfg(test)]
 pub(crate) use proof::worth_query_declaration_entry_orchestration_proof_on_handle;
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 use crate::authoring::{
     AspectFieldKey, DeliveredFieldName, OrderingDirection, PredicateSelector, RelationName,
-    ScalarPredicateValue,
+    WorthQueryPredicateOperand,
 };
 use crate::result_shape::canonical_result_field_digest_part;
 
@@ -48,24 +48,22 @@ impl CanonicalPredicateEntry {
                 family: CanonicalPredicateFamily::Equality,
                 operand: CanonicalPredicateOperand::Scalar(predicate.value().clone()),
             },
-            PredicateSelector::IntegerComparison(predicate) => Self {
+            PredicateSelector::NativeComparison(predicate) => Self {
                 field: predicate.target_field_key().clone(),
                 family: match predicate.operator() {
-                    crate::authoring::IntegerComparisonOperator::GreaterThan => {
-                        CanonicalPredicateFamily::IntegerGreaterThan
+                    crate::authoring::NativeComparisonOperator::GreaterThan => {
+                        CanonicalPredicateFamily::NativeGreaterThan
                     }
-                    crate::authoring::IntegerComparisonOperator::LessThan => {
-                        CanonicalPredicateFamily::IntegerLessThan
+                    crate::authoring::NativeComparisonOperator::LessThan => {
+                        CanonicalPredicateFamily::NativeLessThan
                     }
                 },
-                operand: CanonicalPredicateOperand::Scalar(ScalarPredicateValue::Integer(
-                    predicate.value(),
-                )),
+                operand: CanonicalPredicateOperand::Scalar(predicate.value().clone()),
             },
             PredicateSelector::StringContains(predicate) => Self {
                 field: predicate.target_field_key().clone(),
                 family: CanonicalPredicateFamily::StringContains,
-                operand: CanonicalPredicateOperand::Scalar(ScalarPredicateValue::String(
+                operand: CanonicalPredicateOperand::Scalar(WorthQueryPredicateOperand::string(
                     predicate.value().to_string(),
                 )),
             },
@@ -101,7 +99,7 @@ impl CanonicalPredicateEntry {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum CanonicalPredicateOperand {
-    Scalar(ScalarPredicateValue),
+    Scalar(WorthQueryPredicateOperand),
     ScalarSet(CanonicalScalarSet),
     Presence(&'static str),
 }
@@ -119,8 +117,8 @@ impl CanonicalPredicateOperand {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum CanonicalPredicateFamily {
     Equality,
-    IntegerGreaterThan,
-    IntegerLessThan,
+    NativeGreaterThan,
+    NativeLessThan,
     StringContains,
     ScalarMembership,
     PresenceIsPresent,
@@ -130,8 +128,8 @@ impl CanonicalPredicateFamily {
     pub(crate) fn digest_key(self) -> &'static str {
         match self {
             Self::Equality => "eq",
-            Self::IntegerGreaterThan => "gt-int",
-            Self::IntegerLessThan => "lt-int",
+            Self::NativeGreaterThan => "gt-native",
+            Self::NativeLessThan => "lt-native",
             Self::StringContains => "contains-str",
             Self::ScalarMembership => "in-set",
             Self::PresenceIsPresent => "is-present",
@@ -139,12 +137,10 @@ impl CanonicalPredicateFamily {
     }
 }
 
-pub(crate) fn scalar_digest_part(value: &ScalarPredicateValue) -> String {
-    match value {
-        ScalarPredicateValue::String(value) => format!("string:{value}"),
-        ScalarPredicateValue::Integer(value) => format!("integer:{value}"),
-        ScalarPredicateValue::Boolean(value) => format!("boolean:{value}"),
-    }
+pub(crate) fn scalar_digest_part(value: &WorthQueryPredicateOperand) -> String {
+    worth_foundational::facade::prepare_aspect_value_identity_basis(value.as_native())
+        .as_str()
+        .to_owned()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

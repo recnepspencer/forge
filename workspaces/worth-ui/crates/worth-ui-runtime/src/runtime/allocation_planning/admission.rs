@@ -1,4 +1,4 @@
-use crate::evidence::{UiAllocationConstraintSet, UiAllocationNeighborhood, UiMeasurementBasis};
+use crate::evidence::UiMeasurementBasis;
 use crate::runtime::execution_plan_input::WorthUiExecutionPlanInputWitness;
 use crate::runtime::{
     WorthUiExecutionPlanInput, WorthUiPendingActivation, WorthUiPlanLoweringBasis,
@@ -45,28 +45,6 @@ impl WorthUiAllocationPlanningAdmission {
 
     pub(crate) fn measurement_basis(&self) -> &UiMeasurementBasis {
         self.constraint_basis.measurement_basis()
-    }
-
-    pub(crate) fn allocation_neighborhood(&self) -> &UiAllocationNeighborhood {
-        self.constraint_basis.neighborhood()
-    }
-
-    pub(crate) fn allocation_constraint_set(&self) -> &UiAllocationConstraintSet {
-        self.constraint_basis.constraint_set()
-    }
-
-    pub(crate) fn into_parts(
-        self,
-    ) -> (
-        crate::graph::UiAdmittedAllocationConstraintBasis,
-        Option<crate::runtime::UiPortalAllocationPlanningBasis>,
-        WorthUiExecutionPlanInputWitness,
-    ) {
-        (
-            self.constraint_basis,
-            self.portal_allocation_input,
-            self.expected_lowered_witness,
-        )
     }
 
     pub(crate) fn portal_allocation_input(

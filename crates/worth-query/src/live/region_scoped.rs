@@ -1,5 +1,5 @@
 use super::*;
-
+#[cfg(test)]
 pub(crate) fn admit_region_scoped_live_plan(
     live: &LiveQueryPlan,
     locality: LocalityPredicateContract,
@@ -130,7 +130,7 @@ pub(crate) fn admit_region_scoped_live_plan(
         stream_window_width_budget,
     })
 }
-
+#[cfg(test)]
 fn derive_locality_semantic_basis(
     relevance_contract: &QueryRelevanceContract,
 ) -> LocalitySemanticBasis {
@@ -144,7 +144,7 @@ fn derive_locality_semantic_basis(
         LocalitySemanticBasis::DetailProjectionFields
     }
 }
-
+#[cfg(test)]
 fn derive_locality_scope_admission(
     relevance_contract: &QueryRelevanceContract,
 ) -> LocalityScopeAdmission {
@@ -158,7 +158,7 @@ fn derive_locality_scope_admission(
         }
     }
 }
-
+#[cfg(test)]
 fn derive_locality_admission_class(
     semantic_basis: &LocalitySemanticBasis,
     scope_admission: &LocalityScopeAdmission,
@@ -188,7 +188,7 @@ fn derive_locality_admission_class(
         _ => Err(RegionScopedLiveError::UnsupportedLocalityPredicate),
     }
 }
-
+#[cfg(test)]
 fn derive_stream_lowering_admission_class(
     semantic_basis: &LocalitySemanticBasis,
     admission_class: &LocalityAdmissionClass,
@@ -210,7 +210,7 @@ fn derive_stream_lowering_admission_class(
         _ => StreamLoweringAdmissionClass::DetailCurrentStateOnly,
     }
 }
-
+#[cfg(test)]
 fn classify_locality_match(
     plan: &RegionScopedLivePlan,
     change: &BridgeChangeSummary,
@@ -309,7 +309,7 @@ fn classify_locality_match(
 
     Err(RegionScopedLiveError::BridgeSliceIncompatibility)
 }
-
+#[cfg(test)]
 pub(crate) fn execute_region_scoped_live_change(
     plan: &RegionScopedLivePlan,
     change: &BridgeChangeSummary,
@@ -457,7 +457,7 @@ pub(crate) fn execute_region_scoped_live_change(
         }
     }
 }
-
+#[cfg(test)]
 pub(crate) fn lower_region_scoped_execution_to_stream_contract(
     plan: &RegionScopedLivePlan,
     execution: &RegionScopedLiveExecutionEnvelope,
@@ -610,7 +610,7 @@ pub(crate) fn lower_region_scoped_execution_to_stream_contract(
         cost_posture: plan.stream_lowering_cost_posture().clone(),
     })
 }
-
+#[cfg(test)]
 fn stream_contract_widths(
     payload: &LivePatchPayload,
     locality_outcome: &DeliveryLocalityOutcome,

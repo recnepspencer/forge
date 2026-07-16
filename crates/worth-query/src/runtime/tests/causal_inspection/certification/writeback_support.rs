@@ -172,7 +172,7 @@ fn writeback_effect_intent(
         effect_class,
         worth_foundational::facade::AspectKey::new("worth.query.writeback")
             .expect("valid writeback effect aspect key"),
-        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(format!(
+        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(format!(
             "query-effect:{suffix}"
         )),
     )

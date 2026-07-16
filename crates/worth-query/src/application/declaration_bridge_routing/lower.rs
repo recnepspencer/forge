@@ -349,7 +349,7 @@ fn writeback_preparation_request<
         BridgeWritebackEffectClass::ProjectedStateDiff,
         AspectKey::new("query.writeback.preparation")
             .expect("static query writeback preparation aspect key is valid"),
-        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
             envelope.declaration_digest().to_string(),
         ),
     )

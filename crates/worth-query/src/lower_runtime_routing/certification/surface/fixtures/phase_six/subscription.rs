@@ -12,7 +12,7 @@ use crate::lower_runtime_routing::{
 };
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::runtime::SubscriptionActivationReceipt;
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
 use crate::subscription::{
     admit_query_subscription, declare_query_subscription, lower_query_subscription_to_bridge,
     prepare_subscription_activation, select_query_subscription_family, LiveQueryAdmissionArtifact,
@@ -38,14 +38,14 @@ pub(crate) fn representative_subscription_activation_row() -> RepresentativeArti
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("status")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("value")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [],

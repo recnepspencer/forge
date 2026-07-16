@@ -1,9 +1,9 @@
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::tests::runtime;
 use crate::facade::tests::speculation::preview_declaration;
 use crate::facade::{
     BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgeRuntimePolicy,
 };
+use crate::speculation::BridgePreviewSessionIdentity;
 
 #[test]
 fn runtime_promotes_preview_session_and_replays_promoted_bundle() {

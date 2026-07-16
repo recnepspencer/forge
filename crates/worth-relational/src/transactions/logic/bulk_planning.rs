@@ -33,10 +33,12 @@ pub(super) fn bulk_mutation_scope(intents: &[MutationIntent]) -> BulkMutationSco
     for intent in intents {
         match intent {
             MutationIntent::Create(CreateIntent::Entity(_))
+            | MutationIntent::Create(CreateIntent::EntityAspects(_))
             | MutationIntent::Create(CreateIntent::BulkEntities(_)) => {
                 saw_entity_create = true;
             }
             MutationIntent::Create(CreateIntent::Relation(_))
+            | MutationIntent::Create(CreateIntent::RelationAspects(_))
             | MutationIntent::Create(CreateIntent::BulkRelations(_)) => {
                 saw_relation_create = true;
             }
@@ -46,7 +48,9 @@ pub(super) fn bulk_mutation_scope(intents: &[MutationIntent]) -> BulkMutationSco
             | MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
                 saw_topology_rewrite = true;
             }
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {}
+            MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
+            | MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(_))
+            | MutationIntent::Relation(RelationMutationIntent::ApplyAspectPatch(_)) => {}
         }
     }
 
@@ -71,7 +75,9 @@ pub(super) fn bulk_mutation_locality(intents: &[MutationIntent]) -> BulkMutation
         intent.seed_touched_partitions(&mut touched_partitions);
         match intent {
             MutationIntent::Create(CreateIntent::Entity(_))
+            | MutationIntent::Create(CreateIntent::EntityAspects(_))
             | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
+            | MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(_))
             | MutationIntent::Entity(EntityMutationIntent::Replace(_))
             | MutationIntent::Entity(EntityMutationIntent::Delete(_)) => {
                 entity_target_count += 1;
@@ -80,6 +86,12 @@ pub(super) fn bulk_mutation_locality(intents: &[MutationIntent]) -> BulkMutation
                 entity_target_count += spec.field_patches.len();
             }
             MutationIntent::Create(CreateIntent::Relation(spec)) => {
+                relation_target_count += 1;
+                if spec.source.partition_id() != spec.target.partition_id() {
+                    cross_partition_relation_count += 1;
+                }
+            }
+            MutationIntent::Create(CreateIntent::RelationAspects(spec)) => {
                 relation_target_count += 1;
                 if spec.source.partition_id() != spec.target.partition_id() {
                     cross_partition_relation_count += 1;
@@ -94,6 +106,7 @@ pub(super) fn bulk_mutation_locality(intents: &[MutationIntent]) -> BulkMutation
                     .count();
             }
             MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(_))
+            | MutationIntent::Relation(RelationMutationIntent::ApplyAspectPatch(_))
             | MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
                 relation_target_count += 1;
             }
@@ -115,10 +128,16 @@ pub(super) fn bulk_mutation_naming(intents: &[MutationIntent]) -> BulkMutationNa
             MutationIntent::Create(CreateIntent::Entity(spec)) => {
                 normalized_client_keys.push(spec.client_key.clone());
             }
+            MutationIntent::Create(CreateIntent::EntityAspects(spec)) => {
+                normalized_client_keys.push(spec.client_key.clone());
+            }
             MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
                 normalized_client_keys.extend(spec.client_keys.iter().cloned());
             }
             MutationIntent::Create(CreateIntent::Relation(spec)) => {
+                normalized_client_keys.push(spec.client_key.clone());
+            }
+            MutationIntent::Create(CreateIntent::RelationAspects(spec)) => {
                 normalized_client_keys.push(spec.client_key.clone());
             }
             MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
@@ -128,6 +147,8 @@ pub(super) fn bulk_mutation_naming(intents: &[MutationIntent]) -> BulkMutationNa
                 normalized_client_keys.push(spec.replacement.client_key.clone());
             }
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
+            | MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(_))
+            | MutationIntent::Relation(RelationMutationIntent::ApplyAspectPatch(_))
             | MutationIntent::Entity(EntityMutationIntent::Delete(_))
             | MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(_))
             | MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {}
@@ -152,6 +173,13 @@ pub(super) fn bulk_mutation_lineage(intents: &[MutationIntent]) -> BulkMutationL
                     client_key: spec.client_key.clone(),
                 });
             }
+            MutationIntent::Create(CreateIntent::EntityAspects(spec)) => {
+                transitions.push(PlannedLineageTransition::CreateEntity {
+                    partition_id: spec.partition_id,
+                    kind_id: spec.kind_id,
+                    client_key: spec.client_key.clone(),
+                });
+            }
             MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
                 for client_key in &spec.client_keys {
                     transitions.push(PlannedLineageTransition::CreateEntity {
@@ -162,6 +190,15 @@ pub(super) fn bulk_mutation_lineage(intents: &[MutationIntent]) -> BulkMutationL
                 }
             }
             MutationIntent::Create(CreateIntent::Relation(spec)) => {
+                transitions.push(PlannedLineageTransition::CreateRelation {
+                    partition_id: spec.partition_id,
+                    kind_id: spec.kind_id,
+                    source: spec.source.clone(),
+                    target: spec.target.clone(),
+                    client_key: spec.client_key.clone(),
+                });
+            }
+            MutationIntent::Create(CreateIntent::RelationAspects(spec)) => {
                 transitions.push(PlannedLineageTransition::CreateRelation {
                     partition_id: spec.partition_id,
                     kind_id: spec.kind_id,
@@ -208,7 +245,9 @@ pub(super) fn bulk_mutation_lineage(intents: &[MutationIntent]) -> BulkMutationL
                     relation_id: spec.relation_id,
                 });
             }
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {}
+            MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
+            | MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(_))
+            | MutationIntent::Relation(RelationMutationIntent::ApplyAspectPatch(_)) => {}
         }
     }
 

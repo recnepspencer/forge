@@ -1,4 +1,7 @@
-use worth_query::facade::runtime::{worth_query_domain, WorthQueryIntentDeclaration, WorthQueryIntentInput, InvariantCatalog};
+#[path = "../support/installed_domain.rs"]
+mod installed_domain;
+
+use worth_query::facade::runtime::{WorthQueryIntentDeclaration, WorthQueryIntentInput, InvariantCatalog};
 
 fn main() {
     let declaration = WorthQueryIntentDeclaration::strategy_commit(
@@ -9,8 +12,10 @@ fn main() {
         WorthQueryIntentInput::object([("edge", WorthQueryIntentInput::string("e-1"))]),
     );
 
-    let _ = worth_query_domain("worth.spatial")
-        .for_intent(&declaration)
+    let installation = installed_domain::install("invariant-requires-because");
+    let _ = installation
+        .contributions()
+        .for_intent(&declaration).expect("installed contribution authority must remain current")
         .register_invariant_catalog("spatial.non_manifold_edge_split", InvariantCatalog::default())
         .materialize();
 }

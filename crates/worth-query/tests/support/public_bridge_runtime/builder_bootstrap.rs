@@ -1,7 +1,6 @@
 use super::*;
 
 impl PublicBridgeRuntimeHarness {
-    #[allow(dead_code)]
     pub fn bridge_backed_runtime_builder(&self) -> PublicBridgeRuntimeBootstrapBuilder {
         PublicBridgeRuntimeBootstrapBuilder {
             state: self.state.clone(),
@@ -10,7 +9,6 @@ impl PublicBridgeRuntimeHarness {
 }
 
 impl PublicBridgeRuntimeBootstrapBuilder {
-    #[allow(dead_code)]
     pub fn support_profile(
         self,
         support_profile: WorthQueryRuntimeSupportProfile,
@@ -23,13 +21,14 @@ impl PublicBridgeRuntimeBootstrapBuilder {
 }
 
 impl PublicBridgeRuntimeBootstrapWithSupportProfile {
-    #[allow(dead_code)]
     pub fn build(self) -> WorthQueryRuntime {
         record_public_bridge_runtime_bootstrap_invocation(
             PublicBridgeRuntimeBootstrapPath::Builder,
         );
 
         WorthQueryRuntime::builder()
+            .aspect_contracts(public_bridge_aspect_contracts())
+            .expect("public bridge aspect contracts should install")
             .runtime_bridge(bridge::public_bridge())
             .schema_adapter(PublicSchemaAdapter)
             .source_adapter(PublicSourceAdapter::new(self.state.clone()))

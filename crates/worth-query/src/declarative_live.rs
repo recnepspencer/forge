@@ -1,12 +1,14 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
-use worth_foundational::facade::{AspectKey, AspectValue, InternedString};
+#[cfg(test)]
+use worth_foundational::facade::prepare_aspect_value_identity_basis;
+use worth_foundational::facade::{AspectKey, AspectValue};
 
 use crate::authoring::{
     AspectFieldKey, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    GuidedAuthoringPath, IntegerComparisonOperator, IntegerComparisonPredicate, OrderingDirection,
+    GuidedAuthoringPath, NativeComparisonOperator, NativeComparisonPredicate, OrderingDirection,
     OrderingSelector, PresencePredicate, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
-    ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate, TraversalSelector,
+    SetMembershipPredicate, StringContainsPredicate, TraversalSelector, WorthQueryPredicateOperand,
 };
 use crate::authorized_projection::AuthorizedDeclarativeProjection;
 use crate::basis::{
@@ -15,6 +17,7 @@ use crate::basis::{
     ResolvedSnapshotIdentity, SnapshotLineageClass,
 };
 use crate::canonicalization::CanonicalQueryBundle;
+#[cfg(test)]
 use crate::identity::hash_parts;
 use crate::identity_evolution::{InspectorIdentityArtifact, InspectorIdentityClassification};
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
@@ -30,11 +33,13 @@ use crate::view_shape_live::{
     lower_view_shape_plan_to_live, materialize_authoritative_grouped_baseline_from_members,
     AuthoritativeGroupedBaselineArtifact, LiveViewShapeArtifact, WorthQueryGroupedBaselineMember,
 };
+use crate::workflow::QueryWritebackDeclaration;
+#[cfg(test)]
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context, lower_query_writeback_declaration,
-    QueryWritebackDeclaration, WorkflowAuthorityTargetFamily, WorkflowBindingSource,
-    WorkflowBudgetClass, WorkflowCostClass, WorkflowDeclarationFamily, WorkflowDeclarationRequest,
-    WorkflowFreshnessPolicy, WritebackLoweringInput,
+    WorkflowAuthorityTargetFamily, WorkflowBindingSource, WorkflowBudgetClass, WorkflowCostClass,
+    WorkflowDeclarationFamily, WorkflowDeclarationRequest, WorkflowFreshnessPolicy,
+    WritebackLoweringInput,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -109,30 +114,44 @@ impl DeclarativeOrderingField {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativeEqualityFilter {
     source: AspectFieldKey,
-    value: ScalarPredicateValue,
+    value: WorthQueryPredicateOperand,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DeclarativeIntegerComparisonFilter {
+pub struct DeclarativeNativeComparisonFilter {
     source: AspectFieldKey,
-    operator: IntegerComparisonOperator,
-    value: i64,
+    operator: NativeComparisonOperator,
+    value: WorthQueryPredicateOperand,
 }
 
-impl DeclarativeIntegerComparisonFilter {
+impl DeclarativeNativeComparisonFilter {
     pub fn greater_than(source: AspectFieldKey, value: i64) -> Self {
+        Self::greater_than_native(source, value)
+    }
+
+    pub fn greater_than_native(
+        source: AspectFieldKey,
+        value: impl Into<WorthQueryPredicateOperand>,
+    ) -> Self {
         Self {
             source,
-            operator: IntegerComparisonOperator::GreaterThan,
-            value,
+            operator: NativeComparisonOperator::GreaterThan,
+            value: value.into(),
         }
     }
 
     pub fn less_than(source: AspectFieldKey, value: i64) -> Self {
+        Self::less_than_native(source, value)
+    }
+
+    pub fn less_than_native(
+        source: AspectFieldKey,
+        value: impl Into<WorthQueryPredicateOperand>,
+    ) -> Self {
         Self {
             source,
-            operator: IntegerComparisonOperator::LessThan,
-            value,
+            operator: NativeComparisonOperator::LessThan,
+            value: value.into(),
         }
     }
 
@@ -140,12 +159,12 @@ impl DeclarativeIntegerComparisonFilter {
         &self.source
     }
 
-    pub fn operator(&self) -> IntegerComparisonOperator {
+    pub fn operator(&self) -> NativeComparisonOperator {
         self.operator
     }
 
-    pub fn value(&self) -> i64 {
-        self.value
+    pub fn value(&self) -> &WorthQueryPredicateOperand {
+        &self.value
     }
 }
 
@@ -175,13 +194,13 @@ impl DeclarativeStringContainsFilter {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativeSetMembershipFilter {
     source: AspectFieldKey,
-    values: Vec<ScalarPredicateValue>,
+    values: Vec<WorthQueryPredicateOperand>,
 }
 
 impl DeclarativeSetMembershipFilter {
     pub fn new(
         source: AspectFieldKey,
-        values: impl IntoIterator<Item = ScalarPredicateValue>,
+        values: impl IntoIterator<Item = WorthQueryPredicateOperand>,
     ) -> Self {
         Self {
             source,
@@ -193,7 +212,7 @@ impl DeclarativeSetMembershipFilter {
         &self.source
     }
 
-    pub fn values(&self) -> &[ScalarPredicateValue] {
+    pub fn values(&self) -> &[WorthQueryPredicateOperand] {
         &self.values
     }
 }
@@ -229,7 +248,7 @@ impl DeclarativePresenceFilter {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeclarativePredicateFilter {
     Equality(DeclarativeEqualityFilter),
-    IntegerComparison(DeclarativeIntegerComparisonFilter),
+    NativeComparison(DeclarativeNativeComparisonFilter),
     StringContains(DeclarativeStringContainsFilter),
     SetMembership(DeclarativeSetMembershipFilter),
     Presence(DeclarativePresenceFilter),
@@ -239,7 +258,7 @@ impl DeclarativePredicateFilter {
     pub fn source_field_key(&self) -> &AspectFieldKey {
         match self {
             Self::Equality(filter) => filter.source_field_key(),
-            Self::IntegerComparison(filter) => filter.source_field_key(),
+            Self::NativeComparison(filter) => filter.source_field_key(),
             Self::StringContains(filter) => filter.source_field_key(),
             Self::SetMembership(filter) => filter.source_field_key(),
             Self::Presence(filter) => filter.source_field_key(),
@@ -248,7 +267,7 @@ impl DeclarativePredicateFilter {
 }
 
 impl DeclarativeEqualityFilter {
-    pub fn new(source: AspectFieldKey, value: ScalarPredicateValue) -> Self {
+    pub fn new(source: AspectFieldKey, value: WorthQueryPredicateOperand) -> Self {
         Self { source, value }
     }
 
@@ -256,7 +275,7 @@ impl DeclarativeEqualityFilter {
         &self.source
     }
 
-    pub fn value(&self) -> &ScalarPredicateValue {
+    pub fn value(&self) -> &WorthQueryPredicateOperand {
         &self.value
     }
 }
@@ -437,15 +456,15 @@ impl DeclarativeLiveQueryRequest {
         self
     }
 
-    pub fn where_greater_than(mut self, filter: DeclarativeIntegerComparisonFilter) -> Self {
+    pub fn where_greater_than(mut self, filter: DeclarativeNativeComparisonFilter) -> Self {
         self.predicate_filters
-            .push(DeclarativePredicateFilter::IntegerComparison(filter));
+            .push(DeclarativePredicateFilter::NativeComparison(filter));
         self
     }
 
-    pub fn where_less_than(mut self, filter: DeclarativeIntegerComparisonFilter) -> Self {
+    pub fn where_less_than(mut self, filter: DeclarativeNativeComparisonFilter) -> Self {
         self.predicate_filters
-            .push(DeclarativePredicateFilter::IntegerComparison(filter));
+            .push(DeclarativePredicateFilter::NativeComparison(filter));
         self
     }
 
@@ -593,10 +612,6 @@ impl DeclarativeBranchCompareValue {
     pub fn value(&self) -> &str {
         &self.value
     }
-
-    fn key(&self) -> AspectFieldKey {
-        self.source.clone()
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -629,12 +644,6 @@ impl DeclarativeBranchCompareInputRow {
 
     pub fn values(&self) -> &[DeclarativeBranchCompareValue] {
         &self.values
-    }
-
-    fn value_for(&self, key: &AspectFieldKey) -> Option<&DeclarativeBranchCompareValue> {
-        self.values
-            .iter()
-            .find(|value| value.source_field_key() == key)
     }
 }
 
@@ -696,17 +705,6 @@ impl DeclarativeBranchCompareFieldDelta {
     pub fn family(&self) -> &DeclarativeBranchCompareChangeFamily {
         &self.family
     }
-
-    fn digest_part(&self) -> String {
-        format!(
-            "delta:{}:{}:{}:{}:{}",
-            self.source_field_key().aspect().as_str(),
-            self.source_field_key().field().as_str(),
-            self.left_value.as_deref().unwrap_or("none"),
-            self.right_value.as_deref().unwrap_or("none"),
-            self.family.as_str()
-        )
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -737,22 +735,6 @@ impl DeclarativeBranchCompareRow {
 
     pub fn field_deltas(&self) -> &[DeclarativeBranchCompareFieldDelta] {
         &self.field_deltas
-    }
-
-    fn digest_part(&self) -> String {
-        let mut deltas = self
-            .field_deltas
-            .iter()
-            .map(DeclarativeBranchCompareFieldDelta::digest_part)
-            .collect::<Vec<_>>();
-        deltas.sort();
-        format!(
-            "compare_row:{}:{}:{}:{}",
-            self.left_identity.as_deref().unwrap_or("none"),
-            self.right_identity.as_deref().unwrap_or("none"),
-            self.identity_class.as_str(),
-            deltas.join("|")
-        )
     }
 }
 
@@ -805,7 +787,7 @@ pub struct DeclarativeWritebackValue {
 impl DeclarativeWritebackValue {
     pub fn string(value: impl Into<String>) -> Self {
         Self {
-            value: crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value),
+            value: crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value),
         }
     }
 
@@ -824,64 +806,12 @@ impl DeclarativeWritebackValue {
     pub fn aspect_value(&self) -> &AspectValue {
         &self.value
     }
-
+    #[cfg(test)]
     fn digest_part(&self) -> String {
         format!(
             "aspect_value:{}",
-            declarative_writeback_value_digest_text(&self.value)
+            prepare_aspect_value_identity_basis(&self.value).as_str()
         )
-    }
-}
-
-fn declarative_writeback_value_digest_text(value: &AspectValue) -> String {
-    match value {
-        AspectValue::Null => "null".to_string(),
-        AspectValue::Bool(value) => format!("bool:{value}"),
-        AspectValue::Int8(value) => format!("i8:{value}"),
-        AspectValue::Int16(value) => format!("i16:{value}"),
-        AspectValue::Int32(value) => format!("i32:{value}"),
-        AspectValue::Int64(value) => format!("i64:{value}"),
-        AspectValue::UInt8(value) => format!("u8:{value}"),
-        AspectValue::UInt16(value) => format!("u16:{value}"),
-        AspectValue::UInt32(value) => format!("u32:{value}"),
-        AspectValue::UInt64(value) => format!("u64:{value}"),
-        AspectValue::Float32(value) => format!("f32-bits:{}", value.bits()),
-        AspectValue::Float64(value) => format!("f64-bits:{}", value.bits()),
-        AspectValue::Decimal(value) => format!("decimal:{}", value.as_str()),
-        AspectValue::BigInt(value) => format!("bigint:{}", value.as_str()),
-        AspectValue::Rational(value) => {
-            format!(
-                "rational:{}/{}",
-                value.numerator.as_str(),
-                value.denominator.as_str()
-            )
-        }
-        AspectValue::String(value) => format!("string:{}", declarative_interned_string_text(value)),
-        AspectValue::Bytes(value) => format!("bytes-ref:{}", value.0),
-        AspectValue::Uuid(value) => value.iter().map(|byte| format!("{byte:02x}")).collect(),
-        AspectValue::Date(value) => format!("date-days:{}", value.days_from_unix_epoch),
-        AspectValue::Time(value) => format!("time-nanos:{}", value.nanos_since_midnight),
-        AspectValue::Timestamp(value) => {
-            format!("timestamp-micros:{}", value.micros_since_unix_epoch)
-        }
-        AspectValue::TimestampTz(value) => format!(
-            "timestamp-tz:{}:{}",
-            value.utc_micros_since_unix_epoch, value.offset_minutes
-        ),
-        AspectValue::EntityRef(value) => {
-            format!(
-                "entity-ref:{}:{}:{}",
-                value.partition_id.0, value.local_slot.0, value.generation.0
-            )
-        }
-        AspectValue::ContentRef(value) => format!("content-ref:{}", value.0),
-    }
-}
-
-fn declarative_interned_string_text(value: &InternedString) -> String {
-    match value {
-        InternedString::Raw(value) => value.clone(),
-        InternedString::Symbol(symbol) => format!("symbol:{}", symbol.0),
     }
 }
 
@@ -903,7 +833,7 @@ impl DeclarativeWritebackChange {
     pub fn value(&self) -> &DeclarativeWritebackValue {
         &self.value
     }
-
+    #[cfg(test)]
     fn digest_part(&self) -> String {
         format!(
             "change:{}:{}:{}",
@@ -933,7 +863,7 @@ impl DeclarativeWritebackIntent {
     pub fn changes(&self) -> &[DeclarativeWritebackChange] {
         &self.changes
     }
-
+    #[cfg(test)]
     fn digest(&self) -> String {
         let mut parts = vec![format!("change_count:{}", self.changes.len())];
         parts.extend(
@@ -975,7 +905,7 @@ impl DeclarativeWritebackArtifact {
         &self.artifact_digest
     }
 }
-
+#[cfg(test)]
 pub fn declare_runtime_live_query_session(
     request: DeclarativeLiveQueryRequest,
     schema_view: QuerySchemaView,
@@ -1072,18 +1002,7 @@ where
         .transpose()
 }
 
-pub fn declare_live_query_session(
-    request: DeclarativeLiveQueryRequest,
-    schema_view: QuerySchemaView,
-    basis_intent: ExecutionBasisIntent,
-    basis: ResolvedSnapshotBasis,
-) -> Result<DeclarativeLiveQuerySession, DeclarativeLiveQueryError> {
-    validate_declared_traversal_contract(&request, &schema_view)?;
-    let canonical = canonicalize_declarative_request(&request)?;
-    let view_plan = plan_declarative_request(&request, &canonical, schema_view, basis_intent)?;
-    finish_declarative_live_query_session(request, canonical, view_plan, basis, None)
-}
-
+#[cfg(test)]
 pub fn declare_writeback_from_live_session(
     session: &DeclarativeLiveQuerySession,
     intent: DeclarativeWritebackIntent,
@@ -1132,155 +1051,6 @@ pub fn declare_writeback_from_live_session(
         changes: intent.changes,
         declaration,
         artifact_digest,
-    })
-}
-
-pub fn declare_branch_compare_from_live_sessions(
-    left: &DeclarativeLiveQuerySession,
-    right: &DeclarativeLiveQuerySession,
-    left_rows: impl IntoIterator<Item = DeclarativeBranchCompareInputRow>,
-    right_rows: impl IntoIterator<Item = DeclarativeBranchCompareInputRow>,
-) -> Result<DeclarativeBranchCompareArtifact, DeclarativeLiveQueryError> {
-    let left_query_digest = left.canonical().query().digest().as_str();
-    let right_query_digest = right.canonical().query().digest().as_str();
-    if left_query_digest != right_query_digest {
-        return Err(DeclarativeLiveQueryError::ViewShape(
-            "branch compare requires matching canonical query identity".to_string(),
-        ));
-    }
-
-    let left_by_identity = left_rows
-        .into_iter()
-        .map(|row| (row.identity().to_string(), row))
-        .collect::<BTreeMap<_, _>>();
-    let right_by_identity = right_rows
-        .into_iter()
-        .map(|row| (row.identity().to_string(), row))
-        .collect::<BTreeMap<_, _>>();
-    let identities = left_by_identity
-        .keys()
-        .chain(right_by_identity.keys())
-        .cloned()
-        .collect::<BTreeSet<_>>();
-
-    let mut rows = Vec::new();
-    for identity in identities {
-        let left_row = left_by_identity.get(&identity);
-        let right_row = right_by_identity.get(&identity);
-        let value_keys = left_row
-            .into_iter()
-            .flat_map(|row| row.values().iter().map(DeclarativeBranchCompareValue::key))
-            .chain(
-                right_row
-                    .into_iter()
-                    .flat_map(|row| row.values().iter().map(DeclarativeBranchCompareValue::key)),
-            )
-            .collect::<BTreeSet<_>>();
-        let mut field_deltas = Vec::new();
-        for key in value_keys {
-            let left_value = left_row
-                .and_then(|row| row.value_for(&key))
-                .map(|value| value.value().to_string());
-            let right_value = right_row
-                .and_then(|row| row.value_for(&key))
-                .map(|value| value.value().to_string());
-            let family = match (&left_value, &right_value) {
-                (Some(left), Some(right)) if left == right => continue,
-                (Some(_), Some(_)) => DeclarativeBranchCompareChangeFamily::Modified,
-                (None, Some(_)) => DeclarativeBranchCompareChangeFamily::Added,
-                (Some(_), None) => DeclarativeBranchCompareChangeFamily::Removed,
-                (None, None) => continue,
-            };
-            field_deltas.push(DeclarativeBranchCompareFieldDelta {
-                source: key,
-                left_value,
-                right_value,
-                family,
-            });
-        }
-        if field_deltas.is_empty() {
-            continue;
-        }
-        rows.push(DeclarativeBranchCompareRow {
-            left_identity: left_row.map(|row| row.identity().to_string()),
-            right_identity: right_row.map(|row| row.identity().to_string()),
-            label: right_row
-                .or(left_row)
-                .map(|row| row.label().to_string())
-                .unwrap_or_else(|| identity.clone()),
-            identity_class: match (left_row, right_row) {
-                (Some(_), Some(_)) => DeclarativeBranchCompareIdentityClass::AuthoritativeIdentity,
-                (None, Some(_)) => DeclarativeBranchCompareIdentityClass::BranchLocalAddition,
-                (Some(_), None) => DeclarativeBranchCompareIdentityClass::BranchLocalRemoval,
-                (None, None) => continue,
-            },
-            field_deltas,
-        });
-    }
-
-    let result_digest = hash_parts(
-        &rows
-            .iter()
-            .map(DeclarativeBranchCompareRow::digest_part)
-            .chain([
-                format!("query:{left_query_digest}"),
-                format!(
-                    "left_basis:{}",
-                    left.preflight().basis().proof().digest().as_str()
-                ),
-                format!(
-                    "right_basis:{}",
-                    right.preflight().basis().proof().digest().as_str()
-                ),
-                format!(
-                    "left_live:{}",
-                    left.live_view()
-                        .core_live_plan()
-                        .subscription_digest()
-                        .as_str()
-                ),
-                format!(
-                    "right_live:{}",
-                    right
-                        .live_view()
-                        .core_live_plan()
-                        .subscription_digest()
-                        .as_str()
-                ),
-            ])
-            .collect::<Vec<_>>(),
-    );
-
-    Ok(DeclarativeBranchCompareArtifact {
-        left_live_view_digest: left
-            .live_view()
-            .core_live_plan()
-            .subscription_digest()
-            .as_str()
-            .to_string(),
-        right_live_view_digest: right
-            .live_view()
-            .core_live_plan()
-            .subscription_digest()
-            .as_str()
-            .to_string(),
-        left_basis_digest: left
-            .preflight()
-            .basis()
-            .proof()
-            .digest()
-            .as_str()
-            .to_string(),
-        right_basis_digest: right
-            .preflight()
-            .basis()
-            .proof()
-            .digest()
-            .as_str()
-            .to_string(),
-        query_digest: left_query_digest.to_string(),
-        result_digest,
-        rows,
     })
 }
 
@@ -1520,19 +1290,19 @@ fn apply_declarative_predicate_filter<F: crate::authoring::QueryAuthoringFamily>
                 filter.value().clone(),
             ))
         }
-        DeclarativePredicateFilter::IntegerComparison(filter) => match filter.operator() {
-            IntegerComparisonOperator::GreaterThan => {
-                query.where_greater_than(IntegerComparisonPredicate::greater_than_target_field_key(
+        DeclarativePredicateFilter::NativeComparison(filter) => match filter.operator() {
+            NativeComparisonOperator::GreaterThan => query.where_greater_than(
+                NativeComparisonPredicate::greater_than_native_target_field_key(
                     filter.source_field_key().clone(),
-                    filter.value(),
-                ))
-            }
-            IntegerComparisonOperator::LessThan => {
-                query.where_less_than(IntegerComparisonPredicate::less_than_target_field_key(
+                    filter.value().clone(),
+                ),
+            ),
+            NativeComparisonOperator::LessThan => query.where_less_than(
+                NativeComparisonPredicate::less_than_native_target_field_key(
                     filter.source_field_key().clone(),
-                    filter.value(),
-                ))
-            }
+                    filter.value().clone(),
+                ),
+            ),
         },
         DeclarativePredicateFilter::StringContains(filter) => {
             query.where_contains(StringContainsPredicate::from_target_field_key(
@@ -1568,7 +1338,6 @@ fn apply_declarative_ordering<F: crate::authoring::QueryAuthoringFamily>(
     };
     Ok(query.order_by(selector))
 }
-
 #[cfg(test)]
 mod tests {
     use worth_foundational::facade::FieldKey;
@@ -1577,7 +1346,7 @@ mod tests {
     use crate::evidence_identity::{
         WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
     };
-    use crate::schema_view::{SchemaFieldKind, SchemaFieldView, SchemaRelationView};
+    use crate::schema_view::{ScalarAspectType, SchemaFieldView, SchemaRelationView};
     use crate::view_shape_live::LiveViewShapeFamily;
     use crate::workflow::{WorkflowFreshnessBinding, WorkflowStalenessClass};
 
@@ -1590,21 +1359,21 @@ mod tests {
                         .expect("schema aspect literal must be valid"),
                     crate::authoring::FieldName::new("id")
                         .expect("schema field literal must be valid"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 ),
                 SchemaFieldView::new(
                     crate::authoring::AspectName::new("status")
                         .expect("schema aspect literal must be valid"),
                     crate::authoring::FieldName::new("state")
                         .expect("schema field literal must be valid"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 ),
                 SchemaFieldView::new(
                     crate::authoring::AspectName::new("title")
                         .expect("schema aspect literal must be valid"),
                     crate::authoring::FieldName::new("value")
                         .expect("schema field literal must be valid"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 ),
             ],
             [],
@@ -1633,7 +1402,7 @@ mod tests {
             DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::list_splice())
                 .where_equal(DeclarativeEqualityFilter::new(
                     test_field_key("status", "state"),
-                    ScalarPredicateValue::String("incomplete".to_string()),
+                    WorthQueryPredicateOperand::string("incomplete".to_string()),
                 ));
 
         let snapshot_identity = test_snapshot_identity("runtime-head-demo");
@@ -1666,7 +1435,7 @@ mod tests {
             DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::list_splice())
                 .where_equal(DeclarativeEqualityFilter::new(
                     test_field_key("status", "state"),
-                    ScalarPredicateValue::String("incomplete".to_string()),
+                    WorthQueryPredicateOperand::string("incomplete".to_string()),
                 ));
 
         let fields = normalized_query_projection(&request);
@@ -1691,7 +1460,7 @@ mod tests {
             DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::list_splice())
                 .where_equal(DeclarativeEqualityFilter::new(
                     test_field_key("status", "state"),
-                    ScalarPredicateValue::String("incomplete".to_string()),
+                    WorthQueryPredicateOperand::string("incomplete".to_string()),
                 )),
             todo_schema(),
             test_snapshot_identity("runtime-head-writeback"),
@@ -1763,21 +1532,21 @@ mod tests {
                         .expect("schema aspect literal must be valid"),
                     crate::authoring::FieldName::new("id")
                         .expect("schema field literal must be valid"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 ),
                 SchemaFieldView::new(
                     crate::authoring::AspectName::new("status")
                         .expect("schema aspect literal must be valid"),
                     crate::authoring::FieldName::new("state")
                         .expect("schema field literal must be valid"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 ),
                 SchemaFieldView::new(
                     crate::authoring::AspectName::new("title")
                         .expect("schema aspect literal must be valid"),
                     crate::authoring::FieldName::new("value")
                         .expect("schema field literal must be valid"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 ),
             ],
             [SchemaRelationView::new(
@@ -1819,21 +1588,21 @@ mod tests {
                         .expect("schema aspect literal must be valid"),
                     crate::authoring::FieldName::new("id")
                         .expect("schema field literal must be valid"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 ),
                 SchemaFieldView::new(
                     crate::authoring::AspectName::new("status")
                         .expect("schema aspect literal must be valid"),
                     crate::authoring::FieldName::new("state")
                         .expect("schema field literal must be valid"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 ),
                 SchemaFieldView::new(
                     crate::authoring::AspectName::new("title")
                         .expect("schema aspect literal must be valid"),
                     crate::authoring::FieldName::new("value")
                         .expect("schema field literal must be valid"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 ),
             ],
             [SchemaRelationView::new(
@@ -1907,7 +1676,7 @@ mod tests {
             .project(DeclarativeProjectionField::from_authoring_parts(
                 "identity", "id",
             ))
-            .where_greater_than(DeclarativeIntegerComparisonFilter::greater_than(
+            .where_greater_than(DeclarativeNativeComparisonFilter::greater_than(
                 test_field_key("metrics", "priority"),
                 5,
             ))
@@ -1918,8 +1687,8 @@ mod tests {
             .where_in(DeclarativeSetMembershipFilter::new(
                 test_field_key("status", "state"),
                 [
-                    ScalarPredicateValue::String("todo".to_string()),
-                    ScalarPredicateValue::String("doing".to_string()),
+                    WorthQueryPredicateOperand::string("todo".to_string()),
+                    WorthQueryPredicateOperand::string("doing".to_string()),
                 ],
             ))
             .where_present(DeclarativePresenceFilter::is_present(test_field_key(

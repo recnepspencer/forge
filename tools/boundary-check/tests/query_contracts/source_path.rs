@@ -8,7 +8,7 @@ fn cfg_gated_direct_engine_path_is_denied_by_ast_without_manifest_edge() {
         "source-engine-cfg",
         r#"#[cfg(any())]
 fn hidden_bypass() {
-    let _ = worth_query::facade::CanonicalQueryArtifact;
+    let _ = worth_query::facade::foundation::CanonicalQueryArtifact;
 }
 "#,
     );
@@ -55,7 +55,7 @@ fn public_query_imports_in_private_modules_are_owned_by_bc3101() {
     for (label, source) in [
         (
             "source-private-module-public-use",
-            "mod hidden { pub use worth_query::facade::CanonicalQueryArtifact; }\n",
+            "mod hidden { pub use worth_query::facade::foundation::CanonicalQueryArtifact; }\n",
         ),
         (
             "source-private-module-public-extern",
@@ -91,11 +91,11 @@ fn every_private_group_import_branch_is_scanned() {
     for (label, source) in [
         (
             "source-group-query-not-first",
-            "use {std::fmt, worth_query::facade::CanonicalQueryArtifact};\n",
+            "use {std::fmt, worth_query::facade::foundation::CanonicalQueryArtifact};\n",
         ),
         (
             "source-group-direct",
-            "use {worth_query::facade::CanonicalQueryArtifact, std::fmt};\n",
+            "use {worth_query::facade::foundation::CanonicalQueryArtifact, std::fmt};\n",
         ),
         (
             "source-group-nested",
@@ -159,7 +159,7 @@ fn additional_target_child_modules_are_followed() {
         ("src/main.rs", "mod cli; fn main() {}\n"),
         (
             "src/cli.rs",
-            "#[cfg(any())] fn bypass() { let _ = worth_query::facade::CanonicalQueryArtifact; }\n",
+            "#[cfg(any())] fn bypass() { let _ = worth_query::facade::foundation::CanonicalQueryArtifact; }\n",
         ),
     ];
     let (binary_ok, binary_output) = run_source_case(binary);
@@ -181,7 +181,7 @@ fn additional_target_child_modules_are_followed() {
         ("qa/main.rs", "mod hidden;\n"),
         (
             "qa/hidden.rs",
-            "#[cfg(any())] fn bypass() { let _ = worth_query::facade::CanonicalQueryArtifact; }\n",
+            "#[cfg(any())] fn bypass() { let _ = worth_query::facade::foundation::CanonicalQueryArtifact; }\n",
         ),
     ];
     let (custom_ok, custom_output) = run_source_case(custom_test);

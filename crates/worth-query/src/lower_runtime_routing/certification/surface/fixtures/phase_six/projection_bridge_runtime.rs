@@ -110,22 +110,22 @@ impl TruthSnapshotReader for ProjectionBridgeSnapshotReader {
                             (read.relational_record_identity_parts() == Some(*record_identity))
                                 .then(|| match read.aspect_key().as_str() {
                                     "identity.id" => {
-                                        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                                        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                                             identity_value.as_str(),
                                         )
                                     }
                                     "status" => {
-                                        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                                        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                                             grouping_value.as_str(),
                                         )
                                     }
-                                    _ => crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                                    _ => crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                                         "unknown",
                                     ),
                                 })
                         })
                         .unwrap_or_else(|| {
-                            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("unknown")
+                            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("unknown")
                         });
                     SnapshotReadRecord::for_request(read, payload)
                 })

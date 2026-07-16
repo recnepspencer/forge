@@ -1,8 +1,10 @@
 use crate::application::{WorthQueryDeclarationInput, WorthQueryDomainEntryMarker};
 
+#[cfg(test)]
+use super::outcome::WorthQueryDeclarationEntryOrchestrationOutcome;
 use super::outcome::{
     WorthQueryDeclarationEntryOrchestrationDeferred, WorthQueryDeclarationEntryOrchestrationDenied,
-    WorthQueryDeclarationEntryOrchestrationFailed, WorthQueryDeclarationEntryOrchestrationOutcome,
+    WorthQueryDeclarationEntryOrchestrationFailed,
     WorthQueryDeclarationEntryOrchestrationRebindRequired,
     WorthQueryDeclarationEntryOrchestrationStale,
 };
@@ -35,6 +37,7 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
     }
 }
 
+#[cfg(test)]
 pub(crate) fn terminal_error_from_outcome<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,

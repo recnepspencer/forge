@@ -78,21 +78,20 @@ fn request_for_kind(kind: ProjectionFactKind) -> ProjectMaterializedFacts {
                     .expect("projection fact field segment should admit"),
             ]),
         ),
-        ProjectionFactKind::DerivedScalarField => ProjectMaterializedFacts::declare()
-            .derived_scalar_field_path(
-                crate::projection_consumption::projection_fact_field_path_from_segments([
-                    worth_foundational::facade::FieldKey::new("profile")
-                        .expect("projection fact field segment should admit"),
-                    worth_foundational::facade::FieldKey::new("display_name")
-                        .expect("projection fact field segment should admit"),
-                ]),
-            ),
+        ProjectionFactKind::DerivedField => ProjectMaterializedFacts::declare().derived_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                worth_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                worth_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        ),
     }
 }
 
 fn visible_fields_for_kind(kind: ProjectionFactKind) -> Vec<&'static str> {
     match kind {
-        ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+        ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => {
             vec!["profile.display_name"]
         }
         _ => vec!["identity.id"],

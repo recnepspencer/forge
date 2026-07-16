@@ -45,7 +45,7 @@ Stable runtime-backed entry points:
 - `workspace.observe(...)`
 - `workspace.materialize_result(...)`
 - `workspace.state(...)`
-- `workspace.inspect(...)`
+- `workspace.inspections()?.inspect(...)`
 - `workspace.public_api_contract()`
 - `workspace.public_downstream_delivery_contract()`
 - `workspace.public_handle_contract()`
@@ -172,11 +172,11 @@ runtime's inspection or state APIs.
 
 ```rust
 use worth_query::facade::runtime::WorthQueryLiveView;
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("editor").unwrap();
 
-let tasks: WorthQueryLiveView<Value> = workspace
+let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.table", |q| {
         q.from("Task")
             .select(["identity.id", "title.value"])
@@ -223,11 +223,11 @@ use worth_query::facade::runtime::{
     WorthQueryDerivedViewHandle, WorthQueryEffectHandle, WorthQueryInspection,
     WorthQueryLiveView,
 };
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("workflow.editor").unwrap();
 
-let canvas: WorthQueryLiveView<Value> = workspace
+let canvas: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("workflow.editor.canvas", |q| {
         q.from("WorkflowNode")
             .select(["identity.id", "layout.frame", "validation.state"])
@@ -236,7 +236,7 @@ let canvas: WorthQueryLiveView<Value> = workspace
     })
     .unwrap();
 
-let readiness: WorthQueryDerivedViewHandle<Value> = workspace
+let readiness: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
     .computed(
         "workflow.editor.readiness",
         |c| {
@@ -248,7 +248,7 @@ let readiness: WorthQueryDerivedViewHandle<Value> = workspace
     )
     .unwrap();
 
-let badges: WorthQueryEffectHandle<Value> = workspace
+let badges: WorthQueryEffectHandle<WorthQueryUnrefinedLiveShape> = workspace
     .effect("workflow.editor.badges", |e| {
         e.when_computed(&readiness, ["runtime.readiness"])
             .condition_expression(
@@ -271,7 +271,7 @@ workspace
 
 let canvas_patches = workspace.observe(&canvas);
 let readiness_rows = workspace.materialize_result(&readiness)?;
-let badge_explanation = workspace.inspect(&badges).unwrap();
+let badge_explanation = workspace.inspections()?.inspect(&badges).unwrap();
 
 match badge_explanation {
     WorthQueryInspection::Effect(effect) => {
@@ -301,7 +301,7 @@ What gets retained:
 
 What gets inspected:
 
-- one unified `workspace.inspect(...)` call can explain each retained surface
+- one unified `workspace.inspections()?.inspect(...)` call can explain each retained surface
 - mutation receipts preserve declared aspect operations, so inspection can show
   whether an authored aspect was a `set` or a `clear`
 
@@ -381,7 +381,7 @@ inspection without hand-built cache or invalidation glue.
 
 `workspace.read(...)` and `workspace.materialize_result(...)` are snapshot-style reads.
 `workspace.observe(...)` is the incremental patch path. `workspace.state(...)`
-and `workspace.inspect(...)` are explanation surfaces, not substitutes for
+and `workspace.inspections()?.inspect(...)` are explanation surfaces, not substitutes for
 domain data access.
 
 ## Inspection And Debugging
@@ -389,7 +389,7 @@ domain data access.
 The workspace gives you two main explanation paths:
 
 - `workspace.state(...)` for a typed readiness/supported/pending snapshot
-- `workspace.inspect(...)` for retained evidence about a handle or receipt
+- `workspace.inspections()?.inspect(...)` for retained evidence about a handle or receipt
 - `workspace.downstream_delivery(...)` for the latest retained live delivery
   when another runtime or server boundary needs one transport-safe Query-owned
   contract instead of raw delivery batches

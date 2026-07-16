@@ -1,6 +1,6 @@
 use worth_foundational::facade::AspectValue;
 use worth_query::facade::runtime::{
-    WorthQueryAdmittedAspectValue, WorthQueryExistingTruthAssertionDenial,
+    WorthQueryAuthoredAspectMutation, WorthQueryExistingTruthAssertionDenial,
     WorthQueryExistingTruthAssertionDenialKind, WorthQueryExistingTruthProbeDenial,
     WorthQueryExistingTruthProbeDenialKind, WorthQueryExistingTruthProbeField,
     WorthQueryExistingTruthProbeRequest, WorthQueryExistingTruthTargetBinding,
@@ -25,7 +25,7 @@ impl worth_query::facade::runtime::WorthQueryRuntimeExistingTruthVerificationAda
     fn verify_existing_truth_assertion(
         &self,
         binding: &WorthQueryExistingTruthTargetBinding,
-        aspects: &[WorthQueryAdmittedAspectValue],
+        aspects: &[WorthQueryAuthoredAspectMutation],
     ) -> Result<(), WorthQueryExistingTruthAssertionDenial> {
         let state = self.state.borrow();
         for aspect in aspects {

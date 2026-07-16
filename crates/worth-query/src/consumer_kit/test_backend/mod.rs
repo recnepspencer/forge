@@ -19,6 +19,8 @@ pub use residue_audit::{
 pub use schema::WorthQueryTestBackendSchema;
 
 #[cfg(test)]
+mod contract_fixtures;
+#[cfg(test)]
 mod schema_tests;
 #[cfg(test)]
 mod support_profile_tests;

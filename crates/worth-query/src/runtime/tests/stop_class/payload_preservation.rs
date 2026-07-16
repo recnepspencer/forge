@@ -265,7 +265,7 @@ fn preview_promotion_stop_class_preserves_all_denial_kinds() {
 
     let rebinding_required_error = {
         let mut runtime = stateful_bridge_task_runtime();
-        let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+        let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
             .declare_live_view(
                 "tasks.preview-promotion-stop-class-mismatch",
                 task_live_request(),

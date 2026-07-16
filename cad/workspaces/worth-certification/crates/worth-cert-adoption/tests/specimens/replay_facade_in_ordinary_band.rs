@@ -1,3 +1,3 @@
-use worth_query_replay::facade::ReplayBasisCapability;
+use worth_query_replay::facade::ScopedReplayBasis;
 
-pub fn replay(_basis: ReplayBasisCapability) {}
+pub fn replay(_basis: ScopedReplayBasis) {}

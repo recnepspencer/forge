@@ -4,7 +4,6 @@ use crate::memory_workspace::{
 };
 use crate::runtime::WorthQueryAspectTouch;
 use worth_runtime_bridge::facade::BridgeMutationAuthorityBundle;
-use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 pub(in crate::runtime::tests) fn test_mutation_receipt(
     commit_identity: WorthQueryCommitIdentity,
@@ -47,17 +46,6 @@ pub(in crate::runtime::tests) fn test_mutation_receipt_with_bridge_authority(
         bridge_authority,
     )
 }
-
-#[allow(dead_code)]
-pub(in crate::runtime::tests) fn test_relational_snapshot_identity(
-    branch_id: u64,
-    snapshot_id: u64,
-) -> WorthQuerySnapshotIdentity {
-    WorthQuerySnapshotIdentity::from_relational_snapshot(
-        RelationalBridgeSnapshotIdentityParts::new(branch_id, snapshot_id),
-    )
-}
-
 pub(in crate::runtime::tests) fn test_empty_mutation_receipt(
     commit_identity: WorthQueryCommitIdentity,
     snapshot_identity: WorthQuerySnapshotIdentity,

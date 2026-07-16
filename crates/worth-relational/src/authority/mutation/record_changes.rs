@@ -105,6 +105,16 @@ pub(super) fn delete_entity_with_cascade(
     })?;
     let authoritative_patch = plan_entity_authoritative_deletion_patch(
         slot_view.extra().authoritative_aspect_state.as_ref(),
+        &schema_registry
+            .entity_registration(kind_id)
+            .map_err(|error| {
+                CommitConflict::new(ConflictClass::KindSchemaMismatch {
+                    detail: format!(
+                        "entity delete requires registered aspect contracts: {error:?}"
+                    ),
+                })
+            })?
+            .aspect_contract_declarations,
     )
     .map_err(|denial| {
         CommitConflict::new(ConflictClass::EntityAuthoritativeAspectStateDenied { kind_id, denial })

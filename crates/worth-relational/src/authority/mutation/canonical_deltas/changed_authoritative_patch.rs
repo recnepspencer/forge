@@ -39,7 +39,7 @@ fn changed_whole_aspect_patch(
             .whole_aspect_clears()
             .any(|aspect_key| aspect_key == binding.contract.key())
         {
-            clears.push(binding.contract.key().clone());
+            clears.push(binding.contract.clone());
         }
 
         let Some((_, value)) = authoritative_patch
@@ -96,7 +96,7 @@ fn changed_field_level_patch(
 fn construct_whole_patch(
     delta: &CanonicalRecordAspectDelta,
     sets: Vec<ContractValidatedAspectArtifact>,
-    clears: Vec<worth_foundational::facade::AspectKey>,
+    clears: Vec<worth_foundational::facade::AspectContract>,
 ) -> Result<AuthoritativeRecordAspectPatch, CanonicalDeltaError> {
     if sets.is_empty() && clears.is_empty() {
         return Ok(AuthoritativeRecordAspectPatch::empty());

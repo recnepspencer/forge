@@ -268,7 +268,7 @@ pub fn traceability_for(
             "aftermath_and_grouped_endpoint_guard"
         }
         ProjectionFactKind::Membership => "grouped_membership_guard",
-        ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+        ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => {
             "row_or_visibility_guard"
         }
     };
@@ -290,7 +290,7 @@ pub fn traceability_for(
             ProjectionFactKind::SourceReference
             | ProjectionFactKind::ViewLocalIdentity
             | ProjectionFactKind::DisplayField
-            | ProjectionFactKind::DerivedScalarField,
+            | ProjectionFactKind::DerivedField,
         ) => "retained_binding_admits_field_view_local_and_source_reference_facts",
         (
             ProjectionConsumptionCertifiedSourceSurface::LiveArtifactBinding,
@@ -298,11 +298,11 @@ pub fn traceability_for(
             | ProjectionFactKind::ViewLocalIdentity
             | ProjectionFactKind::SourceReference
             | ProjectionFactKind::DisplayField
-            | ProjectionFactKind::DerivedScalarField,
+            | ProjectionFactKind::DerivedField,
         ) => "live_binding_admits_identity_field_view_local_and_source_reference_facts",
         (_, ProjectionFactKind::Membership) => "grouped_projection_membership_only",
         (_, ProjectionFactKind::RelationEndpoint) => "grouped_or_writeback_endpoint_only",
-        (_, ProjectionFactKind::DisplayField) | (_, ProjectionFactKind::DerivedScalarField) => {
+        (_, ProjectionFactKind::DisplayField) | (_, ProjectionFactKind::DerivedField) => {
             "field_fact_support_follows_visibility_or_row_posture"
         }
         _ => "support_row_derived_from_executable_support_for_kind",
@@ -318,7 +318,7 @@ pub fn traceability_for(
         | ProjectionFactKind::ViewLocalIdentity
         | ProjectionFactKind::Membership
         | ProjectionFactKind::DisplayField
-        | ProjectionFactKind::DerivedScalarField => {
+        | ProjectionFactKind::DerivedField => {
             ProjectionConsumptionCompileFailProof::RawSourceHasNoConsumedFactAccessors
         }
     };

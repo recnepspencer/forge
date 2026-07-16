@@ -1,7 +1,9 @@
 use crate::identity::{
-    CanonicalQueryDigest, CanonicalResultShapeDigest, CollectionPlanDigest, ResultDigest,
-    ValidatedQueryDigest, ValidatedResultShapeDigest,
+    CanonicalQueryDigest, CanonicalResultShapeDigest, ValidatedQueryDigest,
+    ValidatedResultShapeDigest,
 };
+#[cfg(test)]
+use crate::identity::{CollectionPlanDigest, ResultDigest};
 use crate::workflow::{
     workflow_canonical_query_digest_evidence, workflow_validated_query_digest_evidence,
 };
@@ -11,7 +13,9 @@ use worth_runtime_bridge::facade::{
     BridgePreviewSessionIdentity, PreviewExecutionRecordIdentity,
 };
 
-use super::{PreviewEvaluationClass, PreviewSessionBindingTuple};
+use super::PreviewEvaluationClass;
+#[cfg(test)]
+use super::PreviewSessionBindingTuple;
 
 pub(super) fn preview_session_identity_record_label(
     identity: &BridgePreviewSessionIdentity,
@@ -108,6 +112,7 @@ pub(super) fn compose_preview_session_binding_tuple_digest(
     encoder.seal().as_str().to_string()
 }
 
+#[cfg(test)]
 pub(super) fn compose_preview_binding_tuple_workflow_identity(
     binding_tuple: &PreviewSessionBindingTuple,
 ) -> WorthQueryEvidenceIdentity {
@@ -131,6 +136,7 @@ pub(super) fn compose_preview_binding_tuple_workflow_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(super) fn compose_preview_declaration_digest_workflow_identity(
     binding_tuple: &PreviewSessionBindingTuple,
 ) -> WorthQueryEvidenceIdentity {
@@ -160,6 +166,7 @@ pub(super) fn compose_preview_declaration_digest_workflow_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(super) fn compose_preview_comparison_ordering_digest(parts: &[String]) -> String {
     WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::WorkflowContextBinding)
         .field_shape(
@@ -175,6 +182,7 @@ pub(super) fn compose_preview_comparison_ordering_digest(parts: &[String]) -> St
         .to_string()
 }
 
+#[cfg(test)]
 pub(super) fn compose_preview_comparison_materialization_boundary_digest(
     parts: &[String],
 ) -> String {
@@ -192,6 +200,7 @@ pub(super) fn compose_preview_comparison_materialization_boundary_digest(
         .to_string()
 }
 
+#[cfg(test)]
 pub(super) fn compose_preview_comparison_eligibility_digest(
     canonical_query_digest: &CanonicalQueryDigest,
     canonical_result_shape_digest: &CanonicalResultShapeDigest,
@@ -235,6 +244,7 @@ pub(super) fn compose_preview_comparison_eligibility_digest(
         .to_string()
 }
 
+#[cfg(test)]
 pub(super) fn compose_preview_comparison_candidate_digest(
     validated_query_digest: &ValidatedQueryDigest,
     result_digest: &ResultDigest,
@@ -285,6 +295,7 @@ pub(super) fn compose_preview_comparison_candidate_digest(
         .to_string()
 }
 
+#[cfg(test)]
 pub(super) fn compose_preview_execution_comparison_admission_digest(
     preview_execution_digest: &str,
     preview_comparison_digest: &str,
@@ -322,6 +333,7 @@ pub(super) fn compose_preview_execution_comparison_admission_digest(
         .to_string()
 }
 
+#[cfg(test)]
 pub(super) fn compose_preview_execution_report_digest(
     binding_digest: &str,
     basis_digest: &str,

@@ -38,8 +38,6 @@ use crate::runtime::{
 };
 use worth_foundational::facade::{AspectKey, AspectValue};
 
-use super::super::facts::ProjectionFactFieldPath;
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConsumedEntityIdentityFact {
     source_row_identity: String,
@@ -128,39 +126,6 @@ impl ConsumedMembershipFact {
             member_identity,
             grouping_aspect,
             grouping_value,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct ConsumedFieldValueFact {
-    source_row_identity: String,
-    field_path: ProjectionFactFieldPath,
-    value: AspectValue,
-}
-
-impl ConsumedFieldValueFact {
-    pub fn source_row_identity(&self) -> &str {
-        &self.source_row_identity
-    }
-
-    pub fn field_path(&self) -> &ProjectionFactFieldPath {
-        &self.field_path
-    }
-
-    pub fn value(&self) -> &AspectValue {
-        &self.value
-    }
-
-    pub(crate) fn new(
-        source_row_identity: impl Into<String>,
-        field_path: ProjectionFactFieldPath,
-        value: AspectValue,
-    ) -> Self {
-        Self {
-            source_row_identity: source_row_identity.into(),
-            field_path,
-            value,
         }
     }
 }

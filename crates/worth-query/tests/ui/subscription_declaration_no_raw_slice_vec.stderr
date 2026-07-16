@@ -1,15 +1,5 @@
-error[E0308]: mismatched types
- --> tests/ui/subscription_declaration_no_raw_slice_vec.rs:6:51
+error[E0432]: unresolved import `worth_query::facade::runtime::declare_query_subscription`
+ --> tests/ui/subscription_declaration_no_raw_slice_vec.rs:1:36
   |
-6 |     let _declaration = declare_query_subscription(raw_slices, budget);
-  |                        -------------------------- ^^^^^^^^^^ expected `QuerySubscriptionFamilySelection`, found `Vec<String>`
-  |                        |
-  |                        arguments to this function are incorrect
-  |
-  = note: expected struct `QuerySubscriptionFamilySelection`
-             found struct `Vec<std::string::String>`
-note: function defined here
- --> src/subscription/declaration.rs
-  |
-  | pub fn declare_query_subscription(
-  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1 | use worth_query::facade::runtime::{declare_query_subscription, QuerySubscriptionSliceBudget};
+  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^ no `declare_query_subscription` in `facade::runtime`

@@ -1,6 +1,6 @@
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, OrderingSelector,
-    RootEntityKey, ScalarPredicateValue,
+    RootEntityKey, WorthQueryPredicateOperand,
 };
 use crate::composition::{
     ComposedCanonicalQueryBundle, QueryCompositionFamily, QueryTemplateDescriptor,
@@ -53,7 +53,7 @@ pub(super) fn display_name_equality_predicate(value: &str) -> crate::authoring::
         EqualityPredicate::new(
             "profile",
             "display_name",
-            ScalarPredicateValue::String(value.to_string()),
+            WorthQueryPredicateOperand::string(value.to_string()),
         )
         .unwrap(),
     )

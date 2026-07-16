@@ -1,4 +1,4 @@
-use super::admitted_field_kind::WorthQueryGraphReadAdmittedSchemaFieldKind;
+use super::admitted_field_kind::WorthQueryAdmittedNativeFieldFamily;
 use crate::authoring::RelationName;
 use worth_foundational::facade::{AspectKey, FieldKey};
 
@@ -70,7 +70,7 @@ pub struct WorthQueryAdmittedGraphReadProjectionField {
     aspect: AspectKey,
     field: FieldKey,
     delivered_name: String,
-    kind: WorthQueryGraphReadAdmittedSchemaFieldKind,
+    kind: WorthQueryAdmittedNativeFieldFamily,
 }
 
 impl WorthQueryAdmittedGraphReadProjectionField {
@@ -86,7 +86,7 @@ impl WorthQueryAdmittedGraphReadProjectionField {
         &self.delivered_name
     }
 
-    pub fn kind(&self) -> &WorthQueryGraphReadAdmittedSchemaFieldKind {
+    pub fn kind(&self) -> &WorthQueryAdmittedNativeFieldFamily {
         &self.kind
     }
 
@@ -94,7 +94,7 @@ impl WorthQueryAdmittedGraphReadProjectionField {
         aspect: AspectKey,
         field: FieldKey,
         delivered_name: impl Into<String>,
-        kind: WorthQueryGraphReadAdmittedSchemaFieldKind,
+        kind: WorthQueryAdmittedNativeFieldFamily,
     ) -> Self {
         Self {
             aspect,
@@ -120,7 +120,7 @@ pub struct WorthQueryAdmittedGraphReadPredicateField {
     aspect: AspectKey,
     field: FieldKey,
     family: String,
-    kind: WorthQueryGraphReadAdmittedSchemaFieldKind,
+    kind: WorthQueryAdmittedNativeFieldFamily,
 }
 
 impl WorthQueryAdmittedGraphReadPredicateField {
@@ -136,7 +136,7 @@ impl WorthQueryAdmittedGraphReadPredicateField {
         &self.family
     }
 
-    pub fn kind(&self) -> &WorthQueryGraphReadAdmittedSchemaFieldKind {
+    pub fn kind(&self) -> &WorthQueryAdmittedNativeFieldFamily {
         &self.kind
     }
 
@@ -144,7 +144,7 @@ impl WorthQueryAdmittedGraphReadPredicateField {
         aspect: AspectKey,
         field: FieldKey,
         family: impl Into<String>,
-        kind: WorthQueryGraphReadAdmittedSchemaFieldKind,
+        kind: WorthQueryAdmittedNativeFieldFamily,
     ) -> Self {
         Self {
             aspect,
@@ -170,7 +170,7 @@ pub struct WorthQueryAdmittedGraphReadOrderingField {
     aspect: AspectKey,
     field: FieldKey,
     direction: String,
-    kind: WorthQueryGraphReadAdmittedSchemaFieldKind,
+    kind: WorthQueryAdmittedNativeFieldFamily,
 }
 
 impl WorthQueryAdmittedGraphReadOrderingField {
@@ -186,7 +186,7 @@ impl WorthQueryAdmittedGraphReadOrderingField {
         &self.direction
     }
 
-    pub fn kind(&self) -> &WorthQueryGraphReadAdmittedSchemaFieldKind {
+    pub fn kind(&self) -> &WorthQueryAdmittedNativeFieldFamily {
         &self.kind
     }
 
@@ -194,7 +194,7 @@ impl WorthQueryAdmittedGraphReadOrderingField {
         aspect: AspectKey,
         field: FieldKey,
         direction: impl Into<String>,
-        kind: WorthQueryGraphReadAdmittedSchemaFieldKind,
+        kind: WorthQueryAdmittedNativeFieldFamily,
     ) -> Self {
         Self {
             aspect,

@@ -70,11 +70,12 @@ fn route_plan_explanation_preserves_route_reasoning() {
         .route_contract_reason()
         .contains("relational and bridge"));
     assert_eq!(plan.explain().route_segment_reasons().len(), 2);
-    assert!(plan
-        .explain()
-        .retained_facts()
-        .iter()
-        .any(|fact| fact.contains("operating_context:geometry.route-plan.primary")));
+    assert!(plan.explain().retained_facts().iter().any(|fact| {
+        fact == &format!(
+            "operating_context:{}",
+            plan.operating_context_identity_digest()
+        )
+    }));
 }
 
 #[test]

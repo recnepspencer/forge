@@ -3,7 +3,6 @@ use crate::memory_workspace::WorthQueryEntityIdentity;
 use crate::runtime::mutation::{
     WorthQueryAspectMutationBuilder, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
 };
-use worth_runtime_bridge::facade::RelationalBridgeRecordIdentityKind;
 
 #[derive(Clone, Debug, Default)]
 pub struct WorthQueryGraphRelationMutationBuilder {
@@ -29,10 +28,9 @@ impl WorthQueryGraphRelationMutationBuilder {
         aspect_touch: WorthQueryAspectTouch,
         entity_identity: WorthQueryEntityIdentity,
     ) -> Self {
-        self.inner = self.inner.set_aspect(
-            aspect_touch,
-            WorthQueryAuthoredAspectValue::string(endpoint_identity_label(&entity_identity)),
-        );
+        self.inner = self
+            .inner
+            .existing_entity_identity(aspect_touch, entity_identity);
         self
     }
 
@@ -50,20 +48,4 @@ impl WorthQueryGraphRelationMutationBuilder {
     pub(crate) fn into_inner(self) -> WorthQueryAspectMutationBuilder {
         self.inner
     }
-}
-
-fn endpoint_identity_label(identity: &WorthQueryEntityIdentity) -> String {
-    let parts = identity
-        .relational_record_parts()
-        .expect("existing graph relation endpoints must carry relational record authority");
-    let kind = match parts.kind() {
-        RelationalBridgeRecordIdentityKind::Entity => "entity",
-        RelationalBridgeRecordIdentityKind::Relation => "relation",
-    };
-    format!(
-        "{kind}:{}:{}:{}",
-        parts.partition_id(),
-        parts.local_slot(),
-        parts.generation()
-    )
 }

@@ -1,21 +1,4 @@
-use super::{AspectFieldKey, AspectName, AuthoringError, FieldName};
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub enum ScalarPredicateValue {
-    String(String),
-    Integer(i64),
-    Boolean(bool),
-}
-
-impl ScalarPredicateValue {
-    pub fn kind_name(&self) -> &'static str {
-        match self {
-            Self::String(_) => "String",
-            Self::Integer(_) => "Integer",
-            Self::Boolean(_) => "Boolean",
-        }
-    }
-}
+use super::{AspectFieldKey, AspectName, AuthoringError, FieldName, WorthQueryPredicateOperand};
 
 fn validate_predicate_target(
     aspect: impl Into<String>,
@@ -27,21 +10,30 @@ fn validate_predicate_target(
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct EqualityPredicate {
     target: AspectFieldKey,
-    value: ScalarPredicateValue,
+    value: WorthQueryPredicateOperand,
 }
 
 impl EqualityPredicate {
     pub fn new(
         aspect: impl Into<String>,
         field: impl Into<String>,
-        value: ScalarPredicateValue,
+        value: impl Into<WorthQueryPredicateOperand>,
     ) -> Result<Self, AuthoringError> {
         let target = validate_predicate_target(aspect, field)?;
-        Ok(Self { target, value })
+        Ok(Self {
+            target,
+            value: value.into(),
+        })
     }
 
-    pub fn from_target_field_key(target: AspectFieldKey, value: ScalarPredicateValue) -> Self {
-        Self { target, value }
+    pub fn from_target_field_key(
+        target: AspectFieldKey,
+        value: impl Into<WorthQueryPredicateOperand>,
+    ) -> Self {
+        Self {
+            target,
+            value: value.into(),
+        }
     }
 
     pub fn target_field_key(&self) -> &AspectFieldKey {
@@ -64,35 +56,43 @@ impl EqualityPredicate {
         self.target.field()
     }
 
-    pub fn value(&self) -> &ScalarPredicateValue {
+    pub fn value(&self) -> &WorthQueryPredicateOperand {
         &self.value
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub enum IntegerComparisonOperator {
+pub enum NativeComparisonOperator {
     GreaterThan,
     LessThan,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct IntegerComparisonPredicate {
+pub struct NativeComparisonPredicate {
     target: AspectFieldKey,
-    operator: IntegerComparisonOperator,
-    value: i64,
+    operator: NativeComparisonOperator,
+    value: WorthQueryPredicateOperand,
 }
 
-impl IntegerComparisonPredicate {
+impl NativeComparisonPredicate {
     pub fn greater_than(
         aspect: impl Into<String>,
         field: impl Into<String>,
         value: i64,
     ) -> Result<Self, AuthoringError> {
+        Self::greater_than_native(aspect, field, value)
+    }
+
+    pub fn greater_than_native(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+        value: impl Into<WorthQueryPredicateOperand>,
+    ) -> Result<Self, AuthoringError> {
         let target = validate_predicate_target(aspect, field)?;
         Ok(Self {
             target,
-            operator: IntegerComparisonOperator::GreaterThan,
-            value,
+            operator: NativeComparisonOperator::GreaterThan,
+            value: value.into(),
         })
     }
 
@@ -101,27 +101,49 @@ impl IntegerComparisonPredicate {
         field: impl Into<String>,
         value: i64,
     ) -> Result<Self, AuthoringError> {
+        Self::less_than_native(aspect, field, value)
+    }
+
+    pub fn less_than_native(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+        value: impl Into<WorthQueryPredicateOperand>,
+    ) -> Result<Self, AuthoringError> {
         let target = validate_predicate_target(aspect, field)?;
         Ok(Self {
             target,
-            operator: IntegerComparisonOperator::LessThan,
-            value,
+            operator: NativeComparisonOperator::LessThan,
+            value: value.into(),
         })
     }
 
     pub fn greater_than_target_field_key(target: AspectFieldKey, value: i64) -> Self {
+        Self::greater_than_native_target_field_key(target, value)
+    }
+
+    pub fn greater_than_native_target_field_key(
+        target: AspectFieldKey,
+        value: impl Into<WorthQueryPredicateOperand>,
+    ) -> Self {
         Self {
             target,
-            operator: IntegerComparisonOperator::GreaterThan,
-            value,
+            operator: NativeComparisonOperator::GreaterThan,
+            value: value.into(),
         }
     }
 
     pub fn less_than_target_field_key(target: AspectFieldKey, value: i64) -> Self {
+        Self::less_than_native_target_field_key(target, value)
+    }
+
+    pub fn less_than_native_target_field_key(
+        target: AspectFieldKey,
+        value: impl Into<WorthQueryPredicateOperand>,
+    ) -> Self {
         Self {
             target,
-            operator: IntegerComparisonOperator::LessThan,
-            value,
+            operator: NativeComparisonOperator::LessThan,
+            value: value.into(),
         }
     }
 
@@ -145,12 +167,12 @@ impl IntegerComparisonPredicate {
         self.target.field()
     }
 
-    pub fn operator(&self) -> IntegerComparisonOperator {
+    pub fn operator(&self) -> NativeComparisonOperator {
         self.operator
     }
 
-    pub fn value(&self) -> i64 {
-        self.value
+    pub fn value(&self) -> &WorthQueryPredicateOperand {
+        &self.value
     }
 }
 
@@ -206,28 +228,34 @@ impl StringContainsPredicate {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct SetMembershipPredicate {
     target: AspectFieldKey,
-    values: Vec<ScalarPredicateValue>,
+    values: Vec<WorthQueryPredicateOperand>,
 }
 
 impl SetMembershipPredicate {
-    pub fn new(
+    pub fn new<Value>(
         aspect: impl Into<String>,
         field: impl Into<String>,
-        values: impl IntoIterator<Item = ScalarPredicateValue>,
-    ) -> Result<Self, AuthoringError> {
+        values: impl IntoIterator<Item = Value>,
+    ) -> Result<Self, AuthoringError>
+    where
+        Value: Into<WorthQueryPredicateOperand>,
+    {
         let target = validate_predicate_target(aspect, field)?;
-        let values: Vec<_> = values.into_iter().collect();
+        let values: Vec<_> = values.into_iter().map(Into::into).collect();
         if values.is_empty() {
             return Err(AuthoringError::EmptyProjectionSet);
         }
         Ok(Self { target, values })
     }
 
-    pub fn from_target_field_key(
+    pub fn from_target_field_key<Value>(
         target: AspectFieldKey,
-        values: impl IntoIterator<Item = ScalarPredicateValue>,
-    ) -> Result<Self, AuthoringError> {
-        let values: Vec<_> = values.into_iter().collect();
+        values: impl IntoIterator<Item = Value>,
+    ) -> Result<Self, AuthoringError>
+    where
+        Value: Into<WorthQueryPredicateOperand>,
+    {
+        let values: Vec<_> = values.into_iter().map(Into::into).collect();
         if values.is_empty() {
             return Err(AuthoringError::EmptyProjectionSet);
         }
@@ -254,7 +282,7 @@ impl SetMembershipPredicate {
         self.target.field()
     }
 
-    pub fn values(&self) -> &[ScalarPredicateValue] {
+    pub fn values(&self) -> &[WorthQueryPredicateOperand] {
         &self.values
     }
 }
@@ -325,7 +353,7 @@ impl PresencePredicateKind {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum PredicateSelector {
     Equality(EqualityPredicate),
-    IntegerComparison(IntegerComparisonPredicate),
+    NativeComparison(NativeComparisonPredicate),
     StringContains(StringContainsPredicate),
     SetMembership(SetMembershipPredicate),
     Presence(PresencePredicate),
@@ -335,7 +363,7 @@ impl PredicateSelector {
     pub fn target_field_key(&self) -> &AspectFieldKey {
         match self {
             Self::Equality(predicate) => predicate.target_field_key(),
-            Self::IntegerComparison(predicate) => predicate.target_field_key(),
+            Self::NativeComparison(predicate) => predicate.target_field_key(),
             Self::StringContains(predicate) => predicate.target_field_key(),
             Self::SetMembership(predicate) => predicate.target_field_key(),
             Self::Presence(predicate) => predicate.target_field_key(),

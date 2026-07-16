@@ -1,5 +1,8 @@
 use super::consumer_scope_strings::consumer_kit_evidence_scope_as_str;
 use super::graph_application_scope_strings::graph_application_evidence_scope_as_str;
+use super::installed_domain_scope_strings::{
+    installed_domain_evidence_scope_as_str, installed_domain_evidence_scopes,
+};
 use super::scope::WorthQueryEvidenceScope;
 
 pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static str {
@@ -117,18 +120,7 @@ pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static 
         }
         S::DomainCapabilityIdentity => "domain-capability-identity",
         S::DomainCapabilityCertificationIdentity => "domain-capability-certification-identity",
-        S::DomainPackageIdentity => "domain-package-identity",
-        S::DomainPackageValidation => "domain-package-validation",
-        S::DomainPackageAdmission => "domain-package-admission",
-        S::DomainInstallation => "domain-installation",
-        S::InstalledDomainHandle => "installed-domain-handle",
-        S::InstalledDomainDeclarationContext => "installed-domain-declaration-context",
-        S::InstalledDomainWorld => "installed-domain-world",
-        S::InstalledDomainContributionTarget => "installed-domain-contribution-target",
-        S::InstalledDomainContribution => "installed-domain-contribution",
-        S::InstalledDomainExecution => "installed-domain-execution",
-        S::InstalledDomainExecutionIndex => "installed-domain-execution-index",
-        S::InstalledDomainRebind => "installed-domain-rebind",
+        installed_domain_evidence_scopes!() => installed_domain_evidence_scope_as_str(scope),
         WorthQueryEvidenceScope::ProjectionConsumedContinuityAuthorityIdentity => {
             "projection-consumed-continuity-authority-identity"
         }

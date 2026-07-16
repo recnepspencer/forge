@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/installed_domain/boundaries/installation_receipt_constructor_is_private.rs:8:50
+  |
+8 |       let _ = WorthQueryDomainInstallationReceipt::new(
+  |                                                    ^^^ private associated function
+  |
+ ::: src/domain_installation/installation_state/receipt.rs
+  |
+  | /     pub(crate) fn new(
+  | |         domain_owner: String,
+  | |         semantic_version: super::WorthQueryDomainSemanticVersion,
+  | |         package_identity: WorthQueryDomainPackageIdentity,
+... |
+  | |         definition_counts: WorthQueryDomainInstalledDefinitionCounts,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

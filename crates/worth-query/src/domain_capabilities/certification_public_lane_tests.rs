@@ -1,10 +1,10 @@
 use worth_proof::TransitionOutcome;
 
+use crate::domain_capabilities::certification::install_domain_capability_certification;
 use crate::domain_capabilities::certification_closeout_test_support::{
     admitted_basis_observation_plan, admitted_projection_consumption_plan, intent_declaration,
     lower_runtime_envelope, projection_binding, projection_source, replay_gap_inputs,
 };
-use crate::domain_capabilities::worth_query_domain;
 use worth_relational::facade::runtime::InvariantCatalog;
 
 fn success<T>(
@@ -50,16 +50,20 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
     let admitted_plan = admitted_basis_observation_plan();
     let projection_plan = admitted_projection_consumption_plan();
     let lower_runtime = lower_runtime_envelope("domain-capability-public-lane");
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
 
-    let support_common = worth_query_domain("worth.spatial")
+    let support_common = domain
         .for_intent(&declaration)
+        .expect("installed contribution authority must remain current")
         .supports_traceability("traceability.edge_split")
         .because("public common and checked support lanes must agree")
         .materialize()
         .expect("common support lane should materialize");
     let support_checked = success(
-        worth_query_domain("worth.spatial")
+        domain
             .for_intent(&declaration)
+            .expect("installed contribution authority must remain current")
             .supports_traceability("traceability.edge_split")
             .because("public common and checked support lanes must agree")
             .try_materialize()
@@ -67,15 +71,17 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
     );
     assert_eq!(support_common, support_checked);
 
-    let admission_common = worth_query_domain("worth.spatial")
+    let admission_common = domain
         .for_admitted_intent_plan(&admitted_plan)
+        .expect("installed contribution authority must remain current")
         .advises("admission.routing_gap")
         .because("public common and checked admission lanes must agree")
         .materialize()
         .expect("common admission lane should materialize");
     let admission_checked = success(
-        worth_query_domain("worth.spatial")
+        domain
             .for_admitted_intent_plan(&admitted_plan)
+            .expect("installed contribution authority must remain current")
             .advises("admission.routing_gap")
             .because("public common and checked admission lanes must agree")
             .try_materialize()
@@ -83,8 +89,9 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
     );
     assert_eq!(admission_common, admission_checked);
 
-    let workflow_common = worth_query_domain("worth.spatial")
+    let workflow_common = domain
         .for_intent(&declaration)
+        .expect("installed contribution authority must remain current")
         .plans_preview_mutation(
             "workflow.preview_mutation",
             crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
@@ -95,8 +102,9 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
         .materialize()
         .expect("common workflow lane should materialize");
     let workflow_checked = success(
-        worth_query_domain("worth.spatial")
+        domain
             .for_intent(&declaration)
+            .expect("installed contribution authority must remain current")
             .plans_preview_mutation(
                 "workflow.preview_mutation",
                 crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
@@ -109,15 +117,17 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
     );
     assert_eq!(workflow_common, workflow_checked);
 
-    let continuity_common = worth_query_domain("worth.spatial")
+    let continuity_common = domain
         .for_admitted_intent_plan(&admitted_plan)
+        .expect("installed contribution authority must remain current")
         .preserves_continuity("continuity.edge_split", "edge:before", "edge:after")
         .because("public common and checked continuity lanes must agree")
         .materialize()
         .expect("common continuity lane should materialize");
     let continuity_checked = success(
-        worth_query_domain("worth.spatial")
+        domain
             .for_admitted_intent_plan(&admitted_plan)
+            .expect("installed contribution authority must remain current")
             .preserves_continuity("continuity.edge_split", "edge:before", "edge:after")
             .because("public common and checked continuity lanes must agree")
             .try_materialize()
@@ -125,8 +135,9 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
     );
     assert_eq!(continuity_common, continuity_checked);
 
-    let aftermath_common = worth_query_domain("worth.spatial")
+    let aftermath_common = domain
         .for_admitted_intent_plan(&projection_plan)
+        .expect("installed contribution authority must remain current")
         .consumes_projection_contract(
             "aftermath.projection_contract",
             projection_contract_request(),
@@ -135,8 +146,9 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
         .materialize()
         .expect("common aftermath lane should materialize");
     let aftermath_checked = success(
-        worth_query_domain("worth.spatial")
+        domain
             .for_admitted_intent_plan(&projection_plan)
+            .expect("installed contribution authority must remain current")
             .consumes_projection_contract(
                 "aftermath.projection_contract",
                 projection_contract_request(),
@@ -147,8 +159,9 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
     );
     assert_eq!(aftermath_common, aftermath_checked);
 
-    let explanation_common = worth_query_domain("worth.spatial")
+    let explanation_common = domain
         .for_lower_runtime_boundary_envelope(&lower_runtime)
+        .expect("installed contribution authority must remain current")
         .explains_store_backed_replay_gap(
             "explanation.store_backed_replay",
             store_backed_replay_gap_request(),
@@ -157,8 +170,9 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
         .materialize_artifact()
         .expect("common explanation lane should materialize");
     let explanation_checked = success(
-        worth_query_domain("worth.spatial")
+        domain
             .for_lower_runtime_boundary_envelope(&lower_runtime)
+            .expect("installed contribution authority must remain current")
             .explains_store_backed_replay_gap(
                 "explanation.store_backed_replay",
                 store_backed_replay_gap_request(),
@@ -169,15 +183,17 @@ fn public_common_and_checked_lanes_converge_for_named_categories() {
     );
     assert_eq!(explanation_common, explanation_checked);
 
-    let invariant_common = worth_query_domain("worth.spatial")
+    let invariant_common = domain
         .for_intent(&declaration)
+        .expect("installed contribution authority must remain current")
         .register_invariant_catalog("invariant.edge_split", InvariantCatalog::default())
         .because("public common and checked invariant lanes must agree")
         .materialize()
         .expect("common invariant lane should materialize");
     let invariant_checked = success(
-        worth_query_domain("worth.spatial")
+        domain
             .for_intent(&declaration)
+            .expect("installed contribution authority must remain current")
             .register_invariant_catalog("invariant.edge_split", InvariantCatalog::default())
             .because("public common and checked invariant lanes must agree")
             .try_materialize()

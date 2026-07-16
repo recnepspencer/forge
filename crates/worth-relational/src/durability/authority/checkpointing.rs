@@ -26,7 +26,7 @@ use super::DurabilityAuthority;
 
 impl<'runtime> DurabilityAuthority<'runtime> {
     pub fn checkpoint(&mut self) -> Result<DurableCheckpoint, DurabilityError> {
-        let checkpoint = self.build_checkpoint_image();
+        let checkpoint = self.build_checkpoint_image()?;
         if self.runtime.runtime_config().durability.policy.mode
             == DurabilityMode::PersistedSegmentedLocalFs
         {
@@ -256,7 +256,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         self.runtime.durability.remove_log_commit(commit_id)
     }
 
-    fn build_checkpoint_image(&self) -> DurableCheckpoint {
+    fn build_checkpoint_image(&self) -> Result<DurableCheckpoint, DurabilityError> {
         let envelopes = self.runtime.history().commit_envelopes_snapshot();
         let published_lineage_commit_count = envelopes
             .iter()
@@ -280,7 +280,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
             .iter()
             .map(|envelope| envelope.lineage_digest_basis().lineage_decision_count())
             .sum();
-        DurableCheckpoint {
+        Ok(DurableCheckpoint {
             coverage: CheckpointCoverage {
                 up_to_commit: self.runtime.history().latest_commit().cloned(),
                 up_to_version: self
@@ -296,8 +296,16 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                 .partitions
                 .values()
                 .cloned()
-                .map(partition_to_image)
-                .collect(),
+                .map(|partition| {
+                    partition_to_image(
+                        partition,
+                        &self.runtime.schema_contract_runtime.aspect_contract_plans,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+            aspect_contracts: checkpoint_aspect_contracts(
+                &self.runtime.schema_contract_runtime.aspect_contract_plans,
+            )?,
             lineage: LineageCheckpointArtifact::new(
                 LineageCheckpointDigestBasis::new(
                     published_lineage_commit_count,
@@ -315,7 +323,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
             derived_index_artifacts: checkpoint_derived_index_artifacts(self.runtime),
             symbol_table: self.runtime.services.symbols.snapshot(),
             runtime_name: self.runtime.runtime_name().to_string(),
-        }
+        })
     }
 
     fn persist_checkpoint_file(
@@ -353,4 +361,35 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         self.runtime.durability.store = Some(store);
         Ok(manifest)
     }
+}
+
+fn checkpoint_aspect_contracts(
+    plans: &crate::schema::data::AspectContractPlanCatalog,
+) -> Result<Vec<worth_foundational::facade::PortableAspectContract>, DurabilityError> {
+    let mut contracts = std::collections::BTreeMap::new();
+    for binding in plans
+        .entity_plans
+        .values()
+        .chain(plans.relation_plans.values())
+        .flat_map(|plan| plan.executable_bindings.iter())
+    {
+        let candidate =
+            worth_foundational::facade::PortableAspectContract::from_contract(&binding.contract);
+        match contracts.get(candidate.key()) {
+            Some(existing) if existing == &candidate => continue,
+            Some(_) => {
+                return Err(DurabilityError::new(
+                    crate::durability::data::RecoveryFailureClass::SchemaMismatch,
+                    format!(
+                        "checkpoint has conflicting active contracts for aspect `{}`",
+                        candidate.key().as_str()
+                    ),
+                ));
+            }
+            None => {
+                contracts.insert(candidate.key().clone(), candidate);
+            }
+        }
+    }
+    Ok(contracts.into_values().collect())
 }

@@ -1,7 +1,5 @@
 use worth_query::facade::foundation::{
-    ProjectionContractSourcePosture,
-    ProjectionFactKind,
-    WorthQueryConsumedProjectionAuthority,
+    ProjectionContractSourcePosture, ProjectionFactKind, WorthQueryConsumedProjectionAuthority,
 };
 
 use super::{
@@ -32,7 +30,7 @@ pub(crate) fn classify_consumed_fact_families(
         .fact_families()
         .iter()
         .filter_map(|fact_family| match fact_family.kind() {
-            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => {
                 Some(WorthUiQueryMeasurementFactFamily::ScrollContentExtent)
             }
             ProjectionFactKind::EntityIdentity

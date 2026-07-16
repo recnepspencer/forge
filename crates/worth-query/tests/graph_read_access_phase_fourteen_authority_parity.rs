@@ -1,11 +1,10 @@
-#[path = "support/mod.rs"]
-mod support;
+use crate::support;
 
 use worth_query::facade::policy::{
     admit_relationship_proofs, RelationshipProofBudget, RelationshipProofDescriptor,
     RelationshipProofDescriptorSet,
 };
-use worth_query::facade::runtime::{
+use crate::runtime::{
     WorthQueryGraphReadAccessAuthorityDenialKind, WorthQueryGraphReadAccessAuthorityRequest,
     WorthQueryGraphReadAccessBasisScopeKind,
 };
@@ -281,7 +280,7 @@ fn relationship_proof_without_policy_tenant_denies_before_buffers() {
         admit_relationship_proofs(canonical.query(), &policy_tenant, &descriptors)
             .expect("relationship proof should admit before authority composition");
 
-    let denial = worth_query::facade::runtime::admit_graph_read_access_authority(
+    let denial = crate::runtime::admit_graph_read_access_authority(
         WorthQueryGraphReadAccessAuthorityRequest::current_head()
             .with_relationship_proofs(relationship_proofs),
     )
@@ -309,7 +308,7 @@ fn relationship_proof_bound_to_different_tenant_denies_before_buffers() {
             .expect("relationship proof should admit against tenant a");
     let policy_tenant_b = admitted_policy_tenant(&canonical, "tenant-b");
 
-    let denial = worth_query::facade::runtime::admit_graph_read_access_authority(
+    let denial = crate::runtime::admit_graph_read_access_authority(
         WorthQueryGraphReadAccessAuthorityRequest::current_head()
             .with_policy_tenant(policy_tenant_b)
             .with_relationship_proofs(relationship_proofs),

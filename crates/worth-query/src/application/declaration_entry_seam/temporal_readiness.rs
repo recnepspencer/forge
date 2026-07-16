@@ -1,8 +1,8 @@
 use crate::application::{
     WorthQueryDeclarationBridgeTruthContext, WorthQueryDeclarationEntryReadinessStatus,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
-    WorthQueryTemporalDeclarationSupport,
+    WorthQueryDomainOperatingContext, WorthQueryDomainOperatingRequirement,
+    WorthQueryInstalledDomainDeclarationContext, WorthQueryTemporalDeclarationSupport,
 };
 use crate::basis_lifecycle::BasisFamily;
 use crate::runtime::{WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupportStatus};
@@ -98,6 +98,12 @@ fn temporal_runtime_readiness<
 >(
     handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> Option<(WorthQueryDeclarationEntryReadinessStatus, &'static str)> {
+    if !handle.declares_operating_requirement(WorthQueryDomainOperatingRequirement::TemporalQuery) {
+        return Some((
+            WorthQueryDeclarationEntryReadinessStatus::Unsupported,
+            "temporal declaration-entry readiness requires installed domain temporal-query authority",
+        ));
+    }
     match handle
         .support_snapshot()
         .runtime_support_matrix()

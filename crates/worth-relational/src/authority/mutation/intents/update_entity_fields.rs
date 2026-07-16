@@ -3,11 +3,13 @@ use crate::authority::mutation::stale_targets::ensure_entity_target_is_current;
 use crate::authority::mutation::MutationWorkspace;
 use crate::storage::logic::state::PartitionAccess;
 use crate::transactions::data::{
-    CommitConflict, ConflictClass, EntityFieldUpdateMissingState, UpdateEntityFieldsIntent,
+    CommitConflict, ConflictClass, EntityFieldUpdateMissingState, RecordAspectPatchTarget,
+    UpdateEntityFieldsIntent,
 };
+use worth_foundational::facade::PortablePatchReadmissionPurpose;
 
-use super::entity_authoritative_patch_application::apply_entity_authoritative_patch;
-use super::entity_field_aspect_patch::plan_entity_field_aspect_patch;
+use super::field_authoring_candidate::FieldAuthoringDomain;
+use super::record_aspect_patch;
 
 pub(super) fn apply(
     intent: &UpdateEntityFieldsIntent,
@@ -43,27 +45,19 @@ pub(super) fn apply(
             slot_view.extra().authoritative_aspect_state.clone(),
         ))
     })?;
-    let patch_plan = plan_entity_field_aspect_patch(
+    let target = RecordAspectPatchTarget::Entity {
+        entity_id: intent.entity_id,
         kind_id,
-        workspace.entity_aspect_plan(kind_id),
+    };
+    let patch = record_aspect_patch::readmit_field_authoring(
         &intent.fields,
-    )
-    .map_err(|denial| {
-        CommitConflict::new(ConflictClass::EntityFieldAspectPatchDenied {
-            entity_id: intent.entity_id,
-            denial,
-        })
-    })?;
-    let new_authoritative_aspect_state = apply_entity_authoritative_patch(
-        authoritative_aspect_state.as_ref(),
-        &patch_plan.authoritative_patch,
-    )
-    .map_err(|denial| {
-        CommitConflict::new(ConflictClass::EntityFieldAspectPatchDenied {
-            entity_id: intent.entity_id,
-            denial,
-        })
-    })?;
+        PortablePatchReadmissionPurpose::RecordMutation,
+        workspace.entity_aspect_plan(kind_id),
+        target,
+        FieldAuthoringDomain::Entity,
+    )?;
+    let new_authoritative_aspect_state =
+        record_aspect_patch::apply(authoritative_aspect_state.as_ref(), &patch, target)?;
     workspace.with_context(|context| {
         context
             .state
@@ -72,7 +66,7 @@ pub(super) fn apply(
             .state
             .get_partition_mut(intent.entity_id.partition_id);
         let mut updated_extra = partition.entity_arena.extra[slot].clone();
-        updated_extra.authoritative_aspect_state = Some(new_authoritative_aspect_state.clone());
+        updated_extra.authoritative_aspect_state = new_authoritative_aspect_state.clone();
         partition
             .entity_arena
             .apply_extra_update(slot, updated_extra, version_id);
@@ -82,7 +76,7 @@ pub(super) fn apply(
         intent.entity_id,
         kind_id,
         authoritative_aspect_state,
-        Some(new_authoritative_aspect_state),
-        patch_plan.authoritative_patch,
+        new_authoritative_aspect_state,
+        patch,
     ))
 }

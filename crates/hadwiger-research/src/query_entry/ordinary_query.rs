@@ -1,5 +1,6 @@
 //! Hadwiger vocabulary over Query's runtime-installed domain handle.
 
+use worth_foundational::facade::ScalarAspectType;
 use worth_query::facade::{domain, read};
 
 use super::{
@@ -105,12 +106,12 @@ fn candidate_schema() -> read::QuerySchemaView {
             read::SchemaFieldView::new(
                 read::AspectName::new("identity").expect("static aspect must admit"),
                 read::FieldName::new("id").expect("static field must admit"),
-                read::SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             read::SchemaFieldView::new(
                 read::AspectName::new("colorability").expect("static aspect must admit"),
                 read::FieldName::new("lower_bound").expect("static field must admit"),
-                read::SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [],

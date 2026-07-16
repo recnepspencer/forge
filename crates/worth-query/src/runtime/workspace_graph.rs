@@ -125,6 +125,11 @@ impl WorthQueryWorkspace {
                             denial,
                         ));
                     }
+                    WorthQuerySymbolicTargetReferenceDenialKind::NonEntityReferenceTarget => {
+                        return Err(WorthQueryRuntimeError::MutationTargetReferenceDenied(
+                            denial,
+                        ));
+                    }
                 };
                 Err(graph_composition_error(
                     kind,

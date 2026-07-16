@@ -16,6 +16,7 @@ use crate::application::{
     WorthQueryDeclarationEntryOrchestrationStageRecord, WorthQueryDeclaredFamilyChecked,
 };
 
+#[cfg(test)]
 pub(super) fn lower_from_declaration_checked<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,

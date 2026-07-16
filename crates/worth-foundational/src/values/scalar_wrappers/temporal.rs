@@ -22,6 +22,10 @@ impl CanonicalTime {
             None
         }
     }
+
+    pub(crate) fn is_canonical(self) -> bool {
+        self.nanos_since_midnight < Self::NANOS_PER_DAY
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -33,4 +37,10 @@ pub struct CanonicalTimestamp {
 pub struct CanonicalTimestampTz {
     pub utc_micros_since_unix_epoch: i64,
     pub offset_minutes: i32,
+}
+
+impl CanonicalTimestampTz {
+    pub(crate) fn is_canonical(self) -> bool {
+        (-1_439..=1_439).contains(&self.offset_minutes)
+    }
 }

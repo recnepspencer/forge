@@ -90,4 +90,18 @@ impl WorthQueryRuntime {
     ) -> &crate::domain_installation::WorthQueryInstalledDomainExecutionIndex {
         self.domain_installation_registry.execution_index()
     }
+
+    #[cfg(test)]
+    pub(crate) fn destroy_and_rebuild_domain_execution_index(
+        &mut self,
+    ) -> WorthQueryDomainExecutionIndexRebuildReport {
+        self.domain_installation_registry
+            .destroy_and_rebuild_execution_index()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn replace_domain_installation_with_successor_generation(&mut self) {
+        self.domain_installation_registry
+            .replace_with_successor_generation();
+    }
 }

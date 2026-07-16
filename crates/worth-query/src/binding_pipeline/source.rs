@@ -37,6 +37,7 @@ impl WorthQueryBindingSourceKind {
     }
 }
 
+#[cfg(test)]
 pub struct WorthQueryDeclarationContextCandidate<I> {
     label: String,
     source_kind: WorthQueryBindingSourceKind,
@@ -44,6 +45,7 @@ pub struct WorthQueryDeclarationContextCandidate<I> {
     input: I,
 }
 
+#[cfg(test)]
 impl<I> WorthQueryDeclarationContextCandidate<I> {
     pub fn new(
         label: impl Into<String>,
@@ -59,18 +61,7 @@ impl<I> WorthQueryDeclarationContextCandidate<I> {
         }
     }
 
-    pub fn label(&self) -> &str {
-        &self.label
-    }
-
-    pub fn source_kind(&self) -> WorthQueryBindingSourceKind {
-        self.source_kind
-    }
-
-    pub fn specificity(&self) -> WorthQueryBindingSpecificity {
-        self.specificity
-    }
-
+    #[cfg(test)]
     pub(crate) fn into_parts(
         self,
     ) -> (
@@ -84,7 +75,7 @@ impl<I> WorthQueryDeclarationContextCandidate<I> {
 }
 
 macro_rules! context_candidate {
-    ($name:ident, $ty:ty) => {
+    ($name:ident, $ty:ty, $accessor_cfg:meta) => {
         pub struct $name<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>> {
             label: String,
             source_kind: WorthQueryBindingSourceKind,
@@ -107,14 +98,17 @@ macro_rules! context_candidate {
                 }
             }
 
+            #[$accessor_cfg]
             pub fn label(&self) -> &str {
                 &self.label
             }
 
+            #[$accessor_cfg]
             pub fn source_kind(&self) -> WorthQueryBindingSourceKind {
                 self.source_kind
             }
 
+            #[$accessor_cfg]
             pub fn specificity(&self) -> WorthQueryBindingSpecificity {
                 self.specificity
             }
@@ -133,15 +127,19 @@ macro_rules! context_candidate {
     };
 }
 
+#[cfg(test)]
 context_candidate!(
     WorthQueryProgressionContextCandidate,
-    WorthQueryAdmittedDeclarationProgression<D, I>
+    WorthQueryAdmittedDeclarationProgression<D, I>,
+    cfg(any())
 );
 context_candidate!(
     WorthQueryEnvelopeContextCandidate,
-    WorthQueryDeclarationEnvelope<D, I>
+    WorthQueryDeclarationEnvelope<D, I>,
+    cfg(all())
 );
 
+#[cfg(test)]
 pub enum WorthQueryRouteResolverSubject<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,

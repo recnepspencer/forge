@@ -8,8 +8,16 @@ fn edge_split_runtime(binding: &WorthQueryExistingTruthTargetBinding) -> WorthQu
     bridge_runtime_with_support_and_existing_truth_verification(
         edge_split_verified_profile(),
         TestExistingTruthVerificationAdapter::default()
-            .with_value(binding, "source.id", test_string_aspect_value("vertex-a"))
-            .with_value(binding, "target.id", test_string_aspect_value("vertex-b")),
+            .with_value(
+                binding,
+                "source.id",
+                test_native_entity_ref_value(&test_entity_identity("vertex-a")),
+            )
+            .with_value(
+                binding,
+                "target.id",
+                test_native_entity_ref_value(&test_entity_identity("vertex-b")),
+            ),
     )
 }
 
@@ -25,7 +33,7 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
     let mut workspace = runtime
         .workspace("topology.graph-composition-edge-split")
         .expect("workspace should open");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("topology.edge-split-vertices", |q| {
             q.from("Vertex")
                 .select([
@@ -41,7 +49,7 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
                 .schema_basis("topology-edge-split-vertices")
         })
         .expect("vertex live view should declare");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("topology.edge-split-edges", |q| {
             q.from("Edge")
                 .select([
@@ -59,7 +67,7 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
                 .schema_basis("topology-edge-split-edges")
         })
         .expect("edge live view should declare");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("topology.edge-split-adjacencies", |q| {
             q.from("VertexEdgeAdjacency")
                 .select([
@@ -86,14 +94,14 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
             let left_edge = graph.insert_entity("edge-left", "Edge", |edge| {
                 edge.set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("edge-left"))
                     .set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("edge"))
-                    .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("vertex-a"))
+                    .existing_entity_identity(test_aspect_touch("source.id"), test_entity_identity("vertex-a"))
                     .symbolic_entity_identity(test_aspect_touch("target.id"), split_vertex.reference().clone())
             })?;
             let right_edge = graph.insert_entity("edge-right", "Edge", |edge| {
                 edge.set_aspect(test_aspect_touch("identity.id"), test_authored_string_aspect_value("edge-right"))
                     .set_aspect(test_aspect_touch("kind.value"), test_authored_string_aspect_value("edge"))
                     .symbolic_entity_identity(test_aspect_touch("source.id"), split_vertex.reference().clone())
-                    .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("vertex-b"))
+                    .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("vertex-b"))
             })?;
             graph.insert_relation("VertexEdgeAdjacency", |relation| {
                 relation
@@ -123,8 +131,8 @@ fn compose_graph_supports_verified_edge_split_with_lineage_summary() {
                 binding,
                 |verify| {
                     verify
-                        .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("vertex-a"))
-                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("vertex-b"))
+                        .existing_entity_identity(test_aspect_touch("source.id"), test_entity_identity("vertex-a"))
+                        .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("vertex-b"))
                 },
                 |edge| {
                     edge.continuity_split_successors(

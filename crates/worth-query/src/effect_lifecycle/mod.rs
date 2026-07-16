@@ -34,9 +34,11 @@ pub use batch::{
     LoweredEffectBatchExecutionArtifact, LoweredEffectBatchExecutionPlan,
     LoweredRelationalMutationBatchExecutionArtifact,
 };
+#[cfg(test)]
+pub(crate) use batch_admission::admit_effect_batch_components;
 pub use batch_admission::{
-    admit_effect_batch_components, effect_batch, AdmittedEffectBatch, EffectBatchAdmissionDenial,
-    EffectBatchAdmissionDenialKind, EffectBatchIntentDraft, EffectBatchIntentDraftWithBasis,
+    effect_batch, AdmittedEffectBatch, EffectBatchAdmissionDenial, EffectBatchAdmissionDenialKind,
+    EffectBatchIntentDraft, EffectBatchIntentDraftWithBasis,
 };
 pub use batch_execution::{
     EffectBatchExecutionDenial, EffectBatchExecutionDenialKind, ExecutedEffectBatchPlan,
@@ -57,8 +59,8 @@ pub use envelope::{
     EffectEnvelopePrimaryResult, EffectEnvelopeSourceRefs, SelfDescribingEffectEnvelope,
 };
 pub use execution::{
-    execute_lowered_effect_plan, EffectExecutionAuthority, EffectExecutionDenial,
-    EffectExecutionDenialKind, ExecutedEffectAuthorityArtifact, ExecutedEffectPlan,
+    EffectExecutionAuthority, EffectExecutionDenial, EffectExecutionDenialKind,
+    ExecutedEffectAuthorityArtifact, ExecutedEffectPlan,
 };
 pub use intent::{normalize_raw_effect_intent, RawEffectIntent};
 pub use inventory::{
@@ -71,8 +73,8 @@ pub use inventory::{
     EffectReceiptArtifactKind,
 };
 pub use lowering::{
-    lower_authority_scoped_effect_plan, EffectLoweringDenial, EffectLoweringDenialKind,
-    LoweredEffectExecutionArtifact, LoweredEffectExecutionPlan,
+    EffectLoweringDenial, EffectLoweringDenialKind, LoweredEffectExecutionArtifact,
+    LoweredEffectExecutionPlan,
 };
 pub use normalized::{EffectIntentDenial, EffectOperationInput, NormalizedEffectIntent};
 #[cfg(test)]

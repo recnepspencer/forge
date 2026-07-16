@@ -3,8 +3,8 @@ mod outputs;
 use self::outputs::{assemble_certification_outputs, certification_bundle_digest};
 use super::output_manifest::worth_query_domain_capability_certification_output_manifest;
 use super::reports::{
-    worth_query_domain_capability_representative_report,
-    worth_query_domain_capability_slope_report,
+    worth_query_domain_capability_representative_report_in,
+    worth_query_domain_capability_slope_report_in,
     WorthQueryDomainCapabilityCertificationCounterSnapshot,
     WorthQueryDomainCapabilityRepresentativeReport, WorthQueryDomainCapabilitySlopeReport,
 };
@@ -100,8 +100,16 @@ impl WorthQueryDomainCapabilityCertificationBundle {
 }
 
 pub fn certify_domain_capabilities() -> WorthQueryDomainCapabilityCertificationBundle {
-    let representative_report = worth_query_domain_capability_representative_report();
-    let slope_report = worth_query_domain_capability_slope_report(&representative_report);
+    let installation = super::install_domain_capability_certification();
+    certify_domain_capabilities_in(installation.contributions())
+}
+
+pub(crate) fn certify_domain_capabilities_in(
+    domain: &crate::domain_capabilities::WorthQueryInstalledDomainContributionSurface,
+) -> WorthQueryDomainCapabilityCertificationBundle {
+    let representative_report = worth_query_domain_capability_representative_report_in(domain);
+    let slope_report =
+        worth_query_domain_capability_slope_report_in(&representative_report, domain);
 
     WorthQueryDomainCapabilityCertificationBundle::new(representative_report, slope_report)
 }

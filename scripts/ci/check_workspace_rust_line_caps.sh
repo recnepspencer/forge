@@ -12,6 +12,7 @@ echo "[workspace-rust-line-caps] enforcing ${CAP}-line cap for tracked Rust file
 violations=0
 while IFS= read -r file; do
   [[ -n "$file" ]] || continue
+  [[ -f "$file" ]] || continue
 
   line_count="$(wc -l < "$file" | tr -d ' ')"
   if (( line_count > CAP )); then

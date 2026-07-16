@@ -5,7 +5,7 @@ fn assert_existing_preserves_binding_evidence_without_mutation_deltas() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.assert-existing")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.assert-existing-table", |q| {
             q.from("Task")
                 .select([
@@ -116,7 +116,7 @@ fn assert_existing_inspection_digest_changes_with_asserted_value() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.assert-existing-digest")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.assert-existing-digest-table", |q| {
             q.from("Task")
                 .select([
@@ -211,7 +211,7 @@ fn batch_assert_existing_mixes_with_existing_delete_and_retains_binding_evidence
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-assert-existing")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.batch-assert-existing-table", |q| {
             q.from("Task")
                 .select([
@@ -320,7 +320,7 @@ fn preview_assert_existing_requires_authoritative_lane() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-assert-existing")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.preview-assert-existing-table", |q| {
             q.from("Task")
                 .select([

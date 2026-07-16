@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
-    WorthQueryConfig, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily, WorthQueryConfig,
+    WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationBridgeContinuationMode,
     WorthQueryDeclarationBridgeContinuationRequest, WorthQueryDeclarationBridgeTruthContext,
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
@@ -58,8 +58,11 @@ impl WorthQueryDomainOperatingContext<SignalDomain> for SignalWorld {
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("signal-world-{}", self.0)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("signal-world-{}", self.0) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -274,6 +277,9 @@ pub(super) fn orchestration_outcome_token(
         WorthQuerySignalCompatibilityOrchestrationOutcome::WrongHandle(_) => {
             OutcomeDigestToken::Status("wrong_handle")
         }
+        WorthQuerySignalCompatibilityOrchestrationOutcome::InstalledAuthorityDrift(_) => {
+            OutcomeDigestToken::Status("installed_authority_drift")
+        }
         WorthQuerySignalCompatibilityOrchestrationOutcome::Stale(_) => {
             OutcomeDigestToken::Status("stale")
         }
@@ -334,6 +340,9 @@ pub(super) fn continuation_outcome_token(
         crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::WrongHandle(_) => {
             OutcomeDigestToken::Status("wrong_handle")
         }
+        crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::InstalledAuthorityDrift(
+            _,
+        ) => OutcomeDigestToken::Status("installed_authority_drift"),
         crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::Stale(_) => {
             OutcomeDigestToken::Status("stale")
         }

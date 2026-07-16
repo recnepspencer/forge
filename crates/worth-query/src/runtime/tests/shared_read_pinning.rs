@@ -22,7 +22,7 @@ fn shared_read_pinning_workspace(
     name: &str,
 ) -> (
     crate::runtime::WorthQueryWorkspace,
-    crate::runtime::WorthQueryDerivedViewHandle<crate::runtime::WorthQueryNativeRow>,
+    crate::runtime::WorthQueryDerivedViewHandle<crate::runtime::WorthQueryUnrefinedLiveShape>,
 ) {
     let mut workspace = shared_read_workspace(name);
     let derived = declare_shared_read_derived(

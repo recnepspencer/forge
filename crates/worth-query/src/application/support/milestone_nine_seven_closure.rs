@@ -5,10 +5,13 @@ use crate::evidence_identity::{
 
 use super::{
     WorthQueryConcurrentHostileMatrixArtifact, WorthQueryConcurrentHostileMatrixPosture,
-    WorthQueryJournalIdentityBoundaryPosture, WorthQueryJournalReplayBoundaryCertification,
     WorthQueryMilestoneClosureStatus, WorthQueryPublicBridgeReaderLaneCertification,
-    WorthQueryPublicBridgeReaderLanePosture, WorthQuerySharedReadPinningBoundaryClosure,
-    WorthQuerySharedReadPinningBoundaryPosture,
+    WorthQueryPublicBridgeReaderLanePosture,
+};
+#[cfg(test)]
+use super::{
+    WorthQueryJournalIdentityBoundaryPosture, WorthQueryJournalReplayBoundaryCertification,
+    WorthQuerySharedReadPinningBoundaryClosure, WorthQuerySharedReadPinningBoundaryPosture,
 };
 
 const REQUIRED_PHASES: [&str; 4] = [
@@ -26,6 +29,7 @@ pub struct WorthQueryMilestoneNineSevenPhaseClosure {
 }
 
 impl WorthQueryMilestoneNineSevenPhaseClosure {
+    #[cfg(test)]
     pub fn from_shared_read_pinning(closure: &WorthQuerySharedReadPinningBoundaryClosure) -> Self {
         Self::new(
             REQUIRED_PHASES[0],
@@ -34,6 +38,7 @@ impl WorthQueryMilestoneNineSevenPhaseClosure {
         )
     }
 
+    #[cfg(test)]
     pub fn from_journal_replay_boundary(
         closure: &WorthQueryJournalReplayBoundaryCertification,
     ) -> Self {
@@ -202,6 +207,7 @@ fn derive_milestone_nine_seven_status(
     WorthQueryMilestoneClosureStatus::Open
 }
 
+#[cfg(test)]
 fn milestone_status_from_pinning_posture(
     posture: WorthQuerySharedReadPinningBoundaryPosture,
 ) -> WorthQueryMilestoneClosureStatus {
@@ -216,6 +222,7 @@ fn milestone_status_from_pinning_posture(
     }
 }
 
+#[cfg(test)]
 fn milestone_status_from_journal_posture(
     posture: WorthQueryJournalIdentityBoundaryPosture,
 ) -> WorthQueryMilestoneClosureStatus {

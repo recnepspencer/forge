@@ -10,17 +10,17 @@ error[E0599]: no method named `field` found for struct `DeclarativeEqualityFilte
 9 |     let _ = equality.field();
   |                      ^^^^^ method not found in `DeclarativeEqualityFilter`
 
-error[E0599]: no method named `aspect` found for struct `DeclarativeIntegerComparisonFilter` in the current scope
+error[E0599]: no method named `aspect` found for struct `DeclarativeNativeComparisonFilter` in the current scope
   --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:15:21
    |
 15 |     let _ = integer.aspect();
-   |                     ^^^^^^ method not found in `DeclarativeIntegerComparisonFilter`
+   |                     ^^^^^^ method not found in `DeclarativeNativeComparisonFilter`
 
-error[E0599]: no method named `field` found for struct `DeclarativeIntegerComparisonFilter` in the current scope
+error[E0599]: no method named `field` found for struct `DeclarativeNativeComparisonFilter` in the current scope
   --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:16:21
    |
 16 |     let _ = integer.field();
-   |                     ^^^^^ method not found in `DeclarativeIntegerComparisonFilter`
+   |                     ^^^^^ method not found in `DeclarativeNativeComparisonFilter`
 
 error[E0599]: no method named `aspect` found for struct `DeclarativeStringContainsFilter` in the current scope
   --> tests/ui/aspect_native_query/declarative_predicate_filter_string_aliases_removed.rs:22:22

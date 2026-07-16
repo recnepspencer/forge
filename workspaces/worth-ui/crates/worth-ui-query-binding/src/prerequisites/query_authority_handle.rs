@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
 use worth_query::facade::foundation::{
-    ProjectionConsumptionWarnings,
-    WorthQueryConsumedProjectionAuthority,
+    ProjectionConsumptionWarnings, WorthQueryConsumedProjectionAuthority,
 };
 use worth_query::facade::read::WorthQueryProjectionOutcome;
 

@@ -8,7 +8,10 @@ use crate::WorthQueryEvidenceTag;
 use worth_foundational::facade::AspectKey;
 
 use super::super::fixtures::{certification_grouped_projection, certification_row_set};
-use super::value_terms::canonical_aspect_value;
+use super::value_terms::{
+    canonical_aspect_value, canonical_consumed_native_value, canonical_snapshot_read_value,
+    raw_string_snapshot_value,
+};
 
 pub(super) fn row_set_control_expected_digest(row_count: usize) -> String {
     let row_set = certification_row_set(row_count);
@@ -20,7 +23,9 @@ pub(super) fn row_set_control_expected_digest(row_count: usize) -> String {
                 .projected_aspect_values()
                 .iter()
                 .find_map(|(field, value)| {
-                    (field.as_str() == "identity.id").then(|| canonical_aspect_value(value))
+                    (field.as_str() == "identity.id")
+                        .then(|| raw_string_snapshot_value(value))
+                        .flatten()
                 })
                 .expect("identity.id should exist");
             let display_name = row
@@ -28,7 +33,7 @@ pub(super) fn row_set_control_expected_digest(row_count: usize) -> String {
                 .iter()
                 .find_map(|(field, value)| {
                     (field.as_str() == "profile.display_name")
-                        .then(|| canonical_aspect_value(value))
+                        .then(|| canonical_snapshot_read_value(value))
                 })
                 .expect("display name should exist");
             [
@@ -62,7 +67,7 @@ pub(super) fn row_set_control_actual_digest(facts: &ConsumedProjectionFactSet) -
             compose_oracle_display_field_entry(
                 fact.source_row_identity(),
                 fact.field_path().terminal_projection_for_boundary(),
-                &canonical_aspect_value(fact.value()),
+                &canonical_consumed_native_value(fact.native_value()),
             )
         }))
         .collect::<Vec<_>>();

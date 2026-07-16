@@ -2,8 +2,7 @@ use crate::diagnostics::data::DiagnosticCode;
 use crate::transactions::data::ExistingRecordTarget;
 
 use super::entity_authoritative_aspect_state_presentation::entity_authoritative_aspect_state_denial_detail;
-use super::entity_field_aspect_patch_presentation::entity_field_aspect_patch_denial_detail;
-use super::relation_authoritative_aspect_state_presentation::relation_authoritative_aspect_state_denial_detail;
+use super::record_aspect_patch_denial::denial_detail as record_aspect_patch_denial_detail;
 use super::ConflictClass;
 
 impl ConflictClass {
@@ -24,11 +23,10 @@ impl ConflictClass {
             Self::RelationEndpointUpdateStateInconsistency { .. }
             | Self::RelationEndpointUpdateKindMismatch { .. }
             | Self::BulkImportDomainMismatch { .. } => DiagnosticCode::StorageInconsistencyDetected,
-            Self::EntityFieldAspectPatchDenied { .. }
-            | Self::EntityAuthoritativeAspectStateDenied { .. }
-            | Self::RelationAuthoritativeAspectStateDenied { .. } => {
+            Self::EntityAuthoritativeAspectStateDenied { .. } => {
                 DiagnosticCode::StorageInconsistencyDetected
             }
+            Self::RecordAspectPatchDenied { .. } => DiagnosticCode::InvariantViolation,
             Self::AspectDeltaFailure { .. } => DiagnosticCode::AspectDeltaFailure,
             Self::ConflictingIntent { .. } => DiagnosticCode::ConflictingIntent,
             Self::InvalidSavepoint { .. } => DiagnosticCode::InvalidSavepoint,
@@ -101,19 +99,14 @@ impl ConflictClass {
                 expected.label(),
                 actual.label()
             ),
-            Self::EntityFieldAspectPatchDenied { denial, .. } => {
-                entity_field_aspect_patch_denial_detail(denial)
-            }
             Self::EntityAuthoritativeAspectStateDenied { kind_id, denial } => format!(
                 "entity field declarations for kind {} could not be admitted as authoritative aspect state: {}",
                 kind_id.0,
                 entity_authoritative_aspect_state_denial_detail(denial)
             ),
-            Self::RelationAuthoritativeAspectStateDenied { kind_id, denial } => format!(
-                "relation field declarations for kind {} could not be admitted as authoritative aspect state: {}",
-                kind_id.0,
-                relation_authoritative_aspect_state_denial_detail(denial)
-            ),
+            Self::RecordAspectPatchDenied { target, denial } => {
+                record_aspect_patch_denial_detail(*target, denial)
+            }
             Self::ConflictingIntent { target } => conflicting_intent_detail(target),
             Self::InvalidSavepoint { savepoint_id } => {
                 format!("savepoint {:?} does not exist", savepoint_id)

@@ -8,4 +8,4 @@
 /// #     artifact
 /// # }
 /// ```
-pub use worth_query::facade::CanonicalQueryArtifact;
+pub use worth_query::facade::foundation::CanonicalQueryArtifact;

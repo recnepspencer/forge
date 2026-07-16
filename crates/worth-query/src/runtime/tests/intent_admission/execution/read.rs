@@ -57,7 +57,7 @@ fn workspace_read_delegates_to_live_read_intent_execution() {
     let runtime = read_runtime();
     let mut delegated_workspace =
         WorthQueryWorkspace::new("delegated-live-read", runtime).expect("workspace should build");
-    let delegated_view: WorthQueryLiveView<WorthQueryNativeRow> = delegated_workspace
+    let delegated_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = delegated_workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
                 .select([
@@ -78,7 +78,7 @@ fn workspace_read_delegates_to_live_read_intent_execution() {
     let runtime = read_runtime();
     let mut canonical_workspace =
         WorthQueryWorkspace::new("canonical-live-read", runtime).expect("workspace should build");
-    let canonical_view: WorthQueryLiveView<WorthQueryNativeRow> = canonical_workspace
+    let canonical_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = canonical_workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
                 .select([
@@ -126,8 +126,12 @@ fn workspace_read_delegates_to_live_read_intent_execution() {
 #[test]
 fn runtime_read_live_delegates_to_canonical_live_read_execution() {
     let mut runtime = read_runtime();
-    let live_view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+    let live_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare");
 
     let delegated = runtime.read_live(&live_view);

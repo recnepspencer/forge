@@ -1,35 +1,30 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
-use worth_query::facade::runtime::{
-    QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryReadBuilder, WorthQueryReadDenial,
-    WorthQueryWorkspace,
-};
-use worth_query::facade::read::{
-    current, declare, project_facts, WorthQueryProjectionOutcome, WorthQueryReadCompletion,
-};
-use worth_query::facade::foundation::{
-    snapshot_resolution_report,
-    AspectFieldSelector,
-    AuthoredResultShapeField,
-    EqualityPredicate,
-    ProjectionAuthorityContract,
-    ProjectionFactFieldPath,
-    ScalarPredicateValue,
-};
 use worth_query::facade::certification::{
     consume_projection_contract_for_certification,
     ordinary_query_context_advisory_for_certification,
     resolve_runtime_current_snapshot_basis_for_certification,
 };
-use worth_query::facade::runtime::{
-    WorthQueryAspectTouch,
-    WorthQueryAuthoredAspectValue,
+use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
+use worth_query::facade::foundation::{
+    snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
+    ProjectionAuthorityContract, ProjectionFactFieldPath, WorthQueryPredicateOperand,
 };
+use worth_query::facade::read::{
+    current, declare, project_facts, WorthQueryProjectionOutcome, WorthQueryReadCompletion,
+};
+use worth_query::facade::runtime::{
+    QuerySchemaView, SchemaFieldView, WorthQueryReadBuilder, WorthQueryReadDenial,
+    WorthQueryWorkspace,
+};
+use worth_query::facade::runtime::{WorthQueryAspectTouch, WorthQueryAuthoredAspectValue};
 use worth_ui_query_binding::{WorthUiQueryBindingSubsystem, WorthUiQueryPrerequisiteEvidence};
 
 pub(super) fn query_projection_consumption(
     label: &str,
-) -> (WorthUiQueryPrerequisiteEvidence, WorthQueryProjectionOutcome) {
+) -> (
+    WorthUiQueryPrerequisiteEvidence,
+    WorthQueryProjectionOutcome,
+) {
     let (prerequisites, completion) = ordinary_completion(label);
     let outcome = completion.consume_projection(project_facts().display_field(query_size_path()));
     (prerequisites, outcome)
@@ -37,7 +32,10 @@ pub(super) fn query_projection_consumption(
 
 pub(super) fn partial_query_projection_consumption(
     label: &str,
-) -> (WorthUiQueryPrerequisiteEvidence, WorthQueryProjectionOutcome) {
+) -> (
+    WorthUiQueryPrerequisiteEvidence,
+    WorthQueryProjectionOutcome,
+) {
     let (prerequisites, completion) = ordinary_completion(label);
     let outcome = completion.consume_projection(project_facts().display_field(query_size_path()));
     (
@@ -48,7 +46,10 @@ pub(super) fn partial_query_projection_consumption(
 
 pub(super) fn unsupported_query_projection_consumption(
     label: &str,
-) -> (WorthUiQueryPrerequisiteEvidence, WorthQueryProjectionOutcome) {
+) -> (
+    WorthUiQueryPrerequisiteEvidence,
+    WorthQueryProjectionOutcome,
+) {
     let (prerequisites, completion) = ordinary_completion(label);
     let outcome = consume_projection_contract_for_certification(
         &completion,
@@ -80,6 +81,8 @@ fn workspace_and_schema(
     worth_query::facade::foundation::QuerySchemaBasisAuthority,
 ) {
     let schema = WorthQueryTestBackendSchema::single_collection("task")
+        .aspect_contracts(worth_ui_query_binding::worth_ui_native_aspect_contracts())
+        .expect("Worth UI native aspect contracts should admit")
         .aspect("identity.id", "identity.id")
         .expect("identity aspect")
         .aspect("size.value", "size.value")
@@ -96,7 +99,11 @@ fn workspace_and_schema(
             )
             .set_aspect(
                 query_touch("size.value"),
-                WorthQueryAuthoredAspectValue::string("240"),
+                WorthQueryAuthoredAspectValue::native(
+                    worth_foundational::facade::AspectValue::Float32(
+                        worth_foundational::facade::CanonicalF32::from_f32(240.0),
+                    ),
+                ),
             )
         })
         .expect("Query insert");
@@ -142,7 +149,7 @@ fn query_size_graph<Output>(
                     EqualityPredicate::new(
                         "identity",
                         "id",
-                        ScalarPredicateValue::String("task".into()),
+                        WorthQueryPredicateOperand::string("task"),
                     )
                     .expect("predicate"),
                 )
@@ -163,12 +170,12 @@ fn query_schema() -> QuerySchemaView {
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("identity").expect("aspect"),
                 worth_query::facade::foundation::FieldName::new("id").expect("field"),
-                SchemaFieldKind::String,
+                worth_foundational::facade::ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("size").expect("aspect"),
                 worth_query::facade::foundation::FieldName::new("value").expect("field"),
-                SchemaFieldKind::String,
+                worth_foundational::facade::ScalarAspectType::Float32,
             ),
         ],
         [],

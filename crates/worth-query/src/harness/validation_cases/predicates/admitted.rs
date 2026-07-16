@@ -1,14 +1,15 @@
 use super::canonical_predicate_bundle;
-use crate::authoring::{IntegerComparisonPredicate, PresencePredicate, StringContainsPredicate};
+use crate::authoring::{NativeComparisonPredicate, PresencePredicate, StringContainsPredicate};
 use crate::harness::fixtures::schema_view::{detail_schema_view, workflow_queryable_schema_view};
 use crate::validation::{validate_canonical_bundle, ValidationEvent};
+use worth_foundational::facade::{AspectValue, InternedString};
 
 #[test]
-fn integer_greater_than_predicate_validates() {
+fn native_greater_than_predicate_validates() {
     let validated = validate_canonical_bundle(
         canonical_predicate_bundle(|query| {
             query.where_greater_than(
-                IntegerComparisonPredicate::greater_than("profile", "age", 18)
+                NativeComparisonPredicate::greater_than("profile", "age", 18)
                     .expect("predicate should build"),
             )
         }),
@@ -20,18 +21,18 @@ fn integer_greater_than_predicate_validates() {
     assert!(validated.report().events().iter().any(|event| matches!(
         event,
         ValidationEvent::PredicateValidated {
-            predicate_family: "integer-greater-than",
+            predicate_family: "native-greater-than",
             ..
         }
     )));
 }
 
 #[test]
-fn integer_less_than_predicate_validates() {
+fn native_less_than_predicate_validates() {
     let validated = validate_canonical_bundle(
         canonical_predicate_bundle(|query| {
             query.where_less_than(
-                IntegerComparisonPredicate::less_than("profile", "age", 65)
+                NativeComparisonPredicate::less_than("profile", "age", 65)
                     .expect("predicate should build"),
             )
         }),
@@ -42,7 +43,7 @@ fn integer_less_than_predicate_validates() {
     assert_eq!(validated.counters().validated_predicate_count(), 1);
     assert_eq!(
         validated.query().predicates().entries()[0].predicate_family(),
-        "integer-less-than"
+        "native-less-than"
     );
 }
 
@@ -101,6 +102,9 @@ fn workflow_predicate_validates_when_schema_admits_it() {
     );
     assert_eq!(
         validated.query().predicates().entries()[0].value_basis(),
-        "string:done"
+        worth_foundational::facade::prepare_aspect_value_identity_basis(&AspectValue::String(
+            InternedString::Raw("done".into()),
+        ))
+        .as_str()
     );
 }

@@ -1,0 +1,5 @@
+error[E0599]: no method named `execution_callback` found for struct `WorthQueryDomainPackage<D>` in the current scope
+  --> tests/ui/installed_domain/boundaries/package_execution_callback_is_forbidden.rs:33:21
+   |
+33 |     let _ = package.execution_callback(|| {});
+   |                     ^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryDomainPackage<ConsumerDomain>`

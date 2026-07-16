@@ -4,7 +4,7 @@ use super::{
 };
 use crate::authoring::{RelationName, TraversalSelector};
 use crate::declarative_live::DeclarativeProjectionField;
-use crate::schema_view::{SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{ScalarAspectType, SchemaFieldView};
 
 #[test]
 fn traversal_relation_declarations_reject_zero_depth() {
@@ -72,7 +72,7 @@ fn direct_live_view_declaration_rejects_traversal_schema_mismatch() {
             crate::authoring::AspectName::new("identity")
                 .expect("schema aspect literal must be valid"),
             crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-            SchemaFieldKind::String,
+            ScalarAspectType::String,
         )],
         [],
     );

@@ -253,6 +253,7 @@ pub enum WorthQueryDeclarationEntryInspectionError<
 impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
     WorthQueryDeclarationEntryInspectionError<D, I>
 {
+    #[cfg(test)]
     pub(crate) fn new(declaration_family_key: &'static str, reason: &'static str) -> Self {
         Self::RetainedSubjectMismatch {
             declaration_family_key,

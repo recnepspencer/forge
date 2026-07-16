@@ -38,6 +38,7 @@ impl UiGraphScrollPlanningAuthority {
     ) -> &[crate::evidence::measurement::basis::UiQueryAllocationTargetMapping] {
         &self.query_sources
     }
+    #[cfg(test)]
     pub(crate) fn counters(&self) -> crate::evidence::UiScrollOwnerSourceAdmissionCounters {
         self.counters
     }

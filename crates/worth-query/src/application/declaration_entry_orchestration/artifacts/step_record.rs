@@ -137,6 +137,7 @@ impl WorthQueryDeclarationEntryOrchestrationStageRecord {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn refused(
         stage: WorthQueryDeclarationEntryOrchestrationStage,
         retained_digest: Option<String>,
@@ -163,6 +164,7 @@ impl WorthQueryDeclarationEntryOrchestrationStageRecord {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn explicit_for_caller(
         stage: WorthQueryDeclarationEntryOrchestrationStage,
         retained_digest: Option<String>,

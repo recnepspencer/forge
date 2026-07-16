@@ -157,7 +157,7 @@ impl UiAllocationTruthDelta {
     }
 }
 
-#[cfg(any(test, feature = "certification-support"))]
+#[cfg(test)]
 impl UiAllocationTruthRevision {
     pub(super) fn position_with_remaining_capacity(self, remaining: u64) -> Option<Self> {
         if !self.invariant_holds() {

@@ -12,7 +12,7 @@ use crate::application::WorthQueryDomainOperatingContext;
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
     WorthQueryInstalledDomainDeclarationContext<D, C>
 {
-    pub fn declaration_progression_recipe<I>(
+    pub(crate) fn declaration_progression_recipe<I>(
         &self,
         legal: WorthQueryDeclarationLegalityEvidence<D, I>,
     ) -> WorthQueryDeclarationProgressionRecipe<D, I>
@@ -22,7 +22,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         worth_query_declaration_progression_recipe(legal, self.retained_world_basis())
     }
 
-    pub fn progress_declaration<I>(
+    pub(crate) fn progress_declaration<I>(
         &self,
         legal: WorthQueryDeclarationLegalityEvidence<D, I>,
     ) -> Result<
@@ -52,7 +52,8 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         }
     }
 
-    pub fn progress_declaration_recipe<I>(
+    #[cfg(test)]
+    pub(crate) fn progress_declaration_recipe<I>(
         &self,
         recipe: WorthQueryDeclarationProgressionRecipe<D, I>,
     ) -> Result<
@@ -82,7 +83,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         }
     }
 
-    pub fn progress_declaration_checked<I>(
+    pub(crate) fn progress_declaration_checked<I>(
         &self,
         legal: WorthQueryDeclarationLegalityEvidence<D, I>,
     ) -> WorthQueryDeclarationProgressionChecked<D, I>
@@ -92,7 +93,8 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         worth_query_checked_declaration_progression(self.declaration_progression_recipe(legal))
     }
 
-    pub fn progress_declaration_recipe_checked<I>(
+    #[cfg(test)]
+    pub(crate) fn progress_declaration_recipe_checked<I>(
         &self,
         recipe: WorthQueryDeclarationProgressionRecipe<D, I>,
     ) -> WorthQueryDeclarationProgressionChecked<D, I>

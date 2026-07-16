@@ -8,7 +8,7 @@ error[E0624]: associated function `from_snapshot_identity` is private
   |
   | /     pub(in crate::runtime) fn from_snapshot_identity(
   | |         binding: &crate::runtime::WorthQueryExistingTruthTargetBinding,
-  | |         aspects: &[WorthQueryAdmittedAspectValue],
+  | |         aspects: &[WorthQueryAuthoredAspectMutation],
   | |         snapshot_identity: &WorthQuerySnapshotIdentity,
   | |     ) -> Result<Self, WorthQueryWorkspaceError> {
   | |_______________________________________________- private associated function defined here

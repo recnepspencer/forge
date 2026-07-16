@@ -1,8 +1,8 @@
 use super::schema_reference_evidence::{
     WorthQueryAdmittedGraphReadOrderingField, WorthQueryAdmittedGraphReadPredicateField,
     WorthQueryAdmittedGraphReadProjectionField, WorthQueryAdmittedGraphReadRelation,
-    WorthQueryAdmittedGraphReadRelationDirection, WorthQueryAdmittedQuerySchemaReferences,
-    WorthQueryGraphReadAdmittedSchemaFieldKind, WorthQueryGraphReadSchemaReferenceAdmissionError,
+    WorthQueryAdmittedGraphReadRelationDirection, WorthQueryAdmittedNativeFieldFamily,
+    WorthQueryAdmittedQuerySchemaReferences, WorthQueryGraphReadSchemaReferenceAdmissionError,
 };
 use crate::authoring::{AspectFieldKey, OrderingDirection};
 use crate::declarative_live::DeclarativePredicateFilter;
@@ -81,16 +81,11 @@ pub(crate) fn admit_query_schema_references_for_read_graph(
 fn admitted_schema_field_kind(
     read_graph: &WorthQueryReadGraph,
     source: &AspectFieldKey,
-) -> Result<
-    WorthQueryGraphReadAdmittedSchemaFieldKind,
-    WorthQueryGraphReadSchemaReferenceAdmissionError,
-> {
+) -> Result<WorthQueryAdmittedNativeFieldFamily, WorthQueryGraphReadSchemaReferenceAdmissionError> {
     read_graph
         .schema_view()
         .field(source.aspect(), source.field())
-        .map(|field| {
-            WorthQueryGraphReadAdmittedSchemaFieldKind::from_schema_field_kind(field.kind())
-        })
+        .map(|field| WorthQueryAdmittedNativeFieldFamily::from_schema_field_kind(field.kind()))
         .ok_or_else(|| {
             WorthQueryGraphReadSchemaReferenceAdmissionError::missing_field(
                 read_graph,
@@ -128,8 +123,8 @@ fn relation_direction(
 fn predicate_parts(filter: &DeclarativePredicateFilter) -> (&AspectFieldKey, &'static str) {
     match filter {
         DeclarativePredicateFilter::Equality(filter) => (filter.source_field_key(), "equality"),
-        DeclarativePredicateFilter::IntegerComparison(filter) => {
-            (filter.source_field_key(), "integer-comparison")
+        DeclarativePredicateFilter::NativeComparison(filter) => {
+            (filter.source_field_key(), "native-comparison")
         }
         DeclarativePredicateFilter::StringContains(filter) => {
             (filter.source_field_key(), "string-contains")

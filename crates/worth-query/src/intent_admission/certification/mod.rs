@@ -81,7 +81,7 @@ pub use manifests::{
     worth_query_intent_admission_compile_fail_targets,
     worth_query_intent_admission_crate_doc_example_targets,
     worth_query_intent_admission_golden_transcripts, WorthQueryIntentAdmissionCompileFailTarget,
-    WorthQueryIntentAdmissionCrateDocExampleTarget, WorthQueryIntentAdmissionGoldenTranscript,
+    WorthQueryIntentAdmissionGoldenTranscript,
 };
 pub use oracles::{
     worth_query_intent_admission_oracle_report, WorthQueryIntentAdmissionOracleComparisonRow,

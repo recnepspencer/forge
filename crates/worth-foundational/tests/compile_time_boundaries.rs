@@ -162,6 +162,11 @@ fn contract_validation_requires_proof_bearing_outputs() {
 }
 
 #[test]
+fn portable_aspect_candidates_cannot_cross_authoritative_boundaries() {
+    compile_fail("tests/ui/portable_aspect_readmission/*.rs");
+}
+
+#[test]
 fn aspect_evolution_requires_proof_bearing_classification() {
     compile_fail("tests/ui/aspect_evolution/*.rs");
 }

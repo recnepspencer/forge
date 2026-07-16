@@ -17,9 +17,23 @@ pub enum AgentAdvisoryError {
         reference_token: String,
     },
     MissingQueryContributionDigest,
+    QueryContributionStopped {
+        stop_kind: AgentQueryContributionStopKind,
+    },
     GroupedContributionStopped {
         stop_kind: AgentGroupedContributionStopKind,
     },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AgentQueryContributionStopKind {
+    Deferred,
+    DeclarationDenied,
+    ContributionDenied,
+    Stale,
+    RebindRequired,
+    Unsupported,
+    Failed,
 }
 
 impl From<HadwigerArtifactShapeError> for AgentAdvisoryError {

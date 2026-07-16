@@ -58,9 +58,9 @@ live authoritative explanation.
 
 ## How It Relates To Other Features
 
-- [Lower-Runtime Explanation Contributions](./lower-runtime-explanation-contributions.md)
+- Lower-Runtime Explanation Contributions
   covers the authoring and materialization lanes
-- [Continuity Vs Correspondence](../continuity/continuity-vs-correspondence.md)
+- Continuity Vs Correspondence
   is a similar distinction on the identity side: authoritative continuation is
   stronger than weaker match evidence
 
@@ -86,6 +86,6 @@ live authoritative explanation.
 
 ## Related Docs
 
-- [Lower-Runtime Explanation Contributions](./lower-runtime-explanation-contributions.md)
+- Lower-Runtime Explanation Contributions
 - [Inspection](../../capabilities/inspection.md)
-- [Continuity Vs Correspondence](../continuity/continuity-vs-correspondence.md)
+- Continuity Vs Correspondence

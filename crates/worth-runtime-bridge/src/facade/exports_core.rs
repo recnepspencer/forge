@@ -81,12 +81,6 @@ pub use crate::error::{
     BridgeWritebackErrorKind,
 };
 pub use crate::identity::{bridge_identity_reporting_label, BridgeIdentityEvidence};
-#[allow(unused_imports)]
-pub use crate::identity_authority::{
-    bridge_truth_digest_identity_evidence_from_external_token,
-    bridge_truth_external_identity_token, bridge_truth_projection_identity_from_external_token,
-    BridgeEvidenceReferenceIdentityKind, BridgeTruthBoundaryBridgedIdentity,
-};
 pub use crate::input::envelope::{
     BridgeCommittedPatchBody, BridgeCommittedPatchDigest, BridgeCommittedPatchEnvelope,
     BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem, BridgeCommittedPatchSummary,

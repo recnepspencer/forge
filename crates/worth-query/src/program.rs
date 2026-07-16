@@ -37,6 +37,7 @@ enum WorthQueryProgramValueTree {
     String(String),
     Array(Vec<WorthQueryProgramValueTree>),
     Object(BTreeMap<String, WorthQueryProgramValueTree>),
+    NativeScalar(AspectValue),
 }
 
 impl WorthQueryProgramValue {
@@ -133,12 +134,7 @@ impl WorthQueryProgramValue {
     }
 
     pub fn field_path_string_value(&self, field_path: &CanonicalFieldPath) -> Option<&str> {
-        let WorthQueryProgramValueTree::String(value) =
-            program_value_tree_at_field_path(&self.value, field_path)?
-        else {
-            return None;
-        };
-        Some(value)
+        program_tree_string_value(program_value_tree_at_field_path(&self.value, field_path)?)
     }
 
     pub fn array_field_path_string_value(
@@ -149,12 +145,10 @@ impl WorthQueryProgramValue {
         let WorthQueryProgramValueTree::Array(values) = &self.value else {
             return None;
         };
-        let WorthQueryProgramValueTree::String(value) =
-            program_value_tree_at_field_path(values.get(index)?, field_path)?
-        else {
-            return None;
-        };
-        Some(value)
+        program_tree_string_value(program_value_tree_at_field_path(
+            values.get(index)?,
+            field_path,
+        )?)
     }
 
     pub fn string_value(&self) -> Option<&str> {
@@ -278,7 +272,7 @@ impl WorthQueryWriteCommandTemplate {
                 aspects: aspects
                     .iter()
                     .map(|aspect| {
-                        crate::runtime::WorthQueryAdmittedAspectValue::new_set(
+                        crate::runtime::WorthQueryAuthoredAspectMutation::new_set(
                             aspect.aspect_touch.clone(),
                             aspect.value.evaluate(inputs)?.foundational_scalar_value()?,
                         )
@@ -299,7 +293,7 @@ impl WorthQueryWriteCommandTemplate {
                 entity_identity: crate::memory_workspace::admit_authored_entity_label(
                     expect_string(entity_identity.evaluate(inputs)?, "entity_identity")?,
                 ),
-                aspect: crate::runtime::WorthQueryAdmittedAspectValue::new_set(
+                aspect: crate::runtime::WorthQueryAuthoredAspectMutation::new_set(
                     aspect_touch.clone(),
                     value.evaluate(inputs)?.foundational_scalar_value()?,
                 )
@@ -448,10 +442,7 @@ pub struct WorthQueryProgramValueField<'a> {
 
 impl WorthQueryProgramValueField<'_> {
     pub fn string_value(&self) -> Option<&str> {
-        let WorthQueryProgramValueTree::String(value) = self.value else {
-            return None;
-        };
-        Some(value)
+        program_tree_string_value(self.value)
     }
 
     pub fn foundational_scalar_value(&self) -> Result<AspectValue, WorthQueryProgramError> {
@@ -960,40 +951,16 @@ fn program_value_tree_at_field_path<'a>(
 }
 
 fn program_value_tree_from_aspect_value(value: &AspectValue) -> WorthQueryProgramValueTree {
-    match value {
-        AspectValue::Null => WorthQueryProgramValueTree::Null,
-        AspectValue::Bool(value) => WorthQueryProgramValueTree::Bool(*value),
-        AspectValue::Int8(value) => WorthQueryProgramValueTree::Number(value.to_string()),
-        AspectValue::Int16(value) => WorthQueryProgramValueTree::Number(value.to_string()),
-        AspectValue::Int32(value) => WorthQueryProgramValueTree::Number(value.to_string()),
-        AspectValue::Int64(value) => WorthQueryProgramValueTree::Number(value.to_string()),
-        AspectValue::UInt8(value) => WorthQueryProgramValueTree::Number(value.to_string()),
-        AspectValue::UInt16(value) => WorthQueryProgramValueTree::Number(value.to_string()),
-        AspectValue::UInt32(value) => WorthQueryProgramValueTree::Number(value.to_string()),
-        AspectValue::UInt64(value) => WorthQueryProgramValueTree::Number(value.to_string()),
-        AspectValue::Float32(value) => {
-            program_number_tree_from_float(f32::from_bits(value.bits()) as f64)
-        }
-        AspectValue::Float64(value) => program_number_tree_from_float(f64::from_bits(value.bits())),
-        AspectValue::String(value) => {
-            WorthQueryProgramValueTree::String(interned_string_text(value))
-        }
-        other => WorthQueryProgramValueTree::String(format!("{other:?}")),
-    }
+    WorthQueryProgramValueTree::NativeScalar(value.clone())
 }
 
-fn program_number_tree_from_float(value: f64) -> WorthQueryProgramValueTree {
-    if value.is_finite() {
-        WorthQueryProgramValueTree::Number(value.to_string())
-    } else {
-        WorthQueryProgramValueTree::Null
-    }
-}
-
-fn interned_string_text(value: &InternedString) -> String {
+fn program_tree_string_value(value: &WorthQueryProgramValueTree) -> Option<&str> {
     match value {
-        InternedString::Raw(value) => value.clone(),
-        InternedString::Symbol(symbol) => format!("symbol:{}", symbol.0),
+        WorthQueryProgramValueTree::String(value) => Some(value),
+        WorthQueryProgramValueTree::NativeScalar(AspectValue::String(InternedString::Raw(
+            value,
+        ))) => Some(value),
+        _ => None,
     }
 }
 
@@ -1072,9 +1039,10 @@ fn foundational_scalar_value_from_program_value_tree(
                 )))
             }
         }
-        WorthQueryProgramValueTree::String(value) => {
-            Ok(crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value.clone()))
-        }
+        WorthQueryProgramValueTree::String(value) => Ok(
+            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value.clone()),
+        ),
+        WorthQueryProgramValueTree::NativeScalar(value) => Ok(value.clone()),
         WorthQueryProgramValueTree::Array(_) => Err(WorthQueryProgramError::new(
             "program scalar aspect value cannot be an array",
         )),

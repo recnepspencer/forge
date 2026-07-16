@@ -377,7 +377,8 @@ pub mod transactions {
     pub use worth_foundational::facade::AspectFieldLocator;
 
     pub use crate::transactions::data::{
-        AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow, AspectFieldPatch,
+        ApplyEntityAspectPatchIntent, ApplyRelationAspectPatchIntent, AspectEmissionTrace,
+        AspectEvaluationTrace, AspectEvaluationTraceRow, AspectFieldPatch,
         AspectLifecycleTransitionClass, AspectTagAccuracyReport, AspectTraceEvidence,
         AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkMutationLineagePlan,
         BulkMutationLocalityFootprint, BulkMutationNamingPlan, BulkMutationProvenancePlan,
@@ -386,15 +387,16 @@ pub mod transactions {
         CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming, CommitPublicationSummary,
         CommitResult, CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
         CommitTraceEvent, ConflictClass, CreateIntent, CreatedEntityRef, CrossContextEndpointClass,
-        DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, EntityReference,
-        EntitySpec, LineageSafeBulkMutationBatch, MergeCommitMutationPlan, MergeExecutionOutcome,
-        MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan, MutationIntent,
-        NamingStableBulkMutationBatch, PatchVsTruthDeltaReport, PlannedBulkMutationBatch,
-        PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch,
-        PublishedMergeExecutionAuthority, RecordRef, RelationMutationIntent, RelationScope,
-        RelationSpec, ReplaceEntityIntent, RollbackEffect, RollbackOutcome, RollbackSummary,
-        SavepointId, TransactionCommitError, TransactionId, TransactionOptions, UndoRecord,
-        UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent, WorkerIntentBatch,
+        DeleteEntityIntent, DeleteRelationIntent, EntityAspectCreateIntent, EntityMutationIntent,
+        EntityReference, EntitySpec, LineageSafeBulkMutationBatch, MergeCommitMutationPlan,
+        MergeExecutionOutcome, MergeExecutionStructuralSummary, MergeExecutionSummary,
+        MergedCommitPlan, MutationIntent, NamingStableBulkMutationBatch, PatchVsTruthDeltaReport,
+        PlannedBulkMutationBatch, PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch,
+        PublishedMergeExecutionAuthority, RecordRef, RelationAspectCreateIntent,
+        RelationMutationIntent, RelationScope, RelationSpec, ReplaceEntityIntent, RollbackEffect,
+        RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
+        TransactionOptions, UndoRecord, UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent,
+        WorkerIntentBatch,
     };
     pub use crate::transactions::logic::RelationalTransaction;
 }

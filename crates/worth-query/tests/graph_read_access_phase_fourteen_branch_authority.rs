@@ -1,8 +1,7 @@
-#[path = "support/mod.rs"]
-mod support;
+use crate::support;
 
 use worth_query::facade::policy::PolicyExecutionModeRequest;
-use worth_query::facade::runtime::{
+use crate::runtime::{
     WorthQueryGraphReadAccessAuthorityDenialKind, WorthQueryGraphReadAccessAuthorityRequest,
     WorthQueryGraphReadAccessBasisScopeKind,
 };
@@ -27,7 +26,7 @@ fn branch_basis_rejects_current_read_policy_tenant_before_buffers() {
     let canonical = canonical_query();
     let current_policy_tenant = admitted_policy_tenant(&canonical, "tenant-branch-mismatch");
 
-    let denial = worth_query::facade::runtime::admit_graph_read_access_authority(
+    let denial = crate::runtime::admit_graph_read_access_authority(
         WorthQueryGraphReadAccessAuthorityRequest::branch(&branch_basis)
             .with_policy_tenant(current_policy_tenant),
     )

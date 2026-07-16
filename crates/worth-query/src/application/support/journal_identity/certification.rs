@@ -7,8 +7,6 @@ use super::evidence::{
     WorthQueryJournalIdentityInventoryEvidence, WorthQueryJournalIdentityScheduleEvidence,
     WorthQueryJournalReplaySurfaceEvidence,
 };
-
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryJournalIdentityBoundaryPosture {
     Open,
@@ -38,8 +36,6 @@ pub struct WorthQueryJournalReplayBoundaryCertification {
     failure_digest: String,
     counter_snapshot: WorthQueryJournalReplayCounterSnapshot,
 }
-
-#[allow(dead_code)]
 impl WorthQueryJournalIdentityCertification {
     pub fn from_evidence(
         inventory: WorthQueryJournalIdentityInventoryEvidence,
@@ -138,8 +134,6 @@ impl WorthQueryJournalIdentityCertification {
     pub fn closed(&self) -> bool {
         self.posture == WorthQueryJournalIdentityBoundaryPosture::Closed
     }
-
-    #[allow(dead_code)]
     pub fn posture(&self) -> WorthQueryJournalIdentityBoundaryPosture {
         self.posture
     }
@@ -155,24 +149,7 @@ impl WorthQueryJournalIdentityCertification {
     pub fn replay_boundary_certification(&self) -> &WorthQueryJournalReplayBoundaryCertification {
         &self.replay_boundary
     }
-
-    #[allow(dead_code)]
-    pub fn inventory(&self) -> &WorthQueryJournalIdentityInventoryEvidence {
-        &self.inventory
-    }
-
-    #[allow(dead_code)]
-    pub fn schedule(&self) -> &WorthQueryJournalIdentityScheduleEvidence {
-        &self.schedule
-    }
-
-    #[allow(dead_code)]
-    pub fn replay(&self) -> &WorthQueryJournalReplaySurfaceEvidence {
-        &self.replay
-    }
 }
-
-#[allow(dead_code)]
 impl WorthQueryJournalReplayBoundaryCertification {
     pub fn journal_segment_identity_digest(&self) -> &str {
         &self.journal_segment_identity_digest

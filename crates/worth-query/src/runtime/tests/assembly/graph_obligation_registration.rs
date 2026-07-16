@@ -289,7 +289,7 @@ fn query_builder_rejects_explicit_registration_conflicting_with_auto_lowered_sch
 }
 
 #[test]
-fn query_builder_rejects_explicit_backend_when_graph_obligations_are_queued() {
+fn query_builder_keeps_query_owned_graph_obligations_with_explicit_backend() {
     let explicit_backend = WorthQueryBridgeBackedRuntimeBackend::from_parts(
         WorthQueryRuntimeBackendParts::new()
             .runtime_bridge(test_bridge())
@@ -302,7 +302,7 @@ fn query_builder_rejects_explicit_backend_when_graph_obligations_are_queued() {
             .preview_basis(TestPreviewBasis)
             .inspector_evidence(TestInspectorEvidence),
     )
-    .expect("explicit backend should build for graph obligation conflict test");
+    .expect("explicit backend should build for query-owned graph obligation test");
 
     let registration = WorthQueryGraphObligationRegistration::schema_contract_validator(
         WorthQueryGraphObligationRuleIdentity::new("test.graph-obligation", "loop-wiring", "v1")
@@ -311,21 +311,16 @@ fn query_builder_rejects_explicit_backend_when_graph_obligations_are_queued() {
         WorthQueryGraphObligationOperatingWorldSelector::any_committed_authority(),
     );
 
-    let error = match WorthQueryRuntime::builder()
+    let runtime = WorthQueryRuntime::builder()
         .graph_obligation(registration)
         .backend(explicit_backend)
         .build()
-    {
-        Ok(_) => panic!("explicit backend should reject queued graph obligations"),
-        Err(error) => error,
-    };
+        .expect("query-owned graph obligations should compose with an explicit backend");
 
-    match error {
-        WorthQueryRuntimeError::InvariantRegistration { stage, message } => {
-            assert_eq!(stage, "runtime_backend_selection");
-            assert!(message.contains("graph obligation registrations"));
-            assert!(message.contains("backend(...)"));
-        }
-        other => panic!("unexpected runtime error: {other:?}"),
-    }
+    assert_eq!(
+        runtime
+            .graph_obligation_registration_catalog()
+            .registration_count(),
+        1
+    );
 }

@@ -112,8 +112,8 @@ pub use super::replacement::state_inventory::{
     WorthUiDurableStateInventoryBuilder, WorthUiDurableStateInventoryCounters,
     WorthUiDurableStateInventoryDenial, WorthUiDurableStateReplacementPolicy,
     WorthUiStateOwnerIdentity, WorthUiStateOwnershipClass, WorthUiStatePersistencePosture,
-    WorthUiTransientInteractionAdmission, WorthUiTransientInteractionAdmissionDenial,
-    WorthUiTransientInteractionPolicy, WorthUiTransientInteractionState,
+    WorthUiTransientInteractionAdmissionDenial, WorthUiTransientInteractionPolicy,
+    WorthUiTransientInteractionState,
 };
 pub use super::replacement::{
     WorthUiAmbiguousReplacementDenial, WorthUiNodeLifecycleTransition,

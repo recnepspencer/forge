@@ -5,7 +5,7 @@ fn workspace_insert_uses_aspect_native_authoring_and_routes_live_delivery() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-insert")
         .expect("task runtime should open a named workspace");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.aspect-table", |q| {
             q.from("Task")
                 .select([
@@ -96,7 +96,7 @@ fn workspace_insert_uses_aspect_native_authoring_and_routes_live_delivery() {
     assert!(provenance.authoritative_artifact_digest().is_some());
     assert_eq!(
         receipt.deltas()[0].admitted_touched_aspects(),
-        test_aspect_touches(["identity.id", "title.value"]).as_slice()
+        test_aspect_touches(["identity", "title"]).as_slice()
     );
     assert_eq!(
         receipt
@@ -136,7 +136,7 @@ fn workspace_update_supports_multi_aspect_authoring_and_narrows_by_touched_meani
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-update")
         .expect("task runtime should open a named workspace");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.title-only", |q| {
             q.from("Task")
                 .select([
@@ -187,7 +187,7 @@ fn workspace_update_supports_multi_aspect_authoring_and_narrows_by_touched_meani
 
     assert_eq!(
         rename.deltas()[0].admitted_touched_aspects(),
-        test_aspect_touches(["title.value", "description.value"]).as_slice()
+        test_aspect_touches(["description.value", "title.value"]).as_slice()
     );
     assert_eq!(rename.mutation_family(), WorthQueryMutationFamily::Update);
     assert_eq!(
@@ -229,7 +229,7 @@ fn write_receipt_inspection_retains_authored_mutation_metadata() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-metadata")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.metadata-table", |q| {
             q.from("Task")
                 .select([
@@ -296,7 +296,7 @@ fn workspace_update_clear_supports_typed_reset_without_waking_unrelated_surfaces
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-clear")
         .expect("task runtime should open a named workspace");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.clear-title-only", |q| {
             q.from("Task")
                 .select([
@@ -393,9 +393,5 @@ fn workspace_update_clear_supports_typed_reset_without_waking_unrelated_surfaces
         }
         other => panic!("expected write receipt inspection, got {other:?}"),
     }
-    assert_eq!(
-        test_native_scalar_value(&rows[0], "title.value"),
-        Some(&AspectValue::Null),
-        "typed clear lowers to explicit native null"
-    );
+    assert_eq!(test_native_scalar_value(&rows[0], "title.value"), None);
 }

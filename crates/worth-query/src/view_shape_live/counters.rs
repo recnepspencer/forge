@@ -24,27 +24,28 @@ pub struct ViewShapeLiveCounters {
 }
 
 impl ViewShapeLiveCounters {
+    #[cfg(test)]
     pub(crate) fn with_core(mut self, core: LivePolicyCounters) -> Self {
         self.core = core;
         self
     }
-
+    #[cfg(test)]
     pub(crate) fn set_view_patch_width(&mut self, value: usize) {
         self.view_patch_width = value;
     }
-
+    #[cfg(test)]
     pub(crate) fn set_view_delivery_width(&mut self, value: usize) {
         self.view_delivery_width = value;
     }
-
+    #[cfg(test)]
     pub(crate) fn set_observed_inspector_delivery_width(&mut self, value: usize) {
         self.observed_inspector_delivery_width = value;
     }
-
+    #[cfg(test)]
     pub(crate) fn set_focused_inspector_projection_width(&mut self, value: usize) {
         self.focused_inspector_projection_width = value;
     }
-
+    #[cfg(test)]
     pub(crate) fn set_focused_inspector_aspect_focus_width(&mut self, value: usize) {
         self.focused_inspector_aspect_focus_width = value;
     }
@@ -52,43 +53,43 @@ impl ViewShapeLiveCounters {
     pub(crate) fn set_table_ordering_key_count(&mut self, value: usize) {
         self.table_ordering_key_count = value;
     }
-
+    #[cfg(test)]
     pub(crate) fn add_view_refresh_fallback(&mut self) {
         self.view_refresh_fallback_count += 1;
     }
-
+    #[cfg(test)]
     pub(crate) fn add_view_family_fallback_denial(&mut self) {
         self.view_family_fallback_denial_count += 1;
     }
-
+    #[cfg(test)]
     pub(crate) fn add_view_family_refresh_admission(&mut self) {
         self.view_family_refresh_admission_count += 1;
     }
-
+    #[cfg(test)]
     pub(crate) fn add_view_family_refresh_forbidden(&mut self) {
         self.view_family_refresh_forbidden_count += 1;
     }
-
+    #[cfg(test)]
     pub(crate) fn set_grouped_desired_state_row_count(&mut self, value: usize) {
         self.grouped_desired_state_row_count = value;
     }
-
+    #[cfg(test)]
     pub(crate) fn set_grouped_delta_row_count(&mut self, value: usize) {
         self.grouped_delta_row_count = value;
     }
-
+    #[cfg(test)]
     pub(crate) fn set_grouped_membership_transition_count(&mut self, value: usize) {
         self.grouped_membership_transition_count = value;
     }
-
+    #[cfg(test)]
     pub(crate) fn set_grouped_lane_count(&mut self, value: usize) {
         self.grouped_lane_count = value;
     }
-
+    #[cfg(test)]
     pub(crate) fn add_focused_inspector_widening_denial(&mut self) {
         self.focused_inspector_widening_denial_count += 1;
     }
-
+    #[cfg(test)]
     pub(crate) fn add_cosmetic_view_semantics_denial(&mut self) {
         self.cosmetic_view_semantics_denial_count += 1;
     }

@@ -279,8 +279,6 @@ macro_rules! impl_wrapper_accessors {
             pub fn payload(&self) -> &WorthQueryDomainCapabilityContribution<P, T> {
                 self.0.payload()
             }
-
-            #[allow(dead_code)]
             pub(crate) fn into_inner(self) -> $inner<P, T> {
                 self.0
             }
@@ -346,10 +344,15 @@ impl_wrapper_accessors!(
     WorthQueryAdmittedDomainCapabilityContribution,
     AdmittedContributionArtifact
 );
-impl_wrapper_accessors!(
-    WorthQueryMaterializationReadyDomainCapabilityContribution,
-    MaterializationReadyContributionArtifact
-);
+impl<P, T> WorthQueryMaterializationReadyDomainCapabilityContribution<P, T>
+where
+    P: WorthQueryDomainCapabilityPayload,
+    T: WorthQueryDomainCapabilityTargetBinding,
+{
+    pub fn payload(&self) -> &WorthQueryDomainCapabilityContribution<P, T> {
+        self.0.payload()
+    }
+}
 
 impl<P, T> WorthQueryRequestedDomainCapabilityContribution<P, T>
 where

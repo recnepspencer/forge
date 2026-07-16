@@ -1,6 +1,9 @@
-use worth_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily, QuerySubscriptionFamily, ResultShapeFamily, ViewShapeDescriptor,
+use worth_query::facade::foundation::{
+    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily,
+    WorthQueryCapabilityFamily, WorthQuerySupportReport,
+};
+use worth_query::facade::runtime::{
+    QuerySubscriptionFamily, ViewShapeDescriptor,
 };
 use worth_ui::facade::{
     QueryBasisPostureReference, QueryDenialPresentation, QueryLiveCompatibility,
@@ -9,7 +12,7 @@ use worth_ui::facade::{
 };
 
 fn main() {
-    let query_support = WorthQueryApplicationFacade::runtime_backed_default().support_report();
+    let query_support = WorthQuerySupportReport::runtime_backed_default();
     let query_capability = query_support
         .support_matrix()
         .descriptor(WorthQueryCapabilityFamily::QueryComposition)

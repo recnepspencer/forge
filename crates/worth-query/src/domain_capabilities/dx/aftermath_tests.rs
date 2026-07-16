@@ -1,4 +1,5 @@
-use super::{worth_query_domain, WorthQueryDomainCapabilityOutcomeKind};
+use super::WorthQueryDomainCapabilityOutcomeKind;
+use crate::domain_capabilities::certification::install_domain_capability_certification;
 use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
     evaluate_requested_domain_capability_contribution, materialize_projection_consumption_contract,
@@ -16,9 +17,15 @@ use crate::runtime::WorthQueryAdmittedIntentPlan;
 #[test]
 fn common_aftermath_contract_lane_matches_proof_lane_materialization() {
     let plan = admitted_projection_consumption_plan();
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let target = domain
+        .admitted_plan_target(&plan)
+        .expect("installed contribution authority must remain current");
 
-    let common = worth_query_domain("worth.spatial")
-        .for_admitted_intent_plan(&plan)
+    let common = domain
+        .for_admitted_plan_target(target.clone())
+        .expect("certification target should belong to its installed domain")
         .consumes_projection_contract(
             "projection.contract",
             WorthQueryProjectionContractRequest::new(
@@ -38,7 +45,7 @@ fn common_aftermath_contract_lane_matches_proof_lane_materialization() {
         .materialize()
         .expect("aftermath common lane should materialize");
 
-    let proof = proof_contract(&plan);
+    let proof = proof_contract(target);
 
     assert_eq!(common, proof);
 }
@@ -46,9 +53,15 @@ fn common_aftermath_contract_lane_matches_proof_lane_materialization() {
 #[test]
 fn common_aftermath_review_lane_matches_proof_lane_materialization() {
     let plan = admitted_projection_consumption_plan();
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let target = domain
+        .admitted_plan_target(&plan)
+        .expect("installed contribution authority must remain current");
 
-    let common = worth_query_domain("worth.spatial")
-        .for_admitted_intent_plan(&plan)
+    let common = domain
+        .for_admitted_plan_target(target.clone())
+        .expect("certification target should belong to its installed domain")
         .establishes_projection_contract(
             "projection.review",
             WorthQueryProjectionContractRequest::new(
@@ -61,7 +74,7 @@ fn common_aftermath_review_lane_matches_proof_lane_materialization() {
         .review()
         .expect("aftermath review lane should materialize");
 
-    let proof = proof_review(&plan);
+    let proof = proof_review(target);
 
     assert_eq!(common, proof);
 }
@@ -70,8 +83,10 @@ fn common_aftermath_review_lane_matches_proof_lane_materialization() {
 fn common_aftermath_support_and_eligibility_lanes_preserve_warning_truth() {
     let plan = admitted_projection_consumption_plan();
 
-    let support = worth_query_domain("worth.spatial")
+    let support = install_domain_capability_certification()
+        .contributions()
         .for_admitted_intent_plan(&plan)
+        .expect("installed contribution authority must remain current")
         .establishes_projection_contract(
             "projection.warning",
             WorthQueryProjectionContractRequest::new(
@@ -91,8 +106,10 @@ fn common_aftermath_support_and_eligibility_lanes_preserve_warning_truth() {
         .materialize_support_report()
         .expect("aftermath support lane should materialize");
 
-    let eligibility = worth_query_domain("worth.spatial")
+    let eligibility = install_domain_capability_certification()
+        .contributions()
         .for_admitted_intent_plan(&plan)
+        .expect("installed contribution authority must remain current")
         .establishes_projection_contract(
             "projection.warning",
             WorthQueryProjectionContractRequest::new(
@@ -133,8 +150,10 @@ fn common_aftermath_support_and_eligibility_lanes_preserve_warning_truth() {
 fn checked_aftermath_lane_preserves_denied_metadata() {
     let plan = admitted_projection_consumption_plan();
 
-    let checked = worth_query_domain("worth.spatial")
+    let checked = install_domain_capability_certification()
+        .contributions()
         .for_admitted_intent_plan(&plan)
+        .expect("installed contribution authority must remain current")
         .consumes_projection_contract(
             "projection.contract",
             WorthQueryProjectionContractRequest::new(
@@ -167,7 +186,7 @@ fn checked_aftermath_lane_preserves_denied_metadata() {
 }
 
 fn proof_contract(
-    plan: &WorthQueryAdmittedIntentPlan,
+    target: crate::domain_capabilities::WorthQueryInstalledAdmittedPlanContributionTarget,
 ) -> crate::projection_consumption::MaterializedProjectionContract {
     let proof_requested = WorthQueryAftermathContributionAuthoring::consumes_projection_contract(
         "worth.spatial.projection.contract",
@@ -183,7 +202,7 @@ fn proof_contract(
             ]),
         ),
     )
-    .for_admitted_intent_plan(plan);
+    .bind_to_installed_target(target);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
         evaluate_requested_domain_capability_contribution(proof_requested),
     )));
@@ -198,7 +217,7 @@ fn proof_contract(
 }
 
 fn proof_review(
-    plan: &WorthQueryAdmittedIntentPlan,
+    target: crate::domain_capabilities::WorthQueryInstalledAdmittedPlanContributionTarget,
 ) -> crate::domain_capabilities::WorthQueryAftermathProjectionConsumptionReview {
     let proof_requested =
         WorthQueryAftermathContributionAuthoring::establishes_projection_contract(
@@ -208,7 +227,7 @@ fn proof_review(
             deferred_projection_binding(),
             ProjectMaterializedFacts::declare().target_identity(),
         )
-        .for_admitted_intent_plan(plan);
+        .bind_to_installed_target(target);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
         evaluate_requested_domain_capability_contribution(proof_requested),
     )));

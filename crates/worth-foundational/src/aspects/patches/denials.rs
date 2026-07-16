@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AuthoritativePatchConstructionDenial {
     DuplicateWholeAspectSet(AspectKey),
+    DuplicateWholeAspectClear(AspectKey),
+    OverlappingWholeAspectContractMismatch(AspectKey),
     EmptyFieldPatch,
     DuplicateFieldSet(FieldKey),
     FieldPatchRequiresStructAspect,

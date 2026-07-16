@@ -11,9 +11,10 @@ mod collect_authority;
 mod types;
 mod verify_construct;
 
+#[cfg(test)]
+use crate::evidence::UiAllocationConstraintSet;
 use crate::evidence::{
-    UiAllocationConstraintSet, UiAllocationNeighborhood, UiConstraintPropagationDenial,
-    UiMeasurementBasis,
+    UiAllocationNeighborhood, UiConstraintPropagationDenial, UiMeasurementBasis,
 };
 
 use super::constraint_summary::special_input_families_from_basis;
@@ -48,19 +49,6 @@ pub(super) fn admit_constraint_basis_with_portal(
     portal: &crate::runtime::UiPortalAllocationPlanningBasis,
 ) -> Result<crate::graph::UiAdmittedAllocationConstraintBasis, UiConstraintPropagationDenial> {
     admit_constraint_basis_inner(measurement_basis, neighborhood, Some(portal))
-}
-
-#[cfg(test)]
-pub(super) fn admit_constraint_set_with_portal(
-    measurement_basis: &UiMeasurementBasis,
-    neighborhood: &UiAllocationNeighborhood,
-    portal: &crate::runtime::UiPortalAllocationPlanningBasis,
-) -> Result<UiAllocationConstraintSet, UiConstraintPropagationDenial> {
-    Ok(
-        admit_constraint_basis_inner(measurement_basis, neighborhood, Some(portal))?
-            .constraint_set()
-            .clone(),
-    )
 }
 
 fn admit_constraint_basis_inner(

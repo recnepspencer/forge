@@ -34,7 +34,6 @@ pub use closeout_artifacts::{
     EffectExecutionCertificationBundle, EffectExecutionCertificationLane,
     EffectExecutionCertificationOutputDigest, EffectExecutionCertificationRow,
 };
-#[allow(unused_imports)]
 pub use phase4::{
     certify_effect_lifecycle_phase4, EffectLifecyclePhase4CertificationBundle,
     EffectLifecyclePhase4CertificationRow, EffectLifecyclePhase4LaneKind,

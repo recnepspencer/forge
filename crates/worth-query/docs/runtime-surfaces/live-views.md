@@ -37,7 +37,7 @@ behind a retained view.
 - `workspace.live_view_request(...)`
 - `workspace.read(...)`
 - `workspace.observe(...)`
-- `workspace.inspect(...)`
+- `workspace.inspections()?.inspect(...)`
 - `workspace.state(...)`
 
 Compatibility names such as `declare_live_view` still exist lower in the
@@ -91,7 +91,7 @@ What the runtime tracks automatically:
 3. Authoritative writes route relevance against the declared surface.
 4. `workspace.read(...)` gives the current snapshot rows.
 5. `workspace.observe(...)` drains query delivery batches for the surface.
-6. `workspace.inspect(...)` reconstructs the retained subscription proof chain.
+6. `workspace.inspections()?.inspect(...)` reconstructs the retained subscription proof chain.
 
 Relevant writes produce live patch batches only when the changed meaning touches
 the declared projection or grouping basis.
@@ -104,11 +104,11 @@ asking downstream domain code to reconstruct it later.
 
 ```rust
 use worth_query::facade::runtime::WorthQueryLiveView;
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("tasks").unwrap();
 
-let table: WorthQueryLiveView<Value> = workspace
+let table: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.table", |q| {
         q.from("Task")
             .select(["identity.id", "title.value"])
@@ -135,11 +135,11 @@ snapshot reads and incremental observation.
 
 ```rust
 use worth_query::facade::runtime::{WorthQueryInspection, WorthQueryLiveView};
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("tasks.grouped").unwrap();
 
-let grouped: WorthQueryLiveView<Value> = workspace
+let grouped: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.grouped", |q| {
         q.from("Task")
             .grouped_by("status.value")
@@ -157,7 +157,7 @@ let receipt = workspace
     .unwrap();
 
 let grouped_patches = workspace.observe(&grouped);
-let inspection = workspace.inspect(&grouped).unwrap();
+let inspection = workspace.inspections()?.inspect(&grouped).unwrap();
 
 assert!(receipt
     .affected_live_view_ids()
@@ -228,7 +228,7 @@ also one of the main things preview and branch sessions bind to.
 
 ## Inspection And Debugging
 
-`workspace.inspect(&view)` tells you:
+`workspace.inspections()?.inspect(&view)` tells you:
 
 - the declared surface name
 - query and view-shape digests

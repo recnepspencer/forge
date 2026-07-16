@@ -1,13 +1,13 @@
 error[E0451]: fields `aspect`, `field`, `delivered_name` and `kind` of struct `WorthQueryAdmittedGraphReadProjectionField` are private
- --> tests/ui/graph_read_access/admitted_projection_field_constructor_private.rs:6:9
-  |
-5 |     let _ = WorthQueryAdmittedGraphReadProjectionField {
-  |             ------------------------------------------ in this type
-6 |         aspect: AspectKey::new("identity").unwrap(),
-  |         ^^^^^^ private field
-7 |         field: FieldKey::new("id").unwrap(),
-  |         ^^^^^ private field
-8 |         delivered_name: "id".to_string(),
-  |         ^^^^^^^^^^^^^^ private field
-9 |         kind: WorthQueryGraphReadAdmittedSchemaFieldKind::String,
-  |         ^^^^ private field
+  --> tests/ui/graph_read_access/admitted_projection_field_constructor_private.rs:7:9
+   |
+ 6 |     let _ = WorthQueryAdmittedGraphReadProjectionField {
+   |             ------------------------------------------ in this type
+ 7 |         aspect: AspectKey::new("identity").unwrap(),
+   |         ^^^^^^ private field
+ 8 |         field: FieldKey::new("id").unwrap(),
+   |         ^^^^^ private field
+ 9 |         delivered_name: "id".to_string(),
+   |         ^^^^^^^^^^^^^^ private field
+10 |         kind: panic!("compile-fail fixture must not construct admitted evidence"),
+   |         ^^^^ private field

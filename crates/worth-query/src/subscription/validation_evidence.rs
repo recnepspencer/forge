@@ -50,6 +50,7 @@ pub(crate) fn validation_usize_role_evidence_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(crate) fn validation_label_list_evidence_identity(
     role: &'static str,
     labels: &[String],

@@ -50,6 +50,7 @@ where
     }
 }
 
+#[cfg(test)]
 pub fn materialize_admitted_preview_workflow_foundation<T>(
     contribution: WorthQueryMaterializationReadyWorkflowContribution<T>,
 ) -> WorthQueryDomainCapabilityTransitionOutcome<AdmittedPreviewWorkflowFoundation>

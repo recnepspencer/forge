@@ -1,5 +1,5 @@
 use crate::canonicalization::{CanonicalOrderingEntry, CanonicalProjectionEntry};
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind};
+use crate::schema_view::QuerySchemaView;
 
 use super::{
     failure::ValidationFailureArtifact, QueryValidationCounters, QueryValidationError,
@@ -31,20 +31,6 @@ pub(crate) fn validate_ordering_entries(
                 rejection_matrix.clone(),
             ));
         };
-
-        if matches!(field.kind(), SchemaFieldKind::StructuredContent) {
-            counters.record_rejection();
-            rejection_matrix.record_ordering_rejection();
-            return Err(ValidationFailureArtifact::new(
-                QueryValidationError::UnsupportedStructuredContentOrdering {
-                    aspect: key.aspect().to_string(),
-                    field: key.field().to_string(),
-                    direction: direction_name(entry),
-                },
-                counters.clone(),
-                rejection_matrix.clone(),
-            ));
-        }
 
         if !field.is_orderable() {
             counters.record_rejection();

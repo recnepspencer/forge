@@ -15,7 +15,8 @@ const REFERENCE_CONSUMER_JOURNEYS: &[Row] = &[
             intent: "candidate search and candidate-promotion workflow",
             context: "installed domain plus ordinary read or workflow context",
             capability: "downstream extension over WorthQueryInstalledDomainHandle",
-            phase_chain: "package -> runtime installation -> handle -> domain vocabulary -> Query execution",
+            phase_chain:
+                "package -> runtime installation -> handle -> domain vocabulary -> Query execution",
         },
         evidence: JourneyEvidence {
             result: "installed-domain read or workflow outcome",
@@ -31,24 +32,27 @@ const REFERENCE_CONSUMER_JOURNEYS: &[Row] = &[
     row(JourneyEntry {
         id: "worth-ui-query-authority",
         consumer: "Worth UI",
-        source: "workspaces/worth-ui/crates/worth-ui-query-binding/src/ordinary_query.rs",
-        probe: "pub fn declare_measurement_read(",
-        family: Family::Read,
+        source: "workspaces/worth-ui/crates/worth-ui-query-binding/src/installed_measurements.rs",
+        probe: "pub trait WorthUiQueryExt",
+        family: Family::DomainExtension,
         meaning: JourneyMeaning {
-            intent: "UI measurement read, live observation, history/comparison, and inspection",
-            context: "ordinary read/live/history/comparison or scoped inspection context",
-            capability: "ordinary Query capability declarations",
-            phase_chain: "UI domain vocabulary -> Query declaration -> explicit context -> Query-owned execution/lifecycle",
+            intent:
+                "UI measurement read, live observation, record workflow, projection, and inspection",
+            context:
+                "installed UI domain plus ordinary read, live, workflow, or inspection context",
+            capability: "downstream extension over WorthQueryInstalledDomainHandle",
+            phase_chain:
+                "package -> runtime installation -> handle -> UI vocabulary -> Query execution",
         },
         evidence: JourneyEvidence {
-            result: "Query-owned read, live, historical, comparison, and inspection outcomes",
-            receipts: "Query-owned operational receipts",
-            diagnostics: "typed capability stops plus optional inspection materialization",
-            counters: "Query-owned journey, lifecycle, and inspection counters",
+            result: "installed-domain read, live, workflow, projection, and inspection outcomes",
+            receipts: "installed authority linked to Query-owned operational receipts",
+            diagnostics: "typed installed-capability stops plus linked inspection",
+            counters: "read, live lifecycle, workflow, and inspection counters",
         },
         cutover: JourneyCutover {
-            local_ceremony: "declare UI vocabulary and hand it to one ordinary Query capability",
-            replacement: "facade::read/live/history/comparison/inspection",
+            local_ceremony: "extend one installed handle with UI-native measurement vocabulary",
+            replacement: "facade::domain installed-handle grammar",
         },
     }),
 ];

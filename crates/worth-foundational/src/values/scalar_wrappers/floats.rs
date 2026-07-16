@@ -19,6 +19,10 @@ impl CanonicalF32 {
     pub fn bits(self) -> u32 {
         self.0
     }
+
+    pub(crate) fn is_canonical(self) -> bool {
+        !f32::from_bits(self.0).is_nan() || self.0 == f32::NAN.to_bits()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -39,5 +43,9 @@ impl CanonicalF64 {
 
     pub fn bits(self) -> u64 {
         self.0
+    }
+
+    pub(crate) fn is_canonical(self) -> bool {
+        !f64::from_bits(self.0).is_nan() || self.0 == f64::NAN.to_bits()
     }
 }

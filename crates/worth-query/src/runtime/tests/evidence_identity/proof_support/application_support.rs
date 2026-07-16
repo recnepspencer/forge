@@ -84,22 +84,3 @@ pub(in super::super) fn compose_support_report_identity(
     )
     .seal()
 }
-
-#[allow(dead_code)]
-pub(in super::super) fn assert_phase_two_surface_has_no_digest_folklore(source: &str) {
-    for forbidden in [
-        "hash_parts(",
-        "digest_owned_parts(",
-        ".join(\"|\")",
-        "format!(\"{}|",
-        "format!(\"{:?}\"",
-        "format!(\"{:?}|",
-        "format!(\"{:#?}\"",
-        "format!(\"{:#?}|",
-    ] {
-        assert!(
-            !source.contains(forbidden),
-            "phase-2-covered surface must not retain digest folklore pattern {forbidden}"
-        );
-    }
-}

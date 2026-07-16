@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/aspect_native_query/raw_native_value_cannot_satisfy_admitted_mutation.rs:7:22
+  |
+7 |     require_admitted(AspectValue::Null);
+  |     ---------------- ^^^^^^^^^^^^^^^^^ expected `WorthQueryBackendAdmissibleMutation`, found `AspectValue`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> tests/ui/aspect_native_query/raw_native_value_cannot_satisfy_admitted_mutation.rs:4:4
+  |
+4 | fn require_admitted(_: WorthQueryBackendAdmissibleMutation) {}
+  |    ^^^^^^^^^^^^^^^^ --------------------------------------

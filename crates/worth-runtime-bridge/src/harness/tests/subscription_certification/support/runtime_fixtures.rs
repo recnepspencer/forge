@@ -1,5 +1,4 @@
 use crate::builder::RuntimeBridgeBuilder;
-use crate::facade::runtime::BridgeSubscriptionDeclarationFamilyKind;
 use crate::facade::{
     BridgeRuntimePolicy, BridgeSubscriptionBasisRequest,
     BridgeSubscriptionConsumerBackpressurePosture, BridgeSubscriptionConsumerContract,
@@ -11,6 +10,7 @@ use crate::mapping::{
     BridgeMappingId, BridgeMappingRegistration, CoarseRoutingMode, MappingSelector,
     SignalInvalidationScope, SubscriptionSliceKind, TruthPatchScope,
 };
+use crate::subscription::BridgeSubscriptionDeclarationFamilyKind;
 
 use super::source_fixtures::{
     profile_aspect_key, profile_name_field_key, StaticSink, StaticSource,

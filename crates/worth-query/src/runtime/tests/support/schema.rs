@@ -23,14 +23,14 @@ pub(in crate::runtime::tests) fn task_schema() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("title")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("value")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [],
@@ -60,14 +60,14 @@ pub(in crate::runtime::tests) fn issue_schema() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("summary")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("value")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [],
@@ -121,21 +121,21 @@ pub(in crate::runtime::tests) fn grouped_task_schema() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("title")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("value")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("status")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("value")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [],

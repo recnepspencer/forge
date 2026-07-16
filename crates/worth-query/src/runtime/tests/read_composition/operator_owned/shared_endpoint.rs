@@ -1,7 +1,7 @@
 use super::super::support::*;
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, OrderingSelector,
-    ScalarPredicateValue,
+    WorthQueryPredicateOperand,
 };
 use crate::runtime::{
     WorthQueryReadBuiltInOperator, WorthQueryReadBuiltInOperatorDenialReason,
@@ -150,7 +150,7 @@ fn compose_read_keeps_identity_anchored_shared_endpoint_collection_local() {
                             EqualityPredicate::new(
                                 "identity",
                                 "id",
-                                ScalarPredicateValue::String("user-ada".to_string()),
+                                WorthQueryPredicateOperand::string("user-ada".to_string()),
                             )
                             .expect("identity anchor predicate should build"),
                         )

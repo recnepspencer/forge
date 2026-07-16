@@ -1,0 +1,18 @@
+error[E0407]: method `context_identity_digest` is not a member of trait `WorthQueryDomainOperatingContext`
+  --> tests/ui/installed_domain/boundaries/operating_context_digest_authoring_is_forbidden.rs:35:5
+   |
+35 |       fn context_identity_digest(&self) -> String {
+   |       ^  ----------------------- help: there is an associated function with a similar name: `context_identity`
+   |  _____|
+   | |
+36 | |         "consumer-authored-digest".to_owned()
+37 | |     }
+   | |_____^ not a member of trait `WorthQueryDomainOperatingContext`
+
+error[E0046]: not all trait items implemented, missing: `context_identity`
+  --> tests/ui/installed_domain/boundaries/operating_context_digest_authoring_is_forbidden.rs:26:1
+   |
+26 | impl WorthQueryDomainOperatingContext<ConsumerDomain> for ConsumerContext {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `context_identity` in implementation
+   |
+   = help: implement the missing item: `fn context_identity(&self) -> WorthQueryDomainOperatingContextIdentityDeclaration { todo!() }`

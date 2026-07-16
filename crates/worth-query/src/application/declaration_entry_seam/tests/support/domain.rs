@@ -1,18 +1,18 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
-    WorthQueryConfig, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
+    WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationBridgeContinuationContract,
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationEnvelope,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
     WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRelationalTruthContract,
     WorthQueryDeclarationRouteContract, WorthQueryDeclarationSignalCompatibilityContract,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryInstalledDomainDeclarationContext, WorthQueryMixedAuthority,
-    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
-    WorthQuerySignalCompatiblePosture, WorthQuerySignalConfig, WorthQuerySignalDeferredPosture,
-    WorthQuerySignalNotCompatiblePosture,
+    WorthQueryDomainOperatingRequirement, WorthQueryInstalledDomainDeclarationContext,
+    WorthQueryMixedAuthority, WorthQueryNeighborhoodCapableGrouping,
+    WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
+    WorthQuerySignalDeferredPosture, WorthQuerySignalNotCompatiblePosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -53,8 +53,18 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for GeometryWorld {
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("entry.seam.{}", self.0)
+    fn required_operating_requirements(&self) -> &'static [WorthQueryDomainOperatingRequirement] {
+        &[
+            WorthQueryDomainOperatingRequirement::TemporalQuery,
+            WorthQueryDomainOperatingRequirement::AsyncResourceQuery,
+        ]
+    }
+
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("entry.seam.{}", self.0) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -240,24 +250,6 @@ impl_input!(
     AuthorityRichFamily
 );
 
-pub fn handle(
-    regime: &'static str,
-) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld> {
-    crate::application::domain_test_support::installed_declaration_context(
-        GeometryDomain,
-        GeometryWorld(regime),
-        [
-            crate::application::domain_test_support::family::<GeometryDomain, RelationalFamily>(),
-            crate::application::domain_test_support::family::<GeometryDomain, BridgeSignalFamily>(),
-            crate::application::domain_test_support::family::<GeometryDomain, DeferredSignalFamily>(
-            ),
-            crate::application::domain_test_support::family::<GeometryDomain, MixedFamily>(),
-            crate::application::domain_test_support::family::<GeometryDomain, AuthorityRichFamily>(
-            ),
-        ],
-    )
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SignallessWorld(pub &'static str);
 
@@ -279,27 +271,12 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for SignallessWorld {
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("entry.seam.signalless.{}", self.0)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("entry.seam.signalless.{}", self.0) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
-}
-
-pub fn signal_disabled_handle(
-    regime: &'static str,
-) -> WorthQueryInstalledDomainDeclarationContext<GeometryDomain, SignallessWorld> {
-    crate::application::domain_test_support::installed_declaration_context(
-        GeometryDomain,
-        SignallessWorld(regime),
-        [
-            crate::application::domain_test_support::family::<GeometryDomain, RelationalFamily>(),
-            crate::application::domain_test_support::family::<GeometryDomain, BridgeSignalFamily>(),
-            crate::application::domain_test_support::family::<GeometryDomain, DeferredSignalFamily>(
-            ),
-            crate::application::domain_test_support::family::<GeometryDomain, MixedFamily>(),
-            crate::application::domain_test_support::family::<GeometryDomain, AuthorityRichFamily>(
-            ),
-        ],
-    )
 }
 
 pub fn bridge_signal_envelope<C: WorthQueryDomainOperatingContext<GeometryDomain>>(

@@ -1,5 +1,0 @@
-error[E0599]: no method named `capability` found for struct `WorthQueryApplicationFacade` in the current scope
- --> tests/ui/facade_has_no_dynamic_capability_routing.rs:5:20
-  |
-5 |     let _ = facade.capability(WorthQueryCapabilityFamily::QueryRead);
-  |                    ^^^^^^^^^^ method not found in `WorthQueryApplicationFacade`

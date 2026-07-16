@@ -86,7 +86,11 @@ pub fn display_projection_consumptions_across_basis_generations(
         .update(entity_identity, |task| {
             task.set_aspect(
                 aspect_touch("size.value"),
-                WorthQueryAuthoredAspectValue::string(format!("24{lane_label}")),
+                WorthQueryAuthoredAspectValue::native(
+                    worth_foundational::facade::AspectValue::Float32(
+                        worth_foundational::facade::CanonicalF32::from_f32(241.0),
+                    ),
+                ),
             )
         })
         .expect("fixture workspace should admit the follow-up size update");

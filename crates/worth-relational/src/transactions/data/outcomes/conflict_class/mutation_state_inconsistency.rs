@@ -9,10 +9,6 @@ pub enum MutationStateInconsistencyEvidence {
         entity_id: EntityId,
         missing: EntityCascadeDeleteMissingState,
     },
-    EntityFieldIntentValidation {
-        entity_id: EntityId,
-        missing: EntityFieldIntentValidationMissingState,
-    },
     BulkMutationAdmission {
         transaction_id: TransactionId,
         denial: BulkMutationAdmissionDenial,
@@ -21,13 +17,6 @@ pub enum MutationStateInconsistencyEvidence {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntityCascadeDeleteMissingState {
-    Slot,
-    KindId,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum EntityFieldIntentValidationMissingState {
-    Partition,
     Slot,
     KindId,
 }

@@ -43,25 +43,45 @@ fn future_signal_subjects_stay_typed_under_public_runtime_posture() {
         &handle,
         Input::<TemporalRuntimeFamily>::new("edge:42"),
     ) {
-        WorthQueryDeclarationSignalCompatibilityChecked::Compatible(compatibility) => {
+        WorthQueryDeclarationSignalCompatibilityChecked::Denied(denied) => {
             assert_eq!(
-                compatibility.future_projection().class().as_str(),
+                denied.cause(),
+                crate::application::WorthQueryDeclarationSignalCompatibilityDenialCause::SignalBasisMismatch
+            );
+            assert_eq!(
+                denied
+                    .envelope()
+                    .route_plan()
+                    .expect("deferred temporal signal retains route truth")
+                    .future_projection()
+                    .class()
+                    .as_str(),
                 "temporal"
             );
         }
-        _ => panic!("temporal signal compatibility should stay typed and compatible"),
+        _ => panic!("temporal signal compatibility should stay typed and denied"),
     }
 
     match checked_from_future_public_runtime_signal_posture(
         &handle,
         Input::<AsyncRuntimeFamily>::new("edge:42"),
     ) {
-        WorthQueryDeclarationSignalCompatibilityChecked::Compatible(compatibility) => {
+        WorthQueryDeclarationSignalCompatibilityChecked::Denied(denied) => {
             assert_eq!(
-                compatibility.future_projection().class().as_str(),
+                denied.cause(),
+                crate::application::WorthQueryDeclarationSignalCompatibilityDenialCause::SignalBasisMismatch
+            );
+            assert_eq!(
+                denied
+                    .envelope()
+                    .route_plan()
+                    .expect("deferred async signal retains route truth")
+                    .future_projection()
+                    .class()
+                    .as_str(),
                 "async_resource"
             );
         }
-        _ => panic!("async signal compatibility should stay typed and compatible"),
+        _ => panic!("async signal compatibility should stay typed and denied"),
     }
 }

@@ -9,7 +9,7 @@ fn compose_graph_supports_symbolic_entity_followup_and_relation_retirement() {
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-lifecycle")
         .expect("runtime should open a named workspace");
-    let tasks: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-lifecycle-tasks", |q| {
             q.from("Task")
                 .select([
@@ -25,7 +25,7 @@ fn compose_graph_supports_symbolic_entity_followup_and_relation_retirement() {
                 .schema_basis("tasks-graph-composition-lifecycle-tasks")
         })
         .expect("task live view should declare");
-    let edges: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let edges: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-lifecycle-edges", |q| {
             q.from("TaskEdge")
                 .select([

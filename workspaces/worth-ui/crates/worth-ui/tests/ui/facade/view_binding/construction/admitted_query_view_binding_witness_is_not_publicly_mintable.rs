@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryCapabilityFamily, WorthQueryCapabilityStatus};
+use worth_query::facade::foundation::{WorthQueryCapabilityFamily, WorthQueryCapabilityStatus};
 use worth_ui::facade::QueryViewCapabilityReference;
 
 fn main() {

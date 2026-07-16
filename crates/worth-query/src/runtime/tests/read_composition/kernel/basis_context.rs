@@ -386,7 +386,7 @@ fn assert_runtime_materialized_rows(rows: &[crate::facade::foundation::WorthQuer
         .all(|row| test_native_scalar_value(row, "query_context.basis_digest").is_none()));
     assert!(rows
         .iter()
-        .any(|row| test_has_native_field_prefix(row, "read")));
+        .any(|row| test_has_native_field_prefix(row, "identity")));
     assert!(rows.iter().all(|row| !row
         .identity()
         .evidence_identity()

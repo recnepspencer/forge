@@ -1,3 +1,4 @@
+#[cfg(test)]
 use worth_runtime_bridge::facade::{
     BridgeMixedCauseDeliveryWindowPlan, BridgeMixedCauseOrderFamilyKind, BridgeMixedCauseOrdering,
     BridgeMixedCauseOrderingLaneKind,
@@ -8,6 +9,9 @@ use crate::subscription::QuerySubscriptionDeliveryCauseKind;
 
 use super::evidence_identities::{
     runtime_mixed_cause_atomic_identity, runtime_mixed_cause_delivery_identity,
+};
+#[cfg(test)]
+use super::evidence_identities::{
     runtime_mixed_cause_delivery_window_identity, runtime_mixed_cause_denied_cause_identity,
     runtime_mixed_cause_ordered_cause_identity, runtime_mixed_cause_ordering_identity,
     runtime_mixed_cause_suppressed_cause_identity,
@@ -17,16 +21,6 @@ use super::evidence_identities::{
 pub enum WorthQueryRuntimeMixedCauseLaneKind {
     Authoritative,
     Preview,
-}
-
-impl WorthQueryRuntimeMixedCauseLaneKind {
-    #[allow(dead_code)]
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::Authoritative => "authoritative",
-            Self::Preview => "preview",
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -174,6 +168,7 @@ impl WorthQueryRuntimeMixedCauseDelivery {
         delivery
     }
 
+    #[cfg(test)]
     pub(crate) fn from_bridge(
         ordering: &BridgeMixedCauseOrdering,
         delivery_window: &BridgeMixedCauseDeliveryWindowPlan,

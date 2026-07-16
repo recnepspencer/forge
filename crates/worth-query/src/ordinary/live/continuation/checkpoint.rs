@@ -4,7 +4,7 @@ use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
 use crate::runtime::{
-    WorthQueryLiveView, WorthQueryManagedLiveWorkspaceCapability, WorthQueryNativeRow,
+    WorthQueryLiveView, WorthQueryManagedLiveWorkspaceCapability, WorthQueryUnrefinedLiveShape,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -81,14 +81,14 @@ impl WorthQueryManagedLiveCheckpointReceipt {
 #[derive(Debug)]
 #[must_use = "a managed live continuation owns an active Query resource until resumed or dropped"]
 pub struct WorthQueryManagedLiveContinuation {
-    view: Option<WorthQueryLiveView<WorthQueryNativeRow>>,
+    view: Option<WorthQueryLiveView<WorthQueryUnrefinedLiveShape>>,
     workspace_capability: Arc<WorthQueryManagedLiveWorkspaceCapability>,
     checkpoint: WorthQueryManagedLiveCheckpointReceipt,
 }
 
 impl WorthQueryManagedLiveContinuation {
     pub(super) fn new(
-        view: WorthQueryLiveView<WorthQueryNativeRow>,
+        view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
         workspace_capability: Arc<WorthQueryManagedLiveWorkspaceCapability>,
         checkpoint: WorthQueryManagedLiveCheckpointReceipt,
     ) -> Self {
@@ -103,7 +103,7 @@ impl WorthQueryManagedLiveContinuation {
         &self.checkpoint
     }
 
-    pub(super) fn view(&self) -> &WorthQueryLiveView<WorthQueryNativeRow> {
+    pub(super) fn view(&self) -> &WorthQueryLiveView<WorthQueryUnrefinedLiveShape> {
         self.view
             .as_ref()
             .expect("active continuation must retain its managed live view")
@@ -116,7 +116,7 @@ impl WorthQueryManagedLiveContinuation {
     pub(super) fn into_resource_parts(
         mut self,
     ) -> (
-        WorthQueryLiveView<WorthQueryNativeRow>,
+        WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
         Arc<WorthQueryManagedLiveWorkspaceCapability>,
     ) {
         let view = self

@@ -12,6 +12,7 @@ use crate::application::{
 use super::super::sequencing::WorthQueryDeclarationEntryOrchestrationAutomationContext;
 use super::foundational::lower_from_progressed;
 
+#[cfg(test)]
 pub(super) fn lower_from_progression_checked<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,

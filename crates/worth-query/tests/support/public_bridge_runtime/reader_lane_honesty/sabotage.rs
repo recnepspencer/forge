@@ -51,14 +51,10 @@ pub fn public_bridge_direct_materialization_sabotage() -> WorthQueryPublicBridge
         &sabotaged_public_bridge_certification_inventory(),
     )
 }
-
-#[allow(dead_code)]
 pub fn direct_materialization_read_count(source: &str) -> usize {
     WorthQueryPublicBridgeReaderLaneInventory::scan([("inline-sabotage", source)])
         .direct_materialization_read_count()
 }
-
-#[allow(dead_code)]
 pub fn public_bridge_certification_inventory_paths() -> Vec<String> {
     public_bridge_certification_inventory().paths().to_vec()
 }

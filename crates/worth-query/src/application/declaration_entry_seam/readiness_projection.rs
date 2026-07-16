@@ -215,8 +215,7 @@ fn capabilities_admitted<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOper
     required: &'static [WorthQueryCapabilityFamily],
 ) -> bool {
     required.iter().copied().all(|family| {
-        handle.support_snapshot().capability_status(family)
-            == Some(WorthQueryCapabilityStatus::Admitted)
+        handle.installed_capability_status(family) == Some(WorthQueryCapabilityStatus::Admitted)
     })
 }
 
@@ -227,14 +226,10 @@ fn config_sections_enabled<
     handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     required: &'static [WorthQueryConfigSectionFamily],
 ) -> bool {
-    required.iter().copied().all(|section| {
-        handle
-            .support_snapshot()
-            .section_postures()
-            .iter()
-            .find(|posture| posture.section() == section)
-            .is_some_and(|posture| posture.enabled())
-    })
+    required
+        .iter()
+        .copied()
+        .all(|section| handle.installed_configuration_enabled(section))
 }
 
 fn reconcile_authority_readiness(

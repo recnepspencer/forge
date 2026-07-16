@@ -7,7 +7,6 @@ pub use counters::BridgeStructuralCounters;
 pub use explanations::{
     BridgeStructuralBranchComparisonExplanation, BridgeStructuralRemapExplanation,
 };
-#[allow(unused_imports)]
 pub use records::{
     BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
     BridgeStructuralBranchComparisonRecord, BridgeStructuralBranchComparisonRecordIdentity,

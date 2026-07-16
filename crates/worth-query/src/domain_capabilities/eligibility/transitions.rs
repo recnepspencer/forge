@@ -24,6 +24,9 @@ where
     P: WorthQueryDomainCapabilityPayload,
     T: WorthQueryDomainCapabilityTargetBinding,
 {
+    if let Some(denial) = stale_installation_generation_denial(requested.payload()) {
+        return TransitionOutcome::Denied(denial);
+    }
     if requested
         .payload()
         .installed_authority()
@@ -71,6 +74,9 @@ where
     P: WorthQueryDomainCapabilityPayload,
     T: WorthQueryDomainCapabilityTargetBinding,
 {
+    if let Some(denial) = stale_installation_generation_denial(eligible.payload()) {
+        return TransitionOutcome::Denied(denial);
+    }
     let basis = contribution_basis(&eligible.0);
     let payload = eligible.into_inner().into_parts().into_parts().0;
     TransitionOutcome::Success(WorthQueryAdmittedDomainCapabilityContribution(
@@ -88,6 +94,9 @@ where
     P: WorthQueryDomainCapabilityPayload,
     T: WorthQueryDomainCapabilityTargetBinding,
 {
+    if let Some(denial) = stale_installation_generation_denial(admitted.payload()) {
+        return TransitionOutcome::Denied(denial);
+    }
     let basis = contribution_basis(&admitted.0);
     let payload = admitted.into_inner().into_parts().into_parts().0;
     let category = payload.category().as_str();
@@ -112,6 +121,25 @@ where
     TransitionOutcome::Success(WorthQueryMaterializationReadyDomainCapabilityContribution(
         remint_with_phase(payload, basis, materialization_ready_proof()),
     ))
+}
+
+fn stale_installation_generation_denial<P, T>(
+    contribution: &WorthQueryDomainCapabilityContribution<P, T>,
+) -> Option<WorthQueryDomainCapabilityProgressionDenial>
+where
+    P: WorthQueryDomainCapabilityPayload,
+    T: WorthQueryDomainCapabilityTargetBinding,
+{
+    contribution
+        .installed_authority()
+        .is_some_and(|authority| !authority.is_current_installation_generation())
+        .then(|| {
+            denial_for(
+                contribution,
+                WorthQueryDomainCapabilityProgressionDenialKind::StaleInstallationGeneration,
+                "the installed domain authority belongs to a stale installation generation",
+            )
+        })
 }
 
 fn denial_for<P, T>(

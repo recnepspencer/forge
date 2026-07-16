@@ -1,4 +1,5 @@
 mod binding;
+#[cfg(test)]
 mod orchestration;
 mod products;
 mod progression;

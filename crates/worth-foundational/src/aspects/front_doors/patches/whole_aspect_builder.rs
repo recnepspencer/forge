@@ -1,14 +1,14 @@
 use worth_proof::TransitionOutcome;
 
 use super::super::super::{
-    AspectKey, AuthoritativePatchConstructionDenial, AuthoritativeRecordAspectPatch,
+    AspectContract, AuthoritativePatchConstructionDenial, AuthoritativeRecordAspectPatch,
     ContractValidatedAspectArtifact,
 };
 
 #[derive(Debug, Clone, Default)]
 pub struct WholeAspectPatchBuilder {
     sets: Vec<ContractValidatedAspectArtifact>,
-    clears: Vec<AspectKey>,
+    clears: Vec<AspectContract>,
 }
 
 impl WholeAspectPatchBuilder {
@@ -17,8 +17,8 @@ impl WholeAspectPatchBuilder {
         self
     }
 
-    pub fn clear(mut self, key: AspectKey) -> Self {
-        self.clears.push(key);
+    pub fn clear(mut self, contract: AspectContract) -> Self {
+        self.clears.push(contract);
         self
     }
 

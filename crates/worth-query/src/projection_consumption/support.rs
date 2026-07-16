@@ -159,7 +159,7 @@ fn query_read_support(
         ProjectionFactKind::EntityIdentity | ProjectionFactKind::ViewLocalIdentity => {
             ProjectionConsumptionSupportPosture::Admitted
         }
-        ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+        ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => {
             match execution_posture {
                 ProjectionSourceExecutionPosture::Current
                 | ProjectionSourceExecutionPosture::Branch => {
@@ -208,9 +208,7 @@ fn query_write_support(
         | ProjectionFactKind::ViewLocalIdentity
         | ProjectionFactKind::Membership
         | ProjectionFactKind::DisplayField
-        | ProjectionFactKind::DerivedScalarField => {
-            ProjectionConsumptionSupportPosture::SourceMismatch
-        }
+        | ProjectionFactKind::DerivedField => ProjectionConsumptionSupportPosture::SourceMismatch,
     }
 }
 
@@ -225,7 +223,7 @@ fn query_context_support(
                 execution_posture,
             ))
         }
-        ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+        ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => {
             ProjectionConsumptionSupportPosture::AdmittedWithWarnings(query_context_row_warning(
                 execution_posture,
             ))
@@ -274,7 +272,7 @@ fn relational_row_set_support(
         ProjectionFactKind::EntityIdentity
         | ProjectionFactKind::ViewLocalIdentity
         | ProjectionFactKind::DisplayField
-        | ProjectionFactKind::DerivedScalarField => ProjectionConsumptionSupportPosture::Admitted,
+        | ProjectionFactKind::DerivedField => ProjectionConsumptionSupportPosture::Admitted,
         ProjectionFactKind::TargetIdentity
         | ProjectionFactKind::SourceReference
         | ProjectionFactKind::EffectContinuity
@@ -297,9 +295,7 @@ fn relational_grouped_projection_support(
         | ProjectionFactKind::SourceReference
         | ProjectionFactKind::EffectContinuity
         | ProjectionFactKind::DisplayField
-        | ProjectionFactKind::DerivedScalarField => {
-            ProjectionConsumptionSupportPosture::SourceMismatch
-        }
+        | ProjectionFactKind::DerivedField => ProjectionConsumptionSupportPosture::SourceMismatch,
     }
 }
 
@@ -310,7 +306,7 @@ fn bridge_truth_view_row_set_support(
         ProjectionFactKind::EntityIdentity
         | ProjectionFactKind::ViewLocalIdentity
         | ProjectionFactKind::DisplayField
-        | ProjectionFactKind::DerivedScalarField => ProjectionConsumptionSupportPosture::Admitted,
+        | ProjectionFactKind::DerivedField => ProjectionConsumptionSupportPosture::Admitted,
         ProjectionFactKind::TargetIdentity
         | ProjectionFactKind::SourceReference
         | ProjectionFactKind::EffectContinuity
@@ -333,9 +329,7 @@ fn bridge_grouped_truth_view_support(
         | ProjectionFactKind::SourceReference
         | ProjectionFactKind::EffectContinuity
         | ProjectionFactKind::DisplayField
-        | ProjectionFactKind::DerivedScalarField => {
-            ProjectionConsumptionSupportPosture::SourceMismatch
-        }
+        | ProjectionFactKind::DerivedField => ProjectionConsumptionSupportPosture::SourceMismatch,
     }
 }
 
@@ -346,7 +340,7 @@ fn retained_derived_artifact_binding_support(
         ProjectionFactKind::ViewLocalIdentity
         | ProjectionFactKind::SourceReference
         | ProjectionFactKind::DisplayField
-        | ProjectionFactKind::DerivedScalarField => ProjectionConsumptionSupportPosture::Admitted,
+        | ProjectionFactKind::DerivedField => ProjectionConsumptionSupportPosture::Admitted,
         ProjectionFactKind::EntityIdentity
         | ProjectionFactKind::TargetIdentity
         | ProjectionFactKind::EffectContinuity
@@ -365,7 +359,7 @@ fn live_artifact_binding_support(
         | ProjectionFactKind::ViewLocalIdentity
         | ProjectionFactKind::SourceReference
         | ProjectionFactKind::DisplayField
-        | ProjectionFactKind::DerivedScalarField => ProjectionConsumptionSupportPosture::Admitted,
+        | ProjectionFactKind::DerivedField => ProjectionConsumptionSupportPosture::Admitted,
         ProjectionFactKind::TargetIdentity
         | ProjectionFactKind::EffectContinuity
         | ProjectionFactKind::Membership

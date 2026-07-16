@@ -1,6 +1,7 @@
 use super::super::dispatcher::{UiAllocationFrameEpochAssignment, UiAllocationFrameSealAuthority};
 use super::{UiAllocationFrameDispatchDenial, UiAllocationFrameQueueDisposition};
 use crate::runtime::allocation_frame_dispatch::UiAllocationFrameRetryState;
+#[cfg(test)]
 use crate::runtime::UiAllocationFrameEpoch;
 
 /// Terminal old-generation accounting plus the only successor-epoch witness.
@@ -41,10 +42,12 @@ impl UiAllocationFrameReplacementTransition {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn queue_disposition(&self) -> &UiAllocationFrameQueueDisposition {
         &self.queue_disposition
     }
 
+    #[cfg(test)]
     pub fn successor_epoch(&self) -> Option<UiAllocationFrameEpoch> {
         self.successor_assignment
             .map(|assignment| assignment.epoch())

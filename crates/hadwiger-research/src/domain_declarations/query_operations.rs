@@ -1,4 +1,4 @@
-use worth_query::facade::foundation::{
+use worth_query::facade::domain::{
     WorthQueryDeclarationEntryCrossingInventory, WorthQueryDeclarationEntryReadinessReport,
     WorthQueryDeclarationInput, WorthQueryDeclaredFamilyChecked,
 };

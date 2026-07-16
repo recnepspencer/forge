@@ -30,7 +30,7 @@ pub(super) fn extract_query_context_facts(
     let extracts_row_value_fields = contract.fact_families().iter().any(|fact| {
         matches!(
             fact.kind(),
-            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField
+            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField
         )
     });
     let extracts_source_references = contract
@@ -41,12 +41,12 @@ pub(super) fn extract_query_context_facts(
     let mut entity_identities = Vec::new();
     let mut view_local_identities = Vec::new();
     let mut display_fields = Vec::new();
-    let mut derived_scalar_fields = Vec::new();
+    let mut derived_fields = Vec::new();
 
     for (index, row) in execution.rows().iter().enumerate() {
         let row_identity = query_context_row_identity(execution, index);
         let row_value =
-            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(row.clone());
+            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(row.clone());
         for fact_family in contract.fact_families() {
             match fact_family.kind() {
                 ProjectionFactKind::EntityIdentity => {
@@ -61,12 +61,13 @@ pub(super) fn extract_query_context_facts(
                         row_identity.clone(),
                     ));
                 }
-                ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+                ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => {
                     let field_path = fact_family
                         .field_path()
                         .expect("field path required")
                         .clone();
                     let fact = ConsumedFieldValueFact::new(
+                        contract,
                         row_identity.clone(),
                         field_path,
                         row_value.clone(),
@@ -74,7 +75,7 @@ pub(super) fn extract_query_context_facts(
                     if fact_family.kind() == ProjectionFactKind::DisplayField {
                         display_fields.push(fact);
                     } else {
-                        derived_scalar_fields.push(fact);
+                        derived_fields.push(fact);
                     }
                 }
                 ProjectionFactKind::TargetIdentity
@@ -111,7 +112,7 @@ pub(super) fn extract_query_context_facts(
     let extracted_fact_count = entity_identities.len()
         + view_local_identities.len()
         + display_fields.len()
-        + derived_scalar_fields.len()
+        + derived_fields.len()
         + source_references.len();
 
     Ok(ConsumedProjectionFactSet::new(
@@ -132,7 +133,7 @@ pub(super) fn extract_query_context_facts(
         view_local_identities,
         Vec::new(),
         display_fields,
-        derived_scalar_fields,
+        derived_fields,
         Vec::new(),
         source_references,
         Vec::new(),

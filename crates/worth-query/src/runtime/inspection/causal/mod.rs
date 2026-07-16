@@ -18,9 +18,11 @@ mod reference_index;
 mod reference_resolution;
 mod request;
 
+#[cfg(test)]
+pub(crate) use admission::admit_causal_inspection;
 pub use admission::{
-    admit_causal_inspection, AdmittedCausalInspection, AdvisoryCausalInspection,
-    CausalInspectionProofFlow, DeniedCausalInspection,
+    AdmittedCausalInspection, AdvisoryCausalInspection, CausalInspectionProofFlow,
+    DeniedCausalInspection,
 };
 pub use admission_decision::{
     CausalInspectionAdmissionDecision, CausalInspectionAdmissionDecisionKind,
@@ -94,9 +96,9 @@ pub use reference_index::{
     CausalEvidenceReferenceIndex, CausalEvidenceReferenceIndexError,
     CausalEvidenceReferenceIndexErrorKind, CausalEvidenceReferenceIndexRecord,
 };
-pub use reference_resolution::{
-    resolve_causal_evidence_references, resolve_indexed_causal_evidence_references,
-};
+pub use reference_resolution::resolve_causal_evidence_references;
+#[cfg(test)]
+pub(crate) use reference_resolution::resolve_indexed_causal_evidence_references;
 pub(crate) use request::request_causal_inspection;
 pub use request::{
     causal_inspection_target, CausalInspectionExplanationFamily, CausalInspectionRequest,

@@ -4,7 +4,8 @@
 
 Aspects are the auditable names Worth Query uses for fields and derived
 surfaces. Authority lanes are the auditable places where truth, derived state,
-delivery residue, preview residue, and future temporal or async state live.
+delivery residue, preview residue, temporal execution state, and async resource
+state live.
 
 Together they answer two questions:
 
@@ -18,8 +19,8 @@ Together they answer two questions:
 - you want preview and branch work to reuse declarations without leaking into
   authoritative truth
 - you want inspection and state snapshots to make support posture obvious
-- you want future async work to extend the same semantics instead of inventing
-  parallel vocabulary
+- you want temporal and async work to use the same support and authority
+  vocabulary
 
 ## Stable Entry Points
 
@@ -27,15 +28,14 @@ Together they answer two questions:
 - effect builder contracts such as `when_live(...)`, `when_computed(...)`, and
   `condition_expression(...)`
 - `workspace.state(...)`
-- `workspace.inspect(...)`
+- `workspace.inspections()?.inspect(...)`
 - `WorthQueryAuthorityLane`
 - `WorthQueryPreviewOptions`
 - `WorthQueryBranchOptions`
 - `workspace.public_handle_contract()`
 
-Authority lanes are part of the stabilized public runtime vocabulary. Some
-lanes are stable today and some exist as explicit future neighbors that are
-visible before they are implemented.
+Authority lanes are part of the stabilized public runtime vocabulary. Runtime
+support and admission decide which lanes are available in a concrete profile.
 
 ## Core Mental Model
 
@@ -73,7 +73,7 @@ Current public lane vocabulary:
 1. You declare a live, computed, or effect surface with explicit aspects.
 2. The runtime binds that surface to one or more authority lanes.
 3. Writes and delivery route through the admitted lane for that surface.
-4. `workspace.state(...)` and `workspace.inspect(...)` report the resulting lane
+4. `workspace.state(...)` and `workspace.inspections()?.inspect(...)` report the resulting lane
    and the aspect contract that produced it.
 5. Preview and branch sessions can redirect, mute, or sandbox side effects by
    changing lane admission rather than changing the declaration itself.
@@ -153,7 +153,7 @@ workspace
     .unwrap();
 
 let derived_state = workspace.state(&readiness).unwrap();
-let effect_inspection = workspace.inspect(&publish).unwrap();
+let effect_inspection = workspace.inspections()?.inspect(&publish).unwrap();
 let preview_label =
     worth_query::facade::runtime::WorthQuerySessionLabel::scoped_strs("workflow", ["approval-preview"])
         .unwrap();
@@ -176,7 +176,7 @@ match effect_inspection {
     other => panic!("expected effect inspection, got {other:?}"),
 }
 
-let binding = workspace.inspect(&preview_binding).unwrap();
+let binding = workspace.inspections()?.inspect(&preview_binding).unwrap();
 match binding {
     worth_query::facade::runtime::WorthQueryInspection::PreviewBinding(binding) => {
         assert_eq!(binding.preview_lane().as_str(), "preview-truth");
@@ -245,34 +245,31 @@ The most important places to check lanes and aspects are:
 
 - `AuthoritativeTruth`, `DerivedRuntimeState`, preview, branch, delivery, and
   pending write-intent lanes are part of the current runtime-backed story.
-- `TemporalExecutionState` and `AsyncResourceState` are explicit future lanes,
-  visible now so downstream code can plan around them without pretending they
-  execute yet.
+- `TemporalExecutionState` and `AsyncResourceState` are admitted only in
+  profiles whose support rows enable their runtime behavior.
 - Authority lanes are infrastructure vocabulary. They should not be replaced
   with domain-specific lane names in public DX.
 
-## Declaration-entry retrofit
+## Aspect Publication Across Declaration Boundaries
 
-The aspect story extends beyond runtime reads, computed surfaces, and
-effects. Declaration-entry artifacts such as progression, foundational
-evidence, route plans, receipts, envelopes, relational routing, bridge
-routing, and signal compatibility now need to carry aspect-aware semantic
-granularity too. The same discipline applies there: aspects are contracts, not
-optional decoration, and later binding/orchestration phases should consume
-retained aspect truth instead of re-inferring it from broad artifact classes.
+The aspect story extends beyond runtime reads, computed surfaces, and effects.
+Declaration-entry artifacts such as progression, foundational evidence, route
+plans, receipts, envelopes, relational routing, bridge routing, and Signal
+compatibility carry aspect-aware semantic granularity. The same discipline
+applies there: aspects are contracts, not optional decoration, and later
+binding or orchestration consumes retained aspect truth.
 
-In the currently shipped declaration-entry retrofit, that means:
+The public declaration-boundary contract is:
 
 - envelopes publish the public semantic slice
 - relational routing lowers only the relational slice from that publication
 - bridge routing lowers only the bridge slice and separately freezes what
   actually mapped into bridge continuation semantics
-- signal compatibility checks dependency and produced-aspect posture against
-  the envelope slice before later execution exists
+- Signal compatibility checks dependency and produced-aspect posture against
+  the envelope slice before execution admission
 
-So aspects are now doing the same kind of load-bearing work on the
-declaration-entry side that they already do in runtime, relational, bridge,
-and signal execution surfaces.
+Aspects therefore carry the same load-bearing meaning across declaration,
+runtime, relational, bridge, and Signal surfaces.
 
 ## Related Docs
 

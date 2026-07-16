@@ -266,15 +266,15 @@ edition = "2021"
         for (package, export) in [
             (
                 "worth-query-decl",
-                "pub use worth_query::facade::CanonicalQueryArtifact;\n",
+                "pub use worth_query::facade::foundation::CanonicalQueryArtifact;\n",
             ),
             (
                 "worth-query-host",
-                "pub use worth_query::facade::WorthQueryApplicationFacade;\n",
+                "pub use worth_query::facade::domain;\npub use worth_query::facade::runtime;\n",
             ),
             (
                 "worth-query-replay",
-                "pub use worth_query::facade::ReplayBasisCapability;\n",
+                "pub use worth_query::facade::foundation::ScopedReplayBasis;\n",
             ),
         ] {
             self.write_file(

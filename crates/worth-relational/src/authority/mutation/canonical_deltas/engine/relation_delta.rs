@@ -82,3 +82,35 @@ pub(super) fn evaluate_relation_delta(
         evaluated_bindings,
     ))
 }
+
+pub(super) fn evaluate_relation_update_delta(
+    workspace: &MutationWorkspace<'_>,
+    relation_id: crate::identity::data::RelationId,
+    kind_id: crate::identity::data::KindId,
+    old_state: RelationState<'_>,
+    new_state: RelationState<'_>,
+    authoritative_patch: Option<&worth_foundational::facade::AuthoritativeRecordAspectPatch>,
+) -> Result<CanonicalRecordAspectDelta, CanonicalDeltaError> {
+    match authoritative_patch {
+        Some(patch) => {
+            let plan = workspace
+                .relation_aspect_plan(kind_id)
+                .ok_or(CanonicalDeltaError::MissingRelationAspectPlan { kind_id })?;
+            Ok(evaluate_authoritative_patch_delta(
+                RecordRef::Relation(relation_id),
+                kind_id,
+                plan,
+                RecordStructuralChange::Updated,
+                patch,
+            ))
+        }
+        None => evaluate_relation_delta(
+            workspace,
+            relation_id,
+            kind_id,
+            old_state,
+            new_state,
+            RecordStructuralChange::Updated,
+        ),
+    }
+}

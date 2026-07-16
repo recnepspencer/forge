@@ -1,8 +1,8 @@
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::{
     BridgePreviewDiscardRecordIdentity, BridgePreviewLifecycleStateKind, BridgePreviewReplayBundle,
     PreviewExecutionRecordIdentity, TruthBranchIdentity,
 };
+use crate::speculation::BridgePreviewSessionIdentity;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::harness::adapter::adapter_impl) struct SpeculationPreviewReplayBundleSet {

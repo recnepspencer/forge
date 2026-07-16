@@ -1,7 +1,4 @@
-use worth_query::facade::foundation::{
-    BasisSupportPosture,
-    WorthQueryCapabilityStatus,
-};
+use worth_query::facade::foundation::{BasisSupportPosture, WorthQueryCapabilityStatus};
 use worth_query::facade::runtime::QuerySubscriptionSupportPosture;
 
 use crate::runtime::candidate::WorthUiCandidateDependencyMetadata;
@@ -145,22 +142,14 @@ fn fold_text(text: &str) -> u64 {
 #[cfg(test)]
 mod tests {
     use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support,
-    BasisFamily,
-    ResultShapeFamily,
-    WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily,
-    WorthQueryConfig,
-    WorthQueryQueryConfig,
-    WorthQueryRelationalConfig,
-    WorthQueryRuntimeBridgeConfig,
-    WorthQuerySignalConfig,
-};
-use worth_query::facade::runtime::{
-    QuerySubscriptionFamily,
-    QuerySubscriptionSupportPosture,
-    ViewShapeDescriptor,
-};
+        discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily,
+        WorthQueryCapabilityFamily, WorthQueryConfig, WorthQueryQueryConfig,
+        WorthQueryRelationalConfig, WorthQueryRuntimeBridgeConfig, WorthQuerySignalConfig,
+        WorthQuerySupportReport,
+    };
+    use worth_query::facade::runtime::{
+        QuerySubscriptionFamily, QuerySubscriptionSupportPosture, ViewShapeDescriptor,
+    };
 
     use crate::capability::{
         QueryBasisPostureReference, QueryDenialPresentation, QueryLiveCompatibility,
@@ -270,12 +259,12 @@ use worth_query::facade::runtime::{
     }
 
     fn runtime_backed_query_capability() -> QueryViewCapabilityReference {
-        query_capability_from_facade(WorthQueryApplicationFacade::runtime_backed_default())
+        query_capability_from_report(WorthQuerySupportReport::runtime_backed_default())
     }
 
     fn disabled_query_capability() -> QueryViewCapabilityReference {
-        query_capability_from_facade(
-            WorthQueryApplicationFacade::new(
+        query_capability_from_report(
+            WorthQuerySupportReport::from_config(
                 WorthQueryConfig::runtime_backed_default()
                     .with_query(WorthQueryQueryConfig::disabled())
                     .with_signal(WorthQuerySignalConfig::disabled())
@@ -286,10 +275,9 @@ use worth_query::facade::runtime::{
         )
     }
 
-    fn query_capability_from_facade(
-        facade: WorthQueryApplicationFacade,
+    fn query_capability_from_report(
+        query_support: WorthQuerySupportReport,
     ) -> QueryViewCapabilityReference {
-        let query_support = facade.support_report();
         let query_capability = query_support
             .support_matrix()
             .descriptor(WorthQueryCapabilityFamily::QueryComposition)

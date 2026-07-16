@@ -1,14 +1,14 @@
-use worth_query::facade::foundation::{AspectFieldKey, DeclarativeEqualityFilter, DeclarativeIntegerComparisonFilter, DeclarativePredicateFilter, DeclarativePresenceFilter, DeclarativeSetMembershipFilter, DeclarativeStringContainsFilter, ScalarPredicateValue};
+use worth_query::facade::foundation::{AspectFieldKey, DeclarativeEqualityFilter, DeclarativeNativeComparisonFilter, DeclarativePredicateFilter, DeclarativePresenceFilter, DeclarativeSetMembershipFilter, DeclarativeStringContainsFilter, WorthQueryPredicateOperand};
 
 fn main() {
     let equality = DeclarativeEqualityFilter::new(
         AspectFieldKey::from_authoring_parts("identity", "id").unwrap(),
-        ScalarPredicateValue::String("a".into()),
+        WorthQueryPredicateOperand::string("a".into()),
     );
     let _ = equality.aspect();
     let _ = equality.field();
 
-    let integer = DeclarativeIntegerComparisonFilter::greater_than(
+    let integer = DeclarativeNativeComparisonFilter::greater_than(
         AspectFieldKey::from_authoring_parts("metrics", "rank").unwrap(),
         1,
     );
@@ -24,7 +24,7 @@ fn main() {
 
     let membership = DeclarativeSetMembershipFilter::new(
         AspectFieldKey::from_authoring_parts("status", "value").unwrap(),
-        [ScalarPredicateValue::String("open".into())],
+        [WorthQueryPredicateOperand::string("open".into())],
     );
     let _ = membership.aspect();
     let _ = membership.field();

@@ -1,4 +1,4 @@
-use worth_query::facade::runtime::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+use worth_query::facade::runtime::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
 use worth_query::facade::foundation::{AspectFieldSelector, AuthoredResultShapeField};
 
 fn main() {
@@ -7,7 +7,7 @@ fn main() {
             "user",
             QuerySchemaView::new(
                 "raw-domain-op",
-                [SchemaFieldView::new(worth_query::facade::foundation::AspectName::new("identity").expect("schema aspect literal must be valid"), worth_query::facade::foundation::FieldName::new("id").expect("schema field literal must be valid"), SchemaFieldKind::String)],
+                [SchemaFieldView::new(worth_query::facade::foundation::AspectName::new("identity").expect("schema aspect literal must be valid"), worth_query::facade::foundation::FieldName::new("id").expect("schema field literal must be valid"), ScalarAspectType::String)],
                 [],
             ),
             |query| {

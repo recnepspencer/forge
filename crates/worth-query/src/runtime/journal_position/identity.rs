@@ -12,11 +12,6 @@ impl WorthQueryJournalPositionAdmissionError {
     fn new(reason: &'static str) -> Self {
         Self { reason }
     }
-
-    #[allow(dead_code)]
-    pub fn reason(&self) -> &'static str {
-        self.reason
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]

@@ -1,33 +1,41 @@
 use crate::authority::mutation::outcomes::MutationOutcome;
 use crate::authority::mutation::record_changes::allocate_entity_with_extra;
 use crate::authority::mutation::MutationWorkspace;
-use crate::transactions::data::{CommitConflict, ConflictClass, CreatedEntityRef, EntitySpec};
+use crate::storage::logic::state::EntityExtra;
+use crate::transactions::data::{
+    CommitConflict, CreatedEntityRef, EntitySpec, RecordAspectPatchTarget,
+};
+use worth_foundational::facade::PortablePatchReadmissionPurpose;
 
-use super::entity_field_creation_aspects::plan_entity_field_creation_aspects;
+use super::field_authoring_candidate::FieldAuthoringDomain;
+use super::record_aspect_patch;
 
 pub(super) fn apply(
     spec: &EntitySpec,
     workspace: &mut MutationWorkspace<'_>,
 ) -> Result<MutationOutcome, CommitConflict> {
     let version_id = workspace.version_id();
-    let aspect_plan = plan_entity_field_creation_aspects(
-        spec.kind_id,
-        workspace.entity_aspect_plan(spec.kind_id),
+    let target = RecordAspectPatchTarget::EntityCreation {
+        kind_id: spec.kind_id,
+    };
+    let patch = record_aspect_patch::readmit_field_authoring(
         &spec.fields,
-    )
-    .map_err(|denial| {
-        CommitConflict::new(ConflictClass::EntityAuthoritativeAspectStateDenied {
-            kind_id: spec.kind_id,
-            denial,
-        })
-    })?;
+        PortablePatchReadmissionPurpose::RecordCreation,
+        workspace.entity_aspect_plan(spec.kind_id),
+        target,
+        FieldAuthoringDomain::Entity,
+    )?;
+    let authoritative_aspect_state = record_aspect_patch::apply(None, &patch, target)?;
     let entity_id = workspace.with_context(|context| {
         let entity_id = allocate_entity_with_extra(
             context.state,
             version_id,
             spec.partition_id,
             spec.kind_id,
-            aspect_plan.extra,
+            EntityExtra {
+                authoritative_aspect_state,
+                ..EntityExtra::default()
+            },
         );
         context
             .state
@@ -45,6 +53,6 @@ pub(super) fn apply(
     Ok(MutationOutcome::entity_created(
         entity_id,
         spec.kind_id,
-        aspect_plan.authoritative_patch,
+        record_aspect_patch::published_patch(patch),
     ))
 }

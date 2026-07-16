@@ -1,14 +1,9 @@
 use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support,
-    BasisFamily,
-    ResultShapeFamily,
-    WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily,
+    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily, WorthQueryCapabilityFamily,
+    WorthQuerySupportReport,
 };
 use worth_query::facade::runtime::{
-    QuerySubscriptionFamily,
-    QuerySubscriptionSupportPosture,
-    ViewShapeDescriptor,
+    QuerySubscriptionFamily, QuerySubscriptionSupportPosture, ViewShapeDescriptor,
 };
 
 use super::replacement_impact_test_support::{
@@ -22,10 +17,7 @@ use crate::capability::{
     ThemeColorValue, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource,
     ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
 };
-use crate::facade::{
-    WorthUi,
-    WorthUiApp,
-};
+use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::{WorthUiRuntimeLaunch, WorthUiSourceProvider, WorthUiWatchedArtifactInput};
 use crate::source::{WorthUiArtifact, WorthUiRustAuthoredArtifactInputModule};
 
@@ -148,7 +140,7 @@ fn theme_token(id: &str, color: &str) -> ThemeTokenDescriptor {
 }
 
 fn query_binding(id: &str) -> ViewBindingDescriptor {
-    let support_report = WorthQueryApplicationFacade::runtime_backed_default().support_report();
+    let support_report = WorthQuerySupportReport::runtime_backed_default();
     let query_capability = support_report
         .support_matrix()
         .descriptor(WorthQueryCapabilityFamily::QueryComposition)

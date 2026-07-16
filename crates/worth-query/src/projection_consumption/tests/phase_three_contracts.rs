@@ -375,7 +375,7 @@ fn bound_fact_inventory_preserves_requested_kind_and_field_shape() {
                         .expect("projection fact field segment should admit"),
                 ]),
             )
-            .derived_scalar_field_path(
+            .derived_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
                     worth_foundational::facade::FieldKey::new("profile")
                         .expect("projection fact field segment should admit"),
@@ -406,7 +406,7 @@ fn bound_fact_inventory_preserves_requested_kind_and_field_shape() {
                 Some(canonical_field_path("profile.display_name"))
             ),
             (
-                ProjectionFactKind::DerivedScalarField,
+                ProjectionFactKind::DerivedField,
                 Some(canonical_field_path("profile.display_name"))
             ),
         ]

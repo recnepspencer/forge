@@ -1,15 +1,13 @@
 use std::collections::BTreeMap;
 
-use crate::identity::hash_parts;
-use crate::runtime::computed::WorthQueryDerivedViewHandle;
-use crate::runtime::WorthQueryRuntimeError;
-use worth_foundational::facade::AspectValue;
-
-use super::retained_scalar_values::retained_scalar_value_digest_text;
 use super::{
     WorthQueryDerivedArtifactBinding, WorthQueryDerivedMaterializationResult,
     WorthQueryDerivedMaterializationTarget, WorthQueryRetainedFieldPath,
 };
+use crate::identity::hash_parts;
+use crate::runtime::computed::WorthQueryDerivedViewHandle;
+use crate::runtime::WorthQueryRuntimeError;
+use worth_foundational::facade::{prepare_aspect_value_identity_basis, AspectValue};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthQueryRetainedScalarFieldFact {
@@ -54,7 +52,7 @@ impl WorthQueryRetainedScalarRow {
             .iter()
             .map(|field_path| {
                 let terminal_field_key = field_path.terminal_projection_for_boundary();
-                let value = row.field_value_at(field_path).ok_or_else(|| {
+                let value = row.scalar_value_at(field_path).ok_or_else(|| {
                     WorthQueryRuntimeError::RetainedRowDecode {
                         view_name: view_name.to_string(),
                         stage: "retained-scalar-row-admission",
@@ -181,7 +179,7 @@ fn retained_scalar_fact_set_from_facts(
                 format!(
                     "field:{}:{}",
                     fact.field_path().terminal_projection_for_boundary(),
-                    retained_scalar_value_digest_text(fact.value())
+                    prepare_aspect_value_identity_basis(fact.value()).as_str()
                 )
             }))
             .collect::<Vec<_>>(),
@@ -217,4 +215,5 @@ fn consume_scalar_field_paths_from_materialization(
 
 #[cfg(test)]
 #[path = "retained_scalar_facts_tests.rs"]
+#[cfg(test)]
 mod retained_scalar_facts_tests;

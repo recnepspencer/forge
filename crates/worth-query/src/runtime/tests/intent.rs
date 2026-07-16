@@ -15,18 +15,20 @@ fn strategy_intent_commit_routes_query_delivery_and_returns_canonical_receipt() 
         .inspector_evidence(TestInspectorEvidence)
         .intent_authority(TestIntentAuthority)
         .support_profile(intent_support_profile())
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native intent test contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.intent",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.intent", test_aspect_touches(["title"]))
                 .depends_on_live(&live)
                 .produces(test_aspect_touches(["title.summary"])),
@@ -34,7 +36,7 @@ fn strategy_intent_commit_routes_query_delivery_and_returns_canonical_receipt() 
         )
         .expect("computed should declare");
     let delivery_effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::deliver(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::deliver(
             "ui.intent",
             WorthQueryEffectTrigger::computed_view(
                 &computed,
@@ -132,14 +134,14 @@ fn intent_receipt_inspection_explains_strategy_lanes_and_delivery_counters() {
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.intent-inspection",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new(
                 "computed.intent-inspection",
                 test_aspect_touches(["title"]),
@@ -150,7 +152,7 @@ fn intent_receipt_inspection_explains_strategy_lanes_and_delivery_counters() {
         )
         .expect("computed should declare");
     runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::deliver(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::deliver(
             "ui.intent-inspection",
             WorthQueryEffectTrigger::computed_view(
                 &computed,
@@ -226,18 +228,20 @@ fn idempotent_intent_noop_emits_receipt_without_mutation_or_signal_routing() {
         .inspector_evidence(TestInspectorEvidence)
         .intent_authority(NoopIntentAuthority)
         .support_profile(intent_support_profile())
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native intent test contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.noop-intent",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.noop-intent", test_aspect_touches(["title"]))
                 .depends_on_live(&live)
                 .produces(test_aspect_touches(["title.summary"])),
@@ -245,7 +249,7 @@ fn idempotent_intent_noop_emits_receipt_without_mutation_or_signal_routing() {
         )
         .expect("computed should declare");
     let delivery_effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::deliver(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::deliver(
             "ui.noop-intent",
             WorthQueryEffectTrigger::computed_view(
                 &computed,
@@ -495,14 +499,14 @@ fn invariant_violation_intent_denies_with_evidence_without_partial_publication()
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.invariant-denial",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.invariant-denial", test_aspect_touches(["title"]))
                 .depends_on_live(&live)
                 .produces(test_aspect_touches(["title.summary"])),
@@ -510,7 +514,7 @@ fn invariant_violation_intent_denies_with_evidence_without_partial_publication()
         )
         .expect("computed should declare");
     let delivery_effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::deliver(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::deliver(
             "ui.invariant-denial",
             WorthQueryEffectTrigger::computed_view(
                 &computed,
@@ -796,6 +800,8 @@ fn strategy_drift_denial_inspection_keeps_declared_and_returned_strategy_separat
 #[test]
 fn effect_triggered_pending_write_intent_executes_through_intent_authority_once() {
     let mut runtime = WorthQueryRuntime::builder()
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("intent test aspect contracts should install")
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
@@ -811,14 +817,14 @@ fn effect_triggered_pending_write_intent_executes_through_intent_authority_once(
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.effect-intent",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.reconcile-title",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",
@@ -979,14 +985,14 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.deep-runtime",
             task_live_request(),
             task_schema(),
         )
         .expect("live view should install a subscription");
     let titles = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.deep.titles", test_aspect_touches(["title"]))
                 .depends_on_live(&live)
                 .produces(test_aspect_touches(["title.summary"])),
@@ -994,7 +1000,7 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
         )
         .expect("source computed should declare");
     let readiness = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new(
                 "computed.deep.readiness",
                 test_aspect_touches(["title.summary"]),
@@ -1005,7 +1011,7 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
         )
         .expect("nested computed should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(
             WorthQueryEffectDeclaration::write_intent(
                 "effects.deep.reconcile-readiness",
                 WorthQueryEffectTrigger::computed_view(
@@ -1261,6 +1267,8 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
 fn effect_triggered_idempotent_intent_noop_consumes_pending_work_without_feedback() {
     let routed = std::rc::Rc::new(std::cell::Cell::new(0));
     let mut runtime = WorthQueryRuntime::builder()
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("intent test aspect contracts should install")
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
         .source_adapter(TestSourceAdapter::default())
@@ -1278,14 +1286,14 @@ fn effect_triggered_idempotent_intent_noop_consumes_pending_work_without_feedbac
         .build()
         .expect("intent-capable runtime should build");
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.effect-noop-intent",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.noop-reconcile-title",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",

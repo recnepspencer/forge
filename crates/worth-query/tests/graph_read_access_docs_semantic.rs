@@ -2,9 +2,10 @@ use std::collections::BTreeSet;
 
 use worth_query::facade::runtime::WorthQueryGraphReadAccessRequirementKind;
 
-mod support;
+use crate::support;
 
 use support::graph_index_inventory::runtime_profiles::default_graph_support_workspace;
+use support::graph_read_access::hostile_graph_fixture::seed_hostile_frontier_graph;
 use support::graph_read_access::read_surface_declarations::graph_access_family;
 
 const GRAPH_READ_ACCESS_DOC: &str = include_str!("../docs/authoring/graph-read-access-planning.md");
@@ -13,6 +14,7 @@ const AI_README: &str = include_str!("../docs/AI_README.md");
 #[test]
 fn documented_explicit_access_plan_flow_executes_and_receipts_the_same_plan() {
     let mut workspace = default_graph_support_workspace("graph-read-access.docs.semantic-flow");
+    seed_hostile_frontier_graph(&mut workspace, "docs-semantic-flow");
     let family = graph_access_family(&mut workspace, "docs-semantic-flow");
     let access_plan = workspace
         .read_family_intent(&family)

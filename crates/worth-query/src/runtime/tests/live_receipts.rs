@@ -18,10 +18,12 @@ fn runtime_write_denies_when_signal_routing_receipt_drifts_from_write_receipt() 
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native live receipt contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("backend with drifting signal receipt should still build");
-    let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("external.tasks", task_live_request(), task_schema())
         .expect("live view should declare before hostile write");
 
@@ -60,6 +62,8 @@ fn runtime_write_denies_authority_less_receipt_at_signal_routing_boundary() {
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native live receipt contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("backend with authority-less write authority should build");
@@ -95,10 +99,12 @@ fn runtime_batch_write_denies_when_signal_routing_batch_width_drifts_from_receip
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native live receipt contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("backend with truncating signal batch sink should still build");
-    let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("external.tasks.batch", task_live_request(), task_schema())
         .expect("live view should declare before hostile batch write");
 
@@ -158,10 +164,12 @@ fn runtime_live_read_receipt_retains_materialized_remask_posture() {
         })
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native live receipt contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("remasked runtime should build");
-    let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("external.tasks.remask", task_live_request(), task_schema())
         .expect("live view should declare");
 
@@ -197,7 +205,7 @@ fn runtime_live_read_receipt_retains_materialized_remask_posture() {
 #[test]
 fn runtime_live_read_receipt_retains_time_only_materialized_posture() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view(
             "external.tasks.time-only",
             task_live_request(),
@@ -246,7 +254,7 @@ fn runtime_live_read_receipt_retains_time_only_materialized_posture() {
 #[test]
 fn runtime_live_read_receipt_retains_async_and_mixed_cause_posture_precedence() {
     let mut async_runtime = stateful_bridge_task_runtime();
-    let async_view: WorthQueryLiveView<WorthQueryNativeRow> = async_runtime
+    let async_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = async_runtime
         .declare_live_view("external.tasks.async", task_live_request(), task_schema())
         .expect("async live view should declare");
     let (basis_digest, generation_digest) =
@@ -308,7 +316,7 @@ fn runtime_live_read_receipt_retains_async_and_mixed_cause_posture_precedence() 
         )
         .expect("mixed-cause delivery window should plan");
     let mut mixed_runtime = stateful_bridge_task_runtime();
-    let mixed_view: WorthQueryLiveView<WorthQueryNativeRow> = mixed_runtime
+    let mixed_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = mixed_runtime
         .declare_live_view("external.tasks.mixed", task_live_request(), task_schema())
         .expect("mixed live view should declare");
     mixed_runtime

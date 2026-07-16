@@ -1,6 +1,6 @@
 use crate::authoring::{
     AspectFieldSelector, CollectionQueryBuilder, DetailQueryBuilder, EqualityPredicate,
-    IntegerComparisonPredicate, OrderingSelector, PresencePredicate, SetMembershipPredicate,
+    NativeComparisonPredicate, OrderingSelector, PresencePredicate, SetMembershipPredicate,
     StringContainsPredicate,
 };
 
@@ -19,12 +19,12 @@ impl DetailReadOperatorQueryBuilder {
         self
     }
 
-    pub fn where_greater_than(mut self, predicate: IntegerComparisonPredicate) -> Self {
+    pub fn where_greater_than(mut self, predicate: NativeComparisonPredicate) -> Self {
         self.query = self.query.where_greater_than(predicate);
         self
     }
 
-    pub fn where_less_than(mut self, predicate: IntegerComparisonPredicate) -> Self {
+    pub fn where_less_than(mut self, predicate: NativeComparisonPredicate) -> Self {
         self.query = self.query.where_less_than(predicate);
         self
     }
@@ -73,12 +73,12 @@ impl CollectionReadOperatorQueryBuilder {
         self
     }
 
-    pub fn where_greater_than(mut self, predicate: IntegerComparisonPredicate) -> Self {
+    pub fn where_greater_than(mut self, predicate: NativeComparisonPredicate) -> Self {
         self.query = self.query.where_greater_than(predicate);
         self
     }
 
-    pub fn where_less_than(mut self, predicate: IntegerComparisonPredicate) -> Self {
+    pub fn where_less_than(mut self, predicate: NativeComparisonPredicate) -> Self {
         self.query = self.query.where_less_than(predicate);
         self
     }

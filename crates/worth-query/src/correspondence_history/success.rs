@@ -41,6 +41,7 @@ impl CorrespondenceHistoricalSuccessEnvelope {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn new(
         execution: ExecutionResultEnvelope,
         correspondence: CorrespondenceEvidenceResolved,
@@ -96,6 +97,7 @@ impl CorrespondenceHistoricalAmbiguityEnvelope {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn new(
         execution: ExecutionResultEnvelope,
         correspondence: CorrespondenceEvidenceResolved,
@@ -153,6 +155,7 @@ impl CorrespondenceHistoricalDisagreementEnvelope {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn new(
         execution: ExecutionResultEnvelope,
         correspondence: CorrespondenceEvidenceResolved,

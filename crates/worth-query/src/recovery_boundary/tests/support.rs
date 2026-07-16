@@ -1,11 +1,11 @@
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationAspectContract, WorthQueryDeclarationCanonicalEntry,
-    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRouteContract,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryInstalledDomainDeclarationContext, WorthQueryNeighborhoodCapableGrouping,
-    WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
+    WorthQueryDeclarationRouteContract, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
+    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
+    WorthQuerySignalCompatiblePosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -48,8 +48,11 @@ impl WorthQueryDomainOperatingContext<RecoveryDomain> for RecoveryWorld {
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("recovery.{}", self.regime)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("recovery.{}", self.regime) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 

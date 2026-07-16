@@ -4,14 +4,14 @@ use super::super::support::*;
 fn runtime_surfaces_authority_lanes_on_public_handles_and_receipts() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.authority",
             task_live_request(),
             task_schema(),
         )
         .expect("live view should declare");
     let derived = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("task_titles.authority", test_aspect_touches(["title"])),
             TitleListMaintainer,
         )
@@ -156,7 +156,11 @@ fn sandboxed_preview_policy_admits_only_sandboxed_write_intents() {
 fn derive_only_preview_denies_operation_write_effects() {
     let mut runtime = stateful_bridge_task_runtime();
     runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare before preview-safe operation runs");
     let program = preview_safe_program();
     let installed = runtime

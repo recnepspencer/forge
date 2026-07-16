@@ -2,7 +2,7 @@
 //!
 //! This specimen depends on the workspace `worth-query-decl` and
 //! `worth-query-host` packages (not vendor stubs) and proves the exported types
-//! are nominally identical to `worth_query::facade` items. Direct engine use is
+//! are nominally identical to their `worth_query::facade` items. Direct engine use is
 //! confined to this equivalence specimen; production denial of direct engine
 //! edges remains in `query_audience_contract`.
 
@@ -83,19 +83,19 @@ worth-query = {{ path = {} }}
         r#"//! Entry-band ordinary caller: declaration + host audience imports.
 
 use worth_query_decl::facade::CanonicalQueryArtifact;
-use worth_query_host::facade::WorthQueryApplicationFacade;
+use worth_query_host::facade::runtime::WorthQueryRuntime;
 
 /// Nominal identity: decl re-export is the engine type (no wrapper).
 pub fn retain_declaration_artifact(
-    engine: worth_query::facade::CanonicalQueryArtifact,
+    engine: worth_query::facade::foundation::CanonicalQueryArtifact,
 ) -> CanonicalQueryArtifact {
     engine
 }
 
 /// Nominal identity: host re-export is the engine type (no wrapper).
-pub fn retain_host_facade(
-    engine: worth_query::facade::WorthQueryApplicationFacade,
-) -> WorthQueryApplicationFacade {
+pub fn retain_host_runtime(
+    engine: worth_query::facade::runtime::WorthQueryRuntime,
+) -> WorthQueryRuntime {
     engine
 }
 "#,

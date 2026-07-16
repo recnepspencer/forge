@@ -17,7 +17,7 @@ pub(crate) fn admitted_preview_basis_for_truth(
 ) -> crate::facade::BridgeSubscriptionPreviewBasisBinding {
     let admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::runtime::BridgePreviewSessionIdentity::admit_bridge_owned(format!(
+            crate::speculation::BridgePreviewSessionIdentity::admit_bridge_owned(format!(
                 "preview-session:{suffix}"
             )),
             subscription_preview_declaration_for_truth(
@@ -45,7 +45,7 @@ pub(crate) fn preview_promotion_detail_subscription(
     let (runtime, ready) = activation_ready_detail_subscription();
     let admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::runtime::BridgePreviewSessionIdentity::admit_bridge_owned(format!(
+            crate::speculation::BridgePreviewSessionIdentity::admit_bridge_owned(format!(
                 "preview-session:{suffix}"
             )),
             subscription_preview_declaration(suffix),
@@ -119,7 +119,7 @@ pub(crate) fn preview_active_subscription_from_ready(
 ) {
     let admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::runtime::BridgePreviewSessionIdentity::admit_bridge_owned(format!(
+            crate::speculation::BridgePreviewSessionIdentity::admit_bridge_owned(format!(
                 "preview-session:{suffix}"
             )),
             subscription_preview_declaration(suffix),

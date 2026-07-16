@@ -12,6 +12,7 @@ mod lanes {
     pub(super) mod bundle_parts;
 }
 mod row;
+#[cfg(test)]
 mod tests;
 
 pub const MILESTONE_NINE_FIVE_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[

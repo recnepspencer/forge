@@ -1,25 +1,18 @@
 #![cfg(test)]
 
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
+use worth_query::facade::certification::resolve_runtime_current_snapshot_basis_for_certification;
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
-use worth_query::facade::runtime::{
-    QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryReadBuilder, WorthQueryReadDenial,
-    WorthQueryWorkspace,
+use worth_query::facade::foundation::{
+    snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
+    ProjectionFactFieldPath, WorthQueryPredicateOperand,
 };
 use worth_query::facade::read::{current, declare, project_facts};
-use worth_query::facade::certification::resolve_runtime_current_snapshot_basis_for_certification;
-use worth_query::facade::foundation::{
-    snapshot_resolution_report,
-    AspectFieldSelector,
-    AuthoredResultShapeField,
-    EqualityPredicate,
-    ProjectionFactFieldPath,
-    ScalarPredicateValue,
-};
 use worth_query::facade::runtime::{
-    WorthQueryAspectTouch,
-    WorthQueryAuthoredAspectValue,
+    QuerySchemaView, SchemaFieldView, WorthQueryReadBuilder, WorthQueryReadDenial,
+    WorthQueryWorkspace,
 };
+use worth_query::facade::runtime::{WorthQueryAspectTouch, WorthQueryAuthoredAspectValue};
 
 use crate::graph::UiGraphWorldProfile;
 
@@ -56,9 +49,8 @@ pub(crate) fn display_field_plus_entity_identity_projection_context(
         snapshot_resolution_report(&basis),
     )
     .expect("query world profile should align to basis resolution");
-    let (authority, _) =
-        worth_ui_query_binding::WorthUiQueryAuthorityHandle::from_outcome(outcome)
-            .expect("real Query consumption should mint authority");
+    let (authority, _) = worth_ui_query_binding::WorthUiQueryAuthorityHandle::from_outcome(outcome)
+        .expect("real Query consumption should mint authority");
     (prerequisites, authority, world_profile)
 }
 
@@ -69,6 +61,8 @@ fn measurement_projection_workspace(
     worth_query::facade::foundation::QuerySchemaBasisAuthority,
 ) {
     let schema = WorthQueryTestBackendSchema::single_collection("task")
+        .aspect_contracts(worth_ui_query_binding::worth_ui_native_aspect_contracts())
+        .expect("Worth UI native aspect contracts should admit")
         .aspect("identity.id", "identity.id")
         .expect("identity aspect should admit")
         .aspect("size.value", "size.value")
@@ -87,7 +81,11 @@ fn measurement_projection_workspace(
             )
             .set_aspect(
                 aspect_touch("size.value"),
-                WorthQueryAuthoredAspectValue::string("240"),
+                WorthQueryAuthoredAspectValue::native(
+                    worth_foundational::facade::AspectValue::Float32(
+                        worth_foundational::facade::CanonicalF32::from_f32(240.0),
+                    ),
+                ),
             )
         })
         .expect("fixture insert should admit");
@@ -106,7 +104,7 @@ fn title_family_graph<Output>(
                     EqualityPredicate::new(
                         "identity",
                         "id",
-                        ScalarPredicateValue::String("task".to_string()),
+                        WorthQueryPredicateOperand::string("task".to_string()),
                     )
                     .expect("identity anchor predicate should build"),
                 )
@@ -123,13 +121,16 @@ fn task_query_schema() -> QuerySchemaView {
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("identity")
                     .expect("schema aspect should admit"),
-                worth_query::facade::foundation::FieldName::new("id").expect("schema field should admit"),
-                SchemaFieldKind::String,
+                worth_query::facade::foundation::FieldName::new("id")
+                    .expect("schema field should admit"),
+                worth_foundational::facade::ScalarAspectType::String,
             ),
             SchemaFieldView::new(
-                worth_query::facade::foundation::AspectName::new("size").expect("schema aspect should admit"),
-                worth_query::facade::foundation::FieldName::new("value").expect("schema field should admit"),
-                SchemaFieldKind::String,
+                worth_query::facade::foundation::AspectName::new("size")
+                    .expect("schema aspect should admit"),
+                worth_query::facade::foundation::FieldName::new("value")
+                    .expect("schema field should admit"),
+                worth_foundational::facade::ScalarAspectType::Float32,
             ),
         ],
         [],

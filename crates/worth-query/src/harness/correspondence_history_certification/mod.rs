@@ -3,6 +3,7 @@ mod fixtures;
 mod model;
 mod row_catalog;
 mod rows;
+#[cfg(test)]
 mod tests;
 
 pub use adapter::MilestoneFivePointFourCorrespondenceHistoryCertificationAdapter;

@@ -1,4 +1,7 @@
-use worth_foundational::facade::{AspectValue, InternedString};
+use worth_foundational::facade::{
+    prepare_aspect_value_identity_basis, prepare_struct_aspect_value_identity_basis, AspectValue,
+    ContractValidationInput, StructAspectValue,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum WorthQueryDesiredAspectOperation {
@@ -9,11 +12,11 @@ pub enum WorthQueryDesiredAspectOperation {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryDesiredAspectValue {
     operation: WorthQueryDesiredAspectOperation,
-    value: Option<AspectValue>,
+    value: Option<ContractValidationInput>,
 }
 
 impl WorthQueryDesiredAspectValue {
-    pub(crate) fn set_native(value: AspectValue) -> Self {
+    pub(crate) fn set_native(value: ContractValidationInput) -> Self {
         Self {
             operation: WorthQueryDesiredAspectOperation::Set,
             value: Some(value),
@@ -28,6 +31,20 @@ impl WorthQueryDesiredAspectValue {
     }
 
     pub fn value(&self) -> Option<&AspectValue> {
+        match self.value.as_ref() {
+            Some(ContractValidationInput::Scalar(value)) => Some(value),
+            Some(ContractValidationInput::Struct(_)) | None => None,
+        }
+    }
+
+    pub fn struct_value(&self) -> Option<&StructAspectValue> {
+        match self.value.as_ref() {
+            Some(ContractValidationInput::Struct(value)) => Some(value),
+            Some(ContractValidationInput::Scalar(_)) | None => None,
+        }
+    }
+
+    pub(crate) fn validation_input(&self) -> Option<&ContractValidationInput> {
         self.value.as_ref()
     }
 
@@ -38,54 +55,21 @@ impl WorthQueryDesiredAspectValue {
     pub(crate) fn terminal_digest_material(&self) -> String {
         match (self.operation, self.value.as_ref()) {
             (WorthQueryDesiredAspectOperation::Clear, _) => "clear".to_string(),
-            (WorthQueryDesiredAspectOperation::Set, Some(value)) => {
-                format!("set:{}", terminal_aspect_value_digest_text(value))
-            }
+            (
+                WorthQueryDesiredAspectOperation::Set,
+                Some(ContractValidationInput::Scalar(value)),
+            ) => format!(
+                "set:{}",
+                prepare_aspect_value_identity_basis(value).as_str()
+            ),
+            (
+                WorthQueryDesiredAspectOperation::Set,
+                Some(ContractValidationInput::Struct(value)),
+            ) => format!(
+                "set:{}",
+                prepare_struct_aspect_value_identity_basis(value).as_str()
+            ),
             (WorthQueryDesiredAspectOperation::Set, None) => "set:<missing>".to_string(),
         }
-    }
-}
-
-pub(crate) fn terminal_aspect_value_digest_text(value: &AspectValue) -> String {
-    match value {
-        AspectValue::Null => "null".to_string(),
-        AspectValue::Bool(value) => format!("bool:{value}"),
-        AspectValue::Int8(value) => format!("i8:{value}"),
-        AspectValue::Int16(value) => format!("i16:{value}"),
-        AspectValue::Int32(value) => format!("i32:{value}"),
-        AspectValue::Int64(value) => format!("i64:{value}"),
-        AspectValue::UInt8(value) => format!("u8:{value}"),
-        AspectValue::UInt16(value) => format!("u16:{value}"),
-        AspectValue::UInt32(value) => format!("u32:{value}"),
-        AspectValue::UInt64(value) => format!("u64:{value}"),
-        AspectValue::Float32(value) => format!("f32-bits:{}", value.bits()),
-        AspectValue::Float64(value) => format!("f64-bits:{}", value.bits()),
-        AspectValue::Decimal(value) => format!("decimal:{}", value.as_str()),
-        AspectValue::BigInt(value) => format!("bigint:{}", value.as_str()),
-        AspectValue::Rational(value) => format!(
-            "rational:{}/{}",
-            value.numerator.as_str(),
-            value.denominator.as_str()
-        ),
-        AspectValue::String(value) => match value {
-            InternedString::Raw(value) => format!("string:{}:{value}", value.len()),
-            InternedString::Symbol(symbol) => format!("symbol:{}", symbol.0),
-        },
-        AspectValue::Bytes(value) => format!("bytes-ref:{}", value.0),
-        AspectValue::Uuid(value) => value.iter().map(|byte| format!("{byte:02x}")).collect(),
-        AspectValue::Date(value) => format!("date-days:{}", value.days_from_unix_epoch),
-        AspectValue::Time(value) => format!("time-nanos:{}", value.nanos_since_midnight),
-        AspectValue::Timestamp(value) => {
-            format!("timestamp-micros:{}", value.micros_since_unix_epoch)
-        }
-        AspectValue::TimestampTz(value) => format!(
-            "timestamp-tz:{}:{}",
-            value.utc_micros_since_unix_epoch, value.offset_minutes
-        ),
-        AspectValue::EntityRef(value) => format!(
-            "entity:{}:{}:{}",
-            value.partition_id.0, value.local_slot.0, value.generation.0
-        ),
-        AspectValue::ContentRef(value) => format!("content-ref:{}", value.0),
     }
 }

@@ -1,23 +1,24 @@
 use worth_foundational::facade::{AspectKey, FieldKey};
 use worth_query::facade::foundation::{
     AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, OrderingSelector,
-    RelationName, ScalarPredicateValue, TraversalSelector,
+    RelationName, WorthQueryPredicateOperand, TraversalSelector,
     WorthQueryGraphReadDomainOperationDeclaration,
 };
-use worth_query::facade::runtime::{
+use crate::runtime::{
     derive_graph_read_access_requirements, explain_boolean_selectivity_shape_for_family,
-    explain_graph_read_access_requirement_outcome_for_family_with_operation_registry,
+    explain_graph_read_access_requirement_outcome_for_family_with_operation_lookup,
     explain_graph_read_access_requirements_for_family, explain_graph_read_access_shape_for_family,
-    try_derive_graph_read_access_requirements, QuerySchemaView, SchemaFieldKind, SchemaFieldView,
+    try_derive_graph_read_access_requirements, QuerySchemaView, ScalarAspectType, SchemaFieldView,
     SchemaRelationView, WorthQueryGraphReadAccessRequirementDerivationError,
     WorthQueryGraphReadAccessRequirementExplanationOutcome,
-    WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadOperationRegistration,
-    WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
+    WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
     WorthQueryGraphReadTraversalOperator,
 };
-use crate::runtime::WorthQueryGraphReadOperationRegistry;
+use crate::runtime::{
+    WorthQueryGraphReadOperationRegistration, WorthQueryGraphReadOperationRegistry,
+};
 
-mod support;
+use crate::support;
 
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
@@ -145,19 +146,19 @@ fn registry_requirement_outcome_exposes_registered_required_and_denied_paths() {
             ),
         );
 
-    let missing = explain_graph_read_access_requirement_outcome_for_family_with_operation_registry(
+    let missing = explain_graph_read_access_requirement_outcome_for_family_with_operation_lookup(
         &family,
         &WorthQueryGraphReadOperationRegistry::empty(),
     )
     .expect("missing capability should explain");
     let resolved =
-        explain_graph_read_access_requirement_outcome_for_family_with_operation_registry(
+        explain_graph_read_access_requirement_outcome_for_family_with_operation_lookup(
             &family,
             &registered,
         )
         .expect("registered capability should explain");
     let unsupported =
-        explain_graph_read_access_requirement_outcome_for_family_with_operation_registry(
+        explain_graph_read_access_requirement_outcome_for_family_with_operation_lookup(
             &family, &denied,
         )
         .expect("unsupported capability should explain");
@@ -208,7 +209,7 @@ fn successor_walk_counters_are_exact_not_elapsed_time_proxies() {
     assert_eq!(counters.materialization_lifecycle_count(), 1);
 }
 
-fn workspace(name: &str) -> worth_query::facade::runtime::WorthQueryWorkspace {
+fn workspace(name: &str) -> crate::runtime::WorthQueryWorkspace {
     PublicBridgeRuntimeHarness::new()
         .bridge_backed_runtime()
         .workspace(name)
@@ -216,10 +217,10 @@ fn workspace(name: &str) -> worth_query::facade::runtime::WorthQueryWorkspace {
 }
 
 fn traversal_family(
-    workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
+    workspace: &mut crate::runtime::WorthQueryWorkspace,
     family_name: &str,
     relation: &str,
-) -> worth_query::facade::runtime::WorthQueryReadFamily {
+) -> crate::runtime::WorthQueryReadFamily {
     workspace
         .define_read_family(family_name, |read| {
             read.anchored_collection(
@@ -237,9 +238,9 @@ fn traversal_family(
 }
 
 fn domain_operation_family(
-    workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
+    workspace: &mut crate::runtime::WorthQueryWorkspace,
     operation: WorthQueryGraphReadDomainOperationDeclaration,
-) -> worth_query::facade::runtime::WorthQueryReadFamily {
+) -> crate::runtime::WorthQueryReadFamily {
     workspace
         .define_read_family("phase-four-registry-outcome", |read| {
             read.anchored_collection(
@@ -291,7 +292,7 @@ fn equality(aspect: &str, field: &str, value: &str) -> EqualityPredicate {
     EqualityPredicate::new(
         aspect,
         field,
-        ScalarPredicateValue::String(value.to_string()),
+        WorthQueryPredicateOperand::string(value.to_string()),
     )
     .expect("equality predicate should build")
 }
@@ -304,7 +305,7 @@ fn relation_schema() -> QuerySchemaView {
                 .expect("schema aspect literal must be valid"),
             worth_query::facade::foundation::FieldName::new("id")
                 .expect("schema field literal must be valid"),
-            SchemaFieldKind::String,
+            ScalarAspectType::String,
         )],
         [SchemaRelationView::new(
             worth_query::facade::foundation::RelationName::new("manager")
@@ -323,21 +324,21 @@ fn two_relation_schema() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("status")
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("value")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [

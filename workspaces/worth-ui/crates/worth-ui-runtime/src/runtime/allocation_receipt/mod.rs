@@ -24,9 +24,9 @@ mod receipt_generation;
 mod receipt_identity;
 mod receipt_ledger;
 mod receipt_ledger_entry;
-#[cfg(any(test, feature = "certification-support"))]
+#[cfg(test)]
 mod receipt_ledger_test_support;
-#[cfg(any(test, feature = "certification-support"))]
+#[cfg(test)]
 pub(crate) use receipt_ledger_test_support::{
     detached_non_portal_receipt, UiNonPortalReceiptLawCandidate,
 };

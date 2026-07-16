@@ -7,14 +7,14 @@
 //! Blessed import:
 //!
 //! ```
-//! use worth_query_replay::facade::ReplayBasisCapability;
+//! use worth_query_replay::facade::ScopedReplayBasis;
 //! ```
 //!
 //! Type identity with the engine (no wrapper drift):
 //!
 //! ```
-//! use worth_query_replay::facade::ReplayBasisCapability;
-//! # fn _same_type(engine: worth_query::facade::ReplayBasisCapability) -> ReplayBasisCapability {
+//! use worth_query_replay::facade::ScopedReplayBasis;
+//! # fn _same_type(engine: worth_query::facade::foundation::ScopedReplayBasis) -> ScopedReplayBasis {
 //! #     engine
 //! # }
 //! ```

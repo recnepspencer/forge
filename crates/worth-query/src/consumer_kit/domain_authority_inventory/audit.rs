@@ -9,10 +9,6 @@ use super::model::{
 };
 use super::registry::worth_query_domain_authority_inventory_rows;
 
-pub fn current_domain_authority_inventory_audit() -> WorthQueryDomainAuthorityInventoryAudit {
-    audit_domain_authority_sources(&current_sources())
-}
-
 pub fn audit_domain_authority_sources(
     sources: &[WorthQueryDomainAuthoritySource],
 ) -> WorthQueryDomainAuthorityInventoryAudit {
@@ -131,21 +127,31 @@ impl<'a> DomainAuthorityVisitor<'a> {
 }
 
 impl<'ast> Visit<'ast> for DomainAuthorityVisitor<'_> {
+    fn visit_item_mod(&mut self, item: &'ast syn::ItemMod) {
+        if item.attrs.iter().any(is_test_cfg) {
+            return;
+        }
+        visit::visit_item_mod(self, item);
+    }
+
     fn visit_item_fn(&mut self, item: &'ast syn::ItemFn) {
+        let name = item.sig.ident.to_string();
         if is_public(&item.vis)
-            && is_candidate_function(&item.sig.ident.to_string(), &item.sig.output)
+            && ((is_effective_domain_facade_source(self.path)
+                && is_candidate_function(&name, &item.sig.output))
+                || is_raw_domain_authority_function(&name, &item.sig.output))
         {
-            self.record(
-                item.sig.ident.span().start().line,
-                item.sig.ident.to_string(),
-            );
+            self.record(item.sig.ident.span().start().line, name);
         }
         visit::visit_item_fn(self, item);
     }
 
     fn visit_item_struct(&mut self, item: &'ast syn::ItemStruct) {
         let name = item.ident.to_string();
-        if is_public(&item.vis) && is_candidate_type(&name) {
+        if (is_public(&item.vis) && is_candidate_type(&name))
+            || name.ends_with("OperationRegistry")
+            || name.contains("DomainAdapter")
+        {
             self.record(item.ident.span().start().line, name);
         }
         visit::visit_item_struct(self, item);
@@ -168,7 +174,7 @@ impl<'ast> Visit<'ast> for DomainAuthorityVisitor<'_> {
     fn visit_impl_item_fn(&mut self, item: &'ast syn::ImplItemFn) {
         let name = item.sig.ident.to_string();
         let owner = self.current_impl.as_deref().unwrap_or("<unknown>");
-        if is_public(&item.vis) && is_candidate_method(owner, &name, &item.sig.output) {
+        if is_public(&item.vis) && is_candidate_method(owner, &name) {
             self.record(
                 item.sig.ident.span().start().line,
                 format!("{owner}::{name}"),
@@ -178,8 +184,8 @@ impl<'ast> Visit<'ast> for DomainAuthorityVisitor<'_> {
     }
 
     fn visit_item_use(&mut self, item: &'ast syn::ItemUse) {
-        if is_public(&item.vis) {
-            collect_candidate_use_names(&item.tree, &mut |ident| {
+        if is_effective_facade_source(self.path) && is_public(&item.vis) {
+            collect_candidate_use_names(&item.tree, self.path, &mut |ident| {
                 self.record(ident.span().start().line, ident.to_string());
             });
         }
@@ -187,12 +193,31 @@ impl<'ast> Visit<'ast> for DomainAuthorityVisitor<'_> {
     }
 }
 
+fn is_test_cfg(attribute: &syn::Attribute) -> bool {
+    attribute.path().is_ident("cfg")
+        && matches!(&attribute.meta, syn::Meta::List(list) if list.tokens.to_string() == "test")
+}
+
 fn is_public(visibility: &syn::Visibility) -> bool {
     matches!(visibility, syn::Visibility::Public(_))
 }
 
 fn is_candidate_type(name: &str) -> bool {
-    name.ends_with("OperationRegistry") || name.contains("DomainAdapter")
+    matches!(
+        name,
+        "WorthQueryDomainIdentityNamespace"
+            | "WorthQueryDomainIdentityName"
+            | "WorthQueryDomainSemanticVersion"
+            | "WorthQueryDomainIdentityDeclaration"
+            | "WorthQueryDomainInvariantDefinition"
+            | "WorthQueryDomainGraphObligationDefinition"
+            | "WorthQueryDomainGraphReadOperationDefinition"
+            | "WorthQueryDomainDeclarationFamilyDefinition"
+            | "WorthQueryDomainPackage"
+            | "WorthQueryInstalledDomainHandle"
+            | "WorthQueryInstalledDomainContributionSurface"
+    ) || name.ends_with("OperationRegistry")
+        || name.contains("DomainAdapter")
 }
 
 fn is_candidate_function(name: &str, output: &syn::ReturnType) -> bool {
@@ -202,28 +227,94 @@ fn is_candidate_function(name: &str, output: &syn::ReturnType) -> bool {
         || return_type_mentions(output, "WorthQueryDomainContributionSurface")
 }
 
-fn is_candidate_method(owner: &str, name: &str, output: &syn::ReturnType) -> bool {
-    (owner == "WorthQueryApplicationFacade"
-        && (name == "domain"
-            || name == "domain_checked"
-            || name == "domain_proof_root"
-            || name == "domain_entry_support_snapshot"))
+fn is_candidate_method(owner: &str, name: &str) -> bool {
+    is_package_input_method(owner, name)
+        || (owner == "WorthQueryRuntimeBuilder" && name == "domain_package")
+        || ((owner == "WorthQueryRuntime" || owner == "WorthQueryWorkspace") && name == "domain")
+        || (owner == "WorthQueryInstalledDomainHandle"
+            && matches!(
+                name,
+                "contributions"
+                    | "contributions_in"
+                    | "authority_witness"
+                    | "rebind_request"
+                    | "graph_read_operation"
+                    | "declarations"
+                    | "declarations_in"
+            ))
+        || (owner == "WorthQueryInstalledDomainContributionSurface"
+            && matches!(
+                name,
+                "intent_target"
+                    | "for_intent"
+                    | "for_intent_target"
+                    | "admitted_plan_target"
+                    | "for_admitted_intent_plan"
+                    | "for_admitted_plan_target"
+                    | "lower_runtime_target"
+                    | "for_lower_runtime_boundary_envelope"
+                    | "for_lower_runtime_target"
+                    | "for_lower_runtime_boundary_source"
+            ))
         || (owner == "WorthQueryRuntimeBuilder"
             && (name.contains("invariant") || name.contains("graph_obligation")))
         || (owner == "WorthQueryGraphReadOperationRegistry"
             && matches!(
                 name,
-                "empty"
-                    | "define"
-                    | "admit"
-                    | "with_registration"
-                    | "admit_registration"
-                    | "with_required_capability_for_relations"
-                    | "with_unsupported_shape_for_relations"
-                    | "with_unsupported_shape_for_operation"
-                    | "registrations"
+                "empty" | "admit" | "admit_registration" | "with_unsupported_shape_for_operation"
             ))
-        || is_candidate_function(name, output)
+}
+
+fn is_effective_facade_source(path: &str) -> bool {
+    path == "src/facade.rs" || path.starts_with("src/facade/")
+}
+
+fn is_effective_domain_facade_source(path: &str) -> bool {
+    matches!(
+        path,
+        "src/facade/exports_domain.rs" | "src/facade/exports_domain_capabilities.rs"
+    ) || path.starts_with("src/facade/domain_")
+}
+
+fn is_raw_domain_authority_function(name: &str, output: &syn::ReturnType) -> bool {
+    name == "worth_query_domain"
+        || return_type_mentions(output, "WorthQueryDomainContributionSurface")
+}
+
+fn is_package_input_method(owner: &str, name: &str) -> bool {
+    matches!(
+        (owner, name),
+        (
+            "WorthQueryDomainIdentityNamespace"
+                | "WorthQueryDomainIdentityName"
+                | "WorthQueryDomainSemanticVersion"
+                | "WorthQueryDomainIdentityDeclaration"
+                | "WorthQueryDomainInvariantDefinition",
+            "new"
+        ) | (
+            "WorthQueryDomainInvariantPredicate",
+            "requires_outgoing_relations"
+        ) | (
+            "WorthQueryDomainGraphObligationDefinition",
+            "new" | "with_support_posture"
+        ) | (
+            "WorthQueryDomainGraphReadOperationDefinition",
+            "new" | "accepts_relation" | "lowers_to" | "requires_support_family"
+        ) | ("WorthQueryDomainDeclarationFamilyDefinition", "from_marker")
+            | (
+                "WorthQueryDomainPackage",
+                "declare"
+                    | "requires_capability"
+                    | "requires_configuration"
+                    | "requires_operating_posture"
+                    | "invariant"
+                    | "graph_obligation"
+                    | "graph_read_operation"
+                    | "declaration_family"
+                    | "declaration_families"
+                    | "permits_contribution"
+            )
+    )
 }
 
 fn return_type_mentions(output: &syn::ReturnType, expected: &str) -> bool {
@@ -260,67 +351,34 @@ fn type_name(ty: &syn::Type) -> String {
     }
 }
 
-fn collect_candidate_use_names(tree: &syn::UseTree, record: &mut impl FnMut(&syn::Ident)) {
+fn collect_candidate_use_names(
+    tree: &syn::UseTree,
+    source_path: &str,
+    record: &mut impl FnMut(&syn::Ident),
+) {
     match tree {
-        syn::UseTree::Name(name) if is_candidate_export(&name.ident.to_string()) => {
+        syn::UseTree::Name(name) if is_candidate_export(source_path, &name.ident.to_string()) => {
             record(&name.ident)
         }
-        syn::UseTree::Rename(rename) if is_candidate_export(&rename.rename.to_string()) => {
+        syn::UseTree::Rename(rename)
+            if is_candidate_export(source_path, &rename.rename.to_string()) =>
+        {
             record(&rename.rename)
         }
-        syn::UseTree::Path(path) => collect_candidate_use_names(&path.tree, record),
+        syn::UseTree::Path(path) => collect_candidate_use_names(&path.tree, source_path, record),
         syn::UseTree::Group(group) => {
             for item in &group.items {
-                collect_candidate_use_names(item, record);
+                collect_candidate_use_names(item, source_path, record);
             }
         }
         _ => {}
     }
 }
 
-fn is_candidate_export(name: &str) -> bool {
-    name.starts_with("materialize_")
+fn is_candidate_export(source_path: &str, name: &str) -> bool {
+    is_candidate_type(name)
+        || (is_effective_domain_facade_source(source_path) && name.starts_with("materialize_"))
         || name == "prepare_admitted_domain_capability_contribution_for_materialization"
         || name == "worth_query_domain"
         || name == "WorthQueryGraphReadOperationRegistry"
-}
-
-macro_rules! source {
-    ($path:literal, $include:literal) => {
-        WorthQueryDomainAuthoritySource::new($path, include_str!($include))
-    };
-}
-
-fn current_sources() -> Vec<WorthQueryDomainAuthoritySource> {
-    vec![
-        source!(
-            "src/application/capability/facade.rs",
-            "../../application/capability/facade.rs"
-        ),
-        source!("src/runtime/builder.rs", "../../runtime/builder.rs"),
-        source!(
-            "src/runtime/graph_read_access/operation_resolution/registry.rs",
-            "../../runtime/graph_read_access/operation_resolution/registry.rs"
-        ),
-        source!(
-            "src/runtime/graph_read_access/explanation_api.rs",
-            "../../runtime/graph_read_access/explanation_api.rs"
-        ),
-        source!(
-            "src/domain_capabilities/dx/common/root.rs",
-            "../../domain_capabilities/dx/common/root.rs"
-        ),
-        source!(
-            "src/runtime/backend/adapter_contracts.rs",
-            "../../runtime/backend/adapter_contracts.rs"
-        ),
-        source!(
-            "src/facade/exports_runtime_capabilities.rs",
-            "../../facade/exports_runtime_capabilities.rs"
-        ),
-        source!(
-            "src/facade/exports_runtime_core.rs",
-            "../../facade/exports_runtime_core.rs"
-        ),
-    ]
 }

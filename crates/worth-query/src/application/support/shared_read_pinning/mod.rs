@@ -9,14 +9,12 @@ mod operations;
 mod scans;
 
 pub use certification::WorthQuerySharedReadPinningCertification;
+#[cfg(test)]
 pub use closure::{
     WorthQuerySharedReadPinningBoundaryClosure, WorthQuerySharedReadPinningBoundaryPosture,
 };
-pub use evidence::{
-    WorthQuerySharedReadPinningCounterEvidence, WorthQuerySharedReadPinningHostileMatrixEvidence,
-    WorthQuerySharedReadPinningInventoryEvidence, WorthQuerySharedReadPortabilityEvidence,
-    WorthQuerySharedReadStaleBasisDenialEvidence,
-};
+#[cfg(test)]
+pub use evidence::*;
 #[cfg(test)]
 pub(crate) use operations::{
     shared_read_pinning_operation_inventory, WorthQuerySharedReadPinningOperationKind,

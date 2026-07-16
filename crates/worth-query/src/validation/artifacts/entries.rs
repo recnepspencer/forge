@@ -4,14 +4,14 @@ use crate::canonicalization::{
     CanonicalPredicateOperand, CanonicalProjectionEntry, CanonicalResultField,
     CanonicalTraversalEntry,
 };
-use crate::schema_view::SchemaFieldKind;
+use crate::schema_view::ScalarAspectType;
 use worth_foundational::facade::{AspectKey, FieldKey};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ValidatedProjectionEntry {
     aspect_key: AspectKey,
     field_key: FieldKey,
-    field_kind: SchemaFieldKind,
+    field_kind: ScalarAspectType,
 }
 
 impl ValidatedProjectionEntry {
@@ -23,13 +23,13 @@ impl ValidatedProjectionEntry {
         &self.field_key
     }
 
-    pub fn field_kind(&self) -> &SchemaFieldKind {
+    pub fn field_kind(&self) -> &ScalarAspectType {
         &self.field_kind
     }
 
     pub(crate) fn from_canonical(
         entry: &CanonicalProjectionEntry,
-        field_kind: SchemaFieldKind,
+        field_kind: ScalarAspectType,
     ) -> Self {
         Self {
             aspect_key: entry.field_key().native_aspect_key(),
@@ -89,7 +89,7 @@ pub struct ValidatedResultShapeBinding {
     source_aspect_key: AspectKey,
     source_field_key: FieldKey,
     delivered_name: DeliveredFieldName,
-    field_kind: SchemaFieldKind,
+    field_kind: ScalarAspectType,
 }
 
 impl ValidatedResultShapeBinding {
@@ -105,13 +105,13 @@ impl ValidatedResultShapeBinding {
         self.delivered_name.as_str()
     }
 
-    pub fn field_kind(&self) -> &SchemaFieldKind {
+    pub fn field_kind(&self) -> &ScalarAspectType {
         &self.field_kind
     }
 
     pub(crate) fn from_canonical(
         field: &CanonicalResultField,
-        field_kind: SchemaFieldKind,
+        field_kind: ScalarAspectType,
     ) -> Self {
         Self {
             source_aspect_key: field.source_field_key().native_aspect_key(),
@@ -137,7 +137,7 @@ pub struct ValidatedPredicateEntry {
     aspect_key: AspectKey,
     field_key: FieldKey,
     predicate_family: &'static str,
-    field_kind: SchemaFieldKind,
+    field_kind: ScalarAspectType,
     value_kind: &'static str,
     value_basis: String,
 }
@@ -155,7 +155,7 @@ impl ValidatedPredicateEntry {
         self.predicate_family
     }
 
-    pub fn field_kind(&self) -> &SchemaFieldKind {
+    pub fn field_kind(&self) -> &ScalarAspectType {
         &self.field_kind
     }
 
@@ -169,7 +169,7 @@ impl ValidatedPredicateEntry {
 
     pub(crate) fn from_canonical(
         entry: &CanonicalPredicateEntry,
-        field_kind: SchemaFieldKind,
+        field_kind: ScalarAspectType,
         value_kind: &'static str,
     ) -> Self {
         Self {
@@ -177,8 +177,8 @@ impl ValidatedPredicateEntry {
             field_key: entry.field_key().native_field_key(),
             predicate_family: match entry.family {
                 CanonicalPredicateFamily::Equality => "equality",
-                CanonicalPredicateFamily::IntegerGreaterThan => "integer-greater-than",
-                CanonicalPredicateFamily::IntegerLessThan => "integer-less-than",
+                CanonicalPredicateFamily::NativeGreaterThan => "native-greater-than",
+                CanonicalPredicateFamily::NativeLessThan => "native-less-than",
                 CanonicalPredicateFamily::StringContains => "string-contains",
                 CanonicalPredicateFamily::ScalarMembership => "scalar-membership",
                 CanonicalPredicateFamily::PresenceIsPresent => "presence-is-present",
@@ -207,7 +207,7 @@ pub struct ValidatedOrderingEntry {
     aspect_key: AspectKey,
     field_key: FieldKey,
     direction: &'static str,
-    field_kind: SchemaFieldKind,
+    field_kind: ScalarAspectType,
     projected: bool,
 }
 
@@ -224,7 +224,7 @@ impl ValidatedOrderingEntry {
         self.direction
     }
 
-    pub fn field_kind(&self) -> &SchemaFieldKind {
+    pub fn field_kind(&self) -> &ScalarAspectType {
         &self.field_kind
     }
 
@@ -234,7 +234,7 @@ impl ValidatedOrderingEntry {
 
     pub(crate) fn from_canonical(
         entry: &CanonicalOrderingEntry,
-        field_kind: SchemaFieldKind,
+        field_kind: ScalarAspectType,
         projected: bool,
     ) -> Self {
         Self {
@@ -262,31 +262,5 @@ impl ValidatedOrderingEntry {
 }
 
 fn canonical_operand_basis(operand: &CanonicalPredicateOperand) -> String {
-    match operand {
-        CanonicalPredicateOperand::Scalar(value) => match value {
-            crate::authoring::ScalarPredicateValue::String(value) => format!("string:{value}"),
-            crate::authoring::ScalarPredicateValue::Integer(value) => format!("integer:{value}"),
-            crate::authoring::ScalarPredicateValue::Boolean(value) => format!("boolean:{value}"),
-        },
-        CanonicalPredicateOperand::ScalarSet(values) => format!(
-            "set:[{}]",
-            values
-                .as_slice()
-                .iter()
-                .map(|value| match value {
-                    crate::authoring::ScalarPredicateValue::String(value) => {
-                        format!("string:{value}")
-                    }
-                    crate::authoring::ScalarPredicateValue::Integer(value) => {
-                        format!("integer:{value}")
-                    }
-                    crate::authoring::ScalarPredicateValue::Boolean(value) => {
-                        format!("boolean:{value}")
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join(",")
-        ),
-        CanonicalPredicateOperand::Presence(kind) => format!("presence:{kind}"),
-    }
+    operand.digest_part()
 }

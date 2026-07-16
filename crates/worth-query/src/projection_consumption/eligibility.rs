@@ -136,6 +136,10 @@ impl AdmittedProjectionConsumption {
         &self.eligibility_digest
     }
 
+    pub fn trace(&self) -> &ProjectionConsumptionEligibilityTrace {
+        &self.trace
+    }
+
     pub(crate) fn warning_kinds(&self) -> &[ProjectionConsumptionWarningKind] {
         &self.warning_kinds
     }
@@ -163,6 +167,10 @@ impl DeniedProjectionConsumption {
         &self.counters
     }
 
+    pub fn trace(&self) -> &ProjectionConsumptionEligibilityTrace {
+        &self.trace
+    }
+
     pub(crate) fn failure_digest(&self) -> &str {
         &self.failure_digest
     }
@@ -186,6 +194,10 @@ impl DeferredProjectionConsumption {
     pub fn reason(&self) -> &DeferredProjectionConsumptionReason {
         &self.reason
     }
+
+    pub fn trace(&self) -> &ProjectionConsumptionEligibilityTrace {
+        &self.trace
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -205,6 +217,10 @@ impl SourceMismatchedProjectionConsumption {
 
     pub fn source_family(&self) -> ProjectionSourceFamily {
         self.source_family
+    }
+
+    pub fn trace(&self) -> &ProjectionConsumptionEligibilityTrace {
+        &self.trace
     }
 
     pub(crate) fn failure_digest(&self) -> &str {
@@ -356,9 +372,18 @@ fn authorized_field_matches_projection_fact(
     authorized: &AuthorizedProjectionFieldPath,
     field_path: &super::facts::ProjectionFactFieldPath,
 ) -> bool {
-    let Some(requested) = field_path.native_aspect_field_key() else {
-        return false;
-    };
-    authorized.native_aspect_key() == requested.native_aspect_key()
-        && authorized.native_field_key() == requested.native_field_key()
+    let fields = field_path.canonical_field_path().fields();
+    match fields {
+        [aspect] => {
+            authorized.native_aspect_key().as_str() == aspect.as_str()
+                && authorized.native_field_key().is_none()
+        }
+        [aspect, field] => {
+            authorized.native_aspect_key().as_str() == aspect.as_str()
+                && authorized
+                    .native_field_key()
+                    .is_some_and(|key| key == field)
+        }
+        _ => false,
+    }
 }

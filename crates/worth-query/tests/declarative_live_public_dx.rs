@@ -1,11 +1,13 @@
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
+use worth_query::facade::consumer_kit::in_memory_test_runtime;
 use worth_query::facade::runtime::WorthQueryWorkspace;
+
+use crate::support;
 
 mod live_journey {
     use worth_query::facade::live::{
         current, declare, AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName,
-        QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryAuthorityLane,
+        QuerySchemaView, ScalarAspectType, SchemaFieldView, WorthQueryAuthorityLane,
         WorthQueryManagedLiveCloseOutcome, WorthQueryManagedLiveDeliveryCauseKind,
         WorthQueryManagedLiveLifecyclePosture, WorthQueryManagedLiveSubscriptionFamily,
         WorthQueryOrdinaryRuntimePostureKind,
@@ -22,7 +24,7 @@ mod live_journey {
                     [SchemaFieldView::new(
                         AspectName::new("identity").expect("aspect should build"),
                         FieldName::new("id").expect("field should build"),
-                        SchemaFieldKind::String,
+                        ScalarAspectType::String,
                     )],
                     [],
                 ),
@@ -136,11 +138,8 @@ fn insert_task(workspace: &mut WorthQueryWorkspace) {
 }
 
 fn live_workspace() -> WorthQueryWorkspace {
-    let schema = WorthQueryTestBackendSchema::single_collection("Task")
-        .aspect("identity.id", "identity.id")
-        .expect("identity aspect should build");
     in_memory_test_runtime()
-        .with_schema(schema)
+        .with_schema(support::task_backend_schema::task_backend_schema())
         .workspace("declarative-live-public-dx")
         .expect("public live test workspace should build")
 }

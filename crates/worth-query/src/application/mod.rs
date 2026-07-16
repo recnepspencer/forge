@@ -146,12 +146,15 @@ pub use declaration_entry_seam::{
     WorthQueryDeclarationEntryCrossingInventory, WorthQueryDeclarationEntryCrossingRow,
     WorthQueryDeclarationEntryCrossingSurface, WorthQueryDeclarationEntryInspection,
     WorthQueryDeclarationEntryInspectionBridgePosture, WorthQueryDeclarationEntryInspectionError,
-    WorthQueryDeclarationEntryInspectionInput,
     WorthQueryDeclarationEntryInspectionRelationalPosture,
     WorthQueryDeclarationEntryInspectionSignalPosture, WorthQueryDeclarationEntryLowerOwnerCrate,
-    WorthQueryDeclarationEntryReadinessReport, WorthQueryDeclarationEntryReadinessRequest,
-    WorthQueryDeclarationEntryReadinessRow, WorthQueryDeclarationEntryReadinessStatus,
-    WorthQueryDeclarationEntryRetainedSubjectInput, WorthQueryDeclarationEntrySeamClassification,
+    WorthQueryDeclarationEntryReadinessReport, WorthQueryDeclarationEntryReadinessRow,
+    WorthQueryDeclarationEntryReadinessStatus, WorthQueryDeclarationEntrySeamClassification,
+};
+#[cfg(test)]
+pub(crate) use declaration_entry_seam::{
+    WorthQueryDeclarationEntryInspectionInput, WorthQueryDeclarationEntryReadinessRequest,
+    WorthQueryDeclarationEntryRetainedSubjectInput,
 };
 pub use declaration_envelope::{
     WorthQueryDeclarationEntryEnvelopeError, WorthQueryDeclarationEnvelope,
@@ -242,54 +245,20 @@ pub(crate) use domain_handle::compose_basis_lifecycle_support_identity;
 pub use domain_handle::{
     WorthQueryAdmittedWorldBasis, WorthQueryContinuationExecutionReadmissionObservation,
     WorthQueryDeclarationEntryProgressionError, WorthQueryDomainOperatingContext,
-    WorthQueryDomainOperatingRequirement, WorthQueryInstalledDomainDeclarationContext,
+    WorthQueryDomainOperatingContextIdentityDeclaration,
+    WorthQueryDomainOperatingContextIdentityError, WorthQueryDomainOperatingRequirement,
+    WorthQueryInstalledDomainDeclarationContext,
 };
-#[allow(unused_imports)]
 pub use graph_obligation_orchestration::{
     WorthQueryGraphObligationOrchestrationBoundary, WorthQueryGraphObligationOrchestrationDispatch,
     WorthQueryGraphObligationOrchestrationDispatchError,
-};
-#[allow(unused_imports)]
-pub(crate) use support::identity_boundary_inventory::{
-    format_digest_folklore_pattern_in, normalize_source_text,
-    ordinary_session_entrypoint_audit_violations, source_for_format_digest_path,
-    source_for_session_admission_path, source_for_string_carried_session_identity_path,
-    source_for_string_matching_path,
 };
 #[cfg(test)]
 pub use support::scan_format_digest_residue_path_patterns;
 #[cfg(test)]
 pub(crate) use support::scan_shared_read_mint_forbidden_patterns;
-#[allow(unused_imports)]
-pub use support::{
-    identity_boundary_hostile_matrix_artifact, identity_boundary_hostile_matrix_digest,
-    milestone_nine_eight_consumer_kit_closure, milestone_nine_six_certification_gate_certified,
-    scan_format_digest_residue_paths, scan_lower_runtime_identity_shim_paths,
-    scan_raw_session_admission_residue_paths, scan_string_carried_session_identity_residue_paths,
-    scan_string_matching_residue_paths, worth_ui_query_binding_evidence_identity,
-    QueryContextDeferredScopeMarker, WorthQueryCapabilityDescriptor, WorthQueryCapabilityFamily,
-    WorthQueryCapabilityRegistry, WorthQueryCapabilityStatus, WorthQueryCapabilitySupportStatus,
-    WorthQueryConsumerKitCertificationCase, WorthQueryConsumerKitCertificationCaseRow,
-    WorthQueryConsumerKitCertificationTier, WorthQueryConsumerKitClosure,
-    WorthQueryConsumerKitDocsAgreement, WorthQueryConsumerKitDocsFamilyRow,
-    WorthQueryConsumerKitFamilyClosureRow, WorthQueryConsumerKitFamilyName,
-    WorthQueryConsumerKitHostileCertification, WorthQueryConsumerKitReferenceResidue,
-    WorthQueryConsumerKitResidueBreakdown, WorthQueryEvidenceIdentityBoundaryClosure,
-    WorthQueryFolkloreResidueStatus, WorthQueryIdentityBoundaryClosure,
-    WorthQueryIdentityBoundaryHostileMatrixArtifact, WorthQueryIdentityBoundaryHostileMatrixRow,
-    WorthQueryIdentityEvolutionSupportProfile, WorthQueryMilestoneClosureStatus,
-    WorthQueryMilestoneNineSevenDerivedClosure, WorthQueryMilestoneNineSevenPhaseClosure,
-    WorthQueryQueryCompositionSupportProfile, WorthQueryQueryContextSupportProfile,
-    WorthQuerySessionLabelBoundaryClosure, WorthQueryStopClassBoundaryClosure,
-    WorthQuerySupportMatrix, WorthQuerySupportReport, WorthQuerySupportReportCounters,
-    WorthQuerySupportSectionPosture, EVIDENCE_IDENTITY_COVERED_SURFACES,
-    EXACT_ZERO_FORMAT_DIGEST_PATHS, EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS,
-    EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS, EXACT_ZERO_STRING_MATCHING_PATHS,
-    EXCLUDED_FOLKLORE_DEFERRALS, EXCLUDED_FOLKLORE_PATHS, MILESTONE_9_6_CERTIFICATION_GATE_PATHS,
-    MILESTONE_NINE_SIX_REQUIRED_CANONICAL_ROW_NAMES,
-    MILESTONE_NINE_SIX_REQUIRED_REJECTION_ROW_NAMES, MILESTONE_NINE_SIX_SUITE_NAME,
-    SESSION_LABEL_ORDINARY_ENTRYPOINTS, STOP_CLASS_COVERED_CONTRACTS,
-};
+#[cfg(test)]
+pub(crate) use support::*;
 #[cfg(test)]
 pub(crate) use support::{
     scan_journal_identity_forbidden_patterns, scan_journal_identity_required_pattern_failures,
@@ -298,23 +267,33 @@ pub(crate) use support::{
     shared_read_pinning_operation_inventory, worth_query_journal_identity_inventory,
     WorthQueryJournalIdentityOperationKind, WorthQuerySharedReadPinningOperationKind,
 };
-#[allow(unused_imports)]
+pub use support::{
+    worth_ui_query_binding_evidence_identity, QueryContextDeferredScopeMarker,
+    WorthQueryCapabilityDescriptor, WorthQueryCapabilityFamily, WorthQueryCapabilityRegistry,
+    WorthQueryCapabilityStatus, WorthQueryCapabilitySupportStatus,
+    WorthQueryConsumerKitCertificationCase, WorthQueryConsumerKitCertificationCaseRow,
+    WorthQueryConsumerKitCertificationTier, WorthQueryConsumerKitClosure,
+    WorthQueryConsumerKitDocsAgreement, WorthQueryConsumerKitDocsFamilyRow,
+    WorthQueryConsumerKitFamilyClosureRow, WorthQueryConsumerKitFamilyName,
+    WorthQueryConsumerKitHostileCertification, WorthQueryConsumerKitReferenceResidue,
+    WorthQueryConsumerKitResidueBreakdown, WorthQueryEvidenceIdentityBoundaryClosure,
+    WorthQueryFolkloreResidueStatus, WorthQueryIdentityBoundaryClosure,
+    WorthQueryIdentityEvolutionSupportProfile, WorthQueryMilestoneClosureStatus,
+    WorthQueryMilestoneNineSevenDerivedClosure, WorthQueryMilestoneNineSevenPhaseClosure,
+    WorthQueryQueryCompositionSupportProfile, WorthQueryQueryContextSupportProfile,
+    WorthQuerySessionLabelBoundaryClosure, WorthQueryStopClassBoundaryClosure,
+    WorthQuerySupportMatrix, WorthQuerySupportReport, WorthQuerySupportReportCounters,
+    WorthQuerySupportSectionPosture,
+};
 pub use support::{
     WorthQueryConcurrentHostileMatrixArtifact, WorthQueryConcurrentHostileMatrixPosture,
     WorthQueryConcurrentHostileMatrixSabotage, WorthQueryConcurrentHostileMatrixSabotageKind,
-    WorthQueryJournalIdentityBoundaryPosture, WorthQueryJournalIdentityCertification,
-    WorthQueryJournalIdentityInventoryEvidence, WorthQueryJournalIdentityScheduleEvidence,
-    WorthQueryJournalReplayBoundaryCertification, WorthQueryJournalReplaySurfaceEvidence,
     WorthQueryPublicBridgeForbiddenAccessFinding, WorthQueryPublicBridgeForbiddenAccessPattern,
     WorthQueryPublicBridgeProjectionConsumptionEvidence,
     WorthQueryPublicBridgePublishedProjectionReader, WorthQueryPublicBridgeReaderLaneCertification,
     WorthQueryPublicBridgeReaderLaneInventory, WorthQueryPublicBridgeReaderLanePosture,
     WorthQueryPublicBridgeReaderLaneSabotage, WorthQueryPublicBridgeReaderLaneSabotageKind,
-    WorthQueryPublicBridgeReaderLaneSabotageOutcome, WorthQuerySharedReadPinningBoundaryClosure,
-    WorthQuerySharedReadPinningBoundaryPosture, WorthQuerySharedReadPinningCertification,
-    WorthQuerySharedReadPinningCounterEvidence, WorthQuerySharedReadPinningHostileMatrixEvidence,
-    WorthQuerySharedReadPinningInventoryEvidence, WorthQuerySharedReadPortabilityEvidence,
-    WorthQuerySharedReadStaleBasisDenialEvidence,
+    WorthQueryPublicBridgeReaderLaneSabotageOutcome, WorthQuerySharedReadPinningCertification,
 };
 
 pub(crate) use declaration::worth_query_canonical_declaration;
@@ -339,30 +318,39 @@ pub(crate) use declaration_bridge_routing::{
 pub(crate) use declaration_capability::{
     worth_query_checked_family_declaration, worth_query_checked_family_support,
 };
+pub(crate) use declaration_entry_orchestration::materialized_profile_for_tier;
+#[cfg(test)]
 pub(crate) use declaration_entry_orchestration::{
-    materialized_profile_for_tier, worth_query_checked_declaration_entry_orchestration_on_handle,
+    worth_query_checked_declaration_entry_orchestration_on_handle,
+    worth_query_declaration_entry_orchestration_on_handle,
+    worth_query_declaration_entry_orchestration_proof_on_handle,
+    worth_query_declaration_receipt_orchestration_from_progressed_on_handle,
+    worth_query_declaration_route_orchestration_from_progressed_on_handle,
+};
+pub(crate) use declaration_entry_orchestration::{
     worth_query_checked_declaration_envelope_orchestration_from_progressed_on_handle,
     worth_query_checked_declaration_receipt_orchestration_from_progressed_on_handle,
     worth_query_checked_declaration_route_orchestration_from_progressed_on_handle,
-    worth_query_declaration_entry_orchestration_on_handle,
-    worth_query_declaration_entry_orchestration_proof_on_handle,
     worth_query_declaration_envelope_orchestration_from_progressed_on_handle,
     worth_query_declaration_envelope_orchestration_from_progressed_proof_on_handle,
-    worth_query_declaration_receipt_orchestration_from_progressed_on_handle,
     worth_query_declaration_receipt_orchestration_from_progressed_proof_on_handle,
-    worth_query_declaration_route_orchestration_from_progressed_on_handle,
     worth_query_declaration_route_orchestration_from_progressed_proof_on_handle,
     worth_query_lower_declaration_entry_product_orchestration_from_progressed_on_handle,
     WorthQueryDeclarationEntryProductChecked,
 };
 pub(crate) use declaration_entry_seam::{
     worth_query_bridge_routing_support_from_entry_readiness,
-    worth_query_declaration_entry_crossing_inventory,
-    worth_query_declaration_entry_inspection_on_handle,
-    worth_query_declaration_entry_readiness_report,
-    worth_query_declaration_entry_readiness_report_with_request,
     worth_query_relational_routing_support_from_entry_readiness,
     worth_query_signal_compatibility_support_from_entry_readiness,
+};
+pub(crate) use declaration_entry_seam::{
+    worth_query_declaration_entry_crossing_inventory,
+    worth_query_declaration_entry_readiness_report,
+};
+#[cfg(test)]
+pub(crate) use declaration_entry_seam::{
+    worth_query_declaration_entry_inspection_on_handle,
+    worth_query_declaration_entry_readiness_report_with_request,
 };
 pub(crate) use declaration_envelope::worth_query_checked_declaration_envelope;
 pub(crate) use declaration_envelope::worth_query_declaration_envelope_terminal_from_receipt_terminal;

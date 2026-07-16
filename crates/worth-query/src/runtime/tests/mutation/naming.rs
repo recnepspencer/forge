@@ -5,7 +5,7 @@ fn update_existing_preserves_naming_evidence_on_receipt_and_inspection() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.naming-existing")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.naming-existing-table", |q| {
             q.from("Task")
                 .select([
@@ -127,7 +127,7 @@ fn batch_naming_evidence_preserves_attach_and_rebind_outcomes() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.naming-batch")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.naming-batch-table", |q| {
             q.from("Task")
                 .select([
@@ -272,7 +272,7 @@ fn delete_existing_preserves_naming_removal_evidence_on_receipt_and_inspection()
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.naming-remove")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.naming-remove-table", |q| {
             q.from("Task")
                 .select([
@@ -428,7 +428,7 @@ fn preview_batch_symbolic_naming_preserves_typed_evidence() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-naming")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.preview-naming-table", |q| {
             q.from("Task")
                 .select([

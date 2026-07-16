@@ -1232,6 +1232,7 @@ version = "0.1.0"
 dependencies = [
  "arc-swap",
  "proc-macro2",
+ "quote",
  "serde",
  "serde_json",
  "sha2",
@@ -1356,6 +1357,7 @@ version = "0.1.0"
 dependencies = [
  "worth-foundational",
  "worth-query",
+ "worth-relational",
 ]
 
 [[package]]

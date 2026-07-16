@@ -96,7 +96,7 @@ fn write_replay_facade_provider(root: &Path) {
     write(
         root,
         "crates/worth-query/src/lib.rs",
-        "pub mod facade { pub struct ReplayBasisCapability; }\n",
+        "pub mod facade { pub mod foundation { pub struct ScopedReplayBasis; } }\n",
     );
     write(root, "crates/worth-query-replay/Cargo.toml", "[package]\nname = \"worth-query-replay\"\nversion = \"0.1.0\"\nedition = \"2021\"\n[dependencies]\nworth-query = { path = \"../worth-query\" }\n[workspace]\n");
     write(
@@ -107,7 +107,7 @@ fn write_replay_facade_provider(root: &Path) {
     write(
         root,
         "crates/worth-query-replay/src/facade.rs",
-        "pub use worth_query::facade::ReplayBasisCapability;\n",
+        "pub use worth_query::facade::foundation::ScopedReplayBasis;\n",
     );
 }
 

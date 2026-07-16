@@ -10,6 +10,7 @@ use super::{
     WorthQueryDeclarationEntryRetainedSubjectStrength,
 };
 
+#[cfg(test)]
 pub(crate) struct WorthQueryDeclarationEntryContributionReconciliationContext<'a> {
     pub(crate) declaration_family_key: &'static str,
     pub(crate) declaration_digest: Option<&'a str>,
@@ -18,6 +19,7 @@ pub(crate) struct WorthQueryDeclarationEntryContributionReconciliationContext<'a
     pub(crate) lower_runtime_boundary_digest: Option<&'a str>,
 }
 
+#[cfg(test)]
 pub(crate) fn reconcile_contribution_evidence<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
@@ -63,6 +65,7 @@ pub(crate) fn reconcile_contribution_evidence<
     ))
 }
 
+#[cfg(test)]
 fn reconcile_evidence(
     evidence: &super::WorthQueryDeclarationEntryContributionEvidence,
     context: &WorthQueryDeclarationEntryContributionReconciliationContext<'_>,
@@ -156,6 +159,7 @@ fn reconcile_evidence(
     Ok(())
 }
 
+#[cfg(test)]
 fn category_allowed_for_target_and_context(
     category: WorthQueryDeclarationEntryContributionCategoryFamily,
     target_family: WorthQueryDeclarationEntryContributionTargetFamily,

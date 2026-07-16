@@ -8,6 +8,7 @@ pub(crate) mod evidence_report;
 pub(crate) mod evidence_report_adoption;
 pub(crate) mod graph_obligation_adoption;
 pub(crate) mod graph_read_bypass_audit;
+pub(crate) mod native_value_authority_inventory;
 pub(crate) mod product_boundary_certification;
 pub(crate) mod prohibition_registry;
 pub(crate) mod public_authority_surface;
@@ -69,13 +70,13 @@ pub use declarative_surface::{
     WorthQueryReferenceConsumerResidueKind, WorthQueryReferenceConsumerSource,
 };
 pub use domain_authority_inventory::{
-    audit_domain_authority_sources, current_domain_authority_inventory_audit,
-    worth_query_domain_authority_inventory_rows, worth_query_domain_installation_grammar,
-    WorthQueryDomainAuthorityClass, WorthQueryDomainAuthorityFinding,
-    WorthQueryDomainAuthorityFindingKind, WorthQueryDomainAuthorityInventoryAudit,
-    WorthQueryDomainAuthorityInventoryRow, WorthQueryDomainAuthoritySource,
-    WorthQueryDomainAuthoritySourceSite, WorthQueryDomainInstallationGrammar,
-    WorthQueryDomainInstallationGrammarStage,
+    audit_domain_authority_sources, audit_workspace_domain_authority_inventory,
+    current_domain_authority_inventory_audit, worth_query_domain_authority_inventory_rows,
+    worth_query_domain_installation_grammar, WorthQueryDomainAuthorityClass,
+    WorthQueryDomainAuthorityFinding, WorthQueryDomainAuthorityFindingKind,
+    WorthQueryDomainAuthorityInventoryAudit, WorthQueryDomainAuthorityInventoryRow,
+    WorthQueryDomainAuthoritySource, WorthQueryDomainAuthoritySourceSite,
+    WorthQueryDomainInstallationGrammar, WorthQueryDomainInstallationGrammarStage,
 };
 pub use downstream_authority_adoption::{
     downstream_authority_adoption, WorthQueryDownstreamAuthorityAdoption,

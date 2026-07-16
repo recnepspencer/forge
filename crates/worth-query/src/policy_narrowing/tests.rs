@@ -1,7 +1,7 @@
 use crate::authoring::{
     AspectFieldKey, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
     GuidedAuthoringPath, OrderingSelector, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
-    ScalarPredicateValue,
+    TraversalSelector, WorthQueryPredicateOperand,
 };
 use crate::authorized_projection::{PolicyAspectMask, PolicyInfluenceSet, PolicyMaskSnapshot};
 use crate::policy_basis::{
@@ -28,6 +28,7 @@ fn canonical_query() -> crate::canonicalization::CanonicalQueryBundle {
         .project(AspectFieldSelector::new("identity", "id").unwrap())
         .project(AspectFieldSelector::new("profile", "display_name").unwrap())
         .project(AspectFieldSelector::new("secret", "salary").unwrap())
+        .traverse(TraversalSelector::bounded("manager", 1).unwrap())
         .build()
         .unwrap();
     let result_shape = RawAuthoredResultShape::detail_builder()
@@ -44,7 +45,8 @@ fn canonical_with_masked_predicate() -> crate::canonicalization::CanonicalQueryB
         .project(AspectFieldSelector::new("identity", "id").unwrap())
         .project(AspectFieldSelector::new("profile", "display_name").unwrap())
         .where_equal(
-            EqualityPredicate::new("secret", "salary", ScalarPredicateValue::Integer(7)).unwrap(),
+            EqualityPredicate::new("secret", "salary", WorthQueryPredicateOperand::int64(7))
+                .unwrap(),
         )
         .build()
         .unwrap();
@@ -108,6 +110,18 @@ fn mask_snapshot(
     PolicyMaskSnapshot::synthetic_authority(admitted.bundle().policy_digest(), mask)
 }
 
+fn manager_relationship_proof(
+    admitted: &crate::policy_basis::AdmittedPolicyTenantContext,
+) -> RelationshipProofDescriptorSet {
+    RelationshipProofDescriptorSet::new(
+        vec![RelationshipProofDescriptor::direct_edge(
+            "manager",
+            admitted.bundle().policy_digest(),
+        )],
+        RelationshipProofBudget::bounded(1, 1),
+    )
+}
+
 fn secret_salary_key() -> AspectFieldKey {
     AspectFieldKey::from_authoring_parts("secret", "salary").unwrap()
 }
@@ -117,11 +131,11 @@ fn native_field_pairs(
 ) -> Vec<(AspectKey, FieldKey)> {
     fields
         .iter()
-        .map(|field| {
-            (
+        .filter_map(|field| {
+            Some((
                 field.native_aspect_key().clone(),
-                field.native_field_key().clone(),
-            )
+                field.native_field_key()?.clone(),
+            ))
         })
         .collect()
 }
@@ -252,7 +266,7 @@ fn relationship_proof_host_callback_is_forbidden_before_truth_touch() {
     let canonical = canonical_query();
     let admitted = admitted(&canonical);
 
-    let error = narrow_policy_query(
+    let error = narrow_policy_query_with_budget(
         &canonical,
         admitted.clone(),
         mask_snapshot(
@@ -261,9 +275,16 @@ fn relationship_proof_host_callback_is_forbidden_before_truth_touch() {
         ),
         PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::new(
-            vec![RelationshipProofDescriptor::host_callback_for_test("authz")],
-            RelationshipProofBudget::bounded(1, 1),
+            vec![
+                RelationshipProofDescriptor::direct_edge(
+                    "manager",
+                    admitted.bundle().policy_digest(),
+                ),
+                RelationshipProofDescriptor::host_callback_for_test("authz"),
+            ],
+            RelationshipProofBudget::bounded(2, 1),
         ),
+        crate::policy_narrowing::PolicyNarrowingWorkBudget::bounded(16, 16, 16, 2, 1, 8, 64),
     )
     .expect_err("host callbacks must not be relationship proof authority");
 
@@ -295,7 +316,7 @@ fn optimizer_input_is_derived_from_narrowed_artifact_only() {
             PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
         ),
         PolicyInfluenceSet::none(),
-        RelationshipProofDescriptorSet::none(),
+        manager_relationship_proof(&admitted),
     )
     .expect("narrowing should admit before optimizer input");
 
@@ -379,7 +400,7 @@ fn validation_report_digest_binds_authorized_projection_identity() {
         admitted.clone(),
         mask_snapshot(&admitted, PolicyAspectMask::allow_all()),
         PolicyInfluenceSet::none(),
-        RelationshipProofDescriptorSet::none(),
+        manager_relationship_proof(&admitted),
     )
     .expect("visible projection should narrow");
     let masked = narrow_policy_query(
@@ -390,7 +411,7 @@ fn validation_report_digest_binds_authorized_projection_identity() {
             PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
         ),
         PolicyInfluenceSet::none(),
-        RelationshipProofDescriptorSet::none(),
+        manager_relationship_proof(&admitted),
     )
     .expect("masked projection should narrow");
 

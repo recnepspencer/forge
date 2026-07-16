@@ -1,24 +1,12 @@
-warning: the type `WorthQueryLowerRuntimeBoundaryBoundContributionTarget` does not permit zero-initialization
- --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_support_requires_because.rs:6:26
-  |
-6 |         target: unsafe { std::mem::zeroed::<WorthQueryLowerRuntimeBoundaryBoundContributionTarget>() },
-  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |                          |
-  |                          this code causes undefined behavior when executed
-  |                          help: use `MaybeUninit<T>` instead, and only call `assume_init` after initialization is done
-  |
-  = note: `std::ptr::Unique<u8>` must be non-null
-  = note: because `std::ptr::NonNull<u8>` must be non-null
-  = note: `#[warn(invalid_value)]` on by default
-
-error[E0451]: fields `domain`, `target` and `semantic_code` of struct `WorthQueryLowerRuntimeSupportDraft` are private
- --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_support_requires_because.rs:5:9
-  |
-4 |     let _ = WorthQueryLowerRuntimeSupportDraft {
-  |             ---------------------------------- in this type
-5 |         domain: "worth.spatial".to_string(),
-  |         ^^^^^^ private field
-6 |         target: unsafe { std::mem::zeroed::<WorthQueryLowerRuntimeBoundaryBoundContributionTarget>() },
-  |         ^^^^^^ private field
-7 |         semantic_code: "routing.signal_invalidation".to_string(),
-  |         ^^^^^^^^^^^^^ private field
+error[E0599]: no method named `materialize` found for struct `WorthQueryLowerRuntimeSupportDraft` in the current scope
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_support_requires_because.rs:16:10
+   |
+12 |       let _ = installation
+   |  _____________-
+13 | |         .contributions()
+14 | |         .for_lower_runtime_boundary_envelope(&envelope()).expect("installed contribution authority must remain current")
+15 | |         .supports_boundary_traceability("routing.signal_invalidation")
+16 | |         .materialize();
+   | |         -^^^^^^^^^^^ method not found in `WorthQueryLowerRuntimeSupportDraft`
+   | |_________|
+   |

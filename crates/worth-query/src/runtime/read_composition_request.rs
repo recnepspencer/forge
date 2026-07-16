@@ -1,9 +1,9 @@
 use crate::authoring::{
-    IntegerComparisonOperator, PredicateSelector, RawAuthoredQuery, RawAuthoredResultShape,
+    NativeComparisonOperator, PredicateSelector, RawAuthoredQuery, RawAuthoredResultShape,
 };
 use crate::declarative_live::{
-    DeclarativeEqualityFilter, DeclarativeIntegerComparisonFilter, DeclarativeLiveQueryError,
-    DeclarativeLiveQueryRequest, DeclarativeLiveViewShape, DeclarativeOrderingField,
+    DeclarativeEqualityFilter, DeclarativeLiveQueryError, DeclarativeLiveQueryRequest,
+    DeclarativeLiveViewShape, DeclarativeNativeComparisonFilter, DeclarativeOrderingField,
     DeclarativePresenceFilter, DeclarativeProjectionField, DeclarativeSetMembershipFilter,
     DeclarativeStringContainsFilter,
 };
@@ -66,17 +66,17 @@ fn add_predicate(
                 predicate.value().clone(),
             ))
         }
-        PredicateSelector::IntegerComparison(predicate) => match predicate.operator() {
-            IntegerComparisonOperator::GreaterThan => {
-                request.where_greater_than(DeclarativeIntegerComparisonFilter::greater_than(
+        PredicateSelector::NativeComparison(predicate) => match predicate.operator() {
+            NativeComparisonOperator::GreaterThan => {
+                request.where_greater_than(DeclarativeNativeComparisonFilter::greater_than_native(
                     predicate.target_field_key().clone(),
-                    predicate.value(),
+                    predicate.value().clone(),
                 ))
             }
-            IntegerComparisonOperator::LessThan => {
-                request.where_less_than(DeclarativeIntegerComparisonFilter::less_than(
+            NativeComparisonOperator::LessThan => {
+                request.where_less_than(DeclarativeNativeComparisonFilter::less_than_native(
                     predicate.target_field_key().clone(),
-                    predicate.value(),
+                    predicate.value().clone(),
                 ))
             }
         },

@@ -3,8 +3,8 @@ use super::*;
 fn derived_summary_view(
     workspace: &mut WorthQueryWorkspace,
     view_name: &str,
-) -> WorthQueryDerivedViewHandle<WorthQueryNativeRow> {
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+) -> WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> {
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
                 .select([identity_id_field_key(), title_value_field_key()])
@@ -13,7 +13,7 @@ fn derived_summary_view(
         })
         .expect("live view should declare");
     workspace
-        .computed_view::<WorthQueryNativeRow>(
+        .computed_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new(view_name, test_aspect_touches(["title"]))
                 .depends_on_live(&live)
                 .produces(test_aspect_touches(["title.summary"])),
@@ -48,7 +48,7 @@ fn materialize_intent_common_path_helper_executes_through_canonical_handoff() {
     let retained_value = result
         .single_retained_row()
         .expect("single materialized row should be retained")
-        .field_value_at(&value_path)
+        .scalar_value_at(&value_path)
         .expect("materialized row should retain value field");
     assert!(
         matches!(retained_value, AspectValue::String(_)),
@@ -102,7 +102,7 @@ fn inspect_intent_common_path_helper_executes_through_canonical_handoff() {
     let runtime = read_runtime();
     let mut workspace = WorthQueryWorkspace::new("generic-inspect-common", runtime)
         .expect("workspace should build");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
                 .select([identity_id_field_key(), title_value_field_key()])
@@ -112,6 +112,8 @@ fn inspect_intent_common_path_helper_executes_through_canonical_handoff() {
         .expect("live view should declare");
 
     let result = workspace
+        .inspections()
+        .expect("inspection lane should be admitted")
         .inspect_intent(&live)
         .execute()
         .expect("generic inspection common path should execute");
@@ -135,7 +137,7 @@ fn inspect_intent_advanced_path_helper_exposes_request_eligibility_decision_and_
     let runtime = read_runtime();
     let mut workspace = WorthQueryWorkspace::new("generic-inspect-advanced", runtime)
         .expect("workspace should build");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
                 .select([identity_id_field_key(), title_value_field_key()])
@@ -145,6 +147,8 @@ fn inspect_intent_advanced_path_helper_exposes_request_eligibility_decision_and_
         .expect("live view should declare");
 
     let review = workspace
+        .inspections()
+        .expect("inspection lane should be admitted")
         .inspect_intent(&live)
         .review()
         .expect("generic inspection review should succeed");

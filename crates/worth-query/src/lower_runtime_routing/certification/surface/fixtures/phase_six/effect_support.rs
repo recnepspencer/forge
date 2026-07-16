@@ -102,31 +102,17 @@ pub(crate) fn exact_branch_snapshot_identity(
     runtime: &RelationalRuntime,
     branch: &str,
 ) -> WorthQuerySnapshotIdentity {
-    let version_id = runtime
-        .history()
+    let history = runtime.history();
+    let head = history
         .branch_head(&BranchId(branch.to_string()))
-        .map(|commit| commit.version_id.0)
-        .unwrap_or(0);
-    WorthQuerySnapshotIdentity::from_relational_snapshot(
-        RelationalBridgeSnapshotIdentityParts::new(
-            stable_current_branch_snapshot_id(branch),
-            version_id,
+        .expect("exact branch fixture requires a current branch head");
+    WorthQuerySnapshotIdentity::from_bridge_snapshot_identity(
+        worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
+            head.commit_id,
+            head.version_id,
         ),
     )
-}
-
-fn stable_current_branch_snapshot_id(branch: &str) -> u64 {
-    let mut acc = 14_695_981_039_346_656_037_u64;
-    for byte in b"effect-current-branch-snapshot"
-        .iter()
-        .copied()
-        .chain([0])
-        .chain(branch.bytes())
-    {
-        acc ^= u64::from(byte);
-        acc = acc.wrapping_mul(1_099_511_628_211);
-    }
-    acc
+    .expect("relational branch head must yield a relational snapshot identity")
 }
 
 fn test_schema_registry() -> RelationalSchemaRegistry {

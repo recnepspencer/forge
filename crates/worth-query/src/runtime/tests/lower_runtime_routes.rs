@@ -12,12 +12,14 @@ fn runtime_live_view_denies_when_schema_boundary_receipt_drifts_from_request() {
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native lower-runtime route contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("backend should build with drifting schema boundary receipt");
 
     let error = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "external.tasks",
             task_live_request(),
             task_schema(),
@@ -61,6 +63,8 @@ fn runtime_write_denies_when_write_authority_route_receipt_drifts_from_command()
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native lower-runtime route contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("backend should build with drifting write route receipt");

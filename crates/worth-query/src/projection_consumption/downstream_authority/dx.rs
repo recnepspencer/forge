@@ -6,15 +6,18 @@ use crate::runtime::{
     WorthQueryReadResult, WorthQueryWriteReceipt,
 };
 
+#[cfg(test)]
+use super::seal_completed_consumption;
 use super::{
-    declared_fact_request, seal_completed_consumption, seal_completed_consumption_with_contract,
-    ProjectionAuthorityContract, ProjectionAuthorityOutcome,
+    declared_fact_request, seal_completed_consumption_with_contract, ProjectionAuthorityContract,
+    ProjectionAuthorityOutcome,
 };
 use crate::projection_consumption::{
     ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError,
 };
 
 impl ProjectionFactConsumptionAttempt {
+    #[cfg(test)]
     pub fn into_authority(self) -> ProjectionAuthorityOutcome {
         match self {
             Self::Admitted(completed) => match seal_completed_consumption(completed) {

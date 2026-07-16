@@ -15,7 +15,6 @@ pub enum ResearchGraphInvariantFamily {
     BranchPromotion,
     ExecutableExperimentAdmission,
 }
-
 impl ResearchGraphInvariantFamily {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -230,112 +229,6 @@ impl HadwigerResearchInvariantCatalog {
 
 impl_hadwiger_artifact!(HadwigerResearchInvariantCatalog, core);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ResearchGraphInvariantCompatibilitySurface {
-    surface: &'static str,
-}
-
-impl ResearchGraphInvariantCompatibilitySurface {
-    pub(crate) fn new(surface: &'static str) -> Self {
-        Self { surface }
-    }
-
-    pub fn as_str(&self) -> &'static str {
-        self.surface
-    }
-}
-
-impl PartialEq<&str> for ResearchGraphInvariantCompatibilitySurface {
-    fn eq(&self, other: &&str) -> bool {
-        self.surface == *other
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ResearchGraphInvariantCompatibilitySurfaces {
-    surfaces: Vec<ResearchGraphInvariantCompatibilitySurface>,
-}
-
-impl ResearchGraphInvariantCompatibilitySurfaces {
-    pub(crate) fn registration_targets() -> Self {
-        Self {
-            surfaces: vec![
-                ResearchGraphInvariantCompatibilitySurface::new(
-                    "WorthQueryRuntime::builder().invariant_catalog(...)",
-                ),
-                ResearchGraphInvariantCompatibilitySurface::new(
-                    "WorthQueryRuntime::builder().custom_invariant(...)",
-                ),
-                ResearchGraphInvariantCompatibilitySurface::new(
-                    "WorthQueryRuntime::builder().register_invariant(...)",
-                ),
-                ResearchGraphInvariantCompatibilitySurface::new(
-                    "WorthQueryRuntime::builder().invariant_registration_artifact(...)",
-                ),
-            ],
-        }
-    }
-
-    pub fn contains(&self, surface: &str) -> bool {
-        self.surfaces
-            .iter()
-            .any(|candidate| candidate.as_str() == surface)
-    }
-
-    pub fn rows(&self) -> &[ResearchGraphInvariantCompatibilitySurface] {
-        &self.surfaces
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ResearchGraphInvariantRegistrationPosture {
-    CustomInvariantRegistrationsReady,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ResearchGraphInvariantRegistrationPlan {
-    core: HadwigerArtifactCore,
-    posture: ResearchGraphInvariantRegistrationPosture,
-    compatible_query_surfaces: ResearchGraphInvariantCompatibilitySurfaces,
-}
-
-impl ResearchGraphInvariantRegistrationPlan {
-    pub(crate) fn custom_invariant_registrations_ready(
-        catalog: &HadwigerResearchInvariantCatalog,
-    ) -> Result<Self, HadwigerArtifactShapeError> {
-        let compatible_query_surfaces =
-            ResearchGraphInvariantCompatibilitySurfaces::registration_targets();
-        let core = artifact_core(
-            HadwigerArtifactKind::ResearchGraphInvariantRegistrationPlan,
-            HadwigerArtifactAuthorityOwner::HadwigerArtifactBuilder,
-            HadwigerArtifactSourceReference::ArtifactConstruction {
-                operation: "research_graph_invariant_registration_plan".to_string(),
-            },
-            vec![catalog.reference()],
-            registration_plan_payload(catalog, &compatible_query_surfaces),
-        )?;
-        Ok(Self {
-            core,
-            posture: ResearchGraphInvariantRegistrationPosture::CustomInvariantRegistrationsReady,
-            compatible_query_surfaces,
-        })
-    }
-
-    pub fn posture(&self) -> ResearchGraphInvariantRegistrationPosture {
-        self.posture
-    }
-
-    pub fn compatible_query_surfaces(&self) -> &ResearchGraphInvariantCompatibilitySurfaces {
-        &self.compatible_query_surfaces
-    }
-
-    pub fn registers_runtime_invariants(&self) -> bool {
-        true
-    }
-}
-
-impl_hadwiger_artifact!(ResearchGraphInvariantRegistrationPlan, core);
-
 fn catalog_payload(
     rules: &[ResearchGraphInvariantRule],
     counters: &ResearchGraphInvariantCounters,
@@ -348,23 +241,6 @@ fn catalog_payload(
         payload.push(HadwigerArtifactPayloadEntry::text(
             "rule",
             rule.reference().stable_token(),
-        ));
-    }
-    payload
-}
-
-fn registration_plan_payload(
-    catalog: &HadwigerResearchInvariantCatalog,
-    surfaces: &ResearchGraphInvariantCompatibilitySurfaces,
-) -> Vec<HadwigerArtifactPayloadEntry> {
-    let mut payload = vec![
-        HadwigerArtifactPayloadEntry::text("posture", "custom_invariant_registrations_ready"),
-        HadwigerArtifactPayloadEntry::text("catalog", catalog.artifact_digest().stable_token()),
-    ];
-    for surface in surfaces.rows() {
-        payload.push(HadwigerArtifactPayloadEntry::text(
-            "compatible_query_surface",
-            surface.as_str(),
         ));
     }
     payload

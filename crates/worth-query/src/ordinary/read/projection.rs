@@ -73,8 +73,8 @@ impl WorthQueryProjectionDeclaration {
         self
     }
 
-    pub fn derived_scalar_field(mut self, field: ProjectionFactFieldPath) -> Self {
-        self.contract = self.contract.require_derived_scalar_field(field);
+    pub fn derived_field(mut self, field: ProjectionFactFieldPath) -> Self {
+        self.contract = self.contract.require_derived_field(field);
         self
     }
 }

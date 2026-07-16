@@ -50,14 +50,14 @@ fn non_queryable_field_rejects() {
 }
 
 #[test]
-fn structured_content_projection_rejects_explicitly() {
+fn non_queryable_content_reference_rejects_explicitly() {
     assert_rejects_with(
         canonical_bundle_with_projection("content", "bio"),
-        QueryValidationError::UnsupportedStructuredContentProjection {
+        QueryValidationError::NonQueryableField {
             aspect: "content".to_string(),
             field: "bio".to_string(),
         },
-        "structured content projection should reject",
+        "non-queryable content reference should reject",
     );
 }
 
@@ -83,6 +83,6 @@ fn structured_content_projection_validates_when_schema_admits_it() {
         .expect("structured content binding should be present");
     assert_eq!(
         bio_binding.field_kind(),
-        &crate::schema_view::SchemaFieldKind::StructuredContent
+        &crate::schema_view::ScalarAspectType::ContentRef
     );
 }

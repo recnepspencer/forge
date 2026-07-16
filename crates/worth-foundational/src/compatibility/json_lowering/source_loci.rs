@@ -8,8 +8,12 @@ pub(super) fn contract_validation_source(
     match denial {
         ContractValidationDenial::MissingRequiredField(field)
         | ContractValidationDenial::UnknownField(field)
-        | ContractValidationDenial::FieldTypeMismatch { field, .. } => field_source(source, field),
+        | ContractValidationDenial::FieldTypeMismatch { field, .. }
+        | ContractValidationDenial::NonCanonicalFieldValue { field, .. } => {
+            field_source(source, field)
+        }
         ContractValidationDenial::ScalarTypeMismatch { .. }
+        | ContractValidationDenial::NonCanonicalScalarValue(_)
         | ContractValidationDenial::StructValueRequired
         | ContractValidationDenial::ScalarValueRequired => source.clone(),
     }

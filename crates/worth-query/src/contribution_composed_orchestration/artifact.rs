@@ -72,15 +72,17 @@ pub struct WorthQueryContributionComposedContribution {
     contribution_category: crate::domain_capabilities::WorthQueryDomainCapabilityCategory,
     semantic_posture: crate::domain_capabilities::WorthQueryDomainCapabilitySemanticPosture,
     request_digest: String,
+    installed_authority: crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness,
     summary: Option<WorthQueryContributionComposedSummary>,
 }
 
 impl WorthQueryContributionComposedContribution {
-    pub fn new(
+    pub(crate) fn new(
         evidence: WorthQueryDeclarationEntryContributionEvidence,
         contribution_category: crate::domain_capabilities::WorthQueryDomainCapabilityCategory,
         semantic_posture: crate::domain_capabilities::WorthQueryDomainCapabilitySemanticPosture,
         request_digest: impl Into<String>,
+        installed_authority: crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness,
         summary: Option<WorthQueryContributionComposedSummary>,
     ) -> Self {
         Self {
@@ -88,8 +90,14 @@ impl WorthQueryContributionComposedContribution {
             contribution_category,
             semantic_posture,
             request_digest: request_digest.into(),
+            installed_authority,
             summary,
         }
+    }
+
+    pub(crate) fn with_summary(mut self, summary: WorthQueryContributionComposedSummary) -> Self {
+        self.summary = Some(summary);
+        self
     }
 
     pub fn evidence(&self) -> &WorthQueryDeclarationEntryContributionEvidence {
@@ -110,6 +118,12 @@ impl WorthQueryContributionComposedContribution {
 
     pub fn request_digest(&self) -> &str {
         &self.request_digest
+    }
+
+    pub fn installed_authority(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness {
+        &self.installed_authority
     }
 
     pub fn summary(&self) -> Option<&WorthQueryContributionComposedSummary> {
@@ -133,25 +147,36 @@ pub struct WorthQueryContributionComposedOrchestration<
     contributions: Vec<WorthQueryContributionComposedContribution>,
     intent_results: Vec<WorthQueryContributionComposedIntentResult>,
     composition: WorthQueryContributionComposedComposition,
+    installed_authority: crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness,
     graph_obligation_dispatch: Option<WorthQueryGraphObligationOrchestrationDispatch>,
 }
 
 impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
     WorthQueryContributionComposedOrchestration<D, I>
 {
-    pub fn new(
+    pub(crate) fn new(
         envelope: WorthQueryDeclarationEnvelope<D, I>,
         contribution_composition: WorthQueryDeclarationEntryContributionComposition,
         contributions: Vec<WorthQueryContributionComposedContribution>,
         intent_results: Vec<WorthQueryContributionComposedIntentResult>,
         composition: WorthQueryContributionComposedComposition,
     ) -> Self {
+        let installed_authority = contributions
+            .first()
+            .expect("a bound composition always retains at least one contribution")
+            .installed_authority()
+            .clone();
+        assert!(contributions.iter().all(|contribution| {
+            contribution.installed_authority().witness_identity()
+                == installed_authority.witness_identity()
+        }));
         Self {
             envelope,
             contribution_composition,
             contributions,
             intent_results,
             composition,
+            installed_authority,
             graph_obligation_dispatch: None,
         }
     }
@@ -182,6 +207,12 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
 
     pub fn contributions(&self) -> &[WorthQueryContributionComposedContribution] {
         &self.contributions
+    }
+
+    pub fn installed_authority(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness {
+        &self.installed_authority
     }
 
     pub fn admitted_contributions(&self) -> &[WorthQueryContributionComposedContribution] {

@@ -364,7 +364,9 @@ fn identity_read_family(
         .expect("read family should define")
 }
 
-fn live_view(workspace: &mut WorthQueryWorkspace) -> WorthQueryLiveView<WorthQueryNativeRow> {
+fn live_view(
+    workspace: &mut WorthQueryWorkspace,
+) -> WorthQueryLiveView<WorthQueryUnrefinedLiveShape> {
     workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
@@ -391,14 +393,14 @@ fn manager_schema() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [SchemaRelationView::new(

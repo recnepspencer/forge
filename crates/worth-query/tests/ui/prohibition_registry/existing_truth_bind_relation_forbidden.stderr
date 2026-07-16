@@ -1,13 +1,5 @@
-error[E0624]: method `bind_existing_relation` is private
+error[E0599]: no method named `bind_existing_relation` found for struct `WorthQueryWorkspace` in the current scope
  --> tests/ui/prohibition_registry/existing_truth_bind_relation_forbidden.rs:4:23
   |
-4 |       let _ = workspace.bind_existing_relation(target);
-  |                         ^^^^^^^^^^^^^^^^^^^^^^ private method
-  |
- ::: src/runtime/workspace_mutations.rs
-  |
-  | /     pub(crate) fn bind_existing_relation(
-  | |         &self,
-  | |         target: WorthQueryExistingRelationTarget,
-  | |     ) -> Result<WorthQueryExistingTruthTargetBinding, WorthQueryRuntimeError> {
-  | |_____________________________________________________________________________- private method defined here
+4 |     let _ = workspace.bind_existing_relation(target);
+  |                       ^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryWorkspace`

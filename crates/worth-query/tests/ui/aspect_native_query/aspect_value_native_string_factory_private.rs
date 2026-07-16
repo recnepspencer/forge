@@ -1,5 +1,5 @@
-use worth_query::facade::runtime::WorthQueryAdmittedAspectValue;
+use worth_query::facade::runtime::WorthQueryAuthoredAspectMutation;
 
 fn main() {
-    let _ = WorthQueryAdmittedAspectValue::native_string_value("not-admitted");
+    let _ = WorthQueryAuthoredAspectMutation::native_string_value("not-admitted");
 }

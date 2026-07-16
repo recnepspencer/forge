@@ -33,7 +33,7 @@ fn binding() -> WorthQueryDerivedArtifactBinding {
             ("authority_snapshot_id", AspectValue::Int64(7)),
             (
                 "nested.truth_basis_digest_hex",
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("basis:test"),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("basis:test"),
             ),
         ])],
         WorthQueryDerivedMaterializationReceipt::test_only(
@@ -51,7 +51,7 @@ fn binding() -> WorthQueryDerivedArtifactBinding {
         .expect("binding should build")
 }
 
-fn view_handle() -> WorthQueryDerivedViewHandle<crate::runtime::WorthQueryNativeRow> {
+fn view_handle() -> WorthQueryDerivedViewHandle<crate::runtime::WorthQueryUnrefinedLiveShape> {
     WorthQueryDerivedViewHandle::new("surface:test")
 }
 
@@ -78,7 +78,7 @@ fn retained_scalar_fact_set_reads_nested_fields() {
     );
     assert_eq!(
         facts.field_value_at(&truth_basis_digest),
-        Some(&crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("basis:test"))
+        Some(&crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("basis:test"))
     );
     assert!(!facts.fact_set_digest().is_empty());
 }

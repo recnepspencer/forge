@@ -1,5 +1,5 @@
-error[E0599]: no method named `terminal_aspect_path_projection` found for reference `&WorthQueryAdmittedAspectValue` in the current scope
+error[E0599]: no method named `terminal_aspect_path_projection` found for reference `&WorthQueryAuthoredAspectMutation` in the current scope
   --> tests/ui/aspect_native_query/aspect_value_terminal_aspect_path_projection_removed.rs:12:20
    |
 12 |     let _ = aspect.terminal_aspect_path_projection();
-   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryAdmittedAspectValue`
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryAuthoredAspectMutation`

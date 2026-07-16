@@ -1,10 +1,7 @@
 //! Single source of truth for Milestone 9.6 identity-boundary covered inventory,
 //! folklore residue scanning, and session-entrypoint audits.
 
-#[path = "identity_boundary_inventory_sources.rs"]
-mod identity_boundary_inventory_sources;
-
-pub use identity_boundary_inventory_sources::{
+pub use super::identity_boundary_inventory_sources::{
     source_for_format_digest_path, source_for_session_admission_path,
     source_for_string_carried_session_identity_path, source_for_string_matching_path,
 };
@@ -493,8 +490,6 @@ pub const EXACT_ZERO_FORMAT_DIGEST_PATHS: &[&str] = &[
     "worth-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/source_structural_stream.rs",
     "worth-runtime-bridge/src/diagnostics/causal_envelope/retained_mapping/retained_artifact_digest/writeback.rs",
 ];
-
-#[allow(dead_code)]
 pub const LOWER_RUNTIME_IDENTITY_SHIM_PATHS: &[&str] = &[
     "lower_runtime_routing/protocol.rs",
     "lower_runtime_routing/adapters/runtime_backend.rs",
@@ -544,14 +539,14 @@ pub const EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS: &[&str] = &[
 
 /// Paths that retain pre-9.6 joined-string digest folklore by explicit milestone scope.
 /// See `EXCLUDED_FOLKLORE_DEFERRALS` for owner milestones referenced in closeout evidence.
-#[allow(dead_code)]
+#[cfg(test)]
 pub const EXCLUDED_FOLKLORE_PATHS: &[&str] = &[
     "harness/milestone_nine_five_",
     "runtime/intent/declaration.rs",
 ];
 
 /// Named deferrals for same-class folklore outside the Milestone 9.6 ordinary-path contract.
-#[allow(dead_code)]
+#[cfg(test)]
 pub const EXCLUDED_FOLKLORE_DEFERRALS: &[(&str, &str)] = &[
     (
         "harness/milestone_nine_five_",
@@ -610,8 +605,6 @@ const FORBIDDEN_DIGEST_FOLKLORE_PATTERNS: &[&str] = &[
     "bundle_width_for_reporting: String",
     "plan_digest: String",
 ];
-
-#[allow(dead_code)]
 const FORBIDDEN_LOWER_RUNTIME_IDENTITY_SHIM_PATTERNS: &[&str] = &[
     "hash_parts(",
     "from_bridge_harness_label",
@@ -621,8 +614,7 @@ const FORBIDDEN_LOWER_RUNTIME_IDENTITY_SHIM_PATTERNS: &[&str] = &[
     "pub(crate) fn from_digest(",
     "pub(crate) fn admitted(",
 ];
-
-#[allow(dead_code)]
+#[cfg(test)]
 const REQUIRED_TYPED_SESSION_LABEL_SIGNATURES: &[&str] = &[
     "pub fn preview<'a>(\n        &'a mut self,\n        label: WorthQuerySessionLabel,",
     "pub fn branch<'a>(\n        &'a mut self,\n        label: WorthQuerySessionLabel,",
@@ -633,8 +625,7 @@ const REQUIRED_TYPED_SESSION_LABEL_SIGNATURES: &[&str] = &[
     "pub fn try_preview_with_options<'a>(\n        &'a mut self,\n        label: WorthQuerySessionLabel,",
     "pub fn try_branch_with_options<'a>(\n        &'a mut self,\n        label: WorthQuerySessionLabel,",
 ];
-
-#[allow(dead_code)]
+#[cfg(test)]
 const FORBIDDEN_RAW_SESSION_LABEL_SIGNATURES: &[&str] = &[
     "pub fn preview<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
     "pub fn branch<'a>(\n        &'a mut self,\n        label: impl Into<String>,",
@@ -686,8 +677,6 @@ pub fn scan_format_digest_residue_path_patterns() -> Vec<(&'static str, &'static
     }
     remaining
 }
-
-#[allow(dead_code)]
 pub fn scan_lower_runtime_identity_shim_paths() -> Vec<&'static str> {
     let mut remaining = Vec::new();
     for &path in LOWER_RUNTIME_IDENTITY_SHIM_PATHS {
@@ -765,8 +754,7 @@ pub fn scan_string_carried_session_identity_residue_paths() -> Vec<&'static str>
     }
     remaining
 }
-
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn ordinary_session_entrypoint_audit_violations(
     runtime_sessions: &str,
     workspace: &str,
@@ -790,4 +778,5 @@ pub fn ordinary_session_entrypoint_audit_violations(
 
 #[cfg(test)]
 #[path = "identity_boundary_inventory_tests.rs"]
+#[cfg(test)]
 mod tests;

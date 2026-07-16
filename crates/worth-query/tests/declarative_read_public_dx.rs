@@ -2,7 +2,7 @@ mod read_journeys {
     use worth_query::facade::read::{
         current, declare, AspectFieldSelector, AspectName, AuthoredResultShapeField,
         DetailQueryBuilder, DetailResultShapeBuilder, FieldName, QuerySchemaView,
-        QueryScopeDescriptor, QueryTemplateDescriptor, RootEntityKey, SchemaFieldKind,
+        QueryScopeDescriptor, QueryTemplateDescriptor, RootEntityKey, ScalarAspectType,
         SchemaFieldView, TemplateBindingSet, TemplateParameterSlot, WorthQueryReadContextKind,
     };
 
@@ -16,7 +16,7 @@ mod read_journeys {
                     [SchemaFieldView::new(
                         AspectName::new("identity").expect("aspect should build"),
                         FieldName::new("id").expect("field should build"),
-                        SchemaFieldKind::String,
+                        ScalarAspectType::String,
                     )],
                     [],
                 ),
@@ -108,12 +108,12 @@ mod read_journeys {
                 SchemaFieldView::new(
                     AspectName::new("identity").expect("aspect should build"),
                     FieldName::new("id").expect("field should build"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 ),
                 SchemaFieldView::new(
                     AspectName::new("profile").expect("aspect should build"),
                     FieldName::new("display_name").expect("field should build"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 ),
             ],
             [],
@@ -141,7 +141,7 @@ mod read_journeys {
 mod aggregate_journey {
     use worth_query::facade::aggregate::{
         current, declare, AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName,
-        QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryReadContextKind,
+        QuerySchemaView, ScalarAspectType, SchemaFieldView, WorthQueryReadContextKind,
     };
 
     #[test]
@@ -154,7 +154,7 @@ mod aggregate_journey {
                     [SchemaFieldView::new(
                         AspectName::new("identity").expect("aspect should build"),
                         FieldName::new("id").expect("field should build"),
-                        SchemaFieldKind::String,
+                        ScalarAspectType::String,
                     )],
                     [],
                 ),
@@ -185,7 +185,7 @@ mod aggregate_journey {
 mod live_declaration_prefix {
     use worth_query::facade::live::{
         current, declare, AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName,
-        QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryReadContextKind,
+        QuerySchemaView, ScalarAspectType, SchemaFieldView, WorthQueryReadContextKind,
     };
 
     #[test]
@@ -198,7 +198,7 @@ mod live_declaration_prefix {
                     [SchemaFieldView::new(
                         AspectName::new("identity").expect("aspect should build"),
                         FieldName::new("id").expect("field should build"),
-                        SchemaFieldKind::String,
+                        ScalarAspectType::String,
                     )],
                     [],
                 ),

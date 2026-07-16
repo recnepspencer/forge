@@ -1,30 +1,32 @@
+#[cfg(test)]
 use worth_foundational::{
     materialize_diagnostic_support_report, FoundationalDiagnosticDeliveryClass,
     FoundationalDiagnosticSupportClaimStrength, FoundationalDiagnosticSupportInput,
     FoundationalDiagnosticSurfaceAvailability, FoundationalProfileSet,
 };
 
+#[cfg(test)]
 use super::super::foundational_integration::{
     build_provenance, build_rows, materialize_profile_progression,
     WorthQueryDomainCapabilityProvenanceFreshnessPolicy,
 };
+#[cfg(test)]
 use super::super::materialization::{
     WorthQueryDomainCapabilityDescriptiveArtifactKind,
     WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
 };
+#[cfg(test)]
+use super::super::payloads::WorthQueryDomainCapabilityPayload;
 use super::super::payloads::{
-    WorthQueryAdmissionContributionPayload, WorthQueryAftermathContributionPayload,
-    WorthQueryContinuityContributionPayload, WorthQueryDomainCapabilityPayload,
-    WorthQueryExplanationContributionPayload, WorthQueryInvariantCapabilityContributionPayload,
+    WorthQueryAdmissionContributionPayload, WorthQueryInvariantCapabilityContributionPayload,
     WorthQuerySupportContributionPayload, WorthQueryWorkflowContributionPayload,
 };
+#[cfg(test)]
 use super::super::targets::WorthQueryDomainCapabilityTargetBinding;
+#[cfg(test)]
 use super::super::{
     WorthQueryMaterializationReadyAdmissionContribution,
-    WorthQueryMaterializationReadyAftermathContribution,
-    WorthQueryMaterializationReadyContinuityContribution,
     WorthQueryMaterializationReadyDomainCapabilityContribution,
-    WorthQueryMaterializationReadyExplanationContribution,
     WorthQueryMaterializationReadyInvariantCapabilityContribution,
     WorthQueryMaterializationReadySupportContribution,
     WorthQueryMaterializationReadyWorkflowContribution,
@@ -39,13 +41,8 @@ pub type WorthQueryInvariantCapabilityContributionSupportReport<T> =
     WorthQueryDomainCapabilitySupportReport<WorthQueryInvariantCapabilityContributionPayload, T>;
 pub type WorthQueryWorkflowContributionSupportReport<T> =
     WorthQueryDomainCapabilitySupportReport<WorthQueryWorkflowContributionPayload, T>;
-pub type WorthQueryContinuityContributionSupportReport<T> =
-    WorthQueryDomainCapabilitySupportReport<WorthQueryContinuityContributionPayload, T>;
-pub type WorthQueryAftermathContributionSupportReport<T> =
-    WorthQueryDomainCapabilitySupportReport<WorthQueryAftermathContributionPayload, T>;
-pub type WorthQueryExplanationContributionSupportReport<T> =
-    WorthQueryDomainCapabilitySupportReport<WorthQueryExplanationContributionPayload, T>;
 
+#[cfg(test)]
 pub fn materialize_domain_capability_support_report<P, T>(
     contribution: WorthQueryMaterializationReadyDomainCapabilityContribution<P, T>,
     requested_profile: FoundationalProfileSet,
@@ -102,6 +99,7 @@ where
     ))
 }
 
+#[cfg(test)]
 pub fn materialize_admission_support_report<T>(
     contribution: WorthQueryMaterializationReadyAdmissionContribution<T>,
     requested_profile: FoundationalProfileSet,
@@ -116,6 +114,7 @@ where
     materialize_domain_capability_support_report(contribution, requested_profile, delivery_class)
 }
 
+#[cfg(test)]
 pub fn materialize_support_traceability_support_report<T>(
     contribution: WorthQueryMaterializationReadySupportContribution<T>,
     requested_profile: FoundationalProfileSet,
@@ -130,6 +129,7 @@ where
     materialize_domain_capability_support_report(contribution, requested_profile, delivery_class)
 }
 
+#[cfg(test)]
 pub fn materialize_invariant_capability_support_report<T>(
     contribution: WorthQueryMaterializationReadyInvariantCapabilityContribution<T>,
     requested_profile: FoundationalProfileSet,
@@ -144,6 +144,7 @@ where
     materialize_domain_capability_support_report(contribution, requested_profile, delivery_class)
 }
 
+#[cfg(test)]
 pub fn materialize_workflow_support_report<T>(
     contribution: WorthQueryMaterializationReadyWorkflowContribution<T>,
     requested_profile: FoundationalProfileSet,
@@ -158,48 +159,7 @@ where
     materialize_domain_capability_support_report(contribution, requested_profile, delivery_class)
 }
 
-pub fn materialize_continuity_support_report<T>(
-    contribution: WorthQueryMaterializationReadyContinuityContribution<T>,
-    requested_profile: FoundationalProfileSet,
-    delivery_class: FoundationalDiagnosticDeliveryClass,
-) -> Result<
-    WorthQueryContinuityContributionSupportReport<T>,
-    WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
->
-where
-    T: WorthQueryDomainCapabilityTargetBinding,
-{
-    materialize_domain_capability_support_report(contribution, requested_profile, delivery_class)
-}
-
-pub fn materialize_aftermath_support_report<T>(
-    contribution: WorthQueryMaterializationReadyAftermathContribution<T>,
-    requested_profile: FoundationalProfileSet,
-    delivery_class: FoundationalDiagnosticDeliveryClass,
-) -> Result<
-    WorthQueryAftermathContributionSupportReport<T>,
-    WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
->
-where
-    T: WorthQueryDomainCapabilityTargetBinding,
-{
-    materialize_domain_capability_support_report(contribution, requested_profile, delivery_class)
-}
-
-pub fn materialize_explanation_support_report<T>(
-    contribution: WorthQueryMaterializationReadyExplanationContribution<T>,
-    requested_profile: FoundationalProfileSet,
-    delivery_class: FoundationalDiagnosticDeliveryClass,
-) -> Result<
-    WorthQueryExplanationContributionSupportReport<T>,
-    WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
->
-where
-    T: WorthQueryDomainCapabilityTargetBinding,
-{
-    materialize_domain_capability_support_report(contribution, requested_profile, delivery_class)
-}
-
+#[cfg(test)]
 fn availability_for<P, T>(
     contribution: &WorthQueryMaterializationReadyDomainCapabilityContribution<P, T>,
 ) -> FoundationalDiagnosticSurfaceAvailability
@@ -218,6 +178,7 @@ where
     }
 }
 
+#[cfg(test)]
 fn counters_for<P, T>(
     contribution: &WorthQueryMaterializationReadyDomainCapabilityContribution<P, T>,
 ) -> worth_foundational::FoundationalDiagnosticCounterSnapshot

@@ -24,7 +24,7 @@ fn compose_graph_supports_existing_target_supersession_lifecycle() {
     let mut workspace = task_relation_runtime()
         .workspace("tasks.graph-composition-supersede-existing")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-supersede-existing-tasks", |q| {
             q.from("Task")
                 .select([
@@ -40,7 +40,7 @@ fn compose_graph_supports_existing_target_supersession_lifecycle() {
                 .schema_basis("tasks-graph-composition-supersede-existing-tasks")
         })
         .expect("task live view should declare");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "tasks.graph-composition-supersede-existing-relations",
             |q| {
@@ -75,13 +75,13 @@ fn compose_graph_supports_existing_target_supersession_lifecycle() {
                     test_aspect_touch("kind.value"),
                     test_authored_string_aspect_value("edge"),
                 )
-                .set_aspect(
+                .existing_entity_identity(
                     test_aspect_touch("source.id"),
-                    test_authored_string_aspect_value("vertex-a"),
+                    test_entity_identity("vertex-a"),
                 )
-                .set_aspect(
+                .existing_entity_identity(
                     test_aspect_touch("target.id"),
-                    test_authored_string_aspect_value("vertex-b"),
+                    test_entity_identity("vertex-b"),
                 )
         })
         .expect("seed insert should execute");
@@ -121,7 +121,7 @@ fn compose_graph_supports_existing_target_supersession_lifecycle() {
                             .expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         ],
                     )
-                    .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("vertex-split"))
+                    .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("vertex-split"))
             })?;
             Ok(())
         })
@@ -203,8 +203,16 @@ fn compose_graph_supports_verified_existing_target_supersession_lifecycle() {
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
         verified_profile(),
         TestExistingTruthVerificationAdapter::default()
-            .with_value(&binding, "source.id", test_string_aspect_value("vertex-a"))
-            .with_value(&binding, "target.id", test_string_aspect_value("vertex-b")),
+            .with_value(
+                &binding,
+                "source.id",
+                test_native_entity_ref_value(&test_entity_identity("vertex-a")),
+            )
+            .with_value(
+                &binding,
+                "target.id",
+                test_native_entity_ref_value(&test_entity_identity("vertex-b")),
+            ),
     );
     let mut workspace = runtime
         .workspace("tasks.graph-composition-verified-supersede")
@@ -216,14 +224,14 @@ fn compose_graph_supports_verified_existing_target_supersession_lifecycle() {
                 binding,
                 |verify| {
                     verify
-                        .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("vertex-a"))
-                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("vertex-b"))
+                        .existing_entity_identity(test_aspect_touch("source.id"), test_entity_identity("vertex-a"))
+                        .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("vertex-b"))
                 },
                 |update| {
                     update
                         .continuity_rebind_merge_successor(crate::runtime::WorthQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::WorthQueryContinuityPriorAuthorityLabel::new("authority:rel-edge").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::WorthQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::WorthQueryContinuitySuccessorAuthorityLabel::new("authority:rel-edge-merged").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         )
-                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("vertex-merged"))
+                        .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("vertex-merged"))
                 },
             )?;
             Ok(())
@@ -284,7 +292,7 @@ fn compose_graph_denies_existing_target_supersession_without_lineage_intent() {
     let mut workspace = task_relation_runtime()
         .workspace("tasks.graph-composition-supersede-denial")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-supersede-denial-relations", |q| {
             q.from("TaskRelation")
                 .select([
@@ -313,13 +321,13 @@ fn compose_graph_denies_existing_target_supersession_without_lineage_intent() {
                     test_aspect_touch("kind.value"),
                     test_authored_string_aspect_value("edge"),
                 )
-                .set_aspect(
+                .existing_entity_identity(
                     test_aspect_touch("source.id"),
-                    test_authored_string_aspect_value("vertex-a"),
+                    test_entity_identity("vertex-a"),
                 )
-                .set_aspect(
+                .existing_entity_identity(
                     test_aspect_touch("target.id"),
-                    test_authored_string_aspect_value("vertex-b"),
+                    test_entity_identity("vertex-b"),
                 )
         })
         .expect("seed insert should execute");
@@ -341,7 +349,7 @@ fn compose_graph_denies_existing_target_supersession_without_lineage_intent() {
                 relation
                     .continuity_rebind_existing_target(crate::runtime::WorthQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::WorthQueryContinuityPriorAuthorityLabel::new("authority:rel-edge").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::WorthQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::WorthQueryContinuitySuccessorAuthorityLabel::new("authority:rel-edge-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                     )
-                    .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("vertex-c"))
+                    .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("vertex-c"))
             })?;
             Ok(())
         })

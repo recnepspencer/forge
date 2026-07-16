@@ -195,8 +195,10 @@ fn authorized_projection_field_path_from_test_boundary(
     field: &str,
 ) -> Result<AuthorizedProjectionFieldPath, String> {
     let Some((aspect, field)) = field.split_once('.') else {
-        return Err(format!(
-            "`{field}` is not a test authorized projection field path"
+        let aspect_key = AspectKey::new(field.to_string())
+            .ok_or_else(|| format!("`{field}` is not a foundational aspect key"))?;
+        return Ok(AuthorizedProjectionFieldPath::from_native_aspect_key(
+            aspect_key,
         ));
     };
     let aspect_key = AspectKey::new(aspect.to_string())

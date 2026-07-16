@@ -1,7 +1,5 @@
 use worth_query::facade::foundation::{
-    MaterializedProjectionContract,
-    ProjectionContractSourcePosture,
-    ProjectionFactKind,
+    MaterializedProjectionContract, ProjectionContractSourcePosture, ProjectionFactKind,
     WorthQueryConsumedProjectionAuthority,
 };
 
@@ -32,7 +30,7 @@ impl WorthUiQueryMeasurementFactEligibility {
             .fact_families()
             .iter()
             .filter_map(|fact_family| match fact_family.kind() {
-                ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+                ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => {
                     Some(WorthUiQueryMeasurementFactFamily::ScrollContentExtent)
                 }
                 ProjectionFactKind::EntityIdentity

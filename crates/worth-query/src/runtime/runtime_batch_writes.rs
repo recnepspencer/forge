@@ -38,6 +38,7 @@ impl WorthQueryRuntime {
                 WorthQueryWorkspaceError::new("mutation batch must declare at least one operation"),
             ));
         }
+        self.preflight_native_mutation_contracts(&commands)?;
         let support_profile = self.backend.support_profile();
         deny_scaffold_multi_command_batch_without_atomic_authority(&support_profile, &commands)?;
         let use_backend_atomic_batch = should_use_backend_atomic_batch(&support_profile, &commands);
@@ -102,9 +103,7 @@ impl WorthQueryRuntime {
                 )
             {
                 record_planned_same_batch_symbolic_target(&mut planned_symbolic_targets, &command);
-                deferred_backend_commands.push(
-                    WorthQueryBackendAdmissibleMutation::from_admitted_command(command),
-                );
+                deferred_backend_commands.push(self.admit_backend_write_command(command)?);
                 command_summaries.push(summary);
                 resolved_receipts.push(None);
                 continue;
@@ -132,9 +131,9 @@ impl WorthQueryRuntime {
                     naming_intent,
                     continuity_intent,
                     symbolic_target_reference,
-                } => self.backend.write(
-                    WorthQueryBackendAdmissibleMutation::from_admitted_command(
-                        WorthQueryWriteCommand::InsertAspects {
+                } => {
+                    let admitted =
+                        self.admit_backend_write_command(WorthQueryWriteCommand::InsertAspects {
                             collection,
                             aspects: resolve_symbolic_aspect_references(
                                 &symbolic_targets,
@@ -146,9 +145,9 @@ impl WorthQueryRuntime {
                             naming_intent,
                             continuity_intent,
                             symbolic_target_reference,
-                        },
-                    ),
-                )?,
+                        })?;
+                    self.backend.write(admitted)?
+                }
                 WorthQueryWriteCommand::UpdateSymbolicAspects {
                     reference,
                     aspects,
@@ -163,18 +162,16 @@ impl WorthQueryRuntime {
                         resolved_target.entity_identity(),
                         resolved_target.target_collection_identity(),
                     )?;
+                    let admitted =
+                        self.admit_backend_write_command(WorthQueryWriteCommand::UpdateAspects {
+                            entity_identity: resolved_target.entity_identity().clone(),
+                            aspects,
+                            metadata,
+                            naming_intent,
+                            continuity_intent,
+                        })?;
                     attach_symbolic_target_reference_to_receipt(
-                        self.backend.write(
-                            WorthQueryBackendAdmissibleMutation::from_admitted_command(
-                                WorthQueryWriteCommand::UpdateAspects {
-                                    entity_identity: resolved_target.entity_identity().clone(),
-                                    aspects,
-                                    metadata,
-                                    naming_intent,
-                                    continuity_intent,
-                                },
-                            ),
-                        )?,
+                        self.backend.write(admitted)?,
                         symbolic_target_reference,
                     )
                 }
@@ -186,25 +183,25 @@ impl WorthQueryRuntime {
                     metadata,
                     naming_intent,
                     continuity_intent,
-                } => self.backend.write(
-                    WorthQueryBackendAdmissibleMutation::from_admitted_command(
-                        Self::lower_backend_write_command(
-                            WorthQueryWriteCommand::VerifyThenUpdateExistingAspects {
-                                binding,
-                                asserted_aspects,
-                                aspects: resolve_symbolic_aspect_references(
-                                    &symbolic_targets,
-                                    aspects,
-                                    &symbolic_aspect_references,
-                                )?,
-                                symbolic_aspect_references: Vec::new(),
-                                metadata,
-                                naming_intent,
-                                continuity_intent,
-                            },
-                        ),
-                    ),
-                )?,
+                } => {
+                    let command = Self::lower_backend_write_command(
+                        WorthQueryWriteCommand::VerifyThenUpdateExistingAspects {
+                            binding,
+                            asserted_aspects,
+                            aspects: resolve_symbolic_aspect_references(
+                                &symbolic_targets,
+                                aspects,
+                                &symbolic_aspect_references,
+                            )?,
+                            symbolic_aspect_references: Vec::new(),
+                            metadata,
+                            naming_intent,
+                            continuity_intent,
+                        },
+                    );
+                    let admitted = self.admit_backend_write_command(command)?;
+                    self.backend.write(admitted)?
+                }
                 WorthQueryWriteCommand::DeleteSymbolicAspects {
                     reference,
                     touched_aspects,
@@ -218,28 +215,26 @@ impl WorthQueryRuntime {
                         resolved_target.entity_identity(),
                         resolved_target.target_collection_identity(),
                     )?;
+                    let admitted =
+                        self.admit_backend_write_command(WorthQueryWriteCommand::DeleteAspects {
+                            entity_identity: resolved_target.entity_identity().clone(),
+                            declared_collection: resolved_target
+                                .target_collection_identity()
+                                .cloned(),
+                            touched_aspects,
+                            metadata,
+                            naming_intent,
+                        })?;
                     attach_symbolic_target_reference_to_receipt(
-                        self.backend.write(
-                            WorthQueryBackendAdmissibleMutation::from_admitted_command(
-                                WorthQueryWriteCommand::DeleteAspects {
-                                    entity_identity: resolved_target.entity_identity().clone(),
-                                    declared_collection: resolved_target
-                                        .target_collection_identity()
-                                        .cloned(),
-                                    touched_aspects,
-                                    metadata,
-                                    naming_intent,
-                                },
-                            ),
-                        )?,
+                        self.backend.write(admitted)?,
                         symbolic_target_reference,
                     )
                 }
-                other => self.backend.write(
-                    WorthQueryBackendAdmissibleMutation::from_admitted_command(
-                        Self::lower_backend_write_command(other),
-                    ),
-                )?,
+                other => {
+                    let admitted =
+                        self.admit_backend_write_command(Self::lower_backend_write_command(other))?;
+                    self.backend.write(admitted)?
+                }
             };
             if let Some(intent) = summary.continuity_intent().as_ref() {
                 let (_, target_collection, target_entity_identity) =

@@ -37,7 +37,7 @@ pub struct TraversalReductionBasis {
     pub relation_visit_keys: Vec<TraversalRelationVisitKey>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct QueryWorkerFragment {
     pub plan_key: DeterministicQueryPlanKey,
     pub fragment_key: DeterministicQueryFragmentKey,
@@ -48,7 +48,7 @@ pub struct QueryWorkerFragment {
     pub traversal_basis: Option<TraversalReductionBasis>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CanonicalQueryResult {
     pub execution_shape: QueryExecutionShape,
     pub ordering: QueryOrderingContract,
@@ -67,7 +67,7 @@ pub struct QueryComplexitySummary {
     pub authoritative_relation_records_emitted: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct QueryExecutionOutcome {
     pub plan: SnapshotPinnedQueryPlan,
     pub result: CanonicalQueryResult,

@@ -104,7 +104,7 @@ Authority boundaries still matter:
 3. Add follow-up mutation against symbolic or existing authoritative targets
    using the admitted lanes.
 4. Receive one canonical batch receipt.
-5. Read graph-specific evidence from the receipt or `workspace.inspect(...)`.
+5. Read graph-specific evidence from the receipt or `workspace.inspections()?.inspect(...)`.
 
 Real graph-composition receipts can expose:
 

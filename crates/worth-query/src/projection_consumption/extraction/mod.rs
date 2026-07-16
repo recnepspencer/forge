@@ -71,7 +71,7 @@ impl MaterializedProjectionContract {
         ensure_optional_metadata(
             "query_digest",
             self.query_digest(),
-            Some(result.receipt().query_digest()),
+            Some(result.receipt().canonical_query_digest()),
         )?;
         ensure_optional_metadata(
             "basis_digest",

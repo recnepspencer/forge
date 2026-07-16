@@ -26,14 +26,14 @@ fn authoritative_admitted_handoff_materializes_execution_binding() {
 fn effect_admitted_handoff_materializes_self_contained_execution_binding() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.phase-four-effect",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.phase-four-binding",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",
@@ -74,14 +74,14 @@ fn effect_admitted_handoff_materializes_self_contained_execution_binding() {
 fn effect_receipt_surfaces_provenance_without_nested_receipt_spelunking() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.phase-four-effect-surface",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.phase-four-surface",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",
@@ -231,14 +231,14 @@ fn post_execution_routing_failure_preserves_proof_chain() {
 fn stale_effect_execution_binding_fails_as_typed_handoff_violation() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.phase-four-stale-effect",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.phase-four-stale",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",

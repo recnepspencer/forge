@@ -115,13 +115,14 @@ fn inventory_and_readiness_are_query_seam_projections() {
 }
 
 #[test]
-fn operating_context_digest_includes_all_stable_regimes() {
+fn operating_context_identity_declares_all_stable_regimes() {
     let context = HadwigerResearchOperatingContext::finite_lower_bound_real();
-    let digest = context.context_identity_digest();
+    let identity = context.context_identity();
+    let fields = identity.fields().collect::<Vec<_>>();
 
-    assert!(digest.contains("finite_lower_bound_search"));
-    assert!(digest.contains("real_in_process"));
-    assert!(digest.contains("conservative"));
+    assert!(fields.contains(&("assumption_regime", "finite_lower_bound_search")));
+    assert!(fields.contains(&("checker_support_regime", "real_in_process")));
+    assert!(fields.contains(&("invalidation_regime", "conservative")));
 }
 
 fn admitted_declaration<I>(

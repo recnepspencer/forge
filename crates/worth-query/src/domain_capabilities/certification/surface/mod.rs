@@ -105,57 +105,57 @@ pub fn worth_query_domain_capability_public_surface_inventory(
 const CERTIFIED_SURFACE_ROWS: &[WorthQueryDomainCapabilityCertifiedSurfaceRow] = &[
     WorthQueryDomainCapabilityCertifiedSurfaceRow::new(
         WorthQueryDomainCapabilityCategory::Admission,
-        "worth_query_domain(...).for_admitted_intent_plan(...).advises(...).because(...).materialize()",
-        "worth_query_domain(...).for_admitted_intent_plan(...).advises(...).because(...).try_materialize()",
-        "WorthQueryAdmissionContributionAuthoring::advisory(...).for_admitted_intent_plan(...)",
+        "handle.contributions_in(&workspace)?.for_admitted_intent_plan(&plan)?.advises(...).because(...).materialize()",
+        "handle.contributions_in(&workspace)?.for_admitted_intent_plan(&plan)?.advises(...).because(...).try_materialize()",
+        "WorthQueryAdmissionContributionAuthoring::advisory(...).bind_to_installed_target(target)",
         "materialize_runtime_admission_decision(...)",
         "crates/worth-query/src/domain_capabilities/dx/common/intent_admission.rs",
     ),
     WorthQueryDomainCapabilityCertifiedSurfaceRow::new(
         WorthQueryDomainCapabilityCategory::SupportTraceability,
-        "worth_query_domain(...).for_intent(...).supports_traceability(...).because(...).materialize()",
-        "worth_query_domain(...).for_intent(...).supports_traceability(...).because(...).try_materialize()",
-        "WorthQuerySupportContributionAuthoring::declaration_traceability(...).for_intent_declaration(...)",
+        "handle.contributions_in(&workspace)?.for_intent(&intent)?.supports_traceability(...).because(...).materialize()",
+        "handle.contributions_in(&workspace)?.for_intent(&intent)?.supports_traceability(...).because(...).try_materialize()",
+        "WorthQuerySupportContributionAuthoring::declaration_traceability(...).bind_to_installed_target(target)",
         "materialize_intent_declaration_support_traceability_artifact(...)",
         "crates/worth-query/src/domain_capabilities/dx/common/intent.rs",
     ),
     WorthQueryDomainCapabilityCertifiedSurfaceRow::new(
         WorthQueryDomainCapabilityCategory::InvariantCapability,
-        "worth_query_domain(...).for_intent(...).register_invariant_catalog(...).because(...).materialize()",
-        "worth_query_domain(...).for_intent(...).register_invariant_catalog(...).because(...).try_materialize()",
-        "WorthQueryInvariantCapabilityContributionAuthoring::invariant_registration(...).for_intent_declaration(...)",
+        "handle.contributions_in(&workspace)?.for_intent(&intent)?.register_invariant_catalog(...).because(...).materialize()",
+        "handle.contributions_in(&workspace)?.for_intent(&intent)?.register_invariant_catalog(...).because(...).try_materialize()",
+        "WorthQueryInvariantCapabilityContributionAuthoring::invariant_registration(...).bind_to_installed_target(target)",
         "materialize_query_invariant_catalog_registration_artifact(...)",
         "crates/worth-query/src/domain_capabilities/dx/common/intent.rs",
     ),
     WorthQueryDomainCapabilityCertifiedSurfaceRow::new(
         WorthQueryDomainCapabilityCategory::WorkflowPreview,
-        "worth_query_domain(...).for_intent(...).plans_preview_mutation(...).because(...).materialize()",
-        "worth_query_domain(...).for_intent(...).plans_preview_mutation(...).because(...).try_materialize()",
-        "WorthQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(...).for_intent_declaration(...)",
+        "handle.contributions_in(&workspace)?.for_intent(&intent)?.plans_preview_mutation(...).because(...).materialize()",
+        "handle.contributions_in(&workspace)?.for_intent(&intent)?.plans_preview_mutation(...).because(...).try_materialize()",
+        "WorthQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(...).bind_to_installed_target(target)",
         "materialize_query_workflow_declaration(...)",
         DOMAIN_CAPABILITY_WORKFLOW_CATEGORY_MODULE,
     ),
     WorthQueryDomainCapabilityCertifiedSurfaceRow::new(
         WorthQueryDomainCapabilityCategory::ContinuityLineage,
-        "worth_query_domain(...).for_admitted_intent_plan(...).preserves_continuity(...).because(...).materialize()",
-        "worth_query_domain(...).for_admitted_intent_plan(...).preserves_continuity(...).because(...).try_materialize()",
-        "WorthQueryContinuityContributionAuthoring::preserved_rebind(...).for_admitted_intent_plan(...)",
+        "handle.contributions_in(&workspace)?.for_admitted_intent_plan(&plan)?.preserves_continuity(...).because(...).materialize()",
+        "handle.contributions_in(&workspace)?.for_admitted_intent_plan(&plan)?.preserves_continuity(...).because(...).try_materialize()",
+        "WorthQueryContinuityContributionAuthoring::preserved_rebind(...).bind_to_installed_target(target)",
         "materialize_runtime_continuity_evidence(...)",
         DOMAIN_CAPABILITY_CONTINUITY_CATEGORY_MODULE,
     ),
     WorthQueryDomainCapabilityCertifiedSurfaceRow::new(
         WorthQueryDomainCapabilityCategory::ConsequenceAftermath,
-        "worth_query_domain(...).for_admitted_intent_plan(...).consumes_projection_contract(...).because(...).materialize()",
-        "worth_query_domain(...).for_admitted_intent_plan(...).consumes_projection_contract(...).because(...).review()",
-        "WorthQueryAftermathContributionAuthoring::projection_contract_consumption(...).for_admitted_intent_plan(...)",
+        "handle.contributions_in(&workspace)?.for_admitted_intent_plan(&plan)?.consumes_projection_contract(...).because(...).materialize()",
+        "handle.contributions_in(&workspace)?.for_admitted_intent_plan(&plan)?.consumes_projection_contract(...).because(...).review()",
+        "WorthQueryAftermathContributionAuthoring::projection_contract_consumption(...).bind_to_installed_target(target)",
         "materialize_projection_consumption_contract(...)",
         DOMAIN_CAPABILITY_AFTERMATH_CATEGORY_MODULE,
     ),
     WorthQueryDomainCapabilityCertifiedSurfaceRow::new(
         WorthQueryDomainCapabilityCategory::ExplanationInspection,
-        "worth_query_domain(...).for_lower_runtime_boundary_envelope(...).explains_store_backed_replay_gap(...).because(...).materialize_artifact()",
-        "worth_query_domain(...).for_lower_runtime_boundary_envelope(...).explains_store_backed_replay_gap(...).because(...).review()",
-        "WorthQueryExplanationContributionAuthoring::store_backed_replay_gap_explanation(...).for_lower_runtime_boundary_envelope(...)",
+        "handle.contributions_in(&workspace)?.for_lower_runtime_boundary_envelope(&envelope)?.explains_store_backed_replay_gap(...).because(...).materialize_artifact()",
+        "handle.contributions_in(&workspace)?.for_lower_runtime_boundary_envelope(&envelope)?.explains_store_backed_replay_gap(...).because(...).review()",
+        "WorthQueryExplanationContributionAuthoring::store_backed_replay_gap_explanation(...).bind_to_installed_target(target)",
         "materialize_query_causal_inspection_artifact(...)",
         DOMAIN_CAPABILITY_EXPLANATION_CATEGORY_MODULE,
     ),
@@ -203,6 +203,8 @@ mod tests {
             assert_ne!(row.ordinary_lane(), row.inspectable_lane());
             assert_ne!(row.inspectable_lane(), row.proof_lane());
             assert_ne!(row.proof_lane(), row.raw_lane());
+            assert!(row.ordinary_lane().contains("contributions_in"));
+            assert!(!row.ordinary_lane().contains("worth_query_domain"));
             assert!(row.implementation_path().contains("domain_capabilities"));
         }
     }

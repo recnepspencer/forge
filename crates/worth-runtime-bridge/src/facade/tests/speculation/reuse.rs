@@ -1,4 +1,3 @@
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::tests::runtime;
 use crate::facade::tests::speculation::{
     preview_declaration, structural_basis, StructuralBasisInput, StructuralSemanticsVersion,
@@ -7,6 +6,7 @@ use crate::facade::{
     BridgePreviewLifecycleStateKind, BridgeRuntimePolicy, StructuralIdentityDeclarationIdentity,
     StructuralSchemaIdentity,
 };
+use crate::speculation::BridgePreviewSessionIdentity;
 
 #[test]
 fn runtime_admits_and_activates_reused_preview_session_only_for_exact_equivalence() {

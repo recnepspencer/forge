@@ -5,7 +5,6 @@ use crate::declarative_live::{
     declare_runtime_live_query_session_with_grouped_baseline, DeclarativeLiveQueryError,
     DeclarativeLiveQueryRequest, DeclarativeLiveViewShape,
 };
-#[allow(unused_imports)]
 pub use crate::intent_admission::{
     certify_intent_admission, worth_query_intent_admission_certification_output_manifest,
     worth_query_intent_admission_closeout_extension_outputs,
@@ -25,17 +24,8 @@ pub use crate::intent_admission::{
     WorthQueryAdmittedIntentExecutionHandoff, WorthQueryAdmittedIntentPlan,
     WorthQueryAdmittedRuntimeEffectWriteIntent, WorthQueryAdmittedRuntimeExistingTruthProbeIntent,
     WorthQueryAdmittedRuntimeInspectionIntent, WorthQueryAdmittedRuntimeIntent,
-    WorthQueryAdmittedRuntimeWriteBatchIntent, WorthQueryAdmittedRuntimeWriteIntent,
-    WorthQueryAdmittedWorkspaceLiveReadIntent, WorthQueryAdmittedWorkspaceReadIntent,
-    WorthQueryAuthoritativeIntentExecutionBinding, WorthQueryAuthoritativeIntentExecutionHandoff,
-    WorthQueryAuthoritativeIntentExecutionPlan,
-    WorthQueryAuthoritativeMutationBatchExecutionBinding,
-    WorthQueryAuthoritativeMutationBatchExecutionHandoff,
-    WorthQueryAuthoritativeMutationBatchExecutionPlan,
-    WorthQueryAuthoritativeMutationBatchIntentSeed,
-    WorthQueryAuthoritativeMutationExecutionBinding,
-    WorthQueryAuthoritativeMutationExecutionHandoff, WorthQueryAuthoritativeMutationExecutionPlan,
-    WorthQueryAuthoritativeMutationIntentSeed, WorthQueryAuthoritativeMutationPreflight,
+    WorthQueryAdmittedWorkspaceReadIntent, WorthQueryAuthoritativeIntentExecutionBinding,
+    WorthQueryAuthoritativeIntentExecutionHandoff, WorthQueryAuthoritativeIntentExecutionPlan,
     WorthQueryEffectTriggeredIntentExecutionBinding,
     WorthQueryEffectTriggeredIntentExecutionHandoff, WorthQueryEffectTriggeredIntentExecutionPlan,
     WorthQueryExistingTruthProbeExecutionBinding, WorthQueryExistingTruthProbeExecutionHandoff,
@@ -48,20 +38,20 @@ pub use crate::intent_admission::{
     WorthQueryIntentAdmissionCertificationOutput, WorthQueryIntentAdmissionCompileFailTarget,
     WorthQueryIntentAdmissionCoverageInventory, WorthQueryIntentAdmissionCoverageRow,
     WorthQueryIntentAdmissionCoverageStatus, WorthQueryIntentAdmissionCoveredEntrypoint,
-    WorthQueryIntentAdmissionCrateDocExampleTarget, WorthQueryIntentAdmissionDecision,
-    WorthQueryIntentAdmissionDecisionClass, WorthQueryIntentAdmissionDocExampleReport,
-    WorthQueryIntentAdmissionDocExampleRow, WorthQueryIntentAdmissionEligibility,
-    WorthQueryIntentAdmissionEligibilityAuthority, WorthQueryIntentAdmissionExecutionBoundary,
-    WorthQueryIntentAdmissionExecutionHandoffInventory, WorthQueryIntentAdmissionExecutionSeam,
-    WorthQueryIntentAdmissionFamily, WorthQueryIntentAdmissionFamilyInventory,
-    WorthQueryIntentAdmissionFamilyInventoryRow, WorthQueryIntentAdmissionGoldenTranscript,
-    WorthQueryIntentAdmissionInvariantEligibility, WorthQueryIntentAdmissionLegacyParityCheck,
-    WorthQueryIntentAdmissionLegacyParityLane, WorthQueryIntentAdmissionLegacyParityReport,
-    WorthQueryIntentAdmissionLegacyParityRow, WorthQueryIntentAdmissionMutationAudit,
-    WorthQueryIntentAdmissionMutationAuditRow, WorthQueryIntentAdmissionOracleComparisonRow,
-    WorthQueryIntentAdmissionOracleLane, WorthQueryIntentAdmissionOracleManifestRow,
-    WorthQueryIntentAdmissionOracleReport, WorthQueryIntentAdmissionPlanKind,
-    WorthQueryIntentAdmissionPolicyEligibility, WorthQueryIntentAdmissionPreDecisionPosture,
+    WorthQueryIntentAdmissionDecision, WorthQueryIntentAdmissionDecisionClass,
+    WorthQueryIntentAdmissionDocExampleReport, WorthQueryIntentAdmissionDocExampleRow,
+    WorthQueryIntentAdmissionEligibility, WorthQueryIntentAdmissionEligibilityAuthority,
+    WorthQueryIntentAdmissionExecutionBoundary, WorthQueryIntentAdmissionExecutionHandoffInventory,
+    WorthQueryIntentAdmissionExecutionSeam, WorthQueryIntentAdmissionFamily,
+    WorthQueryIntentAdmissionFamilyInventory, WorthQueryIntentAdmissionFamilyInventoryRow,
+    WorthQueryIntentAdmissionGoldenTranscript, WorthQueryIntentAdmissionInvariantEligibility,
+    WorthQueryIntentAdmissionLegacyParityCheck, WorthQueryIntentAdmissionLegacyParityLane,
+    WorthQueryIntentAdmissionLegacyParityReport, WorthQueryIntentAdmissionLegacyParityRow,
+    WorthQueryIntentAdmissionMutationAudit, WorthQueryIntentAdmissionMutationAuditRow,
+    WorthQueryIntentAdmissionOracleComparisonRow, WorthQueryIntentAdmissionOracleLane,
+    WorthQueryIntentAdmissionOracleManifestRow, WorthQueryIntentAdmissionOracleReport,
+    WorthQueryIntentAdmissionPlanKind, WorthQueryIntentAdmissionPolicyEligibility,
+    WorthQueryIntentAdmissionPreDecisionPosture,
     WorthQueryIntentAdmissionProjectionSourceEligibility, WorthQueryIntentAdmissionProofShapeAudit,
     WorthQueryIntentAdmissionPublicBoundaryAudit,
     WorthQueryIntentAdmissionRepresentativeFamilyLane,
@@ -83,16 +73,13 @@ pub use crate::intent_admission::{
     WorthQueryIntentDecisionTraceStage, WorthQueryIntentNonAdmittedStop,
     WorthQueryIntentViolationDecision, WorthQueryIntentViolationStop,
     WorthQueryLiveReadExecutionBinding, WorthQueryLiveReadExecutionHandoff,
-    WorthQueryLiveReadExecutionPlan, WorthQueryLiveReadIntentSeed,
-    WorthQueryRawIntentAdmissionRequest, WorthQueryReadExecutionBinding,
-    WorthQueryReadExecutionHandoff, WorthQueryReadExecutionIntentSeed, WorthQueryReadExecutionPlan,
+    WorthQueryLiveReadExecutionPlan, WorthQueryLiveReadIntentSeed, WorthQueryReadExecutionBinding,
+    WorthQueryReadExecutionHandoff, WorthQueryReadExecutionPlan,
     WorthQueryRuntimeEffectWriteIntentAdmissionReview, WorthQueryRuntimeEffectWriteIntentAuthoring,
     WorthQueryRuntimeExistingTruthProbeIntentAdmissionReview,
     WorthQueryRuntimeExistingTruthProbeIntentAuthoring,
     WorthQueryRuntimeInspectionIntentAdmissionReview, WorthQueryRuntimeInspectionIntentAuthoring,
     WorthQueryRuntimeIntentAdmissionReview, WorthQueryRuntimeIntentAuthoring,
-    WorthQueryRuntimeWriteBatchIntentAdmissionReview, WorthQueryRuntimeWriteBatchIntentAuthoring,
-    WorthQueryRuntimeWriteIntentAdmissionReview, WorthQueryRuntimeWriteIntentAuthoring,
     WorthQueryUnifiedInspectionExecutionBinding, WorthQueryUnifiedInspectionExecutionHandoff,
     WorthQueryUnifiedInspectionExecutionPlan,
     WorthQueryWorkspaceDerivedInspectionIntentAdmissionReview,
@@ -102,10 +89,9 @@ pub use crate::intent_admission::{
     WorthQueryWorkspaceLiveReadIntentAdmissionReview, WorthQueryWorkspaceLiveReadIntentAuthoring,
     WorthQueryWorkspaceReadIntentAdmissionReview, WorthQueryWorkspaceReadIntentAuthoring,
 };
-#[allow(unused_imports)]
 pub use crate::lower_runtime_routing::{
     certify_lower_runtime_non_bypass, certify_lower_runtime_performance_slopes,
-    certify_lower_runtime_routing, inspect_lower_runtime_boundary, inspect_lower_runtime_closeout,
+    certify_lower_runtime_routing, inspect_lower_runtime_closeout,
     summarize_lower_runtime_boundary, worth_query_lower_runtime_acceptance_suite,
     worth_query_lower_runtime_boundary_reconciliation_report,
     worth_query_lower_runtime_certification_output_manifest,
@@ -142,19 +128,19 @@ pub use crate::lower_runtime_routing::{
     WorthQueryLowerRuntimeDirectImportAudit, WorthQueryLowerRuntimeDirectImportAuditRow,
     WorthQueryLowerRuntimeDirectImportPosture, WorthQueryLowerRuntimeFailureTopology,
     WorthQueryLowerRuntimeGapRegistry, WorthQueryLowerRuntimeGapRegistryRow,
-    WorthQueryLowerRuntimeGoldenTranscript, WorthQueryLowerRuntimeNonBypassAudit,
-    WorthQueryLowerRuntimePerformanceFamily, WorthQueryLowerRuntimePerformanceSlopeReport,
-    WorthQueryLowerRuntimePerformanceSlopeRow, WorthQueryLowerRuntimePhaseArtifact,
-    WorthQueryLowerRuntimePhaseManifest, WorthQueryLowerRuntimePhaseManifestRow,
-    WorthQueryLowerRuntimeProofShapeAudit, WorthQueryLowerRuntimeProofShapeAuditRow,
-    WorthQueryLowerRuntimeProofShapeEnforcement, WorthQueryLowerRuntimeProofShapeViolation,
-    WorthQueryLowerRuntimePublicSurfaceInventory, WorthQueryLowerRuntimePublicSurfaceKind,
-    WorthQueryLowerRuntimePublicSurfaceRow, WorthQueryLowerRuntimeReadmissionReceipt,
-    WorthQueryLowerRuntimeRouteKind, WorthQueryLowerRuntimeRoutePlan,
-    WorthQueryLowerRuntimeRoutingInspection, WorthQueryLowerRuntimeSeamKey,
-    WorthQueryLowerRuntimeSupportDetail, WorthQueryLowerRuntimeSupportMatrix,
-    WorthQueryLowerRuntimeSupportPosture, WorthQueryLowerRuntimeSupportRow,
-    WorthQueryLowerRuntimeSyntheticTailReport, WorthQueryLowerRuntimeSyntheticTailRow,
+    WorthQueryLowerRuntimeNonBypassAudit, WorthQueryLowerRuntimePerformanceFamily,
+    WorthQueryLowerRuntimePerformanceSlopeReport, WorthQueryLowerRuntimePerformanceSlopeRow,
+    WorthQueryLowerRuntimePhaseArtifact, WorthQueryLowerRuntimePhaseManifest,
+    WorthQueryLowerRuntimePhaseManifestRow, WorthQueryLowerRuntimeProofShapeAudit,
+    WorthQueryLowerRuntimeProofShapeAuditRow, WorthQueryLowerRuntimeProofShapeEnforcement,
+    WorthQueryLowerRuntimeProofShapeViolation, WorthQueryLowerRuntimePublicSurfaceInventory,
+    WorthQueryLowerRuntimePublicSurfaceKind, WorthQueryLowerRuntimePublicSurfaceRow,
+    WorthQueryLowerRuntimeReadmissionReceipt, WorthQueryLowerRuntimeRouteKind,
+    WorthQueryLowerRuntimeRoutePlan, WorthQueryLowerRuntimeRoutingInspection,
+    WorthQueryLowerRuntimeSeamKey, WorthQueryLowerRuntimeSupportDetail,
+    WorthQueryLowerRuntimeSupportMatrix, WorthQueryLowerRuntimeSupportPosture,
+    WorthQueryLowerRuntimeSupportRow, WorthQueryLowerRuntimeSyntheticTailReport,
+    WorthQueryLowerRuntimeSyntheticTailRow,
 };
 use crate::memory_workspace::{
     WorthQueryEntity, WorthQueryMutationKind, WorthQueryMutationReceipt, WorthQueryWorkspaceError,
@@ -164,7 +150,12 @@ use crate::program::{
     WorthQueryOperationInput, WorthQueryOperationOutput, WorthQueryProgram,
     WorthQueryProgramEffect, WorthQueryProgramError, WorthQueryProgramTrace,
 };
+#[cfg(not(test))]
 use crate::schema_view::QuerySchemaView;
+#[cfg(test)]
+pub(crate) use crate::schema_view::{
+    QuerySchemaView, ScalarAspectType, SchemaFieldView, SchemaRelationView,
+};
 use crate::session_label::WorthQuerySessionLabel;
 use crate::subscription::{
     admit_active_subscription_lane, admit_query_subscription, attach_subscription_consumer,
@@ -225,6 +216,7 @@ mod graph_read_access;
 pub(crate) use graph_read_access::WorthQueryGraphReadOperationLookup;
 mod handle_contract;
 mod inspection;
+mod installed_domain_substrate_provenance;
 mod intent;
 mod journal_position;
 mod journal_replay;
@@ -234,14 +226,18 @@ mod live_subscription_delivery_routing;
 mod managed_live_resource;
 mod materialized_fact_posture;
 mod mixed_cause_delivery;
+#[cfg(test)]
 mod mixed_cause_emission;
 mod mutation;
 mod mutation_surface;
+pub(crate) mod native_aspect_contracts;
 mod ordinary_inspection_execution;
 mod ordinary_runtime_posture;
 mod ordinary_workflow_authority;
+mod ordinary_workflow_branch_name;
 mod ordinary_workflow_execution;
 mod preview;
+pub(crate) use installed_domain_substrate_provenance::WorthQueryInstalledDomainSubstrateProvenance;
 mod public_api;
 mod published_artifacts;
 mod read_composition;
@@ -303,10 +299,12 @@ mod state_snapshot;
 mod support;
 mod support_matrix;
 mod surface;
+#[cfg(test)]
 mod time_only_delivery;
 mod workspace;
 mod workspace_contracts;
 mod workspace_declaration;
+mod workspace_domain_installation;
 mod workspace_graph;
 mod workspace_inspection;
 mod workspace_live_queries;
@@ -334,7 +332,6 @@ pub use async_result_state::{
     WorthQueryRuntimeAsyncResultState, WorthQueryRuntimeAsyncResultStateKind,
 };
 pub use authoritative_mutation_evidence_closeout::WorthQueryAuthoritativeMutationEvidenceCloseout;
-#[allow(unused_imports)]
 pub use authoritative_mutation_evidence_support::{
     WorthQueryAuthoritativeMutationEvidenceSupport, WorthQueryBridgeBackedVerificationSupportRow,
     WorthQueryBridgeBackedVerificationSupportStatus,
@@ -378,8 +375,10 @@ pub use computed::{
 };
 pub use concurrent_hostile_matrix::{
     WorthQueryConcurrentHostileMatrixCounterSnapshot, WorthQueryConcurrentHostileMatrixTopology,
-    WorthQueryConcurrentSubmissionIntake, WorthQueryConcurrentSubmissionLane,
-    WorthQueryConcurrentSubmissionRecord,
+};
+#[cfg(test)]
+pub use concurrent_hostile_matrix::{
+    WorthQueryConcurrentSubmissionIntake, WorthQueryConcurrentSubmissionRecord,
 };
 pub use delivery::WorthQueryRuntimeDeliveryBatch;
 use delivery::{
@@ -408,11 +407,14 @@ pub use effect::{
     WorthQueryEffectTrigger, WorthQueryEffectTriggerSourceKind,
     WorthQueryEffectWriteAdjacentTrigger, WorthQueryEffectWriteAdjacentTriggerClass,
 };
-#[allow(unused_imports)]
 pub use error::{
-    WorthQueryGraphObligationDenial, WorthQueryRuntimeDeclarationFailureKind,
-    WorthQueryRuntimeError, WorthQueryRuntimeLookupFailureKind,
-    WorthQueryRuntimeMissingArtifactKind, WorthQueryRuntimeMissingComponent, WorthQueryStopClass,
+    WorthQueryGraphObligationDenial, WorthQueryRuntimeError, WorthQueryRuntimeMissingComponent,
+    WorthQueryStopClass,
+};
+#[cfg(test)]
+pub(crate) use error::{
+    WorthQueryRuntimeDeclarationFailureKind, WorthQueryRuntimeLookupFailureKind,
+    WorthQueryRuntimeMissingArtifactKind,
 };
 #[cfg(test)]
 pub(crate) use fallback_seam_counters::{
@@ -422,29 +424,11 @@ pub(crate) use fallback_seam_counters::{
 pub(crate) use graph_read_access::match_graph_index_inventory_for_requirements;
 pub(crate) use graph_read_access::provision_ephemeral_graph_indexes_for_read_execution;
 pub(crate) use graph_read_access::streaming_receipt_for_admitted_read_result;
-#[allow(unused_imports)]
 pub use graph_read_access::{
-    admit_graph_read_access_authority,
-    admit_graph_read_access_authority_from_policy_tenant_request,
-    admit_graph_read_access_for_family, admit_graph_read_access_for_family_in_authority,
-    derive_graph_read_access_requirements, derive_graph_read_cost_evidence,
-    estimate_graph_read_access_cost, estimate_graph_read_access_cost_with_planning_observation,
-    explain_boolean_selectivity_shape_for_family,
-    explain_boolean_selectivity_shape_for_family_with_operation_registry,
-    explain_graph_read_access_requirement_outcome_for_family,
-    explain_graph_read_access_requirement_outcome_for_family_in_authority,
-    explain_graph_read_access_requirement_outcome_for_family_with_operation_registry,
-    explain_graph_read_access_requirements_for_family,
-    explain_graph_read_access_requirements_for_family_in_authority,
-    explain_graph_read_access_requirements_for_family_with_operation_registry,
-    explain_graph_read_access_shape_for_family,
-    explain_graph_read_access_shape_for_family_in_authority,
-    explain_graph_read_access_shape_for_family_with_operation_registry,
+    admit_graph_read_access_authority, derive_graph_read_access_requirements,
+    derive_graph_read_cost_evidence, estimate_graph_read_access_cost,
+    estimate_graph_read_access_cost_with_planning_observation,
     match_current_graph_index_inventory_for_requirements,
-    plan_admitted_graph_read_access_for_family,
-    plan_admitted_graph_read_access_for_family_in_authority,
-    resolve_graph_read_operations_for_family_in_authority_with_registry,
-    resolve_graph_read_operations_for_family_with_registry,
     try_derive_graph_read_access_requirements, worth_query_graph_index_inventory,
     worth_query_graph_read_access_compile_fail_boundary_digest,
     worth_query_graph_read_access_compile_fail_target_count,
@@ -458,22 +442,22 @@ pub use graph_read_access::{
     WorthQueryAdmittedGraphReadAccessPlan, WorthQueryAdmittedGraphReadOrderingField,
     WorthQueryAdmittedGraphReadPredicateField, WorthQueryAdmittedGraphReadProjectionField,
     WorthQueryAdmittedGraphReadRelation, WorthQueryAdmittedGraphReadRelationDirection,
-    WorthQueryAdmittedQuerySchemaReferences, WorthQueryBooleanExpressionAdmissionError,
-    WorthQueryBooleanExpressionAdmissionErrorKind, WorthQueryBooleanPredicateSelectivityRow,
-    WorthQueryBooleanPredicateTopology, WorthQueryBooleanSelectivityAdmissionPosture,
-    WorthQueryBooleanSelectivityBranch, WorthQueryBooleanSelectivityBranchKind,
-    WorthQueryBooleanSelectivityCounters, WorthQueryBooleanSelectivityShape,
-    WorthQueryBooleanSelectivityShapeDigest, WorthQueryBuiltInGraphReadOperation,
-    WorthQueryDomainRegisteredGraphReadOperation, WorthQueryEphemeralGraphIndex,
-    WorthQueryEphemeralGraphIndexAllocationRow, WorthQueryEphemeralGraphIndexCounters,
-    WorthQueryEphemeralGraphIndexLifecycleRegistry, WorthQueryEphemeralGraphIndexPlan,
-    WorthQueryEphemeralGraphIndexProvisioningError, WorthQueryEphemeralGraphIndexReceipt,
-    WorthQueryEphemeralGraphIndexScope, WorthQueryEphemeralGraphIndexScopeKind,
-    WorthQueryGraphIndexInventory, WorthQueryGraphIndexInventoryCounters,
-    WorthQueryGraphIndexInventoryMatch, WorthQueryGraphIndexInventoryMatchOutcome,
-    WorthQueryGraphIndexInventoryMatchReport, WorthQueryGraphIndexLifecycleClass,
-    WorthQueryGraphIndexLifecycleOwner, WorthQueryGraphIndexPosture,
-    WorthQueryGraphIndexSupportRow, WorthQueryGraphIndexSupportState,
+    WorthQueryAdmittedNativeFieldFamily, WorthQueryAdmittedQuerySchemaReferences,
+    WorthQueryBooleanExpressionAdmissionError, WorthQueryBooleanExpressionAdmissionErrorKind,
+    WorthQueryBooleanPredicateSelectivityRow, WorthQueryBooleanPredicateTopology,
+    WorthQueryBooleanSelectivityAdmissionPosture, WorthQueryBooleanSelectivityBranch,
+    WorthQueryBooleanSelectivityBranchKind, WorthQueryBooleanSelectivityCounters,
+    WorthQueryBooleanSelectivityShape, WorthQueryBooleanSelectivityShapeDigest,
+    WorthQueryBuiltInGraphReadOperation, WorthQueryDomainRegisteredGraphReadOperation,
+    WorthQueryEphemeralGraphIndex, WorthQueryEphemeralGraphIndexAllocationRow,
+    WorthQueryEphemeralGraphIndexCounters, WorthQueryEphemeralGraphIndexLifecycleRegistry,
+    WorthQueryEphemeralGraphIndexPlan, WorthQueryEphemeralGraphIndexProvisioningError,
+    WorthQueryEphemeralGraphIndexReceipt, WorthQueryEphemeralGraphIndexScope,
+    WorthQueryEphemeralGraphIndexScopeKind, WorthQueryGraphIndexInventory,
+    WorthQueryGraphIndexInventoryCounters, WorthQueryGraphIndexInventoryMatch,
+    WorthQueryGraphIndexInventoryMatchOutcome, WorthQueryGraphIndexInventoryMatchReport,
+    WorthQueryGraphIndexLifecycleClass, WorthQueryGraphIndexLifecycleOwner,
+    WorthQueryGraphIndexPosture, WorthQueryGraphIndexSupportRow, WorthQueryGraphIndexSupportState,
     WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessAdmissionPosture,
     WorthQueryGraphReadAccessAuthorityContext, WorthQueryGraphReadAccessAuthorityCounters,
     WorthQueryGraphReadAccessAuthorityDenial, WorthQueryGraphReadAccessAuthorityDenialKind,
@@ -493,19 +477,19 @@ pub use graph_read_access::{
     WorthQueryGraphReadAccessRequirementSet, WorthQueryGraphReadAccessRequirementSetDigest,
     WorthQueryGraphReadAccessShape, WorthQueryGraphReadAccessShapeDerivationCounters,
     WorthQueryGraphReadAccessShapeDigest, WorthQueryGraphReadAccessShapeExplanation,
-    WorthQueryGraphReadAccessShapeExplanationError, WorthQueryGraphReadAdmittedSchemaFieldKind,
-    WorthQueryGraphReadBasisBinding, WorthQueryGraphReadBasisPosture, WorthQueryGraphReadBudget,
-    WorthQueryGraphReadBudgetCheck, WorthQueryGraphReadBudgetClass,
-    WorthQueryGraphReadBudgetClassKind, WorthQueryGraphReadBudgetDigest,
-    WorthQueryGraphReadBudgetExceededDenial, WorthQueryGraphReadCheckpointInterval,
-    WorthQueryGraphReadComplexityContract, WorthQueryGraphReadComplexityContractKind,
-    WorthQueryGraphReadCostAttributionRow, WorthQueryGraphReadCostEstimateCounters,
-    WorthQueryGraphReadCostEstimateStatus, WorthQueryGraphReadCostEstimateStatusKind,
-    WorthQueryGraphReadCostEvidence, WorthQueryGraphReadFamilyIndexContract,
-    WorthQueryGraphReadFanoutPosture, WorthQueryGraphReadFrontierCursor,
-    WorthQueryGraphReadInlineEphemeralAllowance, WorthQueryGraphReadInlineEphemeralAllowanceKind,
-    WorthQueryGraphReadIntrinsicCostContribution, WorthQueryGraphReadIntrinsicCostEstimate,
-    WorthQueryGraphReadLifecycleClass, WorthQueryGraphReadMaterializationAdmittedJob,
+    WorthQueryGraphReadAccessShapeExplanationError, WorthQueryGraphReadBasisBinding,
+    WorthQueryGraphReadBasisPosture, WorthQueryGraphReadBudget, WorthQueryGraphReadBudgetCheck,
+    WorthQueryGraphReadBudgetClass, WorthQueryGraphReadBudgetClassKind,
+    WorthQueryGraphReadBudgetDigest, WorthQueryGraphReadBudgetExceededDenial,
+    WorthQueryGraphReadCheckpointInterval, WorthQueryGraphReadComplexityContract,
+    WorthQueryGraphReadComplexityContractKind, WorthQueryGraphReadCostAttributionRow,
+    WorthQueryGraphReadCostEstimateCounters, WorthQueryGraphReadCostEstimateStatus,
+    WorthQueryGraphReadCostEstimateStatusKind, WorthQueryGraphReadCostEvidence,
+    WorthQueryGraphReadFamilyIndexContract, WorthQueryGraphReadFanoutPosture,
+    WorthQueryGraphReadFrontierCursor, WorthQueryGraphReadInlineEphemeralAllowance,
+    WorthQueryGraphReadInlineEphemeralAllowanceKind, WorthQueryGraphReadIntrinsicCostContribution,
+    WorthQueryGraphReadIntrinsicCostEstimate, WorthQueryGraphReadLifecycleClass,
+    WorthQueryGraphReadMaterializationAdmittedJob,
     WorthQueryGraphReadMaterializationAdmittedLimits,
     WorthQueryGraphReadMaterializationCancellationReceipt,
     WorthQueryGraphReadMaterializationCheckpoint, WorthQueryGraphReadMaterializationCounters,
@@ -519,7 +503,6 @@ pub use graph_read_access::{
     WorthQueryGraphReadObservedCostEstimate, WorthQueryGraphReadOperationCapabilityRequirement,
     WorthQueryGraphReadOperationCapabilityRequirementDeclaration,
     WorthQueryGraphReadOperationCapabilityRequirementKind, WorthQueryGraphReadOperationOutcome,
-    WorthQueryGraphReadOperationRegistration, WorthQueryGraphReadOperationRegistry,
     WorthQueryGraphReadOperationResolution, WorthQueryGraphReadOperationUnsupportedDenial,
     WorthQueryGraphReadOperationUnsupportedDenialKind,
     WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
@@ -528,12 +511,11 @@ pub use graph_read_access::{
     WorthQueryGraphReadPolicyTenantAuthorityRequest, WorthQueryGraphReadPolicyTenantPosture,
     WorthQueryGraphReadPolicyTenantProofBinding, WorthQueryGraphReadPredicateFamily,
     WorthQueryGraphReadPredicateFieldAuthority, WorthQueryGraphReadProofBoundaryEvidenceKind,
-    WorthQueryGraphReadProofTransitionManifestRow, WorthQueryGraphReadRegistryAdmissionError,
-    WorthQueryGraphReadRelationAuthority, WorthQueryGraphReadRelationshipProofBindingPosture,
-    WorthQueryGraphReadRequiredCapabilityOwner, WorthQueryGraphReadResolvedOperation,
-    WorthQueryGraphReadResolvedOperationFamily, WorthQueryGraphReadResolvedOperationKind,
-    WorthQueryGraphReadResultPressure, WorthQueryGraphReadRootPosture,
-    WorthQueryGraphReadSchemaReferenceAdmissionError,
+    WorthQueryGraphReadProofTransitionManifestRow, WorthQueryGraphReadRelationAuthority,
+    WorthQueryGraphReadRelationshipProofBindingPosture, WorthQueryGraphReadRequiredCapabilityOwner,
+    WorthQueryGraphReadResolvedOperation, WorthQueryGraphReadResolvedOperationFamily,
+    WorthQueryGraphReadResolvedOperationKind, WorthQueryGraphReadResultPressure,
+    WorthQueryGraphReadRootPosture, WorthQueryGraphReadSchemaReferenceAdmissionError,
     WorthQueryGraphReadSchemaReferenceAdmissionErrorKind, WorthQueryGraphReadStreamingCounters,
     WorthQueryGraphReadStreamingCursorDenial, WorthQueryGraphReadStreamingCursorDenialKind,
     WorthQueryGraphReadStreamingCursorSession, WorthQueryGraphReadStreamingPageBudget,
@@ -550,9 +532,17 @@ pub use graph_read_access::{
     WorthQueryPredicateAnchorPosture, WorthQueryPredicateOperandOperator,
     WorthQueryPredicateSelectivityClass, WorthQueryTraversalPredicateOrderingPosture,
 };
+#[cfg(test)]
 pub(crate) use graph_read_access::{
-    admit_graph_read_access_for_family_in_authority_with_inventory,
-    admit_graph_read_access_for_family_with_inventory,
+    admit_graph_read_access_authority_from_policy_tenant_request,
+    admit_graph_read_access_for_family, explain_boolean_selectivity_shape_for_family,
+    explain_graph_read_access_requirement_outcome_for_family_with_operation_lookup,
+    explain_graph_read_access_requirements_for_family,
+    explain_graph_read_access_requirements_for_family_with_operation_lookup,
+    explain_graph_read_access_shape_for_family,
+    explain_graph_read_access_shape_for_family_with_operation_lookup,
+    plan_admitted_graph_read_access_for_family,
+    resolve_graph_read_operations_for_family_with_operation_lookup,
 };
 pub(crate) use graph_read_access::{
     admit_graph_read_access_for_family_in_authority_with_inventory_and_lookup,
@@ -560,17 +550,22 @@ pub(crate) use graph_read_access::{
     explain_graph_read_access_requirements_for_family_in_authority_with_lookup,
     explain_graph_read_access_shape_for_family_in_authority_with_lookup,
 };
+pub(crate) use graph_read_access::{
+    WorthQueryGraphReadOperationRegistration, WorthQueryGraphReadOperationRegistry,
+    WorthQueryGraphReadRegistryAdmissionError,
+};
 pub use handle_contract::{
     WorthQueryHandleContract, WorthQueryHandleContractFamily, WorthQueryHandleContractRow,
 };
 pub(crate) use inspection::request_causal_inspection;
+#[cfg(test)]
+pub(crate) use inspection::{admit_causal_inspection, resolve_indexed_causal_evidence_references};
 pub use inspection::{
-    admit_causal_inspection, anchor_causal_observation,
-    build_causal_inspection_certification_scope, causal_evidence_inventory_rows,
-    causal_inspection_target, certify_causal_inspection_runtime_path,
-    materialize_admitted_causal_inspection, materialize_advisory_causal_inspection,
-    materialize_denied_causal_inspection, resolve_causal_evidence_references,
-    resolve_indexed_causal_evidence_references, AdmittedCausalInspection,
+    anchor_causal_observation, build_causal_inspection_certification_scope,
+    causal_evidence_inventory_rows, causal_inspection_target,
+    certify_causal_inspection_runtime_path, materialize_admitted_causal_inspection,
+    materialize_advisory_causal_inspection, materialize_denied_causal_inspection,
+    resolve_causal_evidence_references, AdmittedCausalInspection,
     AdmittedQueryCausalInspectionArtifact, AdvisoryCausalInspection,
     AdvisoryQueryCausalInspectionArtifact, CausalDecisionTraceIndex, CausalDecisionTraceRow,
     CausalEvidenceFamily, CausalEvidenceInventoryRow, CausalEvidenceOwner, CausalEvidenceReference,
@@ -632,19 +627,16 @@ pub use intent::{
     WorthQueryIntentSourceLane, WorthQueryPreviewIntentReceipt,
     WorthQueryTouchBearingIntentDeclaration,
 };
-#[allow(unused_imports)]
+pub use journal_position::WorthQueryJournalPositionSchedule;
 pub use journal_position::{WorthQueryJournalPosition, WorthQueryJournalPositionAuthority};
-#[allow(unused_imports)]
-pub use journal_position::{
-    WorthQueryJournalPositionAdmissionError, WorthQueryJournalPositionSchedule,
-    WorthQueryJournalPositionScheduleViolation, WorthQueryJournalPositionScheduleViolationKind,
-};
+#[cfg(test)]
 pub(crate) use journal_replay::journal_replay_truth_reconstruction_identity;
+#[cfg(test)]
+pub use journal_replay::WorthQueryJournalReplayCounterSnapshot;
 pub use journal_replay::{
-    WorthQueryJournalReplayCounterSnapshot, WorthQueryJournalReplayDenial,
-    WorthQueryJournalReplayDenialKind, WorthQueryJournalReplayDiagnostics,
-    WorthQueryJournalReplayOutcome, WorthQueryJournalReplayRequest,
-    WorthQueryJournalSegmentIdentity,
+    WorthQueryJournalReplayDenial, WorthQueryJournalReplayDenialKind,
+    WorthQueryJournalReplayDiagnostics, WorthQueryJournalReplayOutcome,
+    WorthQueryJournalReplayRequest, WorthQueryJournalSegmentIdentity,
 };
 pub(crate) use live_subscription::{
     live_subscription_source_identity, live_subscription_view_shape_source_identity,
@@ -661,22 +653,22 @@ pub use managed_live_resource::{
 pub(crate) use managed_live_resource::{
     WorthQueryManagedLiveRuntimeDelivery, WorthQueryManagedLiveWorkspaceCapability,
 };
-#[allow(unused_imports)]
 pub use mixed_cause_delivery::{
     WorthQueryRuntimeDeliveryCoalescingKind, WorthQueryRuntimeMixedCauseDelivery,
     WorthQueryRuntimeMixedCauseLaneKind, WorthQueryRuntimeMixedCauseMemberKind,
 };
+#[cfg(test)]
 pub(crate) use mutation::registrations_from_relational_invariant_catalog;
+#[cfg(test)]
+pub(crate) use mutation::WorthQueryDesiredAspectValue;
 use mutation::{admit_continuity_intent, admit_naming_intent};
 pub(crate) use mutation::{
     command_declared_aspect_value_digest, command_declared_aspect_value_identity,
 };
-#[allow(unused_imports)]
 pub use mutation::{
-    WorthQueryAdmittedAspectValue, WorthQueryAspectMutationBuilder,
-    WorthQueryAspectMutationOperation, WorthQueryAspectMutationOperationKind,
-    WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
-    WorthQueryAuthoritativeMutationObligationDispatch,
+    WorthQueryAspectMutationBuilder, WorthQueryAspectMutationOperation,
+    WorthQueryAspectMutationOperationKind, WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation,
+    WorthQueryAuthoredAspectValue, WorthQueryAuthoritativeMutationObligationDispatch,
     WorthQueryAuthoritativeMutationObligationDispatchProjection,
     WorthQueryAuthoritativeMutationObligationDispatchProjectionRow,
     WorthQueryBackendAdmissibleMutation, WorthQueryContinuityMutationDenial,
@@ -744,12 +736,19 @@ pub use mutation::{
 pub use mutation_surface::{
     WorthQueryMutationSurfacePosture, WorthQueryMutationSurfaceReport, WorthQueryMutationSurfaceRow,
 };
+#[cfg(test)]
+pub(crate) use native_aspect_contracts::WorthQueryMutationContractDenialKind;
+pub use native_aspect_contracts::{
+    WorthQueryAspectContractRegistrationDenial, WorthQueryAspectContractRegistrationDenialKind,
+    WorthQueryMutationContractDenial,
+};
 pub(crate) use ordinary_workflow_authority::{
     WorthQueryLowerRuntimeMutationExecution, WorthQueryMergeAuthorityValidationError,
     WorthQueryOrdinaryAuthorityAdmission, WorthQueryOrdinaryAuthorityDrift,
     WorthQueryOrdinaryAuthorityFamily, WorthQueryRuntimeAuthorityIdentity,
     WorthQueryValidatedMergeAuthority,
 };
+pub use ordinary_workflow_branch_name::WorthQueryAdmittedBranchName;
 pub(crate) use ordinary_workflow_execution::{
     WorthQueryLowerRuntimeMergeExecution, WorthQueryLowerRuntimePreviewExecution,
     WorthQueryLowerRuntimeWritebackExecution, WorthQueryOrdinaryMergeExecutionError,
@@ -769,11 +768,7 @@ pub use public_api::{
     WorthQueryRuntimePublicApiNamingContract, WorthQueryRuntimePublicApiNamingRow,
     WorthQueryRuntimePublicApiTranscriptEvidence,
 };
-#[allow(unused_imports)]
-pub use published_artifacts::{
-    WorthQueryPublishedArtifactCounterSnapshot, WorthQueryPublishedArtifactDiagnostics,
-    WorthQueryPublishedArtifactGenerationDiagnostic,
-};
+pub use published_artifacts::WorthQueryPublishedArtifactDiagnostics;
 pub use read_composition::WorthQueryReadBuilder;
 pub use read_composition_hooks::{
     WorthQueryReadInvariantPackContext, WorthQueryReadInvariantPackViolation,
@@ -809,23 +804,18 @@ use runtime_helpers::{
     synthetic_existing_assertion_receipt, WorthQuerySameBatchSymbolicTarget,
     WorthQuerySameBatchSymbolicTargetKey,
 };
-#[allow(unused_imports)]
+#[cfg(test)]
+pub(crate) use shared_read::WorthQuerySharedReadBasisInspection;
 pub use shared_read::{
     WorthQueryPublishedDerivedArtifactHandle, WorthQueryPublishedProjectionAuthorityOutcome,
-    WorthQueryPublishedProjectionInspection, WorthQuerySharedReadBasisInspection,
-    WorthQuerySharedReadContext,
+    WorthQueryPublishedProjectionInspection, WorthQuerySharedReadContext,
 };
 pub(in crate::runtime) use shared_read_pins::{
     worth_query_shared_read_stale_basis_error, WorthQuerySharedReadGenerationLease,
 };
-#[allow(unused_imports)]
-pub use shared_read_pins::{
-    WorthQuerySharedReadCounters, WorthQuerySharedReadGenerationDiagnostic,
-    WorthQuerySharedReadPinningDiagnostics,
-};
+pub use shared_read_pins::{WorthQuerySharedReadCounters, WorthQuerySharedReadPinningDiagnostics};
 pub use state::WorthQueryRuntimeStateTarget;
 pub use state_snapshot::{WorthQueryRuntimeStateKind, WorthQueryRuntimeStateSnapshot};
-#[allow(unused_imports)]
 pub use support::{
     WorthQueryBasisAdmissionEvidenceRow, WorthQueryBranchBasisAdmission,
     WorthQueryBridgeMutationArtifactIdentity, WorthQueryContinuityPriorAuthorityLabel,
@@ -846,7 +836,6 @@ pub use support_matrix::{
     WorthQueryRuntimePublicSupportMatrix, WorthQueryRuntimePublicSupportMatrixRow,
 };
 pub(in crate::runtime) use surface::WorthQueryReadExecutionProduct;
-#[allow(unused_imports)]
 pub use surface::{
     WorthQueryArtifactInspector, WorthQueryBatchMutationEvidence, WorthQueryBatchWriteReceipt,
     WorthQueryBatchWriteRetainedArtifact, WorthQueryContinuityClass,
@@ -872,8 +861,8 @@ pub use surface::{
     WorthQueryLiveReadResult, WorthQueryLiveView, WorthQueryMutationCausalityEvidence,
     WorthQueryMutationFamily, WorthQueryMutationProvenanceEvidence, WorthQueryMutationTargetClass,
     WorthQueryMutationTargetDescriptor, WorthQueryMutationTargetEvidence,
-    WorthQueryNamingMutationEvidence, WorthQueryNamingMutationOutcome, WorthQueryNativeRow,
-    WorthQueryPatchBatch, WorthQueryProgramInstallationIdentity, WorthQueryProgramRunIdentity,
+    WorthQueryNamingMutationEvidence, WorthQueryNamingMutationOutcome, WorthQueryPatchBatch,
+    WorthQueryProgramInstallationIdentity, WorthQueryProgramRunIdentity,
     WorthQueryReadAccessPlanBindingMismatch, WorthQueryReadBreadth, WorthQueryReadBuiltInOperator,
     WorthQueryReadBuiltInOperatorDenial, WorthQueryReadBuiltInOperatorDenialReason,
     WorthQueryReadCompositionExtensionHookBoundary, WorthQueryReadCompositionExtensionHookFamily,
@@ -887,11 +876,12 @@ pub use surface::{
     WorthQueryReadResult, WorthQueryReadScopeClass, WorthQueryReadScopeShapeMismatch,
     WorthQueryRetainedFieldPath, WorthQueryRetainedMaterializedRow,
     WorthQueryRetainedScalarAlignment, WorthQueryRetainedScalarAlignmentFact,
-    WorthQueryRetainedScalarFactSet, WorthQueryRetainedScalarFieldFact, WorthQueryRunReceipt,
-    WorthQuerySymbolicAspectResolutionEvidence, WorthQuerySymbolicTargetReferenceEvidence,
-    WorthQuerySymbolicTargetReferenceOutcome, WorthQueryUnifiedInspectionReceipt,
-    WorthQueryUnifiedInspectionResult, WorthQueryVerificationReadSetBreadth,
-    WorthQueryVerifiedAssumptionSet, WorthQueryWriteCommand, WorthQueryWriteReceipt,
+    WorthQueryRetainedScalarFactSet, WorthQueryRetainedScalarFieldFact,
+    WorthQueryRetainedValueView, WorthQueryRunReceipt, WorthQuerySymbolicAspectResolutionEvidence,
+    WorthQuerySymbolicTargetReferenceEvidence, WorthQueryUnifiedInspectionReceipt,
+    WorthQueryUnifiedInspectionResult, WorthQueryUnrefinedLiveShape,
+    WorthQueryVerificationReadSetBreadth, WorthQueryVerifiedAssumptionSet, WorthQueryWriteCommand,
+    WorthQueryWriteReceipt,
 };
 pub use workspace::WorthQueryWorkspace;
 pub use workspace_declaration::{
@@ -906,6 +896,7 @@ pub struct WorthQueryRuntime {
     evidence_authority: WorthQueryRuntimeEvidenceAuthority,
     authority_identity: WorthQueryRuntimeAuthorityIdentity,
     domain_installation_registry: crate::domain_installation::WorthQueryDomainInstallationRegistry,
+    native_aspect_contracts: native_aspect_contracts::WorthQueryNativeAspectContractRegistry,
     preview_session_labels: BTreeSet<WorthQuerySessionLabel>,
     branch_session_labels: BTreeSet<WorthQuerySessionLabel>,
     active_subscriptions: ActiveSubscriptionRuntime,

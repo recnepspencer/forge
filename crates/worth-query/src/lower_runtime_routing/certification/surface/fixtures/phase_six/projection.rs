@@ -61,22 +61,22 @@ pub(crate) fn representative_projection_relational_row() -> RepresentativeArtifa
             read_record(
                 &packet,
                 0,
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("task-1"),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("task-1"),
             ),
             read_record(
                 &packet,
                 1,
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("todo"),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("todo"),
             ),
             read_record(
                 &packet,
                 2,
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("task-2"),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("task-2"),
             ),
             read_record(
                 &packet,
                 3,
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("doing"),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("doing"),
             ),
         ],
     );
@@ -253,10 +253,10 @@ impl BridgeProjectionMember {
     ) -> Self {
         Self {
             row_identity: relational_row_identity(row_identity),
-            identity_value: crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+            identity_value: crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                 identity_value,
             ),
-            grouping_value: crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+            grouping_value: crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                 grouping_value,
             ),
         }

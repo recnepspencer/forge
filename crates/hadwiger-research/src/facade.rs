@@ -11,7 +11,7 @@ pub use crate::agent_advisory::{
     AgentExperimentProposalScreening, AgentExplorationAdmissionChecked, AgentExplorationBatch,
     AgentExplorationBatchBuilder, AgentGroupedContributionStopKind,
     AgentInvariantHypothesisSuggestion, AgentMotifSuggestion, AgentPromotionPathDescriptor,
-    AgentRepairSuggestion, AgentSourceRecord,
+    AgentQueryContributionStopKind, AgentRepairSuggestion, AgentSourceRecord,
 };
 pub use crate::aspect_authority::{
     query_aspect_contract_for_hadwiger_kind, query_aspect_coverage_for_hadwiger_posture,
@@ -209,10 +209,10 @@ pub use crate::proof_claims::{
     PlaneLowerBoundClaimRequest, PlaneUpperBoundClaimRequest,
 };
 pub use crate::query_entry::{
-    hadwiger_research_domain_package, HadwigerCandidateContribution,
-    HadwigerResearchAssumptionRegime, HadwigerResearchCheckerSupportRegime,
-    HadwigerResearchDomainEntry, HadwigerResearchHandle, HadwigerResearchInvalidationRegime,
-    HadwigerResearchOperatingContext, HadwigerResearchQueryExt,
+    hadwiger_native_aspect_contracts, hadwiger_research_domain_package,
+    HadwigerCandidateContribution, HadwigerResearchAssumptionRegime,
+    HadwigerResearchCheckerSupportRegime, HadwigerResearchDomainEntry, HadwigerResearchHandle,
+    HadwigerResearchInvalidationRegime, HadwigerResearchOperatingContext, HadwigerResearchQueryExt,
 };
 pub use crate::research_cockpit::{
     assemble_research_cockpit_session_checked, certify_hadwiger_milestone_one_bundle_checked,
@@ -229,18 +229,14 @@ pub use crate::research_cockpit::{
 };
 pub use crate::research_graph_invariants::{
     certify_research_graph_invariant_violation, draft_research_graph_invariant_catalog,
-    materialize_research_graph_invariant_denial, plan_research_graph_invariant_registration,
-    project_research_graph_for_invariant_registration_checked,
-    register_research_graph_invariants_checked, HadwigerResearchInvariantCatalog,
-    HadwigerResearchInvariantRegistrationChecked, ResearchGraphInvariantCheckRequest,
-    ResearchGraphInvariantCompatibilitySurface, ResearchGraphInvariantCompatibilitySurfaces,
-    ResearchGraphInvariantCounters, ResearchGraphInvariantDenial,
-    ResearchGraphInvariantDenialRequest, ResearchGraphInvariantError, ResearchGraphInvariantFamily,
-    ResearchGraphInvariantRegistrationPlan, ResearchGraphInvariantRegistrationPosture,
-    ResearchGraphInvariantRule, ResearchGraphInvariantRuntimeProjection,
-    ResearchGraphInvariantScope, ResearchGraphInvariantViolation,
-    ResearchGraphInvariantViolationKind, ResearchGraphRuntimeEntityProjection,
-    ResearchGraphRuntimeRelationProjection,
+    materialize_research_graph_invariant_denial,
+    project_research_graph_for_invariant_registration_checked, HadwigerResearchInvariantCatalog,
+    ResearchGraphInvariantCheckRequest, ResearchGraphInvariantCounters,
+    ResearchGraphInvariantDenial, ResearchGraphInvariantDenialRequest, ResearchGraphInvariantError,
+    ResearchGraphInvariantFamily, ResearchGraphInvariantRule,
+    ResearchGraphInvariantRuntimeProjection, ResearchGraphInvariantScope,
+    ResearchGraphInvariantViolation, ResearchGraphInvariantViolationKind,
+    ResearchGraphRuntimeEntityProjection, ResearchGraphRuntimeRelationProjection,
 };
 pub use crate::tiling_equivalence::{
     classify_tiling_candidate_equivalence_checked, reactivate_tiling_candidate_checked,

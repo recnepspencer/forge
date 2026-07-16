@@ -1,9 +1,9 @@
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::tests::runtime;
 use crate::facade::tests::speculation::preview_declaration;
 use crate::facade::{
     BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgeRuntimePolicy,
 };
+use crate::speculation::BridgePreviewSessionIdentity;
 
 #[test]
 fn runtime_activates_and_discards_preview_session_with_zero_authoritative_residue() {

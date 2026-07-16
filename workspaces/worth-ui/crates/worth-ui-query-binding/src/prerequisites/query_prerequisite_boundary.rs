@@ -1,7 +1,4 @@
-use worth_query::facade::foundation::{
-    ResolvedSnapshotBasis,
-    SnapshotResolutionReport,
-};
+use worth_query::facade::foundation::{ResolvedSnapshotBasis, SnapshotResolutionReport};
 
 use super::prerequisite_assembly::construct_prerequisite_evidence;
 #[cfg(feature = "certification-construction")]

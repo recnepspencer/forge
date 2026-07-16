@@ -7,7 +7,7 @@ use crate::ordinary::read::{
     current, declare, WorthQueryReadRelationshipProof, WorthQueryReadRelationshipProofs,
 };
 use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
 use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};
 
 pub(super) fn local_identity_read<Output>(
@@ -298,7 +298,7 @@ fn schema_field(aspect: &str, field: &str) -> SchemaFieldView {
     SchemaFieldView::new(
         AspectName::new(aspect).expect("policy schema aspect should be valid"),
         FieldName::new(field).expect("policy schema field should be valid"),
-        SchemaFieldKind::String,
+        ScalarAspectType::String,
     )
 }
 

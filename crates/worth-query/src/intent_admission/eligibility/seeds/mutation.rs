@@ -29,6 +29,7 @@ pub enum WorthQueryAuthoritativeMutationPreflight {
     BindingDenied(WorthQueryExistingTruthBindingDenial),
     AssertionDenied(WorthQueryExistingTruthAssertionDenial),
     ContinuityDenied(WorthQueryContinuityMutationDenial),
+    ContractDenied(crate::runtime::WorthQueryMutationContractDenial),
     NamingDenied(WorthQueryNamingMutationDenial),
     TargetReferenceDenied(WorthQuerySymbolicTargetReferenceDenial),
 }
@@ -37,6 +38,7 @@ pub enum WorthQueryAuthoritativeMutationPreflight {
 pub struct WorthQueryAuthoritativeMutationIntentSeed {
     command: WorthQueryWriteCommand,
     preflight: WorthQueryAuthoritativeMutationPreflight,
+    admitted_mutation: Option<crate::runtime::WorthQueryBackendAdmissibleMutation>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -47,11 +49,16 @@ pub struct WorthQueryAuthoritativeMutationBatchIntentSeed {
 }
 
 impl WorthQueryAuthoritativeMutationIntentSeed {
-    pub fn new(
+    pub(crate) fn new(
         command: WorthQueryWriteCommand,
         preflight: WorthQueryAuthoritativeMutationPreflight,
+        admitted_mutation: Option<crate::runtime::WorthQueryBackendAdmissibleMutation>,
     ) -> Self {
-        Self { command, preflight }
+        Self {
+            command,
+            preflight,
+            admitted_mutation,
+        }
     }
 
     pub fn command(&self) -> &WorthQueryWriteCommand {
@@ -72,9 +79,16 @@ impl WorthQueryAuthoritativeMutationIntentSeed {
             WorthQueryAuthoritativeMutationPreflight::BindingDenied(_)
             | WorthQueryAuthoritativeMutationPreflight::AssertionDenied(_)
             | WorthQueryAuthoritativeMutationPreflight::ContinuityDenied(_)
+            | WorthQueryAuthoritativeMutationPreflight::ContractDenied(_)
             | WorthQueryAuthoritativeMutationPreflight::NamingDenied(_)
             | WorthQueryAuthoritativeMutationPreflight::TargetReferenceDenied(_) => None,
         }
+    }
+
+    pub(crate) fn admitted_mutation(
+        &self,
+    ) -> Option<&crate::runtime::WorthQueryBackendAdmissibleMutation> {
+        self.admitted_mutation.as_ref()
     }
 
     pub fn command_label(&self) -> String {

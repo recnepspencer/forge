@@ -130,7 +130,7 @@ The current contribution intents are:
 The execution shape is:
 
 1. `declare_review_and_progress(...)`
-2. `orchestrate_envelope_from_progressed(...)`
+2. `envelope_routes_from_progressed(...)`
 3. bind each contribution intent to the declaration-bound target and its
    retained aspect-aware declaration meaning
 4. evaluate and admit each contribution intent
@@ -263,7 +263,7 @@ Good to know:
   vs contribution-side repair ownership.
 - Use [Foundational Support And Evidence Strength](./recovery/foundational-support-and-evidence-strength.md)
   when you need to explain how strong that recovery answer is.
-- Use [Configured Domain Handles](./configured-domain-handles.md) for the
+- Use Runtime-Installed Domain Handles for the
   admitted-handle entry points that own this run.
 - Use [Family Helpers](./family-helpers.md) when you already know the
   declaration family and want a family-native wrapper over this composed input
@@ -427,7 +427,7 @@ inspection:
 
 ## Related Docs
 
-- [Configured Domain Handles](./configured-domain-handles.md)
+- Runtime-Installed Domain Handles
 - [Ordinary Outcomes](./ordinary-outcomes.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
@@ -436,7 +436,7 @@ inspection:
 - [Recovery Requests And Next-Step Actions](./recovery/recovery-requests-and-next-step-actions.md)
 - [Family Helpers](./family-helpers.md)
 - [Grouped Contributions](./grouped-contributions.md)
-- [Declaration-Scoped Support And Traceability](./support/declaration-scoped-support-and-traceability.md)
-- [Advisory And Violation Contributions](./admission/advisory-and-violation-contributions.md)
-- [Preview Inspection And Mutation Planning](./workflow/preview-inspection-and-mutation-planning.md)
-- [Lower-Runtime Explanation Contributions](./explanation/lower-runtime-explanation-contributions.md)
+- Declaration-Scoped Support And Traceability
+- Advisory And Violation Contributions
+- Preview Inspection And Mutation Planning
+- Lower-Runtime Explanation Contributions

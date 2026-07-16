@@ -1,6 +1,7 @@
 mod artifact;
 mod counters;
 mod error;
+#[cfg(test)]
 mod execution;
 mod family;
 mod grouped_baseline;
@@ -18,7 +19,8 @@ pub use artifact::{
 };
 pub use counters::ViewShapeLiveCounters;
 pub use error::{ViewShapeLiveError, ViewShapeLiveFailureClass};
-pub use execution::{
+#[cfg(test)]
+pub(crate) use execution::{
     admit_grouped_live_view, execute_grouped_live_view_shape_change, execute_live_view_shape_change,
 };
 pub use family::LiveViewShapeFamily;

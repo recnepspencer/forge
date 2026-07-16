@@ -104,7 +104,7 @@ impl WorthQueryInMemoryTestBackend {
                 })?;
                 self.ensure_declared_collection(&collection)?;
                 self.workspace
-                    .insert_aspects(mutation.admitted_aspect_values().to_vec())
+                    .insert_portable_patch(mutation.portable_patch())
             }
             WorthQueryMutationFamily::Update => {
                 let entity_identity = mutation.declared_entity_identity().ok_or_else(|| {
@@ -113,7 +113,7 @@ impl WorthQueryInMemoryTestBackend {
                     )
                 })?;
                 self.workspace
-                    .update_aspects(entity_identity, mutation.admitted_aspect_values().to_vec())
+                    .update_portable_patch(entity_identity, mutation.portable_patch())
             }
             WorthQueryMutationFamily::Delete => {
                 let entity_identity = mutation.declared_entity_identity().ok_or_else(|| {

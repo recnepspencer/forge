@@ -11,7 +11,7 @@ use crate::binding_pipeline::{
 
 use super::{
     ContinuationDomain, ContinuationWorld, DriftedContinuationWorld, HistoricalFamily, Input,
-    LenientContinuationWorld, PreviewFamily, ReadmissionDrift, RuntimeFamily,
+    PreviewFamily, ReadmissionDrift, RuntimeFamily,
 };
 
 pub(crate) fn admitted_handle(
@@ -21,6 +21,18 @@ pub(crate) fn admitted_handle(
     ContinuationWorld,
 > {
     configured_handle(world, WorthQueryConfig::runtime_backed_default())
+}
+
+pub(crate) fn admitted_workspace(
+    world: &'static str,
+) -> (
+    crate::runtime::WorthQueryWorkspace,
+    crate::application::WorthQueryInstalledDomainDeclarationContext<
+        ContinuationDomain,
+        ContinuationWorld,
+    >,
+) {
+    installed_workspace(ContinuationWorld(world))
 }
 
 pub(crate) fn configured_handle(
@@ -33,35 +45,31 @@ pub(crate) fn configured_handle(
     installed_context(ContinuationWorld(world))
 }
 
-pub(crate) fn preview_disabled_handle(
-    world: &'static str,
-) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
-    ContinuationDomain,
-    LenientContinuationWorld,
-> {
-    installed_context(LenientContinuationWorld(world))
-}
-
-pub(crate) fn historical_disabled_handle(
-    world: &'static str,
-) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
-    ContinuationDomain,
-    LenientContinuationWorld,
-> {
-    installed_context(LenientContinuationWorld(world))
-}
-
-pub(crate) fn drifted_readmission_handle(
+pub(crate) fn drifted_readmission_handle_in(
+    workspace: &crate::runtime::WorthQueryWorkspace,
     world: &'static str,
     drift: ReadmissionDrift,
 ) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     ContinuationDomain,
     DriftedContinuationWorld,
 > {
-    installed_context(DriftedContinuationWorld {
-        label: world,
-        drift,
-    })
+    context_in_workspace(
+        workspace,
+        DriftedContinuationWorld {
+            label: world,
+            drift,
+        },
+    )
+}
+
+pub(crate) fn continuation_handle_in(
+    workspace: &crate::runtime::WorthQueryWorkspace,
+    world: &'static str,
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
+    ContinuationDomain,
+    ContinuationWorld,
+> {
+    context_in_workspace(workspace, ContinuationWorld(world))
 }
 
 fn installed_context<C>(
@@ -70,16 +78,47 @@ fn installed_context<C>(
 where
     C: crate::application::WorthQueryDomainOperatingContext<ContinuationDomain>,
 {
-    crate::application::domain_test_support::installed_declaration_context(
+    let (_, context) = installed_workspace(context);
+    context
+}
+
+fn installed_workspace<C>(
+    context: C,
+) -> (
+    crate::runtime::WorthQueryWorkspace,
+    crate::application::WorthQueryInstalledDomainDeclarationContext<ContinuationDomain, C>,
+)
+where
+    C: crate::application::WorthQueryDomainOperatingContext<ContinuationDomain>,
+{
+    crate::application::domain_test_support::installed_declaration_workspace(
         ContinuationDomain,
         context,
-        [
-            crate::application::domain_test_support::family::<ContinuationDomain, RuntimeFamily>(),
-            crate::application::domain_test_support::family::<ContinuationDomain, HistoricalFamily>(
-            ),
-            crate::application::domain_test_support::family::<ContinuationDomain, PreviewFamily>(),
-        ],
+        declaration_families(),
     )
+}
+
+fn context_in_workspace<C>(
+    workspace: &crate::runtime::WorthQueryWorkspace,
+    context: C,
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<ContinuationDomain, C>
+where
+    C: crate::application::WorthQueryDomainOperatingContext<ContinuationDomain>,
+{
+    workspace
+        .domain(ContinuationDomain)
+        .expect("continuation test domain should be installed")
+        .declarations_in(workspace, context)
+        .expect("continuation test context should admit")
+}
+
+fn declaration_families(
+) -> [crate::domain_installation::WorthQueryDomainDeclarationFamilyDefinition; 3] {
+    [
+        crate::application::domain_test_support::family::<ContinuationDomain, RuntimeFamily>(),
+        crate::application::domain_test_support::family::<ContinuationDomain, HistoricalFamily>(),
+        crate::application::domain_test_support::family::<ContinuationDomain, PreviewFamily>(),
+    ]
 }
 
 pub(crate) fn runtime_route_request() -> WorthQueryDeclarationBridgeContinuationRequest {

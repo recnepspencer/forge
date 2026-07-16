@@ -1,12 +1,15 @@
+#[cfg(test)]
+use crate::application::WorthQueryDeclarationRouteIntent;
 use crate::application::{
     WorthQueryDeclarationAspectContract, WorthQueryDeclarationBridgeContinuationRequest,
-    WorthQueryDeclarationInput, WorthQueryDeclarationRouteIntent, WorthQueryDomainEntryMarker,
+    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
 };
 
+use super::source::WorthQueryEnvelopeContextCandidate;
+#[cfg(test)]
 use super::source::{
-    WorthQueryDeclarationContextCandidate, WorthQueryEnvelopeContextCandidate,
-    WorthQueryEnvelopeResolverSubject, WorthQueryProgressionContextCandidate,
-    WorthQueryReceiptResolverSubject, WorthQueryRouteResolverSubject,
+    WorthQueryDeclarationContextCandidate, WorthQueryProgressionContextCandidate,
+    WorthQueryRouteResolverSubject,
 };
 use super::WorthQueryBindingSourceKind;
 
@@ -51,23 +54,6 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
     }
 }
 
-macro_rules! request_common {
-    () => {
-        pub fn required_aspect_contract(&self) -> &WorthQueryDeclarationAspectContract {
-            &self.required_aspect_contract
-        }
-        pub fn allowed_sources(&self) -> &[WorthQueryBindingSourceKind] {
-            &self.allowed_sources
-        }
-        pub fn allow_compatible_superset(&self) -> bool {
-            self.allow_compatible_superset
-        }
-        pub fn partial_is_narrowing_required(&self) -> bool {
-            self.partial_is_narrowing_required
-        }
-    };
-}
-
 macro_rules! resolver_request_common {
     () => {
         pub fn required_aspect_contract(&self) -> &WorthQueryDeclarationAspectContract {
@@ -99,6 +85,7 @@ macro_rules! context_request_common {
     };
 }
 
+#[cfg(test)]
 pub struct WorthQueryDeclarationBindingRequest<I> {
     candidates: Vec<WorthQueryDeclarationContextCandidate<I>>,
     required_aspect_contract: WorthQueryDeclarationAspectContract,
@@ -107,6 +94,7 @@ pub struct WorthQueryDeclarationBindingRequest<I> {
     partial_is_narrowing_required: bool,
 }
 
+#[cfg(test)]
 impl<I> WorthQueryDeclarationBindingRequest<I> {
     pub fn new(
         candidates: Vec<WorthQueryDeclarationContextCandidate<I>>,
@@ -122,18 +110,7 @@ impl<I> WorthQueryDeclarationBindingRequest<I> {
         }
     }
 
-    request_common!();
-
-    pub fn with_exact_fit_only(mut self) -> Self {
-        self.allow_compatible_superset = false;
-        self
-    }
-
-    pub fn with_partial_denial(mut self) -> Self {
-        self.partial_is_narrowing_required = false;
-        self
-    }
-
+    #[cfg(test)]
     pub(crate) fn into_parts(
         self,
     ) -> (
@@ -153,6 +130,7 @@ impl<I> WorthQueryDeclarationBindingRequest<I> {
     }
 }
 
+#[cfg(test)]
 macro_rules! context_request {
     ($name:ident, $candidate:ty) => {
         pub struct $name<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>> {
@@ -180,30 +158,7 @@ macro_rules! context_request {
                 }
             }
 
-            context_request_common!();
-
-            pub fn with_exact_fit_only(mut self) -> Self {
-                self.allow_compatible_superset = false;
-                self
-            }
-
-            pub fn with_partial_denial(mut self) -> Self {
-                self.partial_is_narrowing_required = false;
-                self
-            }
-
-            pub fn with_route_intent(
-                mut self,
-                route_intent: WorthQueryDeclarationRouteIntent,
-            ) -> Self {
-                self.route_intent = Some(route_intent);
-                self
-            }
-
-            pub fn route_intent(&self) -> Option<WorthQueryDeclarationRouteIntent> {
-                self.route_intent
-            }
-
+            #[cfg(test)]
             pub(crate) fn into_parts(
                 self,
             ) -> (
@@ -227,9 +182,8 @@ macro_rules! context_request {
     };
 }
 
+#[cfg(test)]
 context_request!(WorthQueryRouteBindingRequest, WorthQueryProgressionContextCandidate<D, I>);
-context_request!(WorthQueryReceiptBindingRequest, WorthQueryProgressionContextCandidate<D, I>);
-context_request!(WorthQueryEnvelopeBindingRequest, WorthQueryProgressionContextCandidate<D, I>);
 
 pub struct WorthQueryContinuationBindingRequest<
     D: WorthQueryDomainEntryMarker,
@@ -306,6 +260,7 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
     }
 }
 
+#[cfg(test)]
 macro_rules! resolver_request {
     ($name:ident, $source:ty) => {
         pub struct $name<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>> {
@@ -330,8 +285,6 @@ macro_rules! resolver_request {
                 }
             }
 
-            resolver_request_common!();
-
             pub fn with_exact_fit_only(mut self) -> Self {
                 self.allow_compatible_superset = false;
                 self
@@ -350,10 +303,7 @@ macro_rules! resolver_request {
                 self
             }
 
-            pub fn route_intent(&self) -> Option<WorthQueryDeclarationRouteIntent> {
-                self.route_intent
-            }
-
+            #[cfg(test)]
             pub(crate) fn into_parts(
                 self,
             ) -> (
@@ -375,9 +325,8 @@ macro_rules! resolver_request {
     };
 }
 
+#[cfg(test)]
 resolver_request!(WorthQueryResolveRouteFromTargetRequest, WorthQueryRouteResolverSubject<D, I>);
-resolver_request!(WorthQueryResolveReceiptFromTargetRequest, WorthQueryReceiptResolverSubject<D, I>);
-resolver_request!(WorthQueryResolveEnvelopeFromTargetRequest, WorthQueryEnvelopeResolverSubject<D, I>);
 
 pub struct WorthQueryResolveContinuationFromTargetRequest<
     D: WorthQueryDomainEntryMarker,

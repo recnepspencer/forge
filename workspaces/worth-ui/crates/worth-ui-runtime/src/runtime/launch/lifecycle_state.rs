@@ -84,25 +84,17 @@ impl WorthUiPendingActivation {
 #[derive(Debug, PartialEq)]
 pub struct WorthUiRuntimeShutdownReceipt {
     final_frame_epoch: WorthUiRuntimeFrameEpoch,
-    queue_disposition: crate::runtime::UiAllocationFrameQueueDisposition,
 }
 
 impl WorthUiRuntimeShutdownReceipt {
     pub(crate) fn new(
         final_frame_epoch: WorthUiRuntimeFrameEpoch,
-        queue_disposition: crate::runtime::UiAllocationFrameQueueDisposition,
+        _queue_disposition: crate::runtime::UiAllocationFrameQueueDisposition,
     ) -> Self {
-        Self {
-            final_frame_epoch,
-            queue_disposition,
-        }
+        Self { final_frame_epoch }
     }
 
     pub fn final_frame_epoch(&self) -> WorthUiRuntimeFrameEpoch {
         self.final_frame_epoch
-    }
-
-    pub(crate) fn queue_disposition(&self) -> &crate::runtime::UiAllocationFrameQueueDisposition {
-        &self.queue_disposition
     }
 }

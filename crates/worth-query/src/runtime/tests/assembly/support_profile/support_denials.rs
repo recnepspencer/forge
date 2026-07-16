@@ -71,7 +71,7 @@ fn runtime_support_denies_unsupported_computed_family_before_registration() {
     );
 
     let error = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("task_titles.unsupported", [test_aspect_touch("title")]),
             TitleListMaintainer,
         )

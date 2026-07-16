@@ -65,7 +65,7 @@ let report = handle.declaration_entry_readiness::<AttachFaceMaterial>();
 Use inspection after a run:
 
 ```rust
-let inspection = handle.inspect_declaration_entry(subject)?;
+let inspection = workspace.inspections()?.inspect(&subject)?;
 ```
 
 Use recovery after a stop:

@@ -1,0 +1,10 @@
+error[E0624]: associated function `bind` is private
+ --> tests/ui/installed_domain/boundaries/installed_contribution_target_cannot_be_restamped.rs:8:63
+  |
+8 |     let _ = WorthQueryInstalledDeclarationContributionTarget::bind(
+  |                                                               ^^^^ private associated function
+  |
+ ::: src/domain_capabilities/targets/installed.rs
+  |
+  |     pub(crate) fn bind(authority: Arc<WorthQueryInstalledDomainAuthority>, target: T) -> Self {
+  |     ----------------------------------------------------------------------------------------- private associated function defined here

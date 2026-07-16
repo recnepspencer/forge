@@ -1,53 +1,40 @@
+#[cfg(test)]
 use worth_foundational::{
     materialize_diagnostic_explanation_bundle, FoundationalDiagnosticDeliveryClass,
     FoundationalDiagnosticExplanationInput, FoundationalProfileSet,
 };
 
+#[cfg(test)]
 use super::super::foundational_integration::{
     build_provenance, build_rows, materialize_profile_progression,
     WorthQueryDomainCapabilityProvenanceFreshnessPolicy,
 };
+#[cfg(test)]
 use super::super::materialization::{
     WorthQueryDomainCapabilityDescriptiveArtifactKind,
     WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
 };
+#[cfg(test)]
+use super::super::payloads::WorthQueryDomainCapabilityPayload;
 use super::super::payloads::{
-    WorthQueryAdmissionContributionPayload, WorthQueryAftermathContributionPayload,
-    WorthQueryContinuityContributionPayload, WorthQueryDomainCapabilityPayload,
-    WorthQueryExplanationContributionPayload, WorthQueryInvariantCapabilityContributionPayload,
-    WorthQuerySupportContributionPayload, WorthQueryWorkflowContributionPayload,
+    WorthQueryContinuityContributionPayload, WorthQueryExplanationContributionPayload,
 };
+#[cfg(test)]
 use super::super::targets::WorthQueryDomainCapabilityTargetBinding;
+#[cfg(test)]
 use super::super::{
-    WorthQueryMaterializationReadyAdmissionContribution,
-    WorthQueryMaterializationReadyAftermathContribution,
     WorthQueryMaterializationReadyContinuityContribution,
     WorthQueryMaterializationReadyDomainCapabilityContribution,
     WorthQueryMaterializationReadyExplanationContribution,
-    WorthQueryMaterializationReadyInvariantCapabilityContribution,
-    WorthQueryMaterializationReadySupportContribution,
-    WorthQueryMaterializationReadyWorkflowContribution,
 };
 use super::artifacts::WorthQueryDomainCapabilityExplanationBundle;
 
-pub type WorthQueryAdmissionContributionExplanationBundle<T> =
-    WorthQueryDomainCapabilityExplanationBundle<WorthQueryAdmissionContributionPayload, T>;
-pub type WorthQuerySupportContributionExplanationBundle<T> =
-    WorthQueryDomainCapabilityExplanationBundle<WorthQuerySupportContributionPayload, T>;
-pub type WorthQueryInvariantCapabilityContributionExplanationBundle<T> =
-    WorthQueryDomainCapabilityExplanationBundle<
-        WorthQueryInvariantCapabilityContributionPayload,
-        T,
-    >;
-pub type WorthQueryWorkflowContributionExplanationBundle<T> =
-    WorthQueryDomainCapabilityExplanationBundle<WorthQueryWorkflowContributionPayload, T>;
 pub type WorthQueryContinuityContributionExplanationBundle<T> =
     WorthQueryDomainCapabilityExplanationBundle<WorthQueryContinuityContributionPayload, T>;
-pub type WorthQueryAftermathContributionExplanationBundle<T> =
-    WorthQueryDomainCapabilityExplanationBundle<WorthQueryAftermathContributionPayload, T>;
 pub type WorthQueryExplanationContributionExplanationBundle<T> =
     WorthQueryDomainCapabilityExplanationBundle<WorthQueryExplanationContributionPayload, T>;
 
+#[cfg(test)]
 pub fn materialize_domain_capability_explanation_bundle<P, T>(
     contribution: WorthQueryMaterializationReadyDomainCapabilityContribution<P, T>,
     requested_profile: FoundationalProfileSet,
@@ -103,78 +90,7 @@ where
     ))
 }
 
-pub fn materialize_admission_explanation_bundle<T>(
-    contribution: WorthQueryMaterializationReadyAdmissionContribution<T>,
-    requested_profile: FoundationalProfileSet,
-    delivery_class: FoundationalDiagnosticDeliveryClass,
-) -> Result<
-    WorthQueryAdmissionContributionExplanationBundle<T>,
-    WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
->
-where
-    T: WorthQueryDomainCapabilityTargetBinding,
-{
-    materialize_domain_capability_explanation_bundle(
-        contribution,
-        requested_profile,
-        delivery_class,
-    )
-}
-
-pub fn materialize_support_traceability_explanation_bundle<T>(
-    contribution: WorthQueryMaterializationReadySupportContribution<T>,
-    requested_profile: FoundationalProfileSet,
-    delivery_class: FoundationalDiagnosticDeliveryClass,
-) -> Result<
-    WorthQuerySupportContributionExplanationBundle<T>,
-    WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
->
-where
-    T: WorthQueryDomainCapabilityTargetBinding,
-{
-    materialize_domain_capability_explanation_bundle(
-        contribution,
-        requested_profile,
-        delivery_class,
-    )
-}
-
-pub fn materialize_invariant_capability_explanation_bundle<T>(
-    contribution: WorthQueryMaterializationReadyInvariantCapabilityContribution<T>,
-    requested_profile: FoundationalProfileSet,
-    delivery_class: FoundationalDiagnosticDeliveryClass,
-) -> Result<
-    WorthQueryInvariantCapabilityContributionExplanationBundle<T>,
-    WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
->
-where
-    T: WorthQueryDomainCapabilityTargetBinding,
-{
-    materialize_domain_capability_explanation_bundle(
-        contribution,
-        requested_profile,
-        delivery_class,
-    )
-}
-
-pub fn materialize_workflow_explanation_bundle<T>(
-    contribution: WorthQueryMaterializationReadyWorkflowContribution<T>,
-    requested_profile: FoundationalProfileSet,
-    delivery_class: FoundationalDiagnosticDeliveryClass,
-) -> Result<
-    WorthQueryWorkflowContributionExplanationBundle<T>,
-    WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
->
-where
-    T: WorthQueryDomainCapabilityTargetBinding,
-{
-    materialize_domain_capability_explanation_bundle(
-        contribution,
-        requested_profile,
-        delivery_class,
-    )
-}
-
+#[cfg(test)]
 pub fn materialize_continuity_explanation_bundle<T>(
     contribution: WorthQueryMaterializationReadyContinuityContribution<T>,
     requested_profile: FoundationalProfileSet,
@@ -193,24 +109,7 @@ where
     )
 }
 
-pub fn materialize_aftermath_explanation_bundle<T>(
-    contribution: WorthQueryMaterializationReadyAftermathContribution<T>,
-    requested_profile: FoundationalProfileSet,
-    delivery_class: FoundationalDiagnosticDeliveryClass,
-) -> Result<
-    WorthQueryAftermathContributionExplanationBundle<T>,
-    WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
->
-where
-    T: WorthQueryDomainCapabilityTargetBinding,
-{
-    materialize_domain_capability_explanation_bundle(
-        contribution,
-        requested_profile,
-        delivery_class,
-    )
-}
-
+#[cfg(test)]
 pub fn materialize_explanation_explanation_bundle<T>(
     contribution: WorthQueryMaterializationReadyExplanationContribution<T>,
     requested_profile: FoundationalProfileSet,

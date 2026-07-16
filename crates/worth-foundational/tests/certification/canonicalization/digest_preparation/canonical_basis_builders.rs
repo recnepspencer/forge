@@ -3,18 +3,18 @@ use worth_foundational::{
     admit_authoritative_record_aspect_state, lower_json_record_aspect_state,
     prepare_aspect_contract_for_canonical_basis, prepare_aspect_mask_for_canonical_basis,
     prepare_aspect_patch_for_canonical_basis, prepare_aspect_state_for_canonical_basis,
-    AspectLocator, AspectMask, AspectValue, AuthoritativeRecordAspectPatch, BoundarySourceLocator,
-    CanonicalBasisDomain, CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue,
-    CanonicalDecimal, CanonicalFieldPath, CanonicalIntegerWidth, CanonicalizationRuleVersion,
-    JsonCompatibilityAspectInput, LocatorAuthority, ProjectionMask, ScalarAspectType,
-    StructAspectValue,
+    AspectContract, AspectLocator, AspectMask, AspectValue, AuthoritativeRecordAspectPatch,
+    BoundarySourceLocator, CanonicalBasisDomain, CanonicalBasisEntryKind, CanonicalBasisLocus,
+    CanonicalBasisValue, CanonicalDecimal, CanonicalFieldPath, CanonicalIntegerWidth,
+    CanonicalizationRuleVersion, JsonCompatibilityAspectInput, LocatorAuthority, ProjectionMask,
+    ScalarAspectType, StructAspectValue,
 };
 use worth_proof::TransitionOutcome;
 
 use super::readiness_fixtures::{
     admitted_state, task_summary_contract, task_summary_contract_with_reversed_declaration_order,
 };
-use crate::foundational_vocabulary::{field, key, validated_scalar};
+use crate::foundational_vocabulary::{field, identity, key, revision, validated_scalar};
 
 fn version() -> CanonicalizationRuleVersion {
     CanonicalizationRuleVersion::new("m2.surface-basis").expect("valid version")
@@ -212,13 +212,20 @@ fn patch_canonical_basis_is_ordered_and_distinguishes_clear_from_set() {
         ScalarAspectType::String,
         AspectValue::String("Ada".into()),
     );
-    let TransitionOutcome::Success(left_patch) =
-        AuthoritativeRecordAspectPatch::whole_aspect([count.clone(), name.clone()], [key("done")])
-    else {
+    let done_contract = AspectContract::scalar(
+        key("done"),
+        identity(3),
+        revision(1),
+        ScalarAspectType::Bool,
+    );
+    let TransitionOutcome::Success(left_patch) = AuthoritativeRecordAspectPatch::whole_aspect(
+        [count.clone(), name.clone()],
+        [done_contract.clone()],
+    ) else {
         panic!("expected left patch");
     };
     let TransitionOutcome::Success(right_patch) =
-        AuthoritativeRecordAspectPatch::whole_aspect([name, count], [key("done")])
+        AuthoritativeRecordAspectPatch::whole_aspect([name, count], [done_contract])
     else {
         panic!("expected right patch");
     };

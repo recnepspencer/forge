@@ -1,7 +1,5 @@
 use hadwiger_research::facade::*;
-use worth_query::facade::foundation::{
-    WorthQueryApplicationFacade, WorthQueryContributionComposedOrchestrationInput,
-};
+use worth_query::facade::foundation::WorthQueryContributionComposedOrchestrationInput;
 
 fn handle() -> HadwigerResearchHandle {
     crate::installed_support::installed_hadwiger_research_handle()

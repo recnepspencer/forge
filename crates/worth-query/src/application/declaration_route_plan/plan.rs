@@ -105,6 +105,7 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
         self.route_intent
     }
 
+    #[cfg(test)]
     pub(crate) fn automation_requires_explicit_handoff(&self) -> bool {
         self.automation_requires_explicit_handoff
     }

@@ -1,20 +1,6 @@
 use worth_foundational::FoundationalProfileSet;
 use worth_proof::TransitionOutcome;
 
-use crate::application::{
-    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDeclarationInput,
-    WorthQueryDomainEntryMarker,
-};
-use crate::binding_pipeline::WorthQueryBindingLinkedArtifacts;
-use crate::domain_capabilities::{
-    admit_eligible_domain_capability_contribution,
-    evaluate_requested_domain_capability_contribution, materialize_domain_capability_summary,
-    prepare_admitted_domain_capability_contribution_for_materialization,
-    WorthQueryDeclarationBoundContributionTarget, WorthQueryDomainCapabilityPayload,
-    WorthQueryRequestedDomainCapabilityContribution,
-};
-use crate::target_binding::WorthQueryBindingTargetWitness;
-
 use super::super::artifact::{
     WorthQueryContributionComposedContribution, WorthQueryContributionComposedSummary,
 };
@@ -31,12 +17,25 @@ use super::support::{
     denied_result, evidence_from_admitted, failed_result, rebind_required_result,
     retained_after_admission_result, stale_result,
 };
+use crate::application::{
+    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDeclarationInput,
+    WorthQueryDomainEntryMarker,
+};
+use crate::binding_pipeline::WorthQueryBindingLinkedArtifacts;
+use crate::domain_capabilities::{
+    admit_eligible_domain_capability_contribution,
+    evaluate_requested_domain_capability_contribution, materialize_domain_capability_summary,
+    prepare_admitted_domain_capability_contribution_for_materialization,
+    WorthQueryDomainCapabilityPayload, WorthQueryDomainCapabilityTargetBinding,
+    WorthQueryInstalledDeclarationContributionTarget,
+    WorthQueryRequestedDomainCapabilityContribution,
+};
 
 pub(crate) fn process_contributions<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
 >(
-    target: WorthQueryDeclarationBoundContributionTarget,
+    target: WorthQueryInstalledDeclarationContributionTarget,
     declaration_aspect_record: WorthQueryContributionComposedIntentAspectRecord,
     contributions: Vec<WorthQueryContributionIntent>,
     materialization_policy: WorthQueryContributionComposedMaterializationPolicy,
@@ -60,7 +59,7 @@ pub(crate) fn process_contributions<
 
 fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>(
     order_index: usize,
-    target: WorthQueryDeclarationBoundContributionTarget,
+    target: WorthQueryInstalledDeclarationContributionTarget,
     declaration_aspect_record: WorthQueryContributionComposedIntentAspectRecord,
     intent: WorthQueryContributionIntent,
     materialization_profile: Option<&FoundationalProfileSet>,
@@ -71,7 +70,7 @@ fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<
             order_index,
             WorthQueryDeclarationEntryContributionCategoryFamily::Admission,
             declaration_aspect_record,
-            value.bind_to_declaration_target(target),
+            value.bind_to_installed_target(target),
             materialization_profile,
             linked_artifacts,
         ),
@@ -79,7 +78,7 @@ fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<
             order_index,
             WorthQueryDeclarationEntryContributionCategoryFamily::SupportTraceability,
             declaration_aspect_record,
-            value.bind_to_declaration_target(target),
+            value.bind_to_installed_target(target),
             materialization_profile,
             linked_artifacts,
         ),
@@ -87,7 +86,7 @@ fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<
             order_index,
             WorthQueryDeclarationEntryContributionCategoryFamily::ExplanationInspection,
             declaration_aspect_record,
-            value.bind_to_declaration_target(target),
+            value.bind_to_installed_target(target),
             materialization_profile,
             linked_artifacts,
         ),
@@ -95,7 +94,7 @@ fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<
             order_index,
             WorthQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview,
             declaration_aspect_record,
-            value.bind_to_declaration_target(target),
+            value.bind_to_installed_target(target),
             materialization_profile,
             linked_artifacts,
         ),
@@ -103,7 +102,7 @@ fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<
             order_index,
             WorthQueryDeclarationEntryContributionCategoryFamily::ContinuityLineage,
             declaration_aspect_record,
-            value.bind_to_declaration_target(target),
+            value.bind_to_installed_target(target),
             materialization_profile,
             linked_artifacts,
         ),
@@ -116,7 +115,7 @@ fn process_requested<D, I, P>(
     declaration_aspect_record: WorthQueryContributionComposedIntentAspectRecord,
     requested: WorthQueryRequestedDomainCapabilityContribution<
         P,
-        WorthQueryDeclarationBoundContributionTarget,
+        WorthQueryInstalledDeclarationContributionTarget,
     >,
     materialization_profile: Option<&FoundationalProfileSet>,
     _linked_artifacts: WorthQueryBindingLinkedArtifacts,
@@ -125,10 +124,10 @@ where
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
     P: WorthQueryDomainCapabilityPayload,
-    (P, WorthQueryDeclarationBoundContributionTarget):
+    (P, WorthQueryInstalledDeclarationContributionTarget):
         crate::domain_capabilities::AllowedContributionBinding<
             P,
-            WorthQueryDeclarationBoundContributionTarget,
+            WorthQueryInstalledDeclarationContributionTarget,
         >,
 {
     let request = WorthQueryContributionComposedIntentRequestDescriptor::new(
@@ -234,6 +233,10 @@ where
         TransitionOutcome::Deferred(never) => match never {},
     };
     let evidence = evidence_from_admitted(&admitted);
+    let installed_authority =
+        crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness::from_authority(
+            admitted.payload().target().authority_arc(),
+        );
     let contribution_category = admitted.payload().payload().category();
     let semantic_posture = admitted.payload().payload().semantic_posture();
     let contribution = WorthQueryContributionComposedContribution::new(
@@ -241,6 +244,7 @@ where
         contribution_category,
         semantic_posture,
         request.request_digest().to_string(),
+        installed_authority,
         None,
     );
     let admitted_digest = admitted.admitted_identity();
@@ -312,13 +316,7 @@ where
                     value.standard_row_count(),
                     value.forensic_row_count(),
                 );
-                let contribution = WorthQueryContributionComposedContribution::new(
-                    contribution.evidence().clone(),
-                    contribution.contribution_category(),
-                    contribution.semantic_posture(),
-                    contribution.request_digest().to_string(),
-                    Some(summary),
-                );
+                let contribution = contribution.with_summary(summary);
                 WorthQueryContributionComposedIntentResult::new(
                     request,
                     evaluation,

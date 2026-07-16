@@ -1,5 +1,9 @@
 use std::path::{Path, PathBuf};
 
+use worth_foundational::facade::{
+    AbsenceLaw, AspectContract, AspectContractRevision, AspectEvolutionPolicy, AspectIdentity,
+    AspectKey, FieldDeclaration, FieldKey, FieldRequirement, ScalarAspectType, StructAspectShape,
+};
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::{aggregate, foundation::basis_lifecycle, inspection, read};
 
@@ -11,6 +15,8 @@ const COLLECTIONS_DOC: &str =
 const PROJECTION_RECIPE: &str = include_str!(
     "../docs/domain-capabilities/recipes/carry-query-facts-into-a-downstream-runtime.md"
 );
+const INSTALLED_DOMAIN_DOC: &str =
+    include_str!("../docs/domain-capabilities/runtime-installed-domains.md");
 
 #[test]
 fn documented_read_projection_and_inspection_examples_compile_and_run() {
@@ -64,13 +70,21 @@ fn discovery_links_resolve_to_each_current_ordinary_capability() {
             "declare_count as declare",
         ),
         ("live", "src/ordinary/live/declaration.rs", "pub fn declare"),
-        ("history", "src/ordinary/history/declaration.rs", "pub fn declare"),
+        (
+            "history",
+            "src/ordinary/history/declaration.rs",
+            "pub fn declare",
+        ),
         (
             "comparison",
             "src/ordinary/comparison/declaration.rs",
             "pub fn declare",
         ),
-        ("preview", "src/ordinary/preview/declaration.rs", "pub fn declare"),
+        (
+            "preview",
+            "src/ordinary/preview/declaration.rs",
+            "pub fn declare",
+        ),
         (
             "mutation",
             "src/ordinary/mutation/declaration.rs",
@@ -86,7 +100,11 @@ fn discovery_links_resolve_to_each_current_ordinary_capability() {
             "src/ordinary/inspection/declaration.rs",
             "pub fn declare",
         ),
-        ("domain", "src/ordinary/domain/mod.rs", "pub fn declare"),
+        (
+            "domain",
+            "src/facade/exports_domain.rs",
+            "WorthQueryDomainPackage",
+        ),
     ];
     assert_eq!(rows.len(), 10, "ordinary grammar must cover ten namespaces");
 
@@ -100,7 +118,9 @@ fn discovery_links_resolve_to_each_current_ordinary_capability() {
     let link = "./capabilities/declarative-query-experience.md";
     assert!(AI_README.contains(link));
     assert!(DOCS_README.contains(link));
-    assert!(root.join("docs/capabilities/declarative-query-experience.md").is_file());
+    assert!(root
+        .join("docs/capabilities/declarative-query-experience.md")
+        .is_file());
     assert!(AI_README.contains("facade::aggregate"));
 
     let read_exports = std::fs::read_to_string(root.join("src/facade/exports_read.rs"))
@@ -120,6 +140,11 @@ fn ai_discovery_excludes_displaced_phase_assembly_guidance() {
         "## Family Helpers And Declaration Progression",
         "Declaration Entry Orchestration",
         "Binding Vs Orchestration Vs Helpers",
+        "Advisory And Violation Contributions",
+        "Registering Domain Invariants Through Query",
+        "Lower-Runtime Explanation Contributions",
+        "Canonical Domain Declarations",
+        "Configured Domain Handles",
         "consume_projection_authority",
         "ProjectionAuthorityContract::declare",
     ] {
@@ -127,6 +152,43 @@ fn ai_discovery_excludes_displaced_phase_assembly_guidance() {
             !AI_README.contains(displaced),
             "AI discovery still teaches displaced path: {displaced}"
         );
+    }
+}
+
+#[test]
+fn installed_domain_discovery_teaches_only_the_current_authority_path() {
+    for required in [
+        "WorthQueryDomainPackage::declare",
+        "WorthQueryRuntimeBuilder::domain_package",
+        "WorthQueryWorkspace::domain",
+        "WorthQueryInstalledDomainHandle",
+        "WorthQueryDomainOperatingContextIdentityDeclaration",
+        "WorthQueryInstalledDomainDeclarationContext",
+        "self.declarations_in(workspace, context)",
+    ] {
+        assert!(
+            INSTALLED_DOMAIN_DOC.contains(required),
+            "installed-domain guide is missing current entry point: {required}"
+        );
+    }
+
+    assert!(AI_README.contains("## Runtime-Installed Domains"));
+    assert!(AI_README.contains("./domain-capabilities/runtime-installed-domains.md"));
+
+    for displaced in [
+        "worth_query_domain(",
+        "WorthQueryApplicationFacade",
+        "WorthQueryConfiguredDomainHandle",
+        "WorthQueryAdmittedConfiguredDomainHandle",
+        "fn context_identity_digest(",
+        "WorthQueryGraphReadOperationRegistry",
+        "with_operation_registry(",
+        "orchestrate_declaration_entry",
+        "inspect_declaration_entry",
+        "WorthQueryPlatformEntry",
+        "WorthQueryPublicDocCoverage",
+    ] {
+        assert_product_docs_exclude(displaced);
     }
 }
 
@@ -202,20 +264,12 @@ fn task_declaration() -> read::WorthQueryReadDeclaration {
             |shape| {
                 shape
                     .field(
-                        read::AuthoredResultShapeField::new(
-                            "identity",
-                            "id",
-                            "identity.id",
-                        )
-                        .expect("static identity result field"),
+                        read::AuthoredResultShapeField::new("identity", "id", "identity.id")
+                            .expect("static identity result field"),
                     )
                     .field(
-                        read::AuthoredResultShapeField::new(
-                            "title",
-                            "value",
-                            "title.value",
-                        )
-                        .expect("static title result field"),
+                        read::AuthoredResultShapeField::new("title", "value", "title.value")
+                            .expect("static title result field"),
                     )
             },
         )
@@ -236,12 +290,8 @@ fn task_count_declaration() -> aggregate::WorthQueryCountDeclaration {
             },
             |shape| {
                 shape.field(
-                    aggregate::AuthoredResultShapeField::new(
-                        "identity",
-                        "id",
-                        "identity.id",
-                    )
-                    .expect("static identity result field"),
+                    aggregate::AuthoredResultShapeField::new("identity", "id", "identity.id")
+                        .expect("static identity result field"),
                 )
             },
         )
@@ -251,6 +301,18 @@ fn task_count_declaration() -> aggregate::WorthQueryCountDeclaration {
 
 fn task_workspace(name: &str) -> worth_query::facade::runtime::WorthQueryWorkspace {
     let schema = WorthQueryTestBackendSchema::single_collection("Task")
+        .aspect_contract(documented_string_struct_contract(
+            "identity",
+            0x5751_3001,
+            "id",
+        ))
+        .expect("identity contract should install")
+        .aspect_contract(documented_string_struct_contract(
+            "title",
+            0x5751_3002,
+            "value",
+        ))
+        .expect("title contract should install")
         .aspect("identity.id", "identity.id")
         .expect("identity aspect should admit")
         .aspect("title.value", "title.value")
@@ -280,6 +342,23 @@ fn task_workspace(name: &str) -> worth_query::facade::runtime::WorthQueryWorkspa
     workspace
 }
 
+fn documented_string_struct_contract(aspect: &str, identity: u64, field: &str) -> AspectContract {
+    let field = FieldDeclaration::new(
+        FieldKey::new(field).expect("static field"),
+        ScalarAspectType::String,
+        FieldRequirement::Required,
+        AbsenceLaw::Required,
+        AspectEvolutionPolicy::ExplicitBreakRequired,
+    )
+    .expect("static field declaration");
+    AspectContract::struct_aspect(
+        AspectKey::new(aspect).expect("static aspect"),
+        AspectIdentity(identity),
+        AspectContractRevision(1),
+        StructAspectShape::new([field]).expect("static struct shape"),
+    )
+}
+
 fn task_schema() -> read::QuerySchemaView {
     read::QuerySchemaView::new(
         "task-query",
@@ -287,12 +366,12 @@ fn task_schema() -> read::QuerySchemaView {
             read::SchemaFieldView::new(
                 read::AspectName::new("identity").expect("static aspect"),
                 read::FieldName::new("id").expect("static field"),
-                read::SchemaFieldKind::String,
+                read::ScalarAspectType::String,
             ),
             read::SchemaFieldView::new(
                 read::AspectName::new("title").expect("static aspect"),
                 read::FieldName::new("value").expect("static field"),
-                read::SchemaFieldKind::String,
+                read::ScalarAspectType::String,
             ),
         ],
         [],
@@ -326,4 +405,19 @@ fn markdown_targets(contents: &str) -> impl Iterator<Item = &str> {
         }
         targets
     })
+}
+
+fn assert_product_docs_exclude(displaced: &str) {
+    let docs = Path::new(env!("CARGO_MANIFEST_DIR")).join("docs");
+    let mut markdown_files = Vec::new();
+    collect_markdown_files(&docs, &mut markdown_files);
+    for path in markdown_files {
+        let contents = std::fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+        assert!(
+            !contents.contains(displaced),
+            "product discovery still teaches `{displaced}` in {}",
+            path.display()
+        );
+    }
 }

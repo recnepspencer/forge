@@ -21,6 +21,7 @@ pub use hooks::{
     WorthQueryGraphCompositionInvariantPackContext,
     WorthQueryGraphCompositionInvariantPackViolation,
 };
+#[cfg(test)]
 pub(crate) use obligation::registrations_from_relational_invariant_catalog;
 pub use obligation::{
     WorthQueryAuthoritativeMutationObligationDispatch,

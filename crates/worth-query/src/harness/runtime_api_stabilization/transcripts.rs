@@ -4,7 +4,7 @@ use crate::facade::runtime::{
     WorthQueryRuntimePublicApiTranscriptEvidence,
 };
 use crate::identity::hash_parts;
-use crate::runtime::WorthQueryNativeRow;
+use crate::runtime::WorthQueryUnrefinedLiveShape;
 
 use super::transcript_aspect_touch;
 use super::transcript_maintainer::TranscriptMaintainer;
@@ -121,11 +121,11 @@ pub(super) struct TranscriptSpec {
 }
 
 fn execute_transcript(spec: TranscriptSpec) -> WorthQueryRuntimePublicApiTranscriptEvidence {
-    let mut workspace = transcript_runtime()
+    let mut workspace = transcript_runtime(spec.produced_aspects)
         .workspace(format!("{}.workspace", spec.family))
         .expect("transcript runtime should expose a named workspace");
     let live = workspace
-        .live_view::<WorthQueryNativeRow>(spec.view_name, |q| {
+        .live_view::<WorthQueryUnrefinedLiveShape>(spec.view_name, |q| {
             q.from(spec.collection)
                 .select(
                     std::iter::once(live_field("identity.id")).chain(
@@ -140,7 +140,7 @@ fn execute_transcript(spec: TranscriptSpec) -> WorthQueryRuntimePublicApiTranscr
         })
         .expect("transcript live surface should declare");
     let first = workspace
-        .computed::<WorthQueryNativeRow>(
+        .computed::<WorthQueryUnrefinedLiveShape>(
             spec.first_computed,
             |c| {
                 c.depends_on_live(&live)
@@ -162,7 +162,7 @@ fn execute_transcript(spec: TranscriptSpec) -> WorthQueryRuntimePublicApiTranscr
         )
         .expect("first computed transcript surface should declare");
     let second = workspace
-        .computed::<WorthQueryNativeRow>(
+        .computed::<WorthQueryUnrefinedLiveShape>(
             spec.second_computed,
             |c| {
                 c.depends_on_computed(&first)
@@ -184,7 +184,7 @@ fn execute_transcript(spec: TranscriptSpec) -> WorthQueryRuntimePublicApiTranscr
         )
         .expect("nested computed transcript surface should declare");
     let effect = workspace
-        .effect::<WorthQueryNativeRow>(spec.effect_name, |e| {
+        .effect::<WorthQueryUnrefinedLiveShape>(spec.effect_name, |e| {
             e.when_computed(
                 &second,
                 spec.produced_aspects

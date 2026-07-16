@@ -34,6 +34,7 @@ impl BasisEligibilityCounters {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn rejected(rejection_width: usize) -> Self {
         Self {
             raw_intent_width: 1,

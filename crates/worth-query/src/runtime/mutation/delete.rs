@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use super::{WorthQueryAspectTouch, WorthQueryMutationMetadata};
 use crate::memory_workspace::{WorthQueryEntityIdentity, WorthQueryWorkspaceError};
 use crate::runtime::{
-    WorthQueryAdmittedAspectValue, WorthQueryExistingTruthTargetBinding,
+    WorthQueryAuthoredAspectMutation, WorthQueryExistingTruthTargetBinding,
     WorthQueryMutationTargetCollectionIdentity, WorthQueryNamingMutationIntent,
     WorthQueryRuntimeError, WorthQuerySymbolicTargetReference, WorthQueryWriteCommand,
 };
@@ -135,7 +135,7 @@ impl WorthQueryDeleteMutationBuilder {
     pub(crate) fn build_delete_existing_verified(
         self,
         binding: WorthQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<WorthQueryAdmittedAspectValue>,
+        asserted_aspects: Vec<WorthQueryAuthoredAspectMutation>,
     ) -> Result<WorthQueryWriteCommand, WorthQueryRuntimeError> {
         if let Some(error) = self.error {
             return Err(WorthQueryRuntimeError::Workspace(

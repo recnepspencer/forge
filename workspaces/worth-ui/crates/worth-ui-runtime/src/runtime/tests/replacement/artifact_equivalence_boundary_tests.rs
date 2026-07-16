@@ -1,9 +1,6 @@
 use std::{collections::BTreeMap, path::Path};
 
-use crate::facade::{
-    WorthUi,
-    WorthUiApp,
-};
+use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission,

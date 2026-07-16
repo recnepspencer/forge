@@ -31,7 +31,7 @@ impl ProjectionConsumptionSource {
             capability_profile: ProjectionSourceCapabilityProfile::QueryReadReceipt {
                 execution_posture: execution_posture_from_read_engine(receipt.execution_engine()),
             },
-            query_digest: Some(receipt.query_digest().to_string()),
+            query_digest: Some(receipt.canonical_query_digest().to_string()),
             basis_digest: Some(receipt.basis_digest().to_string()),
             basis_authority: ProjectionSourceBasisAuthority::runtime_snapshot(
                 receipt.snapshot_identity().clone(),

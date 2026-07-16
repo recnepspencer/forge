@@ -1,7 +1,7 @@
 use super::super::support::*;
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, OrderingSelector,
-    ScalarPredicateValue,
+    WorthQueryPredicateOperand,
 };
 use crate::runtime::{
     WorthQueryReadBuiltInOperator, WorthQueryReadBuiltInOperatorDenialReason,
@@ -35,7 +35,7 @@ fn compose_read_executes_operator_owned_frontier_search_detail() {
                             EqualityPredicate::new(
                                 "profile",
                                 "display_name",
-                                ScalarPredicateValue::String("Ada".to_string()),
+                                WorthQueryPredicateOperand::string("Ada".to_string()),
                             )
                             .expect("equality predicate should build"),
                         )
@@ -102,7 +102,7 @@ fn compose_read_executes_operator_owned_frontier_search_collection() {
                             EqualityPredicate::new(
                                 "profile",
                                 "display_name",
-                                ScalarPredicateValue::String("Ada".to_string()),
+                                WorthQueryPredicateOperand::string("Ada".to_string()),
                             )
                             .expect("equality predicate should build"),
                         )
@@ -203,7 +203,7 @@ fn compose_read_denies_frontier_search_without_relations() {
                             EqualityPredicate::new(
                                 "profile",
                                 "display_name",
-                                ScalarPredicateValue::String("Ada".to_string()),
+                                WorthQueryPredicateOperand::string("Ada".to_string()),
                             )
                             .expect("equality predicate should build"),
                         )
@@ -254,7 +254,7 @@ fn compose_read_denies_frontier_search_with_zero_depth() {
                             EqualityPredicate::new(
                                 "profile",
                                 "display_name",
-                                ScalarPredicateValue::String("Ada".to_string()),
+                                WorthQueryPredicateOperand::string("Ada".to_string()),
                             )
                             .expect("equality predicate should build"),
                         )
@@ -307,7 +307,7 @@ fn compose_read_denies_frontier_search_with_duplicate_relations() {
                             EqualityPredicate::new(
                                 "profile",
                                 "display_name",
-                                ScalarPredicateValue::String("Ada".to_string()),
+                                WorthQueryPredicateOperand::string("Ada".to_string()),
                             )
                             .expect("equality predicate should build"),
                         )
@@ -360,7 +360,7 @@ fn compose_read_denies_frontier_search_with_degenerate_frontier_shape() {
                             EqualityPredicate::new(
                                 "profile",
                                 "display_name",
-                                ScalarPredicateValue::String("Ada".to_string()),
+                                WorthQueryPredicateOperand::string("Ada".to_string()),
                             )
                             .expect("equality predicate should build"),
                         )

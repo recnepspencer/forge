@@ -7,6 +7,7 @@ use crate::lower_runtime_routing::{
 };
 use crate::ordinary_outcome::WorthQueryOrdinaryRuntimePosture;
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
+#[cfg(test)]
 use worth_runtime_bridge::facade::{
     BridgeDeniedMixedCause, BridgeMixedCauseDeliveryWindowPlan, BridgeMixedCauseOrdering,
     BridgeOrderedMixedCause, BridgeSuppressedMixedCause,
@@ -220,6 +221,7 @@ pub(in crate::runtime) fn runtime_mixed_cause_atomic_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(in crate::runtime) fn runtime_mixed_cause_ordering_identity(
     ordering: &BridgeMixedCauseOrdering,
 ) -> WorthQueryEvidenceIdentity {
@@ -235,6 +237,7 @@ pub(in crate::runtime) fn runtime_mixed_cause_ordering_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(in crate::runtime) fn runtime_mixed_cause_delivery_window_identity(
     delivery_window: &BridgeMixedCauseDeliveryWindowPlan,
     ordering: &BridgeMixedCauseOrdering,
@@ -257,6 +260,7 @@ pub(in crate::runtime) fn runtime_mixed_cause_delivery_window_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(in crate::runtime) fn runtime_mixed_cause_ordered_cause_identity(
     cause: &BridgeOrderedMixedCause,
 ) -> WorthQueryEvidenceIdentity {
@@ -272,6 +276,7 @@ pub(in crate::runtime) fn runtime_mixed_cause_ordered_cause_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(in crate::runtime) fn runtime_mixed_cause_suppressed_cause_identity(
     cause: &BridgeSuppressedMixedCause,
 ) -> WorthQueryEvidenceIdentity {
@@ -289,6 +294,7 @@ pub(in crate::runtime) fn runtime_mixed_cause_suppressed_cause_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(in crate::runtime) fn runtime_mixed_cause_denied_cause_identity(
     cause: &BridgeDeniedMixedCause,
 ) -> WorthQueryEvidenceIdentity {

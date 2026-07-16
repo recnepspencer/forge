@@ -21,13 +21,14 @@ help: there is a method `display_field_path` with a similar name
 6 |     let _ = ProjectMaterializedFacts::declare().display_field_path("profile.display_name");
   |                                                              +++++
 
-error[E0599]: no method named `derived_scalar_field` found for struct `worth_query::facade::foundation::ProjectMaterializedFacts` in the current scope
+error[E0599]: no method named `derived_field_field` found for struct `worth_query::facade::foundation::ProjectMaterializedFacts` in the current scope
  --> tests/ui/aspect_native_query/projection_consumption_field_request_neutral_helpers_removed.rs:8:45
   |
-8 |         ProjectMaterializedFacts::declare().derived_scalar_field("profile.display_name");
-  |                                             ^^^^^^^^^^^^^^^^^^^^
+8 |         ProjectMaterializedFacts::declare().derived_field_field("profile.display_name");
+  |                                             ^^^^^^^^^^^^^^^^^^^
   |
-help: there is a method `derived_scalar_field_path` with a similar name
+help: there is a method `derived_field_path` with a similar name
   |
-8 |         ProjectMaterializedFacts::declare().derived_scalar_field_path("profile.display_name");
-  |                                                                 +++++
+8 -         ProjectMaterializedFacts::declare().derived_field_field("profile.display_name");
+8 +         ProjectMaterializedFacts::declare().derived_field_path("profile.display_name");
+  |

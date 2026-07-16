@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn grouped_live_view_inspection_preserves_grouped_family_and_baseline_support() {
     let mut runtime = stateful_bridge_grouped_task_runtime();
-    let table: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let table: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view(
             "tasks.seed-table",
             grouped_task_table_live_request(),
@@ -21,7 +21,7 @@ fn grouped_live_view_inspection_preserves_grouped_family_and_baseline_support() 
         ))
         .expect("seed insert should write through table declaration");
     let _ = runtime.drain_patches(&table);
-    let grouped: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let grouped: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view(
             "tasks.grouped",
             grouped_task_live_request(),

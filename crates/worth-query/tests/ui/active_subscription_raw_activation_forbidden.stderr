@@ -1,13 +1,8 @@
-error[E0308]: mismatched types
- --> tests/ui/active_subscription_raw_activation_forbidden.rs:4:44
+error[E0432]: unresolved import `worth_query::facade::runtime::admit_active_subscription_lane`
+ --> tests/ui/active_subscription_raw_activation_forbidden.rs:1:36
   |
-4 |     let _ = admit_active_subscription_lane("raw-activation", todo::<ActiveSubscriptionWorkBudget>());
-  |             ------------------------------ ^^^^^^^^^^^^^^^^ expected `SubscriptionActivationInput`, found `&str`
-  |             |
-  |             arguments to this function are incorrect
-  |
-note: function defined here
- --> src/subscription/active.rs
-  |
-  | pub fn admit_active_subscription_lane(
-  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1 | use worth_query::facade::runtime::{admit_active_subscription_lane, ActiveSubscriptionWorkBudget};
+  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                                    |
+  |                                    no `admit_active_subscription_lane` in `facade::runtime`
+  |                                    help: a similar name exists in the module: `join_active_subscription_lane`

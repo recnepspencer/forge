@@ -125,10 +125,10 @@ fn false_positive_honesty_evidence() -> WorthQueryConsumerResidueCertificationCa
     let finding_count = FALSE_POSITIVE_CERTIFICATION_SOURCES
         .iter()
         .enumerate()
-        .map(|(index, source)| {
+        .map(|(index, (path, source))| {
             scan_consumer_residue_source(
                 "consumer-residue-certification.false-positive",
-                &format!("consumer-residue-certification-clean-{index}.rs"),
+                &format!("consumer-residue-certification-clean-{index}/{path}"),
                 source,
                 false,
                 None,
@@ -268,11 +268,40 @@ const HOSTILE_CERTIFICATION_SOURCES: &[(WorthQueryConsumerResidueClass, &str)] =
         WorthQueryConsumerResidueClass::LegacyQueryBasisLifecycle,
         "use worth_query::query_basis_lifecycle::RawBasisIntent;",
     ),
+    (
+        WorthQueryConsumerResidueClass::RawDomainStringAuthority,
+        "fn residue() { let _ = worth_query_domain(\"raw-domain\"); }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::ConsumerAuthoredContextDigest,
+        "impl Context { fn context_identity_digest(&self) -> String { String::new() } }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::ApplicationFacadeDomainAuthority,
+        "fn residue(value: WorthQueryApplicationFacade) { let _ = value; }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::IndependentOperationRegistry,
+        "fn residue(value: WorthQueryGraphReadOperationRegistry) { let _ = value; }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::CallerSuppliedOperationRegistry,
+        "fn residue(runtime: Runtime, registry: Registry) { let _ = runtime.with_operation_registry(registry); }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::QueryPhaseMaterializerImport,
+        "use worth_query::facade::runtime::{materialize_canonical_admission_artifact};",
+    ),
+    (
+        WorthQueryConsumerResidueClass::ConsumerSemanticDomainAdapter,
+        "struct HadwigerDomainAuthorityAdapter;",
+    ),
 ];
 
-const FALSE_POSITIVE_CERTIFICATION_SOURCES: &[&str] = &[
-    "#[doc = \"RuntimeBridge::new and LocalQueryReport\"]\n/// WorthQuerySupportSnapshotRow\n/* WriteAuthorityExecutionReceipt */\nfn clean() {}",
-    "fn clean() { let _ = \"RuntimeBridge::new\"; let _ = r#\"LocalQueryReport || format!(\\\"{:?}\\\")\"#; let _ = '\\''; }",
-    "fn clean(values: Vec<String>, item: String) { let diagnostic = format!(\"{:?}\", item); let joined = values.join(\"||\"); let display = format!(\"{}||{}\", diagnostic, joined); let _ = display; }",
-    "fn clean(rows: DomainRows) { let _ = rows.row_for_family(\"domain\"); } struct DomainRows; impl DomainRows { fn row_for_family(&self, _: &str) -> Option<String> { None } }",
+const FALSE_POSITIVE_CERTIFICATION_SOURCES: &[(&str, &str)] = &[
+    ("lib.rs", "#[doc = \"RuntimeBridge::new and LocalQueryReport\"]\n/// WorthQuerySupportSnapshotRow\n/* WriteAuthorityExecutionReceipt */\nfn clean() {}"),
+    ("lib.rs", "fn clean() { let _ = \"RuntimeBridge::new\"; let _ = r#\"LocalQueryReport || format!(\\\"{:?}\\\")\"#; let _ = '\\''; }"),
+    ("lib.rs", "fn clean(values: Vec<String>, item: String) { let diagnostic = format!(\"{:?}\", item); let joined = values.join(\"||\"); let display = format!(\"{}||{}\", diagnostic, joined); let _ = display; }"),
+    ("lib.rs", "fn clean(rows: DomainRows) { let _ = rows.row_for_family(\"domain\"); } struct DomainRows; impl DomainRows { fn row_for_family(&self, _: &str) -> Option<String> { None } }"),
+    ("runtime/backend/physical_boundary.rs", "struct StorageDomainAdapter;"),
 ];

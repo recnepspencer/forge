@@ -137,7 +137,7 @@ fn declare_and_review_preserves_admission_vs_legality_split() {
         Err(WorthQueryDeclarationAdmissionOrLegalityError::Admission(admission)) => {
             assert!(matches!(
                 admission,
-                crate::application::WorthQueryDeclarationAdmissionError::Deferred(_)
+                crate::application::WorthQueryDeclarationAdmissionError::Unsupported(_)
             ));
         }
         _ => panic!("expected admission denial"),

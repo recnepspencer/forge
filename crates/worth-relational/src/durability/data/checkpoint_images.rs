@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
-use worth_foundational::facade::AuthoritativeRecordAspectState;
+use worth_foundational::facade::{PortableAspectContract, PortableRecordAspectState};
 
 use super::CheckpointCoverage;
 use crate::history::data::BranchHead;
@@ -27,14 +27,14 @@ pub struct VersionedEntityMetadataImage {
     pub generation: u32,
     pub kind_id: KindId,
     pub lineage_id: Option<LineageId>,
-    pub authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
+    pub authoritative_aspect_state: Option<PortableRecordAspectState>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EntityExtraImage {
     pub structural_fingerprint: Option<StructuralFingerprint>,
     pub lineage_id: Option<LineageId>,
-    pub authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
+    pub authoritative_aspect_state: Option<PortableRecordAspectState>,
 }
 
 pub trait RecordArenaCheckpointKind: Clone + PartialEq + Eq {
@@ -92,7 +92,7 @@ pub struct RelationEndpointsImage {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationExtraImage {
     pub endpoints: Option<RelationEndpointsImage>,
-    pub authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
+    pub authoritative_aspect_state: Option<PortableRecordAspectState>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -102,7 +102,7 @@ pub struct VersionedRelationMetadataImage {
     pub generation: u32,
     pub kind_id: KindId,
     pub endpoints: RelationEndpointsImage,
-    pub authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
+    pub authoritative_aspect_state: Option<PortableRecordAspectState>,
 }
 
 pub type EntityArenaCheckpointImage = RecordArenaCheckpointImage<EntityCheckpointImageKind>;
@@ -123,6 +123,7 @@ pub struct DurableCheckpoint {
     pub branches: Vec<BranchHead>,
     pub envelopes: Vec<CanonicalCommitEnvelope>,
     pub partition_images: Vec<PartitionCheckpointImage>,
+    pub aspect_contracts: Vec<PortableAspectContract>,
     pub lineage: LineageCheckpointArtifact,
     pub index_definitions: Vec<DerivedIndexDefinition>,
     pub derived_index_artifacts: DerivedIndexArtifacts,

@@ -22,6 +22,6 @@ pub(crate) fn single_native_string_aspect_field_patch(
     single_native_aspect_field_patch(
         aspect_label,
         field_label,
-        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value),
+        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value),
     )
 }

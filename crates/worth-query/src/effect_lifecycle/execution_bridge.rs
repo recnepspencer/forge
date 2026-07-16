@@ -135,7 +135,7 @@ fn query_writeback_effect_intent(
         declaration.bridge_declaration().effect_class(),
         AspectKey::new("query.writeback.effect")
             .expect("static query writeback effect aspect key is valid"),
-        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
             declaration.lowering_for_reporting().to_string(),
         ),
     )

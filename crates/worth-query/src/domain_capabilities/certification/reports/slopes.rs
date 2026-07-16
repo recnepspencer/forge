@@ -3,7 +3,7 @@ use crate::domain_capabilities::identity::{
 };
 
 use super::representative::WorthQueryDomainCapabilityRepresentativeReport;
-use super::scaled::worth_query_domain_capability_scaled_evidence;
+use super::scaled::worth_query_domain_capability_scaled_evidence_in;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryDomainCapabilityCertificationCounterSnapshot {
@@ -68,9 +68,18 @@ impl WorthQueryDomainCapabilitySlopeReport {
 }
 
 pub fn worth_query_domain_capability_slope_report(
-    _representative: &WorthQueryDomainCapabilityRepresentativeReport,
+    representative: &WorthQueryDomainCapabilityRepresentativeReport,
 ) -> WorthQueryDomainCapabilitySlopeReport {
-    let scaled = worth_query_domain_capability_scaled_evidence();
+    let installation =
+        crate::domain_capabilities::certification::install_domain_capability_certification();
+    worth_query_domain_capability_slope_report_in(representative, installation.contributions())
+}
+
+pub(crate) fn worth_query_domain_capability_slope_report_in(
+    _representative: &WorthQueryDomainCapabilityRepresentativeReport,
+    domain: &crate::domain_capabilities::WorthQueryInstalledDomainContributionSurface,
+) -> WorthQueryDomainCapabilitySlopeReport {
+    let scaled = worth_query_domain_capability_scaled_evidence_in(domain);
     let full_scale = &scaled[2];
     let counter_snapshot = WorthQueryDomainCapabilityCertificationCounterSnapshot {
         contribution_width: full_scale.contribution_width(),

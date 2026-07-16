@@ -7,7 +7,7 @@ use crate::facade::foundation::{
 };
 use crate::facade::runtime::{
     runtime_subscription_support_evidence_identity, LiveViewDeclarationAdmissionBoundaryReceipt,
-    QuerySchemaView, SchemaFieldKind, SchemaFieldView, SignalInvalidationBoundaryReceipt,
+    QuerySchemaView, ScalarAspectType, SchemaFieldView, SignalInvalidationBoundaryReceipt,
     SubscriptionActivationBoundaryReceipt, SubscriptionActivationInput, WorthQueryAuthorityLane,
     WorthQueryBasisAdmissionEvidenceRow, WorthQueryEffectPolicy,
     WorthQueryExistingTruthAssertionDenial, WorthQueryExistingTruthProbeDenial,
@@ -37,8 +37,15 @@ use super::{
     title_value_touch,
 };
 
+mod aspect_contracts;
+mod invariant_violation_authority;
+use aspect_contracts::certification_aspect_contracts;
+use invariant_violation_authority::InvariantViolationCertificationIntentAuthority;
+
 pub(crate) fn certification_runtime() -> WorthQueryRuntime {
     WorthQueryRuntime::builder()
+        .aspect_contracts(certification_aspect_contracts())
+        .expect("certification aspect contracts should install")
         .runtime_bridge(certification_bridge())
         .schema_adapter(CertificationSchemaAdapter)
         .source_adapter(CertificationSourceAdapter::default())
@@ -58,6 +65,8 @@ pub(crate) fn certification_runtime() -> WorthQueryRuntime {
 
 pub(crate) fn certification_runtime_with_invariant_violation_authority() -> WorthQueryRuntime {
     WorthQueryRuntime::builder()
+        .aspect_contracts(certification_aspect_contracts())
+        .expect("certification aspect contracts should install")
         .runtime_bridge(certification_bridge())
         .schema_adapter(CertificationSchemaAdapter)
         .source_adapter(CertificationSourceAdapter::default())
@@ -131,14 +140,14 @@ pub(crate) fn certification_task_schema() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("title")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("value")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [],
@@ -227,7 +236,7 @@ impl WorthQueryRuntimeExistingTruthVerificationAdapter for CertificationExisting
     fn verify_existing_truth_assertion(
         &self,
         _binding: &crate::runtime::WorthQueryExistingTruthTargetBinding,
-        _aspects: &[crate::runtime::WorthQueryAdmittedAspectValue],
+        _aspects: &[crate::runtime::WorthQueryAuthoredAspectMutation],
     ) -> Result<(), WorthQueryExistingTruthAssertionDenial> {
         Ok(())
     }
@@ -242,11 +251,11 @@ impl WorthQueryRuntimeExistingTruthVerificationAdapter for CertificationExisting
         let mut values = Vec::with_capacity(request.aspect_touches().len());
         for aspect_touch in request.aspect_touches() {
             let value = if aspect_touch == &identity_id_touch() {
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                     "task-1".to_string(),
                 )
             } else if aspect_touch == &title_value_touch() {
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                     "Seed title".to_string(),
                 )
             } else {
@@ -382,33 +391,6 @@ impl WorthQueryRuntimeInspectorEvidenceAdapter for CertificationInspectorEvidenc
             "certification-write-receipt",
             receipt.authority_lane(),
             ["certification-inspector-evidence"],
-        ))
-    }
-}
-
-struct InvariantViolationCertificationIntentAuthority;
-
-impl WorthQueryIntentAuthorityAdapter for InvariantViolationCertificationIntentAuthority {
-    fn execute_intent(
-        &mut self,
-        _bridge: &RuntimeBridge,
-        _relational_runtime: Option<&mut RelationalRuntime>,
-        declaration: &WorthQueryIntentDeclaration,
-    ) -> Result<WorthQueryIntentExecution, WorthQueryWorkspaceError> {
-        Ok(WorthQueryIntentExecution::invariant_violation(
-            declaration.strategy_name(),
-            declaration.strategy_version(),
-            "certification-strategy-descriptor-digest",
-            declaration.input_digest(),
-            hash_parts(&[
-                "certification-invariant-violation".to_string(),
-                declaration.name().to_string(),
-            ]),
-            [
-                "certification-invariant:violated",
-                "certification-invariant:authority-lane",
-            ],
-            certification_snapshot_identity("certification-invariant-snapshot"),
         ))
     }
 }

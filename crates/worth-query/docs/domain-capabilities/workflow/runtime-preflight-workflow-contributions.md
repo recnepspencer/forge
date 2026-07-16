@@ -73,9 +73,9 @@ or writeback basis, not just declaration-time preview identity.
 
 ## How It Relates To Other Features
 
-- [Preview Inspection And Mutation Planning](./preview-inspection-and-mutation-planning.md)
+- Preview Inspection And Mutation Planning
   is the ordinary declaration-preview path
-- [Workflow Lanes: Common, Checked, Proof, And Raw](./workflow-lanes-common-checked-proof-raw.md)
+- Workflow Lanes: Common, Checked, Proof, And Raw
   explains why this surface lives lower than the ordinary preview lane
 
 ## Inspection And Debugging
@@ -101,5 +101,5 @@ or writeback basis, not just declaration-time preview identity.
 
 ## Related Docs
 
-- [Preview Inspection And Mutation Planning](./preview-inspection-and-mutation-planning.md)
-- [Workflow Lanes: Common, Checked, Proof, And Raw](./workflow-lanes-common-checked-proof-raw.md)
+- Preview Inspection And Mutation Planning
+- Workflow Lanes: Common, Checked, Proof, And Raw

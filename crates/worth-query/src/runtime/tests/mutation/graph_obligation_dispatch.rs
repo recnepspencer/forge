@@ -1,4 +1,8 @@
 use super::super::support::*;
+
+mod runtime_fixtures;
+use runtime_fixtures::*;
+
 #[test]
 fn graph_batch_dispatch_survives_handoff_binding_receipt_and_trace() {
     let mut runtime = runtime_with_relation_obligation("TaskEdge");
@@ -256,79 +260,6 @@ fn malformed_graph_touch_descriptor_denies_instead_of_bypassing_dispatch() {
     }
 }
 
-fn runtime_with_relation_obligation(relation_kind: &str) -> WorthQueryRuntime {
-    complete_backend_from_parts_builder()
-        .graph_obligation(
-            WorthQueryGraphObligationRegistration::schema_contract_validator(
-                WorthQueryGraphObligationRuleIdentity::new(
-                    "test.graph-obligation-dispatch",
-                    relation_kind,
-                    "v1",
-                )
-                .unwrap(),
-                WorthQueryGraphTouchSelector::relation_kind(relation_kind).unwrap(),
-                WorthQueryGraphObligationOperatingWorldSelector::any_committed_authority(),
-            ),
-        )
-        .build_backend_from_parts()
-        .build()
-        .expect("runtime should build with relation graph obligation")
-}
-
-fn runtime_with_collection_obligation(collection: &str) -> WorthQueryRuntime {
-    runtime_with_collection_registration(collection_registration(
-        collection,
-        WorthQueryGraphObligationSupportPosture::supported(
-            WorthQueryGraphObligationSupportLane::AuthoritativeCommandBatch,
-        ),
-    ))
-}
-
-fn runtime_with_blocking_collection_obligation(collection: &str) -> WorthQueryRuntime {
-    runtime_with_collection_registration(collection_registration(
-        collection,
-        WorthQueryGraphObligationSupportPosture::unsupported(
-            WorthQueryGraphObligationSupportLane::AuthoritativeCommandBatch,
-        ),
-    ))
-}
-
-fn runtime_with_scalar_collection_obligation(collection: &str) -> WorthQueryRuntime {
-    runtime_with_collection_registration(collection_registration(
-        collection,
-        WorthQueryGraphObligationSupportPosture::supported(
-            WorthQueryGraphObligationSupportLane::ScalarMutation,
-        ),
-    ))
-}
-
-fn runtime_with_collection_registration(
-    registration: WorthQueryGraphObligationRegistration,
-) -> WorthQueryRuntime {
-    complete_backend_from_parts_builder()
-        .graph_obligation(registration)
-        .build_backend_from_parts()
-        .build()
-        .expect("runtime should build with collection graph obligation")
-}
-
-fn collection_registration(
-    collection: &str,
-    support_posture: WorthQueryGraphObligationSupportPosture,
-) -> WorthQueryGraphObligationRegistration {
-    WorthQueryGraphObligationRegistration::schema_contract_validator(
-        WorthQueryGraphObligationRuleIdentity::new(
-            "test.graph-obligation-dispatch",
-            collection,
-            "v1",
-        )
-        .unwrap(),
-        WorthQueryGraphTouchSelector::collection(collection).unwrap(),
-        WorthQueryGraphObligationOperatingWorldSelector::any_committed_authority(),
-    )
-    .with_support_posture(support_posture)
-}
-
 fn graph_batch_program() -> (
     Vec<WorthQueryWriteCommand>,
     WorthQueryGraphCompositionBreadth,
@@ -381,12 +312,12 @@ fn task_insert_command(id: &str) -> WorthQueryWriteCommand {
             "Task",
         ),
         aspects: vec![
-            WorthQueryAdmittedAspectValue::new(
+            WorthQueryAuthoredAspectMutation::new(
                 test_aspect_touch("identity.id"),
                 test_string_aspect_value(id),
             )
             .unwrap(),
-            WorthQueryAdmittedAspectValue::new(
+            WorthQueryAuthoredAspectMutation::new(
                 test_aspect_touch("title.value"),
                 test_string_aspect_value("Ordinary task"),
             )

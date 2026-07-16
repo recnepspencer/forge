@@ -1,8 +1,30 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::memory_workspace::WorthQueryEntity;
 
 use super::{WorthQueryComparisonRowChange, WorthQueryComparisonRowChangeFamily};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ComparisonRowIdentity(WorthQueryEvidenceIdentity);
+
+impl ComparisonRowIdentity {
+    fn new(identity: WorthQueryEvidenceIdentity) -> Self {
+        Self(identity)
+    }
+}
+
+impl Ord for ComparisonRowIdentity {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.as_str().cmp(other.0.as_str())
+    }
+}
+
+impl PartialOrd for ComparisonRowIdentity {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 pub(super) struct WorthQueryComparisonDiffAssembly {
     row_changes: Vec<WorthQueryComparisonRowChange>,
@@ -76,10 +98,10 @@ pub(super) fn assemble_query_shaped_row_changes(
 
 fn index_unique_rows(
     rows: &[WorthQueryEntity],
-) -> Result<BTreeMap<String, &WorthQueryEntity>, usize> {
+) -> Result<BTreeMap<ComparisonRowIdentity, &WorthQueryEntity>, usize> {
     let mut indexed = BTreeMap::new();
     for (ordinal, row) in rows.iter().enumerate() {
-        let identity = row.identity().evidence_identity().as_str().to_string();
+        let identity = ComparisonRowIdentity::new(row.identity().evidence_identity());
         if indexed.insert(identity, row).is_some() {
             return Err(ordinal + 1);
         }
@@ -88,8 +110,8 @@ fn index_unique_rows(
 }
 
 fn changed_identity_union(
-    left: &BTreeMap<String, &WorthQueryEntity>,
-    right: &BTreeMap<String, &WorthQueryEntity>,
+    left: &BTreeMap<ComparisonRowIdentity, &WorthQueryEntity>,
+    right: &BTreeMap<ComparisonRowIdentity, &WorthQueryEntity>,
 ) -> Vec<WorthQueryComparisonRowChange> {
     left.keys()
         .chain(right.keys())

@@ -43,14 +43,14 @@ fn execute_intent_delegates_to_canonical_admission_and_execution_handoff() {
 fn execute_next_effect_write_intent_delegates_to_canonical_admission_and_execution_handoff() {
     let mut delegated_runtime = intent_runtime_with_authority(TestIntentAuthority);
     let delegated_live = delegated_runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.effect-admission",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let delegated_effect = delegated_runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.reconcile-admission",
             WorthQueryEffectTrigger::live_view(
                 &delegated_live,
@@ -73,14 +73,14 @@ fn execute_next_effect_write_intent_delegates_to_canonical_admission_and_executi
 
     let mut canonical_runtime = intent_runtime_with_authority(TestIntentAuthority);
     let canonical_live = canonical_runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.effect-admission",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let canonical_effect = canonical_runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.reconcile-admission",
             WorthQueryEffectTrigger::live_view(
                 &canonical_live,
@@ -145,14 +145,14 @@ fn execute_next_effect_write_intent_delegates_to_canonical_admission_and_executi
 fn effect_write_intent_denies_when_graph_obligations_require_pre_execution_touch_descriptor() {
     let mut runtime = intent_runtime_with_collection_obligation(TestIntentAuthority, "Task");
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.effect-obligation",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.obligation-reconcile",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",

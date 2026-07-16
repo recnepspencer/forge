@@ -13,6 +13,7 @@ use super::eligibility::{
     DeniedProjectionConsumption, ProjectionConsumptionEligibility, ProjectionConsumptionWarnings,
     SourceMismatchedProjectionConsumption,
 };
+#[cfg(test)]
 use super::envelope::SelfDescribingProjectionConsumptionEnvelope;
 use super::extraction::ProjectionFactExtractionError;
 use super::facts::ProjectMaterializedFacts;
@@ -70,46 +71,56 @@ impl CompletedProjectionFactConsumption {
         self.receipt.source_family()
     }
 
+    #[cfg(test)]
     pub fn source_identity(&self) -> &str {
         self.receipt.source_identity()
     }
 
+    #[cfg(test)]
     pub fn support_posture(&self) -> &super::contracts::ProjectionContractSupportPosture {
         self.receipt.support_posture()
     }
 
+    #[cfg(test)]
     pub fn materialized_fact_posture(&self) -> Option<&super::ProjectionMaterializedFactPosture> {
         self.receipt.materialized_fact_posture()
     }
 
+    #[cfg(test)]
     pub fn warning_kinds(&self) -> &[super::eligibility::ProjectionConsumptionWarningKind] {
         self.receipt.warning_kinds()
     }
 
+    #[cfg(test)]
     pub fn admitted_fact_family_count(&self) -> usize {
         self.receipt.admitted_fact_family_count()
     }
 
+    #[cfg(test)]
     pub fn extracted_fact_count(&self) -> usize {
         self.receipt.extracted_fact_count()
     }
 
+    #[cfg(test)]
     pub fn authority_reopen_count(&self) -> usize {
         self.receipt.authority_reopen_count()
     }
 
+    #[cfg(test)]
     pub fn deferred_neighbors(
         &self,
     ) -> &[super::receipt_transitions::ProjectionConsumptionDeferredNeighborFamily] {
         self.receipt.deferred_neighbors()
     }
 
+    #[cfg(test)]
     pub fn transition_rules(
         &self,
     ) -> super::receipt_transitions::ProjectionConsumptionTransitionRules {
         self.receipt.transition_rules()
     }
 
+    #[cfg(test)]
     pub fn projection_consumption_envelope(&self) -> SelfDescribingProjectionConsumptionEnvelope {
         self.receipt.projection_consumption_envelope()
     }
@@ -128,6 +139,7 @@ pub enum ProjectionFactConsumptionAttempt {
 }
 
 impl ProjectionFactConsumptionAttempt {
+    #[cfg(test)]
     pub fn completed(&self) -> Option<&CompletedProjectionFactConsumption> {
         match self {
             Self::Admitted(completed) | Self::AdmittedWithWarnings(completed, _) => Some(completed),
@@ -135,6 +147,7 @@ impl ProjectionFactConsumptionAttempt {
         }
     }
 
+    #[cfg(test)]
     pub fn warnings(&self) -> Option<&ProjectionConsumptionWarnings> {
         match self {
             Self::AdmittedWithWarnings(_, warnings) => Some(warnings),
@@ -144,6 +157,7 @@ impl ProjectionFactConsumptionAttempt {
         }
     }
 
+    #[cfg(test)]
     pub fn denied(&self) -> Option<&DeniedProjectionConsumption> {
         match self {
             Self::Denied(denied) => Some(denied),
@@ -154,6 +168,7 @@ impl ProjectionFactConsumptionAttempt {
         }
     }
 
+    #[cfg(test)]
     pub fn deferred(&self) -> Option<&DeferredProjectionConsumption> {
         match self {
             Self::Deferred(deferred) => Some(deferred),
@@ -164,6 +179,7 @@ impl ProjectionFactConsumptionAttempt {
         }
     }
 
+    #[cfg(test)]
     pub fn source_mismatch(&self) -> Option<&SourceMismatchedProjectionConsumption> {
         match self {
             Self::SourceMismatch(mismatch) => Some(mismatch),

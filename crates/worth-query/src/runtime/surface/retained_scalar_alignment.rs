@@ -1,13 +1,11 @@
-use crate::identity::hash_parts;
-use crate::runtime::computed::WorthQueryDerivedViewHandle;
-use crate::runtime::WorthQueryRuntimeError;
-use worth_foundational::facade::AspectValue;
-
-use super::retained_scalar_values::retained_scalar_value_digest_text;
 use super::{
     WorthQueryDerivedArtifactBinding, WorthQueryDerivedMaterializationTarget,
     WorthQueryRetainedFieldPath, WorthQueryRetainedScalarFactSet,
 };
+use crate::identity::hash_parts;
+use crate::runtime::computed::WorthQueryDerivedViewHandle;
+use crate::runtime::WorthQueryRuntimeError;
+use worth_foundational::facade::{prepare_aspect_value_identity_basis, AspectValue};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthQueryRetainedScalarAlignmentFact {
@@ -177,7 +175,7 @@ fn verify_scalar_alignment_between_fact_sets(
                     "pair:{}={}:{}",
                     fact.left_field_path().terminal_projection_for_boundary(),
                     fact.right_field_path().terminal_projection_for_boundary(),
-                    retained_scalar_value_digest_text(fact.value())
+                    prepare_aspect_value_identity_basis(fact.value()).as_str()
                 )
             }))
             .collect::<Vec<_>>(),
@@ -243,7 +241,7 @@ mod tests {
             .expect("binding should build")
     }
 
-    fn view_handle() -> WorthQueryDerivedViewHandle<crate::runtime::WorthQueryNativeRow> {
+    fn view_handle() -> WorthQueryDerivedViewHandle<crate::runtime::WorthQueryUnrefinedLiveShape> {
         WorthQueryDerivedViewHandle::new("surface:test")
     }
 
@@ -255,7 +253,7 @@ mod tests {
             ("authority_snapshot_id", AspectValue::Int64(7)),
             (
                 "nested.truth_basis_digest_hex",
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("basis:test"),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("basis:test"),
             ),
         ]))
         .verify_scalar_alignment(

@@ -145,7 +145,10 @@ fn descriptive_only_families_still_describe_honestly() {
         )
         .expect("descriptive evidence should describe");
 
-    assert_eq!(evidence.declaration_family_key(), "split-edge");
+    assert_eq!(
+        evidence.declaration_family_key(),
+        "split-edge-descriptive-deferred-signal"
+    );
 }
 
 #[test]

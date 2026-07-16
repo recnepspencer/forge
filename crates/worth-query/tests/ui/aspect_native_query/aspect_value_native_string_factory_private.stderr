@@ -1,10 +1,10 @@
 error[E0624]: associated function `native_string_value` is private
- --> tests/ui/aspect_native_query/aspect_value_native_string_factory_private.rs:4:44
+ --> tests/ui/aspect_native_query/aspect_value_native_string_factory_private.rs:4:47
   |
-4 |     let _ = WorthQueryAdmittedAspectValue::native_string_value("not-admitted");
-  |                                            ^^^^^^^^^^^^^^^^^^^ private associated function
+4 |     let _ = WorthQueryAuthoredAspectMutation::native_string_value("not-admitted");
+  |                                               ^^^^^^^^^^^^^^^^^^^ private associated function
   |
- ::: src/runtime/mutation/aspect.rs
+ ::: src/runtime/mutation/aspect/authored_mutation.rs
   |
   |     pub(crate) fn native_string_value(value: impl Into<String>) -> AspectValue {
   |     -------------------------------------------------------------------------- private associated function defined here

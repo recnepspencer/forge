@@ -59,6 +59,9 @@ pub enum WorthQueryStopClass<'a> {
     MutationContinuityDenied {
         denial: &'a WorthQueryContinuityMutationDenial,
     },
+    MutationContractDenied {
+        denial: &'a crate::runtime::WorthQueryMutationContractDenial,
+    },
     GraphObligationTouchDescriptorDenied {
         denial: &'a WorthQueryGraphTouchDescriptorDenial,
     },

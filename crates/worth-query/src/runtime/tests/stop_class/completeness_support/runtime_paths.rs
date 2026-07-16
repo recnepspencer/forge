@@ -274,7 +274,7 @@ pub(in super::super) fn preview_promotion_atomic_batch_unsupported_error() -> Wo
 
 pub(in super::super) fn preview_promotion_rebinding_required_error() -> WorthQueryRuntimeError {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view(
             "tasks.preview-promotion-stop-class-mismatch",
             task_live_request(),
@@ -330,14 +330,14 @@ fn expanded_manager_schema() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [SchemaRelationView::new(

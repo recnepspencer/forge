@@ -122,14 +122,16 @@ pub use active_lane::{ActiveSubscriptionLane, ActiveSubscriptionLaneAdmission};
 pub use active_posture::{
     ActiveLaneLookupClass, ActiveSubscriptionDeliveryPosture, ActiveSubscriptionLifecyclePosture,
 };
+#[cfg(test)]
+pub use active_runtime::emit_query_mixed_cause_delivery_batch;
+#[cfg(test)]
 pub use active_runtime::emit_query_time_only_delivery_batch;
 pub(crate) use active_runtime::validate_subscription_lifecycle_close;
 pub use active_runtime::{
     advance_subscription_acknowledgement, apply_active_subscription_continuation,
     attach_subscription_consumer, build_active_delivery_work_packet, close_subscription_lifecycle,
-    emit_query_delivery_batch, emit_query_mixed_cause_delivery_batch,
-    join_active_subscription_lane, open_active_subscription_lane, open_query_delivery_window,
-    ActiveSubscriptionRuntime,
+    emit_query_delivery_batch, join_active_subscription_lane, open_active_subscription_lane,
+    open_query_delivery_window, ActiveSubscriptionRuntime,
 };
 pub use admission::{admit_query_subscription, QuerySubscriptionAdmissionArtifact};
 pub use admission_budget::QuerySubscriptionAdmissionBudget;
@@ -157,9 +159,11 @@ pub use bridge_lowering_budget::QuerySubscriptionBridgeLoweringBudget;
 pub use bridge_lowering_error::{
     QuerySubscriptionBridgeLoweringDenialKind, QuerySubscriptionBridgeLoweringError,
 };
+#[cfg(test)]
+pub use bridge_parity::explain_query_subscription_bridge_parity;
 pub use bridge_parity::{
-    build_query_subscription_manual_bridge_witness, explain_query_subscription_bridge_parity,
-    BridgeParityReceipt, BridgeWitnessAssemblyPosture, QuerySubscriptionBridgeParityClass,
+    build_query_subscription_manual_bridge_witness, BridgeParityReceipt,
+    BridgeWitnessAssemblyPosture, QuerySubscriptionBridgeParityClass,
     QuerySubscriptionBridgeParityComparison, QuerySubscriptionBridgeParityCounters,
     QuerySubscriptionBridgeParityError, QuerySubscriptionBridgeParityExplanation,
     QuerySubscriptionBridgeParityFailure, QuerySubscriptionBridgeParityFailureKind,
@@ -180,12 +184,15 @@ pub use closeout::{
     SubscriptionLifecycleCloseoutKind,
 };
 pub use construction_source::QuerySubscriptionConstructionSource;
-#[allow(unused_imports)]
+#[cfg(test)]
 pub use continuation::{
     admit_subscription_continuation_evidence,
-    admit_subscription_continuation_evidence_with_active_identity, apply_subscription_continuation,
-    lower_subscription_continuation_report, SubscriptionContinuationClass,
-    SubscriptionContinuationEvidence, SubscriptionContinuationReport,
+    admit_subscription_continuation_evidence_with_active_identity,
+};
+pub use continuation::{
+    apply_subscription_continuation, lower_subscription_continuation_report,
+    SubscriptionContinuationClass, SubscriptionContinuationEvidence,
+    SubscriptionContinuationReport,
 };
 pub use continuation_error::{SubscriptionContinuationDenialKind, SubscriptionContinuationError};
 pub use counters::QuerySubscriptionDeclarationCounters;
@@ -195,8 +202,9 @@ pub use declaration_error::{
 };
 pub use delivery::QuerySubscriptionDeliveryIntent;
 pub use delivery_budget::QueryDeliveryWindowBudget;
-#[allow(unused_imports)]
-pub use delivery_cause::{QuerySubscriptionDeliveryCause, QuerySubscriptionDeliveryCauseKind};
+#[cfg(test)]
+pub use delivery_cause::QuerySubscriptionDeliveryCause;
+pub use delivery_cause::QuerySubscriptionDeliveryCauseKind;
 pub use delivery_denials::{deny_raw_bridge_invalidation_delivery, deny_raw_cdc_delivery_fallback};
 pub use delivery_density::ActiveDeliveryDensityPosture;
 pub use delivery_dimensions::{
@@ -228,8 +236,8 @@ pub use error::{
 };
 pub use family::QuerySubscriptionFamily;
 pub use fanout::{SubscriptionFanoutPlan, SubscriptionFanoutReport};
-#[allow(unused_imports)]
-pub use future_selection::{
+#[cfg(test)]
+pub(crate) use future_selection::{
     QuerySubscriptionAsyncRequestIdentityPart, QuerySubscriptionFutureSelection,
     QuerySubscriptionFutureSelectionClass,
 };
@@ -244,13 +252,14 @@ pub use posture::{
     QuerySubscriptionAllocationPosture, QuerySubscriptionBasisPosture,
     QuerySubscriptionBridgePosture, QuerySubscriptionCostPosture,
 };
+#[cfg(test)]
+pub use preview_isolation::admit_preview_subscription_isolation;
 pub use preview_isolation::{
-    admit_preview_subscription_isolation, deny_preview_authoritative_sharing,
-    discard_preview_subscription, measure_preview_subscription_residue,
-    promote_preview_subscription, PreviewSubscriptionDiscardCloseout,
-    PreviewSubscriptionIsolationArtifact, PreviewSubscriptionLifecycleState,
-    PreviewSubscriptionPromotionHandoff, PreviewSubscriptionResidueClass,
-    PreviewSubscriptionResidueReport,
+    deny_preview_authoritative_sharing, discard_preview_subscription,
+    measure_preview_subscription_residue, promote_preview_subscription,
+    PreviewSubscriptionDiscardCloseout, PreviewSubscriptionIsolationArtifact,
+    PreviewSubscriptionLifecycleState, PreviewSubscriptionPromotionHandoff,
+    PreviewSubscriptionResidueClass, PreviewSubscriptionResidueReport,
 };
 pub use preview_isolation_error::{
     PreviewSubscriptionIsolationDenialKind, PreviewSubscriptionIsolationError,
@@ -274,10 +283,9 @@ pub use scale::{
     certify_query_subscription_scale_slope, QuerySubscriptionScaleCounterSnapshot,
     QuerySubscriptionScaleFixtureSize, QuerySubscriptionScaleSlopeReport,
 };
-#[allow(unused_imports)]
 pub use selection::{select_query_subscription_family, QuerySubscriptionFamilySelection};
-#[allow(unused_imports)]
-pub use selection_live_graph_access::QuerySubscriptionLiveGraphAccessPosture;
+#[cfg(test)]
+pub(crate) use selection_live_graph_access::QuerySubscriptionLiveGraphAccessPosture;
 pub use signal_strategy::{
     QuerySubscriptionSignalStrategyRequest, QuerySubscriptionSignalStrategyRequestKind,
 };

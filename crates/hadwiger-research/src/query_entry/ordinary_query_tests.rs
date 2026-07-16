@@ -1,5 +1,6 @@
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::domain;
+use worth_query::facade::foundation::basis_lifecycle;
 
 use super::{
     hadwiger_research_domain_package, HadwigerCandidateContribution, HadwigerResearchDomainEntry,
@@ -40,6 +41,33 @@ fn hadwiger_candidate_search_uses_the_installed_domain_read_journey() {
             .package_identity(),
         handle.package_identity()
     );
+
+    let projection = completion.project(domain::project_facts().entity_identities());
+    assert_eq!(
+        projection
+            .receipt()
+            .installed_authority()
+            .package_identity(),
+        handle.package_identity()
+    );
+
+    let inspection_basis = basis_lifecycle()
+        .historical_snapshot("hadwiger-reference-read", true)
+        .inspect()
+        .expect("Hadwiger reference inspection basis should admit");
+    let inspection = completion
+        .inspect()
+        .using(domain::inspection_basis(inspection_basis))
+        .run(&workspace)
+        .expect("Hadwiger installed read should inspect");
+    assert_eq!(
+        inspection
+            .receipt()
+            .installed_authority()
+            .package_identity(),
+        handle.package_identity()
+    );
+    assert!(inspection.outcome().settled().is_some());
 }
 
 #[test]
@@ -82,6 +110,8 @@ fn hadwiger_contribution_lowers_through_the_installed_handle() {
 
 fn candidate_workspace(name: &str) -> worth_query::facade::runtime::WorthQueryWorkspace {
     let schema = WorthQueryTestBackendSchema::single_collection("HadwigerCandidate")
+        .aspect_contracts(crate::query_entry::hadwiger_native_aspect_contracts())
+        .expect("Hadwiger native aspect contracts should build")
         .aspect("identity.id", "identity.id")
         .expect("identity aspect should build")
         .aspect("colorability.lower_bound", "colorability.lower_bound")

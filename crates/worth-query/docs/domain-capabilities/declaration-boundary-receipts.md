@@ -41,13 +41,13 @@ receipts record the Query crossing posture that followed from that truth.
 - `WorthQueryDeclarationReceiptKind`
 - `WorthQueryDeclarationReceiptExplanation`
 - `WorthQueryDeclarationReceiptDenialCause`
-- `WorthQueryAdmittedConfiguredDomainHandle::receipt_routes(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::receipt_routes_checked(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::receipt_routes_from_progressed(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::receipt_routes_from_progressed_with_intent(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::orchestrate_receipt_from_progressed(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::orchestrate_receipt_from_progressed_with_intent(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::declare_review_progress_describe_plan_and_receipt(...)`
+- `WorthQueryInstalledDomainDeclarationContext::receipt_routes(...)`
+- `WorthQueryInstalledDomainDeclarationContext::receipt_routes_checked(...)`
+- `WorthQueryInstalledDomainDeclarationContext::receipt_routes_from_progressed(...)`
+- `WorthQueryInstalledDomainDeclarationContext::receipt_routes_from_progressed_with_intent(...)`
+- `WorthQueryInstalledDomainDeclarationContext::receipt_routes_from_progressed(...)`
+- `WorthQueryInstalledDomainDeclarationContext::receipt_routes_from_progressed_with_intent(...)`
+- `WorthQueryInstalledDomainDeclarationContext::declare_review_progress_describe_plan_and_receipt(...)`
 
 Good to know:
 
@@ -75,8 +75,8 @@ Admitted-handle receipt entry points:
 - `receipt_routes_checked(subject) -> WorthQueryDeclarationReceiptChecked<D, I>`
 - `receipt_routes_from_progressed(progressed) -> Result<WorthQueryDeclarationReceipt<D, I>, WorthQueryDeclarationReceiptTerminalError<D, I>>`
 - `receipt_routes_from_progressed_with_intent(progressed, intent) -> Result<WorthQueryDeclarationReceipt<D, I>, WorthQueryDeclarationReceiptTerminalError<D, I>>`
-- `orchestrate_receipt_from_progressed(progressed) -> Result<WorthQueryDeclarationReceipt<D, I>, WorthQueryDeclarationReceiptTerminalError<D, I>>`
-- `orchestrate_receipt_from_progressed_with_intent(progressed, intent) -> Result<WorthQueryDeclarationReceipt<D, I>, WorthQueryDeclarationReceiptTerminalError<D, I>>`
+- `receipt_routes_from_progressed(progressed) -> Result<WorthQueryDeclarationReceipt<D, I>, WorthQueryDeclarationReceiptTerminalError<D, I>>`
+- `receipt_routes_from_progressed_with_intent(progressed, intent) -> Result<WorthQueryDeclarationReceipt<D, I>, WorthQueryDeclarationReceiptTerminalError<D, I>>`
 - `bind_envelope_from_target(request) -> WorthQueryBindingOutcome<WorthQueryDeclarationEnvelopeInput<D, I>>`
 - `bind_envelope_from_target_checked(request) -> WorthQueryBindingChecked<WorthQueryDeclarationEnvelopeInput<D, I>>`
 - `bind_envelope_from_target_proof(request) -> WorthQueryBindingTranscript<WorthQueryDeclarationEnvelopeInput<D, I>>`
@@ -131,7 +131,7 @@ Receipt inspection:
 - `aspect_coverage() -> &WorthQueryDeclarationAspectCoverage`
 - `aspect_publication() -> &WorthQueryDeclarationAspectPublication`
 - `explain() -> &WorthQueryDeclarationReceiptExplanation`
-- `descriptive_receipt() -> &WorthQueryDeclarationBoundaryDescriptiveReceipt`
+- `descriptive_receipt() -> Option<&FoundationalBoundaryEvidenceCompletedReceiptArtifact>`
 - `boundary_receipt() -> &FoundationalBoundaryReceipt`
 
 ## Core Mental Model
@@ -295,13 +295,13 @@ What this example is showing:
 
 ## How It Relates To Other Features
 
-- [Declaration Progression](./declaration-progression.md) produces the admitted
+- Declaration Progression produces the admitted
   declaration proof the receipt pipeline ultimately depends on
-- [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- Declaration Foundational Evidence
   publishes the retained declaration truth the receipt must carry forward
-- [Declaration Route Plans](./declaration-route-plan.md) produce the crossing
+- Declaration Route Plans produce the crossing
   posture and route explanation receipts consume
-- [Configured Domain Handles](./configured-domain-handles.md) retain the
+- Runtime-Installed Domain Handles retain the
   admitted-world identity receipts must not rediscover
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) bind
   their public crossing story from this retained receipt target
@@ -393,13 +393,13 @@ over retained route truth. They still do not provide:
 
 ## Related Docs
 
-- [Configured Domain Handles](./configured-domain-handles.md)
+- Runtime-Installed Domain Handles
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
-- [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- Declaration Foundational Evidence
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
-- [Declaration Route Plans](./declaration-route-plan.md)
-- [Declaration Progression](./declaration-progression.md)
+- Declaration Route Plans
+- Declaration Progression
 - [Domain Capabilities](./README.md)

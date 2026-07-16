@@ -1,7 +1,7 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::runtime::{QueryPatchGroupKind, WorthQueryLiveView, WorthQueryNativeRow};
+use worth_query::facade::runtime::{QueryPatchGroupKind, WorthQueryLiveView, WorthQueryUnrefinedLiveShape};
 
-mod support;
+use crate::support;
 
 use support::aspect_touch as touch;
 use support::public_bridge_runtime::{
@@ -17,7 +17,7 @@ fn raw_runtime_read_bootstrap_simplicity_test() {
     let mut workspace = runtime
         .workspace("public.runtime-backed-read-bootstrap")
         .expect("runtime should open a named workspace");
-    let tasks: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("public.runtime-backed-read-bootstrap.tasks", |q| {
             q.from("Task")
                 .select([
@@ -75,7 +75,7 @@ fn runtime_backed_read_bootstrap_observe_is_a_drain_not_a_snapshot() {
     let mut workspace = runtime
         .workspace("public.runtime-backed-read-bootstrap-drain")
         .expect("runtime should open a named workspace");
-    let tasks: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("public.runtime-backed-read-bootstrap-drain.tasks", |q| {
             q.from("Task")
                 .select([
@@ -119,7 +119,7 @@ fn runtime_backed_read_bootstrap_narrows_observation_to_touched_projection_meani
     let mut workspace = runtime
         .workspace("public.runtime-backed-read-bootstrap-narrowing")
         .expect("runtime should open a named workspace");
-    let tasks: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "public.runtime-backed-read-bootstrap-narrowing.tasks",
             |q| {
@@ -198,7 +198,7 @@ fn runtime_backed_read_bootstrap_removes_deleted_members_from_read_and_observe()
     let mut workspace = runtime
         .workspace("public.runtime-backed-read-bootstrap-delete")
         .expect("runtime should open a named workspace");
-    let tasks: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("public.runtime-backed-read-bootstrap-delete.tasks", |q| {
             q.from("Task")
                 .select([

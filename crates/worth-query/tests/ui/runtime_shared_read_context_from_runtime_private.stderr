@@ -1,13 +1,8 @@
-error[E0624]: associated function `from_runtime` is private
+error[E0599]: no function or associated item named `from_runtime` found for struct `WorthQuerySharedReadContext` in the current scope
  --> tests/ui/runtime_shared_read_context_from_runtime_private.rs:4:45
   |
 4 |     let _ctx = WorthQuerySharedReadContext::from_runtime(todo!());
-  |                                             ^^^^^^^^^^^^ private associated function
-  |
- ::: src/runtime/shared_read.rs
-  |
-  |     pub(in crate::runtime) fn from_runtime(runtime: &WorthQueryRuntime) -> Self {
-  |     --------------------------------------------------------------------------- private associated function defined here
+  |                                             ^^^^^^^^^^^^ function or associated item not found in `WorthQuerySharedReadContext`
 
 warning: unreachable call
  --> tests/ui/runtime_shared_read_context_from_runtime_private.rs:4:16

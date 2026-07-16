@@ -5,7 +5,7 @@ fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-batch")
         .expect("task runtime should open a named workspace");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.batch-table", |q| {
             q.from("Task")
                 .select([
@@ -21,7 +21,7 @@ fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
                 .schema_basis("tasks-batch-table")
         })
         .expect("live view should declare");
-    let computed: WorthQueryDerivedViewHandle<WorthQueryNativeRow> = workspace
+    let computed: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
         .computed(
             "tasks.batch-summary",
             |c| {
@@ -118,7 +118,7 @@ fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
         .is_some());
     assert_eq!(
         receipt.admitted_touched_aspects(),
-        test_aspect_touches(["identity.id", "title.value"]).as_slice()
+        test_aspect_touches(["identity", "title"]).as_slice()
     );
     assert_eq!(
         receipt.terminal_affected_live_view_ids_projection(),
@@ -136,7 +136,7 @@ fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
             assert_eq!(inspection.write_receipt_count(), 2);
             assert_eq!(
                 inspection.admitted_touched_aspects(),
-                test_aspect_touches(["identity.id", "title.value"]).as_slice()
+                test_aspect_touches(["identity", "title"]).as_slice()
             );
             assert_eq!(
                 inspection.terminal_affected_live_view_ids_projection(),

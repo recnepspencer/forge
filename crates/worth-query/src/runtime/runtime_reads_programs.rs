@@ -197,7 +197,7 @@ impl WorthQueryRuntime {
                     request,
                     schema_view,
                 } => {
-                    let _: WorthQueryLiveView<WorthQueryNativeRow> =
+                    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> =
                         self.declare_live_view(name.clone(), request, schema_view)?;
                     trace.record_declaration(format!("live:{name}"));
                 }

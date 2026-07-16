@@ -9,7 +9,7 @@ fn update_existing_relation_preserves_identity_binding_and_receipt_target() {
     let mut workspace = task_relation_runtime()
         .workspace("tasks.update-existing-relation")
         .expect("workspace should open");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.update-existing-relation-table", |q| {
             q.from("TaskRelation")
                 .select([
@@ -118,7 +118,7 @@ fn update_existing_verified_relation_preserves_relation_identity_and_assertion_m
     let mut workspace = task_relation_runtime()
         .workspace("tasks.update-existing-verified-relation")
         .expect("workspace should open");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.update-existing-verified-relation-table", |q| {
             q.from("TaskRelation")
                 .select([
@@ -234,7 +234,7 @@ fn batch_relation_updates_preserve_identity_binding_aggregate_digest() {
     let mut workspace = task_relation_runtime()
         .workspace("tasks.batch-existing-relation-update")
         .expect("workspace should open");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.batch-existing-relation-update-table", |q| {
             q.from("TaskRelation")
                 .select([

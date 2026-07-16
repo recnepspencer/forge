@@ -40,7 +40,7 @@ impl PolicyFieldInfluenceSet {
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct AuthorizedProjectionFieldPath {
     aspect_key: AspectKey,
-    field_key: FieldKey,
+    field_key: Option<FieldKey>,
     terminal_projection: String,
 }
 
@@ -49,8 +49,8 @@ impl AuthorizedProjectionFieldPath {
         &self.aspect_key
     }
 
-    pub fn native_field_key(&self) -> &FieldKey {
-        &self.field_key
+    pub fn native_field_key(&self) -> Option<&FieldKey> {
+        self.field_key.as_ref()
     }
 
     pub(crate) fn terminal_projection_for_boundary(&self) -> &str {
@@ -61,7 +61,15 @@ impl AuthorizedProjectionFieldPath {
         Self {
             terminal_projection: format!("{}.{}", aspect_key.as_str(), field_key.as_str()),
             aspect_key,
-            field_key,
+            field_key: Some(field_key),
+        }
+    }
+
+    pub fn from_native_aspect_key(aspect_key: AspectKey) -> Self {
+        Self {
+            terminal_projection: aspect_key.as_str().to_string(),
+            aspect_key,
+            field_key: None,
         }
     }
 }

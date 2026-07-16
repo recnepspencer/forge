@@ -97,6 +97,7 @@ impl WorthQueryWorkspace {
             .prepare_read_execution_binding(handoff, authority)
     }
 
+    #[cfg(test)]
     pub(crate) fn into_runtime_read_execution_binding_with_access_plan(
         &self,
         handoff: WorthQueryReadExecutionHandoff,
@@ -188,6 +189,7 @@ impl WorthQueryRuntime {
         ))
     }
 
+    #[cfg(test)]
     pub(crate) fn prepare_read_execution_binding_with_access_plan(
         &self,
         handoff: WorthQueryReadExecutionHandoff,
@@ -281,6 +283,7 @@ impl WorthQueryRuntime {
     }
 }
 
+#[cfg(test)]
 fn validate_graph_read_access_plan_matches_handoff(
     handoff: &WorthQueryReadExecutionHandoff,
     graph_read_access_plan: &WorthQueryAdmittedGraphReadAccessPlan,

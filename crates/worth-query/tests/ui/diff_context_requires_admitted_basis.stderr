@@ -1,3 +1,9 @@
+error[E0432]: unresolved import `worth_query::facade::policy::bind_diff_query_context`
+ --> tests/ui/diff_context_requires_admitted_basis.rs:1:35
+  |
+1 | use worth_query::facade::policy::{bind_diff_query_context, QueryContextCounters, QueryContextDriftOutcome};
+  |                                   ^^^^^^^^^^^^^^^^^^^^^^^ no `bind_diff_query_context` in `facade::policy`
+
 error[E0432]: unresolved imports `worth_query::facade::QueryBasisContextBinding`, `worth_query::facade::QueryBasisContextRequest`
  --> tests/ui/diff_context_requires_admitted_basis.rs:2:27
   |

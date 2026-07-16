@@ -6,7 +6,7 @@ use worth_proof::TransitionOutcome;
 
 use crate::foundational_vocabulary::{field, identity, key, revision};
 
-pub(super) fn admitted_state<const N: usize>(
+pub(crate) fn admitted_state<const N: usize>(
     entries: [worth_foundational::ContractValidatedAspectArtifact; N],
 ) -> worth_foundational::AuthoritativeRecordAspectStateArtifact {
     let TransitionOutcome::Success(state) = admit_authoritative_record_aspect_state(entries) else {
@@ -15,7 +15,7 @@ pub(super) fn admitted_state<const N: usize>(
     state
 }
 
-pub(super) fn task_summary_contract() -> AspectContract {
+pub(crate) fn task_summary_contract() -> AspectContract {
     let shape = StructAspectShape::new([
         FieldDeclaration::new(
             field("title"),
@@ -47,7 +47,7 @@ pub(super) fn task_summary_contract() -> AspectContract {
     AspectContract::struct_aspect(key("task.summary"), identity(20), revision(1), shape)
 }
 
-pub(super) fn validated_task_summary(
+pub(crate) fn validated_task_summary(
     contract: &AspectContract,
     title: &str,
     done: bool,

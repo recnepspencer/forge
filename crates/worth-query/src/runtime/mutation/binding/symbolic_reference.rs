@@ -94,6 +94,7 @@ pub enum WorthQuerySymbolicTargetReferenceDenialKind {
     RequiresBatchContext,
     UnresolvedSameBatchTarget,
     CollectionMismatch,
+    NonEntityReferenceTarget,
 }
 
 impl WorthQuerySymbolicTargetReferenceDenialKind {
@@ -102,6 +103,7 @@ impl WorthQuerySymbolicTargetReferenceDenialKind {
             Self::RequiresBatchContext => "requires-batch-context",
             Self::UnresolvedSameBatchTarget => "unresolved-same-batch-target",
             Self::CollectionMismatch => "collection-mismatch",
+            Self::NonEntityReferenceTarget => "non-entity-reference-target",
         }
     }
 }

@@ -16,25 +16,6 @@ pub struct WorthQueryLowerRuntimeGapRegistryRow {
 }
 
 impl WorthQueryLowerRuntimeGapRegistryRow {
-    #[allow(dead_code)]
-    pub(crate) const fn new(
-        seam_key: WorthQueryLowerRuntimeSeamKey,
-        concrete_seam: &'static str,
-        current_shape: &'static str,
-        missing_contract_owner: WorthQueryLowerRuntimeAuthorityOwner,
-        missing_contract: &'static str,
-        required_closeout: &'static str,
-    ) -> Self {
-        Self {
-            seam_key,
-            concrete_seam,
-            current_shape,
-            missing_contract_owner,
-            missing_contract,
-            required_closeout,
-        }
-    }
-
     pub fn seam_key(&self) -> WorthQueryLowerRuntimeSeamKey {
         self.seam_key
     }

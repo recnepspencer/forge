@@ -5,5 +5,5 @@ fn main() {
 
     let _ = ProjectMaterializedFacts::declare().display_field("profile.display_name");
     let _ =
-        ProjectMaterializedFacts::declare().derived_scalar_field("profile.display_name");
+        ProjectMaterializedFacts::declare().derived_field_field("profile.display_name");
 }

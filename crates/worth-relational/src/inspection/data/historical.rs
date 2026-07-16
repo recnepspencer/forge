@@ -19,7 +19,7 @@ pub enum HistoricalInspectionMode {
     AllowCanonicalReconstruction,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[must_use]
 pub struct HistoricalSnapshotView {
     pub snapshot: SnapshotHandle,
@@ -29,7 +29,7 @@ pub struct HistoricalSnapshotView {
     pub availability: InspectionAvailability,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[must_use]
 pub struct HistoricalOpenResult {
     pub view: Option<HistoricalSnapshotView>,
@@ -39,13 +39,13 @@ pub struct HistoricalOpenResult {
     pub degradations: Vec<InspectionDegradation>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum HistoricalRecordValue {
     Entity(EntityReadRecord),
     Relation(RelationReadRecord),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[must_use]
 pub struct HistoricalRecordObservation {
     pub target: RecordRef,
@@ -73,7 +73,7 @@ pub struct HistoricalAvailabilityObservation {
     pub retained_directly: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[must_use]
 pub struct HistoricalRecordInspection {
     pub branch_id: BranchId,

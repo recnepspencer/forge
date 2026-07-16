@@ -1,4 +1,4 @@
-error[E0599]: no method named `affected_live_view_ids` found for reference `&worth_query::facade::runtime::WorthQueryWriteReceipt` in the current scope
+error[E0599]: no method named `affected_live_view_ids` found for reference `&worth_query::facade::mutation::WorthQueryWriteReceipt` in the current scope
  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:5:25
   |
 5 |         let _ = receipt.affected_live_view_ids();
@@ -10,7 +10,7 @@ help: there is a method `terminal_affected_live_view_ids_projection` with a simi
 5 +         let _ = receipt.terminal_affected_live_view_ids_projection();
   |
 
-error[E0599]: no method named `affected_derived_view_ids` found for reference `&worth_query::facade::runtime::WorthQueryWriteReceipt` in the current scope
+error[E0599]: no method named `affected_derived_view_ids` found for reference `&worth_query::facade::mutation::WorthQueryWriteReceipt` in the current scope
  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:6:25
   |
 6 |         let _ = receipt.affected_derived_view_ids();

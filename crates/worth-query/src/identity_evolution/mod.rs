@@ -12,17 +12,14 @@ mod request;
 mod results;
 mod support;
 mod synthetic;
-
-#[allow(unused_imports)]
+#[cfg(test)]
 pub(crate) use admission::admit_identity_evolution_query_for_scenario;
 pub use admission::{
     admit_identity_evolution_query, AdmittedIdentityEvolutionQuery,
     IdentityEvolutionAdmissionError, IdentityEvolutionAdmissionFailureClass,
 };
-#[allow(unused_imports)]
 pub use certification_evidence::IdentityEvolutionCertificationEvidence;
 pub use contracts::{IdentityEvolutionComplexityContract, IdentityEvolutionComplexityStatus};
-#[allow(unused_imports)]
 pub use evidence::{
     IdentityEvolutionCertificationDenialEvidence, IdentityEvolutionCertificationResultEvidence,
     IdentityEvolutionCounterSnapshot,
@@ -31,11 +28,13 @@ pub use execution::{
     execute_admitted_identity_evolution_query, IdentityEvolutionExecutionArtifact,
     IdentityEvolutionExecutionCounters, IdentityEvolutionExecutionFamily,
 };
-#[allow(unused_imports)]
-pub use families::{
+#[cfg(test)]
+pub(crate) use families::{
     IdentityEvolutionAmbiguityReason, IdentityEvolutionDenialReason,
-    IdentityEvolutionIdentityBreakReason, IdentityEvolutionOutcomeFamily,
-    IdentityEvolutionQueryFamily, LineageTraversalFamily,
+    IdentityEvolutionIdentityBreakReason,
+};
+pub use families::{
+    IdentityEvolutionOutcomeFamily, IdentityEvolutionQueryFamily, LineageTraversalFamily,
 };
 pub use inspector::{
     InspectorIdentityArtifact, InspectorIdentityClassification, InspectorIdentityDigest,
@@ -48,7 +47,6 @@ pub use performance::{
     IdentityEvolutionBudgetClass, IdentityEvolutionCostClass,
     IdentityEvolutionPredictionDriftOutcome, IdentityEvolutionPredictionReport,
 };
-#[allow(unused_imports)]
 pub use replay::{
     compare_identity_evolution_denial_classification, compare_identity_evolution_denial_replay,
     compare_identity_evolution_result_classification, compare_identity_evolution_result_replay,
@@ -68,7 +66,7 @@ pub use support::{
     runtime_backed_direct_identity_evolution_support_profile, IdentityEvolutionDeferredScopeMarker,
     IdentityEvolutionSupportProfile,
 };
-#[allow(unused_imports)]
+#[cfg(test)]
 pub(crate) use synthetic::IdentityEvolutionSyntheticScenario;
 
 #[cfg(test)]

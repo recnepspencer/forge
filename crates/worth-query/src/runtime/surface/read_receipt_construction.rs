@@ -213,13 +213,13 @@ impl WorthQueryReadReceipt {
                 .execution_plan()
                 .collection()
                 .map(|collection| collection.planning_context().result_family().clone()),
-            execution_plan_digest: read_graph
+            execution_plan_evidence_identity: read_graph
                 .execution_plan()
                 .query()
                 .plan_digest()
-                .as_str()
-                .to_string(),
-            query_digest: read_graph.canonical().query().digest().as_str().to_string(),
+                .evidence_identity(),
+            canonical_query_digest: read_graph.canonical().query().digest().as_str().to_string(),
+            query_digest: read_graph.query_digest().to_string(),
             basis_digest: basis_digest.to_string(),
             result_digest,
             snapshot_identity,

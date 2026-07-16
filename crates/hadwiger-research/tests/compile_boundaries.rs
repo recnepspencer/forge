@@ -116,7 +116,6 @@ fn research_graph_invariants(t: &trybuild::TestCases) {
     t.compile_fail("tests/ui/research_graph_invariants/boundaries/authority/*.rs");
     t.compile_fail("tests/ui/research_graph_invariants/boundaries/boundary_source/*.rs");
     t.compile_fail("tests/ui/research_graph_invariants/boundaries/immutability/*.rs");
-    t.compile_fail("tests/ui/research_graph_invariants/boundaries/registration/*.rs");
     t.compile_fail("tests/ui/research_graph_invariants/boundaries/topology/*.rs");
 }
 

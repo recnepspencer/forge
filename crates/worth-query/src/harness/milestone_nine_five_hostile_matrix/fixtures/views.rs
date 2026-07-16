@@ -1,5 +1,5 @@
 use crate::basis::{BasisAuthorityFamily, ExecutionBasisIntent, SnapshotLineageClass};
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
 use crate::view_shape::{
     admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
     ViewShapeDescriptor, ViewShapePlanArtifact,
@@ -81,14 +81,14 @@ fn detail_schema_view() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             )
             .text_predicate_queryable(),
         ],
@@ -104,14 +104,14 @@ fn collection_schema_view() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             )
             .text_predicate_queryable(),
             SchemaFieldView::new(
@@ -119,7 +119,7 @@ fn collection_schema_view() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("lane")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             )
             .text_predicate_queryable(),
         ],

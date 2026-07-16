@@ -1,13 +1,13 @@
 use std::marker::PhantomData;
 
 use crate::authoring::{
-    AuthoringError, EqualityPredicate, IntegerComparisonPredicate, OrderingSelector,
+    AuthoringError, EqualityPredicate, NativeComparisonPredicate, OrderingSelector,
     PresencePredicate, QueryAuthoringFamily, QueryBuilder, RootEntityKey, SetMembershipPredicate,
     StringContainsPredicate, TraversalSelector,
 };
 
 use super::traits::{
-    TypedEqualityField, TypedIntegerComparableField, TypedMembershipField, TypedOrderableField,
+    TypedEqualityField, TypedMembershipField, TypedNativeComparableField, TypedOrderableField,
     TypedPresenceField, TypedProjectableField, TypedSchemaRoot, TypedStringContainsField,
     TypedTraversalRelation,
 };
@@ -63,24 +63,28 @@ impl<S: TypedSchemaRoot, F: TypedQuerySurfaceFamily> TypedQueryBuilder<S, F> {
         self
     }
 
-    pub fn where_greater_than<P: TypedIntegerComparableField<Schema = S>>(
+    pub fn where_greater_than<P: TypedNativeComparableField<Schema = S>>(
         mut self,
-        value: i64,
+        value: P::Value,
     ) -> Self {
         self.inner = self.inner.where_greater_than(
-            IntegerComparisonPredicate::greater_than(P::ASPECT, P::FIELD, value)
-                .expect("typed integer predicate constants must be valid"),
+            NativeComparisonPredicate::greater_than_native(
+                P::ASPECT,
+                P::FIELD,
+                P::into_scalar(value),
+            )
+            .expect("typed native comparison constants must be valid"),
         );
         self
     }
 
-    pub fn where_less_than<P: TypedIntegerComparableField<Schema = S>>(
+    pub fn where_less_than<P: TypedNativeComparableField<Schema = S>>(
         mut self,
-        value: i64,
+        value: P::Value,
     ) -> Self {
         self.inner = self.inner.where_less_than(
-            IntegerComparisonPredicate::less_than(P::ASPECT, P::FIELD, value)
-                .expect("typed integer predicate constants must be valid"),
+            NativeComparisonPredicate::less_than_native(P::ASPECT, P::FIELD, P::into_scalar(value))
+                .expect("typed native comparison constants must be valid"),
         );
         self
     }

@@ -86,6 +86,13 @@ impl LoweredAspectContractBinding {
 }
 
 impl LoweredAspectContractPlan {
+    pub fn contract_for(&self, key: &AspectKey) -> Option<AspectContract> {
+        self.executable_bindings
+            .iter()
+            .find(|binding| binding.aspect_key() == key)
+            .map(|binding| binding.contract.clone())
+    }
+
     pub fn admits_entity_scalar_field(&self, target: &FieldKey) -> bool {
         self.entity_scalar_field_aspect_key(target).is_some()
     }
@@ -101,5 +108,11 @@ impl LoweredAspectContractPlan {
         self.executable_bindings.iter().any(|binding| {
             binding.targets_entity_scalar_field(field) || binding.targets_entity_struct_field(field)
         })
+    }
+}
+
+impl worth_foundational::facade::PortableAspectContractLookup for LoweredAspectContractPlan {
+    fn contract_for(&self, key: &AspectKey) -> Option<AspectContract> {
+        self.contract_for(key)
     }
 }

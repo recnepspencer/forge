@@ -1,8 +1,9 @@
 use super::token_writer::{append_bytes, append_i32, append_i64, append_token, append_u64};
+use crate::aspects::StructAspectValue;
 use crate::canonicalization::{CanonicalBasisValue, CanonicalFloatWidth, CanonicalIntegerWidth};
 use crate::values::InternedString;
 
-pub(super) fn append_value_material(material: &mut String, value: &CanonicalBasisValue) {
+pub(crate) fn append_value_material(material: &mut String, value: &CanonicalBasisValue) {
     match value {
         CanonicalBasisValue::Null => append_token(material, "value.kind", "null"),
         CanonicalBasisValue::Bool(value) => {
@@ -106,6 +107,24 @@ pub(super) fn append_value_material(material: &mut String, value: &CanonicalBasi
             append_token(material, "value.kind", "nested-sequence");
             append_u64(material, "value.nested-sequence", u64::from(*value));
         }
+    }
+}
+
+pub(crate) fn append_struct_value_material(material: &mut String, value: &StructAspectValue) {
+    append_token(material, "value.kind", "struct");
+    append_u64(
+        material,
+        "value.struct.field-count",
+        value.fields().count() as u64,
+    );
+    for (field_key, field_value) in value.fields() {
+        append_token(material, "value.struct.field", field_key.as_str());
+        append_value_material(
+            material,
+            &crate::canonicalization::value_lowering::canonical_basis_value_for_aspect_value(
+                field_value,
+            ),
+        );
     }
 }
 

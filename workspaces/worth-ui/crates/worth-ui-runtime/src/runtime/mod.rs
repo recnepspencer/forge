@@ -37,6 +37,8 @@ pub use exports::*;
 
 #[cfg(test)]
 pub(crate) use replacement::file_rust_replacement_parity;
+#[cfg(test)]
+pub(crate) use replacement::state_inventory::WorthUiTransientInteractionAdmission;
 
 #[cfg(test)]
 pub(crate) mod tests;

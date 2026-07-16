@@ -13,6 +13,11 @@ impl MutationIntent {
                     raw_values.insert(raw.to_string());
                 }
             }
+            Self::Create(CreateIntent::EntityAspects(spec)) => {
+                if let Some(raw) = spec.client_key.as_raw_str() {
+                    raw_values.insert(raw.to_string());
+                }
+            }
             Self::Create(CreateIntent::BulkEntities(spec)) => {
                 collect_bulk_raw_client_keys(&spec.client_keys, raw_values);
             }
@@ -30,6 +35,13 @@ impl MutationIntent {
                 collect_entity_reference_raw_client_key(&spec.source, raw_values);
                 collect_entity_reference_raw_client_key(&spec.target, raw_values);
             }
+            Self::Create(CreateIntent::RelationAspects(spec)) => {
+                if let Some(raw) = spec.client_key.as_raw_str() {
+                    raw_values.insert(raw.to_string());
+                }
+                collect_entity_reference_raw_client_key(&spec.source, raw_values);
+                collect_entity_reference_raw_client_key(&spec.target, raw_values);
+            }
             Self::Entity(EntityMutationIntent::Replace(spec)) => {
                 if let Some(raw) = spec.replacement.client_key.as_raw_str() {
                     raw_values.insert(raw.to_string());
@@ -39,7 +51,9 @@ impl MutationIntent {
                 collect_entity_reference_raw_client_key(&spec.source, raw_values);
                 collect_entity_reference_raw_client_key(&spec.target, raw_values);
             }
-            Self::Entity(_) | Self::Relation(RelationMutationIntent::Delete(_)) => {}
+            Self::Entity(_)
+            | Self::Relation(RelationMutationIntent::ApplyAspectPatch(_))
+            | Self::Relation(RelationMutationIntent::Delete(_)) => {}
         }
     }
 
@@ -50,6 +64,9 @@ impl MutationIntent {
     ) {
         match self {
             Self::Create(CreateIntent::Entity(spec)) => {
+                spec.client_key = normalize_client_key(interner, policy, spec.client_key.clone());
+            }
+            Self::Create(CreateIntent::EntityAspects(spec)) => {
                 spec.client_key = normalize_client_key(interner, policy, spec.client_key.clone());
             }
             Self::Create(CreateIntent::BulkEntities(spec)) => {
@@ -67,6 +84,11 @@ impl MutationIntent {
                 normalize_entity_reference_client_key(&mut spec.source, interner, policy);
                 normalize_entity_reference_client_key(&mut spec.target, interner, policy);
             }
+            Self::Create(CreateIntent::RelationAspects(spec)) => {
+                spec.client_key = normalize_client_key(interner, policy, spec.client_key.clone());
+                normalize_entity_reference_client_key(&mut spec.source, interner, policy);
+                normalize_entity_reference_client_key(&mut spec.target, interner, policy);
+            }
             Self::Entity(EntityMutationIntent::Replace(spec)) => {
                 spec.replacement.client_key =
                     normalize_client_key(interner, policy, spec.replacement.client_key.clone());
@@ -75,7 +97,9 @@ impl MutationIntent {
                 normalize_entity_reference_client_key(&mut spec.source, interner, policy);
                 normalize_entity_reference_client_key(&mut spec.target, interner, policy);
             }
-            Self::Entity(_) | Self::Relation(RelationMutationIntent::Delete(_)) => {}
+            Self::Entity(_)
+            | Self::Relation(RelationMutationIntent::ApplyAspectPatch(_))
+            | Self::Relation(RelationMutationIntent::Delete(_)) => {}
         }
     }
 }

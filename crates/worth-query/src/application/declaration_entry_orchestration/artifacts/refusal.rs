@@ -45,6 +45,7 @@ pub struct WorthQueryDeclarationEntryOrchestrationRefusal<
 impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
     WorthQueryDeclarationEntryOrchestrationRefusal<D, I>
 {
+    #[cfg(test)]
     pub(crate) fn from_automation(
         automation_refusal: WorthQueryDeclarationEntryOrchestrationAutomationRefusal,
         stop_stage: WorthQueryDeclarationEntryOrchestrationStage,

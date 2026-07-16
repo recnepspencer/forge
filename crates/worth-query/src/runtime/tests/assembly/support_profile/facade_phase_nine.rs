@@ -125,11 +125,11 @@ fn workspace_shared_read_lane_matches_runtime_owned_context_without_recomputatio
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("task.phase-nine-shared-read")
         .expect("workspace should build");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view_request("tasks.phase-nine", task_live_request(), task_schema())
         .expect("live view should declare");
     let invocations = Arc::new(AtomicUsize::new(0));
-    let derived: WorthQueryDerivedViewHandle<WorthQueryNativeRow> = workspace
+    let derived: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
         .computed_view(
             crate::program::WorthQueryDerivedView::new(
                 "derived.phase-nine",

@@ -1,0 +1,14 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/installed_domain/boundaries/raw_operation_owner_constructor_is_private.rs:4:60
+  |
+4 |       let _ = WorthQueryGraphReadDomainOperationDeclaration::new(
+  |                                                              ^^^ private associated function
+  |
+ ::: src/authoring/domain_operation/declaration.rs
+  |
+  | /     pub(crate) fn new(
+  | |         name: impl Into<String>,
+  | |         version: u32,
+  | |         owner: impl Into<String>,
+  | |     ) -> Result<Self, DomainGraphOperationDeclarationError> {
+  | |___________________________________________________________- private associated function defined here

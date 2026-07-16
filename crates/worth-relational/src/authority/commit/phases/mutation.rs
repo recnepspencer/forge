@@ -144,6 +144,9 @@ pub(crate) fn branch_local_delete_allowance_for_plan(
                 }
             }
             MutationIntent::Relation(
+                crate::transactions::data::RelationMutationIntent::ApplyAspectPatch(_),
+            ) => {}
+            MutationIntent::Relation(
                 crate::transactions::data::RelationMutationIntent::Delete(spec),
             ) => {
                 let relation_id = spec.relation_id;

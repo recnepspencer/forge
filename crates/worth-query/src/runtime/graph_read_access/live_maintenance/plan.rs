@@ -3,9 +3,10 @@ use super::{
     WorthQueryLiveGraphReadMaintenanceBudget, WorthQueryLiveGraphReadMutationDeltaScope,
 };
 use crate::identity::hash_parts;
+use crate::runtime::WorthQueryRuntimeLiveSubscriptionInstallation;
+#[cfg(test)]
 use crate::runtime::{
     WorthQueryAdmittedGraphReadAccessPlan, WorthQueryGraphReadAccessAdmissionPosture,
-    WorthQueryRuntimeLiveSubscriptionInstallation,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -53,6 +54,7 @@ impl WorthQueryLiveGraphReadAccessPlan {
         &self.maintenance_equivalence_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn from_one_shot_access_plan(
         one_shot: &WorthQueryAdmittedGraphReadAccessPlan,
         maintenance_budget: WorthQueryLiveGraphReadMaintenanceBudget,
@@ -163,6 +165,7 @@ impl WorthQueryLiveGraphReadAccessPlan {
     }
 }
 
+#[cfg(test)]
 fn live_posture_for_one_shot(
     posture: &WorthQueryGraphReadAccessAdmissionPosture,
     budget: &WorthQueryLiveGraphReadMaintenanceBudget,

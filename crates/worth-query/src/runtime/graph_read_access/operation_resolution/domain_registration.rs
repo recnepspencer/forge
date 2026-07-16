@@ -4,7 +4,9 @@ use crate::authoring::{
     RelationName, WorthQueryAdmittedGraphReadDomainOperationReference,
     WorthQueryGraphReadDomainOperationDeclaration, WorthQueryGraphReadOperationKey,
 };
-use crate::runtime::WorthQueryGraphReadTraversalOperator;
+use crate::runtime::{
+    WorthQueryGraphReadTraversalOperator, WorthQueryInstalledDomainSubstrateProvenance,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryDomainRegisteredGraphReadOperation {
@@ -14,6 +16,7 @@ pub struct WorthQueryDomainRegisteredGraphReadOperation {
     accepted_relations: Vec<RelationName>,
     traversal_operator: WorthQueryGraphReadTraversalOperator,
     capability_requirements: Vec<WorthQueryGraphReadOperationCapabilityRequirementDeclaration>,
+    installed_provenance: Option<WorthQueryInstalledDomainSubstrateProvenance>,
 }
 
 impl WorthQueryDomainRegisteredGraphReadOperation {
@@ -33,6 +36,13 @@ impl WorthQueryDomainRegisteredGraphReadOperation {
         &self.accepted_relations
     }
 
+    #[cfg(test)]
+    pub(crate) fn installed_provenance(
+        &self,
+    ) -> Option<&WorthQueryInstalledDomainSubstrateProvenance> {
+        self.installed_provenance.as_ref()
+    }
+
     pub fn traversal_operator(&self) -> &WorthQueryGraphReadTraversalOperator {
         &self.traversal_operator
     }
@@ -45,7 +55,7 @@ impl WorthQueryDomainRegisteredGraphReadOperation {
 
     pub(crate) fn digest_part(&self) -> String {
         format!(
-            "domain_operation:{}:{}:{}:{}:{}",
+            "domain_operation:{}:{}:{}:{}:{}:{}",
             self.domain_owner,
             self.operation_name,
             self.operation_version,
@@ -54,23 +64,27 @@ impl WorthQueryDomainRegisteredGraphReadOperation {
                 .iter()
                 .map(RelationName::as_str)
                 .collect::<Vec<_>>()
-                .join(",")
+                .join(","),
+            self.installed_provenance
+                .as_ref()
+                .map_or("uninstalled", |provenance| provenance.identity().as_str()),
         )
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryGraphReadOperationRegistration {
+pub(crate) struct WorthQueryGraphReadOperationRegistration {
     operation_name: String,
     operation_version: u32,
     domain_owner: String,
     accepted_relations: Vec<RelationName>,
     traversal_operator: WorthQueryGraphReadTraversalOperator,
     capability_requirements: Vec<WorthQueryGraphReadOperationCapabilityRequirementDeclaration>,
+    installed_provenance: Option<WorthQueryInstalledDomainSubstrateProvenance>,
 }
 
 impl WorthQueryGraphReadOperationRegistration {
-    pub fn domain(
+    pub(crate) fn domain(
         operation_name: impl Into<String>,
         operation_version: u32,
         domain_owner: impl Into<String>,
@@ -82,10 +96,12 @@ impl WorthQueryGraphReadOperationRegistration {
             accepted_relations: Vec::new(),
             traversal_operator: WorthQueryGraphReadTraversalOperator::DeclarationTraversal,
             capability_requirements: Vec::new(),
+            installed_provenance: None,
         }
     }
 
-    pub fn for_declared_operation(
+    #[cfg(test)]
+    pub(crate) fn for_declared_operation(
         declaration: &WorthQueryGraphReadDomainOperationDeclaration,
     ) -> Self {
         let mut registration = Self {
@@ -109,6 +125,7 @@ impl WorthQueryGraphReadOperationRegistration {
                     )
                 })
                 .collect(),
+            installed_provenance: None,
         };
         registration.accepted_relations.sort();
         registration.accepted_relations.dedup();
@@ -119,7 +136,7 @@ impl WorthQueryGraphReadOperationRegistration {
         registration
     }
 
-    pub fn accepts_relation(
+    pub(crate) fn accepts_relation(
         mut self,
         relation: impl Into<String>,
     ) -> Result<Self, WorthQueryGraphReadRegistryAdmissionError> {
@@ -133,7 +150,7 @@ impl WorthQueryGraphReadOperationRegistration {
         Ok(self)
     }
 
-    pub fn lowers_to_traversal_operator(
+    pub(crate) fn lowers_to_traversal_operator(
         mut self,
         operator: WorthQueryGraphReadTraversalOperator,
     ) -> Self {
@@ -141,7 +158,7 @@ impl WorthQueryGraphReadOperationRegistration {
         self
     }
 
-    pub fn requires_capability(
+    pub(crate) fn requires_capability(
         mut self,
         requirement: WorthQueryGraphReadOperationCapabilityRequirementDeclaration,
     ) -> Self {
@@ -152,23 +169,26 @@ impl WorthQueryGraphReadOperationRegistration {
         self
     }
 
-    pub fn operation_name(&self) -> &str {
-        &self.operation_name
+    pub(crate) fn authorized_by_installed_domain(
+        mut self,
+        provenance: WorthQueryInstalledDomainSubstrateProvenance,
+    ) -> Self {
+        debug_assert_eq!(self.domain_owner, provenance.domain_owner());
+        self.installed_provenance = Some(provenance);
+        self
     }
 
-    pub fn operation_version(&self) -> u32 {
-        self.operation_version
-    }
-
-    pub fn domain_owner(&self) -> &str {
-        &self.domain_owner
-    }
-
-    pub fn accepted_relation_names(&self) -> &[RelationName] {
+    pub(crate) fn accepted_relation_names(&self) -> &[RelationName] {
         &self.accepted_relations
     }
 
-    pub fn operation_key(
+    pub(crate) fn installed_provenance(
+        &self,
+    ) -> Option<&WorthQueryInstalledDomainSubstrateProvenance> {
+        self.installed_provenance.as_ref()
+    }
+
+    pub(crate) fn operation_key(
         &self,
     ) -> Result<WorthQueryGraphReadOperationKey, WorthQueryGraphReadRegistryAdmissionError> {
         WorthQueryGraphReadOperationKey::new(
@@ -187,6 +207,11 @@ impl WorthQueryGraphReadOperationRegistration {
             && self.operation_version == declaration.key().version().value()
             && self.domain_owner == declaration.key().owner().as_str()
             && self.accepted_relations == declared_relation_names(declaration.admitted_references())
+            && self
+                .capability_requirements
+                .iter()
+                .map(|requirement| requirement.support_family())
+                .eq(declaration.support_families().iter().map(String::as_str))
     }
 
     pub(crate) fn admitted(&self) -> WorthQueryDomainRegisteredGraphReadOperation {
@@ -197,6 +222,7 @@ impl WorthQueryGraphReadOperationRegistration {
             accepted_relations: self.accepted_relations.clone(),
             traversal_operator: self.traversal_operator.clone(),
             capability_requirements: self.capability_requirements.clone(),
+            installed_provenance: self.installed_provenance.clone(),
         }
     }
 

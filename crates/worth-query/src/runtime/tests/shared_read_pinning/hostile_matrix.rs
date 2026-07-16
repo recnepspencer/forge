@@ -109,7 +109,9 @@ fn shared_read_pinning_boundary_closes_only_with_all_phase_thirteen_evidence() {
 
 fn shared_read_portability_evidence(
     stable: &crate::runtime::WorthQuerySharedReadContext,
-    derived: &crate::runtime::WorthQueryDerivedViewHandle<crate::runtime::WorthQueryNativeRow>,
+    derived: &crate::runtime::WorthQueryDerivedViewHandle<
+        crate::runtime::WorthQueryUnrefinedLiveShape,
+    >,
     stable_binding: &str,
 ) -> WorthQuerySharedReadPortabilityEvidence {
     let sibling = stable.clone();
@@ -151,7 +153,9 @@ fn shared_read_portability_evidence(
 
 fn shared_read_stale_denial_evidence(
     stable: &crate::runtime::WorthQuerySharedReadContext,
-    derived: &crate::runtime::WorthQueryDerivedViewHandle<crate::runtime::WorthQueryNativeRow>,
+    derived: &crate::runtime::WorthQueryDerivedViewHandle<
+        crate::runtime::WorthQueryUnrefinedLiveShape,
+    >,
     stable_basis: &crate::runtime::WorthQuerySharedReadBasisInspection,
 ) -> WorthQuerySharedReadStaleBasisDenialEvidence {
     let error = stable

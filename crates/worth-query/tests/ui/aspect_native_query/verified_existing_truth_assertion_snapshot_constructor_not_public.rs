@@ -1,9 +1,9 @@
 use worth_query::facade::foundation::WorthQuerySnapshotIdentity;
-use worth_query::facade::runtime::{WorthQueryAdmittedAspectValue, WorthQueryExistingTruthTargetBinding, WorthQueryVerifiedExistingTruthAssertion};
+use worth_query::facade::runtime::{WorthQueryAuthoredAspectMutation, WorthQueryExistingTruthTargetBinding, WorthQueryVerifiedExistingTruthAssertion};
 
 fn forbidden(
     binding: &WorthQueryExistingTruthTargetBinding,
-    aspects: &[WorthQueryAdmittedAspectValue],
+    aspects: &[WorthQueryAuthoredAspectMutation],
     snapshot_identity: &WorthQuerySnapshotIdentity,
 ) {
     let _ = WorthQueryVerifiedExistingTruthAssertion::from_snapshot_identity(

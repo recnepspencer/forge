@@ -31,7 +31,7 @@ Use a family-owned authoring method from `worth_query::facade::runtime`:
 - `workspace.read_family_in_basis_context_intent(&family, &context)`
 - `workspace.read_live_intent(&view)`
 - `workspace.materialize_intent(&view)`
-- `workspace.inspect_intent(target)`
+- `workspace.inspections()?.inspect_intent(target)`
 - `workspace.inspect_derived_intent(&view)`
 - `runtime.probe_existing_intent(request)`
 - `workspace.probe_existing_intent(request)`
@@ -176,9 +176,9 @@ let write_receipt = runtime.write_intent(command).execute()?;
 let batch_receipt = runtime.write_batch_intent(commands).execute()?;
 let live_result = workspace.read_live_intent(&view).execute()?;
 let live_rows = workspace.read(&view);
-let inspection_result = workspace.inspect_intent(&view).execute()?;
+let inspection_result = workspace.inspections()?.inspect_intent(&view).execute()?;
 let materialization = workspace.materialize_result(&view)?;
-let inspection = workspace.inspect(&view)?;
+let inspection = workspace.inspections()?.inspect(&view)?;
 let probe_result = runtime.probe_existing_intent(request).execute()?;
 let workspace_probe = workspace.probe_existing_intent(request).execute()?;
 ```
@@ -200,7 +200,7 @@ let (authority, projection_warnings) = projection
     .map_err(handle_projection_stop)?;
 let write_review = runtime.write_intent(command).review()?;
 let live_review = workspace.read_live_intent(&view).review()?;
-let inspection_review = workspace.inspect_intent(&view).review()?;
+let inspection_review = workspace.inspections()?.inspect_intent(&view).review()?;
 let probe_review = runtime.probe_existing_intent(request).review()?;
 ```
 

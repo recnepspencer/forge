@@ -8,7 +8,7 @@ fn authority_context(
     neighborhood: crate::evidence::UiAllocationNeighborhood,
 ) -> super::authority::UiAllocationInvalidationAdmissionContext {
     let planning_basis =
-        crate::runtime::WorthUiAllocationPlanningBasis::new(basis, neighborhood, None, None);
+        crate::runtime::WorthUiAllocationPlanningBasis::new(basis, neighborhood, None);
     super::authority::UiAllocationInvalidationAdmissionContext::from_planning_basis(&planning_basis)
 }
 

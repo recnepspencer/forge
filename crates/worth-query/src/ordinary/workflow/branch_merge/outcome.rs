@@ -95,9 +95,6 @@ impl WorthQueryBranchMergeStop {
 
 fn source_for_stage(stage: WorthQueryOrdinaryMergeFailureStage) -> WorthQueryBranchMergeStopSource {
     match stage {
-        WorthQueryOrdinaryMergeFailureStage::Authority => {
-            WorthQueryBranchMergeStopSource::StaleAuthority
-        }
         WorthQueryOrdinaryMergeFailureStage::Basis => WorthQueryBranchMergeStopSource::Basis,
         WorthQueryOrdinaryMergeFailureStage::Intent => WorthQueryBranchMergeStopSource::Intent,
         WorthQueryOrdinaryMergeFailureStage::Eligibility => {

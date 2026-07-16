@@ -1,13 +1,13 @@
 use super::{WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationInput};
 use crate::application::{
-    assert_declaration_aspect_projections, WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
-    WorthQueryConfig, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    assert_declaration_aspect_projections, WorthQueryCapabilityFamily,
+    WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationAspectFit,
     WorthQueryDeclarationCapabilityStatus, WorthQueryDeclarationFamilyMarker,
     WorthQueryDeclarationLegalityContract, WorthQueryDeclaredFamilyChecked,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalConfig,
-    WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
+    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
+    WorthQuerySignalCompatiblePosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -39,8 +39,11 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for QueryOnlyWorld {
         &[WorthQueryConfigSectionFamily::Query]
     }
 
-    fn context_identity_digest(&self) -> String {
-        "query-only-world".to_string()
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { "query-only-world".to_string() };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -72,19 +75,6 @@ impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for DurableFamily {
 
     fn legality_contract() -> WorthQueryDeclarationLegalityContract {
         WorthQueryDeclarationLegalityContract::authoritative_hot_artifact()
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct DurableDeclaration;
-
-impl WorthQueryDeclarationInput<GeometryDomain> for DurableDeclaration {
-    type Family = DurableFamily;
-
-    fn canonical_declaration_entries(&self) -> Vec<WorthQueryDeclarationCanonicalEntry> {
-        vec![WorthQueryDeclarationCanonicalEntry::text(
-            "edge_ref", "edge:42",
-        )]
     }
 }
 
@@ -162,14 +152,12 @@ impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for MaskedCoverageFamily 
 }
 
 fn admitted_query_only_handle(
-    _config: WorthQueryConfig,
 ) -> crate::application::WorthQueryInstalledDomainDeclarationContext<GeometryDomain, QueryOnlyWorld>
 {
     crate::application::domain_test_support::installed_declaration_context(
         GeometryDomain,
         QueryOnlyWorld,
         [
-            crate::application::domain_test_support::family::<GeometryDomain, DurableFamily>(),
             crate::application::domain_test_support::family::<GeometryDomain, HistoricalFamily>(),
             crate::application::domain_test_support::family::<GeometryDomain, MaskedCoverageFamily>(
             ),
@@ -178,34 +166,27 @@ fn admitted_query_only_handle(
 }
 
 #[test]
-fn family_support_and_checked_declaration_agree_on_deferred_denial() {
-    let handle = admitted_query_only_handle(WorthQueryConfig::runtime_backed_default());
-    let support = handle.family_support::<DurableFamily>();
-    assert_eq!(
-        support.declare_status(),
-        WorthQueryDeclarationCapabilityStatus::DeferredDebt
-    );
+fn package_admission_rejects_a_deferred_declaration_family() {
+    let package =
+        crate::application::domain_test_support::domain_package(GeometryDomain).declaration_family(
+            crate::application::domain_test_support::family::<GeometryDomain, DurableFamily>(),
+        );
+    let validated = package.validate().expect("test package should validate");
+    let denial = match crate::domain_installation::admit_domain_package(validated) {
+        Ok(_) => panic!("a deferred declaration family must not install"),
+        Err(denial) => denial,
+    };
 
-    match handle.declare_checked(DurableDeclaration) {
-        WorthQueryDeclaredFamilyChecked::Deferred(denial) => {
-            assert_eq!(
-                denial.capability_status(),
-                WorthQueryDeclarationCapabilityStatus::DeferredDebt
-            );
-        }
-        other => panic!(
-            "expected deferred denial, got {:?}",
-            std::mem::discriminant(&other)
-        ),
-    }
+    assert_eq!(
+        denial.kind(),
+        crate::domain_installation::WorthQueryDomainPackageAdmissionDenialKind::DeferredCapability
+    );
+    assert_eq!(denial.subject(), "durable_artifacts");
 }
 
 #[test]
 fn family_support_and_checked_declaration_agree_on_invalid_context_denial() {
-    let handle = admitted_query_only_handle(
-        WorthQueryConfig::runtime_backed_default()
-            .with_relational(WorthQueryRelationalConfig::disabled()),
-    );
+    let handle = admitted_query_only_handle();
     let support = handle.family_support::<HistoricalFamily>();
     assert_eq!(
         support.declare_status(),
@@ -228,29 +209,25 @@ fn family_support_and_checked_declaration_agree_on_invalid_context_denial() {
 
 #[test]
 fn family_support_report_exposes_aspect_contract_alongside_family_admission() {
-    let handle = admitted_query_only_handle(WorthQueryConfig::runtime_backed_default());
-    let support = handle.family_support::<DurableFamily>();
+    let handle = admitted_query_only_handle();
+    let support = handle.family_support::<MaskedCoverageFamily>();
 
     assert_declaration_aspect_projections(
         support.aspect_contract().required(),
         &["selection.active_edge"],
-    );
-    assert_declaration_aspect_projections(
-        support.aspect_contract().incompatible(),
-        &["selection.material_edit"],
     );
     assert_eq!(
         support
             .row(crate::application::WorthQueryDeclarationCapabilityVerb::Declare)
             .expect("declare row should exist")
             .aspect_fit(),
-        WorthQueryDeclarationAspectFit::Exact
+        WorthQueryDeclarationAspectFit::MissingRequired
     );
 }
 
 #[test]
 fn family_support_report_can_expose_masked_semantic_slices_without_losing_family_admission() {
-    let handle = admitted_query_only_handle(WorthQueryConfig::runtime_backed_default());
+    let handle = admitted_query_only_handle();
     let support = handle.family_support::<MaskedCoverageFamily>();
 
     assert_eq!(

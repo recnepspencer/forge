@@ -7,10 +7,7 @@ use crate::capability::{
     MosaicSizingKind, MosaicSizingPersistence, MosaicViewportConstraint,
     NamedMeasurementDefinition, NamedMeasurementToken, SurfacePlacementClass,
 };
-use crate::facade::{
-    WorthUi,
-    WorthUiApp,
-};
+use crate::facade::{WorthUi, WorthUiApp};
 use crate::graph::UiGraphNodeIdentity;
 use crate::runtime::tests::source_ingress_test_support::{empty_artifact, runtime_from_artifact};
 use crate::runtime::{WorthUiSourceProvider, WorthUiWatcherEvent};

@@ -12,7 +12,7 @@ use crate::transactions::data::RecordRef;
 
 use super::materialized_aspect_values::MaterializedAspectValue;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum VisibleMergeRecordSnapshot {
     Entity(EntityReadRecord),
     Relation(RelationReadRecord),
@@ -70,7 +70,7 @@ pub struct MergeExecutableRecordProvenance {
     pub applied_policies: Arc<[ResolvedAspectMergePolicy]>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AdoptSourceRecordPlan {
     pub source_record: RecordRef,
     pub(crate) record_kind: VisibleMergeRecordKind,
@@ -88,7 +88,7 @@ pub struct PreserveSharedRecordPlan {
     pub aspect_plan: Arc<[ExecutableAspectPlan]>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ReconcileRecordPlan {
     pub source_record: RecordRef,
     pub target_record: RecordRef,
@@ -109,7 +109,7 @@ pub struct ConvergeDeletedOnBothSidesRecordPlan {
     pub provenance: MergeExecutableRecordProvenance,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum BoundExecutableMergeRecordPlan {
     AdoptSource(AdoptSourceRecordPlan),
     PreserveShared(PreserveSharedRecordPlan),
@@ -117,7 +117,7 @@ pub enum BoundExecutableMergeRecordPlan {
     ConvergeDeletedOnBothSides(ConvergeDeletedOnBothSidesRecordPlan),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BoundExecutableMergePlan {
     pub authority_binding: MergeExecutionAuthorityBinding,
     pub parent_order: Arc<[CommitId]>,

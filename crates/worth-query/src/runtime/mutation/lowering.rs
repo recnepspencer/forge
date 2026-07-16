@@ -1,6 +1,6 @@
 use super::{
-    WorthQueryAdmittedAspectValue, WorthQueryAspectMutationOperation,
-    WorthQueryAspectMutationOperationKind, WorthQuerySymbolicAspectReference,
+    WorthQueryAspectMutationOperation, WorthQueryAspectMutationOperationKind,
+    WorthQueryAuthoredAspectMutation, WorthQuerySymbolicAspectReference,
 };
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
@@ -29,7 +29,7 @@ pub(crate) fn command_declared_aspect_operations(
             ..
         } => aspects
             .iter()
-            .map(WorthQueryAdmittedAspectValue::declared_operation)
+            .map(WorthQueryAuthoredAspectMutation::declared_operation)
             .chain(
                 symbolic_aspect_references
                     .iter()
@@ -42,7 +42,7 @@ pub(crate) fn command_declared_aspect_operations(
         | WorthQueryWriteCommand::VerifyExistingAspects { aspects, .. }
         | WorthQueryWriteCommand::UpdateSymbolicAspects { aspects, .. } => aspects
             .iter()
-            .map(WorthQueryAdmittedAspectValue::declared_operation)
+            .map(WorthQueryAuthoredAspectMutation::declared_operation)
             .collect(),
         WorthQueryWriteCommand::VerifyThenUpdateExistingAspects {
             aspects,
@@ -50,7 +50,7 @@ pub(crate) fn command_declared_aspect_operations(
             ..
         } => aspects
             .iter()
-            .map(WorthQueryAdmittedAspectValue::declared_operation)
+            .map(WorthQueryAuthoredAspectMutation::declared_operation)
             .chain(
                 symbolic_aspect_references
                     .iter()

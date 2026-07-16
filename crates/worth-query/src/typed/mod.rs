@@ -16,7 +16,7 @@ pub use detail::{
 };
 pub use guided_path::TypedGuidedAuthoringPath;
 pub use traits::{
-    TypedEqualityField, TypedIntegerComparableField, TypedMembershipField, TypedOrderableField,
+    TypedEqualityField, TypedMembershipField, TypedNativeComparableField, TypedOrderableField,
     TypedPresenceField, TypedProjectableField, TypedSchemaField, TypedSchemaRoot,
     TypedStringContainsField, TypedTraversalRelation,
 };

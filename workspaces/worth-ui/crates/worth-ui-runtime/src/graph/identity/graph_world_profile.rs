@@ -1,11 +1,5 @@
-use worth_query::facade::runtime::{
-    BridgePreviewSessionIdentity,
-    WorthQuerySessionLabel,
-};
-use worth_query::facade::foundation::{
-    ResolvedSnapshotBasis,
-    SnapshotResolutionReport,
-};
+use worth_query::facade::foundation::{ResolvedSnapshotBasis, SnapshotResolutionReport};
+use worth_query::facade::runtime::{BridgePreviewSessionIdentity, WorthQuerySessionLabel};
 
 use crate::declaration::stable_text_digest;
 

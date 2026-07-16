@@ -24,7 +24,7 @@ fn compose_graph_supports_existing_target_retarget_lifecycle() {
     let mut workspace = task_relation_runtime()
         .workspace("tasks.graph-composition-retarget-existing")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-retarget-existing-tasks", |q| {
             q.from("Task")
                 .select([
@@ -40,7 +40,7 @@ fn compose_graph_supports_existing_target_retarget_lifecycle() {
                 .schema_basis("tasks-graph-composition-retarget-existing-tasks")
         })
         .expect("task live view should declare");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-retarget-existing-relations", |q| {
             q.from("TaskRelation")
                 .select([
@@ -70,13 +70,13 @@ fn compose_graph_supports_existing_target_retarget_lifecycle() {
                     test_aspect_touch("kind.value"),
                     test_authored_string_aspect_value("loop_successor"),
                 )
-                .set_aspect(
+                .existing_entity_identity(
                     test_aspect_touch("source.id"),
-                    test_authored_string_aspect_value("loop-a"),
+                    test_entity_identity("loop-a"),
                 )
-                .set_aspect(
+                .existing_entity_identity(
                     test_aspect_touch("target.id"),
-                    test_authored_string_aspect_value("loop-b"),
+                    test_entity_identity("loop-b"),
                 )
         })
         .expect("seed insert should execute");
@@ -104,7 +104,7 @@ fn compose_graph_supports_existing_target_retarget_lifecycle() {
                     )
                     .continuity_rebind_existing_target(crate::runtime::WorthQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::WorthQueryContinuityPriorAuthorityLabel::new("authority:rel-next").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::WorthQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::WorthQueryContinuitySuccessorAuthorityLabel::new("authority:rel-next-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                     )
-                    .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("loop-c"))
+                    .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("loop-c"))
             })?;
             Ok(())
         })
@@ -194,8 +194,16 @@ fn compose_graph_supports_verified_existing_target_retarget_lifecycle() {
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
         verified_profile(),
         TestExistingTruthVerificationAdapter::default()
-            .with_value(&binding, "source.id", test_string_aspect_value("loop-a"))
-            .with_value(&binding, "target.id", test_string_aspect_value("loop-b")),
+            .with_value(
+                &binding,
+                "source.id",
+                test_native_entity_ref_value(&test_entity_identity("loop-a")),
+            )
+            .with_value(
+                &binding,
+                "target.id",
+                test_native_entity_ref_value(&test_entity_identity("loop-b")),
+            ),
     );
     let mut workspace = runtime
         .workspace("tasks.graph-composition-verified-retarget")
@@ -207,8 +215,8 @@ fn compose_graph_supports_verified_existing_target_retarget_lifecycle() {
                 binding,
                 |verify| {
                     verify
-                        .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("loop-a"))
-                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("loop-b"))
+                        .existing_entity_identity(test_aspect_touch("source.id"), test_entity_identity("loop-a"))
+                        .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("loop-b"))
                 },
                 |update| {
                     update
@@ -216,7 +224,7 @@ fn compose_graph_supports_verified_existing_target_retarget_lifecycle() {
                         )
                         .continuity_rebind_existing_target(crate::runtime::WorthQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::WorthQueryContinuityPriorAuthorityLabel::new("authority:rel-next").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::WorthQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::WorthQueryContinuitySuccessorAuthorityLabel::new("authority:rel-next-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         )
-                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("loop-c"))
+                        .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("loop-c"))
                 },
             )?;
             Ok(())

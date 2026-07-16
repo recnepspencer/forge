@@ -18,8 +18,6 @@ pub struct WorthQueryJournalPositionScheduleViolation {
     kind: WorthQueryJournalPositionScheduleViolationKind,
     index: usize,
 }
-
-#[allow(dead_code)]
 impl WorthQueryJournalPositionScheduleViolation {
     fn new(kind: WorthQueryJournalPositionScheduleViolationKind, index: usize) -> Self {
         Self { kind, index }
@@ -28,8 +26,6 @@ impl WorthQueryJournalPositionScheduleViolation {
     pub fn kind(&self) -> WorthQueryJournalPositionScheduleViolationKind {
         self.kind
     }
-
-    #[allow(dead_code)]
     pub fn index(&self) -> usize {
         self.index
     }
@@ -41,8 +37,6 @@ pub struct WorthQueryJournalPositionSchedule {
     violations: Vec<WorthQueryJournalPositionScheduleViolation>,
     schedule_digest: WorthQueryEvidenceIdentity,
 }
-
-#[allow(dead_code)]
 impl WorthQueryJournalPositionSchedule {
     pub fn derive<I>(positions: I) -> Self
     where
@@ -71,13 +65,9 @@ impl WorthQueryJournalPositionSchedule {
             schedule_digest,
         }
     }
-
-    #[allow(dead_code)]
     pub fn positions(&self) -> &[WorthQueryJournalPosition] {
         &self.positions
     }
-
-    #[allow(dead_code)]
     pub fn violations(&self) -> &[WorthQueryJournalPositionScheduleViolation] {
         &self.violations
     }
@@ -126,8 +116,6 @@ impl WorthQueryJournalPositionSchedule {
             .any(|violation| violation.kind() == kind)
     }
 }
-
-#[allow(dead_code)]
 fn derive_schedule_violations(
     positions: &[WorthQueryJournalPosition],
 ) -> Vec<WorthQueryJournalPositionScheduleViolation> {

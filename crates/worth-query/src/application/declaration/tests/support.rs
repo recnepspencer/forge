@@ -9,6 +9,9 @@ use crate::application::{
     WorthQueryTemporalDeclarationSupport,
 };
 
+mod handles;
+pub use handles::{admitted_handle, admitted_topology_handle};
+
 const ENTRY_CAPABILITIES: &[WorthQueryCapabilityFamily] =
     &[WorthQueryCapabilityFamily::QueryComposition];
 const OPERATING_CAPABILITIES: &[WorthQueryCapabilityFamily] =
@@ -63,8 +66,11 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for GeometryOperatingConte
         OPERATING_SECTIONS
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("geometry-regime:{}", self.regime)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("geometry-regime:{}", self.regime) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -210,8 +216,11 @@ impl WorthQueryDomainOperatingContext<TopologyDomain> for GeometryOperatingConte
         OPERATING_SECTIONS
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("topology-regime:{}", self.regime)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("topology-regime:{}", self.regime) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -357,42 +366,4 @@ impl WorthQueryDeclarationInput<GeometryDomain> for DeferredTemporalReadDeclarat
     fn temporal_declaration_clauses(&self) -> Vec<WorthQueryTemporalDeclarationClause> {
         self.temporal_clauses.clone()
     }
-}
-
-pub fn admitted_handle(
-    regime: GeometryOperatingContext,
-) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
-    GeometryDomain,
-    GeometryOperatingContext,
-> {
-    crate::application::domain_test_support::installed_declaration_context(
-        GeometryDomain,
-        regime,
-        [
-            crate::application::domain_test_support::family::<GeometryDomain, SplitEdgeFamily>(),
-            crate::application::domain_test_support::family::<
-                GeometryDomain,
-                SplitEdgeSingleOnlyFamily,
-            >(),
-            crate::application::domain_test_support::family::<GeometryDomain, TemporalReadFamily>(),
-            crate::application::domain_test_support::family::<
-                GeometryDomain,
-                DeferredTemporalReadFamily,
-            >(),
-        ],
-    )
-}
-
-pub fn admitted_topology_handle() -> crate::application::WorthQueryInstalledDomainDeclarationContext<
-    TopologyDomain,
-    GeometryOperatingContext,
-> {
-    crate::application::domain_test_support::installed_declaration_context(
-        TopologyDomain,
-        GeometryOperatingContext::collaborative(),
-        [crate::application::domain_test_support::family::<
-            TopologyDomain,
-            SplitEdgeTopologyFamily,
-        >()],
-    )
 }

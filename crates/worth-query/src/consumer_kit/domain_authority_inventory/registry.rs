@@ -1,247 +1,277 @@
-use std::sync::OnceLock;
-
 use super::{
     WorthQueryDomainAuthorityClass as Class, WorthQueryDomainAuthorityInventoryRow as Row,
 };
 
-const APPLICATION_FACADE: &str = "src/application/capability/facade.rs";
-const RUNTIME_BUILDER: &str = "src/runtime/builder.rs";
+const DOMAIN_IDENTITY: &str = "src/domain_installation/package_authority/identity.rs";
+const DOMAIN_INVARIANTS: &str =
+    "src/domain_installation/package_authority/package_definitions/invariant.rs";
+const DOMAIN_OBLIGATIONS: &str =
+    "src/domain_installation/package_authority/package_definitions/graph_obligation.rs";
+const DOMAIN_OPERATIONS: &str =
+    "src/domain_installation/package_authority/package_definitions/graph_read_operation.rs";
+const DOMAIN_DECLARATION_FAMILIES: &str =
+    "src/domain_installation/package_authority/package_definitions/declaration_family.rs";
+const DOMAIN_PACKAGE: &str = "src/domain_installation/package_authority/package.rs";
+const INSTALLED_HANDLE: &str = "src/domain_installation/installed_authority/handle.rs";
+const BUILDER_DOMAIN_PACKAGES: &str = "src/runtime/builder/domain_packages.rs";
+const RUNTIME_DOMAIN_API: &str = "src/runtime/domain_installation_api.rs";
+const WORKSPACE_DOMAIN_API: &str = "src/runtime/workspace_domain_installation.rs";
+const DOMAIN_FACADE_EXPORTS: &str = "src/facade/exports_domain.rs";
+const CONTRIBUTION_SURFACE: &str = "src/domain_capabilities/dx/common/root.rs";
 const OPERATION_REGISTRY: &str = "src/runtime/graph_read_access/operation_resolution/registry.rs";
-const RUNTIME_CORE_EXPORTS: &str = "src/facade/exports_runtime_core.rs";
-const OPERATION_EXPLANATION: &str = "src/runtime/graph_read_access/explanation_api.rs";
-const RUNTIME_CAPABILITY_EXPORTS: &str = "src/facade/exports_runtime_capabilities.rs";
-const RAW_CONTRIBUTION_ROOT: &str = "src/domain_capabilities/dx/common/root.rs";
 
 pub fn worth_query_domain_authority_inventory_rows() -> &'static [Row] {
-    static ROWS: OnceLock<Vec<Row>> = OnceLock::new();
-    ROWS.get_or_init(|| {
-        let mut rows = CORE_ROWS.to_vec();
-        rows.extend(LEGACY_MATERIALIZATION_EXPORTS.iter().map(|symbol| {
-            Row::new(
-                symbol,
-                RUNTIME_CAPABILITY_EXPORTS,
-                Some(RUNTIME_CAPABILITY_EXPORTS),
-                Class::CompatibilityPath,
-                Class::ProhibitedCompetingAuthority,
-                "installed-domain-handle",
-            )
-        }));
-        rows
-    })
+    CORE_ROWS
 }
 
 const CORE_ROWS: &[Row] = &[
+    package_type("WorthQueryDomainIdentityNamespace", DOMAIN_IDENTITY),
+    package_type("WorthQueryDomainIdentityName", DOMAIN_IDENTITY),
+    package_type("WorthQueryDomainSemanticVersion", DOMAIN_IDENTITY),
+    package_type("WorthQueryDomainIdentityDeclaration", DOMAIN_IDENTITY),
+    package_type("WorthQueryDomainInvariantDefinition", DOMAIN_INVARIANTS),
+    package_type(
+        "WorthQueryDomainGraphObligationDefinition",
+        DOMAIN_OBLIGATIONS,
+    ),
+    package_type(
+        "WorthQueryDomainGraphReadOperationDefinition",
+        DOMAIN_OPERATIONS,
+    ),
+    package_type(
+        "WorthQueryDomainDeclarationFamilyDefinition",
+        DOMAIN_DECLARATION_FAMILIES,
+    ),
+    package_type("WorthQueryDomainPackage", DOMAIN_PACKAGE),
+    package_input("WorthQueryDomainIdentityNamespace::new", DOMAIN_IDENTITY),
+    package_input("WorthQueryDomainIdentityName::new", DOMAIN_IDENTITY),
+    package_input("WorthQueryDomainSemanticVersion::new", DOMAIN_IDENTITY),
+    package_input("WorthQueryDomainIdentityDeclaration::new", DOMAIN_IDENTITY),
+    package_input(
+        "WorthQueryDomainInvariantPredicate::requires_outgoing_relations",
+        DOMAIN_INVARIANTS,
+    ),
+    package_input(
+        "WorthQueryDomainInvariantDefinition::new",
+        DOMAIN_INVARIANTS,
+    ),
+    package_input(
+        "WorthQueryDomainGraphObligationDefinition::new",
+        DOMAIN_OBLIGATIONS,
+    ),
+    package_input(
+        "WorthQueryDomainGraphObligationDefinition::with_support_posture",
+        DOMAIN_OBLIGATIONS,
+    ),
+    package_input(
+        "WorthQueryDomainGraphReadOperationDefinition::new",
+        DOMAIN_OPERATIONS,
+    ),
+    package_input(
+        "WorthQueryDomainGraphReadOperationDefinition::accepts_relation",
+        DOMAIN_OPERATIONS,
+    ),
+    package_input(
+        "WorthQueryDomainGraphReadOperationDefinition::lowers_to",
+        DOMAIN_OPERATIONS,
+    ),
+    package_input(
+        "WorthQueryDomainGraphReadOperationDefinition::requires_support_family",
+        DOMAIN_OPERATIONS,
+    ),
+    package_input(
+        "WorthQueryDomainDeclarationFamilyDefinition::from_marker",
+        DOMAIN_DECLARATION_FAMILIES,
+    ),
+    package_input("WorthQueryDomainPackage::declare", DOMAIN_PACKAGE),
+    package_input(
+        "WorthQueryDomainPackage::requires_capability",
+        DOMAIN_PACKAGE,
+    ),
+    package_input(
+        "WorthQueryDomainPackage::requires_configuration",
+        DOMAIN_PACKAGE,
+    ),
+    package_input(
+        "WorthQueryDomainPackage::requires_operating_posture",
+        DOMAIN_PACKAGE,
+    ),
+    package_input("WorthQueryDomainPackage::invariant", DOMAIN_PACKAGE),
+    package_input("WorthQueryDomainPackage::graph_obligation", DOMAIN_PACKAGE),
+    package_input(
+        "WorthQueryDomainPackage::graph_read_operation",
+        DOMAIN_PACKAGE,
+    ),
+    package_input(
+        "WorthQueryDomainPackage::declaration_family",
+        DOMAIN_PACKAGE,
+    ),
+    package_input(
+        "WorthQueryDomainPackage::declaration_families",
+        DOMAIN_PACKAGE,
+    ),
+    package_input(
+        "WorthQueryDomainPackage::permits_contribution",
+        DOMAIN_PACKAGE,
+    ),
     Row::new(
-        "worth_query_domain",
-        RAW_CONTRIBUTION_ROOT,
-        Some(RUNTIME_CAPABILITY_EXPORTS),
-        Class::CompatibilityPath,
-        Class::ProhibitedCompetingAuthority,
-        "installed-domain-handle",
-    ),
-    legacy(
-        "WorthQueryApplicationFacade::domain",
-        APPLICATION_FACADE,
-        "domain-package",
-    ),
-    legacy(
-        "WorthQueryApplicationFacade::domain_checked",
-        APPLICATION_FACADE,
-        "package-admission",
-    ),
-    legacy(
-        "WorthQueryApplicationFacade::domain_proof_root",
-        APPLICATION_FACADE,
-        "package-admission",
-    ),
-    legacy(
-        "WorthQueryApplicationFacade::domain_entry_support_snapshot",
-        APPLICATION_FACADE,
-        "diagnostic-projection",
-    ),
-    legacy(
-        "WorthQueryRuntimeBuilder::invariant_catalog",
-        RUNTIME_BUILDER,
-        "domain-package",
-    ),
-    legacy(
-        "WorthQueryRuntimeBuilder::invariant_registration_artifact",
-        RUNTIME_BUILDER,
-        "domain-package",
-    ),
-    legacy(
-        "WorthQueryRuntimeBuilder::graph_obligation",
-        RUNTIME_BUILDER,
-        "domain-package",
-    ),
-    legacy(
-        "WorthQueryRuntimeBuilder::graph_scoped_custom_invariant",
-        RUNTIME_BUILDER,
-        "domain-package",
-    ),
-    legacy(
-        "WorthQueryRuntimeBuilder::custom_invariant",
-        RUNTIME_BUILDER,
-        "domain-package",
-    ),
-    legacy(
-        "WorthQueryRuntimeBuilder::register_invariant",
-        RUNTIME_BUILDER,
-        "domain-package",
+        "WorthQueryRuntimeBuilder::domain_package",
+        BUILDER_DOMAIN_PACKAGES,
+        None,
+        Class::CanonicalInstallation,
+        Class::CanonicalInstallation,
+        "runtime-domain-installation-registry",
     ),
     Row::new(
         "WorthQueryGraphReadOperationRegistry",
         OPERATION_REGISTRY,
-        Some(RUNTIME_CORE_EXPORTS),
-        Class::CompatibilityPath,
-        Class::ProhibitedCompetingAuthority,
+        None,
+        Class::DerivedIndex,
+        Class::DerivedIndex,
         "installed-domain-execution-index",
     ),
-    legacy(
-        "WorthQueryGraphReadOperationRegistry::empty",
-        OPERATION_REGISTRY,
-        "installed-domain-execution-index",
+    installed_handle_type("WorthQueryInstalledDomainHandle", INSTALLED_HANDLE),
+    installed_handle_type(
+        "WorthQueryInstalledDomainContributionSurface",
+        CONTRIBUTION_SURFACE,
     ),
-    legacy(
-        "WorthQueryGraphReadOperationRegistry::define",
-        OPERATION_REGISTRY,
-        "domain-package",
+    installed_handle(
+        "WorthQueryRuntime::domain",
+        RUNTIME_DOMAIN_API,
+        "runtime-domain-installation-registry",
     ),
-    legacy(
-        "WorthQueryGraphReadOperationRegistry::admit",
-        OPERATION_REGISTRY,
-        "package-admission",
+    installed_handle(
+        "WorthQueryWorkspace::domain",
+        WORKSPACE_DOMAIN_API,
+        "runtime-domain-installation-registry",
     ),
-    legacy(
-        "WorthQueryGraphReadOperationRegistry::with_registration",
-        OPERATION_REGISTRY,
-        "domain-package",
+    installed_handle(
+        "WorthQueryInstalledDomainHandle::contributions",
+        INSTALLED_HANDLE,
+        "installed-domain-handle",
     ),
-    legacy(
-        "WorthQueryGraphReadOperationRegistry::admit_registration",
-        OPERATION_REGISTRY,
-        "package-admission",
+    installed_handle(
+        "WorthQueryInstalledDomainHandle::contributions_in",
+        INSTALLED_HANDLE,
+        "installed-domain-handle",
     ),
-    legacy(
-        "WorthQueryGraphReadOperationRegistry::with_required_capability_for_relations",
-        OPERATION_REGISTRY,
-        "domain-package",
+    installed_handle(
+        "WorthQueryInstalledDomainHandle::authority_witness",
+        INSTALLED_HANDLE,
+        "installed-domain-handle",
     ),
-    legacy(
-        "WorthQueryGraphReadOperationRegistry::with_unsupported_shape_for_relations",
-        OPERATION_REGISTRY,
-        "domain-package",
+    installed_handle(
+        "WorthQueryInstalledDomainHandle::rebind_request",
+        INSTALLED_HANDLE,
+        "installed-domain-handle",
     ),
-    legacy(
-        "WorthQueryGraphReadOperationRegistry::with_unsupported_shape_for_operation",
-        OPERATION_REGISTRY,
-        "domain-package",
+    installed_handle(
+        "WorthQueryInstalledDomainHandle::graph_read_operation",
+        INSTALLED_HANDLE,
+        "installed-domain-handle",
     ),
-    legacy(
-        "WorthQueryGraphReadOperationRegistry::registrations",
-        OPERATION_REGISTRY,
-        "diagnostic-projection",
+    installed_handle(
+        "WorthQueryInstalledDomainHandle::declarations",
+        INSTALLED_HANDLE,
+        "installed-domain-handle",
     ),
-    legacy(
-        "explain_graph_read_access_shape_for_family_with_operation_registry",
-        OPERATION_EXPLANATION,
-        "installed-domain-execution-index",
+    installed_handle(
+        "WorthQueryInstalledDomainHandle::declarations_in",
+        INSTALLED_HANDLE,
+        "installed-domain-handle",
     ),
-    legacy(
-        "explain_boolean_selectivity_shape_for_family_with_operation_registry",
-        OPERATION_EXPLANATION,
-        "installed-domain-execution-index",
+    installed_handle(
+        "WorthQueryInstalledDomainContributionSurface::intent_target",
+        CONTRIBUTION_SURFACE,
+        "installed-domain-handle",
     ),
-    legacy(
-        "explain_graph_read_access_requirement_outcome_for_family_with_operation_registry",
-        OPERATION_EXPLANATION,
-        "installed-domain-execution-index",
+    installed_handle(
+        "WorthQueryInstalledDomainContributionSurface::for_intent",
+        CONTRIBUTION_SURFACE,
+        "installed-domain-handle",
     ),
-    legacy(
-        "explain_graph_read_access_requirements_for_family_with_operation_registry",
-        OPERATION_EXPLANATION,
-        "installed-domain-execution-index",
+    installed_handle(
+        "WorthQueryInstalledDomainContributionSurface::for_intent_target",
+        CONTRIBUTION_SURFACE,
+        "installed-domain-handle",
+    ),
+    installed_handle(
+        "WorthQueryInstalledDomainContributionSurface::admitted_plan_target",
+        CONTRIBUTION_SURFACE,
+        "installed-domain-handle",
+    ),
+    installed_handle(
+        "WorthQueryInstalledDomainContributionSurface::for_admitted_intent_plan",
+        CONTRIBUTION_SURFACE,
+        "installed-domain-handle",
+    ),
+    installed_handle(
+        "WorthQueryInstalledDomainContributionSurface::for_admitted_plan_target",
+        CONTRIBUTION_SURFACE,
+        "installed-domain-handle",
+    ),
+    installed_handle(
+        "WorthQueryInstalledDomainContributionSurface::lower_runtime_target",
+        CONTRIBUTION_SURFACE,
+        "installed-domain-handle",
+    ),
+    installed_handle(
+        "WorthQueryInstalledDomainContributionSurface::for_lower_runtime_boundary_envelope",
+        CONTRIBUTION_SURFACE,
+        "installed-domain-handle",
+    ),
+    installed_handle(
+        "WorthQueryInstalledDomainContributionSurface::for_lower_runtime_target",
+        CONTRIBUTION_SURFACE,
+        "installed-domain-handle",
+    ),
+    installed_handle(
+        "WorthQueryInstalledDomainContributionSurface::for_lower_runtime_boundary_source",
+        CONTRIBUTION_SURFACE,
+        "installed-domain-handle",
     ),
 ];
 
-const fn legacy(symbol: &'static str, path: &'static str, owner: &'static str) -> Row {
+const fn package_type(symbol: &'static str, path: &'static str) -> Row {
+    Row::new(
+        symbol,
+        path,
+        Some(DOMAIN_FACADE_EXPORTS),
+        Class::PackageInput,
+        Class::PackageInput,
+        "domain-package",
+    )
+}
+
+const fn package_input(symbol: &'static str, path: &'static str) -> Row {
     Row::new(
         symbol,
         path,
         None,
-        Class::CompatibilityPath,
-        Class::ProhibitedCompetingAuthority,
-        owner,
+        Class::PackageInput,
+        Class::PackageInput,
+        "domain-package",
     )
 }
 
-const LEGACY_MATERIALIZATION_EXPORTS: &[&str] = &[
-    "prepare_admitted_domain_capability_contribution_for_materialization",
-    "materialize_admission_explanation_bundle",
-    "materialize_admission_summary",
-    "materialize_admission_support_report",
-    "materialize_admission_trace_artifact",
-    "materialize_admitted_preview_workflow_foundation",
-    "materialize_admitted_projection_consumption",
-    "materialize_aftermath_explanation_bundle",
-    "materialize_aftermath_summary",
-    "materialize_aftermath_support_report",
-    "materialize_aftermath_trace_artifact",
-    "materialize_canonical_admission_artifact",
-    "materialize_canonical_aftermath_artifact",
-    "materialize_canonical_continuity_artifact",
-    "materialize_canonical_explanation_artifact",
-    "materialize_canonical_invariant_capability_artifact",
-    "materialize_canonical_support_traceability_artifact",
-    "materialize_canonical_workflow_artifact",
-    "materialize_continuity_explanation_bundle",
-    "materialize_continuity_summary",
-    "materialize_continuity_support_report",
-    "materialize_continuity_trace_artifact",
-    "materialize_correspondence_evidence_resolved",
-    "materialize_domain_capability_canonical_runtime_artifact",
-    "materialize_domain_capability_explanation_bundle",
-    "materialize_domain_capability_summary",
-    "materialize_domain_capability_support_report",
-    "materialize_domain_capability_trace_artifact",
-    "materialize_explanation_explanation_bundle",
-    "materialize_explanation_summary",
-    "materialize_explanation_support_report",
-    "materialize_explanation_trace_artifact",
-    "materialize_graph_composition_capability_support_row",
-    "materialize_graph_composition_domain_invariant_denial",
-    "materialize_intent_admission_support_traceability_report",
-    "materialize_intent_admission_support_traceability_row",
-    "materialize_intent_declaration_support_traceability_artifact",
-    "materialize_invariant_capability_explanation_bundle",
-    "materialize_invariant_capability_summary",
-    "materialize_invariant_capability_support_report",
-    "materialize_invariant_capability_trace_artifact",
-    "materialize_lower_runtime_support_traceability_artifact",
-    "materialize_lowered_merge_workflow_declaration",
-    "materialize_lowered_mutation_intent_declaration",
-    "materialize_projection_consumption_contract",
-    "materialize_projection_consumption_eligibility",
-    "materialize_projection_consumption_review",
-    "materialize_projection_consumption_support_report",
-    "materialize_query_causal_inspection_artifact",
-    "materialize_query_causal_inspection_review",
-    "materialize_query_conflict_inspection_artifact",
-    "materialize_query_invariant_catalog_registration_artifact",
-    "materialize_query_post_merge_inspection_artifact",
-    "materialize_query_preview_workflow_artifact",
-    "materialize_query_workflow_declaration",
-    "materialize_query_writeback_lowering",
-    "materialize_runtime_admission_decision",
-    "materialize_runtime_admission_support_traceability_report",
-    "materialize_runtime_admission_support_traceability_row",
-    "materialize_runtime_continuity_evidence",
-    "materialize_support_traceability_explanation_bundle",
-    "materialize_support_traceability_summary",
-    "materialize_support_traceability_support_report",
-    "materialize_support_traceability_trace_artifact",
-    "materialize_workflow_explanation_bundle",
-    "materialize_workflow_summary",
-    "materialize_workflow_support_report",
-    "materialize_workflow_trace_artifact",
-];
+const fn installed_handle_type(symbol: &'static str, path: &'static str) -> Row {
+    Row::new(
+        symbol,
+        path,
+        Some(DOMAIN_FACADE_EXPORTS),
+        Class::InstalledHandleCapability,
+        Class::InstalledHandleCapability,
+        "installed-domain-handle",
+    )
+}
+
+const fn installed_handle(symbol: &'static str, path: &'static str, owner: &'static str) -> Row {
+    Row::new(
+        symbol,
+        path,
+        None,
+        Class::InstalledHandleCapability,
+        Class::InstalledHandleCapability,
+        owner,
+    )
+}

@@ -34,14 +34,50 @@ macro_rules! causal_identity_type {
         pub struct $name(WorthQueryEvidenceIdentity);
 
         impl $name {
-            #[allow(dead_code)]
             pub fn as_str(&self) -> &str {
                 self.0.as_str()
             }
 
-            #[allow(dead_code)]
             pub fn evidence_identity(&self) -> &WorthQueryEvidenceIdentity {
                 &self.0
+            }
+        }
+
+        impl From<WorthQueryEvidenceIdentity> for $name {
+            fn from(value: WorthQueryEvidenceIdentity) -> Self {
+                Self(value)
+            }
+        }
+    };
+}
+
+macro_rules! causal_identity_type_evidence_only {
+    ($name:ident) => {
+        #[derive(Clone, Debug, Eq, PartialEq)]
+        pub struct $name(WorthQueryEvidenceIdentity);
+
+        impl $name {
+            pub fn evidence_identity(&self) -> &WorthQueryEvidenceIdentity {
+                &self.0
+            }
+        }
+
+        impl From<WorthQueryEvidenceIdentity> for $name {
+            fn from(value: WorthQueryEvidenceIdentity) -> Self {
+                Self(value)
+            }
+        }
+    };
+}
+
+macro_rules! causal_identity_type_label_only {
+    ($name:ident) => {
+        #[derive(Clone, Debug, Eq, PartialEq)]
+        pub struct $name(WorthQueryEvidenceIdentity);
+
+        impl $name {
+            pub fn as_str(&self) -> &str {
+                self.0.as_str()
             }
         }
 
@@ -63,15 +99,15 @@ causal_identity_type!(CausalInspectionDecisionTraceIdentity);
 causal_identity_type!(CausalInspectionAdmissionCountersIdentity);
 causal_identity_type!(CausalInspectionAdmissionReceiptIdentity);
 causal_identity_type!(CausalInspectionOutcomeIdentity);
-causal_identity_type!(CausalInspectionMaterializedDetailIdentity);
-causal_identity_type!(CausalInspectionDeniedArtifactDetailIdentity);
+causal_identity_type_evidence_only!(CausalInspectionMaterializedDetailIdentity);
+causal_identity_type_evidence_only!(CausalInspectionDeniedArtifactDetailIdentity);
 causal_identity_type!(CausalInspectionArtifactIdentity);
 causal_identity_type!(CausalInspectionPerformanceSnapshotIdentity);
 causal_identity_type!(CausalInspectionPerformanceSlopeIdentity);
 causal_identity_type!(CausalInspectionPerformanceScaleSlopeIdentity);
-causal_identity_type!(CausalInspectionPerformanceCertificationIdentity);
-causal_identity_type!(CausalInspectionCertificationErrorIdentity);
-causal_identity_type!(CausalInspectionCertificationFailureEvidenceIdentity);
+causal_identity_type_label_only!(CausalInspectionPerformanceCertificationIdentity);
+causal_identity_type_label_only!(CausalInspectionCertificationErrorIdentity);
+causal_identity_type_label_only!(CausalInspectionCertificationFailureEvidenceIdentity);
 
 pub(super) fn compose_bridge_causal_envelope_identity(
     identity: &BridgeCausalEnvelopeIdentity,

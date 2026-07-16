@@ -88,7 +88,7 @@ pub struct RelationalReplayOutcome {
     pub failure: Option<super::ReplayFailureClass>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ReplaySnapshotSurface {
     pub version_id: VersionId,
     pub entities: Vec<EntityReadRecord>,

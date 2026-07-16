@@ -1,12 +1,12 @@
 use worth_query::facade::foundation::{
     AspectFieldSelector, AuthoredResultShapeField, TraversalSelector,
 };
-use worth_query::facade::runtime::{
-    explain_graph_read_access_requirements_for_family, QuerySchemaView, SchemaFieldKind,
+use crate::runtime::{
+    explain_graph_read_access_requirements_for_family, QuerySchemaView, ScalarAspectType,
     SchemaFieldView, SchemaRelationView, WorthQueryGraphReadAccessRequirementKind,
 };
 
-mod support;
+use crate::support;
 
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
@@ -98,14 +98,14 @@ fn relation_schema() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [SchemaRelationView::new(

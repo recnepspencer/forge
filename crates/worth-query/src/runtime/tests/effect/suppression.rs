@@ -4,10 +4,14 @@ use super::super::support::*;
 fn effect_expression_suppression_and_failure_are_typed_and_counted() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let suppressed_effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(
             WorthQueryEffectDeclaration::deliver(
                 "ui.suppressed",
                 WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
@@ -21,7 +25,7 @@ fn effect_expression_suppression_and_failure_are_typed_and_counted() {
         )
         .expect("suppressed effect should declare");
     let failing_effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(
             WorthQueryEffectDeclaration::deliver(
                 "ui.failing",
                 WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
@@ -89,10 +93,14 @@ fn effect_expression_suppression_and_failure_are_typed_and_counted() {
 fn meaningful_change_suppression_counts_semantic_delta_suppression() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(
             WorthQueryEffectDeclaration::deliver(
                 "ui.meaningful-title",
                 WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),

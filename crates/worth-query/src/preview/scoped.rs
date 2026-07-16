@@ -5,10 +5,13 @@ use crate::evidence_identity::{
 };
 use crate::live::LiveQueryPlan;
 
+#[cfg(test)]
+use super::preview_live_execution_counters;
+#[cfg(test)]
+use super::PreviewExecutionError;
 use super::{
-    admit_preview_live_session_plan_component, preview_live_execution_counters,
-    PreviewExecutionError, PreviewLiveCounters, PreviewLiveError, PreviewLiveFailureClass,
-    PreviewLiveSessionPlanBinding, PreviewSessionPlanBinding,
+    admit_preview_live_session_plan_component, PreviewLiveCounters, PreviewLiveError,
+    PreviewLiveFailureClass, PreviewLiveSessionPlanBinding, PreviewSessionPlanBinding,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -104,6 +107,7 @@ pub(crate) fn admit_scoped_preview_live_session_plan(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn execute_scoped_preview_live_session_plan(
     preview_live: &ScopedPreviewLiveSessionPlanBinding,
 ) -> Result<super::PreviewLiveExecutionEnvelope, PreviewExecutionError> {

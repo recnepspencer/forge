@@ -9,6 +9,7 @@ use super::{
     WorthQueryOrdinaryPosture, WorthQueryOrdinaryPostureKind,
 };
 
+#[cfg(test)]
 pub(crate) fn ordinary_outcome_from_orchestration_terminal<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
@@ -91,6 +92,7 @@ pub(crate) fn ordinary_outcome_from_orchestration_terminal<
     }
 }
 
+#[cfg(test)]
 fn refusal_next_step(
     class: WorthQueryDeclarationEntryOrchestrationRefusalClass,
 ) -> WorthQueryOrdinaryNextStep {

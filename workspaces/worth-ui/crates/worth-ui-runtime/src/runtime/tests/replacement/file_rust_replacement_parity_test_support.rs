@@ -5,10 +5,7 @@ use super::replacement_impact_test_support::{
 use super::source_ingress_test_support::{
     file_import_provider, runtime_from_artifact, rust_import_artifact, rust_import_provider,
 };
-use crate::facade::{
-    WorthUi,
-    WorthUiApp,
-};
+use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
     WorthUiFileRustReplacementParityBoundary, WorthUiFileRustReplacementParityReceipt,

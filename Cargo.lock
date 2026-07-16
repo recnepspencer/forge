@@ -2126,6 +2126,7 @@ version = "0.1.0"
 dependencies = [
  "arc-swap",
  "proc-macro2",
+ "quote",
  "serde",
  "serde_json",
  "sha2",

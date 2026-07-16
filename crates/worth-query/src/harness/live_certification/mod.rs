@@ -2,6 +2,7 @@ mod bundles;
 mod canonical_rows;
 mod model;
 mod rejection_rows;
+#[cfg(test)]
 mod tests;
 
 pub(crate) use model::{

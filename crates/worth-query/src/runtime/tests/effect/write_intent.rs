@@ -4,10 +4,14 @@ use super::super::support::*;
 fn write_intent_effect_lowers_to_pending_intent_with_phase_evidence() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(
             WorthQueryEffectDeclaration::write_intent(
                 "intent.reconcile-title",
                 WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
@@ -102,7 +106,11 @@ fn write_intent_effect_lowers_to_pending_intent_with_phase_evidence() {
 fn write_intent_effect_rejects_authoritative_truth_target() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let declaration = WorthQueryEffectDeclaration::write_intent(
         "intent.truth-smuggle",
@@ -113,7 +121,7 @@ fn write_intent_effect_rejects_authoritative_truth_target() {
     .with_target_lane(WorthQueryAuthorityLane::AuthoritativeTruth);
 
     let error = runtime
-        .declare_effect::<WorthQueryNativeRow>(declaration)
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(declaration)
         .expect_err("write intent cannot target truth directly");
 
     match error {

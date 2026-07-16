@@ -6,6 +6,7 @@ mod digests;
 mod lowering;
 #[cfg(test)]
 #[path = "correspondence_history_parity/tests.rs"]
+#[cfg(test)]
 mod tests;
 
 pub use bundle::{

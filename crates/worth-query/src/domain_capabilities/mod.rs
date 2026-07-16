@@ -60,7 +60,11 @@ mod certification_closeout_test_support;
 #[cfg(test)]
 mod certification_closeout_tests;
 #[cfg(test)]
+mod certification_installed_authority_tests;
+#[cfg(test)]
 mod certification_public_lane_tests;
+#[cfg(test)]
+mod certification_surface_tests;
 #[cfg(test)]
 mod materialization_provenance_tests;
 #[cfg(test)]

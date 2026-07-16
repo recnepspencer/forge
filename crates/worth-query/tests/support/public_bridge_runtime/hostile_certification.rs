@@ -19,10 +19,10 @@ use worth_query::facade::policy::WorthQueryDerivedView;
 use worth_query::facade::runtime::{
     WorthQueryAspectMutationBuilder, WorthQueryDerivedPatch, WorthQueryDerivedPatchPayload,
     WorthQueryDerivedViewHandle, WorthQueryDerivedViewMaintainer,
-    WorthQueryDerivedViewMaterialization, WorthQueryLiveView, WorthQueryNativeRow,
+    WorthQueryDerivedViewMaterialization, WorthQueryLiveView,
     WorthQueryPublishedDerivedArtifactHandle, WorthQueryRetainedFieldPath, WorthQueryRuntime,
-    WorthQueryRuntimeSupportProfile, WorthQueryWorkspace, WorthQueryWriteCommand,
-    WorthQueryWriteReceipt,
+    WorthQueryRuntimeSupportProfile, WorthQueryUnrefinedLiveShape, WorthQueryWorkspace,
+    WorthQueryWriteCommand, WorthQueryWriteReceipt,
 };
 
 use super::reader_lane_honesty::{
@@ -70,7 +70,7 @@ impl WorthQueryDerivedViewMaintainer for PublicHostileMaintainer {
 pub type PublicBridgeHostileCertificationArtifact = PublicBridgeReaderLaneHonestyArtifact;
 
 struct PublicBridgeHostileProjectionViews {
-    derived: WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+    derived: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape>,
     invocations: Arc<AtomicUsize>,
 }
 
@@ -152,7 +152,7 @@ pub fn certify_public_bridge_hostile_schedule(
 fn declare_public_bridge_hostile_projection(
     workspace: &mut WorthQueryWorkspace,
 ) -> PublicBridgeHostileProjectionViews {
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("public.bridge.hostile-certification.tasks", |q| {
             q.from("Task")
                 .select([
@@ -196,7 +196,7 @@ fn declare_public_bridge_hostile_projection(
 
 fn mint_pending_public_bridge_artifact_digest(
     workspace: &mut WorthQueryWorkspace,
-    derived: &WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+    derived: &WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape>,
 ) -> String {
     let pending = workspace
         .shared_read_context()

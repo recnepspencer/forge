@@ -3922,9 +3922,10 @@ This milestone is not blocked on `worth-store`.
 ## Milestone 9.13: Declarative Query Experience And Phase-Surface Cutover
 
 Status: Core Phases 1-12 closed on 2026-07-14 for the runtime-backed
-declarative product boundary. Add-on Phases 13-26 are open. Phases 13-20 close
+declarative product boundary. Add-on Phases 13-30 are open. Phases 13-20 close
 runtime-installed domain packages and single domain-capability authority;
-Phases 21-26 close Foundational-native aspect value authority and consumer DX.
+Phases 21-30 close Foundational-native aspect value authority, portable
+readmission, Relational transaction integration, durability, and consumer DX.
 The ten-family grammar, ordinary/internal parity, managed lifecycle,
 facade/prohibition/residue enforcement, and reference-consumer adoption remain
 certified at the original boundary. Store-backed execution and durable
@@ -3941,9 +3942,10 @@ progression, managed lifecycles, backend routing, receipts, and diagnostics.
 Extend that product boundary so a typed domain package is installed into one
 concrete runtime, which alone mints runtime-affine domain handles and derives
 operation, invariant, obligation, declaration-family, and contribution indexes.
-Complete the boundary by carrying Foundational's exact scalar and struct aspect
-meaning through authoring, predicates, schema capability, materialization,
-projection consumption, identity, and typed consumer refinement.
+Complete the boundary by carrying Foundational's exact scalar, struct, patch,
+and state meaning through trust-boundary readmission, Relational transactions,
+durability and replay, Query authoring, predicates, schema capability,
+materialization, projection consumption, identity, and typed refinement.
 
 ### Adversarial Constraint
 
@@ -4079,8 +4081,9 @@ It belongs before 10 because runtime-backed and store-backed execution must
 implement the same admitted capability contract and ordinary journey.
 
 Add-on Phases 13-20 follow the closed core because they install domain
-extensions into the already-frozen ordinary capability grammar. Phases 21-26
-then close exact native value semantics across those installed and ordinary
+extensions into the already-frozen ordinary capability grammar. Phases 21-30
+then close exact native value semantics across Foundational readmission,
+Relational transactions, durability, and those installed and ordinary
 journeys. All remain before Milestone 10 because runtime domain authority,
 registry ownership, native predicate meaning, and native result/materialization
 contracts are runtime-semantic foundations, not store implementation details.
@@ -4589,7 +4592,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Query public authority surface cutover | Milestone 9.12 | Sealed identity handles, scoped basis and follow-on proofs, declarative admission handoffs, contracted facade snapshots, prohibition and residue artifacts | Ordinary consumers cannot mint authority from representation, skip Query lifecycles, invoke raw admission machinery, assert operational posture, or import certification internals as product APIs | Milestone 9.12 collision, phase-skipping, compile-fail, facade-snapshot, prohibition, residue, sabotage, and reference-consumer certification + Milestone 13 authority-boundary parity |
 | Declarative Query experience and phase-surface cutover | Milestone 9.13 | Capability declarations, admitted-query handles, managed live resources, typed outcomes and next-action stops, DX transcripts, contracted facade and residue artifacts | Ordinary consumers describe desired outcomes while Query exclusively owns canonicalization, binding, validation, admission, planning, lowering, execution routing, lifecycle, receipt assembly, and derived diagnostics | Milestone 9.13 ordinary/internal parity, compile-fail, facade-snapshot, prohibition, residue, lifecycle, bounded-work, and reference-consumer certification + Milestone 13 product-surface parity |
 | Runtime-installed domain capability authority | Milestone 9.13 add-on Phases 13-20 | Canonical domain packages, admitted package artifacts, runtime installation registry, runtime-affine installed handles, package-compiled operation/invariant/obligation indexes, installation and execution receipts | Equivalent packages install identically; conflicting packages fail atomically; only the installing runtime can mint usable handles; registered operations and contributions resolve without raw strings, manual registries, or semantic adapters | Milestone 9.13 package convergence, installation atomicity, runtime-affinity, derived-index rebuild, facade/residue/sabotage, bounded-lookup, and reference-consumer certification + Milestone 13 domain parity |
-| Foundational-native aspect value authority and consumer DX | Milestone 9.13 add-on Phases 21-26 | Foundational scalar and struct values, contract-derived operator capabilities, proof-bearing mutation/result/consumption artifacts, native retained rows or honest internal markers, typed refinement denials, canonical value identity basis | Every native scalar family and representative struct round-trips through authoring, validation, execution, materialization, projection, refinement, receipts, and inspection; incompatible operators and weaker-proof promotion fail before work; Query owns no competing value algebra or semantic encoder | Milestone 9.13 native-family/struct matrix, canonical identity parity, facade/compile-fail/prohibition/residue/sabotage, bounded-work, and reference-consumer deletion certification + Milestone 13 schema, execution, projection, and domain parity |
+| Foundational-native aspect value authority and consumer DX | Milestone 9.13 add-on Phases 21-30 | Portable non-authoritative patch/state candidates, Foundational contract readmission, native entity/relation transaction intents, authoritative patch planning and publication, durable readmission, exact scalar and struct values, contract-derived operator capabilities, proof-bearing mutation/result/consumption artifacts, native retained rows or honest internal markers, typed refinement denials, canonical value identity basis | Every native patch operation, scalar family, and representative struct round-trips through portable boundaries, Relational planning/merge/commit, checkpoint/replay, Query authoring, validation, execution, materialization, projection, refinement, receipts, and inspection; incompatible operators and weaker-proof promotion fail before work; no substrate owns a competing value, patch, state, or semantic encoder | Milestone 9.13 patch/state readmission, entity/relation transaction parity, restart/replay, native-family/struct matrix, canonical identity parity, facade/compile-fail/prohibition/residue/sabotage, bounded-work, and reference-consumer deletion certification + Milestone 13 schema, execution, projection, and domain parity |
 | Aggregation queries | Milestone 4 | Aggregation descriptors, grouping metadata | Aggregates stay tied to declared basis | Milestone 13 execution parity |
 | Tolerance-aware aggregation | Milestones 4 and 5 | Tolerance policy metadata, live suppression metadata | Suppression does not change aggregate meaning | Milestone 13 live + policy masking parity and aggregation cases |
 | Relational rollups | Milestone 4 | Rollup descriptors over relation edges | Rollups remain derived from declared truth basis | Milestone 13 execution parity + domain suites |

@@ -4,5 +4,5 @@ error[E0432]: unresolved import `worth_query::facade::runtime::WorthQueryGraphRe
 1 | use worth_query::facade::runtime::WorthQueryGraphReadOperationRegistry;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------------------------------
   |     |                             |
-  |     |                             help: a similar name exists in the module: `WorthQueryGraphReadOperationRegistration`
+  |     |                             help: a similar name exists in the module: `WorthQueryGraphReadOperationResolution`
   |     no `WorthQueryGraphReadOperationRegistry` in `facade::runtime`

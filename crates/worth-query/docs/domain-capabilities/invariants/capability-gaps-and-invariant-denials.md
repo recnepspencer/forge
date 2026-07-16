@@ -36,7 +36,7 @@ Boundary acquisition:
 
 For ordinary invariant registration, use the separate runtime and domain
 registration surfaces documented in
-[Registering Domain Invariants Through Query](./registering-domain-invariants-through-query.md).
+Registering Domain Invariants Through Query.
 
 ## Core Mental Model
 
@@ -90,11 +90,11 @@ rebind operation needs to say:
 
 ## How It Relates To Other Features
 
-- use [Registering Domain Invariants Through Query](./registering-domain-invariants-through-query.md)
+- use Registering Domain Invariants Through Query
   to install runtime invariants
-- use [Lower-Runtime Support And Boundary Traceability](../support/lower-runtime-support-and-boundary-traceability.md)
+- use Lower-Runtime Support And Boundary Traceability
   when you only need support posture rather than a capability gap or denial
-- use [Continuity Contributions And Authoritative Successors](../continuity/continuity-contributions-and-authoritative-successors.md)
+- use Continuity Contributions And Authoritative Successors
   when the invariant story depends on predecessor and successor truth
 
 ## Inspection And Debugging
@@ -119,6 +119,6 @@ rebind operation needs to say:
 
 ## Related Docs
 
-- [Registering Domain Invariants Through Query](./registering-domain-invariants-through-query.md)
-- [Lower-Runtime Support And Boundary Traceability](../support/lower-runtime-support-and-boundary-traceability.md)
-- [Continuity Contributions And Authoritative Successors](../continuity/continuity-contributions-and-authoritative-successors.md)
+- Registering Domain Invariants Through Query
+- Lower-Runtime Support And Boundary Traceability
+- Continuity Contributions And Authoritative Successors

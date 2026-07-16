@@ -14,11 +14,7 @@ pub use artifact::{
     WorthQueryContributionComposedContribution, WorthQueryContributionComposedOrchestration,
     WorthQueryContributionComposedSummary,
 };
-#[allow(unused_imports)]
-pub use aspect::{
-    WorthQueryContributionComposedDeclarationAspectRecord,
-    WorthQueryContributionComposedIntentAspectRecord,
-};
+pub use aspect::WorthQueryContributionComposedDeclarationAspectRecord;
 pub use composition::{
     WorthQueryContributionComposedClassification, WorthQueryContributionComposedComposition,
     WorthQueryContributionComposedStop,

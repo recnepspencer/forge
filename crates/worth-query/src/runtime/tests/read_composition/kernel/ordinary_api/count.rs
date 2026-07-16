@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::fixtures::{local_identity_collection_read, local_identity_read};
 use crate::authoring::{
     AspectFieldSelector, AspectName, AuthoredResultShapeField, EqualityPredicate, FieldName,
-    ScalarPredicateValue,
+    WorthQueryPredicateOperand,
 };
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::memory_workspace::{
@@ -17,7 +17,7 @@ use crate::runtime::{
     WorthQueryReadDenialKind, WorthQueryReadFamily, WorthQueryRuntime,
     WorthQueryRuntimeSourceAdapter,
 };
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
 
 #[test]
@@ -102,7 +102,7 @@ fn ordinary_count_applies_declared_predicates_before_aggregation() {
                         EqualityPredicate::new(
                             "profile",
                             "display_name",
-                            ScalarPredicateValue::String("Ada Lovelace".to_string()),
+                            WorthQueryPredicateOperand::string("Ada Lovelace".to_string()),
                         )
                         .expect("equality predicate should build"),
                     )
@@ -165,8 +165,7 @@ fn ordinary_count_matches_the_internal_admitted_phase_chain_exactly() {
         .execution_plan()
         .query()
         .plan_digest()
-        .as_str()
-        .to_string();
+        .evidence_identity();
     let oracle_family = WorthQueryReadFamily::new_kernel_only("declared_count", oracle_graph);
     let oracle = workspace
         .read_family_intent_in_graph_read_authority(&oracle_family, &authority)
@@ -177,8 +176,8 @@ fn ordinary_count_matches_the_internal_admitted_phase_chain_exactly() {
 
     assert_eq!(ordinary.count(), oracle.count());
     assert_eq!(
-        ordinary.receipt().execution_plan_digest(),
-        oracle_plan_digest
+        ordinary.receipt().execution_plan_evidence_identity(),
+        &oracle_plan_digest
     );
     assert_eq!(ordinary.receipt(), oracle.receipt());
     assert_eq!(ordinary, oracle);
@@ -269,7 +268,9 @@ fn identity_row(label: &'static str) -> WorthQueryEntity {
         crate::memory_workspace::admit_authored_entity_label(label),
         BTreeMap::from([(
             native_field_path("identity.id"),
-            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(label.to_string()),
+            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
+                label.to_string(),
+            ),
         )]),
     )
 }
@@ -280,13 +281,13 @@ fn profile_row(label: &'static str, display_name: &'static str) -> WorthQueryEnt
         BTreeMap::from([
             (
                 native_field_path("identity.id"),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                     label.to_string(),
                 ),
             ),
             (
                 native_field_path("profile.display_name"),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                     display_name.to_string(),
                 ),
             ),
@@ -301,12 +302,12 @@ fn profile_schema() -> QuerySchemaView {
             SchemaFieldView::new(
                 AspectName::new("identity").expect("identity aspect should build"),
                 FieldName::new("id").expect("identity field should build"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 AspectName::new("profile").expect("profile aspect should build"),
                 FieldName::new("display_name").expect("display-name field should build"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [],

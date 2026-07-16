@@ -1,3 +1,4 @@
+#[cfg(test)]
 use super::cost::HistoricalPathCostPosture;
 use super::path_classes::{
     AdmittedHistoricalPathClass, RequestedHistoricalPathClass, ResolvedHistoricalPathClass,
@@ -147,6 +148,7 @@ impl HistoricalEvaluationError {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn denial_cost_posture(&self) -> HistoricalPathCostPosture {
         match self {
             Self::ReplayNotPermitted { .. }

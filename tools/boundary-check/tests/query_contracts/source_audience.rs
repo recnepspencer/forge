@@ -13,12 +13,12 @@ fn every_audience_facade_item_is_indexed_for_public_signatures() {
         (
             "source-host-vocabulary",
             "worth-query-host",
-            "WorthQueryApplicationFacade",
+            "runtime::WorthQueryRuntime",
         ),
         (
             "source-replay-vocabulary",
             "worth-query-replay",
-            "ReplayBasisCapability",
+            "ScopedReplayBasis",
         ),
     ] {
         let dependency_line = audience_dependency(dependency);
@@ -45,7 +45,7 @@ fn every_allowed_band_and_audience_pair_accepts_private_consumption() {
             "source-entry-host-legal",
             "entry",
             "worth-query-host",
-            "WorthQueryApplicationFacade",
+            "runtime::WorthQueryRuntime",
         ),
         (
             "source-cert-decl-legal",
@@ -57,18 +57,18 @@ fn every_allowed_band_and_audience_pair_accepts_private_consumption() {
             "source-cert-host-legal",
             "cert",
             "worth-query-host",
-            "WorthQueryApplicationFacade",
+            "runtime::WorthQueryRuntime",
         ),
         (
             "source-cert-replay-legal",
             "cert",
             "worth-query-replay",
-            "ReplayBasisCapability",
+            "ScopedReplayBasis",
         ),
     ] {
         let dependency_line = audience_dependency(dependency);
         let source = format!(
-            "use {dependency_name}::facade::{item};\nfn retain(value: {item}) {{ let _ = value; }}\n",
+            "fn retain(value: {dependency_name}::facade::{item}) {{ let _ = value; }}\n",
             dependency_name = dependency.replace('-', "_")
         );
         let case = if band == "entry" {

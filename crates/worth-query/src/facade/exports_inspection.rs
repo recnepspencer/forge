@@ -8,4 +8,7 @@ pub use crate::ordinary::inspection::{
     WorthQueryInspectionUnavailable, WorthQueryInspectionUnavailableSource,
 };
 pub use crate::ordinary::{WorthQueryOutcomeNavigation, WorthQueryOutcomePosture};
-pub use crate::runtime::WorthQueryWorkspace;
+pub use crate::runtime::{
+    WorthQueryInspection, WorthQueryInspectionTarget, WorthQueryRuntimeInspectionIntentAuthoring,
+    WorthQueryWorkspace, WorthQueryWorkspaceInspectionLane,
+};

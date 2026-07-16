@@ -7,7 +7,7 @@ use worth_foundational::{
 };
 
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
+    WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationCanonicalEntry,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
@@ -15,7 +15,6 @@ use crate::application::{
     WorthQueryDeclarationRouteContract, WorthQueryDomainEntryMarker,
     WorthQueryDomainOperatingContext, WorthQueryNeighborhoodCapableGrouping,
 };
-use crate::domain_capabilities::WorthQueryDeclarationBoundContributionTarget;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct ContributionDomain;
@@ -56,8 +55,11 @@ impl WorthQueryDomainOperatingContext<ContributionDomain> for ContributionWorld 
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("contribution-world-{}", self.0)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("contribution-world-{}", self.0) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -182,63 +184,33 @@ impl WorthQueryDeclarationInput<ContributionDomain> for DeferredContributionInpu
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) struct DeferredAdmissionContributionFamily;
-
-impl WorthQueryDeclarationFamilyMarker<ContributionDomain> for DeferredAdmissionContributionFamily {
-    type PrimaryAuthority = WorthQueryBridgeContinuationAuthority;
-    type SignalCompatibility = crate::application::WorthQuerySignalNotCompatiblePosture;
-    type GroupedPosture = WorthQueryNeighborhoodCapableGrouping;
-
-    fn semantic_family_key() -> &'static str {
-        "DeferredAdmissionContributionFamily"
-    }
-
-    fn required_capability_families() -> &'static [WorthQueryCapabilityFamily] {
-        &[WorthQueryCapabilityFamily::DurableArtifacts]
-    }
-
-    fn aspect_contract() -> WorthQueryDeclarationAspectContract {
-        ContributionFamily::aspect_contract()
-    }
-
-    fn aspect_coverage() -> WorthQueryDeclarationAspectCoverage {
-        ContributionFamily::aspect_coverage()
-    }
-
-    fn legality_contract() -> WorthQueryDeclarationLegalityContract {
-        WorthQueryDeclarationLegalityContract::authoritative_hot_artifact()
-    }
-
-    fn route_contract() -> WorthQueryDeclarationRouteContract {
-        WorthQueryDeclarationRouteContract::bridge_only()
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct DeferredAdmissionContributionInput {
-    id: &'static str,
-    _marker: PhantomData<DeferredAdmissionContributionFamily>,
-}
-
-impl DeferredAdmissionContributionInput {
-    pub(super) fn new(id: &'static str) -> Self {
-        Self {
-            id,
-            _marker: PhantomData,
-        }
-    }
-}
-
-impl WorthQueryDeclarationInput<ContributionDomain> for DeferredAdmissionContributionInput {
-    type Family = DeferredAdmissionContributionFamily;
-
-    fn canonical_declaration_entries(&self) -> Vec<WorthQueryDeclarationCanonicalEntry> {
-        vec![WorthQueryDeclarationCanonicalEntry::text("id", self.id)]
-    }
-}
-
 pub(super) fn admitted_handle() -> crate::application::WorthQueryInstalledDomainDeclarationContext<
+    ContributionDomain,
+    ContributionWorld,
+> {
+    crate::application::domain_test_support::installed_declaration_context_with_contributions(
+        ContributionDomain,
+        ContributionWorld("main"),
+        [
+            crate::application::domain_test_support::family::<ContributionDomain, ContributionFamily>(
+            ),
+            crate::application::domain_test_support::family::<
+                ContributionDomain,
+                DeferredContributionFamily,
+            >(),
+        ],
+        [
+            crate::application::WorthQueryDeclarationEntryContributionCategoryFamily::Admission,
+            crate::application::WorthQueryDeclarationEntryContributionCategoryFamily::SupportTraceability,
+            crate::application::WorthQueryDeclarationEntryContributionCategoryFamily::ExplanationInspection,
+            crate::application::WorthQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview,
+            crate::application::WorthQueryDeclarationEntryContributionCategoryFamily::ContinuityLineage,
+        ],
+    )
+}
+
+pub(super) fn admitted_handle_without_contributions(
+) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
     ContributionDomain,
     ContributionWorld,
 > {
@@ -248,10 +220,6 @@ pub(super) fn admitted_handle() -> crate::application::WorthQueryInstalledDomain
         [
             crate::application::domain_test_support::family::<ContributionDomain, ContributionFamily>(
             ),
-            crate::application::domain_test_support::family::<
-                ContributionDomain,
-                DeferredAdmissionContributionFamily,
-            >(),
             crate::application::domain_test_support::family::<
                 ContributionDomain,
                 DeferredContributionFamily,
@@ -266,13 +234,11 @@ pub(super) fn target_for_envelope(
         ContributionWorld,
     >,
     id: &'static str,
-) -> WorthQueryDeclarationBoundContributionTarget {
+) -> crate::domain_capabilities::WorthQueryInstalledDeclarationContributionTarget {
     let progressed = handle
         .declare_review_and_progress(ContributionInput::new(id))
         .unwrap_or_else(|_| panic!("expected progressed declaration"));
-    WorthQueryDeclarationBoundContributionTarget::for_canonical_declaration(
-        progressed.canonical_declaration(),
-    )
+    handle.contribution_target(progressed.canonical_declaration())
 }
 
 pub(super) fn standard_profile() -> FoundationalProfileSet {

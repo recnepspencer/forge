@@ -1,6 +1,4 @@
 use crate::identity::hash_parts;
-
-#[allow(dead_code)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryGraphReadStreamingCursorDenialKind {
     CursorReplayDenied,
@@ -9,8 +7,6 @@ pub enum WorthQueryGraphReadStreamingCursorDenialKind {
     CursorSequenceSkipped,
     WorthdCursorDenied,
 }
-
-#[allow(dead_code)]
 impl WorthQueryGraphReadStreamingCursorDenialKind {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -22,8 +18,6 @@ impl WorthQueryGraphReadStreamingCursorDenialKind {
         }
     }
 }
-
-#[allow(dead_code)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryGraphReadStreamingCursorDenial {
     digest: String,
@@ -33,8 +27,6 @@ pub struct WorthQueryGraphReadStreamingCursorDenial {
     expected_identity_digest: Option<String>,
     observed_identity_digest: Option<String>,
 }
-
-#[allow(dead_code)]
 impl WorthQueryGraphReadStreamingCursorDenial {
     pub fn digest(&self) -> &str {
         &self.digest

@@ -80,14 +80,14 @@ fn intent_advanced_path_helper_exposes_request_eligibility_decision_and_handoff(
 fn effect_write_intent_common_path_helper_executes_through_canonical_handoff() {
     let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.effect-dx",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.reconcile-dx",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",

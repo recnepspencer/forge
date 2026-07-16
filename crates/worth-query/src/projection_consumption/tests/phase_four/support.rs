@@ -113,37 +113,41 @@ pub(crate) fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
             SnapshotReadRecord::for_request(
                 &entity_one_identity,
                 aspect_value(
-                    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("task-1"),
+                    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("task-1"),
                 ),
             ),
             SnapshotReadRecord::for_request(
                 &entity_one_lane,
                 aspect_value(
-                    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("todo"),
+                    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("todo"),
                 ),
             ),
             SnapshotReadRecord::for_request(
                 &entity_one_display,
                 aspect_value(
-                    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("Task One"),
+                    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
+                        "Task One",
+                    ),
                 ),
             ),
             SnapshotReadRecord::for_request(
                 &entity_two_identity,
                 aspect_value(
-                    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("task-2"),
+                    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("task-2"),
                 ),
             ),
             SnapshotReadRecord::for_request(
                 &entity_two_lane,
                 aspect_value(
-                    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("doing"),
+                    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("doing"),
                 ),
             ),
             SnapshotReadRecord::for_request(
                 &entity_two_display,
                 aspect_value(
-                    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("Task Two"),
+                    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
+                        "Task Two",
+                    ),
                 ),
             ),
         ],
@@ -271,7 +275,7 @@ pub(crate) fn entity_from_projection(
 }
 
 pub(crate) fn text_value(value: impl Into<String>) -> AspectValue {
-    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value)
+    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value)
 }
 
 pub(crate) fn int_value(value: i64) -> AspectValue {

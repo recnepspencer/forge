@@ -2,7 +2,7 @@
 
 ## What This Page Helps You Choose
 
-Use when you need **evidence or explanation** after a run and are mixing up `workspace.inspect`, `CausalInspection`, and **explanation contributions**.
+Use when you need **evidence or explanation** after a run and are mixing up `workspace.inspections()?.inspect`, `CausalInspection`, and **explanation contributions**.
 
 ## When Workspace Inspect
 
@@ -17,11 +17,11 @@ Use when you need **evidence or explanation** after a run and are mixing up `wor
 - `CrossRuntimeCausalExplanation` (reference-only supported; materialized detail advisory)
 - temporal wakes, async completions, mixed-cause suppressions, preview remasks,
   replay drift, and resume mismatch
-- **Not** `workspace.inspect`—see [cross-runtime causal inspection](../../capabilities/cross-runtime-causal-inspection.md)
+- **Not** `workspace.inspections()?.inspect`—see [cross-runtime causal inspection](../../capabilities/cross-runtime-causal-inspection.md)
 
 ## When Explanation Contributions
 
-- domain **declaration posture** for explanation ([lower-runtime explanation contributions](../explanation/lower-runtime-explanation-contributions.md))
+- domain **declaration posture** for explanation (lower-runtime explanation contributions)
 - does not replace causal inspection APIs or general inspection reads
 
 ## Quick Rules
@@ -37,5 +37,5 @@ Use when you need **evidence or explanation** after a run and are mixing up `wor
 
 - [Inspection](../../capabilities/inspection.md)
 - [Cross-runtime causal inspection](../../capabilities/cross-runtime-causal-inspection.md)
-- [Lower-runtime explanation contributions](../explanation/lower-runtime-explanation-contributions.md)
+- Lower-runtime explanation contributions
 - [Inspection vs readiness vs recovery](./inspection-vs-readiness-vs-recovery.md)

@@ -1,13 +1,15 @@
+#[cfg(test)]
+use worth_foundational::FoundationalDiagnosticDeliveryClass;
 use worth_foundational::{
     boundary_evidence, derive_foundational_profile_identity, BoundaryHandle,
     CanonicalizationRuleVersion, FoundationalBoundaryEvidenceCanonicalDigestBasis,
     FoundationalBoundaryEvidenceFreshnessPosture, FoundationalBoundaryEvidenceProfileBasis,
     FoundationalBoundaryEvidenceProvenanceArtifact, FoundationalBoundaryEvidenceSourceBasis,
     FoundationalBoundaryEvidenceStrategyBasis,
-    FoundationalBoundaryEvidenceSupportContextAttachment, FoundationalDiagnosticDeliveryClass,
-    FoundationalTransitionStrategyFamily, FoundationalTransitionStrategyId,
-    FoundationalTransitionStrategyIdentity, FoundationalTransitionStrategyOwnershipClass,
-    FoundationalTransitionStrategySemanticName, FoundationalTransitionStrategyVersion,
+    FoundationalBoundaryEvidenceSupportContextAttachment, FoundationalTransitionStrategyFamily,
+    FoundationalTransitionStrategyId, FoundationalTransitionStrategyIdentity,
+    FoundationalTransitionStrategyOwnershipClass, FoundationalTransitionStrategySemanticName,
+    FoundationalTransitionStrategyVersion,
 };
 use worth_proof::TransitionOutcome;
 
@@ -25,8 +27,10 @@ use super::rows::WorthQueryDomainCapabilityDiagnosticRows;
 
 #[derive(Clone, Copy)]
 pub(crate) enum WorthQueryDomainCapabilityProvenanceFreshnessPolicy {
+    #[cfg(test)]
     SupportSurface(FoundationalDiagnosticDeliveryClass),
     SummaryReduction,
+    #[cfg(test)]
     TraceRetention,
 }
 
@@ -131,6 +135,7 @@ fn freshness_for(
     }
 
     match freshness_policy {
+        #[cfg(test)]
         WorthQueryDomainCapabilityProvenanceFreshnessPolicy::SupportSurface(delivery_class) => {
             match delivery_class {
                 FoundationalDiagnosticDeliveryClass::MustBeHot => {
@@ -148,6 +153,7 @@ fn freshness_for(
         WorthQueryDomainCapabilityProvenanceFreshnessPolicy::SummaryReduction => {
             FoundationalBoundaryEvidenceFreshnessPosture::ReducedRetained
         }
+        #[cfg(test)]
         WorthQueryDomainCapabilityProvenanceFreshnessPolicy::TraceRetention => {
             FoundationalBoundaryEvidenceFreshnessPosture::FreshRetained
         }

@@ -77,5 +77,5 @@ fn native_field_path(aspect: &str, field: &str) -> CanonicalFieldPath {
 }
 
 fn string_value(value: &str) -> worth_foundational::facade::AspectValue {
-    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value.to_string())
+    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value.to_string())
 }

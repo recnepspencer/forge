@@ -145,3 +145,4 @@ fn runtime_exposes_subscription_registry_counters() {
     assert_eq!(counters.family_count(), 2);
     assert_eq!(counters.family_supported_slice_kind_count(), 4);
 }
+use crate::subscription::BridgeSubscriptionDeclarationFamilyKind;

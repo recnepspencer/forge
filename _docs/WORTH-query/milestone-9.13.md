@@ -1,16 +1,15 @@
 # Milestone 9.13: Declarative Query Experience And Phase-Surface Cutover
 
-Status: Core Phases 1-12 closed on 2026-07-14 for the runtime-backed
-declarative product boundary. Add-on Phases 13-26 are open. Phases 13-20 extend
-that boundary with runtime-installed domain packages, runtime-affine domain
-handles, and one canonical domain-capability authority. Phases 21-26 complete
-Foundational-native aspect value authority across Query authoring, predicates,
-schema semantics, materialization, projection consumption, and ordinary
-consumer DX. Store-backed execution parity, durable restore, saved-artifact
-survival, and durable continuation remain Milestones 10 and 11. See
-[milestone-9.13-closeout.md](./milestone-9.13-closeout.md) for the exact closure
-evidence of Phases 1-12; it is a historical closeout, not evidence for the
-add-on phases.
+Status: Complete. Core Phases 1-12 closed on 2026-07-14. Add-on Phases 13-30
+closed on 2026-07-15. The completed boundary includes the runtime-backed
+declarative product surface, runtime-installed domain packages and
+runtime-affine handles, one canonical domain-capability authority, and exact
+Foundational-native aspect values across Query authoring, predicates, schema
+semantics, materialization, projection consumption, and ordinary consumer DX.
+Store-backed execution parity, durable restore, saved-artifact survival, and
+durable continuation remain Milestones 10 and 11. See
+[milestone-9.13-closeout.md](./milestone-9.13-closeout.md) for closure evidence
+for all 30 phases.
 
 ## Goal
 
@@ -53,7 +52,7 @@ Foundational values through mutation, materialization, and projection facts.
 However, the ordinary surface still narrows mutation authoring to a few scalar
 constructors, models predicate operands and schema fields through coarse Query-
 owned enums, rejects complete struct values on a materialized bridge path, and
-names a marker type as though it were a native row. Phases 21-26 close that
+names a marker type as though it were a native row. Phases 21-30 close that
 consumer-boundary fork before Milestone 10 duplicates it across another
 execution substrate.
 
@@ -1401,7 +1400,7 @@ domain setup to execution and diagnostics.
   preserve historical setup as a banned alternative.
 - The installed-domain boundary closes when Phases 13-20 pass hostile
   certification and record their exact non-claims. The milestone returns to
-  fully closed only after Phases 21-26 also close native value authority.
+  fully closed only after Phases 21-30 also close native value authority.
 
 **Open questions**
 
@@ -1476,7 +1475,245 @@ JSON cannot quietly leave a second, smaller Query value system in authority.
 - Exact facade names remain implementation decisions; authority ownership and
   complete family coverage do not.
 
-### Phase 22: Admit The Full Native Value Vocabulary Through Mutation
+### Phase 22: Establish Portable Native Patch And State Readmission
+
+Give Foundational one authority-honest representation for native aspect patches
+and stored aspect state crossing serialization, process, or lower-runtime trust
+boundaries. Portable artifacts carry exact candidate meaning but no validation
+authority. A single contract-aware readmission front door must reconstruct the
+sealed authoritative patch or state, or deny before mutation, restoration, or
+publication.
+
+**Relevant subsystems**
+
+- Foundational aspect values, contracts, mutation masks, patches, and states
+- canonical portable encoding and contract-revision identity
+- lower-runtime handoff, durable checkpoint, replay, and restoration ingress
+- denials for stale contracts, malformed values, and illegal operation shapes
+
+**Relevant APIs**
+
+- `AuthoritativeRecordAspectPatch` and `AuthoritativeRecordAspectState`
+- proposed non-authoritative portable patch and state candidates
+- contract registry lookup and Foundational value-validation front doors
+- canonical export and readmission receipts or structured denials
+
+**Warnings**
+
+- A serde-capable type must not deserialize directly into validated or
+  authoritative proof. Serialization round-trip preserves candidate meaning,
+  not trust.
+- Portable whole set, whole clear, field set, field clear, absence, explicit
+  null, default, mutation mask, and contract revision are distinct grammar.
+- A map of field values is not an authoritative patch. It loses operation kind
+  and may not be used as the portable canonical form.
+- Readmission resolves the current contract once per touched aspect and rejects
+  all drift before any authoritative state is mutated.
+
+**Test requirements**
+
+- Complete patch round-trips cover whole set, whole clear, mixed field set and
+  clear, scalar and nested struct values, entity references, explicit null,
+  and legal absence without semantic projection.
+- Hostile readmission tests cover stale revisions, missing contracts, malformed
+  canonical scalar wrappers, undeclared struct fields, illegal masks, duplicate
+  operations, and forged proof-shaped serialized payloads.
+- State snapshot tests prove restore revalidates every entry and publishes no
+  partial state when any entry fails.
+- Compile-fail or visibility tests prove portable candidates cannot satisfy
+  APIs requiring contract-validated values, authoritative patches, or admitted
+  states.
+
+**Engineering decisions**
+
+- Foundational owns the portable grammar because only Foundational can preserve
+  the complete native value and patch vocabulary without a parallel model.
+- Canonical export is available from sealed authoritative artifacts. Readmission
+  requires an explicit current-contract resolver and yields fresh authority.
+- Proof-bearing patch and state types do not implement unguarded deserialization.
+- Portable encoding is the common lower-runtime, durability, and replay handoff;
+  consumers do not invent substrate-specific projections.
+
+**Open questions**
+
+- The concrete resolver trait and portable encoding format are implementation
+  choices; proof erasure at export and fresh admission at ingress are not.
+
+### Phase 23: Add Native Record Patch Ingress To Relational
+
+Give Relational an explicit native record-aspect mutation lane for entities and
+relations, including creation and update. The intent grammar preserves the
+Foundational operation kind through admission and never reconstructs an
+authoritative patch from a set-only physical field map.
+
+**Relevant subsystems**
+
+- entity and relation creation intents
+- existing-record mutation targets and transaction intent serialization
+- aspect field authoring compatibility and native patch admission
+- authoritative patch application and publication
+
+**Relevant APIs**
+
+- `CreateIntent`, `EntityMutationIntent`, and relation mutation intent grammar
+- `ExistingRecordTarget` and `RecordRef`
+- `AspectFieldPatch` compatibility authoring
+- Foundational portable and authoritative record-aspect patches
+
+**Warnings**
+
+- `AspectFieldPatch` remains a legitimate field-authoring input, but it is not
+  the native Query authority lane and must lower through the same Foundational
+  admission choke point.
+- Entity and relation, creation and update, whole and field operations must not
+  diverge into separately maintained semantics.
+- Clear on creation must follow explicit Foundational absence law; it may not be
+  silently treated as no-op authoring.
+- A serialized transaction intent carries an untrusted portable candidate and
+  earns fresh authority from the transaction's current schema basis.
+
+**Test requirements**
+
+- Entity and relation matrices cover creation and update with scalar, struct,
+  reference, whole-set, whole-clear, field-set, and field-clear operations.
+- Compatibility field authoring and explicit native patch authoring converge
+  only when they express the same Foundational operation; whole-set identity is
+  never collapsed into a field patch.
+- Wrong target kind, stale schema, illegal creation clear, and malformed
+  portable intent deny before record mutation and publication.
+- Serialization round-trips prove intent portability does not confer admitted
+  or authoritative proof.
+
+**Engineering decisions**
+
+- Relational accepts one record-targeted portable patch candidate and re-admits
+  it against the transaction schema before planning.
+- Entity and relation routing share record-aspect admission and differ only in
+  target resolution and invariant scope.
+- The existing field-authoring surface lowers into this lane; it cannot remain
+  a competing commit authority.
+- Commit publication retains the exact re-admitted
+  `AuthoritativeRecordAspectPatch`.
+
+**Open questions**
+
+- Exact public constructor names remain implementation decisions; the unified
+  record-targeted authority lane does not.
+
+### Phase 24: Carry Native Patch Meaning Through Transaction Semantics
+
+Integrate the re-admitted native patch into every transaction phase that can
+change its fate or identity: normalization, ordering, merge, conflict handling,
+validation, invariant and uniqueness scope, commit strategy selection, touched
+records, counters, receipts, and publication. No later phase may rediscover
+meaning from projected fields.
+
+**Relevant subsystems**
+
+- transaction planning, normalization, merge, and reconciliation
+- optimistic and pessimistic commit strategies
+- invariant, uniqueness, graph, and touched-scope validation
+- canonical intent identity, receipts, counters, and publication
+
+**Relevant APIs**
+
+- mutation planning and merged-intent representations
+- conflict and reconciliation policy
+- authoritative patch application and published patch operations
+- transaction digests, touched-record summaries, and work counters
+
+**Warnings**
+
+- Native patches cannot bypass merge or conflict policy merely because their
+  values were validated earlier.
+- Whole set and field patch touching the same aspect require an explicit
+  deterministic conflict law; iteration order is not policy.
+- Validation work is bounded by touched contracts, fields, records, and declared
+  invariants. Native admission must not scan unrelated schema or graph state.
+- Receipts and canonical identity include exact operation meaning and schema
+  basis, not display text or a reconstructed final value alone.
+
+**Test requirements**
+
+- Permutation and batching tests prove deterministic ordering and identical
+  outcomes for semantically equivalent native intent batches.
+- Merge-hostility tests cover whole/field collisions, set/clear collisions,
+  duplicate targets, stale preconditions, mixed entity/relation batches, and
+  competing compatibility/native authoring.
+- Strategy-parity tests prove every supported commit strategy applies and
+  publishes the same authoritative patch meaning.
+- Exact counters prove denial performs zero commit/publication work and valid
+  work scales only with touched patch entries and declared validation scope.
+
+**Engineering decisions**
+
+- The re-admitted authoritative patch is the transaction's semantic authority;
+  physical field deltas and final values are derived execution views.
+- Merge produces one explicit admitted record mutation or a typed conflict. It
+  never relies on last-write iteration behavior.
+- Touched scope is derived from target plus patch operations before invariant
+  scheduling and retained through publication and receipts.
+- Every strategy consumes the same planned native mutation artifact.
+
+**Open questions**
+
+- None.
+
+### Phase 25: Readmit Native State Across Durability And Replay
+
+Cut proof-shaped aspect state out of checkpoint and replay serialization. Store
+portable candidate state and patches, verify integrity and schema identity, and
+re-admit all native values before rebuilt runtime state becomes visible.
+
+**Relevant subsystems**
+
+- checkpoint creation and restore
+- transaction log and published patch replay
+- runtime rebuild and derived-index reconstruction
+- integrity manifests, schema snapshots, and restoration atomicity
+
+**Relevant APIs**
+
+- durable checkpoint record-aspect payloads
+- replayed published patch operations
+- Foundational portable state and patch readmission
+- restore denials and rebuild publication barrier
+
+**Warnings**
+
+- A valid checksum proves byte integrity, not contract validity or authority.
+- Restore may not copy `AuthoritativeRecordAspectState` directly from serde.
+- Schema migration is not implicit coercion. Unsupported contract drift denies
+  or enters an explicitly governed migration lane outside ordinary restore.
+- Derived-index rebuild begins only after complete state readmission succeeds.
+
+**Test requirements**
+
+- Restart and replay tests cover every native scalar family, representative
+  structs, references, whole and field clears, and mixed entity/relation state.
+- Tamper, stale-contract, removed-field, changed-mask, malformed-value, and
+  valid-checksum-but-invalid-meaning tests deny atomically before publication.
+- Checkpoint and log replay converge on identical authoritative states,
+  canonical identities, published operations, and derived indexes.
+- Sabotage tests reintroducing proof-bearing deserialization or direct restored
+  state insertion fail a source, trait, or boundary prohibition.
+
+**Engineering decisions**
+
+- Durability owns portable bytes and integrity; Foundational owns meaning
+  readmission; Relational owns atomic rebuild publication.
+- Restored authority is newly admitted against the active schema and runtime
+  basis. It is not authority transported through serde.
+- Replay and checkpoint restore share the same readmission primitive and may
+  differ only in their surrounding integrity and ordering evidence.
+- Migration remains an explicit future capability unless this milestone defines
+  and certifies one; silent widening or defaulting is prohibited.
+
+**Open questions**
+
+- None.
+
+### Phase 26: Admit The Full Native Value Vocabulary Through Mutation
 
 Make ordinary mutation and workflow authoring capable of expressing every
 Foundational scalar family and admitted struct aspect while keeping raw authored
@@ -1542,7 +1779,7 @@ Ergonomic primitive constructors remain sugar over the same native path.
   struct declaration builder is an implementation choice; both must lower to
   the same Foundational contract and patch authority.
 
-### Phase 23: Derive Schema And Predicate Semantics From Native Contracts
+### Phase 27: Derive Schema And Predicate Semantics From Native Contracts
 
 Replace coarse Query-owned field and predicate value authority with
 contract-derived operator capability. Equality, membership, ordering, numeric,
@@ -1613,7 +1850,7 @@ deny unsupported operations before planning.
 
 - None.
 
-### Phase 24: Preserve Native Scalars And Structs Through Results
+### Phase 28: Preserve Native Scalars And Structs Through Results
 
 Complete the read side so retained rows, bridge materializations, live results,
 projection facts, ordinary outcomes, and consumer refinement preserve the exact
@@ -1684,7 +1921,7 @@ projection remains available only as an explicit projection decision.
   or both is an implementation choice; both forms must preserve one source
   contract and canonical value identity.
 
-### Phase 25: Centralize Native Value Identity And Contract The Facade
+### Phase 29: Centralize Native Value Identity And Contract The Facade
 
 Move canonical aspect-value identity to one Foundational-owned encoding basis,
 make every Query digest or equivalence context compose that basis with explicit
@@ -1760,7 +1997,7 @@ value exports.
   input artifact. It must preserve every Foundational family and struct shape
   without allocating presentation text on ordinary hot paths.
 
-### Phase 26: Cut Over Consumers And Certify Native Value Closure
+### Phase 30: Cut Over Consumers And Certify Native Value Closure
 
 Migrate real consumers, rewrite discovery, delete every reduced or reconstructed
 value path, and certify one exact native value story from public authoring to
@@ -1823,7 +2060,7 @@ structs survive every supported runtime-backed Query journey.
   residue, sabotage, replay, and bounded-work digests.
 - Support rows distinguish genuinely unsupported operators or source families
   from missing native value plumbing. The latter blocks closure.
-- Phases 21-26 close as one add-on program after installed-domain authority;
+- Phases 21-30 close as one add-on program after installed-domain authority;
   no consumer cutover may declare success while authoring, predicates, structs,
   rows, identity, or refinement remains on a competing value model.
 - Milestone 10 consumes these exact canonical native predicate, mutation,
@@ -1962,7 +2199,7 @@ identity, operation-registry ownership, and contribution binding are runtime-
 semantic foundations. Deferring them would force store-backed execution to
 inherit and multiply today's competing domain entry paths.
 
-Phases 21-26 follow installed-domain closure because the final consumer-native
+Phases 21-30 follow installed-domain closure because the final consumer-native
 value grammar must cover domain-installed authoring, execution, projection,
 and inspection rather than certify only pre-installation examples. They still
 precede Milestone 10 because store-backed predicate pushdown and result
@@ -1971,7 +2208,7 @@ materialization must inherit one exact native value contract.
 The add-on phases are strictly ordered. Phases 13-20 freeze the domain authority
 inventory, create the canonical package, install runtime authority, compile
 execution indexes, bind contributions and rebind, contract the facade, and
-certify consumer adoption. Phases 21-26 then freeze native value authority,
+certify consumer adoption. Phases 21-30 then freeze native value authority,
 complete write authoring, derive schema and predicate capability, preserve
 native result/struct consumption, centralize canonical value identity and
 contract the facade, and close with hostile consumer certification.
@@ -1994,7 +2231,7 @@ identity, and generation-safe handles. Persistence, restart-stable package
 reload, and cross-process handle restoration are not claimed here and must be
 implemented later without changing the installed-domain grammar.
 
-Native value closure is not blocked on `worth-store`. Phases 21-26 operate over
+Native value closure is not blocked on `worth-store`. Phases 21-30 operate over
 Foundational contracts and the existing runtime-backed Query substrate. Any
 missing Foundational canonical identity front door is in-scope substrate work.
 Milestone 10 must reuse the resulting predicate, mutation, row, result, and

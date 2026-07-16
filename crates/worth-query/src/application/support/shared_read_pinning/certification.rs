@@ -128,13 +128,11 @@ impl WorthQuerySharedReadPinningCertification {
     pub fn closure(&self) -> &WorthQuerySharedReadPinningBoundaryClosure {
         &self.closure
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn artifact_digest(&self) -> &str {
         &self.artifact_digest
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn failure_digest(&self) -> &str {
         &self.failure_digest
     }

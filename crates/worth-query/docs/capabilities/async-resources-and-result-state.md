@@ -37,13 +37,13 @@ Declaration-side authoring:
 - `WorthQueryAsyncLoadingPosture::{Blocking, BackgroundRefresh}`
 - `WorthQueryAsyncFailurePosture::{FailClosed, RetainStaleValue}`
 - `WorthQueryDeclarationFamilyMarker::async_declaration_support()`
-- `WorthQueryAdmittedConfiguredDomainHandle::declare(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::declare_checked(...)`
+- `WorthQueryInstalledDomainDeclarationContext::declare(...)`
+- `WorthQueryInstalledDomainDeclarationContext::declare_checked(...)`
 
 Runtime-backed observation and explanation:
 
 - `workspace.state(...)`
-- `workspace.inspect(...)`
+- `workspace.inspections()?.inspect(...)`
 - `workspace.downstream_delivery(...)`
 - live inspection `async_result_state()`
 - compact runtime posture `ordinary_runtime_posture().async_posture()`
@@ -107,7 +107,7 @@ The important rule is:
 4. If the family does not admit async meaning, declaration admission fails
    closed as `AsyncUnsupported` or `AsyncDeferred`.
 5. When a runtime-backed live surface retains async state, `workspace.state(...)`
-   and `workspace.inspect(...)` project that retained result-state.
+   and `workspace.inspections()?.inspect(...)` project that retained result-state.
 6. If you materialize or consume facts later, Query preserves async-backed
    posture on the contract, fact set, and receipt.
 7. If continuation resumes against drifted async meaning, Query reports typed
@@ -254,7 +254,7 @@ surfaces:
 
 ```rust
 let state = workspace.state(&door_edge_live)?;
-let inspection = workspace.inspect(&door_edge_live)?;
+let inspection = workspace.inspections()?.inspect(&door_edge_live)?;
 
 let scalar_async = state
     .ordinary_runtime_posture()
@@ -315,7 +315,7 @@ What gets retained automatically:
 
 ## How It Relates To Other Features
 
-- Use [Canonical Domain Declarations](../domain-capabilities/canonical-domain-declarations.md)
+- Use Installed Domain Declarations
   when you need to author async meaning directly on declaration input.
 - Use [Subscription Selection And Diagnostics](subscription-selection-and-diagnostics.md)
   when the question is which live family Query should select for future-bearing
@@ -342,7 +342,7 @@ expected:
 - scalar live posture:
   `workspace.state(&view)?.ordinary_runtime_posture()?.async_posture()`
 - rich live explanation:
-  `workspace.inspect(&view)?` then `async_result_state()`
+  `workspace.inspections()?.inspect(&view)?` then `async_result_state()`
 - materialized fact posture:
   `WorthQueryConsumedProjectionAuthority::receipt().materialized_fact_posture()`
 - downstream delivery:
@@ -365,7 +365,7 @@ such as:
 
 When the problem is "why did this async event happen across runtime lanes?",
 switch to [Cross-runtime causal inspection](cross-runtime-causal-inspection.md)
-instead of expecting `workspace.inspect(...)` to become a second causal API.
+instead of expecting `workspace.inspections()?.inspect(...)` to become a second causal API.
 
 ## Anti-Patterns
 
@@ -378,7 +378,7 @@ instead of expecting `workspace.inspect(...)` to become a second causal API.
 - Building a second app-owned retry or stale-state taxonomy on top of Query's
   retained async result-state without a real product reason.
 - Reopening raw runtime artifacts or transport callbacks in downstream code
-  when `workspace.inspect(...)`, projection consumption receipts, or
+  when `workspace.inspections()?.inspect(...)`, projection consumption receipts, or
   downstream delivery already expose the async posture you need.
 - Treating async request drift, replay drift, remask drift, and stale
   completion as interchangeable continuation failures.
@@ -399,7 +399,7 @@ instead of expecting `workspace.inspect(...)` to become a second causal API.
 
 ## Related Docs
 
-- [Canonical Domain Declarations](../domain-capabilities/canonical-domain-declarations.md)
+- Installed Domain Declarations
 - [Subscription Selection And Diagnostics](subscription-selection-and-diagnostics.md)
 - [Inspection](inspection.md)
 - [Projection Consumption](projection-consumption.md)

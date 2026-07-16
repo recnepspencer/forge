@@ -24,15 +24,10 @@ pub use execution_evidence::{
     WorthQueryGraphReadPersistentArtifactAudit,
 };
 pub use explanation::WorthQueryGraphReadAccessPlanExplanation;
-pub use planner::{
-    admit_graph_read_access_for_family, admit_graph_read_access_for_family_in_authority,
-    plan_admitted_graph_read_access_for_family,
-    plan_admitted_graph_read_access_for_family_in_authority,
-};
+pub(crate) use planner::admit_graph_read_access_for_family_in_authority_with_inventory_and_lookup;
+#[cfg(test)]
 pub(crate) use planner::{
-    admit_graph_read_access_for_family_in_authority_with_inventory,
-    admit_graph_read_access_for_family_in_authority_with_inventory_and_lookup,
-    admit_graph_read_access_for_family_with_inventory,
+    admit_graph_read_access_for_family, plan_admitted_graph_read_access_for_family,
 };
 pub use posture::WorthQueryGraphReadAccessAdmissionPosture;
 pub use required_capability::WorthQueryGraphReadRequiredCapabilityOwner;

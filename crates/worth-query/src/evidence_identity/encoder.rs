@@ -173,8 +173,6 @@ impl WorthQueryEvidenceIdentityEncoder {
             None => self,
         }
     }
-
-    #[allow(dead_code)]
     pub(crate) fn optional_evidence_identity(
         self,
         tag: WorthQueryEvidenceTag,

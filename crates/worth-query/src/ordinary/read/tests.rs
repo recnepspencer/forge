@@ -6,7 +6,7 @@ use crate::authoring::{
 use crate::composition::{
     QueryScopeDescriptor, QueryTemplateDescriptor, TemplateBindingSet, TemplateParameterSlot,
 };
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
 
 #[test]
 fn equivalent_read_declarations_converge_on_one_canonical_identity() {
@@ -90,7 +90,7 @@ fn identity_schema() -> QuerySchemaView {
         [SchemaFieldView::new(
             AspectName::new("identity").expect("test aspect must be valid"),
             FieldName::new("id").expect("test field must be valid"),
-            SchemaFieldKind::String,
+            ScalarAspectType::String,
         )],
         [],
     )
@@ -141,12 +141,12 @@ fn named_schema() -> QuerySchemaView {
             SchemaFieldView::new(
                 AspectName::new("identity").expect("test aspect must be valid"),
                 FieldName::new("id").expect("test field must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 AspectName::new("profile").expect("test aspect must be valid"),
                 FieldName::new("display_name").expect("test field must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [],

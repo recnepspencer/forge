@@ -1,15 +1,14 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
-    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
-    WorthQueryDeclarationProgressionContract, WorthQueryDescriptiveOnlyAuthority,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
-    WorthQuerySignalCompatiblePosture, WorthQuerySignalDeferredPosture,
-    WorthQuerySingleOnlyGrouping,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationCanonicalEntry,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
+    WorthQueryDeclarationLegalityContract, WorthQueryDeclarationProgressionContract,
+    WorthQueryDescriptiveOnlyAuthority, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryNeighborhoodCapableGrouping,
+    WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
+    WorthQuerySignalDeferredPosture, WorthQuerySingleOnlyGrouping,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -52,14 +51,18 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for CollaborativeWorld {
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("geometry.{}", self.regime)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("geometry.{}", self.regime) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
 macro_rules! declare_family {
     (
         $name:ident,
+        $family_key:literal,
         $authority:ty,
         $signal:ty,
         $grouped:ty,
@@ -76,7 +79,7 @@ macro_rules! declare_family {
             type GroupedPosture = $grouped;
 
             fn semantic_family_key() -> &'static str {
-                "split-edge"
+                $family_key
             }
 
             fn aspect_contract() -> WorthQueryDeclarationAspectContract {
@@ -99,6 +102,7 @@ macro_rules! declare_family {
 
 declare_family!(
     AdmittedFamily,
+    "split-edge",
     WorthQueryRelationalTruthAuthority,
     WorthQuerySignalCompatiblePosture,
     WorthQueryNeighborhoodCapableGrouping,
@@ -114,6 +118,7 @@ declare_family!(
 );
 declare_family!(
     ReceiptFamily,
+    "split-edge-receipt",
     WorthQueryRelationalTruthAuthority,
     WorthQuerySignalCompatiblePosture,
     WorthQueryNeighborhoodCapableGrouping,
@@ -129,6 +134,7 @@ declare_family!(
 );
 declare_family!(
     DeferredFamily,
+    "split-edge-deferred",
     WorthQueryRelationalTruthAuthority,
     WorthQuerySignalCompatiblePosture,
     WorthQueryNeighborhoodCapableGrouping,
@@ -144,6 +150,7 @@ declare_family!(
 );
 declare_family!(
     DeniedFamily,
+    "split-edge-denied",
     WorthQueryRelationalTruthAuthority,
     WorthQuerySignalCompatiblePosture,
     WorthQueryNeighborhoodCapableGrouping,
@@ -159,6 +166,7 @@ declare_family!(
 );
 declare_family!(
     StaleFamily,
+    "split-edge-stale",
     WorthQueryRelationalTruthAuthority,
     WorthQuerySignalCompatiblePosture,
     WorthQueryNeighborhoodCapableGrouping,
@@ -174,6 +182,7 @@ declare_family!(
 );
 declare_family!(
     FailedFamily,
+    "split-edge-failed",
     WorthQueryRelationalTruthAuthority,
     WorthQuerySignalCompatiblePosture,
     WorthQueryNeighborhoodCapableGrouping,
@@ -189,6 +198,7 @@ declare_family!(
 );
 declare_family!(
     AlternateAspectFamily,
+    "split-edge-alternate-aspect",
     WorthQueryRelationalTruthAuthority,
     WorthQuerySignalCompatiblePosture,
     WorthQueryNeighborhoodCapableGrouping,
@@ -204,6 +214,7 @@ declare_family!(
 );
 declare_family!(
     DescriptiveDeferredSignalFamily,
+    "split-edge-descriptive-deferred-signal",
     WorthQueryDescriptiveOnlyAuthority,
     WorthQuerySignalDeferredPosture,
     WorthQuerySingleOnlyGrouping,
@@ -227,7 +238,7 @@ impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for MaskedCoverageFamily 
     type GroupedPosture = WorthQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "split-edge-masked-coverage"
     }
 
     fn aspect_contract() -> WorthQueryDeclarationAspectContract {
@@ -261,15 +272,15 @@ impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for MaskedCoverageFamily 
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) struct WorldSensitiveFamily;
+pub(super) struct RebindRequiredFamily;
 
-impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for WorldSensitiveFamily {
+impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for RebindRequiredFamily {
     type PrimaryAuthority = WorthQueryRelationalTruthAuthority;
     type SignalCompatibility = WorthQuerySignalCompatiblePosture;
     type GroupedPosture = WorthQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "split-edge-rebind-required"
     }
 
     fn legality_contract() -> WorthQueryDeclarationLegalityContract {
@@ -278,13 +289,9 @@ impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for WorldSensitiveFamily 
 
     fn progression_contract(
         _handle_identity_digest: &str,
-        operating_context_identity_digest: &str,
+        _operating_context_identity_digest: &str,
     ) -> WorthQueryDeclarationProgressionContract {
-        if operating_context_identity_digest.contains("restricted") {
-            WorthQueryDeclarationProgressionContract::rebind_required()
-        } else {
-            WorthQueryDeclarationProgressionContract::admitted_current()
-        }
+        WorthQueryDeclarationProgressionContract::rebind_required()
     }
 }
 
@@ -327,7 +334,7 @@ impl_declaration_input!(
     FailedFamily,
     DescriptiveDeferredSignalFamily,
     MaskedCoverageFamily,
-    WorldSensitiveFamily,
+    RebindRequiredFamily,
 );
 
 pub(super) fn admitted_handle(
@@ -354,7 +361,7 @@ pub(super) fn admitted_handle(
             >(),
             crate::application::domain_test_support::family::<GeometryDomain, MaskedCoverageFamily>(
             ),
-            crate::application::domain_test_support::family::<GeometryDomain, WorldSensitiveFamily>(
+            crate::application::domain_test_support::family::<GeometryDomain, RebindRequiredFamily>(
             ),
         ],
     )

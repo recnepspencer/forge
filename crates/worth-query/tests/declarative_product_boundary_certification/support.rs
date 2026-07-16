@@ -3,11 +3,10 @@ use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use worth_query::facade::foundation::{basis_lifecycle, ScopedInspectionBasis};
 use worth_query::facade::mutation::{
     WorthQueryAspectTouch, WorthQueryAuthoredAspectValue, WorthQueryMutationDeclaration,
-    WorthQueryMutationDeclarationStop,
 };
 use worth_query::facade::read::{
     AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName, QuerySchemaView,
-    SchemaFieldKind, SchemaFieldView, WorthQueryReadDenial,
+    ScalarAspectType, SchemaFieldView, WorthQueryReadDenial,
 };
 use worth_query::facade::runtime::{WorthQueryReadBuilder, WorthQueryWorkspace};
 
@@ -52,19 +51,6 @@ pub fn mutation(value: &str) -> WorthQueryMutationDeclaration {
     .expect("product boundary mutation should declare")
 }
 
-pub fn contributed_mutation(
-    value: &str,
-) -> Result<WorthQueryMutationDeclaration, WorthQueryMutationDeclarationStop> {
-    worth_query::facade::mutation::declare(|mutation| {
-        mutation
-            .set_aspect(
-                WorthQueryAspectTouch::from_authoring_ingress_text("identity.id")?,
-                WorthQueryAuthoredAspectValue::string(value),
-            )
-            .build_insert("Task")
-    })
-}
-
 pub fn write_task(workspace: &mut WorthQueryWorkspace, id: &str) {
     workspace
         .insert("Task", |task| {
@@ -95,7 +81,7 @@ fn identity_schema(label: &str) -> QuerySchemaView {
         [SchemaFieldView::new(
             AspectName::new("identity").expect("identity aspect should build"),
             FieldName::new("id").expect("identity field should build"),
-            SchemaFieldKind::String,
+            ScalarAspectType::String,
         )],
         [],
     )

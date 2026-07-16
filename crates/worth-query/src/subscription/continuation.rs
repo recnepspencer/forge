@@ -9,6 +9,7 @@ use super::continuation_error::{
 use super::delivery_density::ActiveDeliveryDensityPosture;
 use super::delivery_dimensions::{ContinuationRemapWidth, MaintenanceDeltaWidth};
 use super::delivery_window::QueryDeliveryWindow;
+#[cfg(test)]
 use super::evidence_identities::{
     lifecycle_continuation_endpoint_identity, lifecycle_continuation_identity,
     lifecycle_continuation_ordinary_checkpoint_identity,
@@ -61,6 +62,7 @@ pub struct SubscriptionContinuationEvidence {
 
 impl SubscriptionContinuationEvidence {
     #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
     pub(super) fn new(
         active_lane_digest: ActiveSubscriptionLaneDigest,
         continuation_class: SubscriptionContinuationClass,
@@ -282,6 +284,7 @@ impl SubscriptionContinuationReport {
 }
 
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 pub fn admit_subscription_continuation_evidence(
     active_lane_digest: ActiveSubscriptionLaneDigest,
     continuation_class: SubscriptionContinuationClass,
@@ -307,6 +310,7 @@ pub fn admit_subscription_continuation_evidence(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 pub fn admit_subscription_continuation_evidence_with_active_identity(
     active_lane_digest: ActiveSubscriptionLaneDigest,
     continuation_class: SubscriptionContinuationClass,

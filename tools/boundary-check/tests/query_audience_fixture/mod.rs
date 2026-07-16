@@ -272,17 +272,17 @@ pub fn write_query_stubs(root: &Path) {
     write_leaf_facade(
         root,
         "worth-query-decl",
-        "pub use worth_query::facade::CanonicalQueryArtifact;\n",
+        "pub use worth_query::facade::foundation::CanonicalQueryArtifact;\n",
     );
     write_leaf_facade(
         root,
         "worth-query-host",
-        "pub use worth_query::facade::WorthQueryApplicationFacade;\n",
+        "pub use worth_query::facade::domain;\npub use worth_query::facade::runtime;\n",
     );
     write_leaf_facade(
         root,
         "worth-query-replay",
-        "pub use worth_query::facade::ReplayBasisCapability;\n",
+        "pub use worth_query::facade::foundation::ScopedReplayBasis;\n",
     );
 }
 

@@ -59,13 +59,6 @@ impl QuerySubscriptionSupportEvidenceError {
 }
 
 impl QuerySubscriptionSupportEvidence {
-    #[allow(dead_code)]
-    pub(crate) fn declaration_projection(
-        &self,
-    ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
-        subscription_evidence_projection(self.declaration_identity())
-    }
-
     pub(crate) fn source_projection(
         &self,
     ) -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {

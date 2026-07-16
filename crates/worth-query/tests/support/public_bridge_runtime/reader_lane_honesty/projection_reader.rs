@@ -69,7 +69,7 @@ fn read_evidence_from_outcome(
             facts
                 .display_fields()
                 .first()
-                .and_then(|fact| match fact.value() {
+                .and_then(|fact| match fact.native_value().scalar()? {
                     AspectValue::String(value) => match value {
                         worth_foundational::facade::InternedString::Raw(value) => {
                             Some(value.as_str())

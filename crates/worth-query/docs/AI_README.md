@@ -110,6 +110,7 @@ If you have no idea where to start, read these first:
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 - [Async Resources And Result State](./capabilities/async-resources-and-result-state.md)
 - [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
+- [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
 
 ## Declarative Capability Surface
 
@@ -268,6 +269,7 @@ typed preview-session identity artifact instead of smuggling preview identity
 through free-form strings.
 If identity matters to support, replay, inspection, workflow binding, or
 recovery, prefer the Query-owned typed artifact over a caller-owned string.
+Those typed stops are the authority boundary; diagnostic terminal text is not.
 
 The application support surface publishes
 `support_report().identity_boundary_closure()`. Read that posture literally:
@@ -377,13 +379,9 @@ syntax/AST based and method-name resolved, not compiler-backed type
 resolution. Do not describe it as closing macro expansion, trait dispatch, or
 type-alias resolution.
 
-The closure signal for this family lives in the support report:
-
-```rust
-let closure = WorthQueryApplicationFacade::runtime_backed_default()
-    .support_report()
-    .consumer_kit_closure();
-```
+The closure signal for this family is Query-owned certification evidence.
+Consumers inspect the public Consumer Kit reports and manifests; they do not
+construct an application facade merely to manufacture a closure signal.
 
 The mistake to avoid is teaching these kit surfaces as nice-to-have wrappers.
 For downstream evidence and certification, they are the canonical lane.
@@ -590,14 +588,23 @@ writes, routes, or inspects. They are not casual dotted field names. They are
 the auditable contract for semantic dependency and change. Authority lanes are
 the ownership side of the same story: they tell Query whether state is
 authoritative truth, branch-local truth, preview truth, derived runtime state,
-effect delivery state, pending write intent, bridge external state, or an
-explicit future temporal/async neighbor.
+effect delivery state, pending write intent, bridge external state, temporal
+execution state, or async resource state. The active support profile decides
+which lanes are admitted for a concrete runtime.
 
 These concepts show up everywhere. Computeds declare what they read and
 produce through aspects. Effects declare what they watch and where delivery
 goes. State and inspection surfaces explain which lane a result belongs to.
 Write receipts preserve aspect operations so later code can see what was
 changed without reconstructing it from raw deltas.
+
+Aspect values keep the exact Foundational scalar or struct vocabulary from
+authoring through contract admission, mutation, reads, retained/live results,
+and projection consumption. Use `AspectValue` and `StructAspectValue` for
+meaning, let the active Foundational contract validate that meaning, and use
+proof-bearing consumed facts when another subsystem needs the result. Native
+refinement is exact and borrowed; it does not parse strings, widen numbers, or
+reconstruct structs.
 
 Reach for this category when the real question is about dependency, production,
 writes, triggers, or ownership. If the task depends on understanding what a
@@ -610,6 +617,7 @@ debug labels. In Query, both are part of the runtime contract.
 Read next:
 
 - [Aspects And Authority Lanes](./modeling/aspects-and-authority-lanes.md)
+- [Native Aspect Values](./capabilities/native-aspect-values.md)
 - [Computed](./runtime-surfaces/computed.md)
 - [Writes And Intent Boundaries](./execution/writes-and-intents.md)
 - [Inspection](./capabilities/inspection.md)
@@ -820,6 +828,36 @@ Read next:
 - [Declarative Query Experience](./capabilities/declarative-query-experience.md)
 - [Inspection](./capabilities/inspection.md)
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
+
+## Runtime-Installed Domains
+
+Runtime-installed domains are Query's pre-runtime capability seam. A domain
+crate declares one typed package, the runtime builder installs it atomically,
+and `WorthQueryWorkspace::domain(...)` returns a handle tied to that runtime
+and installation generation.
+
+The authority split is deliberate:
+
+- domain code owns typed semantic declarations and ergonomic extension traits;
+- Query validates the package, seals identities, builds runtime indexes, and
+  retains installation and execution authority;
+- consumers execute through the installed handle and its typed declaration
+  contexts.
+
+Operating contexts follow the same rule. The domain supplies named semantic
+fields through `WorthQueryDomainOperatingContextIdentityDeclaration`; Query
+canonicalizes and seals them. Field order is not identity, and caller-authored
+digests are not part of the public contract.
+
+Use this category when a domain needs registered reads, invariants, graph
+obligations, declaration families, contributions, or domain-native workflow
+vocabulary to begin inside Query.
+
+Read next:
+
+- [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
+- [Declarative Query Experience](./capabilities/declarative-query-experience.md)
+- [Consumer Kit](./foundations/consumer-kit.md)
 
 ## Domain Capability Contributions
 
@@ -1056,7 +1094,7 @@ Read next:
 
 - [Intent Admission](./execution/intent-admission.md)
 - [Writes And Intent Boundaries](./execution/writes-and-intents.md)
-- [Advisory And Violation Contributions](./domain-capabilities/admission/advisory-and-violation-contributions.md)
+- [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
 
 ## Authoritative Mutation Evidence
 
@@ -1123,7 +1161,7 @@ runtime.
 Read next:
 
 - [Declaration Relational Truth Routing](./domain-capabilities/declaration-relational-truth-routing.md)
-- [Registering Domain Invariants Through Query](./domain-capabilities/invariants/registering-domain-invariants-through-query.md)
+- [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
 - [Capability Gaps And Invariant Denials](./domain-capabilities/invariants/capability-gaps-and-invariant-denials.md)
 
 ## Read Composition And Graph Authoring
@@ -1184,7 +1222,7 @@ Read next:
 - [Graph Touch Obligation Authority](./authoring/graph-touch-obligation-authority.md)
 - [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
 - [Query Expressions And Result Shapes](./authoring/query-expressions-and-result-shapes.md)
-- [Registering Domain Invariants Through Query](./domain-capabilities/invariants/registering-domain-invariants-through-query.md)
+- [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
 
 ## Structural Correspondence And Historical Materialization
 
@@ -1213,7 +1251,7 @@ Read next:
 
 This is the **`CausalInspection` lane** (`admit_causal_inspection`,
 `request_causal_inspection`) for cross-runtime causal explanation—not
-`workspace.inspect`, which is per-target retained evidence only.
+`workspace.inspections()?.inspect`, which is per-target retained evidence only.
 
 `CrossRuntimeCausalExplanation` at reference-only richness is **supported**;
 materialized detail is **advisory**. Durable causal archive and store-backed
@@ -1228,7 +1266,7 @@ authority from identifiers.
 Use this category when the question is end-to-end “why across runtimes?”—not
 “what does inspect retain for this handle?”
 
-The mistake to avoid is calling `workspace.inspect` cross-runtime causal inspection,
+The mistake to avoid is calling `workspace.inspections()?.inspect` cross-runtime causal inspection,
 or using explanation contributions instead of the causal inspection API.
 
 Read next:
@@ -1236,7 +1274,7 @@ Read next:
 - [Cross-Runtime Causal Inspection](./capabilities/cross-runtime-causal-inspection.md)
 - [Inspection](./capabilities/inspection.md)
 - [Inspection Vs Cross-Runtime Explanation](./domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md)
-- [Lower-Runtime Explanation Contributions](./domain-capabilities/explanation/lower-runtime-explanation-contributions.md)
+- [Lower-Runtime Capability Routing](./domain-capabilities/lower-runtime-capability-routing.md)
 
 ## Projection Consumption And Downstream Authority
 
@@ -1336,7 +1374,7 @@ continuation lanes.
 Read next:
 
 - [Async Resources And Result State](./capabilities/async-resources-and-result-state.md)
-- [Canonical Domain Declarations](./domain-capabilities/canonical-domain-declarations.md)
+- [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
 - [Inspection](./capabilities/inspection.md)
 - [Projection Consumption](./capabilities/projection-consumption.md)
 - [Continuation Pipeline](./domain-capabilities/continuation-pipeline.md)
@@ -1492,46 +1530,20 @@ Need public DX:
 - expose a domain facade that forwards to Query instead of teaching raw lower
   runtime plumbing
 
-## Hard Prohibitions
+## Current Authority Roots
 
-- Do not start from lower runtime crates for ordinary domain work.
-- Do not build local pseudo-Query layers.
-- Do not create a second admission path.
-- Do not bypass admitted Query handles.
-- Do not erase canonical declaration identity.
-- Do not flatten Query outcomes into booleans.
-- Do not invent local status enums for states Query already represents.
-- Do not log failures when they can become structured Query/runtime facts.
-- Do not mint proof/theorem/writeback/bridge/signal/relational authority
-  locally.
-- Do not expose internal domain module topology when a facade should own the
-  public surface.
-- Do not add crates merely to mirror Query, bridge, relational, or signal
-  layers.
-- Do not assume a public method is supported because it compiles.
-- Do not teach `workspace.write(...)` as the default runtime mutation story.
-- Do not smuggle identity through raw strings when Query ships a typed artifact
-  or typed label for that boundary.
-- Do not add sibling public APIs for future async or temporal work; check support
-  matrix for admitted neighbors instead.
-- Do not replace Query async result-state with local `loading`, `retrying`, or
-  `cancelled` enums unless you are intentionally projecting it for product UX.
-- Do not implement temporal or time-aware live semantics with ambient host
-  clocks or timers outside the shipped Query runtime-backed temporal surface.
-- Do not implement shared-read pinning by copying snapshots or materialized
-  rows into a side registry.
-- Do not implement consumer proof with local digest helpers, source greps,
-  required-family row lists, or fabricated test receipts when the Consumer Kit
-  owns that proof surface.
-- Do not put `Mutex` or `RwLock` on the committed-read hot path to manufacture
-  apparent concurrency.
-- Do not parse `commit_identity`, receipt strings, or rendered labels to infer
-  journal order.
-- Do not let public-bridge readers bypass projection consumption to read
-  materialization rows directly.
-- Do not persist, clone, mirror, or decompose
-  `WorthQueryConsumedProjectionAuthority`; persist the declarative contract and
-  reacquire authority through Query.
+- Domain setup starts with `WorthQueryDomainPackage::declare`, installs through
+  `WorthQueryRuntimeBuilder::domain_package`, and executes from
+  `WorthQueryWorkspace::domain`.
+- Native aspect meaning comes from `worth_foundational::facade::{AspectValue,
+  StructAspectValue}` and is admitted by Query against the active contract.
+- Ordinary product work starts in the owning capability namespace and retains
+  its typed declaration, outcome, stop, receipt, or managed handle.
+- Downstream facts cross through `consume_projection(...)` and
+  `WorthQueryConsumedProjectionAuthority`.
+- Support posture comes from the support matrix and admission surface.
+- Downstream certification comes from `facade::consumer_kit`.
+
 ## AI Checklist Before Editing Code
 
 Before building on a Query category, answer these:

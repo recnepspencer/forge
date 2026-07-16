@@ -1,13 +1,8 @@
-error[E0308]: mismatched types
- --> tests/ui/effect_lifecycle/proof/postures/effect_lifecycle_rebind_cannot_be_admitted.rs:5:33
+error[E0432]: unresolved import `worth_query::facade::foundation::admit_effect_intent`
+ --> tests/ui/effect_lifecycle/proof/postures/effect_lifecycle_rebind_cannot_be_admitted.rs:1:39
   |
-5 |     let _ = admit_effect_intent(rebind);
-  |             ------------------- ^^^^^^ expected `EffectEligibility`, found `RebindRequiredEffectEligibility`
-  |             |
-  |             arguments to this function are incorrect
-  |
-note: function defined here
- --> src/effect_lifecycle/admission.rs
-  |
-  | pub fn admit_effect_intent(eligibility: EffectEligibility) -> AdmittedEffectIntent {
-  |        ^^^^^^^^^^^^^^^^^^^
+1 | use worth_query::facade::foundation::{admit_effect_intent, RebindRequiredEffectEligibility};
+  |                                       ^^^^^^^^^^^^^^^^^^^
+  |                                       |
+  |                                       no `admit_effect_intent` in `facade::foundation`
+  |                                       help: a similar name exists in the module: `AdmittedEffectIntent`

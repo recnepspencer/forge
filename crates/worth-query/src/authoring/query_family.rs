@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use super::{
-    AspectFieldSelector, AuthoringError, EqualityPredicate, IntegerComparisonPredicate,
+    AspectFieldSelector, AuthoringError, EqualityPredicate, NativeComparisonPredicate,
     OrderingSelector, PredicateSelector, PresencePredicate, RawAuthoredQuery, RootEntityKey,
     SetMembershipPredicate, StringContainsPredicate, TraversalSelector,
     WorthQueryGraphReadDomainOperationDeclaration,
@@ -62,17 +62,17 @@ impl<F: QueryAuthoringFamily> QueryBuilder<F> {
         self
     }
 
-    pub fn where_greater_than(mut self, predicate: IntegerComparisonPredicate) -> Self {
+    pub fn where_greater_than(mut self, predicate: NativeComparisonPredicate) -> Self {
         self.query = self
             .query
-            .with_predicate(PredicateSelector::IntegerComparison(predicate));
+            .with_predicate(PredicateSelector::NativeComparison(predicate));
         self
     }
 
-    pub fn where_less_than(mut self, predicate: IntegerComparisonPredicate) -> Self {
+    pub fn where_less_than(mut self, predicate: NativeComparisonPredicate) -> Self {
         self.query = self
             .query
-            .with_predicate(PredicateSelector::IntegerComparison(predicate));
+            .with_predicate(PredicateSelector::NativeComparison(predicate));
         self
     }
 

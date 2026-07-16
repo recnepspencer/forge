@@ -10,6 +10,7 @@ use crate::binding_pipeline::{
 
 use super::common::{ambiguous, denied_on_fit, digest_for, fit_allowed, fit_rank};
 
+#[cfg(test)]
 pub(crate) fn bind_declaration_from_context_on_handle<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,

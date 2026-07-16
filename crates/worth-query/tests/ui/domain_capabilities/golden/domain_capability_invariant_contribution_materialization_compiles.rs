@@ -1,4 +1,7 @@
-use worth_query::facade::runtime::{worth_query_domain, WorthQueryIntentDeclaration, WorthQueryIntentInput, InvariantCatalog, InvariantRegistration, InvariantRule};
+#[path = "../support/installed_domain.rs"]
+mod installed_domain;
+
+use worth_query::facade::runtime::{WorthQueryIntentDeclaration, WorthQueryIntentInput, InvariantCatalog, InvariantRegistration, InvariantRule};
 
 fn invariant_common_lane() {
     let declaration = WorthQueryIntentDeclaration::strategy_commit(
@@ -14,8 +17,10 @@ fn invariant_common_lane() {
         )],
     };
 
-    let _artifact = worth_query_domain("worth.spatial")
-        .for_intent(&declaration)
+    let installation = installed_domain::install("invariant-golden");
+    let _artifact = installation
+        .contributions()
+        .for_intent(&declaration).expect("installed contribution authority must remain current")
         .register_invariant_catalog("spatial.non_manifold_edge_split", invariant_catalog)
         .because("geometry kernel must reject non-manifold edge splits")
         .materialize();

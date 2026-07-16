@@ -1,12 +1,9 @@
-#![allow(dead_code)]
-
 use std::collections::BTreeMap;
 
+#[cfg(test)]
 use worth_runtime_bridge::facade::{
-    BridgeAsyncCompletionClass, BridgeAsyncCompletionDenialClass, BridgeAsyncCompletionReceipt,
-    BridgeAsyncCompletionState, BridgeAsyncCompletionSupersessionReceipt,
-    BridgeAsyncDeniedCompletionReceipt, BridgeAsyncForwardCausalityClass,
-    BridgeAsyncForwardCausalityReceipt,
+    BridgeAsyncCompletionClass, BridgeAsyncCompletionDenialClass, BridgeAsyncCompletionState,
+    BridgeAsyncForwardCausalityClass,
 };
 
 use crate::evidence_identity::{
@@ -77,14 +74,17 @@ pub(crate) enum WorthQueryRuntimeAsyncResultProjection {
     Pending {
         causality_identity: WorthQueryEvidenceIdentity,
     },
+    #[cfg(test)]
     CompletionState {
         state: BridgeAsyncCompletionState,
         causality_identity: WorthQueryEvidenceIdentity,
     },
+    #[cfg(test)]
     ForwardCausality {
         class: BridgeAsyncForwardCausalityClass,
         causality_identity: WorthQueryEvidenceIdentity,
     },
+    #[cfg(test)]
     Supersession {
         causality_identity: WorthQueryEvidenceIdentity,
     },
@@ -94,6 +94,7 @@ impl WorthQueryRuntimeAsyncResultProjection {
     fn kind(&self) -> WorthQueryRuntimeAsyncResultStateKind {
         match self {
             Self::Pending { .. } => WorthQueryRuntimeAsyncResultStateKind::Pending,
+            #[cfg(test)]
             Self::CompletionState { state, .. } => match state {
                 BridgeAsyncCompletionState::Admitted(BridgeAsyncCompletionClass::Fulfilled) => {
                     WorthQueryRuntimeAsyncResultStateKind::Current
@@ -115,6 +116,7 @@ impl WorthQueryRuntimeAsyncResultProjection {
                     BridgeAsyncCompletionDenialClass::SignalLifecycleDenied,
                 ) => WorthQueryRuntimeAsyncResultStateKind::Denied,
             },
+            #[cfg(test)]
             Self::ForwardCausality { class, .. } => match class {
                 BridgeAsyncForwardCausalityClass::RetryAfterTimeout
                 | BridgeAsyncForwardCausalityClass::RetryAfterCancellation => {
@@ -126,72 +128,26 @@ impl WorthQueryRuntimeAsyncResultProjection {
                     WorthQueryRuntimeAsyncResultStateKind::Revalidating
                 }
             },
+            #[cfg(test)]
             Self::Supersession { .. } => WorthQueryRuntimeAsyncResultStateKind::Superseded,
         }
     }
 
     fn causality_identity(&self) -> &WorthQueryEvidenceIdentity {
         match self {
-            Self::Pending {
-                causality_identity, ..
-            }
-            | Self::CompletionState {
-                causality_identity, ..
-            }
-            | Self::ForwardCausality {
-                causality_identity, ..
-            }
-            | Self::Supersession {
+            Self::Pending { causality_identity } => causality_identity,
+            #[cfg(test)]
+            Self::CompletionState {
                 causality_identity, ..
             } => causality_identity,
+            #[cfg(test)]
+            Self::ForwardCausality {
+                causality_identity, ..
+            } => causality_identity,
+            #[cfg(test)]
+            Self::Supersession { causality_identity } => causality_identity,
         }
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn from_completion_receipt(receipt: &BridgeAsyncCompletionReceipt) -> Self {
-        Self::CompletionState {
-            state: receipt.state(),
-            causality_identity: runtime_async_causality_identity(
-                &bridge_async_causality_source_identity(receipt.completion_identity()),
-            ),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn from_denied_completion_receipt(
-        receipt: &BridgeAsyncDeniedCompletionReceipt,
-    ) -> Self {
-        Self::CompletionState {
-            state: receipt.state(),
-            causality_identity: runtime_async_causality_identity(
-                &bridge_async_causality_source_identity(receipt.denial_identity()),
-            ),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn from_forward_causality_receipt(
-        receipt: &BridgeAsyncForwardCausalityReceipt,
-    ) -> Self {
-        Self::ForwardCausality {
-            class: receipt.class(),
-            causality_identity: runtime_async_causality_identity(
-                &bridge_async_causality_source_identity(receipt.causality_identity()),
-            ),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn from_supersession_receipt(
-        receipt: &BridgeAsyncCompletionSupersessionReceipt,
-    ) -> Self {
-        Self::Supersession {
-            causality_identity: runtime_async_causality_identity(
-                &bridge_async_causality_source_identity(receipt.supersession_identity()),
-            ),
-        }
-    }
-
     pub(crate) fn pending(causality_label: &str) -> Self {
         Self::Pending {
             causality_identity: runtime_async_causality_identity(
@@ -307,19 +263,6 @@ impl WorthQueryRuntimeAsyncResultState {
     }
 }
 
-fn bridge_async_causality_source_identity(bridge_identity: &str) -> WorthQueryEvidenceIdentity {
-    worth_query_evidence_identity(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_shape(
-            WorthQueryEvidenceTag::new("identity_family"),
-            "worth_query_bridge_async_causality_source_v1",
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("bridge_identity"),
-            bridge_identity,
-        )
-        .seal()
-}
-
 fn runtime_async_causality_label_identity(label: &str) -> WorthQueryEvidenceIdentity {
     worth_query_evidence_identity(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
         .field_shape(
@@ -363,10 +306,12 @@ fn runtime_async_result_state_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(crate) fn runtime_async_causality_from_label(label: &str) -> WorthQueryEvidenceIdentity {
     runtime_async_causality_identity(&runtime_async_causality_label_identity(label))
 }
 
+#[cfg(test)]
 pub(crate) fn runtime_async_checkpoint_label_identity(label: &str) -> WorthQueryEvidenceIdentity {
     worth_query_evidence_identity(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
         .field_shape(

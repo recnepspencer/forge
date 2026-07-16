@@ -17,7 +17,7 @@ general place to mutate truth directly.
 ## Stable Entry Points
 
 - `workspace.effect(...)`
-- `workspace.inspect(...)`
+- `workspace.inspections()?.inspect(...)`
 
 Stable effect declaration covers:
 
@@ -64,7 +64,7 @@ What the runtime tracks automatically:
 3. The effect evaluates its condition and action.
 4. The runtime records delivered, suppressed, failed, or pending-intent
    terminal artifacts.
-5. `workspace.inspect(...)` explains the effect's retained evidence.
+5. `workspace.inspections()?.inspect(...)` explains the effect's retained evidence.
 6. If the effect staged pending write intent and the runtime admits that path,
    `runtime.next_effect_write_intent(...)` consumes one pending unit through
    the shared intent-admission path.
@@ -76,11 +76,11 @@ delivery/staging do not blur together.
 
 ```rust
 use worth_query::facade::runtime::{WorthQueryEffectHandle, WorthQueryLiveView};
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("ui").unwrap();
 
-let live: WorthQueryLiveView<Value> = workspace
+let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.table", |q| {
         q.from("Task")
             .select(["identity.id", "title.value"])
@@ -88,7 +88,7 @@ let live: WorthQueryLiveView<Value> = workspace
     })
     .unwrap();
 
-let badges: WorthQueryEffectHandle<Value> = workspace
+let badges: WorthQueryEffectHandle<WorthQueryUnrefinedLiveShape> = workspace
     .effect("ui.title-badges", |e| {
         e.when_live(&live, ["title.value"])
             .condition_expression("expr.title.badge", ["title.value"], ["ui.badge"])
@@ -106,11 +106,11 @@ trigger, optional expression semantics, and delivery target.
 use worth_query::facade::runtime::{
     WorthQueryDerivedViewHandle, WorthQueryEffectHandle, WorthQueryInspection, WorthQueryLiveView,
 };
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("workflow").unwrap();
 
-let live: WorthQueryLiveView<Value> = workspace
+let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.table", |q| {
         q.from("Task")
             .select(["identity.id", "title.value"])
@@ -118,7 +118,7 @@ let live: WorthQueryLiveView<Value> = workspace
     })
     .unwrap();
 
-let titles: WorthQueryDerivedViewHandle<Value> = workspace
+let titles: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
     .computed(
         "computed.titles.effect",
         |c| {
@@ -130,7 +130,7 @@ let titles: WorthQueryDerivedViewHandle<Value> = workspace
     )
     .unwrap();
 
-let effect: WorthQueryEffectHandle<Value> = workspace
+let effect: WorthQueryEffectHandle<WorthQueryUnrefinedLiveShape> = workspace
     .effect("ui.summary-badges", |e| {
         e.when_computed(&titles, ["title.summary"])
             .condition_expression(
@@ -150,7 +150,7 @@ workspace
     })
     .unwrap();
 
-let inspection = workspace.inspect(&effect).unwrap();
+let inspection = workspace.inspections()?.inspect(&effect).unwrap();
 
 match inspection {
     WorthQueryInspection::Effect(effect) => {
@@ -199,7 +199,7 @@ an effect.
 
 ## Inspection And Debugging
 
-`workspace.inspect(&effect)` tells you:
+`workspace.inspections()?.inspect(&effect)` tells you:
 
 - effect name
 - trigger source and trigger source kind
@@ -234,7 +234,7 @@ This is how you tell the difference between "nothing happened", "suppressed",
 
 ## How It Relates To Authority-Scoped Execution
 
-This doc stops at declaration, staging, delivery, and `workspace.inspect` for
+This doc stops at declaration, staging, delivery, and `workspace.inspections()?.inspect` for
 effects. Lowering, eligibility, admission, and execute receipts live in
 [authority-scoped effect execution](authority-scoped-effect-execution.md) with
 `effect_lifecycle_support_matrix()` honesty (`StoreBackedExecutionDeferred`,

@@ -10,12 +10,12 @@ pub enum WorthQueryHistoricalPathKind {
     FullReconstruction,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryHistoricalDeclaration {
     read: WorthQueryReadDeclaration,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryHistoricalPathDeclaration {
     pub(crate) read: WorthQueryReadDeclaration,
     pub(crate) path: WorthQueryHistoricalPathKind,

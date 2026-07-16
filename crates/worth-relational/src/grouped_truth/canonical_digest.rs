@@ -1,7 +1,11 @@
 use sha2::{Digest, Sha256};
-use worth_foundational::facade::{AspectKey, AspectValue};
+use worth_foundational::facade::{
+    prepare_aspect_value_identity_basis, prepare_struct_aspect_value_identity_basis, AspectKey,
+    AspectValue,
+};
 use worth_runtime_bridge::facade::{
-    RelationalBridgeRecordIdentityKind, RelationalBridgeRecordIdentityParts, TruthSnapshotIdentity,
+    RelationalBridgeRecordIdentityKind, RelationalBridgeRecordIdentityParts, SnapshotReadValue,
+    TruthSnapshotIdentity,
 };
 
 use super::grouped_projection::{
@@ -51,10 +55,10 @@ pub(super) fn grouped_projection_digest(
     ))
 }
 
-fn encode_aspect_entry(bytes: &mut Vec<u8>, aspect_key: &AspectKey, value: &AspectValue) {
+fn encode_aspect_entry(bytes: &mut Vec<u8>, aspect_key: &AspectKey, value: &SnapshotReadValue) {
     bytes.push(3);
     encode_string(bytes, aspect_key.as_str());
-    encode_aspect_value(bytes, value)
+    encode_snapshot_read_value(bytes, value)
 }
 
 fn encode_snapshot_identity(
@@ -83,8 +87,23 @@ fn encode_row_identity(bytes: &mut Vec<u8>, parts: RelationalBridgeRecordIdentit
 }
 
 fn encode_aspect_value(bytes: &mut Vec<u8>, value: &AspectValue) {
-    let value_bytes = crate::aspect_wire::encode_aspect_value(value);
-    encode_length_prefixed_bytes(bytes, &value_bytes);
+    encode_string(bytes, prepare_aspect_value_identity_basis(value).as_str());
+}
+
+fn encode_snapshot_read_value(bytes: &mut Vec<u8>, value: &SnapshotReadValue) {
+    match value {
+        SnapshotReadValue::Scalar(value) => {
+            bytes.push(18);
+            encode_aspect_value(bytes, value);
+        }
+        SnapshotReadValue::Struct(value) => {
+            bytes.push(19);
+            encode_string(
+                bytes,
+                prepare_struct_aspect_value_identity_basis(value).as_str(),
+            );
+        }
+    }
 }
 
 fn encode_string(bytes: &mut Vec<u8>, value: &str) {

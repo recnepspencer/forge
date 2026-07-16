@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use worth_query::facade::foundation::{
     RelationalBridgeRecordIdentityParts, WorthQueryEntityIdentity,
 };

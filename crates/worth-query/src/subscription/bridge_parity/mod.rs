@@ -1,12 +1,14 @@
 mod explanation;
 mod identities;
 mod support;
+#[cfg(test)]
 mod validation;
 mod witness;
 
+#[cfg(test)]
+pub use explanation::explain_query_subscription_bridge_parity;
 pub use explanation::{
-    explain_query_subscription_bridge_parity, QuerySubscriptionBridgeParityComparison,
-    QuerySubscriptionBridgeParityExplanation,
+    QuerySubscriptionBridgeParityComparison, QuerySubscriptionBridgeParityExplanation,
 };
 pub use support::{
     BridgeParityReceipt, QuerySubscriptionBridgeParityClass, QuerySubscriptionBridgeParityCounters,

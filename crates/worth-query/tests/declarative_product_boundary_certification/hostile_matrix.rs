@@ -14,12 +14,12 @@ fn equivalent_declarations_converge() {
         AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap()
     };
     let schema = || {
-        use worth_query::facade::read::{AspectName, FieldName, QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+        use worth_query::facade::read::{AspectName, FieldName, QuerySchemaView, ScalarAspectType, SchemaFieldView};
         QuerySchemaView::new(
             "hostile-convergence",
             [
-                SchemaFieldView::new(AspectName::new("identity").unwrap(), FieldName::new("id").unwrap(), SchemaFieldKind::String),
-                SchemaFieldView::new(AspectName::new("profile").unwrap(), FieldName::new("display_name").unwrap(), SchemaFieldKind::String),
+                SchemaFieldView::new(AspectName::new("identity").unwrap(), FieldName::new("id").unwrap(), ScalarAspectType::String),
+                SchemaFieldView::new(AspectName::new("profile").unwrap(), FieldName::new("display_name").unwrap(), ScalarAspectType::String),
             ],
             [],
         )

@@ -12,10 +12,12 @@ fn redeclared_live_view_replaces_runtime_delivery_index_membership() {
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native live redeclaration contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("bridge-backed runtime should build");
-    let task_view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let task_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("shared.surface", task_live_request(), task_schema())
         .expect("task live view should declare");
     let task_seed = runtime
@@ -29,7 +31,7 @@ fn redeclared_live_view_replaces_runtime_delivery_index_membership() {
         .expect("task seed should write");
     let _ = runtime.drain_patches(&task_view);
 
-    let issue_view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let issue_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("shared.surface", issue_live_request(), issue_schema())
         .expect("same live view name should redeclare against issue collection");
     let stale_task_update = runtime

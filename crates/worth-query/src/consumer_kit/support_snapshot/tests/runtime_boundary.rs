@@ -1,3 +1,11 @@
+#[path = "runtime_boundary/source_scan.rs"]
+mod source_scan;
+
+use source_scan::{
+    collect_production_serde_json_residue, collect_production_string_map_residue,
+    collect_runtime_support_snapshot_imports, collect_rust_source_marker_residue,
+};
+
 #[test]
 fn runtime_sources_do_not_depend_on_consumer_support_snapshots() {
     let runtime_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -77,6 +85,7 @@ fn rust_source_serde_json_residue_stays_terminal_or_compile_fail_only() {
             "src/consumer_kit/support_pinning/document/terminal_json_codec.rs".to_string(),
             "src/consumer_kit/support_snapshot/document/terminal_json_codec.rs".to_string(),
             "src/consumer_kit/support_snapshot/tests/runtime_boundary.rs".to_string(),
+            "src/consumer_kit/support_snapshot/tests/runtime_boundary/source_scan.rs".to_string(),
             "src/projection_consumption/downstream_authority/contract_document/terminal_json_codec.rs".to_string(),
             "tests/ui/aspect_native_query/derived_patch_payload_rejects_raw_json.rs".to_string(),
             "tests/ui/aspect_native_query/program_operation_input_rejects_raw_json.rs".to_string(),
@@ -150,6 +159,7 @@ fn production_string_map_residue_is_classified_grammar_or_reporting_only() {
         residue_files,
         vec![
             "src/composition/templates/instantiation.rs".to_string(),
+            "src/consumer_kit/declarative_surface/consumer_orchestration/audit.rs".to_string(),
             "src/consumer_kit/evidence_report/report.rs".to_string(),
             "src/consumer_kit/evidence_report_adoption/syntax.rs".to_string(),
             "src/memory_workspace/entity_row.rs".to_string(),
@@ -292,106 +302,4 @@ fn summary_and_effect_touch_digest_rendering_stays_terminal_evidence_only() {
         offenders.is_empty(),
         "computed, preview, verified-assumption, and effect touch digest rendering must stay terminal evidence projection only: {offenders:?}"
     );
-}
-
-fn collect_runtime_support_snapshot_imports(
-    directory: &std::path::Path,
-    offending_files: &mut Vec<String>,
-) {
-    for entry in std::fs::read_dir(directory).expect("runtime directory should be readable") {
-        let entry = entry.expect("runtime directory entry should be readable");
-        let path = entry.path();
-        if path.is_dir() {
-            collect_runtime_support_snapshot_imports(&path, offending_files);
-        } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
-            let source = std::fs::read_to_string(&path).expect("runtime source should be readable");
-            if source.contains("consumer_kit::support_snapshot")
-                || source.contains("project_support_snapshot")
-                || source.contains("WorthQuerySupportSnapshot")
-            {
-                offending_files.push(path.display().to_string());
-            }
-        }
-    }
-}
-
-fn collect_production_serde_json_residue(
-    directory: &std::path::Path,
-    crate_root: &std::path::Path,
-    files_with_residue: &mut Vec<String>,
-) {
-    for entry in std::fs::read_dir(directory).expect("source directory should be readable") {
-        let entry = entry.expect("source directory entry should be readable");
-        let path = entry.path();
-        if path.is_dir() {
-            collect_production_serde_json_residue(&path, crate_root, files_with_residue);
-        } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
-            if is_test_source_path(crate_root, &path) {
-                continue;
-            }
-            let source = std::fs::read_to_string(&path).expect("source file should be readable");
-            if source.contains("serde_json") {
-                files_with_residue.push(relative_source_path(crate_root, &path));
-            }
-        }
-    }
-    files_with_residue.sort();
-}
-
-fn collect_production_string_map_residue(
-    directory: &std::path::Path,
-    crate_root: &std::path::Path,
-    files_with_residue: &mut Vec<String>,
-) {
-    for entry in std::fs::read_dir(directory).expect("source directory should be readable") {
-        let entry = entry.expect("source directory entry should be readable");
-        let path = entry.path();
-        if path.is_dir() {
-            collect_production_string_map_residue(&path, crate_root, files_with_residue);
-        } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
-            if is_test_source_path(crate_root, &path) {
-                continue;
-            }
-            let source = std::fs::read_to_string(&path).expect("source file should be readable");
-            if source.contains("BTreeMap<String") || source.contains("HashMap<String") {
-                files_with_residue.push(relative_source_path(crate_root, &path));
-            }
-        }
-    }
-    files_with_residue.sort();
-}
-
-fn collect_rust_source_marker_residue(
-    directory: &std::path::Path,
-    crate_root: &std::path::Path,
-    marker: &str,
-    files_with_residue: &mut Vec<String>,
-) {
-    for entry in std::fs::read_dir(directory).expect("source directory should be readable") {
-        let entry = entry.expect("source directory entry should be readable");
-        let path = entry.path();
-        if path.is_dir() {
-            collect_rust_source_marker_residue(&path, crate_root, marker, files_with_residue);
-        } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
-            let source = std::fs::read_to_string(&path).expect("Rust source should be readable");
-            if source.contains(marker) {
-                files_with_residue.push(relative_source_path(crate_root, &path));
-            }
-        }
-    }
-    files_with_residue.sort();
-}
-
-fn is_test_source_path(crate_root: &std::path::Path, path: &std::path::Path) -> bool {
-    let relative = relative_source_path(crate_root, path);
-    relative.contains("/tests/") || relative.ends_with("_tests.rs")
-}
-
-fn relative_source_path(crate_root: &std::path::Path, path: &std::path::Path) -> String {
-    path.strip_prefix(crate_root)
-        .expect("source file should live under crate root")
-        .iter()
-        .map(|component| component.to_string_lossy())
-        .collect::<Vec<_>>()
-        .join("/")
 }

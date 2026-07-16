@@ -72,12 +72,6 @@ macro_rules! variation_set_impl {
             pub(crate) fn digests(&self) -> &[String] {
                 &self.digests
             }
-
-            #[allow(dead_code)]
-            pub(crate) fn digest(&self) -> &str {
-                self.variation_identity.as_str()
-            }
-
             pub fn identities(&self) -> &[WorthQueryEvidenceIdentity] {
                 &self.identities
             }
@@ -145,12 +139,6 @@ impl QuerySubscriptionLifecycleClassVariationSet {
     pub fn classes(&self) -> &[QuerySubscriptionLifecycleCoverageClass] {
         &self.classes
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn digest(&self) -> &str {
-        self.variation_identity.as_str()
-    }
-
     pub fn variation_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.variation_identity
     }

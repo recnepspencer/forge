@@ -14,7 +14,7 @@
 //!
 //! ```
 //! use worth_query_decl::facade::CanonicalQueryArtifact;
-//! # fn _same_type(engine: worth_query::facade::CanonicalQueryArtifact) -> CanonicalQueryArtifact {
+//! # fn _same_type(engine: worth_query::facade::foundation::CanonicalQueryArtifact) -> CanonicalQueryArtifact {
 //! #     engine
 //! # }
 //! ```

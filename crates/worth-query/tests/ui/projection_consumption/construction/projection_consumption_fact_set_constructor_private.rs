@@ -13,7 +13,7 @@ fn main() {
         view_local_identities: Vec::new(),
         memberships: Vec::new(),
         display_fields: Vec::new(),
-        derived_scalar_fields: Vec::new(),
+        derived_fields: Vec::new(),
         target_identities: Vec::new(),
         source_references: Vec::new(),
         effect_continuity_facts: Vec::new(),

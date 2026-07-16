@@ -3,13 +3,8 @@ use std::collections::BTreeSet;
 use worth_foundational::facade::AspectValue;
 
 use super::WorthQueryMutationMetadata;
-use super::{
-    WorthQueryDesiredAspectValue, WorthQueryParsedAspectTarget, WorthQueryParsedDesiredAspect,
-};
-use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::memory_workspace::{WorthQueryEntityIdentity, WorthQueryWorkspaceError};
 use crate::runtime::{
-    WorthQueryAspectMutationOperation, WorthQueryAspectMutationOperationKind,
     WorthQueryAspectTouch, WorthQueryContinuityMutationIntent,
     WorthQueryMutationTargetCollectionIdentity, WorthQueryNamingMutationIntent,
     WorthQueryRuntimeError, WorthQuerySymbolicAspectReference, WorthQuerySymbolicTargetReference,
@@ -20,171 +15,18 @@ use crate::runtime::{
 mod aspect_builder_helpers;
 #[path = "aspect_existing_truth.rs"]
 mod aspect_existing_truth;
+#[path = "aspect/authored_mutation.rs"]
+mod authored_mutation;
+#[path = "aspect/authored_value.rs"]
+mod authored_value;
 
 use aspect_builder_helpers::{finish_aspects, reject_symbolic_aspect_references};
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct WorthQueryAdmittedAspectValue {
-    parsed: WorthQueryParsedDesiredAspect,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct WorthQueryAuthoredAspectValue {
-    value: AspectValue,
-}
-
-impl WorthQueryAuthoredAspectValue {
-    pub fn string(value: impl Into<String>) -> Self {
-        Self {
-            value: AspectValue::String(value.into().into()),
-        }
-    }
-
-    pub fn int64(value: i64) -> Self {
-        Self {
-            value: AspectValue::Int64(value),
-        }
-    }
-
-    pub fn bool(value: bool) -> Self {
-        Self {
-            value: AspectValue::Bool(value),
-        }
-    }
-
-    pub fn null() -> Self {
-        Self {
-            value: AspectValue::Null,
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn from_foundational_value(value: AspectValue) -> Self {
-        Self { value }
-    }
-
-    pub(crate) fn into_foundational_value(self) -> AspectValue {
-        self.value
-    }
-}
-
-impl From<String> for WorthQueryAuthoredAspectValue {
-    fn from(value: String) -> Self {
-        Self::string(value)
-    }
-}
-
-impl From<&str> for WorthQueryAuthoredAspectValue {
-    fn from(value: &str) -> Self {
-        Self::string(value)
-    }
-}
-
-impl From<bool> for WorthQueryAuthoredAspectValue {
-    fn from(value: bool) -> Self {
-        Self::bool(value)
-    }
-}
-
-impl From<i64> for WorthQueryAuthoredAspectValue {
-    fn from(value: i64) -> Self {
-        Self::int64(value)
-    }
-}
-
-impl WorthQueryAdmittedAspectValue {
-    pub(crate) fn native_string_value(value: impl Into<String>) -> AspectValue {
-        AspectValue::String(value.into().into())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn new(
-        aspect_touch: WorthQueryAspectTouch,
-        value: AspectValue,
-    ) -> Result<Self, WorthQueryWorkspaceError> {
-        Self::new_set(aspect_touch, value)
-    }
-
-    pub(crate) fn new_set(
-        aspect_touch: WorthQueryAspectTouch,
-        value: AspectValue,
-    ) -> Result<Self, WorthQueryWorkspaceError> {
-        Ok(Self::from_touch_parts(
-            aspect_touch,
-            WorthQueryDesiredAspectValue::set_native(value),
-        ))
-    }
-
-    pub(crate) fn new_set_evidence_identity(
-        aspect_touch: WorthQueryAspectTouch,
-        identity: &WorthQueryEvidenceIdentity,
-    ) -> Result<Self, WorthQueryWorkspaceError> {
-        Ok(Self::from_touch_parts(
-            aspect_touch,
-            WorthQueryDesiredAspectValue::set_native(Self::native_string_value(identity.as_str())),
-        ))
-    }
-
-    pub(crate) fn new_clear(
-        aspect_touch: WorthQueryAspectTouch,
-    ) -> Result<Self, WorthQueryWorkspaceError> {
-        Ok(Self {
-            parsed: WorthQueryParsedDesiredAspect::new(
-                aspect_touch.into_parsed_target(),
-                WorthQueryDesiredAspectValue::clear(),
-            ),
-        })
-    }
-
-    pub fn aspect_touch(&self) -> WorthQueryAspectTouch {
-        WorthQueryAspectTouch::from_parsed_target(self.parsed_target().clone())
-    }
-
-    pub(crate) fn parsed_target(&self) -> &WorthQueryParsedAspectTarget {
-        self.parsed.target()
-    }
-
-    pub fn foundational_value(&self) -> Option<&AspectValue> {
-        self.parsed.desired().value()
-    }
-
-    pub(crate) fn terminal_digest_material(&self) -> String {
-        format!(
-            "{}={}",
-            WorthQueryAspectTouch::from_parsed_target(self.parsed_target().clone())
-                .admitted_touch_digest_part(),
-            self.parsed.desired().terminal_digest_material()
-        )
-    }
-
-    pub fn clears_existing_value(&self) -> bool {
-        self.parsed.desired().clears_existing_value()
-    }
-
-    pub fn declared_operation(&self) -> WorthQueryAspectMutationOperation {
-        WorthQueryAspectMutationOperation::from_touch(
-            WorthQueryAspectTouch::from_parsed_target(self.parsed_target().clone()),
-            if self.clears_existing_value() {
-                WorthQueryAspectMutationOperationKind::Clear
-            } else {
-                WorthQueryAspectMutationOperationKind::Set
-            },
-        )
-    }
-
-    fn from_touch_parts(
-        aspect_touch: WorthQueryAspectTouch,
-        desired: WorthQueryDesiredAspectValue,
-    ) -> Self {
-        Self {
-            parsed: WorthQueryParsedDesiredAspect::new(aspect_touch.into_parsed_target(), desired),
-        }
-    }
-}
+pub use authored_mutation::WorthQueryAuthoredAspectMutation;
+pub use authored_value::WorthQueryAuthoredAspectValue;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorthQueryAspectMutationBuilder {
-    aspects: Vec<WorthQueryAdmittedAspectValue>,
+    aspects: Vec<WorthQueryAuthoredAspectMutation>,
     symbolic_aspect_references: Vec<WorthQuerySymbolicAspectReference>,
     seen_aspects: BTreeSet<WorthQueryAspectTouch>,
     metadata: WorthQueryMutationMetadata,
@@ -218,13 +60,15 @@ impl WorthQueryAspectMutationBuilder {
     pub fn set_aspect(
         mut self,
         aspect_touch: WorthQueryAspectTouch,
-        value: WorthQueryAuthoredAspectValue,
+        value: impl Into<WorthQueryAuthoredAspectValue>,
     ) -> Self {
         if self.error.is_some() {
             return self;
         }
-        match WorthQueryAdmittedAspectValue::new_set(aspect_touch, value.into_foundational_value())
-        {
+        match WorthQueryAuthoredAspectMutation::new_set(
+            aspect_touch,
+            value.into().into_validation_input(),
+        ) {
             Ok(aspect) => {
                 let aspect_touch =
                     WorthQueryAspectTouch::from_parsed_target(aspect.parsed_target().clone());
@@ -263,11 +107,36 @@ impl WorthQueryAspectMutationBuilder {
         self
     }
 
+    pub fn existing_entity_identity(
+        mut self,
+        aspect_touch: WorthQueryAspectTouch,
+        entity_identity: WorthQueryEntityIdentity,
+    ) -> Self {
+        if self.error.is_some() {
+            return self;
+        }
+        let Some(parts) = entity_identity.relational_entity_record_parts() else {
+            self.error =
+                Some("existing aspect references require a relational entity identity".to_string());
+            return self;
+        };
+        self.set_aspect(
+            aspect_touch,
+            WorthQueryAuthoredAspectValue::native(AspectValue::EntityRef(
+                worth_foundational::facade::EntityId::new(
+                    worth_foundational::facade::PartitionId(parts.partition_id()),
+                    parts.local_slot(),
+                    parts.generation(),
+                ),
+            )),
+        )
+    }
+
     pub fn clear(mut self, aspect_touch: WorthQueryAspectTouch) -> Self {
         if self.error.is_some() {
             return self;
         }
-        match WorthQueryAdmittedAspectValue::new_clear(aspect_touch) {
+        match WorthQueryAuthoredAspectMutation::new_clear(aspect_touch) {
             Ok(aspect) => {
                 let aspect_touch =
                     WorthQueryAspectTouch::from_parsed_target(aspect.parsed_target().clone());

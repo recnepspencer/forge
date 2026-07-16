@@ -49,7 +49,7 @@ impl PolicyAwareSeamCounters {
             ..Self::default()
         }
     }
-
+    #[cfg(test)]
     pub(crate) fn denied_raw_plan_bypass() -> Self {
         Self {
             seam_denial_count: 1,
@@ -73,7 +73,7 @@ impl PolicyAwareSeamCounters {
             ..Self::default()
         }
     }
-
+    #[cfg(test)]
     pub(crate) fn denied_delivery_overexposure() -> Self {
         Self {
             seam_denial_count: 1,
@@ -156,7 +156,7 @@ impl PolicyAwareSeamCounters {
             ..Self::default()
         }
     }
-
+    #[cfg(test)]
     pub(crate) fn denied_policy_dense_restart_debt() -> Self {
         Self {
             seam_denial_count: 1,

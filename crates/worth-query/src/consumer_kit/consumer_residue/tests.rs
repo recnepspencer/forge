@@ -39,6 +39,13 @@ fn consumer_residue_registry_covers_all_phase_nine_classes() {
         WorthQueryConsumerResidueClass::LegacyProjectionPrerequisiteAssembly,
         WorthQueryConsumerResidueClass::DirectInternalQueryImport,
         WorthQueryConsumerResidueClass::LegacyQueryBasisLifecycle,
+        WorthQueryConsumerResidueClass::RawDomainStringAuthority,
+        WorthQueryConsumerResidueClass::ConsumerAuthoredContextDigest,
+        WorthQueryConsumerResidueClass::ApplicationFacadeDomainAuthority,
+        WorthQueryConsumerResidueClass::IndependentOperationRegistry,
+        WorthQueryConsumerResidueClass::CallerSuppliedOperationRegistry,
+        WorthQueryConsumerResidueClass::QueryPhaseMaterializerImport,
+        WorthQueryConsumerResidueClass::ConsumerSemanticDomainAdapter,
     ] {
         assert!(
             classes.contains(&required),

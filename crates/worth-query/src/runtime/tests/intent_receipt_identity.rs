@@ -98,14 +98,14 @@ fn authoritative_intent_receipt_identity_keeps_typed_scope_under_delimiter_press
 fn effect_triggered_intent_receipt_identity_keeps_nested_receipts_typed() {
     let mut runtime = bridge_backed_runtime_with_support(intent_support_profile());
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.effect-identity",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.identity|receipt",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),
             "strategy.intent.reconcile",

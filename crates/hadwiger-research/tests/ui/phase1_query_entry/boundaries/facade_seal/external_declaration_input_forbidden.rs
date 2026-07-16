@@ -1,5 +1,5 @@
-use worth_query::facade::{
-    WORTHQueryDeclarationCanonicalEntry, WORTHQueryDeclarationInput,
+use worth_query::facade::domain::{
+    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationInput,
 };
 use hadwiger_research::facade::{
     declare_research_request_checked, CandidateGraphDeclarationFamily,
@@ -8,11 +8,11 @@ use hadwiger_research::facade::{
 
 struct ExternalDeclaration;
 
-impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for ExternalDeclaration {
+impl WorthQueryDeclarationInput<HadwigerResearchDomainEntry> for ExternalDeclaration {
     type Family = CandidateGraphDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
-        vec![WORTHQueryDeclarationCanonicalEntry::text(
+    fn canonical_declaration_entries(&self) -> Vec<WorthQueryDeclarationCanonicalEntry> {
+        vec![WorthQueryDeclarationCanonicalEntry::text(
             "declaration_kind",
             "external",
         )]

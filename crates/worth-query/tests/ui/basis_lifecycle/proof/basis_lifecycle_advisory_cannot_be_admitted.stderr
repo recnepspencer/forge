@@ -9,4 +9,4 @@ error[E0432]: unresolved imports `worth_query::facade::admit_basis_capability`, 
   |           no `admit_basis_capability` in `facade`
   |
   = help: consider importing this variant instead:
-          worth_query::WorthQueryEvidenceScope::RawBasisIntent
+          worth_query::facade::runtime::WorthQueryEvidenceScope::RawBasisIntent

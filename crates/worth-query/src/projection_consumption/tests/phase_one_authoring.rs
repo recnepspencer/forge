@@ -80,7 +80,7 @@ fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
                 SnapshotReadRecord::for_request(
                     &entity_one_identity,
                     aspect_value(
-                        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                             "task-1",
                         ),
                     ),
@@ -88,13 +88,15 @@ fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
                 SnapshotReadRecord::for_request(
                     &entity_one_lane,
                     aspect_value(
-                        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("todo"),
+                        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
+                            "todo",
+                        ),
                     ),
                 ),
                 SnapshotReadRecord::for_request(
                     &entity_two_identity,
                     aspect_value(
-                        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                             "task-2",
                         ),
                     ),
@@ -102,7 +104,9 @@ fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
                 SnapshotReadRecord::for_request(
                     &entity_two_lane,
                     aspect_value(
-                        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("doing"),
+                        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
+                            "doing",
+                        ),
                     ),
                 ),
             ],

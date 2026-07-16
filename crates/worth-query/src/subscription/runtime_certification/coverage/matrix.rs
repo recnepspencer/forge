@@ -33,12 +33,6 @@ impl QuerySubscriptionFamilyCoverageMatrix {
     pub fn rows(&self) -> &[QuerySubscriptionFamilyCoverageRow] {
         &self.rows
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn family_coverage_digest(&self) -> &str {
-        self.family_coverage_identity.as_str()
-    }
-
     pub fn family_coverage_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.family_coverage_identity
     }
@@ -110,12 +104,6 @@ impl CertifiedFamilyCoverageHandle {
     pub fn lifecycle_class_variations(&self) -> &QuerySubscriptionLifecycleClassVariationSet {
         &self.lifecycle_class_variations
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn family_coverage_digest(&self) -> &str {
-        self.family_coverage_identity.as_str()
-    }
-
     pub fn family_coverage_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.family_coverage_identity
     }

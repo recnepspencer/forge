@@ -1,3 +1,17 @@
+error[E0624]: associated function `canonicalize_detail` is private
+  --> tests/ui/optimizer_requires_narrowed_policy_query_artifact.rs:13:42
+   |
+13 |       let canonical = GuidedAuthoringPath::canonicalize_detail(query, shape).unwrap();
+   |                                            ^^^^^^^^^^^^^^^^^^^ private associated function
+   |
+  ::: src/authoring/request/guided_path.rs
+   |
+   | /     pub(crate) fn canonicalize_detail(
+   | |         query: DetailAuthoredQuery,
+   | |         result_shape: DetailAuthoredResultShape,
+   | |     ) -> Result<CanonicalQueryBundle, QueryCanonicalizationError> {
+   | |_________________________________________________________________- private associated function defined here
+
 error[E0308]: mismatched types
   --> tests/ui/optimizer_requires_narrowed_policy_query_artifact.rs:15:56
    |

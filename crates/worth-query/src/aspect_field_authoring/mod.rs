@@ -9,5 +9,4 @@ pub(crate) use declarations::{
 };
 #[cfg(test)]
 pub(crate) use keys::aspect_key;
-pub(crate) use keys::planned_field_path_locator;
 pub(crate) use native_field_patch::single_native_string_aspect_field_patch;

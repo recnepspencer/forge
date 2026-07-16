@@ -1,4 +1,4 @@
-use worth_query::facade::runtime::{WorthQueryDerivedArtifactBinding, WorthQueryDerivedViewHandle, WorthQueryNativeRow};
+use worth_query::facade::runtime::{WorthQueryDerivedArtifactBinding, WorthQueryDerivedViewHandle, WorthQueryUnrefinedLiveShape};
 
 fn main() {
     let binding = binding_fixture();
@@ -17,6 +17,6 @@ fn binding_fixture() -> WorthQueryDerivedArtifactBinding {
     panic!("fixture only")
 }
 
-fn view_fixture() -> WorthQueryDerivedViewHandle<WorthQueryNativeRow> {
+fn view_fixture() -> WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> {
     panic!("fixture only")
 }

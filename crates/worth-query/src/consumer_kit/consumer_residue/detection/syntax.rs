@@ -148,6 +148,13 @@ impl<'ast> Visit<'ast> for ConsumerResidueVisitor<'_> {
     fn visit_item_struct(&mut self, node: &'ast syn::ItemStruct) {
         self.visit_counted();
         let name = node.ident.to_string();
+        if is_consumer_semantic_domain_adapter(&name, self.source_path) {
+            self.record(
+                WorthQueryConsumerResidueClass::ConsumerSemanticDomainAdapter,
+                node.ident.span(),
+                name.clone(),
+            );
+        }
         if is_query_report_name(&name) {
             self.record(
                 WorthQueryConsumerResidueClass::LocalQueryReport,
@@ -163,6 +170,20 @@ impl<'ast> Visit<'ast> for ConsumerResidueVisitor<'_> {
             );
         }
         syn::visit::visit_item_struct(self, node);
+    }
+
+    fn visit_item_use(&mut self, node: &'ast syn::ItemUse) {
+        self.visit_counted();
+        if use_tree_starts_with(&node.tree, "worth_query")
+            && use_tree_contains_name(&node.tree, |name| name.starts_with("materialize_"))
+        {
+            self.record(
+                WorthQueryConsumerResidueClass::QueryPhaseMaterializerImport,
+                node.span(),
+                "worth-query-phase-materializer-import",
+            );
+        }
+        syn::visit::visit_item_use(self, node);
     }
 
     fn visit_type_path(&mut self, node: &'ast syn::TypePath) {
@@ -283,4 +304,32 @@ fn expr_is_double_pipe_literal(expr: &syn::Expr) -> bool {
 fn source_location(span: Span) -> (usize, usize) {
     let start = span.start();
     (start.line, start.column + 1)
+}
+
+fn is_consumer_semantic_domain_adapter(name: &str, source_path: &str) -> bool {
+    name.contains("Domain")
+        && name.contains("Adapter")
+        && !source_path.contains("physical_boundary")
+        && !source_path.contains("runtime/backend")
+        && !source_path.contains("runtime\\backend")
+}
+
+fn use_tree_starts_with(tree: &syn::UseTree, expected: &str) -> bool {
+    matches!(tree, syn::UseTree::Path(path) if path.ident == expected)
+        || matches!(tree, syn::UseTree::Name(name) if name.ident == expected)
+}
+
+fn use_tree_contains_name(tree: &syn::UseTree, predicate: impl Fn(&str) -> bool + Copy) -> bool {
+    match tree {
+        syn::UseTree::Path(path) => {
+            predicate(&path.ident.to_string()) || use_tree_contains_name(&path.tree, predicate)
+        }
+        syn::UseTree::Name(name) => predicate(&name.ident.to_string()),
+        syn::UseTree::Rename(rename) => predicate(&rename.ident.to_string()),
+        syn::UseTree::Group(group) => group
+            .items
+            .iter()
+            .any(|item| use_tree_contains_name(item, predicate)),
+        syn::UseTree::Glob(_) => false,
+    }
 }

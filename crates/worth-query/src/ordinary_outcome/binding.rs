@@ -6,6 +6,7 @@ use super::{
     WorthQueryOrdinaryPostureKind,
 };
 
+#[cfg(test)]
 pub(crate) fn ordinary_outcome_from_binding_outcome<T>(
     checked: WorthQueryBindingChecked<T>,
 ) -> WorthQueryOrdinaryOutcome<T> {

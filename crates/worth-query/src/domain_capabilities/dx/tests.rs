@@ -1,7 +1,8 @@
+use super::test_support::success;
 use super::{
-    worth_query_domain, WorthQueryDomainCapabilityMaterializationError,
-    WorthQueryDomainCapabilityOutcomeKind,
+    WorthQueryDomainCapabilityMaterializationError, WorthQueryDomainCapabilityOutcomeKind,
 };
+use crate::domain_capabilities::certification::install_domain_capability_certification;
 use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
     evaluate_requested_domain_capability_contribution, materialize_canonical_admission_artifact,
@@ -19,9 +20,15 @@ use crate::runtime::{InvariantCatalog, WorthQueryIntentDeclaration};
 #[test]
 fn common_intent_support_lane_matches_proof_lane_materialization() {
     let declaration = intent_declaration("intent-support");
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let target = domain
+        .intent_target(&declaration)
+        .expect("installed contribution authority must remain current");
 
-    let common = worth_query_domain("worth.spatial")
-        .for_intent(&declaration)
+    let common = domain
+        .for_intent_target(target.clone())
+        .expect("certification target should belong to its installed domain")
         .supports_capability("graph.face_inner_loop_insertion")
         .because("topology substrate is available")
         .materialize()
@@ -31,7 +38,7 @@ fn common_intent_support_lane_matches_proof_lane_materialization() {
         "worth.spatial.graph.face_inner_loop_insertion",
         "topology substrate is available",
     )
-    .for_intent_declaration(&declaration);
+    .bind_to_installed_target(target);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
         evaluate_requested_domain_capability_contribution(proof_requested),
     )));
@@ -49,9 +56,15 @@ fn common_intent_support_lane_matches_proof_lane_materialization() {
 #[test]
 fn common_intent_advisory_lane_matches_proof_lane_materialization() {
     let declaration = intent_declaration("intent-advisory");
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let target = domain
+        .intent_target(&declaration)
+        .expect("installed contribution authority must remain current");
 
-    let common = worth_query_domain("worth.spatial")
-        .for_intent(&declaration)
+    let common = domain
+        .for_intent_target(target.clone())
+        .expect("certification target should belong to its installed domain")
         .advises("arbitration.requires_clarification")
         .because("multiple spatial candidates remain admissible")
         .materialize()
@@ -61,7 +74,7 @@ fn common_intent_advisory_lane_matches_proof_lane_materialization() {
         "worth.spatial.arbitration.requires_clarification",
         "multiple spatial candidates remain admissible",
     )
-    .for_intent_declaration(&declaration);
+    .bind_to_installed_target(target);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
         evaluate_requested_domain_capability_contribution(proof_requested),
     )));
@@ -87,9 +100,15 @@ fn common_intent_advisory_lane_matches_proof_lane_materialization() {
 #[test]
 fn common_admission_lane_matches_proof_lane_materialization() {
     let plan = admitted_basis_observation_plan();
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let target = domain
+        .admitted_plan_target(&plan)
+        .expect("installed contribution authority must remain current");
 
-    let common = worth_query_domain("worth.spatial")
-        .for_admitted_intent_plan(&plan)
+    let common = domain
+        .for_admitted_plan_target(target.clone())
+        .expect("certification target should belong to its installed domain")
         .advises("arbitration.requires_clarification")
         .because("multiple spatial candidates remain admissible")
         .materialize()
@@ -99,7 +118,7 @@ fn common_admission_lane_matches_proof_lane_materialization() {
         "worth.spatial.arbitration.requires_clarification",
         "multiple spatial candidates remain admissible",
     )
-    .for_admitted_intent_plan(&plan);
+    .bind_to_installed_target(target);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
         evaluate_requested_domain_capability_contribution(proof_requested),
     )));
@@ -117,9 +136,15 @@ fn common_admission_lane_matches_proof_lane_materialization() {
 #[test]
 fn common_intent_preview_inspection_lane_matches_proof_lane_materialization() {
     let declaration = intent_declaration("intent-preview");
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let target = domain
+        .intent_target(&declaration)
+        .expect("installed contribution authority must remain current");
 
-    let common = worth_query_domain("worth.spatial")
-        .for_intent(&declaration)
+    let common = domain
+        .for_intent_target(target.clone())
+        .expect("certification target should belong to its installed domain")
         .inspects_query_preview(
             "topology.preview_conflict",
             crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
@@ -137,7 +162,7 @@ fn common_intent_preview_inspection_lane_matches_proof_lane_materialization() {
             "preview-session:42",
         ),
     )
-    .for_intent_declaration(&declaration);
+    .bind_to_installed_target(target);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
         evaluate_requested_domain_capability_contribution(proof_requested),
     )));
@@ -155,9 +180,15 @@ fn common_intent_preview_inspection_lane_matches_proof_lane_materialization() {
 #[test]
 fn common_intent_preview_mutation_lane_matches_proof_lane_materialization() {
     let declaration = intent_declaration("intent-preview-mutation");
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let target = domain
+        .intent_target(&declaration)
+        .expect("installed contribution authority must remain current");
 
-    let common = worth_query_domain("worth.spatial")
-        .for_intent(&declaration)
+    let common = domain
+        .for_intent_target(target.clone())
+        .expect("certification target should belong to its installed domain")
         .plans_preview_mutation(
             "topology.preview_mutation",
             crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
@@ -176,7 +207,7 @@ fn common_intent_preview_mutation_lane_matches_proof_lane_materialization() {
                 "preview-session:77",
             ),
         )
-        .for_intent_declaration(&declaration);
+        .bind_to_installed_target(target);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
         evaluate_requested_domain_capability_contribution(proof_requested),
     )));
@@ -194,9 +225,15 @@ fn common_intent_preview_mutation_lane_matches_proof_lane_materialization() {
 #[test]
 fn common_continuity_lane_matches_proof_lane_materialization() {
     let plan = admitted_basis_observation_plan();
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let target = domain
+        .admitted_plan_target(&plan)
+        .expect("installed contribution authority must remain current");
 
-    let common = worth_query_domain("worth.spatial")
-        .for_admitted_intent_plan(&plan)
+    let common = domain
+        .for_admitted_plan_target(target.clone())
+        .expect("certification target should belong to its installed domain")
         .preserves_continuity("identity.edge_split", "edge:before", "edge:after")
         .because("edge split replaces one edge with one canonical successor")
         .materialize()
@@ -208,7 +245,7 @@ fn common_continuity_lane_matches_proof_lane_materialization() {
         "worth.spatial.identity.edge_split",
         "edge split replaces one edge with one canonical successor",
     )
-    .for_admitted_intent_plan(&plan);
+    .bind_to_installed_target(target);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
         evaluate_requested_domain_capability_contribution(proof_requested),
     )));
@@ -227,9 +264,15 @@ fn common_continuity_lane_matches_proof_lane_materialization() {
 fn common_invariant_registration_lane_matches_proof_lane_materialization() {
     let declaration = intent_declaration("intent-invariant");
     let invariant_catalog = InvariantCatalog::default();
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let target = domain
+        .intent_target(&declaration)
+        .expect("installed contribution authority must remain current");
 
-    let common = worth_query_domain("worth.spatial")
-        .for_intent(&declaration)
+    let common = domain
+        .for_intent_target(target.clone())
+        .expect("certification target should belong to its installed domain")
         .register_invariant_catalog("spatial.non_manifold_edge_split", invariant_catalog.clone())
         .because("geometry kernel must reject non-manifold edge splits")
         .materialize()
@@ -241,7 +284,7 @@ fn common_invariant_registration_lane_matches_proof_lane_materialization() {
             "worth.spatial.spatial.non_manifold_edge_split",
             "geometry kernel must reject non-manifold edge splits",
         )
-        .for_intent_declaration(&declaration);
+        .bind_to_installed_target(target);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
         evaluate_requested_domain_capability_contribution(proof_requested),
     )));
@@ -260,8 +303,10 @@ fn common_invariant_registration_lane_matches_proof_lane_materialization() {
 fn checked_lane_preserves_denied_outcome_metadata_and_typed_error() {
     let declaration = intent_declaration("intent-denial");
 
-    let checked = worth_query_domain("worth.spatial")
+    let checked = install_domain_capability_certification()
+        .contributions()
         .for_intent(&declaration)
+        .expect("installed contribution authority must remain current")
         .supports_capability("graph.face_inner_loop_insertion")
         .because("")
         .try_materialize();
@@ -278,8 +323,10 @@ fn checked_lane_preserves_denied_outcome_metadata_and_typed_error() {
     );
     assert!(checked.denial().is_some());
 
-    let error = worth_query_domain("worth.spatial")
+    let error = install_domain_capability_certification()
+        .contributions()
         .for_intent(&declaration)
+        .expect("installed contribution authority must remain current")
         .supports_capability("graph.face_inner_loop_insertion")
         .because("")
         .materialize()
@@ -294,8 +341,10 @@ fn checked_lane_preserves_denied_outcome_metadata_and_typed_error() {
 fn checked_intent_admission_lane_preserves_declaration_bound_metadata() {
     let declaration = intent_declaration("intent-admission-denial");
 
-    let checked = worth_query_domain("worth.spatial")
+    let checked = install_domain_capability_certification()
+        .contributions()
         .for_intent(&declaration)
+        .expect("installed contribution authority must remain current")
         .advises("arbitration.requires_clarification")
         .because("")
         .try_materialize();
@@ -315,15 +364,6 @@ fn checked_intent_admission_lane_preserves_declaration_bound_metadata() {
         checked.transition_outcome(),
         worth_proof::TransitionOutcome::Denied(_)
     ));
-}
-
-fn success<T>(
-    outcome: crate::domain_capabilities::WorthQueryDomainCapabilityTransitionOutcome<T>,
-) -> T {
-    match outcome {
-        worth_proof::TransitionOutcome::Success(value) => value,
-        _ => panic!("expected success"),
-    }
 }
 
 fn intent_declaration(name: &str) -> WorthQueryIntentDeclaration {

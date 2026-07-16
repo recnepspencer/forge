@@ -1,9 +1,7 @@
 use crate::facade::identity::EntityId;
 use crate::facade::transactions::{MutationIntent, TransactionCommitError};
 use crate::tests::support::*;
-use worth_foundational::facade::{
-    AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
-};
+use worth_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};
 
 #[test]
 fn update_entity_fields_rejects_undeclared_aspect_targets() {
@@ -33,17 +31,17 @@ fn update_entity_fields_rejects_undeclared_aspect_targets() {
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             match error.class {
-                crate::transactions::data::ConflictClass::EntityFieldAspectPatchDenied {
+                crate::transactions::data::ConflictClass::RecordAspectPatchDenied {
                     denial:
-                        crate::transactions::data::EntityFieldAspectPatchDenial::UndeclaredEntityAspectTarget {
-                            ref field_locator,
-                            ..
+                        crate::transactions::data::RecordAspectPatchDenial::FieldAuthoringDenied {
+                            ref target,
+                            reason: crate::transactions::data::AspectFieldTargetRejectionReason::UndeclaredAspect,
                         },
                     ..
-                } => assert_eq!(field_locator.aspect().aspect_key().as_str(), "undeclared"),
-                other => panic!("expected typed entity field aspect patch denial, got {other:?}"),
+                } => assert_eq!(target.aspect().aspect_key().as_str(), "undeclared"),
+                other => panic!("expected typed record aspect patch denial, got {other:?}"),
             }
-            assert!(error.detail.contains("targets undeclared aspect"));
+            assert!(error.detail.contains("undeclared aspect"));
         }
         other => panic!("expected conflict error, got {other:?}"),
     }
@@ -122,11 +120,11 @@ fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
     let error = txn.commit().unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => match error.class {
-            crate::transactions::data::ConflictClass::EntityFieldAspectPatchDenied {
+            crate::transactions::data::ConflictClass::RecordAspectPatchDenied {
                 denial:
-                    crate::transactions::data::EntityFieldAspectPatchDenial::EntityAspectFieldPathMismatch {
-                        field_locator,
-                        ..
+                    crate::transactions::data::RecordAspectPatchDenial::FieldAuthoringDenied {
+                        target: field_locator,
+                        reason: crate::transactions::data::AspectFieldTargetRejectionReason::FieldPathNotAdmittedByAspectBinding,
                     },
                 ..
             } => assert_eq!(field_locator.aspect().aspect_key().as_str(), "title.scalar"),
@@ -161,21 +159,17 @@ fn update_entity_fields_validation_denial_carries_aspect_field_path() {
     let error = txn.commit().unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => match error.class {
-            crate::transactions::data::ConflictClass::EntityFieldAspectPatchDenied {
+            crate::transactions::data::ConflictClass::RecordAspectPatchDenied {
                 denial:
-                    crate::transactions::data::EntityFieldAspectPatchDenial::ContractValidationDenied {
-                        field_locator,
-                        ..
-                    },
+                    crate::transactions::data::RecordAspectPatchDenial::ReadmissionDenied(
+                        worth_foundational::facade::PortableAspectReadmissionDenial::ValueValidation {
+                            key,
+                            ..
+                        },
+                    ),
                 ..
             } => {
-                assert_eq!(field_locator.aspect().aspect_key().as_str(), "name");
-                assert_eq!(
-                    field_locator.field_path(),
-                    &CanonicalFieldPath::single(
-                        FieldKey::new("name").expect("valid test field key")
-                    )
-                );
+                assert_eq!(key.as_str(), "name");
             }
             other => panic!("expected contract validation denial, got {other:?}"),
         },

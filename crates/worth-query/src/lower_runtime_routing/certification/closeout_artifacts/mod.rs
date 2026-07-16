@@ -17,7 +17,6 @@ pub use closeout_report::{
 pub use closure_test::{
     worth_query_lower_runtime_closure_test, WorthQueryLowerRuntimeClosureTest,
     WorthQueryLowerRuntimeClosureTestLane, WorthQueryLowerRuntimeClosureTestRow,
-    LOWER_RUNTIME_CLOSURE_TEST_NAME,
 };
 pub use output_manifest::{
     worth_query_lower_runtime_certification_output_manifest,

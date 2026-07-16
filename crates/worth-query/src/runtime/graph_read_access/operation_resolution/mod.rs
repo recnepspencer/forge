@@ -9,12 +9,11 @@ mod resolver;
 mod unsupported_denial;
 
 pub use built_in::WorthQueryBuiltInGraphReadOperation;
-pub use domain_registration::{
-    WorthQueryDomainRegisteredGraphReadOperation, WorthQueryGraphReadOperationRegistration,
-};
+pub use domain_registration::WorthQueryDomainRegisteredGraphReadOperation;
+pub(crate) use domain_registration::WorthQueryGraphReadOperationRegistration;
 pub use outcome::WorthQueryGraphReadOperationOutcome;
-pub use registry::WorthQueryGraphReadOperationRegistry;
-pub use registry_admission_error::WorthQueryGraphReadRegistryAdmissionError;
+pub(crate) use registry::WorthQueryGraphReadOperationRegistry;
+pub(crate) use registry_admission_error::WorthQueryGraphReadRegistryAdmissionError;
 pub use requirement::{
     WorthQueryGraphReadOperationCapabilityRequirement,
     WorthQueryGraphReadOperationCapabilityRequirementDeclaration,

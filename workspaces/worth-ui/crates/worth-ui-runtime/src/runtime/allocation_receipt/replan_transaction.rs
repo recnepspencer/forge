@@ -221,7 +221,7 @@ mod tests {
     }
 }
 
-#[cfg(any(test, feature = "certification-support"))]
+#[cfg(test)]
 impl UiAllocationReplanTransaction {
     pub(super) fn for_receipt_law_test(
         candidate: &super::UiAllocationCandidate,

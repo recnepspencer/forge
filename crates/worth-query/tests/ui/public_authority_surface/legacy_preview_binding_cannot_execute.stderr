@@ -1,14 +1,8 @@
-error[E0603]: function `execute_scoped_preview_live_session_plan` is private
+error[E0432]: unresolved import `worth_query::facade::policy::execute_scoped_preview_live_session_plan`
  --> tests/ui/public_authority_surface/legacy_preview_binding_cannot_execute.rs:1:35
   |
 1 | use worth_query::facade::policy::{execute_scoped_preview_live_session_plan, PreviewSessionPlanBinding};
-  |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private function
-  |
-note: the function `execute_scoped_preview_live_session_plan` is defined here
- --> src/facade.rs
-  |
-  |     pub use super::exports_policy::*;
-  |             ^^^^^^^^^^^^^^^^^^^^^
+  |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `execute_scoped_preview_live_session_plan` in `facade::policy`
 
 warning: unreachable statement
  --> tests/ui/public_authority_surface/legacy_preview_binding_cannot_execute.rs:5:5

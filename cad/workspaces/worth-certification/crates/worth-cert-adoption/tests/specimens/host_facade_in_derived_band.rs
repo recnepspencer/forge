@@ -1,3 +1,7 @@
-use worth_query_host::facade::WorthQueryApplicationFacade;
+use worth_query_host::facade::{domain, runtime};
 
-pub fn retain(_facade: WorthQueryApplicationFacade) {}
+pub fn retain(
+    _domain: Option<domain::WorthQueryDomainPackageIdentity>,
+    _runtime: Option<runtime::WorthQueryRuntime>,
+) {
+}

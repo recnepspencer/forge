@@ -1,4 +1,7 @@
-use worth_query::facade::runtime::{worth_query_domain, BridgePreviewSessionIdentity, WorthQueryIntentDeclaration, WorthQueryIntentInput};
+#[path = "../support/installed_domain.rs"]
+mod installed_domain;
+
+use worth_query::facade::runtime::{BridgePreviewSessionIdentity, WorthQueryIntentDeclaration, WorthQueryIntentInput};
 
 fn workflow_common_lane() {
     let declaration = WorthQueryIntentDeclaration::strategy_commit(
@@ -9,8 +12,10 @@ fn workflow_common_lane() {
         WorthQueryIntentInput::object([("edge", WorthQueryIntentInput::string("e-1"))]),
     );
 
-    let _plan = worth_query_domain("worth.spatial")
-        .for_intent(&declaration)
+    let installation = installed_domain::install("workflow-golden");
+    let _plan = installation
+        .contributions()
+        .for_intent(&declaration).expect("installed contribution authority must remain current")
         .plans_preview_mutation(
             "topology.preview_mutation",
             BridgePreviewSessionIdentity::from_stable_name("preview-session:77"),

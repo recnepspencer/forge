@@ -12,17 +12,24 @@ pub(super) fn restore_checkpoint_state(
     checkpoint: &DurableCheckpoint,
 ) -> Result<(), DurabilityError> {
     validate_checkpoint_lineage_artifact(checkpoint)?;
+    let aspect_contracts =
+        crate::durability::checkpoints::aspect_state_images::CheckpointAspectContractCatalog::readmit(
+            &checkpoint.aspect_contracts,
+        )?;
     restored.partitions = checkpoint
         .partition_images
         .iter()
         .cloned()
         .map(|image| {
-            (
-                image.partition_id,
-                crate::durability::checkpoints::images::partition_from_image(image),
+            let partition_id = image.partition_id;
+            crate::durability::checkpoints::images::partition_from_image(
+                image,
+                &restored.schema_contract_runtime.aspect_contract_plans,
+                &aspect_contracts,
             )
+            .map(|partition| (partition_id, partition))
         })
-        .collect();
+        .collect::<Result<_, _>>()?;
     restored.history.branch_heads = checkpoint
         .branches
         .iter()

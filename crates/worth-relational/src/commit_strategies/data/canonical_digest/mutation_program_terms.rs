@@ -1,10 +1,15 @@
-use super::{commit_strategy_digest, StrategyDigestBytes};
+use super::{
+    commit_strategy_digest, portable_aspect_patch_terms::write_portable_aspect_patch,
+    StrategyDigestBytes,
+};
 use crate::commit_strategies::data::StrategyMutationProgramDigest;
 use crate::transactions::data::{
-    AspectFieldPatch, BulkEntityCreateIntent, BulkRelationCreateIntent, CreateIntent,
-    DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, EntityReference, EntitySpec,
-    MutationIntent, RelationMutationIntent, RelationSpec, ReplaceEntityIntent,
-    UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent, WorkerIntentBatch,
+    ApplyEntityAspectPatchIntent, ApplyRelationAspectPatchIntent, AspectFieldPatch,
+    BulkEntityCreateIntent, BulkRelationCreateIntent, CreateIntent, DeleteEntityIntent,
+    DeleteRelationIntent, EntityAspectCreateIntent, EntityMutationIntent, EntityReference,
+    EntitySpec, MutationIntent, RelationAspectCreateIntent, RelationMutationIntent, RelationSpec,
+    ReplaceEntityIntent, UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent,
+    WorkerIntentBatch,
 };
 
 pub(crate) fn strategy_mutation_program_digest(
@@ -68,6 +73,14 @@ fn write_create_intent(bytes: &mut StrategyDigestBytes, intent: &CreateIntent) {
             bytes.tag(4);
             write_bulk_relation_create_intent(bytes, intent);
         }
+        CreateIntent::EntityAspects(intent) => {
+            bytes.tag(5);
+            write_entity_aspect_create_intent(bytes, intent);
+        }
+        CreateIntent::RelationAspects(intent) => {
+            bytes.tag(6);
+            write_relation_aspect_create_intent(bytes, intent);
+        }
     }
 }
 
@@ -85,6 +98,10 @@ fn write_entity_mutation_intent(bytes: &mut StrategyDigestBytes, intent: &Entity
             bytes.tag(3);
             write_delete_entity_intent(bytes, intent);
         }
+        EntityMutationIntent::ApplyAspectPatch(intent) => {
+            bytes.tag(4);
+            write_apply_entity_aspect_patch_intent(bytes, intent);
+        }
     }
 }
 
@@ -100,6 +117,10 @@ fn write_relation_mutation_intent(
         RelationMutationIntent::Delete(intent) => {
             bytes.tag(2);
             write_delete_relation_intent(bytes, intent);
+        }
+        RelationMutationIntent::ApplyAspectPatch(intent) => {
+            bytes.tag(3);
+            write_apply_relation_aspect_patch_intent(bytes, intent);
         }
     }
 }
@@ -118,6 +139,28 @@ fn write_relation_spec(bytes: &mut StrategyDigestBytes, spec: &RelationSpec) {
     write_entity_reference(bytes, &spec.source);
     write_entity_reference(bytes, &spec.target);
     write_aspect_field_patch(bytes, &spec.fields);
+}
+
+fn write_entity_aspect_create_intent(
+    bytes: &mut StrategyDigestBytes,
+    intent: &EntityAspectCreateIntent,
+) {
+    bytes.partition_id(intent.partition_id);
+    bytes.kind_id(intent.kind_id);
+    bytes.client_key(&intent.client_key);
+    write_portable_aspect_patch(bytes, &intent.aspect_patch);
+}
+
+fn write_relation_aspect_create_intent(
+    bytes: &mut StrategyDigestBytes,
+    intent: &RelationAspectCreateIntent,
+) {
+    bytes.partition_id(intent.partition_id);
+    bytes.kind_id(intent.kind_id);
+    bytes.client_key(&intent.client_key);
+    write_entity_reference(bytes, &intent.source);
+    write_entity_reference(bytes, &intent.target);
+    write_portable_aspect_patch(bytes, &intent.aspect_patch);
 }
 
 fn write_bulk_entity_create_intent(
@@ -153,6 +196,14 @@ fn write_update_entity_fields_intent(
     write_aspect_field_patch(bytes, &intent.fields);
 }
 
+fn write_apply_entity_aspect_patch_intent(
+    bytes: &mut StrategyDigestBytes,
+    intent: &ApplyEntityAspectPatchIntent,
+) {
+    bytes.entity_id(intent.entity_id);
+    write_portable_aspect_patch(bytes, &intent.aspect_patch);
+}
+
 fn write_replace_entity_intent(bytes: &mut StrategyDigestBytes, intent: &ReplaceEntityIntent) {
     bytes.entity_id(intent.entity_id);
     write_entity_spec(bytes, &intent.replacement);
@@ -170,6 +221,14 @@ fn write_update_relation_endpoints_intent(
     bytes.kind_id(intent.kind_id);
     write_entity_reference(bytes, &intent.source);
     write_entity_reference(bytes, &intent.target);
+}
+
+fn write_apply_relation_aspect_patch_intent(
+    bytes: &mut StrategyDigestBytes,
+    intent: &ApplyRelationAspectPatchIntent,
+) {
+    bytes.relation_id(intent.relation_id);
+    write_portable_aspect_patch(bytes, &intent.aspect_patch);
 }
 
 fn write_delete_relation_intent(bytes: &mut StrategyDigestBytes, intent: &DeleteRelationIntent) {

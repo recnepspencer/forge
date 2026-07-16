@@ -55,6 +55,7 @@ pub struct WorthQueryDeclarationEntryOrchestrationPlan<
 impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
     WorthQueryDeclarationEntryOrchestrationPlan<D, I>
 {
+    #[cfg(test)]
     pub(crate) fn new(input: WorthQueryDeclarationEntryOrchestrationInput<D, I>) -> Self {
         Self::for_product(
             input,

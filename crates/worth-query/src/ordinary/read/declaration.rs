@@ -41,7 +41,7 @@ impl WorthQueryReadDeclarationIdentity {
 ///
 /// Its fields are private so consumers can inspect canonical identity without
 /// manufacturing or replacing the graph Query admitted during authoring.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryReadDeclaration {
     identity: WorthQueryReadDeclarationIdentity,
     intent: WorthQueryDeclaredReadIntent,
@@ -54,6 +54,20 @@ impl WorthQueryReadDeclaration {
 
     pub(crate) fn into_declared_intent(self) -> WorthQueryDeclaredReadIntent {
         self.intent
+    }
+
+    /// Split one declaration into the two single-use observations required by
+    /// Query-owned comparison execution.
+    ///
+    /// This is deliberately crate-private: ordinary consumers still receive a
+    /// move-only declaration, while the comparison owner can prove that the
+    /// same canonical meaning must be observed against two distinct bases.
+    pub(crate) fn into_comparison_pair(self) -> (Self, Self) {
+        let second = Self {
+            identity: self.identity.clone(),
+            intent: self.intent.clone(),
+        };
+        (self, second)
     }
 
     fn from_declared_intent(intent: WorthQueryDeclaredReadIntent) -> Self {

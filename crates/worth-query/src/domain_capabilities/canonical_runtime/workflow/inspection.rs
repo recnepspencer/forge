@@ -18,6 +18,7 @@ use super::semantics::{
 };
 use super::WorthQueryWorkflowDeclarationMaterializationTarget;
 
+#[cfg(test)]
 pub fn materialize_query_conflict_inspection_artifact<T>(
     contribution: WorthQueryMaterializationReadyWorkflowContribution<T>,
 ) -> WorthQueryDomainCapabilityTransitionOutcome<QueryConflictInspectionArtifact>
@@ -113,6 +114,7 @@ where
     )
 }
 
+#[cfg(test)]
 pub fn materialize_query_post_merge_inspection_artifact<T>(
     contribution: WorthQueryMaterializationReadyWorkflowContribution<T>,
 ) -> WorthQueryDomainCapabilityTransitionOutcome<QueryPostMergeInspectionArtifact>
@@ -218,6 +220,7 @@ where
     )
 }
 
+#[cfg(test)]
 fn missing_inspection_semantics_denial(
     target_kind: crate::domain_capabilities::WorthQueryDomainCapabilityTargetKind,
     semantic_code: &str,
@@ -232,6 +235,7 @@ fn missing_inspection_semantics_denial(
     )
 }
 
+#[cfg(test)]
 fn inconsistent_inspection_semantics_denial(
     target_kind: crate::domain_capabilities::WorthQueryDomainCapabilityTargetKind,
     semantic_code: &str,

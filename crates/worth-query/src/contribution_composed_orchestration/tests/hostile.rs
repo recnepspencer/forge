@@ -8,14 +8,12 @@ use crate::domain_capabilities::{
 };
 use crate::ordinary_outcome::WorthQueryOrdinaryOutcome;
 
-use super::support::{
-    admitted_handle, ContributionInput, DeferredAdmissionContributionInput,
-    DeferredContributionInput,
-};
+use super::support::{admitted_handle, ContributionInput, DeferredContributionInput};
 
 #[test]
 fn partial_composition_preserves_admitted_truth_when_later_intent_denies() {
     let handle = admitted_handle();
+    let installed_authority = handle.installed_authority().witness_identity().clone();
     let checked = handle.orchestrate_declaration_with_contributions_checked(
         WorthQueryContributionComposedOrchestrationInput::new(ContributionInput::new("face-b"))
             .with_contribution(WorthQueryContributionIntent::support(
@@ -53,9 +51,71 @@ fn partial_composition_preserves_admitted_truth_when_later_intent_denies() {
                 composed.contributions()[0].evidence().evidence_digest(),
                 composed.contribution_composition().evidence()[0].evidence_digest()
             );
+            assert_eq!(
+                composed.installed_authority().witness_identity(),
+                &installed_authority
+            );
+            assert!(composed.contributions().iter().all(|contribution| {
+                contribution.installed_authority().witness_identity() == &installed_authority
+            }));
         }
         _ => panic!("expected partial composition to remain inspectable as a bound artifact"),
     }
+}
+
+#[test]
+fn package_contribution_policy_denies_before_admission_or_materialization() {
+    use crate::contribution_composed_orchestration::{
+        WorthQueryContributionComposedIntentClassification,
+        WorthQueryContributionComposedIntentStageKind,
+        WorthQueryContributionComposedOrchestrationOutcome,
+    };
+
+    let handle = super::support::admitted_handle_without_contributions();
+    let outcome = handle.orchestrate_declaration_with_contributions_checked(
+        WorthQueryContributionComposedOrchestrationInput::new(ContributionInput::new(
+            "policy-denial",
+        ))
+        .with_contribution(WorthQueryContributionIntent::support(
+            WorthQuerySupportContributionAuthoring::declaration_traceability(
+                "domain.traceability.policy",
+                "package policy remains authoritative",
+            ),
+        )),
+    );
+
+    let WorthQueryContributionComposedOrchestrationOutcome::ContributionDenied(_) = outcome else {
+        panic!("an uninstalled contribution category must deny composition")
+    };
+    let proof = handle.orchestrate_declaration_with_contributions_proof(
+        WorthQueryContributionComposedOrchestrationInput::new(ContributionInput::new(
+            "policy-denial",
+        ))
+        .with_contribution(WorthQueryContributionIntent::support(
+            WorthQuerySupportContributionAuthoring::declaration_traceability(
+                "domain.traceability.policy",
+                "package policy remains authoritative",
+            ),
+        )),
+    );
+    let result = &proof.intent_results()[0];
+    assert_eq!(
+        result.classification(),
+        WorthQueryContributionComposedIntentClassification::Denied
+    );
+    assert_eq!(
+        result.evaluation().kind(),
+        WorthQueryContributionComposedIntentStageKind::Denied
+    );
+    assert_eq!(
+        result.admission().kind(),
+        WorthQueryContributionComposedIntentStageKind::NotAttempted
+    );
+    assert_eq!(
+        result.materialization().kind(),
+        WorthQueryContributionComposedIntentStageKind::NotAttempted
+    );
+    assert!(result.contribution().is_none());
 }
 
 #[test]
@@ -119,49 +179,6 @@ fn declaration_deferred_stays_distinct_on_composed_lane() {
             WorthQuerySupportContributionAuthoring::declaration_traceability(
                 "domain.traceability.face",
                 "deferred declaration still carries an attached contribution request",
-            ),
-        )),
-    );
-
-    assert!(matches!(
-        checked,
-        crate::contribution_composed_orchestration::WorthQueryContributionComposedOrchestrationOutcome::Deferred(_)
-    ));
-    match ordinary {
-        WorthQueryOrdinaryOutcome::Deferred(posture) => {
-            assert_eq!(
-                posture.checked_topology().contribution_composed_kind(),
-                Some(
-                    crate::ordinary_outcome::WorthQueryOrdinaryContributionComposedCheckedTopologyKind::Deferred
-                )
-            );
-        }
-        _ => panic!("expected ordinary deferred posture"),
-    }
-}
-
-#[test]
-fn declaration_admission_deferred_stays_distinct_on_composed_lane() {
-    let handle = admitted_handle();
-    let checked = handle.orchestrate_declaration_with_contributions_checked(
-        WorthQueryContributionComposedOrchestrationInput::new(
-            DeferredAdmissionContributionInput::new("face-admission-deferred"),
-        )
-        .with_contribution(WorthQueryContributionIntent::support(
-            WorthQuerySupportContributionAuthoring::declaration_traceability(
-                "domain.traceability.face",
-                "admission-deferred declaration still carries an attached contribution request",
-            ),
-        )),
-    );
-    let ordinary = handle.orchestrate_declaration_with_contributions_outcome(
-        WorthQueryContributionComposedOrchestrationInput::new(
-            DeferredAdmissionContributionInput::new("face-admission-deferred"),
-        )
-        .with_contribution(WorthQueryContributionIntent::support(
-            WorthQuerySupportContributionAuthoring::declaration_traceability(
-                "domain.traceability.face",
-                "admission-deferred declaration still carries an attached contribution request",
             ),
         )),
     );

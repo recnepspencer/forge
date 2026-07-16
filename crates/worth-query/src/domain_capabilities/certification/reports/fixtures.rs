@@ -7,12 +7,14 @@ use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
     evaluate_requested_domain_capability_contribution,
     prepare_admitted_domain_capability_contribution_for_materialization,
-    WorthQueryLowerRuntimeExplanationRequest, WorthQueryProjectionContractRequest,
-    WorthQueryRequestedAdmissionContribution, WorthQueryRequestedAftermathContribution,
-    WorthQueryRequestedContinuityContribution, WorthQueryRequestedDomainCapabilityContribution,
-    WorthQueryRequestedExplanationContribution, WorthQueryRequestedInvariantCapabilityContribution,
-    WorthQueryRequestedSupportContribution, WorthQueryRequestedWorkflowContribution,
-    WorthQuerySupportContributionAuthoring,
+    WorthQueryInstalledAdmittedPlanContributionTarget,
+    WorthQueryInstalledDeclarationContributionTarget,
+    WorthQueryInstalledLowerRuntimeContributionTarget, WorthQueryLowerRuntimeExplanationRequest,
+    WorthQueryProjectionContractRequest, WorthQueryRequestedAdmissionContribution,
+    WorthQueryRequestedAftermathContribution, WorthQueryRequestedContinuityContribution,
+    WorthQueryRequestedDomainCapabilityContribution, WorthQueryRequestedExplanationContribution,
+    WorthQueryRequestedInvariantCapabilityContribution, WorthQueryRequestedSupportContribution,
+    WorthQueryRequestedWorkflowContribution, WorthQuerySupportContributionAuthoring,
 };
 use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
@@ -226,85 +228,71 @@ fn field_path(path: &str) -> crate::authorized_projection::AuthorizedProjectionF
 }
 
 pub(super) fn support_traceability_requested(
-    declaration: &WorthQueryIntentDeclaration,
-) -> WorthQueryRequestedSupportContribution<
-    crate::domain_capabilities::WorthQueryDeclarationBoundContributionTarget,
-> {
+    target: WorthQueryInstalledDeclarationContributionTarget,
+) -> WorthQueryRequestedSupportContribution<WorthQueryInstalledDeclarationContributionTarget> {
     WorthQuerySupportContributionAuthoring::declaration_traceability(
         "worth.spatial.traceability.edge_split",
         "declaration-scoped support remains declaration scoped",
     )
-    .for_intent_declaration(declaration)
+    .bind_to_installed_target(target)
 }
 
 pub(super) fn plain_support_requested(
-    declaration: &WorthQueryIntentDeclaration,
-) -> WorthQueryRequestedSupportContribution<
-    crate::domain_capabilities::WorthQueryDeclarationBoundContributionTarget,
-> {
+    target: WorthQueryInstalledDeclarationContributionTarget,
+) -> WorthQueryRequestedSupportContribution<WorthQueryInstalledDeclarationContributionTarget> {
     WorthQuerySupportContributionAuthoring::declaration_support(
         "worth.spatial.traceability.edge_split",
         "declaration-scoped support remains declaration scoped",
     )
-    .for_intent_declaration(declaration)
+    .bind_to_installed_target(target)
 }
 
 pub(super) fn plan_support_requested(
-    plan: &WorthQueryAdmittedIntentPlan,
-) -> WorthQueryRequestedSupportContribution<
-    crate::domain_capabilities::WorthQueryAdmittedPlanBoundContributionTarget,
-> {
+    target: WorthQueryInstalledAdmittedPlanContributionTarget,
+) -> WorthQueryRequestedSupportContribution<WorthQueryInstalledAdmittedPlanContributionTarget> {
     WorthQuerySupportContributionAuthoring::declaration_support(
         "worth.spatial.support.runtime_floor",
         "runtime floor remains explicitly supported",
     )
-    .for_admitted_intent_plan(plan)
+    .bind_to_installed_target(target)
 }
 
 pub(super) fn admission_requested(
-    plan: &WorthQueryAdmittedIntentPlan,
-) -> WorthQueryRequestedAdmissionContribution<
-    crate::domain_capabilities::WorthQueryAdmittedPlanBoundContributionTarget,
-> {
+    target: WorthQueryInstalledAdmittedPlanContributionTarget,
+) -> WorthQueryRequestedAdmissionContribution<WorthQueryInstalledAdmittedPlanContributionTarget> {
     crate::domain_capabilities::WorthQueryAdmissionContributionAuthoring::advisory(
         "worth.spatial.admission.routing_gap",
         "runtime routing still needs clarification",
     )
-    .for_admitted_intent_plan(plan)
+    .bind_to_installed_target(target)
 }
 
 pub(super) fn workflow_requested(
-    declaration: &WorthQueryIntentDeclaration,
-) -> WorthQueryRequestedWorkflowContribution<
-    crate::domain_capabilities::WorthQueryDeclarationBoundContributionTarget,
-> {
+    target: WorthQueryInstalledDeclarationContributionTarget,
+) -> WorthQueryRequestedWorkflowContribution<WorthQueryInstalledDeclarationContributionTarget> {
     crate::domain_capabilities::WorthQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
         "worth.spatial.workflow.preview_mutation",
         "preview mutation planning should preserve canonical workflow semantics",
         BridgePreviewSessionIdentity::from_stable_name("preview-session:certification"),
     )
-    .for_intent_declaration(declaration)
+    .bind_to_installed_target(target)
 }
 
 pub(super) fn continuity_requested(
-    plan: &WorthQueryAdmittedIntentPlan,
-) -> WorthQueryRequestedContinuityContribution<
-    crate::domain_capabilities::WorthQueryAdmittedPlanBoundContributionTarget,
-> {
+    target: WorthQueryInstalledAdmittedPlanContributionTarget,
+) -> WorthQueryRequestedContinuityContribution<WorthQueryInstalledAdmittedPlanContributionTarget> {
     crate::domain_capabilities::WorthQueryContinuityContributionAuthoring::preserved_rebind(
         "edge:before",
         "edge:after",
         "worth.spatial.continuity.edge_split",
         "edge split preserves one authoritative successor",
     )
-    .for_admitted_intent_plan(plan)
+    .bind_to_installed_target(target)
 }
 
 pub(super) fn aftermath_requested(
-    plan: &WorthQueryAdmittedIntentPlan,
-) -> WorthQueryRequestedAftermathContribution<
-    crate::domain_capabilities::WorthQueryAdmittedPlanBoundContributionTarget,
-> {
+    target: WorthQueryInstalledAdmittedPlanContributionTarget,
+) -> WorthQueryRequestedAftermathContribution<WorthQueryInstalledAdmittedPlanContributionTarget> {
     let (source, binding, facts) = projection_contract_parts();
     crate::domain_capabilities::WorthQueryAftermathContributionAuthoring::consumes_projection_contract(
         "worth.spatial.aftermath.projection_contract",
@@ -313,44 +301,42 @@ pub(super) fn aftermath_requested(
         binding,
         facts,
     )
-    .for_admitted_intent_plan(plan)
+    .bind_to_installed_target(target)
 }
 
 pub(super) fn explanation_requested(
-    lower_runtime: &WorthQueryLowerRuntimeBoundaryEnvelope,
-) -> WorthQueryRequestedExplanationContribution<
-    crate::domain_capabilities::WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
-> {
-    let (reference_set, target) = store_backed_replay_gap_parts();
+    installed_target: WorthQueryInstalledLowerRuntimeContributionTarget,
+) -> WorthQueryRequestedExplanationContribution<WorthQueryInstalledLowerRuntimeContributionTarget> {
+    let (reference_set, inspection_target) = store_backed_replay_gap_parts();
     crate::domain_capabilities::WorthQueryExplanationContributionAuthoring::store_backed_replay_gap_explanation(
         "worth.spatial.explanation.store_backed_replay",
         "store-backed replay should preserve denied explanation identity",
         reference_set,
-        target,
+        inspection_target,
         vec![CausalEvidenceFamily::QueryInspection],
         crate::runtime::CausalInspectionRedactionPolicy::PreserveDetail,
         crate::runtime::CausalInspectionMaterializationPolicy::OfflineInterpretableArtifact,
     )
-    .for_lower_runtime_boundary_envelope(lower_runtime)
+    .bind_to_installed_target(installed_target)
 }
 
 pub(super) fn invariant_requested(
-    declaration: &WorthQueryIntentDeclaration,
+    target: WorthQueryInstalledDeclarationContributionTarget,
 ) -> WorthQueryRequestedInvariantCapabilityContribution<
-    crate::domain_capabilities::WorthQueryDeclarationBoundContributionTarget,
+    WorthQueryInstalledDeclarationContributionTarget,
 > {
     crate::domain_capabilities::WorthQueryInvariantCapabilityContributionAuthoring::invariant_registration(
         InvariantCatalog::default(),
         "worth.spatial.invariant.edge_split",
         "geometry kernel must reject invalid edge splits",
     )
-    .for_intent_declaration(declaration)
+    .bind_to_installed_target(target)
 }
 
 pub(super) fn capability_requested(
-    lower_runtime: &WorthQueryLowerRuntimeBoundaryEnvelope,
+    target: WorthQueryInstalledLowerRuntimeContributionTarget,
 ) -> WorthQueryRequestedInvariantCapabilityContribution<
-    crate::domain_capabilities::WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    WorthQueryInstalledLowerRuntimeContributionTarget,
 > {
     crate::domain_capabilities::WorthQueryInvariantCapabilityContributionAuthoring::graph_capability_gap(
         "face-split-target-combination",
@@ -358,13 +344,13 @@ pub(super) fn capability_requested(
         "worth.spatial.capability.face_split",
         "face split still depends on graph-composition capability support",
     )
-    .for_lower_runtime_boundary_envelope(lower_runtime)
+    .bind_to_installed_target(target)
 }
 
 pub(super) fn invariant_denial_requested(
-    lower_runtime: &WorthQueryLowerRuntimeBoundaryEnvelope,
+    target: WorthQueryInstalledLowerRuntimeContributionTarget,
 ) -> WorthQueryRequestedInvariantCapabilityContribution<
-    crate::domain_capabilities::WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    WorthQueryInstalledLowerRuntimeContributionTarget,
 > {
     crate::domain_capabilities::WorthQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(
         "non_manifold_edge_split",
@@ -378,7 +364,7 @@ pub(super) fn invariant_denial_requested(
         "worth.spatial.invariant.non_manifold",
         "non-manifold edge split must deny graph composition",
     )
-    .for_lower_runtime_boundary_envelope(lower_runtime)
+    .bind_to_installed_target(target)
 }
 
 pub(super) fn admitted_ready<P, T>(

@@ -77,11 +77,11 @@ naming continuity, or topology substrate posture.
 
 ## How It Relates To Other Features
 
-- [Declaration-Scoped Support And Traceability](./declaration-scoped-support-and-traceability.md)
+- Declaration-Scoped Support And Traceability
   is for declaration-bound support.
-- [Advisory And Violation Contributions](../admission/advisory-and-violation-contributions.md)
+- Advisory And Violation Contributions
   is for decision posture.
-- [Continuity Contributions And Authoritative Successors](../continuity/continuity-contributions-and-authoritative-successors.md)
+- Continuity Contributions And Authoritative Successors
   often pairs with admitted-plan support when successor truth needs both
   support and continuity explanation.
 
@@ -108,6 +108,6 @@ naming continuity, or topology substrate posture.
 
 ## Related Docs
 
-- [Declaration-Scoped Support And Traceability](./declaration-scoped-support-and-traceability.md)
-- [Advisory And Violation Contributions](../admission/advisory-and-violation-contributions.md)
+- Declaration-Scoped Support And Traceability
+- Advisory And Violation Contributions
 - [Intent Admission](../../execution/intent-admission.md)

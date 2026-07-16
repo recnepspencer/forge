@@ -9,7 +9,7 @@ fn compose_graph_supports_symbolic_relation_followup_mutation() {
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-relation-followup")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-relation-followup-tasks", |q| {
             q.from("Task")
                 .select([
@@ -25,7 +25,7 @@ fn compose_graph_supports_symbolic_relation_followup_mutation() {
                 .schema_basis("tasks-graph-composition-relation-followup-tasks")
         })
         .expect("task live view should declare");
-    let edges: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let edges: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-relation-followup-edges", |q| {
             q.from("TaskEdge")
                 .select([

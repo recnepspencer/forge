@@ -5,7 +5,7 @@ fn compose_graph_without_lineage_steps_fails_closed_on_lineage_summary() {
     let mut workspace = stateful_bridge_vertex_runtime()
         .workspace("topology.graph-composition-no-lineage-summary")
         .expect("workspace should open");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "topology.graph-composition-no-lineage-summary-vertices",
             |q| {

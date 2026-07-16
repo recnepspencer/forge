@@ -5,7 +5,7 @@ fn subscription_preview_basis_admits_from_active_preview_session() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::runtime::BridgePreviewSessionIdentity::admit_bridge_owned(
+            crate::speculation::BridgePreviewSessionIdentity::admit_bridge_owned(
                 "preview-session:subscription-basis",
             ),
             subscription_preview_declaration("subscription-basis"),
@@ -68,7 +68,7 @@ fn subscription_preview_basis_rejects_mismatched_execution_record() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::runtime::BridgePreviewSessionIdentity::admit_bridge_owned(
+            crate::speculation::BridgePreviewSessionIdentity::admit_bridge_owned(
                 "preview-session:subscription-a",
             ),
             subscription_preview_declaration("subscription-a"),
@@ -77,7 +77,7 @@ fn subscription_preview_basis_rejects_mismatched_execution_record() {
     let (active_preview, _) = runtime.activate_preview_session(admitted_preview, 2, 1, 1);
     let other_admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::runtime::BridgePreviewSessionIdentity::admit_bridge_owned(
+            crate::speculation::BridgePreviewSessionIdentity::admit_bridge_owned(
                 "preview-session:subscription-b",
             ),
             subscription_preview_declaration("subscription-b"),
@@ -117,7 +117,7 @@ fn preview_subscription_activation_binds_preview_basis_and_activation_ready_proo
     let (runtime, ready) = activation_ready_detail_subscription();
     let admitted_preview = runtime
         .admit_preview_session(
-            crate::facade::runtime::BridgePreviewSessionIdentity::admit_bridge_owned(
+            crate::speculation::BridgePreviewSessionIdentity::admit_bridge_owned(
                 "preview-session:subscription-active",
             ),
             subscription_preview_declaration("subscription-active"),

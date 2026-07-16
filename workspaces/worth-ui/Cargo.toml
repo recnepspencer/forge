@@ -23,6 +23,7 @@ license = "UNLICENSED"
 worth-foundational = { path = "../../crates/worth-foundational" }
 worth-proof = { path = "../../crates/worth-proof" }
 worth-query = { path = "../../crates/worth-query" }
+worth-relational = { path = "../../crates/worth-relational" }
 worth-signal = { path = "../../crates/worth-signal" }
 
 worth-ui-theme = { path = "crates/worth-ui-theme" }

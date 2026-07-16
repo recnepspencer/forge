@@ -33,12 +33,16 @@ impl WorthQueryReadReceipt {
     ///
     /// This is derived evidence. It does not expose planner construction or
     /// route-selection authority to the caller.
-    pub fn execution_plan_digest(&self) -> &str {
-        &self.execution_plan_digest
+    pub fn execution_plan_evidence_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.execution_plan_evidence_identity
     }
 
     pub fn query_digest(&self) -> &str {
         &self.query_digest
+    }
+
+    pub fn canonical_query_digest(&self) -> &str {
+        &self.canonical_query_digest
     }
 
     pub fn basis_digest(&self) -> &str {
@@ -247,14 +251,27 @@ impl WorthQueryReadReceipt {
         result_digest: impl Into<String>,
         execution_engine: WorthQueryReadExecutionEngine,
     ) -> Self {
+        let query_digest = query_digest.into();
         Self {
             read_graph_digest: read_graph_digest.into(),
             graph_family: WorthQueryReadGraphFamily::Collection,
             collection_result_family: Some(
                 crate::collection::CollectionResultFamily::OrdinaryCollection,
             ),
-            execution_plan_digest: "test-execution-plan".to_string(),
-            query_digest: query_digest.into(),
+            execution_plan_evidence_identity: WorthQueryEvidenceIdentity::compose(
+                crate::evidence_identity::WorthQueryEvidenceScope::MutationEvidenceSourceDigest,
+            )
+            .field_shape(
+                crate::evidence_identity::WorthQueryEvidenceTag::new("identity_family"),
+                "test_execution_plan",
+            )
+            .field_value(
+                crate::evidence_identity::WorthQueryEvidenceTag::new("execution_plan"),
+                "test-execution-plan",
+            )
+            .seal(),
+            canonical_query_digest: query_digest.clone(),
+            query_digest,
             basis_digest: basis_digest.into(),
             result_digest: result_digest.into(),
             snapshot_identity: crate::memory_workspace::admit_external_snapshot_label(

@@ -48,13 +48,13 @@ This keeps the public story honest:
 - `WorthQueryDeclarationEnvelopeClass`
 - `WorthQueryDeclarationEnvelopeEvidenceOrigin`
 - `WorthQueryDeclarationEnvelopeExplanation`
-- `WorthQueryAdmittedConfiguredDomainHandle::envelope_routes(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::envelope_routes_checked(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::envelope_routes_from_progressed(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::envelope_routes_from_progressed_with_intent(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::orchestrate_envelope_from_progressed(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::orchestrate_envelope_from_progressed_with_intent(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::declare_review_progress_describe_plan_receipt_and_envelope(...)`
+- `WorthQueryInstalledDomainDeclarationContext::envelope_routes(...)`
+- `WorthQueryInstalledDomainDeclarationContext::envelope_routes_checked(...)`
+- `WorthQueryInstalledDomainDeclarationContext::envelope_routes_from_progressed(...)`
+- `WorthQueryInstalledDomainDeclarationContext::envelope_routes_from_progressed_with_intent(...)`
+- `WorthQueryInstalledDomainDeclarationContext::envelope_routes_from_progressed(...)`
+- `WorthQueryInstalledDomainDeclarationContext::envelope_routes_from_progressed_with_intent(...)`
+- `WorthQueryInstalledDomainDeclarationContext::declare_review_progress_describe_plan_receipt_and_envelope(...)`
 
 Good to know:
 
@@ -82,8 +82,8 @@ Admitted-handle envelope entry points:
 - `envelope_routes_checked(subject) -> WorthQueryDeclarationEnvelopeChecked<D, I>`
 - `envelope_routes_from_progressed(progressed) -> Result<WorthQueryDeclarationEnvelope<D, I>, WorthQueryDeclarationEnvelopeTerminalError<D, I>>`
 - `envelope_routes_from_progressed_with_intent(progressed, intent) -> Result<WorthQueryDeclarationEnvelope<D, I>, WorthQueryDeclarationEnvelopeTerminalError<D, I>>`
-- `orchestrate_envelope_from_progressed(progressed) -> Result<WorthQueryDeclarationEnvelope<D, I>, WorthQueryDeclarationEnvelopeTerminalError<D, I>>`
-- `orchestrate_envelope_from_progressed_with_intent(progressed, intent) -> Result<WorthQueryDeclarationEnvelope<D, I>, WorthQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `envelope_routes_from_progressed(progressed) -> Result<WorthQueryDeclarationEnvelope<D, I>, WorthQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `envelope_routes_from_progressed_with_intent(progressed, intent) -> Result<WorthQueryDeclarationEnvelope<D, I>, WorthQueryDeclarationEnvelopeTerminalError<D, I>>`
 - `bind_continuation_request_from_context(request) -> WorthQueryBindingOutcome<WorthQueryContinuationBindingInput<D, I>>`
 - `bind_continuation_request_from_context_checked(request) -> WorthQueryBindingChecked<WorthQueryContinuationBindingInput<D, I>>`
 - `bind_continuation_request_from_context_proof(request) -> WorthQueryBindingTranscript<WorthQueryContinuationBindingInput<D, I>>`
@@ -317,12 +317,12 @@ story.
 
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md) provide
   the retained crossing posture the envelope wraps
-- [Declaration Route Plans](./declaration-route-plan.md) provide the retained
+- Declaration Route Plans provide the retained
   route truth the receipt and envelope carry forward
-- [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- Declaration Foundational Evidence
   provides the retained declaration truth and evidence-origin posture the
   envelope preserves
-- [Configured Domain Handles](./configured-domain-handles.md) retain the
+- Runtime-Installed Domain Handles retain the
   admitted-world identity the envelope must not rediscover
 
 Use receipts when you need the operational crossing artifact itself. Use
@@ -427,13 +427,13 @@ over retained receipt truth. They still do not provide:
 
 ## Related Docs
 
-- [Configured Domain Handles](./configured-domain-handles.md)
+- Runtime-Installed Domain Handles
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
-- [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
-- [Declaration Route Plans](./declaration-route-plan.md)
-- [Declaration Progression](./declaration-progression.md)
+- Declaration Foundational Evidence
+- Declaration Route Plans
+- Declaration Progression
 - [Domain Capabilities](./README.md)

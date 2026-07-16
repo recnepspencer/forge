@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::authoring::{
-    PredicateSelector, RawAuthoredQuery, RawAuthoredResultShape, ScalarPredicateValue,
+    PredicateSelector, RawAuthoredQuery, RawAuthoredResultShape, WorthQueryPredicateOperand,
 };
 use crate::composition::counters::CompositionCounters;
 use crate::composition::digests::TemplateBindingDigest;
@@ -301,12 +301,12 @@ fn predicate_binding_digest_fragment(predicate: &PredicateSelector) -> String {
             predicate.field(),
             scalar_predicate_value_digest_fragment(predicate.value())
         ),
-        PredicateSelector::IntegerComparison(predicate) => format!(
-            "integer_comparison:{}:{}:{:?}:{}",
+        PredicateSelector::NativeComparison(predicate) => format!(
+            "native_comparison:{}:{}:{:?}:{}",
             predicate.aspect(),
             predicate.field(),
             predicate.operator(),
-            predicate.value()
+            scalar_predicate_value_digest_fragment(predicate.value())
         ),
         PredicateSelector::StringContains(predicate) => format!(
             "string_contains:{}:{}:{}",
@@ -334,10 +334,8 @@ fn predicate_binding_digest_fragment(predicate: &PredicateSelector) -> String {
     }
 }
 
-fn scalar_predicate_value_digest_fragment(value: &ScalarPredicateValue) -> String {
-    match value {
-        ScalarPredicateValue::String(value) => format!("string:{value}"),
-        ScalarPredicateValue::Integer(value) => format!("integer:{value}"),
-        ScalarPredicateValue::Boolean(value) => format!("boolean:{value}"),
-    }
+fn scalar_predicate_value_digest_fragment(value: &WorthQueryPredicateOperand) -> String {
+    worth_foundational::facade::prepare_aspect_value_identity_basis(value.as_native())
+        .as_str()
+        .to_owned()
 }

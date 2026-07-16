@@ -3,11 +3,10 @@ use crate::application::{
     format_digest_folklore_pattern_in, identity_boundary_hostile_matrix_artifact,
     identity_boundary_hostile_matrix_digest, source_for_format_digest_path,
     source_for_session_admission_path, source_for_string_carried_session_identity_path,
-    source_for_string_matching_path, EXACT_ZERO_FORMAT_DIGEST_PATHS,
+    source_for_string_matching_path, WorthQueryApplicationFacade, EXACT_ZERO_FORMAT_DIGEST_PATHS,
     EXACT_ZERO_RAW_SESSION_ADMISSION_PATHS, EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS,
     EXACT_ZERO_STRING_MATCHING_PATHS, STOP_CLASS_COVERED_CONTRACTS,
 };
-use crate::facade::foundation::WorthQueryApplicationFacade;
 use crate::WorthQueryEvidenceIdentityScheme;
 
 mod certification_surfaces;

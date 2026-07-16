@@ -1,10 +1,10 @@
-use worth_query::facade::runtime::{
+use crate::runtime::{
     plan_admitted_graph_read_access_for_family, worth_query_graph_index_inventory,
     WorthQueryGraphReadAccessAdmissionPosture, WorthQueryGraphReadAccessDenialKind,
     WorthQueryGraphReadAccessRequirementKind,
 };
 
-use crate::graph_read_access_cost_model_support::{simple_traversal_family, workspace};
+use crate::support::graph_read_access_cost_model::{simple_traversal_family, workspace};
 
 const GRAPH_READ_ACCESS_DOC: &str =
     include_str!("../../docs/authoring/graph-read-access-planning.md");

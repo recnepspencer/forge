@@ -1,8 +1,8 @@
 pub use crate::authoring::{
     AspectFieldSelector, AspectName, AuthoredResultShapeField, CollectionQueryBuilder,
     CollectionResultShapeBuilder, EqualityPredicate, FieldName, OrderingSelector,
-    PresencePredicate, RelationName, RootEntityKey, ScalarPredicateValue, SetMembershipPredicate,
-    StringContainsPredicate, TraversalSelector,
+    PresencePredicate, RelationName, RootEntityKey, SetMembershipPredicate,
+    StringContainsPredicate, TraversalSelector, WorthQueryPredicateOperand,
 };
 pub use crate::ordinary::count::{
     declare_count as declare, WorthQueryCountCompletion, WorthQueryCountDeclaration,
@@ -23,6 +23,6 @@ pub use crate::runtime::{
     WorthQueryReadScopeClass,
 };
 pub use crate::schema_view::{
-    QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
+    QuerySchemaView, ScalarAspectType, SchemaFieldView, SchemaRelationView,
 };
 pub use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};

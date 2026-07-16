@@ -5,7 +5,7 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.continuity-existing")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.continuity-existing-table", |q| {
             q.from("Task")
                 .select([
@@ -160,7 +160,7 @@ fn mixed_batch_preserves_continuity_and_naming_session_evidence() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.continuity-batch")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.continuity-batch-table", |q| {
             q.from("Task")
                 .select([
@@ -344,7 +344,7 @@ fn preview_update_existing_denies_continuity_without_authoritative_lane() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-continuity-denial")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.preview-continuity-denial-table", |q| {
             q.from("Task")
                 .select([
@@ -414,7 +414,7 @@ fn preview_batch_denies_continuity_without_authoritative_lane() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-batch-continuity-denial")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.preview-batch-continuity-denial-table", |q| {
             q.from("Task")
                 .select([

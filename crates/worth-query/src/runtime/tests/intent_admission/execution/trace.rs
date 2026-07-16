@@ -112,14 +112,14 @@ fn effect_triggered_trace_eligibility_preserves_write_adjacent_trigger_proof() {
         "remask-drift:cause:task-title",
     );
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.trace-follow-on",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(
             WorthQueryEffectDeclaration::write_intent(
                 "effects.trace-follow-on",
                 WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title.value"])),

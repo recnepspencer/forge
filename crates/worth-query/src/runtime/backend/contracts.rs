@@ -16,7 +16,6 @@ use crate::schema_view::QuerySchemaView;
 use crate::session_label::WorthQuerySessionLabel;
 use crate::subscription::SubscriptionActivationInput;
 use crate::view_shape_live::WorthQueryGroupedBaselineMember;
-use worth_relational::facade::history::BranchId;
 use worth_relational::facade::runtime::RelationalRuntime;
 use worth_runtime_bridge::facade::BridgeAdmittedWritebackExecution;
 use worth_runtime_bridge::facade::{BridgeMutationAuthorityBundle, RuntimeBridge};
@@ -90,7 +89,7 @@ pub trait WorthQueryRuntimeBackend {
     fn verify_existing_truth_assertion(
         &self,
         binding: &WorthQueryExistingTruthTargetBinding,
-        _aspects: &[crate::runtime::WorthQueryAdmittedAspectValue],
+        _aspects: &[crate::runtime::WorthQueryAuthoredAspectMutation],
     ) -> Result<WorthQueryVerifiedExistingTruthAssertion, WorthQueryExistingTruthAssertionDenial>
     {
         Err(WorthQueryExistingTruthAssertionDenial::new(
@@ -141,8 +140,8 @@ pub trait WorthQueryRuntimeBackend {
 
     fn capture_query_merge_authority(
         &self,
-        _target_branch: BranchId,
-        _source_branch: BranchId,
+        _target_branch: &crate::runtime::WorthQueryAdmittedBranchName,
+        _source_branch: &crate::runtime::WorthQueryAdmittedBranchName,
     ) -> Result<WorthQueryBackendMergeAuthority, WorthQueryWorkspaceError> {
         Err(WorthQueryWorkspaceError::new(
             "this runtime backend has no admitted relational merge authority",
@@ -298,7 +297,7 @@ pub trait WorthQueryRuntimeExistingTruthVerificationAdapter {
     fn verify_existing_truth_assertion(
         &self,
         binding: &WorthQueryExistingTruthTargetBinding,
-        aspects: &[crate::runtime::WorthQueryAdmittedAspectValue],
+        aspects: &[crate::runtime::WorthQueryAuthoredAspectMutation],
     ) -> Result<(), WorthQueryExistingTruthAssertionDenial>;
 
     fn probe_existing_truth(

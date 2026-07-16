@@ -5,4 +5,4 @@ error[E0432]: unresolved import `worth_query::facade::foundation::ProjectionCons
   |                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |                                                                      |
   |                                                                      no `ProjectionConsumptionEligibility` in `facade::foundation`
-  |                                                                      help: a similar name exists in the module: `ProjectionConsumptionReceipt`
+  |                                                                      help: a similar name exists in the module: `ProjectionConsumptionEligibilityTrace`

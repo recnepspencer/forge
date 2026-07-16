@@ -19,18 +19,12 @@ impl PublicBridgeReaderLaneHonestyArtifact {
             reader_lane,
         }
     }
-
-    #[allow(dead_code)]
     pub fn digest(&self) -> &WorthQueryEvidenceIdentity {
         &self.legacy_digest
     }
-
-    #[allow(dead_code)]
     pub fn reader_lane(&self) -> &WorthQueryPublicBridgeReaderLaneCertification {
         &self.reader_lane
     }
-
-    #[allow(dead_code)]
     pub fn posture(&self) -> WorthQueryPublicBridgeReaderLanePosture {
         self.reader_lane.posture()
     }

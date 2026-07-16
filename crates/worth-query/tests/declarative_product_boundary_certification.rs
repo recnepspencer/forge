@@ -1,4 +1,4 @@
-mod support;
+use crate::support;
 
 #[path = "declarative_product_boundary_certification/grammar_matrix.rs"]
 mod grammar_matrix;

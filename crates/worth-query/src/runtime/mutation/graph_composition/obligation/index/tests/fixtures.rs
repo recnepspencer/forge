@@ -1,5 +1,5 @@
 use crate::runtime::{
-    WorthQueryAdmittedAspectValue, WorthQueryAspectMutationOperation,
+    WorthQueryAspectMutationOperation, WorthQueryAuthoredAspectMutation,
     WorthQueryGraphCompositionBreadth, WorthQueryGraphCompositionProgram,
     WorthQueryGraphCompositionProgramStep, WorthQueryGraphCompositionProgramStepKind,
     WorthQueryGraphObligationOperatingWorldSelector, WorthQueryGraphObligationRegistration,
@@ -47,7 +47,7 @@ pub(super) fn multi_component_descriptor() -> WorthQueryGraphTouchDescriptor {
                 .in_target_collection("topology.edge")
                 .unwrap(),
             aspects: vec![
-                WorthQueryAdmittedAspectValue::new(touch("capacity"), int_value(1)).unwrap(),
+                WorthQueryAuthoredAspectMutation::new(touch("capacity"), int_value(1)).unwrap(),
             ],
             metadata: WorthQueryMutationMetadata::new(),
             naming_intent: None,

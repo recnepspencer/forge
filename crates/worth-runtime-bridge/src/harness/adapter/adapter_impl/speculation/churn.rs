@@ -69,9 +69,7 @@ fn execute_one_churn_branch(
 ) -> Result<SpeculationChurnBranchExecution, BridgeHarnessError> {
     let session_id = format!("harness:speculation-churn:{index}");
     let preview_session_identity =
-        crate::facade::runtime::BridgePreviewSessionIdentity::admit_bridge_owned(
-            session_id.clone(),
-        );
+        crate::speculation::BridgePreviewSessionIdentity::admit_bridge_owned(session_id.clone());
     let preview_declaration_identity =
         crate::facade::BridgePreviewSessionDeclarationIdentity::admit_bridge_owned(
             session_id.clone(),

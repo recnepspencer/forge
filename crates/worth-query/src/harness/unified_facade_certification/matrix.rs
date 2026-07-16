@@ -6,12 +6,12 @@ use super::row_catalog::{
     UnifiedFacadeCanonicalRowSpec, UnifiedFacadeRejectionRowSpec,
     UNIFIED_FACADE_CANONICAL_ROW_SPECS, UNIFIED_FACADE_REJECTION_ROW_SPECS,
 };
+use crate::application::WorthQueryApplicationFacade;
 use crate::basis_lifecycle::basis_lifecycle;
 use crate::facade::foundation::{
     IdentityEvolutionComparisonBasisFamily, IdentityEvolutionQueryContext,
-    LineageTraversalDescriptor, WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
-    WorthQueryCapabilityStatus, WorthQueryConfig, WorthQueryConfigSectionFamily,
-    WorthQueryQueryConfig, WorthQuerySignalConfig,
+    LineageTraversalDescriptor, WorthQueryCapabilityFamily, WorthQueryCapabilityStatus,
+    WorthQueryConfig, WorthQueryConfigSectionFamily, WorthQueryQueryConfig, WorthQuerySignalConfig,
 };
 use crate::facade::policy::{
     PreviewEvaluationClass, PreviewSessionQueryContext, QueryContextBindingSource,

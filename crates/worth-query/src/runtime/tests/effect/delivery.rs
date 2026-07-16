@@ -4,10 +4,14 @@ use super::super::support::*;
 fn effect_delivery_routes_from_live_trigger_with_expression_metadata() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(
             WorthQueryEffectDeclaration::deliver(
                 "ui.title-badges",
                 WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
@@ -97,7 +101,7 @@ fn effect_delivery_routes_from_live_trigger_with_expression_metadata() {
     );
     assert_eq!(
         deliveries[0].aspect_touches(),
-        test_aspect_touches(["title.value"]).as_slice()
+        test_aspect_touches(["title"]).as_slice()
     );
     assert_eq!(
         deliveries[0].payload().condition(),
@@ -132,10 +136,14 @@ fn effect_delivery_routes_from_live_trigger_with_expression_metadata() {
 fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let titles = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.titles.effect", test_aspect_touches(["title"]))
                 .depends_on_live(&live)
                 .produces(test_aspect_touches(["title.summary"])),
@@ -143,7 +151,7 @@ fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
         )
         .expect("computed should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::deliver(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::deliver(
             "ui.summary-badges",
             WorthQueryEffectTrigger::computed_view(&titles, test_aspect_touches(["title.summary"])),
             "ui.summary",
@@ -185,11 +193,11 @@ fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
         .read_derived_result(&titles)
         .expect("computed title materialization should execute");
     let retained_value = materialized.retained_rows()[0]
-        .field_value_at(&value_path)
+        .scalar_value_at(&value_path)
         .expect("computed title row should retain value");
     assert_eq!(
         retained_value,
-        &crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+        &crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
             write.deltas()[0]
                 .entity_identity
                 .terminal_projection_for_reporting()
@@ -202,10 +210,14 @@ fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
 fn computed_effect_does_not_replay_stale_undrained_computed_patch() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let titles = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new(
                 "computed.titles.stale-effect",
                 test_aspect_touches(["title"]),
@@ -216,7 +228,7 @@ fn computed_effect_does_not_replay_stale_undrained_computed_patch() {
         )
         .expect("computed should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::deliver(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::deliver(
             "ui.stale-summary-badges",
             WorthQueryEffectTrigger::computed_view(&titles, test_aspect_touches(["title.summary"])),
             "ui.summary",

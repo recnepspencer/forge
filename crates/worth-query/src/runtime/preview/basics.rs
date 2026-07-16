@@ -109,9 +109,9 @@ impl<'a> WorthQueryPreviewSession<'a> {
                     request,
                     schema_view,
                 } => {
-                    let _: WorthQueryLiveView<crate::runtime::WorthQueryNativeRow> =
-                        self.runtime
-                            .declare_live_view(name.clone(), request, schema_view)?;
+                    let _: WorthQueryLiveView<crate::runtime::WorthQueryUnrefinedLiveShape> = self
+                        .runtime
+                        .declare_live_view(name.clone(), request, schema_view)?;
                     trace.record_declaration(format!("preview-live:{name}"));
                 }
                 WorthQueryProgramEffect::DeclareDerivedView(view) => {

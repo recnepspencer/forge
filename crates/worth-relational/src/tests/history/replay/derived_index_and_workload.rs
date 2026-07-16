@@ -105,7 +105,10 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
             execution_mode: ReplayExecutionMode::SerialDeterministic,
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
-    assert!(runtime.replay().compare_outcome(&replay));
+    assert!(
+        runtime.replay().compare_outcome(&replay),
+        "hostile replay mismatch: {replay:#?}"
+    );
     let replay_diagnostics = runtime.publication().diagnostics();
     assert!(replay_diagnostics
         .by_scope(DiagnosticsScope::Replay)
@@ -226,7 +229,10 @@ fn hostile_commit_replay_equivalence_test() {
             execution_mode: ReplayExecutionMode::SerialDeterministic,
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
-    assert!(runtime.replay().compare_outcome(&replay));
+    assert!(
+        runtime.replay().compare_outcome(&replay),
+        "hostile replay mismatch: {replay:#?}"
+    );
 
     let original_main_branch_head = runtime
         .history()

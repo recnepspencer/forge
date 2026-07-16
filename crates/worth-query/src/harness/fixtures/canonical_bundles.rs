@@ -1,7 +1,7 @@
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, GuidedAuthoringPath,
-    IntegerComparisonPredicate, OrderingSelector, PresencePredicate, RootEntityKey,
-    ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate,
+    NativeComparisonPredicate, OrderingSelector, PresencePredicate, RootEntityKey,
+    SetMembershipPredicate, StringContainsPredicate, WorthQueryPredicateOperand,
 };
 use crate::facade::foundation::CanonicalQueryBundle;
 
@@ -78,7 +78,7 @@ fn predicate_bundle(
 pub fn legal_greater_than_bundle() -> CanonicalQueryBundle {
     predicate_bundle(|query| {
         query.where_greater_than(
-            IntegerComparisonPredicate::greater_than("profile", "age", 18).unwrap(),
+            NativeComparisonPredicate::greater_than("profile", "age", 18).unwrap(),
         )
     })
 }
@@ -86,7 +86,7 @@ pub fn legal_greater_than_bundle() -> CanonicalQueryBundle {
 pub fn reordered_greater_than_bundle() -> CanonicalQueryBundle {
     let root = RootEntityKey::new("user").unwrap();
     let query = crate::authoring::DetailQueryBuilder::new(root)
-        .where_greater_than(IntegerComparisonPredicate::greater_than("profile", "age", 18).unwrap())
+        .where_greater_than(NativeComparisonPredicate::greater_than("profile", "age", 18).unwrap())
         .project(AspectFieldSelector::new("identity", "id").unwrap())
         .build()
         .unwrap();
@@ -100,21 +100,21 @@ pub fn reordered_greater_than_bundle() -> CanonicalQueryBundle {
 pub fn strongest_greater_than_bundle() -> CanonicalQueryBundle {
     predicate_bundle(|query| {
         query.where_greater_than(
-            IntegerComparisonPredicate::greater_than("profile", "age", 21).unwrap(),
+            NativeComparisonPredicate::greater_than("profile", "age", 21).unwrap(),
         )
     })
 }
 
 pub fn legal_less_than_bundle() -> CanonicalQueryBundle {
     predicate_bundle(|query| {
-        query.where_less_than(IntegerComparisonPredicate::less_than("profile", "age", 65).unwrap())
+        query.where_less_than(NativeComparisonPredicate::less_than("profile", "age", 65).unwrap())
     })
 }
 
 pub fn reordered_less_than_bundle() -> CanonicalQueryBundle {
     let root = RootEntityKey::new("user").unwrap();
     let query = crate::authoring::DetailQueryBuilder::new(root)
-        .where_less_than(IntegerComparisonPredicate::less_than("profile", "age", 65).unwrap())
+        .where_less_than(NativeComparisonPredicate::less_than("profile", "age", 65).unwrap())
         .project(AspectFieldSelector::new("identity", "id").unwrap())
         .build()
         .unwrap();
@@ -129,10 +129,10 @@ pub fn redundant_greater_than_bundle() -> CanonicalQueryBundle {
     predicate_bundle(|query| {
         query
             .where_greater_than(
-                IntegerComparisonPredicate::greater_than("profile", "age", 18).unwrap(),
+                NativeComparisonPredicate::greater_than("profile", "age", 18).unwrap(),
             )
             .where_greater_than(
-                IntegerComparisonPredicate::greater_than("profile", "age", 21).unwrap(),
+                NativeComparisonPredicate::greater_than("profile", "age", 21).unwrap(),
             )
     })
 }
@@ -141,18 +141,18 @@ pub fn bounded_range_bundle() -> CanonicalQueryBundle {
     predicate_bundle(|query| {
         query
             .where_greater_than(
-                IntegerComparisonPredicate::greater_than("profile", "age", 18).unwrap(),
+                NativeComparisonPredicate::greater_than("profile", "age", 18).unwrap(),
             )
-            .where_less_than(IntegerComparisonPredicate::less_than("profile", "age", 65).unwrap())
+            .where_less_than(NativeComparisonPredicate::less_than("profile", "age", 65).unwrap())
     })
 }
 
 pub fn reordered_bounded_range_bundle() -> CanonicalQueryBundle {
     let root = RootEntityKey::new("user").unwrap();
     let query = crate::authoring::DetailQueryBuilder::new(root)
-        .where_less_than(IntegerComparisonPredicate::less_than("profile", "age", 65).unwrap())
+        .where_less_than(NativeComparisonPredicate::less_than("profile", "age", 65).unwrap())
         .project(AspectFieldSelector::new("identity", "id").unwrap())
-        .where_greater_than(IntegerComparisonPredicate::greater_than("profile", "age", 18).unwrap())
+        .where_greater_than(NativeComparisonPredicate::greater_than("profile", "age", 18).unwrap())
         .build()
         .unwrap();
     let result_shape = crate::authoring::DetailResultShapeBuilder::new()
@@ -190,8 +190,8 @@ pub fn legal_membership_bundle() -> CanonicalQueryBundle {
                 "profile",
                 "age",
                 [
-                    ScalarPredicateValue::Integer(21),
-                    ScalarPredicateValue::Integer(34),
+                    WorthQueryPredicateOperand::int64(21),
+                    WorthQueryPredicateOperand::int64(34),
                 ],
             )
             .unwrap(),
@@ -207,8 +207,8 @@ pub fn reordered_membership_bundle() -> CanonicalQueryBundle {
                 "profile",
                 "age",
                 [
-                    ScalarPredicateValue::Integer(34),
-                    ScalarPredicateValue::Integer(21),
+                    WorthQueryPredicateOperand::int64(34),
+                    WorthQueryPredicateOperand::int64(21),
                 ],
             )
             .unwrap(),
@@ -231,9 +231,9 @@ pub fn overlapping_membership_bundle() -> CanonicalQueryBundle {
                     "profile",
                     "age",
                     [
-                        ScalarPredicateValue::Integer(18),
-                        ScalarPredicateValue::Integer(21),
-                        ScalarPredicateValue::Integer(34),
+                        WorthQueryPredicateOperand::int64(18),
+                        WorthQueryPredicateOperand::int64(21),
+                        WorthQueryPredicateOperand::int64(34),
                     ],
                 )
                 .unwrap(),
@@ -243,9 +243,9 @@ pub fn overlapping_membership_bundle() -> CanonicalQueryBundle {
                     "profile",
                     "age",
                     [
-                        ScalarPredicateValue::Integer(21),
-                        ScalarPredicateValue::Integer(34),
-                        ScalarPredicateValue::Integer(55),
+                        WorthQueryPredicateOperand::int64(21),
+                        WorthQueryPredicateOperand::int64(34),
+                        WorthQueryPredicateOperand::int64(55),
                     ],
                 )
                 .unwrap(),
@@ -299,7 +299,7 @@ pub fn reordered_legal_workflow_predicate_bundle() -> CanonicalQueryBundle {
             EqualityPredicate::new(
                 "workflow",
                 "status",
-                ScalarPredicateValue::String("done".to_string()),
+                WorthQueryPredicateOperand::string("done".to_string()),
             )
             .unwrap(),
         )
@@ -327,7 +327,7 @@ pub fn workflow_context_illegal_bundle() -> CanonicalQueryBundle {
             EqualityPredicate::new(
                 "workflow",
                 "status",
-                ScalarPredicateValue::String("done".to_string()),
+                WorthQueryPredicateOperand::string("done".to_string()),
             )
             .unwrap(),
         )
@@ -372,7 +372,7 @@ pub fn incompatible_predicate_bundle() -> CanonicalQueryBundle {
             EqualityPredicate::new(
                 "profile",
                 "age",
-                ScalarPredicateValue::String("too-old".to_string()),
+                WorthQueryPredicateOperand::string("too-old".to_string()),
             )
             .unwrap(),
         )
@@ -383,11 +383,11 @@ pub fn contradictory_predicate_bundle() -> CanonicalQueryBundle {
     predicate_bundle(|query| {
         query
             .where_equal(
-                EqualityPredicate::new("profile", "age", ScalarPredicateValue::Integer(18))
+                EqualityPredicate::new("profile", "age", WorthQueryPredicateOperand::int64(18))
                     .unwrap(),
             )
             .where_greater_than(
-                IntegerComparisonPredicate::greater_than("profile", "age", 18).unwrap(),
+                NativeComparisonPredicate::greater_than("profile", "age", 18).unwrap(),
             )
     })
 }
@@ -396,9 +396,9 @@ pub fn empty_range_bundle() -> CanonicalQueryBundle {
     predicate_bundle(|query| {
         query
             .where_greater_than(
-                IntegerComparisonPredicate::greater_than("profile", "age", 65).unwrap(),
+                NativeComparisonPredicate::greater_than("profile", "age", 65).unwrap(),
             )
-            .where_less_than(IntegerComparisonPredicate::less_than("profile", "age", 65).unwrap())
+            .where_less_than(NativeComparisonPredicate::less_than("profile", "age", 65).unwrap())
     })
 }
 
@@ -416,7 +416,7 @@ pub fn membership_capability_illegal_bundle() -> CanonicalQueryBundle {
             SetMembershipPredicate::new(
                 "profile",
                 "private_note",
-                [ScalarPredicateValue::String("secret".to_string())],
+                [WorthQueryPredicateOperand::string("secret".to_string())],
             )
             .unwrap(),
         )

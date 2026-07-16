@@ -1,4 +1,4 @@
-mod support;
+use crate::support;
 
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
@@ -6,7 +6,7 @@ use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 fn history_transcript_executes_using_only_history_capability_vocabulary() {
     use worth_query::facade::history::{
         at, declare, AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName,
-        QuerySchemaView, SchemaFieldKind, SchemaFieldView,
+        QuerySchemaView, ScalarAspectType, SchemaFieldView,
     };
 
     let declaration = declare(|read| {
@@ -17,7 +17,7 @@ fn history_transcript_executes_using_only_history_capability_vocabulary() {
                 [SchemaFieldView::new(
                     AspectName::new("identity").expect("aspect should build"),
                     FieldName::new("id").expect("field should build"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 )],
                 [],
             ),
@@ -51,7 +51,7 @@ fn history_transcript_executes_using_only_history_capability_vocabulary() {
 fn comparison_transcript_executes_using_only_comparison_capability_vocabulary() {
     use worth_query::facade::comparison::{
         between, declare, AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName,
-        QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryComparisonBasisFamily,
+        QuerySchemaView, ScalarAspectType, SchemaFieldView, WorthQueryComparisonBasisFamily,
         WorthQueryComparisonChange, WorthQuerySessionLabel,
     };
 
@@ -63,7 +63,7 @@ fn comparison_transcript_executes_using_only_comparison_capability_vocabulary() 
                 [SchemaFieldView::new(
                     AspectName::new("identity").expect("aspect should build"),
                     FieldName::new("id").expect("field should build"),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 )],
                 [],
             ),

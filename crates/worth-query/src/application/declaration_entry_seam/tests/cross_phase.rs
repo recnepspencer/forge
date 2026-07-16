@@ -1,7 +1,6 @@
 use crate::application::{
     WorthQueryDeclarationEntryInspectionInput, WorthQueryDeclarationEntryReadinessStatus,
 };
-use crate::runtime::tests::support::stateful_bridge_task_runtime;
 use crate::runtime::{
     runtime_state_snapshot_basis_label_identity,
     runtime_state_snapshot_result_shape_label_identity, WorthQueryInspection,
@@ -9,17 +8,13 @@ use crate::runtime::{
 };
 
 use super::support::{
-    async_current_envelope, handle, temporal_current_envelope, AsyncCurrentFamily, AsyncInput,
-    TemporalCurrentFamily, TemporalInput,
+    async_current_envelope, temporal_current_envelope, workspace_and_handle, AsyncCurrentFamily,
+    AsyncInput, TemporalCurrentFamily, TemporalInput,
 };
 
 #[test]
 fn retained_world_basis_and_subject_aware_temporal_readiness_stay_stitched() {
-    let handle = handle("cross-phase-temporal");
-    let runtime = stateful_bridge_task_runtime();
-    let workspace = runtime
-        .workspace("cross.phase.temporal")
-        .expect("workspace should open");
+    let (workspace, handle) = workspace_and_handle("cross-phase-temporal");
     let world_basis = handle.retained_world_basis();
 
     let world_state = workspace
@@ -102,11 +97,7 @@ fn retained_world_basis_and_subject_aware_temporal_readiness_stay_stitched() {
 
 #[test]
 fn retained_world_basis_and_subject_aware_async_readiness_stay_stitched() {
-    let handle = handle("cross-phase-async");
-    let runtime = stateful_bridge_task_runtime();
-    let workspace = runtime
-        .workspace("cross.phase.async")
-        .expect("workspace should open");
+    let (workspace, handle) = workspace_and_handle("cross-phase-async");
     let world_basis = handle.retained_world_basis();
 
     let world_inspection = workspace

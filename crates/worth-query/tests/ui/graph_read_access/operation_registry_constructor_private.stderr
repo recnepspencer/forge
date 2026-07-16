@@ -1,38 +1,8 @@
-error: cannot construct `WorthQueryGraphReadOperationRegistry` with struct literal syntax due to private fields
- --> tests/ui/graph_read_access/operation_registry_constructor_private.rs:4:13
+error[E0432]: unresolved import `worth_query::facade::runtime::WorthQueryGraphReadOperationRegistry`
+ --> tests/ui/graph_read_access/operation_registry_constructor_private.rs:1:5
   |
-4 |     let _ = WorthQueryGraphReadOperationRegistry {
-  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-5 |         registrations: Vec::new(),
-  |         ------------------------- private field
-6 |         required_capabilities: Vec::new(),
-  |         --------------------------------- private field
-7 |         unsupported_shapes: Vec::new(),
-  |         ------------------------------ private field
-  |
-  = note: ...and other private field `unsupported_operations` that was not provided
-help: you might have meant to use an associated function to build this type
-  |
-4 -     let _ = WorthQueryGraphReadOperationRegistry {
-5 -         registrations: Vec::new(),
-6 -         required_capabilities: Vec::new(),
-7 -         unsupported_shapes: Vec::new(),
-8 -     };
-4 +     let _ = WorthQueryGraphReadOperationRegistry::empty();
-  |
-4 -     let _ = WorthQueryGraphReadOperationRegistry {
-5 -         registrations: Vec::new(),
-6 -         required_capabilities: Vec::new(),
-7 -         unsupported_shapes: Vec::new(),
-8 -     };
-4 +     let _ = WorthQueryGraphReadOperationRegistry::define(_);
-  |
-help: consider using the `Default` trait
-  |
-4 -     let _ = WorthQueryGraphReadOperationRegistry {
-5 -         registrations: Vec::new(),
-6 -         required_capabilities: Vec::new(),
-7 -         unsupported_shapes: Vec::new(),
-8 -     };
-4 +     let _ = <WorthQueryGraphReadOperationRegistry as std::default::Default>::default();
-  |
+1 | use worth_query::facade::runtime::WorthQueryGraphReadOperationRegistry;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------------------------------
+  |     |                             |
+  |     |                             help: a similar name exists in the module: `WorthQueryGraphReadOperationResolution`
+  |     no `WorthQueryGraphReadOperationRegistry` in `facade::runtime`

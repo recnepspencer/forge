@@ -32,10 +32,11 @@ const LIVE_READ_COMMON_PATH_SNIPPET: &str =
     "let live_result = workspace.read_live_intent(&view).execute()?;";
 const LIVE_READ_CONVENIENCE_SNIPPET: &str = "let live_rows = workspace.read(&view);";
 const INSPECTION_COMMON_PATH_SNIPPET: &str =
-    "let inspection_result = workspace.inspect_intent(&view).execute()?;";
+    "let inspection_result = workspace.inspections()?.inspect_intent(&view).execute()?;";
 const MATERIALIZATION_CONVENIENCE_SNIPPET: &str =
     "let materialization = workspace.materialize_result(&view)?;";
-const INSPECTION_CONVENIENCE_SNIPPET: &str = "let inspection = workspace.inspect(&view)?;";
+const INSPECTION_CONVENIENCE_SNIPPET: &str =
+    "let inspection = workspace.inspections()?.inspect(&view)?;";
 const ROUTING_COMMON_PATH_SNIPPET: &str =
     "let probe_result = runtime.probe_existing_intent(request).execute()?;";
 const ROUTING_CONVENIENCE_SNIPPET: &str =
@@ -49,7 +50,7 @@ const MUTATION_ADVANCED_PATH_SNIPPET: &str =
 const LIVE_READ_ADVANCED_PATH_SNIPPET: &str =
     "let live_review = workspace.read_live_intent(&view).review()?;";
 const INSPECTION_ADVANCED_PATH_SNIPPET: &str =
-    "let inspection_review = workspace.inspect_intent(&view).review()?;";
+    "let inspection_review = workspace.inspections()?.inspect_intent(&view).review()?;";
 const ROUTING_ADVANCED_PATH_SNIPPET: &str =
     "let probe_review = runtime.probe_existing_intent(request).review()?;";
 

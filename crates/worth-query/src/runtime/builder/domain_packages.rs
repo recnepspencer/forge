@@ -15,15 +15,27 @@ impl WorthQueryRuntimeBuilder {
             .map_err(WorthQueryDomainPackageInstallationError::Validation)?;
         let admitted = crate::domain_installation::admit_domain_package(validated)
             .map_err(WorthQueryDomainPackageInstallationError::Admission)?;
-        let compiled = self
-            .pending_domain_installations
+        self.pending_domain_installations
             .install(admitted)
             .map_err(WorthQueryDomainPackageInstallationError::Installation)?;
+        Ok(self)
+    }
+
+    pub(super) fn queue_installed_domain_substrates(&mut self) {
+        let compiled = self.pending_domain_installations.take_compiled_substrates();
         self.queued_invariant_registrations
             .custom_invariants
             .extend(compiled.custom_invariants);
         self.queued_graph_obligation_registrations
             .extend(compiled.graph_obligations);
-        Ok(self)
+    }
+
+    pub(crate) fn with_precompiled_domain_installations(
+        mut self,
+        installations: crate::domain_installation::WorthQueryPendingDomainInstallations,
+    ) -> Self {
+        debug_assert!(installations.compiled_substrates_are_empty());
+        self.pending_domain_installations = installations;
+        self
     }
 }

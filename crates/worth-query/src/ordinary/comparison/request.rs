@@ -2,7 +2,7 @@ use super::{
     WorthQueryComparisonContext, WorthQueryComparisonIntent, WorthQueryComparisonRefinement,
 };
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryComparisonRequest {
     pub(crate) declaration: WorthQueryComparisonRefinement,
     pub(crate) context: WorthQueryComparisonContext,

@@ -15,6 +15,7 @@ use super::super::sequencing::{
 };
 use super::receipt::lower_from_receipt_checked;
 
+#[cfg(test)]
 pub(super) fn lower_from_route_checked<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,

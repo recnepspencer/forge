@@ -1,5 +1,4 @@
-use worth_query::facade::domain::WorthQueryInstalledDomainDeclarationContext;
-use worth_query::facade::foundation::{
+use worth_query::facade::domain::{
     WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
     WorthQueryContributionComposedOrchestrationChecked,
     WorthQueryContributionComposedOrchestrationInput,
@@ -8,7 +7,8 @@ use worth_query::facade::foundation::{
     WorthQueryDeclarationEntryReadinessReport, WorthQueryDeclaredFamilyChecked,
     WorthQueryGroupedContributionComposition, WorthQueryGroupedContributionInput,
     WorthQueryGroupedContributionStop, WorthQueryGroupedOrchestrationChecked,
-    WorthQueryGroupedOrchestrationTranscript, WorthQueryOrdinaryOutcome, WorthQueryRecoveryBrief,
+    WorthQueryGroupedOrchestrationTranscript, WorthQueryInstalledDomainDeclarationContext,
+    WorthQueryOrdinaryOutcome, WorthQueryRecoveryBrief,
 };
 
 use crate::domain_declarations::HadwigerResearchDeclarationInput;

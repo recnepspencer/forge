@@ -4,12 +4,14 @@ use crate::authoring::{
 };
 use crate::domain_installation::{
     WorthQueryInstalledDomainCapabilityKind, WorthQueryInstalledDomainExecutionDriftKind,
-    WorthQueryInstalledDomainLiveCheckpointOutcome, WorthQueryInstalledDomainLiveCloseOutcome,
-    WorthQueryInstalledDomainLiveOpenOutcome, WorthQueryInstalledDomainLiveResumeOutcome,
+    WorthQueryInstalledDomainExecutionNextAction,
 };
-use crate::ordinary::read::WorthQueryReadNextAction;
-use crate::ordinary::read::{current, project_facts};
-use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
+use crate::ordinary::read::{
+    current, project_facts, WorthQueryReadContextDenialSource, WorthQueryReadNextAction,
+};
+use crate::policy_basis::{
+    BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot, PolicyTenantAdmissionFailureClass,
+};
 use crate::runtime::{WorthQueryAspectTouch, WorthQueryAuthoredAspectValue};
 use crate::session_label::WorthQuerySessionLabel;
 use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};
@@ -76,65 +78,13 @@ fn foreign_workspace_denies_before_the_ordinary_read_journey_begins() {
         stop.installed_authority().witness_identity(),
         handle.authority_witness().witness_identity()
     );
-}
-
-#[test]
-fn installed_live_checkpoint_resume_and_close_preserve_the_package_witness() {
-    let runtime = installed_runtime();
-    let handle = runtime.domain(InstalledDomain).unwrap();
-    let expected = handle.authority_witness().witness_identity().clone();
-    let mut workspace = runtime.workspace("installed-domain-live").unwrap();
-    let live = match handle
-        .live("installed.identity", identity_read)
-        .unwrap()
-        .using(current())
-        .open(&mut workspace)
-        .unwrap()
-    {
-        WorthQueryInstalledDomainLiveOpenOutcome::Opened(handle) => handle,
-        WorthQueryInstalledDomainLiveOpenOutcome::Stopped(stop) => {
-            panic!("installed live open stopped: {:?}", stop.stop().source())
-        }
-    };
     assert_eq!(
-        live.installation_receipt()
-            .installed_authority()
-            .witness_identity(),
-        &expected
+        stop.stop().next_action(),
+        WorthQueryInstalledDomainExecutionNextAction::UseOwningRuntime
     );
-    let continuation = match live.checkpoint(&mut workspace) {
-        WorthQueryInstalledDomainLiveCheckpointOutcome::Checkpointed(continuation) => continuation,
-        _ => panic!("installed live checkpoint must succeed"),
-    };
-    assert_eq!(
-        continuation
-            .checkpoint_receipt()
-            .installed_authority()
-            .witness_identity(),
-        &expected
-    );
-    let resumed = match continuation.resume(&mut workspace) {
-        WorthQueryInstalledDomainLiveResumeOutcome::Resumed(completion) => completion,
-        _ => panic!("installed live resume must succeed"),
-    };
-    assert_eq!(
-        resumed
-            .execution_receipt()
-            .installed_authority()
-            .witness_identity(),
-        &expected
-    );
-    let closed = match resumed.into_handle().close(&mut workspace) {
-        WorthQueryInstalledDomainLiveCloseOutcome::Closed(receipt) => receipt,
-        _ => panic!("installed live close must succeed"),
-    };
-    assert_eq!(
-        closed
-            .execution_receipt()
-            .installed_authority()
-            .witness_identity(),
-        &expected
-    );
+    assert_eq!(stop.stop().counters().planning_attempts(), 0);
+    assert_eq!(stop.stop().counters().lower_runtime_attempts(), 0);
+    assert_eq!(stop.stop().counters().execution_attempts(), 0);
 }
 
 #[test]
@@ -192,46 +142,77 @@ fn installed_read_preserves_authority_across_an_ordinary_cross_basis_stop() {
 }
 
 #[test]
-fn foreign_runtime_live_resume_retains_the_continuation_for_its_owner() {
-    let owner = installed_runtime();
-    let handle = owner.domain(InstalledDomain).unwrap();
-    let mut owner_workspace = owner.workspace("installed-domain-live-owner").unwrap();
-    let foreign = installed_runtime();
-    let mut foreign_workspace = foreign.workspace("installed-domain-live-foreign").unwrap();
-    let live = match handle
-        .live("installed.foreign-resume", identity_read)
+fn installed_read_preserves_authority_across_changed_policy_denial() {
+    let runtime = installed_runtime();
+    let handle = runtime.domain(InstalledDomain).unwrap();
+    let expected = handle.authority_witness().witness_identity().clone();
+    let mut workspace = runtime
+        .workspace("installed-domain-changed-policy")
+        .unwrap();
+    let prior_policy = PolicyRuleSnapshot::synthetic_authority_with_query_admission(
+        "installed-domain-policy",
+        "installed-domain-rules",
+        PolicyEpoch::Synthetic(1),
+        true,
+    );
+    let stale_branch = BranchAccessGrant::synthetic_granted("main", &prior_policy);
+    let current_policy = PolicyRuleSnapshot::synthetic_authority_with_query_admission(
+        "installed-domain-policy",
+        "installed-domain-rules",
+        PolicyEpoch::Synthetic(2),
+        true,
+    );
+    let context = current().under_policy_tenant(
+        current_policy,
+        TenantBindingSnapshot::synthetic_direct(
+            "tenant-a",
+            "main",
+            "schema-a",
+            TenantBasisEpoch::Synthetic(7),
+        ),
+        stale_branch,
+        SchemaVariantSnapshot::synthetic_authority("tenant-a", "schema-a", "exact"),
+    );
+
+    let stopped = match handle
+        .read(identity_read)
         .unwrap()
-        .using(current())
-        .open(&mut owner_workspace)
+        .using(context)
+        .run(&mut workspace)
         .unwrap()
+        .into_result()
     {
-        WorthQueryInstalledDomainLiveOpenOutcome::Opened(handle) => handle,
-        WorthQueryInstalledDomainLiveOpenOutcome::Stopped(stop) => {
-            panic!("installed live open stopped: {:?}", stop.stop().source())
-        }
+        Err(stopped) => stopped,
+        Ok(_) => panic!("changed policy authority must deny before planning"),
     };
-    let continuation = match live.checkpoint(&mut owner_workspace) {
-        WorthQueryInstalledDomainLiveCheckpointOutcome::Checkpointed(continuation) => continuation,
-        _ => panic!("installed live checkpoint must succeed"),
+    let denial = stopped
+        .stop()
+        .context_denial()
+        .expect("changed policy must remain a contextual denial");
+    let WorthQueryReadContextDenialSource::PolicyTenant(policy_denial) = denial.source() else {
+        panic!("changed policy must deny at policy admission")
     };
-    let continuation = match continuation.resume(&mut foreign_workspace) {
-        WorthQueryInstalledDomainLiveResumeOutcome::AuthorityStopped(continuation, drift) => {
-            assert_eq!(
-                drift.kind(),
-                WorthQueryInstalledDomainExecutionDriftKind::ForeignRuntime
-            );
-            continuation
-        }
-        _ => panic!("foreign runtime must not resume an installed continuation"),
-    };
-    let resumed = match continuation.resume(&mut owner_workspace) {
-        WorthQueryInstalledDomainLiveResumeOutcome::Resumed(completion) => completion,
-        _ => panic!("owning runtime must still resume the retained continuation"),
-    };
-    assert!(matches!(
-        resumed.into_handle().close(&mut owner_workspace),
-        WorthQueryInstalledDomainLiveCloseOutcome::Closed(_)
-    ));
+
+    assert_eq!(stopped.installed_authority().witness_identity(), &expected);
+    assert_eq!(
+        policy_denial.failure_class(),
+        PolicyTenantAdmissionFailureClass::StalePolicyAuthority
+    );
+    assert_eq!(
+        stopped.stop().next_action(),
+        WorthQueryReadNextAction::SupplyPolicyAuthority
+    );
+    assert_eq!(
+        stopped.stop().journey_counters().planning_attempt_count(),
+        0
+    );
+    assert_eq!(
+        stopped
+            .stop()
+            .journey_counters()
+            .lower_runtime_execution_attempt_count(),
+        0
+    );
 }
 
 #[test]

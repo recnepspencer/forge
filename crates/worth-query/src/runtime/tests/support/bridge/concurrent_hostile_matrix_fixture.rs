@@ -1,10 +1,7 @@
 use std::sync::{mpsc, Arc, Barrier};
 use std::thread;
 
-use crate::application::{
-    WorthQueryConcurrentHostileMatrixArtifact, WorthQueryConcurrentHostileMatrixPosture,
-    WorthQueryConcurrentHostileMatrixSabotage, WorthQueryConcurrentHostileMatrixSabotageKind,
-};
+use crate::application::WorthQueryConcurrentHostileMatrixArtifact;
 use crate::runtime::tests::support::*;
 use crate::runtime::{
     WorthQueryConcurrentHostileMatrixCounterSnapshot, WorthQueryConcurrentHostileMatrixTopology,
@@ -18,6 +15,10 @@ use super::concurrent_hostile_matrix_submission::{
     submitter_thread_ordinals, PlannedSubmission, SubmitterInterleaving, PHASE_SIXTEEN_READERS,
     PHASE_SIXTEEN_SUBMISSION_ROUNDS, PHASE_SIXTEEN_SUBMITTERS,
 };
+
+mod closure_assertions;
+
+pub(in crate::runtime::tests) use closure_assertions::*;
 
 struct ConcurrentMatrixRun {
     topology: WorthQueryConcurrentHostileMatrixTopology,
@@ -52,41 +53,6 @@ pub(in crate::runtime::tests) fn execute_phase_sixteen_concurrent_hostile_matrix
         repeated_run_equal,
         true,
     )
-}
-
-pub(in crate::runtime::tests) fn phase_sixteen_sabotage_proofs(
-    artifact: &WorthQueryConcurrentHostileMatrixArtifact,
-) -> Vec<WorthQueryConcurrentHostileMatrixSabotage> {
-    [
-        WorthQueryConcurrentHostileMatrixSabotageKind::CommittedReadHotPathLock,
-        WorthQueryConcurrentHostileMatrixSabotageKind::SharedReadMintRowClone,
-        WorthQueryConcurrentHostileMatrixSabotageKind::ReaderDerivedEvaluation,
-        WorthQueryConcurrentHostileMatrixSabotageKind::OrphanedSnapshotGeneration,
-        WorthQueryConcurrentHostileMatrixSabotageKind::UnretiredReadPin,
-        WorthQueryConcurrentHostileMatrixSabotageKind::JournalGap,
-        WorthQueryConcurrentHostileMatrixSabotageKind::ReplayResidue,
-        WorthQueryConcurrentHostileMatrixSabotageKind::DeliveryResidue,
-    ]
-    .into_iter()
-    .map(|kind| WorthQueryConcurrentHostileMatrixSabotage::perturb(kind, artifact))
-    .collect()
-}
-
-pub(in crate::runtime::tests) fn assert_phase_sixteen_closed(
-    artifact: &WorthQueryConcurrentHostileMatrixArtifact,
-) {
-    assert_eq!(
-        artifact.posture(),
-        WorthQueryConcurrentHostileMatrixPosture::Closed
-    );
-    assert!(artifact.topology().satisfies_phase_sixteen_minimums());
-    assert_eq!(artifact.counters().exact_zero_residue_count(), 0);
-    assert!(
-        artifact
-            .counters()
-            .published_artifact_registry_lease_count()
-            > 0
-    );
 }
 
 fn run_phase_sixteen_matrix(label: &'static str) -> ConcurrentMatrixRun {
@@ -125,7 +91,7 @@ fn run_phase_sixteen_serialized_replay(label: &'static str) -> ConcurrentMatrixR
 
 struct ConcurrentMatrixState {
     workspace: WorthQueryWorkspace,
-    derived: WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+    derived: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape>,
     receipt_digests: Vec<String>,
     reader_result_digests: Vec<String>,
     published_artifact_digests: Vec<String>,
@@ -141,7 +107,7 @@ impl ConcurrentMatrixState {
         let mut workspace = stateful_bridge_task_runtime()
             .workspace("runtime.phase16.concurrent-hostile")
             .expect("workspace should build");
-        let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+        let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
             .live_view_request("tasks.phase16", task_live_request(), task_schema())
             .expect("live view should declare");
         let derived = workspace

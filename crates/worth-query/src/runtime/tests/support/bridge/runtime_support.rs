@@ -104,4 +104,6 @@ pub(in crate::runtime::tests) fn complete_backend_from_parts_builder() -> WorthQ
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("complete test backend aspect contracts should admit")
 }

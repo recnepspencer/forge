@@ -24,13 +24,13 @@ impl WorthQueryDerivedViewMaintainer for TranscriptMaintainer {
         let retained_scalars = [
             (
                 retained_field_path("family"),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                     self.prefix.to_string(),
                 ),
             ),
             (
                 retained_field_path("entity"),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                     delta
                         .entity_identity
                         .terminal_projection_for_reporting()
@@ -39,7 +39,7 @@ impl WorthQueryDerivedViewMaintainer for TranscriptMaintainer {
             ),
             (
                 retained_field_path("view"),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                     view.name().to_string(),
                 ),
             ),

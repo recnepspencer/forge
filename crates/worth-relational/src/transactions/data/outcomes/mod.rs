@@ -21,9 +21,8 @@ pub(crate) use conflict_class::EntityUpdateMissingState;
 pub use conflict_class::{
     AspectFieldTargetRejectionReason, BulkImportRowDomain, BulkImportStage,
     BulkMutationAdmissionDenial, ConflictClass, EntityAuthoritativeAspectStateDenial,
-    EntityCascadeDeleteMissingState, EntityFieldAspectPatchDenial,
-    EntityFieldIntentValidationMissingState, EntityFieldUpdateMissingState,
-    MutationStateInconsistencyEvidence, RelationAuthoritativeAspectStateDenial,
+    EntityCascadeDeleteMissingState, EntityFieldUpdateMissingState,
+    MutationStateInconsistencyEvidence, RecordAspectPatchDenial, RecordAspectPatchTarget,
     RelationEndpointUpdateMissingState,
 };
 pub(crate) use plan_artifacts::merge_commit_mutation_plan_token;

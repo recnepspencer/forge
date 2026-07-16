@@ -25,13 +25,13 @@ use crate::authority::mutation::record_changes::{
 use crate::authority::mutation::MutationWorkspace;
 use crate::transactions::data::{
     AspectFieldPatch, BulkImportRowDomain, BulkImportStage, BulkRelationCreateIntent,
-    CommitConflict, ConflictClass, EntityReference,
+    CommitConflict, ConflictClass, EntityReference, RecordAspectPatchTarget,
 };
 use crate::validation::data::InvariantGroupSet;
+use worth_foundational::facade::PortablePatchReadmissionPurpose;
 
-use super::relation_field_creation_aspects::{
-    plan_relation_field_creation_aspects, RelationFieldCreationAspectPlan,
-};
+use super::field_authoring_candidate::{self, FieldAuthoringDomain};
+use super::{record_aspect_patch, relation_endpoint_candidate};
 
 pub(super) fn apply(
     intent: &BulkRelationCreateIntent,
@@ -165,24 +165,29 @@ fn apply_staged_relation_row(
 ) -> Result<(), CommitConflict> {
     let source_id = resolve_entity_reference(workspace, &source)?;
     let target_id = resolve_entity_reference(workspace, &target)?;
-    let aspect_plan = plan_relation_field_creation_aspects(
-        intent.kind_id,
-        workspace.relation_aspect_plan(intent.kind_id),
+    let patch_target = RecordAspectPatchTarget::RelationCreation {
+        kind_id: intent.kind_id,
+    };
+    let plan = workspace.relation_aspect_plan(intent.kind_id);
+    let candidate = field_authoring_candidate::lower(
         &fields,
-        source_id,
-        target_id,
+        PortablePatchReadmissionPurpose::RecordCreation,
+        plan,
+        intent.kind_id,
+        FieldAuthoringDomain::Relation,
     )
-    .map_err(|denial| {
-        CommitConflict::new(ConflictClass::RelationAuthoritativeAspectStateDenied {
-            kind_id: intent.kind_id,
-            denial,
-        })
-    })?;
-    let RelationFieldCreationAspectPlan {
-        authoritative_patch,
-        extra,
-    } = aspect_plan;
-    let authoritative_aspect_state = extra.authoritative_aspect_state;
+    .map_err(|denial| record_aspect_patch::conflict(patch_target, denial))?;
+    let candidate = relation_endpoint_candidate::append_authoritative_endpoints(
+        candidate, plan, source_id, target_id,
+    );
+    let authoritative_patch = record_aspect_patch::readmit(
+        candidate,
+        PortablePatchReadmissionPurpose::RecordCreation,
+        plan,
+        patch_target,
+    )?;
+    let authoritative_aspect_state =
+        record_aspect_patch::apply(None, &authoritative_patch, patch_target)?;
     let relation_id = workspace.with_context(|context| {
         let relation_id = allocate_relation(
             context.state,
@@ -203,7 +208,7 @@ fn apply_staged_relation_row(
         kind_id: intent.kind_id,
         source: source_id,
         target: target_id,
-        authoritative_patch,
+        authoritative_patch: record_aspect_patch::published_patch(authoritative_patch),
     });
     Ok(())
 }

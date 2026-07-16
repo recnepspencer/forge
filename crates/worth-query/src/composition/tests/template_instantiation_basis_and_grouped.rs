@@ -34,7 +34,7 @@ fn detail_template_instantiation_preserves_basis_metadata_when_present() {
                 crate::authoring::EqualityPredicate::new(
                     "profile",
                     "display_name",
-                    crate::authoring::ScalarPredicateValue::String("Alice".to_string()),
+                    crate::authoring::WorthQueryPredicateOperand::string("Alice".to_string()),
                 )
                 .unwrap(),
             )

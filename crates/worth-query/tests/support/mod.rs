@@ -1,12 +1,12 @@
-#![allow(dead_code)]
-
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use worth_query::facade::runtime::WorthQueryAspectTouch;
 
 pub mod graph_index_inventory;
 pub mod graph_read_access;
+pub mod graph_read_access_cost_model;
 pub mod installed_domain;
 pub mod public_bridge_runtime;
+pub mod task_backend_schema;
 pub mod test_entity_identities;
 
 pub fn aspect_touch(authored_touch_text: &str) -> WorthQueryAspectTouch {

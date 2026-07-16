@@ -1,4 +1,3 @@
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::TruthSnapshotIdentity;
 use crate::facade::{
     BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity, BridgeRequestKind,
@@ -7,6 +6,7 @@ use crate::facade::{
     BridgeSubscriptionDeliveryDensityPosture, BridgeTruthViewSelector, RuntimeBridge,
 };
 use crate::input::envelope::TruthBranchIdentity;
+use crate::speculation::BridgePreviewSessionIdentity;
 
 use super::runtime_fixtures::{activation_ready_for, canonical_consumer};
 

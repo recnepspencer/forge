@@ -1,7 +1,9 @@
 use super::proofs::{BasisIntentDenial, NormalizedBasisIntent};
+#[cfg(test)]
+use super::taxonomy::BasisIntentDenialKind;
 use super::taxonomy::{
-    BasisAuthorityPosture, BasisEligibilityDenialCause, BasisFamily, BasisIntentDenialKind,
-    BasisLifecyclePosture, BasisScopePosture, BasisVisibilityPosture,
+    BasisAuthorityPosture, BasisEligibilityDenialCause, BasisFamily, BasisLifecyclePosture,
+    BasisScopePosture, BasisVisibilityPosture,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -56,17 +58,9 @@ pub enum RawBasisIntent {
     DurableReload {
         reload_identity: String,
     },
+    #[cfg(test)]
     TemporalFuture {
         temporal_identity: String,
-    },
-    AsyncResourceFuture {
-        resource_identity: String,
-    },
-    Malformed {
-        reason: &'static str,
-    },
-    Ambiguous {
-        reason: &'static str,
     },
 }
 
@@ -288,21 +282,10 @@ pub fn normalize_raw_basis_intent(
             Some(format!("durable-reload:{reload_identity}")),
             "raw.durable_reload",
         )),
+        #[cfg(test)]
         RawBasisIntent::TemporalFuture { .. } => Err(BasisIntentDenial::new(
             BasisIntentDenialKind::TemporalDeferred,
             "temporal basis remains deferred to the temporal milestone",
-        )),
-        RawBasisIntent::AsyncResourceFuture { .. } => Err(BasisIntentDenial::new(
-            BasisIntentDenialKind::AsyncResourceDeferred,
-            "async/resource basis remains deferred to the async resource milestone",
-        )),
-        RawBasisIntent::Malformed { reason } => Err(BasisIntentDenial::new(
-            BasisIntentDenialKind::Malformed,
-            reason,
-        )),
-        RawBasisIntent::Ambiguous { reason } => Err(BasisIntentDenial::new(
-            BasisIntentDenialKind::Ambiguous,
-            reason,
         )),
     }
 }

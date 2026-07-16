@@ -2,9 +2,9 @@ pub use crate::authoring::{
     AspectFieldSelector, AspectName, AuthoredResultShapeField, CollectionAuthoredQuery,
     CollectionAuthoredResultShape, CollectionQueryBuilder, CollectionResultShapeBuilder,
     DetailAuthoredQuery, DetailAuthoredResultShape, DetailQueryBuilder, DetailResultShapeBuilder,
-    EqualityPredicate, FieldName, IntegerComparisonPredicate, OrderingSelector, PredicateSelector,
-    PresencePredicate, RelationName, RootEntityKey, ScalarPredicateValue, SetMembershipPredicate,
-    StringContainsPredicate, TraversalSelector,
+    EqualityPredicate, FieldName, NativeComparisonPredicate, OrderingSelector, PredicateSelector,
+    PresencePredicate, RelationName, RootEntityKey, SetMembershipPredicate,
+    StringContainsPredicate, TraversalSelector, WorthQueryPredicateOperand,
 };
 pub use crate::composition::{
     QueryScopeDescriptor, QueryTemplateDescriptor, TemplateBindingSet, TemplateParameterSlot,
@@ -33,7 +33,7 @@ pub use crate::runtime::{
     WorthQueryReadResult, WorthQueryReadScopeClass,
 };
 pub use crate::schema_view::{
-    QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
+    QuerySchemaView, ScalarAspectType, SchemaFieldView, SchemaRelationView,
 };
 pub use crate::session_label::{
     WorthQuerySessionLabel, WorthQuerySessionLabelError, WorthQuerySessionLabelSegment,

@@ -22,7 +22,7 @@ Evidence layers:
 | Batch / session | Aggregates, component counts, backend-verified update/delete counts |
 | Support profile | `public_authoritative_mutation_evidence_support()` — verified vs deferred rows |
 
-`workspace.inspect` may surface related **read** evidence; authoritative mutation evidence is the **write-path contract** certified under `authoritative-mutation-evidence-certification` matrix rows.
+`workspace.inspections()?.inspect` may surface related **read** evidence; authoritative mutation evidence is the **write-path contract** certified under `authoritative-mutation-evidence-certification` matrix rows.
 
 ## Main Entry Points
 

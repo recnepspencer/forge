@@ -110,6 +110,7 @@ impl MutationOutcome {
         new_target: EntityId,
         old_authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
         new_authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
+        authoritative_patch: Option<worth_foundational::facade::AuthoritativeRecordAspectPatch>,
     ) -> Self {
         let mut outcome = Self::with_capacity(1, 1);
         outcome.record_change(RecordMutation::RelationUpdated {
@@ -121,6 +122,7 @@ impl MutationOutcome {
             new_target,
             old_authoritative_aspect_state,
             new_authoritative_aspect_state,
+            authoritative_patch,
         });
         outcome.record_event(MutationEvent::RelationUpdated { relation_id });
         outcome

@@ -5,10 +5,12 @@ mod stop_class;
 mod stop_classify;
 
 pub use graph_obligation_denial::WorthQueryGraphObligationDenial;
-pub use stop_class::{
+#[cfg(test)]
+pub(crate) use stop_class::{
     WorthQueryRuntimeDeclarationFailureKind, WorthQueryRuntimeLookupFailureKind,
-    WorthQueryRuntimeMissingArtifactKind, WorthQueryRuntimeMissingComponent, WorthQueryStopClass,
+    WorthQueryRuntimeMissingArtifactKind,
 };
+pub use stop_class::{WorthQueryRuntimeMissingComponent, WorthQueryStopClass};
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -28,6 +30,7 @@ pub enum WorthQueryRuntimeError {
     ExistingTruthProbeDenied(WorthQueryExistingTruthProbeDenial),
     MutationBindingDenied(WorthQueryExistingTruthBindingDenial),
     MutationContinuityDenied(WorthQueryContinuityMutationDenial),
+    MutationContractDenied(crate::runtime::WorthQueryMutationContractDenial),
     GraphObligationTouchDescriptorDenied(WorthQueryGraphTouchDescriptorDenial),
     GraphObligationEffectTouchDescriptorMissing {
         effect_name: String,
@@ -178,6 +181,7 @@ impl std::fmt::Display for WorthQueryRuntimeError {
             Self::ExistingTruthProbeDenied(denial) => write!(f, "{denial}"),
             Self::MutationBindingDenied(denial) => write!(f, "{denial}"),
             Self::MutationContinuityDenied(denial) => write!(f, "{denial}"),
+            Self::MutationContractDenied(denial) => write!(f, "{denial}"),
             Self::GraphObligationTouchDescriptorDenied(denial) => write!(
                 f,
                 "graph obligation dispatch denied malformed touch descriptor: {denial}"

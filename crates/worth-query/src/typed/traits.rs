@@ -1,4 +1,4 @@
-use crate::authoring::ScalarPredicateValue;
+use crate::authoring::WorthQueryPredicateOperand;
 
 pub trait TypedSchemaRoot {
     const ROOT_ENTITY: &'static str;
@@ -20,10 +20,10 @@ pub trait TypedProjectableField: TypedSchemaField {}
 pub trait TypedEqualityField: TypedSchemaField {
     type Value;
 
-    fn into_scalar(value: Self::Value) -> ScalarPredicateValue;
+    fn into_scalar(value: Self::Value) -> WorthQueryPredicateOperand;
 }
 
-pub trait TypedIntegerComparableField: TypedEqualityField<Value = i64> {}
+pub trait TypedNativeComparableField: TypedEqualityField {}
 pub trait TypedStringContainsField: TypedSchemaField {}
 pub trait TypedMembershipField: TypedEqualityField {}
 pub trait TypedPresenceField: TypedSchemaField {}

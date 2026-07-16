@@ -1,4 +1,8 @@
-use worth_query::facade::runtime::{worth_query_domain, WorthQueryAdmittedIntentPlan, WorthQueryProjectionContractRequest};
+#[path = "../support/installed_domain.rs"]
+mod installed_domain;
+
+use worth_query::facade::domain::WorthQueryProjectionContractRequest;
+use worth_query::facade::runtime::WorthQueryAdmittedIntentPlan;
 
 fn admitted_plan() -> WorthQueryAdmittedIntentPlan {
     todo!()
@@ -9,8 +13,10 @@ fn projection_contract() -> WorthQueryProjectionContractRequest {
 }
 
 fn main() {
-    let _ = worth_query_domain("worth.spatial")
-        .for_admitted_intent_plan(&admitted_plan())
+    let installation = installed_domain::install("aftermath-draft-has-no-review");
+    let _ = installation
+        .contributions()
+        .for_admitted_intent_plan(&admitted_plan()).expect("installed contribution authority must remain current")
         .consumes_projection_contract("projection.contract", projection_contract())
         .review();
 }

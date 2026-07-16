@@ -1,5 +1,3 @@
-#[cfg(test)]
-use crate::application::WorthQueryContinuationExecutionReadmissionObservation;
 use crate::application::{
     WorthQueryDeclarationBridgeBinding, WorthQueryDeclarationBridgeContinuationRequest,
     WorthQueryDeclarationBridgeRouting, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
@@ -20,7 +18,10 @@ use crate::continuation_pipeline::readmission::{
     WorthQueryPreparedContinuationDriftKind, WorthQueryPreparedContinuationExecutionReadmission,
     WorthQueryPreparedContinuationFreshnessPosture,
 };
-use crate::continuation_pipeline::WorthQueryPreparedContinuation;
+use crate::continuation_pipeline::{
+    WorthQueryContinuationExecutionReadmissionStop,
+    WorthQueryContinuationExecutionReadmissionStopKind, WorthQueryPreparedContinuation,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorthQueryPreparedContinuationCurrentReadmissionEvidence {
@@ -50,17 +51,6 @@ impl WorthQueryPreparedContinuationCurrentReadmissionEvidence {
             evidence_digest,
         }
     }
-}
-
-pub(crate) enum WorthQueryPreparedContinuationExecutionReadmissionDenial {
-    Stale(String),
-    BasisMismatch(String),
-    AuthorityMismatch(String),
-    AsyncRequestDrift(String),
-    ReplayDrift(String),
-    RemaskDrift(String),
-    PreviewCrossedResidue(String),
-    StaleCompletion(String),
 }
 
 pub(crate) fn prepared_execution_readmission_from_routing<
@@ -139,42 +129,46 @@ pub(crate) fn validate_execution_readmission<
 >(
     prepared: &WorthQueryPreparedContinuation<D, I>,
     current: &WorthQueryPreparedContinuationCurrentReadmissionEvidence,
-) -> Result<(), WorthQueryPreparedContinuationExecutionReadmissionDenial> {
+) -> Result<(), WorthQueryContinuationExecutionReadmissionStop> {
     if current.freshness_posture == WorthQueryPreparedContinuationFreshnessPosture::Stale {
-        return Err(
-            WorthQueryPreparedContinuationExecutionReadmissionDenial::Stale(
-                "the retained continuation basis evidence is stale at execution time".to_string(),
-            ),
-        );
+        return Err(WorthQueryContinuationExecutionReadmissionStop::new(
+            WorthQueryContinuationExecutionReadmissionStopKind::StaleBasis,
+            "the retained continuation basis evidence is stale at execution time".to_string(),
+        ));
     }
 
     if let Some(drift_kind) = current.drift_kind {
         return Err(match drift_kind {
             WorthQueryPreparedContinuationDriftKind::AsyncRequest => {
-                WorthQueryPreparedContinuationExecutionReadmissionDenial::AsyncRequestDrift(
+                WorthQueryContinuationExecutionReadmissionStop::new(
+                    WorthQueryContinuationExecutionReadmissionStopKind::AsyncRequestDrift,
                     "the retained continuation async request identity drifted before execution"
                         .to_string(),
                 )
             }
             WorthQueryPreparedContinuationDriftKind::Replay => {
-                WorthQueryPreparedContinuationExecutionReadmissionDenial::ReplayDrift(
+                WorthQueryContinuationExecutionReadmissionStop::new(
+                    WorthQueryContinuationExecutionReadmissionStopKind::ReplayDrift,
                     "the retained continuation replay identity drifted before execution"
                         .to_string(),
                 )
             }
             WorthQueryPreparedContinuationDriftKind::Remask => {
-                WorthQueryPreparedContinuationExecutionReadmissionDenial::RemaskDrift(
+                WorthQueryContinuationExecutionReadmissionStop::new(
+                    WorthQueryContinuationExecutionReadmissionStopKind::PolicyRemaskDrift,
                     "the retained continuation was remasked before execution".to_string(),
                 )
             }
             WorthQueryPreparedContinuationDriftKind::PreviewCrossedResidue => {
-                WorthQueryPreparedContinuationExecutionReadmissionDenial::PreviewCrossedResidue(
+                WorthQueryContinuationExecutionReadmissionStop::new(
+                    WorthQueryContinuationExecutionReadmissionStopKind::PreviewCrossedResidue,
                     "the retained continuation crossed preview residue before execution"
                         .to_string(),
                 )
             }
             WorthQueryPreparedContinuationDriftKind::StaleCompletion => {
-                WorthQueryPreparedContinuationExecutionReadmissionDenial::StaleCompletion(
+                WorthQueryContinuationExecutionReadmissionStop::new(
+                    WorthQueryContinuationExecutionReadmissionStopKind::StaleCompletion,
                     "the retained continuation completion state is stale at execution time"
                         .to_string(),
                 )
@@ -184,12 +178,10 @@ pub(crate) fn validate_execution_readmission<
 
     let retained = prepared.execution_readmission();
     let witness = retained.basis_witness();
-    if &current.basis_identity != witness.basis_identity()
-        || current.lower_runtime_binding_identity.as_ref()
-            != witness.expected_lower_runtime_binding_identity()
-    {
+    if &current.basis_identity != witness.basis_identity() {
         return Err(
-            WorthQueryPreparedContinuationExecutionReadmissionDenial::BasisMismatch(
+            WorthQueryContinuationExecutionReadmissionStop::new(
+                WorthQueryContinuationExecutionReadmissionStopKind::BasisMismatch,
                 format!(
                     "the current lower-runtime basis evidence no longer matches retained continuation basis {}",
                     witness.basis_identity_digest()
@@ -198,10 +190,21 @@ pub(crate) fn validate_execution_readmission<
         );
     }
 
+    if current.lower_runtime_binding_identity.as_ref()
+        != witness.expected_lower_runtime_binding_identity()
+    {
+        return Err(WorthQueryContinuationExecutionReadmissionStop::new(
+            WorthQueryContinuationExecutionReadmissionStopKind::LowerBindingMismatch,
+            "the current lower-runtime binding no longer matches the retained continuation binding"
+                .to_string(),
+        ));
+    }
+
     let retained_authority = lower_runtime_authority_from_witness(retained.authority_witness());
     if current.authority != retained_authority {
         return Err(
-            WorthQueryPreparedContinuationExecutionReadmissionDenial::AuthorityMismatch(
+            WorthQueryContinuationExecutionReadmissionStop::new(
+                WorthQueryContinuationExecutionReadmissionStopKind::AuthorityMismatch,
                 format!(
                     "the current lower-runtime authority {} no longer matches retained continuation authority {}",
                     current.authority.as_str(),
@@ -373,8 +376,7 @@ fn basis_kind_for_truth_context(
         }
     }
 }
-
-fn lower_runtime_authority_from_witness(
+pub(super) fn lower_runtime_authority_from_witness(
     witness: WorthQueryPreparedContinuationAuthorityWitness,
 ) -> LowerRuntimeEvidenceAuthority {
     match witness {
@@ -391,25 +393,4 @@ fn lower_runtime_authority_from_witness(
             LowerRuntimeEvidenceAuthority::SignalFacade
         }
     }
-}
-
-#[cfg(test)]
-pub(crate) fn drifted_observation_from_retained(
-    retained: &WorthQueryPreparedContinuationExecutionReadmission,
-    freshness_posture: WorthQueryPreparedContinuationFreshnessPosture,
-    basis_identity_digest: Option<String>,
-    authority: Option<LowerRuntimeEvidenceAuthority>,
-    drift_kind: Option<WorthQueryPreparedContinuationDriftKind>,
-) -> WorthQueryContinuationExecutionReadmissionObservation {
-    let witness = retained.basis_witness();
-    WorthQueryContinuationExecutionReadmissionObservation::new(
-        authority
-            .unwrap_or_else(|| lower_runtime_authority_from_witness(retained.authority_witness())),
-        basis_identity_digest
-            .map(|identity| continuation_readmission_basis_identity(witness.kind(), identity))
-            .unwrap_or_else(|| witness.basis_identity().clone()),
-        witness.expected_lower_runtime_binding_identity().cloned(),
-        freshness_posture,
-        drift_kind,
-    )
 }

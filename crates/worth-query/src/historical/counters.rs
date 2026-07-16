@@ -177,6 +177,7 @@ impl HistoricalCounterSnapshot {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn denied(
         predicted_historical_replay_span: usize,
         predicted_historical_reconstruction_scope: usize,
@@ -207,11 +208,13 @@ impl HistoricalCounterSnapshot {
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn with_path_denial(mut self) -> Self {
         self.historical_path_denial_count = 1;
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn with_hidden_path_substitution_denial(mut self) -> Self {
         self.historical_hidden_path_substitution_denial_count = 1;
         self

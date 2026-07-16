@@ -6,9 +6,8 @@ error[E0432]: unresolved import `worth_query::facade::BridgeLowerRuntimeEvidence
   |
 help: consider importing this variant instead
   |
-1 - use worth_query::facade::BridgeLowerRuntimeEvidenceReference;
-1 + use worth_query::WorthQueryEvidenceScope::BridgeLowerRuntimeEvidenceReference;
-  |
+1 | use worth_query::facade::runtime::WorthQueryEvidenceScope::BridgeLowerRuntimeEvidenceReference;
+  |                          ++++++++++++++++++++++++++++++++++
 
 warning: unreachable expression
  --> tests/ui/bridge_lower_runtime_evidence_reference_constructor_private.rs:6:17

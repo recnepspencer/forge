@@ -50,6 +50,13 @@ pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKe
             kind_id: spec.kind_id,
             client_key: spec.client_key.clone(),
         },
+        MutationIntent::Create(CreateIntent::EntityAspects(spec)) => {
+            CanonicalIntentKey::CreateEntity {
+                partition_id: spec.partition_id,
+                kind_id: spec.kind_id,
+                client_key: spec.client_key.clone(),
+            }
+        }
         MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
             CanonicalIntentKey::BulkCreateEntities {
                 partition_id: spec.partition_id,
@@ -58,6 +65,9 @@ pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKe
             }
         }
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(spec)) => {
+            CanonicalIntentKey::UpdateEntityFields(spec.entity_id)
+        }
+        MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(spec)) => {
             CanonicalIntentKey::UpdateEntityFields(spec.entity_id)
         }
         MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => {
@@ -80,6 +90,15 @@ pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKe
                 client_key: spec.client_key.clone(),
             })
         }
+        MutationIntent::Create(CreateIntent::RelationAspects(spec)) => {
+            CanonicalIntentKey::CreateRelation(RelationCreateKey {
+                partition_id: spec.partition_id,
+                kind_id: spec.kind_id,
+                source: spec.source.clone(),
+                target: spec.target.clone(),
+                client_key: spec.client_key.clone(),
+            })
+        }
         MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
             CanonicalIntentKey::BulkCreateRelations {
                 partition_id: spec.partition_id,
@@ -89,6 +108,9 @@ pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKe
             }
         }
         MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
+            CanonicalIntentKey::UpdateRelationEndpoints(spec.relation_id)
+        }
+        MutationIntent::Relation(RelationMutationIntent::ApplyAspectPatch(spec)) => {
             CanonicalIntentKey::UpdateRelationEndpoints(spec.relation_id)
         }
         MutationIntent::Relation(RelationMutationIntent::Delete(spec)) => {

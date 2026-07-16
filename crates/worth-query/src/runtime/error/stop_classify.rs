@@ -72,6 +72,9 @@ pub(super) fn classify_stop_class(error: &WorthQueryRuntimeError) -> WorthQueryS
         WorthQueryRuntimeError::MutationContinuityDenied(denial) => {
             WorthQueryStopClass::MutationContinuityDenied { denial }
         }
+        WorthQueryRuntimeError::MutationContractDenied(denial) => {
+            WorthQueryStopClass::MutationContractDenied { denial }
+        }
         WorthQueryRuntimeError::GraphObligationTouchDescriptorDenied(denial) => {
             WorthQueryStopClass::GraphObligationTouchDescriptorDenied { denial }
         }

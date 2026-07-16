@@ -41,7 +41,7 @@ use crate::intent_admission::{admit_runtime_intent_request, WorthQueryRawIntentA
 use crate::memory_workspace::{
     WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQuerySnapshotIdentity,
 };
-use crate::runtime::WorthQueryNativeRow;
+use crate::runtime::WorthQueryUnrefinedLiveShape;
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
@@ -298,14 +298,14 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
 
     let mut delegated_effect_runtime = certification_runtime();
     let delegated_live = delegated_effect_runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "certification.effect-live",
             certification_task_live_request(),
             certification_task_schema(),
         )
         .expect("live view should declare");
     let delegated_effect = delegated_effect_runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.certification.reconcile",
             WorthQueryEffectTrigger::live_view(&delegated_live, [title_value_touch()]),
             "strategy.intent.reconcile",
@@ -314,9 +314,9 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
     delegated_effect_runtime
         .write(WorthQueryWriteCommand::UpdateAspect {
             entity_identity: certification_entity_identity("task-1"),
-            aspect: crate::facade::runtime::WorthQueryAdmittedAspectValue::new_set(
+            aspect: crate::facade::runtime::WorthQueryAuthoredAspectMutation::new_set(
                 title_value_touch(),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                     "title from delegated effect",
                 ),
             )
@@ -329,14 +329,14 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
 
     let mut canonical_effect_runtime = certification_runtime();
     let canonical_live = canonical_effect_runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "certification.effect-live",
             certification_task_live_request(),
             certification_task_schema(),
         )
         .expect("canonical live view should declare");
     let canonical_effect = canonical_effect_runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.certification.reconcile",
             WorthQueryEffectTrigger::live_view(&canonical_live, [title_value_touch()]),
             "strategy.intent.reconcile",
@@ -345,9 +345,9 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
     canonical_effect_runtime
         .write(WorthQueryWriteCommand::UpdateAspect {
             entity_identity: certification_entity_identity("task-1"),
-            aspect: crate::facade::runtime::WorthQueryAdmittedAspectValue::new_set(
+            aspect: crate::facade::runtime::WorthQueryAuthoredAspectMutation::new_set(
                 title_value_touch(),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                     "title from delegated effect",
                 ),
             )

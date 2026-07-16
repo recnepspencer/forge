@@ -6,11 +6,13 @@ use worth_runtime_bridge::facade::BridgeMutationAuthorityBundle;
 
 mod entity_row;
 mod identities;
+mod native_patch;
 mod runtime_identity;
 #[cfg(test)]
 mod tests;
 mod truth_identity_admission;
 mod workspace;
+mod workspace_schema;
 
 pub use entity_row::WorthQueryEntity;
 pub use identities::{
@@ -20,9 +22,6 @@ pub use identities::{
 pub(crate) use truth_identity_admission::admit_external_commit_label;
 pub(crate) use truth_identity_admission::{
     admit_authored_entity_label, admit_external_snapshot_label,
-};
-pub use truth_identity_admission::{
-    admit_authored_entity_token, admit_external_commit_token, admit_external_snapshot_token,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -304,5 +303,7 @@ pub struct WorthQueryMemoryWorkspace {
     kind_id: KindId,
     kind_name: String,
     aspects: Vec<WorthQueryAspect>,
+    aspect_contracts:
+        crate::runtime::native_aspect_contracts::WorthQueryNativeAspectContractRegistry,
     next_client_key: u64,
 }

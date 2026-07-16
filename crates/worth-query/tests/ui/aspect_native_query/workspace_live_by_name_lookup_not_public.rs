@@ -1,4 +1,4 @@
-use worth_query::facade::runtime::{WorthQueryNativeRow, WorthQueryWorkspace};
+use worth_query::facade::runtime::{WorthQueryUnrefinedLiveShape, WorthQueryWorkspace};
 
 fn main() {
     let mut workspace = workspace_fixture();
@@ -13,6 +13,6 @@ fn workspace_fixture() -> WorthQueryWorkspace {
     panic!("fixture only")
 }
 
-fn _row_marker() -> WorthQueryNativeRow {
-    WorthQueryNativeRow
+fn _row_marker() -> WorthQueryUnrefinedLiveShape {
+    WorthQueryUnrefinedLiveShape
 }

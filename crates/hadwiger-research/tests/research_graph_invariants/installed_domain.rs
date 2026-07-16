@@ -9,6 +9,8 @@ pub fn materialize_installed_domain_denial(
     request: ResearchGraphInvariantDenialRequest,
 ) -> Result<ResearchGraphInvariantDenial, ResearchGraphInvariantError> {
     let schema = WorthQueryTestBackendSchema::single_collection("HadwigerResearchGraph")
+        .aspect_contracts(hadwiger_research::facade::hadwiger_native_aspect_contracts())
+        .expect("Hadwiger native aspect contracts should build")
         .aspect("identity.id", "identity.id")
         .expect("research graph identity aspect should build");
     let workspace = in_memory_test_runtime()

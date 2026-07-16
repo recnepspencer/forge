@@ -149,7 +149,7 @@ impl FactDocument {
             "membership" => facts.memberships(),
             "relation_endpoint" => facts.relation_endpoints(),
             "display_field" => facts.display_field_path(parse_path(self.path)?),
-            "derived_scalar_field" => facts.derived_scalar_field_path(parse_path(self.path)?),
+            "derived_field" => facts.derived_field_path(parse_path(self.path)?),
             unknown => {
                 return Err(document_error(
                     ProjectionAuthorityContractDocumentErrorKind::UnknownFact,
@@ -215,7 +215,7 @@ fn fact_name(request: &ProjectionFactRequest) -> &'static str {
         ProjectionFactRequest::Membership => "membership",
         ProjectionFactRequest::RelationEndpoint => "relation_endpoint",
         ProjectionFactRequest::DisplayField(_) => "display_field",
-        ProjectionFactRequest::DerivedScalarField(_) => "derived_scalar_field",
+        ProjectionFactRequest::DerivedField(_) => "derived_field",
     }
 }
 

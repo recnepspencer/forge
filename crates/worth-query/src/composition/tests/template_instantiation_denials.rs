@@ -76,7 +76,7 @@ fn template_instantiation_denies_duplicate_binding_with_exact_failure_class_and_
         crate::authoring::EqualityPredicate::new(
             "profile",
             "display_name",
-            crate::authoring::ScalarPredicateValue::String("Alice".to_string()),
+            crate::authoring::WorthQueryPredicateOperand::string("Alice".to_string()),
         )
         .unwrap(),
     );

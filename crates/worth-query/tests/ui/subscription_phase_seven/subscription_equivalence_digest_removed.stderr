@@ -8,13 +8,8 @@ warning: unreachable statement
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-error[E0624]: method `digest` is private
+error[E0599]: no method named `digest` found for reference `&QuerySubscriptionEquivalenceBasis` in the current scope
  --> tests/ui/subscription_phase_seven/subscription_equivalence_digest_removed.rs:5:43
   |
 5 |     let _ = selection.equivalence_basis().digest();
-  |                                           ^^^^^^ private method
-  |
- ::: src/subscription/equivalence.rs
-  |
-  |     pub(crate) fn digest(&self) -> &QuerySubscriptionMeaningDigest {
-  |     -------------------------------------------------------------- private method defined here
+  |                                           ^^^^^^ private field, not a method

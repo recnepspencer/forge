@@ -1,9 +1,8 @@
 use crate::memory_workspace::WorthQueryEntityIdentity;
 use crate::runtime::{
-    WorthQueryAdmittedAspectValue, WorthQueryAspectMutationOperation,
-    WorthQueryAspectMutationOperationKind, WorthQueryAspectTouch,
-    WorthQueryContinuityMutationIntent, WorthQueryExistingTruthTargetBinding,
-    WorthQueryMutationFamily, WorthQueryMutationMetadata,
+    WorthQueryAspectMutationOperation, WorthQueryAspectMutationOperationKind,
+    WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation, WorthQueryContinuityMutationIntent,
+    WorthQueryExistingTruthTargetBinding, WorthQueryMutationFamily, WorthQueryMutationMetadata,
     WorthQueryMutationTargetCollectionIdentity, WorthQueryNamingMutationIntent,
     WorthQuerySymbolicAspectReference, WorthQuerySymbolicTargetReference, WorthQueryWriteCommand,
 };
@@ -16,13 +15,41 @@ use shape::WorthQueryBackendAdmissibleMutationShape;
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthQueryBackendAdmissibleMutation {
     shape: WorthQueryBackendAdmissibleMutationShape,
+    authoritative_patch: worth_foundational::facade::AuthoritativeRecordAspectPatch,
+    portable_patch: worth_foundational::facade::PortableRecordAspectPatch,
 }
 
 impl WorthQueryBackendAdmissibleMutation {
-    pub(crate) fn from_admitted_command(command: WorthQueryWriteCommand) -> Self {
-        Self {
+    pub(crate) fn from_authored_command(
+        command: WorthQueryWriteCommand,
+        contracts: &crate::runtime::native_aspect_contracts::WorthQueryNativeAspectContractRegistry,
+    ) -> Result<Self, crate::runtime::WorthQueryMutationContractDenial> {
+        let authoritative_patch =
+            crate::runtime::native_aspect_contracts::admit_authoritative_mutation_patch(
+                &command, contracts,
+            )?;
+        let portable_patch = worth_foundational::facade::export_portable_record_aspect_patch(
+            &authoritative_patch,
+            contracts,
+        )
+        .map_err(
+            crate::runtime::native_aspect_contracts::WorthQueryMutationContractDenial::portable_export_denied,
+        )?;
+        Ok(Self {
             shape: WorthQueryBackendAdmissibleMutationShape::from_admitted_command(command),
-        }
+            authoritative_patch,
+            portable_patch,
+        })
+    }
+
+    pub(crate) fn portable_patch(&self) -> &worth_foundational::facade::PortableRecordAspectPatch {
+        &self.portable_patch
+    }
+
+    pub(crate) fn authoritative_patch(
+        &self,
+    ) -> &worth_foundational::facade::AuthoritativeRecordAspectPatch {
+        &self.authoritative_patch
     }
 
     pub fn mutation_family(&self) -> WorthQueryMutationFamily {
@@ -127,7 +154,7 @@ impl WorthQueryBackendAdmissibleMutation {
         }
     }
 
-    pub fn admitted_aspect_values(&self) -> &[WorthQueryAdmittedAspectValue] {
+    pub fn admitted_aspect_values(&self) -> &[WorthQueryAuthoredAspectMutation] {
         match &self.shape {
             WorthQueryBackendAdmissibleMutationShape::Insert { aspects, .. }
             | WorthQueryBackendAdmissibleMutationShape::UpdateDirect { aspects, .. }
@@ -140,7 +167,7 @@ impl WorthQueryBackendAdmissibleMutation {
         }
     }
 
-    pub fn asserted_admitted_aspect_values(&self) -> &[WorthQueryAdmittedAspectValue] {
+    pub fn asserted_admitted_aspect_values(&self) -> &[WorthQueryAuthoredAspectMutation] {
         match &self.shape {
             WorthQueryBackendAdmissibleMutationShape::UpdateExisting {
                 asserted_aspects, ..
@@ -189,27 +216,53 @@ impl WorthQueryBackendAdmissibleMutation {
     }
 
     pub fn declared_aspect_operations(&self) -> Vec<WorthQueryAspectMutationOperation> {
-        match self.mutation_family() {
-            WorthQueryMutationFamily::Insert
-            | WorthQueryMutationFamily::Update
-            | WorthQueryMutationFamily::Assertion => self
-                .admitted_aspect_values()
-                .iter()
-                .map(WorthQueryAdmittedAspectValue::declared_operation)
-                .chain(self.symbolic_aspect_references().iter().map(|reference| {
-                    WorthQueryAspectMutationOperation::from_touch(
-                        reference.aspect_touch().clone(),
-                        WorthQueryAspectMutationOperationKind::Set,
-                    )
-                }))
-                .collect(),
-            WorthQueryMutationFamily::Delete => self
-                .admitted_touched_aspects()
-                .iter()
-                .cloned()
-                .map(WorthQueryAspectMutationOperation::clear)
-                .collect(),
-        }
+        let patch = self.authoritative_patch();
+        patch
+            .whole_aspect_sets()
+            .map(|(key, _)| {
+                WorthQueryAspectMutationOperation::from_touch(
+                    WorthQueryAspectTouch::whole_aspect(key.clone()),
+                    WorthQueryAspectMutationOperationKind::Set,
+                )
+            })
+            .chain(patch.whole_aspect_clears().map(|key| {
+                WorthQueryAspectMutationOperation::clear(WorthQueryAspectTouch::whole_aspect(
+                    key.clone(),
+                ))
+            }))
+            .chain(patch.field_patches().flat_map(|(key, field_patch)| {
+                field_patch
+                    .field_sets()
+                    .map(|(field, _)| {
+                        WorthQueryAspectMutationOperation::from_touch(
+                            WorthQueryAspectTouch::aspect_field_path(
+                                key.clone(),
+                                worth_foundational::facade::CanonicalFieldPath::single(
+                                    field.clone(),
+                                ),
+                            ),
+                            WorthQueryAspectMutationOperationKind::Set,
+                        )
+                    })
+                    .chain(field_patch.field_clears().map(|field| {
+                        WorthQueryAspectMutationOperation::clear(
+                            WorthQueryAspectTouch::aspect_field_path(
+                                key.clone(),
+                                worth_foundational::facade::CanonicalFieldPath::single(
+                                    field.clone(),
+                                ),
+                            ),
+                        )
+                    }))
+                    .collect::<Vec<_>>()
+            }))
+            .chain(self.symbolic_aspect_references().iter().map(|reference| {
+                WorthQueryAspectMutationOperation::from_touch(
+                    reference.aspect_touch().clone(),
+                    WorthQueryAspectMutationOperationKind::Set,
+                )
+            }))
+            .collect()
     }
 
     pub fn mutation_metadata_ref(&self) -> Option<&WorthQueryMutationMetadata> {

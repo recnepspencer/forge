@@ -290,7 +290,7 @@ fn family_status<
         .iter()
         .copied()
         .any(|family| {
-            handle.support_snapshot().capability_status(family)
+            handle.installed_capability_status(family)
                 == Some(WorthQueryCapabilityStatus::DeferredDebt)
         })
     {
@@ -299,14 +299,7 @@ fn family_status<
     if F::required_config_sections()
         .iter()
         .copied()
-        .any(|section| {
-            handle
-                .support_snapshot()
-                .section_postures()
-                .iter()
-                .find(|posture| posture.section() == section)
-                .is_some_and(|posture| !posture.enabled())
-        })
+        .any(|section| !handle.installed_configuration_enabled(section))
     {
         return WorthQueryDeclarationCapabilityStatus::InvalidContext;
     }
@@ -314,8 +307,7 @@ fn family_status<
         .iter()
         .copied()
         .any(|family| {
-            handle.support_snapshot().capability_status(family)
-                == Some(WorthQueryCapabilityStatus::Unsupported)
+            handle.installed_capability_status(family) != Some(WorthQueryCapabilityStatus::Admitted)
         })
     {
         return WorthQueryDeclarationCapabilityStatus::Unsupported;

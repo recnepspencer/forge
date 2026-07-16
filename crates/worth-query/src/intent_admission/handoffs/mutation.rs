@@ -6,10 +6,10 @@ use crate::intent_admission::{
     WorthQueryAuthoritativeMutationBatchExecutionPlan, WorthQueryAuthoritativeMutationExecutionPlan,
 };
 use crate::runtime::{
-    WorthQueryAuthoritativeMutationObligationDispatch, WorthQueryGraphCompositionBreadth,
-    WorthQueryGraphCompositionProgram, WorthQueryGraphTouchDescriptor,
-    WorthQueryGraphTouchDescriptorDenial, WorthQueryVerifiedExistingTruthAssertion,
-    WorthQueryWriteCommand,
+    WorthQueryAuthoritativeMutationObligationDispatch, WorthQueryBackendAdmissibleMutation,
+    WorthQueryGraphCompositionBreadth, WorthQueryGraphCompositionProgram,
+    WorthQueryGraphTouchDescriptor, WorthQueryGraphTouchDescriptorDenial,
+    WorthQueryVerifiedExistingTruthAssertion, WorthQueryWriteCommand,
 };
 
 use super::{
@@ -21,6 +21,7 @@ use super::{
 pub struct WorthQueryAuthoritativeMutationExecutionHandoff {
     command: WorthQueryWriteCommand,
     verified_existing_truth_assertion: Option<WorthQueryVerifiedExistingTruthAssertion>,
+    admitted_mutation: WorthQueryBackendAdmissibleMutation,
     obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
     request_digest: String,
     eligibility_digest: String,
@@ -47,6 +48,7 @@ impl WorthQueryAuthoritativeMutationExecutionHandoff {
         Self {
             command: plan.command().clone(),
             verified_existing_truth_assertion: plan.verified_existing_truth_assertion().cloned(),
+            admitted_mutation: plan.admitted_mutation().clone(),
             obligation_dispatch: None,
             request_digest: plan.request_digest().to_string(),
             eligibility_digest: plan.eligibility_digest().to_string(),
@@ -62,6 +64,10 @@ impl WorthQueryAuthoritativeMutationExecutionHandoff {
                 None,
             ),
         }
+    }
+
+    pub(crate) fn admitted_mutation(&self) -> &WorthQueryBackendAdmissibleMutation {
+        &self.admitted_mutation
     }
 
     pub fn family(&self) -> WorthQueryIntentAdmissionFamily {

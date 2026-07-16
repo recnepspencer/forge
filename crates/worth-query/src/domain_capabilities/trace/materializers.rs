@@ -1,29 +1,30 @@
+#[cfg(test)]
 use worth_foundational::FoundationalProfileSet;
 
+#[cfg(test)]
 use super::super::foundational_integration::{
     build_provenance, build_rows, materialize_profile_progression,
     WorthQueryDomainCapabilityProvenanceFreshnessPolicy,
 };
+#[cfg(test)]
 use super::super::materialization::{
     WorthQueryDomainCapabilityDescriptiveArtifactKind,
     WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
 };
+#[cfg(test)]
+use super::super::payloads::WorthQueryDomainCapabilityPayload;
 use super::super::payloads::{
-    WorthQueryAdmissionContributionPayload, WorthQueryAftermathContributionPayload,
-    WorthQueryContinuityContributionPayload, WorthQueryDomainCapabilityPayload,
-    WorthQueryExplanationContributionPayload, WorthQueryInvariantCapabilityContributionPayload,
-    WorthQuerySupportContributionPayload, WorthQueryWorkflowContributionPayload,
+    WorthQueryAdmissionContributionPayload, WorthQueryExplanationContributionPayload,
+    WorthQuerySupportContributionPayload,
 };
+#[cfg(test)]
 use super::super::targets::WorthQueryDomainCapabilityTargetBinding;
+#[cfg(test)]
 use super::super::{
     WorthQueryMaterializationReadyAdmissionContribution,
-    WorthQueryMaterializationReadyAftermathContribution,
-    WorthQueryMaterializationReadyContinuityContribution,
     WorthQueryMaterializationReadyDomainCapabilityContribution,
     WorthQueryMaterializationReadyExplanationContribution,
-    WorthQueryMaterializationReadyInvariantCapabilityContribution,
     WorthQueryMaterializationReadySupportContribution,
-    WorthQueryMaterializationReadyWorkflowContribution,
 };
 use super::artifacts::WorthQueryDomainCapabilityTraceArtifact;
 
@@ -31,17 +32,10 @@ pub type WorthQueryAdmissionContributionTraceArtifact<T> =
     WorthQueryDomainCapabilityTraceArtifact<WorthQueryAdmissionContributionPayload, T>;
 pub type WorthQuerySupportContributionTraceArtifact<T> =
     WorthQueryDomainCapabilityTraceArtifact<WorthQuerySupportContributionPayload, T>;
-pub type WorthQueryInvariantCapabilityContributionTraceArtifact<T> =
-    WorthQueryDomainCapabilityTraceArtifact<WorthQueryInvariantCapabilityContributionPayload, T>;
-pub type WorthQueryWorkflowContributionTraceArtifact<T> =
-    WorthQueryDomainCapabilityTraceArtifact<WorthQueryWorkflowContributionPayload, T>;
-pub type WorthQueryContinuityContributionTraceArtifact<T> =
-    WorthQueryDomainCapabilityTraceArtifact<WorthQueryContinuityContributionPayload, T>;
-pub type WorthQueryAftermathContributionTraceArtifact<T> =
-    WorthQueryDomainCapabilityTraceArtifact<WorthQueryAftermathContributionPayload, T>;
 pub type WorthQueryExplanationContributionTraceArtifact<T> =
     WorthQueryDomainCapabilityTraceArtifact<WorthQueryExplanationContributionPayload, T>;
 
+#[cfg(test)]
 pub fn materialize_domain_capability_trace_artifact<P, T>(
     contribution: WorthQueryMaterializationReadyDomainCapabilityContribution<P, T>,
     requested_profile: FoundationalProfileSet,
@@ -80,6 +74,7 @@ where
     ))
 }
 
+#[cfg(test)]
 pub fn materialize_admission_trace_artifact<T>(
     contribution: WorthQueryMaterializationReadyAdmissionContribution<T>,
     requested_profile: FoundationalProfileSet,
@@ -93,6 +88,7 @@ where
     materialize_domain_capability_trace_artifact(contribution, requested_profile)
 }
 
+#[cfg(test)]
 pub fn materialize_support_traceability_trace_artifact<T>(
     contribution: WorthQueryMaterializationReadySupportContribution<T>,
     requested_profile: FoundationalProfileSet,
@@ -106,58 +102,7 @@ where
     materialize_domain_capability_trace_artifact(contribution, requested_profile)
 }
 
-pub fn materialize_invariant_capability_trace_artifact<T>(
-    contribution: WorthQueryMaterializationReadyInvariantCapabilityContribution<T>,
-    requested_profile: FoundationalProfileSet,
-) -> Result<
-    WorthQueryInvariantCapabilityContributionTraceArtifact<T>,
-    WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
->
-where
-    T: WorthQueryDomainCapabilityTargetBinding,
-{
-    materialize_domain_capability_trace_artifact(contribution, requested_profile)
-}
-
-pub fn materialize_workflow_trace_artifact<T>(
-    contribution: WorthQueryMaterializationReadyWorkflowContribution<T>,
-    requested_profile: FoundationalProfileSet,
-) -> Result<
-    WorthQueryWorkflowContributionTraceArtifact<T>,
-    WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
->
-where
-    T: WorthQueryDomainCapabilityTargetBinding,
-{
-    materialize_domain_capability_trace_artifact(contribution, requested_profile)
-}
-
-pub fn materialize_continuity_trace_artifact<T>(
-    contribution: WorthQueryMaterializationReadyContinuityContribution<T>,
-    requested_profile: FoundationalProfileSet,
-) -> Result<
-    WorthQueryContinuityContributionTraceArtifact<T>,
-    WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
->
-where
-    T: WorthQueryDomainCapabilityTargetBinding,
-{
-    materialize_domain_capability_trace_artifact(contribution, requested_profile)
-}
-
-pub fn materialize_aftermath_trace_artifact<T>(
-    contribution: WorthQueryMaterializationReadyAftermathContribution<T>,
-    requested_profile: FoundationalProfileSet,
-) -> Result<
-    WorthQueryAftermathContributionTraceArtifact<T>,
-    WorthQueryDomainCapabilityDescriptiveMaterializationDenial,
->
-where
-    T: WorthQueryDomainCapabilityTargetBinding,
-{
-    materialize_domain_capability_trace_artifact(contribution, requested_profile)
-}
-
+#[cfg(test)]
 pub fn materialize_explanation_trace_artifact<T>(
     contribution: WorthQueryMaterializationReadyExplanationContribution<T>,
     requested_profile: FoundationalProfileSet,

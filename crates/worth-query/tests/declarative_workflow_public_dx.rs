@@ -1,4 +1,4 @@
-mod support;
+use crate::support;
 
 use support::public_bridge_runtime::public_relational_merge_runtime;
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;

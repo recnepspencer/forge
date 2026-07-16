@@ -1,14 +1,9 @@
 use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support,
-    BasisFamily,
-    ResultShapeFamily,
-    WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily,
+    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily, WorthQueryCapabilityFamily,
+    WorthQuerySupportReport,
 };
 use worth_query::facade::runtime::{
-    QuerySubscriptionFamily,
-    QuerySubscriptionSupportPosture,
-    ViewShapeDescriptor,
+    QuerySubscriptionFamily, QuerySubscriptionSupportPosture, ViewShapeDescriptor,
 };
 
 use crate::capability::{
@@ -16,10 +11,7 @@ use crate::capability::{
     QueryResultShapeReference, QueryViewCapabilityReference, ViewBindingDescriptor,
     ViewBindingFamily, ViewBindingId,
 };
-use crate::facade::{
-    WorthUi,
-    WorthUiApp,
-};
+use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::tests::dependency_impact_narrowing_test_support::lower_rust_authored_artifact;
 use crate::runtime::tests::replacement_impact_test_support::{admitted_candidate, launch_runtime};
 use crate::runtime::{
@@ -139,7 +131,7 @@ fn query_binding(
     subscription_family: QuerySubscriptionFamily,
     subscription_posture: QuerySubscriptionSupportPosture,
 ) -> ViewBindingDescriptor {
-    let support_report = WorthQueryApplicationFacade::runtime_backed_default().support_report();
+    let support_report = WorthQuerySupportReport::runtime_backed_default();
     let query_capability = support_report
         .support_matrix()
         .descriptor(WorthQueryCapabilityFamily::QueryComposition)

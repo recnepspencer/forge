@@ -39,6 +39,7 @@ impl WorthQueryReadFamilyInvariantEvidence {
         &self.evidence_digest
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) fn new(
         invariant_family: impl Into<String>,
         domain_invariant_summary: WorthQueryReadDomainInvariantSummary,
@@ -101,6 +102,7 @@ impl WorthQueryReadFamily {
         )
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) fn new_domain_invariant_admitted(
         family_name: impl Into<String>,
         evidence: WorthQueryReadFamilyInvariantEvidence,

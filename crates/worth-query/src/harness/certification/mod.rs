@@ -1,5 +1,6 @@
 mod core;
 mod requirements;
+#[cfg(test)]
 mod tests;
 
 pub use core::{

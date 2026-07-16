@@ -4,9 +4,9 @@ use super::{
     WorthQueryAdmittedBooleanPredicateExpression, WorthQueryAdmittedBooleanPredicateLeaf,
     WorthQueryBooleanExpressionAdmissionError,
 };
-use crate::authoring::{IntegerComparisonOperator, ScalarPredicateValue};
+use crate::authoring::{NativeComparisonOperator, WorthQueryPredicateOperand};
 use crate::declarative_live::{
-    DeclarativeIntegerComparisonFilter, DeclarativePredicateFilter, DeclarativePresenceFilterKind,
+    DeclarativeNativeComparisonFilter, DeclarativePredicateFilter, DeclarativePresenceFilterKind,
 };
 use crate::runtime::graph_read_access::{
     WorthQueryAdmittedGraphReadPredicateField, WorthQueryAdmittedQuerySchemaReferences,
@@ -104,7 +104,7 @@ fn predicate_leaf(
 fn predicate_family(filter: &DeclarativePredicateFilter) -> &'static str {
     match filter {
         DeclarativePredicateFilter::Equality(_) => "equality",
-        DeclarativePredicateFilter::IntegerComparison(_) => "integer-comparison",
+        DeclarativePredicateFilter::NativeComparison(_) => "native-comparison",
         DeclarativePredicateFilter::StringContains(_) => "string-contains",
         DeclarativePredicateFilter::SetMembership(_) => "set-membership",
         DeclarativePredicateFilter::Presence(_) => "presence",
@@ -116,7 +116,7 @@ fn predicate_selectivity_class(
 ) -> WorthQueryPredicateSelectivityClass {
     match filter {
         DeclarativePredicateFilter::Equality(_) => WorthQueryPredicateSelectivityClass::ExactAnchor,
-        DeclarativePredicateFilter::IntegerComparison(_) => {
+        DeclarativePredicateFilter::NativeComparison(_) => {
             WorthQueryPredicateSelectivityClass::RangePredicate
         }
         DeclarativePredicateFilter::StringContains(_) => {
@@ -139,7 +139,7 @@ fn predicate_operand(
             WorthQueryPredicateOperandOperator::Equal,
             vec![scalar_predicate_value_identity(filter.value())],
         ),
-        DeclarativePredicateFilter::IntegerComparison(filter) => integer_comparison_operand(filter),
+        DeclarativePredicateFilter::NativeComparison(filter) => native_comparison_operand(filter),
         DeclarativePredicateFilter::StringContains(filter) => (
             WorthQueryPredicateOperandOperator::Contains,
             vec![filter.value().to_string()],
@@ -163,20 +163,21 @@ fn predicate_operand(
     }
 }
 
-fn integer_comparison_operand(
-    filter: &DeclarativeIntegerComparisonFilter,
+fn native_comparison_operand(
+    filter: &DeclarativeNativeComparisonFilter,
 ) -> (WorthQueryPredicateOperandOperator, Vec<String>) {
     let operator = match filter.operator() {
-        IntegerComparisonOperator::GreaterThan => WorthQueryPredicateOperandOperator::GreaterThan,
-        IntegerComparisonOperator::LessThan => WorthQueryPredicateOperandOperator::LessThan,
+        NativeComparisonOperator::GreaterThan => WorthQueryPredicateOperandOperator::GreaterThan,
+        NativeComparisonOperator::LessThan => WorthQueryPredicateOperandOperator::LessThan,
     };
-    (operator, vec![filter.value().to_string()])
+    (
+        operator,
+        vec![scalar_predicate_value_identity(filter.value())],
+    )
 }
 
-fn scalar_predicate_value_identity(value: &ScalarPredicateValue) -> String {
-    match value {
-        ScalarPredicateValue::String(value) => format!("string:{value}"),
-        ScalarPredicateValue::Integer(value) => format!("integer:{value}"),
-        ScalarPredicateValue::Boolean(value) => format!("boolean:{value}"),
-    }
+fn scalar_predicate_value_identity(value: &WorthQueryPredicateOperand) -> String {
+    worth_foundational::facade::prepare_aspect_value_identity_basis(value.as_native())
+        .as_str()
+        .to_owned()
 }

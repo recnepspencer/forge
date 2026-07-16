@@ -40,8 +40,11 @@ fn authorized_source_fields(authorized: &AuthorizedProjectionArtifact) -> BTreeS
     authorized
         .visible_field_paths()
         .iter()
-        .map(|field| {
-            AspectFieldKey::from_native_keys(field.native_aspect_key(), field.native_field_key())
+        .filter_map(|field| {
+            Some(AspectFieldKey::from_native_keys(
+                field.native_aspect_key(),
+                field.native_field_key()?,
+            ))
         })
         .collect()
 }

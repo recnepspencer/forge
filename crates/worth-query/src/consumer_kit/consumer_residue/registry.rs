@@ -1,159 +1,9 @@
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub enum WorthQueryConsumerResidueClass {
-    RuntimeSchemaAdapter,
-    RuntimeSourceAdapter,
-    RuntimeWriteAuthorityAdapter,
-    RuntimeSignalSinkAdapter,
-    RuntimeSnapshotIdentityAdapter,
-    RuntimeSubscriptionActivationAdapter,
-    RuntimePreviewBasisAdapter,
-    RuntimeInspectorEvidenceAdapter,
-    RuntimeBridgeHandAssembly,
-    FabricatedMutationReceipt,
-    FabricatedBridgeMutationReceipt,
-    FabricatedWriteAuthorityReceipt,
-    LocalQueryReport,
-    LocalQueryProof,
-    RawSupportSnapshotRow,
-    SupportMatrixRowSearch,
-    DebugDerivedQueryProof,
-    DelimiterJoinedQueryProof,
-    DelimiterFormattedQueryProof,
-    DecomposedProjectionConsumptionAttempt,
-    IndependentlyPairableProjectionConsumptionParts,
-    LegacyProjectionFactConsumptionCall,
-    LegacyProjectionDeclarationCall,
-    LegacyProjectionIntentAdmissionCall,
-    LocalQueryMeasurementConsumptionIdentity,
-    LocalProjectionContractBinding,
-    LocalQueryBasisDigestCompatibility,
-    LegacyProjectionPrerequisiteAssembly,
-    DirectInternalQueryImport,
-    LegacyQueryBasisLifecycle,
-}
+mod model;
 
-impl WorthQueryConsumerResidueClass {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::RuntimeSchemaAdapter => "runtime-schema-adapter",
-            Self::RuntimeSourceAdapter => "runtime-source-adapter",
-            Self::RuntimeWriteAuthorityAdapter => "runtime-write-authority-adapter",
-            Self::RuntimeSignalSinkAdapter => "runtime-signal-sink-adapter",
-            Self::RuntimeSnapshotIdentityAdapter => "runtime-snapshot-identity-adapter",
-            Self::RuntimeSubscriptionActivationAdapter => "runtime-subscription-activation-adapter",
-            Self::RuntimePreviewBasisAdapter => "runtime-preview-basis-adapter",
-            Self::RuntimeInspectorEvidenceAdapter => "runtime-inspector-evidence-adapter",
-            Self::RuntimeBridgeHandAssembly => "runtime-bridge-hand-assembly",
-            Self::FabricatedMutationReceipt => "fabricated-mutation-receipt",
-            Self::FabricatedBridgeMutationReceipt => "fabricated-bridge-mutation-receipt",
-            Self::FabricatedWriteAuthorityReceipt => "fabricated-write-authority-receipt",
-            Self::LocalQueryReport => "local-query-report",
-            Self::LocalQueryProof => "local-query-proof",
-            Self::RawSupportSnapshotRow => "raw-support-snapshot-row",
-            Self::SupportMatrixRowSearch => "support-matrix-row-search",
-            Self::DebugDerivedQueryProof => "debug-derived-query-proof",
-            Self::DelimiterJoinedQueryProof => "delimiter-joined-query-proof",
-            Self::DelimiterFormattedQueryProof => "delimiter-formatted-query-proof",
-            Self::DecomposedProjectionConsumptionAttempt => {
-                "decomposed-projection-consumption-attempt"
-            }
-            Self::IndependentlyPairableProjectionConsumptionParts => {
-                "independently-pairable-projection-consumption-parts"
-            }
-            Self::LegacyProjectionFactConsumptionCall => "legacy-projection-fact-consumption-call",
-            Self::LegacyProjectionDeclarationCall => "legacy-projection-declaration-call",
-            Self::LegacyProjectionIntentAdmissionCall => "legacy-projection-intent-admission-call",
-            Self::LocalQueryMeasurementConsumptionIdentity => {
-                "local-query-measurement-consumption-identity"
-            }
-            Self::LocalProjectionContractBinding => "local-projection-contract-binding",
-            Self::LocalQueryBasisDigestCompatibility => "local-query-basis-digest-compatibility",
-            Self::LegacyProjectionPrerequisiteAssembly => "legacy-projection-prerequisite-assembly",
-            Self::DirectInternalQueryImport => "direct-internal-query-import",
-            Self::LegacyQueryBasisLifecycle => "legacy-query-basis-lifecycle",
-        }
-    }
-
-    pub(crate) fn is_test_backend_residue(self) -> bool {
-        matches!(
-            self,
-            Self::RuntimeSchemaAdapter
-                | Self::RuntimeSourceAdapter
-                | Self::RuntimeWriteAuthorityAdapter
-                | Self::RuntimeSignalSinkAdapter
-                | Self::RuntimeSnapshotIdentityAdapter
-                | Self::RuntimeSubscriptionActivationAdapter
-                | Self::RuntimePreviewBasisAdapter
-                | Self::RuntimeInspectorEvidenceAdapter
-                | Self::RuntimeBridgeHandAssembly
-                | Self::FabricatedMutationReceipt
-                | Self::FabricatedBridgeMutationReceipt
-                | Self::FabricatedWriteAuthorityReceipt
-        )
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthQueryConsumerResidueDetection {
-    ExactText,
-    Ast,
-}
-
-impl WorthQueryConsumerResidueDetection {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::ExactText => "exact-text",
-            Self::Ast => "ast",
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct WorthQueryConsumerResidueRegistryRow {
-    class: WorthQueryConsumerResidueClass,
-    detection: WorthQueryConsumerResidueDetection,
-    detection_key: &'static str,
-    explanation: &'static str,
-    replacement_lane: &'static str,
-}
-
-impl WorthQueryConsumerResidueRegistryRow {
-    pub(crate) const fn new(
-        class: WorthQueryConsumerResidueClass,
-        detection: WorthQueryConsumerResidueDetection,
-        detection_key: &'static str,
-        explanation: &'static str,
-        replacement_lane: &'static str,
-    ) -> Self {
-        Self {
-            class,
-            detection,
-            detection_key,
-            explanation,
-            replacement_lane,
-        }
-    }
-
-    pub fn class(&self) -> WorthQueryConsumerResidueClass {
-        self.class
-    }
-
-    pub fn detection(&self) -> WorthQueryConsumerResidueDetection {
-        self.detection
-    }
-
-    pub fn detection_key(&self) -> &'static str {
-        self.detection_key
-    }
-
-    pub fn explanation(&self) -> &'static str {
-        self.explanation
-    }
-
-    pub fn replacement_lane(&self) -> &'static str {
-        self.replacement_lane
-    }
-}
+pub use model::{
+    WorthQueryConsumerResidueClass, WorthQueryConsumerResidueDetection,
+    WorthQueryConsumerResidueRegistryRow,
+};
 
 pub fn worth_query_consumer_residue_registry() -> &'static [WorthQueryConsumerResidueRegistryRow] {
     CONSUMER_RESIDUE_REGISTRY
@@ -386,6 +236,55 @@ const CONSUMER_RESIDUE_REGISTRY: &[WorthQueryConsumerResidueRegistryRow] = &[
         "query_basis_lifecycle",
         "consumer imports or reconstructs the deleted parallel basis lifecycle",
         "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::RawDomainStringAuthority,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "worth_query_domain(",
+        "consumer starts domain authority from an uninstalled string-authored root",
+        "installed-domain-handle",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::ConsumerAuthoredContextDigest,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "fn context_identity_digest(",
+        "consumer authors a representation digest instead of typed context identity fields",
+        "installed-domain-context-identity",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::ApplicationFacadeDomainAuthority,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "WorthQueryApplicationFacade",
+        "consumer retains executable domain authority outside runtime installation",
+        "installed-domain-handle",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::IndependentOperationRegistry,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "WorthQueryGraphReadOperationRegistry",
+        "consumer owns an operation registry independently of installed package authority",
+        "installed-domain-execution-index",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::CallerSuppliedOperationRegistry,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "with_operation_registry(",
+        "consumer injects operation authority into an ordinary execution path",
+        "installed-domain-execution-index",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::QueryPhaseMaterializerImport,
+        WorthQueryConsumerResidueDetection::Ast,
+        "worth-query-phase-materializer-import",
+        "consumer imports Query transition machinery instead of using installed capabilities",
+        "installed-domain-capability",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::ConsumerSemanticDomainAdapter,
+        WorthQueryConsumerResidueDetection::Ast,
+        "consumer-semantic-domain-adapter",
+        "consumer inserts a semantic adapter between package declaration and installed authority",
+        "installed-domain-extension",
     ),
 ];
 

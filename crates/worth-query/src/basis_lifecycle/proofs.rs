@@ -162,6 +162,7 @@ pub struct BasisIntentDenial {
 }
 
 impl BasisIntentDenial {
+    #[cfg(test)]
     pub(crate) fn new(denial_kind: BasisIntentDenialKind, message: &'static str) -> Self {
         Self {
             denial_kind,

@@ -65,7 +65,7 @@ Identity and denial contracts on the ordinary path are also explicit:
 - `workspace.observe(...)`
 - `workspace.downstream_delivery(...)`
 - `workspace.materialize_result(...)`
-- `workspace.inspect(...)`
+- `workspace.inspections()?.inspect(...)`
 
 ### Downstream delivery contract
 
@@ -138,7 +138,7 @@ binding instead of flattening everything into caller-owned identity strings.
 - `workspace.read_family_in_basis_context_intent(...)`
 - `workspace.read_live_intent(...)`
 - `workspace.materialize_intent(...)`
-- `workspace.inspect_intent(...)`
+- `workspace.inspections()?.inspect_intent(...)`
 
 Use the intent lattice only when the family genuinely belongs on the admitted
 intent path. Do not treat every surface with `intent` in the name as the
@@ -189,7 +189,7 @@ Downstream runtimes should not recreate:
   posture
 - row or payload archaeology when Projection Consumption already exposes typed
   fact families
-- lower-runtime debugging folklore when `workspace.inspect(...)` already owns
+- lower-runtime debugging folklore when `workspace.inspections()?.inspect(...)` already owns
   the public explanation surface
 - edge-side delivery folklore when Query already exposes
   `workspace.downstream_delivery(...)`

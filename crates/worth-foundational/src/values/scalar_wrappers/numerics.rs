@@ -11,6 +11,10 @@ impl CanonicalDecimal {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    pub(crate) fn is_canonical(&self) -> bool {
+        canonical_decimal_text(&self.0)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -23,6 +27,10 @@ impl CanonicalBigInt {
 
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+
+    pub(crate) fn is_canonical(&self) -> bool {
+        canonical_integer_text(&self.0)
     }
 }
 
@@ -43,6 +51,37 @@ impl CanonicalRational {
             })
         }
     }
+
+    pub(crate) fn is_canonical(&self) -> bool {
+        self.numerator.is_canonical()
+            && self.denominator.is_canonical()
+            && !canonical_big_int_string_is_zero(self.denominator.as_str())
+    }
+}
+
+fn canonical_decimal_text(value: &str) -> bool {
+    let unsigned = unsigned_numeric_text(value);
+    let mut segments = unsigned.split('.');
+    let integer = segments.next().unwrap_or_default();
+    let fraction = segments.next();
+    integer.chars().all(|digit| digit.is_ascii_digit())
+        && !integer.is_empty()
+        && fraction.is_none_or(|digits| {
+            !digits.is_empty() && digits.chars().all(|digit| digit.is_ascii_digit())
+        })
+        && segments.next().is_none()
+}
+
+fn canonical_integer_text(value: &str) -> bool {
+    let unsigned = unsigned_numeric_text(value);
+    !unsigned.is_empty() && unsigned.chars().all(|digit| digit.is_ascii_digit())
+}
+
+fn unsigned_numeric_text(value: &str) -> &str {
+    value
+        .strip_prefix('+')
+        .or_else(|| value.strip_prefix('-'))
+        .unwrap_or(value)
 }
 
 fn canonical_big_int_string_is_zero(value: &str) -> bool {

@@ -18,6 +18,7 @@ use super::success::{
     CorrespondenceHistoricalSuccessEnvelope,
 };
 
+#[cfg(test)]
 pub fn compose_correspondence_historical_envelope(
     execution: ExecutionResultEnvelope,
     correspondence: CorrespondenceEvidenceResolved,
@@ -74,6 +75,7 @@ pub fn compose_correspondence_historical_envelope(
     ))
 }
 
+#[cfg(test)]
 pub fn compose_historical_path_denied_envelope(
     correspondence: CorrespondenceEvidenceResolved,
     admission: HistoricalEvaluationAdmission,
@@ -86,6 +88,7 @@ pub fn compose_historical_path_denied_envelope(
     ))
 }
 
+#[cfg(test)]
 pub fn compose_historical_admission_denied_envelope(
     correspondence: CorrespondenceEvidenceResolved,
     request: HistoricalEvaluationRequest,

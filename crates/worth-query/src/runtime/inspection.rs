@@ -15,13 +15,14 @@ mod unified;
 
 pub use basis_lifecycle::WorthQueryBasisLifecycleInspection;
 pub(crate) use causal::request_causal_inspection;
+#[cfg(test)]
+pub(crate) use causal::{admit_causal_inspection, resolve_indexed_causal_evidence_references};
 pub use causal::{
-    admit_causal_inspection, anchor_causal_observation,
-    build_causal_inspection_certification_scope, causal_evidence_inventory_rows,
-    causal_inspection_target, certify_causal_inspection_runtime_path,
-    materialize_admitted_causal_inspection, materialize_advisory_causal_inspection,
-    materialize_denied_causal_inspection, resolve_causal_evidence_references,
-    resolve_indexed_causal_evidence_references, AdmittedCausalInspection,
+    anchor_causal_observation, build_causal_inspection_certification_scope,
+    causal_evidence_inventory_rows, causal_inspection_target,
+    certify_causal_inspection_runtime_path, materialize_admitted_causal_inspection,
+    materialize_advisory_causal_inspection, materialize_denied_causal_inspection,
+    resolve_causal_evidence_references, AdmittedCausalInspection,
     AdmittedQueryCausalInspectionArtifact, AdvisoryCausalInspection,
     AdvisoryQueryCausalInspectionArtifact, CausalDecisionTraceIndex, CausalDecisionTraceRow,
     CausalEvidenceFamily, CausalEvidenceInventoryRow, CausalEvidenceOwner, CausalEvidenceReference,

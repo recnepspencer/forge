@@ -34,6 +34,8 @@ where
             state,
             graph_test_support_profile(),
         ))
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("stateful bridge aspect contracts should admit")
         .domain_package(package)
         .expect("test domain package should admit")
         .build()
@@ -69,6 +71,8 @@ pub(crate) fn stateful_bridge_task_runtime_with_merge() -> WorthQueryRuntime {
             state,
             graph_test_support_profile(),
         ))
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("stateful bridge aspect contracts should admit")
         .build()
         .expect("stateful bridge runtime with merge should build")
 }
@@ -84,6 +88,8 @@ pub(crate) fn stateful_bridge_task_runtime_without_writeback() -> WorthQueryRunt
             state,
             graph_test_support_profile(),
         ))
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("stateful bridge aspect contracts should admit")
         .build()
         .expect("stateful bridge runtime without writeback should build")
 }
@@ -137,6 +143,8 @@ fn stateful_bridge_runtime_via_custom_backend(
     )));
     WorthQueryRuntime::builder()
         .backend(StatefulBridgeRuntimeBackend::new(state, support_profile))
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("stateful bridge aspect contracts should admit")
         .build()
         .expect("stateful bridge-backed runtime should build")
 }

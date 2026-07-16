@@ -1,19 +1,18 @@
-use crate::authoring::ScalarPredicateValue;
 use crate::canonicalization::{
     CanonicalPredicateEntry, CanonicalPredicateFamily, CanonicalPredicateOperand,
 };
-use crate::schema_view::SchemaFieldKind;
+use crate::schema_view::ScalarAspectType;
 
 use super::contains::NormalizedContainsPredicates;
 use super::helpers::{
-    integer_scalar, membership_values, membership_values_set, scalar_operand, string_scalar,
+    comparison_scalar, membership_values, membership_values_set, scalar_operand, string_scalar,
 };
 use crate::validation::{
     failure::ValidationFailureArtifact, QueryValidationCounters, QueryValidationError,
     ValidatedPredicateEntry, ValidationRejectionMatrix,
 };
 
-pub(super) type LegalPredicate = (CanonicalPredicateEntry, SchemaFieldKind, &'static str);
+pub(super) type LegalPredicate = (CanonicalPredicateEntry, ScalarAspectType, &'static str);
 
 #[derive(Default)]
 pub(crate) struct FieldPredicateState {
@@ -50,21 +49,21 @@ impl FieldPredicateState {
                     self.equality = Some(entry);
                 }
             }
-            CanonicalPredicateFamily::IntegerGreaterThan => {
+            CanonicalPredicateFamily::NativeGreaterThan => {
                 let replace = self
                     .strongest_gt
                     .as_ref()
-                    .map(|existing| integer_scalar(&entry.0) > integer_scalar(&existing.0))
+                    .map(|existing| comparison_scalar(&entry.0) > comparison_scalar(&existing.0))
                     .unwrap_or(true);
                 if replace {
                     self.strongest_gt = Some(entry);
                 }
             }
-            CanonicalPredicateFamily::IntegerLessThan => {
+            CanonicalPredicateFamily::NativeLessThan => {
                 let replace = self
                     .weakest_lt
                     .as_ref()
-                    .map(|existing| integer_scalar(&entry.0) < integer_scalar(&existing.0))
+                    .map(|existing| comparison_scalar(&entry.0) < comparison_scalar(&existing.0))
                     .unwrap_or(true);
                 if replace {
                     self.weakest_lt = Some(entry);
@@ -145,7 +144,7 @@ impl FieldPredicateState {
         let mut normalized = Vec::new();
 
         if let (Some(gt), Some(lt)) = (&self.strongest_gt, &self.weakest_lt) {
-            if integer_scalar(&gt.0) >= integer_scalar(&lt.0) {
+            if comparison_scalar(&gt.0) >= comparison_scalar(&lt.0) {
                 contradictory(aspect, field, "empty-range", counters, rejection_matrix)?;
             }
         }
@@ -218,7 +217,7 @@ fn apply_equality_constraints(
     rejection_matrix: &mut ValidationRejectionMatrix,
 ) -> Result<(), ValidationFailureArtifact> {
     if let Some(gt) = strongest_gt {
-        if integer_scalar(&equality.0) <= integer_scalar(&gt.0) {
+        if scalar_operand(&equality.0).as_native() <= comparison_scalar(&gt.0) {
             return contradictory(
                 aspect,
                 field,
@@ -230,7 +229,7 @@ fn apply_equality_constraints(
     }
 
     if let Some(lt) = weakest_lt {
-        if integer_scalar(&equality.0) >= integer_scalar(&lt.0) {
+        if scalar_operand(&equality.0).as_native() >= comparison_scalar(&lt.0) {
             return contradictory(
                 aspect,
                 field,
@@ -253,7 +252,10 @@ fn apply_equality_constraints(
         }
     }
 
-    if let ScalarPredicateValue::String(value) = scalar_operand(&equality.0) {
+    if let worth_foundational::facade::AspectValue::String(
+        worth_foundational::facade::InternedString::Raw(value),
+    ) = scalar_operand(&equality.0).as_native()
+    {
         for contains_predicate in contains {
             if !value.contains(string_scalar(&contains_predicate.0)) {
                 return contradictory(
@@ -285,20 +287,10 @@ fn apply_range_to_membership(
 
     let reduced = membership_values_set(&membership.0).filtered(|value| {
         let passes_gt = strongest_gt
-            .map(|gt| match value {
-                ScalarPredicateValue::Integer(integer_value) => {
-                    integer_value > &integer_scalar(&gt.0)
-                }
-                _ => true,
-            })
+            .map(|gt| value.as_native() > comparison_scalar(&gt.0))
             .unwrap_or(true);
         let passes_lt = weakest_lt
-            .map(|lt| match value {
-                ScalarPredicateValue::Integer(integer_value) => {
-                    integer_value < &integer_scalar(&lt.0)
-                }
-                _ => true,
-            })
+            .map(|lt| value.as_native() < comparison_scalar(&lt.0))
             .unwrap_or(true);
         passes_gt && passes_lt
     });

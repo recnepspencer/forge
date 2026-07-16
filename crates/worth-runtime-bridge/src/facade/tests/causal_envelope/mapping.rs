@@ -7,7 +7,6 @@ use super::retained_mapping_digest_support::{
     expected_retained_causal_digest, ExpectedRetainedCausalDigestArtifact,
 };
 use super::{runtime, BridgeRuntimePolicy};
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEnvelopeDenialKind,
     BridgeCausalEvidenceBinding, BridgeCausalEvidenceBindingClass, BridgeCausalEvidenceFamily,
@@ -15,6 +14,7 @@ use crate::facade::{
     BridgePreviewSessionDeclarationIdentity, BridgeSignalBranchIdentity,
     BridgeSpeculativeBranchBindingIdentity,
 };
+use crate::speculation::BridgePreviewSessionIdentity;
 
 fn binding_for<'a>(
     bindings: &'a [BridgeCausalEvidenceBinding],

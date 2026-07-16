@@ -10,16 +10,16 @@ const ADOPTION_ROWS: [WorthQueryReferenceConsumerAdoptionRow; 2] = [
     WorthQueryReferenceConsumerAdoptionRow::new(
         HADWIGER,
         "crates/hadwiger-research/src/query_entry/ordinary_query.rs",
-        "pub fn declare_candidate_promotion(",
+        "impl HadwigerResearchQueryExt",
         WorthQueryReferenceConsumerDxCounters::new(10, 4, 4, 1, 4),
         WorthQueryReferenceConsumerDxCounters::new(2, 2, 0, 0, 0),
     ),
     WorthQueryReferenceConsumerAdoptionRow::new(
         WORTH_UI,
-        "workspaces/worth-ui/crates/worth-ui-query-binding/src/ordinary_query.rs",
-        "pub fn declare_measurement_read(",
+        "workspaces/worth-ui/crates/worth-ui-query-binding/src/installed_measurements.rs",
+        "impl WorthUiQueryExt",
         WorthQueryReferenceConsumerDxCounters::new(12, 5, 4, 1, 3),
-        WorthQueryReferenceConsumerDxCounters::new(5, 1, 0, 0, 0),
+        WorthQueryReferenceConsumerDxCounters::new(2, 2, 0, 0, 0),
     ),
 ];
 

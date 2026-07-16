@@ -1,32 +1,27 @@
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use worth_query::facade::consumer_kit::{
-    compare_test_backend_write_receipts, in_memory_test_runtime, WorthQueryTestBackendSchema,
+    compare_test_backend_write_receipts, in_memory_test_runtime,
 };
 use worth_query::facade::foundation::WorthQueryWorkspaceErrorKind;
 use worth_query::facade::runtime::{InvariantCatalog, InvariantRegistration, InvariantRule};
 use worth_query::facade::runtime::{
-    WorthQueryNativeRow, WorthQueryRuntimeError, WorthQueryWriteReceipt,
+    WorthQueryRuntimeError, WorthQueryUnrefinedLiveShape, WorthQueryWriteReceipt,
 };
 
-mod support;
+use crate::support;
 
 use support::aspect_touch as touch;
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
 #[test]
 fn in_memory_test_backend_facade_builds_a_real_workspace() {
-    let schema = WorthQueryTestBackendSchema::single_collection("Task")
-        .aspect("identity.id", "identity.id")
-        .expect("identity aspect should be valid")
-        .aspect("title.value", "title.value")
-        .expect("title aspect should be valid");
     let mut workspace = in_memory_test_runtime()
-        .with_schema(schema)
+        .with_schema(task_schema())
         .invariant_catalog(InvariantCatalog::default())
         .workspace("consumer-kit.facade.test")
         .expect("facade should build an in-memory test workspace");
     let tasks = workspace
-        .live_view::<WorthQueryNativeRow>("consumer-kit.facade.tasks", |view| {
+        .live_view::<WorthQueryUnrefinedLiveShape>("consumer-kit.facade.tasks", |view| {
             view.from("Task").select([
                 worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
                     "identity", "id",
@@ -106,7 +101,7 @@ fn in_memory_test_backend_matches_bridge_harness_for_covered_live_write_path() {
         .workspace("consumer-kit.facade.equivalence.bridge")
         .expect("bridge harness should build a workspace");
     let in_memory_tasks = in_memory_workspace
-        .live_view::<WorthQueryNativeRow>(
+        .live_view::<WorthQueryUnrefinedLiveShape>(
             "consumer-kit.facade.equivalence.in-memory.tasks",
             |view| {
                 view.from("Task")
@@ -130,25 +125,28 @@ fn in_memory_test_backend_matches_bridge_harness_for_covered_live_write_path() {
         )
         .expect("in-memory facade should declare live view");
     let bridge_tasks = bridge_workspace
-        .live_view::<WorthQueryNativeRow>("consumer-kit.facade.equivalence.bridge.tasks", |view| {
-            view.from("Task")
-                .select([
-                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
-                        "identity", "id",
+        .live_view::<WorthQueryUnrefinedLiveShape>(
+            "consumer-kit.facade.equivalence.bridge.tasks",
+            |view| {
+                view.from("Task")
+                    .select([
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "identity", "id",
+                        )
+                        .unwrap(),
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "title", "value",
+                        )
+                        .unwrap(),
+                    ])
+                    .order_by(
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "title", "value",
+                        )
+                        .unwrap(),
                     )
-                    .unwrap(),
-                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
-                        "title", "value",
-                    )
-                    .unwrap(),
-                ])
-                .order_by(
-                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
-                        "title", "value",
-                    )
-                    .unwrap(),
-                )
-        })
+            },
+        )
         .expect("bridge harness should declare live view");
 
     let in_memory_receipt = in_memory_workspace
@@ -249,12 +247,8 @@ fn assert_test_backend_receipt_equivalence(
         .is_empty());
 }
 
-fn task_schema() -> WorthQueryTestBackendSchema {
-    WorthQueryTestBackendSchema::single_collection("Task")
-        .aspect("identity.id", "identity.id")
-        .expect("identity aspect should be valid")
-        .aspect("title.value", "title.value")
-        .expect("title aspect should be valid")
+fn task_schema() -> worth_query::facade::consumer_kit::WorthQueryTestBackendSchema {
+    support::task_backend_schema::task_backend_schema()
 }
 
 fn selected_task_scalars(

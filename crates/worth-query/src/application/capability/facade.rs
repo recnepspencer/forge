@@ -1,7 +1,10 @@
+#[cfg(test)]
 use super::errors::{CapabilityAdmissionError, WorthQueryFacadeCounters};
+#[cfg(test)]
 use super::resolution::{
     deny_capability, CapabilityAdmissionDecision, WorthQueryCapabilityResolution,
 };
+#[cfg(test)]
 use super::witnesses::{
     HistoricalEvaluationCapability, IdentityEvolutionCapability, LiveQueryCapability,
     PreviewSessionCapability, QueryCompositionCapability, QueryContextCapability,
@@ -9,11 +12,15 @@ use super::witnesses::{
 };
 use crate::application::config::{
     ConfigurationAdmissionError, ValidatedWorthQueryConfig, WorthQueryConfig,
+};
+#[cfg(test)]
+use crate::application::config::{
     WorthQueryConfigSectionFamily, WorthQueryConfigSectionResolution,
 };
+#[cfg(test)]
+use crate::application::support::{WorthQueryCapabilityFamily, WorthQueryCapabilityStatus};
 use crate::application::support::{
-    WorthQueryCapabilityFamily, WorthQueryCapabilityRegistry, WorthQueryCapabilityStatus,
-    WorthQuerySupportMatrix, WorthQuerySupportReport,
+    WorthQueryCapabilityRegistry, WorthQuerySupportMatrix, WorthQuerySupportReport,
 };
 use crate::identity::hash_parts;
 
@@ -64,6 +71,7 @@ impl WorthQueryApplicationFacade {
         )
     }
 
+    #[cfg(test)]
     pub fn resolve_config_section(
         &self,
         section: WorthQueryConfigSectionFamily,
@@ -74,6 +82,7 @@ impl WorthQueryApplicationFacade {
         )
     }
 
+    #[cfg(test)]
     pub fn query_read_capability(
         &self,
     ) -> Result<WorthQueryCapabilityResolution<QueryReadCapability>, CapabilityAdmissionError> {
@@ -84,12 +93,14 @@ impl WorthQueryApplicationFacade {
         ))
     }
 
+    #[cfg(test)]
     pub(crate) fn query_read_admission_decision(
         &self,
     ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
         self.require_capability(WorthQueryCapabilityFamily::QueryRead)
     }
 
+    #[cfg(test)]
     pub fn query_composition_capability(
         &self,
     ) -> Result<WorthQueryCapabilityResolution<QueryCompositionCapability>, CapabilityAdmissionError>
@@ -101,12 +112,14 @@ impl WorthQueryApplicationFacade {
         ))
     }
 
+    #[cfg(test)]
     pub(crate) fn query_composition_admission_decision(
         &self,
     ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
         self.require_capability(WorthQueryCapabilityFamily::QueryComposition)
     }
 
+    #[cfg(test)]
     pub fn live_query_capability(
         &self,
     ) -> Result<WorthQueryCapabilityResolution<LiveQueryCapability>, CapabilityAdmissionError> {
@@ -117,12 +130,14 @@ impl WorthQueryApplicationFacade {
         ))
     }
 
+    #[cfg(test)]
     pub(crate) fn live_query_admission_decision(
         &self,
     ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
         self.require_capability(WorthQueryCapabilityFamily::LiveQuery)
     }
 
+    #[cfg(test)]
     pub fn preview_query_capability(
         &self,
     ) -> Result<WorthQueryCapabilityResolution<PreviewSessionCapability>, CapabilityAdmissionError>
@@ -134,12 +149,14 @@ impl WorthQueryApplicationFacade {
         ))
     }
 
+    #[cfg(test)]
     pub(crate) fn preview_query_admission_decision(
         &self,
     ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
         self.require_capability(WorthQueryCapabilityFamily::PreviewSession)
     }
 
+    #[cfg(test)]
     pub fn workflow_query_capability(
         &self,
     ) -> Result<
@@ -153,12 +170,14 @@ impl WorthQueryApplicationFacade {
         ))
     }
 
+    #[cfg(test)]
     pub(crate) fn workflow_query_admission_decision(
         &self,
     ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
         self.require_capability(WorthQueryCapabilityFamily::WorkflowOrchestration)
     }
 
+    #[cfg(test)]
     pub fn historical_query_capability(
         &self,
     ) -> Result<
@@ -172,12 +191,14 @@ impl WorthQueryApplicationFacade {
         ))
     }
 
+    #[cfg(test)]
     pub(crate) fn historical_query_admission_decision(
         &self,
     ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
         self.require_capability(WorthQueryCapabilityFamily::HistoricalEvaluation)
     }
 
+    #[cfg(test)]
     pub fn query_context_capability(
         &self,
     ) -> Result<WorthQueryCapabilityResolution<QueryContextCapability>, CapabilityAdmissionError>
@@ -189,12 +210,14 @@ impl WorthQueryApplicationFacade {
         ))
     }
 
+    #[cfg(test)]
     pub(crate) fn query_context_admission_decision(
         &self,
     ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
         self.require_capability(WorthQueryCapabilityFamily::QueryContext)
     }
 
+    #[cfg(test)]
     pub fn identity_evolution_capability(
         &self,
     ) -> Result<WorthQueryCapabilityResolution<IdentityEvolutionCapability>, CapabilityAdmissionError>
@@ -206,18 +229,21 @@ impl WorthQueryApplicationFacade {
         ))
     }
 
+    #[cfg(test)]
     pub(crate) fn identity_evolution_admission_decision(
         &self,
     ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
         self.require_capability(WorthQueryCapabilityFamily::IdentityEvolution)
     }
 
+    #[cfg(test)]
     pub fn durable_artifact_capability(
         &self,
     ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
         self.require_capability(WorthQueryCapabilityFamily::DurableArtifacts)
     }
 
+    #[cfg(test)]
     fn require_capability(
         &self,
         family: WorthQueryCapabilityFamily,

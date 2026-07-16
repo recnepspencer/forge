@@ -6,7 +6,7 @@ use worth_query::facade::runtime::{
     WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadRequiredCapabilityOwner,
 };
 
-mod support;
+use crate::support;
 
 use support::graph_index_inventory::assertions::{
     missing_match_for_requirement, requirement_row_digest_for_kind, support_match_for_kind,

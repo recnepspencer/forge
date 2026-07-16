@@ -15,7 +15,7 @@ use crate::declarative_live::DeclarativeProjectionField;
 use crate::memory_workspace::WorthQueryWorkspaceError;
 use crate::program::WorthQueryDerivedView;
 use crate::runtime::WorthQueryAspectTouch;
-use crate::schema_view::{SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{ScalarAspectType, SchemaFieldView};
 use workspace_declaration_schema::schema_relation_view;
 pub use workspace_live_view_declaration::WorthQueryWorkspaceLiveViewDeclaration;
 use worth_foundational::facade::AspectKey;
@@ -135,7 +135,7 @@ impl WorthQueryLiveViewBuilder {
                 SchemaFieldView::new(
                     field.aspect().clone(),
                     field.field().clone(),
-                    SchemaFieldKind::String,
+                    ScalarAspectType::String,
                 )
             })
             .collect::<Vec<_>>();
@@ -360,4 +360,5 @@ fn workspace_error(message: impl Into<String>) -> WorthQueryRuntimeError {
 
 #[cfg(test)]
 #[path = "workspace_declaration_tests.rs"]
+#[cfg(test)]
 mod tests;

@@ -13,7 +13,7 @@ fn compose_graph_with_domain_invariant_denial_accepts_contributed_denial_artifac
     let mut workspace = stateful_bridge_task_edge_runtime()
         .workspace("tasks.graph-composition-domain-capability-denial")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "tasks.graph-composition-domain-capability-denial-tasks",
             |q| {
@@ -32,7 +32,7 @@ fn compose_graph_with_domain_invariant_denial_accepts_contributed_denial_artifac
             },
         )
         .expect("task live view should declare");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "tasks.graph-composition-domain-capability-denial-edges",
             |q| {

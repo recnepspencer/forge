@@ -144,6 +144,7 @@ fn is_phase_surface(function_name: &str) -> bool {
     matches!(
         function_name,
         "declare"
+            | "mutation"
             | "run"
             | "open"
             | "close"

@@ -159,7 +159,7 @@ impl TruthSnapshotReader for TestSnapshotReader {
             .and_then(SnapshotReadRecord::scalar_aspect_value)
             .cloned()
             .unwrap_or_else(|| {
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("unknown")
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("unknown")
             });
         let records = request
             .reads()
@@ -377,7 +377,7 @@ fn snapshot_records(_key: &str, value: &str) -> Vec<SnapshotReadRecord> {
     );
     vec![SnapshotReadRecord::for_request(
         &read,
-        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value),
+        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value),
     )]
 }
 

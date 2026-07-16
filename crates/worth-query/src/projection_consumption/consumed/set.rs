@@ -1,8 +1,9 @@
 use super::facts::{
-    ConsumedEffectContinuityFact, ConsumedEntityIdentityFact, ConsumedFieldValueFact,
-    ConsumedMembershipFact, ConsumedRelationEndpointFact, ConsumedSourceReferenceFact,
-    ConsumedTargetIdentityFact, ConsumedViewLocalIdentityFact,
+    ConsumedEffectContinuityFact, ConsumedEntityIdentityFact, ConsumedMembershipFact,
+    ConsumedRelationEndpointFact, ConsumedSourceReferenceFact, ConsumedTargetIdentityFact,
+    ConsumedViewLocalIdentityFact,
 };
+use super::field_value_fact::ConsumedFieldValueFact;
 use crate::projection_consumption::identity::{
     compose_consumed_projection_fact_set_digest, compose_extraction_counters_digest,
 };
@@ -83,7 +84,7 @@ pub struct ConsumedProjectionFactSet {
     view_local_identities: Vec<ConsumedViewLocalIdentityFact>,
     memberships: Vec<ConsumedMembershipFact>,
     display_fields: Vec<ConsumedFieldValueFact>,
-    derived_scalar_fields: Vec<ConsumedFieldValueFact>,
+    derived_fields: Vec<ConsumedFieldValueFact>,
     target_identities: Vec<ConsumedTargetIdentityFact>,
     source_references: Vec<ConsumedSourceReferenceFact>,
     effect_continuity_facts: Vec<ConsumedEffectContinuityFact>,
@@ -143,8 +144,8 @@ impl ConsumedProjectionFactSet {
         &self.display_fields
     }
 
-    pub fn derived_scalar_fields(&self) -> &[ConsumedFieldValueFact] {
-        &self.derived_scalar_fields
+    pub fn derived_fields(&self) -> &[ConsumedFieldValueFact] {
+        &self.derived_fields
     }
 
     pub fn target_identities(&self) -> &[ConsumedTargetIdentityFact] {
@@ -179,7 +180,7 @@ impl ConsumedProjectionFactSet {
         view_local_identities: Vec<ConsumedViewLocalIdentityFact>,
         memberships: Vec<ConsumedMembershipFact>,
         display_fields: Vec<ConsumedFieldValueFact>,
-        derived_scalar_fields: Vec<ConsumedFieldValueFact>,
+        derived_fields: Vec<ConsumedFieldValueFact>,
         target_identities: Vec<ConsumedTargetIdentityFact>,
         source_references: Vec<ConsumedSourceReferenceFact>,
         effect_continuity_facts: Vec<ConsumedEffectContinuityFact>,
@@ -199,7 +200,7 @@ impl ConsumedProjectionFactSet {
             &view_local_identities,
             &memberships,
             &display_fields,
-            &derived_scalar_fields,
+            &derived_fields,
             &target_identities,
             &source_references,
             &effect_continuity_facts,
@@ -218,7 +219,7 @@ impl ConsumedProjectionFactSet {
             view_local_identities,
             memberships,
             display_fields,
-            derived_scalar_fields,
+            derived_fields,
             target_identities,
             source_references,
             effect_continuity_facts,

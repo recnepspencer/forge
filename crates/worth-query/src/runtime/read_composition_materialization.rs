@@ -95,25 +95,25 @@ fn query_context_row_values(
     BTreeMap::from([
         (
             native_field_path("query_context.basis_digest"),
-            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                 context_execution.basis_digest().to_string(),
             ),
         ),
         (
             native_field_path("query_context.query_digest"),
-            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                 context_execution.query_digest().to_string(),
             ),
         ),
         (
             native_field_path("query_context.result_digest"),
-            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                 context_execution.result_digest().to_string(),
             ),
         ),
         (
             native_field_path("query_context.row"),
-            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(row.to_string()),
+            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(row.to_string()),
         ),
     ])
 }

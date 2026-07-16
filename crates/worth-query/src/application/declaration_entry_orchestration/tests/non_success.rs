@@ -13,8 +13,8 @@ use crate::application::{
 
 use super::domain::{
     admitted_handle, AdmittedFamily, DeferredFamily, DeferredRouteFamily, DeniedFamily,
-    ExpensiveAutomationFamily, ExplicitIntentFamily, FailedFamily, Input, StaleFamily,
-    UnsupportedReceiptFamily, WorldSensitiveFamily,
+    ExpensiveAutomationFamily, ExplicitIntentFamily, FailedFamily, Input, RebindRequiredFamily,
+    StaleFamily, UnsupportedReceiptFamily,
 };
 
 #[test]
@@ -46,7 +46,7 @@ fn stale_and_rebind_required_remain_distinct() {
     ));
     assert!(matches!(
         restricted
-            .orchestrate_declaration_entry_checked(Input::<WorldSensitiveFamily>::new("edge:42")),
+            .orchestrate_declaration_entry_checked(Input::<RebindRequiredFamily>::new("edge:42")),
         WorthQueryDeclarationEntryOrchestrationOutcome::RebindRequired(_)
     ));
 }
@@ -209,7 +209,7 @@ fn ordinary_surface_preserves_terminal_error_classes() {
     let handle = admitted_handle("restricted");
 
     assert!(matches!(
-        handle.orchestrate_declaration_entry(Input::<WorldSensitiveFamily>::new("edge:42")),
+        handle.orchestrate_declaration_entry(Input::<RebindRequiredFamily>::new("edge:42")),
         Err(WorthQueryDeclarationEntryOrchestrationTerminalError::RebindRequired(_))
     ));
     assert!(matches!(

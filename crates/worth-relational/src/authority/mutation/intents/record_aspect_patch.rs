@@ -1,0 +1,87 @@
+use worth_foundational::facade::{
+    readmit_portable_record_aspect_patch, AuthoritativeRecordAspectPatch,
+    AuthoritativeRecordAspectState, PortablePatchReadmissionPurpose, PortableRecordAspectPatch,
+};
+use worth_proof::TransitionOutcome;
+
+use crate::schema::data::LoweredAspectContractPlan;
+use crate::transactions::data::{
+    CommitConflict, ConflictClass, RecordAspectPatchDenial, RecordAspectPatchTarget,
+};
+
+pub(super) fn readmit(
+    candidate: PortableRecordAspectPatch,
+    purpose: PortablePatchReadmissionPurpose,
+    plan: Option<&LoweredAspectContractPlan>,
+    target: RecordAspectPatchTarget,
+) -> Result<AuthoritativeRecordAspectPatch, CommitConflict> {
+    if candidate.is_empty() && plan.is_none() {
+        return Ok(AuthoritativeRecordAspectPatch::empty());
+    }
+    let plan = plan.ok_or_else(|| {
+        conflict(
+            target,
+            RecordAspectPatchDenial::MissingAspectPlan {
+                kind_id: target_kind(target),
+            },
+        )
+    })?;
+    match readmit_portable_record_aspect_patch(candidate, purpose, plan) {
+        TransitionOutcome::Success(patch) => Ok(patch),
+        TransitionOutcome::Denied(denial) => Err(conflict(
+            target,
+            RecordAspectPatchDenial::ReadmissionDenied(denial),
+        )),
+    }
+}
+
+pub(super) fn readmit_field_authoring(
+    fields: &crate::transactions::data::AspectFieldPatch,
+    purpose: PortablePatchReadmissionPurpose,
+    plan: Option<&LoweredAspectContractPlan>,
+    target: RecordAspectPatchTarget,
+    domain: super::field_authoring_candidate::FieldAuthoringDomain,
+) -> Result<AuthoritativeRecordAspectPatch, CommitConflict> {
+    let candidate =
+        super::field_authoring_candidate::lower(fields, purpose, plan, target_kind(target), domain)
+            .map_err(|denial| conflict(target, denial))?;
+    readmit(candidate, purpose, plan, target)
+}
+
+pub(super) fn apply(
+    current: Option<&AuthoritativeRecordAspectState>,
+    patch: &AuthoritativeRecordAspectPatch,
+    target: RecordAspectPatchTarget,
+) -> Result<Option<AuthoritativeRecordAspectState>, CommitConflict> {
+    match patch.apply_to_optional(current) {
+        TransitionOutcome::Success(state) => {
+            Ok(state.map(|artifact| artifact.into_parts().into_parts().0))
+        }
+        TransitionOutcome::Denied(denial) => Err(conflict(
+            target,
+            RecordAspectPatchDenial::ApplicationDenied(denial),
+        )),
+    }
+}
+
+pub(super) fn published_patch(
+    patch: AuthoritativeRecordAspectPatch,
+) -> Option<AuthoritativeRecordAspectPatch> {
+    (!patch.is_empty()).then_some(patch)
+}
+
+fn target_kind(target: RecordAspectPatchTarget) -> crate::identity::data::KindId {
+    match target {
+        RecordAspectPatchTarget::EntityCreation { kind_id }
+        | RecordAspectPatchTarget::RelationCreation { kind_id }
+        | RecordAspectPatchTarget::Entity { kind_id, .. }
+        | RecordAspectPatchTarget::Relation { kind_id, .. } => kind_id,
+    }
+}
+
+pub(super) fn conflict(
+    target: RecordAspectPatchTarget,
+    denial: RecordAspectPatchDenial,
+) -> CommitConflict {
+    CommitConflict::new(ConflictClass::RecordAspectPatchDenied { target, denial })
+}

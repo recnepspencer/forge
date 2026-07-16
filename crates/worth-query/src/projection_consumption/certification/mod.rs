@@ -13,17 +13,20 @@ mod seeded;
 mod slopes;
 
 pub use audits::{
-    projection_consumption_family_inventory, projection_consumption_forbidden_fallback_audit,
-    projection_consumption_phase_progression_digest, projection_consumption_proof_shape_audit,
-    projection_consumption_public_boundary_audit, projection_consumption_support_matrix,
-    ProjectionConsumptionCertifiedSourceSurface, ProjectionConsumptionFamilyInventory,
-    ProjectionConsumptionFamilyInventoryRow, ProjectionConsumptionForbiddenFallbackAudit,
-    ProjectionConsumptionForbiddenFallbackAuditRow, ProjectionConsumptionForbiddenFallbackSeam,
-    ProjectionConsumptionOrdinaryPathSurface, ProjectionConsumptionProofShapeAudit,
-    ProjectionConsumptionProofShapeAuditRow, ProjectionConsumptionProofShapeEnforcement,
-    ProjectionConsumptionProofShapeViolation, ProjectionConsumptionPublicBoundaryAudit,
-    ProjectionConsumptionPublicBoundaryAuditRow, ProjectionConsumptionPublicBoundarySurface,
-    ProjectionConsumptionSupportMatrix, ProjectionConsumptionSupportMatrixRow,
+    projection_consumption_family_inventory, projection_consumption_phase_progression_digest,
+    projection_consumption_proof_shape_audit, projection_consumption_public_boundary_audit,
+    projection_consumption_support_matrix, ProjectionConsumptionCertifiedSourceSurface,
+    ProjectionConsumptionFamilyInventory, ProjectionConsumptionFamilyInventoryRow,
+    ProjectionConsumptionProofShapeAudit, ProjectionConsumptionProofShapeAuditRow,
+    ProjectionConsumptionProofShapeEnforcement, ProjectionConsumptionProofShapeViolation,
+    ProjectionConsumptionPublicBoundaryAudit, ProjectionConsumptionPublicBoundaryAuditRow,
+    ProjectionConsumptionPublicBoundarySurface, ProjectionConsumptionSupportMatrix,
+    ProjectionConsumptionSupportMatrixRow,
+};
+#[cfg(test)]
+pub(crate) use audits::{
+    projection_consumption_forbidden_fallback_audit, ProjectionConsumptionForbiddenFallbackSeam,
+    ProjectionConsumptionOrdinaryPathSurface,
 };
 pub use bundle::{
     certify_projection_consumption_closeout_core, ProjectionConsumptionCertificationBundle,
@@ -45,8 +48,6 @@ pub(crate) use intent_admission_fixtures::{
     intent_admission_admitted_projection_declaration,
     intent_admission_warning_projection_declaration,
 };
-#[allow(unused_imports)]
-pub use oracle::{projection_consumption_oracle_report, ProjectionConsumptionOracleReport};
 #[cfg(test)]
 pub(crate) use proof_artifacts::{
     compile_fail_boundary_bundle_digest, golden_transcript_bundle_digest,

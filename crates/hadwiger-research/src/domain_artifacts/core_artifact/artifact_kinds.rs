@@ -51,9 +51,7 @@ pub enum HadwigerArtifactKind {
     ResearchGraphInvariantRule,
     ResearchGraphInvariantViolation,
     ResearchGraphInvariantDenial,
-    ResearchGraphInvariantRegistrationPlan,
     ResearchGraphInvariantRuntimeProjection,
-    ResearchGraphInvariantRegistrationChecked,
     ResearchCockpitSession,
     ResearchCockpitActionPacket,
     ResearchCockpitEquivalenceClass,
@@ -138,14 +136,8 @@ impl HadwigerArtifactKind {
             Self::ResearchGraphInvariantRule => "research_graph_invariant_rule",
             Self::ResearchGraphInvariantViolation => "research_graph_invariant_violation",
             Self::ResearchGraphInvariantDenial => "research_graph_invariant_denial",
-            Self::ResearchGraphInvariantRegistrationPlan => {
-                "research_graph_invariant_registration_plan"
-            }
             Self::ResearchGraphInvariantRuntimeProjection => {
                 "research_graph_invariant_runtime_projection"
-            }
-            Self::ResearchGraphInvariantRegistrationChecked => {
-                "research_graph_invariant_registration_checked"
             }
             Self::ResearchCockpitSession => "research_cockpit_session",
             Self::ResearchCockpitActionPacket => "research_cockpit_action_packet",

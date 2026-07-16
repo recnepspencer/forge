@@ -17,7 +17,7 @@ use crate::lower_runtime_routing::{
     WorthQueryLowerRuntimeRoutePlan, WorthQueryLowerRuntimeSeamKey,
 };
 use crate::runtime::{WorthQueryReadFamily, WorthQueryReadResult, WorthQueryWorkspace};
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
 use std::cell::Cell;
 
 use super::super::{RepresentativeArtifacts, WorthQueryLowerRuntimeRepresentativeEvidenceSource};
@@ -235,14 +235,14 @@ fn read_declaration() -> impl FnOnce(
                             .expect("schema aspect literal must be valid"),
                         crate::authoring::FieldName::new("id")
                             .expect("schema field literal must be valid"),
-                        SchemaFieldKind::String,
+                        ScalarAspectType::String,
                     ),
                     SchemaFieldView::new(
                         crate::authoring::AspectName::new("title")
                             .expect("schema aspect literal must be valid"),
                         crate::authoring::FieldName::new("value")
                             .expect("schema field literal must be valid"),
-                        SchemaFieldKind::String,
+                        ScalarAspectType::String,
                     ),
                 ],
                 [],

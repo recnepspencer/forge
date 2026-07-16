@@ -1,5 +1,5 @@
 use super::{
-    WorthQueryAdmittedAspectValue, WorthQueryAspectMutationBuilder,
+    WorthQueryAspectMutationBuilder, WorthQueryAuthoredAspectMutation,
     WorthQueryContinuityMutationIntent, WorthQueryNamingMutationIntent, WorthQueryRuntimeError,
     WorthQuerySymbolicAspectReference,
 };
@@ -107,9 +107,9 @@ impl WorthQueryAspectMutationBuilder {
 }
 
 pub(super) fn finish_aspects(
-    aspects: Vec<WorthQueryAdmittedAspectValue>,
+    aspects: Vec<WorthQueryAuthoredAspectMutation>,
     error: Option<String>,
-) -> Result<Vec<WorthQueryAdmittedAspectValue>, WorthQueryRuntimeError> {
+) -> Result<Vec<WorthQueryAuthoredAspectMutation>, WorthQueryRuntimeError> {
     if let Some(error) = error {
         return Err(WorthQueryRuntimeError::Workspace(
             WorthQueryWorkspaceError::new(error),

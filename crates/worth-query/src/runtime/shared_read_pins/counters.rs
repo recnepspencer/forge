@@ -41,38 +41,24 @@ impl WorthQuerySharedReadCounters {
             ..self
         }
     }
-
-    #[allow(dead_code)]
     pub fn committed_read_hot_path_lock_count(self) -> usize {
         self.committed_read_hot_path_lock_count
     }
-
-    #[allow(dead_code)]
     pub fn orphaned_generation_count(self) -> usize {
         self.orphaned_generation_count
     }
-
-    #[allow(dead_code)]
     pub fn unretired_pin_count(self) -> usize {
         self.unretired_pin_count
     }
-
-    #[allow(dead_code)]
     pub fn shared_read_mint_row_clone_count(self) -> usize {
         self.shared_read_mint_row_clone_count
     }
-
-    #[allow(dead_code)]
     pub fn published_artifact_registry_lease_count(self) -> usize {
         self.published_artifact_registry_lease_count
     }
-
-    #[allow(dead_code)]
     pub fn reader_derived_evaluation_count(self) -> usize {
         self.reader_derived_evaluation_count
     }
-
-    #[allow(dead_code)]
     pub fn published_artifact_dropped_generation_count(self) -> usize {
         self.published_artifact_dropped_generation_count
     }

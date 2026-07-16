@@ -8,6 +8,7 @@ use crate::evidence_identity::{WorthQueryEvidenceIdentity, WorthQueryEvidenceTag
 pub enum WorthQueryDomainCapabilityProgressionDenialKind {
     EmptySemanticCode,
     EmptyDetail,
+    StaleInstallationGeneration,
     ContributionCategoryNotInstalled,
     UnsupportedCanonicalMaterializationPosture,
     MissingCanonicalMaterializationSemantics,
@@ -19,6 +20,7 @@ impl WorthQueryDomainCapabilityProgressionDenialKind {
         match self {
             Self::EmptySemanticCode => "empty-semantic-code",
             Self::EmptyDetail => "empty-detail",
+            Self::StaleInstallationGeneration => "stale-installation-generation",
             Self::ContributionCategoryNotInstalled => "contribution-category-not-installed",
             Self::UnsupportedCanonicalMaterializationPosture => {
                 "unsupported-canonical-materialization-posture"

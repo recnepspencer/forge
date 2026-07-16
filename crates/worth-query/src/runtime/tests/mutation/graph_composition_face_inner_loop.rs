@@ -14,7 +14,7 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
     let mut workspace = face_loop_runtime()
         .workspace("topology.graph-composition-face-inner-loop")
         .expect("workspace should open");
-    let loops: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let loops: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("topology.face-inner-loop-loops", |q| {
             q.from("Loop")
                 .select([
@@ -30,7 +30,7 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
                 .schema_basis("topology-face-inner-loop-loops")
         })
         .expect("loop live view should declare");
-    let half_edges: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let half_edges: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("topology.face-inner-loop-half-edges", |q| {
             q.from("HalfEdge")
                 .select([
@@ -46,7 +46,7 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
                 .schema_basis("topology-face-inner-loop-half-edges")
         })
         .expect("half-edge live view should declare");
-    let face_loops: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let face_loops: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("topology.face-inner-loop-face-loops", |q| {
             q.from("FaceLoopRelation")
                 .select([
@@ -61,7 +61,7 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
                 .schema_basis("topology-face-inner-loop-face-loops")
         })
         .expect("face-loop live view should declare");
-    let loop_edges: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let loop_edges: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("topology.face-inner-loop-loop-edges", |q| {
             q.from("LoopHalfEdgeRelation")
                 .select([
@@ -246,14 +246,10 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
     let loop_rows = workspace.read(&loops);
     let mut half_edge_rows = workspace.read(&half_edges);
     let face_loop_rows = workspace.read(&face_loops);
-    let mut loop_edge_rows = workspace.read(&loop_edges);
+    let loop_edge_rows = workspace.read(&loop_edges);
     half_edge_rows.sort_by(|left, right| {
         test_native_string_value(left, "identity.id")
             .cmp(&test_native_string_value(right, "identity.id"))
-    });
-    loop_edge_rows.sort_by(|left, right| {
-        test_native_string_value(left, "half_edge.id")
-            .cmp(&test_native_string_value(right, "half_edge.id"))
     });
     assert_eq!(loop_rows.len(), 1);
     assert_eq!(half_edge_rows.len(), 2);
@@ -270,33 +266,27 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
         Some("he-inner-2")
     );
     assert_eq!(face_loop_rows.len(), 1);
+    let expected_loop = test_native_entity_ref_value(&loop_identity);
+    let expected_face = test_native_entity_ref_value(&test_entity_identity("face-1"));
     assert_eq!(
-        test_native_string_value(&face_loop_rows[0], "loop.id").as_deref(),
-        Some(
-            loop_identity
-                .evidence_identity()
-                .terminal_projection_for_reporting()
-        )
+        test_native_scalar_value(&face_loop_rows[0], "loop.id"),
+        Some(&expected_loop)
     );
     assert_eq!(
-        test_native_string_value(&face_loop_rows[0], "face.id").as_deref(),
-        Some(test_relational_endpoint_identity_label(&test_entity_identity("face-1")).as_str())
+        test_native_scalar_value(&face_loop_rows[0], "face.id"),
+        Some(&expected_face)
     );
     assert_eq!(loop_edge_rows.len(), 2);
     let loop_edge_half_edge_ids = loop_edge_rows
         .iter()
-        .filter_map(|row| test_native_string_value(row, "half_edge.id"))
+        .filter_map(|row| test_native_scalar_value(row, "half_edge.id").cloned())
         .collect::<Vec<_>>();
-    assert!(loop_edge_half_edge_ids.iter().any(|id| {
-        id == first_half_edge_identity
-            .evidence_identity()
-            .terminal_projection_for_reporting()
-    }));
-    assert!(loop_edge_half_edge_ids.iter().any(|id| {
-        id == second_half_edge_identity
-            .evidence_identity()
-            .terminal_projection_for_reporting()
-    }));
+    assert!(
+        loop_edge_half_edge_ids.contains(&test_native_entity_ref_value(&first_half_edge_identity))
+    );
+    assert!(
+        loop_edge_half_edge_ids.contains(&test_native_entity_ref_value(&second_half_edge_identity))
+    );
 
     match workspace.inspect(&receipt).expect("receipt should inspect") {
         WorthQueryInspection::BatchWriteReceipt(inspection) => {

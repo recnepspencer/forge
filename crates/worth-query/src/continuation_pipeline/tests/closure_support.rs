@@ -37,7 +37,7 @@ pub(crate) fn runtime_backed_continuation_closure_summary(
             runtime_handle.support_snapshot(),
         );
 
-    let historical_handle = admitted_handle("main");
+    let (historical_workspace, historical_handle) = admitted_workspace("main");
     let historical_prepared = match historical_handle.prepare_continuation_from_target(
         target_request::<HistoricalFamily>(
             &historical_handle,
@@ -48,13 +48,14 @@ pub(crate) fn runtime_backed_continuation_closure_summary(
         WorthQueryPreparedContinuationOutcome::Prepared(prepared) => prepared,
         _ => panic!("expected prepared historical continuation"),
     };
-    let replay_checked = drifted_readmission_handle("main", ReadmissionDrift::Replay)
-        .execute_prepared_continuation_checked(historical_prepared);
+    let replay_checked =
+        drifted_readmission_handle_in(&historical_workspace, "main", ReadmissionDrift::Replay)
+            .execute_prepared_continuation_checked(historical_prepared);
     let replay_brief =
         worth_query_recovery_brief_from_continuation_execution_checked(replay_checked)
             .expect("replay drift should yield a recovery brief");
 
-    let preview_handle = admitted_handle("main");
+    let (preview_workspace, preview_handle) = admitted_workspace("main");
     let preview_prepared =
         match preview_handle.prepare_continuation_from_target(target_request::<PreviewFamily>(
             &preview_handle,
@@ -64,14 +65,17 @@ pub(crate) fn runtime_backed_continuation_closure_summary(
             WorthQueryPreparedContinuationOutcome::Prepared(prepared) => prepared,
             _ => panic!("expected prepared preview continuation"),
         };
-    let preview_checked =
-        drifted_readmission_handle("main", ReadmissionDrift::PreviewCrossedResidue)
-            .execute_prepared_continuation_checked(preview_prepared);
+    let preview_checked = drifted_readmission_handle_in(
+        &preview_workspace,
+        "main",
+        ReadmissionDrift::PreviewCrossedResidue,
+    )
+    .execute_prepared_continuation_checked(preview_prepared);
     let preview_brief =
         worth_query_recovery_brief_from_continuation_execution_checked(preview_checked)
             .expect("preview-crossed residue should yield a recovery brief");
 
-    let stale_handle = admitted_handle("main");
+    let (stale_workspace, stale_handle) = admitted_workspace("main");
     let stale_prepared =
         match stale_handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
             &stale_handle,
@@ -81,8 +85,9 @@ pub(crate) fn runtime_backed_continuation_closure_summary(
             WorthQueryPreparedContinuationOutcome::Prepared(prepared) => prepared,
             _ => panic!("expected prepared runtime continuation"),
         };
-    let stale_completion = drifted_readmission_handle("main", ReadmissionDrift::StaleCompletion)
-        .execute_prepared_continuation(stale_prepared);
+    let stale_completion =
+        drifted_readmission_handle_in(&stale_workspace, "main", ReadmissionDrift::StaleCompletion)
+            .execute_prepared_continuation(stale_prepared);
 
     RuntimeBackedContinuationClosureSummary {
         runtime_basis_identity_digest: runtime_prepared

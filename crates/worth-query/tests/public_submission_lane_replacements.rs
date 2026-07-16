@@ -1,10 +1,10 @@
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey, InternedString};
 use worth_query::facade::runtime::{
     WorthQueryAspectMutationBuilder, WorthQueryLiveView, WorthQueryMutationFamily,
-    WorthQueryNativeRow, WorthQueryWriteCommand,
+    WorthQueryUnrefinedLiveShape, WorthQueryWriteCommand,
 };
 
-mod support;
+use crate::support;
 
 use support::aspect_touch as touch;
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
@@ -95,7 +95,7 @@ fn task_insert_command(id: &str, title: &str) -> WorthQueryWriteCommand {
 fn task_live_view(
     workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
     name: &str,
-) -> WorthQueryLiveView<WorthQueryNativeRow> {
+) -> WorthQueryLiveView<WorthQueryUnrefinedLiveShape> {
     workspace
         .live_view(name, |q| {
             q.from("Task")

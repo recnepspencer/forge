@@ -7,19 +7,22 @@ use crate::application::{
 };
 
 use super::{
+    contribution::WorthQueryDeclarationEntryContributionComposition,
+    digest::derive_readiness_digest,
+    readiness_projection::readiness_row_for_crossing,
+    row::{crossing_rows_for_family, WorthQueryDeclarationEntryCrossingRow},
+};
+#[cfg(test)]
+use super::{
     contribution::{
-        reconcile_contribution_evidence, WorthQueryDeclarationEntryContributionComposition,
-        WorthQueryDeclarationEntryContributionCompositionError,
+        reconcile_contribution_evidence, WorthQueryDeclarationEntryContributionCompositionError,
         WorthQueryDeclarationEntryContributionEvidenceSet,
         WorthQueryDeclarationEntryContributionProofScope,
         WorthQueryDeclarationEntryContributionReconciliationContext,
         WorthQueryDeclarationEntryRetainedSubjectStrength,
     },
-    digest::derive_readiness_digest,
     inspection::WorthQueryDeclarationEntryRetainedSubjectInput,
-    readiness_projection::readiness_row_for_crossing,
     retained_subject::{readiness_reconciliation_context, ReadinessRetainedPosture},
-    row::{crossing_rows_for_family, WorthQueryDeclarationEntryCrossingRow},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -116,6 +119,7 @@ impl WorthQueryDeclarationEntryReadinessRow {
     }
 }
 
+#[cfg(test)]
 pub struct WorthQueryDeclarationEntryReadinessRequest<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
@@ -126,6 +130,7 @@ pub struct WorthQueryDeclarationEntryReadinessRequest<
     _marker: std::marker::PhantomData<(D, I)>,
 }
 
+#[cfg(test)]
 impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>> Default
     for WorthQueryDeclarationEntryReadinessRequest<D, I>
 {
@@ -139,6 +144,7 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>> Default
     }
 }
 
+#[cfg(test)]
 impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
     WorthQueryDeclarationEntryReadinessRequest<D, I>
 {
@@ -167,16 +173,6 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
         plan: crate::runtime::WorthQueryAdmittedIntentPlan,
     ) -> Self {
         self.contribution_scope = self.contribution_scope.with_admitted_plan(plan);
-        self
-    }
-
-    pub fn with_lower_runtime_boundary_scope(
-        mut self,
-        envelope: crate::runtime::WorthQueryLowerRuntimeBoundaryEnvelope,
-    ) -> Self {
-        self.contribution_scope = self
-            .contribution_scope
-            .with_lower_runtime_boundary(envelope);
         self
     }
 }
@@ -234,17 +230,25 @@ pub(crate) fn worth_query_declaration_entry_readiness_report<
 >(
     handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> WorthQueryDeclarationEntryReadinessReport<D, I> {
-    match worth_query_declaration_entry_readiness_report_with_request::<D, C, I>(
-        handle,
-        WorthQueryDeclarationEntryReadinessRequest::base(),
-    ) {
-        Ok(report) => report,
-        Err(_) => {
-            panic!("base readiness request should not fail contribution composition")
-        }
-    }
+    let rows = crossing_rows_for_family::<D, C, I>(handle)
+        .into_iter()
+        .map(|row| readiness_row_for_crossing::<D, C, I>(row, handle, None))
+        .collect::<Vec<_>>();
+    let readiness_digest = derive_readiness_digest(
+        &rows
+            .iter()
+            .map(|row| row.readiness_digest().to_string())
+            .collect::<Vec<_>>(),
+    );
+    WorthQueryDeclarationEntryReadinessReport::new(
+        I::Family::semantic_family_key(),
+        rows,
+        None,
+        readiness_digest,
+    )
 }
 
+#[cfg(test)]
 pub(crate) fn worth_query_declaration_entry_readiness_report_with_request<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,
@@ -273,6 +277,7 @@ pub(crate) fn worth_query_declaration_entry_readiness_report_with_request<
     )
 }
 
+#[cfg(test)]
 pub(crate) fn worth_query_declaration_entry_readiness_report_with_context<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,

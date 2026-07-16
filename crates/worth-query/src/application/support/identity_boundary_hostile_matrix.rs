@@ -59,9 +59,8 @@ pub struct WorthQueryIdentityBoundaryHostileMatrixArtifact {
     rejection_rows: Vec<WorthQueryIdentityBoundaryHostileMatrixRow>,
     artifact_digest: String,
 }
-
-#[allow(dead_code)]
 impl WorthQueryIdentityBoundaryHostileMatrixArtifact {
+    #[cfg(test)]
     pub fn suite_name(&self) -> &'static str {
         self.suite_name
     }
@@ -70,10 +69,12 @@ impl WorthQueryIdentityBoundaryHostileMatrixArtifact {
         self.certified
     }
 
+    #[cfg(test)]
     pub fn canonical_rows(&self) -> &[WorthQueryIdentityBoundaryHostileMatrixRow] {
         &self.canonical_rows
     }
 
+    #[cfg(test)]
     pub fn rejection_rows(&self) -> &[WorthQueryIdentityBoundaryHostileMatrixRow] {
         &self.rejection_rows
     }
@@ -85,8 +86,7 @@ impl WorthQueryIdentityBoundaryHostileMatrixArtifact {
 
 pub const MILESTONE_NINE_SIX_SUITE_NAME: &str =
     "Milestone 9.6 Identity And Stop-Class Hostile Certification Matrix";
-
-#[allow(dead_code)]
+#[cfg(test)]
 pub const MILESTONE_NINE_SIX_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "evidence-identity-delimiter-collision-resistance",
     "authoritative-intent-receipt-identity-delimiter-boundaries",
@@ -99,8 +99,7 @@ pub const MILESTONE_NINE_SIX_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "session-label-render-collision-distinctness",
     "session-label-same-family-replay-collision",
 ];
-
-#[allow(dead_code)]
+#[cfg(test)]
 pub const MILESTONE_NINE_SIX_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "joined-string-evidence-identity-collapses-distinct-fields",
     "consumer-message-substring-routing-drifts",
@@ -174,8 +173,7 @@ pub fn identity_boundary_hostile_matrix_artifact() -> WorthQueryIdentityBoundary
         artifact_digest,
     }
 }
-
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn identity_boundary_hostile_matrix_digest() -> String {
     identity_boundary_hostile_matrix_artifact()
         .artifact_digest()

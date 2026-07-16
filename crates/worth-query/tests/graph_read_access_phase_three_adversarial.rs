@@ -3,16 +3,17 @@ use worth_query::facade::foundation::{
     WorthQueryGraphReadDomainOperationDeclaration,
 };
 use worth_query::facade::runtime::{
-    resolve_graph_read_operations_for_family_with_registry, QuerySchemaView, SchemaFieldKind,
-    SchemaFieldView, SchemaRelationView, WorthQueryGraphReadOperationRegistration,
-    WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
-    WorthQueryGraphReadRegistryAdmissionError, WorthQueryGraphReadResolvedOperationFamily,
+    resolve_graph_read_operations_for_family_with_operation_lookup, QuerySchemaView, ScalarAspectType,
+    SchemaFieldView, SchemaRelationView, WorthQueryGraphReadResolvedOperationFamily,
     WorthQueryGraphReadResolvedOperationKind, WorthQueryGraphReadTraversalOperator,
     WorthQueryReadBuiltInOperator,
 };
-use crate::runtime::WorthQueryGraphReadOperationRegistry;
+use crate::runtime::{
+    WorthQueryGraphReadOperationRegistration, WorthQueryGraphReadOperationRegistry,
+    WorthQueryGraphReadRegistryAdmissionError,
+};
 
-mod support;
+use crate::support;
 
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
@@ -28,13 +29,13 @@ fn built_in_operation_resolution_is_stable_across_equivalent_read_declarations()
     let registry = WorthQueryGraphReadOperationRegistry::empty();
 
     let first_resolution =
-        resolve_graph_read_operations_for_family_with_registry(&first, &registry)
+        resolve_graph_read_operations_for_family_with_operation_lookup(&first, &registry)
             .expect("first direct edge should resolve")
             .resolved()
             .expect("first direct edge should be resolved")
             .clone();
     let second_resolution =
-        resolve_graph_read_operations_for_family_with_registry(&second, &registry)
+        resolve_graph_read_operations_for_family_with_operation_lookup(&second, &registry)
             .expect("second direct edge should resolve")
             .resolved()
             .expect("second direct edge should be resolved")
@@ -57,37 +58,6 @@ fn built_in_operation_resolution_is_stable_across_equivalent_read_declarations()
 }
 
 #[test]
-fn relation_shape_rules_do_not_override_built_in_operations() {
-    let harness = PublicBridgeRuntimeHarness::new();
-    let runtime = harness.bridge_backed_runtime();
-    let mut workspace = runtime
-        .workspace("graph-read-access.phase-three.built-in-not-overridden")
-        .expect("runtime should open workspace");
-    let family = direct_edge_family(&mut workspace, "direct-edge-not-overridden");
-    let registry = WorthQueryGraphReadOperationRegistry::empty()
-        .with_unsupported_shape_for_relations(
-            ["manager"],
-            WorthQueryGraphReadOperationUnsupportedShapeDeclaration::unsupported_shape(
-                "legacy-relation-rule",
-                "relation rules are not operation intent",
-            ),
-        );
-
-    let outcome = resolve_graph_read_operations_for_family_with_registry(&family, &registry)
-        .expect("built-in direct edge should resolve");
-    let resolution = outcome
-        .resolved()
-        .expect("direct edge should not be denied by relation rule");
-
-    assert_eq!(
-        resolution.operations()[0].kind(),
-        &WorthQueryGraphReadResolvedOperationKind::BuiltIn(
-            WorthQueryReadBuiltInOperator::DirectEdge
-        )
-    );
-}
-
-#[test]
 fn declared_domain_operation_matches_registered_reference_order_once() {
     let harness = PublicBridgeRuntimeHarness::new();
     let runtime = harness.bridge_backed_runtime();
@@ -103,7 +73,7 @@ fn declared_domain_operation_matches_registered_reference_order_once() {
     ])
     .expect("registry should admit declared domain operation");
 
-    let outcome = resolve_graph_read_operations_for_family_with_registry(&family, &registry)
+    let outcome = resolve_graph_read_operations_for_family_with_operation_lookup(&family, &registry)
         .expect("registered operation should resolve");
     let resolution = outcome.resolved().expect("outcome should be resolved");
 
@@ -240,14 +210,14 @@ fn two_relation_schema() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [

@@ -1,11 +1,11 @@
 use super::super::support::*;
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::{
     BridgePreviewSessionDeclarationIdentity, BridgeRuntimePolicy, BridgeSignalBranchIdentity,
     BridgeSpeculativeBranchBindingIdentity, BridgeSubscriptionDeliveryDensityPosture,
     BridgeSubscriptionPreviewPromotionOutcomeClass, BridgeSubscriptionPreviewWorkInput,
     BridgeSubscriptionPreviewWorkKind, BridgeSubscriptionPreviewWorkTraceRejectionKind,
 };
+use crate::speculation::BridgePreviewSessionIdentity;
 
 #[test]
 fn bridge_harness_subscription_suite_34_preview_zero_residue_and_promotion_are_explicit() {

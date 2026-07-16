@@ -1,10 +1,17 @@
 use super::canonical_predicate_bundle;
 use crate::authoring::{
-    EqualityPredicate, IntegerComparisonPredicate, ScalarPredicateValue, SetMembershipPredicate,
-    StringContainsPredicate,
+    EqualityPredicate, NativeComparisonPredicate, SetMembershipPredicate, StringContainsPredicate,
+    WorthQueryPredicateOperand,
 };
 use crate::harness::fixtures::schema_view::detail_schema_view;
 use crate::validation::validate_canonical_bundle;
+use worth_foundational::facade::{AspectValue, InternedString};
+
+fn native_basis(value: AspectValue) -> String {
+    worth_foundational::facade::prepare_aspect_value_identity_basis(&value)
+        .as_str()
+        .to_owned()
+}
 
 #[test]
 fn string_contains_predicates_normalize_by_subsumption() {
@@ -32,7 +39,7 @@ fn string_contains_predicates_normalize_by_subsumption() {
     );
     assert_eq!(
         validated.query().predicates().entries()[0].value_basis(),
-        "string:tester"
+        native_basis(AspectValue::String(InternedString::Raw("tester".into())))
     );
 }
 
@@ -46,9 +53,9 @@ fn scalar_membership_predicate_validates_and_normalizes_by_intersection() {
                         "profile",
                         "age",
                         [
-                            ScalarPredicateValue::Integer(18),
-                            ScalarPredicateValue::Integer(21),
-                            ScalarPredicateValue::Integer(34),
+                            WorthQueryPredicateOperand::int64(18),
+                            WorthQueryPredicateOperand::int64(21),
+                            WorthQueryPredicateOperand::int64(34),
                         ],
                     )
                     .expect("predicate should build"),
@@ -58,9 +65,9 @@ fn scalar_membership_predicate_validates_and_normalizes_by_intersection() {
                         "profile",
                         "age",
                         [
-                            ScalarPredicateValue::Integer(21),
-                            ScalarPredicateValue::Integer(34),
-                            ScalarPredicateValue::Integer(55),
+                            WorthQueryPredicateOperand::int64(21),
+                            WorthQueryPredicateOperand::int64(34),
+                            WorthQueryPredicateOperand::int64(55),
                         ],
                     )
                     .expect("predicate should build"),
@@ -77,21 +84,25 @@ fn scalar_membership_predicate_validates_and_normalizes_by_intersection() {
     );
     assert_eq!(
         validated.query().predicates().entries()[0].value_basis(),
-        "set:[integer:21,integer:34]"
+        format!(
+            "set:[{},{}]",
+            native_basis(AspectValue::Int64(21)),
+            native_basis(AspectValue::Int64(34))
+        )
     );
 }
 
 #[test]
-fn redundant_integer_greater_than_predicates_normalize_to_strongest_bound() {
+fn redundant_native_greater_than_predicates_normalize_to_strongest_bound() {
     let validated = validate_canonical_bundle(
         canonical_predicate_bundle(|query| {
             query
                 .where_greater_than(
-                    IntegerComparisonPredicate::greater_than("profile", "age", 18)
+                    NativeComparisonPredicate::greater_than("profile", "age", 18)
                         .expect("predicate should build"),
                 )
                 .where_greater_than(
-                    IntegerComparisonPredicate::greater_than("profile", "age", 21)
+                    NativeComparisonPredicate::greater_than("profile", "age", 21)
                         .expect("predicate should build"),
                 )
         }),
@@ -103,11 +114,11 @@ fn redundant_integer_greater_than_predicates_normalize_to_strongest_bound() {
     assert_eq!(validated.query().predicates().entries().len(), 1);
     assert_eq!(
         validated.query().predicates().entries()[0].predicate_family(),
-        "integer-greater-than"
+        "native-greater-than"
     );
     assert_eq!(
         validated.query().predicates().entries()[0].value_basis(),
-        "integer:21"
+        native_basis(AspectValue::Int64(21))
     );
 }
 
@@ -117,11 +128,11 @@ fn bounded_integer_range_normalizes_to_two_validated_predicates() {
         canonical_predicate_bundle(|query| {
             query
                 .where_greater_than(
-                    IntegerComparisonPredicate::greater_than("profile", "age", 18)
+                    NativeComparisonPredicate::greater_than("profile", "age", 18)
                         .expect("predicate should build"),
                 )
                 .where_less_than(
-                    IntegerComparisonPredicate::less_than("profile", "age", 65)
+                    NativeComparisonPredicate::less_than("profile", "age", 65)
                         .expect("predicate should build"),
                 )
         }),
@@ -143,15 +154,15 @@ fn equality_inside_membership_normalizes_to_equality() {
                         "profile",
                         "age",
                         [
-                            ScalarPredicateValue::Integer(18),
-                            ScalarPredicateValue::Integer(21),
-                            ScalarPredicateValue::Integer(34),
+                            WorthQueryPredicateOperand::int64(18),
+                            WorthQueryPredicateOperand::int64(21),
+                            WorthQueryPredicateOperand::int64(34),
                         ],
                     )
                     .expect("predicate should build"),
                 )
                 .where_equal(
-                    EqualityPredicate::new("profile", "age", ScalarPredicateValue::Integer(21))
+                    EqualityPredicate::new("profile", "age", WorthQueryPredicateOperand::int64(21))
                         .expect("predicate should build"),
                 )
         }),
@@ -166,6 +177,6 @@ fn equality_inside_membership_normalizes_to_equality() {
     );
     assert_eq!(
         validated.query().predicates().entries()[0].value_basis(),
-        "integer:21"
+        native_basis(AspectValue::Int64(21))
     );
 }

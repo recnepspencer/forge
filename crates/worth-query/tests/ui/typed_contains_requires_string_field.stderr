@@ -12,7 +12,7 @@ help: the trait `TypedStringContainsField` is not implemented for `Age`
  3 | / worth_query::worth_query_schema! {
  4 | |     pub schema UserSchema("user") {
  5 | |         fields {
- 6 | |             pub field Age("profile", "age", Integer) => [projectable, equality(i64), orderable];
+ 6 | |             pub field Age("profile", "age", Int64) => [projectable, equality(i64), orderable];
 ...  |
 10 | | }
    | |_^

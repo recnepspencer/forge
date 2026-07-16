@@ -1,16 +1,11 @@
 use std::{collections::BTreeMap, path::Path};
 
 use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support,
-    BasisFamily,
-    ResultShapeFamily,
-    WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily,
+    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily, WorthQueryCapabilityFamily,
+    WorthQuerySupportReport,
 };
 use worth_query::facade::runtime::{
-    QuerySubscriptionFamily,
-    QuerySubscriptionSupportPosture,
-    ViewShapeDescriptor,
+    QuerySubscriptionFamily, QuerySubscriptionSupportPosture, ViewShapeDescriptor,
 };
 
 use crate::capability::{
@@ -18,10 +13,7 @@ use crate::capability::{
     QueryResultShapeReference, QueryViewCapabilityReference, ViewBindingDescriptor,
     ViewBindingFamily, ViewBindingId,
 };
-use crate::facade::{
-    WorthUi,
-    WorthUiApp,
-};
+use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::admission::{
     WorthUiCandidateAdmission, WorthUiCandidateAdmissionDenial, WorthUiQuerySupportReceipt,
     WorthUiQuerySupportStatus, WorthUiRuntimeReplacementPosture,
@@ -42,6 +34,9 @@ use crate::source::{
     WorthUiRustAuthoredArtifactInputModule, WorthUiRustAuthoredToArtifactInputLowerer,
     WorthUiSourceModuleId, WorthUiStructuralLegalityLowerer,
 };
+
+mod candidate_admission_artifact_nodes;
+use candidate_admission_artifact_nodes::{import_node, module_id};
 
 #[test]
 fn same_candidate_and_same_active_basis_admit_equivalently() {
@@ -311,7 +306,7 @@ fn query_bound_app(live_posture: QuerySubscriptionSupportPosture) -> WorthUiApp 
 fn query_bound_view_binding(
     live_posture: QuerySubscriptionSupportPosture,
 ) -> ViewBindingDescriptor {
-    let support_report = WorthQueryApplicationFacade::runtime_backed_default().support_report();
+    let support_report = WorthQuerySupportReport::runtime_backed_default();
     let query_capability = support_report
         .support_matrix()
         .descriptor(WorthQueryCapabilityFamily::QueryComposition)
@@ -379,31 +374,4 @@ fn import_artifact<const N: usize>(targets: [&str; N]) -> WorthUiArtifact {
     modules.insert(module_id.clone(), module);
 
     WorthUiArtifact::new(modules, vec![module_id])
-}
-
-fn import_node(
-    module_id: &WorthUiSourceModuleId,
-    node_index: usize,
-    target: &str,
-) -> WorthUiArtifactNode {
-    WorthUiArtifactNode::Import(WorthUiArtifactImportNode::new(
-        WorthUiArtifactHandle::Import(WorthUiArtifactImportHandle::new(
-            module_id.clone(),
-            node_index,
-        )),
-        WorthUiArtifactInputReference::new(target),
-        0,
-        WorthUiArtifactIdentitySeed::structural_fallback(format!(
-            "module:{}|import:{}",
-            module_id.as_str(),
-            target
-        )),
-        WorthUiDurableStateEligibility::Ineligible {
-            reason: WorthUiDurableStateIneligibilityReason::NoDurableStateSurface,
-        },
-    ))
-}
-
-fn module_id(path: &str) -> WorthUiSourceModuleId {
-    WorthUiSourceModuleId::from_relative_path(Path::new(path)).expect("valid module id")
 }

@@ -3,12 +3,12 @@ use super::mapping_support::{
     query_observation_reference,
 };
 use super::{runtime, BridgeRuntimePolicy};
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceReferenceIdentity,
     BridgePreviewSessionDeclarationIdentity, BridgeSignalBranchIdentity,
     BridgeSpeculativeBranchBindingIdentity,
 };
+use crate::speculation::BridgePreviewSessionIdentity;
 
 #[test]
 fn causal_envelope_preview_mapping_cost_ignores_unrelated_preview_records() {

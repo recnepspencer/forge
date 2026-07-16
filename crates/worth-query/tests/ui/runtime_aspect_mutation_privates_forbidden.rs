@@ -1,7 +1,7 @@
-use worth_query::facade::runtime::WorthQueryAdmittedAspectValue;
+use worth_query::facade::runtime::WorthQueryAuthoredAspectMutation;
 
 fn main() {
-    let _aspect = WorthQueryAdmittedAspectValue {
+    let _aspect = WorthQueryAuthoredAspectMutation {
         parsed: todo!(),
     };
 }

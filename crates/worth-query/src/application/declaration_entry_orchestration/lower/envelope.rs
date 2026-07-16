@@ -8,6 +8,7 @@ use crate::application::{
     WorthQueryDeclarationReceiptFailed, WorthQueryDomainEntryMarker,
 };
 
+#[cfg(test)]
 pub(super) fn lower_from_issued_envelope<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,
@@ -35,6 +36,7 @@ pub(super) fn lower_from_issued_envelope<
     }
 }
 
+#[cfg(test)]
 pub(super) fn lower_from_deferred_envelope<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,
@@ -60,6 +62,7 @@ pub(super) fn lower_from_deferred_envelope<
     }
 }
 
+#[cfg(test)]
 pub(super) fn lower_from_denied_envelope<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,
@@ -85,6 +88,7 @@ pub(super) fn lower_from_denied_envelope<
     }
 }
 
+#[cfg(test)]
 pub(super) fn lower_from_failed_envelope<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,

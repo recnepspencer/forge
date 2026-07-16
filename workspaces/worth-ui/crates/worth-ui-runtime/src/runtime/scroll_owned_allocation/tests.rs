@@ -176,15 +176,8 @@ fn ordinary_neighborhood_cannot_mint_scroll_ownership() {
         crate::runtime::tests::allocation_planning_test_support::admitted_allocation_neighborhood(
             "phase10-non-scroll",
         );
-    let constraint_set = basis
-        .admit_allocation_constraint_set(&neighborhood)
-        .expect("ordinary constraint set admits");
-    let planning_basis = crate::runtime::WorthUiAllocationPlanningBasis::new(
-        basis,
-        neighborhood,
-        Some(constraint_set),
-        None,
-    );
+    let planning_basis =
+        crate::runtime::WorthUiAllocationPlanningBasis::new(basis, neighborhood, None);
     assert!(UiAdmittedScrollPlanningAuthority::seal(&planning_basis)
         .expect("ordinary non-scroll posture is not malformed")
         .is_none());

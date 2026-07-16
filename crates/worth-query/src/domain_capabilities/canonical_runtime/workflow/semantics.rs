@@ -3,8 +3,11 @@ use crate::domain_capabilities::denials::{
 };
 use crate::domain_capabilities::payloads::{
     WorthQueryWorkflowContributionPayload, WorthQueryWorkflowContributionPosture,
-    WorthQueryWorkflowInspectionSemantics, WorthQueryWorkflowLoweringSemantics,
     WorthQueryWorkflowRuntimeBindingSemantics, WorthQueryWorkflowRuntimeSemantics,
+};
+#[cfg(test)]
+use crate::domain_capabilities::payloads::{
+    WorthQueryWorkflowInspectionSemantics, WorthQueryWorkflowLoweringSemantics,
 };
 use crate::domain_capabilities::targets::WorthQueryDomainCapabilityTargetBinding;
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
@@ -83,6 +86,7 @@ pub(super) fn missing_workflow_runtime_semantics_denial(
     )
 }
 
+#[cfg(test)]
 pub(super) fn missing_workflow_lowering_semantics_denial(
     operation_label: &'static str,
     payload: &WorthQueryWorkflowContributionPayload,
@@ -122,6 +126,7 @@ pub(super) fn inconsistent_workflow_runtime_semantics_denial(
     )
 }
 
+#[cfg(test)]
 pub(super) fn inconsistent_workflow_lowering_semantics_denial(
     operation_label: &'static str,
     payload: &WorthQueryWorkflowContributionPayload,
@@ -140,6 +145,7 @@ pub(super) fn inconsistent_workflow_lowering_semantics_denial(
     )
 }
 
+#[cfg(test)]
 pub(super) fn workflow_lowering_semantics_match_runtime(
     runtime_semantics: &WorthQueryWorkflowRuntimeSemantics,
     lowering_semantics: &WorthQueryWorkflowLoweringSemantics,
@@ -166,6 +172,7 @@ pub(super) fn workflow_lowering_semantics_match_runtime(
     }
 }
 
+#[cfg(test)]
 pub(super) fn workflow_inspection_semantics_match_runtime(
     runtime_semantics: &WorthQueryWorkflowRuntimeSemantics,
     inspection_semantics: &WorthQueryWorkflowInspectionSemantics,

@@ -39,17 +39,25 @@ impl WorthQueryMutationRequest {
                 );
             }
         }
-        let counters = counters.execution_attempted();
         let execution = match workspace
             .execute_ordinary_authoritative_mutation(command, materialize_inspection)
         {
             Ok(execution) => execution,
             Err(error) => {
+                let counters = if matches!(
+                    error,
+                    crate::runtime::WorthQueryRuntimeError::MutationContractDenied(_)
+                ) {
+                    counters
+                } else {
+                    counters.execution_attempted()
+                };
                 return WorthQueryMutationOutcome::Stopped(WorthQueryMutationStop::runtime(
                     error, counters,
                 ));
             }
         };
+        let counters = counters.execution_attempted();
         let plan = WorthQueryLoweredMutationPlan::new(
             execution.request_identity().clone(),
             execution.handoff_identity().clone(),

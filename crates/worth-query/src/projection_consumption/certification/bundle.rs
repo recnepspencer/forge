@@ -40,23 +40,6 @@ pub enum ProjectionConsumptionCertificationLane {
     DownstreamAuthoritySurface,
 }
 
-impl ProjectionConsumptionCertificationLane {
-    #[allow(dead_code)]
-    pub(super) fn as_str(&self) -> &'static str {
-        match self {
-            Self::SupportMatrixSurface => "support_matrix_surface",
-            Self::PublicBoundarySurface => "public_boundary_surface",
-            Self::ProofShapeSurface => "proof_shape_surface",
-            Self::ForbiddenFallbackSurface => "forbidden_fallback_surface",
-            Self::DxTranscriptSurface => "dx_transcript_surface",
-            Self::CompileFailBoundary => "compile_fail_boundary",
-            Self::OracleSurface => "oracle_surface",
-            Self::SeededReplaySurface => "seeded_replay_surface",
-            Self::DownstreamAuthoritySurface => "downstream_authority_surface",
-        }
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectionConsumptionCertificationRow {
     pub(super) lane: ProjectionConsumptionCertificationLane,

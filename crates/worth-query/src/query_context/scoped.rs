@@ -207,6 +207,7 @@ pub fn build_query_basis_result_bundle(
     build_legacy_query_basis_result_bundle(context, execution)
 }
 
+#[cfg(test)]
 pub fn execute_and_build_query_basis_result_bundle(
     context: &ScopedQueryBasisContext,
 ) -> Result<QueryBasisResultBundle, QueryContextAdmissionError> {

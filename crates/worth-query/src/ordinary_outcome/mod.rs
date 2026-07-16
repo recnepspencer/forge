@@ -1,6 +1,8 @@
+#[cfg(test)]
 mod binding;
 mod kind;
 mod next_step;
+#[cfg(test)]
 mod orchestration;
 mod outcome;
 mod posture;
@@ -23,7 +25,9 @@ pub use topology::{
     WorthQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };
 
+#[cfg(test)]
 pub(crate) use binding::ordinary_outcome_from_binding_outcome;
+#[cfg(test)]
 pub(crate) use orchestration::ordinary_outcome_from_orchestration_terminal;
 
 #[cfg(test)]

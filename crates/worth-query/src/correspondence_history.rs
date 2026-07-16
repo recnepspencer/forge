@@ -1,4 +1,5 @@
 #[path = "correspondence_history/composition.rs"]
+#[cfg(test)]
 mod composition;
 #[path = "correspondence_history/denied.rs"]
 mod denied;
@@ -8,11 +9,13 @@ mod envelope;
 mod success;
 #[cfg(test)]
 #[path = "correspondence_history/tests.rs"]
+#[cfg(test)]
 mod tests;
 #[path = "correspondence_history/view.rs"]
 mod view;
 
-pub use composition::{
+#[cfg(test)]
+pub(crate) use composition::{
     compose_correspondence_historical_envelope, compose_historical_admission_denied_envelope,
     compose_historical_path_denied_envelope,
 };

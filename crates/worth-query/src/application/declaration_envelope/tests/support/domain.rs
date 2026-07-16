@@ -1,14 +1,13 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
-    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
-    WorthQueryDeclarationRouteContract, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
-    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalTruthAuthority,
-    WorthQuerySignalCompatiblePosture,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationCanonicalEntry,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
+    WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRouteContract,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext, WorthQueryNeighborhoodCapableGrouping,
+    WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -51,8 +50,11 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for GeometryWorld {
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("geometry.envelope.{}", self.regime)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("geometry.envelope.{}", self.regime) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 

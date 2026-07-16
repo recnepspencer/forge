@@ -43,6 +43,7 @@ impl InvariantPlanContract {
     fn observe_intent(&mut self, intent: &MutationIntent) {
         let groups = match intent {
             MutationIntent::Create(CreateIntent::Entity(_))
+            | MutationIntent::Create(CreateIntent::EntityAspects(_))
             | MutationIntent::Create(CreateIntent::BulkEntities(_)) => {
                 InvariantGroupSet::of(InvariantGroup::StorageCoherence)
                     .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence))
@@ -50,7 +51,8 @@ impl InvariantPlanContract {
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
                     .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {
+            MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
+            | MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(_)) => {
                 InvariantGroupSet::of(InvariantGroup::IdentityCoherence)
                     .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
             }
@@ -71,6 +73,7 @@ impl InvariantPlanContract {
                     .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
             MutationIntent::Create(CreateIntent::Relation(_))
+            | MutationIntent::Create(CreateIntent::RelationAspects(_))
             | MutationIntent::Create(CreateIntent::BulkRelations(_)) => {
                 InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
                     .union(InvariantGroupSet::of(InvariantGroup::StorageCoherence))
@@ -82,6 +85,14 @@ impl InvariantPlanContract {
             MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(_)) => {
                 InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
                     .union(InvariantGroupSet::of(InvariantGroup::StorageCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                    .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
+                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
+            }
+            MutationIntent::Relation(RelationMutationIntent::ApplyAspectPatch(_)) => {
+                InvariantGroupSet::of(InvariantGroup::StorageCoherence)
+                    .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence))
                     .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
                     .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))

@@ -8,12 +8,12 @@ use super::{
     WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessAuthorityContext,
     WorthQueryGraphReadAccessShapeExplanationError, WorthQueryGraphReadMaterializationRuntime,
     WorthQueryHandleContract, WorthQueryIntentDeclaration, WorthQueryIntentReceipt,
-    WorthQueryLiveView, WorthQueryLiveViewBuilder, WorthQueryManagedLiveWorkspaceCapability,
-    WorthQueryMutationSurfaceReport, WorthQueryPreviewOptions, WorthQueryPreviewSession,
-    WorthQueryReadFamily, WorthQueryRuntime, WorthQueryRuntimeError, WorthQueryRuntimeFacadeFamily,
-    WorthQueryRuntimePublicApiContract, WorthQueryRuntimePublicApiFamilyContract,
-    WorthQueryRuntimePublicSupportMatrix, WorthQueryRuntimeStateSnapshot,
-    WorthQueryRuntimeStateTarget, WorthQueryWorkspaceLiveViewDeclaration,
+    WorthQueryLiveView, WorthQueryLiveViewBuilder, WorthQueryMutationSurfaceReport,
+    WorthQueryPreviewOptions, WorthQueryPreviewSession, WorthQueryReadFamily, WorthQueryRuntime,
+    WorthQueryRuntimeError, WorthQueryRuntimeFacadeFamily, WorthQueryRuntimePublicApiContract,
+    WorthQueryRuntimePublicApiFamilyContract, WorthQueryRuntimePublicSupportMatrix,
+    WorthQueryRuntimeStateSnapshot, WorthQueryRuntimeStateTarget,
+    WorthQueryWorkspaceLiveViewDeclaration,
 };
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::program::WorthQueryDerivedView;
@@ -43,40 +43,8 @@ impl WorthQueryWorkspace {
         &self.name
     }
 
-    pub(crate) fn managed_live_capability(
-        &self,
-    ) -> std::sync::Arc<WorthQueryManagedLiveWorkspaceCapability> {
-        self.runtime.managed_live_capability()
-    }
-
-    pub(crate) fn admit_managed_live_capability(
-        &self,
-        capability: &std::sync::Arc<WorthQueryManagedLiveWorkspaceCapability>,
-        resource_name: &str,
-    ) -> Result<(), WorthQueryRuntimeError> {
-        self.runtime
-            .admit_managed_live_capability(capability, resource_name)
-    }
-
     pub fn snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
         self.runtime.current_snapshot_identity()
-    }
-
-    pub fn domain<D: 'static>(
-        &self,
-        marker: D,
-    ) -> Result<
-        crate::domain_installation::WorthQueryInstalledDomainHandle<D>,
-        crate::domain_installation::WorthQueryDomainHandleDenial,
-    > {
-        self.runtime.domain(marker)
-    }
-
-    pub(crate) fn validate_installed_domain_witness<D: 'static>(
-        &self,
-        witness: &crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness,
-    ) -> Result<(), crate::domain_installation::WorthQueryDomainHandleDenial> {
-        self.runtime.validate_installed_domain_witness::<D>(witness)
     }
 
     pub(crate) fn capture_branch_comparison_basis(
@@ -109,8 +77,8 @@ impl WorthQueryWorkspace {
 
     pub(crate) fn capture_ordinary_merge_authority(
         &self,
-        target_branch: worth_relational::facade::history::BranchId,
-        source_branch: worth_relational::facade::history::BranchId,
+        target_branch: &super::WorthQueryAdmittedBranchName,
+        source_branch: &super::WorthQueryAdmittedBranchName,
     ) -> Result<super::WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
         self.runtime
             .capture_ordinary_merge_authority(target_branch, source_branch)
@@ -201,20 +169,13 @@ impl WorthQueryWorkspace {
         &mut self,
         authority: super::WorthQueryValidatedMergeAuthority,
         declaration_identity: &crate::evidence_identity::WorthQueryEvidenceIdentity,
-        target_branch: worth_relational::facade::history::BranchId,
-        source_branch: worth_relational::facade::history::BranchId,
         materialize_inspection: bool,
     ) -> Result<
         super::WorthQueryLowerRuntimeMergeExecution,
         super::WorthQueryOrdinaryMergeExecutionError,
     > {
-        self.runtime.execute_ordinary_merge(
-            authority,
-            declaration_identity,
-            target_branch,
-            source_branch,
-            materialize_inspection,
-        )
+        self.runtime
+            .execute_ordinary_merge(authority, declaration_identity, materialize_inspection)
     }
 
     pub fn into_runtime(self) -> WorthQueryRuntime {

@@ -10,7 +10,7 @@ plumbing.
 
 This includes both:
 
-- ordinary `workspace.inspect(...)` convenience inspection
+- ordinary `workspace.inspections()?.inspect(...)` convenience inspection
 - covered inspection intent families that pass through the shared intent
   admission lattice before materializing runtime-backed inspection results
 
@@ -18,11 +18,11 @@ This includes both:
 
 - **Cross-runtime causal inspection** — construct `CausalInspection` from the
   originating receipt and a `ScopedInspectionBasis`, then use the causal
-  admission/materialization lane rather than `workspace.inspect`.
+  admission/materialization lane rather than `workspace.inspections()?.inspect`.
   See [cross-runtime causal inspection](cross-runtime-causal-inspection.md) and
   [inspection vs cross-runtime explanation](../domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md).
 - **Explanation contributions** — domain declaration posture in
-  [lower-runtime explanation contributions](../domain-capabilities/explanation/lower-runtime-explanation-contributions.md); does not replace inspect or
+  lower-runtime explanation contributions; does not replace inspect or
   causal inspection APIs.
 - **Authoritative mutation write proof** — use
   [authoritative mutation evidence](authoritative-mutation-evidence.md) for
@@ -43,8 +43,8 @@ This includes both:
 
 ## Stable Entry Points
 
-- `workspace.inspect(...)`
-- `workspace.inspect_intent(...)`
+- `workspace.inspections()?.inspect(...)`
+- `workspace.inspections()?.inspect_intent(...)`
 - `workspace.inspect_derived_intent(...)`
 - `WorthQueryInspection`
 - `WorthQueryInspectionTarget`
@@ -67,7 +67,7 @@ What you are holding:
 
 Good to know:
 
-- basis artifacts now inspect through the same `workspace.inspect(...)` surface
+- basis artifacts now inspect through the same `workspace.inspections()?.inspect(...)` surface
 - the basis result family is `WorthQueryInspection::BasisLifecycle(...)`
 - that result tells you whether the basis stayed ready, advisory, denied, or
   unsupported without making you decode raw branch, snapshot, preview, or
@@ -90,7 +90,7 @@ Good to know:
   same scalar surface before deciding whether they need the richer retained
   delivery or async artifacts
 - temporal/async "why" questions still stay on the dedicated
-  `CausalInspection` lane rather than turning `workspace.inspect(...)` into a
+  `CausalInspection` lane rather than turning `workspace.inspections()?.inspect(...)` into a
   partial causal-explanation clone
 - continuation repair questions still stay on the continuation/recovery lane;
   inspection can support those artifacts, but typed async-request drift,
@@ -139,7 +139,7 @@ What the runtime keeps track of automatically:
 
 ## How It Executes
 
-1. You pass a handle or receipt into `workspace.inspect(...)`.
+1. You pass a handle or receipt into `workspace.inspections()?.inspect(...)`.
 2. The runtime converts it into a `WorthQueryInspectionTarget`.
 3. The runtime chooses the correct explanation family.
 4. It derives a sealed inspection artifact from retained runtime evidence.
@@ -149,12 +149,12 @@ Inspection is unified at the entry point, but specialized in the result.
 
 Good to know:
 
-- `workspace.inspect(...)` is the convenience path
-- `workspace.inspect_intent(...)` and `workspace.inspect_derived_intent(...)`
+- `workspace.inspections()?.inspect(...)` is the convenience path
+- `workspace.inspections()?.inspect_intent(...)` and `workspace.inspect_derived_intent(...)`
   are the explicit covered intent paths
 - they converge on the same inspection result families rather than publishing
   a second explanation system
-- projection consumption does not currently arrive through `workspace.inspect(...)`
+- projection consumption does not currently arrive through `workspace.inspections()?.inspect(...)`
 - it uses admitted `WorthQueryConsumedProjectionAuthority`, whose `facts()`,
   `receipt()`, and evidence getters are inspection-only projections
 - use [Projection Consumption](projection-consumption.md) when the feature
@@ -168,11 +168,11 @@ Good to know:
 
 ```rust
 use worth_query::facade::runtime::{WorthQueryInspection, WorthQueryLiveView};
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("tasks").unwrap();
 
-let view: WorthQueryLiveView<Value> = workspace
+let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.table", |q| {
         q.from("Task")
             .select(["identity.id", "title.value"])
@@ -180,7 +180,7 @@ let view: WorthQueryLiveView<Value> = workspace
     })
     .unwrap();
 
-let inspection = workspace.inspect(&view).unwrap();
+let inspection = workspace.inspections()?.inspect(&view).unwrap();
 
 match inspection {
     WorthQueryInspection::LiveView(live) => {
@@ -200,7 +200,7 @@ the call site but typed at the result.
 When you need the admitted proof chain explicitly, use the intent path:
 
 ```rust
-let review = workspace.inspect_intent(&view).review()?;
+let review = workspace.inspections()?.inspect_intent(&view).review()?;
 let admitted = review.admit()?;
 let result = admitted.execute()?;
 
@@ -214,11 +214,11 @@ let provenance = result.receipt().execution_provenance();
 use worth_query::facade::runtime::{
     WorthQueryInspection, WorthQueryLiveView, WorthQueryPreviewOptions,
 };
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("workflow").unwrap();
 
-let live: WorthQueryLiveView<Value> = workspace
+let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.table", |q| {
         q.from("Task")
             .select(["identity.id", "title.value", "status.value"])
@@ -259,7 +259,7 @@ workspace
     })
     .unwrap();
 
-let effect_inspection = workspace.inspect(&effect).unwrap();
+let effect_inspection = workspace.inspections()?.inspect(&effect).unwrap();
 let preview_label =
     WorthQuerySessionLabel::scoped_strs("inspection", ["rollup-preview"]).unwrap();
 
@@ -272,8 +272,8 @@ let mut preview = workspace
 let preview_binding = preview.use_effect(&effect).unwrap();
 let preview_outcome = preview.discard().unwrap();
 
-let binding_inspection = workspace.inspect(&preview_binding).unwrap();
-let outcome_inspection = workspace.inspect(&preview_outcome).unwrap();
+let binding_inspection = workspace.inspections()?.inspect(&preview_binding).unwrap();
+let outcome_inspection = workspace.inspections()?.inspect(&preview_outcome).unwrap();
 
 match effect_inspection {
     WorthQueryInspection::Effect(effect) => {
@@ -383,7 +383,7 @@ What gets inspected:
   inspection families.
 - Pair it with [Projection Consumption](projection-consumption.md) when a
   read result, write receipt, or query-context execution needs receipt-first
-  typed fact inspection rather than `workspace.inspect(...)`.
+  typed fact inspection rather than `workspace.inspections()?.inspect(...)`.
 - Pair it with [Async Resources And Result State](async-resources-and-result-state.md)
   when the main question is how async declaration meaning, live async
   result-state, materialized fact posture, and continuation drift fit together.
@@ -392,7 +392,7 @@ Inspection is the trust surface that keeps the rest of the runtime usable.
 
 ## Inspection And Debugging
 
-`workspace.inspect(...)` can currently return:
+`workspace.inspections()?.inspect(...)` can currently return:
 
 - `LiveView`
 - `DerivedView`
@@ -427,7 +427,7 @@ Some especially important things to look for:
   use receipt-and-`ScopedInspectionBasis`-bound `CausalInspection` artifacts
   and their
   `temporal_async_explanation()` surface instead of expecting
-  `workspace.inspect(...)` to materialize cross-runtime explanation envelopes
+  `workspace.inspections()?.inspect(...)` to materialize cross-runtime explanation envelopes
 - basis-sensitive artifacts: admitted basis digest, scoped digest, lower-runtime
   binding digest, retained world-basis support digest, and whether the artifact
   remained ready, advisory, stale, denied, or unsupported through the Query

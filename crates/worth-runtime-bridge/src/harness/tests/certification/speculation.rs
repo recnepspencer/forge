@@ -1,11 +1,11 @@
 use super::super::support::registration;
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::{
     BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity, BridgeRequestKind,
     BridgeSignalBranchIdentity, BridgeSourceCapability, BridgeSourceCapabilitySet,
     BridgeSpeculativeBranchBinding, BridgeSpeculativeBranchBindingIdentity,
     BridgeTruthViewSelector,
 };
+use crate::speculation::BridgePreviewSessionIdentity;
 
 #[test]
 fn bridge_speculation_promotion_truth_is_invariant_across_diagnostics_tiers() {

@@ -19,7 +19,7 @@ Use when you need **facts from a projection or receipt** versus **general retain
 ## Quick Rules
 
 - **Projection consumption** = follow receipts and admitted projection artifacts.
-- **Inspection** = `workspace.inspect` retained evidence surface.
+- **Inspection** = `workspace.inspections()?.inspect` retained evidence surface.
 - Do not use inspect to stand in for authorized projection when policy masking applies.
 - Mutation/write proof → [authoritative mutation evidence](../../capabilities/authoritative-mutation-evidence.md), not generic inspect.
 

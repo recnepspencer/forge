@@ -1,8 +1,10 @@
 use crate::authorized_projection::AuthorizedProjectionFieldPath;
 use crate::identity::hash_parts;
+#[cfg(test)]
+use crate::policy_execution_seam::PolicyAwareExecutionMode;
 use crate::policy_execution_seam::{
-    PolicyAwareExecutionMode, PolicyAwareExecutionSeam, PolicyAwareExecutionSeamError,
-    PolicyAwareExecutionSeamFailureClass, PolicyAwareSeamCounters,
+    PolicyAwareExecutionSeam, PolicyAwareExecutionSeamError, PolicyAwareExecutionSeamFailureClass,
+    PolicyAwareSeamCounters,
 };
 use crate::policy_narrowing::NarrowedPolicyQueryArtifact;
 
@@ -12,6 +14,7 @@ use super::DeliveryWidthClass;
 pub struct PolicyAwareDeliveryDigest(String);
 
 impl PolicyAwareDeliveryDigest {
+    #[cfg(test)]
     pub(crate) fn new(value: String) -> Self {
         Self(value)
     }
@@ -112,7 +115,7 @@ impl PolicyAwareDeliveryShape {
         &self.report
     }
 }
-
+#[cfg(test)]
 pub(crate) fn lower_policy_aware_delivery_shape(
     artifact: &NarrowedPolicyQueryArtifact,
     width_class: DeliveryWidthClass,

@@ -5,6 +5,7 @@ mod identity;
 mod keys;
 mod masks;
 mod patches;
+mod portable;
 mod state;
 mod structs;
 mod validation;
@@ -36,6 +37,14 @@ pub use masks::{
 pub use patches::{
     AuthoritativePatchApplicationDenial, AuthoritativePatchConstructionDenial,
     AuthoritativeRecordAspectPatch, FieldLevelAspectPatch,
+};
+pub use portable::{
+    export_portable_record_aspect_patch, export_portable_record_aspect_state,
+    readmit_portable_record_aspect_patch, readmit_portable_record_aspect_state,
+    PortableAspectContract, PortableAspectContractBasis, PortableAspectContractDenial,
+    PortableAspectContractLookup, PortableAspectExportDenial, PortableAspectFieldSet,
+    PortableAspectPatchOperation, PortableAspectReadmissionDenial, PortablePatchReadmissionPurpose,
+    PortableRecordAspectPatch, PortableRecordAspectState, PortableRecordAspectStateEntry,
 };
 pub use state::{
     admit_authoritative_record_aspect_state, AuthoritativeRecordAspectState,

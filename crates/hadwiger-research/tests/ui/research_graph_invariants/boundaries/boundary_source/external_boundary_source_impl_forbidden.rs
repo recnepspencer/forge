@@ -1,11 +1,11 @@
 use worth_query::facade::runtime::{
-    WORTHQueryLowerRuntimeBoundaryEnvelope, WORTHQueryLowerRuntimeBoundaryEnvelopeSource,
+    WorthQueryLowerRuntimeBoundaryEnvelope, WorthQueryLowerRuntimeBoundaryEnvelopeSource,
 };
 
 struct FakeBoundarySource;
 
-impl WORTHQueryLowerRuntimeBoundaryEnvelopeSource for FakeBoundarySource {
-    fn lower_runtime_boundary_envelope(&self) -> &WORTHQueryLowerRuntimeBoundaryEnvelope {
+impl WorthQueryLowerRuntimeBoundaryEnvelopeSource for FakeBoundarySource {
+    fn lower_runtime_boundary_envelope(&self) -> &WorthQueryLowerRuntimeBoundaryEnvelope {
         panic!("fake source must not compile")
     }
 

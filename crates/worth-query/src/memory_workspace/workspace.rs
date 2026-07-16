@@ -1,22 +1,20 @@
 use super::*;
-use crate::aspect_field_authoring::{entity_string_field_aspect, planned_field_path_locator};
-use crate::runtime::{WorthQueryAdmittedAspectValue, WorthQueryAspectTouch};
+use crate::runtime::{WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation};
 use worth_foundational::facade::AspectValue;
 use worth_relational::facade::config::RelationalRuntimeProfile;
-use worth_relational::facade::identity::PartitionId;
 use worth_relational::facade::runtime::RelationalRuntimeApi;
 use worth_relational::facade::runtime::{
     CustomInvariantRegistration, EntityProjectionRecord, InvariantCatalog, ProjectionAspectScope,
 };
 use worth_relational::facade::schema::{
-    EntityKindRegistration, KindAspectContractDeclarations, RelationalSchemaRegistry, SchemaId,
-    SchemaVersionId,
+    DeclaredAspectContractBinding, EntityKindRegistration, KindAspectContractDeclarations,
+    RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
-use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
-    CreateIntent, DeleteEntityIntent, EntityMutationIntent, EntitySpec, MutationIntent,
-    TransactionOptions, UpdateEntityFieldsIntent, WorkerIntentBatch,
+    DeleteEntityIntent, EntityMutationIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
 };
+
+use super::workspace_schema::{inferred_string_declarations, native_contract_declarations};
 
 impl WorthQueryMemoryWorkspace {
     pub fn collection(
@@ -32,22 +30,53 @@ impl WorthQueryMemoryWorkspace {
         invariant_catalog: InvariantCatalog,
         custom_invariants: impl IntoIterator<Item = CustomInvariantRegistration>,
     ) -> Result<Self, WorthQueryWorkspaceError> {
+        let aspects = aspects.into_iter().collect::<Vec<_>>();
+        let declarations = inferred_string_declarations(&aspects)?;
+        Self::collection_with_declarations(
+            kind_name,
+            aspects,
+            declarations,
+            invariant_catalog,
+            custom_invariants,
+        )
+    }
+
+    pub(crate) fn collection_with_native_contracts(
+        kind_name: impl Into<String>,
+        aspects: impl IntoIterator<Item = WorthQueryAspect>,
+        contracts: impl IntoIterator<Item = worth_foundational::facade::AspectContract>,
+        invariant_catalog: InvariantCatalog,
+        custom_invariants: impl IntoIterator<Item = CustomInvariantRegistration>,
+    ) -> Result<Self, WorthQueryWorkspaceError> {
+        let aspects = aspects.into_iter().collect::<Vec<_>>();
+        let declarations = native_contract_declarations(&aspects, contracts)?;
+        Self::collection_with_declarations(
+            kind_name,
+            aspects,
+            declarations,
+            invariant_catalog,
+            custom_invariants,
+        )
+    }
+
+    fn collection_with_declarations(
+        kind_name: impl Into<String>,
+        aspects: Vec<WorthQueryAspect>,
+        declared_aspects: Vec<DeclaredAspectContractBinding>,
+        invariant_catalog: InvariantCatalog,
+        custom_invariants: impl IntoIterator<Item = CustomInvariantRegistration>,
+    ) -> Result<Self, WorthQueryWorkspaceError> {
         let kind_name = kind_name.into();
         let kind_id = KindId(1);
-        let aspects = aspects.into_iter().collect::<Vec<_>>();
-        let declared_aspects = aspects
+        let aspect_contracts = declared_aspects
             .iter()
-            .map(|aspect| {
-                let touch = aspect.aspect_touch();
-                let target = touch.parsed_target();
-                let field_label = match target.field_path().and_then(single_field_label).cloned() {
-                    Some(field_label) => field_label,
-                    None => final_field_key(aspect.native_field_path())?.clone(),
-                };
-                entity_string_field_aspect(target.aspect_key().as_str(), field_label.as_str())
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(WorthQueryWorkspaceError::new)?;
+            .map(|binding| binding.contract.clone())
+            .collect::<Vec<_>>();
+        let aspect_contracts =
+            crate::runtime::native_aspect_contracts::WorthQueryNativeAspectContractRegistry::from_contracts(
+                aspect_contracts,
+            )
+            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
         let registry = RelationalSchemaRegistry::new()
             .register_entity_kind(EntityKindRegistration {
                 kind_id,
@@ -70,6 +99,7 @@ impl WorthQueryMemoryWorkspace {
             kind_id,
             kind_name,
             aspects,
+            aspect_contracts,
             next_client_key: 0,
         })
     }
@@ -80,34 +110,26 @@ impl WorthQueryMemoryWorkspace {
 
     pub fn insert_aspects(
         &mut self,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
     ) -> Result<WorthQueryMutationReceipt, WorthQueryWorkspaceError> {
-        let touched_aspects = touches_from_aspect_values(&aspects);
-        let fields = self.field_patch_from_aspect_values(&aspects)?;
-        self.commit_entity_create(fields, touched_aspects)
+        let patch = self.portable_creation_patch_from_authored(&aspects)?;
+        self.insert_portable_patch_with_touches(
+            &patch,
+            aspects.iter().map(|aspect| aspect.aspect_touch()).collect(),
+        )
     }
 
     pub fn update_aspects(
         &mut self,
         entity_identity: WorthQueryEntityIdentity,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
     ) -> Result<WorthQueryMutationReceipt, WorthQueryWorkspaceError> {
-        let entity_id = super::runtime_identity::entity_id_from_identity(entity_identity)?;
-        self.ensure_entity_exists(entity_id)?;
-        let touched_aspects = touches_from_aspect_values(&aspects);
-        let fields = self.field_patch_from_aspect_values(&aspects)?;
-        let mut txn = self
-            .runtime
-            .begin_transaction(TransactionOptions::default());
-        txn.push_batch(
-            WorkerIntentBatch::new("query-memory-update").push(MutationIntent::Entity(
-                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent { entity_id, fields }),
-            )),
-        );
-        let result = txn
-            .commit()
-            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
-        Ok(self.receipt_from_commit(result, WorthQueryMutationKind::Updated, touched_aspects))
+        let patch = self.portable_mutation_patch_from_authored(&aspects)?;
+        self.update_portable_patch_with_touches(
+            entity_identity,
+            &patch,
+            aspects.iter().map(|aspect| aspect.aspect_touch()).collect(),
+        )
     }
 
     pub fn delete(
@@ -155,11 +177,12 @@ impl WorthQueryMemoryWorkspace {
             .read_truth()
             .project_version(version_id)
             .entity_records_with_projection_scope(self.kind_id, projection_scope, |record| {
-                let (aspect_values, native_field_values) =
+                let (aspect_values, struct_aspect_values, native_field_values) =
                     self.aspect_projection_from_projection_record(record);
                 Some(WorthQueryEntity::from_aspect_projection(
                     super::runtime_identity::entity_identity(record.entity_id()),
                     aspect_values,
+                    struct_aspect_values,
                     native_field_values,
                 ))
             })
@@ -169,7 +192,10 @@ impl WorthQueryMemoryWorkspace {
         super::runtime_identity::snapshot_identity_from_runtime(&self.runtime)
     }
 
-    fn ensure_entity_exists(&self, entity_id: EntityId) -> Result<(), WorthQueryWorkspaceError> {
+    pub(super) fn ensure_entity_exists(
+        &self,
+        entity_id: EntityId,
+    ) -> Result<(), WorthQueryWorkspaceError> {
         let Some(version_id) = self
             .runtime
             .publication()
@@ -188,66 +214,6 @@ impl WorthQueryMemoryWorkspace {
         Ok(())
     }
 
-    fn commit_entity_create(
-        &mut self,
-        fields: worth_relational::facade::transactions::AspectFieldPatch,
-        touched_aspects: Vec<WorthQueryAspectTouch>,
-    ) -> Result<WorthQueryMutationReceipt, WorthQueryWorkspaceError> {
-        self.next_client_key += 1;
-        let mut txn = self
-            .runtime
-            .begin_transaction(TransactionOptions::default());
-        txn.push_batch(
-            WorkerIntentBatch::new("query-memory-insert").push(MutationIntent::Create(
-                CreateIntent::Entity(EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: self.kind_id,
-                    client_key: ClientKey::raw(format!(
-                        "{}:{}",
-                        self.kind_name, self.next_client_key
-                    )),
-                    fields,
-                }),
-            )),
-        );
-        let result = txn
-            .commit()
-            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
-        Ok(self.receipt_from_commit(result, WorthQueryMutationKind::Created, touched_aspects))
-    }
-
-    fn field_patch_from_aspect_values(
-        &self,
-        aspects: &[WorthQueryAdmittedAspectValue],
-    ) -> Result<worth_relational::facade::transactions::AspectFieldPatch, WorthQueryWorkspaceError>
-    {
-        let mut targets = std::collections::BTreeMap::new();
-        for aspect in aspects {
-            let aspect_touch = aspect.aspect_touch();
-            let declared = self.declared_aspect_for_touch(&aspect_touch)?;
-            let Some(value) = aspect.foundational_value() else {
-                return Err(WorthQueryWorkspaceError::new(format!(
-                    "aspect `{}` cannot clear through the memory workspace field patch path yet",
-                    aspect_touch.admitted_touch_digest_part()
-                )));
-            };
-            let target = aspect.parsed_target();
-            let field_path = match target.field_path() {
-                Some(path) => path.clone(),
-                None => worth_foundational::facade::CanonicalFieldPath::single(
-                    final_field_key(declared.native_field_path())
-                        .map_err(WorthQueryWorkspaceError::new)?
-                        .clone(),
-                ),
-            };
-            targets.insert(
-                planned_field_path_locator(target.aspect_key().clone(), field_path),
-                value.clone(),
-            );
-        }
-        Ok(worth_relational::facade::transactions::AspectFieldPatch::from(targets))
-    }
-
     fn workspace_projection_scope(&self) -> ProjectionAspectScope {
         ProjectionAspectScope::whole_aspects(
             self.aspects
@@ -261,37 +227,35 @@ impl WorthQueryMemoryWorkspace {
         record: EntityProjectionRecord<'_>,
     ) -> (
         std::collections::BTreeMap<worth_foundational::facade::AspectKey, AspectValue>,
+        std::collections::BTreeMap<
+            worth_foundational::facade::AspectKey,
+            worth_foundational::facade::StructAspectValue,
+        >,
         std::collections::BTreeMap<worth_foundational::facade::CanonicalFieldPath, AspectValue>,
     ) {
         let mut aspect_values = std::collections::BTreeMap::new();
+        let mut struct_aspect_values = std::collections::BTreeMap::new();
         let mut native_field_values = std::collections::BTreeMap::new();
         for aspect in &self.aspects {
             let target = aspect.aspect_touch().parsed_target();
-            let Some(value) = record.aspect_value(target.aspect_key()) else {
-                continue;
-            };
-            aspect_values.insert(target.aspect_key().clone(), value.clone());
-            native_field_values.insert(aspect.native_field_path().clone(), value.clone());
+            if let Some(value) = record.aspect_value(target.aspect_key()) {
+                aspect_values.insert(target.aspect_key().clone(), value.clone());
+                native_field_values.insert(aspect.native_field_path().clone(), value.clone());
+            } else if let Some(value) = record.struct_aspect_value(target.aspect_key()) {
+                struct_aspect_values.insert(target.aspect_key().clone(), value.clone());
+                if let Some(field) = target
+                    .field_path()
+                    .and_then(|path| path.fields().first())
+                    .and_then(|field| value.get(field))
+                {
+                    native_field_values.insert(aspect.native_field_path().clone(), field.clone());
+                }
+            }
         }
-        (aspect_values, native_field_values)
+        (aspect_values, struct_aspect_values, native_field_values)
     }
 
-    fn declared_aspect_for_touch(
-        &self,
-        aspect_touch: &WorthQueryAspectTouch,
-    ) -> Result<&WorthQueryAspect, WorthQueryWorkspaceError> {
-        self.aspects
-            .iter()
-            .find(|aspect| declared_aspect_matches_touch(aspect, aspect_touch))
-            .ok_or_else(|| {
-                WorthQueryWorkspaceError::new(format!(
-                    "undeclared aspect `{}`",
-                    aspect_touch.admitted_touch_digest_part()
-                ))
-            })
-    }
-
-    fn receipt_from_commit(
+    pub(super) fn receipt_from_commit(
         &self,
         result: worth_relational::facade::transactions::CommitResult,
         kind: WorthQueryMutationKind,
@@ -331,44 +295,4 @@ impl WorthQueryMemoryWorkspace {
             &self.kind_name,
         )
     }
-}
-
-fn touches_from_aspect_values(
-    aspects: &[WorthQueryAdmittedAspectValue],
-) -> Vec<WorthQueryAspectTouch> {
-    aspects
-        .iter()
-        .map(|aspect| WorthQueryAspectTouch::from_parsed_target(aspect.parsed_target().clone()))
-        .collect()
-}
-
-fn declared_aspect_matches_touch(
-    aspect: &WorthQueryAspect,
-    requested: &WorthQueryAspectTouch,
-) -> bool {
-    let field_path_alias = WorthQueryAspectTouch::aspect_field_path(
-        aspect.aspect_touch().native_aspect_key().clone(),
-        aspect.native_field_path().clone(),
-    );
-    [aspect.aspect_touch().clone(), field_path_alias]
-        .into_iter()
-        .any(|declared| declared.matches_or_contains(requested))
-}
-
-fn single_field_label(
-    path: &worth_foundational::facade::CanonicalFieldPath,
-) -> Option<&worth_foundational::facade::FieldKey> {
-    let fields = path.fields();
-    if fields.len() != 1 {
-        return None;
-    }
-    fields.first()
-}
-
-fn final_field_key(
-    path: &worth_foundational::facade::CanonicalFieldPath,
-) -> Result<&worth_foundational::facade::FieldKey, String> {
-    path.fields()
-        .last()
-        .ok_or_else(|| "native field path must contain a field segment".to_string())
 }

@@ -3,6 +3,7 @@ mod operating_world_selector;
 mod registration;
 mod registration_catalog;
 mod registration_denial;
+#[cfg(test)]
 mod relational_schema_contracts;
 mod selector_class;
 mod selector_helpers;
@@ -16,6 +17,7 @@ pub use registration_catalog::WorthQueryGraphObligationRegistrationCatalog;
 pub use registration_denial::{
     WorthQueryGraphObligationRegistrationDenial, WorthQueryGraphObligationRegistrationDenialKind,
 };
+#[cfg(test)]
 pub(crate) use relational_schema_contracts::registrations_from_relational_invariant_catalog;
 pub(in crate::runtime::mutation::graph_composition::obligation) use selector_class::WorthQueryGraphTouchSelectorClass;
 pub use support_posture::{
