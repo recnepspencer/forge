@@ -7,9 +7,9 @@ use super::{QueueExecutionPlanBinding, QueueExecutionReadyPlan, QueueGroupedRead
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QueueBackendCompletionAuthorityDenial {
-    BackendPostureMismatch,
-    BackendPlanBindingMismatch,
-    BackendGroupedWriteMismatch,
+    IncompatiblePosture,
+    UnboundPlan,
+    UnexpectedGroupedWrites,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -45,17 +45,17 @@ impl QueueBackendCompletionAuthority {
         if posture.profile() != plan.backend_profile()
             || posture.evidence_class() != plan.backend_evidence_class()
         {
-            return Err(QueueBackendCompletionAuthorityDenial::BackendPostureMismatch);
+            return Err(QueueBackendCompletionAuthorityDenial::IncompatiblePosture);
         }
         if completion.binding()
             != plan
                 .backend_completion_binding()
                 .backend_execution_binding()
         {
-            return Err(QueueBackendCompletionAuthorityDenial::BackendPlanBindingMismatch);
+            return Err(QueueBackendCompletionAuthorityDenial::UnboundPlan);
         }
         if completion.grouped_writes() != 0 {
-            return Err(QueueBackendCompletionAuthorityDenial::BackendGroupedWriteMismatch);
+            return Err(QueueBackendCompletionAuthorityDenial::UnexpectedGroupedWrites);
         }
         Ok(Self {
             binding: plan.backend_completion_binding(),
@@ -72,17 +72,17 @@ impl QueueBackendCompletionAuthority {
         if posture.profile() != grouped.first().backend_profile()
             || posture.evidence_class() != grouped.first().backend_evidence_class()
         {
-            return Err(QueueBackendCompletionAuthorityDenial::BackendPostureMismatch);
+            return Err(QueueBackendCompletionAuthorityDenial::IncompatiblePosture);
         }
         if completion.binding()
             != grouped
                 .backend_completion_binding()
                 .backend_execution_binding()
         {
-            return Err(QueueBackendCompletionAuthorityDenial::BackendPlanBindingMismatch);
+            return Err(QueueBackendCompletionAuthorityDenial::UnboundPlan);
         }
         if completion.grouped_writes() != grouped.grouped_writes() {
-            return Err(QueueBackendCompletionAuthorityDenial::BackendGroupedWriteMismatch);
+            return Err(QueueBackendCompletionAuthorityDenial::UnexpectedGroupedWrites);
         }
         Ok(Self {
             binding: grouped.backend_completion_binding(),

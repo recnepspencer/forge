@@ -248,24 +248,28 @@ impl HeavyBlobVerificationPassBasis {
     }
 }
 
+pub(crate) struct HeavyBlobFixtureMeasurements {
+    pub(crate) peak_resident_memory_bytes: u64,
+    pub(crate) peak_allocation_count: u64,
+    pub(crate) temporary_file_bytes: u64,
+    pub(crate) disk_bytes_written: u64,
+}
+
 impl HeavyBlobFixtureExecutionEvidence {
     pub(crate) fn observed(
         plan: &HeavyBlobFixturePlan,
         verification_pass_basis: HeavyBlobVerificationPassBasis,
-        peak_resident_memory_bytes: u64,
-        peak_allocation_count: u64,
-        temporary_file_bytes: u64,
-        disk_bytes_written: u64,
+        measurements: HeavyBlobFixtureMeasurements,
         cleanup_receipt: Option<HeavyFixtureCleanupReceipt>,
         disk_preflight_receipt: Option<HeavyFixtureDiskPreflightReceipt>,
     ) -> Self {
         Self {
             expected_digest_basis: plan.expected_digest_basis,
             verification_pass_basis,
-            peak_resident_memory_bytes,
-            peak_allocation_count,
-            temporary_file_bytes,
-            disk_bytes_written,
+            peak_resident_memory_bytes: measurements.peak_resident_memory_bytes,
+            peak_allocation_count: measurements.peak_allocation_count,
+            temporary_file_bytes: measurements.temporary_file_bytes,
+            disk_bytes_written: measurements.disk_bytes_written,
             cleanup_receipt,
             backend_profile: plan.backend_profile,
             materialization_mode: plan.materialization_mode,

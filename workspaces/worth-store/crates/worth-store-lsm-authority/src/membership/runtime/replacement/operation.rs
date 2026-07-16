@@ -7,7 +7,7 @@ use crate::AdmittedLsmMembershipReplacement;
 
 #[derive(Debug)]
 enum ReplacementCase {
-    Admitted(PublishedLsmMembershipReplacement),
+    Admitted(Box<PublishedLsmMembershipReplacement>),
     Denied(LsmMembershipDenial),
 }
 
@@ -26,7 +26,7 @@ impl LsmMembershipReplacementOutcome {
     fn issue(result: Result<PublishedLsmMembershipReplacement, LsmMembershipDenial>) -> Self {
         Self {
             case: match result {
-                Ok(replacement) => ReplacementCase::Admitted(replacement),
+                Ok(replacement) => ReplacementCase::Admitted(Box::new(replacement)),
                 Err(denial) => ReplacementCase::Denied(denial),
             },
         }
@@ -54,7 +54,7 @@ impl LsmMembershipReplacementOutcome {
 
     pub fn into_result(self) -> Result<PublishedLsmMembershipReplacement, LsmMembershipDenial> {
         match self.case {
-            ReplacementCase::Admitted(replacement) => Ok(replacement),
+            ReplacementCase::Admitted(replacement) => Ok(*replacement),
             ReplacementCase::Denied(denial) => Err(denial),
         }
     }
@@ -104,6 +104,7 @@ fn execute_replacement(
         replacement.output().identity(),
         replacement.output().scope(),
         replacement.output().persisted_path(),
+        replacement.output().persisted_offset(),
         replacement.output().persisted_bytes(),
     ) {
         return Err(LsmMembershipDenial::ReplacementOutputMismatch);
@@ -118,8 +119,11 @@ fn execute_replacement(
         replacement.output().identity(),
         replacement.output().scope().clone(),
         replacement.scope().clone(),
-        replacement.output().persisted_path().to_path_buf(),
-        replacement.output().persisted_bytes(),
+        super::PublishedLsmMembershipOutputArtifact::new(
+            replacement.output().persisted_path().to_path_buf(),
+            replacement.output().persisted_offset(),
+            replacement.output().persisted_bytes(),
+        ),
     );
     state.published_replacement = Some(published.clone());
     state.version = state.version.saturating_add(1);

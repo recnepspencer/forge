@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_store_roadmap_2.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/worth_store_roadmap_2.md)
+> **Roadmap parent:** [physical-database-roadmap.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/physical-database-roadmap.md)
 >
 > **Primary prerequisite:** `S.4 WAL, Checkpoint, LSN, And Recovery Physics`
 >
@@ -64,7 +64,7 @@ the next physical protocol depends on it.
   protects visible cost. The harness must record exact counters and enforce
   resource envelopes during execution, not infer cost from elapsed time or
   final success.
-- `worth_store_roadmap_2.md`
+- `physical-database-roadmap.md`
   places S.4.5 between recovery and isolation so Roadmap 2's physical harness
   requirements become concrete before stable-read interleavings need them.
 - `storage-foundation-s3.md`

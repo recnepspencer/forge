@@ -1,15 +1,18 @@
+#[path = "../../../support/recovery/independent_verifier_observation.rs"]
+mod independent_verifier_observation;
+
 use worth_store_physical_certification::{
     lower_physical_simulation_plan, oracle_verdict_topology, physical_scenario,
-    BlockedReclaimUntilReleaseOracle, ExecutedPhysicalSimulationObservation, ForbiddenShortcutSet,
-    IndependentVerifierObservation, NoJsonAuthorityOracle, NoMixedRootOracle,
-    NoPrivateMutationOracle, ObservationDenial, OfflineVerifierBoundarySeam, OracleDenial,
-    OracleFamilyKind, PhysicalOracleNonClaim, PhysicalOracleVerdictTopologyPosture,
-    PhysicalProofOracleKind, PhysicalProofOracleVerdictKind, PhysicalScenarioActor,
-    PhysicalScenarioExpectation, PhysicalScenarioIntent, PhysicalScenarioSchedule,
-    PhysicalSimulationCapabilitySet, PhysicalSimulationObserver, PhysicalSimulationPlan,
-    PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
-    ReusablePhysicalOracleFamily, ShortcutRejectionObservation, SimulationEvidencePolicy,
-    SimulationPlanningContext, SupportedObserverSet, SupportedOracleFamilySet,
+    BlockedReclaimUntilReleaseOracle, ForbiddenShortcutSet, NoJsonAuthorityOracle,
+    NoMixedRootOracle, NoPrivateMutationOracle, ObservationDenial, OracleDenial, OracleFamilyKind,
+    PhysicalOracleNonClaim, PhysicalOracleVerdictTopologyPosture, PhysicalProofOracleKind,
+    PhysicalProofOracleVerdictKind, PhysicalScenarioActor, PhysicalScenarioExpectation,
+    PhysicalScenarioIntent, PhysicalScenarioSchedule, PhysicalSimulationBoundaryObservation,
+    PhysicalSimulationCapabilitySet, PhysicalSimulationObservationBasis,
+    PhysicalSimulationObserver, PhysicalSimulationPlan, PhysicalSimulationProfile,
+    PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily, ReusablePhysicalOracleFamily,
+    ShortcutRejectionObservation, SimulationEvidencePolicy, SimulationPlanningContext,
+    SupportedObserverSet, SupportedOracleFamilySet,
 };
 use worth_store_test_support::{
     admitted_developer_smoke_driver_contracts, NativeStoreAspectFixture,
@@ -18,23 +21,30 @@ use worth_store_test_support::{
 use worth_store_test_support::harness::recovery::compaction_observation as compaction_interlock_trace;
 
 #[test]
-fn executed_observation_receipt_feeds_convergent_oracle_verdicts() {
+fn declared_driver_shape_observation_feeds_convergent_oracle_verdicts() {
     let plan = lower_physical_isolation_plan();
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(&plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(&plan).unwrap();
     let runtime_trace = PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(&plan, &execution)
+        .observe_boundary_observation(&plan, &execution)
         .unwrap()
         .with_compaction_interlock_observation(
             compaction_interlock_trace::store_compaction_observation(),
         )
         .complete()
         .unwrap();
+    assert_eq!(
+        runtime_trace.observation_basis(),
+        PhysicalSimulationObservationBasis::DeclaredDriverShapeProbe
+    );
     let verifier_trace = PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(&plan, &execution)
+        .observe_boundary_observation(&plan, &execution)
         .unwrap()
-        .with_independent_verifier_observation(IndependentVerifierObservation::agreement(
-            OfflineVerifierBoundarySeam::RuntimeVerifierComparison,
-        ))
+        .with_independent_verifier_observation(
+            independent_verifier_observation::observed_runtime_comparison(
+                independent_verifier_observation::RuntimeComparisonFixture::Equivalent,
+            ),
+        )
         .with_compaction_interlock_observation(
             compaction_interlock_trace::store_compaction_observation(),
         )
@@ -68,13 +78,15 @@ fn executed_observation_receipt_feeds_convergent_oracle_verdicts() {
 }
 
 #[test]
-fn executed_observation_denies_plan_receipt_mismatch() {
+fn boundary_observation_denies_plan_receipt_mismatch() {
     let plan = lower_physical_isolation_plan();
     let other_plan = lower_multifamily_plan();
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(&other_plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(&other_plan)
+            .unwrap();
 
     let denial = PhysicalSimulationObserver::independent_physical_trace()
-        .observe_executed_plan(&plan, &execution)
+        .observe_boundary_observation(&plan, &execution)
         .expect_err("receipt from another plan must not satisfy observer input");
 
     assert_eq!(denial, ObservationDenial::ExecutionReceiptPlanMismatch);
@@ -83,10 +95,11 @@ fn executed_observation_denies_plan_receipt_mismatch() {
 #[test]
 fn public_scenario_composes_multiple_reusable_oracle_families() {
     let plan = lower_multifamily_plan();
-    let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(&plan).unwrap();
+    let execution =
+        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(&plan).unwrap();
     let trace =
         PhysicalSimulationObserver::independent_physical_trace()
-            .observe_executed_plan(&plan, &execution)
+            .observe_boundary_observation(&plan, &execution)
             .unwrap()
             .with_shortcut_rejection_observation(
                 ShortcutRejectionObservation::private_mutation_denied(),

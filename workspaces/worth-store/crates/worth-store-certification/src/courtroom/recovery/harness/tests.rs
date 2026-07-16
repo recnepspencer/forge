@@ -183,14 +183,14 @@ fn recovery_mutation_validation_denies_missing_or_wrong_suite_evidence() {
     evidence.pop();
 
     assert!(matches!(
-        RecoveryPhysicsMutationValidationMatrix::validate(&certification, &evidence),
+        RecoveryPhysicsMutationValidationMatrix::validate(certification, &evidence),
         Err(RecoveryPhysicsMutationValidationDenial::MissingEvidence(_))
     ));
 
     let mut wrong_lane = roadmap2_certification.mutation_evidence().rows().to_vec();
     wrong_lane[0] = wrong_lane[0].with_lane(RecoveryPhysicsCrashLane::RenameDurability);
     assert!(matches!(
-        RecoveryPhysicsMutationValidationMatrix::validate(&certification, &wrong_lane),
+        RecoveryPhysicsMutationValidationMatrix::validate(certification, &wrong_lane),
         Err(RecoveryPhysicsMutationValidationDenial::WrongLane { .. })
     ));
 
@@ -198,7 +198,7 @@ fn recovery_mutation_validation_denies_missing_or_wrong_suite_evidence() {
     wrong_evidence[0] = wrong_evidence[0]
         .with_failure_evidence(RecoveryPhysicsMutationFailureEvidence::CompileFailBoundary);
     assert!(matches!(
-        RecoveryPhysicsMutationValidationMatrix::validate(&certification, &wrong_evidence),
+        RecoveryPhysicsMutationValidationMatrix::validate(certification, &wrong_evidence),
         Err(RecoveryPhysicsMutationValidationDenial::WrongEvidence(_))
     ));
 
@@ -208,7 +208,7 @@ fn recovery_mutation_validation_denies_missing_or_wrong_suite_evidence() {
         0,
     ));
     assert!(matches!(
-        RecoveryPhysicsMutationValidationMatrix::validate(&certification, &wrong_counter),
+        RecoveryPhysicsMutationValidationMatrix::validate(certification, &wrong_counter),
         Err(RecoveryPhysicsMutationValidationDenial::WrongCounter(_))
     ));
 }

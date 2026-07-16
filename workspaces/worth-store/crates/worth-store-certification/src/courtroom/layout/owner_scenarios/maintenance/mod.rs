@@ -1,5 +1,5 @@
 mod execution;
-mod lsm;
+pub(crate) mod lsm;
 mod mutation;
 mod posture;
 mod rebuild;

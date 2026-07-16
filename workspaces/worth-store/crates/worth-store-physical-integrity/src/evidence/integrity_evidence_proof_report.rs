@@ -50,7 +50,7 @@ impl IntegrityProofProgressionReport {
         let snapshot = IntegrityProofProgressionSnapshot {
             category: evidence.category(),
             role: evidence.boundary_role(),
-            outcome: evidence.integrity_outcome().clone(),
+            outcome: *evidence.integrity_outcome(),
             locality: evidence.locality(),
             counters: evidence.counters(),
         };

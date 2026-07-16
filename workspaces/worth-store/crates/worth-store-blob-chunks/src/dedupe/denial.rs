@@ -32,7 +32,7 @@ pub enum BlobChunkDedupeAdmissionDenial {
         counters: BlobChunkDedupeCounterSnapshot,
     },
     DigestCollisionDenied {
-        receipt: BlobChunkCollisionVerificationReceipt,
+        receipt: Box<BlobChunkCollisionVerificationReceipt>,
         posture: BlobChunkDedupeCollisionPosture,
         counters: BlobChunkDedupeCounterSnapshot,
     },
@@ -50,7 +50,7 @@ pub enum BlobChunkDedupeAdmissionDenial {
         counters: BlobChunkDedupeCounterSnapshot,
     },
     QuarantinedChunkDenied {
-        quarantine: BlobChunkQuarantine,
+        quarantine: Box<BlobChunkQuarantine>,
         posture: BlobChunkDedupeCollisionPosture,
         counters: BlobChunkDedupeCounterSnapshot,
     },

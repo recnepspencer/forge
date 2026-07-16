@@ -1,9 +1,8 @@
 use super::classification::BlobExportCanonicalClassification;
-use worth_store_operations_vocabulary::BackupExportCustodyMode;
 
 use super::counters::BlobExportBundleCounters;
 use super::denial::BlobExportBundleDenial;
-use super::intent::BlobExportIntent;
+use super::{intent::BlobExportIntent, BlobCustodyPurpose};
 
 pub(crate) fn verify_export_transition<'a>(
     intent: &BlobExportIntent<'a>,
@@ -30,9 +29,9 @@ pub(crate) fn verify_export_transition<'a>(
             counters: BlobExportBundleCounters::start(),
         });
     }
-    match intent.custody().mode() {
-        Some(BackupExportCustodyMode::Export) | None => {}
-        Some(BackupExportCustodyMode::Backup | BackupExportCustodyMode::PointInTimeRecovery) => {
+    match intent.custody().purpose() {
+        BlobCustodyPurpose::Export => {}
+        BlobCustodyPurpose::Backup | BlobCustodyPurpose::PointInTimeRecovery => {
             return Err(BlobExportBundleDenial::CustodyNotExportReady {
                 counters: BlobExportBundleCounters::start(),
             });

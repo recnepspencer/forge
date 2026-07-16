@@ -1,4 +1,4 @@
-use worth_store_operations_vocabulary::{ImportPlacementDisposition, ImportPlacementPlan};
+use super::{BlobImportPlacementDisposition, BlobImportPlacementPlan};
 
 use super::declaration::BoundaryBridgedCanonicalExportArtifact;
 use super::denial::BlobImportReadmissionDenial;
@@ -34,7 +34,7 @@ impl<'a> ReadmittedBlobImport<'a> {
 
     pub fn plan_placement_admission(
         &self,
-    ) -> Result<ImportPlacementPlan, BlobImportReadmissionDenial> {
+    ) -> Result<BlobImportPlacementPlan, BlobImportReadmissionDenial> {
         plan_placement_admission(
             self.artifact.declaration().placement_source(),
             self.declared_chunks,
@@ -45,13 +45,15 @@ impl<'a> ReadmittedBlobImport<'a> {
 
     pub fn admit_imported_blob(
         &self,
-        placement_plan: &ImportPlacementPlan,
+        placement_plan: &BlobImportPlacementPlan,
     ) -> Result<ImportedBlobWitness, BlobImportReadmissionDenial> {
         match placement_plan.disposition() {
-            ImportPlacementDisposition::AlreadyPresentLocally
-            | ImportPlacementDisposition::DedupedLocally => {}
-            ImportPlacementDisposition::RequiresFetch => return Err(self.missing_chunk_denial()),
-            ImportPlacementDisposition::ScopeDenied => {
+            BlobImportPlacementDisposition::AlreadyPresentLocally
+            | BlobImportPlacementDisposition::DedupedLocally => {}
+            BlobImportPlacementDisposition::RequiresFetch => {
+                return Err(self.missing_chunk_denial())
+            }
+            BlobImportPlacementDisposition::ScopeDenied => {
                 return Err(self.placement_only_denial());
             }
         }
@@ -60,16 +62,22 @@ impl<'a> ReadmittedBlobImport<'a> {
             .as_ref()
             .expect("already-local placement implies complete witness basis");
         Ok(ImportedBlobWitness::new(
-            self.artifact.declaration().object_id().clone(),
-            self.artifact.declaration().generation(),
-            self.artifact.declaration().chunk_tree_root().clone(),
-            self.artifact.declaration().logical_content_digest().clone(),
-            basis.chunk_security_metadata,
-            self.receipt.authority_identity(),
-            basis.reachable_chunks.clone(),
-            basis.stored_digest.clone(),
-            *placement_plan,
-            self.receipt.counters().record_witness_construction(),
+            super::witness::ImportedBlobWitnessParts {
+                object_id: self.artifact.declaration().object_id().clone(),
+                generation: self.artifact.declaration().generation(),
+                chunk_tree_root: self.artifact.declaration().chunk_tree_root().clone(),
+                logical_content_digest: self
+                    .artifact
+                    .declaration()
+                    .logical_content_digest()
+                    .clone(),
+                security_metadata: basis.chunk_security_metadata,
+                authority_identity: self.receipt.authority_identity(),
+                reachable_chunks: basis.reachable_chunks.clone(),
+                stored_digest: basis.stored_digest.clone(),
+                placement_plan: *placement_plan,
+                counters: self.receipt.counters().record_witness_construction(),
+            },
         ))
     }
 

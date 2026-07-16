@@ -4,7 +4,7 @@ use worth_store_physical_certification::{
 };
 
 pub fn developer_smoke_replay_seed() -> ReplaySeed {
-    ReplaySeed::from_u64(0x5eed_45)
+    ReplaySeed::from_u64(0x005e_ed45)
 }
 
 pub fn ci_certification_replay_seed() -> ReplaySeed {

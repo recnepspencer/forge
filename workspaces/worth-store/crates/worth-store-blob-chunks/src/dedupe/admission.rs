@@ -114,7 +114,7 @@ impl BlobChunkDedupeAdmission {
         let _ = guard.deny_dedupe();
         let counters = BlobChunkDedupeCounterSnapshot::start().record_quarantine_denial();
         TransitionOutcome::denied(BlobChunkDedupeAdmissionDenial::QuarantinedChunkDenied {
-            quarantine: guard.quarantine().clone(),
+            quarantine: Box::new(guard.quarantine().clone()),
             posture: BlobChunkDedupeCollisionPosture::DigestAlgorithmQuarantined,
             counters,
         })

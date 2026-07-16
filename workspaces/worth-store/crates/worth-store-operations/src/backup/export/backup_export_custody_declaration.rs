@@ -9,8 +9,14 @@ use worth_store_security::{
 
 use crate::{
     BackupExportCustodyAdmission, BackupExportCustodyCounterSnapshot, BackupExportCustodyDenial,
-    BackupExportCustodyMode,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BackupExportCustodyMode {
+    Backup,
+    PointInTimeRecovery,
+    Export,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BackupExportCustodyDeclaration {

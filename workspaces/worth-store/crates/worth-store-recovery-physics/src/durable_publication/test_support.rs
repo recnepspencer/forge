@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use worth_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
@@ -6,6 +8,31 @@ use worth_store_physical_backend::{
     StoreDurabilityFileSyncKind, StoreDurabilityRequirement, StoreDurabilityRuntime,
     StoreDurabilityWriteAccepted,
 };
+use worth_store_wal::WalFrameDurablePublicationScope;
+
+use super::DurableWalPublication;
+
+pub fn certified_durable_wal_publication_for_test(
+    scope: WalFrameDurablePublicationScope,
+) -> DurableWalPublication {
+    let requirement = StoreDurabilityRequirement::wal_ordering_barrier(
+        worth_store_physical_backend::WalDurabilityBarrierSet::of(
+            worth_store_physical_backend::WalDurabilityBarrier::WalFileFsync,
+        ),
+    );
+    let accepted = admitted(requirement).submit_write(scope).backend_accepted();
+    let receipt = reach_boundary(
+        accepted,
+        StoreDurabilityFileSyncKind::Fdatasync,
+        false,
+        false,
+        true,
+    )
+    .expect("certification WAL durability execution must reach its boundary")
+    .ordering_barrier_durable()
+    .expect("certification WAL execution must retain ordering proof");
+    DurableWalPublication::publish(receipt)
+}
 
 pub(super) fn admitted(requirement: StoreDurabilityRequirement) -> StoreDurabilityAdmission {
     let witness = PhysicalBackendCapabilityAdmissionAuthority::store_owned()
@@ -48,13 +75,47 @@ where
     } else {
         StoreDurabilityExecutionBoundary::FileSynchronized
     };
+    let directory = IsolatedDurabilityDirectory::create();
     let proof = StoreDurabilityRuntime::new()
         .persist_and_execute_to(
-            &std::env::temp_dir(),
+            directory.path(),
             b"recovery-durable-write",
             &accepted,
             boundary,
         )
         .unwrap();
     accepted.reach_durability_boundary(proof)
+}
+
+static NEXT_DURABILITY_DIRECTORY: AtomicU64 = AtomicU64::new(1);
+
+struct IsolatedDurabilityDirectory {
+    path: PathBuf,
+}
+
+impl IsolatedDurabilityDirectory {
+    fn create() -> Self {
+        loop {
+            let ordinal = NEXT_DURABILITY_DIRECTORY.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "worth-store-recovery-durability-{}-{ordinal}",
+                std::process::id()
+            ));
+            match std::fs::create_dir(&path) {
+                Ok(()) => return Self { path },
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(error) => panic!("isolated durability directory should be creatable: {error}"),
+            }
+        }
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for IsolatedDurabilityDirectory {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.path);
+    }
 }

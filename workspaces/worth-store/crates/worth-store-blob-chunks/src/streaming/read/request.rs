@@ -50,7 +50,9 @@ impl BlobStreamingReadRequest {
                 frontier.chunk_tree_root(),
                 frontier.logical_content_digest(),
             )
-            .map_err(BlobStreamingReadDenial::CorruptionReferenceEdgeMismatch)?;
+            .map_err(|denial| {
+                BlobStreamingReadDenial::CorruptionReferenceEdgeMismatch(Box::new(denial))
+            })?;
         Ok(Self {
             object_id: visible_generation.object_id().clone(),
             generation: visible_generation.generation(),

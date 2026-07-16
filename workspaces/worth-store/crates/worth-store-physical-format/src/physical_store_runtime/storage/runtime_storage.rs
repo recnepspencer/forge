@@ -91,7 +91,7 @@ impl PhysicalStoreRuntimeStorage {
         if self.find_page_index(slot_cell).is_none() {
             self.pages.push(StoredPageBytes::new(
                 page_cell,
-                encode_empty_page(slot_cell.generation()),
+                encode_empty_page(page_cell),
             ));
             self.reference_index.record_page_cell(
                 slot_cell.segment_id(),
@@ -113,8 +113,8 @@ impl PhysicalStoreRuntimeStorage {
         let index = self
             .find_page_index(slot_cell)
             .expect("append page exists before replacement");
-        let generation = self.pages[index].cell().generation();
-        self.pages[index].replace_bytes(encode_page(generation, page_payload));
+        let owner = self.pages[index].cell();
+        self.pages[index].replace_bytes(encode_page(owner, page_payload));
         if !self.page_slots.contains(&slot_cell) {
             self.page_slots.push(slot_cell);
             self.reference_index.record_page_slot(slot_cell);
@@ -183,6 +183,10 @@ impl PhysicalStoreRuntimeStorage {
 
     pub(crate) fn page_slots(&self) -> &[SlotGenerationCell] {
         &self.page_slots
+    }
+
+    pub(crate) fn page_cells(&self) -> Vec<crate::PageGenerationCell> {
+        self.pages.iter().map(StoredPageBytes::cell).collect()
     }
 
     pub(crate) fn extent_cells(&self) -> &[ExtentGenerationCell] {

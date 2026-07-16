@@ -45,11 +45,11 @@ pub enum StoreSecurityEvidenceVocabulary {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StoreSecurityReadinessVocabularyTerm {
-    S6IoQosSecurityScopeReadiness,
-    S7BlobSecurityScopeReadiness,
-    S10BackupExportCustodyReadiness,
-    S10RepairBlastRadiusReadiness,
-    S11SecurityFoundationReadiness,
+    IoQosSecurityScopeReadiness,
+    BlobSecurityScopeReadiness,
+    BackupExportCustodyReadiness,
+    RepairBlastRadiusReadiness,
+    SecurityFoundationReadiness,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -17,6 +17,20 @@ pub struct RecoveryCounterSnapshot {
     forbidden_full_store_scans: u64,
 }
 
+pub(crate) struct OfflineRecoveryCounterProjection {
+    pub(crate) replayed_frames: usize,
+    pub(crate) skipped_frames: usize,
+    pub(crate) validated_checkpoints: u64,
+    pub(crate) scanned_segments: usize,
+    pub(crate) page_redos: usize,
+    pub(crate) memory_envelope_bytes: u64,
+    pub(crate) memory_envelope_frames: u32,
+    pub(crate) allocation_bytes: u64,
+    pub(crate) total_store_pages: u64,
+    pub(crate) residue_rejections: usize,
+    pub(crate) forbidden_full_store_scans: u64,
+}
+
 impl RecoveryCounterSnapshot {
     pub(crate) fn from_execution(
         execution: &RedoExecutionReceipt,
@@ -41,30 +55,20 @@ impl RecoveryCounterSnapshot {
     }
 
     pub(crate) const fn from_offline_verifier(
-        replayed_frames: usize,
-        skipped_frames: usize,
-        validated_checkpoints: u64,
-        scanned_segments: usize,
-        page_redos: usize,
-        memory_envelope_bytes: u64,
-        memory_envelope_frames: u32,
-        allocation_bytes: u64,
-        total_store_pages: u64,
-        residue_rejections: usize,
-        forbidden_full_store_scans: u64,
+        projection: OfflineRecoveryCounterProjection,
     ) -> Self {
         Self {
-            replayed_frames,
-            skipped_frames,
-            validated_checkpoints,
-            scanned_segments,
-            page_redos,
-            memory_envelope_bytes,
-            memory_envelope_frames,
-            allocation_bytes,
-            total_store_pages,
-            residue_rejections,
-            forbidden_full_store_scans,
+            replayed_frames: projection.replayed_frames,
+            skipped_frames: projection.skipped_frames,
+            validated_checkpoints: projection.validated_checkpoints,
+            scanned_segments: projection.scanned_segments,
+            page_redos: projection.page_redos,
+            memory_envelope_bytes: projection.memory_envelope_bytes,
+            memory_envelope_frames: projection.memory_envelope_frames,
+            allocation_bytes: projection.allocation_bytes,
+            total_store_pages: projection.total_store_pages,
+            residue_rejections: projection.residue_rejections,
+            forbidden_full_store_scans: projection.forbidden_full_store_scans,
         }
     }
 

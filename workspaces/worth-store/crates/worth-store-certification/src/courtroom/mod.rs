@@ -11,6 +11,7 @@ pub(crate) mod memory;
 pub(crate) mod physical_integrity;
 pub(crate) mod physical_isolation;
 pub(crate) mod physical_substrate;
+pub mod protocol_models;
 pub(crate) mod recovery;
 pub mod replay;
 pub mod scenario;

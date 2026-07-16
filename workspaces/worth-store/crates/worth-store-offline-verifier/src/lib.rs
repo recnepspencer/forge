@@ -1,5 +1,17 @@
 #![forbid(unsafe_code)]
+//!
+//! Raw callers cannot promote declarations into confirmed offline truth:
+//!
+//! ```compile_fail
+//! use worth_store_offline_verifier::{
+//!     OfflineFileTruthEvidence, OfflineSecurityEvidencePosture,
+//! };
+//!
+//! let _forged = OfflineFileTruthEvidence::new("authority.manifest")
+//!     .with_authenticity(OfflineSecurityEvidencePosture::Confirmed);
+//! ```
 
+mod backup_verification;
 mod blob_corruption_observation;
 #[cfg(test)]
 mod blob_corruption_observation_tests;
@@ -9,11 +21,23 @@ mod custody_capsule_observation;
 mod custody_capsule_observation_tests;
 mod export_bundle_observation;
 mod handoff;
+mod inspection;
+mod media_acquisition;
 mod repair_blast_radius_observation;
 #[cfg(test)]
 mod repair_blast_radius_observation_tests;
 mod scan;
+mod staged_recovery_verification;
+mod truth_composition;
 
+pub use backup_verification::{
+    verify_backup_cut_sources, verify_backup_cut_sources_with_cancellation,
+    verify_materialized_backup, verify_materialized_backup_with_cancellation,
+    BackupArtifactSemanticDefectKind, BackupCutSourceVerificationDenial,
+    BackupCutSourceVerificationReport, BackupStructuralVerificationDenial,
+    BackupVerificationAllocationPhase, BackupVerificationBudget, BackupVerificationDefect,
+    BackupVerificationReadAccounting, BackupVerificationReport, StructurallyVerifiedBackupBundle,
+};
 pub use blob_corruption_observation::{
     classify_offline_damage_case, OfflineBlobCorruptionClassification,
     OfflineBlobCorruptionEvidenceKind, OfflineBlobCorruptionObservation,
@@ -32,6 +56,16 @@ pub use handoff::{
     map_offline_damage_hint_to_handoff, reject_offline_classification_as_blob_authority,
     reject_offline_observation_as_blob_authority, OfflineBlobAuthorityRejection,
 };
+pub use inspection::{
+    OfflineInspectionBudget, OfflineInspectionCancellation, OfflineInspectionCheckpoint,
+    OfflineInspectionCheckpointCodecDenial, OfflineInspectionCounters, OfflineInspectionDenial,
+    OfflineInspectionProgress, OfflineInspectionScope, OfflineInspectionSession,
+    OfflineMediaAcquisitionBudget, OfflineStoreInspection, OfflineStructuralIdentification,
+    OfflineWalkedFile, StructurallyWalkedMedia,
+};
+pub use media_acquisition::{
+    OfflineMediaAcquisitionDenial, OfflineMediaAcquisitionDimension, UntrustedOfflineMediaSet,
+};
 pub use repair_blast_radius_observation::{
     OfflineRepairBlastRadiusObservation, OfflineRepairBlastRadiusObservationDenial,
     OfflineRepairEvidenceKind,
@@ -39,4 +73,17 @@ pub use repair_blast_radius_observation::{
 pub use scan::{
     offline_repair_scan_background_pressure_shape,
     offline_verification_pressure_background_pressure_shape,
+};
+pub use staged_recovery_verification::{
+    post_verify_closed_staged_recovery, ClosedStagedRecoveryVerificationRequest,
+    PostVerifiedStagedRecovery, StagedRecoveryAuthorityPosture, StagedRecoveryExpectedFrontier,
+    StagedRecoveryOwnerVerificationSet, StagedRecoveryPostVerificationDenial,
+    StagedRecoveryRegionPosture,
+};
+pub use truth_composition::{
+    compose_operational_truth, CanonicalPhysicalCoverageProof, EvidenceBoundTruthRegion,
+    OfflineAuthorityClass, OfflineFileTruthEvidence, OfflineRecoveryAvailability,
+    OfflineSecurityEvidencePosture, OfflineTruthEvidenceAdmissionDenial,
+    OfflineTruthEvidenceReferences, OfflineTruthEvidenceSet, OperationalTruthCompositionBudget,
+    OperationalTruthCompositionDenial, OperationalTruthRegion, OperationalTruthReport,
 };

@@ -188,7 +188,7 @@ pub(super) fn direct_repair_pressure() -> BackgroundIoPressureShape {
 }
 
 pub(super) fn counters_for(
-    outcome: BackgroundPacingOutcome,
+    outcome: &BackgroundPacingOutcome,
 ) -> worth_store_io_scheduler::BackgroundPacingCounterSnapshot {
     match outcome {
         BackgroundPacingOutcome::Yield(value) => value.counters(),

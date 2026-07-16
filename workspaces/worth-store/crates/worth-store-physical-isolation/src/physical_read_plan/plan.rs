@@ -31,26 +31,47 @@ pub struct StablePhysicalReadPlanAdmission {
     plan: StablePhysicalReadPlan,
 }
 
-impl SeedStableReadPlan {
+#[derive(Debug)]
+pub(crate) struct PhysicalReadPlanCompletion {
+    reachability_barrier: PhysicalReadReachabilityBarrier,
+    release: PhysicalReadPlanReleaseSemantics,
+    retry_posture: PhysicalReadPlanRetryPosture,
+    counters: ReadPlanCounterSnapshot,
+}
+
+impl PhysicalReadPlanCompletion {
     pub(crate) const fn new(
-        root: CurrentPhysicalRoot,
-        epoch_vector: PhysicalEpochVector,
-        footprint: PhysicalReadPlanFootprint,
-        latch_plan: LatchAcquisitionPlan,
         reachability_barrier: PhysicalReadReachabilityBarrier,
         release: PhysicalReadPlanReleaseSemantics,
         retry_posture: PhysicalReadPlanRetryPosture,
         counters: ReadPlanCounterSnapshot,
     ) -> Self {
         Self {
-            root,
-            epoch_vector,
-            footprint,
-            latch_plan,
             reachability_barrier,
             release,
             retry_posture,
             counters,
+        }
+    }
+}
+
+impl SeedStableReadPlan {
+    pub(crate) const fn new(
+        root: CurrentPhysicalRoot,
+        epoch_vector: PhysicalEpochVector,
+        footprint: PhysicalReadPlanFootprint,
+        latch_plan: LatchAcquisitionPlan,
+        completion: PhysicalReadPlanCompletion,
+    ) -> Self {
+        Self {
+            root,
+            epoch_vector,
+            footprint,
+            latch_plan,
+            reachability_barrier: completion.reachability_barrier,
+            release: completion.release,
+            retry_posture: completion.retry_posture,
+            counters: completion.counters,
         }
     }
 

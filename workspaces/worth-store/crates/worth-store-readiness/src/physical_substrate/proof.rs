@@ -6,7 +6,7 @@ use super::{
 use worth_store_contracts::{AcceptedHandoffReadiness, ROADMAP_2_S1_SCOPE};
 use worth_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
-    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalPublicationState,
+    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
     PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId, PhysicalStoreRuntime,
     PhysicalStoreRuntimeCounterSnapshot, PlatformPhysicalAppendRequest,
     PlatformPhysicalOpenRequest, PHYSICAL_HEADER_LENGTH,
@@ -165,7 +165,7 @@ fn witnessed_payload(
     ),
     PhysicalSubstrateReadinessDenial,
 > {
-    let bytes = Box::leak(header_bytes(generation_value, payload).into_boxed_slice());
+    let bytes = Box::leak(header_bytes(generation_value, payload)?.into_boxed_slice());
     let authority = PhysicalHeaderAuthority::for_canonical_physical_format(
         PhysicalBinaryEncodingWitness::physical_format_canonical().map_err(|_| proof_rejected())?,
     );
@@ -217,18 +217,26 @@ fn extent_cell(
         .with_extent_generation(generation(7)?))
 }
 
-fn header_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalFrameKind::RecordFrame.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation_value.to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
-    bytes.extend_from_slice(payload);
+fn header_bytes(
+    generation_value: u64,
+    payload: &[u8],
+) -> Result<Vec<u8>, PhysicalSubstrateReadinessDenial> {
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
+        .slot_cell(segment(1)?, page(1)?, slot(11)?)
+        .with_slot_generation(generation(generation_value)?);
+    let binary = PhysicalBinaryEncodingWitness::physical_format_canonical()
+        .map_err(|_| proof_rejected())?;
+    let authority = PhysicalHeaderAuthority::for_canonical_physical_format(binary);
+    let mut bytes = Vec::new();
     bytes
+        .try_reserve_exact(PHYSICAL_HEADER_LENGTH as usize + payload.len())
+        .map_err(|_| proof_rejected())?;
+    bytes.extend_from_slice(&authority.encode_record_frame_header(
+        cell,
+        payload.len().try_into().map_err(|_| proof_rejected())?,
+    ));
+    bytes.extend_from_slice(payload);
+    Ok(bytes)
 }
 
 fn segment(value: u64) -> Result<PhysicalSegmentId, PhysicalSubstrateReadinessDenial> {

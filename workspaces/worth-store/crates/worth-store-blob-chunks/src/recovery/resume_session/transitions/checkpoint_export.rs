@@ -1,6 +1,8 @@
 use worth_store_wal::{BlobWalRecordEnvelope, BlobWalRecordKind};
 
-use super::super::checkpoint::{checkpoint_from_parts, checkpoint_identity};
+use super::super::checkpoint::{
+    checkpoint_from_parts, checkpoint_identity, BlobResumePublicationProgress,
+};
 use super::super::states::{
     BlobResumeCheckpointStateKind, BlobResumeChunkAppendStarted, BlobResumeChunkIntegrityAdmitted,
     BlobResumeFrontierCheckpointed, BlobResumeRootCandidateBuilt, BlobResumeRootPublicationReady,
@@ -22,8 +24,7 @@ pub(super) fn export_append_started_checkpoint(
         None,
         None,
         None,
-        None,
-        None,
+        BlobResumePublicationProgress::none(),
     ))
 }
 
@@ -40,8 +41,7 @@ impl BlobResumeChunkIntegrityAdmitted {
             Some(self.leaf.clone()),
             Some(self.durable.physical_reference),
             None,
-            None,
-            None,
+            BlobResumePublicationProgress::none(),
         )
     }
 }
@@ -55,8 +55,7 @@ impl BlobResumeFrontierCheckpointed {
             Some(self.integrity.leaf.clone()),
             Some(self.integrity.durable.physical_reference),
             Some(self.frontier.clone()),
-            None,
-            None,
+            BlobResumePublicationProgress::none(),
         )
     }
 }
@@ -70,8 +69,7 @@ impl BlobResumeRootCandidateBuilt {
             Some(self.checkpointed.integrity.leaf.clone()),
             Some(self.checkpointed.integrity.durable.physical_reference),
             Some(self.checkpointed.frontier.clone()),
-            Some(self.root_candidate.clone()),
-            None,
+            BlobResumePublicationProgress::root_candidate(self.root_candidate.clone()),
         )
     }
 }
@@ -96,8 +94,10 @@ impl BlobResumeRootPublicationReady {
                     .physical_reference,
             ),
             Some(self.root_candidate.checkpointed.frontier.clone()),
-            Some(self.root_candidate.root_candidate.clone()),
-            Some(self.reachability_staging.clone()),
+            BlobResumePublicationProgress::ready(
+                self.root_candidate.root_candidate.clone(),
+                self.reachability_staging.clone(),
+            ),
         )
     }
 }

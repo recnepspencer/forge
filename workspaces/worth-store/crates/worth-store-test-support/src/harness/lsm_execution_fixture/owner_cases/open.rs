@@ -35,9 +35,15 @@ fn canonical_key_required() -> LsmMembershipOwnerCaseObservation {
 
 fn durable_record_binding_mismatch() -> LsmMembershipOwnerCaseObservation {
     let world = world::complete_membership();
-    let mut bytes = std::fs::read(world.anchor.persisted_path()).unwrap();
+    use std::io::{Read, Seek, SeekFrom};
+    let mut bytes = vec![0; world.anchor.persisted_bytes() as usize];
+    let mut artifact = std::fs::File::open(world.anchor.persisted_path()).unwrap();
+    artifact
+        .seek(SeekFrom::Start(world.anchor.persisted_offset()))
+        .unwrap();
+    artifact.read_exact(&mut bytes).unwrap();
     bytes[b"worth-store:wal-lsm-membership:v1 ".len()] ^= 1;
-    std::fs::write(world.anchor.persisted_path(), bytes).unwrap();
+    world::persist_untrusted_artifact(44, &bytes);
     open(&world.anchor)
 }
 
@@ -59,21 +65,27 @@ fn membership_ambiguous() -> LsmMembershipOwnerCaseObservation {
 fn membership_stale() -> LsmMembershipOwnerCaseObservation {
     let world = world::replacement_world();
     let store = AdmittedWalArtifactStore::open(&world.anchor).unwrap();
-    for path in &world.record_paths {
-        std::fs::remove_file(path).unwrap();
-    }
+    std::fs::remove_file(&world.record_paths[0]).unwrap();
     reopen(store)
 }
 
 fn manifest_membership_mismatch() -> LsmMembershipOwnerCaseObservation {
     let world = world::replacement_world();
-    std::fs::remove_file(&world.record_paths[2]).unwrap();
+    let artifact = std::fs::OpenOptions::new()
+        .write(true)
+        .open(&world.record_paths[2])
+        .unwrap();
+    artifact.set_len(world.record_frame_offsets[2]).unwrap();
     open(&world.anchor)
 }
 
 fn replacement_output_mismatch() -> LsmMembershipOwnerCaseObservation {
     let world = world::replacement_world();
-    std::fs::remove_file(&world.output_path).unwrap();
+    let artifact = std::fs::OpenOptions::new()
+        .write(true)
+        .open(&world.output_path)
+        .unwrap();
+    artifact.set_len(world.output_frame_offset).unwrap();
     open(&world.anchor)
 }
 
@@ -85,7 +97,7 @@ fn persisted_membership_artifact_invalid() -> LsmMembershipOwnerCaseObservation 
         std::str::from_utf8(body).unwrap(),
         checksum(body)
     );
-    world::persist_untrusted_artifact(101, malformed.as_bytes());
+    world::persist_untrusted_artifact(44, malformed.as_bytes());
     open(&world.anchor)
 }
 

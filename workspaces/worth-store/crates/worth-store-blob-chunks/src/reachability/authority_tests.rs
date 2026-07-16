@@ -1,24 +1,18 @@
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_operations_vocabulary::{
-    BackupExportCustodyDeclaration, BackupExportCustodyMode, BackupExportCustodyReadiness,
-};
-use worth_store_security::{StoreKeyVersionPosture, StoreTenantScope};
+use worth_store_security::StoreTenantScope;
 
-use crate::lifecycle::generation_registry_test_support::current_authority;
 use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
-use crate::test_support::{admitted_sequence_for_scope, blob_scope};
+use crate::test_support::{admitted_blob_custody, admitted_sequence_for_scope, blob_scope};
 use crate::{
-    BlobChunkReachabilityRegistry, BlobReachabilityDenial, BlobReachabilityEdge,
-    BlobReachabilityReclaimDecision,
+    AdmittedBlobCustody, BlobChunkReachabilityRegistry, BlobCustodyPurpose, BlobReachabilityDenial,
+    BlobReachabilityEdge, BlobReachabilityReclaimDecision,
 };
 
 #[test]
 fn export_hold_cannot_seed_empty_registry_and_admits_through_reachability_authority() {
     let (published, sequence) = published_with_sequence("phase14-export-hold-authority");
-    let export = backup_export_readiness(
-        "phase14-export-hold-authority",
-        BackupExportCustodyMode::Export,
-    );
+    let export =
+        backup_export_readiness("phase14-export-hold-authority", BlobCustodyPurpose::Export);
     let leaf = sequence.proof_frontier().first_leaf();
     let edge = BlobReachabilityEdge::primary_blob_reference(&published, leaf)
         .expect("primary edge should admit");
@@ -95,16 +89,6 @@ fn published_with_sequence(
     (published, sequence)
 }
 
-fn backup_export_readiness(
-    case: &str,
-    mode: BackupExportCustodyMode,
-) -> BackupExportCustodyReadiness {
-    let authority = current_authority(case, "backup-export");
-    let admission =
-        BackupExportCustodyDeclaration::native(&authority, mode, StoreKeyVersionPosture::Current)
-            .expect("backup/export declaration should build")
-            .admit_with_current_authority(&authority)
-            .expect("backup/export declaration should admit");
-    BackupExportCustodyReadiness::from_admitted_custody(admission)
-        .expect("backup/export readiness should admit")
+fn backup_export_readiness(case: &str, purpose: BlobCustodyPurpose) -> AdmittedBlobCustody {
+    admitted_blob_custody(case, purpose)
 }

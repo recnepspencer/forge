@@ -44,7 +44,7 @@ serde payloads, raw strings, or projection text as evidence authority, then
   constraint is that canonical digest, comparison, and performance evidence
   must derive from native canonical basis with counters, not from JSON
   serialization order or ad hoc stringification.
-- `worth_store_roadmap_2.md` protects physical database credibility. The
+- `physical-database-roadmap.md` protects physical database credibility. The
   strongest shaping constraint is that Roadmap 2 cannot depend on full-store
   serde materialization, backend-private residue, or weak semantic carriers.
 

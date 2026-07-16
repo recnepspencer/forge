@@ -10,6 +10,7 @@
 
 extern crate self as worth_store_physical_isolation;
 
+mod backup_cut;
 mod blob_orphan_reclaim;
 mod byte_guard;
 mod checkpoint_interlock;
@@ -26,10 +27,26 @@ mod physical_semantic_boundary;
 mod publication;
 mod readiness;
 mod reclaim_reachability;
+mod recovery_publication;
+mod recovery_source_lease;
 mod root_protocol;
 mod security_scope_propagation;
 mod stable_read_execution;
 
+pub use backup_cut::{
+    abandon_backup_cut, prepare_backup_cut_abandonment, AdmittedBackupCut, BackupArtifactCoverage,
+    BackupArtifactFamily, BackupArtifactReference, BackupCutAbandonmentReceipt,
+    BackupCutAdmissionAuthority, BackupCutAdmissionDenial, BackupCutAdmissionRequest,
+    BackupCutCoordinates, BackupCutManifest, BackupCutManifestDenial, BackupCutReadmissionDenial,
+    BackupCutRecoveryDenial, BackupCutRecoveryRecord, BackupCutReleaseMismatch,
+    BackupCutStoragePosture, BackupCutStoragePostureDenial, BackupLeaseOverlap,
+    BackupReachabilityLease, BackupReachabilityLeaseHolderId, BackupReachabilityLeaseIndexSnapshot,
+    BackupReachabilityLeasePersistenceRecord, BackupReachabilityLeaseRecoveryDenial,
+    BackupReachabilityLeaseRegistry, BackupReachabilityLeaseRegistryDenial,
+    BackupReachabilityLeaseReleaseRecord, InvalidBackupReachabilityLeaseReleaseRecord,
+    PendingBackupLeaseAdmission, PendingBackupLeaseRelease, PersistedBackupReachabilityLease,
+    PreparedBackupCutAbandonment, ReleasedBackupReachabilityLease,
+};
 pub use blob_orphan_reclaim::{
     BlobOrphanReclaimBarrier, BlobOrphanReclaimCounterSnapshot, BlobOrphanReclaimCoverage,
     BlobOrphanReclaimDenial, BlobOrphanReclaimIdentity, BlobOrphanReclaimProof,
@@ -161,11 +178,11 @@ pub use publication::{
     PhysicalIdentityReuse, PhysicalPublicationCounterSnapshot, PhysicalPublicationDenial,
     PhysicalPublicationFoundationalEvidence, PhysicalPublicationIntent,
     PhysicalPublicationIntentKind, PhysicalPublicationReadiness, PhysicalPublicationReceipt,
-    PhysicalPublicationReleasePosture, PhysicalRootPublicationRuntime,
-    PublicationCrashRecoveryOutcome, PublicationEpochPair, PublicationEpochReadiness,
-    PublicationLatchReadiness, PublicationRootCandidate, PublishedCopyOnWriteRootSwap,
-    ReadCopyUpdateRootPublication, ReleasedOldReachability, RootPublicationEpoch,
-    RootSwapOrderingContract, ValidatedPhysicalPublicationIntent,
+    PhysicalPublicationReleasePosture, PhysicalRootPublicationAttempt,
+    PhysicalRootPublicationRuntime, PublicationCrashRecoveryOutcome, PublicationEpochPair,
+    PublicationEpochReadiness, PublicationLatchReadiness, PublicationRootCandidate,
+    PublishedCopyOnWriteRootSwap, ReadCopyUpdateRootPublication, ReleasedOldReachability,
+    RootPublicationEpoch, RootSwapOrderingContract, ValidatedPhysicalPublicationIntent,
 };
 pub use readiness::interference::{
     BackgroundMaintenanceIsolationAssumption, ForegroundInterferenceSurface,
@@ -211,6 +228,18 @@ pub use reclaim_reachability::{
     ReclaimCounterSnapshot, ReclaimDecision, ReclaimDenial, ReclaimEligibilityProof,
     ReclaimReachabilityRemovalReceipt, S6ReclaimReachabilityRemovalEvidence,
     S6ReclaimReachabilityRemovalEvidenceDenial,
+};
+pub use recovery_publication::{
+    AtomicRecoveryPublicationReceipt, RecoveryPublicationDenial, RecoveryPublicationLoweredPlan,
+    RecoveryPublicationOwner, RecoveryPublicationPlanRequest, RecoveryPublicationPosture,
+    RecoveryPublicationStartPosture, ReopenRecoveryPublicationByIdentityRequest,
+    ReopenRecoveryPublicationRequest,
+};
+pub use recovery_source_lease::{
+    AdmittedPitrSourceCut, AdmittedRollbackSourceCut, PitrReachabilityLease,
+    RecoveredRecoverySourceLease, RecoverySourceLeaseDenial, RecoverySourceLeaseKind,
+    RecoverySourceLeaseRegistry, RecoverySourceLeaseReleaseReceipt, RecoverySourceLeaseRequest,
+    RollbackReachabilityLease,
 };
 pub use root_protocol::{
     readmit_current_root_for_read_plan, reject_checkpoint_root_as_current_read_authority,

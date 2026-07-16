@@ -1,8 +1,8 @@
 mod denial;
 mod identity;
 mod parts;
+mod record;
 mod replay_bundle;
-mod transcript;
 
 pub(crate) use denial::require_plan_bound_oracle_verdicts_for_replay_basis;
 pub use denial::{
@@ -14,5 +14,5 @@ pub use identity::{
     PhysicalSimulationTranscriptIdentity, SimulationRunIdentity, TranscriptReplayEvidenceIdentity,
 };
 pub use parts::ExecutedTranscriptParts;
+pub use record::{PhysicalSimulationTranscript, PhysicalStoryTranscript};
 pub use replay_bundle::{DetachedSimulationReplayParts, SimulationReplayBundle};
-pub use transcript::{PhysicalSimulationTranscript, PhysicalStoryTranscript};

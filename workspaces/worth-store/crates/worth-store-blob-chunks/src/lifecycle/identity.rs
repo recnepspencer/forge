@@ -114,23 +114,46 @@ pub struct BlobLifecycleDeclaration {
     authority_classification: BlobAuthorityClassification,
 }
 
-impl BlobLifecycleDeclaration {
-    #[allow(dead_code)]
-    pub(crate) const fn new(
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub(crate) struct BlobLifecycleIdentityBasis {
+    object_id: BlobObjectId,
+    generation: BlobGeneration,
+    chunk_tree_root: ChunkTreeRoot,
+    logical_content_digest: LogicalContentDigest,
+}
+
+#[cfg(any(test, feature = "certification-test-authority"))]
+impl BlobLifecycleIdentityBasis {
+    pub(crate) fn new(
         object_id: BlobObjectId,
         generation: BlobGeneration,
         chunk_tree_root: ChunkTreeRoot,
         logical_content_digest: LogicalContentDigest,
-        security_metadata: crate::BlobChunkSecurityMetadataWitness,
-        stored_chunk_digest: StoredChunkDigest,
-        authenticated_frame_digest: AuthenticatedFrameDigest,
-        authority_classification: BlobAuthorityClassification,
     ) -> Self {
         Self {
             object_id,
             generation,
             chunk_tree_root,
             logical_content_digest,
+        }
+    }
+}
+
+impl BlobLifecycleDeclaration {
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    #[allow(dead_code)]
+    pub(crate) fn new(
+        identity: BlobLifecycleIdentityBasis,
+        security_metadata: crate::BlobChunkSecurityMetadataWitness,
+        stored_chunk_digest: StoredChunkDigest,
+        authenticated_frame_digest: AuthenticatedFrameDigest,
+        authority_classification: BlobAuthorityClassification,
+    ) -> Self {
+        Self {
+            object_id: identity.object_id,
+            generation: identity.generation,
+            chunk_tree_root: identity.chunk_tree_root,
+            logical_content_digest: identity.logical_content_digest,
             security_metadata,
             stored_chunk_digest,
             authenticated_frame_digest,

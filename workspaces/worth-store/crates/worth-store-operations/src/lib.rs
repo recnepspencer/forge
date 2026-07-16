@@ -59,17 +59,74 @@
 //! let readiness: RepairBlastRadiusReadiness = todo!();
 //! let _authorization: RepairOperatorAuthorization = readiness;
 //! ```
+//!
+//! Restored observations and copied root metadata are not import publication readiness:
+//!
+//! ```compile_fail
+//! use worth_store_operations::{
+//!     ImportPublicationReadiness, RestoredLayoutMaterializationObservation,
+//! };
+//!
+//! let observed: RestoredLayoutMaterializationObservation = todo!();
+//! let _readiness: ImportPublicationReadiness = observed;
+//! ```
+//!
+//! Durable control records are decoded only through the crate-private wire
+//! schema; arbitrary bytes cannot manufacture a public domain record:
+//!
+//! ```compile_fail
+//! use worth_store_operations::OperationalControlRecord;
+//!
+//! let _: OperationalControlRecord = OperationalControlRecord::decode(&[]).unwrap();
+//! ```
+//!
+//! Restore authorization cannot satisfy repair admission:
+//!
+//! ```compile_fail
+//! use worth_store_operations::{AuthorizedBackupRestorePlan, AuthorizedRepairPlan};
+//!
+//! let restore: AuthorizedBackupRestorePlan = todo!();
+//! let _repair: AuthorizedRepairPlan = restore;
+//! ```
+//!
+//! Restore authorization cannot satisfy PITR admission:
+//!
+//! ```compile_fail
+//! use worth_store_operations::{
+//!     AuthorizedBackupRestorePlan, AuthorizedPointInTimeRecoveryPlan,
+//! };
+//!
+//! let restore: AuthorizedBackupRestorePlan = todo!();
+//! let _pitr: AuthorizedPointInTimeRecoveryPlan = restore;
+//! ```
+//!
+//! Restore authorization cannot satisfy rollback admission:
+//!
+//! ```compile_fail
+//! use worth_store_operations::{AuthorizedBackupRestorePlan, AuthorizedRollbackPlan};
+//!
+//! let restore: AuthorizedBackupRestorePlan = todo!();
+//! let _rollback: AuthorizedRollbackPlan = restore;
+//! ```
 
+mod authorization;
 mod backup;
 mod backup_export_custody_scheduler_demand;
-mod capsule_chunk_availability;
+mod boundary_ledger;
+mod boundary_projection;
 #[cfg(feature = "certification-test-authority")]
 pub mod certification_test_authority;
+mod control_store;
 mod facade;
 pub mod layout_projection;
-mod recovery_posture;
+mod owner_plan_dag;
+#[cfg(test)]
+mod phase_1_6_tests;
+#[cfg(test)]
+mod phase_7_13_tests;
 mod repair;
 mod repair_blast_radius_scheduler_demand;
 mod replication_prep_scheduler_demand;
+mod workflow;
 
 pub use facade::*;

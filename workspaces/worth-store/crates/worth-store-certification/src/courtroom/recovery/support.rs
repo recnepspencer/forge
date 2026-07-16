@@ -38,7 +38,7 @@ pub(super) fn admit_entry(readiness: AdmittedRecoveryIntegrityInput) -> Recovery
     let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {
         panic!("intact typed S.3/S.2/S.1 evidence admits recovery entry");
     };
-    admission
+    *admission
 }
 
 pub(super) fn damaged_readiness() -> AdmittedRecoveryIntegrityInput {

@@ -27,17 +27,36 @@ pub struct OfflineRecoveryVerificationReport {
     runtime_cache_reads: u32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct OfflineInspectionMeasurements {
+    inspected_records: usize,
+    inspected_bytes: usize,
+    semantic_decode_attempts: u32,
+}
+
+impl OfflineInspectionMeasurements {
+    pub(super) const fn new(
+        inspected_records: usize,
+        inspected_bytes: usize,
+        semantic_decode_attempts: u32,
+    ) -> Self {
+        Self {
+            inspected_records,
+            inspected_bytes,
+            semantic_decode_attempts,
+        }
+    }
+}
+
 impl OfflineRecoveryVerificationReport {
-    pub(crate) fn from_offline_inspection(
+    pub(super) fn from_offline_inspection(
         artifact_digest: PersistedRecoveryArtifactDigest,
         recovery_profile: RecoveryProfileId,
         conclusion: OfflineRecoveryVerifierConclusion,
         verified_runtime_classification: super::RecoveryRuntimeClassification,
         recovered_state: Option<RecoveredPhysicalState>,
         counters: Option<RecoveryCounterSnapshot>,
-        inspected_records: usize,
-        inspected_bytes: usize,
-        semantic_decode_attempts: u32,
+        measurements: OfflineInspectionMeasurements,
     ) -> Self {
         Self {
             format_version: artifact_digest.format_version().to_string(),
@@ -48,9 +67,9 @@ impl OfflineRecoveryVerificationReport {
             verified_runtime_classification,
             recovered_state,
             counters,
-            inspected_records,
-            inspected_bytes,
-            semantic_decode_attempts,
+            inspected_records: measurements.inspected_records,
+            inspected_bytes: measurements.inspected_bytes,
+            semantic_decode_attempts: measurements.semantic_decode_attempts,
             live_runtime_constructions: 0,
             runtime_cache_reads: 0,
         }

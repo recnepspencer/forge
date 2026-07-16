@@ -92,5 +92,4 @@ pub(crate) fn locate_page_record<'a>(
             PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::PageRecordDenied)
                 .with_page_denial(denial)
         })
-        .map(|located| located)
 }

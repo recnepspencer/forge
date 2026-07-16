@@ -8,9 +8,8 @@ use super::pre_decode_physical_admission_test_support::{
 use worth_store_physical_format::{
     PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalPageKind,
-    PhysicalPageRecordAuthority, PhysicalPublicationState, PhysicalRecordSlot,
-    PhysicalReferenceScope, PhysicalSegmentId, SlotAppendRequest, SlotGenerationCell,
-    PHYSICAL_HEADER_LENGTH,
+    PhysicalPageRecordAuthority, PhysicalRecordSlot, PhysicalReferenceScope, PhysicalSegmentId,
+    SlotAppendRequest, SlotGenerationCell,
 };
 use worth_store_physical_integrity::{
     DeclaredPhysicalChecksum, PhysicalContainerIntegrity, PhysicalIntegrityAdmissionRequest,
@@ -209,17 +208,7 @@ fn header_authority() -> PhysicalHeaderAuthority {
 }
 
 fn page_bytes(cell: PageGenerationCell, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalPageKind::DataPage.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&cell.generation().get().to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
-    bytes.extend_from_slice(payload);
-    bytes
+    crate::physical_fixture_encoding::data_page_bytes(cell, payload)
 }
 
 fn slot_cell(segment: u64, page: u64, slot: u64, generation: u64) -> SlotGenerationCell {

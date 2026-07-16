@@ -69,8 +69,8 @@ impl PhysicalBootstrapCatalogWitness {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PhysicalBootstrapCatalogDenial {
-    ManifestDecodeDenied(OfflineVerifierDenial),
-    ManifestDiscoveryDenied(ManifestDiscoveryDenial),
+    ManifestDecodeDenied(Box<OfflineVerifierDenial>),
+    ManifestDiscoveryDenied(Box<ManifestDiscoveryDenial>),
     BootstrapChecksumDenied(PhysicalChunkChecksumDenial),
 }
 
@@ -143,12 +143,14 @@ impl PhysicalBootstrapCatalogAuthority {
 
         if let Some(denial) = discovery_denial {
             return Err(PhysicalBootstrapCatalogDenial::ManifestDiscoveryDenied(
-                denial,
+                Box::new(denial),
             ));
         }
         Err(PhysicalBootstrapCatalogDenial::ManifestDecodeDenied(
-            decode_denial
-                .expect("bootstrap open witness always carries at least one root candidate"),
+            Box::new(
+                decode_denial
+                    .expect("bootstrap open witness always carries at least one root candidate"),
+            ),
         ))
     }
 }

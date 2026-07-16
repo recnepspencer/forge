@@ -5,7 +5,7 @@ use super::released_edges::BlobChunkDedupeReferenceRelease;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlobChunkDedupeReclaimDecision {
-    ReclaimPermitted(BlobChunkDedupeReferenceRelease),
+    ReclaimPermitted(Box<BlobChunkDedupeReferenceRelease>),
     ReclaimDenied(BlobChunkDedupeCounterSnapshot),
 }
 
@@ -17,8 +17,8 @@ pub(super) fn classify_reclaim(
             set.counters().record_reclaim_blocked_by_reference_edge(),
         )
     } else {
-        BlobChunkDedupeReclaimDecision::ReclaimPermitted(BlobChunkDedupeReferenceRelease::snapshot(
-            set,
+        BlobChunkDedupeReclaimDecision::ReclaimPermitted(Box::new(
+            BlobChunkDedupeReferenceRelease::snapshot(set),
         ))
     }
 }

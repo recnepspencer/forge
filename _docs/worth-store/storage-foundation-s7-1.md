@@ -43,7 +43,7 @@ database layers depend on it.
 - `perf_laws.md` protects visible cost and bounded execution. The spec keeps
   counters tied to transition outcomes and prevents cleanup from hiding scans,
   allocations, or broad maintenance behind nicer names.
-- `worth_store_roadmap_2.md` protects the physical database foundation order.
+- `physical-database-roadmap.md` protects the physical database foundation order.
   S.7.1 belongs after S.7 because native blob proof flows exposed the topology
   problem, and before S.8 because layout/index discipline must not depend on
   unauditable proof surfaces.

@@ -1,4 +1,6 @@
-use crate::courtroom::scheduling::S6ReadinessCertificationProofTopology;
+use crate::courtroom::scheduling::{
+    S6ReadinessCertificationProofTopology, S6ReadinessCertificationProofTopologyParts,
+};
 use worth_proof::{
     prelude::{
         recipe, AuthorityMarker, AuthorityWitness, BasisPostureDxExt, BasisPostureKind,
@@ -336,22 +338,22 @@ impl S6CheckedStoreProofProgression {
         self,
         payload: &S6CertificationProofProgression,
     ) -> S6ReadinessCertificationProofTopology {
-        S6ReadinessCertificationProofTopology::new(
-            self.resolution_outcome == ProofOutcomeKind::Success,
-            self.lowering_outcome == ProofOutcomeKind::Success,
-            self.readiness_outcome == ProofOutcomeKind::Success,
-            self.execution_outcome == ProofOutcomeKind::Success,
-            self.resolved_basis_posture == BasisPostureKind::CurrentValidity,
-            self.lowered_basis_posture == BasisPostureKind::CurrentValidity,
-            self.readmitted_basis_posture == BasisPostureKind::CurrentValidity,
-            self.ready_stage == RecipeStageKind::ExecutionReady,
-            self.executed_stage == RecipeStageKind::Executed,
-            self.executed_basis_posture == BasisPostureKind::CurrentValidity,
-            self.resolved_execution_identity_tag == payload.execution_identity_tag,
-            self.lowered_lane_binding_mask == payload.lane_binding_mask,
-            self.readiness_readmission_boundaries,
-            self.executed_readmission_boundaries,
-            self.freshness_readmitted_boundaries,
-        )
+        S6ReadinessCertificationProofTopology::new(S6ReadinessCertificationProofTopologyParts {
+            resolution_success: self.resolution_outcome == ProofOutcomeKind::Success,
+            lowering_success: self.lowering_outcome == ProofOutcomeKind::Success,
+            readiness_success: self.readiness_outcome == ProofOutcomeKind::Success,
+            execution_success: self.execution_outcome == ProofOutcomeKind::Success,
+            resolved_current: self.resolved_basis_posture == BasisPostureKind::CurrentValidity,
+            lowered_current: self.lowered_basis_posture == BasisPostureKind::CurrentValidity,
+            readmitted_current: self.readmitted_basis_posture == BasisPostureKind::CurrentValidity,
+            ready_stage_execution_ready: self.ready_stage == RecipeStageKind::ExecutionReady,
+            executed_stage_executed: self.executed_stage == RecipeStageKind::Executed,
+            executed_current: self.executed_basis_posture == BasisPostureKind::CurrentValidity,
+            identity_bound: self.resolved_execution_identity_tag == payload.execution_identity_tag,
+            lane_binding_bound: self.lowered_lane_binding_mask == payload.lane_binding_mask,
+            readiness_readmission_boundaries: self.readiness_readmission_boundaries,
+            executed_readmission_boundaries: self.executed_readmission_boundaries,
+            freshness_readmitted_boundaries: self.freshness_readmitted_boundaries,
+        })
     }
 }

@@ -1,10 +1,13 @@
 use worth_proof::TransitionOutcome;
+use worth_store_authority::StoreCurrentAuthorityWitness;
 use worth_store_contracts::DurableArtifactFamilyId;
 use worth_store_layout_indexes::declarations::layout_declarations;
 use worth_store_layout_indexes::integrity::{
     layout_corruption, offline_readmission, LayoutReadmissionWitness, OfflineReadmissionView,
 };
-use worth_store_layout_indexes::materialization::RestoredArtifactMaterializationAdmissionCaseId;
+use worth_store_layout_indexes::materialization::{
+    AdmittedLayoutMaterialization, RestoredArtifactMaterializationAdmissionCaseId,
+};
 use worth_store_layout_indexes::{
     access_planning, AdmittedPhysicalArtifactFamily, ObserveOwnerCase, OwnerCaseObservation,
 };
@@ -101,6 +104,42 @@ pub fn execute_restore_owner_scenarios(
     RestoreOwnerScenarioObservations {
         materialization,
         integration,
+    }
+}
+
+pub struct ImportPublicationScenarioPreparation {
+    authority: StoreCurrentAuthorityWitness,
+    materialization: AdmittedLayoutMaterialization,
+}
+
+impl ImportPublicationScenarioPreparation {
+    pub const fn authority(&self) -> &StoreCurrentAuthorityWitness {
+        &self.authority
+    }
+
+    pub fn into_materialization(self) -> AdmittedLayoutMaterialization {
+        self.materialization
+    }
+}
+
+pub fn prepare_import_publication_owner_scenario(
+    catalog: &worth_store_layout_indexes::BootstrapCatalogReadAdmission,
+    reopened: &ReopenedRecoveryArtifactAdmission,
+) -> ImportPublicationScenarioPreparation {
+    let authority = current_authority("store.physical.default_instance");
+    let family = admitted_page_family(&authority);
+    let materialization = admit_restored_layout_materialization(
+        family.declaration().family(),
+        family,
+        catalog,
+        reopened,
+        &custody_admission(&authority),
+    )
+    .into_materialized()
+    .expect("certification import materialization must admit");
+    ImportPublicationScenarioPreparation {
+        authority,
+        materialization,
     }
 }
 

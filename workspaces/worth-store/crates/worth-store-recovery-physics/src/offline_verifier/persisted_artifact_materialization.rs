@@ -61,28 +61,63 @@ pub struct CheckpointManifestMaterialization {
     total_store_pages: u64,
 }
 
-impl CheckpointManifestMaterialization {
-    pub fn new(
-        record_id: impl Into<String>,
-        root: impl Into<String>,
-        frontier_lsn: u64,
-        source_profile: impl Into<String>,
-        source_candidate_count: usize,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckpointManifestSourceMaterialization {
+    profile: String,
+    candidate_count: usize,
+}
+
+impl CheckpointManifestSourceMaterialization {
+    pub fn new(profile: impl Into<String>, candidate_count: usize) -> Self {
+        Self {
+            profile: profile.into(),
+            candidate_count,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CheckpointManifestBudgetMaterialization {
+    memory_envelope_bytes: u64,
+    memory_envelope_frames: u32,
+    allocation_bytes: u64,
+    total_store_pages: u64,
+}
+
+impl CheckpointManifestBudgetMaterialization {
+    pub const fn new(
         memory_envelope_bytes: u64,
         memory_envelope_frames: u32,
         allocation_bytes: u64,
         total_store_pages: u64,
     ) -> Self {
         Self {
-            record_id: record_id.into(),
-            root: root.into(),
-            frontier_lsn,
-            source_profile: source_profile.into(),
-            source_candidate_count,
             memory_envelope_bytes,
             memory_envelope_frames,
             allocation_bytes,
             total_store_pages,
+        }
+    }
+}
+
+impl CheckpointManifestMaterialization {
+    pub fn new(
+        record_id: impl Into<String>,
+        root: impl Into<String>,
+        frontier_lsn: u64,
+        source: CheckpointManifestSourceMaterialization,
+        budget: CheckpointManifestBudgetMaterialization,
+    ) -> Self {
+        Self {
+            record_id: record_id.into(),
+            root: root.into(),
+            frontier_lsn,
+            source_profile: source.profile,
+            source_candidate_count: source.candidate_count,
+            memory_envelope_bytes: budget.memory_envelope_bytes,
+            memory_envelope_frames: budget.memory_envelope_frames,
+            allocation_bytes: budget.allocation_bytes,
+            total_store_pages: budget.total_store_pages,
         }
     }
 

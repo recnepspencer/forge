@@ -1,7 +1,7 @@
 use crate::{
     PhysicalBinaryEncodingWitness, PhysicalGeneration, PhysicalHeaderAuthority, PhysicalPageId,
-    PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalPublicationState, PhysicalRecordSlot,
-    PhysicalSegmentId, SlotAppendRequest, PHYSICAL_HEADER_LENGTH,
+    PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalRecordSlot, PhysicalSegmentId,
+    SlotAppendRequest, PHYSICAL_HEADER_LENGTH,
 };
 
 pub(crate) fn one_record_page_payload(
@@ -9,7 +9,7 @@ pub(crate) fn one_record_page_payload(
     page_cell: crate::PageGenerationCell,
     slot_cell: crate::SlotGenerationCell,
 ) -> Vec<u8> {
-    let empty_page = page_bytes(generation(5), &[]);
+    let empty_page = page_bytes(page_cell, &[]);
     records
         .append_record(
             admitted_page(records, page_cell, &empty_page),
@@ -41,24 +41,22 @@ pub(crate) fn record_authority() -> PhysicalPageRecordAuthority {
     )
 }
 
-pub(crate) fn page_bytes(generation: PhysicalGeneration, payload: &[u8]) -> Vec<u8> {
-    page_bytes_for_kind(PhysicalPageKind::DataPage, generation, payload)
+pub(crate) fn page_bytes(page_cell: crate::PageGenerationCell, payload: &[u8]) -> Vec<u8> {
+    page_bytes_for_kind(PhysicalPageKind::DataPage, page_cell, payload)
 }
 
 pub(crate) fn page_bytes_for_kind(
     kind: PhysicalPageKind,
-    generation: PhysicalGeneration,
+    page_cell: crate::PageGenerationCell,
     payload: &[u8],
 ) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(kind.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation.get().to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
+    bytes.extend_from_slice(&crate::header::encode_page_header(
+        crate::PhysicalByteOrder::LittleEndian,
+        kind,
+        page_cell,
+        payload.len() as u32,
+    ));
     bytes.extend_from_slice(payload);
     bytes
 }

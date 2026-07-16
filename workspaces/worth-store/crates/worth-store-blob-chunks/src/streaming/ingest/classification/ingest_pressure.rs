@@ -8,7 +8,7 @@ pub(crate) fn classify_pressure_outcome(
     pressure: BlobStreamingPressureAdmission,
 ) -> Result<BlobStreamingIngestCounterSnapshot, BlobStreamingIngestDenial> {
     let counters = BlobStreamingIngestCounterSnapshot::start();
-    match pressure.outcome() {
+    match pressure.into_outcome() {
         BackgroundPacingOutcome::Yield(yielded) => Ok(counters
             .record_yield()
             .record_scheduler_waits(yielded.counters().foreground_pressure_events())),

@@ -78,10 +78,12 @@ pub(super) fn build_chunk_sequence(
                 actual_bytes_streamed,
                 executed_topology.chunk_count(),
             ),
-            peak_window_bytes,
-            peak_allocation_count,
-            temporary_file_bytes,
-            disk_bytes_written,
+            crate::heavy_fixture::HeavyBlobFixtureMeasurements {
+                peak_resident_memory_bytes: peak_window_bytes,
+                peak_allocation_count,
+                temporary_file_bytes,
+                disk_bytes_written,
+            },
             cleanup_receipt,
             disk_preflight_receipt,
         )

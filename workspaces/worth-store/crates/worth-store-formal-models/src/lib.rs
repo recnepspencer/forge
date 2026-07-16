@@ -1,11 +1,80 @@
+#![doc = include_str!("authority_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ModeledStateMachine {
-    WalCheckpointFlushOrdering,
-    RecoverySourcePrecedence,
-    CompactionCutover,
-    PhysicalReadLease,
-    RepairQuarantine,
-    ReplicationImportAdmission,
-}
+//! Cold checked-protocol support for Worth Store.
+//!
+//! Runtime owners issue outcomes and observations. This crate classifies those
+//! observations into finite model actions, declares model assumptions, and
+//! invokes checked artifacts. Nothing exported here carries runtime authority.
+
+pub mod assumptions;
+mod model_contract;
+pub mod protocol_bindings;
+pub mod protocols;
+pub mod runner;
+
+pub use model_contract::{
+    protocol_model_contract, FiniteAbstractionRule, ProtocolLivenessContract, ProtocolModelContract,
+};
+
+pub use protocol_bindings::{
+    classify_owner_observation_omission, current_compaction_visibility_mappings,
+    current_compaction_visibility_owner_cases, current_protocol_binding_manifest,
+    require_compaction_visibility_refinement_coverage, CompactionVisibilityFamilyCoverage,
+    CompactionVisibilityMappedOwnerCase, CompactionVisibilityOwnerCase,
+    CompactionVisibilityOwnerCaseFamily, CompactionVisibilityRefinementCoverageDenial,
+    CompactionVisibilityRefinementCoverageIssue, CompactionVisibilityRefinementCoverageReceipt,
+    ModelActionFamily, OwnerBoundaryBinding, OwnerBoundaryGap, OwnerBoundaryGapKind,
+    OwnerCrashSurvivalPosture, OwnerEvidenceClass, OwnerObservationOmissionCause,
+    OwnerObservationOmissionVerdict, ProtocolBindingManifest, ProtocolFamily,
+};
+pub use protocols::compaction_visibility::{
+    map_compaction_observation, map_lsm_execution_observation, map_lsm_maintenance_observation,
+    map_lsm_membership_observation, CompactionLifecycleDenial, CompactionLifecycleModel,
+    CompactionLifecycleState, CompactionVisibilityAbstractionFunction, CompactionVisibilityAction,
+    CompactionVisibilityCounterexampleLocalization,
+    CompactionVisibilityCounterexampleLocalizationDenial, LsmExecutionAction, LsmExecutionDenial,
+    LsmMaintenanceAction, LsmMaintenanceDenial, LsmMembershipAction, LsmMembershipDenial,
+    ModeledOutcome,
+};
+pub use protocols::durability_recovery::{
+    map_checkpoint_cutover, map_checkpoint_selection, map_directory_sync_failure,
+    map_executed_wal_durability, map_page_flush_receipt, map_recovery_completion,
+    map_redo_execution, map_redo_generation_denial, map_reopened_recovery_artifact,
+    map_uncertain_reopened_page, CheckpointFrontierState, DirectorySyncFrontierState,
+    DurabilityOwnerMappingDenial, DurabilityRecoveryAction, DurabilityRecoveryDenial,
+    DurabilityRecoveryFrontier, PageFrontierState, RecoveredRootFrontierState, ReplayFrontierState,
+    WalFrontierState,
+};
+pub use protocols::import_publication::{
+    map_import_publication_crash_attempt, map_import_publication_denial,
+    map_import_publication_readiness, map_published_import, ImportPublicationAction,
+    ImportPublicationCrashMappingDenial, ImportPublicationModel, ImportPublicationModelDenial,
+    ImportPublicationReadinessObservation, ImportPublicationState, PublishedImportObservation,
+};
+pub use protocols::lease_reclaim::{
+    map_active_lease, map_expiry, map_identity_reuse_attempt, map_owned_copy,
+    map_reclaim_eligibility, map_release, map_revocation, LeaseReclaimAction,
+    LeaseReclaimActionKind, LeaseReclaimDenial,
+};
+pub use protocols::quarantine_readmission::{
+    map_quarantine_readmission_outcome, map_quarantine_record, QuarantineReadmissionDenial,
+    QuarantineReadmissionModel, QuarantineReadmissionOutcomeObservation,
+    QuarantineReadmissionState, QuarantineRecordObservation,
+};
+pub use protocols::replication_admission::{
+    map_replication_progress_outcome, map_replication_publication_outcome,
+    map_replication_publication_readiness, map_replication_source_admission_outcome,
+    ReplicationAdmissionAction,
+};
+pub use protocols::shared_frontiers::{
+    compose_compaction_action, compose_durability_action, compose_import_action,
+    compose_lease_action, compose_quarantine_state, compose_replication_action,
+    compose_source_precedence_action, SharedAdmissionFrontier, SharedDurabilityFrontier,
+    SharedFrontierAction, SharedFrontierDenial, SharedFrontierModel, SharedQuarantineFrontier,
+    SharedReachabilityFrontier, SharedVisibilityFrontier,
+};
+pub use protocols::source_precedence::{
+    map_recovery_source_decision_trace, require_selectable_source, SourceAuthorityPosture,
+    SourcePrecedenceAction, SourcePrecedenceActionKind, SourcePrecedenceDenial,
+};

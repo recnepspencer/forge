@@ -25,4 +25,7 @@ pub enum HazardLeaseDenial {
     ExpiredLeaseWithoutReleaseRevocationOrOwnedCopy {
         slot: HazardLeaseSlot,
     },
+    InternalIndexInconsistency {
+        slot: HazardLeaseSlot,
+    },
 }

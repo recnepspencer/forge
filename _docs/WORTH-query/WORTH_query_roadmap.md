@@ -20,9 +20,10 @@ That rule governs every milestone:
    ad hoc host closures, or runtime-only conventions
 2. planning, narrowing, and legality checks must happen before the hot path
    executes reads or live maintenance
-3. `worth-query` may compose `worth-relational`, `worth-store`,
-   `worth-signal`, and the runtime bridge, but it must not steal authority
-   from any of them
+3. `worth-query` owns canonical query declaration, planning, provider, result,
+   and runtime-backed execution contracts; Store integration composes those
+   contracts and may require prerequisite changes in Query without moving
+   durable implementation work back into this roadmap
 4. live delivery, historical reads, and persisted query artifacts must remain
    derived from canonical truth rather than inventing shadow read models
 
@@ -68,8 +69,9 @@ Rules for every remaining query item:
   subscription/history cases
 - sequence numbers express logical dependency order, not a promise that every
   later milestone must wait for every earlier integration detail to land
-- every milestone must say what is blocked on `worth-store` so the roadmap
-  stays honest while store is still unfinished
+- every milestone must identify Store-facing contracts or deferred durable
+  claims so the Store integration roadmap can close them without duplicating
+  Query meaning
 - every milestone must declare its own adversarial constraint
 - every hot-path milestone must declare named complexity contracts and exact
   counter proof obligations
@@ -86,7 +88,8 @@ The roadmap preserves these query operating modes explicitly:
 - `Runtime-backed mode`: queries plan and execute directly against
   `worth-relational` snapshot-backed reads
 - `Store-backed mode`: queries execute against admitted `worth-store` surfaces
-  without changing canonical query meaning
+  without changing canonical query meaning; its implementation sequence and
+  closure evidence live in the Store runtime integration roadmap
 - `Live-promoted mode`: the same canonical query meaning is maintained through
   query-shaped incremental updates
 - `Ephemeral artifact mode`: saved queries, templates, or host-bound bindings
@@ -104,12 +107,37 @@ surfaces, even when a section heading still says `Must Ship` for readability:
   execution, live maintenance, history, policy, and replay
 - `proof obligations`: the parity checks, hostile scenarios, and machine-
   checkable evidence that must exist before the milestone is honest
-- `store-gated completion debt`: any completion claim that must stay open until
-  `worth-store` can supply the durable artifact support the query layer depends
-  on
+- `store handoff`: the exact provider, artifact, or parity contract consumed by
+  the Store runtime integration roadmap, without pretending Query locally owns
+  the durable implementation
 
 If a roadmap line item only names API surface but does not also name semantic
 or proof obligations, it is incomplete.
+
+## Store Integration Handoff
+
+This roadmap is organized around Query's semantic and runtime-backed build
+order. The physical database, joined runtime, and any Query changes required
+to integrate them are sequenced in the
+[Worth Store Runtime And Integration Roadmap](../worth-store/runtime-integration-roadmap.md).
+That roadmap is intentionally organized by implementation and dependency order,
+not by a rigid source-ownership rule.
+
+The former Store-gated Query milestones move as follows:
+
+- former Query Milestone 10 ordinary execution and pushdown work moves to Store
+  Milestone 9; historical, branch, preview, diff, and merge parity moves to
+  Store Milestone 10
+- former Query Milestone 11 durable saved queries, named artifacts,
+  continuations, cursors, and restart-stable reload move to Store Milestone 11
+- former Query Milestone 12 blob-backed delivery and large-object semantics
+  move to Store Milestone 12
+- joined Query/Store production certification closes in Store Milestone 19
+
+Query still owns the canonical declaration, plan, result, provider, and
+semantic parity contracts those Store milestones consume. If integration
+reveals that Query must change, that change belongs in the Store roadmap's
+implementation sequence rather than being mirrored here as a second milestone.
 
 ## Platform Framework Stance
 
@@ -282,159 +310,50 @@ cross-feature proof gates before final certification:
   routing, lifecycle, receipt assembly, canonical domain identity, runtime
   installation, derived operation registries, and proof-bearing value DX
   without creating a second scalar or struct authority
-- `Milestone 10` must prove store-backed execution and historical parity for
-  admitted shared capability families
-- `Milestone 11` must prove durable saved-query, cursor, and artifact reload
-  semantics without changing canonical query meaning
-- `Milestone 12` must prove blob-backed delivery and large-object query
-  semantics without collapsing query meaning into ad hoc file plumbing
+- Query certification must export reusable semantic parity oracles for ordinary,
+  historical, live, policy, artifact, and delivery contracts; Store Milestones
+  9 through 13 and Store Milestone 19 consume those oracles against physical
+  boundaries
+- any Store-driven Query refactor must preserve the same canonical declaration,
+  plan, result, provider, authority, and explanation semantics already proven
+  by the runtime-backed milestones
 
-## Critical Path And Store Dependencies
+## Critical Path And Store Handoffs
 
-The query roadmap has one hard product path and several store-gated completion
-tracks.
-
-Critical path:
+The Query critical path closes the canonical runtime-backed framework and the
+contracts required by physical integration:
 
 - `Milestone 1` -> `Milestone 2` -> `Milestone 3` -> `Milestone 4` ->
   `Milestone 5` -> `Milestone 5.1` -> `Milestone 5.2` -> `Milestone 5.3` ->
   `Milestone 5.4` -> `Milestone 5.5` -> `Milestone 5.6` -> `Milestone 6` ->
   `Milestone 7` -> `Milestone 8` -> `Milestone 9` -> `Milestone 9.1` ->
-  `Milestone 9.2` -> `Milestone 9.3` -> `Milestone 9.3.1` ->
-  `Milestone 9.3.2` -> `Milestone 9.3.3` -> `Milestone 9.3.4` ->
-  `Milestone 9.3.5` -> `Milestone 9.3.6` -> `Milestone 9.3.7` ->
+  `Milestone 9.2` -> `Milestone 9.3` -> `Milestone 9.3.1` through
   `Milestone 9.3.8` -> `Runtime API Public Stabilization Gate` ->
-  `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` ->
-  `Milestone 9.5` -> `Milestone 9.6` -> `Milestone 9.7` -> `Milestone 9.8` ->
-  `Milestone 9.9` -> `Milestone 9.10` -> `Milestone 9.11` ->
-  `Milestone 9.12` -> `Milestone 9.13` -> `Milestone 10` -> `Milestone 11` ->
-  `Milestone 12` -> `Milestone 13`
+  `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` through
+  `Milestone 9.13` -> `Milestone 13`
 
-Store-gated completion tracks:
+The numbered order remains the semantic dependency order. The condensed ranges
+above do not weaken any intervening milestone, acceptance gate, or proof
+obligation.
 
-- `Milestone 3` can ship a runtime-backed execution path first, but full
-  store-pushdown and store-parity are blocked on `worth-store`
-- `Milestone 5.1` can close runtime-backed region-scoped invalidation and
-  stream-contract semantics first, but durable stream continuation is still
-  postponed to `Milestone 11`
-- `Milestone 5.2` can ship runtime-backed preview-session query contexts and
-  branch-workflow basis semantics first, but durable preview replay and
-  persisted workflow artifacts remain dependent on later durable milestones
-- `Milestone 5.5` can ship runtime-backed mutation/merge/writeback lowering
-  first, but durable workflow continuation and persisted branch-workflow
-  artifacts remain postponed to `Milestone 11`
-- `Milestone 5.6` can ship the unified facade and unified configuration first,
-  but any configuration sections that claim durable resume or store-backed
-  guarantees must remain explicit debt until the relevant later milestones
-  close
-- `Milestone 6` can ship runtime-backed branch/head and admitted basis-
-  variation semantics first, but durable point-in-time restore and snapshot-
-  plus-tail parity are postponed to `Milestone 10`
-- `Milestone 8` can ship scopes, templates, and view semantics first, but
-  durable saved-query reload is postponed to `Milestone 11`
-- `Milestone 9` can ship policy-aware narrowing and delivery-shape semantics
-  first, but durable cursor resume and persisted delivery metadata are
-  postponed to `Milestone 11`
-- `Milestone 9.1` can ship runtime-backed subscription declaration, lowering,
-  and admission first, but durable subscription artifact persistence and
-  restart-stable reload are postponed to `Milestone 11`
-- `Milestone 9.2` can ship runtime-backed subscription lifecycle, sharing,
-  continuation, and preview isolation first, but durable continuation,
-  checkpoint survival, and restart-stable subscription metadata are postponed
-  to `Milestone 11`
-- `Milestone 9.3` can ship runtime-backed subscription diagnostics, bridge
-  parity, and certification first, but any claims about durable subscription
-  replay or store-backed restart parity must remain explicit debt until
-  `Milestone 10` and `Milestone 11` close
-- `Milestone 9.3.1` can ship runtime-backed cross-runtime causal diagnostics
-  and Query inspection first, but durable causal archives, store-backed replay
-  reconstruction, and restart-stable expanded explanation reload remain
-  explicit debt until `Milestone 10` and `Milestone 11` close
-- `Milestone 9.3.2` can ship runtime-backed basis capability lifecycles first,
-  but durable basis reload, store-restored snapshot plus tail reconstruction,
-  and restart-stable basis envelopes remain explicit debt until `Milestone 10`
-  and `Milestone 11` close
-- `Milestone 9.3.3` can ship runtime-backed authority-scoped effect execution
-  first, but store-backed effect replay, durable workflow continuation, and
-  restart-stable effect envelopes remain explicit debt until `Milestone 10` and
-  `Milestone 11` close
-- `Milestone 9.3.4` can ship runtime-backed projection consumption receipts
-  first, but persisted materialized fact receipts, durable projection
-  consumption reload, and store-backed reconstruction remain explicit debt
-  until `Milestone 10` and `Milestone 11` close
-- `Milestone 9.3.5` can ship runtime-backed admission decision lattices and
-  decision traces first, but durable decision-log archives and restart-stable
-  trace materialization remain explicit debt until `Milestone 11` closes
-- `Milestone 9.3.6` can ship runtime-backed lower-runtime capability routing
-  first, but store-backed route parity and durable route replay remain explicit
-  debt until `Milestone 10` and `Milestone 11` close
-- `Milestone 9.3.7` must close the full domain capability contribution seam
-  across all named category families rather than shipping a split between
-  finished categories and half-closed category shells that would force later
-  rewrites
-- `Milestone 9.3.8` must establish Query-owned platform entry for serious
-  downstream domain work as one end-to-end seam rather than a split between
-  declaration, preparation, and runtime handoff milestones that still leave
-  local pseudo-Query scaffolding above lower authorities
-- the `Runtime API Public Stabilization Gate` can freeze the stable
-  runtime-backed public facade, golden DX transcripts, handle/state/aspect
-  contracts, inspection contract, and temporal/async support gates without
-  implementing temporal/async behavior; any temporal, async, store-backed, or
-  durable behavior remains deferred to its owning milestone
-- the `Runtime Authoritative Mutation Evidence Gate` can freeze the stable
-  runtime-backed mutation-evidence, existing-truth binding, and admitted
-  naming/continuity evidence contract without claiming temporal, async,
-  store-backed, durable, or lower-runtime semantic completion beyond the
-  admitted public facade
-- `Milestone 9.4` can ship the merged runtime-backed temporal/async query
-  surface first, but durable temporal replay, persisted async continuation,
-  restart-stable saved artifacts, and store-backed temporal/async parity remain
-  postponed to `Milestone 10` and `Milestone 11`
-- `Milestone 9.5` must close runtime-backed productization debt in reusable
-  composition, core view shapes, grouped planning, projection consumption, and
-  preserved temporal/async reuse without claiming store-backed saved-query
-  reload, durable temporal/async reuse, or restart-stable artifact
-  continuation before `Milestone 10` and `Milestone 11`
-- `Milestone 9.6` can close runtime-backed canonical evidence identity, typed
-  stop classes, and session label identity first, but durable digest archives
-  and restart-stable identity reload remain explicit debt until `Milestone 10`
-  and `Milestone 11` close
-- `Milestone 9.7` can close runtime-backed concurrent read authority,
-  deterministic submission, and published-artifact reads first, but durable
-  journal persistence, store-backed replay reconstruction, and restart-stable
-  published-artifact reload remain explicit debt until `Milestone 10` and
-  `Milestone 11` close
-- `Milestone 9.8` can close the runtime-backed consumer kit and reference
-  adoption first, but persisted support snapshots, durable audit archives, and
-  store-backed kit artifacts remain explicit debt until `Milestone 10` and
-  `Milestone 11` close
-- `Milestone 9.9` closes complete graph touch obligation authority including
-  policy-aware graph mutation execution, all obligation kind executors, and full
-  reference adoption in `worth-topo` and `worth-kernel` construction
-- `Milestone 9.10` closes runtime-backed graph read access planning, automatic
-  bounded index provisioning, budget denial, streaming/materialization postures,
-  and reference-consumer no-N+1 adoption before store-backed execution inherits
-  the read model
-- `Milestone 9.11` closes runtime-backed downstream basis/projection authority,
-  declarative consumer DX, and Worth UI reference adoption before store-backed
-  execution introduces additional source and reload postures
-- `Milestone 9.12` closes remaining runtime-backed public authority minting,
-  parallel lifecycle entrypoints, raw admission access, and facade leakage so
-  store-backed execution inherits one sealed capability surface
-- `Milestone 9.13` closes consumer-authored Query phase orchestration, freezes
-  the capability-oriented ordinary experience, and then closes the remaining
-  split between configured handles, raw-string contributions, manual graph-
-  operation registries, and actual runtime authority. It also closes the coarse
-  Query-owned value, predicate, schema, row, and projection seams so future
-  store-backed execution inherits exact Foundational-native semantics
-- `Milestone 10` is the first intentionally store-gated execution milestone
-- `Milestone 11` is the intentionally store-gated durable artifact milestone
-- `Milestone 12` is the intentionally store-gated blob/media milestone
+Store handoffs are explicit:
 
-The roadmap is therefore split intentionally between runtime/semantic
-milestones that can progress now against canonical runtime truth, and late
-store-backed milestones that close parity, durability, portability, and
-blob-backed delivery once `worth-store` is ready.
+- runtime-backed execution, access planning, authority sealing, deterministic
+  submission, publication evidence, and exact Foundational-native value meaning
+  close in Query before Store Milestone 1 begins integration refactoring
+- Store Milestones 1 through 4 consume those contracts to establish the backend
+  seam, semantic/physical lowering, durable publication join, and cold reads
+- Store Milestones 5 through 10 close joined concurrency, residency, recovery,
+  ordinary pushdown, and historical parity
+- Store Milestones 11 through 13 close durable query artifacts, continuations,
+  blob delivery, and live restart semantics
+- Store Milestone 19 closes production certification across runtime and physical
+  boundaries using Query's exported semantic parity oracles
+
+Until those Store milestones close, Query documentation and APIs must label
+Store-backed durability, restart, portability, blob, and physical pushdown
+claims as external handoffs rather than local completion. Query must not grow a
+shadow Store adapter merely to make those claims appear complete.
 
 ## Milestone 1: Typed Query Expression And Result Shape Foundation
 
@@ -1012,8 +931,8 @@ once the Milestone 5 live substrate is frozen.
 
 - Runtime-backed region narrowing and stream-contract semantics are not blocked
   on `worth-store`.
-- Durable stream resume and persisted checkpoints remain deferred to
-  `Milestone 11`.
+- Durable stream resume and persisted checkpoints are handed to Store
+  Milestone 11.
 
 ### Acceptance Evidence
 
@@ -1699,10 +1618,10 @@ people ask for truth.
 - inspector/detail live projection must prove aspect-focused invalidation
   narrowing under change
 
-#### Store-Gated Completion Debt
+#### Store Handoff
 
 - durable saved-query persistence, portability, and restart-stable workspace
-  artifacts are postponed to `Milestone 11`
+  artifacts are handed to Store Milestone 11
 
 ### Must Preserve
 
@@ -1724,7 +1643,7 @@ people ask for truth.
 - absent view-shape families may remain explicit `Debt`
 - any shipped view shape that lacks planning, invalidation, delivery, and live
   semantics may not ship as debt
-- durable saved-query semantics are intentionally deferred to `Milestone 11`
+- durable saved-query semantics are intentionally handed to Store Milestone 11
 
 ### Sequencing Notes
 
@@ -1833,7 +1752,7 @@ invent incompatible policy behavior across read, live, and historical surfaces.
 - delivery-shape metadata must stay parity-safe across one-shot, live, and
   historical execution for the same policy basis
 
-#### Store-Gated Completion Debt
+#### Store Handoff
 
 - durable delivery cursors, restart-stable subscription metadata, and persisted
   tenant/query artifacts remain incomplete until `worth-store` lands the
@@ -1880,11 +1799,10 @@ workflow/facade surfaces are stable enough to prove parity across them.
 ### Store Dependency
 
 - Core policy-aware narrowing is not blocked on `worth-store`.
-- Store-backed policy execution parity is blocked on `worth-store` and remains
-  Milestone 10 scope.
+- Store-backed policy execution parity is Store Milestone 9 and 10 scope.
 - Durable delivery cursors, restart-stable subscription metadata, and
   persisted tenant/query artifacts are blocked on `worth-store` and remain
-  Milestone 11 scope.
+  Store Milestone 11 scope.
 
 ### Acceptance Evidence
 
@@ -2007,8 +1925,8 @@ subscription equivalence and denial semantics.
 
 - Core runtime-backed subscription declaration and lowering are not blocked on
   `worth-store`.
-- Store-backed restart parity remains Milestone 10 scope.
-- Durable subscription artifacts and reload semantics remain Milestone 11
+- Store-backed restart parity remains Store Milestone 13 scope.
+- Durable subscription artifacts and reload semantics remain Store Milestone 11
   scope.
 
 ### Acceptance Evidence
@@ -2123,10 +2041,10 @@ admitted subscription families.
 
 - Core runtime-backed subscription lifecycle, sharing, continuation, and
   preview isolation are not blocked on `worth-store`.
-- Store-backed restart and snapshot-plus-tail continuation remain Milestone 10
-  scope.
+- Store-backed restart and snapshot-plus-tail continuation remain Store
+  Milestone 13 scope.
 - Durable subscription checkpoints, reload, and restart-stable metadata remain
-  Milestone 11 scope.
+  Store Milestone 11 scope.
 
 ### Acceptance Evidence
 
@@ -2215,7 +2133,7 @@ milestones build on top of it.
 ### Allowed Debt
 
 - durable subscription artifact replay and store-backed restart certification
-  may remain `Debt` until Milestones 10 and 11 close
+  remain explicit handoffs until Store Milestones 11 and 13 close
 - undocumented hidden lowering paths or uncertified supported subscription
   families may not ship as debt
 
@@ -2236,8 +2154,8 @@ hostile certification.
 
 - Runtime-backed subscription diagnostics, bridge parity, and certification are
   not blocked on `worth-store`.
-- Store-backed subscription execution parity remains Milestone 10 scope.
-- Durable subscription continuation and replay remain Milestone 11 scope.
+- Store-backed subscription execution parity remains Store Milestone 13 scope.
+- Durable subscription continuation and replay remain Store Milestone 11 scope.
 
 ### Acceptance Evidence
 
@@ -2363,8 +2281,8 @@ The governing milestone spec is
 ### Allowed Debt
 
 - durable causal explanation archives, restart-stable expanded narratives, and
-  store-backed replay reconstruction may remain deferred to Milestones 10 and
-  11
+  store-backed replay reconstruction remain Store Milestones 8, 11, and 13
+  handoffs
 - domain-specific prose renderers may remain domain-owned if they consume the
   Query causal inspection artifact instead of lower-runtime internals
 
@@ -2380,8 +2298,8 @@ being handled as domain glue.
 
 Runtime-backed causal diagnostics are not blocked on `worth-store`. Durable
 causal archives, persisted expanded inspection narratives, store-backed replay
-reconstruction, and restart-stable causal envelope reload remain Milestone 10
-and Milestone 11 scope.
+reconstruction, and restart-stable causal envelope reload remain Store
+Milestones 8, 11, and 13 scope.
 
 ### Acceptance Evidence
 
@@ -3064,7 +2982,7 @@ It belongs after the runtime API stabilization and authoritative mutation
 evidence gates because Query must extend one already-stabilized ordinary
 runtime facade.
 
-It belongs before Milestone 10 because store-backed execution parity should
+It belongs before Store Milestone 1 because store-backed integration should
 not be forced to discover temporal, async, mixed-cause, and certification
 semantics while also closing durable backend parity.
 
@@ -3255,7 +3173,7 @@ canonical identity rather than migrated onto it later.
 ### Allowed Debt
 
 - durable digest archives and restart-stable identity reload remain explicit
-  debt until `Milestone 10` and `Milestone 11`
+  handoffs to Store Milestones 7 and 11
 - no covered surface may keep the format-string digest scheme as debt
 
 ### Sequencing Notes
@@ -3311,7 +3229,7 @@ Every workspace operation takes `&mut self`, so the borrow checker enforces
 one operation in flight per workspace regardless of MVCC immutability
 underneath. Server-grade consumers would otherwise improvise a global lock or
 branch-per-connection â€” both prohibited folklore. Store-backed shapes in
-`Milestone 10` must inherit lane-correct contracts rather than retrofit
+Store Milestone 1 must inherit lane-correct contracts rather than retrofit
 `Send` boundaries later.
 
 ### Must Ship
@@ -3354,15 +3272,15 @@ branch-per-connection â€” both prohibited folklore. Store-backed shapes in
 ### Allowed Debt
 
 - durable journal persistence, store-backed replay reconstruction, and
-  restart-stable published-artifact reload remain explicit debt until
-  `Milestone 10` and `Milestone 11`
+  restart-stable published-artifact reload remain explicit handoffs to Store
+  Milestones 3, 8, and 11
 - lock-based or evaluation-leaking read paths may not ship as debt
 
 ### Sequencing Notes
 
 The detailed execution plan lives in [milestone-9.7.md](./milestone-9.7.md).
 This milestone belongs after `Milestone 9.6` so its receipts and digests are
-born canonical, and before `Milestone 10` as a hard gate so store-backed
+born canonical, and before Store Milestone 1 as a hard gate so store-backed
 shapes inherit the concurrency topology.
 
 ### Parallelization Notes
@@ -3458,7 +3376,7 @@ milestone hardens what Query gives consumers to build with.
 ### Allowed Debt
 
 - persisted support snapshots, durable audit archives, and store-backed kit
-  artifacts remain explicit debt until `Milestone 10` and `Milestone 11`
+  artifacts remain explicit handoffs to Store Milestones 11 and 18
 - shipping the kit without reference-consumer adoption may not be claimed as
   closure
 
@@ -3466,12 +3384,12 @@ milestone hardens what Query gives consumers to build with.
 
 The detailed execution plan lives in [milestone-9.8.md](./milestone-9.8.md).
 This milestone belongs after `Milestone 9.7` so the kit covers the
-concurrency-era facade families, and before `Milestone 10` closure so real
+concurrency-era facade families, and before Store Milestone 1 so real
 consumer adoption pressure-tests the frozen runtime-backed surface.
 
 ### Parallelization Notes
 
-Kit phases may overlap early `Milestone 10` work where staffing allows, since
+Kit phases may overlap early Store Milestone 1 work where staffing allows, since
 store execution does not consume kit surfaces; reference adoption and
 certification close strictly last.
 
@@ -3895,7 +3813,7 @@ The governing milestone spec is
 
 ### Allowed Debt
 
-- store-backed and durable implementations remain Milestone 10/11 scope
+- store-backed and durable implementations remain Store roadmap scope
 - no runtime-backed raw constructor, unscoped operational entrypoint, callable
   compatibility adapter, or ordinary-facade certification leak may remain debt
 
@@ -3928,7 +3846,7 @@ Phases 21-26 close Foundational-native aspect value authority and consumer DX.
 The ten-family grammar, ordinary/internal parity, managed lifecycle,
 facade/prohibition/residue enforcement, and reference-consumer adoption remain
 certified at the original boundary. Store-backed execution and durable
-artifact/continuation claims remain Milestones 10 and 11. See
+artifact/continuation claims remain Store Milestones 9 through 13. See
 [milestone-9.13-closeout.md](./milestone-9.13-closeout.md) for the historical
 Phases 1-12 evidence and [milestone-9.13.md](./milestone-9.13.md) for the open
 add-on phase contract.
@@ -3980,8 +3898,8 @@ store-backed execution can multiply it.
 
 The native substrate also retains Foundational values internally while ordinary
 mutation, predicate, schema, struct, row, and refinement surfaces expose a
-smaller or inconsistent language. Closing only JSON residue would let
-Milestone 10 inherit a second value ontology. The final add-on phases close that
+smaller or inconsistent language. Closing only JSON residue would let Store
+Milestone 1 inherit a second value ontology. The final add-on phases close that
 fork at the consumer boundary.
 
 ### Specification
@@ -4061,7 +3979,7 @@ The governing milestone spec is
 ### Allowed Debt
 
 - store-backed execution, durable restore, saved-artifact survival, and durable
-  continuation remain Milestones 10 and 11
+  continuation remain Store Milestones 8 through 13
 - no callable ordinary phase transition, backend-shaped ordinary API,
   compatibility alias, or consumer-local Query coordinator may remain debt
 - no raw-string domain entry, consumer-authored identity digest, independent
@@ -4081,7 +3999,7 @@ implement the same admitted capability contract and ordinary journey.
 Add-on Phases 13-20 follow the closed core because they install domain
 extensions into the already-frozen ordinary capability grammar. Phases 21-26
 then close exact native value semantics across those installed and ordinary
-journeys. All remain before Milestone 10 because runtime domain authority,
+journeys. All remain before Store Milestone 1 because runtime domain authority,
 registry ownership, native predicate meaning, and native result/materialization
 contracts are runtime-semantic foundations, not store implementation details.
 
@@ -4090,7 +4008,7 @@ contracts are runtime-semantic foundations, not store implementation details.
 This milestone is not blocked on `worth-store`. Add-on closure requires atomic
 in-process runtime installation, generation-safe handles, Foundational-native
 contracts, and the existing runtime-backed materialization/projection substrate,
-not durable package reload or cross-process restoration. Milestone 10 must reuse
+not durable package reload or cross-process restoration. Store Milestone 1 must reuse
 the resulting value, predicate, row, and projection contracts unchanged.
 
 ### Acceptance Evidence
@@ -4117,302 +4035,35 @@ the resulting value, predicate, row, and projection contracts unchanged.
   identity has one canonical basis, and consumer/facade/residue/sabotage proof
   reports zero competing value authorities
 
-## Milestone 10: Store-Backed Execution, Pushdown, And Historical Parity
+## Store-Gated Implementation Moved
+
+The former Query Milestones 10 through 12 are now Store Milestones 9 through 12
+in the [Worth Store Runtime And Integration Roadmap](../worth-store/runtime-integration-roadmap.md).
+They were removed here because keeping duplicate milestone bodies would create
+two authorities for dependency order, closeout evidence, and integration DX.
+Their Query-facing contract obligations remain governed by the handoff above.
+
+## Milestone 13: Runtime-Backed Generic And Domain Query Certification
 
 ### Goal
 
-Close the store-backed execution and historical parity claims that runtime-only
-milestones intentionally left open.
+Prove the completed runtime-backed Query framework and export semantic parity
+oracles that Store integration can reuse against physical boundaries.
 
 ### Adversarial Constraint
 
-Store-backed execution and historical restore must preserve the exact same
-canonical query meaning, basis identity, and result semantics as the
-runtime-backed path for the same admitted capability.
+Every admitted runtime-backed capability must survive hostile replay, basis
+variation, policy variation, live maintenance, and domain-specific workloads
+without changing canonical query meaning, authority, result shape, or
+certification identity. A provider may not pass by weakening, widening, or
+reinterpreting the declared semantics.
 
 ### Why This Milestone Exists
 
-Milestones 4 through 9.3.7 can build the semantic query surface against
-runtime truth first. This milestone exists to close the backend-parity boundary
-later, once `worth-store` can participate honestly in execution and basis
-restore.
-
-### Must Ship
-
-- store-backed execution parity for admitted query families
-- honest pushdown of projections, predicates, ordering, and bounded traversal
-  where `worth-store` can support them without changing query meaning
-- store-backed historical and diff execution over persisted snapshots, deltas,
-  and retained history where supported
-- diagnostics that distinguish runtime-backed execution from store-backed
-  execution and explain any fallback
-
-### Must Preserve
-
-- `worth-store` remains the owner of persistence and durable artifact survival
-- pushdown must not change query semantics, policy narrowing, or result shape
-- unsupported store capabilities fail explicitly instead of being faked by host
-  glue
-
-### Complexity / Proof Obligations
-
-- name store-backed plan admission, pushdown execution, historical restore, and
-  store-backed diff execution contracts
-- expose exact counters for pushdown admissions, pushdown fallbacks,
-  historical restore steps, diff input breadth, and backend parity checks
-- prove store-backed parity for execution and admitted historical/diff
-  semantics
-
-### Allowed Debt
-
-- unsupported store capability classes may remain explicit `Debt` while
-  admitted classes are parity-proven
-- backend-shaped query artifacts or meaning-changing pushdown may not ship as
-  debt
-
-### Sequencing Notes
-
-This belongs late because it is the first milestone that truly depends on
-`worth-store` as an execution substrate rather than merely as future debt.
-
-### Parallelization Notes
-
-Can progress incrementally as `worth-store` milestones land, but final closure
-must wait for durable snapshots, retained history, and honest backend parity.
-
-### Store Dependency
-
-This milestone is intentionally blocked on `worth-store`.
-
-It depends materially on:
-
-- canonical commit persistence
-- snapshots and point-in-time restore
-- structural delta layering and retained-history survivability
-- durable basis identity sufficient for runtime/store parity
-
-### Acceptance Evidence
-
-This milestone is complete only when `worth-query` can prove:
-
-- the `Store-Backed Query Durability And Portability Test` in
-  [test-requirements.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/test-requirements.md)
-  passes with canonical machine-checkable artifacts
-
-- store-backed execution returns the same results as runtime-backed execution
-  for the same declared basis and query shape
-- historical and diff queries survive restart and restore without changing
-  meaning
-
-## Milestone 11: Durable Query Artifacts, Saved Queries, And Delivery Continuations
-
-### Goal
-
-Close the durable artifact and continuation claims that cannot be honest until
-`worth-store` can persist canonical query artifacts and delivery checkpoints.
-
-### Adversarial Constraint
-
-Saved queries, durable cursors, replay checkpoints, and imported/exported query
-artifacts must preserve the same canonical query meaning, parameter semantics,
-basis semantics, and continuation point they claimed before restart, transfer,
-or reload.
-
-### Why This Milestone Exists
-
-The runtime-backed query model can become structurally sound long before the
-store can preserve query artifacts across restart. This milestone exists to
-keep artifact durability explicit instead of letting "saved query" or "cursor
-resume" become host-local convenience surfaces with undefined semantics.
-
-### Must Ship
-
-- durable saved-query persistence and reload
-- durable query-template and scope-composed artifact persistence where the
-  platform admits them
-- durable cursor/checkpoint persistence for query-shaped delivery where the
-  server/runtime contract admits it
-- portability of saved-query and delivery artifacts across restart and
-  import/export capsule boundaries
-- diagnostics that distinguish runtime-backed ephemeral artifacts from
-  durable/reloaded artifacts and explain any incompatibility
-
-### Must Preserve
-
-- saved queries remain canonical query artifacts, not backend-shaped blobs
-- durable cursors must not outlive or misidentify the truth basis they claim to
-  acknowledge
-- imported/exported artifacts must preserve semantic identity rather than only
-  enough data to "mostly work"
-- unsupported durability classes fail explicitly instead of degrading into
-  host-local caches
-
-### Complexity / Proof Obligations
-
-- name durable saved-query reload, durable cursor continuation, artifact
-  portability, and restart/replay contracts
-- expose exact counters for saved-query reload checks, durable cursor resume
-  steps, artifact import/export validation, and restart-stable continuation
-  proofs
-- prove durable artifact identity and continuation parity across restart
-
-### Allowed Debt
-
-- unsupported durable artifact classes may remain explicit `Debt` while
-  admitted classes are parity-proven
-- host-local saved-query or cursor shims may not ship as debt once the
-  milestone claims durability
-
-### Sequencing Notes
-
-This belongs after store-backed execution parity because durable artifacts only
-matter once the backend can preserve the bases and execution semantics those
-artifacts refer to.
-
-### Parallelization Notes
-
-Can progress incrementally as `worth-store` lands persistent artifact support,
-but final closure must wait for restart-stable artifact identity and
-continuation semantics.
-
-### Store Dependency
-
-This milestone is intentionally blocked on `worth-store`.
-
-It depends materially on:
-
-- durable artifact storage
-- restart-stable schema/basis identity
-- durable cursor/checkpoint survival
-- import/export and integrity-verifiable artifact identity
-
-### Acceptance Evidence
-
-This milestone is complete only when `worth-query` can prove:
-
-- the `Durable Query Artifact And Continuation Parity Test` in
-  [test-requirements.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/test-requirements.md)
-  passes with canonical machine-checkable artifacts
-
-- persisted saved queries reload to the same canonical query identity
-- durable delivery cursors resume to the same query-shaped continuation point
-- imported/exported query artifacts preserve canonical query identity and basis
-  meaning where the platform admits them
-- restart and replay do not alter parameter binding or continuation semantics
-
-## Milestone 12: Blob-Backed Query Delivery And Large-Object Semantics
-
-### Goal
-
-Make blob/media-backed query results first-class, query-shaped, and
-basis-honest instead of forcing hosts to smuggle large-object handling around
-the query system.
-
-### Adversarial Constraint
-
-Blob-backed projections, structured-content media references, large-object
-delivery handles, and upload-associated query results must preserve the same
-canonical query meaning, policy masking, basis identity, and replay semantics
-as non-blob query surfaces, without degrading into opaque file plumbing.
-
-### Why This Milestone Exists
-
-Most query systems treat blobs as an embarrassing side channel: the query
-returns metadata and some other system handles the "real file." WORTH Query can
-do better, but only once the store can persist large objects, stable handles,
-and replay-safe basis identity honestly.
-
-### Must Ship
-
-- blob/media reference projections as first-class query result semantics where
-  the schema admits them
-- basis-honest delivery handles for large objects and media payloads
-- query-shaped blob upload/result association semantics where the platform
-  admits upload-backed truth
-- policy-aware masking and non-leakage for blob-backed aspects
-- diagnostics for unsupported blob delivery classes, expired handles, upload/
-  basis mismatch, and portability failures
-
-### Must Preserve
-
-- blobs remain store-owned persisted objects, not query-owned authority
-- query meaning must remain identical whether the result shape includes scalar
-  fields, structured content, or blob/media references
-- delivery handles must never bypass policy masking or basis identity
-- uploads must not introduce a second ad hoc query semantics path
-
-### Complexity / Proof Obligations
-
-- name blob-handle derivation, upload association, replay-safe delivery, and
-  portability contracts
-- expose exact counters for blob handle resolutions, large-object delivery
-  admissions, denied blob projections, and upload/query association checks
-- prove blob-backed results remain parity-safe with the same canonical query
-  and policy basis
-
-### Allowed Debt
-
-- unsupported large-object delivery classes may remain explicit `Debt`
-- opaque host-side blob handling may not ship as the claimed query solution
-
-### Sequencing Notes
-
-This belongs after durable query artifacts because blob/media semantics depend
-on stable persisted handles, replay-safe basis identity, and durable artifact
-ports.
-
-### Parallelization Notes
-
-Can begin once `worth-store` blob/object support is structurally honest, but
-final closure should follow durable query-artifact identity so blob handles can
-compose with saved queries, history, and delivery continuations honestly.
-
-### Store Dependency
-
-This milestone is intentionally blocked on `worth-store`.
-
-It depends materially on:
-
-- durable blob/object persistence
-- replay-safe blob handle identity
-- policy-safe object retrieval
-- import/export support for blob-backed artifacts where admitted
-
-### Acceptance Evidence
-
-This milestone is complete only when `worth-query` can prove:
-
-- the `Blob-Backed Query Delivery And Upload Parity Test` in
-  [test-requirements.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/test-requirements.md)
-  passes with canonical machine-checkable artifacts
-
-- blob/media-backed query results preserve canonical query identity and policy
-  masking
-- upload-associated query results remain basis-honest and replay-safe
-- durable blob handles survive restart/export semantics where the platform
-  claims they do
-
-## Milestone 13: Generic And Domain Query Certification
-
-### Goal
-
-Prove the completed query layer under hostile read, history, policy, live
-maintenance, durability, and blob-backed delivery scenarios rather than only
-through milestone-local demos.
-
-### Adversarial Constraint
-
-Every admitted query capability, across runtime-backed and store-backed paths,
-must survive hostile replay, basis variation, policy variation, live
-maintenance, durable reload, blob-backed delivery, and domain-specific
-workloads without changing canonical query meaning or certification artifacts.
-
-### Why This Milestone Exists
-
-`worth-query` is the main consumer-facing read surface for the stack. It needs
-the same certification discipline as the runtimes below it, especially because
-small semantic drift here would make the rest of the architecture invisible to
-developers.
+`worth-query` is the main consumer-facing semantic surface for the stack.
+Store integration needs a trustworthy oracle, not a second interpretation of
+what Query plans, results, histories, live changes, policies, artifacts, or
+delivery shapes mean.
 
 ### Must Ship
 
@@ -4437,9 +4088,6 @@ developers.
   - lineage + correspondence + branch-scoped comparison parity
   - policy-masking and tenant-scope correctness
   - tenant schema variation + validation + delivery-shape parity
-  - store-backed execution parity where admitted
-  - durable artifact and continuation parity where admitted
-  - blob-backed query delivery parity where admitted
 - domain certification suites covering at minimum:
   - geometry/topology neighborhood query truth
   - AI/speculative-branch comparison reads
@@ -4447,15 +4095,19 @@ developers.
     lowering
   - web collection/detail/live workflow reads
   - chip/netlist cone and historical diff reads
-- machine-checkable artifact bundles for plans, results, diagnostics, live
-  patch evolution, durable reload, and blob-backed delivery
+- provider-independent semantic parity oracles for canonical plans and result
+  shapes, basis-exact reads, policy masking, live evolution, saved-artifact
+  semantic freeze, continuation meaning, and blob-reference projection meaning
+- machine-checkable artifact bundles for plans, results, diagnostics, and live
+  evolution that Store Milestones 9 through 13 and 19 can execute unchanged
+  against the physical provider
 
 ### Must Preserve
 
 - certification must prove existing capability boundaries rather than smuggling
   in missing features
-- certification must distinguish runtime-backed and store-backed evidence where
-  those paths differ
+- provider-independent oracles may observe provider receipts but may not encode
+  a Store-specific shortcut or tolerate semantic widening
 - query artifacts remain canonical and typed across original execution and
   replay/certification re-run
 - beta support claims must not outrun admitted-family, fallback-honesty, and
@@ -4466,32 +4118,34 @@ developers.
 - name certification bundle construction and replay-verification contracts
 - expose exact counters for certification scenarios executed, parity checks
   performed, and capability rows covered from the Vision Coverage Appendix
-- prove full appendix coverage rather than milestone-local spot checks only
+- prove complete runtime-backed appendix coverage rather than milestone-local
+  spot checks only
+- prove the exported oracle can be driven by a second test provider without
+  embedding runtime-instance assumptions in expected results
 
 ### Allowed Debt
 
-- none on coverage or machine-checkable certification artifacts
-- missing store-backed suites may remain blocked, but they may not be silently
-  omitted once Milestones 10 through 12 claim support
+- physical persistence, restart, portability, durable continuation, blob
+  transport, and Store pushdown evidence remain Store roadmap work
+- no debt is allowed in Query semantic coverage or machine-checkable oracle
+  artifacts for capabilities claimed here
 
 ### Sequencing Notes
 
-This belongs last because it is for proving the completed query subsystem, not
-for discovering what should have been architected earlier.
+This closes after Milestone 9.13 because Store integration must inherit a
+certified public surface and semantic oracle. It does not wait for Store.
 
 ### Parallelization Notes
 
-Runtime-backed certification can begin before `worth-store` is complete.
-Store-backed and durable/blob-backed suites close in parallel as Milestones 10
-through 12 become honest.
+Provider-harness extraction may proceed alongside late runtime-backed
+milestones once their public contracts stabilize. Joined physical-provider
+execution belongs to the Store roadmap.
 
 ### Store Dependency
 
-- Runtime-backed certification can begin before `worth-store` is finished.
-- Full roadmap completion for this milestone is blocked on `Milestones 10`
-  through `12`, because the final certification program must include
-  store-backed execution, durable artifact, and blob-backed delivery scenarios
-  once those exist.
+- this milestone is not blocked on Store
+- Store Milestones 9 through 13 consume its provider-independent oracles
+- Store Milestone 19 owns joined runtime/physical production certification
 
 ### Acceptance Evidence
 
@@ -4511,8 +4165,8 @@ This milestone is complete only when `worth-query` can prove:
 - every shipped query capability has at least one hostile certification path
 - machine-checkable certification bundles can localize planning, execution,
   policy, live-maintenance, and history failures
-- store-backed certification agrees with runtime-backed certification wherever
-  both paths are admitted
+- a deliberately widening or basis-drifting test provider is rejected before
+  Store integration is allowed to consume the oracle
 
 ## Per-Milestone Format
 
@@ -4526,7 +4180,7 @@ Every milestone in this roadmap uses the same shape:
   - `Surface Primitives`
   - `Semantic Guarantees`
   - `Proof Obligations`
-  - `Store-Gated Completion Debt`
+  - `Store Handoff`
 - `Must Preserve`
 - `Complexity / Proof Obligations`
 - `Allowed Debt`
@@ -4535,9 +4189,8 @@ Every milestone in this roadmap uses the same shape:
 - `Store Dependency`
 - `Acceptance Evidence`
 
-The store-dependency section is mandatory here because `worth-query` can make
-real progress before `worth-store` is complete, but some completion claims
-would be dishonest without durable storage support.
+The store-dependency section records the exact handoff consumed by the Store
+roadmap. It does not make physical implementation part of local Query closure.
 
 ## Completion Standard
 
@@ -4555,14 +4208,11 @@ would be dishonest without durable storage support.
   predicate/schema admission, execution, materialization, projection
   consumption, typed refinement, receipt identity, and inspection without a
   competing Query-owned value algebra or semantic encoder
-- every store-gated completion item is either shipped through `Milestone 12`
-  or still explicitly marked as blocked rather than implied
-- runtime-backed and store-backed query execution remain parity-safe for every
-  admitted shared capability
-- saved queries, durable cursors, and historical execution artifacts remain
-  canonical and restart-stable where the platform claims they exist
-- generic and domain certification programs both pass with machine-checkable
-  evidence
+- the runtime-backed framework closes at Milestone 13 with provider-independent
+  semantic parity oracles and machine-checkable generic/domain evidence
+- Store-backed execution, durable artifacts, restart, portability, blob
+  delivery, and joined parity remain explicit handoffs to Store Milestones 9
+  through 13 and 19 rather than implied Query completion
 
 ## Vision Coverage Appendix
 
@@ -4579,7 +4229,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Filter and predicate expressions | Milestone 2 | Typed predicate nodes | Schema-invalid predicates reject early | Milestone 13 validation rejection |
 | Workflow-aware predicates | Milestone 2 | Workflow predicate nodes in canonical query artifact | Workflow predicates validate and normalize canonically | Milestone 13 validation rejection + web workflow domain suite |
 | Ordering | Milestones 2 and 4 | Ordering descriptors in plan/result metadata | Ordered reads preserve declared basis | Milestone 13 collection/pagination stability |
-| Pagination and opaque cursors | Milestone 4; durable completion in Milestone 11 | Cursor descriptors, page metadata, durable cursors | Page advancement stable for one basis; durable resume later | Milestone 13 collection/pagination stability + store-backed parity |
+| Pagination and opaque cursors | Milestone 4; durable continuation in Store Milestone 11 | Cursor descriptors, page metadata, durable cursors | Page advancement is stable for one basis | Milestone 13 runtime parity; Store Milestone 19 joined parity |
 | Bounded result sets | Milestone 4 | Bound/limit descriptors in plan metadata | Truncation stays explicit and basis-honest | Milestone 13 collection stability |
 | Bounded relational materialization | Milestone 4 | Relation materialization descriptors, traversal bounds | Eager materialization stays within declared scope | Milestone 13 execution parity + geometry/chip domain suites |
 | Subgraph-scoped queries | Milestone 4 | Scope/traversal boundary descriptors | Traversal breadth remains bounded and explainable | Milestone 13 geometry/chip domain suites |
@@ -4594,7 +4244,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Tolerance-aware aggregation | Milestones 4 and 5 | Tolerance policy metadata, live suppression metadata | Suppression does not change aggregate meaning | Milestone 13 live + policy masking parity and aggregation cases |
 | Relational rollups | Milestone 4 | Rollup descriptors over relation edges | Rollups remain derived from declared truth basis | Milestone 13 execution parity + domain suites |
 | Query-time derived fields | Milestone 4 | Derived-field declarations in canonical query/result shape | Derived fields are planned, not host-postprocessed | Milestone 13 execution parity |
-| CDC-shaped output | Milestone 4; durable portability in Milestone 10 | Query-shaped CDC result families, delivery metadata | CDC-shaped output matches ordinary query meaning | Milestone 13 execution parity + store-backed parity |
+| CDC-shaped output | Milestone 4; durable portability in Store Milestone 11 | Query-shaped CDC result families, delivery metadata | CDC-shaped output matches ordinary query meaning | Milestone 13 semantic parity; Store Milestone 19 joined parity |
 | Snapshot-backed execution | Milestone 3 | Proof-carrying execution plan, snapshot basis metadata | Same query/context lowers to same plan and result | Milestone 13 snapshot-backed execution parity |
 | Type-bound execution / generalized route-model binding | Milestone 3, shared integration with server/cloud | Type-bound execution descriptors tied to canonical plans | Bound descriptors round-trip to same plan as direct execution | Milestone 13 normalization parity; server/cloud integration suites later |
 | Live read-to-subscribe promotion | Milestone 5 | Live execution context, query-to-signal lowering metadata | One-shot and live execution preserve semantics | Milestone 13 live-promotion equivalence |
@@ -4625,7 +4275,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Frontier-aware planning | Milestone 5.3 | Frontier-derived planning metadata, breadth posture, parallel-admission posture | Planner consumes lower-runtime frontier posture without executor rediscovery | Milestone 13 planning parity + performance suites |
 | Deterministic parallel admission | Milestone 5.3 | Parallel-admission decisions on planned routes, serial fallback diagnostics | Serial and parallel admitted lanes remain semantically identical | Milestone 13 planning parity + performance suites |
 | Branch-scoped reads | Milestone 6 | Branch-targeting query context metadata | Same query shape runs against different branches honestly | Milestone 13 historical/diff parity |
-| Time-travel reads | Milestone 6; durable completion in Milestone 10 | Historical basis descriptors, snapshot/commit targets | Historical basis is explicit and parity-safe | Milestone 13 historical/diff parity + store-backed parity |
+| Time-travel reads | Milestone 6; physical completion in Store Milestone 10 | Historical basis descriptors, snapshot/commit targets | Historical basis is explicit and parity-safe | Milestone 13 semantic parity; Store Milestones 10 and 19 physical parity |
 | Diff queries | Milestone 6 | Structured diff query artifacts, comparison-basis metadata | Diff results align with declared projection/scope | Milestone 13 historical + diff + result-shape parity |
 | Branch comparison views | Milestone 6 with Milestone 8 view-shape semantics | Comparison basis metadata, view-shape metadata | Branch comparisons preserve basis identity and result meaning | Milestone 13 historical + diff parity |
 | Historical evaluation contracts | Milestone 5.4 with completion in Milestone 6 | Historical materialization-path metadata, compatibility/admission artifacts | Historical reads stay explicit about how truth was materialized and whether the request was honestly admissible | Milestone 13 historical/diff parity + diagnostics suites |
@@ -4637,28 +4287,28 @@ answer is "store-gated" or "shared with another subsystem."
 | View shapes: timeline/chart | Milestones 4 and 8 | Temporal/grouping metadata, tolerance/suppression metadata | Temporal/chart semantics stay explicit and basis-honest | Milestone 13 historical/diff + aggregation suites |
 | Named scopes | Milestone 8 | Scope fragments in canonical query artifact | Scope expansion equals direct construction | Milestone 13 normalization parity |
 | Query templates with parameter slots | Milestone 8 | Template descriptors, parameter binding metadata | Parameterized instantiation preserves canonical meaning | Milestone 13 normalization parity |
-| Saved and named query definitions | Milestone 8; durable completion in Milestone 11 | Saved-query canonical artifact, durable saved-query records | Reloaded saved query preserves identity and meaning | Milestone 13 normalization parity + store-backed parity |
+| Saved and named query definitions | Milestone 8; durable completion in Store Milestone 11 | Saved-query canonical artifact, durable saved-query records | Reloaded saved query preserves identity and meaning | Milestone 13 semantic-freeze oracle; Store Milestones 11 and 19 joined parity |
 | Result shape declarations for delivery contracts | Milestones 1 and 9 | Typed result shapes, delivery-shape metadata | Delivery metadata remains identical to canonical masked/projected result | Milestone 13 delivery-shape parity |
 | Policy-aware aspect masking | Milestone 9 | Policy masks in plan metadata | Masked aspects never enter execution plan | Milestone 13 live + policy masking parity |
 | Branch-level access scoping | Milestone 9 | Branch-access validation metadata | Denied branches fail before reads execute | Milestone 13 policy/tenant correctness |
 | Automatic tenant branch scoping | Milestone 9 | Tenant branch-resolution metadata | Tenant context narrows truth basis explicitly | Milestone 13 policy/tenant correctness |
 | Tenant-scoped schema awareness | Milestone 9 | Tenant schema-basis metadata, tenant-aware validation artifacts | Validation uses tenant schema rather than a global default | Milestone 13 tenant schema variation + validation parity |
 | Graph-native relationship proofs | Milestone 9, shared with schema/platform policy authority | Relationship-proof predicate/query nodes, denial metadata | Broken proof chains deny explicitly without data leakage | Milestone 13 policy/tenant correctness |
-| Multi-tenant query architecture | Milestone 9; durable completion in Milestone 11 | Tenant basis metadata, durable tenant/query artifacts | Tenant-scoped reads remain parity-safe across restart where supported | Milestone 13 policy/tenant correctness + store-backed parity |
-| Structured content aspect queries | Milestone 2; live/update consequences in Milestones 5 and 10 | Structured content projection/predicate descriptors | Structured content legality and live narrowing stay explicit | Milestone 13 validation rejection + live equivalence |
-| Query planning and optimization | Milestone 3; store-aware completion in Milestone 10 | Proof-carrying execution plans, store pushdown diagnostics | Planner lowers once; executor does not rediscover semantics | Milestone 13 snapshot parity + store-backed parity |
-| Delivery contracts for integrations | Milestones 4, 9, and 11 | CDC/result delivery metadata, durable delivery cursors | Delivery contracts remain query-shaped and basis-honest | Milestone 13 delivery-shape + store-backed parity |
+| Multi-tenant query architecture | Milestone 9; durable completion in Store Milestone 11 | Tenant basis metadata, durable tenant/query artifacts | Tenant-scoped reads remain parity-safe across restart where supported | Milestone 13 policy/tenant correctness; Store Milestone 19 joined parity |
+| Structured content aspect queries | Milestone 2; live/update consequences in Milestone 5 and Store Milestones 9-10 | Structured content projection/predicate descriptors | Structured content legality and live narrowing stay explicit | Milestone 13 validation/live oracle; Store Milestone 19 joined parity |
+| Query planning and optimization | Milestone 3; store-aware completion in Store Milestone 9 | Proof-carrying execution plans, store pushdown diagnostics | Planner lowers once; executor does not rediscover semantics | Milestone 13 plan oracle; Store Milestones 9 and 19 physical parity |
+| Delivery contracts for integrations | Milestones 4 and 9; durability in Store Milestone 11 | CDC/result delivery metadata, durable delivery cursors | Delivery contracts remain query-shaped and basis-honest | Milestone 13 delivery oracle; Store Milestones 11 and 19 joined parity |
 | Query-authored mutation intents | Milestone 5.5 | Mutation-intent declarations, lowered commit-strategy request descriptors, context-derived observation artifacts | Query-authored mutation workflows lower into relational authorities without semantic drift | Milestone 13 workflow/mutation suites |
 | Branch-native workflow orchestration | Milestones 5.2 and 5.5 | Preview/compare/merge workflow declarations, conflict inspection artifacts, post-merge inspection artifacts | Branch workflows stay inside the query framework while preserving lower-crate authority boundaries | Milestone 13 workflow/mutation + branch suites |
 | Query-triggered writeback declarations | Milestone 5.5 | Writeback-trigger declarations, lowered bridge writeback descriptors, causality/admission metadata | Query-triggered writeback stays declaration-owned by query and execution-owned by the bridge | Milestone 13 workflow/mutation + diagnostics suites |
 | Runtime authoritative mutation evidence | Runtime Authoritative Mutation Evidence Gate | Declared/resolved target evidence, batch/session authority evidence, existing-truth binding descriptors, naming/continuity evidence bundles | Downstream write-heavy domains receive authority evidence through the public facade without local target-recovery glue | Milestone 13 workflow/mutation + diagnostics suites |
 | Unified application facade | Milestone 5.6 | Authority-preserving public facade surface, capability registry, support metadata | Domain developers can use query as the daily-driver import without erasing lower-crate ownership | Milestone 13 support-matrix + certification suites |
 | Unified runtime configuration | Milestone 5.6 | Sectioned `WORTHQueryConfig`, subsystem-owned config sections, capability-gated config metadata | Unified config remains architecture-shaped rather than bag-shaped | Milestone 13 support-matrix + diagnostics suites |
-| Store-backed pushdown and execution parity | Milestone 10 | Store-backed plan variants, fallback diagnostics | Store-backed results equal runtime-backed results | Milestone 13 store-backed execution parity |
-| Durable saved queries and cursors | Milestone 11 | Durable saved-query records, durable cursor/checkpoint records | Restart preserves canonical identity and continuation point | Milestone 13 durable artifact parity |
-| Import/export portability of query artifacts | Milestone 11 | Portable query artifact bundles and basis identity | Imported/exported artifacts preserve canonical meaning | Milestone 13 durable artifact parity |
-| Blob/media-backed query delivery | Milestone 12 | Blob/media reference projections, durable delivery handles, upload-associated result metadata | Blob-backed results preserve canonical query meaning and policy masking | Milestone 13 blob-backed delivery parity |
-| Query certification matrix | Milestone 13 | Certification bundles for plans, results, diagnostics, live evolution, durable reload, and blob-backed delivery | Every capability has hostile proof, not just local demos | Milestone 13 completion itself |
+| Store-backed pushdown and execution parity | Store Milestone 9 | Store-backed plan variants, fallback diagnostics | Store-backed results equal Query's semantic oracle | Store Milestones 9 and 19 |
+| Durable saved queries and cursors | Store Milestone 11 | Durable saved-query records, durable cursor/checkpoint records | Restart preserves canonical identity and continuation point | Store Milestones 11 and 19 |
+| Import/export portability of query artifacts | Store Milestones 11 and 16 | Portable query artifact bundles and basis identity | Imported/exported artifacts preserve canonical meaning | Store Milestones 11, 16, and 19 |
+| Blob/media-backed query delivery | Store Milestone 12 | Blob/media reference projections, durable delivery handles, upload-associated result metadata | Blob-backed results preserve canonical query meaning and policy masking | Store Milestones 12 and 19 |
+| Query certification matrix | Milestone 13 | Runtime-backed certification bundles and provider-independent semantic parity oracles | Every Query capability has hostile semantic proof, not just local demos | Milestone 13; Store Milestone 19 consumes the oracle |
 
 If a future query capability is added to `worth_query_vision.md`, this appendix
 must gain a row in the same patch or the roadmap is incomplete.
@@ -4686,7 +4336,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/runtime-authoritative-mutation-evidence-plan.md)
 - [worth_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-runtime-bridge/worth_runtime_bridge_roadmap.md)
 - [worth_relational_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-relational/worth_relational_roadmap.md)
-- [worth_store_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-store/worth_store_roadmap.md)
+- [Worth Store Runtime And Integration Roadmap](../worth-store/runtime-integration-roadmap.md)
 - [MENTALITY.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/coding_guidelines/MENTALITY.md)
 - [architectural_guidelines.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/coding_guidelines/architectural_guidelines.md)
 - [domain_standards.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/coding_guidelines/domain_standards.md)

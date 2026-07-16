@@ -14,10 +14,11 @@ use worth_store_physical_isolation::{
     reject_copied_read_plan_fields_as_reclaim_authority,
     reject_current_root_absence_as_reclaim_authority,
     reject_raw_reader_handle_scan_as_reclaim_authority, AllocatorPublicationReceipt,
-    CrashStableReclaimReuseFence, ExecutedReachabilityEvidence, FreeReuseFenceDenial,
-    GenerationAdvanceReceipt, HazardLeaseDenial, HazardLeaseKind, HazardLeaseTable,
-    HazardLeaseTableCapacity, LeaseExpiryPosture, PhysicalOrderingContract, PhysicalOrderingSite,
-    ReclaimDenial, ReclaimEligibilityProof,
+    BackupReachabilityLeaseIndexSnapshot, CrashStableReclaimReuseFence,
+    ExecutedReachabilityEvidence, FreeReuseFenceDenial, GenerationAdvanceReceipt,
+    HazardLeaseDenial, HazardLeaseKind, HazardLeaseTable, HazardLeaseTableCapacity,
+    LeaseExpiryPosture, PhysicalOrderingContract, PhysicalOrderingSite, ReclaimDenial,
+    ReclaimEligibilityProof,
 };
 
 #[test]
@@ -26,9 +27,12 @@ fn live_hazard_lease_blocks_reclaim_until_release() {
     let mut table =
         HazardLeaseTable::with_capacity(HazardLeaseTableCapacity::bounded_slots(4).unwrap());
     let active = table.acquire(world.root, world.lease.clone()).unwrap();
-    let blocked =
-        ReclaimEligibilityProof::admit(world.executed_reachability(), table.live_index_snapshot())
-            .unwrap();
+    let blocked = ReclaimEligibilityProof::admit(
+        world.executed_reachability(),
+        table.live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
+    )
+    .unwrap();
 
     assert!(matches!(
         blocked.try_reclaim(),
@@ -41,9 +45,12 @@ fn live_hazard_lease_blocks_reclaim_until_release() {
     assert_eq!(blocked.counters().blocked_reclaims(), 1);
 
     let release = table.release(active).unwrap();
-    let eligible =
-        ReclaimEligibilityProof::admit(world.executed_reachability(), table.live_index_snapshot())
-            .unwrap();
+    let eligible = ReclaimEligibilityProof::admit(
+        world.executed_reachability(),
+        table.live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
+    )
+    .unwrap();
 
     assert!(eligible.decision().is_eligible());
     assert_eq!(
@@ -131,9 +138,12 @@ fn stale_release_is_generation_counted_and_does_not_reopen_reclaim_authority() {
     assert_eq!(table.counters().released_leases(), 1);
     assert_eq!(table.counters().stale_release_denials(), 1);
 
-    let proof =
-        ReclaimEligibilityProof::admit(world.executed_reachability(), table.live_index_snapshot())
-            .unwrap();
+    let proof = ReclaimEligibilityProof::admit(
+        world.executed_reachability(),
+        table.live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
+    )
+    .unwrap();
     assert!(proof.decision().is_eligible());
 }
 
@@ -208,6 +218,7 @@ fn every_hazard_kind_blocks_reclaim_with_exact_overlap() {
         let proof = ReclaimEligibilityProof::admit(
             world.executed_reachability(),
             table.live_index_snapshot(),
+            BackupReachabilityLeaseIndexSnapshot::empty(),
         )
         .unwrap();
 
@@ -235,9 +246,12 @@ fn nonmatching_epoch_hazard_range_is_not_scanned_or_blocking_authority() {
     let mut table =
         HazardLeaseTable::with_capacity(HazardLeaseTableCapacity::bounded_slots(1).unwrap());
     table.acquire(other_root, world.lease.clone()).unwrap();
-    let proof =
-        ReclaimEligibilityProof::admit(world.executed_reachability(), table.live_index_snapshot())
-            .unwrap();
+    let proof = ReclaimEligibilityProof::admit(
+        world.executed_reachability(),
+        table.live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
+    )
+    .unwrap();
 
     assert!(proof.decision().is_eligible());
     assert_eq!(proof.counters().live_hazard_entries(), 1);
@@ -260,6 +274,7 @@ fn same_epoch_nonoverlapping_hazard_range_is_indexed_out_before_entry_scan() {
     let proof = ReclaimEligibilityProof::admit(
         candidate.executed_reachability(),
         table.live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
     )
     .unwrap();
 
@@ -290,6 +305,7 @@ fn free_reuse_requires_eligible_reclaim_generation_advance_and_allocator_publica
         let proof = ReclaimEligibilityProof::admit(
             world.executed_reachability(),
             table.live_index_snapshot(),
+            BackupReachabilityLeaseIndexSnapshot::empty(),
         )
         .unwrap();
         (proof, active)
@@ -338,6 +354,7 @@ fn free_reuse_requires_eligible_reclaim_generation_advance_and_allocator_publica
         world.executed_reachability(),
         HazardLeaseTable::with_capacity(HazardLeaseTableCapacity::bounded_slots(1).unwrap())
             .live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
     )
     .unwrap();
     let removal = eligible.admit_reachability_removal().unwrap();

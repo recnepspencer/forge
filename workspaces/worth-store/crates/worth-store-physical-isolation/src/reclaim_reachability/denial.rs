@@ -6,6 +6,7 @@ use crate::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReclaimDenial {
     MissingCandidateReachability,
+    AllocationFailed,
     CandidateDoesNotMatchExecutedReachability {
         executed: PhysicalReadProtectedFootprintBasis,
         candidate: PhysicalReadProtectedFootprintBasis,
@@ -26,6 +27,11 @@ pub enum ReclaimDenial {
         generation: HazardLeaseGeneration,
         kind: HazardLeaseKind,
         overlapping_ranges: u64,
+    },
+    BlockedByBackupCut {
+        cut_identity: [u8; 32],
+        protected_artifacts: u64,
+        overlapping_artifacts: u64,
     },
 }
 

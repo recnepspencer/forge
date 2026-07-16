@@ -1,8 +1,10 @@
 use crate::{
-    CurrentGenerationPhysicalReference, HazardLeaseEpochIndexSnapshot, HazardLeaseOverlap,
+    BackupLeaseOverlap, BackupReachabilityLeaseIndexSnapshot, CurrentGenerationPhysicalReference,
+    HazardLeaseEpochIndexSnapshot, HazardLeaseOverlap,
 };
 use worth_store_physical_format::{PhysicalGenerationOwner, PhysicalReclaimRegion};
 
+use super::counters::ReclaimCounterInputs;
 use super::{ExecutedReachabilityEvidence, ReclaimCounterSnapshot, ReclaimDenial};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,33 +40,54 @@ pub enum ReclaimDecision {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BlockedReclaimReport {
-    overlap: HazardLeaseOverlap,
-    candidate_ranges: u64,
+pub enum BlockedReclaimReport {
+    HazardLease {
+        overlap: HazardLeaseOverlap,
+        candidate_ranges: u64,
+    },
+    BackupCut {
+        overlap: BackupLeaseOverlap,
+        candidate_ranges: u64,
+    },
 }
 
 impl ReclaimEligibilityProof {
     pub fn admit(
         evidence: ExecutedReachabilityEvidence,
         live_hazards: HazardLeaseEpochIndexSnapshot,
+        backup_leases: BackupReachabilityLeaseIndexSnapshot,
     ) -> Result<Self, ReclaimDenial> {
         let scan = live_hazards.first_overlap(evidence.candidates());
-        let mut counters = ReclaimCounterSnapshot::from_inputs(
-            evidence.candidates().candidate_ranges().len() as u64,
-            live_hazards.live_entries() as u64,
-            scan.epoch_buckets_touched,
-            scan.hazard_entries_touched,
-            scan.counters,
-        );
-        let decision = match scan.first_overlap {
-            Some(overlap) => {
+        let backup_scan = backup_leases.first_overlap(evidence.candidates())?;
+        let mut counters = ReclaimCounterSnapshot::from_inputs(ReclaimCounterInputs {
+            candidate_ranges: evidence.candidates().candidate_ranges().len() as u64,
+            live_hazard_entries: live_hazards.live_entries() as u64,
+            indexed_epoch_buckets_touched: scan.epoch_buckets_touched,
+            indexed_hazard_entries_touched: scan.hazard_entries_touched,
+            hazard_counters: scan.counters,
+            active_backup_leases: backup_scan.active_leases,
+            backup_artifacts_examined: backup_scan.artifact_comparisons,
+            backup_overlapping_artifacts: backup_scan
+                .first_overlap
+                .map(BackupLeaseOverlap::overlapping_artifacts)
+                .unwrap_or(0),
+        });
+        let decision = match (backup_scan.first_overlap, scan.first_overlap) {
+            (Some(overlap), _) => {
                 counters = counters.with_blocked_reclaim();
-                ReclaimDecision::Blocked(BlockedReclaimReport {
+                ReclaimDecision::Blocked(BlockedReclaimReport::BackupCut {
                     overlap,
                     candidate_ranges: evidence.candidates().candidate_ranges().len() as u64,
                 })
             }
-            None => {
+            (None, Some(overlap)) => {
+                counters = counters.with_blocked_reclaim();
+                ReclaimDecision::Blocked(BlockedReclaimReport::HazardLease {
+                    overlap,
+                    candidate_ranges: evidence.candidates().candidate_ranges().len() as u64,
+                })
+            }
+            (None, None) => {
                 counters = counters.with_eligible_reclaim();
                 ReclaimDecision::Eligible
             }
@@ -113,7 +136,12 @@ impl ReclaimEligibilityProof {
         let capacity = crate::HazardLeaseTableCapacity::bounded_slots(1)
             .expect("certification test capacity is non-empty");
         let hazards = crate::HazardLeaseTable::with_capacity(capacity).live_index_snapshot();
-        Self::admit(evidence, hazards).expect("certification test reclaim proof is eligible")
+        Self::admit(
+            evidence,
+            hazards,
+            BackupReachabilityLeaseIndexSnapshot::empty(),
+        )
+        .expect("certification test reclaim proof is eligible")
     }
 
     #[cfg(any(test, feature = "certification-authority"))]
@@ -122,7 +150,12 @@ impl ReclaimEligibilityProof {
         let capacity = crate::HazardLeaseTableCapacity::bounded_slots(1)
             .expect("certification test capacity is non-empty");
         let hazards = crate::HazardLeaseTable::with_capacity(capacity).live_index_snapshot();
-        Self::admit(evidence, hazards).expect("certification test reclaim proof is eligible")
+        Self::admit(
+            evidence,
+            hazards,
+            BackupReachabilityLeaseIndexSnapshot::empty(),
+        )
+        .expect("certification test reclaim proof is eligible")
     }
 }
 
@@ -204,27 +237,50 @@ impl ReclaimDecision {
 
 impl BlockedReclaimReport {
     const fn denial(self) -> ReclaimDenial {
-        ReclaimDenial::BlockedByLiveHazardLease {
-            slot: self.overlap.slot(),
-            generation: self.overlap.generation(),
-            kind: self.overlap.kind(),
-            overlapping_ranges: self.overlap.overlapping_ranges(),
+        match self {
+            Self::HazardLease { overlap, .. } => ReclaimDenial::BlockedByLiveHazardLease {
+                slot: overlap.slot(),
+                generation: overlap.generation(),
+                kind: overlap.kind(),
+                overlapping_ranges: overlap.overlapping_ranges(),
+            },
+            Self::BackupCut { overlap, .. } => ReclaimDenial::BlockedByBackupCut {
+                cut_identity: overlap.cut_identity(),
+                protected_artifacts: overlap.protected_artifacts(),
+                overlapping_artifacts: overlap.overlapping_artifacts(),
+            },
         }
     }
 
-    pub const fn slot(self) -> crate::HazardLeaseSlot {
-        self.overlap.slot()
+    pub const fn hazard_overlap(self) -> Option<HazardLeaseOverlap> {
+        match self {
+            Self::HazardLease { overlap, .. } => Some(overlap),
+            Self::BackupCut { .. } => None,
+        }
     }
 
-    pub const fn generation(self) -> crate::HazardLeaseGeneration {
-        self.overlap.generation()
+    pub const fn backup_overlap(self) -> Option<BackupLeaseOverlap> {
+        match self {
+            Self::BackupCut { overlap, .. } => Some(overlap),
+            Self::HazardLease { .. } => None,
+        }
     }
 
     pub const fn overlapping_ranges(self) -> u64 {
-        self.overlap.overlapping_ranges()
+        match self {
+            Self::HazardLease { overlap, .. } => overlap.overlapping_ranges(),
+            Self::BackupCut { .. } => 0,
+        }
     }
 
     pub const fn candidate_ranges(self) -> u64 {
-        self.candidate_ranges
+        match self {
+            Self::HazardLease {
+                candidate_ranges, ..
+            }
+            | Self::BackupCut {
+                candidate_ranges, ..
+            } => candidate_ranges,
+        }
     }
 }

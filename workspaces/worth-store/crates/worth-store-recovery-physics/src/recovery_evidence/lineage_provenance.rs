@@ -2,15 +2,17 @@ use worth_foundational::{
     boundary_evidence, BoundaryArtifactField, BoundaryArtifactLocator,
     FoundationalBoundaryEvidenceAttestedLineageArtifact,
     FoundationalBoundaryEvidenceFreshnessPosture, FoundationalBoundaryEvidenceLineageSubject,
+    FoundationalBoundaryEvidenceProvenanceArtifact,
     FoundationalBoundaryEvidenceReconstructedEquivalenceArtifact,
     FoundationalBoundaryEvidenceReplayDerivedLineageArtifact,
     FoundationalBoundaryEvidenceRestoredLineageArtifact,
     FoundationalBoundaryEvidenceRuntimeAssumption,
     FoundationalBoundaryEvidenceRuntimeNonAssumption, FoundationalBoundaryEvidenceSourceBasis,
 };
-use worth_proof::TransitionOutcome;
 
-use super::executed_evidence_source::RecoveryPhysicsEvidenceSource;
+use super::{
+    denial::RecoveryEvidenceDenial, executed_evidence_source::RecoveryPhysicsEvidenceSource,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RecoveryEvidenceLineagePosture {
@@ -34,8 +36,10 @@ pub struct RecoveryEvidenceLineageReport {
 }
 
 impl RecoveryEvidenceLineageReport {
-    pub fn from_source(source: &RecoveryPhysicsEvidenceSource) -> Self {
-        Self {
+    pub fn from_source(
+        source: &RecoveryPhysicsEvidenceSource,
+    ) -> Result<Self, RecoveryEvidenceDenial> {
+        Ok(Self {
             postures: vec![
                 RecoveryEvidenceLineagePosture::ReplayDerived,
                 RecoveryEvidenceLineagePosture::RestoredReadmitted,
@@ -44,15 +48,15 @@ impl RecoveryEvidenceLineageReport {
                 RecoveryEvidenceLineagePosture::RuntimeAssumption,
                 RecoveryEvidenceLineagePosture::RuntimeNonAssumption,
             ],
-            replay_derived: replay_derived_lineage(source),
-            restored: restored_lineage(source),
-            reconstructed: reconstructed_equivalence(source),
-            direct_continuity: direct_continuity(source),
+            replay_derived: replay_derived_lineage(source)?,
+            restored: restored_lineage(source)?,
+            reconstructed: reconstructed_equivalence(source)?,
+            direct_continuity: direct_continuity(source)?,
             runtime_assumption:
                 FoundationalBoundaryEvidenceRuntimeAssumption::ReadmissionRemainsExplicitAcrossTrustBoundaries,
             runtime_non_assumption:
                 FoundationalBoundaryEvidenceRuntimeNonAssumption::ReplayDerivationUpgradesToAttestedContinuity,
-        }
+        })
     }
 
     pub fn postures(&self) -> &[RecoveryEvidenceLineagePosture] {
@@ -90,17 +94,18 @@ impl RecoveryEvidenceLineageReport {
 
 fn replay_derived_lineage(
     source: &RecoveryPhysicsEvidenceSource,
-) -> FoundationalBoundaryEvidenceReplayDerivedLineageArtifact {
+) -> Result<FoundationalBoundaryEvidenceReplayDerivedLineageArtifact, RecoveryEvidenceDenial> {
     boundary_evidence()
         .lineage()
         .replay_derived_continuity(subject(source))
-        .with_provenance(replay_provenance(source))
-        .success_or_panic("replay-derived recovery lineage")
+        .with_provenance(replay_provenance(source)?)
+        .into_result()
+        .map_err(RecoveryEvidenceDenial::from)
 }
 
 fn restored_lineage(
     source: &RecoveryPhysicsEvidenceSource,
-) -> FoundationalBoundaryEvidenceRestoredLineageArtifact {
+) -> Result<FoundationalBoundaryEvidenceRestoredLineageArtifact, RecoveryEvidenceDenial> {
     boundary_evidence()
         .lineage()
         .restored_continuity(subject(source))
@@ -108,53 +113,57 @@ fn restored_lineage(
             boundary_evidence()
                 .receipt()
                 .restoration(receipt_boundary(source))
-                .with_provenance(restored_provenance(source)),
+                .with_provenance(restored_provenance(source)?),
         )
-        .success_or_panic("restored recovery lineage")
+        .into_result()
+        .map_err(RecoveryEvidenceDenial::from)
 }
 
 fn reconstructed_equivalence(
     source: &RecoveryPhysicsEvidenceSource,
-) -> FoundationalBoundaryEvidenceReconstructedEquivalenceArtifact {
+) -> Result<FoundationalBoundaryEvidenceReconstructedEquivalenceArtifact, RecoveryEvidenceDenial> {
     boundary_evidence()
         .lineage()
         .reconstructed_equivalence(subject(source))
-        .with_provenance(replay_provenance(source))
-        .success_or_panic("reconstructed recovery equivalence")
+        .with_provenance(replay_provenance(source)?)
+        .into_result()
+        .map_err(RecoveryEvidenceDenial::from)
 }
 
 fn direct_continuity(
     source: &RecoveryPhysicsEvidenceSource,
-) -> FoundationalBoundaryEvidenceAttestedLineageArtifact {
-    boundary_evidence()
+) -> Result<FoundationalBoundaryEvidenceAttestedLineageArtifact, RecoveryEvidenceDenial> {
+    Ok(boundary_evidence()
         .lineage()
         .continuity(subject(source))
         .attested_by(
             boundary_evidence()
                 .receipt()
                 .execution(receipt_boundary(source))
-                .with_provenance(replay_provenance(source)),
-        )
+                .with_provenance(replay_provenance(source)?),
+        ))
 }
 
 fn replay_provenance(
     source: &RecoveryPhysicsEvidenceSource,
-) -> worth_foundational::FoundationalBoundaryEvidenceProvenanceArtifact {
+) -> Result<FoundationalBoundaryEvidenceProvenanceArtifact, RecoveryEvidenceDenial> {
     boundary_evidence()
         .provenance()
         .replay_derived(source_basis(source))
         .with_freshness(FoundationalBoundaryEvidenceFreshnessPosture::ReconstructedFromReplay)
-        .success_or_panic("replay recovery provenance")
+        .into_result()
+        .map_err(RecoveryEvidenceDenial::from)
 }
 
 fn restored_provenance(
     source: &RecoveryPhysicsEvidenceSource,
-) -> worth_foundational::FoundationalBoundaryEvidenceProvenanceArtifact {
+) -> Result<FoundationalBoundaryEvidenceProvenanceArtifact, RecoveryEvidenceDenial> {
     boundary_evidence()
         .provenance()
         .restored_readmitted(source_basis(source))
         .with_freshness(FoundationalBoundaryEvidenceFreshnessPosture::RestoredFromCheckpoint)
-        .success_or_panic("restored recovery provenance")
+        .into_result()
+        .map_err(RecoveryEvidenceDenial::from)
 }
 
 fn source_basis(source: &RecoveryPhysicsEvidenceSource) -> FoundationalBoundaryEvidenceSourceBasis {
@@ -178,24 +187,4 @@ fn source_basis_locator(source: &RecoveryPhysicsEvidenceSource) -> BoundaryArtif
 
 fn subject(source: &RecoveryPhysicsEvidenceSource) -> FoundationalBoundaryEvidenceLineageSubject {
     FoundationalBoundaryEvidenceLineageSubject::new(source.authority().handle())
-}
-
-trait RecoveryLineageOutcomeExt<T> {
-    fn success_or_panic(self, context: &str) -> T;
-}
-
-impl<T, D, De, St, R, F> RecoveryLineageOutcomeExt<T> for TransitionOutcome<T, D, De, St, R, F>
-where
-    D: core::fmt::Debug,
-    De: core::fmt::Debug,
-    St: core::fmt::Debug,
-    R: core::fmt::Debug,
-    F: core::fmt::Debug,
-{
-    fn success_or_panic(self, context: &str) -> T {
-        match self {
-            TransitionOutcome::Success(value) => value,
-            _ => panic!("{context}: expected success"),
-        }
-    }
 }

@@ -46,7 +46,7 @@ pub(super) fn blob_scope(
     BlobChunkSecurityScope::from_admitted_security_scope(admitted).expect("blob scope")
 }
 
-pub(super) fn integrity_proof_for_scope(
+pub(crate) fn integrity_proof_for_scope(
     case: &str,
     scope_class: BlobHarnessSecurityScopeClass,
     bytes: &[u8],

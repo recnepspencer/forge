@@ -72,7 +72,7 @@ impl FutureLayoutCustomizationAdmission {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FutureLayoutCustomizationDenial {
     TargetRejected { target: FutureLayoutTarget },
-    StoreDenied(StoreLayoutCustomizationDenial),
+    StoreDenied(Box<StoreLayoutCustomizationDenial>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -165,9 +165,9 @@ impl FutureLayoutCustomizationCatalogFacade {
             TransitionOutcome::Success(store_admission) => TransitionOutcome::success(
                 FutureLayoutCustomizationAdmission::new(request.declaration(), store_admission),
             ),
-            TransitionOutcome::Denied(denial) => {
-                TransitionOutcome::denied(FutureLayoutCustomizationDenial::StoreDenied(denial))
-            }
+            TransitionOutcome::Denied(denial) => TransitionOutcome::denied(
+                FutureLayoutCustomizationDenial::StoreDenied(Box::new(denial)),
+            ),
             TransitionOutcome::Deferred(deferred) => TransitionOutcome::deferred(
                 FutureLayoutCustomizationDeferred::StoreDeferred(deferred),
             ),

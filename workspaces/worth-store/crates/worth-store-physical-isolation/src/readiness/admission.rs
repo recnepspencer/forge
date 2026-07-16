@@ -24,14 +24,14 @@ pub fn admit_physical_isolation_entry_checked(
     request: PhysicalIsolationEntryRequest<'_>,
 ) -> PhysicalIsolationEntryCheckedOutcome {
     match admit_physical_isolation_entry(request) {
-        Ok(admission) => PhysicalIsolationEntryCheckedOutcome::Admitted(admission),
+        Ok(admission) => PhysicalIsolationEntryCheckedOutcome::Admitted(Box::new(admission)),
         Err(denial) => PhysicalIsolationEntryCheckedOutcome::Denied(denial),
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum PhysicalIsolationEntryCheckedOutcome {
-    Admitted(PhysicalIsolationEntryAdmission),
+    Admitted(Box<PhysicalIsolationEntryAdmission>),
     Denied(PhysicalIsolationEntryDenial),
     Stale(PhysicalIsolationEntryDenial),
     RebindRequired(PhysicalIsolationEntryRebindRequired),
@@ -62,7 +62,7 @@ impl PhysicalIsolationEntryAdmission {
             request.store_authority_identity(),
         );
         let root_epoch_basis = identity.root_epoch_basis();
-        let evidence = seal_physical_isolation_entry_evidence(&identity);
+        let evidence = seal_physical_isolation_entry_evidence(&identity)?;
         Ok(Self {
             recovery_completion,
             identity,
@@ -124,6 +124,6 @@ fn derive_entry_identity_from_completion(
 
 fn seal_physical_isolation_entry_evidence(
     identity: &PhysicalIsolationEntryIdentity,
-) -> PhysicalIsolationEntryEvidence {
-    PhysicalIsolationEntryEvidence::from_entry_identity(identity)
+) -> Result<PhysicalIsolationEntryEvidence, PhysicalIsolationEntryDenial> {
+    PhysicalIsolationEntryEvidence::from_entry_identity(identity).map_err(Into::into)
 }

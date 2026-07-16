@@ -111,6 +111,7 @@ pub struct LsmMembershipRecord {
     pub(crate) durable_scope: WalFrameDurablePublicationScope,
     pub(crate) key: LsmMembershipKey,
     pub(crate) persisted_path: std::path::PathBuf,
+    pub(crate) persisted_offset: u64,
     pub(crate) persisted_bytes: u64,
 }
 
@@ -126,8 +127,9 @@ impl LsmMembershipRecord {
             return None;
         };
         if scope != durable.scope()
-            || !super::durable_artifact::persisted_artifact_matches(
+            || !super::durable_artifact::persisted_artifact_range_matches(
                 durable.persisted_path(),
+                durable.persisted_offset(),
                 durable.persisted_bytes(),
                 &super::durable_artifact::lsm_membership_record_bytes(&envelope, key),
             )
@@ -140,6 +142,7 @@ impl LsmMembershipRecord {
             durable_scope,
             key,
             persisted_path: durable.persisted_path().to_path_buf(),
+            persisted_offset: durable.persisted_offset(),
             persisted_bytes: durable.persisted_bytes(),
         })
     }
@@ -207,8 +210,9 @@ impl LsmCompactionMembership {
 
     pub fn revalidate_artifacts(&self) -> Result<(), super::LsmMembershipDenial> {
         if self.record_set.iter().any(|record| {
-            !super::durable_artifact::persisted_artifact_matches(
+            !super::durable_artifact::persisted_artifact_range_matches(
                 &record.persisted_path,
+                record.persisted_offset,
                 record.persisted_bytes,
                 &super::durable_artifact::lsm_membership_record_bytes(&record.envelope, record.key),
             )

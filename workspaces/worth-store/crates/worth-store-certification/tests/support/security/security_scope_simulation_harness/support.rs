@@ -191,13 +191,10 @@ pub(crate) fn assert_physical_binding_matches_replay(
         physical_replay.replay_bundle().plan().scenario_family(),
         binding.physical_isolation_scenario_family()
     );
-    assert_eq!(
-        physical_replay
-            .replay_bundle()
-            .schedule()
-            .replay_identity_matches_plan(physical_replay.replay_bundle().plan()),
-        true
-    );
+    assert!(physical_replay
+        .replay_bundle()
+        .schedule()
+        .replay_identity_matches_plan(physical_replay.replay_bundle().plan()));
 }
 
 fn assert_lower_counter_family_checks(

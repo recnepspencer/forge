@@ -2,15 +2,17 @@ use worth_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority, StoreDurabilityAdmission,
-    StoreDurabilityBoundaryReached, StoreDurabilityDenial, StoreDurabilityFileSyncKind,
-    StoreDurabilityPublicationKind, StoreDurabilityRequirement, StoreDurabilityRuntime,
-    StoreDurabilityWriteAccepted, WalDurabilityBarrier, WalDurabilityBarrierSet,
+    StoreDurabilityAppendInput, StoreDurabilityBoundaryReached, StoreDurabilityDenial,
+    StoreDurabilityFileSyncKind, StoreDurabilityPublicationKind, StoreDurabilityRequirement,
+    StoreDurabilityRuntime, StoreDurabilityWriteAccepted, WalDurabilityBarrier,
+    WalDurabilityBarrierSet,
 };
 use worth_store_wal::{
     admit_checkpoint_cutover, admit_checkpoint_publication, admit_durable_append,
-    admit_replay_cursor, inspect_replay_tail_record, BlobWalRecordEnvelope, BlobWalRecordIdentity,
-    BlobWalRecordKind, CheckpointDurablePublicationScope, DurablePublicationDeclaration,
-    LogSequenceNumber, StoreCheckpointRecordIdentity, WalFrameDurablePublicationScope, WalLsnRange,
+    admit_replay_cursor, inspect_replay_tail_record, prepare_wal_frame_append,
+    BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind,
+    CheckpointDurablePublicationScope, DurablePublicationDeclaration, LogSequenceNumber,
+    StoreCheckpointRecordIdentity, WalFrameDurablePublicationScope, WalLsnRange,
     WalOperationDenialKind, WalSegmentGeneration, WalSegmentId, WalSegmentScanRecord,
     WalTopologyScan,
 };
@@ -131,16 +133,47 @@ fn wal_receipt(
     let requirement = StoreDurabilityRequirement::wal_ordering_barrier(
         WalDurabilityBarrierSet::of(WalDurabilityBarrier::WalFileFsync),
     );
-    reach_boundary(
-        admitted(requirement).submit_write(scope).backend_accepted(),
-        StoreDurabilityFileSyncKind::Fdatasync,
-        false,
-        false,
-        true,
+    let expected_bytes = usize::try_from(scope.expected_bytes()).unwrap();
+    let payload = vec![0x5a; expected_bytes];
+    let root = wal_directory();
+    let append = prepare_wal_frame_append(
+        &root,
+        scope.segment_id(),
+        scope.generation(),
+        scope.lsn_start(),
+        scope.lsn_end(),
+        scope.frame_digest(),
+        &payload,
     )
-    .unwrap()
-    .ordering_barrier_durable()
-    .unwrap()
+    .unwrap();
+    let accepted = admitted(requirement).submit_write(scope).backend_accepted();
+    let proof = StoreDurabilityRuntime::new()
+        .persist_append_and_execute(
+            &root,
+            StoreDurabilityAppendInput::new(
+                append.relative_path(),
+                append.encoded_frame(),
+                append.observed_file_bytes(),
+                append.valid_prefix_bytes(),
+            ),
+            &accepted,
+        )
+        .unwrap();
+    accepted
+        .reach_durability_boundary(proof)
+        .unwrap()
+        .ordering_barrier_durable()
+        .unwrap()
+}
+
+fn wal_directory() -> std::path::PathBuf {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
+    std::env::temp_dir().join(format!(
+        "worth-store-wal-layout-{}-{}",
+        std::process::id(),
+        NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed)
+    ))
 }
 
 fn checkpoint_receipt(

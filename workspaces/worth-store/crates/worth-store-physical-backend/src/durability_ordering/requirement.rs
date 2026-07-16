@@ -22,12 +22,15 @@ pub struct StoreDurabilityRequirement {
 
 impl StoreDurabilityRequirement {
     pub const fn wal_ordering_barrier(required_barriers: WalDurabilityBarrierSet) -> Self {
+        let requires_directory_sync = required_barriers
+            .contains(crate::WalDurabilityBarrier::WalDirectoryFsync)
+            || required_barriers.contains(crate::WalDurabilityBarrier::WindowsDirectorySync);
         Self {
             publication: StoreDurabilityPublicationKind::WalFrame,
             required_barriers,
             required_file_sync: StoreDurabilityFileSyncKind::Fdatasync,
-            requires_directory_sync: false,
-            requires_parent_namespace_durable: false,
+            requires_directory_sync,
+            requires_parent_namespace_durable: requires_directory_sync,
             requires_rename_durable: false,
             requires_ordering_barrier: true,
         }

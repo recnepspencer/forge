@@ -23,7 +23,7 @@ pub struct CompactionMutationLaneOrigin {
 }
 
 macro_rules! define_compaction_mutation_outcomes {
-    ($( $variant:ident => ($id:literal, $from:ident) ),+ $(,)?) => {
+    ($( $variant:ident => $from:ident ),+ $(,)?) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub enum CompactionMutationLaneReceiptKind {
             $($variant),+
@@ -33,7 +33,7 @@ macro_rules! define_compaction_mutation_outcomes {
             const fn owner_case(self) -> super::CompactionOwnerCaseDeclaration {
                 match self {
                     $(Self::$variant => super::CompactionOwnerCaseDeclaration::declared_by_owner(
-                        super::CompactionOwnerCaseId::owned($id),
+                        super::CompactionOwnerCaseId::$variant,
                         super::CompactionCutoverState::$from,
                         super::CompactionCutoverState::Denied,
                     )),+
@@ -48,12 +48,12 @@ macro_rules! define_compaction_mutation_outcomes {
 }
 
 define_compaction_mutation_outcomes!(
-    InPlaceOverwriteDenied => ("physical.compaction.deny_in_place_overwrite", PlanAdmitted),
-    EarlyReclaimDenied => ("physical.compaction.deny_early_reclaim", ReclaimDeferred),
-    StaleEpochReuseDenied => ("physical.compaction.deny_stale_epoch_reuse", PlanAdmitted),
-    BackendResidueCandidateSelectionDenied => ("physical.compaction.deny_backend_residue", PublicationCommitted),
-    LatchHierarchyInversionDenied => ("physical.compaction.deny_latch_hierarchy_inversion", PlanAdmitted),
-    MixedRootReadDenied => ("physical.compaction.deny_mixed_root_read", PublicationCommitted),
+    InPlaceOverwriteDenied => PlanAdmitted,
+    EarlyReclaimDenied => ReclaimDeferred,
+    StaleEpochReuseDenied => PlanAdmitted,
+    BackendResidueCandidateSelectionDenied => PublicationCommitted,
+    LatchHierarchyInversionDenied => PlanAdmitted,
+    MixedRootReadDenied => PublicationCommitted,
 );
 
 impl CompactionMutationLaneReceipt {

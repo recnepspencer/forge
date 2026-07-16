@@ -32,6 +32,28 @@ pub struct RecoveryPerformanceSurface {
     counter_backed_current_truth: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct RecoveryPerformanceCounterEvidence {
+    exact_counter_assertions: usize,
+    counter_backed_current_truth: bool,
+}
+
+impl RecoveryPerformanceCounterEvidence {
+    const fn current(exact_counter_assertions: usize) -> Self {
+        Self {
+            exact_counter_assertions,
+            counter_backed_current_truth: true,
+        }
+    }
+
+    const fn retained(exact_counter_assertions: usize) -> Self {
+        Self {
+            exact_counter_assertions,
+            counter_backed_current_truth: false,
+        }
+    }
+}
+
 impl RecoveryPerformanceSurface {
     pub const fn kind(&self) -> RecoveryPerformanceSurfaceKind {
         self.kind
@@ -66,15 +88,14 @@ impl RecoveryPerformanceSurface {
     }
 }
 
-pub(super) fn performance_surface(
+fn performance_surface(
     kind: RecoveryPerformanceSurfaceKind,
     boundary: FoundationalPerformanceBoundary,
     evidence_strength: FoundationalPerformanceEvidenceStrength,
     execution_temperature: FoundationalPerformanceExecutionTemperature,
     freshness_retention: FoundationalPerformanceFreshnessRetentionPosture,
     fallback_debt: FoundationalPerformanceFallbackDebtPosture,
-    exact_counter_assertions: usize,
-    counter_backed_current_truth: bool,
+    counter_evidence: RecoveryPerformanceCounterEvidence,
 ) -> RecoveryPerformanceSurface {
     RecoveryPerformanceSurface {
         kind,
@@ -83,8 +104,8 @@ pub(super) fn performance_surface(
         execution_temperature,
         freshness_retention,
         fallback_debt,
-        exact_counter_assertions,
-        counter_backed_current_truth,
+        exact_counter_assertions: counter_evidence.exact_counter_assertions,
+        counter_backed_current_truth: counter_evidence.counter_backed_current_truth,
     }
 }
 
@@ -103,8 +124,7 @@ pub(crate) fn recovery_performance_surfaces(
             FoundationalPerformanceExecutionTemperature::RecoveryOnly,
             FoundationalPerformanceFreshnessRetentionPosture::ReplayDerived,
             FoundationalPerformanceFallbackDebtPosture::Verified,
-            counter_rows,
-            true,
+            RecoveryPerformanceCounterEvidence::current(counter_rows),
         ),
         performance_surface(
             RecoveryPerformanceSurfaceKind::ColdReplay,
@@ -113,8 +133,7 @@ pub(crate) fn recovery_performance_surfaces(
             FoundationalPerformanceExecutionTemperature::ColdPath,
             FoundationalPerformanceFreshnessRetentionPosture::ReplayDerived,
             FoundationalPerformanceFallbackDebtPosture::Verified,
-            counter_rows,
-            true,
+            RecoveryPerformanceCounterEvidence::current(counter_rows),
         ),
         performance_surface(
             RecoveryPerformanceSurfaceKind::VerifierRead,
@@ -123,8 +142,7 @@ pub(crate) fn recovery_performance_surfaces(
             FoundationalPerformanceExecutionTemperature::ColdPath,
             FoundationalPerformanceFreshnessRetentionPosture::HistoricalRetained,
             FoundationalPerformanceFallbackDebtPosture::Verified,
-            counter_rows,
-            false,
+            RecoveryPerformanceCounterEvidence::retained(counter_rows),
         ),
         performance_surface(
             RecoveryPerformanceSurfaceKind::Materialization,
@@ -133,8 +151,7 @@ pub(crate) fn recovery_performance_surfaces(
             FoundationalPerformanceExecutionTemperature::SupportOnly,
             FoundationalPerformanceFreshnessRetentionPosture::HistoricalRetained,
             FoundationalPerformanceFallbackDebtPosture::Verified,
-            counter_rows,
-            false,
+            RecoveryPerformanceCounterEvidence::retained(counter_rows),
         ),
         performance_surface(
             RecoveryPerformanceSurfaceKind::SupportOnly,
@@ -143,8 +160,7 @@ pub(crate) fn recovery_performance_surfaces(
             FoundationalPerformanceExecutionTemperature::SupportOnly,
             FoundationalPerformanceFreshnessRetentionPosture::StaleSupport,
             FoundationalPerformanceFallbackDebtPosture::Deferred,
-            counter_rows,
-            false,
+            RecoveryPerformanceCounterEvidence::retained(counter_rows),
         ),
         performance_surface(
             RecoveryPerformanceSurfaceKind::PolicyAdmission,
@@ -153,8 +169,7 @@ pub(crate) fn recovery_performance_surfaces(
             FoundationalPerformanceExecutionTemperature::RecoveryOnly,
             FoundationalPerformanceFreshnessRetentionPosture::ReplayDerived,
             FoundationalPerformanceFallbackDebtPosture::Verified,
-            counter_rows,
-            false,
+            RecoveryPerformanceCounterEvidence::retained(counter_rows),
         ),
         performance_surface(
             RecoveryPerformanceSurfaceKind::CounterBacked,
@@ -163,8 +178,7 @@ pub(crate) fn recovery_performance_surfaces(
             counter_backed.bundle().claim().execution_temperature(),
             counter_backed.bundle().claim().freshness_retention(),
             counter_backed.bundle().claim().fallback_debt(),
-            counter_rows,
-            true,
+            RecoveryPerformanceCounterEvidence::current(counter_rows),
         ),
         performance_surface(
             RecoveryPerformanceSurfaceKind::FreshnessRetention,
@@ -173,8 +187,7 @@ pub(crate) fn recovery_performance_surfaces(
             FoundationalPerformanceExecutionTemperature::RecoveryOnly,
             FoundationalPerformanceFreshnessRetentionPosture::RestoredReadmitted,
             FoundationalPerformanceFallbackDebtPosture::Verified,
-            counter_rows,
-            true,
+            RecoveryPerformanceCounterEvidence::current(counter_rows),
         ),
         performance_surface(
             RecoveryPerformanceSurfaceKind::FallbackDebt,
@@ -183,8 +196,7 @@ pub(crate) fn recovery_performance_surfaces(
             FoundationalPerformanceExecutionTemperature::SupportOnly,
             FoundationalPerformanceFreshnessRetentionPosture::StaleSupport,
             FoundationalPerformanceFallbackDebtPosture::FreshFreezeRebuildReadmissionRequired,
-            counter_rows,
-            false,
+            RecoveryPerformanceCounterEvidence::retained(counter_rows),
         ),
         performance_surface(
             RecoveryPerformanceSurfaceKind::Certified,
@@ -193,8 +205,7 @@ pub(crate) fn recovery_performance_surfaces(
             FoundationalPerformanceExecutionTemperature::SupportOnly,
             FoundationalPerformanceFreshnessRetentionPosture::HistoricalRetained,
             FoundationalPerformanceFallbackDebtPosture::Verified,
-            counter_rows,
-            false,
+            RecoveryPerformanceCounterEvidence::retained(counter_rows),
         ),
         performance_surface(
             RecoveryPerformanceSurfaceKind::Readmitted,
@@ -203,8 +214,7 @@ pub(crate) fn recovery_performance_surfaces(
             FoundationalPerformanceExecutionTemperature::SupportOnly,
             FoundationalPerformanceFreshnessRetentionPosture::RestoredReadmitted,
             FoundationalPerformanceFallbackDebtPosture::Verified,
-            counter_rows,
-            false,
+            RecoveryPerformanceCounterEvidence::retained(counter_rows),
         ),
     ]
 }

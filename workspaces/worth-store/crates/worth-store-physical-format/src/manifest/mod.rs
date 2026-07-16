@@ -1,5 +1,6 @@
 mod authority;
 mod counters;
+mod current_reachability_source;
 mod denials;
 mod entries;
 mod rebuild_source;
@@ -12,6 +13,7 @@ mod vocabulary;
 
 pub use authority::*;
 pub use counters::*;
+pub use current_reachability_source::*;
 pub use denials::*;
 pub use entries::*;
 pub use rebuild_source::*;

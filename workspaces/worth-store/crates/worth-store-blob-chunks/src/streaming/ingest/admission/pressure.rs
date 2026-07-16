@@ -9,7 +9,7 @@ use worth_store_io_scheduler::{
 
 use crate::BlobStreamingIngestDenial;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobStreamingPressureAdmission {
     basis: BackgroundPacingAdmissionBasis,
     outcome: BackgroundPacingOutcome,
@@ -58,11 +58,11 @@ impl BlobStreamingPressureAdmission {
         }
     }
 
-    pub const fn basis(self) -> BackgroundPacingAdmissionBasis {
+    pub const fn basis(&self) -> BackgroundPacingAdmissionBasis {
         self.basis
     }
 
-    pub const fn outcome(self) -> BackgroundPacingOutcome {
+    pub fn into_outcome(self) -> BackgroundPacingOutcome {
         self.outcome
     }
 }

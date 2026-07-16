@@ -37,6 +37,54 @@ pub struct BlobHarnessExecutionInput {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BlobHarnessStorageShape {
+    profile: BlobHarnessEnvelopeProfile,
+    size_class: BlobHarnessSizeClass,
+    placement_class: BlobHarnessPlacementClass,
+    security_scope_class: BlobHarnessSecurityScopeClass,
+}
+
+impl BlobHarnessStorageShape {
+    pub const fn new(
+        profile: BlobHarnessEnvelopeProfile,
+        size_class: BlobHarnessSizeClass,
+        placement_class: BlobHarnessPlacementClass,
+        security_scope_class: BlobHarnessSecurityScopeClass,
+    ) -> Self {
+        Self {
+            profile,
+            size_class,
+            placement_class,
+            security_scope_class,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BlobHarnessExerciseShape {
+    access_mode: BlobHarnessAccessMode,
+    failure_point: BlobHarnessFailurePoint,
+    actor_mix: BlobHarnessActorMix,
+    topology: BlobHarnessChunkTopology,
+}
+
+impl BlobHarnessExerciseShape {
+    pub const fn new(
+        access_mode: BlobHarnessAccessMode,
+        failure_point: BlobHarnessFailurePoint,
+        actor_mix: BlobHarnessActorMix,
+        topology: BlobHarnessChunkTopology,
+    ) -> Self {
+        Self {
+            access_mode,
+            failure_point,
+            actor_mix,
+            topology,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobHarnessObservedYieldpoint {
     WalAppendBeforeFlush,
     FreshRuntimeReplayOpen,
@@ -66,25 +114,16 @@ pub struct BlobHarnessExecutedWitness {
 }
 
 impl BlobHarnessExecutionInput {
-    pub const fn new(
-        profile: BlobHarnessEnvelopeProfile,
-        size_class: BlobHarnessSizeClass,
-        placement_class: BlobHarnessPlacementClass,
-        security_scope_class: BlobHarnessSecurityScopeClass,
-        access_mode: BlobHarnessAccessMode,
-        failure_point: BlobHarnessFailurePoint,
-        actor_mix: BlobHarnessActorMix,
-        topology: BlobHarnessChunkTopology,
-    ) -> Self {
+    pub const fn new(storage: BlobHarnessStorageShape, exercise: BlobHarnessExerciseShape) -> Self {
         Self {
-            profile,
-            size_class,
-            placement_class,
-            security_scope_class,
-            access_mode,
-            failure_point,
-            actor_mix,
-            topology,
+            profile: storage.profile,
+            size_class: storage.size_class,
+            placement_class: storage.placement_class,
+            security_scope_class: storage.security_scope_class,
+            access_mode: exercise.access_mode,
+            failure_point: exercise.failure_point,
+            actor_mix: exercise.actor_mix,
+            topology: exercise.topology,
             heavy_materialization_mode: None,
             heavy_byte_pattern_profile: None,
             heavy_backend_profile: None,

@@ -12,8 +12,8 @@ use worth_proof::TransitionOutcome;
 use worth_store_physical_integrity::CompactionSourceIntegrityClearance;
 use worth_store_physical_isolation::{
     compare_physical_epoch_vectors_with_evidence, lower_latch_acquisition_plan,
-    CompactionCandidateRangeSet, CompactionCutoverDelta, CompactionCutoverStabilityProof,
-    CompactionProtectedReferenceSet, CompactionReadInterlockPlan,
+    BackupReachabilityLeaseIndexSnapshot, CompactionCandidateRangeSet, CompactionCutoverDelta,
+    CompactionCutoverStabilityProof, CompactionProtectedReferenceSet, CompactionReadInterlockPlan,
     CompactionSourceIntegrityEvidence, EpochComparisonScope, ExecutedIsolationEvidence,
     ExecutedIsolationReceipts, HazardLeaseTable, HazardLeaseTableCapacity, LatchAcquisitionRequest,
     LatchAcquisitionStep, PhysicalEpochVector, PhysicalIsolationCounterSnapshot, PhysicalLatchKey,
@@ -29,6 +29,7 @@ pub(crate) fn honest_executed_physical_isolation_closeout() -> ExecutedIsolation
         reclaim_world.executed_reachability(),
         HazardLeaseTable::with_capacity(HazardLeaseTableCapacity::bounded_slots(1).unwrap())
             .live_index_snapshot(),
+        BackupReachabilityLeaseIndexSnapshot::empty(),
     )
     .unwrap();
     let latch_plan =

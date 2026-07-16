@@ -12,11 +12,13 @@ use worth_store_physical_isolation::PhysicalRootPublicationRuntime;
 
 use super::world;
 
-pub(super) fn observe() -> (
+type InterruptionCompatibilityObservations = (
     Vec<OwnerCaseObservation<LayoutMigrationInterruptionCaseId>>,
     Vec<OwnerCaseObservation<LayoutRollbackInterruptionCaseId>>,
     Vec<OwnerCaseObservation<LayoutBackwardReadCompatibilityCaseId>>,
-) {
+);
+
+pub(super) fn observe() -> InterruptionCompatibilityObservations {
     (
         observe_migration_interruption(),
         observe_rollback_interruption(),

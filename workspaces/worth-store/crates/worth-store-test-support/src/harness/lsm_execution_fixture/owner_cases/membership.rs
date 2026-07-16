@@ -41,12 +41,12 @@ fn observe_persistence(observations: &mut Vec<LsmMembershipOwnerCaseObservation>
     observations.push(foreign.owner_case_observation());
 
     let (corrupt, durable) =
-        world::admitted_record(key, 63, BlobWalRecordKind::GenerationPublication);
-    std::fs::write(durable.persisted_path(), b"corrupt").unwrap();
+        world::admitted_record(key, 62, BlobWalRecordKind::GenerationPublication);
+    let ambiguous = world::admitted_record(key, 63, BlobWalRecordKind::LsmValue).0;
+    corrupt_byte(durable.persisted_path(), durable.persisted_offset());
     let corrupt = persist_lsm_membership_record(&mut session, corrupt);
     observations.push(corrupt.owner_case_observation());
 
-    let ambiguous = world::admitted_record(key, 64, BlobWalRecordKind::LsmValue).0;
     let ambiguous = persist_lsm_membership_record(&mut session, ambiguous);
     observations.push(ambiguous.owner_case_observation());
 }
@@ -74,7 +74,7 @@ fn observe_selection(observations: &mut Vec<LsmMembershipOwnerCaseObservation>) 
     )
     .into_result()
     .unwrap();
-    std::fs::write(&replaced.output_path, b"corrupt").unwrap();
+    corrupt_byte(&replaced.output_path, replaced.output_offset);
     let invalid = select_lsm_compaction_membership(&replaced.session, replaced.key);
     observations.push(invalid.owner_case_observation());
 }
@@ -105,13 +105,20 @@ fn observe_replacement(observations: &mut Vec<LsmMembershipOwnerCaseObservation>
     observations.push(manifest.owner_case_observation());
 
     let mut output_world = world::replacement_world();
-    std::fs::write(&output_world.output_path, b"short").unwrap();
+    corrupt_byte(&output_world.output_path, output_world.output_offset);
     let output = replace_lsm_membership(
         &mut output_world.session,
         &output_world.selected,
         &output_world.replacement,
     );
     observations.push(output.owner_case_observation());
+}
+
+fn corrupt_byte(path: &std::path::Path, offset: u64) {
+    use std::io::{Seek, SeekFrom, Write};
+    let mut artifact = std::fs::OpenOptions::new().write(true).open(path).unwrap();
+    artifact.seek(SeekFrom::Start(offset)).unwrap();
+    artifact.write_all(&[0xff]).unwrap();
 }
 
 fn observe_lookup(observations: &mut Vec<LsmMembershipOwnerCaseObservation>) {

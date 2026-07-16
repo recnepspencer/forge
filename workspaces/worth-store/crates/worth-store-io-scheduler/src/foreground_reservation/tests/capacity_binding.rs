@@ -54,9 +54,7 @@ fn policy_receipt_budget_mismatch_denies_capacity_admission() {
         admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
             ForegroundReservationCapacityAuthority::store_owned(),
             lane,
-            &backend,
-            &readiness,
-            &security,
+            ForegroundReservationAdmissionBoundary::new(&backend, &readiness, &security),
             ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead),
             admitted,
             admitted,

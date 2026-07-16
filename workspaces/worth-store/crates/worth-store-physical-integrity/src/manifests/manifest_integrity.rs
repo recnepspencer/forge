@@ -60,6 +60,12 @@ impl ManifestIntegrityAuthority {
     }
 }
 
+impl Default for ManifestIntegrityAuthority {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn validate_expected_manifest_reference(
     discovery: worth_store_physical_format::ManifestDiscoveryReport<'_>,
     reference: ManifestExpectedReference,

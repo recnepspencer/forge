@@ -6,13 +6,15 @@ use worth_store_test_support::harness::recovery::closeout as closeout_fixture;
 use worth_store_test_support::harness::recovery::compaction_mutation as compaction_mutation_support;
 use worth_store_test_support::harness::recovery::compaction_observation as compaction_interlock_trace;
 use worth_store_test_support::harness::recovery::coverage as coverage_support;
+#[path = "../../recovery/independent_verifier_observation.rs"]
+mod independent_verifier_observation;
 #[path = "../../../scenarios/physical_isolation/readiness/shortcut_report.rs"]
 mod shortcut_report;
 
 use worth_store_physical_certification::{
     lower_physical_simulation_plan, register_physical_isolation_certification_lane,
     CheckpointInterlockObservation, HarnessCoverageStage, IndependentVerifierObservation,
-    OfflineVerifierBoundarySeam, PhysicalCertificationEvidenceBundle, PhysicalInterleavingSchedule,
+    PhysicalCertificationEvidenceBundle, PhysicalInterleavingSchedule,
     PhysicalIsolationCertificationLaneRegistration,
     PhysicalIsolationCompactionMutationObservationSet,
     PhysicalIsolationCompactionMutationReplayBinding, PhysicalIsolationCorrectnessNonClaimEvidence,
@@ -114,8 +116,8 @@ pub(crate) fn checkpoint_interlock_observation() -> CheckpointInterlockObservati
 }
 
 pub(crate) fn independent_verifier_observation() -> IndependentVerifierObservation {
-    IndependentVerifierObservation::agreement(
-        OfflineVerifierBoundarySeam::RuntimeVerifierComparison,
+    independent_verifier_observation::observed_runtime_comparison(
+        independent_verifier_observation::RuntimeComparisonFixture::Equivalent,
     )
 }
 

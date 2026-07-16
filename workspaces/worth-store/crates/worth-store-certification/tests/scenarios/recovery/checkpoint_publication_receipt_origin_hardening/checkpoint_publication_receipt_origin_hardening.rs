@@ -94,13 +94,15 @@ fn checkpoint_crash_lane_rejects_recovery_receipt_bound_to_wrong_checkpoint_orig
         PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
             &binding,
             &checkpoint_schedule,
-            &recovery_plan,
-            &recovery_schedule,
-            actor_step_index(
+            worth_store_physical_certification::CheckpointPublicationRecoveryExecution::new(
+                &recovery_plan,
                 &recovery_schedule,
-                PhysicalScenarioActorRole::RecoveryDriver,
+                actor_step_index(
+                    &recovery_schedule,
+                    PhysicalScenarioActorRole::RecoveryDriver,
+                ),
+                &recovery_trace(&recovery_plan),
             ),
-            &recovery_trace(&recovery_plan),
             &wrong_origin,
             copied_checkpoint_evidence(),
         )

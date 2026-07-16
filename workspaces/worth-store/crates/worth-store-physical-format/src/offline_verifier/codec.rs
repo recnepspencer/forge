@@ -65,6 +65,17 @@ impl OfflineManifestCodec {
         crate::offline_verifier::codec_encode::encode_free_space_map(byte_order, entries)
     }
 
+    pub fn decode_root_manifest(
+        byte_order: PhysicalByteOrder,
+        bytes: &[u8],
+    ) -> Result<RootPublicationCell, OfflineVerifierDenial> {
+        crate::offline_verifier::codec_decode::decode_root(
+            byte_order,
+            bytes,
+            OfflineVerifierCounterSnapshot::empty().with_root_candidates_inspected(1),
+        )
+    }
+
     pub(crate) fn decode(
         byte_order: PhysicalByteOrder,
         root: &[u8],

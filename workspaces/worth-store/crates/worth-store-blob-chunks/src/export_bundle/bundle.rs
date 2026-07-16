@@ -20,30 +20,32 @@ pub struct BlobExportPublishedBundle {
     counters: BlobExportBundleCounters,
 }
 
+pub(crate) struct BlobExportPublishedBundleParts {
+    pub(crate) object_id: BlobObjectId,
+    pub(crate) generation: BlobGeneration,
+    pub(crate) chunk_tree_root: ChunkTreeRoot,
+    pub(crate) security_metadata: BlobChunkSecurityMetadataWitness,
+    pub(crate) manifest: BlobExportManifest,
+    pub(crate) custody: BlobExportCustodyEvidence,
+    pub(crate) digest_evidence: BlobExportDigestEvidence,
+    pub(crate) offline_declarations: Vec<BlobExportOfflineChunkDeclaration>,
+    pub(crate) canonical_export: CanonicalExportReadyArtifact,
+    pub(crate) counters: BlobExportBundleCounters,
+}
+
 impl BlobExportPublishedBundle {
-    pub(crate) fn new(
-        object_id: BlobObjectId,
-        generation: BlobGeneration,
-        chunk_tree_root: ChunkTreeRoot,
-        security_metadata: BlobChunkSecurityMetadataWitness,
-        manifest: BlobExportManifest,
-        custody: BlobExportCustodyEvidence,
-        digest_evidence: BlobExportDigestEvidence,
-        offline_declarations: Vec<BlobExportOfflineChunkDeclaration>,
-        canonical_export: CanonicalExportReadyArtifact,
-        counters: BlobExportBundleCounters,
-    ) -> Self {
+    pub(crate) fn new(parts: BlobExportPublishedBundleParts) -> Self {
         Self {
-            object_id,
-            generation,
-            chunk_tree_root,
-            security_metadata,
-            manifest,
-            custody,
-            digest_evidence,
-            offline_declarations,
-            canonical_export,
-            counters,
+            object_id: parts.object_id,
+            generation: parts.generation,
+            chunk_tree_root: parts.chunk_tree_root,
+            security_metadata: parts.security_metadata,
+            manifest: parts.manifest,
+            custody: parts.custody,
+            digest_evidence: parts.digest_evidence,
+            offline_declarations: parts.offline_declarations,
+            canonical_export: parts.canonical_export,
+            counters: parts.counters,
         }
     }
 

@@ -14,13 +14,13 @@ pub struct BlobPlacementMovementResidue {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlobPlacementMovementRestartOutcome {
-    ResumeFromExecutedReceipt(ExecutedBlobPlacementMovementReceipt),
+    ResumeFromExecutedReceipt(Box<ExecutedBlobPlacementMovementReceipt>),
     LocalizedResidue(BlobPlacementMovementResidue),
 }
 
 impl BlobPlacementMovementRestartOutcome {
     pub fn resume_from_receipt(receipt: ExecutedBlobPlacementMovementReceipt) -> Self {
-        Self::ResumeFromExecutedReceipt(receipt)
+        Self::ResumeFromExecutedReceipt(Box::new(receipt))
     }
 
     pub fn localize_residue(receipt: &ExecutedBlobPlacementMovementReceipt) -> Self {

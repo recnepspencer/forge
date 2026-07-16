@@ -13,7 +13,7 @@ pub struct CompactionCutoverStabilityProof {
 impl CompactionCutoverStabilityProof {
     const OWNER_CASE: super::CompactionOwnerCaseDeclaration =
         super::CompactionOwnerCaseDeclaration::declared_by_owner(
-            super::CompactionOwnerCaseId::owned("physical.compaction.admit_recovery_visibility"),
+            super::CompactionOwnerCaseId::AdmitRecoveryVisibility,
             super::CompactionCutoverState::PublicationCommitted,
             super::CompactionCutoverState::RecoveryVisibilityAdmitted,
         );

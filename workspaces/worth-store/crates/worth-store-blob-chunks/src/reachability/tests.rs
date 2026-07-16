@@ -1,27 +1,24 @@
 use worth_proof::TransitionOutcome;
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_operations_vocabulary::{
-    BackupExportCustodyDeclaration, BackupExportCustodyMode, BackupExportCustodyReadiness,
-};
 use worth_store_physical_isolation::stable_physical_read_plan_for_certification_test;
-use worth_store_security::StoreKeyVersionPosture;
 
 use crate::lifecycle::generation_registry_test_support::current_authority;
 use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
 use crate::reachability::hold_test_support::root_candidate_resume_checkpoint;
 use crate::test_support::{
-    admitted_multichunk_sequence_for_scope, blob_scope, candidate_for_bytes_and_scope,
-    canonical_equivalence,
+    admitted_blob_custody, admitted_multichunk_sequence_for_scope, blob_scope,
+    candidate_for_bytes_and_scope, canonical_equivalence,
 };
 use crate::{
-    reject_copied_refcount_row_as_reachability, BlobChunkDedupeAdmission,
+    reject_copied_refcount_row_as_reachability, AdmittedBlobCustody, BlobChunkDedupeAdmission,
     BlobChunkDedupeReferenceRegistry, BlobChunkOrdinal, BlobChunkQuarantine,
     BlobChunkReachabilityRegistry, BlobChunkSize, BlobChunkingRuleAdmission,
     BlobCorruptedChunkLocalization, BlobCorruptionDetectionSource, BlobCorruptionGuard,
-    BlobCorruptionPlacementClass, BlobCorruptionReferenceEdges, BlobQuarantineAuthority,
-    BlobReachabilityDenial, BlobReachabilityEdge, BlobReachabilityEdgeKind,
-    BlobReachabilityProtectedHold, BlobReachabilityReclaimDecision, BlobResumeSessionAdmitted,
-    BlobResumeSessionDeclaration, BlobResumeStoreAuthority, BlobStreamingContentFrontier,
+    BlobCorruptionPlacementClass, BlobCorruptionReferenceEdges, BlobCustodyPurpose,
+    BlobQuarantineAuthority, BlobReachabilityDenial, BlobReachabilityEdge,
+    BlobReachabilityEdgeKind, BlobReachabilityProtectedHold, BlobReachabilityReclaimDecision,
+    BlobResumeSessionAdmitted, BlobResumeSessionDeclaration, BlobResumeStoreAuthority,
+    BlobStreamingContentFrontier,
 };
 use worth_store_security::StoreTenantScope;
 use worth_store_wal::{
@@ -178,19 +175,19 @@ fn unbound_read_plan_holds_cannot_seed_reachability_authority() {
 }
 
 #[test]
-fn backup_requires_backup_repair_handoff_and_export_uses_blob_lifecycle_readiness() {
+fn backup_and_export_custody_admit_only_their_matching_hold_kinds() {
     let (published, _) = published_with_sequence("phase14-backup-export-holds");
-    let backup = backup_export_readiness("phase14-backup-hold", BackupExportCustodyMode::Backup);
-    let export = backup_export_readiness("phase14-export-hold", BackupExportCustodyMode::Export);
+    let backup = backup_export_readiness("phase14-backup-hold", BlobCustodyPurpose::Backup);
+    let export = backup_export_readiness("phase14-export-hold", BlobCustodyPurpose::Export);
 
     assert!(matches!(
-        BlobReachabilityProtectedHold::from_export_readiness(
+        BlobReachabilityProtectedHold::from_export_custody(
             &backup,
             crate::reachability::edges::BlobReachabilityAuthorityKey::from_published(&published)
         ),
         Err(BlobReachabilityDenial::InvalidProtectedHold { .. })
     ));
-    let export_hold = BlobReachabilityProtectedHold::from_export_readiness(
+    let export_hold = BlobReachabilityProtectedHold::from_export_custody(
         &export,
         crate::reachability::edges::BlobReachabilityAuthorityKey::from_published(&published),
     )
@@ -350,18 +347,8 @@ fn unfinished_resume_checkpoint(
         .expect("unfinished resume checkpoint should export")
 }
 
-fn backup_export_readiness(
-    case: &str,
-    mode: BackupExportCustodyMode,
-) -> BackupExportCustodyReadiness {
-    let authority = current_authority(case, "backup-export");
-    let admission =
-        BackupExportCustodyDeclaration::native(&authority, mode, StoreKeyVersionPosture::Current)
-            .expect("backup/export declaration should build")
-            .admit_with_current_authority(&authority)
-            .expect("backup/export declaration should admit");
-    BackupExportCustodyReadiness::from_admitted_custody(admission)
-        .expect("backup/export readiness should admit")
+fn backup_export_readiness(case: &str, purpose: BlobCustodyPurpose) -> AdmittedBlobCustody {
+    admitted_blob_custody(case, purpose)
 }
 
 fn frontier_for(case: &str, bytes: &[u8], chunk_size: u64) -> BlobStreamingContentFrontier {

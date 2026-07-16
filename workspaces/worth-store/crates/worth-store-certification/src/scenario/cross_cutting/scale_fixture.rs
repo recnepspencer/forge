@@ -2,9 +2,8 @@ use worth_store_physical_format::{
     ManifestDiscoveryCounterSnapshot, PhysicalBinaryEncodingWitness,
     PhysicalForegroundBoundednessReport, PhysicalGeneration, PhysicalGenerationAuthority,
     PhysicalHeaderAuthority, PhysicalOperationCounterSnapshot, PhysicalOperationKind,
-    PhysicalPageId, PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalPublicationState,
-    PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId, SlotAppendRequest,
-    PHYSICAL_HEADER_LENGTH,
+    PhysicalPageId, PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalRecordSlot,
+    PhysicalReferenceAuthority, PhysicalSegmentId, SlotAppendRequest,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,7 +48,7 @@ impl PhysicalHostileScaleFixtureReport {
             PhysicalBinaryEncodingWitness::physical_format_canonical()
                 .expect("static S.1 fixture encoding witness is valid"),
         );
-        let bytes = page_bytes(generation(7), &[]);
+        let bytes = crate::physical_fixture_encoding::data_page_bytes(page_cell, &[]);
         let counters = PhysicalOperationCounterSnapshot::from_header_decode(
             header_authority
                 .decode_page_header(page_cell, &bytes, PhysicalPageKind::DataPage)
@@ -252,14 +251,15 @@ fn target_locate_counters(
     let slot_cell = generations
         .slot_cell(segment(7), page(11), slot(1))
         .with_slot_generation(generation(9));
-    let empty_page = page_bytes(generation(5), &[]);
+    let empty_page = crate::physical_fixture_encoding::data_page_bytes(page_cell, &[]);
     let append = records
         .append_record(
             admitted_page(&records, page_cell, &empty_page)?,
             SlotAppendRequest::ordinary(slot_cell, b"target"),
         )
         .map_err(|_| PhysicalHostileScaleFixtureDenial::Append)?;
-    let reopened_page = page_bytes(generation(5), append.page_payload());
+    let reopened_page =
+        crate::physical_fixture_encoding::data_page_bytes(page_cell, append.page_payload());
     let validation = references
         .validate_page_slot(append.reference_admission(), slot_cell)
         .map_err(|_| PhysicalHostileScaleFixtureDenial::ReferenceValidation)?;
@@ -293,7 +293,7 @@ fn build_unrelated_physical_growth(
                 slot(1),
             )
             .with_slot_generation(generation(30 + index as u64));
-        let empty_page = page_bytes(generation(3 + index as u64), &[]);
+        let empty_page = crate::physical_fixture_encoding::data_page_bytes(page_cell, &[]);
         records
             .append_record(
                 admitted_page(&records, page_cell, &empty_page)?,
@@ -346,20 +346,6 @@ fn record_authority() -> PhysicalPageRecordAuthority {
                 .expect("static S.1 fixture encoding witness is valid"),
         ),
     )
-}
-
-fn page_bytes(generation: PhysicalGeneration, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalPageKind::DataPage.tag());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation.get().to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
-    bytes.extend_from_slice(payload);
-    bytes
 }
 
 fn segment(value: u64) -> PhysicalSegmentId {

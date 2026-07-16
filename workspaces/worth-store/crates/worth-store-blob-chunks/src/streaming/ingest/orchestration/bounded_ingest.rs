@@ -11,52 +11,61 @@ use crate::{
     BlobStreamingPressureAdmission, BlobStreamingSourceFrame, BlobStreamingWindow,
 };
 
-impl BlobStreamingIngest {
-    pub(crate) fn run_bounded<W>(
-        request: BlobStreamingIngestRequest,
+pub struct BlobStreamingIngestExecution {
+    window: BlobStreamingWindow,
+    allocation: AllocationReceipt,
+    envelopes: AllocationEnvelopeSet,
+    pressure: BlobStreamingPressureAdmission,
+    counter_strength: CounterEvidenceStrength,
+}
+
+impl BlobStreamingIngestExecution {
+    pub fn new(
         window: BlobStreamingWindow,
         allocation: AllocationReceipt,
         envelopes: AllocationEnvelopeSet,
         pressure: BlobStreamingPressureAdmission,
-        source_frames: impl IntoIterator<Item = BlobStreamingSourceFrame>,
-        writer: &mut W,
         counter_strength: CounterEvidenceStrength,
-    ) -> Result<Self, BlobStreamingIngestDenial>
-    where
-        W: BlobStreamingChunkWriter,
-    {
-        execute_bounded_ingest(
-            request,
+    ) -> Self {
+        Self {
             window,
             allocation,
             envelopes,
             pressure,
-            source_frames,
-            writer,
             counter_strength,
-        )
+        }
+    }
+}
+
+impl BlobStreamingIngest {
+    pub(crate) fn run_bounded<W>(
+        request: BlobStreamingIngestRequest,
+        execution: BlobStreamingIngestExecution,
+        source_frames: impl IntoIterator<Item = BlobStreamingSourceFrame>,
+        writer: &mut W,
+    ) -> Result<Self, BlobStreamingIngestDenial>
+    where
+        W: BlobStreamingChunkWriter,
+    {
+        execute_bounded_ingest(request, execution, source_frames, writer)
     }
 }
 
 pub(crate) fn execute_bounded_ingest<W>(
     request: BlobStreamingIngestRequest,
-    window: BlobStreamingWindow,
-    allocation: AllocationReceipt,
-    envelopes: AllocationEnvelopeSet,
-    pressure: BlobStreamingPressureAdmission,
+    execution: BlobStreamingIngestExecution,
     source_frames: impl IntoIterator<Item = BlobStreamingSourceFrame>,
     writer: &mut W,
-    counter_strength: CounterEvidenceStrength,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial>
 where
     W: BlobStreamingChunkWriter,
 {
-    counter_strength::require_exact(counter_strength)?;
+    counter_strength::require_exact(execution.counter_strength)?;
     let declared_total_bytes = request.declared_total_bytes();
-    let (admission, chunking, counters) = admit_stream::admit_stream(request, pressure)?;
+    let (admission, chunking, counters) = admit_stream::admit_stream(request, execution.pressure)?;
     let (admission, chunking, counters) = advance_frontier::advance_frontier(
         source_frames,
-        window,
+        execution.window,
         declared_total_bytes,
         admission,
         chunking,
@@ -67,10 +76,10 @@ where
         finalize_sequence::finalize_sequence(chunking, admission, counters, writer)?;
     emit_ingest_receipt::emit_ingest_receipt(
         sequence,
-        allocation,
-        envelopes,
-        window,
-        counter_strength,
+        execution.allocation,
+        execution.envelopes,
+        execution.window,
+        execution.counter_strength,
         counters,
     )
 }

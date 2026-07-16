@@ -65,7 +65,7 @@ pub fn sources_with_amplified_required_residual_debt(
     let witness = super::backend_witness();
     let harness = super::harness_evidence();
     from_parts_with_qualification(
-        witness.clone(),
+        witness,
         certify_io_pressure_backend_qualification_matrix(
             super::qualification_residual_debt::matrix_with_amplified_required_residual_debt(
                 &witness, &harness,

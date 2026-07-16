@@ -14,7 +14,7 @@ pub struct InterlockedLsmCompaction {
 
 #[derive(Debug)]
 enum PhysicalCompactionBindingCase {
-    Admitted(InterlockedLsmCompaction),
+    Admitted(Box<InterlockedLsmCompaction>),
     Denied(BaselineLsmExecutionAdmissionDenial),
 }
 
@@ -35,7 +35,7 @@ impl LsmPhysicalCompactionBindingOutcome {
     ) -> Self {
         Self {
             case: match result {
-                Ok(value) => PhysicalCompactionBindingCase::Admitted(value),
+                Ok(value) => PhysicalCompactionBindingCase::Admitted(Box::new(value)),
                 Err(denial) => PhysicalCompactionBindingCase::Denied(denial),
             },
         }
@@ -56,7 +56,7 @@ impl LsmPhysicalCompactionBindingOutcome {
         self,
     ) -> Result<InterlockedLsmCompaction, BaselineLsmExecutionAdmissionDenial> {
         match self.case {
-            PhysicalCompactionBindingCase::Admitted(value) => Ok(value),
+            PhysicalCompactionBindingCase::Admitted(value) => Ok(*value),
             PhysicalCompactionBindingCase::Denied(denial) => Err(denial),
         }
     }

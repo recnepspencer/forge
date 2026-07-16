@@ -110,7 +110,7 @@ impl BoundedRecoveryPlan {
         let admission = session.admission();
         let receipt = self
             .execute(admission.replay_cursor())
-            .map_err(ReopenedRecoveryDenial::Redo)?;
+            .map_err(|denial| ReopenedRecoveryDenial::Redo(Box::new(denial)))?;
         let transcript =
             ReopenedRuntimeBoundaryTranscript::from_reopened_runtime_execution(session, &receipt)
                 .map_err(ReopenedRecoveryDenial::Runtime)?;
@@ -164,6 +164,6 @@ impl BoundedRecoveryReceipt {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReopenedRecoveryDenial {
     Admission(ReopenedRecoveryArtifactAdmissionDenial),
-    Redo(RedoPlanningDenial),
+    Redo(Box<RedoPlanningDenial>),
     Runtime(RuntimeRecoveryReportDenial),
 }

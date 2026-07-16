@@ -1,7 +1,27 @@
+mod append_planner;
+mod exact_frontier_prefix;
+mod frame_codec;
+mod offline_segment_verification;
+mod prefix_scan;
 mod scan;
+
+#[cfg(test)]
+mod append_planner_tests;
+#[cfg(test)]
+mod offline_segment_verification_tests;
 
 use crate::AdmittedWalAppendReceipt;
 use std::path::{Path, PathBuf};
+
+pub use append_planner::WalAppendPlanner;
+pub use exact_frontier_prefix::{
+    inspect_wal_exact_frontier_prefix, WalExactFrontierPrefix, WalExactFrontierPrefixDenial,
+    WalExactFrontierPrefixRequest,
+};
+pub use offline_segment_verification::{
+    verify_bounded_wal_segment, verify_bounded_wal_segment_from_reader, BoundedWalSegmentDenial,
+    BoundedWalSegmentObservation, BoundedWalSegmentVerificationRequest,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WalStoreIdentity {
@@ -14,6 +34,10 @@ pub struct WalStoreIdentity {
 pub enum WalArtifactStoreDenial {
     InvalidArtifactPath,
     StoreBindingMismatch,
+    InvalidFrame,
+    DigestMismatch,
+    NonContiguousLsn,
+    ArtifactReadBudgetExceeded { bytes: u64, maximum: u64 },
     Io,
 }
 
@@ -25,7 +49,24 @@ pub struct AdmittedWalArtifactStore {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalPersistedArtifact {
     path: PathBuf,
+    offset: u64,
+    byte_count: u64,
+    digest: [u8; 32],
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WalPersistedArtifactRead {
     bytes: Vec<u8>,
+    bytes_read: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WalFrameAppendPlan {
+    relative_path: PathBuf,
+    encoded_frame: Vec<u8>,
+    valid_prefix_bytes: u64,
+    observed_file_bytes: u64,
+    prefix_bytes_scanned: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -54,7 +95,7 @@ impl AdmittedWalArtifactStore {
         let root = std::fs::canonicalize(root).map_err(|_| WalArtifactStoreDenial::Io)?;
         let persisted = std::fs::canonicalize(anchor.persisted_path())
             .map_err(|_| WalArtifactStoreDenial::Io)?;
-        if !scan::is_durability_artifact(&root, &persisted) {
+        if !scan::is_segment_artifact(&root, &persisted) {
             return Err(WalArtifactStoreDenial::InvalidArtifactPath);
         }
         Ok(Self {
@@ -74,16 +115,71 @@ impl AdmittedWalArtifactStore {
         receipt.scope().segment_id() == self.identity.segment_id
             && receipt.scope().generation() == self.identity.generation
             && std::fs::canonicalize(receipt.persisted_path())
-                .is_ok_and(|path| scan::is_durability_artifact(&self.identity.root, &path))
+                .is_ok_and(|path| scan::is_segment_artifact(&self.identity.root, &path))
     }
 
     pub fn admits_persisted_path(&self, path: &Path) -> bool {
-        std::fs::canonicalize(path)
-            .is_ok_and(|path| scan::is_durability_artifact(&self.identity.root, &path))
+        std::fs::canonicalize(path).is_ok_and(|path| {
+            scan::is_segment_artifact(&self.identity.root, &path)
+                || scan::is_checkpoint_artifact(&self.identity.root, &path)
+        })
     }
 
     pub fn scan(&self) -> Result<WalPersistedArtifactSet, WalArtifactStoreDenial> {
         scan::scan(self)
+    }
+}
+
+pub fn prepare_wal_frame_append(
+    root: &Path,
+    segment_id: u64,
+    generation: u64,
+    lsn_start: u64,
+    lsn_end: u64,
+    declared_digest: &str,
+    payload: &[u8],
+) -> Result<WalFrameAppendPlan, WalArtifactStoreDenial> {
+    frame_codec::prepare_append(
+        root,
+        segment_id,
+        generation,
+        lsn_start,
+        lsn_end,
+        declared_digest,
+        payload,
+    )
+}
+
+pub(crate) fn validate_persisted_wal_frame(
+    path: &Path,
+    encoded_offset: u64,
+    encoded_bytes: u64,
+    scope: &crate::WalFrameDurablePublicationScope,
+) -> Result<(u64, u64), WalArtifactStoreDenial> {
+    frame_codec::validate_persisted_frame(path, encoded_offset, encoded_bytes, scope)
+}
+
+impl WalFrameAppendPlan {
+    pub fn relative_path(&self) -> &Path {
+        &self.relative_path
+    }
+
+    pub fn encoded_frame(&self) -> &[u8] {
+        &self.encoded_frame
+    }
+
+    pub const fn valid_prefix_bytes(&self) -> u64 {
+        self.valid_prefix_bytes
+    }
+
+    pub const fn observed_file_bytes(&self) -> u64 {
+        self.observed_file_bytes
+    }
+
+    /// Bytes read while establishing the pre-append durable prefix.
+    /// A reused [`WalAppendPlanner`] reports only newly observed suffix bytes.
+    pub const fn prefix_bytes_scanned(&self) -> u64 {
+        self.prefix_bytes_scanned
     }
 }
 
@@ -111,8 +207,57 @@ impl WalPersistedArtifact {
         &self.path
     }
 
+    pub const fn offset(&self) -> u64 {
+        self.offset
+    }
+
+    pub const fn byte_count(&self) -> u64 {
+        self.byte_count
+    }
+
+    pub fn read_bounded(
+        &self,
+        maximum_bytes: u64,
+    ) -> Result<WalPersistedArtifactRead, WalArtifactStoreDenial> {
+        use std::io::{Read, Seek, SeekFrom};
+
+        use sha2::{Digest, Sha256};
+
+        if self.byte_count > maximum_bytes {
+            return Err(WalArtifactStoreDenial::ArtifactReadBudgetExceeded {
+                bytes: self.byte_count,
+                maximum: maximum_bytes,
+            });
+        }
+        let allocation = usize::try_from(self.byte_count).map_err(|_| {
+            WalArtifactStoreDenial::ArtifactReadBudgetExceeded {
+                bytes: self.byte_count,
+                maximum: maximum_bytes,
+            }
+        })?;
+        let mut file = std::fs::File::open(&self.path).map_err(|_| WalArtifactStoreDenial::Io)?;
+        let mut bytes = vec![0; allocation];
+        file.seek(SeekFrom::Start(self.offset))
+            .map_err(|_| WalArtifactStoreDenial::Io)?;
+        file.read_exact(&mut bytes)
+            .map_err(|_| WalArtifactStoreDenial::Io)?;
+        if <[u8; 32]>::from(Sha256::digest(&bytes)) != self.digest {
+            return Err(WalArtifactStoreDenial::DigestMismatch);
+        }
+        Ok(WalPersistedArtifactRead {
+            bytes,
+            bytes_read: self.byte_count,
+        })
+    }
+}
+
+impl WalPersistedArtifactRead {
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
+    }
+
+    pub const fn bytes_read(&self) -> u64 {
+        self.bytes_read
     }
 }
 

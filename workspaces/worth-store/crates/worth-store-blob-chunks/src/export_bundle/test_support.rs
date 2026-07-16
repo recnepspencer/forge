@@ -1,16 +1,16 @@
 use worth_proof::TransitionOutcome;
 use worth_store_offline_verifier::{OfflineExportChunkDeclaration, OfflineExportDigestEvidence};
-use worth_store_operations_vocabulary::{
-    BackupExportCustodyDeclaration, BackupExportCustodyMode, BackupExportCustodyReadiness,
-};
-use worth_store_security::{StoreKeyVersionPosture, StoreTenantScope};
+use worth_store_security::StoreTenantScope;
 
 use crate::placement::admission::test_support::admit_inline_placement;
 use crate::reachability::BlobChunkReachabilityRegistry;
-use crate::test_support::{admitted_multichunk_sequence_for_scope, blob_scope, current_authority};
+use crate::test_support::{
+    admitted_blob_custody, admitted_multichunk_sequence_for_scope, blob_scope,
+};
 use crate::{
-    AuthenticatedFrameDigest, BlobAuthorityClassification, BlobChunkByteWindow, BlobChunkProofLeaf,
-    BlobChunkRootPublication, BlobGeneration, BlobGenerationObservation, BlobGenerationRegistry,
+    AdmittedBlobCustody, AuthenticatedFrameDigest, BlobAuthorityClassification,
+    BlobChunkByteWindow, BlobChunkProofLeaf, BlobChunkRootPublication, BlobCustodyPurpose,
+    BlobGeneration, BlobGenerationObservation, BlobGenerationRegistry,
     BlobGenerationRegistryAdmission, BlobLifecycleAdmission, BlobLifecycleDeclaration,
     BlobLifecycleReadinessAuthority, BlobLifecycleReplayInput, BlobLifecycleStoreAuthority,
     BlobObjectId,
@@ -18,18 +18,8 @@ use crate::{
 
 use super::{BlobExportAuthority, BlobExportOfflineChunkDeclaration, BlobExportPublishedBundle};
 
-pub(super) fn export_readiness(case: &str) -> BackupExportCustodyReadiness {
-    let authority = current_authority(case, "export");
-    let admission = BackupExportCustodyDeclaration::native(
-        &authority,
-        BackupExportCustodyMode::Export,
-        StoreKeyVersionPosture::Current,
-    )
-    .expect("custody declaration should admit")
-    .admit_with_current_authority(&authority)
-    .expect("custody admission should succeed");
-    BackupExportCustodyReadiness::from_admitted_custody(admission)
-        .expect("export readiness should build")
+pub(super) fn export_readiness(case: &str) -> AdmittedBlobCustody {
+    admitted_blob_custody(case, BlobCustodyPurpose::Export)
 }
 
 pub(crate) fn export_lane(
@@ -43,14 +33,16 @@ pub(crate) fn export_lane(
     let publication = BlobChunkRootPublication::publish(sequence.clone()).expect("publication");
     let ordered_leaves = sequence.proof_frontier().ordered_leaves().to_vec();
     let declaration = BlobLifecycleDeclaration::new(
-        BlobObjectId::from_declared_digest(
-            crate::lifecycle::generation_registry_test_support::digest(&format!(
-                "sha256:{case}.object"
-            )),
+        crate::lifecycle::BlobLifecycleIdentityBasis::new(
+            BlobObjectId::from_declared_digest(
+                crate::lifecycle::generation_registry_test_support::digest(&format!(
+                    "sha256:{case}.object"
+                )),
+            ),
+            BlobGeneration::published(1),
+            publication.chunk_tree_root().clone(),
+            publication.logical_content_digest().clone(),
         ),
-        BlobGeneration::published(1),
-        publication.chunk_tree_root().clone(),
-        publication.logical_content_digest().clone(),
         ordered_leaves[0].security_metadata(),
         ordered_leaves[0].stored_digest().clone(),
         AuthenticatedFrameDigest::from_declared_digest(

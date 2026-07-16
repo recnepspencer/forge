@@ -126,8 +126,15 @@ fn publication_output_mismatch() -> LsmExecutionOwnerCaseObservation {
     let interlocked = interlocked(&world);
     let activation = activation(&interlocked);
     let manifest = world.manifest(&activation);
-    std::fs::write(&world.output_path, b"hostile").unwrap();
+    corrupt_byte(&world.output_path, world.output_offset);
     publish(&mut world, interlocked, activation, manifest)
+}
+
+fn corrupt_byte(path: &std::path::Path, offset: u64) {
+    use std::io::{Seek, SeekFrom, Write};
+    let mut artifact = std::fs::OpenOptions::new().write(true).open(path).unwrap();
+    artifact.seek(SeekFrom::Start(offset)).unwrap();
+    artifact.write_all(b"hostile").unwrap();
 }
 
 fn publication_stale() -> LsmExecutionOwnerCaseObservation {

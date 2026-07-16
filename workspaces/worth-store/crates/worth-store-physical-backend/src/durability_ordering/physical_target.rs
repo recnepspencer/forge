@@ -1,9 +1,15 @@
 use std::fs::{File, OpenOptions};
-use std::io::{self, Write};
-use std::path::PathBuf;
+use std::io::{self, Seek, SeekFrom, Write};
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use fs4::FileExt;
+
 use super::StoreDurabilityRequirement;
+use crate::{
+    reach_storage_boundary, ProductionStorageBoundaryControl, ProductionStorageBoundarySeam,
+    StorageBoundaryRegion,
+};
 
 #[derive(Debug)]
 pub(crate) struct StoreDurabilityTarget {
@@ -11,10 +17,63 @@ pub(crate) struct StoreDurabilityTarget {
     staged_path: Option<PathBuf>,
     published_path: Option<PathBuf>,
     parent_directory: Option<File>,
+    persisted_offset: u64,
     bytes_written: u64,
 }
 
 impl StoreDurabilityTarget {
+    pub(crate) fn append(
+        root: &Path,
+        relative_path: &Path,
+        requirement: StoreDurabilityRequirement,
+        encoded_frame: &[u8],
+        observed_file_bytes: u64,
+        valid_prefix_bytes: u64,
+    ) -> io::Result<Self> {
+        let path = root.join(relative_path);
+        let directory = path.parent().ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidInput, "append target needs a parent")
+        })?;
+        std::fs::create_dir_all(directory)?;
+        let mut file = OpenOptions::new()
+            .create(true)
+            .truncate(false)
+            .read(true)
+            .write(true)
+            .open(&path)?;
+        file.lock_exclusive()?;
+        let current_bytes = file.metadata()?.len();
+        if current_bytes != observed_file_bytes {
+            return Err(io::Error::new(
+                io::ErrorKind::WouldBlock,
+                "WAL segment changed after append planning",
+            ));
+        }
+        if valid_prefix_bytes > current_bytes {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "WAL valid prefix exceeds the physical segment length",
+            ));
+        }
+        if valid_prefix_bytes < current_bytes {
+            file.set_len(valid_prefix_bytes)?;
+        }
+        file.seek(SeekFrom::Start(valid_prefix_bytes))?;
+        file.write_all(encoded_frame)?;
+        let parent_directory = requirement
+            .requires_directory_sync()
+            .then(|| open_directory(directory))
+            .transpose()?;
+        Ok(Self {
+            file,
+            staged_path: Some(path),
+            published_path: None,
+            parent_directory,
+            persisted_offset: valid_prefix_bytes,
+            bytes_written: encoded_frame.len() as u64,
+        })
+    }
+
     pub(crate) fn persist(
         root: &std::path::Path,
         requirement: StoreDurabilityRequirement,
@@ -46,6 +105,7 @@ impl StoreDurabilityTarget {
                 .requires_rename_durable()
                 .then_some(published_path),
             parent_directory,
+            persisted_offset: 0,
             bytes_written: payload.len() as u64,
         })
     }
@@ -89,24 +149,34 @@ impl StoreDurabilityTarget {
         self.bytes_written
     }
 
+    pub(crate) const fn persisted_offset(&self) -> u64 {
+        self.persisted_offset
+    }
+
+    pub(crate) fn reach_boundary(
+        &mut self,
+        control: &impl ProductionStorageBoundaryControl,
+        seam: ProductionStorageBoundarySeam,
+    ) -> io::Result<()> {
+        reach_storage_boundary(
+            control,
+            seam,
+            &mut self.file,
+            StorageBoundaryRegion::new(self.persisted_offset, self.bytes_written),
+        )
+    }
+
     #[cfg(windows)]
-    pub(crate) fn sync_parent_namespace(&self, rename_completed: bool) -> io::Result<()> {
-        if rename_completed {
-            self.parent_directory
-                .as_ref()
-                .ok_or_else(|| {
-                    io::Error::new(
-                        io::ErrorKind::InvalidInput,
-                        "directory namespace handle required",
-                    )
-                })?
-                .sync_all()
-        } else {
-            Err(io::Error::new(
-                io::ErrorKind::Unsupported,
-                "Windows namespace durability requires an atomic rename",
-            ))
-        }
+    pub(crate) fn sync_parent_namespace(&self, _rename_completed: bool) -> io::Result<()> {
+        self.parent_directory
+            .as_ref()
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "directory namespace handle required",
+                )
+            })?
+            .sync_all()
     }
 
     #[cfg(not(windows))]

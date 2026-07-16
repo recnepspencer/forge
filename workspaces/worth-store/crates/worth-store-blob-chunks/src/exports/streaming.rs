@@ -2,9 +2,9 @@
 pub use crate::streaming::{
     run_resumable_streaming_ingest, BlobChunkStreamingOperation, BlobChunkStreamingOperationKind,
     BlobChunkStreamingWindow, BlobStreamingChunkWriter, BlobStreamingContentFrontier,
-    BlobStreamingIngest, BlobStreamingIngestRequest, BlobStreamingPressureAdmission,
-    BlobStreamingReadAdmission, BlobStreamingReadRequest, BlobStreamingResumeAdmission,
-    LargeRecordStreamingEnvelope,
+    BlobStreamingIngest, BlobStreamingIngestExecution, BlobStreamingIngestRequest,
+    BlobStreamingPressureAdmission, BlobStreamingReadAdmission, BlobStreamingReadExecution,
+    BlobStreamingReadRequest, BlobStreamingResumeAdmission, LargeRecordStreamingEnvelope,
 };
 // --- Outcomes (transition receipts) ---
 pub use crate::streaming::{

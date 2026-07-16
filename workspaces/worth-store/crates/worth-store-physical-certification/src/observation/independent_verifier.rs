@@ -1,4 +1,7 @@
 use worth_store_offline_verifier::OfflineVerifierBoundarySeam;
+use worth_store_recovery_physics::{
+    RuntimeRecoveryComparisonClassification, RuntimeRecoveryComparisonReport,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IndependentVerifierObservationKind {
@@ -9,21 +12,14 @@ pub enum IndependentVerifierObservationKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndependentVerifierObservation {
     seam: OfflineVerifierBoundarySeam,
-    kind: IndependentVerifierObservationKind,
+    comparison: RuntimeRecoveryComparisonClassification,
 }
 
 impl IndependentVerifierObservation {
-    pub const fn agreement(seam: OfflineVerifierBoundarySeam) -> Self {
+    pub fn from_runtime_recovery_comparison(report: &RuntimeRecoveryComparisonReport) -> Self {
         Self {
-            seam,
-            kind: IndependentVerifierObservationKind::Agreement,
-        }
-    }
-
-    pub const fn disagreement(seam: OfflineVerifierBoundarySeam) -> Self {
-        Self {
-            seam,
-            kind: IndependentVerifierObservationKind::Disagreement,
+            seam: OfflineVerifierBoundarySeam::RuntimeVerifierComparison,
+            comparison: report.classification(),
         }
     }
 
@@ -32,6 +28,17 @@ impl IndependentVerifierObservation {
     }
 
     pub const fn kind(&self) -> IndependentVerifierObservationKind {
-        self.kind
+        if matches!(
+            self.comparison,
+            RuntimeRecoveryComparisonClassification::Equivalent
+        ) {
+            IndependentVerifierObservationKind::Agreement
+        } else {
+            IndependentVerifierObservationKind::Disagreement
+        }
+    }
+
+    pub const fn comparison(&self) -> RuntimeRecoveryComparisonClassification {
+        self.comparison
     }
 }

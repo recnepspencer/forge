@@ -3,7 +3,7 @@ use worth_store_wal::{BlobWalRecordEnvelope, BlobWalRecordKind};
 use crate::{BlobChunkSecurityMetadataWitness, BlobChunkingRuleAdmission};
 
 use super::{
-    checkpoint::{checkpoint_from_parts, checkpoint_identity},
+    checkpoint::{checkpoint_from_parts, checkpoint_identity, BlobResumePublicationProgress},
     BlobResumeCheckpoint, BlobResumeCheckpointStateKind, BlobResumeChunkAppendStarted,
     BlobResumeCounterSnapshot, BlobResumeDenial, BlobResumeSessionAdmitted,
     BlobResumeSessionDeclaration, BlobResumeSessionId, BlobResumeStoreAuthority,
@@ -60,8 +60,7 @@ impl BlobResumeSessionDeclaration {
             None,
             None,
             None,
-            None,
-            None,
+            BlobResumePublicationProgress::none(),
         ))
     }
 }
@@ -115,8 +114,7 @@ impl BlobResumeSessionAdmitted {
             None,
             None,
             None,
-            None,
-            None,
+            BlobResumePublicationProgress::none(),
         ))
     }
 

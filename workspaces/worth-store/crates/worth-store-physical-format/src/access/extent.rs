@@ -85,5 +85,4 @@ pub(crate) fn locate_extent_record<'a>(
             PhysicalStoreRuntimeDenial::new(PhysicalStoreRuntimeDenialKind::ExtentRecordDenied)
                 .with_extent_denial(denial)
         })
-        .map(|located| located)
 }

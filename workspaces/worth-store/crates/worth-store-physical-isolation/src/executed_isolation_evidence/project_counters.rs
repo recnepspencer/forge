@@ -59,7 +59,10 @@ pub(crate) fn proof_progression_identity(
         receipts.stable_read.read_plan_release().root_epoch().get(),
     );
     identity = mix_u64(identity, receipts.publication.epochs().root().old().get());
-    identity = mix_u64(identity, receipts.publication.epochs().root().new().get());
+    identity = mix_u64(
+        identity,
+        receipts.publication.epochs().root().new_epoch().get(),
+    );
     identity = mix_u64(
         identity,
         u64::from(

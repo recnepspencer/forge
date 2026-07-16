@@ -12,6 +12,7 @@ pub use bounded_plan::{
 };
 pub use budget::RecoveryBudget;
 pub use checkpoint_interval::CheckpointIntervalContract;
+pub(crate) use counter_snapshot::OfflineRecoveryCounterProjection;
 pub use counter_snapshot::RecoveryCounterSnapshot;
 pub use denial::{RecoveryBudgetDenial, RecoveryBudgetDenialKind};
 pub use source_discovery::{

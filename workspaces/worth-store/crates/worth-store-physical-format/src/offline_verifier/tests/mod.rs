@@ -1,10 +1,10 @@
 use crate::{
     AllocationClassKind, FreeSpaceManifestEntry, OfflineManifestCodec, OfflinePhysicalVerifier,
     OfflineVerifierDenialKind, PersistedExtentBytes, PersistedPageBytes, PersistedPhysicalLayout,
-    PhysicalBinaryEncodingWitness, PhysicalByteOrder, PhysicalExtentId, PhysicalFrameKind,
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
-    PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalPublicationState, PhysicalRecordSlot,
-    PhysicalReferenceAuthority, PhysicalRootReference, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
+    PhysicalBinaryEncodingWitness, PhysicalByteOrder, PhysicalExtentId, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalPageKind,
+    PhysicalPageRecordAuthority, PhysicalRecordSlot, PhysicalReferenceAuthority,
+    PhysicalRootReference, PhysicalSegmentId,
 };
 
 #[test]

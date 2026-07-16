@@ -14,6 +14,7 @@ mod vocabulary;
 pub use authority::PhysicalScenarioAuthorityWitness;
 pub use certified::CertifiedPhysicalScenario;
 pub use collections::{PhysicalScenarioActorSet, PhysicalScenarioFixtureSet};
+pub(crate) use definition::NativeScenarioDefinitionParts;
 pub use definition::PhysicalSimulationScenarioDefinition;
 pub use denial::{
     JsonScenarioAuthorityDenied, PhysicalScenarioDefinitionDenial, TerminalProjectionScenarioDenied,

@@ -193,4 +193,11 @@ impl StoreAdmittedSecurityScope {
     pub const fn identity(&self) -> StoreSecurityScopeIdentity {
         self.receipt.identity()
     }
+
+    pub const fn authority_bound_receipt(&self) -> crate::StoreAuthorityBoundSecurityScopeReceipt {
+        crate::StoreAuthorityBoundSecurityScopeReceipt::new(
+            self.witnesses.authority_identity(),
+            self.receipt,
+        )
+    }
 }

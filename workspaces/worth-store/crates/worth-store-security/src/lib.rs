@@ -91,8 +91,8 @@ pub use scope::security_scope_propagation::{
     StoreSecurityScopePropagationSite, StoreSecurityScopePropagationWitness,
 };
 pub use scope::security_scope_receipt::{
-    StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeAdmissionReceiptId,
-    StoreSecurityScopeProofProgressionIdentity,
+    StoreAuthorityBoundSecurityScopeReceipt, StoreSecurityScopeAdmissionReceipt,
+    StoreSecurityScopeAdmissionReceiptId, StoreSecurityScopeProofProgressionIdentity,
 };
 pub use scope::security_scope_roles::{
     StoreSecurityEvidenceVocabulary, StoreSecurityReadinessVocabulary,
@@ -111,7 +111,8 @@ pub use scope::security_scope_test_authority::{
     admitted_tenant_page_security_scope_for_layout_partition_test,
     admitted_tenant_page_without_authenticity_for_layout_partition_test,
     admitted_tenant_wal_checkpoint_security_scope_for_layout_partition_test,
-    admitted_wrong_io_qos_security_scope_for_test,
+    admitted_wrong_io_qos_security_scope_for_test, readmitted_foreign_wal_security_scope_for_test,
+    readmitted_wal_security_scope_for_test,
 };
 pub use scope::security_scope_witnesses::{
     StoreAdmittedSecurityScope, StoreCurrentAuthenticityScopeWitness,

@@ -1,26 +1,21 @@
+use crate::header::encode_page_header;
 use crate::{
-    ExtentGenerationCell, PhysicalGenerationAuthority, PhysicalPageKind, PhysicalPublicationState,
+    ExtentGenerationCell, PageGenerationCell, PhysicalGenerationAuthority, PhysicalPageKind,
     PhysicalReference, RootPublicationCell, SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
 };
 
-pub(super) fn encode_empty_page(generation: crate::PhysicalGeneration) -> Vec<u8> {
-    encode_page(generation, &[])
+pub(super) fn encode_empty_page(owner: PageGenerationCell) -> Vec<u8> {
+    encode_page(owner, &[])
 }
 
-pub(super) fn encode_page(generation: crate::PhysicalGeneration, payload: &[u8]) -> Vec<u8> {
+pub(super) fn encode_page(owner: PageGenerationCell, payload: &[u8]) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
-    bytes.push(PhysicalPageKind::DataPage.tag());
-    bytes.extend_from_slice(
-        &crate::PhysicalFormatVersion::initial_format_version()
-            .value()
-            .to_le_bytes(),
-    );
-    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
-    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&generation.get().to_le_bytes());
-    bytes.push(PhysicalPublicationState::Published.code());
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&0u64.to_le_bytes());
+    bytes.extend_from_slice(&encode_page_header(
+        crate::PhysicalByteOrder::LittleEndian,
+        PhysicalPageKind::DataPage,
+        owner,
+        payload.len() as u32,
+    ));
     bytes.extend_from_slice(payload);
     bytes
 }

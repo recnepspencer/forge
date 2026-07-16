@@ -82,9 +82,11 @@ pub fn admit_foreground_reservation(
 
     ForegroundReservationAdmissionOutcome::Admitted(ForegroundReservationReceipt::admitted(
         lane.lane(),
-        lane.backend_requirement(),
-        request.backend().profile(),
-        request.backend().evidence_class(),
+        super::ForegroundReservationBackendBasis::new(
+            lane.backend_requirement(),
+            request.backend().profile(),
+            request.backend().evidence_class(),
+        ),
         envelope,
         request.arbitration(),
         reservation_counters,

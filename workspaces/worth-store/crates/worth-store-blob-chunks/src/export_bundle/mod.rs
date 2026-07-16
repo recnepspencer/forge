@@ -3,6 +3,7 @@ mod canonical;
 mod chunk_bytes;
 mod classification;
 mod counters;
+mod custody_admission;
 mod custody_receipt;
 mod denial;
 mod evidence_bundle;
@@ -16,12 +17,14 @@ mod tests;
 mod transition_verification;
 
 pub use bundle::BlobExportPublishedBundle;
+pub(crate) use bundle::BlobExportPublishedBundleParts;
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) use canonical::prepare_export_artifact;
 pub use chunk_bytes::BlobExportedChunkBytes;
 pub use counters::BlobExportBundleCounters;
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) use counters::BlobExportEvidenceCounts;
+pub use custody_admission::{AdmittedBlobCustody, BlobCustodyAdmissionDenial, BlobCustodyPurpose};
 pub use custody_receipt::BlobExportCustodyEvidence;
 pub use denial::{
     reject_copied_export_row_as_blob_export_bundle,
