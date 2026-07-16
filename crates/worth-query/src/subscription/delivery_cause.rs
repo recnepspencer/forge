@@ -71,8 +71,7 @@ impl QuerySubscriptionDeliveryCause {
             &delivery_cause_evidence_label_identity(evidence_label.as_ref()),
         )
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn classified(
         kind: QuerySubscriptionDeliveryCauseKind,
         evidence_identity: &WorthQueryEvidenceIdentity,

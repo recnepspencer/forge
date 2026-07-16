@@ -1,11 +1,12 @@
 error[E0599]: no method named `review` found for struct `WorthQueryLowerRuntimeExplanationDraft` in the current scope
-  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_explanation_draft_has_no_review.rs:15:10
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_explanation_draft_has_no_review.rs:21:10
    |
-12 |       let _ = worth_query_domain("worth.spatial")
+17 |       let _ = installation
    |  _____________-
-13 | |         .for_lower_runtime_boundary_envelope(&envelope())
-14 | |         .explains_store_backed_replay_gap("replay.store_gap", explanation_request())
-15 | |         .review();
+18 | |         .contributions()
+19 | |         .for_lower_runtime_boundary_envelope(&envelope()).expect("installed contribution authority must remain current")
+20 | |         .explains_store_backed_replay_gap("replay.store_gap", explanation_request())
+21 | |         .review();
    | |         -^^^^^^ method not found in `WorthQueryLowerRuntimeExplanationDraft`
    | |_________|
    |

@@ -113,8 +113,8 @@ pub(super) fn declare_shared_read_derived(
     workspace: &mut WorthQueryWorkspace,
     suffix: &str,
     maintainer: SharedReadPublishingMaintainer,
-) -> WorthQueryDerivedViewHandle<WorthQueryNativeRow> {
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+) -> WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> {
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view_request(
             &format!("tasks.{suffix}"),
             task_live_request(),
@@ -183,7 +183,7 @@ pub(super) fn consume_display_title(artifact: &WorthQueryPublishedDerivedArtifac
         .facts()
         .display_fields()
         .first()
-        .and_then(|fact| match fact.value() {
+        .and_then(|fact| match fact.native_value().scalar()? {
             AspectValue::String(worth_foundational::facade::InternedString::Raw(value)) => {
                 Some(value.clone())
             }

@@ -81,6 +81,7 @@ macro_rules! define_bridge_terminal {
                 self.reason
             }
 
+            #[cfg(test)]
             pub(crate) fn into_envelope(self) -> WorthQueryDeclarationEnvelope<D, I> {
                 self.envelope
             }
@@ -140,6 +141,7 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
         self.reason
     }
 
+    #[cfg(test)]
     pub(crate) fn into_envelope(self) -> WorthQueryDeclarationEnvelope<D, I> {
         self.envelope
     }

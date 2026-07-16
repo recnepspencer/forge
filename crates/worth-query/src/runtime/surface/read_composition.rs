@@ -4,7 +4,8 @@ use crate::basis::QuerySchemaBasisAuthority;
 use crate::canonicalization::CanonicalQueryBundle;
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::evidence_identity::{
-    worth_query_evidence_identity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
+    worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
+    WorthQueryEvidenceTag,
 };
 use crate::identity::SchemaBasisDigest;
 use crate::intent_admission::WorthQueryIntentDecisionTraceEnvelope;
@@ -287,7 +288,8 @@ pub struct WorthQueryReadReceipt {
     pub(super) read_graph_digest: String,
     pub(super) graph_family: WorthQueryReadGraphFamily,
     pub(super) collection_result_family: Option<crate::collection::CollectionResultFamily>,
-    pub(super) execution_plan_digest: String,
+    pub(super) execution_plan_evidence_identity: WorthQueryEvidenceIdentity,
+    pub(super) canonical_query_digest: String,
     pub(super) query_digest: String,
     pub(super) basis_digest: String,
     pub(super) result_digest: String,

@@ -7,12 +7,10 @@ use crate::evidence_identity::{
 use crate::lower_runtime_routing::{
     LiveViewDeclarationAdmissionBoundaryReceipt, SignalInvalidationBoundaryReceipt,
     WorthQueryLowerRuntimeAuthorityOwner, WorthQueryLowerRuntimeBoundaryEnvelope,
-    WorthQueryLowerRuntimeBoundaryExecutionReceipt, WorthQueryLowerRuntimeCapabilityEligibility,
-    WorthQueryLowerRuntimeCapabilityRequest, WorthQueryLowerRuntimeCrossingRow,
+    WorthQueryLowerRuntimeBoundaryExecutionReceipt, WorthQueryLowerRuntimeCapabilityRequest,
     WorthQueryLowerRuntimeReadmissionReceipt, WorthQueryLowerRuntimeRouteKind,
-    WorthQueryLowerRuntimeRoutePlan, WorthQueryLowerRuntimeRouteSubjectIdentity,
-    WorthQueryLowerRuntimeSeamKey, WorthQueryLowerRuntimeSubjectIdentity,
-    WriteAuthorityExecutionReceipt,
+    WorthQueryLowerRuntimeRoutePlan, WorthQueryLowerRuntimeSeamKey,
+    WorthQueryLowerRuntimeSubjectIdentity, WriteAuthorityExecutionReceipt,
 };
 use crate::memory_workspace::{
     WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQueryMutationDelta,
@@ -20,12 +18,12 @@ use crate::memory_workspace::{
 };
 use crate::runtime::{
     build_bridge_authority_bundle, LiveViewDeclarationAdmissionReceipt,
-    SignalInvalidationRoutingReceipt, WorthQueryAdmittedAspectValue,
+    SignalInvalidationRoutingReceipt, WorthQueryAuthoredAspectMutation,
     WorthQueryBackendAdmissibleMutation, WorthQueryBasisAdmissionEvidenceRow,
     WorthQueryEffectPolicy, WorthQueryPreviewBasisAdmission, WorthQueryRuntimeEvidenceAuthority,
     WorthQueryRuntimeSourceAdapter, WorthQueryWriteCommand,
 };
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
 use crate::session_label::WorthQuerySessionLabel;
 use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
@@ -35,62 +33,11 @@ use super::{
     WorthQueryLowerRuntimeRepresentativeEvidenceSource,
 };
 
-fn fixture_retained_evidence_identity(
-    fixture_family: impl AsRef<str>,
-    retained_label: impl AsRef<str>,
-) -> WorthQueryEvidenceIdentity {
-    WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_shape(WorthQueryEvidenceTag::new("fixture_family"), fixture_family)
-        .field_value(
-            WorthQueryEvidenceTag::new("fixture_retained_label"),
-            retained_label,
-        )
-        .seal()
-}
+mod identity_fixtures;
+mod inventory_fixtures;
 
-fn fixture_subject_identity(
-    subject_family: impl AsRef<str>,
-    subject_label: impl AsRef<str>,
-) -> WorthQueryLowerRuntimeSubjectIdentity {
-    let evidence_identity =
-        fixture_retained_evidence_identity(subject_family.as_ref(), subject_label);
-    WorthQueryLowerRuntimeSubjectIdentity::compose(subject_family)
-        .field_evidence_identity(
-            WorthQueryEvidenceTag::new("fixture_subject"),
-            &evidence_identity,
-        )
-        .seal()
-}
-
-fn fixture_route_subject_identity(
-    route_family: impl AsRef<str>,
-    route_label: impl AsRef<str>,
-) -> WorthQueryLowerRuntimeRouteSubjectIdentity {
-    let evidence_identity = fixture_retained_evidence_identity(route_family.as_ref(), route_label);
-    WorthQueryLowerRuntimeRouteSubjectIdentity::from_evidence_identity(
-        route_family,
-        &evidence_identity,
-    )
-}
-
-fn admitted_fixture_eligibility(
-    request: WorthQueryLowerRuntimeCapabilityRequest,
-    detail_family: impl AsRef<str>,
-    detail_label: impl AsRef<str>,
-) -> WorthQueryLowerRuntimeCapabilityEligibility {
-    let evidence_identity = fixture_retained_evidence_identity(detail_family, detail_label);
-    admitted_fixture_eligibility_from_evidence(request, &evidence_identity)
-}
-
-fn admitted_fixture_eligibility_from_evidence(
-    request: WorthQueryLowerRuntimeCapabilityRequest,
-    evidence_identity: &WorthQueryEvidenceIdentity,
-) -> WorthQueryLowerRuntimeCapabilityEligibility {
-    WorthQueryLowerRuntimeCapabilityEligibility::admitted_with_evidence_identity(
-        request,
-        &evidence_identity,
-    )
-}
+use identity_fixtures::*;
+pub(crate) use inventory_fixtures::*;
 
 pub(crate) fn representative_live_view_schema_row() -> RepresentativeArtifacts {
     let request = DeclarativeLiveQueryRequest::new("Task", DeclarativeLiveViewShape::table())
@@ -153,14 +100,14 @@ pub(crate) fn representative_signal_invalidation_row() -> RepresentativeArtifact
     let command = WorthQueryWriteCommand::UpdateAspects {
         entity_identity: representative_task_identity.clone(),
         aspects: vec![
-            WorthQueryAdmittedAspectValue::new_set(
+            WorthQueryAuthoredAspectMutation::new_set(
                 status_value_touch(),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("ready"),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("ready"),
             )
             .expect("representative signal status aspect should build"),
-            WorthQueryAdmittedAspectValue::new_set(
+            WorthQueryAuthoredAspectMutation::new_set(
                 priority_value_touch(),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("high"),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("high"),
             )
             .expect("representative signal priority aspect should build"),
         ],
@@ -168,7 +115,14 @@ pub(crate) fn representative_signal_invalidation_row() -> RepresentativeArtifact
         naming_intent: None,
         continuity_intent: None,
     };
-    let mutation = WorthQueryBackendAdmissibleMutation::from_admitted_command(command);
+    let contracts =
+        crate::runtime::native_aspect_contracts::WorthQueryNativeAspectContractRegistry::from_contracts(
+            [status_value_touch(), priority_value_touch()]
+                .map(representative_string_field_contract),
+        )
+        .expect("representative signal contracts should agree");
+    let mutation = WorthQueryBackendAdmissibleMutation::from_authored_command(command, &contracts)
+        .expect("representative signal mutation should satisfy native contracts");
     let bridge = representative_bridge_authority_runtime();
     let snapshot_identity = WorthQuerySnapshotIdentity::from_relational_snapshot(
         RelationalBridgeSnapshotIdentityParts::new(1, 1),
@@ -220,6 +174,35 @@ pub(crate) fn representative_signal_invalidation_row() -> RepresentativeArtifact
     }
 }
 
+fn representative_string_field_contract(
+    touch: crate::runtime::WorthQueryAspectTouch,
+) -> worth_foundational::facade::AspectContract {
+    use worth_foundational::facade::{
+        AbsenceLaw, AspectContract, AspectContractRevision, AspectEvolutionPolicy, AspectIdentity,
+        FieldDeclaration, FieldRequirement, ScalarAspectType, StructAspectShape,
+    };
+
+    let field = touch
+        .native_field_path()
+        .expect("representative field touch should contain a field")
+        .fields()[0]
+        .clone();
+    let declaration = FieldDeclaration::new(
+        field,
+        ScalarAspectType::String,
+        FieldRequirement::Optional,
+        AbsenceLaw::Optional,
+        AspectEvolutionPolicy::AdditiveFieldsAllowed,
+    )
+    .expect("representative field declaration should be coherent");
+    AspectContract::struct_aspect(
+        touch.native_aspect_key().clone(),
+        AspectIdentity(1),
+        AspectContractRevision(1),
+        StructAspectShape::new([declaration]).expect("representative shape should be unique"),
+    )
+}
+
 fn representative_commit_identity(label: impl AsRef<str>) -> WorthQueryCommitIdentity {
     WorthQueryCommitIdentity::preview(
         WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::WriteReceiptCommitIdentity)
@@ -255,14 +238,14 @@ pub(crate) fn representative_live_view_source_row() -> RepresentativeArtifacts {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("title")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("value")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [],
@@ -402,218 +385,4 @@ pub(crate) fn representative_preview_basis_row() -> RepresentativeArtifacts {
         envelope,
         evidence_source: WorthQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture,
     }
-}
-
-pub(crate) fn synthetic_inventory_row(
-    row: &WorthQueryLowerRuntimeCrossingRow,
-) -> RepresentativeArtifacts {
-    let request = WorthQueryLowerRuntimeCapabilityRequest::new(
-        row.seam_key(),
-        row.route_kind(),
-        row.lower_runtime_owner(),
-        row.capability_label(),
-        fixture_subject_identity(
-            "synthetic-inventory-route-subject",
-            format!("{}-subject", row.seam_key().as_str()),
-        ),
-    );
-    let eligibility = admitted_fixture_eligibility(
-        request.clone(),
-        "synthetic-inventory-eligibility",
-        format!("{}-eligibility-detail", row.seam_key().as_str()),
-    );
-    match row.route_kind() {
-        WorthQueryLowerRuntimeRouteKind::RoutePlanning => {
-            let plan = WorthQueryLowerRuntimeRoutePlan::new(
-                eligibility.clone(),
-                fixture_route_subject_identity(
-                    "synthetic-inventory-route",
-                    format!("{}-route", row.seam_key().as_str()),
-                ),
-            );
-            let retained_evidence =
-                crate::lower_runtime_routing::worth_query_lower_runtime_retained_evidence_identity(
-                    "synthetic-inventory-route-plan",
-                    &fixture_retained_evidence_identity(
-                        "synthetic-inventory-route-plan",
-                        format!("{}-evidence", row.seam_key().as_str()),
-                    ),
-                );
-            let boundary_receipt = WorthQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(
-                &plan,
-                &retained_evidence,
-            );
-            let envelope = WorthQueryLowerRuntimeBoundaryEnvelope::from_route_plan(
-                row.seam_key(),
-                &plan,
-                &boundary_receipt,
-                &retained_evidence,
-            );
-            RepresentativeArtifacts {
-                seam_key: row.seam_key(),
-                request,
-                eligibility,
-                route_plan: Some(plan),
-                boundary_receipt,
-                envelope,
-                evidence_source:
-                    WorthQueryLowerRuntimeRepresentativeEvidenceSource::InventorySynthesized,
-            }
-        }
-        WorthQueryLowerRuntimeRouteKind::ReadmissionHandoff => {
-            let retained_evidence =
-                crate::lower_runtime_routing::worth_query_lower_runtime_retained_evidence_identity(
-                    "synthetic-inventory-readmission",
-                    &fixture_retained_evidence_identity(
-                        "synthetic-inventory-readmission",
-                        format!("{}-evidence", row.seam_key().as_str()),
-                    ),
-                );
-            let handoff = WorthQueryLowerRuntimeReadmissionReceipt::new(
-                eligibility.clone(),
-                &retained_evidence,
-            );
-            let boundary_receipt =
-                WorthQueryLowerRuntimeBoundaryExecutionReceipt::from_readmission_receipt(&handoff);
-            let envelope = WorthQueryLowerRuntimeBoundaryEnvelope::from_readmission_receipt(
-                row.seam_key(),
-                &handoff,
-                &boundary_receipt,
-            );
-            RepresentativeArtifacts {
-                seam_key: row.seam_key(),
-                request,
-                eligibility,
-                route_plan: None,
-                boundary_receipt,
-                envelope,
-                evidence_source:
-                    WorthQueryLowerRuntimeRepresentativeEvidenceSource::InventorySynthesized,
-            }
-        }
-    }
-}
-
-pub(crate) fn normalized_parity_digest(
-    label: &str,
-    envelopes: &[WorthQueryLowerRuntimeBoundaryEnvelope],
-) -> String {
-    let selected = match label {
-        "compose-read" => envelopes
-            .iter()
-            .filter(|row| {
-                matches!(
-                    row.seam_key().as_str(),
-                    "compose-read" | "execute-read-family"
-                )
-            })
-            .collect::<Vec<_>>(),
-        _ => envelopes
-            .iter()
-            .filter(|row| {
-                matches!(
-                    row.seam_key().as_str(),
-                    "basis-readmission-from-truth-view-evidence"
-                        | "basis-readmission-from-subscription-evidence"
-                )
-            })
-            .collect::<Vec<_>>(),
-    };
-    let row_identities = selected
-        .iter()
-        .map(|envelope| {
-            WorthQueryEvidenceIdentity::compose(
-                WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence,
-            )
-            .field_shape(
-                WorthQueryEvidenceTag::new("owner"),
-                envelope.authority_owner().as_str(),
-            )
-            .field_shape(
-                WorthQueryEvidenceTag::new("route_kind"),
-                envelope.route_kind().as_str(),
-            )
-            .field_shape(
-                WorthQueryEvidenceTag::new("support"),
-                envelope.support_posture().as_str(),
-            )
-            .field_shape(
-                WorthQueryEvidenceTag::new("cost"),
-                envelope.route_cost_posture().as_str(),
-            )
-            .field_shape(
-                WorthQueryEvidenceTag::new("failure"),
-                envelope.route_failure_topology().as_str(),
-            )
-            .field_shape(
-                WorthQueryEvidenceTag::new("strength"),
-                envelope.artifact_strength().as_str(),
-            )
-            .field_shape(
-                WorthQueryEvidenceTag::new("classification"),
-                envelope.crossing_classification().as_str(),
-            )
-            .seal()
-        })
-        .collect::<Vec<_>>();
-    WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_shape(WorthQueryEvidenceTag::new("parity_label"), label)
-        .field_evidence_identity_sequence(WorthQueryEvidenceTag::new("rows"), &row_identities)
-        .seal()
-        .as_str()
-        .to_string()
-}
-
-pub(crate) fn hostile_parity_divergence_digest(
-    envelopes: &[WorthQueryLowerRuntimeBoundaryEnvelope],
-) -> String {
-    let readmission = envelopes
-        .iter()
-        .find(|row| row.seam_key().as_str() == "live-view-schema-admission")
-        .expect("live-view schema admission seam should be present");
-    let routing = envelopes
-        .iter()
-        .find(|row| row.seam_key().as_str() == "signal-invalidation-routing")
-        .expect("signal invalidation routing seam should be present");
-
-    WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_shape(
-            WorthQueryEvidenceTag::new("parity_label"),
-            "hostile-route-divergence",
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("readmission_owner"),
-            readmission.authority_owner().as_str(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("readmission_route_kind"),
-            readmission.route_kind().as_str(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("readmission_strength"),
-            readmission.artifact_strength().as_str(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("readmission_failure"),
-            readmission.route_failure_topology().as_str(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("routing_owner"),
-            routing.authority_owner().as_str(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("routing_route_kind"),
-            routing.route_kind().as_str(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("routing_strength"),
-            routing.artifact_strength().as_str(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("routing_failure"),
-            routing.route_failure_topology().as_str(),
-        )
-        .seal()
-        .as_str()
-        .to_string()
 }

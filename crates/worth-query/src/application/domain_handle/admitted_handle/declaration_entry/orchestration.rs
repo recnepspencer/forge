@@ -17,6 +17,7 @@ use crate::application::WorthQueryDomainOperatingContext;
 impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
     WorthQueryInstalledDomainDeclarationContext<D, C>
 {
+    #[cfg(test)]
     pub(crate) fn orchestrate_declaration_entry<I>(
         &self,
         input: I,
@@ -30,6 +31,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         worth_query_declaration_entry_orchestration_on_handle(self, input)
     }
 
+    #[cfg(test)]
     pub(crate) fn orchestrate_declaration_entry_outcome<I>(
         &self,
         input: I,
@@ -43,6 +45,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn orchestrate_declaration_entry_checked<I>(
         &self,
         input: I,
@@ -53,6 +56,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         worth_query_checked_declaration_entry_orchestration_on_handle(self, input)
     }
 
+    #[cfg(test)]
     pub(crate) fn orchestrate_declaration_entry_proof<I>(
         &self,
         input: I,

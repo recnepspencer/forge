@@ -1,7 +1,7 @@
 use super::super::support::*;
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, OrderingSelector,
-    ScalarPredicateValue, TraversalSelector,
+    TraversalSelector, WorthQueryPredicateOperand,
 };
 use crate::runtime::{
     WorthQueryReadBuiltInOperator, WorthQueryReadScopeClass, WorthQueryRuntimeError,
@@ -259,7 +259,7 @@ fn compose_read_executes_explicit_broad_search_ordered_collection() {
                             EqualityPredicate::new(
                                 "profile",
                                 "display_name",
-                                ScalarPredicateValue::String("Ada".to_string()),
+                                WorthQueryPredicateOperand::string("Ada".to_string()),
                             )
                             .expect("equality predicate should build"),
                         )

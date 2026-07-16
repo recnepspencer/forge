@@ -1,4 +1,4 @@
-use worth_query::facade::WORTHQueryDeclaredFamilyChecked;
+use worth_query::facade::domain::WorthQueryDeclaredFamilyChecked;
 use hadwiger_research::facade::{
     declare_research_request_checked, hadwiger_research_domain_package, CandidateGraphDeclaration,
     HadwigerResearchDomainEntry, HadwigerResearchHandle, HadwigerResearchOperatingContext,
@@ -12,12 +12,12 @@ fn main() -> Result<(), String> {
 
     let helper = declare_research_request_checked(&handle, request.clone());
     let direct = match handle.declare_checked(request) {
-        WORTHQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
+        WorthQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
         _ => panic!("direct declaration should admit"),
     };
 
     let helper = match helper {
-        WORTHQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
+        WorthQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
         _ => panic!("helper declaration should admit"),
     };
 

@@ -247,7 +247,7 @@ allowed_target_bands = []
     write_file(
         &root,
         "crates/worth-query-host/src/facade.rs",
-        r#"pub use worth_query::facade::WorthQueryApplicationFacade;
+        r#"pub use worth_query::facade::runtime;
 
 pub fn wrapper() {}
 "#,
@@ -290,8 +290,8 @@ allowed_target_bands = []
     write_file(
         &root,
         "crates/worth-query-decl/src/facade.rs",
-        r#"pub use worth_query::facade::CanonicalQueryArtifact;
-pub use worth_query_host::facade::WorthQueryApplicationFacade;
+        r#"pub use worth_query::facade::foundation::CanonicalQueryArtifact;
+pub use worth_query_host::facade::runtime;
 "#,
     );
 
@@ -327,8 +327,9 @@ fn agent_context_names_audience_exports_for_real_facades() {
     let decl = fs::read_to_string(root.join("crates/worth-query-decl/AGENT_CONTEXT.md")).unwrap();
     assert!(decl.contains("CanonicalQueryArtifact"));
     let host = fs::read_to_string(root.join("crates/worth-query-host/AGENT_CONTEXT.md")).unwrap();
-    assert!(host.contains("WorthQueryApplicationFacade"));
+    assert!(host.contains("domain"));
+    assert!(host.contains("runtime"));
     let replay =
         fs::read_to_string(root.join("crates/worth-query-replay/AGENT_CONTEXT.md")).unwrap();
-    assert!(replay.contains("ReplayBasisCapability"));
+    assert!(replay.contains("ScopedReplayBasis"));
 }

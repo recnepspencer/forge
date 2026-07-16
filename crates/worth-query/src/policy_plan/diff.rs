@@ -1,10 +1,14 @@
+#[cfg(test)]
+use crate::policy_execution_seam::PolicyAwareExecutionMode;
 use crate::policy_execution_seam::{
-    PolicyAwareExecutionMode, PolicyAwareExecutionSeamError, PolicyAwareExecutionSeamFailureClass,
-    PolicyAwareSeamCounters,
+    PolicyAwareExecutionSeamError, PolicyAwareExecutionSeamFailureClass, PolicyAwareSeamCounters,
 };
+#[cfg(test)]
 use crate::policy_narrowing::NarrowedPolicyQueryArtifact;
 
-use super::{PolicyAwarePlanCore, PolicyAwarePlanCostPosture};
+use super::PolicyAwarePlanCore;
+#[cfg(test)]
+use super::PolicyAwarePlanCostPosture;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum PolicyAwareDiffScrubDisposition {
@@ -86,7 +90,7 @@ impl PolicyAwareDiffPlan {
         self.scrub_disposition
     }
 }
-
+#[cfg(test)]
 pub(crate) fn lower_policy_aware_diff_plan(
     artifact: &NarrowedPolicyQueryArtifact,
     basis_pair: PolicyAwareDiffBasisPair,

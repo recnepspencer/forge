@@ -6,8 +6,10 @@ mod request;
 mod segment;
 
 pub use denial::{WorthQueryJournalReplayDenial, WorthQueryJournalReplayDenialKind};
+#[cfg(test)]
+pub use diagnostics::WorthQueryJournalReplayCounterSnapshot;
 pub(in crate::runtime) use diagnostics::WorthQueryJournalReplayCounters;
-pub use diagnostics::{WorthQueryJournalReplayCounterSnapshot, WorthQueryJournalReplayDiagnostics};
+pub use diagnostics::WorthQueryJournalReplayDiagnostics;
 pub(crate) use outcome::journal_replay_truth_reconstruction_identity;
 pub use outcome::WorthQueryJournalReplayOutcome;
 pub(in crate::runtime) use registry::{

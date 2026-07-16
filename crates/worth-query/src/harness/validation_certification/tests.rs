@@ -24,11 +24,11 @@ fn schema_aware_rejection_and_projection_legality_adapter_emits_named_matrix() {
     assert!(matrix
         .rows
         .iter()
-        .any(|row| row.row_name == "integer-greater-than-predicate-parity"));
+        .any(|row| row.row_name == "native-greater-than-predicate-parity"));
     assert!(matrix
         .rows
         .iter()
-        .any(|row| row.row_name == "integer-less-than-predicate-parity"));
+        .any(|row| row.row_name == "native-less-than-predicate-parity"));
     assert!(matrix
         .rows
         .iter()

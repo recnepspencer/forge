@@ -1,13 +1,13 @@
 error[E0599]: no method named `materialize` found for struct `WorthQueryIntentPreviewMutationDraft` in the current scope
-  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_workflow_requires_because.rs:18:10
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_workflow_requires_because.rs:23:10
    |
-12 |       let _ = worth_query_domain("worth.spatial")
+16 |       let _ = installation
    |  _____________-
-13 | |         .for_intent(&declaration)
-14 | |         .plans_preview_mutation(
-15 | |             "topology.preview_mutation",
+17 | |         .contributions()
+18 | |         .for_intent(&declaration).expect("installed contribution authority must remain current")
+19 | |         .plans_preview_mutation(
 ...  |
-18 | |         .materialize();
+23 | |         .materialize();
    | |         -^^^^^^^^^^^ method not found in `WorthQueryIntentPreviewMutationDraft`
    | |_________|
    |

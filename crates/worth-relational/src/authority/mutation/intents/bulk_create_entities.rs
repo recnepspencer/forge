@@ -23,14 +23,16 @@ use crate::authority::mutation::record_changes::{
 };
 use crate::authority::mutation::MutationWorkspace;
 use crate::transactions::data::{
-    BulkEntityCreateIntent, BulkImportRowDomain, BulkImportStage, CommitConflict, ConflictClass,
-    CreatedEntityRef,
+    BulkEntityCreateIntent, BulkImportRowDomain, BulkImportStage, CommitConflict, CreatedEntityRef,
+    RecordAspectPatchTarget,
 };
 use crate::validation::data::InvariantGroupSet;
-
-use super::entity_field_creation_aspects::{
-    plan_entity_field_creation_aspects, EntityFieldCreationAspectPlan,
+use worth_foundational::facade::{
+    AuthoritativeRecordAspectPatch, AuthoritativeRecordAspectState, PortablePatchReadmissionPurpose,
 };
+
+use super::field_authoring_candidate::FieldAuthoringDomain;
+use super::record_aspect_patch;
 
 pub(super) fn apply(
     intent: &BulkEntityCreateIntent,
@@ -67,7 +69,10 @@ pub(super) fn apply(
                 version_id,
                 intent.partition_id,
                 intent.kind_id,
-                aspect_plan.extra,
+                crate::storage::logic::state::EntityExtra {
+                    authoritative_aspect_state: aspect_plan.1,
+                    ..crate::storage::logic::state::EntityExtra::default()
+                },
             );
             context
                 .state
@@ -85,7 +90,7 @@ pub(super) fn apply(
         outcome.record_change(RecordMutation::EntityCreated {
             entity_id,
             kind_id: intent.kind_id,
-            authoritative_patch: aspect_plan.authoritative_patch,
+            authoritative_patch: record_aspect_patch::published_patch(aspect_plan.0),
         });
     }
     outcome.set_last_event_count(intent.field_patches.len());
@@ -96,19 +101,29 @@ fn stage_bulk_entity_aspect_plans(
     intent: &BulkEntityCreateIntent,
     workspace: &MutationWorkspace<'_>,
     field_patches: &[crate::transactions::data::AspectFieldPatch],
-) -> Result<Vec<EntityFieldCreationAspectPlan>, CommitConflict> {
+) -> Result<
+    Vec<(
+        AuthoritativeRecordAspectPatch,
+        Option<AuthoritativeRecordAspectState>,
+    )>,
+    CommitConflict,
+> {
     let lowered_plan = workspace.entity_aspect_plan(intent.kind_id);
+    let target = RecordAspectPatchTarget::EntityCreation {
+        kind_id: intent.kind_id,
+    };
     field_patches
         .iter()
         .map(|fields| {
-            plan_entity_field_creation_aspects(intent.kind_id, lowered_plan, fields).map_err(
-                |denial| {
-                    CommitConflict::new(ConflictClass::EntityAuthoritativeAspectStateDenied {
-                        kind_id: intent.kind_id,
-                        denial,
-                    })
-                },
-            )
+            let patch = record_aspect_patch::readmit_field_authoring(
+                fields,
+                PortablePatchReadmissionPurpose::RecordCreation,
+                lowered_plan,
+                target,
+                FieldAuthoringDomain::Entity,
+            )?;
+            let state = record_aspect_patch::apply(None, &patch, target)?;
+            Ok((patch, state))
         })
         .collect()
 }

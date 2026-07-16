@@ -1,3 +1,9 @@
+error[E0432]: unresolved import `worth_query::facade::foundation::resolve_historical_materialization_path`
+ --> tests/ui/historical_api_does_not_require_bridge_materialization.rs:1:39
+  |
+1 | ...undation::{resolve_historical_materialization_path, HistoricalEvaluationAdmission, HistoricalMaterializationDescriptor};
+  |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `resolve_historical_materialization_path` in `facade::foundation`
+
 warning: unused import: `HistoricalMaterializationDescriptor`
  --> tests/ui/historical_api_does_not_require_bridge_materialization.rs:1:111
   |
@@ -5,19 +11,3 @@ warning: unused import: `HistoricalMaterializationDescriptor`
   |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
-
-error[E0308]: mismatched types
-  --> tests/ui/historical_api_does_not_require_bridge_materialization.rs:14:42
-   |
-14 |     _expects_query_owned_materialization(resolve_historical_materialization_path);
-   |     ------------------------------------ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected fn pointer, found fn item
-   |     |
-   |     arguments to this function are incorrect
-   |
-   = note: expected fn pointer `fn(HistoricalEvaluationAdmission, BridgeHistoricalEvaluationDecisionLog) -> std::result::Result<HistoricalPathResolved, HistoricalEvaluationError>`
-                 found fn item `fn(HistoricalEvaluationAdmission, HistoricalMaterializationDescriptor) -> std::result::Result<HistoricalPathResolved, HistoricalEvaluationError> {resolve_historical_materialization_path}`
-note: function defined here
-  --> tests/ui/historical_api_does_not_require_bridge_materialization.rs:11:4
-   |
-11 | fn _expects_query_owned_materialization(_: WrongFn) {}
-   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ----------

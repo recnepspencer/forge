@@ -1,5 +1,4 @@
 use super::support::*;
-use crate::facade::runtime::BridgeSubscriptionDeclarationFamilyKind;
 use crate::facade::{
     BridgeRuntimePolicy, BridgeSignalStrategyKind, BridgeSubscriptionAdmissionRejectionKind,
     BridgeSubscriptionBasisKind, BridgeSubscriptionBasisRequest,
@@ -7,6 +6,7 @@ use crate::facade::{
     BridgeSubscriptionReplayMismatchKind, NormalizedSubscriptionSliceIntent,
 };
 use crate::mapping::SubscriptionSliceKind;
+use crate::subscription::BridgeSubscriptionDeclarationFamilyKind;
 
 #[test]
 fn bridge_harness_subscription_suite_28_declaration_equivalence_is_canonical_and_policy_invariant()

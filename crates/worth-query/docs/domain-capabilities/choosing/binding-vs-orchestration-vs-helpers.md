@@ -81,7 +81,8 @@ let route_input = handle.bind_route_request_from_context(request)?;
 Use orchestration when the declaration input already exists:
 
 ```rust
-let envelope = handle.orchestrate_declaration_entry(trim_request)?;
+let envelope = handle
+    .declare_review_progress_describe_plan_receipt_and_envelope(trim_request)?;
 ```
 
 Use helpers when you want a family-native call shape over canonical lowering:

@@ -6,10 +6,7 @@ use crate::authorized_projection::{
     AuthorizedProjectionArtifact, AuthorizedProjectionCounters, MaskedProjectionArtifact,
     PolicyFieldInfluenceSet,
 };
-use crate::evidence_identity::{
-    worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
-    WorthQueryEvidenceTag,
-};
+use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::memory_workspace::{WorthQueryEntity, WorthQuerySnapshotIdentity};
 use crate::projection_consumption::{ProjectMaterializedFacts, ProjectionFactKind};
 use crate::runtime::{
@@ -18,7 +15,9 @@ use crate::runtime::{
     WorthQueryLiveArtifactBundle, WorthQueryLiveArtifactTarget, WorthQueryLiveReadReceipt,
     WorthQueryLiveReadResult, WorthQueryRetainedFieldPath, WorthQueryRetainedMaterializedRow,
 };
-use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
+use worth_foundational::facade::{
+    AspectKey, AspectValue, CanonicalFieldPath, FieldKey, StructAspectValue,
+};
 use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 pub(super) struct SharedTestResultShape {
@@ -34,18 +33,6 @@ pub(super) fn shared_test_result_shape() -> &'static SharedTestResultShape {
         SharedTestResultShape { identity, digest }
     })
 }
-
-#[allow(dead_code)]
-pub(super) fn result_shape_identity_for_test(label: &str) -> WorthQueryEvidenceIdentity {
-    worth_query_evidence_identity(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_shape(
-            WorthQueryEvidenceTag::new("identity_family"),
-            "projection_test_result_shape_v1",
-        )
-        .field_shape(WorthQueryEvidenceTag::new("label"), label)
-        .seal()
-}
-
 pub(super) fn test_result_shape_identity(label: &str) -> WorthQueryEvidenceIdentity {
     test_result_shape_artifact(label).result_shape_identity()
 }
@@ -70,12 +57,6 @@ pub(super) fn test_result_shape_canonical_digest(label: &str) -> String {
         .as_str()
         .to_string()
 }
-
-#[allow(dead_code)]
-pub(super) fn test_result_shape_digest(label: &str) -> String {
-    test_result_shape_identity(label).as_str().to_string()
-}
-
 pub(super) fn authorized_projection(
     query_digest: &str,
     result_shape_digest: &str,
@@ -202,6 +183,77 @@ pub(super) fn live_binding() -> crate::runtime::WorthQueryLiveArtifactBinding {
         .expect("live binding should succeed")
 }
 
+pub(super) fn retained_struct_binding() -> crate::runtime::WorthQueryDerivedArtifactBinding {
+    let snapshot = retained_live_snapshot_identity("snapshot-retained-struct");
+    let target = WorthQueryDerivedMaterializationTarget::test_only("derived.struct");
+    let row = WorthQueryRetainedMaterializedRow::from_native_values(
+        BTreeMap::new(),
+        BTreeMap::from([(retained_field_path("profile"), profile_struct_value())]),
+    )
+    .unwrap();
+    let bundle = WorthQueryDerivedMaterializationBundle::test_only(
+        snapshot.clone(),
+        BTreeMap::from([(
+            target.clone(),
+            WorthQueryDerivedMaterializationResult::test_only_retained_rows(
+                vec![row],
+                WorthQueryDerivedMaterializationReceipt::test_only(
+                    target.view_name(),
+                    snapshot,
+                    "derived-struct-digest",
+                ),
+            ),
+        )]),
+    );
+    bundle
+        .bind_retained_artifact("retained.struct.binding", [target])
+        .unwrap()
+}
+
+pub(super) fn live_struct_binding() -> crate::runtime::WorthQueryLiveArtifactBinding {
+    let snapshot = retained_live_snapshot_identity("snapshot-live-struct");
+    let target = WorthQueryLiveArtifactTarget::test_only("live.struct");
+    let row = WorthQueryEntity::from_aspect_projection(
+        crate::memory_workspace::admit_authored_entity_label("entity-struct"),
+        BTreeMap::new(),
+        BTreeMap::from([(AspectKey::new("profile").unwrap(), profile_struct_value())]),
+        BTreeMap::new(),
+    );
+    let bundle = WorthQueryLiveArtifactBundle::test_only(
+        snapshot.clone(),
+        BTreeMap::from([(
+            target.clone(),
+            WorthQueryLiveReadResult::test_only(
+                vec![row],
+                WorthQueryLiveReadReceipt::test_only(
+                    target.view_name(),
+                    "installation:struct",
+                    "query:test",
+                    test_result_shape_artifact("shape:struct").digest().clone(),
+                    "subscription:struct",
+                    "result:struct",
+                    snapshot,
+                    1,
+                ),
+            ),
+        )]),
+    );
+    bundle
+        .bind_live_artifact("live.struct.binding", [target])
+        .unwrap()
+}
+
+pub(super) fn profile_struct_value() -> StructAspectValue {
+    StructAspectValue::new([
+        (
+            FieldKey::new("name").unwrap(),
+            AspectValue::String("Ada".into()),
+        ),
+        (FieldKey::new("rank").unwrap(), AspectValue::UInt32(7)),
+    ])
+    .unwrap()
+}
+
 fn retained_live_snapshot_identity(label: &str) -> WorthQuerySnapshotIdentity {
     WorthQuerySnapshotIdentity::from_relational_snapshot(
         RelationalBridgeSnapshotIdentityParts::new(
@@ -232,7 +284,7 @@ fn retained_materialized_row(
 }
 
 fn text_value(value: impl Into<String>) -> AspectValue {
-    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value)
+    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value)
 }
 
 fn retained_field_path(path: &str) -> WorthQueryRetainedFieldPath {
@@ -285,21 +337,20 @@ pub(super) fn request_for_kind(kind: ProjectionFactKind) -> ProjectMaterializedF
                     .expect("projection fact field segment should admit"),
             ]),
         ),
-        ProjectionFactKind::DerivedScalarField => ProjectMaterializedFacts::declare()
-            .derived_scalar_field_path(
-                crate::projection_consumption::projection_fact_field_path_from_segments([
-                    worth_foundational::facade::FieldKey::new("profile")
-                        .expect("projection fact field segment should admit"),
-                    worth_foundational::facade::FieldKey::new("display_name")
-                        .expect("projection fact field segment should admit"),
-                ]),
-            ),
+        ProjectionFactKind::DerivedField => ProjectMaterializedFacts::declare().derived_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                worth_foundational::facade::FieldKey::new("profile")
+                    .expect("projection fact field segment should admit"),
+                worth_foundational::facade::FieldKey::new("display_name")
+                    .expect("projection fact field segment should admit"),
+            ]),
+        ),
     }
 }
 
 pub(super) fn visible_fields_for_kind(kind: ProjectionFactKind) -> Vec<&'static str> {
     match kind {
-        ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+        ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => {
             vec!["profile.display_name"]
         }
         _ => vec!["identity.id"],

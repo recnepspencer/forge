@@ -4,6 +4,7 @@ use crate::application::{
     WorthQueryDeclarationInput, WorthQueryDeclarationLegalityDenial, WorthQueryDomainEntryMarker,
 };
 
+#[cfg(test)]
 pub(super) fn declare_row_reason<
     D: WorthQueryDomainEntryMarker,
     F: WorthQueryDeclarationFamilyMarker<D>,
@@ -16,6 +17,7 @@ pub(super) fn declare_row_reason<
         .reason()
 }
 
+#[cfg(test)]
 pub(super) fn legality_denial_reason<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
@@ -47,6 +49,7 @@ pub(super) fn legality_denial_reason<
     }
 }
 
+#[cfg(test)]
 pub(super) fn canonicalization_reason(
     error: &WorthQueryDeclarationCanonicalizationError,
 ) -> &'static str {

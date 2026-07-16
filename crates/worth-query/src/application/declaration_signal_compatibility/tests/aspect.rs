@@ -29,15 +29,17 @@ fn signal_compatibility_exposes_dependency_and_produced_aspects() {
 
 #[test]
 fn signal_compatibility_denies_missing_and_conflicting_dependency_slices() {
-    match handle("primary").signal_compatibility_checked(
+    let handle = handle("primary");
+    let missing_envelope = handle
+        .envelope_routes_from_progressed(
+            handle
+                .declare_review_and_progress(Input::<MissingAspectFamily>::new("edge:42"))
+                .unwrap_or_else(|_| panic!("progression should admit")),
+        )
+        .unwrap_or_else(|_| panic!("envelope should succeed"));
+    match handle.signal_compatibility_checked(
         crate::application::WorthQueryDeclarationSignalCompatibilityInput::enveloped(
-            handle("primary")
-                .envelope_routes_from_progressed(
-                    handle("primary")
-                        .declare_review_and_progress(Input::<MissingAspectFamily>::new("edge:42"))
-                        .unwrap_or_else(|_| panic!("progression should admit")),
-                )
-                .unwrap_or_else(|_| panic!("envelope should succeed")),
+            missing_envelope,
         ),
     ) {
         WorthQueryDeclarationSignalCompatibilityChecked::Denied(denial) => assert_eq!(
@@ -47,15 +49,16 @@ fn signal_compatibility_denies_missing_and_conflicting_dependency_slices() {
         _ => panic!("missing signal dependency slice should deny"),
     }
 
-    match handle("primary").signal_compatibility_checked(
+    let conflicting_envelope = handle
+        .envelope_routes_from_progressed(
+            handle
+                .declare_review_and_progress(Input::<ConflictingAspectFamily>::new("edge:42"))
+                .unwrap_or_else(|_| panic!("progression should admit")),
+        )
+        .unwrap_or_else(|_| panic!("envelope should succeed"));
+    match handle.signal_compatibility_checked(
         crate::application::WorthQueryDeclarationSignalCompatibilityInput::enveloped(
-            handle("primary")
-                .envelope_routes_from_progressed(
-                    handle("primary")
-                        .declare_review_and_progress(Input::<ConflictingAspectFamily>::new("edge:42"))
-                        .unwrap_or_else(|_| panic!("progression should admit")),
-                )
-                .unwrap_or_else(|_| panic!("envelope should succeed")),
+            conflicting_envelope,
         ),
     ) {
         WorthQueryDeclarationSignalCompatibilityChecked::Denied(denial) => assert_eq!(

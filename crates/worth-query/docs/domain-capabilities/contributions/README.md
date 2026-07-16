@@ -10,19 +10,19 @@ Contributions declare posture (admission, support, workflow, continuity, afterma
 
 | Lane | Doc |
 |------|-----|
-| Admission (advisory / violation) | [advisory-and-violation-contributions.md](../admission/advisory-and-violation-contributions.md) |
-| Admission targets | [declaration-vs-admitted-plan-targets.md](../admission/declaration-vs-admitted-plan-targets.md) |
-| Support (declaration-scoped) | [declaration-scoped-support-and-traceability.md](../support/declaration-scoped-support-and-traceability.md) |
-| Support (lower-runtime traceability) | [lower-runtime-support-and-boundary-traceability.md](../support/lower-runtime-support-and-boundary-traceability.md) |
+| Admission (advisory / violation) | advisory-and-violation-contributions.md |
+| Admission targets | declaration-vs-admitted-plan-targets.md |
+| Support (declaration-scoped) | declaration-scoped-support-and-traceability.md |
+| Support (lower-runtime traceability) | lower-runtime-support-and-boundary-traceability.md |
 | Support (admission-local reports) | [admission-local-support-reports.md](../support/admission-local-support-reports.md) |
 | Workflow | [workflow/README.md](../workflow/README.md) |
-| Continuity | [continuity-contributions-and-authoritative-successors.md](../continuity/continuity-contributions-and-authoritative-successors.md) |
-| Continuity vs correspondence | [continuity-vs-correspondence.md](../continuity/continuity-vs-correspondence.md) |
-| Aftermath | [aftermath-review-support-eligibility-and-materialization.md](../aftermath/aftermath-review-support-eligibility-and-materialization.md) |
-| Explanation | [lower-runtime-explanation-contributions.md](../explanation/lower-runtime-explanation-contributions.md) |
+| Continuity | continuity-contributions-and-authoritative-successors.md |
+| Continuity vs correspondence | continuity-vs-correspondence.md |
+| Aftermath | aftermath-review-support-eligibility-and-materialization.md |
+| Explanation | lower-runtime-explanation-contributions.md |
 | Explanation gaps | [cross-runtime-fallback-vs-store-backed-replay-gap.md](../explanation/cross-runtime-fallback-vs-store-backed-replay-gap.md) |
-| Invariants (contribution posture) | [invariant-and-capability-contributions.md](../invariants/invariant-and-capability-contributions.md) |
-| Invariants (registration) | [registering-domain-invariants-through-query.md](../invariants/registering-domain-invariants-through-query.md) |
+| Invariants (contribution posture) | invariant-and-capability-contributions.md |
+| Invariants (registration) | registering-domain-invariants-through-query.md |
 
 ## Composed Entry
 

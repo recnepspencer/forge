@@ -22,7 +22,7 @@ fn detail_template_instantiation_preserves_canonical_parity_and_binding_artifact
                 crate::authoring::EqualityPredicate::new(
                     "profile",
                     "display_name",
-                    crate::authoring::ScalarPredicateValue::String("Alice".to_string()),
+                    crate::authoring::WorthQueryPredicateOperand::string("Alice".to_string()),
                 )
                 .unwrap(),
             )
@@ -41,7 +41,7 @@ fn detail_template_instantiation_preserves_canonical_parity_and_binding_artifact
             crate::authoring::EqualityPredicate::new(
                 "profile",
                 "display_name",
-                crate::authoring::ScalarPredicateValue::String("Alice".to_string()),
+                crate::authoring::WorthQueryPredicateOperand::string("Alice".to_string()),
             )
             .unwrap(),
         ),

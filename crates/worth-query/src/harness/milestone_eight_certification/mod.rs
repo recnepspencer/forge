@@ -1,9 +1,10 @@
+#[cfg(test)]
 mod tests;
 
 use crate::application::WorthQueryApplicationFacade;
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, GuidedAuthoringPath,
-    OrderingSelector, RootEntityKey, ScalarPredicateValue,
+    OrderingSelector, RootEntityKey, WorthQueryPredicateOperand,
 };
 use crate::basis::{
     resolve_snapshot_basis, BasisAuthorityFamily, BasisResolutionMode, ExecutionBasisIntent,
@@ -218,14 +219,14 @@ fn detail_schema_view() -> crate::schema_view::QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                crate::schema_view::SchemaFieldKind::String,
+                crate::schema_view::ScalarAspectType::String,
             ),
             crate::schema_view::SchemaFieldView::new(
                 crate::authoring::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                crate::schema_view::SchemaFieldKind::String,
+                crate::schema_view::ScalarAspectType::String,
             )
             .text_predicate_queryable(),
             crate::schema_view::SchemaFieldView::new(
@@ -233,7 +234,7 @@ fn detail_schema_view() -> crate::schema_view::QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("lane")
                     .expect("schema field literal must be valid"),
-                crate::schema_view::SchemaFieldKind::String,
+                crate::schema_view::ScalarAspectType::String,
             )
             .text_predicate_queryable(),
         ],
@@ -279,7 +280,7 @@ fn detail_query_with_name_filter(name: &str) -> crate::authoring::DetailAuthored
             EqualityPredicate::new(
                 "profile",
                 "display_name",
-                ScalarPredicateValue::String(name.to_string()),
+                WorthQueryPredicateOperand::string(name.to_string()),
             )
             .unwrap(),
         )
@@ -346,10 +347,10 @@ impl GroupedRowFixture {
     fn new(member_key: &str, display_name: &str, lane: &str) -> Self {
         Self {
             member_key: member_key.to_string(),
-            display_name: crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+            display_name: crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                 display_name,
             ),
-            lane: crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(lane),
+            lane: crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(lane),
         }
     }
 
@@ -359,12 +360,12 @@ impl GroupedRowFixture {
 
     fn value_for_snapshot_read(&self, aspect_key: &str) -> AspectValue {
         match aspect_key {
-            "identity.id" => crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+            "identity.id" => crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                 self.member_key.as_str(),
             ),
             "profile.display_name" => self.display_name.clone(),
             "status.lane" => self.lane.clone(),
-            _ => crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("unknown"),
+            _ => crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("unknown"),
         }
     }
 }
@@ -483,7 +484,7 @@ impl TruthSnapshotReader for StaticSnapshotReader {
                             .then(|| row.value_for_snapshot_read(read.aspect_key().as_str()))
                         })
                         .unwrap_or_else(|| {
-                            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                                 "unknown",
                             )
                         });
@@ -601,7 +602,7 @@ fn grouped_rows_result(
                         .then(|| row.value_for_snapshot_read(read.aspect_key().as_str()))
                     })
                     .unwrap_or_else(|| {
-                        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                             "unknown",
                         )
                     });
@@ -840,7 +841,7 @@ fn template_detail_bundle() -> MilestoneEightCertificationBundle {
             EqualityPredicate::new(
                 "profile",
                 "display_name",
-                ScalarPredicateValue::String("Alice".to_string()),
+                WorthQueryPredicateOperand::string("Alice".to_string()),
             )
             .unwrap(),
         ),
@@ -859,7 +860,7 @@ fn scope_detail_bundle() -> MilestoneEightCertificationBundle {
             EqualityPredicate::new(
                 "profile",
                 "display_name",
-                ScalarPredicateValue::String("Alice".to_string()),
+                WorthQueryPredicateOperand::string("Alice".to_string()),
             )
             .unwrap(),
         )],

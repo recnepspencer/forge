@@ -18,9 +18,9 @@ do not want to replay the whole declaration-entry path by hand.
 
 ## Stable Entry Points
 
-- `orchestrate_routes_from_progressed(...)`
-- `orchestrate_receipt_from_progressed(...)`
-- `orchestrate_envelope_from_progressed(...)`
+- `plan_routes_from_progressed(...)`
+- `receipt_routes_from_progressed(...)`
+- `envelope_routes_from_progressed(...)`
 - `bind_route_from_target(...)`
 - `bind_receipt_from_target(...)`
 - `bind_envelope_from_target(...)`
@@ -68,7 +68,7 @@ let progressed = handle.declare_review_and_progress(
     geometry_session.publish_boundary_change_for_active_face()?,
 )?;
 
-let envelope = handle.orchestrate_envelope_from_progressed(progressed)?;
+let envelope = handle.envelope_routes_from_progressed(progressed)?;
 ```
 
 Use this when the next public product is obvious and you want the shortest
@@ -77,7 +77,7 @@ retained-artifact path.
 ## Real Example
 
 ```rust
-let envelope = handle.orchestrate_envelope_from_progressed(
+let envelope = handle.envelope_routes_from_progressed(
     handle.declare_review_and_progress(
         geometry_session.publish_boundary_change_for_active_face()?,
     )?,

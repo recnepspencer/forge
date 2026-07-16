@@ -4,13 +4,13 @@ use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdenti
 use super::active_counters::ActiveSubscriptionCounters;
 use super::active_digest::ActiveSubscriptionLaneDigest;
 use super::active_handle::ActiveSubscriptionLaneHandle;
+#[cfg(test)]
 use super::attachment::SubscriptionConsumerAttachment;
 use super::attachment_digest::SubscriptionConsumerAttachmentDigest;
 use super::delivery_dimensions::PreviewResidueWidth;
-use super::evidence_identities::{
-    preview_authoritative_sharing_denial_identity, preview_epoch_identity,
-    preview_isolation_identity,
-};
+use super::evidence_identities::preview_authoritative_sharing_denial_identity;
+#[cfg(test)]
+use super::evidence_identities::{preview_epoch_identity, preview_isolation_identity};
 use super::evidence_projection::subscription_evidence_projection;
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::preview_isolation_error::{
@@ -58,6 +58,7 @@ pub struct PreviewSubscriptionIsolationArtifact {
 }
 
 impl PreviewSubscriptionIsolationArtifact {
+    #[cfg(test)]
     pub(super) fn new(
         attachment: &SubscriptionConsumerAttachment,
         preview_epoch: impl Into<String>,
@@ -157,6 +158,7 @@ impl PreviewSubscriptionIsolationArtifact {
     }
 }
 
+#[cfg(test)]
 pub fn admit_preview_subscription_isolation(
     attachment: &SubscriptionConsumerAttachment,
     preview_epoch: impl Into<String>,

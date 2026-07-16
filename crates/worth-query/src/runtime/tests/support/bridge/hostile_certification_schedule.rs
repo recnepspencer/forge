@@ -7,6 +7,10 @@ use crate::projection_consumption::ProjectionAuthorityOutcome;
 use crate::runtime::tests::support::*;
 use worth_foundational::facade::InternedString;
 
+mod schedule;
+
+use schedule::*;
+
 #[derive(Clone)]
 struct HostileCertificationMaintainer {
     invocations: Arc<AtomicUsize>,
@@ -41,46 +45,9 @@ impl WorthQueryDerivedViewMaintainer for HostileCertificationMaintainer {
     }
 }
 
-#[derive(Clone, Copy)]
-struct HostileSchedule {
-    steps: &'static [HostileScheduleStep],
-}
-
-#[derive(Clone, Copy)]
-enum HostileScheduleStep {
-    ConsumeUnpublishedDerived,
-    OpenBranch(&'static str),
-    DiscardPreview {
-        label: &'static str,
-        identity: &'static str,
-        title: &'static str,
-    },
-    SubmitTask {
-        identity: &'static str,
-        title: &'static str,
-        slot: PublishedArtifactSlot,
-    },
-    ReconsumePublishedArtifacts {
-        current_slot: PublishedArtifactSlot,
-        stable_slot: Option<PublishedArtifactSlot>,
-    },
-    PromotePreview {
-        label: &'static str,
-        identity: &'static str,
-        title: &'static str,
-    },
-}
-
-#[derive(Clone, Copy)]
-enum PublishedArtifactSlot {
-    First,
-    Second,
-    Third,
-}
-
 struct HostileExecutionState {
     workspace: WorthQueryWorkspace,
-    derived: WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+    derived: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape>,
     invocations: Arc<AtomicUsize>,
     receipt_summaries: Vec<String>,
     reader_results: Vec<String>,
@@ -108,45 +75,6 @@ pub(in crate::runtime::tests) fn replay_runtime_hostile_schedule(
     run_hostile_schedule_steps(recorded_steps)
 }
 
-fn hostile_schedule() -> HostileSchedule {
-    HostileSchedule {
-        steps: &[
-            HostileScheduleStep::ConsumeUnpublishedDerived,
-            HostileScheduleStep::OpenBranch("branch-a"),
-            HostileScheduleStep::OpenBranch("branch-b"),
-            HostileScheduleStep::DiscardPreview {
-                label: "preview-discard",
-                identity: "preview-discard",
-                title: "Preview discard",
-            },
-            HostileScheduleStep::SubmitTask {
-                identity: "task-1",
-                title: "Task One",
-                slot: PublishedArtifactSlot::First,
-            },
-            HostileScheduleStep::SubmitTask {
-                identity: "task-2",
-                title: "Task Two",
-                slot: PublishedArtifactSlot::Second,
-            },
-            HostileScheduleStep::ReconsumePublishedArtifacts {
-                current_slot: PublishedArtifactSlot::Second,
-                stable_slot: Some(PublishedArtifactSlot::First),
-            },
-            HostileScheduleStep::PromotePreview {
-                label: "preview-promote",
-                identity: "task-3",
-                title: "Task Three",
-            },
-            HostileScheduleStep::OpenBranch("branch-c"),
-            HostileScheduleStep::ReconsumePublishedArtifacts {
-                current_slot: PublishedArtifactSlot::Third,
-                stable_slot: None,
-            },
-        ],
-    }
-}
-
 fn run_hostile_schedule_steps(
     steps: impl IntoIterator<Item = HostileScheduleStep>,
 ) -> RuntimeHostileCertificationArtifact {
@@ -162,7 +90,7 @@ impl HostileExecutionState {
         let mut workspace = stateful_bridge_task_runtime()
             .workspace("runtime.tests.hostile-certification")
             .expect("workspace should build");
-        let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+        let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
             .live_view_request(
                 "tasks.hostile-certification",
                 task_live_request(),
@@ -427,7 +355,7 @@ impl HostileExecutionState {
                 .facts()
                 .display_fields()
                 .first()
-                .and_then(|fact| match fact.value() {
+                .and_then(|fact| match fact.native_value().scalar()? {
                     AspectValue::String(InternedString::Raw(value)) => Some(value.as_str()),
                     AspectValue::String(InternedString::Symbol(_)) => None,
                     _ => None,

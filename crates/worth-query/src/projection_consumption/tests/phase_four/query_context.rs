@@ -27,7 +27,7 @@ fn current_query_context_extracts_identity_and_row_bound_field_facts() {
                         .expect("projection fact field segment should admit"),
                 ]),
             )
-            .derived_scalar_field_path(
+            .derived_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
                     worth_foundational::facade::FieldKey::new("metrics")
                         .expect("projection fact field segment should admit"),
@@ -53,11 +53,17 @@ fn current_query_context_extracts_identity_and_row_bound_field_facts() {
         consumed.view_local_identities()[1].source_row_identity(),
     );
     assert_eq!(
-        consumed.display_fields()[0].value(),
+        consumed.display_fields()[0]
+            .native_value()
+            .scalar()
+            .unwrap(),
         &text_value("payload-row-0")
     );
     assert_eq!(
-        consumed.derived_scalar_fields()[1].value(),
+        consumed.derived_fields()[1]
+            .native_value()
+            .scalar()
+            .unwrap(),
         &text_value("payload-row-1")
     );
     assert_eq!(consumed.counters().source_row_width_consumed(), 4);
@@ -98,7 +104,10 @@ fn query_context_extracts_bound_source_reference_metadata() {
         "materialization-path:test"
     );
     assert_eq!(
-        consumed.display_fields()[0].value(),
+        consumed.display_fields()[0]
+            .native_value()
+            .scalar()
+            .unwrap(),
         &text_value("historical-row-0")
     );
     assert_eq!(consumed.counters().source_row_width_consumed(), 1);

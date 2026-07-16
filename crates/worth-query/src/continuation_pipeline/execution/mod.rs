@@ -1,8 +1,12 @@
 mod digest_projection;
 mod execute;
+mod installed_authority;
 mod outcome;
 mod prepare;
 mod readmission;
+#[cfg(test)]
+mod readmission_test_support;
+mod readmission_transcript;
 mod support;
 
 use crate::application::{
@@ -18,7 +22,7 @@ pub(crate) use prepare::{
     prepare_continuation_from_signal_checked_on_handle, prepare_continuation_from_target_on_handle,
 };
 #[cfg(test)]
-pub(crate) use readmission::drifted_observation_from_retained;
+pub(crate) use readmission_test_support::drifted_observation_from_retained;
 
 pub struct WorthQueryContinuationExecution<
     D: WorthQueryDomainEntryMarker,

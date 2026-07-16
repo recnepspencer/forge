@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    QuerySubscriptionFamily,
-    QuerySubscriptionSupportPosture,
-};
+use worth_query::facade::runtime::{QuerySubscriptionFamily, QuerySubscriptionSupportPosture};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryLiveCompatibility {

@@ -1,6 +1,7 @@
+#[cfg(test)]
+use crate::evidence::UiAllocationConstraintSet;
 use crate::evidence::{
-    UiAllocationConstraintSet, UiAllocationNeighborhood, UiConstraintPropagationDenial,
-    UiMeasurementBasis,
+    UiAllocationNeighborhood, UiConstraintPropagationDenial, UiMeasurementBasis,
 };
 
 #[cfg(test)]
@@ -28,14 +29,5 @@ impl UiMeasurementBasis {
         neighborhood: &UiAllocationNeighborhood,
     ) -> Result<UiAllocationConstraintSet, UiConstraintPropagationDenial> {
         admit_constraint_set(self, neighborhood)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn admit_allocation_constraint_set_with_portal(
-        &self,
-        neighborhood: &UiAllocationNeighborhood,
-        portal: &crate::runtime::UiPortalAllocationPlanningBasis,
-    ) -> Result<UiAllocationConstraintSet, UiConstraintPropagationDenial> {
-        super::constraint_authority::admit_constraint_set_with_portal(self, neighborhood, portal)
     }
 }

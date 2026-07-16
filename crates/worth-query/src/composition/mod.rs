@@ -14,11 +14,11 @@ pub use expand::{ComposedCanonicalQueryBundle, ExpandedComposedIntent, GuidedCom
 pub use families::{
     QueryCompositionComplexityStatus, QueryCompositionFamily, ScopeFamily, TemplateFamily,
 };
-#[allow(unused_imports)]
+#[cfg(test)]
+pub(crate) use report::QueryCompositionTemporalAsyncPosture;
 pub use report::{
     runtime_backed_query_composition_support_profile, CompositionReport,
     QueryCompositionDeferredScopeMarker, QueryCompositionSupportProfile,
-    QueryCompositionTemporalAsyncPosture,
 };
 pub use scopes::{BasisScopeEvidence, ExpandedScopeArtifact, QueryScopeDescriptor};
 pub use templates::{

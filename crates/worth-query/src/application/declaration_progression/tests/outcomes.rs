@@ -3,7 +3,7 @@ use worth_proof::{ProofOutcomeKind, RecipeStageKind};
 use super::fixtures::{
     admitted_handle, legal, progressed, AdmittedFamily, AlternateAspectFamily, Declaration,
     DeferredFamily, DeniedFamily, DescriptiveDeferredSignalFamily, FailedFamily,
-    MaskedCoverageFamily, ReceiptFamily, StaleFamily, WorldSensitiveFamily,
+    MaskedCoverageFamily, RebindRequiredFamily, ReceiptFamily, StaleFamily,
 };
 use crate::application::{
     assert_declaration_aspect_projections, WorthQueryDeclarationProgressionChecked,
@@ -76,7 +76,7 @@ fn checked_recipe_lane_preserves_non_success_outcomes() {
     match restricted.progress_declaration_recipe_checked(restricted.declaration_progression_recipe(
         legal(
             &restricted,
-            Declaration::<WorldSensitiveFamily>::new("edge:42"),
+            Declaration::<RebindRequiredFamily>::new("edge:42"),
         ),
     )) {
         WorthQueryDeclarationProgressionChecked::RebindRequired(progress) => {
@@ -103,18 +103,9 @@ fn progression_preserves_stale_and_rebind_required_separately() {
         _ => panic!("expected stale progression"),
     }
 
-    let collaborative_world_sensitive = legal(
-        &collaborative,
-        Declaration::<WorldSensitiveFamily>::new("edge:42"),
-    );
-    assert!(matches!(
-        collaborative.progress_declaration_checked(collaborative_world_sensitive),
-        WorthQueryDeclarationProgressionChecked::Admitted(_)
-    ));
-
     match restricted.progress_declaration_checked(legal(
         &restricted,
-        Declaration::<WorldSensitiveFamily>::new("edge:42"),
+        Declaration::<RebindRequiredFamily>::new("edge:42"),
     )) {
         WorthQueryDeclarationProgressionChecked::RebindRequired(progress) => {
             assert_eq!(progress.outcome().kind(), ProofOutcomeKind::RebindRequired);

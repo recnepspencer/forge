@@ -5,7 +5,7 @@ fn update_existing_preserves_authoritative_binding_evidence() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.update-existing")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.update-existing-table", |q| {
             q.from("Task")
                 .select([
@@ -165,7 +165,7 @@ fn batch_existing_targets_preserve_component_and_aggregate_binding_evidence() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-existing")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.batch-existing-table", |q| {
             q.from("Task")
                 .select([
@@ -313,7 +313,7 @@ fn mixed_existing_and_symbolic_batch_preserves_aggregate_session_digests() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-existing-symbolic")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.batch-existing-symbolic-table", |q| {
             q.from("Task")
                 .select([
@@ -405,7 +405,7 @@ fn delete_existing_relation_preserves_relation_binding_family() {
     let mut workspace = runtime
         .workspace("tasks.delete-existing-relation")
         .expect("workspace should open");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.relation-table", |q| {
             q.from("TaskRelation")
                 .select([

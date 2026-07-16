@@ -4,13 +4,8 @@ error[E0432]: unresolved import `worth_query::facade::PreviewComparisonCandidate
 2 | use worth_query::facade::PreviewComparisonCandidateArtifact;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PreviewComparisonCandidateArtifact` in `facade`
 
-error[E0624]: method `artifact` is private
+error[E0599]: no function or associated item named `artifact` found for struct `AuthoritativePreviewComparisonCandidate` in the current scope
  --> tests/ui/preview_candidate_artifact_downgrade_not_public.rs:6:50
   |
 6 |         AuthoritativePreviewComparisonCandidate::artifact;
-  |                                                  ^^^^^^^^ private method
-  |
- ::: src/preview/mod.rs
-  |
-  |     pub(crate) fn artifact(&self) -> &PreviewComparisonCandidateArtifact {
-  |     -------------------------------------------------------------------- private method defined here
+  |                                                  ^^^^^^^^ function or associated item not found in `AuthoritativePreviewComparisonCandidate`

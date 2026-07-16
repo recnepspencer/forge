@@ -1,29 +1,22 @@
 use crate::authoring::{AspectName, FieldName};
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub enum SchemaFieldKind {
-    String,
-    Integer,
-    Boolean,
-    StructuredContent,
-    WorkflowState,
-}
+use worth_foundational::facade::ScalarAspectType;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SchemaFieldView {
     aspect: AspectName,
     field: FieldName,
-    kind: SchemaFieldKind,
+    kind: ScalarAspectType,
     queryable: bool,
     orderable: bool,
     text_predicate_queryable: bool,
     membership_predicate_queryable: bool,
     presence_predicate_queryable: bool,
+    workflow_semantic: bool,
     workflow_predicate_queryable: bool,
 }
 
 impl SchemaFieldView {
-    pub fn new(aspect: AspectName, field: FieldName, kind: SchemaFieldKind) -> Self {
+    pub fn new(aspect: AspectName, field: FieldName, kind: ScalarAspectType) -> Self {
         Self {
             aspect,
             field,
@@ -33,6 +26,7 @@ impl SchemaFieldView {
             text_predicate_queryable: false,
             membership_predicate_queryable: false,
             presence_predicate_queryable: false,
+            workflow_semantic: false,
             workflow_predicate_queryable: false,
         }
     }
@@ -54,7 +48,13 @@ impl SchemaFieldView {
         self
     }
 
+    pub fn workflow_semantic(mut self) -> Self {
+        self.workflow_semantic = true;
+        self
+    }
+
     pub fn workflow_predicate_queryable(mut self) -> Self {
+        self.workflow_semantic = true;
         self.workflow_predicate_queryable = true;
         self
     }
@@ -82,8 +82,12 @@ impl SchemaFieldView {
         &self.field
     }
 
-    pub fn kind(&self) -> &SchemaFieldKind {
+    pub fn kind(&self) -> &ScalarAspectType {
         &self.kind
+    }
+
+    pub fn native_family(&self) -> ScalarAspectType {
+        self.kind
     }
 
     pub fn is_queryable(&self) -> bool {
@@ -96,6 +100,10 @@ impl SchemaFieldView {
 
     pub fn is_workflow_predicate_queryable(&self) -> bool {
         self.workflow_predicate_queryable
+    }
+
+    pub fn is_workflow_semantic(&self) -> bool {
+        self.workflow_semantic
     }
 
     pub fn is_text_predicate_queryable(&self) -> bool {

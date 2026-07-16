@@ -5,7 +5,7 @@ fn workspace_delete_receipt_preserves_family_target_and_inspection_posture() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-delete")
         .expect("task runtime should open a named workspace");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.delete-table", |q| {
             q.from("Task")
                 .select([
@@ -108,7 +108,7 @@ fn workspace_delete_with_preserves_touched_aspects_and_metadata_for_routing() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-delete-with")
         .expect("task runtime should open a named workspace");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.delete-with-table", |q| {
             q.from("Task")
                 .select([
@@ -211,7 +211,7 @@ fn preview_delete_with_preserves_declared_target_collection_and_delete_meaning()
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-delete-with")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.preview-delete-with-table", |q| {
             q.from("Task")
                 .select([
@@ -306,7 +306,7 @@ fn workspace_batch_routes_shared_computeds_once_per_batch_boundary() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-computed-routing")
         .expect("task runtime should open a named workspace");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.batch-routing-table", |q| {
             q.from("Task")
                 .select([
@@ -322,7 +322,7 @@ fn workspace_batch_routes_shared_computeds_once_per_batch_boundary() {
                 .schema_basis("tasks-batch-routing-table")
         })
         .expect("live view should declare");
-    let _computed: WorthQueryDerivedViewHandle<WorthQueryNativeRow> = workspace
+    let _computed: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
         .computed(
             "tasks.batch-routing-summary",
             |c| {

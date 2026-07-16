@@ -1,4 +1,6 @@
-use crate::application::support::{WorthQueryCapabilityDescriptor, WorthQueryCapabilityFamily};
+#[cfg(test)]
+use crate::application::support::WorthQueryCapabilityDescriptor;
+use crate::application::support::WorthQueryCapabilityFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CapabilityAdmissionFailureClass {
@@ -46,6 +48,7 @@ impl WorthQueryFacadeCounters {
         self.deferred_capability_denial_count
     }
 
+    #[cfg(test)]
     pub(crate) fn config_resolution() -> Self {
         Self {
             capability_lookup_count: 0,
@@ -55,6 +58,7 @@ impl WorthQueryFacadeCounters {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn admitted_lookup() -> Self {
         Self {
             capability_lookup_count: 1,
@@ -64,6 +68,7 @@ impl WorthQueryFacadeCounters {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn unsupported_denial() -> Self {
         Self {
             capability_lookup_count: 1,
@@ -73,6 +78,7 @@ impl WorthQueryFacadeCounters {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn deferred_denial() -> Self {
         Self {
             capability_lookup_count: 1,
@@ -92,6 +98,7 @@ pub struct WorthQueryFacadeError {
 }
 
 impl WorthQueryFacadeError {
+    #[cfg(test)]
     pub(crate) fn capability_denied(
         descriptor: &WorthQueryCapabilityDescriptor,
         failure_class: CapabilityAdmissionFailureClass,

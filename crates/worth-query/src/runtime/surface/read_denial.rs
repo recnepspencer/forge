@@ -82,6 +82,7 @@ impl WorthQueryReadAccessPlanBindingMismatch {
         &self.provided_admission_digest
     }
 
+    #[cfg(test)]
     pub(in crate::runtime) fn new(
         admitted_read_graph_digest: impl Into<String>,
         execution_read_graph_digest: impl Into<String>,
@@ -165,6 +166,7 @@ impl WorthQueryReadDenial {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn with_access_plan_binding_mismatch(
         mut self,
         access_plan_binding_mismatch: WorthQueryReadAccessPlanBindingMismatch,

@@ -1,8 +1,7 @@
 use crate::facade::foundation::{
-    admit_region_scoped_live_plan, execute_live_change, execute_region_scoped_live_change,
-    lower_region_scoped_execution_to_stream_contract, promote_preflight_bundle_to_live,
-    BridgeChangeSummary, BridgeFieldDelta, LiveExecutionEnvelope, LivePolicyCounters,
-    LocalityPredicateContract, RegionScopedLiveExecutionEnvelope, StreamConsumerShape,
+    promote_preflight_bundle_to_live, BridgeChangeSummary, BridgeFieldDelta, LiveExecutionEnvelope,
+    LivePolicyCounters, LocalityPredicateContract, RegionScopedLiveExecutionEnvelope,
+    StreamConsumerShape,
 };
 use crate::harness::certification::{ParityAnchor, RejectionCertificationRow};
 use crate::harness::live_certification::{
@@ -11,6 +10,10 @@ use crate::harness::live_certification::{
     LiveRejectionRow,
 };
 use crate::harness::profiles::CertificationProfile;
+use crate::live::{
+    admit_region_scoped_live_plan, execute_live_change, execute_region_scoped_live_change,
+    lower_region_scoped_execution_to_stream_contract,
+};
 
 pub(super) fn canonical_row(
     row_name: &'static str,

@@ -2,6 +2,7 @@ mod bundles;
 mod canonical_rows;
 mod fixtures;
 mod rejection_rows;
+#[cfg(test)]
 mod tests;
 
 use super::planning_matrix::{

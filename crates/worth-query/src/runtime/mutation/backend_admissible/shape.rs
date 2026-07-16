@@ -1,6 +1,6 @@
 use crate::memory_workspace::WorthQueryEntityIdentity;
 use crate::runtime::{
-    WorthQueryAdmittedAspectValue, WorthQueryAspectTouch, WorthQueryContinuityMutationIntent,
+    WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation, WorthQueryContinuityMutationIntent,
     WorthQueryExistingTruthTargetBinding, WorthQueryMutationMetadata,
     WorthQueryMutationTargetCollectionIdentity, WorthQueryNamingMutationIntent,
     WorthQuerySymbolicAspectReference, WorthQuerySymbolicTargetReference, WorthQueryWriteCommand,
@@ -10,7 +10,7 @@ use crate::runtime::{
 pub(super) enum WorthQueryBackendAdmissibleMutationShape {
     Insert {
         collection: WorthQueryMutationTargetCollectionIdentity,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
         symbolic_aspect_references: Vec<WorthQuerySymbolicAspectReference>,
         metadata: WorthQueryMutationMetadata,
         naming_intent: Option<WorthQueryNamingMutationIntent>,
@@ -19,15 +19,15 @@ pub(super) enum WorthQueryBackendAdmissibleMutationShape {
     },
     UpdateDirect {
         entity_identity: WorthQueryEntityIdentity,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
         metadata: WorthQueryMutationMetadata,
         naming_intent: Option<WorthQueryNamingMutationIntent>,
         continuity_intent: Option<WorthQueryContinuityMutationIntent>,
     },
     UpdateExisting {
         binding: WorthQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<WorthQueryAdmittedAspectValue>,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        asserted_aspects: Vec<WorthQueryAuthoredAspectMutation>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
         symbolic_aspect_references: Vec<WorthQuerySymbolicAspectReference>,
         metadata: WorthQueryMutationMetadata,
         naming_intent: Option<WorthQueryNamingMutationIntent>,
@@ -35,12 +35,12 @@ pub(super) enum WorthQueryBackendAdmissibleMutationShape {
     },
     Assertion {
         binding: WorthQueryExistingTruthTargetBinding,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
         metadata: WorthQueryMutationMetadata,
     },
     UpdateSymbolic {
         reference: WorthQuerySymbolicTargetReference,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
         metadata: WorthQueryMutationMetadata,
         naming_intent: Option<WorthQueryNamingMutationIntent>,
         continuity_intent: Option<WorthQueryContinuityMutationIntent>,
@@ -54,7 +54,7 @@ pub(super) enum WorthQueryBackendAdmissibleMutationShape {
     },
     DeleteExisting {
         binding: WorthQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<WorthQueryAdmittedAspectValue>,
+        asserted_aspects: Vec<WorthQueryAuthoredAspectMutation>,
         touched_aspects: Vec<WorthQueryAspectTouch>,
         metadata: WorthQueryMutationMetadata,
         naming_intent: Option<WorthQueryNamingMutationIntent>,
@@ -130,7 +130,7 @@ impl WorthQueryBackendAdmissibleMutationShape {
             },
             WorthQueryWriteCommand::VerifyThenUpdateExistingAspects {
                 binding,
-                asserted_aspects,
+                asserted_aspects: _,
                 aspects,
                 symbolic_aspect_references,
                 metadata,
@@ -138,7 +138,7 @@ impl WorthQueryBackendAdmissibleMutationShape {
                 continuity_intent,
             } => Self::UpdateExisting {
                 binding,
-                asserted_aspects,
+                asserted_aspects: Vec::new(),
                 aspects,
                 symbolic_aspect_references,
                 metadata,
@@ -199,13 +199,13 @@ impl WorthQueryBackendAdmissibleMutationShape {
             },
             WorthQueryWriteCommand::VerifyThenDeleteExistingAspects {
                 binding,
-                asserted_aspects,
+                asserted_aspects: _,
                 touched_aspects,
                 metadata,
                 naming_intent,
             } => Self::DeleteExisting {
                 binding,
-                asserted_aspects,
+                asserted_aspects: Vec::new(),
                 touched_aspects,
                 metadata,
                 naming_intent,

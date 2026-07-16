@@ -123,10 +123,7 @@ impl BasisLifecyclePosture {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BasisIntentDenialKind {
-    Malformed,
-    Ambiguous,
     TemporalDeferred,
-    AsyncResourceDeferred,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

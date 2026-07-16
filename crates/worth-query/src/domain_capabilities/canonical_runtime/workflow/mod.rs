@@ -183,12 +183,16 @@ where
 {
 }
 
+#[cfg(test)]
 mod inspection;
+#[cfg(test)]
 mod lowering;
 mod preview;
 mod preview_identity;
 mod semantics;
 
+#[cfg(test)]
 pub use inspection::*;
+#[cfg(test)]
 pub use lowering::*;
 pub use preview::*;

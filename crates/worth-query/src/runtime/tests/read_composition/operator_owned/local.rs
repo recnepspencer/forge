@@ -1,7 +1,7 @@
 use super::super::support::*;
 use crate::authoring::{
-    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, ScalarPredicateValue,
-    TraversalSelector,
+    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, TraversalSelector,
+    WorthQueryPredicateOperand,
 };
 use crate::runtime::{
     WorthQueryReadBuiltInOperator, WorthQueryReadDenialKind, WorthQueryReadExecutionEngine,
@@ -293,7 +293,7 @@ fn compose_read_denies_local_detail_when_query_classifies_as_broad_search() {
                             EqualityPredicate::new(
                                 "profile",
                                 "display_name",
-                                ScalarPredicateValue::String("Ada".to_string()),
+                                WorthQueryPredicateOperand::string("Ada".to_string()),
                             )
                             .expect("equality predicate should build"),
                         )

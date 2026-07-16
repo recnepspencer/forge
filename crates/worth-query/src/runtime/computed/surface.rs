@@ -924,7 +924,7 @@ fn derived_patch_inspection_identity(
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryDerivedViewHandle<T = crate::runtime::WorthQueryNativeRow> {
+pub struct WorthQueryDerivedViewHandle<T = crate::runtime::WorthQueryUnrefinedLiveShape> {
     name: String,
     authority_lane: WorthQueryAuthorityLane,
     marker: PhantomData<T>,

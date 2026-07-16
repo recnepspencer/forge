@@ -1,14 +1,8 @@
 use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support,
-    BasisFamily,
-    ResultShapeFamily,
-    WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily,
+    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily, WorthQueryCapabilityFamily,
+    WorthQuerySupportReport,
 };
-use worth_query::facade::runtime::{
-    QuerySubscriptionFamily,
-    ViewShapeDescriptor,
-};
+use worth_query::facade::runtime::{QuerySubscriptionFamily, ViewShapeDescriptor};
 
 use crate::capability::{
     CapabilitySnapshot, CapabilitySupportCatalog, ComponentChildPolicy, ComponentDescriptor,
@@ -20,10 +14,7 @@ use crate::capability::{
     ThemeTokenSource, ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
     COMPONENT_FAMILY_NAME, SURFACE_FAMILY_NAME, THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
 };
-use crate::facade::{
-    WorthUi,
-    WorthUiApp,
-};
+use crate::facade::{WorthUi, WorthUiApp};
 use crate::source::{
     WorthUiArtifactInput, WorthUiResolutionDiagnosticCode, WorthUiResolutionReport,
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
@@ -46,7 +37,7 @@ pub(super) fn standard_artifact_input() -> WorthUiArtifactInput {
 }
 
 pub(super) fn admitted_app() -> WorthUiApp {
-    let query_support = WorthQueryApplicationFacade::runtime_backed_default().support_report();
+    let query_support = WorthQuerySupportReport::runtime_backed_default();
     let query_capability = query_support
         .support_matrix()
         .descriptor(WorthQueryCapabilityFamily::QueryComposition)

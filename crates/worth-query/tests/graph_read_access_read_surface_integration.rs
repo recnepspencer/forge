@@ -3,12 +3,13 @@ use worth_query::facade::runtime::{
     WorthQueryReadFamily, WorthQueryWorkspace,
 };
 
-mod support;
+use crate::support;
 
 use support::graph_index_inventory::runtime_profiles::{
     default_graph_support_workspace, profile_with_ephemeral_graph_support,
     profile_without_graph_support, workspace_with_graph_support,
 };
+use support::graph_read_access::hostile_graph_fixture::seed_hostile_frontier_graph;
 use support::graph_read_access::read_surface_assertions::{
     assert_admitted_summary, assert_pre_execution_graph_access_denial,
     assert_success_counters_are_executor_observed, read_composition_denial,
@@ -81,6 +82,7 @@ fn graph_access_read_fronts_expose_same_admitted_access_evidence() {
 #[test]
 fn one_call_intent_consumes_plan_available_through_explicit_review() {
     let mut workspace = workspace("graph-read-access.read-surface.helper-honesty");
+    seed_hostile_frontier_graph(&mut workspace, "read-surface-helper-honesty");
     let family = graph_access_family(&mut workspace, "read-surface-helper-honesty");
     let (reviewed_plan_digest, reviewed_admission_digest) = {
         let review = workspace
@@ -269,6 +271,7 @@ fn helper_fronts_prove_no_per_result_neighbor_lookup_loop_from_executor_counters
             WorthQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
         ),
     );
+    seed_hostile_frontier_graph(&mut workspace, "read-surface-no-n-plus-one");
     let family = graph_access_family(&mut workspace, "read-surface-no-n-plus-one");
     let result = workspace
         .execute_read_family(&family)

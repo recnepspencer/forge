@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
+    WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
     WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
@@ -59,8 +59,11 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for GeometryWorld {
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("family-helpers-world-{}", self.0)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("family-helpers-world-{}", self.0) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -135,13 +138,18 @@ fn admitted_handle(
     world: &'static str,
 ) -> crate::application::WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>
 {
-    crate::application::domain_test_support::installed_declaration_context(
+    crate::application::domain_test_support::installed_declaration_context_with_contributions(
         GeometryDomain,
         GeometryWorld(world),
         [crate::application::domain_test_support::family::<
             GeometryDomain,
             GeometryFamily,
         >()],
+        [
+            crate::application::WorthQueryDeclarationEntryContributionCategoryFamily::SupportTraceability,
+            crate::application::WorthQueryDeclarationEntryContributionCategoryFamily::ExplanationInspection,
+            crate::application::WorthQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview,
+        ],
     )
 }
 

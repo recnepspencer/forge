@@ -1,7 +1,6 @@
-use super::artifacts::{
-    WorthQueryDeclarationEntryOrchestrationRefusalClass,
-    WorthQueryDeclarationEntryOrchestrationStage,
-};
+#[cfg(test)]
+use super::artifacts::WorthQueryDeclarationEntryOrchestrationRefusalClass;
+use super::artifacts::WorthQueryDeclarationEntryOrchestrationStage;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryDeclarationEntryOrchestrationAutomationBoundary {
@@ -65,6 +64,7 @@ impl WorthQueryDeclarationEntryOrchestrationAutomationRefusalClass {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn broad_refusal_class(self) -> WorthQueryDeclarationEntryOrchestrationRefusalClass {
         match self {
             Self::ExplicitIntentRequired => {
@@ -100,6 +100,7 @@ pub struct WorthQueryDeclarationEntryOrchestrationAutomationRefusal {
 }
 
 impl WorthQueryDeclarationEntryOrchestrationAutomationRefusal {
+    #[cfg(test)]
     pub(crate) fn new(
         refusal_class: WorthQueryDeclarationEntryOrchestrationAutomationRefusalClass,
         stop_stage: WorthQueryDeclarationEntryOrchestrationStage,
@@ -150,12 +151,15 @@ impl WorthQueryDeclarationEntryOrchestrationAutomationRefusal {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(crate) struct WorthQueryDeclarationEntryOrchestrationAutomationContext<'a> {
     orchestration_identity_digest: &'a str,
     automation_boundary: WorthQueryDeclarationEntryOrchestrationAutomationBoundary,
 }
 
+#[cfg(test)]
 impl<'a> WorthQueryDeclarationEntryOrchestrationAutomationContext<'a> {
+    #[cfg(test)]
     pub(crate) fn new(
         orchestration_identity_digest: &'a str,
         automation_boundary: WorthQueryDeclarationEntryOrchestrationAutomationBoundary,
@@ -166,10 +170,12 @@ impl<'a> WorthQueryDeclarationEntryOrchestrationAutomationContext<'a> {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn orchestration_identity_digest(&self) -> &'a str {
         self.orchestration_identity_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn automation_boundary(
         &self,
     ) -> WorthQueryDeclarationEntryOrchestrationAutomationBoundary {

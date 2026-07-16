@@ -9,7 +9,7 @@ fn compose_graph_supports_mixed_symbolic_create_and_existing_target_lifecycle() 
     let mut workspace = task_relation_runtime()
         .workspace("tasks.graph-composition-mixed-existing")
         .expect("runtime should open a named workspace");
-    let tasks: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-mixed-existing-tasks", |q| {
             q.from("Task")
                 .select([
@@ -25,7 +25,7 @@ fn compose_graph_supports_mixed_symbolic_create_and_existing_target_lifecycle() 
                 .schema_basis("tasks-graph-composition-mixed-existing-tasks")
         })
         .expect("task live view should declare");
-    let relations: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let relations: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-mixed-existing-relations", |q| {
             q.from("TaskRelation")
                 .select([

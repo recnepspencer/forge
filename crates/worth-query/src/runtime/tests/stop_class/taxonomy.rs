@@ -13,6 +13,7 @@ fn runtime_stop_class_taxonomy_covers_representative_runtime_error_variants() {
             | WorthQueryStopClass::ExistingTruthProbeDenied { .. }
             | WorthQueryStopClass::MutationBindingDenied { .. }
             | WorthQueryStopClass::MutationContinuityDenied { .. }
+            | WorthQueryStopClass::MutationContractDenied { .. }
             | WorthQueryStopClass::GraphObligationTouchDescriptorDenied { .. }
             | WorthQueryStopClass::GraphObligationEffectTouchDescriptorMissing { .. }
             | WorthQueryStopClass::GraphObligationIntentTouchDescriptorMissing { .. }

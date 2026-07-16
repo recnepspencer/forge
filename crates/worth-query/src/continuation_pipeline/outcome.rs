@@ -1,11 +1,19 @@
 use crate::application::{WorthQueryDeclarationInput, WorthQueryDomainEntryMarker};
+use crate::domain_installation::WorthQueryInstalledDomainExecutionDrift;
 use crate::ordinary_outcome::{
     WorthQueryOrdinaryCheckedTopology, WorthQueryOrdinaryContinuationCheckedTopologyKind,
     WorthQueryOrdinaryNextStep, WorthQueryOrdinaryOutcome, WorthQueryOrdinaryPosture,
     WorthQueryOrdinaryPostureKind,
 };
 
-use super::{WorthQueryContinuationExecution, WorthQueryPreparedContinuation};
+use super::{
+    WorthQueryContinuationExecution, WorthQueryContinuationExecutionReadmissionStop,
+    WorthQueryPreparedContinuation,
+};
+
+mod execution_ordinary;
+
+pub use execution_ordinary::ordinary_outcome_from_execution_checked;
 
 pub enum WorthQueryPreparedContinuationOutcome<
     D: WorthQueryDomainEntryMarker,
@@ -16,6 +24,7 @@ pub enum WorthQueryPreparedContinuationOutcome<
     Unavailable(String),
     WrongWorld(String),
     WrongHandle(String),
+    InstalledAuthorityDrift(WorthQueryInstalledDomainExecutionDrift),
     Stale(String),
     RebindRequired(String),
     AuthorityMismatch(String),
@@ -73,14 +82,16 @@ pub enum WorthQueryContinuationExecutionOutcome<
 > {
     Executed(WorthQueryContinuationExecution<D, I>),
     WrongWorld(String),
-    AsyncRequestDrift(String),
-    ReplayDrift(String),
-    RemaskDrift(String),
-    PreviewCrossedResidue(String),
-    Stale(String),
-    StaleCompletion(String),
-    BasisMismatch(String),
-    AuthorityMismatch(String),
+    AsyncRequestDrift(WorthQueryContinuationExecutionReadmissionStop),
+    ReplayDrift(WorthQueryContinuationExecutionReadmissionStop),
+    RemaskDrift(WorthQueryContinuationExecutionReadmissionStop),
+    PreviewCrossedResidue(WorthQueryContinuationExecutionReadmissionStop),
+    InstalledAuthorityDrift(WorthQueryInstalledDomainExecutionDrift),
+    Stale(WorthQueryContinuationExecutionReadmissionStop),
+    StaleCompletion(WorthQueryContinuationExecutionReadmissionStop),
+    BasisMismatch(WorthQueryContinuationExecutionReadmissionStop),
+    LowerBindingMismatch(WorthQueryContinuationExecutionReadmissionStop),
+    AuthorityMismatch(WorthQueryContinuationExecutionReadmissionStop),
     WrongHandle(String),
     Unsupported(String),
 }
@@ -171,6 +182,16 @@ pub fn ordinary_outcome_from_continuation_checked<
                 topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::WrongHandle),
             ))
         }
+        WorthQueryPreparedContinuationOutcome::InstalledAuthorityDrift(drift) => {
+            WorthQueryOrdinaryOutcome::RebindRequired(WorthQueryOrdinaryPosture::new(
+                drift.to_string(),
+                WorthQueryOrdinaryPostureKind::RebindRequired,
+                WorthQueryOrdinaryNextStep::RebindContext,
+                topology(
+                    WorthQueryOrdinaryContinuationCheckedTopologyKind::InstalledAuthorityDrift,
+                ),
+            ))
+        }
         WorthQueryPreparedContinuationOutcome::Stale(reason) => {
             WorthQueryOrdinaryOutcome::Stale(WorthQueryOrdinaryPosture::new(
                 reason,
@@ -233,110 +254,6 @@ pub fn ordinary_outcome_from_continuation_checked<
                 WorthQueryOrdinaryPostureKind::Failed,
                 WorthQueryOrdinaryNextStep::EscalateFailure,
                 topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::Failed),
-            ))
-        }
-    }
-}
-
-pub fn ordinary_outcome_from_execution_checked<
-    D: WorthQueryDomainEntryMarker,
-    I: WorthQueryDeclarationInput<D>,
->(
-    checked: WorthQueryContinuationExecutionChecked<D, I>,
-) -> WorthQueryOrdinaryOutcome<WorthQueryContinuationExecution<D, I>> {
-    let topology = |kind| {
-        WorthQueryOrdinaryCheckedTopology::continuation(kind, checked.linked_artifacts.clone())
-    };
-    match checked.outcome {
-        WorthQueryContinuationExecutionOutcome::Executed(value) => {
-            WorthQueryOrdinaryOutcome::Bound(value)
-        }
-        WorthQueryContinuationExecutionOutcome::WrongWorld(reason) => {
-            WorthQueryOrdinaryOutcome::WrongWorld(WorthQueryOrdinaryPosture::new(
-                reason,
-                WorthQueryOrdinaryPostureKind::WrongWorld,
-                WorthQueryOrdinaryNextStep::CorrectWorld,
-                topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::WrongWorld),
-            ))
-        }
-        WorthQueryContinuationExecutionOutcome::AsyncRequestDrift(reason) => {
-            WorthQueryOrdinaryOutcome::RebindRequired(WorthQueryOrdinaryPosture::new(
-                reason,
-                WorthQueryOrdinaryPostureKind::RebindRequired,
-                WorthQueryOrdinaryNextStep::RebindContext,
-                topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::AsyncRequestDrift),
-            ))
-        }
-        WorthQueryContinuationExecutionOutcome::ReplayDrift(reason) => {
-            WorthQueryOrdinaryOutcome::BasisMismatch(WorthQueryOrdinaryPosture::new(
-                reason,
-                WorthQueryOrdinaryPostureKind::BasisMismatch,
-                WorthQueryOrdinaryNextStep::RefreshBasis,
-                topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::ReplayDrift),
-            ))
-        }
-        WorthQueryContinuationExecutionOutcome::RemaskDrift(reason) => {
-            WorthQueryOrdinaryOutcome::Unsupported(WorthQueryOrdinaryPosture::new(
-                reason,
-                WorthQueryOrdinaryPostureKind::Unsupported,
-                WorthQueryOrdinaryNextStep::CheckSupport,
-                topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::RemaskDrift),
-            ))
-        }
-        WorthQueryContinuationExecutionOutcome::PreviewCrossedResidue(reason) => {
-            WorthQueryOrdinaryOutcome::RebindRequired(WorthQueryOrdinaryPosture::new(
-                reason,
-                WorthQueryOrdinaryPostureKind::RebindRequired,
-                WorthQueryOrdinaryNextStep::UseExplicitHandoff,
-                topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::PreviewCrossedResidue),
-            ))
-        }
-        WorthQueryContinuationExecutionOutcome::Stale(reason) => {
-            WorthQueryOrdinaryOutcome::Stale(WorthQueryOrdinaryPosture::new(
-                reason,
-                WorthQueryOrdinaryPostureKind::Stale,
-                WorthQueryOrdinaryNextStep::RefreshBasis,
-                topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::Stale),
-            ))
-        }
-        WorthQueryContinuationExecutionOutcome::StaleCompletion(reason) => {
-            WorthQueryOrdinaryOutcome::Stale(WorthQueryOrdinaryPosture::new(
-                reason,
-                WorthQueryOrdinaryPostureKind::Stale,
-                WorthQueryOrdinaryNextStep::RefreshBasis,
-                topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::StaleCompletion),
-            ))
-        }
-        WorthQueryContinuationExecutionOutcome::BasisMismatch(reason) => {
-            WorthQueryOrdinaryOutcome::BasisMismatch(WorthQueryOrdinaryPosture::new(
-                reason,
-                WorthQueryOrdinaryPostureKind::BasisMismatch,
-                WorthQueryOrdinaryNextStep::RefreshBasis,
-                topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::BasisMismatch),
-            ))
-        }
-        WorthQueryContinuationExecutionOutcome::AuthorityMismatch(reason) => {
-            WorthQueryOrdinaryOutcome::AuthorityMismatch(WorthQueryOrdinaryPosture::new(
-                reason,
-                WorthQueryOrdinaryPostureKind::AuthorityMismatch,
-                WorthQueryOrdinaryNextStep::InspectProofLane,
-                topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::AuthorityMismatch),
-            ))
-        }
-        WorthQueryContinuationExecutionOutcome::WrongHandle(reason) => {
-            WorthQueryOrdinaryOutcome::WrongHandle(WorthQueryOrdinaryPosture::new(
-                reason,
-                WorthQueryOrdinaryPostureKind::WrongHandle,
-                WorthQueryOrdinaryNextStep::CorrectHandle,
-                topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::WrongHandle),
-            ))
-        }
-        WorthQueryContinuationExecutionOutcome::Unsupported(reason) => {
-            WorthQueryOrdinaryOutcome::Unsupported(WorthQueryOrdinaryPosture::new(
-                reason,
-                WorthQueryOrdinaryPostureKind::Unsupported,
-                WorthQueryOrdinaryNextStep::CheckSupport,
-                topology(WorthQueryOrdinaryContinuationCheckedTopologyKind::Unsupported),
             ))
         }
     }

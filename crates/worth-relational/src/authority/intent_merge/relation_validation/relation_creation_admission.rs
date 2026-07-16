@@ -19,22 +19,47 @@ pub(super) fn validate_relation_creation_intent(
     created_entities: &BTreeSet<CreatedEntityRef>,
     spec: &RelationSpec,
 ) -> Result<(), CommitConflict> {
-    let relation_registration = require_registered_relation_kind(schema_source, spec.kind_id)?;
+    validate_relation_creation(
+        state,
+        schema_source,
+        default_cross_context_policy,
+        instrumentation,
+        created_entities,
+        spec.partition_id,
+        spec.kind_id,
+        &spec.source,
+        &spec.target,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn validate_relation_creation(
+    state: &impl StorageRead,
+    schema_source: &impl SchemaSource,
+    default_cross_context_policy: crate::config::data::CrossContextPolicy,
+    instrumentation: &RuntimeInstrumentation,
+    created_entities: &BTreeSet<CreatedEntityRef>,
+    partition_id: crate::identity::data::PartitionId,
+    kind_id: crate::identity::data::KindId,
+    source: &EntityReference,
+    target: &EntityReference,
+) -> Result<(), CommitConflict> {
+    let relation_registration = require_registered_relation_kind(schema_source, kind_id)?;
     validate_relation_endpoint_primitives(
         state,
         relation_registration.cross_context_policy,
         default_cross_context_policy,
-        &spec.source,
-        &spec.target,
+        source,
+        target,
         created_entities,
     )?;
     reject_existing_relation_identity(
         state,
         instrumentation,
-        spec.partition_id,
-        spec.kind_id,
-        &spec.source,
-        &BTreeSet::from([spec.target.clone()]),
+        partition_id,
+        kind_id,
+        source,
+        &BTreeSet::from([target.clone()]),
     )
 }
 

@@ -20,11 +20,14 @@ exports = ["CanonicalQueryArtifact"]
 
 [[facades]]
 package = "worth-query-host"
-exports = ["WorthQueryApplicationFacade"]
+exports = [
+    "domain",
+    "runtime",
+]
 
 [[facades]]
 package = "worth-query-replay"
-exports = ["ReplayBasisCapability"]
+exports = ["ScopedReplayBasis"]
 
 [[facades]]
 package = "worth-schema-core"

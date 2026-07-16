@@ -185,7 +185,7 @@ hard_prohibition_boundary_audit()
     .covering_sources(sources)
     .try_assert_clean()?;
 
-let tasks = workspace.live_view::<serde_json::Value>("tasks", |view| {
+let tasks = workspace.live_view::<worth_query::facade::runtime::WorthQueryUnrefinedLiveShape>("tasks", |view| {
     view.from("Task").select(["identity.id", "title.value"])
 })?;
 
@@ -195,7 +195,7 @@ let receipt = workspace.insert("Task", |task| {
 })?;
 
 assert_eq!(workspace.read(&tasks).len(), 1);
-assert!(workspace.inspect(&receipt).is_ok());
+assert!(workspace.inspections()?.inspect(&receipt).is_ok());
 ```
 
 The support snapshot is derived from the live matrix. The pins bind to live row
@@ -240,16 +240,11 @@ Useful things to inspect:
 - `WorthQueryTestBackendResidueReport`
 - `support_report().consumer_kit_closure()`
 
-The Consumer Kit closeout signal lives on the application support report:
-
-```rust
-let closure = worth_query::facade::foundation::WorthQueryApplicationFacade::runtime_backed_default()
-    .support_report()
-    .consumer_kit_closure();
-
-assert!(closure.docs_agree_with_support_profile());
-assert_eq!(closure.reference_consumer_residue().query_owned_residue_count(), 0);
-```
+Consumer Kit closeout is Query-owned certification evidence. Downstream code
+inspects the public reports, source-backed adoption manifests, and typed
+residue findings; it does not construct an application facade to manufacture
+closure. A closed report requires documentation agreement and zero Query-owned
+residue in the audited reference-consumer sources.
 
 ## Anti-Patterns
 

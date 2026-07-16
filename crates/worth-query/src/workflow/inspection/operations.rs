@@ -1,17 +1,21 @@
+#[cfg(test)]
+use super::identities::{conflict_scope_identity, post_merge_scope_identity};
 use super::identities::{
-    conflict_scope_identity, delivery_or_failure_identity, post_merge_scope_identity,
-    workflow_authoritative_outcome_identity, workflow_authority_request_identity,
-    workflow_replay_bundle_identity,
+    delivery_or_failure_identity, workflow_authoritative_outcome_identity,
+    workflow_authority_request_identity, workflow_replay_bundle_identity,
 };
 use super::*;
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
+#[cfg(test)]
 use crate::workflow::inspection_projection::{
     relational_merge_class_admission, relational_merge_class_label, relational_merge_class_shape,
 };
+#[cfg(test)]
 use worth_relational::facade::merge::{
     NormalizedRelationalMergeRequest, RelationalMergeInspectionArtifact,
 };
 
+#[cfg(test)]
 pub(crate) fn inspect_merge_conflicts(
     declaration: &QueryWorkflowDeclaration,
     merge_declaration: &LoweredMergeWorkflowDeclaration,
@@ -163,6 +167,7 @@ pub fn shape_writeback_authority_outcome(
     )
 }
 
+#[cfg(test)]
 pub(crate) fn inspect_post_merge_outcome(
     declaration: &QueryWorkflowDeclaration,
     outcome: &WorkflowAuthorityOutcomeArtifact,

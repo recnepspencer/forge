@@ -1,6 +1,7 @@
 use worth_relational::facade::runtime::CustomInvariantRegistration;
 
 use super::operating_world_selector::WorthQueryGraphObligationOperatingWorldSelector;
+#[cfg(test)]
 use super::registration::WorthQueryGraphObligationRegistration;
 use super::support_posture::WorthQueryGraphObligationSupportPosture;
 use super::touch_selector::WorthQueryGraphTouchSelector;
@@ -51,6 +52,7 @@ impl WorthQueryGraphScopedCustomInvariantRegistration {
         &self.support_posture
     }
 
+    #[cfg(test)]
     pub(crate) fn into_parts(
         self,
     ) -> (

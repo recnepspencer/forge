@@ -1,5 +1,3 @@
-use worth_relational::facade::history::BranchId;
-
 use crate::ordinary::workflow::{
     WorthQueryAdmittedWorkflowEffect, WorthQueryLoweredWorkflowPlan, WorthQueryWorkflowCounters,
 };
@@ -13,9 +11,7 @@ use super::{
 impl WorthQueryBranchMergeRequest {
     pub fn run(self, workspace: &mut WorthQueryWorkspace) -> WorthQueryBranchMergeOutcome {
         let counters = WorthQueryWorkflowCounters::context_checked();
-        if self.declaration.target_branch() != self.context.target_branch
-            || self.declaration.source_branch() != self.context.source_branch
-        {
+        if self.declaration.identity() != &self.context.declaration_identity {
             return WorthQueryBranchMergeOutcome::Stopped(WorthQueryBranchMergeStop::denied(
                 WorthQueryBranchMergeStopSource::MismatchedContext,
                 "branch-merge context was captured for a different declaration",
@@ -56,8 +52,6 @@ impl WorthQueryBranchMergeRequest {
         let execution = match workspace.execute_ordinary_merge(
             authority,
             self.declaration.identity().evidence_identity(),
-            BranchId(self.declaration.target_branch().to_string()),
-            BranchId(self.declaration.source_branch().to_string()),
             materialize_inspection,
         ) {
             Ok(execution) => execution,

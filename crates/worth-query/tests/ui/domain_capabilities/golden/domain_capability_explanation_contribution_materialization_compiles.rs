@@ -1,4 +1,8 @@
-use worth_query::facade::runtime::{worth_query_domain, CausalEvidenceFamily, CausalEvidenceReferenceSet, CausalInspectionMaterializationPolicy, CausalInspectionRedactionPolicy, CausalInspectionTarget, WorthQueryLowerRuntimeBoundaryEnvelope, WorthQueryLowerRuntimeExplanationRequest, QueryCausalInspectionArtifact};
+#[path = "../support/installed_domain.rs"]
+mod installed_domain;
+
+use worth_query::facade::domain::WorthQueryLowerRuntimeExplanationRequest;
+use worth_query::facade::runtime::{CausalEvidenceFamily, CausalEvidenceReferenceSet, CausalInspectionMaterializationPolicy, CausalInspectionRedactionPolicy, CausalInspectionTarget, WorthQueryLowerRuntimeBoundaryEnvelope, QueryCausalInspectionArtifact};
 use worth_runtime_bridge::facade::BridgeCausalExplanationEnvelope;
 
 fn explanation_common_lane(
@@ -7,8 +11,9 @@ fn explanation_common_lane(
     target: CausalInspectionTarget,
     bridge_envelope: BridgeCausalExplanationEnvelope,
 ) -> QueryCausalInspectionArtifact {
-    worth_query_domain("worth.spatial")
-        .for_lower_runtime_boundary_envelope(envelope)
+    installed_domain::install("explanation-golden")
+        .contributions()
+        .for_lower_runtime_boundary_envelope(envelope).expect("installed contribution authority must remain current")
         .explains_cross_runtime_fallback(
             "routing.cross_runtime_fallback",
             WorthQueryLowerRuntimeExplanationRequest::explains_cross_runtime_fallback(

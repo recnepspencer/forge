@@ -8,10 +8,8 @@ use crate::facade::host_observation::WorthUiHostContract;
 use crate::facade::inspection_observation::WorthUiInspectionObservationState;
 use crate::facade::measurement_inspection_evidence::UiMeasurementInspectionEvidenceSnapshot;
 use crate::facade::{
-    inspection_bridge::UiMeasurementInspectionEvidenceBundle,
-    registry::CapabilitySnapshot,
-    WorthUiRuntimeSupportInventory,
-    RUNTIME_SUPPORT_INVENTORY,
+    inspection_bridge::UiMeasurementInspectionEvidenceBundle, registry::CapabilitySnapshot,
+    WorthUiRuntimeSupportInventory, RUNTIME_SUPPORT_INVENTORY,
 };
 use worth_ui_dsl::WorthUiDslPackage;
 use worth_ui_inspection::{UiInspectionScope, UiInspectionSupportReport};

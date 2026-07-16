@@ -16,7 +16,8 @@ mod probe;
 mod touch;
 
 pub use aspect::{
-    WorthQueryAdmittedAspectValue, WorthQueryAspectMutationBuilder, WorthQueryAuthoredAspectValue,
+    WorthQueryAspectMutationBuilder, WorthQueryAuthoredAspectMutation,
+    WorthQueryAuthoredAspectValue,
 };
 pub use assertion::{
     WorthQueryExistingTruthAssertionDenial, WorthQueryExistingTruthAssertionDenialKind,
@@ -40,6 +41,7 @@ pub use continuity::{
 };
 pub use delete::WorthQueryDeleteMutationBuilder;
 pub(crate) use graph_composition::graph_composition_error;
+#[cfg(test)]
 pub(crate) use graph_composition::registrations_from_relational_invariant_catalog;
 pub use graph_composition::{
     WorthQueryAuthoritativeMutationObligationDispatch,
@@ -106,8 +108,7 @@ pub use naming::{
     WorthQueryNamingMutationFamily, WorthQueryNamingMutationIntent,
 };
 pub(crate) use native_intent::{
-    terminal_aspect_value_digest_text, WorthQueryDesiredAspectValue, WorthQueryParsedAspectTarget,
-    WorthQueryParsedDesiredAspect,
+    WorthQueryDesiredAspectValue, WorthQueryParsedAspectTarget, WorthQueryParsedDesiredAspect,
 };
 pub use operation::{WorthQueryAspectMutationOperation, WorthQueryAspectMutationOperationKind};
 pub use probe::{

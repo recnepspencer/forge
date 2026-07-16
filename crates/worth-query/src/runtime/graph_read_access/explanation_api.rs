@@ -1,3 +1,5 @@
+#[cfg(test)]
+use super::WorthQueryGraphReadOperationRegistry;
 use super::{
     access_requirements, admit_boolean_predicate_expression_for_read_graph,
     admit_query_schema_references_for_read_graph, derive_graph_read_access_shape,
@@ -11,7 +13,7 @@ use super::{
     WorthQueryGraphReadAccessRequirementSet, WorthQueryGraphReadAccessShape,
     WorthQueryGraphReadAccessShapeExplanation, WorthQueryGraphReadOperationCapabilityRequirement,
     WorthQueryGraphReadOperationLookup, WorthQueryGraphReadOperationOutcome,
-    WorthQueryGraphReadOperationRegistry, WorthQueryGraphReadOperationUnsupportedDenial,
+    WorthQueryGraphReadOperationUnsupportedDenial,
     WorthQueryGraphReadSchemaReferenceAdmissionError,
 };
 use crate::identity::hash_parts;
@@ -40,6 +42,7 @@ impl WorthQueryGraphReadAccessShapeExplanationError {
     }
 }
 
+#[cfg(test)]
 pub fn explain_graph_read_access_shape_for_family(
     family: &WorthQueryReadFamily,
 ) -> Result<WorthQueryGraphReadAccessShapeExplanation, WorthQueryGraphReadAccessShapeExplanationError>
@@ -48,6 +51,7 @@ pub fn explain_graph_read_access_shape_for_family(
     explain_graph_read_access_shape_for_family_in_authority(family, &authority)
 }
 
+#[cfg(test)]
 pub fn explain_graph_read_access_shape_for_family_in_authority(
     family: &WorthQueryReadFamily,
     authority: &WorthQueryGraphReadAccessAuthorityContext,
@@ -61,7 +65,8 @@ pub fn explain_graph_read_access_shape_for_family_in_authority(
     )
 }
 
-pub fn explain_graph_read_access_shape_for_family_with_operation_registry(
+#[cfg(test)]
+pub(crate) fn explain_graph_read_access_shape_for_family_with_operation_lookup(
     family: &WorthQueryReadFamily,
     registry: &WorthQueryGraphReadOperationRegistry,
 ) -> Result<WorthQueryGraphReadAccessShapeExplanation, WorthQueryGraphReadAccessShapeExplanationError>
@@ -75,7 +80,8 @@ pub fn explain_graph_read_access_shape_for_family_with_operation_registry(
     )
 }
 
-pub fn resolve_graph_read_operations_for_family_with_registry(
+#[cfg(test)]
+pub(crate) fn resolve_graph_read_operations_for_family_with_operation_lookup(
     family: &WorthQueryReadFamily,
     registry: &WorthQueryGraphReadOperationRegistry,
 ) -> Result<WorthQueryGraphReadOperationOutcome, WorthQueryGraphReadAccessShapeExplanationError> {
@@ -83,14 +89,7 @@ pub fn resolve_graph_read_operations_for_family_with_registry(
     resolve_graph_read_operations_for_graph(family.read_graph(), &authority, registry)
 }
 
-pub fn resolve_graph_read_operations_for_family_in_authority_with_registry(
-    family: &WorthQueryReadFamily,
-    authority: &WorthQueryGraphReadAccessAuthorityContext,
-    registry: &WorthQueryGraphReadOperationRegistry,
-) -> Result<WorthQueryGraphReadOperationOutcome, WorthQueryGraphReadAccessShapeExplanationError> {
-    resolve_graph_read_operations_for_graph(family.read_graph(), authority, registry)
-}
-
+#[cfg(test)]
 pub fn explain_boolean_selectivity_shape_for_family(
     family: &WorthQueryReadFamily,
 ) -> Result<WorthQueryBooleanSelectivityShape, WorthQueryGraphReadAccessShapeExplanationError> {
@@ -100,23 +99,6 @@ pub fn explain_boolean_selectivity_shape_for_family(
         family.read_graph(),
         &authority,
         &WorthQueryGraphReadOperationRegistry::empty(),
-    )?;
-    explain_boolean_selectivity_shape_for_access_shape(
-        family.read_graph(),
-        explanation.access_shape().clone(),
-    )
-}
-
-pub fn explain_boolean_selectivity_shape_for_family_with_operation_registry(
-    family: &WorthQueryReadFamily,
-    registry: &WorthQueryGraphReadOperationRegistry,
-) -> Result<WorthQueryBooleanSelectivityShape, WorthQueryGraphReadAccessShapeExplanationError> {
-    let authority = WorthQueryGraphReadAccessAuthorityContext::runtime_current_compatibility();
-    let explanation = explain_graph_read_access_shape_for_graph(
-        family.family_digest(),
-        family.read_graph(),
-        &authority,
-        registry,
     )?;
     explain_boolean_selectivity_shape_for_access_shape(
         family.read_graph(),
@@ -144,6 +126,7 @@ pub fn try_derive_graph_read_access_requirements(
     )
 }
 
+#[cfg(test)]
 pub fn explain_graph_read_access_requirements_for_family(
     family: &WorthQueryReadFamily,
 ) -> Result<WorthQueryGraphReadAccessRequirementSet, WorthQueryGraphReadAccessShapeExplanationError>
@@ -152,6 +135,7 @@ pub fn explain_graph_read_access_requirements_for_family(
     explain_graph_read_access_requirements_for_family_in_authority(family, &authority)
 }
 
+#[cfg(test)]
 pub fn explain_graph_read_access_requirements_for_family_in_authority(
     family: &WorthQueryReadFamily,
     authority: &WorthQueryGraphReadAccessAuthorityContext,
@@ -172,16 +156,7 @@ pub fn explain_graph_read_access_requirements_for_family_in_authority(
     }
 }
 
-pub fn explain_graph_read_access_requirement_outcome_for_family(
-    family: &WorthQueryReadFamily,
-) -> Result<
-    WorthQueryGraphReadAccessRequirementExplanationOutcome,
-    WorthQueryGraphReadAccessShapeExplanationError,
-> {
-    let authority = WorthQueryGraphReadAccessAuthorityContext::runtime_current_compatibility();
-    explain_graph_read_access_requirement_outcome_for_family_in_authority(family, &authority)
-}
-
+#[cfg(test)]
 pub fn explain_graph_read_access_requirement_outcome_for_family_in_authority(
     family: &WorthQueryReadFamily,
     authority: &WorthQueryGraphReadAccessAuthorityContext,
@@ -189,14 +164,14 @@ pub fn explain_graph_read_access_requirement_outcome_for_family_in_authority(
     WorthQueryGraphReadAccessRequirementExplanationOutcome,
     WorthQueryGraphReadAccessShapeExplanationError,
 > {
-    explain_graph_read_access_requirement_outcome_for_family_in_authority_with_operation_registry(
+    explain_graph_read_access_requirement_outcome_for_family_in_authority_with_operation_lookup(
         family,
         authority,
         &WorthQueryGraphReadOperationRegistry::empty(),
     )
 }
 
-pub(super) fn explain_graph_read_access_requirement_outcome_for_family_in_authority_with_operation_registry(
+pub(super) fn explain_graph_read_access_requirement_outcome_for_family_in_authority_with_operation_lookup(
     family: &WorthQueryReadFamily,
     authority: &WorthQueryGraphReadAccessAuthorityContext,
     registry: &impl WorthQueryGraphReadOperationLookup,
@@ -237,7 +212,8 @@ pub(super) fn explain_graph_read_access_requirement_outcome_for_family_in_author
     )
 }
 
-pub fn explain_graph_read_access_requirement_outcome_for_family_with_operation_registry(
+#[cfg(test)]
+pub(crate) fn explain_graph_read_access_requirement_outcome_for_family_with_operation_lookup(
     family: &WorthQueryReadFamily,
     registry: &WorthQueryGraphReadOperationRegistry,
 ) -> Result<
@@ -278,12 +254,13 @@ pub fn explain_graph_read_access_requirement_outcome_for_family_with_operation_r
     )
 }
 
-pub fn explain_graph_read_access_requirements_for_family_with_operation_registry(
+#[cfg(test)]
+pub(crate) fn explain_graph_read_access_requirements_for_family_with_operation_lookup(
     family: &WorthQueryReadFamily,
     registry: &WorthQueryGraphReadOperationRegistry,
 ) -> Result<WorthQueryGraphReadAccessRequirementSet, WorthQueryGraphReadAccessShapeExplanationError>
 {
-    match explain_graph_read_access_requirement_outcome_for_family_with_operation_registry(
+    match explain_graph_read_access_requirement_outcome_for_family_with_operation_lookup(
         family, registry,
     )? {
         WorthQueryGraphReadAccessRequirementExplanationOutcome::RequirementSet(requirements) => {

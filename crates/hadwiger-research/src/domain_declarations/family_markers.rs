@@ -1,4 +1,4 @@
-use worth_query::facade::foundation::{
+use worth_query::facade::domain::{
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationLegalityContract,
     WorthQueryDeclarationRelationalTruthContract, WorthQueryDeclarationRouteContract,
     WorthQueryDescriptiveOnlyAuthority, WorthQueryNeighborhoodCapableGrouping,

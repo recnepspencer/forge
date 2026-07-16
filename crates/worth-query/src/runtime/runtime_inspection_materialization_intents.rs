@@ -350,7 +350,9 @@ impl WorthQueryRuntime {
         view_name: &str,
     ) -> Result<WorthQueryDerivedViewIntentSeed, WorthQueryRuntimeError> {
         let handle =
-            WorthQueryDerivedViewHandle::<crate::runtime::WorthQueryNativeRow>::new(view_name);
+            WorthQueryDerivedViewHandle::<crate::runtime::WorthQueryUnrefinedLiveShape>::new(
+                view_name,
+            );
         let evidence = self.derived_view_evidence(view_name)?;
         Ok(WorthQueryDerivedViewIntentSeed::new(
             &handle,

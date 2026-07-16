@@ -50,6 +50,13 @@ pub(crate) fn collect_created_entity_refs(
                     client_key: spec.client_key.clone(),
                 });
             }
+            MutationIntent::Create(CreateIntent::EntityAspects(spec)) => {
+                created.insert(CreatedEntityRef {
+                    partition_id: spec.partition_id,
+                    kind_id: spec.kind_id,
+                    client_key: spec.client_key.clone(),
+                });
+            }
             MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
                 for client_key in &spec.client_keys {
                     created.insert(CreatedEntityRef {
@@ -60,6 +67,7 @@ pub(crate) fn collect_created_entity_refs(
                 }
             }
             MutationIntent::Create(CreateIntent::Relation(_))
+            | MutationIntent::Create(CreateIntent::RelationAspects(_))
             | MutationIntent::Create(CreateIntent::BulkRelations(_))
             | MutationIntent::Entity(_)
             | MutationIntent::Relation(_) => {}

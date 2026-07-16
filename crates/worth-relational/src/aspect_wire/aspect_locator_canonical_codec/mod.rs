@@ -10,7 +10,6 @@ pub(crate) use reading::{decode_aspect_value_locator, decode_boundary_source_loc
 pub(crate) use serde_modules::{
     serde_canonical_aspect_field_locator, serde_canonical_aspect_field_locator_arc_slice,
     serde_canonical_aspect_value_locator, serde_canonical_boundary_source_locator,
-    serde_optional_canonical_aspect_field_locator,
 };
 pub(crate) use writing::encode_aspect_field_locator;
 #[cfg(test)]

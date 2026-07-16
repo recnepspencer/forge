@@ -396,4 +396,5 @@ fn certification_basis_identity(label: &'static str) -> WorthQueryEvidenceIdenti
 
 #[cfg(test)]
 #[path = "../tests/source_test_support.rs"]
+#[cfg(test)]
 mod test_support;

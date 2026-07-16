@@ -15,6 +15,7 @@ use crate::target_binding::WorthQueryBindingTargetWitness;
 
 use super::common::{alignment_failure, denied_on_fit, digest_for, fit_allowed};
 
+#[cfg(test)]
 pub(crate) fn bind_route_from_target_on_handle<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,

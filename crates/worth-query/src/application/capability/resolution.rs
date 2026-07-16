@@ -1,7 +1,12 @@
+use crate::application::capability::errors::WorthQueryFacadeCounters;
+#[cfg(test)]
 use crate::application::capability::errors::{
-    CapabilityAdmissionError, CapabilityAdmissionFailureClass, WorthQueryFacadeCounters,
+    CapabilityAdmissionError, CapabilityAdmissionFailureClass,
 };
-use crate::application::support::{WorthQueryCapabilityDescriptor, WorthQueryCapabilityFamily};
+use crate::application::support::WorthQueryCapabilityDescriptor;
+#[cfg(test)]
+use crate::application::support::WorthQueryCapabilityFamily;
+#[cfg(test)]
 use crate::identity::hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -13,6 +18,7 @@ pub struct CapabilityAdmissionDecision {
 }
 
 impl CapabilityAdmissionDecision {
+    #[cfg(test)]
     pub(crate) fn admitted(
         descriptor: WorthQueryCapabilityDescriptor,
         validated_config_digest: &str,
@@ -63,6 +69,7 @@ pub struct WorthQueryCapabilityResolution<C> {
 }
 
 impl<C> WorthQueryCapabilityResolution<C> {
+    #[cfg(test)]
     pub(crate) fn new(capability: C, admission: CapabilityAdmissionDecision) -> Self {
         Self {
             capability,
@@ -87,6 +94,7 @@ impl<C> WorthQueryCapabilityResolution<C> {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn deny_capability(
     descriptor: &WorthQueryCapabilityDescriptor,
     config: &crate::application::config::ValidatedWorthQueryConfig,

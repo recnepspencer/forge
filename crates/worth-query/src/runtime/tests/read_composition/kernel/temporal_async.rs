@@ -5,8 +5,8 @@ use crate::runtime::tests::support::{
     BridgeAsyncCompletionClass, BridgeAsyncCompletionState, WorthQueryRuntimeAsyncResultProjection,
 };
 use crate::runtime::{
-    WorthQueryLiveView, WorthQueryNativeRow, WorthQueryReadFamily,
-    WorthQueryRuntimeAsyncResultStateKind, WorthQueryWorkspace,
+    WorthQueryLiveView, WorthQueryReadFamily, WorthQueryRuntimeAsyncResultStateKind,
+    WorthQueryUnrefinedLiveShape, WorthQueryWorkspace,
 };
 use crate::subscription::QuerySubscriptionDeliveryCauseKind;
 
@@ -53,7 +53,7 @@ fn task_table_read_family(
 #[test]
 fn runtime_read_family_receipt_retains_time_only_materialized_fact_posture() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
     let expected_query_digest = view
@@ -127,7 +127,7 @@ fn runtime_read_family_receipt_retains_time_only_materialized_fact_posture() {
 #[test]
 fn runtime_read_family_receipt_retains_async_backed_materialized_fact_posture() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.async-table", task_live_request(), task_schema())
         .expect("live view should declare");
     let expected_query_digest = view

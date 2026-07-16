@@ -1,23 +1,16 @@
 //! Query host audience facade.
 //!
-//! Law: admission, lowering, and execution consumers depend on this crate,
-//! never on `worth-query` directly. This crate re-exports engine types only;
-//! it adds no behavior.
-//!
-//! Blessed import:
+//! Admission, lowering, and execution consumers depend on this crate instead
+//! of importing Query internals. The host surface preserves Query's runtime and
+//! installed-domain namespaces without adding another executable authority.
 //!
 //! ```
-//! use worth_query_host::facade::WorthQueryApplicationFacade;
-//! ```
-//!
-//! Type identity with the engine (no wrapper drift):
-//!
-//! ```
-//! use worth_query_host::facade::WorthQueryApplicationFacade;
-//! # fn _same_type(
-//! #     engine: worth_query::facade::WorthQueryApplicationFacade,
-//! # ) -> WorthQueryApplicationFacade {
-//! #     engine
+//! use worth_query_host::facade::{domain, runtime};
+//! # fn _host_surface(
+//! #     builder: runtime::WorthQueryRuntimeBuilder,
+//! #     package: domain::WorthQueryDomainPackage<impl domain::WorthQueryDomainEntryMarker>,
+//! # ) {
+//! #     let _ = (builder, package);
 //! # }
 //! ```
 

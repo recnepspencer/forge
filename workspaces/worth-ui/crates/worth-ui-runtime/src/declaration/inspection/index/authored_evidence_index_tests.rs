@@ -11,11 +11,7 @@ use worth_ui_inspection::{
 
 use super::UiDeclarationAuthoredEvidenceIndex;
 use crate::declaration::{UiDeclarationArtifact, UiDeclarationStructuralRole};
-use crate::facade::{
-    WorthUi,
-    WorthUiApp,
-    WorthUiDslPackage,
-};
+use crate::facade::{WorthUi, WorthUiApp, WorthUiDslPackage};
 use crate::graph::{
     UiGraphInstantiationPlan, UiGraphWorldProfile, UiRuntimeDataInstanceKeyToken,
     UiRuntimeInstanceBasisAdmission,

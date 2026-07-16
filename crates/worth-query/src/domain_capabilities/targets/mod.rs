@@ -1,8 +1,6 @@
 mod core;
 mod installed;
 mod wrappers;
-
-#[allow(unused_imports)]
 pub use core::WorthQueryDomainCapabilityTargetSemantics;
 pub use core::{
     WorthQueryDomainCapabilityTarget, WorthQueryDomainCapabilityTargetBinding,

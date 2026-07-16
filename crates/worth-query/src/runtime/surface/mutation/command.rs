@@ -5,7 +5,7 @@ use crate::runtime::mutation::{
 };
 use crate::runtime::surface::mutation::WorthQueryMutationFamily;
 use crate::runtime::{
-    WorthQueryAdmittedAspectValue, WorthQueryAspectMutationOperation,
+    WorthQueryAspectMutationOperation, WorthQueryAuthoredAspectMutation,
     WorthQueryExistingTruthTargetBinding, WorthQueryMutationTargetCollectionIdentity,
     WorthQuerySymbolicAspectReference, WorthQuerySymbolicTargetReference,
 };
@@ -18,7 +18,7 @@ pub enum WorthQueryWriteCommand {
     #[non_exhaustive]
     InsertAspects {
         collection: WorthQueryMutationTargetCollectionIdentity,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
         symbolic_aspect_references: Vec<WorthQuerySymbolicAspectReference>,
         metadata: WorthQueryMutationMetadata,
         naming_intent: Option<WorthQueryNamingMutationIntent>,
@@ -28,12 +28,12 @@ pub enum WorthQueryWriteCommand {
     #[non_exhaustive]
     UpdateAspect {
         entity_identity: WorthQueryEntityIdentity,
-        aspect: WorthQueryAdmittedAspectValue,
+        aspect: WorthQueryAuthoredAspectMutation,
     },
     #[non_exhaustive]
     UpdateAspects {
         entity_identity: WorthQueryEntityIdentity,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
         metadata: WorthQueryMutationMetadata,
         naming_intent: Option<WorthQueryNamingMutationIntent>,
         continuity_intent: Option<WorthQueryContinuityMutationIntent>,
@@ -41,7 +41,7 @@ pub enum WorthQueryWriteCommand {
     #[non_exhaustive]
     UpdateExistingAspects {
         binding: WorthQueryExistingTruthTargetBinding,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
         metadata: WorthQueryMutationMetadata,
         naming_intent: Option<WorthQueryNamingMutationIntent>,
         continuity_intent: Option<WorthQueryContinuityMutationIntent>,
@@ -49,8 +49,8 @@ pub enum WorthQueryWriteCommand {
     #[non_exhaustive]
     VerifyThenUpdateExistingAspects {
         binding: WorthQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<WorthQueryAdmittedAspectValue>,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        asserted_aspects: Vec<WorthQueryAuthoredAspectMutation>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
         symbolic_aspect_references: Vec<WorthQuerySymbolicAspectReference>,
         metadata: WorthQueryMutationMetadata,
         naming_intent: Option<WorthQueryNamingMutationIntent>,
@@ -59,7 +59,7 @@ pub enum WorthQueryWriteCommand {
     #[non_exhaustive]
     VerifyThenDeleteExistingAspects {
         binding: WorthQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<WorthQueryAdmittedAspectValue>,
+        asserted_aspects: Vec<WorthQueryAuthoredAspectMutation>,
         touched_aspects: Vec<WorthQueryAspectTouch>,
         metadata: WorthQueryMutationMetadata,
         naming_intent: Option<WorthQueryNamingMutationIntent>,
@@ -67,19 +67,19 @@ pub enum WorthQueryWriteCommand {
     #[non_exhaustive]
     AssertExistingAspects {
         binding: WorthQueryExistingTruthTargetBinding,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
         metadata: WorthQueryMutationMetadata,
     },
     #[non_exhaustive]
     VerifyExistingAspects {
         binding: WorthQueryExistingTruthTargetBinding,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
         metadata: WorthQueryMutationMetadata,
     },
     #[non_exhaustive]
     UpdateSymbolicAspects {
         reference: WorthQuerySymbolicTargetReference,
-        aspects: Vec<WorthQueryAdmittedAspectValue>,
+        aspects: Vec<WorthQueryAuthoredAspectMutation>,
         metadata: WorthQueryMutationMetadata,
         naming_intent: Option<WorthQueryNamingMutationIntent>,
         continuity_intent: Option<WorthQueryContinuityMutationIntent>,
@@ -247,7 +247,7 @@ impl WorthQueryWriteCommand {
         }
     }
 
-    pub fn admitted_aspect_values(&self) -> &[WorthQueryAdmittedAspectValue] {
+    pub fn admitted_aspect_values(&self) -> &[WorthQueryAuthoredAspectMutation] {
         match self {
             Self::InsertAspects { aspects, .. }
             | Self::UpdateAspects { aspects, .. }
@@ -265,7 +265,7 @@ impl WorthQueryWriteCommand {
         }
     }
 
-    pub fn asserted_admitted_aspect_values(&self) -> &[WorthQueryAdmittedAspectValue] {
+    pub fn asserted_admitted_aspect_values(&self) -> &[WorthQueryAuthoredAspectMutation] {
         match self {
             Self::VerifyThenUpdateExistingAspects {
                 asserted_aspects, ..

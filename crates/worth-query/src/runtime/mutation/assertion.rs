@@ -5,7 +5,7 @@ use crate::evidence_identity::{
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::memory_workspace::WorthQueryWorkspaceError;
 
-use super::super::{WorthQueryAdmittedAspectValue, WorthQueryAspectTouch};
+use super::super::{WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation};
 use super::denied_aspect_touch::WorthQueryDeniedAspectTouch;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -203,7 +203,7 @@ pub struct WorthQueryVerifiedExistingTruthAssertion {
 impl WorthQueryVerifiedExistingTruthAssertion {
     pub(in crate::runtime) fn from_snapshot_identity(
         binding: &crate::runtime::WorthQueryExistingTruthTargetBinding,
-        aspects: &[WorthQueryAdmittedAspectValue],
+        aspects: &[WorthQueryAuthoredAspectMutation],
         snapshot_identity: &WorthQuerySnapshotIdentity,
     ) -> Result<Self, WorthQueryWorkspaceError> {
         Self::new(binding, aspects, snapshot_identity.clone())
@@ -211,7 +211,7 @@ impl WorthQueryVerifiedExistingTruthAssertion {
 
     pub(crate) fn new(
         binding: &crate::runtime::WorthQueryExistingTruthTargetBinding,
-        aspects: &[WorthQueryAdmittedAspectValue],
+        aspects: &[WorthQueryAuthoredAspectMutation],
         snapshot_identity: WorthQuerySnapshotIdentity,
     ) -> Result<Self, WorthQueryWorkspaceError> {
         let asserted_aspect_count = aspects.len();
@@ -292,7 +292,7 @@ impl WorthQueryVerifiedExistingTruthAssertion {
 }
 
 fn existing_truth_assertion_aspect_evidence(
-    aspect: &WorthQueryAdmittedAspectValue,
+    aspect: &WorthQueryAuthoredAspectMutation,
 ) -> WorthQueryEvidenceIdentity {
     worth_query_evidence_identity(WorthQueryEvidenceScope::MutationEvidenceAggregateDigest)
         .field_shape(

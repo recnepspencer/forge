@@ -1,9 +1,9 @@
 use worth_query::facade::foundation::{
-    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, ScalarPredicateValue,
-    TraversalSelector,
+    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, TraversalSelector,
+    WorthQueryPredicateOperand,
 };
 use worth_query::facade::runtime::{
-    QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView, WorthQueryReadFamily,
+    QuerySchemaView, ScalarAspectType, SchemaFieldView, SchemaRelationView, WorthQueryReadFamily,
     WorthQueryWorkspace,
 };
 
@@ -56,14 +56,14 @@ fn relation_schema() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("status")
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("value")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [SchemaRelationView::new(
@@ -91,7 +91,7 @@ fn equality(aspect: &str, field: &str, value: &str) -> EqualityPredicate {
     EqualityPredicate::new(
         aspect,
         field,
-        ScalarPredicateValue::String(value.to_string()),
+        WorthQueryPredicateOperand::string(value.to_string()),
     )
     .expect("equality predicate should build")
 }

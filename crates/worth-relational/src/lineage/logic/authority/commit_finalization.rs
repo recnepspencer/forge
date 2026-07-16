@@ -141,7 +141,8 @@ impl<'runtime> LineageAuthority<'runtime> {
                 }
                 MutationIntent::Create(_)
                 | MutationIntent::Relation(_)
-                | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {}
+                | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
+                | MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(_)) => {}
             }
         }
         let artifact = LineageFinalizationArtifact::new(

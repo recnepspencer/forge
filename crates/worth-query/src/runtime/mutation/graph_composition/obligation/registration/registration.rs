@@ -9,7 +9,7 @@ use super::support_posture::WorthQueryGraphObligationSupportPosture;
 use super::touch_selector::WorthQueryGraphTouchSelector;
 use crate::runtime::{
     WorthQueryGraphObligationExecutionBudget, WorthQueryGraphObligationKind,
-    WorthQueryGraphObligationRuleIdentity,
+    WorthQueryGraphObligationRuleIdentity, WorthQueryInstalledDomainSubstrateProvenance,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -19,6 +19,7 @@ pub struct WorthQueryGraphObligationRegistration {
     touch_selector: WorthQueryGraphTouchSelector,
     operating_world_selector: WorthQueryGraphObligationOperatingWorldSelector,
     support_posture: WorthQueryGraphObligationSupportPosture,
+    installed_provenance: Option<WorthQueryInstalledDomainSubstrateProvenance>,
     registration_digest: WorthQueryEvidenceIdentity,
 }
 
@@ -35,6 +36,7 @@ impl WorthQueryGraphObligationRegistration {
             touch_selector,
             operating_world_selector,
             support_posture: WorthQueryGraphObligationSupportPosture::default_selection_posture(),
+            installed_provenance: None,
             registration_digest: worth_query_evidence_identity(
                 WorthQueryEvidenceScope::GraphObligationRegistration,
             )
@@ -62,6 +64,15 @@ impl WorthQueryGraphObligationRegistration {
             .clone()
             .with_execution_budget(execution_budget);
         self.with_support_posture(support_posture)
+    }
+
+    pub(crate) fn authorized_by_installed_domain(
+        mut self,
+        provenance: WorthQueryInstalledDomainSubstrateProvenance,
+    ) -> Self {
+        self.installed_provenance = Some(provenance);
+        self.registration_digest = self.build_digest();
+        self
     }
 
     pub fn schema_contract_validator(
@@ -189,31 +200,47 @@ impl WorthQueryGraphObligationRegistration {
         self.registration_digest.as_str()
     }
 
+    #[cfg(test)]
+    pub(crate) fn installed_provenance(
+        &self,
+    ) -> Option<&WorthQueryInstalledDomainSubstrateProvenance> {
+        self.installed_provenance.as_ref()
+    }
+
     pub(crate) fn registration_evidence_digest(&self) -> &WorthQueryEvidenceIdentity {
         &self.registration_digest
     }
 
     fn build_digest(&self) -> WorthQueryEvidenceIdentity {
         let operating_world_selector_digest = self.operating_world_selector.selector_digest();
-        worth_query_evidence_identity(WorthQueryEvidenceScope::GraphObligationRegistration)
-            .field_shape(WorthQueryEvidenceTag::new("kind"), self.kind.as_str())
-            .field_evidence_identity(
-                WorthQueryEvidenceTag::new("rule"),
-                self.rule_identity.identity_evidence_digest(),
-            )
-            .field_evidence_identity(
-                WorthQueryEvidenceTag::new("touch_selector"),
-                self.touch_selector.selector_evidence_digest(),
-            )
-            .field_evidence_identity(
-                WorthQueryEvidenceTag::new("operating_world_selector"),
-                &operating_world_selector_digest,
-            )
-            .field_evidence_identity(
-                WorthQueryEvidenceTag::new("support_posture"),
-                self.support_posture.posture_evidence_digest(),
-            )
-            .seal()
+        let identity =
+            worth_query_evidence_identity(WorthQueryEvidenceScope::GraphObligationRegistration)
+                .field_shape(WorthQueryEvidenceTag::new("kind"), self.kind.as_str())
+                .field_evidence_identity(
+                    WorthQueryEvidenceTag::new("rule"),
+                    self.rule_identity.identity_evidence_digest(),
+                )
+                .field_evidence_identity(
+                    WorthQueryEvidenceTag::new("touch_selector"),
+                    self.touch_selector.selector_evidence_digest(),
+                )
+                .field_evidence_identity(
+                    WorthQueryEvidenceTag::new("operating_world_selector"),
+                    &operating_world_selector_digest,
+                )
+                .field_evidence_identity(
+                    WorthQueryEvidenceTag::new("support_posture"),
+                    self.support_posture.posture_evidence_digest(),
+                );
+        match &self.installed_provenance {
+            Some(provenance) => identity
+                .field_evidence_identity(
+                    WorthQueryEvidenceTag::new("installed_domain"),
+                    provenance.identity(),
+                )
+                .seal(),
+            None => identity.seal(),
+        }
     }
 }
 

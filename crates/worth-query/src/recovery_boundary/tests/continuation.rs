@@ -11,8 +11,10 @@ use crate::binding_pipeline::{
 };
 use crate::continuation_pipeline::{
     WorthQueryContinuationExecutionChecked, WorthQueryContinuationExecutionOutcome,
-    WorthQueryContinuationExecutionTranscript, WorthQueryPreparedContinuationChecked,
-    WorthQueryPreparedContinuationOutcome, WorthQueryPreparedContinuationTranscript,
+    WorthQueryContinuationExecutionReadmissionStop,
+    WorthQueryContinuationExecutionReadmissionStopKind, WorthQueryContinuationExecutionTranscript,
+    WorthQueryPreparedContinuationChecked, WorthQueryPreparedContinuationOutcome,
+    WorthQueryPreparedContinuationTranscript,
 };
 use crate::recovery_boundary::{
     worth_query_recovery_brief_from_prepared_continuation_checked,
@@ -153,7 +155,10 @@ fn execution_async_request_drift_maps_to_rebind_recovery() {
         WorthQueryContinuationExecutionOutcome::<
             RecoveryDomain,
             RecoveryInput<RequiredIntentRouteFamily>,
-        >::AsyncRequestDrift("async request drifted".to_string()),
+        >::AsyncRequestDrift(readmission_stop(
+            WorthQueryContinuationExecutionReadmissionStopKind::AsyncRequestDrift,
+            "async request drifted",
+        )),
         "execution-async-drift".to_string(),
         WorthQueryBindingLinkedArtifacts::new().with_envelope_digest("env-async"),
     );
@@ -183,7 +188,10 @@ fn execution_remask_drift_maps_to_support_recovery() {
         WorthQueryContinuationExecutionOutcome::<
             RecoveryDomain,
             RecoveryInput<RequiredIntentRouteFamily>,
-        >::RemaskDrift("remask drifted".to_string()),
+        >::RemaskDrift(readmission_stop(
+            WorthQueryContinuationExecutionReadmissionStopKind::PolicyRemaskDrift,
+            "remask drifted",
+        )),
         "execution-remask-drift".to_string(),
         WorthQueryBindingLinkedArtifacts::new().with_envelope_digest("env-remask"),
     );
@@ -210,7 +218,10 @@ fn execution_replay_drift_maps_to_refresh_basis_recovery() {
         WorthQueryContinuationExecutionOutcome::<
             RecoveryDomain,
             RecoveryInput<RequiredIntentRouteFamily>,
-        >::ReplayDrift("replay drifted".to_string()),
+        >::ReplayDrift(readmission_stop(
+            WorthQueryContinuationExecutionReadmissionStopKind::ReplayDrift,
+            "replay drifted",
+        )),
         "execution-replay-drift".to_string(),
         WorthQueryBindingLinkedArtifacts::new().with_envelope_digest("env-replay"),
     );
@@ -237,7 +248,10 @@ fn execution_preview_crossed_residue_maps_to_explicit_handoff_recovery() {
         WorthQueryContinuationExecutionOutcome::<
             RecoveryDomain,
             RecoveryInput<RequiredIntentRouteFamily>,
-        >::PreviewCrossedResidue("preview residue crossed".to_string()),
+        >::PreviewCrossedResidue(readmission_stop(
+            WorthQueryContinuationExecutionReadmissionStopKind::PreviewCrossedResidue,
+            "preview residue crossed",
+        )),
         "execution-preview-residue".to_string(),
         WorthQueryBindingLinkedArtifacts::new().with_envelope_digest("env-preview"),
     );
@@ -267,7 +281,10 @@ fn execution_replay_drift_checked_and_proof_recovery_match() {
         WorthQueryContinuationExecutionOutcome::<
             RecoveryDomain,
             RecoveryInput<RequiredIntentRouteFamily>,
-        >::ReplayDrift("replay drifted".to_string()),
+        >::ReplayDrift(readmission_stop(
+            WorthQueryContinuationExecutionReadmissionStopKind::ReplayDrift,
+            "replay drifted",
+        )),
         "execution-replay-drift".to_string(),
         WorthQueryBindingLinkedArtifacts::new().with_envelope_digest("env-replay"),
     );
@@ -275,7 +292,10 @@ fn execution_replay_drift_checked_and_proof_recovery_match() {
         WorthQueryContinuationExecutionOutcome::<
             RecoveryDomain,
             RecoveryInput<RequiredIntentRouteFamily>,
-        >::ReplayDrift("replay drifted".to_string()),
+        >::ReplayDrift(readmission_stop(
+            WorthQueryContinuationExecutionReadmissionStopKind::ReplayDrift,
+            "replay drifted",
+        )),
         "execution-replay-drift",
     );
 
@@ -310,7 +330,10 @@ fn execution_preview_crossed_residue_checked_and_proof_recovery_match() {
         WorthQueryContinuationExecutionOutcome::<
             RecoveryDomain,
             RecoveryInput<RequiredIntentRouteFamily>,
-        >::PreviewCrossedResidue("preview residue crossed".to_string()),
+        >::PreviewCrossedResidue(readmission_stop(
+            WorthQueryContinuationExecutionReadmissionStopKind::PreviewCrossedResidue,
+            "preview residue crossed",
+        )),
         "execution-preview-residue".to_string(),
         WorthQueryBindingLinkedArtifacts::new().with_envelope_digest("env-preview"),
     );
@@ -318,7 +341,10 @@ fn execution_preview_crossed_residue_checked_and_proof_recovery_match() {
         WorthQueryContinuationExecutionOutcome::<
             RecoveryDomain,
             RecoveryInput<RequiredIntentRouteFamily>,
-        >::PreviewCrossedResidue("preview residue crossed".to_string()),
+        >::PreviewCrossedResidue(readmission_stop(
+            WorthQueryContinuationExecutionReadmissionStopKind::PreviewCrossedResidue,
+            "preview residue crossed",
+        )),
         "execution-preview-residue",
     );
 
@@ -342,4 +368,11 @@ fn execution_preview_crossed_residue_checked_and_proof_recovery_match() {
         checked_brief.stop_kind(),
         WorthQueryRecoveryStopKind::PreviewCrossedResidue
     );
+}
+
+fn readmission_stop(
+    kind: WorthQueryContinuationExecutionReadmissionStopKind,
+    reason: &str,
+) -> WorthQueryContinuationExecutionReadmissionStop {
+    WorthQueryContinuationExecutionReadmissionStop::new(kind, reason)
 }

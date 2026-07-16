@@ -9,7 +9,7 @@ fn ordinary_batch_does_not_claim_graph_composition_evidence() {
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-ordinary-batch")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-ordinary-batch-tasks", |q| {
             q.from("Task")
                 .select([identity_id_field_key(), title_value_field_key()])
@@ -52,7 +52,7 @@ fn reconstructed_graph_composition_receipt_without_breadth_fails_closed() {
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-reconstructed-boundary")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "tasks.graph-composition-reconstructed-boundary-tasks",
             |q| {
@@ -63,7 +63,7 @@ fn reconstructed_graph_composition_receipt_without_breadth_fails_closed() {
             },
         )
         .expect("task live view should declare");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "tasks.graph-composition-reconstructed-boundary-edges",
             |q| {

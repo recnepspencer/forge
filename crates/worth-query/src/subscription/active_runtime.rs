@@ -25,6 +25,7 @@ use super::continuation::{
 };
 use super::continuation_error::SubscriptionContinuationError;
 use super::delivery_budget::QueryDeliveryWindowBudget;
+#[cfg(test)]
 use super::delivery_cause::QuerySubscriptionDeliveryCause;
 use super::delivery_density::ActiveDeliveryDensityPosture;
 use super::delivery_dimensions::{
@@ -179,8 +180,7 @@ pub fn emit_query_delivery_batch(
     runtime.counters = batch.counters().clone();
     Ok(batch)
 }
-
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn emit_query_time_only_delivery_batch(
     runtime: &mut ActiveSubscriptionRuntime,
     window: QueryDeliveryWindow,
@@ -190,8 +190,7 @@ pub fn emit_query_time_only_delivery_batch(
     runtime.counters = batch.counters().clone();
     Ok(batch)
 }
-
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn emit_query_mixed_cause_delivery_batch(
     runtime: &mut ActiveSubscriptionRuntime,
     window: QueryDeliveryWindow,

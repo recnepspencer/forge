@@ -14,8 +14,16 @@ fn compose_graph_supports_verified_loop_successor_rewire_with_assumption_summary
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
         loop_successor_verified_profile(),
         TestExistingTruthVerificationAdapter::default()
-            .with_value(&binding, "source.id", test_string_aspect_value("he-1"))
-            .with_value(&binding, "target.id", test_string_aspect_value("he-2")),
+            .with_value(
+                &binding,
+                "source.id",
+                test_native_entity_ref_value(&test_entity_identity("he-1")),
+            )
+            .with_value(
+                &binding,
+                "target.id",
+                test_native_entity_ref_value(&test_entity_identity("he-2")),
+            ),
     );
     let mut workspace = runtime
         .workspace("topology.graph-composition-loop-successor-rewire")
@@ -32,12 +40,12 @@ fn compose_graph_supports_verified_loop_successor_rewire_with_assumption_summary
                 binding,
                 |verify| {
                     verify
-                        .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("he-1"))
-                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("he-2"))
+                        .existing_entity_identity(test_aspect_touch("source.id"), test_entity_identity("he-1"))
+                        .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("he-2"))
                 },
                 |update| {
                     update
-                        .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("he-1"))
+                        .existing_entity_identity(test_aspect_touch("source.id"), test_entity_identity("he-1"))
                         .continuity_rebind_existing_target(crate::runtime::WorthQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::WorthQueryContinuityPriorAuthorityLabel::new("authority:loop-next-rel").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::WorthQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::WorthQueryContinuitySuccessorAuthorityLabel::new("authority:loop-next-rel-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         )
                         .symbolic_entity_identity(test_aspect_touch("target.id"), successor.reference().clone())
@@ -220,8 +228,8 @@ fn compose_graph_denies_loop_successor_rewire_when_identity_preservation_is_unav
                 binding,
                 |verify| {
                     verify
-                        .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("he-1"))
-                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("he-2"))
+                        .existing_entity_identity(test_aspect_touch("source.id"), test_entity_identity("he-1"))
+                        .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("he-2"))
                 },
                 |update| {
                     update
@@ -241,7 +249,7 @@ fn compose_graph_denies_loop_successor_rewire_when_identity_preservation_is_unav
                                 .expect("continuity successor authority label")).expect("continuity successor authority identity"),
                             ],
                         )
-                        .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("he-3"))
+                        .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("he-3"))
                 },
             )?;
             Ok(())

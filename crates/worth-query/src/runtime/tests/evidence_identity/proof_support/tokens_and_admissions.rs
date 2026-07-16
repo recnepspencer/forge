@@ -7,26 +7,6 @@ pub(in super::super) fn assert_canonical_evidence_identity_token(token: impl AsR
         "expected canonical evidence identity token, got {token}"
     );
 }
-
-#[allow(dead_code)]
-pub(in super::super) fn assert_phase_one_surface_has_no_digest_folklore(source: &str) {
-    for forbidden in [
-        "hash_parts(",
-        "digest_owned_parts(",
-        ".join(\"|\")",
-        "format!(\"{}|",
-        "format!(\"{:?}\"",
-        "format!(\"{:?}|",
-        "format!(\"{:#?}\"",
-        "format!(\"{:#?}|",
-    ] {
-        assert!(
-            !source.contains(forbidden),
-            "phase-1-covered surface must not retain digest folklore pattern {forbidden}"
-        );
-    }
-}
-
 pub(in super::super) fn compose_basis_admission_identity(
     scope: crate::WorthQueryEvidenceScope,
     label: &WorthQuerySessionLabel,

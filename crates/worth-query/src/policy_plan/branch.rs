@@ -1,10 +1,14 @@
+#[cfg(test)]
 use crate::policy_execution_seam::{
     PolicyAwareExecutionMode, PolicyAwareExecutionSeamError, PolicyAwareExecutionSeamFailureClass,
     PolicyAwareSeamCounters,
 };
+#[cfg(test)]
 use crate::policy_narrowing::NarrowedPolicyQueryArtifact;
 
-use super::{PolicyAwarePlanCore, PolicyAwarePlanCostPosture};
+use super::PolicyAwarePlanCore;
+#[cfg(test)]
+use super::PolicyAwarePlanCostPosture;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PolicyAwareReadBasis {
@@ -47,7 +51,7 @@ impl PolicyAwareBranchPlan {
         &self.basis
     }
 }
-
+#[cfg(test)]
 pub(crate) fn lower_policy_aware_branch_plan(
     artifact: &NarrowedPolicyQueryArtifact,
     basis: PolicyAwareReadBasis,

@@ -3,9 +3,9 @@ use std::collections::BTreeMap;
 use super::AuthoritativeStateAdmissionDenial;
 use crate::aspects::keys::AspectKey;
 use crate::aspects::validation::ContractValidatedAspectValue;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CanonicalAspectStateMap {
     entries: BTreeMap<AspectKey, ContractValidatedAspectValue>,
 }

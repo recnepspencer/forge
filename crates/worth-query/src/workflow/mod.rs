@@ -1,6 +1,7 @@
 mod foundation;
 mod identity;
 mod inspection;
+#[cfg(test)]
 mod inspection_projection;
 mod lowering;
 mod performance;

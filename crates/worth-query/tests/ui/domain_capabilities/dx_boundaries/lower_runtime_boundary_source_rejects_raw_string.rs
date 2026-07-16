@@ -1,4 +1,4 @@
-use worth_query::facade::runtime::WorthQuerySupportContributionAuthoring;
+use worth_query::facade::domain::WorthQuerySupportContributionAuthoring;
 
 fn main() {
     let _ = WorthQuerySupportContributionAuthoring::narrowed_support("routing", "detail")

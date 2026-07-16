@@ -1,6 +1,5 @@
 use crate::diagnostics::BridgeHistoricalEvaluationRecordIdentity;
 use crate::error::BridgeDeliveryErrorKind;
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::{
     BridgeAspectRegistrationId, BridgeFailureClass, BridgeMergeConsumptionClass,
     BridgeMergeDenialClass, BridgeMergePrecedenceStage, BridgeMergeRoutingOutcomeClass,
@@ -14,6 +13,7 @@ use crate::facade::{
 use crate::identity::BridgeIdentity;
 use crate::routing::{BridgeInvalidationIdentity, BridgeRouteIdentity};
 use crate::snapshot::BridgeTruthViewSelectorIdentity;
+use crate::speculation::BridgePreviewSessionIdentity;
 use sha2::{Digest, Sha256};
 use std::fmt;
 

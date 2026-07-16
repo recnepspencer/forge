@@ -1,21 +1,5 @@
-error[E0061]: this function takes 4 arguments but 3 arguments were supplied
-  --> tests/ui/view_shape_live_lowering_requires_view_plan.rs:13:13
-   |
-13 |     let _ = lower_view_shape_plan_to_live(&canonical(), basis(), None);
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-----------------------------
-   |                                          ||
-   |                                          |expected `&ViewShapePlanArtifact`, found `&CanonicalQueryBundle`
-   |                                          argument #4 of type `Option<InspectorIdentityArtifact>` is missing
-   |
-   = note: expected reference `&ViewShapePlanArtifact`
-              found reference `&CanonicalQueryBundle`
-note: function defined here
-  --> src/view_shape_live/promotion.rs
-   |
-   | pub fn lower_view_shape_plan_to_live(
-   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-help: provide the argument
-   |
-13 -     let _ = lower_view_shape_plan_to_live(&canonical(), basis(), None);
-13 +     let _ = lower_view_shape_plan_to_live(/* &ViewShapePlanArtifact */, basis(), None, /* Option<InspectorIdentityArtifact> */);
-   |
+error[E0432]: unresolved import `worth_query::facade::runtime::lower_view_shape_plan_to_live`
+ --> tests/ui/view_shape_live_lowering_requires_view_plan.rs:2:5
+  |
+2 | use worth_query::facade::runtime::lower_view_shape_plan_to_live;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `lower_view_shape_plan_to_live` in `facade::runtime`

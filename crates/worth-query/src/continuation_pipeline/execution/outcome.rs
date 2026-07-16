@@ -152,6 +152,9 @@ pub(super) fn prepared_outcome_token<
         WorthQueryPreparedContinuationOutcome::Unavailable(_) => "unavailable",
         WorthQueryPreparedContinuationOutcome::WrongWorld(_) => "wrong_world",
         WorthQueryPreparedContinuationOutcome::WrongHandle(_) => "wrong_handle",
+        WorthQueryPreparedContinuationOutcome::InstalledAuthorityDrift(_) => {
+            "installed_authority_drift"
+        }
         WorthQueryPreparedContinuationOutcome::Stale(_) => "stale",
         WorthQueryPreparedContinuationOutcome::RebindRequired(_) => "rebind_required",
         WorthQueryPreparedContinuationOutcome::AuthorityMismatch(_) => "authority_mismatch",

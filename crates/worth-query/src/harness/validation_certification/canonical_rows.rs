@@ -128,7 +128,7 @@ pub(super) fn canonical_rows() -> Vec<ValidationCertificationRow> {
             ),
         ),
         row(
-            "integer-greater-than-predicate-parity",
+            "native-greater-than-predicate-parity",
             ValidationPerturbationClass::PredicateLegality,
             ValidationHostileExpectation::EquivalentToControl,
             ValidationParityAnchor::Control,
@@ -147,7 +147,7 @@ pub(super) fn canonical_rows() -> Vec<ValidationCertificationRow> {
             ),
         ),
         row(
-            "integer-less-than-predicate-parity",
+            "native-less-than-predicate-parity",
             ValidationPerturbationClass::PredicateLegality,
             ValidationHostileExpectation::EquivalentToControl,
             ValidationParityAnchor::Control,

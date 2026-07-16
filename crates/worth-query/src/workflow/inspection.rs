@@ -7,6 +7,7 @@ pub use operations::{
     build_workflow_replay_bundle, shape_merge_authority_outcome, shape_mutation_authority_outcome,
     shape_writeback_authority_outcome,
 };
+#[cfg(test)]
 pub(crate) use operations::{inspect_merge_conflicts, inspect_post_merge_outcome};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -77,6 +78,7 @@ pub struct WorkflowInspectionError {
 }
 
 impl WorkflowInspectionError {
+    #[cfg(test)]
     fn new(
         failure_class: WorkflowInspectionFailureClass,
         message: &'static str,

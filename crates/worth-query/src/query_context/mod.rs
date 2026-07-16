@@ -18,8 +18,6 @@ pub use scoped::*;
 pub use support::*;
 
 #[cfg(test)]
-mod scoped_test_support;
-#[cfg(test)]
 mod scoped_tests;
 #[cfg(test)]
 mod tests;

@@ -65,3 +65,34 @@ fn duplicate_field_patch_combination_is_rejected() {
         ))
     );
 }
+
+#[test]
+fn disjoint_field_patches_for_one_aspect_combine_without_losing_masks() {
+    let contract = task_summary_contract();
+    let title_mask = AspectMask::<MutationMask>::new([CanonicalFieldPath::single(field("title"))]);
+    let done_mask = AspectMask::<MutationMask>::new([CanonicalFieldPath::single(field("done"))]);
+    let TransitionOutcome::Success(title) = AuthoritativeRecordAspectPatch::field_level(
+        &contract,
+        &title_mask,
+        [(field("title"), AspectValue::String("Ship it".into()))],
+        [],
+    ) else {
+        panic!("expected title field patch construction to succeed");
+    };
+    let TransitionOutcome::Success(done) = AuthoritativeRecordAspectPatch::field_level(
+        &contract,
+        &done_mask,
+        [(field("done"), AspectValue::Bool(true))],
+        [],
+    ) else {
+        panic!("expected done field patch construction to succeed");
+    };
+
+    let TransitionOutcome::Success(combined) = AuthoritativeRecordAspectPatch::combine(title, done)
+    else {
+        panic!("disjoint fields in one aspect should combine");
+    };
+    let (_, fields) = combined.field_patches().next().expect("combined fields");
+    assert_eq!(fields.field_sets().count(), 2);
+    assert_eq!(fields.mask().paths().len(), 2);
+}

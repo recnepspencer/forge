@@ -1,5 +1,5 @@
 use crate::authoring::{
-    AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath, IntegerComparisonPredicate,
+    AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath, NativeComparisonPredicate,
     QueryFamily, RootEntityKey, TraversalSelector,
 };
 use crate::composition::{
@@ -51,7 +51,7 @@ fn scope_expansion_preserves_parity_and_emits_lineage() {
             .project(AspectFieldSelector::new("identity", "id").unwrap())
             .project(AspectFieldSelector::new("profile", "display_name").unwrap())
             .where_greater_than(
-                IntegerComparisonPredicate::greater_than("profile", "age", 21).unwrap(),
+                NativeComparisonPredicate::greater_than("profile", "age", 21).unwrap(),
             )
             .build()
             .unwrap();
@@ -60,8 +60,8 @@ fn scope_expansion_preserves_parity_and_emits_lineage() {
 
     let scope = QueryScopeDescriptor::predicate(
         "adults_only",
-        [crate::authoring::PredicateSelector::IntegerComparison(
-            IntegerComparisonPredicate::greater_than("profile", "age", 21).unwrap(),
+        [crate::authoring::PredicateSelector::NativeComparison(
+            NativeComparisonPredicate::greater_than("profile", "age", 21).unwrap(),
         )],
     );
     let (artifact, expanded) = GuidedCompositionPath::expand_detail_scopes(

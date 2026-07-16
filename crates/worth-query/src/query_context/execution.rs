@@ -401,4 +401,5 @@ fn preflight_is_count_aggregate(preflight: &crate::basis::ExecutionPreflightBund
 
 #[cfg(test)]
 #[path = "execution_test_support.rs"]
+#[cfg(test)]
 mod test_support;

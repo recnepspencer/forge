@@ -14,6 +14,27 @@ use crate::aspects::validation::{
 };
 
 impl AuthoritativeRecordAspectPatch {
+    pub fn apply_to_optional(
+        &self,
+        state: Option<&AuthoritativeRecordAspectState>,
+    ) -> TransitionOutcome<
+        Option<AuthoritativeRecordAspectStateArtifact>,
+        AuthoritativePatchApplicationDenial,
+    > {
+        let next_state = match state {
+            Some(state) => self.apply_to_state(state),
+            None => self.apply_to_absent_state(),
+        };
+        match next_state {
+            Ok(state) if state.aspects().is_empty() => TransitionOutcome::success(None),
+            Ok(state) => TransitionOutcome::success(Some(Artifact::<
+                AuthoritativeRecordAspectStateAdmitted,
+                _,
+            >::new(state))),
+            Err(denial) => TransitionOutcome::denied(denial),
+        }
+    }
+
     pub fn apply_to(
         &self,
         state: &AuthoritativeRecordAspectState,
@@ -36,7 +57,7 @@ impl AuthoritativeRecordAspectPatch {
     ) -> Result<AuthoritativeRecordAspectState, AuthoritativePatchApplicationDenial> {
         let mut entries = state.aspects().cloned_entries();
 
-        for cleared_key in &self.whole_aspect_clears {
+        for cleared_key in self.whole_aspect_clears.keys() {
             entries.remove(cleared_key);
         }
 
@@ -51,6 +72,21 @@ impl AuthoritativeRecordAspectPatch {
 
         Ok(AuthoritativeRecordAspectState::from_canonical_map(
             CanonicalAspectStateMap::from_canonical_entries(entries),
+        ))
+    }
+
+    fn apply_to_absent_state(
+        &self,
+    ) -> Result<AuthoritativeRecordAspectState, AuthoritativePatchApplicationDenial> {
+        if let Some(field_patch) = self.field_patches.values().next() {
+            return Err(
+                AuthoritativePatchApplicationDenial::MissingAspectForFieldPatch(
+                    field_patch.key().clone(),
+                ),
+            );
+        }
+        Ok(AuthoritativeRecordAspectState::from_canonical_map(
+            CanonicalAspectStateMap::from_canonical_entries(self.whole_aspect_sets.clone()),
         ))
     }
 }

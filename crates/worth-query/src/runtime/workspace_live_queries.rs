@@ -11,6 +11,21 @@ use super::{
 };
 
 impl WorthQueryWorkspace {
+    pub(crate) fn managed_live_capability(
+        &self,
+    ) -> std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability> {
+        self.runtime.managed_live_capability()
+    }
+
+    pub(crate) fn admit_managed_live_capability(
+        &self,
+        capability: &std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability>,
+        resource_name: &str,
+    ) -> Result<(), WorthQueryRuntimeError> {
+        self.runtime
+            .admit_managed_live_capability(capability, resource_name)
+    }
+
     pub(crate) fn close_managed_live_view<T>(
         &mut self,
         view: &super::WorthQueryLiveView<T>,

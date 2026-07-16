@@ -1,8 +1,5 @@
 use std::sync::Arc;
 
-use crate::adapter::{
-    BridgeHistoricalResolvedLineageIdentity, BridgeHistoricalResolvedRecordIdentity,
-};
 use crate::identity::{
     BridgeIdentity, BridgeIdentityPayload, HistoricalResolvedLineageIdentityTag,
     HistoricalResolvedRecordIdentityTag, TruthBranchTag, TruthCommitTag, TruthPatchTag,
@@ -312,13 +309,4 @@ fn fixture_suffix_position(label: &str) -> Option<u64> {
         "f" => Some(6),
         _ => suffix.parse::<u64>().ok(),
     }
-}
-
-#[allow(dead_code)]
-fn _assert_relational_alias_methods_are_reachable(
-    lineage: BridgeHistoricalResolvedLineageIdentity,
-    record: BridgeHistoricalResolvedRecordIdentity,
-) {
-    let _ = lineage;
-    let _ = record;
 }

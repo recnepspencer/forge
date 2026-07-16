@@ -1,10 +1,10 @@
 mod adapters;
+mod aspect_contracts;
 mod bridge;
 mod builder_bootstrap;
 mod common_bootstrap;
 mod existing_truth_adapter;
 mod external_row;
-#[allow(dead_code)]
 mod hostile_certification;
 mod profiles;
 mod reader_lane_honesty;
@@ -25,24 +25,21 @@ use self::adapters::{
     PublicSignalSinkAdapter, PublicSnapshotIdentityAdapter, PublicSourceAdapter,
     PublicSubscriptionActivationAdapter, PublicWriteAuthorityAdapter,
 };
+use self::aspect_contracts::public_bridge_aspect_contracts;
 use self::existing_truth_adapter::PublicExistingTruthVerificationAdapter;
 use self::state::{PublicBridgeRuntimeState, PublicExistingTruthKey};
 
 type SharedRuntimeState = Rc<RefCell<PublicBridgeRuntimeState>>;
 
 pub use self::profiles::public_graph_support_profile;
-#[allow(unused_imports)]
 pub use self::relational_merge::public_relational_merge_runtime;
-#[allow(unused_imports)]
 pub use common_bootstrap::{
     public_bridge_runtime_bootstrap_invocation_count,
     reset_public_bridge_runtime_bootstrap_invocations,
 };
-#[allow(unused_imports)]
 pub use hostile_certification::{
     certify_public_bridge_hostile_schedule, PublicBridgeHostileCertificationArtifact,
 };
-#[allow(unused_imports)]
 pub use reader_lane_honesty::{
     direct_materialization_read_count, public_bridge_certification_inventory,
     public_bridge_certification_inventory_paths, public_bridge_direct_materialization_sabotage,
@@ -58,13 +55,9 @@ pub enum PublicBridgeRuntimeBootstrapPath {
 pub struct PublicBridgeRuntimeHarness {
     state: SharedRuntimeState,
 }
-
-#[allow(dead_code)]
 pub struct PublicBridgeRuntimeBootstrapBuilder {
     state: SharedRuntimeState,
 }
-
-#[allow(dead_code)]
 pub struct PublicBridgeRuntimeBootstrapWithSupportProfile {
     state: SharedRuntimeState,
     support_profile: WorthQueryRuntimeSupportProfile,

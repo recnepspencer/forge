@@ -78,6 +78,7 @@ pub enum WorthQueryEvidenceScope {
     InstalledDomainContribution,
     InstalledDomainExecution,
     InstalledDomainExecutionIndex,
+    InstalledDomainSubstrateProvenance,
     InstalledDomainRebind,
     ProjectionConsumedContinuityAuthorityIdentity,
     RuntimeBridgeWritebackAuthority,

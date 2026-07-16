@@ -73,7 +73,7 @@ fn live_read_intent_common_path_helper_executes_through_canonical_handoff() {
     let runtime = read_runtime();
     let mut workspace = WorthQueryWorkspace::new("intent-admission-live-read-dx", runtime)
         .expect("workspace should build");
-    let live_view: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
                 .select([
@@ -119,7 +119,7 @@ fn live_read_intent_advanced_path_helper_exposes_request_eligibility_decision_an
     let runtime = read_runtime();
     let mut workspace = WorthQueryWorkspace::new("intent-admission-live-read-advanced", runtime)
         .expect("workspace should build");
-    let live_view: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
                 .select([

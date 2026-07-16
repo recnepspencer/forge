@@ -3,7 +3,7 @@ use worth_query::facade::certification::{
     WorthQueryPublicBridgeReaderLaneSabotageOutcome,
 };
 
-mod support;
+use crate::support;
 
 use support::public_bridge_runtime::{
     certify_public_bridge_hostile_schedule, direct_materialization_read_count,

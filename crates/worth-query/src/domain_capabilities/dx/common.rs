@@ -15,7 +15,6 @@ pub use aftermath::*;
 pub use intent::*;
 pub use intent_admission::*;
 pub use intent_workflow::*;
-#[allow(unused_imports)]
 pub use lower_runtime::*;
 pub use lower_runtime_explanation_request::*;
 pub use lower_runtime_invariant::*;

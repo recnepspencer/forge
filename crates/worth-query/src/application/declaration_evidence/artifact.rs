@@ -107,6 +107,12 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
         self.world_basis.operating_context_identity_digest()
     }
 
+    pub fn installed_authority(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness {
+        self.world_basis.installed_authority()
+    }
+
     pub fn declaration_family_key(&self) -> &'static str {
         self.declaration_family_key
     }

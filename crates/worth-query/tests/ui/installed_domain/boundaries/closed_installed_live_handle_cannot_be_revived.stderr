@@ -1,0 +1,16 @@
+error[E0382]: borrow of moved value: `handle`
+ --> tests/ui/installed_domain/boundaries/closed_installed_live_handle_cannot_be_revived.rs:9:25
+  |
+5 |     handle: WorthQueryInstalledDomainLiveHandle<D>,
+  |     ------ move occurs because `handle` has type `WorthQueryInstalledDomainLiveHandle<D>`, which does not implement the `Copy` trait
+...
+8 |     let _closed = handle.close(workspace);
+  |                          ---------------- `handle` moved due to this method call
+9 |     let _revived_name = handle.name();
+  |                         ^^^^^^ value borrowed here after move
+  |
+note: `WorthQueryInstalledDomainLiveHandle::<D>::close` takes ownership of the receiver `self`, which moves `handle`
+ --> src/domain_installation/installed_authority/capabilities/live.rs
+  |
+  |         self,
+  |         ^^^^

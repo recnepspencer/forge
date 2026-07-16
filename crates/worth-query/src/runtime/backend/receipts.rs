@@ -376,4 +376,5 @@ fn subscription_activation_receipt_source_identity(
 
 #[cfg(test)]
 #[path = "receipts_tests.rs"]
+#[cfg(test)]
 mod tests;

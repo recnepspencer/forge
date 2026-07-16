@@ -1,5 +1,6 @@
-use worth_query::facade::domain::WorthQueryDomainDeclarationFamilyDefinition;
-use worth_query::facade::foundation::WorthQueryDeclarationFamilyMarker;
+use worth_query::facade::domain::{
+    WorthQueryDeclarationFamilyMarker, WorthQueryDomainDeclarationFamilyDefinition,
+};
 
 use crate::query_entry::HadwigerResearchDomainEntry;
 

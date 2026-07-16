@@ -22,9 +22,11 @@ pub struct WorthQueryBackendMergeAuthority {
 impl WorthQueryBackendMergeAuthority {
     pub fn capture(
         runtime: &RelationalRuntime,
-        target_branch: BranchId,
-        source_branch: BranchId,
+        target_branch: &crate::runtime::WorthQueryAdmittedBranchName,
+        source_branch: &crate::runtime::WorthQueryAdmittedBranchName,
     ) -> Result<Self, WorthQueryWorkspaceError> {
+        let target_branch = BranchId(target_branch.as_str().to_string());
+        let source_branch = BranchId(source_branch.as_str().to_string());
         if target_branch == source_branch {
             return Err(WorthQueryWorkspaceError::new(
                 "branch merge authority requires distinct target and source branches",

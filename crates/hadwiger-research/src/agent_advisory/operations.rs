@@ -1,10 +1,11 @@
+use worth_query::facade::domain::{
+    WorthQueryAdmissionContributionAuthoring, WorthQuerySupportContributionAuthoring,
+};
 use worth_query::facade::foundation::{
-    WorthQueryContributionComposedOrchestrationInput, WorthQueryContributionIntent,
+    WorthQueryContributionComposedOrchestrationInput,
+    WorthQueryContributionComposedOrchestrationOutcome, WorthQueryContributionIntent,
     WorthQueryGroupedContributionComposition, WorthQueryGroupedContributionInput,
     WorthQueryGroupedContributionStop,
-};
-use worth_query::facade::runtime::{
-    WorthQueryAdmissionContributionAuthoring, WorthQuerySupportContributionAuthoring,
 };
 
 use crate::discovery_loop::{DiscoveryFrontier, ResearchEvidenceCorpus};
@@ -19,6 +20,7 @@ use super::artifacts::{
     proposal_artifacts, source_digest_from_artifacts, AgentAdvisoryArtifact,
     AgentAdvisoryContributionRecord, AgentAdvisoryError, AgentExperimentProposalScreening,
     AgentExplorationAdmissionChecked, AgentGroupedContributionStopKind,
+    AgentQueryContributionStopKind,
 };
 use super::batch::{AgentBatchEntry, AgentExplorationBatch};
 use super::source::AgentSourceRecord;
@@ -58,6 +60,9 @@ pub fn materialize_agent_declaration_advisory_checked(
         .with_contribution(admission)
         .with_contribution(support);
     let proof = handle.orchestrate_declaration_with_contributions_proof(input);
+    if let Some(stop_kind) = query_contribution_stop_kind(proof.outcome()) {
+        return Err(AgentAdvisoryError::QueryContributionStopped { stop_kind });
+    }
     let query_contribution_digest = proof
         .contribution_digest()
         .map(str::to_string)
@@ -72,6 +77,39 @@ pub fn materialize_agent_declaration_advisory_checked(
     )?;
     AgentAdvisoryContributionRecord::new(advisory_artifact, query_contribution_digest)
         .map_err(AgentAdvisoryError::from)
+}
+
+fn query_contribution_stop_kind<D, I>(
+    outcome: &WorthQueryContributionComposedOrchestrationOutcome<D, I>,
+) -> Option<AgentQueryContributionStopKind>
+where
+    D: worth_query::facade::domain::WorthQueryDomainEntryMarker,
+    I: worth_query::facade::domain::WorthQueryDeclarationInput<D>,
+{
+    match outcome {
+        WorthQueryContributionComposedOrchestrationOutcome::Bound(_) => None,
+        WorthQueryContributionComposedOrchestrationOutcome::Deferred(_) => {
+            Some(AgentQueryContributionStopKind::Deferred)
+        }
+        WorthQueryContributionComposedOrchestrationOutcome::DeclarationDenied(_) => {
+            Some(AgentQueryContributionStopKind::DeclarationDenied)
+        }
+        WorthQueryContributionComposedOrchestrationOutcome::ContributionDenied(_) => {
+            Some(AgentQueryContributionStopKind::ContributionDenied)
+        }
+        WorthQueryContributionComposedOrchestrationOutcome::Stale(_) => {
+            Some(AgentQueryContributionStopKind::Stale)
+        }
+        WorthQueryContributionComposedOrchestrationOutcome::RebindRequired(_) => {
+            Some(AgentQueryContributionStopKind::RebindRequired)
+        }
+        WorthQueryContributionComposedOrchestrationOutcome::Unsupported(_) => {
+            Some(AgentQueryContributionStopKind::Unsupported)
+        }
+        WorthQueryContributionComposedOrchestrationOutcome::Failed(_) => {
+            Some(AgentQueryContributionStopKind::Failed)
+        }
+    }
 }
 
 pub fn screen_agent_experiment_proposals_checked(

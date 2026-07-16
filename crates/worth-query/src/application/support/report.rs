@@ -4,11 +4,12 @@ use super::consumer_kit_closure::{
 };
 use super::identity_boundary_hostile_matrix::identity_boundary_hostile_matrix_artifact;
 use super::registry::{
-    WorthQueryCapabilityFamily, WorthQueryCapabilityStatus, WorthQuerySupportMatrix,
+    WorthQueryCapabilityFamily, WorthQueryCapabilityRegistry, WorthQueryCapabilityStatus,
+    WorthQuerySupportMatrix,
 };
 use crate::application::config::{
-    ValidatedWorthQueryConfig, WorthQueryConfigSectionFamily, WorthQueryConfigSectionResolution,
-    WorthQuerySubsystemOwner,
+    ConfigurationAdmissionError, ValidatedWorthQueryConfig, WorthQueryConfig,
+    WorthQueryConfigSectionFamily, WorthQueryConfigSectionResolution, WorthQuerySubsystemOwner,
 };
 use crate::composition::{
     runtime_backed_query_composition_support_profile, QueryCompositionSupportProfile,
@@ -126,6 +127,18 @@ pub struct WorthQuerySupportReport {
 }
 
 impl WorthQuerySupportReport {
+    pub fn from_config(config: WorthQueryConfig) -> Result<Self, ConfigurationAdmissionError> {
+        let validated = config.validate()?;
+        let registry = WorthQueryCapabilityRegistry::from_validated_config(&validated);
+        let matrix = WorthQuerySupportMatrix::new(registry);
+        Ok(Self::from_validated_config_and_matrix(&validated, matrix))
+    }
+
+    pub fn runtime_backed_default() -> Self {
+        Self::from_config(WorthQueryConfig::runtime_backed_default())
+            .expect("runtime-backed Query support configuration must be valid")
+    }
+
     pub(crate) fn from_validated_config_and_matrix(
         config: &ValidatedWorthQueryConfig,
         support_matrix: WorthQuerySupportMatrix,

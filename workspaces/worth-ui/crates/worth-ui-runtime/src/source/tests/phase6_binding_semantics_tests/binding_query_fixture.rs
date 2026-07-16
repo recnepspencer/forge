@@ -1,14 +1,8 @@
 use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support,
-    BasisFamily,
-    ResultShapeFamily,
-    WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily,
+    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily, WorthQueryCapabilityFamily,
+    WorthQuerySupportReport,
 };
-use worth_query::facade::runtime::{
-    QuerySubscriptionFamily,
-    ViewShapeDescriptor,
-};
+use worth_query::facade::runtime::{QuerySubscriptionFamily, ViewShapeDescriptor};
 
 use crate::capability::{
     FrozenViewBindingEntry, QueryBasisPostureReference, QueryDenialPresentation,
@@ -17,7 +11,7 @@ use crate::capability::{
 };
 
 pub(super) fn standard_query_owned_view_binding_descriptor() -> ViewBindingDescriptor {
-    let query_support = WorthQueryApplicationFacade::runtime_backed_default().support_report();
+    let query_support = WorthQuerySupportReport::runtime_backed_default();
     let query_capability = query_support
         .support_matrix()
         .descriptor(WorthQueryCapabilityFamily::QueryComposition)
@@ -40,7 +34,7 @@ pub(super) fn standard_query_owned_view_binding_descriptor() -> ViewBindingDescr
 
 pub(super) fn query_owned_view_binding_without_live_compatibility_descriptor(
 ) -> ViewBindingDescriptor {
-    let query_support = WorthQueryApplicationFacade::runtime_backed_default().support_report();
+    let query_support = WorthQuerySupportReport::runtime_backed_default();
     let query_capability = query_support
         .support_matrix()
         .descriptor(WorthQueryCapabilityFamily::QueryComposition)

@@ -17,9 +17,7 @@ fn composed_orchestration_matches_explicit_declaration_bound_support_pipeline() 
         Ok(value) => value,
         Err(_) => panic!("expected progressed declaration"),
     };
-    let target = crate::domain_capabilities::WorthQueryDeclarationBoundContributionTarget::for_canonical_declaration(
-        progressed.canonical_declaration(),
-    );
+    let target = handle.contribution_target(progressed.canonical_declaration());
     let envelope = match handle.orchestrate_envelope_from_progressed(progressed) {
         Ok(value) => value,
         Err(_) => panic!("expected envelope"),
@@ -28,7 +26,7 @@ fn composed_orchestration_matches_explicit_declaration_bound_support_pipeline() 
         "domain.traceability.face",
         "face selection remains traceable through declaration entry",
     )
-    .bind_to_declaration_target(target);
+    .bind_to_installed_target(target);
     let eligible = match evaluate_requested_domain_capability_contribution(requested) {
         worth_proof::TransitionOutcome::Success(value) => value,
         _ => panic!("expected eligible support contribution"),

@@ -9,7 +9,7 @@ fn compose_graph_denies_existing_target_collection_mismatch_typed_and_early() {
     let mut workspace = task_relation_runtime()
         .workspace("tasks.graph-composition-existing-target-collection-mismatch")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "tasks.graph-composition-existing-target-collection-mismatch-relations",
             |q| {

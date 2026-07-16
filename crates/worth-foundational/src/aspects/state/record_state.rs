@@ -1,11 +1,11 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use worth_proof::{Artifact, PhaseMarker};
 
 use super::{AuthoritativeStateAdmissionDenial, CanonicalAspectStateMap};
 use crate::aspects::keys::AspectKey;
 use crate::aspects::validation::ContractValidatedAspectValue;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AuthoritativeRecordAspectState {
     aspects: CanonicalAspectStateMap,
 }

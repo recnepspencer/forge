@@ -1,0 +1,10 @@
+error[E0308]: mismatched types
+ --> tests/ui/installed_domain/boundaries/inspection_cannot_be_promoted_to_rebind_authority.rs:8:5
+  |
+7 | ) -> WorthQueryDomainRebindRequest<D> {
+  |      -------------------------------- expected `WorthQueryDomainRebindRequest<D>` because of return type
+8 |     inspection
+  |     ^^^^^^^^^^ expected `WorthQueryDomainRebindRequest<D>`, found `WorthQueryInstalledDomainInspectionOutcome<...>`
+  |
+  = note: expected struct `WorthQueryDomainRebindRequest<D>`
+             found struct `WorthQueryInstalledDomainInspectionOutcome<D>`

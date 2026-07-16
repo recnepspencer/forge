@@ -3,9 +3,7 @@ use worth_proof::TransitionOutcome;
 use crate::domain_capabilities::denials::{
     WorthQueryDomainCapabilityProgressionDenial, WorthQueryDomainCapabilityProgressionDenialKind,
 };
-use crate::domain_capabilities::targets::{
-    WorthQueryDomainCapabilityTargetBinding, WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
-};
+use crate::domain_capabilities::targets::WorthQueryDomainCapabilityTargetBinding;
 use crate::domain_capabilities::{
     WorthQueryCanonicalExplanationArtifact, WorthQueryDomainCapabilityTransitionOutcome,
     WorthQueryMaterializationReadyExplanationContribution,

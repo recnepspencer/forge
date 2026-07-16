@@ -50,12 +50,12 @@ evidence, route plans, or receipts alone.
 - `WorthQueryDeclarationBridgeRoutingSupportReport`
 - `WorthQueryDeclarationBridgeRoutingSupportRow`
 - `WorthQueryDeclarationBridgeRoutingSupportStatus`
-- `WorthQueryAdmittedConfiguredDomainHandle::route_bridge_continuation(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::route_bridge_continuation_checked(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::route_bridge_continuation_from_progressed(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::route_bridge_continuation_from_progressed_with_intent(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::declare_review_progress_describe_plan_receipt_envelope_and_route_bridge_continuation(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::bridge_continuation_support::<I>()`
+- `WorthQueryInstalledDomainDeclarationContext::route_bridge_continuation(...)`
+- `WorthQueryInstalledDomainDeclarationContext::route_bridge_continuation_checked(...)`
+- `WorthQueryInstalledDomainDeclarationContext::route_bridge_continuation_from_progressed(...)`
+- `WorthQueryInstalledDomainDeclarationContext::route_bridge_continuation_from_progressed_with_intent(...)`
+- `WorthQueryInstalledDomainDeclarationContext::declare_review_progress_describe_plan_receipt_envelope_and_route_bridge_continuation(...)`
+- `WorthQueryInstalledDomainDeclarationContext::bridge_continuation_support::<I>()`
 
 Good to know:
 
@@ -308,7 +308,7 @@ artifact actually proved it.
 - [Continuation Pipeline](./continuation-pipeline.md) consumes retained
   bridge-routing truth when the next job is prepared or explicit continuation
   execution
-- [Configured Domain Handles](./configured-domain-handles.md) still own the
+- Runtime-Installed Domain Handles still own the
   public orchestration lane and support snapshot
 
 Use envelopes when you need one public crossing artifact. Use bridge
@@ -392,11 +392,11 @@ to [Continuation Pipeline](./continuation-pipeline.md).
 
 ## Related Docs
 
-- [Configured Domain Handles](./configured-domain-handles.md)
+- Runtime-Installed Domain Handles
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
-- [Declaration Route Plans](./declaration-route-plan.md)
-- [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- Declaration Route Plans
+- Declaration Foundational Evidence
 - [Domain Capabilities](./README.md)

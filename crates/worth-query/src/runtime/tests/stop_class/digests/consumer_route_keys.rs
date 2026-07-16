@@ -24,6 +24,9 @@ pub(super) fn consumer_stop_route_key(route: &ConsumerStopRoute) -> String {
         ConsumerStopRoute::MutationContinuityDenied(kind) => {
             format!("mutation_continuity_denied:{kind:?}")
         }
+        ConsumerStopRoute::MutationContractDenied(kind) => {
+            format!("mutation_contract_denied:{kind:?}")
+        }
         ConsumerStopRoute::GraphObligationTouchDescriptorDenied(kind) => {
             format!("graph_obligation_touch_descriptor_denied:{kind:?}")
         }

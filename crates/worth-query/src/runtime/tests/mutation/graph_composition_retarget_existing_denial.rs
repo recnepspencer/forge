@@ -8,7 +8,7 @@ fn seed_relation_binding(
     workspace: &mut WorthQueryWorkspace,
     workspace_name: &str,
 ) -> WorthQueryExistingTruthTargetBinding {
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(workspace_name, |q| {
             q.from("TaskRelation")
                 .select([
@@ -37,13 +37,13 @@ fn seed_relation_binding(
                     test_aspect_touch("kind.value"),
                     test_authored_string_aspect_value("loop_successor"),
                 )
-                .set_aspect(
+                .existing_entity_identity(
                     test_aspect_touch("source.id"),
-                    test_authored_string_aspect_value("loop-a"),
+                    test_entity_identity("loop-a"),
                 )
-                .set_aspect(
+                .existing_entity_identity(
                     test_aspect_touch("target.id"),
-                    test_authored_string_aspect_value("loop-b"),
+                    test_entity_identity("loop-b"),
                 )
         })
         .expect("seed insert should execute");
@@ -90,7 +90,7 @@ fn compose_graph_denies_existing_target_retarget_with_split_successor_continuity
                             .expect("continuity successor authority label")).expect("continuity successor authority identity"),
                         ],
                     )
-                    .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("loop-c"))
+                    .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("loop-c"))
             })?;
             Ok(())
         })
@@ -125,9 +125,9 @@ fn compose_graph_denies_existing_target_retarget_without_rebind_intent() {
     let error = workspace
         .compose_graph(|graph| {
             graph.retarget_existing(binding, |relation| {
-                relation.set_aspect(
+                relation.existing_entity_identity(
                     test_aspect_touch("target.id"),
-                    test_authored_string_aspect_value("loop-c"),
+                    test_entity_identity("loop-c"),
                 )
             })?;
             Ok(())

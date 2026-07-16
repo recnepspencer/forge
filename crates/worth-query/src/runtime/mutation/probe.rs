@@ -3,12 +3,11 @@ use crate::evidence_identity::{
 };
 use crate::memory_workspace::WorthQueryWorkspaceError;
 use crate::runtime::WorthQueryMutationTargetCollectionIdentity;
-use worth_foundational::facade::AspectValue;
+use worth_foundational::facade::{prepare_aspect_value_identity_basis, AspectValue};
 
 use super::denied_aspect_touch::WorthQueryDeniedAspectTouch;
 use super::{
-    terminal_aspect_value_digest_text, WorthQueryAspectTouch, WorthQueryExistingTruthTargetBinding,
-    WorthQueryParsedAspectTarget,
+    WorthQueryAspectTouch, WorthQueryExistingTruthTargetBinding, WorthQueryParsedAspectTarget,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -263,7 +262,7 @@ impl WorthQueryExistingTruthProbeField {
                 )
                 .field_value(
                     WorthQueryEvidenceTag::new("value"),
-                    terminal_aspect_value_digest_text(&value),
+                    prepare_aspect_value_identity_basis(&value).as_str(),
                 )
                 .seal()
                 .as_str()

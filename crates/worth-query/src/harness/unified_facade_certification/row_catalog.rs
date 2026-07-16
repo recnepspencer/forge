@@ -50,15 +50,9 @@ pub const UNIFIED_FACADE_REQUIRED_COMPILE_FAIL_BOUNDARY_NAMES: &[&str] = &[
     "validated_worth_query_config_constructor_private",
     "worth_query_support_report_constructor_private",
     "capability_admission_decision_constructor_private",
-    "facade_query_read_capability_has_no_live_promote",
-    "facade_preview_capability_cannot_admit_workflow",
-    "facade_historical_capability_cannot_bind_query_context",
-    "facade_has_no_dynamic_capability_routing",
     "legacy_broad_facade_has_no_preview_workflow_shortcut",
     "query_basis_result_bundle_constructor_private",
     "query_diff_result_bundle_constructor_private",
-    "facade_query_read_capability_has_no_query_context_basis_bundle",
-    "facade_historical_capability_has_no_query_context_diff_bundle",
 ];
 
 pub const UNIFIED_FACADE_CANONICAL_ROW_SPECS: &[UnifiedFacadeCanonicalRowSpec] = &[

@@ -1,0 +1,16 @@
+error[E0423]: cannot initialize a tuple struct which contains private fields
+ --> tests/ui/installed_domain/boundaries/installation_generation_constructor_is_private.rs:4:13
+  |
+4 |     let _ = WorthQueryDomainInstallationGeneration(7);
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+note: constructor is not visible here due to private fields
+ --> src/domain_installation/installation_state/installation_generation.rs
+  |
+  | pub struct WorthQueryDomainInstallationGeneration(u64);
+  |                                                   ^^^ private field
+help: you might have meant to use the `initial` associated function
+  |
+4 -     let _ = WorthQueryDomainInstallationGeneration(7);
+4 +     let _ = WorthQueryDomainInstallationGeneration::initial();
+  |

@@ -1,6 +1,6 @@
 use crate::runtime::{
     WorthQueryLiveReadResult, WorthQueryLiveView, WorthQueryManagedLiveWorkspaceCapability,
-    WorthQueryNativeRow, WorthQueryRuntimeError, WorthQueryWorkspace,
+    WorthQueryRuntimeError, WorthQueryUnrefinedLiveShape, WorthQueryWorkspace,
 };
 use std::sync::Arc;
 
@@ -9,7 +9,7 @@ use super::WorthQueryManagedLiveDelivery;
 #[derive(Debug)]
 #[must_use = "managed live resources remain active until the handle is explicitly closed"]
 pub struct WorthQueryManagedLiveHandle {
-    view: Option<WorthQueryLiveView<WorthQueryNativeRow>>,
+    view: Option<WorthQueryLiveView<WorthQueryUnrefinedLiveShape>>,
     workspace_capability: Arc<WorthQueryManagedLiveWorkspaceCapability>,
 }
 
@@ -34,7 +34,7 @@ impl WorthQueryManagedLiveHandle {
             .map(WorthQueryManagedLiveDelivery::from_runtime)
     }
 
-    pub(crate) fn view(&self) -> &WorthQueryLiveView<WorthQueryNativeRow> {
+    pub(crate) fn view(&self) -> &WorthQueryLiveView<WorthQueryUnrefinedLiveShape> {
         self.view
             .as_ref()
             .expect("active managed live handle must retain its resource view")
@@ -45,7 +45,7 @@ impl WorthQueryManagedLiveHandle {
     }
 
     pub(crate) fn new(
-        view: WorthQueryLiveView<WorthQueryNativeRow>,
+        view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
         workspace_capability: Arc<WorthQueryManagedLiveWorkspaceCapability>,
     ) -> Self {
         Self {
@@ -57,7 +57,7 @@ impl WorthQueryManagedLiveHandle {
     pub(crate) fn into_resource_parts(
         mut self,
     ) -> (
-        WorthQueryLiveView<WorthQueryNativeRow>,
+        WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
         Arc<WorthQueryManagedLiveWorkspaceCapability>,
     ) {
         let view = self

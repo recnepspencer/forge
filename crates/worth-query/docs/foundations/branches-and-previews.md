@@ -168,7 +168,8 @@ use worth_query::facade::runtime::{
     WorthQueryBranchOptions, WorthQueryInspection, WorthQueryLiveView,
     WorthQueryPreviewOptions, WorthQuerySessionLabel,
 };
-use serde_json::{json, Value};
+use serde_json::json;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("workflow").unwrap();
 let preview_label =
@@ -176,7 +177,7 @@ let preview_label =
 let branch_label =
     WorthQuerySessionLabel::scoped_strs("workflow", ["branch-local-intent"]).unwrap();
 
-let live: WorthQueryLiveView<Value> = workspace
+let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.preview-bind", |q| {
         q.from("Task")
             .select(["identity.id", "title.value"])

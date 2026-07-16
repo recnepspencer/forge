@@ -16,6 +16,7 @@ use super::support::{
 use super::witness::QuerySubscriptionManualBridgeWitness;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(super) struct CanonicalBridgeParitySemantics {
     pub(super) query_family_label: String,
     pub(super) declaration_family_label: String,
@@ -26,6 +27,7 @@ pub(super) struct CanonicalBridgeParitySemantics {
 }
 
 impl CanonicalBridgeParitySemantics {
+    #[cfg(test)]
     pub(super) fn from_authoritative_sources(
         declaration: &QuerySubscriptionDeclarationArtifact,
         lowering: &BridgeSubscriptionLoweringPlan,
@@ -49,6 +51,7 @@ impl CanonicalBridgeParitySemantics {
     }
 }
 
+#[cfg(test)]
 pub(super) fn validate_parity_sources(
     declaration: &QuerySubscriptionDeclarationArtifact,
     lowering: &BridgeSubscriptionLoweringPlan,
@@ -325,6 +328,7 @@ pub(super) fn validate_parity_sources(
     Ok(())
 }
 
+#[cfg(test)]
 pub(super) fn parity_class_for_family(
     family: &QuerySubscriptionFamily,
 ) -> QuerySubscriptionBridgeParityClass {

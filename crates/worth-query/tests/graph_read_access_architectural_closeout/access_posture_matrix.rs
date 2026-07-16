@@ -4,7 +4,7 @@ use worth_query::facade::runtime::{
     WorthQueryGraphReadRequiredCapabilityOwner,
 };
 
-use crate::graph_read_access_cost_model_support::{
+use crate::support::graph_read_access_cost_model::{
     dense_traversal_family, projection_only_family, simple_traversal_family, workspace,
 };
 use crate::support::graph_index_inventory::runtime_profiles::{

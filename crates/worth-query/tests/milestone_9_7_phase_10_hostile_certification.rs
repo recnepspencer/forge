@@ -1,4 +1,4 @@
-mod support;
+use crate::support;
 
 use support::public_bridge_runtime::{
     certify_public_bridge_hostile_schedule, public_graph_support_profile,

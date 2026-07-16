@@ -1,7 +1,9 @@
+#[cfg(test)]
 use crate::application::{
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
 };
 
+#[cfg(test)]
 use super::artifacts::{
     WorthQueryDeclarationEntryOrchestrationArtifactPolicy,
     WorthQueryDeclarationEntryOrchestrationExposureLevel,
@@ -9,29 +11,38 @@ use super::artifacts::{
     WorthQueryDeclarationEntryOrchestrationPlan, WorthQueryDeclarationEntryOrchestrationStage,
     WorthQueryDeclarationEntryOrchestrationStageRecord,
 };
+#[cfg(test)]
 use super::sequencing::WorthQueryDeclarationEntryOrchestrationAutomationContext;
 
+#[cfg(test)]
 mod entry;
+#[cfg(test)]
 mod envelope;
+#[cfg(test)]
 mod foundational;
+#[cfg(test)]
 mod legality;
 mod product;
+#[cfg(test)]
 mod progression;
+#[cfg(test)]
 mod reason;
+#[cfg(test)]
 mod receipt;
+#[cfg(test)]
 mod route;
 
+#[cfg(test)]
 pub(crate) struct WorthQueryLoweredDeclarationEntryOrchestration<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
 > {
-    #[allow(dead_code)]
-    pub(crate) input: WorthQueryDeclarationEntryOrchestrationInput<D, I>,
     pub(crate) plan: WorthQueryDeclarationEntryOrchestrationPlan<D, I>,
     pub(crate) outcome: WorthQueryDeclarationEntryOrchestrationOutcome<D, I>,
     pub(crate) step_records: Vec<WorthQueryDeclarationEntryOrchestrationStageRecord>,
 }
 
+#[cfg(test)]
 pub(crate) fn worth_query_lower_declaration_entry_orchestration_on_handle<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,
@@ -69,13 +80,13 @@ pub(crate) fn worth_query_lower_declaration_entry_orchestration_on_handle<
         input,
     );
     WorthQueryLoweredDeclarationEntryOrchestration {
-        input: orchestration_input,
         plan,
         outcome,
         step_records,
     }
 }
 
+#[cfg(test)]
 pub(crate) fn worth_query_checked_declaration_entry_orchestration_on_handle<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,

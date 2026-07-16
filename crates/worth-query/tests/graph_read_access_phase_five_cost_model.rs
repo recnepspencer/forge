@@ -1,5 +1,5 @@
-use worth_query::facade::runtime::WorthQueryGraphReadAccessRequirementKind;
-use worth_query::facade::runtime::{
+use crate::runtime::WorthQueryGraphReadAccessRequirementKind;
+use crate::runtime::{
     derive_graph_read_cost_evidence, estimate_graph_read_access_cost,
     estimate_graph_read_access_cost_with_planning_observation,
     explain_graph_read_access_requirements_for_family, WorthQueryGraphReadBudget,
@@ -7,11 +7,7 @@ use worth_query::facade::runtime::{
     WorthQueryGraphReadCostEstimateStatusKind, WorthQueryGraphReadInlineEphemeralAllowanceKind,
 };
 
-#[allow(dead_code)]
-mod graph_read_access_cost_model_support;
-mod support;
-
-use graph_read_access_cost_model_support::{
+use crate::support::graph_read_access_cost_model::{
     assert_exact_bucket_contribution, bucket_sum, dense_traversal_family, frontier_search_family,
     intermediate_pressure_family, reordered_simple_traversal_family, simple_traversal_family,
     workspace,

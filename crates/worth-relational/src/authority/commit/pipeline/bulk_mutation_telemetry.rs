@@ -68,10 +68,20 @@ impl BulkMutationTelemetryAccumulator {
             MutationIntent::Create(CreateIntent::Entity(_)) => {
                 self.record_entity_creation(1, 1);
             }
+            MutationIntent::Create(CreateIntent::EntityAspects(_)) => {
+                self.record_entity_creation(1, 1);
+            }
             MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
                 self.record_entity_creation(spec.field_patches.len(), spec.client_keys.len());
             }
             MutationIntent::Create(CreateIntent::Relation(spec)) => {
+                self.record_relation_creation(
+                    1,
+                    1,
+                    usize::from(spec.source.partition_id() != spec.target.partition_id()),
+                );
+            }
+            MutationIntent::Create(CreateIntent::RelationAspects(spec)) => {
                 self.record_relation_creation(
                     1,
                     1,
@@ -88,7 +98,8 @@ impl BulkMutationTelemetryAccumulator {
                         .count(),
                 );
             }
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {
+            MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
+            | MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(_)) => {
                 self.entity_target_count += 1;
             }
             MutationIntent::Entity(EntityMutationIntent::Replace(_)) => {
@@ -97,6 +108,9 @@ impl BulkMutationTelemetryAccumulator {
             MutationIntent::Entity(EntityMutationIntent::Delete(_)) => {
                 self.entity_target_count += 1;
                 self.lineage_transition_count += 1;
+            }
+            MutationIntent::Relation(RelationMutationIntent::ApplyAspectPatch(_)) => {
+                self.relation_target_count += 1;
             }
             MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(_))
             | MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {

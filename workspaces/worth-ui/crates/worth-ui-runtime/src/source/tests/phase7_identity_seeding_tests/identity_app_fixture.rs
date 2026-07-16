@@ -19,21 +19,12 @@ use crate::capability::{
     ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
     ViewBindingDescriptor, ViewBindingId,
 };
-use crate::facade::{
-    WorthUi,
-    WorthUiApp,
-};
+use crate::facade::{WorthUi, WorthUiApp};
 use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support,
-    BasisFamily,
-    ResultShapeFamily,
-    WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily,
+    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily, WorthQueryCapabilityFamily,
+    WorthQuerySupportReport,
 };
-use worth_query::facade::runtime::{
-    QuerySubscriptionFamily,
-    ViewShapeDescriptor,
-};
+use worth_query::facade::runtime::{QuerySubscriptionFamily, ViewShapeDescriptor};
 
 pub(crate) fn identity_test_app() -> WorthUiApp {
     WorthUi::app()
@@ -120,7 +111,7 @@ pub(crate) fn identity_test_app() -> WorthUiApp {
 }
 
 fn query_owned_view_binding_descriptor() -> ViewBindingDescriptor {
-    let query_support = WorthQueryApplicationFacade::runtime_backed_default().support_report();
+    let query_support = WorthQuerySupportReport::runtime_backed_default();
     let query_capability = query_support
         .support_matrix()
         .descriptor(WorthQueryCapabilityFamily::QueryComposition)

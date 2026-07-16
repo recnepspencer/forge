@@ -4,6 +4,7 @@ use crate::application::{
     WorthQueryDeclarationRoutePlanDenialCause,
 };
 use crate::contribution_composed_orchestration::WorthQueryContributionComposedIntentRequestDescriptor;
+use crate::domain_installation::WorthQueryInstalledDomainExecutionDrift;
 use crate::grouped_authoring::{
     WorthQueryGroupedDeclarationAspectRecord, WorthQueryGroupedMemberRole,
 };
@@ -68,6 +69,7 @@ pub struct WorthQueryRecoveryExplanation {
     profile: Option<MaterializedFoundationalProfileSet>,
     contribution_intent_descriptor: Option<WorthQueryContributionComposedIntentRequestDescriptor>,
     grouped_member_context: Option<WorthQueryRecoveryGroupedMemberContext>,
+    installed_domain_execution_drift: Option<WorthQueryInstalledDomainExecutionDrift>,
     route_governing_reason: Option<String>,
     route_denial_cause: Option<WorthQueryDeclarationRoutePlanDenialCause>,
     receipt_governing_reason: Option<String>,
@@ -91,6 +93,7 @@ impl WorthQueryRecoveryExplanation {
             profile: None,
             contribution_intent_descriptor: None,
             grouped_member_context: None,
+            installed_domain_execution_drift: None,
             route_governing_reason: None,
             route_denial_cause: None,
             receipt_governing_reason: None,
@@ -192,6 +195,14 @@ impl WorthQueryRecoveryExplanation {
         grouped_member_context: WorthQueryRecoveryGroupedMemberContext,
     ) -> Self {
         self.grouped_member_context = Some(grouped_member_context);
+        self
+    }
+
+    pub(crate) fn with_installed_domain_execution_drift(
+        mut self,
+        drift: WorthQueryInstalledDomainExecutionDrift,
+    ) -> Self {
+        self.installed_domain_execution_drift = Some(drift);
         self
     }
 
@@ -311,6 +322,12 @@ impl WorthQueryRecoveryExplanation {
 
     pub fn grouped_member_context(&self) -> Option<&WorthQueryRecoveryGroupedMemberContext> {
         self.grouped_member_context.as_ref()
+    }
+
+    pub fn installed_domain_execution_drift(
+        &self,
+    ) -> Option<&WorthQueryInstalledDomainExecutionDrift> {
+        self.installed_domain_execution_drift.as_ref()
     }
 
     pub fn has_retained_intent_level_aspect_context(&self) -> bool {

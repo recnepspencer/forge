@@ -82,12 +82,6 @@ impl QuerySubscriptionDeclarationArtifact {
     pub fn declaration_identity(&self) -> &crate::evidence_identity::WorthQueryEvidenceIdentity {
         &self.declaration_identity
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn declaration_digest(&self) -> &QuerySubscriptionDeclarationDigest {
-        &self.declaration_digest
-    }
-
     pub fn slice_budget(&self) -> &QuerySubscriptionSliceBudget {
         &self.slice_budget
     }

@@ -1,5 +1,5 @@
 use super::{
-    WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
     WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
@@ -24,6 +24,27 @@ where
     context
 }
 
+pub(crate) fn installed_declaration_context_with_contributions<D, C>(
+    marker: D,
+    context: C,
+    declaration_families: impl IntoIterator<Item = WorthQueryDomainDeclarationFamilyDefinition>,
+    contribution_categories: impl IntoIterator<
+        Item = super::WorthQueryDeclarationEntryContributionCategoryFamily,
+    >,
+) -> WorthQueryInstalledDomainDeclarationContext<D, C>
+where
+    D: WorthQueryDomainEntryMarker + 'static,
+    C: WorthQueryDomainOperatingContext<D>,
+{
+    let (_, context) = installed_declaration_workspace_with_contributions(
+        marker,
+        context,
+        declaration_families,
+        contribution_categories,
+    );
+    context
+}
+
 pub(crate) fn installed_declaration_workspace<D, C>(
     marker: D,
     context: C,
@@ -36,19 +57,27 @@ where
     D: WorthQueryDomainEntryMarker + 'static,
     C: WorthQueryDomainOperatingContext<D>,
 {
-    let (namespace, name) = marker
-        .domain_key()
-        .rsplit_once('.')
-        .expect("test domain keys must contain a namespace and name");
-    let identity = WorthQueryDomainIdentityDeclaration::new(
-        WorthQueryDomainIdentityNamespace::new(namespace)
-            .expect("test domain namespace must be valid"),
-        WorthQueryDomainIdentityName::new(name).expect("test domain name must be valid"),
-        WorthQueryDomainSemanticVersion::new(1, 0),
-    );
-    let mut package = WorthQueryDomainPackage::declare(marker, identity);
-    for family in merged_capabilities(&marker, &context) {
-        package = package.requires_capability(family);
+    installed_declaration_workspace_with_contributions(marker, context, declaration_families, [])
+}
+
+pub(crate) fn installed_declaration_workspace_with_contributions<D, C>(
+    marker: D,
+    context: C,
+    declaration_families: impl IntoIterator<Item = WorthQueryDomainDeclarationFamilyDefinition>,
+    contribution_categories: impl IntoIterator<
+        Item = super::WorthQueryDeclarationEntryContributionCategoryFamily,
+    >,
+) -> (
+    crate::runtime::WorthQueryWorkspace,
+    WorthQueryInstalledDomainDeclarationContext<D, C>,
+)
+where
+    D: WorthQueryDomainEntryMarker + 'static,
+    C: WorthQueryDomainOperatingContext<D>,
+{
+    let mut package = domain_package(marker);
+    for family in context.required_capability_families() {
+        package = package.requires_capability(*family);
     }
     for section in context.required_config_sections() {
         package = package.requires_configuration(*section);
@@ -60,8 +89,13 @@ where
     families.sort_by(|left, right| left.family_key().cmp(right.family_key()));
     families.dedup_by(|left, right| left.family_key() == right.family_key());
     package = package.declaration_families(families);
+    for category in contribution_categories {
+        package = package.permits_contribution(category);
+    }
 
     let schema = WorthQueryTestBackendSchema::single_collection("TestEntity")
+        .aspect_contract(test_identity_contract())
+        .expect("test identity contract should admit")
         .aspect("identity.id", "identity.id")
         .expect("test declaration schema should be valid");
     let workspace = in_memory_test_runtime()
@@ -77,16 +111,49 @@ where
     (workspace, context)
 }
 
-fn merged_capabilities<D, C>(marker: &D, context: &C) -> Vec<WorthQueryCapabilityFamily>
+pub(crate) fn domain_package<D>(marker: D) -> WorthQueryDomainPackage<D>
 where
     D: WorthQueryDomainEntryMarker,
-    C: WorthQueryDomainOperatingContext<D>,
 {
-    let mut capabilities = marker.required_capability_families().to_vec();
-    capabilities.extend_from_slice(context.required_capability_families());
-    capabilities.sort();
-    capabilities.dedup();
-    capabilities
+    let required_capabilities = marker.required_capability_families().to_vec();
+    let (namespace, name) = marker
+        .domain_key()
+        .rsplit_once('.')
+        .expect("test domain keys must contain a namespace and name");
+    let identity = WorthQueryDomainIdentityDeclaration::new(
+        WorthQueryDomainIdentityNamespace::new(namespace)
+            .expect("test domain namespace must be valid"),
+        WorthQueryDomainIdentityName::new(name).expect("test domain name must be valid"),
+        WorthQueryDomainSemanticVersion::new(1, 0),
+    );
+    let mut package = WorthQueryDomainPackage::declare(marker, identity);
+    for capability in required_capabilities {
+        package = package.requires_capability(capability);
+    }
+    package
+}
+
+fn test_identity_contract() -> worth_foundational::facade::AspectContract {
+    use worth_foundational::facade::{
+        AbsenceLaw, AspectContract, AspectContractRevision, AspectEvolutionPolicy, AspectIdentity,
+        AspectKey, FieldDeclaration, FieldKey, FieldRequirement, ScalarAspectType,
+        StructAspectShape,
+    };
+
+    let id = FieldDeclaration::new(
+        FieldKey::new("id").expect("static identity field must admit"),
+        ScalarAspectType::String,
+        FieldRequirement::Required,
+        AbsenceLaw::Required,
+        AspectEvolutionPolicy::ExplicitBreakRequired,
+    )
+    .expect("identity field law must be coherent");
+    AspectContract::struct_aspect(
+        AspectKey::new("identity").expect("static identity aspect must admit"),
+        AspectIdentity(0x5751_1902),
+        AspectContractRevision(1),
+        StructAspectShape::new([id]).expect("identity fields must be unique"),
+    )
 }
 
 pub(crate) fn family<D, F>() -> WorthQueryDomainDeclarationFamilyDefinition

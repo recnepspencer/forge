@@ -7,7 +7,6 @@ pub(in crate::runtime) struct WorthQuerySharedReadHotPathMeasurement {
 }
 
 impl WorthQuerySharedReadHotPathMeasurement {
-    #[allow(dead_code)]
     pub(in crate::runtime) fn record_committed_read_hot_path_lock(&self) {
         self.committed_read_hot_path_lock_count
             .fetch_add(1, Ordering::SeqCst);

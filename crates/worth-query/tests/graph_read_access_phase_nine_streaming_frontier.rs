@@ -3,11 +3,9 @@ use worth_query::facade::runtime::{
     WorthQueryGraphReadStreamingCursorDenialKind, WorthQueryGraphReadStreamingReceipt,
 };
 
-#[allow(dead_code)]
-mod graph_read_access_cost_model_support;
-mod support;
+use crate::support;
 
-use graph_read_access_cost_model_support::{
+use crate::support::graph_read_access_cost_model::{
     dense_traversal_family, frontier_search_family, projection_only_family, workspace,
 };
 use support::aspect_touch as touch;

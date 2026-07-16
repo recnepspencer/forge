@@ -6,11 +6,12 @@ use crate::authority::mutation::MutationWorkspace;
 use crate::authority::mutation::{apply_adjacency_deltas, AdjacencyDelta, AdjacencyDeltaKind};
 use crate::storage::logic::state::{PartitionAccess, RelationEndpoints, RelationExtra};
 use crate::transactions::data::{
-    CommitConflict, ConflictClass, EntityReference, RelationEndpointUpdateMissingState,
-    UpdateRelationEndpointsIntent,
+    CommitConflict, ConflictClass, EntityReference, RecordAspectPatchTarget,
+    RelationEndpointUpdateMissingState, UpdateRelationEndpointsIntent,
 };
+use worth_foundational::facade::{PortablePatchReadmissionPurpose, PortableRecordAspectPatch};
 
-use super::relation_field_creation_aspects::apply_relation_endpoint_update_aspects;
+use super::{record_aspect_patch, relation_endpoint_candidate};
 
 pub(super) fn apply(
     intent: &UpdateRelationEndpointsIntent,
@@ -89,19 +90,28 @@ pub(super) fn apply(
             );
             Ok::<_, CommitConflict>((kind_id, old_endpoints, old_authoritative_aspect_state))
         })?;
-    let authoritative_aspect_state = apply_relation_endpoint_update_aspects(
+    let patch_target = RecordAspectPatchTarget::Relation {
+        relation_id: intent.relation_id,
         kind_id,
-        workspace.relation_aspect_plan(kind_id),
-        old_authoritative_aspect_state.clone(),
+    };
+    let plan = workspace.relation_aspect_plan(kind_id);
+    let candidate = relation_endpoint_candidate::append_authoritative_endpoints(
+        PortableRecordAspectPatch::new([]),
+        plan,
         source,
         target,
-    )
-    .map_err(|denial| {
-        CommitConflict::new(ConflictClass::RelationAuthoritativeAspectStateDenied {
-            kind_id,
-            denial,
-        })
-    })?;
+    );
+    let authoritative_patch = record_aspect_patch::readmit(
+        candidate,
+        PortablePatchReadmissionPurpose::RecordMutation,
+        plan,
+        patch_target,
+    )?;
+    let authoritative_aspect_state = record_aspect_patch::apply(
+        old_authoritative_aspect_state.as_ref(),
+        &authoritative_patch,
+        patch_target,
+    )?;
     workspace.with_context(|context| {
         let partition = context
             .state
@@ -125,6 +135,7 @@ pub(super) fn apply(
         target,
         old_authoritative_aspect_state,
         authoritative_aspect_state,
+        record_aspect_patch::published_patch(authoritative_patch),
     ))
 }
 

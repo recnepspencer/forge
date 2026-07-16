@@ -282,6 +282,9 @@ fn map_continuation_outcome<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclara
         WorthQueryPreparedContinuationOutcome::WrongHandle(reason) => {
             WorthQuerySignalCompatibilityOrchestrationOutcome::WrongHandle(reason)
         }
+        WorthQueryPreparedContinuationOutcome::InstalledAuthorityDrift(drift) => {
+            WorthQuerySignalCompatibilityOrchestrationOutcome::InstalledAuthorityDrift(drift)
+        }
         WorthQueryPreparedContinuationOutcome::Stale(reason) => {
             WorthQuerySignalCompatibilityOrchestrationOutcome::Stale(reason)
         }

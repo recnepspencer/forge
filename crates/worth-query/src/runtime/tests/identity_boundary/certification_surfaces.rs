@@ -1,6 +1,5 @@
 use super::super::support::*;
-use crate::application::WorthQueryFolkloreResidueStatus;
-use crate::facade::foundation::WorthQueryApplicationFacade;
+use crate::application::{WorthQueryApplicationFacade, WorthQueryFolkloreResidueStatus};
 use crate::intent_admission::{
     WorthQueryAuthoritativeMutationIntentSeed, WorthQueryAuthoritativeMutationPreflight,
 };
@@ -133,6 +132,7 @@ fn authoritative_mutation_seed_identity_resists_delimiter_pressure() {
         WorthQueryAuthoritativeMutationPreflight::Admitted {
             verified_existing_truth_assertion: None,
         },
+        None,
     );
     let right = WorthQueryAuthoritativeMutationIntentSeed::new(
         test_update_string_aspect_command(
@@ -143,6 +143,7 @@ fn authoritative_mutation_seed_identity_resists_delimiter_pressure() {
         WorthQueryAuthoritativeMutationPreflight::Admitted {
             verified_existing_truth_assertion: None,
         },
+        None,
     );
 
     assert!(left

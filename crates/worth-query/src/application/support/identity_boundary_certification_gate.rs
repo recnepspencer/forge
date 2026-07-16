@@ -5,10 +5,7 @@
 //! greenness is enforced by running `cargo test -p worth-query --lib` in CI and by the
 //! certification modules listed below remaining present in the embedded-source inventory.
 
-#[path = "identity_boundary_inventory_sources.rs"]
-mod identity_boundary_inventory_sources;
-
-use identity_boundary_inventory_sources::source_for_certification_gate_path;
+use super::identity_boundary_inventory_sources::source_for_certification_gate_path;
 
 /// Named Milestone 9.6 lib certification modules that must remain registered.
 pub const MILESTONE_9_6_CERTIFICATION_GATE_PATHS: &[&str] = &[

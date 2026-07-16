@@ -9,9 +9,9 @@ use worth_runtime_bridge::facade::{
 
 fn install_temporal_async_and_mixed_residue(
     runtime: &mut WorthQueryRuntime,
-    temporal_view: &WorthQueryLiveView<WorthQueryNativeRow>,
-    async_view: &WorthQueryLiveView<WorthQueryNativeRow>,
-    mixed_view: &WorthQueryLiveView<WorthQueryNativeRow>,
+    temporal_view: &WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
+    async_view: &WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
+    mixed_view: &WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
 ) {
     runtime
         .emit_time_only_delivery(
@@ -72,13 +72,13 @@ fn install_temporal_async_and_mixed_residue(
 #[test]
 fn preview_discard_closeout_tracks_temporal_async_and_mixed_residue_parity() {
     let mut runtime = stateful_bridge_task_runtime();
-    let temporal_view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let temporal_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.preview-temporal", task_live_request(), task_schema())
         .expect("temporal live view should declare");
-    let async_view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let async_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.preview-async", task_live_request(), task_schema())
         .expect("async live view should declare");
-    let mixed_view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let mixed_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.preview-mixed", task_live_request(), task_schema())
         .expect("mixed live view should declare");
     install_temporal_async_and_mixed_residue(
@@ -128,17 +128,21 @@ fn preview_discard_closeout_tracks_temporal_async_and_mixed_residue_parity() {
 #[test]
 fn preview_promotion_closeout_records_rebinding_for_temporal_async_and_mixed_handles() {
     let mut runtime = stateful_bridge_task_runtime();
-    let temporal_view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let temporal_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.promote-temporal", task_live_request(), task_schema())
         .expect("temporal live view should declare");
-    let async_view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let async_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.promote-async", task_live_request(), task_schema())
         .expect("async live view should declare");
-    let mixed_view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let mixed_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.promote-mixed", task_live_request(), task_schema())
         .expect("mixed live view should declare");
     runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("authoritative target live view should declare");
     install_temporal_async_and_mixed_residue(
         &mut runtime,
@@ -213,7 +217,7 @@ fn preview_promotion_closeout_records_rebinding_for_temporal_async_and_mixed_han
 #[test]
 fn preview_discard_retains_crossed_preview_completion_residue_typed() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view(
             "tasks.preview-crossed-completion",
             task_live_request(),
@@ -266,7 +270,7 @@ fn preview_discard_retains_crossed_preview_completion_residue_typed() {
 #[test]
 fn preview_promotion_denies_with_typed_rebinding_recovery_posture() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view(
             "tasks.preview-promotion-mismatch",
             task_live_request(),

@@ -1,5 +1,5 @@
 use super::super::{
-    WorthQueryGraphReadAdmittedSchemaFieldKind, WorthQueryPredicateOperandOperator,
+    WorthQueryAdmittedNativeFieldFamily, WorthQueryPredicateOperandOperator,
     WorthQueryPredicateSelectivityClass,
 };
 use crate::declarative_live::DeclarativePredicateFilter;
@@ -102,7 +102,7 @@ pub struct WorthQueryAdmittedBooleanPredicateLeaf {
     family: String,
     operator: WorthQueryPredicateOperandOperator,
     normalized_operand_values: Vec<String>,
-    field_kind: WorthQueryGraphReadAdmittedSchemaFieldKind,
+    field_kind: WorthQueryAdmittedNativeFieldFamily,
     selectivity_class: WorthQueryPredicateSelectivityClass,
 }
 
@@ -127,7 +127,7 @@ impl WorthQueryAdmittedBooleanPredicateLeaf {
         &self.normalized_operand_values
     }
 
-    pub fn field_kind(&self) -> &WorthQueryGraphReadAdmittedSchemaFieldKind {
+    pub fn field_kind(&self) -> &WorthQueryAdmittedNativeFieldFamily {
         &self.field_kind
     }
 
@@ -141,7 +141,7 @@ impl WorthQueryAdmittedBooleanPredicateLeaf {
         family: impl Into<String>,
         operator: WorthQueryPredicateOperandOperator,
         normalized_operand_values: Vec<String>,
-        field_kind: WorthQueryGraphReadAdmittedSchemaFieldKind,
+        field_kind: WorthQueryAdmittedNativeFieldFamily,
         selectivity_class: WorthQueryPredicateSelectivityClass,
     ) -> Self {
         Self {

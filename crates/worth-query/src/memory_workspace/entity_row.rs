@@ -1,5 +1,8 @@
 use std::collections::BTreeMap;
-use worth_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
+use worth_foundational::facade::{
+    prepare_aspect_value_identity_basis, prepare_struct_aspect_value_identity_basis, AspectKey,
+    AspectValue, CanonicalFieldPath, FieldKey, StructAspectValue,
+};
 
 use super::WorthQueryEntityIdentity;
 
@@ -13,6 +16,7 @@ pub struct WorthQueryEntity {
 enum WorthQueryEntityRow {
     AspectProjection {
         aspect_values: BTreeMap<AspectKey, AspectValue>,
+        struct_aspect_values: BTreeMap<AspectKey, StructAspectValue>,
         field_values: BTreeMap<CanonicalFieldPath, AspectValue>,
     },
 }
@@ -21,12 +25,14 @@ impl WorthQueryEntity {
     pub(crate) fn from_aspect_projection(
         identity: WorthQueryEntityIdentity,
         aspect_values: BTreeMap<AspectKey, AspectValue>,
+        struct_aspect_values: BTreeMap<AspectKey, StructAspectValue>,
         field_values: BTreeMap<CanonicalFieldPath, AspectValue>,
     ) -> Self {
         Self {
             identity,
             row: WorthQueryEntityRow::AspectProjection {
                 aspect_values,
+                struct_aspect_values,
                 field_values,
             },
         }
@@ -40,6 +46,7 @@ impl WorthQueryEntity {
             identity,
             row: WorthQueryEntityRow::AspectProjection {
                 aspect_values: BTreeMap::new(),
+                struct_aspect_values: BTreeMap::new(),
                 field_values,
             },
         }
@@ -62,6 +69,26 @@ impl WorthQueryEntity {
             WorthQueryEntityRow::AspectProjection { aspect_values, .. } => {
                 Box::new(aspect_values.iter())
             }
+        }
+    }
+
+    pub fn struct_aspect_value(&self, aspect_key: &AspectKey) -> Option<&StructAspectValue> {
+        match &self.row {
+            WorthQueryEntityRow::AspectProjection {
+                struct_aspect_values,
+                ..
+            } => struct_aspect_values.get(aspect_key),
+        }
+    }
+
+    pub fn struct_aspect_values(
+        &self,
+    ) -> Box<dyn Iterator<Item = (&AspectKey, &StructAspectValue)> + '_> {
+        match &self.row {
+            WorthQueryEntityRow::AspectProjection {
+                struct_aspect_values,
+                ..
+            } => Box::new(struct_aspect_values.iter()),
         }
     }
 
@@ -101,14 +128,29 @@ impl WorthQueryEntity {
         match &self.row {
             WorthQueryEntityRow::AspectProjection {
                 aspect_values,
+                struct_aspect_values,
                 field_values,
             } => aspect_values
                 .iter()
-                .map(|(aspect_key, value)| format!("aspect:{}={value:?}", aspect_key.as_str()))
+                .map(|(aspect_key, value)| {
+                    format!(
+                        "aspect:{}={}",
+                        aspect_key.as_str(),
+                        prepare_aspect_value_identity_basis(value).as_str()
+                    )
+                })
                 .chain(field_values.iter().map(|(field_path, value)| {
                     format!(
-                        "field:{}={value:?}",
-                        terminal_projection_from_field_path(field_path)
+                        "field:{}={}",
+                        terminal_projection_from_field_path(field_path),
+                        prepare_aspect_value_identity_basis(value).as_str()
+                    )
+                }))
+                .chain(struct_aspect_values.iter().map(|(aspect_key, value)| {
+                    format!(
+                        "struct-aspect:{}={}",
+                        aspect_key.as_str(),
+                        prepare_struct_aspect_value_identity_basis(value).as_str()
                     )
                 }))
                 .collect(),

@@ -30,12 +30,12 @@ pub(super) fn task_insert_command(id: &str) -> WorthQueryWriteCommand {
             "Task",
         ),
         aspects: vec![
-            WorthQueryAdmittedAspectValue::new(
+            WorthQueryAuthoredAspectMutation::new(
                 test_aspect_touch("identity.id"),
                 test_string_aspect_value(id),
             )
             .unwrap(),
-            WorthQueryAdmittedAspectValue::new(
+            WorthQueryAuthoredAspectMutation::new(
                 test_aspect_touch("title.value"),
                 test_string_aspect_value("Phase 11 executor task"),
             )

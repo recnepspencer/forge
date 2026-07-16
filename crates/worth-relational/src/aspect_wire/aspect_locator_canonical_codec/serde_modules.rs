@@ -55,38 +55,6 @@ pub(crate) mod serde_canonical_aspect_field_locator {
     }
 }
 
-pub(crate) mod serde_optional_canonical_aspect_field_locator {
-    use super::*;
-    use serde::de::Error;
-
-    pub(crate) fn serialize<S>(
-        locator: &Option<AspectFieldLocator>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        locator
-            .as_ref()
-            .map(encode_aspect_field_locator)
-            .serialize(serializer)
-    }
-
-    pub(crate) fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<Option<AspectFieldLocator>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let bytes = Option::<Vec<u8>>::deserialize(deserializer)?;
-        bytes
-            .as_deref()
-            .map(decode_aspect_field_locator)
-            .transpose()
-            .map_err(D::Error::custom)
-    }
-}
-
 pub(crate) mod serde_canonical_aspect_field_locator_arc_slice {
     use super::*;
     use serde::de::Error;

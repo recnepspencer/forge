@@ -13,14 +13,14 @@ pub struct WorthUiComponentLoweringHook {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum WorthUiComponentLoweringHookAdmission {
-    #[cfg(any(test, feature = "certification-support"))]
+    #[cfg(test)]
     Registered(WorthUiComponentLoweringHookFamily),
     #[cfg(test)]
     Unregistered,
 }
 
 impl WorthUiComponentLoweringHookFamily {
-    #[cfg(any(test, feature = "certification-support"))]
+    #[cfg(test)]
     pub(crate) fn admitted(plan_node_family: WorthUiPlanNodeInputFamily) -> Self {
         Self { plan_node_family }
     }
@@ -31,7 +31,7 @@ impl WorthUiComponentLoweringHookFamily {
 }
 
 impl WorthUiComponentLoweringHook {
-    #[cfg(any(test, feature = "certification-support"))]
+    #[cfg(test)]
     pub(crate) fn registered(
         hook_id: impl Into<String>,
         family: WorthUiPlanNodeInputFamily,
@@ -61,14 +61,14 @@ impl WorthUiComponentLoweringHook {
     }
 
     pub fn admitted_family(&self) -> Option<&WorthUiComponentLoweringHookFamily> {
-        #[cfg(any(test, feature = "certification-support"))]
+        #[cfg(test)]
         match &self.admission {
             WorthUiComponentLoweringHookAdmission::Registered(family) => Some(family),
             #[cfg(test)]
             WorthUiComponentLoweringHookAdmission::Unregistered => None,
         }
 
-        #[cfg(not(any(test, feature = "certification-support")))]
+        #[cfg(not(test))]
         {
             None
         }

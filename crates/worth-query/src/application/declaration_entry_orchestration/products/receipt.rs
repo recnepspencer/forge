@@ -3,19 +3,23 @@ use crate::application::{
     WorthQueryDeclarationEntryOrchestrationArtifactPolicy,
     WorthQueryDeclarationEntryOrchestrationExposureLevel,
     WorthQueryDeclarationEntryOrchestrationProduct, WorthQueryDeclarationInput,
-    WorthQueryDeclarationReceipt, WorthQueryDeclarationReceiptChecked,
-    WorthQueryDeclarationReceiptTerminalError, WorthQueryDeclarationRouteIntent,
+    WorthQueryDeclarationReceiptChecked, WorthQueryDeclarationRouteIntent,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
     WorthQueryInstalledDomainDeclarationContext,
 };
+#[cfg(test)]
+use crate::application::{WorthQueryDeclarationReceipt, WorthQueryDeclarationReceiptTerminalError};
 
-use super::common::{receipt_orchestration_identity, receipt_terminal_from_checked};
+use super::common::receipt_orchestration_identity;
+#[cfg(test)]
+use super::common::receipt_terminal_from_checked;
 use super::transcript::WorthQueryDeclarationReceiptOrchestrationTranscript;
 use crate::application::{
     worth_query_lower_declaration_entry_product_orchestration_from_progressed_on_handle,
     WorthQueryDeclarationEntryProductChecked,
 };
 
+#[cfg(test)]
 pub(crate) fn worth_query_declaration_receipt_orchestration_from_progressed_on_handle<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,

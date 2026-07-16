@@ -43,8 +43,7 @@ macro_rules! assert_ordinary_internal_parity {
             .execution_plan()
             .query()
             .plan_digest()
-            .as_str()
-            .to_string();
+            .evidence_identity();
         let oracle_family =
             WorthQueryReadFamily::new_kernel_only("declared_read", oracle_read_graph);
         let oracle = workspace
@@ -53,8 +52,8 @@ macro_rules! assert_ordinary_internal_parity {
             .expect("internal phase-chain oracle should execute");
 
         assert_eq!(
-            ordinary.receipt().execution_plan_digest(),
-            oracle_plan_digest
+            ordinary.receipt().execution_plan_evidence_identity(),
+            &oracle_plan_digest
         );
         assert_eq!(ordinary_context_receipt, oracle_context_receipt);
         assert_eq!(
@@ -88,7 +87,11 @@ fn ordinary_read_matches_internal_phase_chain_result_and_receipt_identity() {
     );
 
     assert_ne!(declaration_identity, ordinary.receipt().read_graph_digest());
-    assert!(!ordinary.receipt().execution_plan_digest().is_empty());
+    assert!(!ordinary
+        .receipt()
+        .execution_plan_evidence_identity()
+        .as_str()
+        .is_empty());
     assert!(ordinary.receipt().graph_read_access_plan().is_some());
 }
 
@@ -104,7 +107,7 @@ fn ordinary_collection_preserves_family_and_matches_internal_phase_chain() {
         result.receipt().graph_family(),
         &WorthQueryReadGraphFamily::Collection
     );
-    assert!(result.rows().is_empty());
+    assert_eq!(result.rows().len(), 1);
     assert_eq!(
         result.receipt().breadth().planned_traversal_clause_count(),
         0
@@ -177,12 +180,12 @@ fn scope_and_template_composition_execute_through_the_same_admitted_chain() {
     assert_eq!(direct, scoped);
     assert_eq!(direct, templated);
     assert_eq!(
-        direct.receipt().execution_plan_digest(),
-        scoped.receipt().execution_plan_digest()
+        direct.receipt().execution_plan_evidence_identity(),
+        scoped.receipt().execution_plan_evidence_identity()
     );
     assert_eq!(
-        direct.receipt().execution_plan_digest(),
-        templated.receipt().execution_plan_digest()
+        direct.receipt().execution_plan_evidence_identity(),
+        templated.receipt().execution_plan_evidence_identity()
     );
 }
 

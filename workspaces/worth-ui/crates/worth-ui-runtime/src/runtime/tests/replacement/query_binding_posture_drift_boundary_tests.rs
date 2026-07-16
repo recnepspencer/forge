@@ -1,9 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use worth_query::facade::runtime::{
-    QuerySubscriptionFamily,
-    QuerySubscriptionSupportPosture,
-};
+use worth_query::facade::runtime::{QuerySubscriptionFamily, QuerySubscriptionSupportPosture};
 
 use super::query_binding::WorthUiQueryBindingEvidenceIndex;
 use super::query_binding_comparison_test_support::{

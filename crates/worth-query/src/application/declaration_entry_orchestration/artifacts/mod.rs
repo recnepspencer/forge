@@ -38,4 +38,5 @@ pub use transcript::{
 };
 
 pub(crate) use outcome::canonical_digest_token;
+#[cfg(test)]
 pub(crate) use terminal::terminal_error_from_outcome;

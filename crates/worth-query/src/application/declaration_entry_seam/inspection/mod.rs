@@ -1,9 +1,13 @@
+#[cfg(test)]
 use worth_foundational::facade::CanonicalDerivedDigest;
 
+#[cfg(test)]
 use crate::application::{WorthQueryDeclarationInput, WorthQueryDomainEntryMarker};
 
 mod artifact;
+#[cfg(test)]
 mod authority_posture;
+#[cfg(test)]
 mod subject;
 
 pub use artifact::{
@@ -12,18 +16,26 @@ pub use artifact::{
     WorthQueryDeclarationEntryInspectionRelationalPosture,
     WorthQueryDeclarationEntryInspectionSignalPosture,
 };
-pub use subject::{
+#[cfg(test)]
+pub(crate) use subject::{
     WorthQueryDeclarationEntryInspectionInput, WorthQueryDeclarationEntryRetainedSubjectInput,
 };
 
+#[cfg(test)]
 pub(crate) use authority_posture::{
     envelope_bridge_summary, envelope_relational_summary, envelope_signal_summary,
 };
-pub(crate) use subject::{normalize_retained_subject, normalized_subject};
+#[cfg(test)]
+pub(crate) use subject::normalize_retained_subject;
+#[cfg(test)]
+pub(crate) use subject::normalized_subject;
 
+#[cfg(test)]
 use super::retained_subject::ReadinessRetainedPosture;
+#[cfg(test)]
 use super::{digest::derive_inspection_digest, row::WorthQueryDeclarationEntryCrossingSurface};
 
+#[cfg(test)]
 pub(crate) fn worth_query_declaration_entry_inspection_on_handle<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,
@@ -192,6 +204,7 @@ pub(crate) fn worth_query_declaration_entry_inspection_on_handle<
     })
 }
 
+#[cfg(test)]
 fn row_matches_subject<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>(
     row: &crate::application::WorthQueryDeclarationEntryCrossingRow,
     subject: &subject::NormalizedInspectionSubject<D, I>,
@@ -223,6 +236,7 @@ fn row_matches_subject<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationI
         })
 }
 
+#[cfg(test)]
 fn canonical_digest_token(digest: &CanonicalDerivedDigest) -> String {
     let hex = digest
         .value()

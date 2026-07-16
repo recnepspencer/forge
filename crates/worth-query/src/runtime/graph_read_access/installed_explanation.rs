@@ -1,7 +1,7 @@
 use super::explanation_api::{
     domain_operation_capability_requirement_set,
     explain_boolean_selectivity_shape_for_access_shape,
-    explain_graph_read_access_requirement_outcome_for_family_in_authority_with_operation_registry,
+    explain_graph_read_access_requirement_outcome_for_family_in_authority_with_operation_lookup,
     explain_graph_read_access_shape_for_graph,
 };
 use super::{
@@ -49,7 +49,7 @@ pub(crate) fn explain_graph_read_access_requirements_for_family_in_authority_wit
     lookup: &impl WorthQueryGraphReadOperationLookup,
 ) -> Result<WorthQueryGraphReadAccessRequirementSet, WorthQueryGraphReadAccessShapeExplanationError>
 {
-    match explain_graph_read_access_requirement_outcome_for_family_in_authority_with_operation_registry(
+    match explain_graph_read_access_requirement_outcome_for_family_in_authority_with_operation_lookup(
         family, authority, lookup,
     )? {
         WorthQueryGraphReadAccessRequirementExplanationOutcome::RequirementSet(requirements) => {

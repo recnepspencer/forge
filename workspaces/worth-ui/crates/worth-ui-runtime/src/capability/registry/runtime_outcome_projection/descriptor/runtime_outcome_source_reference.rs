@@ -1,13 +1,9 @@
 use worth_query::facade::foundation::{
-    WorthQueryOrdinaryOutcome,
-    WorthQueryOrdinaryPosture,
-    WorthQueryOrdinaryPostureKind,
-    WorthQueryOrdinaryRuntimePosture,
-    WorthQueryOrdinaryRuntimePostureKind,
+    WorthQueryOrdinaryOutcome, WorthQueryOrdinaryPosture, WorthQueryOrdinaryPostureKind,
+    WorthQueryOrdinaryRuntimePosture, WorthQueryOrdinaryRuntimePostureKind,
 };
 use worth_query::facade::runtime::{
-    WorthQueryRuntimeAsyncResultState,
-    WorthQueryRuntimeAsyncResultStateKind,
+    WorthQueryRuntimeAsyncResultState, WorthQueryRuntimeAsyncResultStateKind,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]

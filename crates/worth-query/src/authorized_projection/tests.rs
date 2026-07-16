@@ -1,7 +1,7 @@
 use crate::authoring::{
     AspectFieldKey, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
     GuidedAuthoringPath, OrderingSelector, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
-    ScalarPredicateValue,
+    WorthQueryPredicateOperand,
 };
 use worth_foundational::facade::{AspectKey, FieldKey};
 
@@ -58,7 +58,8 @@ fn non_disclosing_predicate_is_allowed_when_not_emitted() {
     let query = RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
         .project(AspectFieldSelector::new("identity", "id").unwrap())
         .where_equal(
-            EqualityPredicate::new("secret", "salary", ScalarPredicateValue::Integer(7)).unwrap(),
+            EqualityPredicate::new("secret", "salary", WorthQueryPredicateOperand::int64(7))
+                .unwrap(),
         )
         .build()
         .unwrap();
@@ -95,7 +96,7 @@ fn native_field_pairs(
         .map(|field| {
             (
                 field.native_aspect_key().clone(),
-                field.native_field_key().clone(),
+                field.native_field_key().expect("field projection").clone(),
             )
         })
         .collect()

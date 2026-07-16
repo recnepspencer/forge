@@ -1,11 +1,12 @@
 error[E0599]: no method named `materialize` found for struct `WorthQueryIntentInvariantRegistrationDraft` in the current scope
-  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_invariant_registration_requires_because.rs:15:10
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_invariant_registration_requires_because.rs:20:10
    |
-12 |       let _ = worth_query_domain("worth.spatial")
+16 |       let _ = installation
    |  _____________-
-13 | |         .for_intent(&declaration)
-14 | |         .register_invariant_catalog("spatial.non_manifold_edge_split", InvariantCatalog::default())
-15 | |         .materialize();
+17 | |         .contributions()
+18 | |         .for_intent(&declaration).expect("installed contribution authority must remain current")
+19 | |         .register_invariant_catalog("spatial.non_manifold_edge_split", InvariantCatalog::default())
+20 | |         .materialize();
    | |         -^^^^^^^^^^^ method not found in `WorthQueryIntentInvariantRegistrationDraft`
    | |_________|
    |

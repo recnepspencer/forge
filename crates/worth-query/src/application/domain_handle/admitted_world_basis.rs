@@ -1,13 +1,3 @@
-#[cfg(test)]
-use super::admitted_handle::WorthQueryInstalledDomainDeclarationContext;
-#[cfg(test)]
-use super::operating_context::{
-    WorthQueryDomainOperatingContext, WorthQueryDomainOperatingRequirement,
-};
-#[cfg(test)]
-use crate::application::{
-    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDomainEntryMarker,
-};
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
     WorthQueryEvidenceTag,
@@ -86,81 +76,6 @@ impl WorthQueryAdmittedWorldBasis {
     ) -> &crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness {
         &self.installed_authority
     }
-}
-
-#[cfg(test)]
-pub(crate) fn compose_admitted_configured_domain_handle_identity_parts(
-    domain_key: &str,
-    display_name: &str,
-    required_capability_families: &[WorthQueryCapabilityFamily],
-    required_config_sections: &[WorthQueryConfigSectionFamily],
-    required_operating_requirements: &[WorthQueryDomainOperatingRequirement],
-    operating_context_identity_digest: &str,
-    validated_config_digest: &str,
-) -> WorthQueryEvidenceIdentity {
-    let required_capabilities = required_capability_families
-        .iter()
-        .map(WorthQueryCapabilityFamily::as_str)
-        .collect::<Vec<_>>()
-        .join(",");
-    let required_sections = required_config_sections
-        .iter()
-        .map(WorthQueryConfigSectionFamily::as_str)
-        .collect::<Vec<_>>()
-        .join(",");
-    let operating_requirements = required_operating_requirements
-        .iter()
-        .copied()
-        .map(WorthQueryDomainOperatingRequirement::as_str)
-        .collect::<Vec<_>>()
-        .join(",");
-
-    worth_query_evidence_identity(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_shape(
-            WorthQueryEvidenceTag::new("identity_family"),
-            "admitted_configured_domain_handle_v1",
-        )
-        .field_shape(WorthQueryEvidenceTag::new("domain"), domain_key)
-        .field_shape(WorthQueryEvidenceTag::new("display"), display_name)
-        .field_shape(
-            WorthQueryEvidenceTag::new("required_capabilities"),
-            &required_capabilities,
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("required_sections"),
-            &required_sections,
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("operating_requirements"),
-            &operating_requirements,
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("context"),
-            operating_context_identity_digest,
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("validated_config"),
-            validated_config_digest,
-        )
-        .seal()
-}
-
-#[cfg(test)]
-pub(crate) fn compose_admitted_configured_domain_handle_identity<
-    D: WorthQueryDomainEntryMarker,
-    C: WorthQueryDomainOperatingContext<D>,
->(
-    handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
-) -> WorthQueryEvidenceIdentity {
-    compose_admitted_configured_domain_handle_identity_parts(
-        handle.domain_key(),
-        handle.display_name(),
-        handle.required_capability_families(),
-        handle.required_config_sections(),
-        handle.required_operating_requirements(),
-        handle.operating_context_identity_digest(),
-        handle.support_snapshot().validated_config_digest(),
-    )
 }
 
 pub(crate) fn compose_basis_lifecycle_support_identity(

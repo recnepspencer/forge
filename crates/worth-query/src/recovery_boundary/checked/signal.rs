@@ -79,6 +79,9 @@ fn merge_signal_explanation(
             explanation.degraded_recovery_posture(),
         ));
     }
+    if let Some(drift) = explanation.installed_domain_execution_drift() {
+        merged = merged.with_installed_domain_execution_drift(drift.clone());
+    }
     merged
 }
 
@@ -102,6 +105,9 @@ fn signal_explanation<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationIn
         }
         WorthQuerySignalCompatibilityOrchestrationOutcome::WrongHandle(_) => {
             WorthQueryRecoveryStopKind::WrongHandle
+        }
+        WorthQuerySignalCompatibilityOrchestrationOutcome::InstalledAuthorityDrift(_) => {
+            WorthQueryRecoveryStopKind::RebindRequired
         }
         WorthQuerySignalCompatibilityOrchestrationOutcome::Stale(_) => {
             WorthQueryRecoveryStopKind::Stale
@@ -145,6 +151,9 @@ fn signal_explanation<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationIn
     .with_aspect_posture(WorthQueryRecoveryAspectPosture::RequiredContract)
     .with_diagnostic_context(diagnostic_context_for_stop_kind(stop_kind));
     match outcome {
+        WorthQuerySignalCompatibilityOrchestrationOutcome::InstalledAuthorityDrift(drift) => {
+            explanation = explanation.with_installed_domain_execution_drift(drift.clone());
+        }
         WorthQuerySignalCompatibilityOrchestrationOutcome::Stale(_) => {
             explanation = explanation
                 .with_basis_posture(WorthQueryRecoveryBasisPosture::StaleBasis)

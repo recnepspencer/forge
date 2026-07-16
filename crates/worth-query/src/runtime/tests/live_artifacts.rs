@@ -5,10 +5,10 @@ fn workspace_reads_live_artifact_binding_as_one_snapshot_coherent_named_pack() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("live.artifact.binding")
         .expect("task runtime should open a named workspace");
-    let entities: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let entities: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view_request("tasks.live-entities", task_live_request(), task_schema())
         .expect("entity live view should declare");
-    let names: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let names: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view_request("tasks.live-names", task_live_request(), task_schema())
         .expect("naming live view should declare");
 

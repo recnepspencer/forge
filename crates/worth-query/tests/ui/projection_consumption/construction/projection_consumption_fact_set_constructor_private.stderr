@@ -25,8 +25,8 @@ error: cannot construct `ConsumedProjectionFactSet` with struct literal syntax d
    |         ----------------------- private field
 15 |         display_fields: Vec::new(),
    |         -------------------------- private field
-16 |         derived_scalar_fields: Vec::new(),
-   |         --------------------------------- private field
+16 |         derived_fields: Vec::new(),
+   |         -------------------------- private field
 17 |         target_identities: Vec::new(),
    |         ----------------------------- private field
 18 |         source_references: Vec::new(),
@@ -51,7 +51,7 @@ help: you might have meant to use the `new` associated function
 13 -         view_local_identities: Vec::new(),
 14 -         memberships: Vec::new(),
 15 -         display_fields: Vec::new(),
-16 -         derived_scalar_fields: Vec::new(),
+16 -         derived_fields: Vec::new(),
 17 -         target_identities: Vec::new(),
 18 -         source_references: Vec::new(),
 19 -         effect_continuity_facts: Vec::new(),

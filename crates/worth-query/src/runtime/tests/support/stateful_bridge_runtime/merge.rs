@@ -1,4 +1,3 @@
-use worth_relational::facade::history::BranchId;
 use worth_relational::facade::transactions::MergeExecutionOutcome;
 
 use super::super::*;
@@ -6,8 +5,8 @@ use super::SharedState;
 
 pub(super) fn capture_merge_authority(
     state: &SharedState,
-    target_branch: BranchId,
-    source_branch: BranchId,
+    target_branch: &crate::runtime::WorthQueryAdmittedBranchName,
+    source_branch: &crate::runtime::WorthQueryAdmittedBranchName,
 ) -> Result<WorthQueryBackendMergeAuthority, WorthQueryWorkspaceError> {
     let state = state.borrow();
     let runtime = state.relational_runtime.as_ref().ok_or_else(|| {

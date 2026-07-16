@@ -16,10 +16,7 @@ pub use async_resource::{
     WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncSourceFamily,
 };
 pub use comparison::WorthQueryCanonicalDeclarationComparison;
-#[allow(unused_imports)]
-pub use future_projection::{
-    WorthQueryDeclarationFutureProjection, WorthQueryDeclarationFutureProjectionClass,
-};
+pub use future_projection::WorthQueryDeclarationFutureProjection;
 pub use input::{
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationCanonicalEntryKind,
     WorthQueryDeclarationCanonicalValue, WorthQueryDeclarationInput,

@@ -80,30 +80,21 @@ pub use basis_projection::{
     WorthQueryBasisObservationIntentReview, WorthQueryProjectionConsumptionAdmittedIntent,
     WorthQueryProjectionConsumptionIntentAuthoring, WorthQueryProjectionConsumptionIntentReview,
 };
-pub use batch_mutation::{
-    WorthQueryAdmittedRuntimeWriteBatchIntent, WorthQueryRuntimeWriteBatchIntentAdmissionReview,
-    WorthQueryRuntimeWriteBatchIntentAuthoring,
-};
+pub use batch_mutation::WorthQueryRuntimeWriteBatchIntentAuthoring;
 pub use effect::{
     WorthQueryAdmittedRuntimeEffectWriteIntent, WorthQueryRuntimeEffectWriteIntentAdmissionReview,
     WorthQueryRuntimeEffectWriteIntentAuthoring,
 };
 pub use inspection::{
-    WorthQueryAdmittedWorkspaceDerivedInspectionIntent,
-    WorthQueryAdmittedWorkspaceDerivedMaterializationIntent,
     WorthQueryWorkspaceDerivedInspectionIntentAdmissionReview,
     WorthQueryWorkspaceDerivedInspectionIntentAuthoring,
     WorthQueryWorkspaceDerivedMaterializationIntentAdmissionReview,
     WorthQueryWorkspaceDerivedMaterializationIntentAuthoring,
 };
 pub use live_read::{
-    WorthQueryAdmittedWorkspaceLiveReadIntent, WorthQueryWorkspaceLiveReadIntentAdmissionReview,
-    WorthQueryWorkspaceLiveReadIntentAuthoring,
+    WorthQueryWorkspaceLiveReadIntentAdmissionReview, WorthQueryWorkspaceLiveReadIntentAuthoring,
 };
-pub use mutation::{
-    WorthQueryAdmittedRuntimeWriteIntent, WorthQueryRuntimeWriteIntentAdmissionReview,
-    WorthQueryRuntimeWriteIntentAuthoring,
-};
+pub use mutation::WorthQueryRuntimeWriteIntentAuthoring;
 pub use read::{
     WorthQueryAdmittedWorkspaceReadIntent, WorthQueryWorkspaceReadIntentAdmissionReview,
     WorthQueryWorkspaceReadIntentAuthoring,

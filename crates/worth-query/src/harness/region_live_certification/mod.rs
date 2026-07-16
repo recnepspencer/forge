@@ -2,6 +2,7 @@ mod bundles;
 mod canonical_rows;
 mod rejection_rows;
 mod row_catalog;
+#[cfg(test)]
 mod tests;
 
 use super::live_certification::{LiveCertificationMatrix, MilestoneFiveLiveCertificationArtifact};

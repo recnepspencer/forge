@@ -1,10 +1,10 @@
-use crate::facade::foundation::StreamConsumerShape;
 use crate::facade::{
     BridgeRouteRequest, ChangeStreamDeclaration, StreamCheckpointFrontierKind,
     StreamCheckpointPublicationMode, StreamCoalescingFamily, StreamCoalescingIntent,
     StreamDeliveryIntent, StreamDiagnosticsPolicyClass, StreamReplayMode, StreamResumeMode,
 };
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
+use crate::stream::StreamConsumerShape;
 
 use super::super::support::{build_runtime, committed_patch, registration, snapshot};
 

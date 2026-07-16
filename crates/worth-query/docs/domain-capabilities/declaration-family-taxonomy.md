@@ -257,15 +257,15 @@ What this example is showing:
 
 ## How It Relates To Other Features
 
-- [Canonical Domain Declarations](./canonical-domain-declarations.md) retain
+- Installed Domain Declarations retain
   the family key and taxonomy in the canonical declaration artifact, and carry
   temporal clauses as declaration-local meaning rather than taxonomy
-- [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
+- Declaration Family Capability Matrix
   turns family posture and requirements into support rows, checked admission,
   and witness availability
-- [Declaration Legality](./declaration-legality.md) consumes the retained
+- Declaration Legality consumes the retained
   family taxonomy together with one explicit family legality contract
-- [Declaration Route Plans](./declaration-route-plan.md) consumes admitted
+- Declaration Route Plans consumes admitted
   progression proof plus one explicit family route contract instead of
   rebuilding lower-authority participation from taxonomy folklore
 - grouped posture here is classification, not grouped execution
@@ -317,14 +317,14 @@ features consume.
 
 ## Related Docs
 
-- [Canonical Domain Declarations](./canonical-domain-declarations.md)
-- [Configured Domain Handles](./configured-domain-handles.md)
-- [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
-- [Declaration Legality](./declaration-legality.md)
-- [Declaration Route Plans](./declaration-route-plan.md)
+- Installed Domain Declarations
+- Runtime-Installed Domain Handles
+- Declaration Family Capability Matrix
+- Declaration Legality
+- Declaration Route Plans
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
-- [Platform Entry](./platform-entry.md)
+- Platform Entry

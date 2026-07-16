@@ -8,6 +8,7 @@ pub(in super::super) enum ConsumerStopRoute<'a> {
     ExistingTruthProbeDenied(WorthQueryExistingTruthProbeDenialKind),
     MutationBindingDenied(WorthQueryExistingTruthBindingDenialKind),
     MutationContinuityDenied(WorthQueryContinuityMutationDenialKind),
+    MutationContractDenied(WorthQueryMutationContractDenialKind),
     GraphObligationTouchDescriptorDenied(WorthQueryGraphTouchDescriptorDenialKind),
     GraphObligationEffectTouchDescriptorMissing,
     GraphObligationIntentTouchDescriptorMissing,
@@ -76,6 +77,9 @@ pub(in super::super) fn route_consumer_stop_class(
         }
         WorthQueryStopClass::MutationContinuityDenied { denial } => {
             ConsumerStopRoute::MutationContinuityDenied(denial.kind())
+        }
+        WorthQueryStopClass::MutationContractDenied { denial } => {
+            ConsumerStopRoute::MutationContractDenied(denial.kind())
         }
         WorthQueryStopClass::GraphObligationTouchDescriptorDenied { denial } => {
             ConsumerStopRoute::GraphObligationTouchDescriptorDenied(denial.kind())

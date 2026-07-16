@@ -2,6 +2,7 @@ mod admission;
 mod drift;
 mod relevance;
 
+#[cfg(test)]
 pub(crate) use admission::admit_policy_aware_live_plan;
 pub use admission::{PolicyAwareLiveAdmissionReport, PolicyAwareLivePlan};
 pub use drift::{

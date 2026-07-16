@@ -3,17 +3,18 @@ use worth_query::facade::foundation::{
     WorthQueryGraphReadDomainOperationDeclaration,
 };
 use worth_query::facade::runtime::{
-    explain_graph_read_access_shape_for_family_with_operation_registry,
-    resolve_graph_read_operations_for_family_with_registry, QuerySchemaView, SchemaFieldKind,
+    explain_graph_read_access_shape_for_family_with_operation_lookup,
+    resolve_graph_read_operations_for_family_with_operation_lookup, QuerySchemaView, ScalarAspectType,
     SchemaFieldView, SchemaRelationView, WorthQueryGraphReadOperationOutcome,
-    WorthQueryGraphReadOperationRegistration,
     WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
     WorthQueryGraphReadResolvedOperationFamily, WorthQueryGraphReadResolvedOperationKind,
     WorthQueryGraphReadTraversalOperator,
 };
-use crate::runtime::WorthQueryGraphReadOperationRegistry;
+use crate::runtime::{
+    WorthQueryGraphReadOperationRegistration, WorthQueryGraphReadOperationRegistry,
+};
 
-mod support;
+use crate::support;
 
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
@@ -33,7 +34,7 @@ fn declared_domain_operation_resolves_through_registry_by_operation_key() {
     .expect("domain operation registration should admit");
 
     let explanation =
-        explain_graph_read_access_shape_for_family_with_operation_registry(&family, &registry)
+        explain_graph_read_access_shape_for_family_with_operation_lookup(&family, &registry)
             .expect("registered domain operation should lower");
     let operation = &explanation
         .access_shape()
@@ -82,7 +83,7 @@ fn declared_domain_operation_without_registry_support_returns_required_capabilit
         visible_face_neighborhood_operation(),
     );
 
-    let outcome = resolve_graph_read_operations_for_family_with_registry(
+    let outcome = resolve_graph_read_operations_for_family_with_operation_lookup(
         &family,
         &WorthQueryGraphReadOperationRegistry::empty(),
     )
@@ -127,7 +128,7 @@ fn unsupported_declared_domain_shape_denies_without_generic_traversal_fallback()
             ),
         );
 
-    let outcome = resolve_graph_read_operations_for_family_with_registry(&family, &registry)
+    let outcome = resolve_graph_read_operations_for_family_with_operation_lookup(&family, &registry)
         .expect("schema references should admit before unsupported-shape classification");
 
     match outcome {
@@ -156,7 +157,7 @@ fn ordinary_traversal_with_same_relations_does_not_become_domain_operation() {
     .expect("domain operation registration should admit");
 
     let explanation =
-        explain_graph_read_access_shape_for_family_with_operation_registry(&family, &registry)
+        explain_graph_read_access_shape_for_family_with_operation_lookup(&family, &registry)
             .expect("plain declared traversal should still resolve");
     let operation = &explanation
         .access_shape()
@@ -250,14 +251,14 @@ fn manager_schema() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [SchemaRelationView::new(

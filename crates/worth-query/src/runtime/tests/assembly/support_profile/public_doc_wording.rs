@@ -48,7 +48,7 @@ fn intent_admission_doc_teaches_the_runtime_floor_with_final_public_names() {
         "`workspace.read_family_in_basis_context_intent(&family, &context)`",
         "`workspace.read_live_intent(&view)`",
         "`workspace.materialize_intent(&view)`",
-        "`workspace.inspect_intent(target)`",
+        "`workspace.inspections()?.inspect_intent(target)`",
         "`workspace.inspect_derived_intent(&view)`",
         "`runtime.probe_existing_intent(request)`",
         "`workspace.probe_existing_intent(request)`",

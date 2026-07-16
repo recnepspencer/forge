@@ -9,6 +9,7 @@ use crate::binding_pipeline::{
     WorthQueryContinuationBindingRequest, WorthQueryResolveContinuationFromTargetRequest,
 };
 
+use super::installed_authority::prepared_installed_authority_drift_transcript;
 use super::outcome::{
     prepared_outcome_from_binding_outcome, prepared_outcome_from_bridge_denial_cause,
     prepared_outcome_from_signal_truth, prepared_outcome_token,
@@ -38,6 +39,17 @@ pub(crate) fn prepare_continuation_from_target_on_handle<
     handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     request: WorthQueryResolveContinuationFromTargetRequest<D, I>,
 ) -> WorthQueryPreparedContinuationTranscript<D, I> {
+    if let Err(drift) = handle.validate_current_installation() {
+        return prepared_installed_authority_drift_transcript(
+            WorthQueryBindingRequestDescriptor::new(
+                I::Family::semantic_family_key(),
+                "prepared_continuation",
+                request.required_aspect_contract().clone(),
+            ),
+            crate::binding_pipeline::WorthQueryBindingLinkedArtifacts::new(),
+            drift,
+        );
+    }
     let binding = handle.bind_continuation_from_target_proof(request);
     prepare_from_binding_transcript(handle, binding)
 }
@@ -50,6 +62,17 @@ pub(crate) fn prepare_continuation_from_context_on_handle<
     handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
     request: WorthQueryContinuationBindingRequest<D, I>,
 ) -> WorthQueryPreparedContinuationTranscript<D, I> {
+    if let Err(drift) = handle.validate_current_installation() {
+        return prepared_installed_authority_drift_transcript(
+            WorthQueryBindingRequestDescriptor::new(
+                I::Family::semantic_family_key(),
+                "prepared_continuation",
+                request.required_aspect_contract().clone(),
+            ),
+            crate::binding_pipeline::WorthQueryBindingLinkedArtifacts::new(),
+            drift,
+        );
+    }
     let binding = handle.bind_continuation_request_from_context_proof(request);
     prepare_from_binding_transcript(handle, binding)
 }
@@ -64,6 +87,17 @@ pub(crate) fn prepare_continuation_from_signal_checked_on_handle<
     bridge_request: crate::application::WorthQueryDeclarationBridgeContinuationRequest,
     required_contract: crate::application::WorthQueryDeclarationAspectContract,
 ) -> WorthQueryPreparedContinuationTranscript<D, I> {
+    if let Err(drift) = handle.validate_current_installation() {
+        return prepared_installed_authority_drift_transcript(
+            WorthQueryBindingRequestDescriptor::new(
+                I::Family::semantic_family_key(),
+                "prepared_continuation",
+                required_contract.clone(),
+            ),
+            crate::binding_pipeline::WorthQueryBindingLinkedArtifacts::new(),
+            drift,
+        );
+    }
     let request = WorthQueryBindingRequestDescriptor::new(
         I::Family::semantic_family_key(),
         "prepared_continuation",
@@ -127,6 +161,9 @@ fn prepare_from_resolved_signal_truth<
     bridge_request: crate::application::WorthQueryDeclarationBridgeContinuationRequest,
     required_contract: crate::application::WorthQueryDeclarationAspectContract,
 ) -> WorthQueryPreparedContinuationTranscript<D, I> {
+    if let Err(drift) = handle.validate_current_installation() {
+        return prepared_installed_authority_drift_transcript(request_descriptor, linked, drift);
+    }
     let mut witness_checks = vec![
         WorthQueryBindingWitnessCheck::passed("continuation_binding"),
         WorthQueryBindingWitnessCheck::passed("signal_compatibility"),

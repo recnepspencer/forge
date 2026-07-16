@@ -102,6 +102,17 @@ impl<'a> AudienceRepository<'a> {
     }
 
     fn write_query_facade_provider(&self, root: &Path) {
+        let (engine_source, facade_source) = match self.item {
+            "CanonicalQueryArtifact" => (
+                "pub mod facade { pub mod foundation { pub struct CanonicalQueryArtifact; } }\n",
+                "pub use worth_query::facade::foundation::CanonicalQueryArtifact;\n",
+            ),
+            "runtime" => (
+                "pub mod facade { pub mod runtime { pub struct WorthQueryRuntime; } }\n",
+                "pub use worth_query::facade::runtime;\n",
+            ),
+            item => panic!("unsupported Query audience fixture item: {item}"),
+        };
         write(
         root,
         "crates/worth-query/Cargo.toml",
@@ -110,7 +121,7 @@ impl<'a> AudienceRepository<'a> {
         write(
             root,
             "crates/worth-query/src/lib.rs",
-            &format!("pub struct {};\n", self.item),
+            engine_source,
         );
         write(root, &format!("crates/{}/Cargo.toml", self.facade), &format!("[package]\nname = \"{}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n[dependencies]\nworth-query = {{ path = \"../worth-query\" }}\n[workspace]\n", self.facade));
         write(
@@ -121,7 +132,7 @@ impl<'a> AudienceRepository<'a> {
         write(
             root,
             &format!("crates/{}/src/facade.rs", self.facade),
-            &format!("pub use worth_query::{};\n", self.item),
+            facade_source,
         );
     }
 }

@@ -1,15 +1,18 @@
 //! Query binding surfaces grouped by lifecycle: subsystem entry → prerequisite boundary.
 
+mod domain_marker;
+mod domain_package;
 pub mod entry;
-pub mod ordinary_query;
+mod installed_measurements;
+mod native_aspect_contracts;
 pub mod prerequisites;
 
 // Subsystem entry lane
+pub use domain_marker::WorthUiDomainEntry;
+pub use domain_package::worth_ui_domain_package;
 pub use entry::{WorthUiQueryAllocationAdmission, WorthUiQueryBindingSubsystem};
-pub use ordinary_query::{
-    declare_measurement_comparison, declare_measurement_history, declare_measurement_live,
-    declare_measurement_read, inspect_measurement_read,
-};
+pub use installed_measurements::{WorthUiMeasurementContribution, WorthUiQueryExt};
+pub use native_aspect_contracts::worth_ui_native_aspect_contracts;
 // Prerequisite boundary lane
 pub use prerequisites::{
     WorthUiQueryAllocationConsumptionIdentity, WorthUiQueryAllocationInvalidationBasis,
@@ -26,4 +29,4 @@ pub use prerequisites::{
 };
 
 #[cfg(test)]
-mod ordinary_query_tests;
+mod installed_measurements_tests;

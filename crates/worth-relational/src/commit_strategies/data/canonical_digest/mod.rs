@@ -1,6 +1,7 @@
 mod artifact_terms;
 mod descriptor_terms;
 mod mutation_program_terms;
+mod portable_aspect_patch_terms;
 mod primitive_terms;
 
 pub(crate) use artifact_terms::{

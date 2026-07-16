@@ -17,8 +17,8 @@ use crate::continuation_pipeline::{
     WorthQueryPreparedContinuationDriftKind, WorthQueryPreparedContinuationFreshnessPosture,
 };
 pub(crate) use handles::{
-    admitted_handle, context_request, drifted_readmission_handle, envelope,
-    historical_disabled_handle, historical_truth_view_request, preview_disabled_handle,
+    admitted_handle, admitted_workspace, context_request, continuation_handle_in,
+    drifted_readmission_handle_in, envelope, historical_truth_view_request,
     preview_session_request, runtime_route_request, target_request,
 };
 
@@ -45,6 +45,8 @@ pub(super) struct ContinuationWorld(pub(super) &'static str);
 impl WorthQueryDomainOperatingContext<ContinuationDomain> for ContinuationWorld {
     fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
         &[
+            WorthQueryCapabilityFamily::HistoricalEvaluation,
+            WorthQueryCapabilityFamily::WorkflowOrchestration,
             WorthQueryCapabilityFamily::QueryComposition,
             WorthQueryCapabilityFamily::PreviewSession,
         ]
@@ -58,25 +60,11 @@ impl WorthQueryDomainOperatingContext<ContinuationDomain> for ContinuationWorld 
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("continuation-world-{}", self.0)
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) struct LenientContinuationWorld(pub(super) &'static str);
-
-impl WorthQueryDomainOperatingContext<ContinuationDomain> for LenientContinuationWorld {
-    fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
-        &[]
-    }
-
-    fn required_config_sections(&self) -> &'static [WorthQueryConfigSectionFamily] {
-        &[WorthQueryConfigSectionFamily::Query]
-    }
-
-    fn context_identity_digest(&self) -> String {
-        format!("continuation-world-{}", self.0)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("continuation-world-{}", self.0) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -89,6 +77,7 @@ pub(super) enum ReadmissionDrift {
     PreviewCrossedResidue,
     StaleCompletion,
     BasisMismatch,
+    LowerBindingMismatch,
     AuthorityMismatch,
 }
 
@@ -101,6 +90,8 @@ pub(super) struct DriftedContinuationWorld {
 impl WorthQueryDomainOperatingContext<ContinuationDomain> for DriftedContinuationWorld {
     fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
         &[
+            WorthQueryCapabilityFamily::HistoricalEvaluation,
+            WorthQueryCapabilityFamily::WorkflowOrchestration,
             WorthQueryCapabilityFamily::QueryComposition,
             WorthQueryCapabilityFamily::PreviewSession,
         ]
@@ -114,8 +105,11 @@ impl WorthQueryDomainOperatingContext<ContinuationDomain> for DriftedContinuatio
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("continuation-world-{}", self.label)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("continuation-world-{}", self.label) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 
     fn continuation_execution_readmission_observation(
@@ -130,10 +124,12 @@ impl WorthQueryDomainOperatingContext<ContinuationDomain> for DriftedContinuatio
                 None,
                 None,
                 None,
+                None,
             ),
             ReadmissionDrift::AsyncRequest => drifted_observation_from_retained(
                 retained,
                 WorthQueryPreparedContinuationFreshnessPosture::Stable,
+                None,
                 None,
                 None,
                 Some(WorthQueryPreparedContinuationDriftKind::AsyncRequest),
@@ -143,11 +139,13 @@ impl WorthQueryDomainOperatingContext<ContinuationDomain> for DriftedContinuatio
                 WorthQueryPreparedContinuationFreshnessPosture::Stable,
                 None,
                 None,
+                None,
                 Some(WorthQueryPreparedContinuationDriftKind::Replay),
             ),
             ReadmissionDrift::Remask => drifted_observation_from_retained(
                 retained,
                 WorthQueryPreparedContinuationFreshnessPosture::Stable,
+                None,
                 None,
                 None,
                 Some(WorthQueryPreparedContinuationDriftKind::Remask),
@@ -157,11 +155,13 @@ impl WorthQueryDomainOperatingContext<ContinuationDomain> for DriftedContinuatio
                 WorthQueryPreparedContinuationFreshnessPosture::Stable,
                 None,
                 None,
+                None,
                 Some(WorthQueryPreparedContinuationDriftKind::PreviewCrossedResidue),
             ),
             ReadmissionDrift::StaleCompletion => drifted_observation_from_retained(
                 retained,
                 WorthQueryPreparedContinuationFreshnessPosture::Stable,
+                None,
                 None,
                 None,
                 Some(WorthQueryPreparedContinuationDriftKind::StaleCompletion),
@@ -175,10 +175,20 @@ impl WorthQueryDomainOperatingContext<ContinuationDomain> for DriftedContinuatio
                 )),
                 None,
                 None,
+                None,
+            ),
+            ReadmissionDrift::LowerBindingMismatch => drifted_observation_from_retained(
+                retained,
+                WorthQueryPreparedContinuationFreshnessPosture::Stable,
+                None,
+                Some("drifted-lower-runtime-binding".to_string()),
+                None,
+                None,
             ),
             ReadmissionDrift::AuthorityMismatch => drifted_observation_from_retained(
                 retained,
                 WorthQueryPreparedContinuationFreshnessPosture::Stable,
+                None,
                 None,
                 Some(crate::basis_lifecycle::LowerRuntimeEvidenceAuthority::RuntimeBridgeFacade),
                 None,

@@ -1,5 +1,5 @@
 use crate::runtime::{
-    WorthQueryAdmittedAspectValue, WorthQueryAspectMutationOperation,
+    WorthQueryAspectMutationOperation, WorthQueryAuthoredAspectMutation,
     WorthQueryGraphCompositionBreadth, WorthQueryGraphCompositionProgram,
     WorthQueryGraphCompositionProgramStep, WorthQueryGraphCompositionProgramStepKind,
     WorthQueryGraphTouchDescriptor, WorthQueryMutationMetadata,
@@ -127,7 +127,7 @@ pub(super) fn one_step_update_program(
     let command = WorthQueryWriteCommand::UpdateSymbolicAspects {
         reference: reference(symbol, collection),
         aspects: vec![
-            WorthQueryAdmittedAspectValue::new(touch(touch_fixture), int_value(1)).unwrap(),
+            WorthQueryAuthoredAspectMutation::new(touch(touch_fixture), int_value(1)).unwrap(),
         ],
         metadata: WorthQueryMutationMetadata::new(),
         naming_intent: None,

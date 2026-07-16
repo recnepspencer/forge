@@ -15,11 +15,11 @@ pub struct WorthQueryPatchBatch {
     pub derived_patches: Vec<WorthQueryDerivedPatch>,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct WorthQueryNativeRow;
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryUnrefinedLiveShape {}
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct WorthQueryLiveView<T = WorthQueryNativeRow> {
+pub struct WorthQueryLiveView<T = WorthQueryUnrefinedLiveShape> {
     pub(super) handle: WorthQueryLiveViewHandle,
     pub(super) authority_lane: WorthQueryAuthorityLane,
     pub(super) subscription_installation: WorthQueryRuntimeLiveSubscriptionInstallation,

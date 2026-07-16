@@ -1,11 +1,17 @@
+#[cfg(test)]
 use crate::authorized_projection::AuthorizedProjectionFieldPath;
+#[cfg(test)]
 use crate::identity::hash_parts;
+#[cfg(test)]
 use crate::policy_execution_seam::{
     PolicyAwareExecutionMode, PolicyAwareExecutionSeam, PolicyAwareExecutionSeamError,
     PolicyAwareExecutionSeamFailureClass, PolicyAwareSeamCounters,
 };
+#[cfg(test)]
 use crate::policy_narrowing::NarrowedPolicyQueryArtifact;
-use crate::policy_plan::{PolicyAwarePlanCore, PolicyAwarePlanCostPosture};
+use crate::policy_plan::PolicyAwarePlanCore;
+#[cfg(test)]
+use crate::policy_plan::PolicyAwarePlanCostPosture;
 
 use super::{PolicyAwareLiveRelevanceContract, PolicyDriftDisposition, PolicyLiveDensityPosture};
 
@@ -17,6 +23,7 @@ pub struct PolicyAwareLiveAdmissionReport {
 }
 
 impl PolicyAwareLiveAdmissionReport {
+    #[cfg(test)]
     pub(crate) fn new(
         seam: &PolicyAwareExecutionSeam,
         relevance: &PolicyAwareLiveRelevanceContract,
@@ -68,7 +75,7 @@ impl PolicyAwareLivePlan {
         &self.report
     }
 }
-
+#[cfg(test)]
 pub(crate) fn admit_policy_aware_live_plan(
     artifact: &NarrowedPolicyQueryArtifact,
     requested_relevance_fields: &[AuthorizedProjectionFieldPath],

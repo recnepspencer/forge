@@ -12,8 +12,10 @@ pub use boundary::{
 };
 pub use forbidden_fallback::{
     projection_consumption_forbidden_fallback_audit, ProjectionConsumptionForbiddenFallbackAudit,
-    ProjectionConsumptionForbiddenFallbackAuditRow, ProjectionConsumptionForbiddenFallbackSeam,
-    ProjectionConsumptionOrdinaryPathSurface,
+};
+#[cfg(test)]
+pub(crate) use forbidden_fallback::{
+    ProjectionConsumptionForbiddenFallbackSeam, ProjectionConsumptionOrdinaryPathSurface,
 };
 pub use proof_shape::{
     projection_consumption_phase_progression_digest, projection_consumption_proof_shape_audit,

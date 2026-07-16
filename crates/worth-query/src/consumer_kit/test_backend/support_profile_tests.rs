@@ -75,11 +75,7 @@ fn task_workspace() -> crate::runtime::WorthQueryWorkspace {
 }
 
 fn task_schema() -> WorthQueryTestBackendSchema {
-    WorthQueryTestBackendSchema::single_collection("Task")
-        .aspect("identity.id", "identity.id")
-        .expect("identity aspect")
-        .aspect("title.value", "title.value")
-        .expect("title aspect")
+    super::contract_fixtures::task_schema()
 }
 
 fn matrix_row_status(

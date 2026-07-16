@@ -24,7 +24,7 @@ fn compose_graph_with_invariant_pack_executes_when_pack_admits_program() {
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-invariant-pack")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-invariant-pack-tasks", |q| {
             q.from("Task")
                 .select([
@@ -40,7 +40,7 @@ fn compose_graph_with_invariant_pack_executes_when_pack_admits_program() {
                 .schema_basis("tasks-graph-composition-invariant-pack-tasks")
         })
         .expect("task live view should declare");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-invariant-pack-edges", |q| {
             q.from("TaskEdge")
                 .select([
@@ -116,7 +116,7 @@ fn compose_graph_with_invariant_pack_does_not_overclaim_symbolic_relation_target
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-invariant-pack-unrelated-relation")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "tasks.graph-composition-invariant-pack-unrelated-tasks",
             |q| {
@@ -135,7 +135,7 @@ fn compose_graph_with_invariant_pack_does_not_overclaim_symbolic_relation_target
             },
         )
         .expect("task live view should declare");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "tasks.graph-composition-invariant-pack-unrelated-edges",
             |q| {
@@ -213,8 +213,16 @@ fn compose_graph_with_invariant_pack_denies_domain_invalid_program_distinctly() 
     let runtime = bridge_runtime_with_support_and_existing_truth_verification(
         loop_successor_verified_profile(),
         TestExistingTruthVerificationAdapter::default()
-            .with_value(&binding, "source.id", test_string_aspect_value("he-1"))
-            .with_value(&binding, "target.id", test_string_aspect_value("he-2")),
+            .with_value(
+                &binding,
+                "source.id",
+                test_native_entity_ref_value(&test_entity_identity("he-1")),
+            )
+            .with_value(
+                &binding,
+                "target.id",
+                test_native_entity_ref_value(&test_entity_identity("he-2")),
+            ),
     );
     let mut workspace = runtime
         .workspace("topology.graph-composition-failed-non-manifold-admission")
@@ -233,12 +241,12 @@ fn compose_graph_with_invariant_pack_denies_domain_invalid_program_distinctly() 
                     binding,
                     |verify| {
                         verify
-                            .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("he-1"))
-                            .set_aspect(test_aspect_touch("target.id"), test_authored_string_aspect_value("he-2"))
+                            .existing_entity_identity(test_aspect_touch("source.id"), test_entity_identity("he-1"))
+                            .existing_entity_identity(test_aspect_touch("target.id"), test_entity_identity("he-2"))
                     },
                     |update| {
                         update
-                            .set_aspect(test_aspect_touch("source.id"), test_authored_string_aspect_value("he-1"))
+                            .existing_entity_identity(test_aspect_touch("source.id"), test_entity_identity("he-1"))
                             .continuity_rebind_existing_target(crate::runtime::WorthQueryMutationAuthorityIdentity::continuity_prior_authority(crate::runtime::WorthQueryContinuityPriorAuthorityLabel::new("authority:loop-next-rel").expect("continuity prior authority label")).expect("continuity prior authority identity"), crate::runtime::WorthQueryMutationAuthorityIdentity::continuity_successor_authority(crate::runtime::WorthQueryContinuitySuccessorAuthorityLabel::new("authority:loop-next-rel-successor").expect("continuity successor authority label")).expect("continuity successor authority identity"),
                             )
                             .symbolic_entity_identity(test_aspect_touch("target.id"), successor.reference().clone())

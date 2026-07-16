@@ -84,7 +84,7 @@ fn bridge_backed_entity_verification_rows_match_runtime_behavior() {
         .workspace("tasks.bridge-backed-entity-verification-support")
         .expect("workspace should open");
     let support = workspace.public_authoritative_mutation_evidence_support();
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "tasks.bridge-backed-entity-verification-support-table",
             |q| {
@@ -193,7 +193,7 @@ fn bridge_backed_relation_verification_rows_match_runtime_behavior() {
         .workspace("tasks.bridge-backed-relation-verification-support")
         .expect("workspace should open");
     let support = workspace.public_authoritative_mutation_evidence_support();
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view(
             "tasks.bridge-backed-relation-verification-support-table",
             |q| {

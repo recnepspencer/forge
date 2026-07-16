@@ -2,13 +2,12 @@ use super::super::*;
 use super::state::{NativeExternalRow, StatefulBridgeState};
 use super::writes::native_external_field_path_for_touch;
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
-use crate::runtime::mutation::terminal_aspect_value_digest_text;
-use worth_foundational::facade::AspectValue;
+use worth_foundational::facade::{prepare_aspect_value_identity_basis, AspectValue};
 
 pub(super) fn verify_existing_truth_assertion(
     state: &StatefulBridgeState,
     binding: &WorthQueryExistingTruthTargetBinding,
-    aspects: &[WorthQueryAdmittedAspectValue],
+    aspects: &[WorthQueryAuthoredAspectMutation],
     snapshot_identity: WorthQuerySnapshotIdentity,
 ) -> Result<WorthQueryVerifiedExistingTruthAssertion, WorthQueryExistingTruthAssertionDenial> {
     let row = authoritative_row(state, binding).map_err(|message| {
@@ -79,7 +78,9 @@ pub(super) fn verify_existing_truth_assertion(
 }
 
 fn terminal_digest_from_aspect_value(value: &AspectValue) -> String {
-    terminal_aspect_value_digest_text(value)
+    prepare_aspect_value_identity_basis(value)
+        .as_str()
+        .to_owned()
 }
 
 pub(super) fn probe_existing_truth(

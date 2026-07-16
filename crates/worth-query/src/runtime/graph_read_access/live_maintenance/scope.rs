@@ -1,4 +1,5 @@
 use crate::identity::hash_parts;
+#[cfg(test)]
 use crate::runtime::WorthQueryAdmittedGraphReadAccessPlan;
 use crate::subscription::QuerySubscriptionFamily;
 
@@ -17,6 +18,7 @@ impl WorthQueryLiveGraphReadMutationDeltaScope {
         &self.delta_scope_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn from_one_shot_access_plan(
         one_shot: &WorthQueryAdmittedGraphReadAccessPlan,
     ) -> Self {

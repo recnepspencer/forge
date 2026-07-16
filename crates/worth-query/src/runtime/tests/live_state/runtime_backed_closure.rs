@@ -61,7 +61,7 @@ fn remasked_runtime(projection: WorthQueryRuntimeRemaskProjection) -> WorthQuery
 #[test]
 fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and_follow_on_lanes() {
     let mut time_only_runtime = stateful_bridge_task_runtime();
-    let time_view: WorthQueryLiveView<WorthQueryNativeRow> = time_only_runtime
+    let time_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = time_only_runtime
         .declare_live_view(
             "tasks.phase26-time-only",
             task_live_request(),
@@ -111,7 +111,7 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         )
         .expect("mixed-cause delivery should plan");
     let mut mixed_runtime = stateful_bridge_task_runtime();
-    let mixed_view: WorthQueryLiveView<WorthQueryNativeRow> = mixed_runtime
+    let mixed_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = mixed_runtime
         .declare_live_view(
             "tasks.phase26-mixed-cause",
             task_live_request(),
@@ -148,7 +148,7 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         "relationship-proof:stable",
         "schema-context:drifted",
     ));
-    let remask_view: WorthQueryLiveView<WorthQueryNativeRow> = remask_runtime
+    let remask_view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = remask_runtime
         .declare_live_view(
             "tasks.phase26-remask-denied",
             task_live_request(),
@@ -176,14 +176,14 @@ fn runtime_backed_reference_workload_exercises_temporal_async_preview_causal_and
         "async-completion:cause:phase26-title",
     );
     let follow_on_view = follow_on_runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.phase26-follow-on",
             task_live_request(),
             task_schema(),
         )
         .expect("follow-on live view should declare");
     let follow_on_effect = follow_on_runtime
-        .declare_effect::<WorthQueryNativeRow>(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(
             WorthQueryEffectDeclaration::write_intent(
                 "effects.phase26-follow-on",
                 WorthQueryEffectTrigger::live_view(

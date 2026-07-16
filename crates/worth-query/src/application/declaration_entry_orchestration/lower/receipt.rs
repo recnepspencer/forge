@@ -16,6 +16,7 @@ use super::envelope::{
     lower_from_issued_envelope,
 };
 
+#[cfg(test)]
 pub(super) fn lower_from_receipt_checked<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,

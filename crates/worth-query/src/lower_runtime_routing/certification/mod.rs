@@ -5,8 +5,6 @@ mod phase_manifest;
 mod surface;
 #[cfg(test)]
 mod tests;
-
-#[allow(unused_imports)]
 pub use boundary_certification::{
     certify_lower_runtime_non_bypass, worth_query_lower_runtime_boundary_reconciliation_report,
     worth_query_lower_runtime_compile_fail_boundary_digest,
@@ -21,7 +19,6 @@ pub use boundary_certification::{
     WorthQueryLowerRuntimePublicSurfaceInventory, WorthQueryLowerRuntimePublicSurfaceKind,
     WorthQueryLowerRuntimePublicSurfaceRow,
 };
-#[allow(unused_imports)]
 pub use closeout_artifacts::{
     certify_lower_runtime_routing, worth_query_lower_runtime_certification_output_manifest,
     worth_query_lower_runtime_closeout_extension_outputs,
@@ -32,7 +29,6 @@ pub use closeout_artifacts::{
     WorthQueryLowerRuntimeCertificationOutputDigest, WorthQueryLowerRuntimeCertificationRow,
     WorthQueryLowerRuntimeCloseoutReport, WorthQueryLowerRuntimeClosureTest,
     WorthQueryLowerRuntimeClosureTestLane, WorthQueryLowerRuntimeClosureTestRow,
-    LOWER_RUNTIME_CLOSURE_TEST_NAME,
 };
 pub use performance::{
     certify_lower_runtime_performance_slopes, WorthQueryLowerRuntimePerformanceFamily,
@@ -44,11 +40,10 @@ pub use phase_manifest::{
     worth_query_lower_runtime_typestate_transition_digest, WorthQueryLowerRuntimePhaseArtifact,
     WorthQueryLowerRuntimePhaseManifest, WorthQueryLowerRuntimePhaseManifestRow,
 };
-#[allow(unused_imports)]
 pub use surface::{
     worth_query_lower_runtime_acceptance_suite, worth_query_lower_runtime_golden_transcripts,
     worth_query_lower_runtime_synthetic_tail_report, worth_query_lower_runtime_target_dx_digest,
     WorthQueryLowerRuntimeAcceptanceLane, WorthQueryLowerRuntimeAcceptanceRow,
-    WorthQueryLowerRuntimeAcceptanceSuite, WorthQueryLowerRuntimeGoldenTranscript,
-    WorthQueryLowerRuntimeSyntheticTailReport, WorthQueryLowerRuntimeSyntheticTailRow,
+    WorthQueryLowerRuntimeAcceptanceSuite, WorthQueryLowerRuntimeSyntheticTailReport,
+    WorthQueryLowerRuntimeSyntheticTailRow,
 };

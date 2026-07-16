@@ -88,7 +88,7 @@ pub(super) fn extract_write_receipt_facts(
             | ProjectionFactKind::ViewLocalIdentity
             | ProjectionFactKind::Membership
             | ProjectionFactKind::DisplayField
-            | ProjectionFactKind::DerivedScalarField => {}
+            | ProjectionFactKind::DerivedField => {}
         }
     }
 

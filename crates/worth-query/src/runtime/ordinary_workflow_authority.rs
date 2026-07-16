@@ -1,17 +1,15 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::evidence_identity::{
-    WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
-};
-use crate::memory_workspace::WorthQuerySnapshotIdentity;
-use crate::session_label::WorthQuerySessionLabel;
-use worth_relational::facade::history::BranchId;
-
 use super::{
     WorthQueryBackendMergeAuthority, WorthQueryEffectPolicy, WorthQueryInspection,
     WorthQueryPreviewBasisAdmission, WorthQueryRuntime, WorthQueryRuntimeError,
     WorthQueryRuntimeFacadeFamily, WorthQueryWriteCommand, WorthQueryWriteReceipt,
 };
+use crate::evidence_identity::{
+    WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
+};
+use crate::memory_workspace::WorthQuerySnapshotIdentity;
+use crate::session_label::WorthQuerySessionLabel;
 
 static NEXT_RUNTIME_AUTHORITY_IDENTITY: AtomicU64 = AtomicU64::new(1);
 
@@ -181,8 +179,8 @@ impl WorthQueryRuntime {
 
     pub(crate) fn capture_ordinary_merge_authority(
         &self,
-        target_branch: BranchId,
-        source_branch: BranchId,
+        target_branch: &super::WorthQueryAdmittedBranchName,
+        source_branch: &super::WorthQueryAdmittedBranchName,
     ) -> Result<WorthQueryOrdinaryAuthorityAdmission, WorthQueryRuntimeError> {
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Effect)?;
         let merge_authority = self

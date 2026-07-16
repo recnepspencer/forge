@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
+    WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
     WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
@@ -14,11 +14,12 @@ use crate::binding_pipeline::{
     WorthQueryBindingOutcome, WorthQueryBindingSourceKind, WorthQueryBindingSpecificity,
     WorthQueryContinuationBindingRequest, WorthQueryDeclarationBindingRequest,
     WorthQueryDeclarationContextCandidate, WorthQueryEnvelopeContextCandidate,
-    WorthQueryEnvelopeResolverSubject, WorthQueryProgressionContextCandidate,
-    WorthQueryReceiptResolverSubject, WorthQueryResolveEnvelopeFromTargetRequest,
-    WorthQueryResolveReceiptFromTargetRequest, WorthQueryResolveRouteFromTargetRequest,
+    WorthQueryProgressionContextCandidate, WorthQueryResolveRouteFromTargetRequest,
     WorthQueryRouteBindingRequest, WorthQueryRouteResolverSubject,
 };
+
+#[cfg(test)]
+mod proof_tests;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct BindingDomain;
@@ -49,8 +50,11 @@ impl WorthQueryDomainOperatingContext<BindingDomain> for BindingWorld {
             WorthQueryConfigSectionFamily::RuntimeBridge,
         ]
     }
-    fn context_identity_digest(&self) -> String {
-        format!("binding-world-{}", self.0)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("binding-world-{}", self.0) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -281,57 +285,6 @@ fn route_target_binding_preserves_wrong_world() {
 }
 
 #[test]
-fn retained_target_binding_matches_explicit_receipt_and_envelope_paths() {
-    let handle = admitted_handle("main");
-    let progressed = progressed_route(&handle, "edge-a");
-    let route_plan = match handle.plan_routes_from_progressed(progressed.clone()) {
-        Ok(plan) => plan,
-        Err(_) => panic!("expected explicit route plan"),
-    };
-    let explicit_receipt = match handle.receipt_routes_from_progressed(progressed.clone()) {
-        Ok(receipt) => receipt,
-        Err(_) => panic!("expected explicit receipt"),
-    };
-    let explicit_receipt_digest = format!("{:?}", explicit_receipt.receipt_digest());
-    let receipt_input =
-        match handle.bind_receipt_from_target(WorthQueryResolveReceiptFromTargetRequest::new(
-            WorthQueryReceiptResolverSubject::RoutePlan(route_plan),
-            RouteFamily::aspect_contract(),
-        )) {
-            WorthQueryBindingOutcome::Bound(input) => input,
-            _ => panic!("expected receipt binding"),
-        };
-    let rebound_receipt = match handle.receipt_routes(receipt_input) {
-        Ok(receipt) => receipt,
-        Err(_) => panic!("expected rebound receipt"),
-    };
-    let envelope_input =
-        match handle.bind_envelope_from_target(WorthQueryResolveEnvelopeFromTargetRequest::new(
-            WorthQueryEnvelopeResolverSubject::Receipt(explicit_receipt),
-            RouteFamily::aspect_contract(),
-        )) {
-            WorthQueryBindingOutcome::Bound(input) => input,
-            _ => panic!("expected envelope binding"),
-        };
-    let rebound_envelope = match handle.envelope_routes(envelope_input) {
-        Ok(envelope) => envelope,
-        Err(_) => panic!("expected rebound envelope"),
-    };
-    let explicit_envelope = match handle.envelope_routes_from_progressed(progressed) {
-        Ok(envelope) => envelope,
-        Err(_) => panic!("expected explicit envelope"),
-    };
-    assert_eq!(
-        explicit_receipt_digest,
-        format!("{:?}", rebound_receipt.receipt_digest())
-    );
-    assert_eq!(
-        explicit_envelope.envelope_digest(),
-        rebound_envelope.envelope_digest()
-    );
-}
-
-#[test]
 fn continuation_binding_from_envelope_produces_bridge_request() {
     let handle = admitted_handle("main");
     let progressed = progressed_bridge(&handle, "face-a");
@@ -380,44 +333,4 @@ fn continuation_binding_reports_authority_mismatch_when_contract_requires_hidden
         outcome,
         WorthQueryBindingOutcome::AuthorityMismatch(_)
     ));
-}
-
-#[test]
-fn binding_proof_exposes_linked_artifacts_and_witness_checks() {
-    let handle = admitted_handle("main");
-    let progressed = progressed_route(&handle, "edge-a");
-    let proof = handle.bind_route_from_target_proof(WorthQueryResolveRouteFromTargetRequest::new(
-        WorthQueryRouteResolverSubject::Progression(progressed.clone()),
-        RouteFamily::aspect_contract(),
-    ));
-    assert_eq!(proof.request().request_kind(), "resolve_route_from_target");
-    assert_eq!(proof.witness_checks().len(), 1);
-    assert!(proof.witness_checks()[0].did_pass());
-    assert!(proof.resolved_target().is_some());
-    assert_eq!(
-        proof.linked_artifacts().progression_digest(),
-        Some(progressed.progression_digest())
-    );
-}
-
-#[test]
-fn binding_digest_changes_when_required_aspect_contract_changes() {
-    let handle = admitted_handle("main");
-    let progressed = progressed_route(&handle, "edge-a");
-    let exact = handle.bind_route_from_target_proof(WorthQueryResolveRouteFromTargetRequest::new(
-        WorthQueryRouteResolverSubject::Progression(progressed.clone()),
-        RouteFamily::aspect_contract(),
-    ));
-    let narrowed =
-        handle.bind_route_from_target_proof(WorthQueryResolveRouteFromTargetRequest::new(
-            WorthQueryRouteResolverSubject::Progression(progressed),
-            WorthQueryDeclarationAspectContract::from_slices(
-                &["selection.edge", "selection.material"],
-                &[],
-                &[],
-                &[],
-                &[],
-            ),
-        ));
-    assert_ne!(exact.binding_digest(), narrowed.binding_digest());
 }

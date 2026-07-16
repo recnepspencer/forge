@@ -4,11 +4,11 @@ mod denial;
 mod receipt;
 mod request;
 
+#[cfg(test)]
+pub(crate) use context::admit_graph_read_access_authority_from_policy_tenant_request;
 pub use context::{
-    admit_graph_read_access_authority,
-    admit_graph_read_access_authority_from_policy_tenant_request,
-    WorthQueryGraphReadAccessAuthorityContext, WorthQueryGraphReadAccessBasisScope,
-    WorthQueryGraphReadAccessBasisScopeKind,
+    admit_graph_read_access_authority, WorthQueryGraphReadAccessAuthorityContext,
+    WorthQueryGraphReadAccessBasisScope, WorthQueryGraphReadAccessBasisScopeKind,
 };
 pub use counters::WorthQueryGraphReadAccessAuthorityCounters;
 pub use denial::{

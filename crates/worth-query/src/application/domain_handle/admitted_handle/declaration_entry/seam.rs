@@ -1,13 +1,16 @@
 use crate::application::{
     worth_query_declaration_entry_crossing_inventory,
+    worth_query_declaration_entry_readiness_report, WorthQueryDeclarationEntryCrossingInventory,
+    WorthQueryDeclarationEntryReadinessReport, WorthQueryDeclarationInput,
+    WorthQueryDomainEntryMarker,
+};
+#[cfg(test)]
+use crate::application::{
     worth_query_declaration_entry_inspection_on_handle,
-    worth_query_declaration_entry_readiness_report,
     worth_query_declaration_entry_readiness_report_with_request,
-    WorthQueryDeclarationEntryContributionCompositionError,
-    WorthQueryDeclarationEntryCrossingInventory, WorthQueryDeclarationEntryInspection,
+    WorthQueryDeclarationEntryContributionCompositionError, WorthQueryDeclarationEntryInspection,
     WorthQueryDeclarationEntryInspectionError, WorthQueryDeclarationEntryInspectionInput,
-    WorthQueryDeclarationEntryReadinessReport, WorthQueryDeclarationEntryReadinessRequest,
-    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
+    WorthQueryDeclarationEntryReadinessRequest,
 };
 
 use super::super::WorthQueryInstalledDomainDeclarationContext;
@@ -28,7 +31,8 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         worth_query_declaration_entry_readiness_report::<D, C, I>(self)
     }
 
-    pub fn try_declaration_entry_readiness<I: WorthQueryDeclarationInput<D>>(
+    #[cfg(test)]
+    pub(crate) fn try_declaration_entry_readiness<I: WorthQueryDeclarationInput<D>>(
         &self,
         request: WorthQueryDeclarationEntryReadinessRequest<D, I>,
     ) -> Result<
@@ -38,6 +42,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         worth_query_declaration_entry_readiness_report_with_request::<D, C, I>(self, request)
     }
 
+    #[cfg(test)]
     pub(crate) fn inspect_declaration_entry<I: WorthQueryDeclarationInput<D>>(
         &self,
         subject: WorthQueryDeclarationEntryInspectionInput<D, I>,

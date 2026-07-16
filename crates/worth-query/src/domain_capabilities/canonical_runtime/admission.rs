@@ -4,17 +4,21 @@ use crate::domain_capabilities::denials::{
     WorthQueryDomainCapabilityProgressionDenial, WorthQueryDomainCapabilityProgressionDenialKind,
 };
 use crate::domain_capabilities::payloads::WorthQueryAdmissionContributionPosture;
-use crate::domain_capabilities::targets::{
-    WorthQueryAdmittedPlanBoundContributionTarget, WorthQueryDomainCapabilityTargetBinding,
-};
+#[cfg(test)]
+use crate::domain_capabilities::targets::WorthQueryAdmittedPlanBoundContributionTarget;
+use crate::domain_capabilities::targets::WorthQueryDomainCapabilityTargetBinding;
 use crate::domain_capabilities::{
     WorthQueryCanonicalAdmissionArtifact, WorthQueryDomainCapabilityTransitionOutcome,
     WorthQueryMaterializationReadyAdmissionContribution,
 };
 use crate::intent_admission::{
-    WorthQueryIntentAdmissionDecision, WorthQueryIntentAdmissionSupportTraceabilityReport,
-    WorthQueryIntentAdmissionSupportTraceabilityRow, WorthQueryIntentAdvisoryDecision,
+    WorthQueryIntentAdmissionDecision, WorthQueryIntentAdvisoryDecision,
     WorthQueryIntentViolationDecision,
+};
+#[cfg(test)]
+use crate::intent_admission::{
+    WorthQueryIntentAdmissionSupportTraceabilityReport,
+    WorthQueryIntentAdmissionSupportTraceabilityRow,
 };
 
 pub fn materialize_canonical_admission_artifact<T>(
@@ -71,6 +75,7 @@ where
     }
 }
 
+#[cfg(test)]
 pub fn materialize_runtime_admission_support_traceability_report(
     contribution: WorthQueryMaterializationReadyAdmissionContribution<
         WorthQueryAdmittedPlanBoundContributionTarget,
@@ -89,6 +94,7 @@ pub fn materialize_runtime_admission_support_traceability_report(
     }
 }
 
+#[cfg(test)]
 pub fn materialize_runtime_admission_support_traceability_row(
     contribution: WorthQueryMaterializationReadyAdmissionContribution<
         WorthQueryAdmittedPlanBoundContributionTarget,
@@ -132,6 +138,7 @@ pub fn materialize_runtime_admission_support_traceability_row(
     )
 }
 
+#[cfg(test)]
 fn support_detail_label(semantic_code: &str, detail: &str) -> String {
     let mut label = String::with_capacity(
         semantic_code
@@ -161,6 +168,7 @@ fn unsupported_decision_posture_denial(
     )
 }
 
+#[cfg(test)]
 fn unsupported_support_posture_denial(
     posture: WorthQueryAdmissionContributionPosture,
     request_identity: crate::evidence_identity::WorthQueryEvidenceIdentity,

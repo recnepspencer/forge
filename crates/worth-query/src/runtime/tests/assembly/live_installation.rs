@@ -18,7 +18,7 @@ fn runtime_live_declaration_denies_backend_admission_before_subscription_install
         .expect("backend with denying schema admission should still build");
 
     let error = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "external.schema-denied",
             task_live_request(),
             task_schema(),
@@ -52,7 +52,7 @@ fn runtime_live_declaration_closes_active_subscription_when_source_declaration_f
         .expect("backend with failing source declaration should still build");
 
     let error = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "external.source-denied",
             task_live_request(),
             task_schema(),
@@ -93,10 +93,10 @@ fn runtime_equivalent_live_declarations_share_active_lane_with_distinct_consumer
         .build()
         .expect("complete backend parts should build");
 
-    let first: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let first: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("external.tasks.first", task_live_request(), task_schema())
         .expect("first live view should install active lane");
-    let second: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let second: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("external.tasks.second", task_live_request(), task_schema())
         .expect("equivalent live view should join active lane");
 
@@ -168,7 +168,7 @@ fn runtime_live_declaration_denies_before_source_when_subscription_activation_re
         .expect("backend with denying activation should still build");
 
     let error = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "external.denied",
             task_live_request(),
             task_schema(),
@@ -203,7 +203,7 @@ fn runtime_live_declaration_denies_when_admission_receipt_drifts_from_request() 
         .expect("backend with drifting schema receipt should still build");
 
     let error = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "external.receipt-drift",
             task_live_request(),
             task_schema(),
@@ -238,7 +238,7 @@ fn runtime_live_declaration_denies_when_activation_receipt_drifts_from_request()
         .expect("backend with drifting activation receipt should still build");
 
     let error = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "external.activation-receipt-drift",
             task_live_request(),
             task_schema(),

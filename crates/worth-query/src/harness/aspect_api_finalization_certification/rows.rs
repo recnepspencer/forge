@@ -2,8 +2,8 @@ use crate::harness::certification::{
     CanonicalCertificationRow, HostileExpectation, ParityAnchor, RejectionCertificationRow,
 };
 use crate::runtime::{
-    WorthQueryAspectTouch, WorthQueryAuthorityLane, WorthQueryLiveView, WorthQueryNativeRow,
-    WorthQueryPreviewOptions, WorthQueryWriteReceipt,
+    WorthQueryAspectTouch, WorthQueryAuthorityLane, WorthQueryLiveView, WorthQueryPreviewOptions,
+    WorthQueryUnrefinedLiveShape, WorthQueryWriteReceipt,
 };
 use crate::WorthQuerySessionLabel;
 use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag};
@@ -100,7 +100,7 @@ fn authoritative_crud_lane(
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.crud")
         .expect("workspace should open");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> =
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> =
         task_live_view(&mut workspace, "tasks.cert-crud");
 
     let seed = workspace
@@ -118,7 +118,7 @@ fn authoritative_crud_lane(
     let _patches = workspace.observe(&live);
     let delete = workspace
         .delete_with(seed.deltas()[0].entity_identity.clone(), |task| {
-            task.touch(identity_id_touch()).touch(title_value_touch())
+            task.touch(title_value_touch())
         })
         .expect("delete should execute");
     let state = workspace.state(&delete).expect("state should resolve");
@@ -162,7 +162,7 @@ fn clear_lane(aspect_touch: WorthQueryAspectTouch) -> AspectApiFinalizationCerti
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.clear")
         .expect("workspace should open");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> =
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> =
         task_live_view(&mut workspace, "tasks.cert-clear");
     let seed = workspace
         .insert("Task", |task| {
@@ -222,10 +222,10 @@ fn authoritative_batch_lane() -> AspectApiFinalizationCertificationBundle {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.batch")
         .expect("workspace should open");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> =
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> =
         task_live_view(&mut workspace, "tasks.cert-batch");
     let computed = workspace
-        .computed::<WorthQueryNativeRow>(
+        .computed::<WorthQueryUnrefinedLiveShape>(
             "tasks.cert-batch-summary",
             |c| {
                 c.depends_on_live(&live)

@@ -1,8 +1,8 @@
 error[E0451]: fields `name`, `authority_lane` and `marker` of struct `WorthQueryEffectHandle` are private
  --> tests/ui/runtime_effect_handle_constructor_private.rs:6:9
   |
-5 |     let _worthd: WorthQueryEffectHandle<WorthQueryNativeRow> = WorthQueryEffectHandle {
-  |                                                                ---------------------- in this type
+5 |     let _worthd: WorthQueryEffectHandle<WorthQueryUnrefinedLiveShape> = WorthQueryEffectHandle {
+  |                                                                         ---------------------- in this type
 6 |         name: "ui.Worthd".to_string(),
   |         ^^^^ private field
 7 |         authority_lane: WorthQueryAuthorityLane::EffectDeliveryState,

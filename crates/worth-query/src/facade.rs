@@ -7,6 +7,7 @@ mod exports_application;
 mod exports_certification;
 mod exports_comparison;
 mod exports_domain;
+mod exports_domain_capabilities;
 mod exports_foundation;
 mod exports_history;
 mod exports_inspection;
@@ -16,7 +17,6 @@ mod exports_policy;
 mod exports_preview;
 mod exports_read;
 mod exports_runtime;
-mod exports_runtime_capabilities;
 mod exports_runtime_core;
 mod exports_runtime_phase_nine;
 mod exports_runtime_products;
@@ -29,14 +29,14 @@ pub mod identity_authority {
 pub mod consumer_kit {
     pub use crate::consumer_kit::{
         audit_domain_authority_sources, audit_public_authority_surface_symbols,
-        compare_test_backend_write_receipts, current_domain_authority_inventory_audit,
-        downstream_authority_adoption, evidence_report_adoption_audit,
-        graph_obligation_consumer_kit, graph_read_bypass_adoption, graph_read_bypass_audit,
-        hard_prohibition_boundary_audit, hard_prohibition_boundary_audit_coverage,
-        hard_prohibition_compile_fail_fixtures, hard_prohibition_documentation_rows,
-        hard_prohibition_documented_seam_keys, hard_prohibition_registry,
-        hard_prohibition_seeded_consumer_sources, in_memory_test_runtime,
-        load_support_pin_contract_terminal_json_document,
+        audit_workspace_domain_authority_inventory, compare_test_backend_write_receipts,
+        current_domain_authority_inventory_audit, downstream_authority_adoption,
+        evidence_report_adoption_audit, graph_obligation_consumer_kit, graph_read_bypass_adoption,
+        graph_read_bypass_audit, hard_prohibition_boundary_audit,
+        hard_prohibition_boundary_audit_coverage, hard_prohibition_compile_fail_fixtures,
+        hard_prohibition_documentation_rows, hard_prohibition_documented_seam_keys,
+        hard_prohibition_registry, hard_prohibition_seeded_consumer_sources,
+        in_memory_test_runtime, load_support_pin_contract_terminal_json_document,
         load_support_snapshot_terminal_json_document, project_support_snapshot,
         project_workspace_support_snapshot, query_boundary_source_inventory,
         query_consumer_residue_audit, query_test_backend_residue_audit,
@@ -187,9 +187,14 @@ pub mod workflow {
     pub use super::exports_workflow::*;
 }
 
-/// Domain contribution contracts and their ordinary workflow journey.
+/// Runtime-installed domain package, handle, contribution, and operation grammar.
+///
+/// Downstream crates may add typed extension traits over installed handles, but
+/// Query retains package identity, installation, admission, execution, receipt,
+/// and diagnostic authority.
 pub mod domain {
     pub use super::exports_domain::*;
+    pub use super::exports_domain_capabilities::*;
 }
 
 /// Common outcome navigation and declarative inspection capability.
@@ -199,7 +204,6 @@ pub mod inspection {
 
 pub mod runtime {
     pub use super::exports_runtime::*;
-    pub use super::exports_runtime_capabilities::*;
     pub use super::exports_runtime_core::*;
     pub use super::exports_runtime_phase_nine::*;
     pub use super::exports_runtime_products::*;

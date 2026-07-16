@@ -2,7 +2,7 @@ use super::{
     WorthQueryHistoricalContext, WorthQueryHistoricalPathDeclaration, WorthQueryHistoricalPathKind,
 };
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryHistoricalRequest {
     pub(crate) declaration: WorthQueryHistoricalPathDeclaration,
     pub(crate) context: WorthQueryHistoricalContext,

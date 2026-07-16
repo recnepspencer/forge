@@ -1,17 +1,17 @@
 use worth_query::facade::foundation::{
     AspectFieldSelector, AuthoredResultShapeField, CollectionQueryBuilder, EqualityPredicate,
-    IntegerComparisonPredicate, PresencePredicate, ScalarPredicateValue, SetMembershipPredicate,
-    StringContainsPredicate,
+    NativeComparisonPredicate, PresencePredicate, SetMembershipPredicate, StringContainsPredicate,
+    WorthQueryPredicateOperand,
 };
 use worth_query::facade::runtime::{
-    QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryBooleanPredicateTopology,
+    QuerySchemaView, ScalarAspectType, SchemaFieldView, WorthQueryBooleanPredicateTopology,
     WorthQueryBooleanSelectivityAdmissionPosture, WorthQueryBooleanSelectivityBranchKind,
     WorthQueryBooleanSelectivityShape, WorthQueryPredicateAnchorPosture,
     WorthQueryPredicateOperandOperator, WorthQueryPredicateSelectivityClass,
     WorthQueryTraversalPredicateOrderingPosture,
 };
 
-mod support;
+use crate::support;
 
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
@@ -21,7 +21,7 @@ fn boolean_selectivity_shape_normalizes_flat_conjunctive_predicates_without_exec
         query
             .where_equal(equality("status", "value", "active"))
             .where_greater_than(
-                IntegerComparisonPredicate::greater_than("profile", "age", 21)
+                NativeComparisonPredicate::greater_than("profile", "age", 21)
                     .expect("range predicate should build"),
             )
             .where_contains(
@@ -108,11 +108,11 @@ fn boolean_selectivity_shape_preserves_same_field_distinct_range_operand_identit
     let shape = selectivity_shape("distinct-operands", |query| {
         query
             .where_greater_than(
-                IntegerComparisonPredicate::greater_than("profile", "age", 18)
+                NativeComparisonPredicate::greater_than("profile", "age", 18)
                     .expect("lower bound predicate should build"),
             )
             .where_less_than(
-                IntegerComparisonPredicate::less_than("profile", "age", 65)
+                NativeComparisonPredicate::less_than("profile", "age", 65)
                     .expect("upper bound predicate should build"),
             )
             .project(field("identity", "id"))
@@ -122,11 +122,15 @@ fn boolean_selectivity_shape_preserves_same_field_distinct_range_operand_identit
         vec![
             (
                 WorthQueryPredicateOperandOperator::GreaterThan,
-                vec!["18".to_string()]
+                vec![predicate_operand_identity(
+                    &WorthQueryPredicateOperand::int64(18),
+                )]
             ),
             (
                 WorthQueryPredicateOperandOperator::LessThan,
-                vec!["65".to_string()]
+                vec![predicate_operand_identity(
+                    &WorthQueryPredicateOperand::int64(65),
+                )]
             ),
         ]
     );
@@ -187,7 +191,7 @@ fn boolean_selectivity_shape_rejects_unadmitted_predicate_before_normalization()
                             .expect("schema aspect literal must be valid"),
                         worth_query::facade::foundation::FieldName::new("id")
                             .expect("schema field literal must be valid"),
-                        SchemaFieldKind::String,
+                        ScalarAspectType::String,
                     )],
                     [],
                 ),
@@ -261,11 +265,17 @@ fn structured_operands(
         .collect()
 }
 
+fn predicate_operand_identity(value: &WorthQueryPredicateOperand) -> String {
+    worth_foundational::facade::prepare_aspect_value_identity_basis(value.as_native())
+        .as_str()
+        .to_owned()
+}
+
 fn equality(aspect: &str, field: &str, value: &str) -> EqualityPredicate {
     EqualityPredicate::new(
         aspect,
         field,
-        ScalarPredicateValue::String(value.to_string()),
+        WorthQueryPredicateOperand::string(value.to_string()),
     )
     .expect("equality predicate should build")
 }
@@ -276,7 +286,7 @@ fn membership<const N: usize>(values: [&str; N]) -> SetMembershipPredicate {
         "value",
         values
             .into_iter()
-            .map(|value| ScalarPredicateValue::String(value.to_string())),
+            .map(|value| WorthQueryPredicateOperand::string(value.to_string())),
     )
     .expect("membership predicate should build")
 }
@@ -299,14 +309,14 @@ fn predicate_schema() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("status")
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("value")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             )
             .membership_predicate_queryable(),
             SchemaFieldView::new(
@@ -314,14 +324,14 @@ fn predicate_schema() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("age")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::Integer,
+                ScalarAspectType::Int64,
             ),
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             )
             .text_predicate_queryable()
             .presence_predicate_queryable(),

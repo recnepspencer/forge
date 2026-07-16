@@ -73,7 +73,8 @@ pub fn summarize_lower_runtime_boundary(
     )
 }
 
-pub fn inspect_lower_runtime_boundary(
+#[cfg(test)]
+fn inspect_lower_runtime_boundary(
     envelope: &WorthQueryLowerRuntimeBoundaryEnvelope,
 ) -> WorthQueryLowerRuntimeRoutingInspection {
     WorthQueryLowerRuntimeRoutingInspection::new(

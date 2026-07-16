@@ -87,8 +87,6 @@ impl WorthQuerySharedReadGenerationEntry {
     pub(in crate::runtime) fn retire(&self) {
         self.retired.store(true, Ordering::SeqCst);
     }
-
-    #[allow(dead_code)]
     pub(in crate::runtime) fn invalidate(&self) {
         self.invalidated.store(true, Ordering::SeqCst);
         self.retire();

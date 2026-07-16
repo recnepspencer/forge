@@ -6,10 +6,6 @@ pub(super) struct QueuedGraphObligationRegistrations {
 }
 
 impl QueuedGraphObligationRegistrations {
-    pub(super) fn is_empty(&self) -> bool {
-        self.explicit_registrations.is_empty()
-    }
-
     pub(super) fn push(&mut self, registration: WorthQueryGraphObligationRegistration) {
         self.explicit_registrations.push(registration);
     }
@@ -23,5 +19,15 @@ impl QueuedGraphObligationRegistrations {
 
     pub(super) fn into_explicit_registrations(self) -> Vec<WorthQueryGraphObligationRegistration> {
         self.explicit_registrations
+    }
+}
+
+pub(super) fn graph_obligation_registration_error(
+    stage: &'static str,
+    error: WorthQueryGraphObligationRegistrationDenial,
+) -> WorthQueryRuntimeError {
+    WorthQueryRuntimeError::InvariantRegistration {
+        stage,
+        message: format!("{error}"),
     }
 }

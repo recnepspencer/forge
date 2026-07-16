@@ -1,9 +1,8 @@
 use super::families::*;
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
-    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryInstalledDomainDeclarationContext,
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    WorthQueryDeclarationAspectCoverage, WorthQueryDomainEntryMarker,
+    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -53,8 +52,11 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for GeometryWorld {
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("geometry.bridge-routing.{}", self.regime)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("geometry.bridge-routing.{}", self.regime) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 

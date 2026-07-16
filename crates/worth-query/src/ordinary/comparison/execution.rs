@@ -55,7 +55,7 @@ impl WorthQueryComparisonExecution for &mut WorthQueryWorkspace {
         }
 
         let counters = counters.execute_left();
-        let left = match execute_current_read(request.declaration.read.clone(), self) {
+        let left = match execute_current_read(request.declaration.left_read, self) {
             Ok(result) => result,
             Err(reason) => {
                 return stopped(
@@ -69,7 +69,7 @@ impl WorthQueryComparisonExecution for &mut WorthQueryWorkspace {
 
         let counters = counters.execute_right().materialize_historical();
         let historical =
-            WorthQueryHistoricalPathDeclaration::retained_from_read(request.declaration.read);
+            WorthQueryHistoricalPathDeclaration::retained_from_read(request.declaration.right_read);
         let (right, materialization) =
             match historical.using(retained.clone()).run(self).into_result() {
                 Ok(completion) => completion.into_parts(),
@@ -122,30 +122,31 @@ impl WorthQueryComparisonExecution for (&mut WorthQueryWorkspace, &mut WorthQuer
         }
 
         let counters = counters.execute_left();
-        let left_result =
-            match execute_current_read(request.declaration.read.clone(), left_workspace) {
-                Ok(result) => result,
-                Err(reason) => {
-                    return stopped(
-                        WorthQueryComparisonStopSource::LeftExecution,
-                        WorthQueryComparisonNextAction::ResolveAuthority,
-                        reason,
-                        counters,
-                    );
-                }
-            };
-        let counters = counters.execute_right();
-        let right_result = match execute_current_read(request.declaration.read, right_workspace) {
+        let left_result = match execute_current_read(request.declaration.left_read, left_workspace)
+        {
             Ok(result) => result,
             Err(reason) => {
                 return stopped(
-                    WorthQueryComparisonStopSource::RightExecution,
+                    WorthQueryComparisonStopSource::LeftExecution,
                     WorthQueryComparisonNextAction::ResolveAuthority,
                     reason,
                     counters,
                 );
             }
         };
+        let counters = counters.execute_right();
+        let right_result =
+            match execute_current_read(request.declaration.right_read, right_workspace) {
+                Ok(result) => result,
+                Err(reason) => {
+                    return stopped(
+                        WorthQueryComparisonStopSource::RightExecution,
+                        WorthQueryComparisonNextAction::ResolveAuthority,
+                        reason,
+                        counters,
+                    );
+                }
+            };
         let pair = WorthQueryComparisonBasisPairEvidence::new(
             WorthQueryComparisonBasisFamily::BranchToBranch,
             WorthQueryComparisonBasisEvidence::new(

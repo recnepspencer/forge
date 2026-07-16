@@ -87,6 +87,16 @@ pub(super) fn resolve_scalar_write_floor_eligibility(
                 message: "scalar-write-continuity-denied",
             },
         ),
+        WorthQueryAuthoritativeMutationPreflight::ContractDenied(_) => (
+            WorthQueryIntentAdmissionCapabilityEligibility::Violation {
+                stage: "native-mutation-contract-admission",
+                detail: "scalar-write-native-contract-denied",
+            },
+            WorthQueryIntentAdmissionPreDecisionPosture::Violation {
+                stage: "native-mutation-contract-admission",
+                message: "scalar-write-native-contract-denied",
+            },
+        ),
         WorthQueryAuthoritativeMutationPreflight::NamingDenied(_) => (
             WorthQueryIntentAdmissionCapabilityEligibility::Violation {
                 stage: "mutation-naming-admission",

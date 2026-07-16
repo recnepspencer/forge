@@ -5,7 +5,7 @@ fn verify_existing_preserves_backend_verified_assertion_evidence_without_mutatio
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.verify-existing")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.verify-existing-table", |q| {
             q.from("Task")
                 .select([
@@ -96,7 +96,7 @@ fn verify_existing_denies_missing_asserted_aspect_typed_and_early() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.verify-existing-missing-aspect")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.verify-existing-missing-aspect-table", |q| {
             q.from("Task")
                 .select([
@@ -147,6 +147,7 @@ fn verify_existing_denies_missing_asserted_aspect_typed_and_early() {
 
     match error {
         WorthQueryRuntimeError::ExistingTruthAssertionDenied(denial) => {
+            let expected = test_authored_string_terminal_digest("status.value", "open");
             assert_eq!(
                 denial.kind(),
                 WorthQueryExistingTruthAssertionDenialKind::MissingAssertedAspect
@@ -157,7 +158,7 @@ fn verify_existing_denies_missing_asserted_aspect_typed_and_early() {
             );
             assert_eq!(
                 denial.expected_terminal_value_digest(),
-                Some("status:value=set:string:4:open")
+                Some(expected.as_str())
             );
         }
         other => panic!("expected typed assertion denial, got {other:?}"),
@@ -169,7 +170,7 @@ fn verify_existing_denies_mismatched_value_typed_and_early() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.verify-existing-mismatch")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.verify-existing-mismatch-table", |q| {
             q.from("Task")
                 .select([
@@ -220,6 +221,8 @@ fn verify_existing_denies_mismatched_value_typed_and_early() {
 
     match error {
         WorthQueryRuntimeError::ExistingTruthAssertionDenied(denial) => {
+            let expected = test_authored_string_terminal_digest("title.value", "Different title");
+            let found = test_native_string_value_identity("Seed title");
             assert_eq!(
                 denial.kind(),
                 WorthQueryExistingTruthAssertionDenialKind::AssertedValueMismatch
@@ -230,12 +233,9 @@ fn verify_existing_denies_mismatched_value_typed_and_early() {
             );
             assert_eq!(
                 denial.expected_terminal_value_digest(),
-                Some("title:value=set:string:15:Different title")
+                Some(expected.as_str())
             );
-            assert_eq!(
-                denial.found_terminal_value_digest(),
-                Some("string:10:Seed title")
-            );
+            assert_eq!(denial.found_terminal_value_digest(), Some(found.as_str()));
         }
         other => panic!("expected typed assertion denial, got {other:?}"),
     }
@@ -246,7 +246,7 @@ fn verify_existing_reports_the_actual_failing_aspect_in_multi_aspect_requests() 
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.verify-existing-multi-mismatch")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.verify-existing-multi-mismatch-table", |q| {
             q.from("Task")
                 .select([
@@ -305,6 +305,7 @@ fn verify_existing_reports_the_actual_failing_aspect_in_multi_aspect_requests() 
 
     match error {
         WorthQueryRuntimeError::ExistingTruthAssertionDenied(denial) => {
+            let expected = test_authored_string_terminal_digest("status.value", "open");
             assert_eq!(
                 denial.kind(),
                 WorthQueryExistingTruthAssertionDenialKind::MissingAssertedAspect
@@ -315,7 +316,7 @@ fn verify_existing_reports_the_actual_failing_aspect_in_multi_aspect_requests() 
             );
             assert_eq!(
                 denial.expected_terminal_value_digest(),
-                Some("status:value=set:string:4:open")
+                Some(expected.as_str())
             );
         }
         other => panic!("expected typed assertion denial, got {other:?}"),

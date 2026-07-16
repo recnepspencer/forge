@@ -1,3 +1,4 @@
+#[cfg(test)]
 pub(crate) use crate::planning::{
     plan_validated_bundle, plan_validated_bundle_for_collection_family,
 };
@@ -8,6 +9,7 @@ pub use crate::planning::{
     PlanningAmbientContext, PlanningCounters, PlanningError, PlanningFailureClass, PlanningReport,
     PlanningRequestContext, PlanningSemanticInputs,
 };
+#[cfg(test)]
 pub(crate) use crate::policy_basis::admit_policy_tenant_context;
 pub use crate::policy_basis::{
     classify_saved_query_policy_tenant_reuse,
@@ -20,7 +22,6 @@ pub use crate::policy_basis::{
     PolicyTenantAdmissionSupportProfile, PolicyTenantPhaseOneSurface, PolicyTenantSupportStatus,
     PolicyWorkBudget, SavedQueryPolicyReuseDescriptor, SavedQueryPolicyReuseDisposition,
 };
-pub(crate) use crate::policy_delivery::lower_policy_aware_delivery_shape;
 pub use crate::policy_delivery::{
     deny_policy_placeholder_masking, DeliveryWidthClass, PolicyAwareDeliveryDigest,
     PolicyAwareDeliveryReport, PolicyAwareDeliveryShape, PolicyPlaceholderMaskingDenial,
@@ -38,7 +39,6 @@ pub use crate::policy_execution_seam::{
     PolicyExecutionSeamSupportProfile, PolicyExecutionSeamSupportStatus,
     PolicyExecutionSeamSurface,
 };
-pub(crate) use crate::policy_live::admit_policy_aware_live_plan;
 pub use crate::policy_live::{
     PolicyAwareLiveAdmissionReport, PolicyAwareLivePlan, PolicyAwareLiveRelevanceContract,
     PolicyDriftDisposition, PolicyLiveDensityEvidence, PolicyLiveDensityPosture,
@@ -60,20 +60,9 @@ pub use crate::policy_plan::{
     PolicyAwarePlanCore, PolicyAwarePlanCostPosture, PolicyAwarePlanDigest,
     PolicyAwarePlanLoweringReport, PolicyAwarePlanWorkBudget, PolicyAwareReadBasis,
 };
-pub(crate) use crate::policy_plan::{
-    lower_policy_aware_branch_plan, lower_policy_aware_current_plan, lower_policy_aware_diff_plan,
-    lower_policy_aware_historical_plan, lower_policy_aware_optimizer_input,
-};
+#[cfg(test)]
 pub(crate) use crate::preview::{
-    admit_authoritative_preview_comparison_candidate, admit_preview_promotion_parity_comparison,
-    admit_preview_workflow_foundation, admit_preview_workflow_foundation_request,
-    admit_promotion_eligible_preview_session_plan_binding,
-    admit_read_only_preview_session_plan_binding, admit_scoped_preview_live_session_plan,
-    admit_scoped_preview_session_plan_binding,
-    admit_scoped_preview_session_plan_binding_from_preview_binding,
-    bind_preflight_to_preview_session, execute_promotion_eligible_preview_session_plan,
-    execute_read_only_preview_session_plan, execute_scoped_preview_live_session_plan,
-    scoped_observation_basis_for_preview_binding,
+    admit_preview_workflow_foundation, bind_preflight_to_preview_session,
 };
 pub use crate::preview::{
     assess_preview_live_drift, AdmittedPreviewWorkflowFoundation,
@@ -101,10 +90,7 @@ pub use crate::program::{
     WorthQueryProgramTrace, WorthQueryProgramValue, WorthQuerySchemaAdapter, WorthQueryTypedPort,
     WorthQueryValueExpr, WorthQueryWorkflowGraph, WorthQueryWriteCommandTemplate,
 };
-pub(crate) use crate::query_context::{
-    admit_query_basis_context, bind_diff_query_context,
-    execute_and_build_query_basis_result_bundle, execute_query_basis_context,
-};
+pub(crate) use crate::query_context::admit_query_basis_context;
 pub use crate::query_context::{
     attach_diff_query_metadata, attach_query_basis_metadata, build_query_basis_result_bundle,
     build_query_diff_result_bundle, compose_construction_branch_basis_preparation_digest,
@@ -119,6 +105,7 @@ pub use crate::query_context::{
     ScopedMaterializationQueryBasisContext, ScopedObservationQueryBasisContext,
     ScopedQueryBasisContext, ScopedQueryContextAdmissionError,
 };
+#[cfg(test)]
 pub(crate) use crate::relationship_proof::admit_relationship_proofs;
 pub use crate::relationship_proof::{
     runtime_backed_relationship_proof_support_profile, RelationshipProofAdmission,

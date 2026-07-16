@@ -6,6 +6,7 @@ use super::support::{
     QuerySubscriptionBridgeParityClass, QuerySubscriptionBridgeParityCounters,
     QuerySubscriptionBridgeParityFailureKind,
 };
+#[cfg(test)]
 use super::witness::BridgeWitnessAssemblyPosture;
 
 pub(super) fn bridge_parity_counter_identity(
@@ -35,6 +36,7 @@ pub(super) fn bridge_parity_counter_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(super) fn bridge_parity_width_identity(
     compared_family_dimension_count: usize,
     compared_slice_dimension_count: usize,
@@ -65,6 +67,7 @@ pub(super) fn bridge_parity_width_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(super) fn bridge_parity_receipt_identity(
     witness_assembly_posture: BridgeWitnessAssemblyPosture,
     parity_class: QuerySubscriptionBridgeParityClass,
@@ -95,6 +98,7 @@ pub(super) fn bridge_parity_receipt_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(super) fn bridge_parity_comparison_identity(
     parity_class: QuerySubscriptionBridgeParityClass,
     query_declaration_identity: &WorthQueryEvidenceIdentity,
@@ -127,6 +131,7 @@ pub(super) fn bridge_parity_comparison_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(super) fn bridge_parity_explanation_identity(
     comparison_identity: &WorthQueryEvidenceIdentity,
     witness_identity: &WorthQueryEvidenceIdentity,

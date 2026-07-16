@@ -1,7 +1,8 @@
 use crate::authoring::{RawAuthoredQuery, RawAuthoredResultShape};
+use crate::binding::resolve_bindings;
 use crate::facade::foundation::{
     canonicalize_request, derive_binding_requirements, execute_preflight_bundle,
-    preflight_execution_basis, resolve_bindings, resolve_snapshot_basis, AspectFieldSelector,
+    preflight_execution_basis, resolve_snapshot_basis, AspectFieldSelector,
     AuthoredResultShapeField, BasisAuthorityFamily, BasisResolutionError, BasisResolutionMode,
     BoundBinding, BoundBindings, CollectionResultFamily, ExecutionBasisIntent, GuidedAuthoringPath,
     IdentityBindingDescriptor, QueryBindingDescriptor, QueryBindingSlot, QueryBindingSubject,

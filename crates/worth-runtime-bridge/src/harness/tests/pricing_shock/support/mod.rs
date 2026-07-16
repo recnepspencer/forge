@@ -8,7 +8,6 @@ pub(in crate::harness::tests::pricing_shock) use crate::adapter::{
     TruthWritebackRequest,
 };
 pub(in crate::harness::tests::pricing_shock) use crate::error::BridgeDeliveryErrorKind;
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 pub(in crate::harness::tests::pricing_shock) use crate::facade::{
     BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeCommittedPatchEnvelope,
     BridgeCommittedPatchItem, BridgeDiagnosticsTier, BridgeExecutionPolicyClass,
@@ -49,6 +48,7 @@ pub(in crate::harness::tests::pricing_shock) use crate::source::{
     SourceDeclaration, SourceDeclarationIdentity,
 };
 pub(in crate::harness::tests::pricing_shock) use crate::speculation::BridgePreviewLifecycleStateKind;
+pub(in crate::harness::tests::pricing_shock) use crate::speculation::BridgePreviewSessionIdentity;
 pub(in crate::harness::tests::pricing_shock) use std::collections::BTreeMap;
 pub(in crate::harness::tests::pricing_shock) use worth_foundational::facade::{
     AspectKey, AspectValue,

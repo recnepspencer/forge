@@ -6,6 +6,7 @@ use crate::runtime::{
     WorthQueryGraphTouchSelector,
 };
 
+#[cfg(test)]
 pub(crate) fn registrations_from_relational_invariant_catalog(
     catalog: &InvariantCatalog,
 ) -> Result<Vec<WorthQueryGraphObligationRegistration>, WorthQueryGraphObligationRegistrationDenial>
@@ -19,6 +20,7 @@ pub(crate) fn registrations_from_relational_invariant_catalog(
         .collect()
 }
 
+#[cfg(test)]
 fn is_schema_lowered_registration(registration: &InvariantRegistration) -> bool {
     matches!(
         registration.rule,
@@ -34,6 +36,7 @@ fn is_schema_lowered_registration(registration: &InvariantRegistration) -> bool 
     )
 }
 
+#[cfg(test)]
 fn registration_from_schema_lowered_invariant(
     registration: &InvariantRegistration,
 ) -> Result<WorthQueryGraphObligationRegistration, WorthQueryGraphObligationRegistrationDenial> {
@@ -46,6 +49,7 @@ fn registration_from_schema_lowered_invariant(
     )
 }
 
+#[cfg(test)]
 fn schema_contract_rule_identity(rule: &InvariantRule) -> WorthQueryGraphObligationRuleIdentity {
     WorthQueryGraphObligationRuleIdentity::new(
         "relational-schema-contract",
@@ -55,6 +59,7 @@ fn schema_contract_rule_identity(rule: &InvariantRule) -> WorthQueryGraphObligat
     .expect("relational schema contract rule identity is static and non-empty")
 }
 
+#[cfg(test)]
 fn schema_contract_rule_name(rule: &InvariantRule) -> String {
     format!(
         "{}:{}",
@@ -63,6 +68,7 @@ fn schema_contract_rule_name(rule: &InvariantRule) -> String {
     )
 }
 
+#[cfg(test)]
 fn schema_contract_touch_selector(
     rule: &InvariantRule,
 ) -> Result<WorthQueryGraphTouchSelector, WorthQueryGraphObligationRegistrationDenial> {
@@ -71,6 +77,7 @@ fn schema_contract_touch_selector(
     ))
 }
 
+#[cfg(test)]
 fn schema_contract_rule_family(rule: &InvariantRule) -> &'static str {
     match rule {
         InvariantRule::EndpointKindContract(_) => "endpoint-kind",
@@ -86,6 +93,7 @@ fn schema_contract_rule_family(rule: &InvariantRule) -> &'static str {
     }
 }
 
+#[cfg(test)]
 fn schema_contract_id(rule: &InvariantRule) -> &str {
     match rule {
         InvariantRule::EndpointKindContract(contract) => contract.contract_id.as_str(),
@@ -101,6 +109,7 @@ fn schema_contract_id(rule: &InvariantRule) -> &str {
     }
 }
 
+#[cfg(test)]
 fn schema_contract_relation_kind_id(rule: &InvariantRule) -> u32 {
     match rule {
         InvariantRule::EndpointKindContract(contract) => contract.relation_kind_id.0,

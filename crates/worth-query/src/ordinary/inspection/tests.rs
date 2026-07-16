@@ -3,7 +3,7 @@ use crate::basis_lifecycle::basis_lifecycle;
 use crate::ordinary::read::{current, declare as declare_read};
 use crate::ordinary::{WorthQueryOutcomeNavigation, WorthQueryOutcomePosture};
 use crate::runtime::tests::support::stateful_bridge_task_runtime;
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
 
 use super::{declare, inspection_basis, WorthQueryInspectionOutcome};
 
@@ -75,7 +75,7 @@ fn identity_read<Output>(
             [SchemaFieldView::new(
                 AspectName::new("identity").expect("aspect should build"),
                 FieldName::new("id").expect("field should build"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             )],
             [],
         ),

@@ -51,27 +51,27 @@ impl WorthQueryGraphReadPolicyTenantAuthorityRequest {
             execution_mode: PolicyExecutionModeRequest::CurrentRead,
         }
     }
-
+    #[cfg(test)]
     pub(crate) fn query(&self) -> &CanonicalQueryArtifact {
         &self.query
     }
-
+    #[cfg(test)]
     pub(crate) fn policy(&self) -> &PolicyRuleSnapshot {
         &self.policy
     }
-
+    #[cfg(test)]
     pub(crate) fn tenant(&self) -> &TenantBindingSnapshot {
         &self.tenant
     }
-
+    #[cfg(test)]
     pub(crate) fn branch(&self) -> &BranchAccessGrant {
         &self.branch
     }
-
+    #[cfg(test)]
     pub(crate) fn schema(&self) -> &SchemaVariantSnapshot {
         &self.schema
     }
-
+    #[cfg(test)]
     pub(crate) fn execution_mode(&self) -> PolicyExecutionModeRequest {
         self.execution_mode
     }

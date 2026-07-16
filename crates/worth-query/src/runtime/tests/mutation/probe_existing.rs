@@ -5,7 +5,7 @@ fn probe_existing_returns_backend_verified_values_for_entity_targets() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.probe-existing-entity")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.probe-existing-entity-table", |q| {
             q.from("Task")
                 .select([identity_id_field_key(), title_value_field_key()])
@@ -69,7 +69,7 @@ fn probe_existing_returns_backend_verified_values_for_relation_targets() {
     let mut workspace = runtime
         .workspace("tasks.probe-existing-relation")
         .expect("workspace should open");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.probe-existing-relation-table", |q| {
             q.from("TaskRelation")
                 .select([identity_id_field_key(), kind_value_field_key()])
@@ -124,7 +124,7 @@ fn probe_existing_denies_missing_aspect_typed_and_early() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.probe-existing-missing-aspect")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.probe-existing-missing-aspect-table", |q| {
             q.from("Task")
                 .select([identity_id_field_key(), title_value_field_key()])
@@ -180,7 +180,7 @@ fn probe_existing_reports_the_actual_missing_aspect_in_multi_aspect_requests() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.probe-existing-multi-missing-aspect")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.probe-existing-multi-missing-aspect-table", |q| {
             q.from("Task")
                 .select([identity_id_field_key(), title_value_field_key()])

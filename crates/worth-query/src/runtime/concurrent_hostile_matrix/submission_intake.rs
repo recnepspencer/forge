@@ -3,17 +3,20 @@ use std::sync::{Arc, Mutex};
 use super::super::WorthQueryWriteCommand;
 
 #[derive(Clone, Debug)]
+#[cfg(test)]
 pub struct WorthQueryConcurrentSubmissionIntake {
     records: Arc<Mutex<Vec<WorthQueryConcurrentSubmissionRecord>>>,
 }
 
 impl WorthQueryConcurrentSubmissionIntake {
+    #[cfg(test)]
     pub fn new() -> Self {
         Self {
             records: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
+    #[cfg(test)]
     pub fn lane(&self, submitter_thread_ordinal: usize) -> WorthQueryConcurrentSubmissionLane {
         WorthQueryConcurrentSubmissionLane {
             submitter_thread_ordinal,
@@ -21,6 +24,7 @@ impl WorthQueryConcurrentSubmissionIntake {
         }
     }
 
+    #[cfg(test)]
     pub fn drain_ordered(self) -> Vec<WorthQueryConcurrentSubmissionRecord> {
         let mut records = Arc::try_unwrap(self.records)
             .expect("all concurrent submission lanes should be dropped before drain")
@@ -38,12 +42,14 @@ impl Default for WorthQueryConcurrentSubmissionIntake {
 }
 
 #[derive(Clone, Debug)]
+#[cfg(test)]
 pub struct WorthQueryConcurrentSubmissionLane {
     submitter_thread_ordinal: usize,
     records: Arc<Mutex<Vec<WorthQueryConcurrentSubmissionRecord>>>,
 }
 
 impl WorthQueryConcurrentSubmissionLane {
+    #[cfg(test)]
     pub fn submit(&self, submission_ordinal: usize, command: WorthQueryWriteCommand) {
         let mut records = self
             .records
@@ -58,6 +64,7 @@ impl WorthQueryConcurrentSubmissionLane {
 }
 
 #[derive(Clone, Debug)]
+#[cfg(test)]
 pub struct WorthQueryConcurrentSubmissionRecord {
     submitter_thread_ordinal: usize,
     submission_ordinal: usize,
@@ -65,14 +72,17 @@ pub struct WorthQueryConcurrentSubmissionRecord {
 }
 
 impl WorthQueryConcurrentSubmissionRecord {
+    #[cfg(test)]
     pub fn submitter_thread_ordinal(&self) -> usize {
         self.submitter_thread_ordinal
     }
 
+    #[cfg(test)]
     pub fn submission_ordinal(&self) -> usize {
         self.submission_ordinal
     }
 
+    #[cfg(test)]
     pub fn into_command(self) -> WorthQueryWriteCommand {
         self.command
     }

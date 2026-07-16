@@ -4,7 +4,7 @@ error: cannot construct `WorthQueryGraphObligationRegistration` with struct lite
 4 |     let _ = WorthQueryGraphObligationRegistration {};
   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
-  = note: private fields `kind`, `rule_identity`, `touch_selector`, `operating_world_selector`, `support_posture` and `registration_digest` that were not provided
+  = note: private fields that were not provided
 help: you might have meant to use an associated function to build this type
   |
 4 -     let _ = WorthQueryGraphObligationRegistration {};

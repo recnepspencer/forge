@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
-use worth_foundational::facade::{AspectKey, AspectValue};
+use worth_foundational::facade::AspectKey;
 use worth_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityKind, RelationalBridgeRecordIdentityParts, SnapshotReadPacket,
-    SnapshotReadPacketResult, TruthSnapshotIdentity,
+    SnapshotReadPacketResult, SnapshotReadValue, TruthSnapshotIdentity,
 };
 
 use super::canonical_digest::row_set_digest;
@@ -51,11 +51,11 @@ impl RelationalRowSetDigest {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RelationalProjectedAspectValueSet {
-    values: BTreeMap<AspectKey, AspectValue>,
+    values: BTreeMap<AspectKey, SnapshotReadValue>,
 }
 
 impl RelationalProjectedAspectValueSet {
-    pub fn get(&self, aspect_key: &AspectKey) -> Option<&AspectValue> {
+    pub fn get(&self, aspect_key: &AspectKey) -> Option<&SnapshotReadValue> {
         self.values.get(aspect_key)
     }
 
@@ -63,7 +63,7 @@ impl RelationalProjectedAspectValueSet {
         self.values.contains_key(aspect_key)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&AspectKey, &AspectValue)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&AspectKey, &SnapshotReadValue)> {
         self.values.iter()
     }
 
@@ -75,7 +75,7 @@ impl RelationalProjectedAspectValueSet {
         self.values.is_empty()
     }
 
-    fn from_projected_values(values: BTreeMap<AspectKey, AspectValue>) -> Self {
+    fn from_projected_values(values: BTreeMap<AspectKey, SnapshotReadValue>) -> Self {
         Self { values }
     }
 }
@@ -125,7 +125,7 @@ pub fn materialize_relational_authoritative_row_set(
         return Err(RelationalGroupedTruthError::PacketResultShapeMismatch);
     }
 
-    let mut rows: BTreeMap<RelationalRowIdentity, BTreeMap<AspectKey, AspectValue>> =
+    let mut rows: BTreeMap<RelationalRowIdentity, BTreeMap<AspectKey, SnapshotReadValue>> =
         BTreeMap::new();
     for (read, record) in packet.reads().iter().zip(result.records().iter()) {
         let aspect_read = decode_snapshot_aspect_read_value(record)?;
@@ -230,12 +230,14 @@ mod tests {
             row_set.rows()[0]
                 .projected_aspect_values()
                 .get(&AspectKey::new("identity.id").unwrap()),
-            Some(&AspectValue::String("task-1".into()))
+            Some(&worth_runtime_bridge::facade::SnapshotReadValue::Scalar(
+                AspectValue::String("task-1".into())
+            ))
         );
     }
 
     #[test]
-    fn relational_row_set_rejects_non_scalar_snapshot_values_at_grouped_boundary() {
+    fn relational_row_set_preserves_struct_snapshot_values() {
         let packet = SnapshotReadPacket::new(vec![string_read(
             RelationalBridgeRecordIdentityParts::entity(0, 1, 1),
             "identity.id",
@@ -253,15 +255,14 @@ mod tests {
             )],
         );
 
-        let error = materialize_relational_authoritative_row_set(&packet, &result)
-            .expect_err("non-scalar snapshot values must fail grouped truth materialization");
-
-        assert_eq!(
-            error,
-            super::RelationalGroupedTruthError::AspectValueDecodeFailure {
-                request_key: packet.reads()[0].correlation_id().as_str().to_string()
-            }
-        );
+        let row_set = materialize_relational_authoritative_row_set(&packet, &result)
+            .expect("relational row materialization must preserve native structs");
+        assert!(matches!(
+            row_set.rows()[0]
+                .projected_aspect_values()
+                .get(&AspectKey::new("identity.id").unwrap()),
+            Some(worth_runtime_bridge::facade::SnapshotReadValue::Struct(_))
+        ));
     }
 
     #[test]

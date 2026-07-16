@@ -63,4 +63,17 @@ impl AspectValue {
             Self::ContentRef(_) => ScalarAspectType::ContentRef,
         }
     }
+
+    pub(crate) fn has_canonical_representation(&self) -> bool {
+        match self {
+            Self::Float32(value) => value.is_canonical(),
+            Self::Float64(value) => value.is_canonical(),
+            Self::Decimal(value) => value.is_canonical(),
+            Self::BigInt(value) => value.is_canonical(),
+            Self::Rational(value) => value.is_canonical(),
+            Self::Time(value) => value.is_canonical(),
+            Self::TimestampTz(value) => value.is_canonical(),
+            _ => true,
+        }
+    }
 }

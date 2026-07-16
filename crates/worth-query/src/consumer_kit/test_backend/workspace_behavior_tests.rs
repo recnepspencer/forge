@@ -1,8 +1,8 @@
 use crate::memory_workspace::WorthQueryWorkspaceErrorKind;
 use crate::runtime::{
     InvariantCatalog, InvariantRegistration, InvariantRule, WorthQueryAspectTouch,
-    WorthQueryInspection, WorthQueryMutationFamily, WorthQueryNativeRow, WorthQueryPreviewOptions,
-    WorthQueryRuntimeError,
+    WorthQueryInspection, WorthQueryMutationFamily, WorthQueryPreviewOptions,
+    WorthQueryRuntimeError, WorthQueryUnrefinedLiveShape,
 };
 use crate::session_label::WorthQuerySessionLabel;
 use worth_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
@@ -13,7 +13,7 @@ use super::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 fn in_memory_test_runtime_executes_public_insert_and_live_read() {
     let mut workspace = task_workspace();
     let tasks = workspace
-        .live_view::<WorthQueryNativeRow>("consumer-kit.test.tasks", |view| {
+        .live_view::<WorthQueryUnrefinedLiveShape>("consumer-kit.test.tasks", |view| {
             view.from("Task")
                 .select([
                     crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
@@ -77,7 +77,7 @@ fn in_memory_test_runtime_executes_public_insert_and_live_read() {
 fn in_memory_test_runtime_executes_update_delete_and_live_routing() {
     let mut workspace = task_workspace();
     let tasks = workspace
-        .live_view::<WorthQueryNativeRow>("consumer-kit.test.crud.tasks", |view| {
+        .live_view::<WorthQueryUnrefinedLiveShape>("consumer-kit.test.crud.tasks", |view| {
             view.from("Task").select([
                 crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id").unwrap(),
                 crate::authoring::AspectFieldKey::from_authoring_parts("title", "value").unwrap(),
@@ -147,7 +147,7 @@ fn in_memory_test_runtime_stages_sandboxed_preview_writes_without_authoritative_
     assert_eq!(outcome.write_count(), 1);
     assert_eq!(outcome.authoritative_residue_count(), 0);
     let tasks = workspace
-        .live_view::<WorthQueryNativeRow>("consumer-kit.test.after-preview", |view| {
+        .live_view::<WorthQueryUnrefinedLiveShape>("consumer-kit.test.after-preview", |view| {
             view.from("Task").select([
                 crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id").unwrap(),
                 crate::authoring::AspectFieldKey::from_authoring_parts("title", "value").unwrap(),
@@ -186,7 +186,7 @@ fn in_memory_test_runtime_denies_wrong_collection_preview_before_residue() {
 fn in_memory_test_runtime_denies_multi_command_batch_before_partial_residue() {
     let mut workspace = task_workspace();
     let tasks = workspace
-        .live_view::<WorthQueryNativeRow>("consumer-kit.test.batch-denial.tasks", |view| {
+        .live_view::<WorthQueryUnrefinedLiveShape>("consumer-kit.test.batch-denial.tasks", |view| {
             view.from("Task").select([
                 crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id").unwrap(),
                 crate::authoring::AspectFieldKey::from_authoring_parts("title", "value").unwrap(),
@@ -295,11 +295,7 @@ fn task_workspace() -> crate::runtime::WorthQueryWorkspace {
 }
 
 fn task_schema() -> WorthQueryTestBackendSchema {
-    WorthQueryTestBackendSchema::single_collection("Task")
-        .aspect("identity.id", "identity.id")
-        .expect("identity aspect")
-        .aspect("title.value", "title.value")
-        .expect("title aspect")
+    super::contract_fixtures::task_schema()
 }
 
 fn assert_workspace_error_kind(error: WorthQueryRuntimeError, kind: WorthQueryWorkspaceErrorKind) {
@@ -337,7 +333,7 @@ fn authored_text(value: impl Into<String>) -> crate::runtime::WorthQueryAuthored
 }
 
 fn text(value: impl Into<String>) -> AspectValue {
-    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value)
+    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value)
 }
 
 fn field_path(path: &str) -> CanonicalFieldPath {

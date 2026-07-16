@@ -38,6 +38,7 @@ mod live_state;
 #[allow(deprecated)]
 mod lower_runtime_routes;
 mod mutation;
+mod native_value_identity_basis;
 #[allow(deprecated)]
 mod preview;
 mod preview_branch_obligation_dispatch;

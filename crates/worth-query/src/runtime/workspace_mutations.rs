@@ -6,6 +6,7 @@ use super::{
     WorthQueryExistingEntityTarget, WorthQueryExistingTruthTargetBinding, WorthQueryRuntimeError,
     WorthQueryWriteCommand, WorthQueryWriteReceipt,
 };
+#[cfg(test)]
 use super::{
     WorthQueryBatchWriteReceipt, WorthQueryExistingRelationTarget, WorthQueryMutationBatchBuilder,
 };
@@ -52,8 +53,6 @@ impl WorthQueryWorkspace {
             declaration(WorthQueryAspectMutationBuilder::new()).build_update(entity_identity)?;
         self.write(command)
     }
-
-    #[allow(dead_code)]
     pub(crate) fn bind_existing_entity(
         &self,
         target: WorthQueryExistingEntityTarget,
@@ -62,8 +61,7 @@ impl WorthQueryWorkspace {
             target,
         )?)
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn bind_existing_relation(
         &self,
         target: WorthQueryExistingRelationTarget,
@@ -200,8 +198,7 @@ impl WorthQueryWorkspace {
             .build_delete_existing_verified(binding, asserted_aspects)?;
         self.write(command)
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn batch(
         &mut self,
         declaration: impl FnOnce(WorthQueryMutationBatchBuilder) -> WorthQueryMutationBatchBuilder,

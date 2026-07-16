@@ -8,6 +8,7 @@ pub enum ContractValidationDenial {
         expected: ScalarAspectType,
         found: ScalarAspectType,
     },
+    NonCanonicalScalarValue(ScalarAspectType),
     StructValueRequired,
     ScalarValueRequired,
     MissingRequiredField(FieldKey),
@@ -16,5 +17,9 @@ pub enum ContractValidationDenial {
         field: FieldKey,
         expected: ScalarAspectType,
         found: ScalarAspectType,
+    },
+    NonCanonicalFieldValue {
+        field: FieldKey,
+        family: ScalarAspectType,
     },
 }

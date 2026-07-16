@@ -45,8 +45,40 @@ impl WorthQueryDomainOperatingContext<GeometryDomainEntry> for GeometryWorld {
         WORLD_SECTIONS
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("geometry.world-basis.{}", self.0)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = format!("geometry.world-basis.{}", self.0);
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct StructuredGeometryWorld {
+    mode: &'static str,
+    tenant: &'static str,
+    reverse_declaration_order: bool,
+}
+
+impl WorthQueryDomainOperatingContext<GeometryDomainEntry> for StructuredGeometryWorld {
+    fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
+        WORLD_CAPABILITIES
+    }
+
+    fn required_config_sections(&self) -> &'static [WorthQueryConfigSectionFamily] {
+        WORLD_SECTIONS
+    }
+
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let fields = if self.reverse_declaration_order {
+            [("tenant", self.tenant), ("mode", self.mode)]
+        } else {
+            [("mode", self.mode), ("tenant", self.tenant)]
+        };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::from_fields(fields)
+            .expect("static operating-context identity fields should be valid")
     }
 }
 
@@ -111,6 +143,46 @@ fn changing_operating_context_changes_world_identity_digests() {
     assert_ne!(
         collaborative.handle_identity(),
         restricted.handle_identity()
+    );
+}
+
+#[test]
+fn query_seals_structured_context_identity_independently_of_field_order() {
+    let left = crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomainEntry,
+        StructuredGeometryWorld {
+            mode: "strict",
+            tenant: "alpha",
+            reverse_declaration_order: false,
+        },
+        [],
+    );
+    let reordered = crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomainEntry,
+        StructuredGeometryWorld {
+            mode: "strict",
+            tenant: "alpha",
+            reverse_declaration_order: true,
+        },
+        [],
+    );
+    let changed = crate::application::domain_test_support::installed_declaration_context(
+        GeometryDomainEntry,
+        StructuredGeometryWorld {
+            mode: "relaxed",
+            tenant: "alpha",
+            reverse_declaration_order: true,
+        },
+        [],
+    );
+
+    assert_eq!(
+        left.operating_context_identity_digest(),
+        reordered.operating_context_identity_digest()
+    );
+    assert_ne!(
+        left.operating_context_identity_digest(),
+        changed.operating_context_identity_digest()
     );
 }
 

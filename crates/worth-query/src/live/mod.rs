@@ -6,7 +6,9 @@ use crate::live_performance::{IncrementalPatchEligibility, LivePerformanceReport
 use crate::validation::ValidatedQueryBundle;
 use worth_foundational::facade::{AspectKey, FieldKey};
 
+#[cfg(test)]
 mod region_scoped;
+#[cfg(test)]
 pub(crate) use region_scoped::{
     admit_region_scoped_live_plan, execute_region_scoped_live_change,
     lower_region_scoped_execution_to_stream_contract,
@@ -1594,7 +1596,7 @@ impl LocalityBreadthBudget {
     pub fn limit(&self) -> usize {
         self.limit
     }
-
+    #[cfg(test)]
     fn single_surface() -> Self {
         Self { limit: 1 }
     }
@@ -1609,7 +1611,7 @@ impl LocalityWideningBudget {
     pub fn limit(&self) -> usize {
         self.limit
     }
-
+    #[cfg(test)]
     fn deny_all() -> Self {
         Self { limit: 0 }
     }
@@ -1656,11 +1658,11 @@ impl StreamMemberWidthBudget {
     pub fn limit(&self) -> usize {
         self.limit
     }
-
+    #[cfg(test)]
     fn single_member() -> Self {
         Self { limit: 1 }
     }
-
+    #[cfg(test)]
     fn cdc_projected_patch() -> Self {
         Self { limit: 2 }
     }
@@ -1675,7 +1677,7 @@ impl StreamWindowWidthBudget {
     pub fn limit(&self) -> usize {
         self.limit
     }
-
+    #[cfg(test)]
     fn single_window() -> Self {
         Self { limit: 1 }
     }
@@ -2350,6 +2352,7 @@ pub struct DeliveryContractReplayRecord {
 }
 
 impl DeliveryContractReplayRecord {
+    #[cfg(test)]
     fn from_region_execution(
         report: &RegionScopedExecutionReport,
         replay_bundle: &LiveReplayBundle,
@@ -2370,7 +2373,7 @@ impl DeliveryContractReplayRecord {
             stream_contract_digest: None,
         }
     }
-
+    #[cfg(test)]
     fn with_stream_contract_digest(&self, stream_contract_digest: &str) -> Self {
         Self {
             digest: hash_parts(&[
@@ -2414,6 +2417,7 @@ impl DeliveryContractReplayRecord {
 }
 
 impl DeliveryLocalityOutcome {
+    #[cfg(test)]
     fn from_region_scoped_report(report: &RegionScopedExecutionReport) -> Self {
         match (report.locality_match_class(), report.widening_decision()) {
             (LocalityMatchClass::RegionMatch(_), None) => Self::InRegionRegion,
@@ -3456,7 +3460,7 @@ impl LivePolicyCounters {
     pub(crate) fn add_replay_change_count(&mut self, replay_change_count: usize) {
         self.live_replay_change_count += replay_change_count;
     }
-
+    #[cfg(test)]
     pub(crate) fn add_locality_replay_change_count(&mut self, replay_change_count: usize) {
         self.locality_replay_change_count += replay_change_count;
     }

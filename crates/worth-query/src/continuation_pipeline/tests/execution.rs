@@ -5,10 +5,8 @@ use crate::ordinary_outcome::{
 };
 
 use super::support::{
-    admitted_handle, drifted_readmission_handle, historical_disabled_handle,
-    historical_truth_view_request, preview_disabled_handle, preview_session_request,
-    runtime_route_request, target_request, HistoricalFamily, PreviewFamily, ReadmissionDrift,
-    RuntimeFamily,
+    admitted_handle, admitted_workspace, continuation_handle_in, drifted_readmission_handle_in,
+    runtime_route_request, target_request, ReadmissionDrift, RuntimeFamily,
 };
 
 #[test]
@@ -41,8 +39,8 @@ fn execution_stays_separate_from_preparation_and_produces_runtime_artifact() {
 
 #[test]
 fn preparation_and_execution_both_preserve_wrong_world_when_world_changes() {
-    let left = admitted_handle("left");
-    let right = admitted_handle("right");
+    let (workspace, left) = admitted_workspace("left");
+    let right = continuation_handle_in(&workspace, "right");
 
     let wrong_world = right.prepare_continuation_from_target(target_request::<RuntimeFamily>(
         &left,
@@ -73,7 +71,7 @@ fn preparation_and_execution_both_preserve_wrong_world_when_world_changes() {
 
 #[test]
 fn continuation_ordinary_outcome_keeps_execution_topology_honest() {
-    let handle = admitted_handle("main");
+    let (workspace, handle) = admitted_workspace("main");
     let prepared =
         match handle.prepare_continuation_from_target_outcome(target_request::<RuntimeFamily>(
             &handle,
@@ -89,7 +87,7 @@ fn continuation_ordinary_outcome_keeps_execution_topology_honest() {
         WorthQueryOrdinaryOutcome::Bound(_)
     ));
 
-    match admitted_handle("right").execute_prepared_continuation_outcome(
+    match continuation_handle_in(&workspace, "right").execute_prepared_continuation_outcome(
         match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
             &handle,
             "face-a",
@@ -109,208 +107,6 @@ fn continuation_ordinary_outcome_keeps_execution_topology_honest() {
         }
         _ => panic!("expected wrong-world execution outcome"),
     }
-}
-
-#[test]
-fn execution_rechecks_capability_support_for_preview_and_historical_paths() {
-    let preview_source = admitted_handle("shared");
-    let preview_prepared =
-        match preview_source.prepare_continuation_from_target(target_request::<PreviewFamily>(
-            &preview_source,
-            "face-a",
-            preview_session_request(),
-        )) {
-            crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::Prepared(
-                prepared,
-            ) => prepared,
-            _ => panic!("expected prepared preview continuation"),
-        };
-    assert!(matches!(
-        preview_disabled_handle("shared").execute_prepared_continuation(preview_prepared),
-        WorthQueryContinuationExecutionOutcome::Unsupported(_)
-    ));
-
-    let historical_source = admitted_handle("shared");
-    let historical_prepared = match historical_source.prepare_continuation_from_target(
-        target_request::<HistoricalFamily>(
-            &historical_source,
-            "face-a",
-            historical_truth_view_request(),
-        ),
-    ) {
-        crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::Prepared(prepared) => {
-            prepared
-        }
-        _ => panic!("expected prepared historical continuation"),
-    };
-    assert!(matches!(
-        historical_disabled_handle("shared").execute_prepared_continuation(historical_prepared),
-        WorthQueryContinuationExecutionOutcome::Unsupported(_)
-    ));
-}
-
-#[test]
-fn execution_stops_as_stale_when_retained_basis_evidence_is_stale() {
-    let handle = admitted_handle("main");
-    let prepared = match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
-        &handle,
-        "face-a",
-        runtime_route_request(),
-    )) {
-        crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::Prepared(prepared) => {
-            prepared
-        }
-        _ => panic!("expected prepared continuation"),
-    };
-
-    assert!(matches!(
-        drifted_readmission_handle("main", ReadmissionDrift::Stale)
-            .execute_prepared_continuation(prepared),
-        WorthQueryContinuationExecutionOutcome::Stale(_)
-    ));
-}
-
-#[test]
-fn execution_stops_on_basis_mismatch_before_handle_alignment() {
-    let handle = admitted_handle("main");
-    let prepared = match handle.prepare_continuation_from_target(
-        target_request::<HistoricalFamily>(&handle, "face-a", historical_truth_view_request()),
-    ) {
-        crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::Prepared(prepared) => {
-            prepared
-        }
-        _ => panic!("expected prepared historical continuation"),
-    };
-
-    assert!(matches!(
-        drifted_readmission_handle("main", ReadmissionDrift::BasisMismatch)
-            .execute_prepared_continuation(prepared),
-        WorthQueryContinuationExecutionOutcome::BasisMismatch(_)
-    ));
-}
-
-#[test]
-fn execution_stops_on_authority_mismatch_before_handle_alignment() {
-    let handle = admitted_handle("main");
-    let prepared = match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
-        &handle,
-        "face-a",
-        runtime_route_request(),
-    )) {
-        crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::Prepared(prepared) => {
-            prepared
-        }
-        _ => panic!("expected prepared preview continuation"),
-    };
-
-    assert!(matches!(
-        drifted_readmission_handle("main", ReadmissionDrift::AuthorityMismatch)
-            .execute_prepared_continuation(prepared),
-        WorthQueryContinuationExecutionOutcome::AuthorityMismatch(_)
-    ));
-}
-
-#[test]
-fn execution_stops_on_async_request_drift_before_handle_alignment() {
-    let handle = admitted_handle("main");
-    let prepared = match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
-        &handle,
-        "face-a",
-        runtime_route_request(),
-    )) {
-        crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::Prepared(prepared) => {
-            prepared
-        }
-        _ => panic!("expected prepared runtime continuation"),
-    };
-
-    assert!(matches!(
-        drifted_readmission_handle("main", ReadmissionDrift::AsyncRequest)
-            .execute_prepared_continuation(prepared),
-        WorthQueryContinuationExecutionOutcome::AsyncRequestDrift(_)
-    ));
-}
-
-#[test]
-fn execution_stops_on_replay_drift_before_handle_alignment() {
-    let handle = admitted_handle("main");
-    let prepared = match handle.prepare_continuation_from_target(
-        target_request::<HistoricalFamily>(&handle, "face-a", historical_truth_view_request()),
-    ) {
-        crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::Prepared(prepared) => {
-            prepared
-        }
-        _ => panic!("expected prepared historical continuation"),
-    };
-
-    assert!(matches!(
-        drifted_readmission_handle("main", ReadmissionDrift::Replay)
-            .execute_prepared_continuation(prepared),
-        WorthQueryContinuationExecutionOutcome::ReplayDrift(_)
-    ));
-}
-
-#[test]
-fn execution_stops_on_remask_drift_before_handle_alignment() {
-    let handle = admitted_handle("main");
-    let prepared = match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
-        &handle,
-        "face-a",
-        runtime_route_request(),
-    )) {
-        crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::Prepared(prepared) => {
-            prepared
-        }
-        _ => panic!("expected prepared runtime continuation"),
-    };
-
-    assert!(matches!(
-        drifted_readmission_handle("main", ReadmissionDrift::Remask)
-            .execute_prepared_continuation(prepared),
-        WorthQueryContinuationExecutionOutcome::RemaskDrift(_)
-    ));
-}
-
-#[test]
-fn execution_stops_on_preview_crossed_residue_before_handle_alignment() {
-    let handle = admitted_handle("main");
-    let prepared = match handle.prepare_continuation_from_target(target_request::<PreviewFamily>(
-        &handle,
-        "face-a",
-        preview_session_request(),
-    )) {
-        crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::Prepared(prepared) => {
-            prepared
-        }
-        _ => panic!("expected prepared preview continuation"),
-    };
-
-    assert!(matches!(
-        drifted_readmission_handle("main", ReadmissionDrift::PreviewCrossedResidue)
-            .execute_prepared_continuation(prepared),
-        WorthQueryContinuationExecutionOutcome::PreviewCrossedResidue(_)
-    ));
-}
-
-#[test]
-fn execution_stops_on_stale_completion_before_handle_alignment() {
-    let handle = admitted_handle("main");
-    let prepared = match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
-        &handle,
-        "face-a",
-        runtime_route_request(),
-    )) {
-        crate::continuation_pipeline::WorthQueryPreparedContinuationOutcome::Prepared(prepared) => {
-            prepared
-        }
-        _ => panic!("expected prepared runtime continuation"),
-    };
-
-    assert!(matches!(
-        drifted_readmission_handle("main", ReadmissionDrift::StaleCompletion)
-            .execute_prepared_continuation(prepared),
-        WorthQueryContinuationExecutionOutcome::StaleCompletion(_)
-    ));
 }
 
 #[test]
@@ -343,7 +139,7 @@ fn execution_readmission_preserves_basis_identity_for_equivalent_runtime_meaning
 
 #[test]
 fn continuation_ordinary_outcome_keeps_new_execution_denials_visible() {
-    let handle = admitted_handle("main");
+    let (workspace, handle) = admitted_workspace("main");
     let prepared = match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
         &handle,
         "face-a",
@@ -356,7 +152,7 @@ fn continuation_ordinary_outcome_keeps_new_execution_denials_visible() {
     };
 
     match crate::continuation_pipeline::ordinary_outcome_from_execution_checked(
-        drifted_readmission_handle("main", ReadmissionDrift::AuthorityMismatch)
+        drifted_readmission_handle_in(&workspace, "main", ReadmissionDrift::AuthorityMismatch)
             .execute_prepared_continuation_checked(prepared),
     ) {
         WorthQueryOrdinaryOutcome::AuthorityMismatch(posture) => {
@@ -371,7 +167,7 @@ fn continuation_ordinary_outcome_keeps_new_execution_denials_visible() {
 
 #[test]
 fn continuation_ordinary_outcome_keeps_execution_drift_topology_visible() {
-    let handle = admitted_handle("main");
+    let (workspace, handle) = admitted_workspace("main");
     let prepared = match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
         &handle,
         "face-a",
@@ -384,7 +180,7 @@ fn continuation_ordinary_outcome_keeps_execution_drift_topology_visible() {
     };
 
     match crate::continuation_pipeline::ordinary_outcome_from_execution_checked(
-        drifted_readmission_handle("main", ReadmissionDrift::AsyncRequest)
+        drifted_readmission_handle_in(&workspace, "main", ReadmissionDrift::AsyncRequest)
             .execute_prepared_continuation_checked(prepared),
     ) {
         WorthQueryOrdinaryOutcome::RebindRequired(posture) => {

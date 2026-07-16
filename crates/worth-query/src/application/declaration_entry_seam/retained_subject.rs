@@ -1,20 +1,27 @@
 use crate::application::{
     WorthQueryAsyncDeclarationClause, WorthQueryDeclarationAspectPublication,
     WorthQueryDeclarationBridgeAuthorityAspectSummary,
+    WorthQueryDeclarationRelationalAuthorityAspectSummary,
+    WorthQueryDeclarationSignalAuthorityAspectSummary,
+};
+#[cfg(test)]
+use crate::application::{
     WorthQueryDeclarationEntryContributionCompositionError,
     WorthQueryDeclarationEntryContributionCompositionFailureClass,
     WorthQueryDeclarationEntryRetainedSubjectInput, WorthQueryDeclarationInput,
-    WorthQueryDeclarationRelationalAuthorityAspectSummary,
-    WorthQueryDeclarationSignalAuthorityAspectSummary, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
+    WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 
+#[cfg(test)]
 use super::contribution::WorthQueryDeclarationEntryRetainedSubjectStrength;
+#[cfg(test)]
 use super::inspection::{
     envelope_bridge_summary, envelope_relational_summary, envelope_signal_summary,
     normalize_retained_subject,
 };
 
+#[cfg(test)]
 pub(crate) struct ReadinessReconciliation {
     pub(crate) declaration_digest: Option<String>,
     pub(crate) subject_strength: WorthQueryDeclarationEntryRetainedSubjectStrength,
@@ -32,6 +39,7 @@ pub(crate) struct ReadinessRetainedPosture {
     pub(crate) signal_authority_summary: WorthQueryDeclarationSignalAuthorityAspectSummary,
 }
 
+#[cfg(test)]
 pub(crate) fn readiness_reconciliation_context<
     D: WorthQueryDomainEntryMarker,
     C: WorthQueryDomainOperatingContext<D>,

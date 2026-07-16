@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn runtime_declares_live_view_and_routes_minimal_write_patches() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
 
@@ -22,7 +22,7 @@ fn runtime_declares_live_view_and_routes_minimal_write_patches() {
     assert_eq!(insert.deltas().len(), 1);
     assert_eq!(
         insert.deltas()[0].admitted_touched_aspects(),
-        test_aspect_touches(["identity.id", "title.value"]).as_slice()
+        test_aspect_touches(["identity", "title"]).as_slice()
     );
     assert_eq!(
         insert.terminal_affected_live_view_ids_projection(),
@@ -74,7 +74,7 @@ fn runtime_declares_live_view_and_routes_minimal_write_patches() {
 #[test]
 fn runtime_grouped_live_view_uses_backend_baseline_and_delivers_grouped_membership_patch() {
     let mut runtime = stateful_bridge_grouped_task_runtime();
-    let table: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let table: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view(
             "tasks.seed-table",
             grouped_task_table_live_request(),
@@ -93,7 +93,7 @@ fn runtime_grouped_live_view_uses_backend_baseline_and_delivers_grouped_membersh
         .expect("seed insert should write through table declaration");
     let task_id = seed.deltas()[0].entity_identity.clone();
     let _ = runtime.drain_patches(&table);
-    let grouped: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let grouped: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view(
             "tasks.grouped",
             grouped_task_live_request(),
@@ -127,11 +127,11 @@ fn runtime_grouped_live_view_uses_backend_baseline_and_delivers_grouped_membersh
 #[test]
 fn unified_inspect_routes_live_effect_and_write_receipt_targets() {
     let mut runtime = stateful_bridge_task_runtime();
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.inspect-target", task_live_request(), task_schema())
         .expect("live view should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::deliver(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::deliver(
             "ui.inspect-target",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "ui.inspect",
@@ -192,7 +192,7 @@ fn unified_inspect_routes_live_effect_and_write_receipt_targets() {
 #[test]
 fn live_view_inspection_reconstructs_subscription_proof_chain() {
     let mut runtime = stateful_bridge_task_runtime();
-    let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
 

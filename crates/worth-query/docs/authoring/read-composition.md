@@ -338,9 +338,9 @@ builder requests.
 ## Small Example
 
 ```rust
-use worth_query::facade::{
-    foundation::{AspectFieldSelector, AuthoredResultShapeField, TraversalSelector},
-    runtime::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView},
+use worth_query::facade::read::{
+    AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName, QuerySchemaView,
+    RelationName, ScalarAspectType, SchemaFieldView, SchemaRelationView, TraversalSelector,
 };
 
 let mut workspace = runtime.workspace("editor")?;
@@ -352,10 +352,18 @@ let result = workspace
             QuerySchemaView::new(
                 "task-read",
                 [
-                    SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-                    SchemaFieldView::new("title", "value", SchemaFieldKind::String),
+                    SchemaFieldView::new(
+                        AspectName::new("identity")?,
+                        FieldName::new("id")?,
+                        ScalarAspectType::String,
+                    ),
+                    SchemaFieldView::new(
+                        AspectName::new("title")?,
+                        FieldName::new("value")?,
+                        ScalarAspectType::String,
+                    ),
                 ],
-                [SchemaRelationView::new("depends_on", 2)],
+                [SchemaRelationView::new(RelationName::new("depends_on")?, 2)],
             ),
             |query| {
                 query
@@ -408,11 +416,11 @@ pack variant instead of rebuilding those rules outside the kernel:
 
 ```rust
 use worth_query::facade::{
-    foundation::{AspectFieldSelector, AuthoredResultShapeField, TraversalSelector},
-    runtime::{
-        QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
-        WorthQueryReadInvariantPackViolation,
+    read::{
+        AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName, QuerySchemaView,
+        RelationName, ScalarAspectType, SchemaFieldView, SchemaRelationView, TraversalSelector,
     },
+    runtime::WorthQueryReadInvariantPackViolation,
 };
 
 let mut workspace = runtime.workspace("org-chart")?;
@@ -425,10 +433,18 @@ let manager_chain = workspace
                 QuerySchemaView::new(
                     "org-chart-read",
                     [
-                        SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-                        SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
+                        SchemaFieldView::new(
+                            AspectName::new("identity")?,
+                            FieldName::new("id")?,
+                            ScalarAspectType::String,
+                        ),
+                        SchemaFieldView::new(
+                            AspectName::new("profile")?,
+                            FieldName::new("display_name")?,
+                            ScalarAspectType::String,
+                        ),
                     ],
-                    [SchemaRelationView::new("manager", 2)],
+                    [SchemaRelationView::new(RelationName::new("manager")?, 2)],
                 ),
                 |query| {
                     query
@@ -547,11 +563,10 @@ Use the family form when:
 ## Real Example
 
 ```rust
-use worth_query::facade::{
-    foundation::{
-        AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, ScalarPredicateValue,
-    },
-    runtime::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView},
+use worth_query::facade::read::{
+    AspectFieldSelector, AspectName, AuthoredResultShapeField, EqualityPredicate, FieldName,
+    QuerySchemaView, RelationName, ScalarAspectType, SchemaFieldView, SchemaRelationView,
+    WorthQueryPredicateOperand,
 };
 
 let mut workspace = runtime.workspace("org-chart")?;
@@ -563,10 +578,18 @@ let manager_detail = workspace
             QuerySchemaView::new(
                 "org-chart-read",
                 [
-                    SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-                    SchemaFieldView::new("profile", "display_name", SchemaFieldKind::String),
+                    SchemaFieldView::new(
+                        AspectName::new("identity")?,
+                        FieldName::new("id")?,
+                        ScalarAspectType::String,
+                    ),
+                    SchemaFieldView::new(
+                        AspectName::new("profile")?,
+                        FieldName::new("display_name")?,
+                        ScalarAspectType::String,
+                    ),
                 ],
-                [SchemaRelationView::new("manager", 1)],
+                [SchemaRelationView::new(RelationName::new("manager")?, 1)],
             ),
             |query| {
                 query
@@ -576,7 +599,7 @@ let manager_detail = workspace
                         EqualityPredicate::new(
                             "profile",
                             "display_name",
-                            ScalarPredicateValue::String("Ada".to_string()),
+                            WorthQueryPredicateOperand::string("Ada".to_string()),
                         )
                         ?,
                     )

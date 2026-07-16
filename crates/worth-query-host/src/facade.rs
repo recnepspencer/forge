@@ -1,11 +1,7 @@
-//! Host-audience surface: exact re-exports from the Query engine.
+//! Host-audience surface: exact Query runtime and installed-domain namespaces.
 
-/// Application-facing Query host contract for admission, lowering, and execution.
-///
-/// ```
-/// use worth_query_host::facade::WorthQueryApplicationFacade;
-/// # fn _enter(host: &WorthQueryApplicationFacade) {
-/// #     let _ = host;
-/// # }
-/// ```
-pub use worth_query::facade::WorthQueryApplicationFacade;
+/// Runtime assembly, workspace, and execution contracts.
+pub use worth_query::facade::runtime;
+
+/// Runtime-installed domain declaration and handle contracts.
+pub use worth_query::facade::domain;

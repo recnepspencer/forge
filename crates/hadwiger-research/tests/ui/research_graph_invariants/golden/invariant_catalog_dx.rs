@@ -1,12 +1,15 @@
-use worth_query::facade::runtime::WORTHQueryLowerRuntimeBoundaryEnvelopeSource;
+use worth_query::facade::{
+    domain::WorthQueryInstalledDomainHandle,
+    runtime::{WorthQueryLowerRuntimeBoundaryEnvelopeSource, WorthQueryWorkspace},
+};
 use hadwiger_research::facade::{
     certify_research_graph_invariant_violation, draft_research_graph_invariant_catalog,
-    materialize_research_graph_invariant_denial, plan_research_graph_invariant_registration,
+    materialize_research_graph_invariant_denial,
     project_research_graph_for_invariant_registration_checked,
-    register_research_graph_invariants_checked, DiscoveryFrontier, ExperimentBatch,
-    HadwigerResearchHandle, ResearchEvidenceCorpus, ResearchGraphInvariantCheckRequest,
-    ResearchGraphInvariantDenialRequest, ResearchGraphInvariantError, ResearchGraphInvariantFamily,
-    ResearchGraphInvariantRegistrationPosture,
+    DiscoveryFrontier, ExperimentBatch, HadwigerResearchDomainEntry, HadwigerResearchHandle,
+    ResearchEvidenceCorpus,
+    ResearchGraphInvariantCheckRequest, ResearchGraphInvariantDenialRequest,
+    ResearchGraphInvariantError, ResearchGraphInvariantFamily,
 };
 
 fn invariant_catalog_dx(
@@ -14,7 +17,9 @@ fn invariant_catalog_dx(
     corpus: &ResearchEvidenceCorpus,
     frontier: &DiscoveryFrontier,
     plans: ExperimentBatch,
-    lower_runtime_source: &impl WORTHQueryLowerRuntimeBoundaryEnvelopeSource,
+    installed_handle: &WorthQueryInstalledDomainHandle<HadwigerResearchDomainEntry>,
+    workspace: &WorthQueryWorkspace,
+    lower_runtime_source: &impl WorthQueryLowerRuntimeBoundaryEnvelopeSource,
 ) -> Result<(), ResearchGraphInvariantError> {
     let catalog = draft_research_graph_invariant_catalog(handle, corpus, frontier)?;
     assert!(catalog.has_rule_family(ResearchGraphInvariantFamily::FailureResidency));
@@ -26,27 +31,17 @@ fn invariant_catalog_dx(
             .with_corpus(corpus),
     )?;
     let denial = materialize_research_graph_invariant_denial(
-        handle,
+        installed_handle,
+        workspace,
         ResearchGraphInvariantDenialRequest::from_violation(&catalog, &violation)
             .for_lower_runtime_boundary_source(lower_runtime_source),
     )?;
     assert!(denial.query_denial().is_some());
 
-    let plan = plan_research_graph_invariant_registration(handle, &catalog)?;
-    assert_eq!(
-        plan.posture(),
-        ResearchGraphInvariantRegistrationPosture::CustomInvariantRegistrationsReady
-    );
-    assert!(plan
-        .compatible_query_surfaces()
-        .contains("WORTHQueryRuntime::builder().custom_invariant(...)"));
-    assert!(plan.registers_runtime_invariants());
-
     let projection =
         project_research_graph_for_invariant_registration_checked(handle, corpus, frontier)?;
     assert_eq!(projection.source_corpus_digest(), corpus.corpus_digest().stable_token());
-    let checked = register_research_graph_invariants_checked(handle, projection.catalog())?;
-    assert_eq!(checked.custom_invariant_registrations().len(), 5);
+    assert_eq!(projection.catalog().rules().len(), 5);
     Ok(())
 }
 

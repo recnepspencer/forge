@@ -1,6 +1,7 @@
 use crate::authoring::{RawAuthoredQuery, RawAuthoredResultShape};
+use crate::binding::resolve_bindings;
 use crate::facade::foundation::{
-    derive_binding_requirements, resolve_bindings, AspectFieldSelector, AuthoredResultShapeField,
+    derive_binding_requirements, AspectFieldSelector, AuthoredResultShapeField,
     BindingFailureClass, BindingResolutionError, BoundBinding, BoundBindings,
     IdentityBindingDescriptor, NonIdentityBindingMetadata, QueryBindingDescriptor,
     QueryBindingSlot, QueryBindingSubject, RootEntityKey,

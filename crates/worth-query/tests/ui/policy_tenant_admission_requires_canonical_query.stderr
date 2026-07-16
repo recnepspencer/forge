@@ -1,15 +1,8 @@
-error[E0308]: mismatched types
-  --> tests/ui/policy_tenant_admission_requires_canonical_query.rs:17:9
-   |
-16 |     let _ = admit_policy_tenant_context(
-   |             --------------------------- arguments to this function are incorrect
-17 |         "raw-query-digest",
-   |         ^^^^^^^^^^^^^^^^^^ expected `&CanonicalQueryArtifact`, found `&str`
-   |
-   = note: expected reference `&CanonicalQueryArtifact`
-              found reference `&'static str`
-note: function defined here
-  --> src/policy_basis/admission.rs
-   |
-   | pub fn admit_policy_tenant_context(
-   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error[E0432]: unresolved import `worth_query::facade::policy::admit_policy_tenant_context`
+ --> tests/ui/policy_tenant_admission_requires_canonical_query.rs:1:35
+  |
+1 | ...cade::policy::{admit_policy_tenant_context, BranchAccessGrant, PolicyEpoch, PolicyExecutionModeRequest, PolicyRuleSnapshot};
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                   |
+  |                   no `admit_policy_tenant_context` in `facade::policy`
+  |                   help: a similar name exists in the module: `AdmittedPolicyTenantContext`

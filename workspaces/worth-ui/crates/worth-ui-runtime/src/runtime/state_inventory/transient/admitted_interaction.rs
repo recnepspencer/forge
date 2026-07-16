@@ -18,6 +18,7 @@ pub enum WorthUiTransientInteractionAdmissionDenial {
     ResizePreviewRequiresTypedSample,
 }
 
+#[cfg(test)]
 pub struct WorthUiTransientInteractionAdmission<'a> {
     authority: &'a mut WorthUiTransientInteractionAdmissionAuthority,
 }
@@ -86,6 +87,7 @@ impl WorthUiTransientInteractionAdmissionAuthority {
     }
 }
 
+#[cfg(test)]
 impl<'a> WorthUiTransientInteractionAdmission<'a> {
     pub(crate) fn new(authority: &'a mut WorthUiTransientInteractionAdmissionAuthority) -> Self {
         Self { authority }

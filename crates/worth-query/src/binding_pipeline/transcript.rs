@@ -219,8 +219,6 @@ impl WorthQueryBindingLinkedArtifacts {
         self.envelope_digest = Some(value.into());
         self
     }
-
-    #[allow(dead_code)]
     pub(crate) fn with_orchestration_digest(mut self, value: impl Into<String>) -> Self {
         self.orchestration_digest = Some(value.into());
         self

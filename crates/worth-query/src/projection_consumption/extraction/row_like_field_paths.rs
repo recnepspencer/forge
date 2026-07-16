@@ -1,8 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use worth_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
+use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use worth_runtime_bridge::facade::BridgeMaterializedFieldProjection;
 
+use super::super::consumed::ConsumedNativeValue;
 use super::super::contracts::MaterializedProjectionContract;
 use super::super::facts::{
     projection_fact_field_path_from_segments, ProjectionFactFieldPath, ProjectionFactKind,
@@ -15,7 +16,7 @@ use crate::memory_workspace::WorthQueryEntity;
 #[derive(Clone, Debug)]
 pub(super) struct ProjectionMaterializedField {
     field_path: ProjectionFactFieldPath,
-    value: AspectValue,
+    value: ConsumedNativeValue,
 }
 
 impl ProjectionMaterializedField {
@@ -23,10 +24,13 @@ impl ProjectionMaterializedField {
         contract: &MaterializedProjectionContract,
         row_identity: &str,
         aspect_key: &AspectKey,
-        value: AspectValue,
+        value: &worth_runtime_bridge::facade::SnapshotReadValue,
     ) -> Result<Self, ProjectionFactExtractionError> {
-        projection_fact_field_path_from_relational_projected_aspect_key(aspect_key)
-            .map(|field_path| Self { field_path, value })
+        projection_fact_field_path_from_dotted_aspect_key(aspect_key)
+            .map(|field_path| Self {
+                field_path,
+                value: ConsumedNativeValue::from_snapshot_read_value(value),
+            })
             .map_err(
                 |_message| ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
                     source_family: contract.source_family(),
@@ -35,7 +39,7 @@ impl ProjectionMaterializedField {
                         row_identity,
                     ),
                     field_key: aspect_key.as_str().to_string(),
-                    fact_kind: ProjectionFactKind::DerivedScalarField,
+                    fact_kind: ProjectionFactKind::DerivedField,
                     expected_shape: "relational projected aspect key",
                 },
             )
@@ -45,7 +49,7 @@ impl ProjectionMaterializedField {
         contract: &MaterializedProjectionContract,
         row_identity: &str,
         projection: &BridgeMaterializedFieldProjection,
-        value: AspectValue,
+        value: ConsumedNativeValue,
     ) -> Result<Self, ProjectionFactExtractionError> {
         projection_fact_field_path_from_bridge_projection(projection)
             .map(|field_path| Self { field_path, value })
@@ -57,20 +61,20 @@ impl ProjectionMaterializedField {
                         row_identity,
                     ),
                     field_key: projection.field_identity().as_str().to_string(),
-                    fact_kind: ProjectionFactKind::DerivedScalarField,
+                    fact_kind: ProjectionFactKind::DerivedField,
                     expected_shape: "bridge projection field locator",
                 },
             )
     }
 
-    fn into_parts(self) -> (ProjectionFactFieldPath, AspectValue) {
+    fn into_parts(self) -> (ProjectionFactFieldPath, ConsumedNativeValue) {
         (self.field_path, self.value)
     }
 }
 
 pub(super) fn lower_materialized_fields<Fields>(
     fields: Fields,
-) -> Result<BTreeMap<ProjectionFactFieldPath, AspectValue>, ProjectionFactExtractionError>
+) -> Result<BTreeMap<ProjectionFactFieldPath, ConsumedNativeValue>, ProjectionFactExtractionError>
 where
     Fields: Iterator<Item = ProjectionMaterializedField>,
 {
@@ -82,12 +86,12 @@ where
 pub(super) fn query_read_result_row_fields(
     contract: &MaterializedProjectionContract,
     row: &WorthQueryEntity,
-) -> Result<BTreeMap<ProjectionFactFieldPath, AspectValue>, ProjectionFactExtractionError> {
+) -> Result<BTreeMap<ProjectionFactFieldPath, ConsumedNativeValue>, ProjectionFactExtractionError> {
     let mut row_fields = row
         .aspect_values()
         .map(|(aspect_key, value)| {
             projection_fact_field_path_from_aspect_key(aspect_key)
-                .map(|field_path| (field_path, value.clone()))
+                .map(|field_path| (field_path, ConsumedNativeValue::scalar(value.clone())))
                 .map_err(
                     |_message| ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
                         source_family: contract.source_family(),
@@ -99,12 +103,31 @@ pub(super) fn query_read_result_row_fields(
                                 .as_ref(),
                         ),
                         field_key: aspect_key.as_str().to_string(),
-                        fact_kind: ProjectionFactKind::DerivedScalarField,
+                        fact_kind: ProjectionFactKind::DerivedField,
                         expected_shape: "projection fact field path",
                     },
                 )
         })
         .collect::<Result<BTreeMap<_, _>, ProjectionFactExtractionError>>()?;
+
+    for (aspect_key, value) in row.struct_aspect_values() {
+        let field_path = projection_fact_field_path_from_aspect_key(aspect_key).map_err(|_| {
+            ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
+                source_family: contract.source_family(),
+                source_identity: compose_scoped_row_source_identity(
+                    contract.source_identity(),
+                    row.identity()
+                        .evidence_identity()
+                        .reporting_projection()
+                        .as_ref(),
+                ),
+                field_key: aspect_key.as_str().to_string(),
+                fact_kind: ProjectionFactKind::DerivedField,
+                expected_shape: "projection fact field path",
+            }
+        })?;
+        row_fields.insert(field_path, ConsumedNativeValue::struct_value(value.clone()));
+    }
 
     for field_path in contract_declared_field_paths(contract) {
         if row_fields.contains_key(&field_path) {
@@ -122,12 +145,12 @@ pub(super) fn query_read_result_row_fields(
                             .as_ref(),
                     ),
                     field_key: field_path.terminal_projection_for_boundary().to_string(),
-                    fact_kind: ProjectionFactKind::DerivedScalarField,
+                    fact_kind: ProjectionFactKind::DerivedField,
                     expected_shape: "foundational scalar",
                 },
             )?
         {
-            row_fields.insert(field_path, value);
+            row_fields.insert(field_path, ConsumedNativeValue::scalar(value));
         }
     }
 
@@ -149,7 +172,7 @@ fn contract_declared_field_paths(
         .iter()
         .filter_map(|fact| match fact.kind() {
             ProjectionFactKind::EntityIdentity => Some(identity_field_path()),
-            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => {
                 fact.field_path().cloned()
             }
             _ => None,
@@ -159,7 +182,7 @@ fn contract_declared_field_paths(
     field_paths
 }
 
-fn projection_fact_field_path_from_relational_projected_aspect_key(
+fn projection_fact_field_path_from_dotted_aspect_key(
     aspect_key: &AspectKey,
 ) -> Result<ProjectionFactFieldPath, String> {
     let path = aspect_key.as_str();
@@ -167,11 +190,11 @@ fn projection_fact_field_path_from_relational_projected_aspect_key(
         .split('.')
         .map(|segment| {
             FieldKey::new(segment)
-                .ok_or_else(|| format!("`{path}` is not a relational projected aspect key path"))
+                .ok_or_else(|| format!("`{path}` is not a dotted aspect key path"))
         })
         .collect::<Result<Vec<_>, _>>()?;
     let path = CanonicalFieldPath::new(fields)
-        .ok_or_else(|| format!("`{path}` is not a relational projected aspect key path"))?;
+        .ok_or_else(|| format!("`{path}` is not a dotted aspect key path"))?;
     Ok(ProjectionFactFieldPath::from_canonical_field_path(path))
 }
 
@@ -194,5 +217,5 @@ fn projection_fact_field_path_from_bridge_projection(
             field_locator.field_path().clone(),
         ));
     }
-    projection_fact_field_path_from_aspect_key(projection.aspect_key())
+    projection_fact_field_path_from_dotted_aspect_key(projection.aspect_key())
 }

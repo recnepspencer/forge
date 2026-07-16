@@ -7,7 +7,7 @@ pub use admission_error::{
     WorthQueryGraphReadSchemaReferenceAdmissionError,
     WorthQueryGraphReadSchemaReferenceAdmissionErrorKind,
 };
-pub use admitted_field_kind::WorthQueryGraphReadAdmittedSchemaFieldKind;
+pub use admitted_field_kind::WorthQueryAdmittedNativeFieldFamily;
 pub use admitted_reference_rows::{
     WorthQueryAdmittedGraphReadOrderingField, WorthQueryAdmittedGraphReadPredicateField,
     WorthQueryAdmittedGraphReadProjectionField, WorthQueryAdmittedGraphReadRelation,

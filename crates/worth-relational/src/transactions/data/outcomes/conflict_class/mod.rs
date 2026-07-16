@@ -8,19 +8,15 @@ mod aspect_field_target_rejection;
 mod authoritative_aspect_source_locator;
 mod entity_authoritative_aspect_state_denial;
 mod entity_authoritative_aspect_state_presentation;
-mod entity_field_aspect_patch_denial;
-mod entity_field_aspect_patch_presentation;
 mod mutation_state_inconsistency;
-mod relation_authoritative_aspect_state_denial;
-mod relation_authoritative_aspect_state_presentation;
+mod record_aspect_patch_denial;
 pub use aspect_field_target_rejection::AspectFieldTargetRejectionReason;
 pub use entity_authoritative_aspect_state_denial::EntityAuthoritativeAspectStateDenial;
-pub use entity_field_aspect_patch_denial::EntityFieldAspectPatchDenial;
 pub use mutation_state_inconsistency::{
     BulkMutationAdmissionDenial, EntityCascadeDeleteMissingState,
-    EntityFieldIntentValidationMissingState, MutationStateInconsistencyEvidence,
+    MutationStateInconsistencyEvidence,
 };
-pub use relation_authoritative_aspect_state_denial::RelationAuthoritativeAspectStateDenial;
+pub use record_aspect_patch_denial::{RecordAspectPatchDenial, RecordAspectPatchTarget};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntityFieldUpdateMissingState {
@@ -155,17 +151,13 @@ pub enum ConflictClass {
         actual: BulkImportRowDomain,
         stage: BulkImportStage,
     },
-    EntityFieldAspectPatchDenied {
-        entity_id: crate::identity::data::EntityId,
-        denial: EntityFieldAspectPatchDenial,
-    },
     EntityAuthoritativeAspectStateDenied {
         kind_id: crate::identity::data::KindId,
         denial: EntityAuthoritativeAspectStateDenial,
     },
-    RelationAuthoritativeAspectStateDenied {
-        kind_id: crate::identity::data::KindId,
-        denial: RelationAuthoritativeAspectStateDenial,
+    RecordAspectPatchDenied {
+        target: RecordAspectPatchTarget,
+        denial: RecordAspectPatchDenial,
     },
     AspectDeltaFailure {
         detail: String,

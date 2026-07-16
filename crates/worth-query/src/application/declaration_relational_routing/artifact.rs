@@ -176,6 +176,7 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
         &self.explanation
     }
 
+    #[cfg(test)]
     pub(crate) fn into_envelope(self) -> WorthQueryDeclarationEnvelope<D, I> {
         self.envelope
     }

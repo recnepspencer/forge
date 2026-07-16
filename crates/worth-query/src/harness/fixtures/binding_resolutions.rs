@@ -1,6 +1,6 @@
+use crate::binding::resolve_bindings;
 use crate::facade::foundation::{
-    derive_binding_requirements, resolve_bindings, BoundBinding, BoundBindings, QueryBindingSlot,
-    QueryBindingSubject,
+    derive_binding_requirements, BoundBinding, BoundBindings, QueryBindingSlot, QueryBindingSubject,
 };
 use crate::facade::runtime::ValidatedQueryBundle;
 

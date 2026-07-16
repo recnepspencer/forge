@@ -3,10 +3,7 @@ use crate::application::{
     WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::{
-    bind_envelope_from_target_on_handle, bind_receipt_from_target_on_handle,
     bind_route_from_target_on_handle, WorthQueryBindingUnavailable,
-    WorthQueryEnvelopeBindingRequest, WorthQueryReceiptBindingRequest,
-    WorthQueryResolveEnvelopeFromTargetRequest, WorthQueryResolveReceiptFromTargetRequest,
     WorthQueryResolveRouteFromTargetRequest, WorthQueryRouteBindingRequest,
 };
 use crate::target_binding::WorthQueryBindingTargetWitness;
@@ -122,6 +119,7 @@ macro_rules! bind_from_progression_context {
     };
 }
 
+#[cfg(test)]
 trait ResolverRequestFlags<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>> {
     fn with_partial_denial_if(self, deny: bool) -> Self;
     fn with_exact_fit_only_if(self, exact: bool) -> Self;
@@ -145,43 +143,6 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>> ResolverR
         }
     }
 }
-impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>> ResolverRequestFlags<D, I>
-    for WorthQueryResolveReceiptFromTargetRequest<D, I>
-{
-    fn with_partial_denial_if(self, deny: bool) -> Self {
-        if deny {
-            self.with_partial_denial()
-        } else {
-            self
-        }
-    }
-    fn with_exact_fit_only_if(self, exact: bool) -> Self {
-        if exact {
-            self.with_exact_fit_only()
-        } else {
-            self
-        }
-    }
-}
-impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>> ResolverRequestFlags<D, I>
-    for WorthQueryResolveEnvelopeFromTargetRequest<D, I>
-{
-    fn with_partial_denial_if(self, deny: bool) -> Self {
-        if deny {
-            self.with_partial_denial()
-        } else {
-            self
-        }
-    }
-    fn with_exact_fit_only_if(self, exact: bool) -> Self {
-        if exact {
-            self.with_exact_fit_only()
-        } else {
-            self
-        }
-    }
-}
-
 bind_from_progression_context!(
     bind_route_request_from_context_on_handle,
     WorthQueryRouteBindingRequest,
@@ -190,22 +151,4 @@ bind_from_progression_context!(
     bind_route_from_target_on_handle,
     "bind_route_request_from_context",
     crate::application::WorthQueryDeclarationRoutePlanInput<D, I>
-);
-bind_from_progression_context!(
-    bind_receipt_request_from_context_on_handle,
-    WorthQueryReceiptBindingRequest,
-    WorthQueryReceiptResolverSubject,
-    WorthQueryResolveReceiptFromTargetRequest,
-    bind_receipt_from_target_on_handle,
-    "bind_receipt_request_from_context",
-    crate::application::WorthQueryDeclarationReceiptInput<D, I>
-);
-bind_from_progression_context!(
-    bind_envelope_request_from_context_on_handle,
-    WorthQueryEnvelopeBindingRequest,
-    WorthQueryEnvelopeResolverSubject,
-    WorthQueryResolveEnvelopeFromTargetRequest,
-    bind_envelope_from_target_on_handle,
-    "bind_envelope_request_from_context",
-    crate::application::WorthQueryDeclarationEnvelopeInput<D, I>
 );

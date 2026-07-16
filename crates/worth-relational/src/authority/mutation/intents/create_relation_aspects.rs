@@ -1,0 +1,75 @@
+use worth_foundational::facade::PortablePatchReadmissionPurpose;
+
+use crate::authority::mutation::outcomes::MutationOutcome;
+use crate::authority::mutation::record_changes::allocate_relation;
+use crate::authority::mutation::MutationWorkspace;
+use crate::transactions::data::{
+    CommitConflict, ConflictClass, EntityReference, RecordAspectPatchTarget,
+    RelationAspectCreateIntent,
+};
+
+use super::{record_aspect_patch, relation_endpoint_candidate};
+
+pub(super) fn apply(
+    intent: &RelationAspectCreateIntent,
+    workspace: &mut MutationWorkspace<'_>,
+) -> Result<MutationOutcome, CommitConflict> {
+    let source = resolve_endpoint(workspace, &intent.source, "source")?;
+    let target_entity = resolve_endpoint(workspace, &intent.target, "target")?;
+    let target = RecordAspectPatchTarget::RelationCreation {
+        kind_id: intent.kind_id,
+    };
+    let plan = workspace.relation_aspect_plan(intent.kind_id);
+    let candidate = relation_endpoint_candidate::append_authoritative_endpoints(
+        intent.aspect_patch.clone(),
+        plan,
+        source,
+        target_entity,
+    );
+    let patch = record_aspect_patch::readmit(
+        candidate,
+        PortablePatchReadmissionPurpose::RecordCreation,
+        plan,
+        target,
+    )?;
+    let authoritative_aspect_state = record_aspect_patch::apply(None, &patch, target)?;
+    let version_id = workspace.version_id();
+    let relation_id = workspace.with_context(|context| {
+        let relation_id = allocate_relation(
+            context.state,
+            version_id,
+            intent.partition_id,
+            intent.kind_id,
+            source,
+            target_entity,
+            authoritative_aspect_state,
+        );
+        context
+            .state
+            .mark_relation_slot_touched(relation_id.partition_id, relation_id.slot_index());
+        relation_id
+    });
+    Ok(MutationOutcome::relation_created(
+        relation_id,
+        source,
+        target_entity,
+        intent.kind_id,
+        record_aspect_patch::published_patch(patch),
+    ))
+}
+
+fn resolve_endpoint(
+    workspace: &MutationWorkspace<'_>,
+    reference: &EntityReference,
+    label: &str,
+) -> Result<crate::identity::data::EntityId, CommitConflict> {
+    workspace
+        .resolve_entity_reference(reference)
+        .ok_or_else(|| {
+            CommitConflict::new(ConflictClass::InvalidRelationEndpoint {
+                detail: format!(
+                    "relation aspect creation requires a live or same-batch created {label} entity"
+                ),
+            })
+        })
+}

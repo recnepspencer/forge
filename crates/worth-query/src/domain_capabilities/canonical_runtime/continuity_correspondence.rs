@@ -17,6 +17,7 @@ use crate::domain_capabilities::{
 };
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 
+#[cfg(test)]
 pub fn materialize_correspondence_evidence_resolved(
     contribution: WorthQueryMaterializationReadyContinuityContribution<
         WorthQueryAdmittedPlanBoundContributionTarget,
@@ -49,6 +50,7 @@ pub fn materialize_correspondence_evidence_resolved(
     }
 }
 
+#[cfg(test)]
 fn missing_correspondence_semantics_denial(
     payload: &WorthQueryContinuityContributionPayload,
     request_identity: WorthQueryEvidenceIdentity,
@@ -65,6 +67,7 @@ fn missing_correspondence_semantics_denial(
     )
 }
 
+#[cfg(test)]
 fn unsupported_posture_denial(
     payload: &WorthQueryContinuityContributionPayload,
     request_identity: WorthQueryEvidenceIdentity,
@@ -81,6 +84,7 @@ fn unsupported_posture_denial(
     )
 }
 
+#[cfg(test)]
 fn correspondence_error_denial(
     payload: &WorthQueryContinuityContributionPayload,
     request_identity: WorthQueryEvidenceIdentity,
@@ -112,6 +116,7 @@ fn correspondence_error_denial(
     )
 }
 
+#[cfg(test)]
 fn failure_class_label(failure_class: CorrespondenceEvaluationFailureClass) -> &'static str {
     match failure_class {
         CorrespondenceEvaluationFailureClass::InvalidRequest => "invalid-request",

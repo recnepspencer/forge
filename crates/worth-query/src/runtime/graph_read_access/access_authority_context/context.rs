@@ -1,11 +1,13 @@
+#[cfg(test)]
+use super::WorthQueryGraphReadPolicyTenantAuthorityRequest;
 use super::{
     WorthQueryGraphReadAccessAuthorityCounters, WorthQueryGraphReadAccessAuthorityDenial,
     WorthQueryGraphReadAccessAuthorityDenialKind, WorthQueryGraphReadAccessAuthorityReceipt,
-    WorthQueryGraphReadAccessAuthorityRequest, WorthQueryGraphReadPolicyTenantAuthorityRequest,
+    WorthQueryGraphReadAccessAuthorityRequest,
 };
-use crate::policy_basis::{
-    admit_policy_tenant_context, AdmittedPolicyTenantContext, PolicyExecutionModeRequest,
-};
+#[cfg(test)]
+use crate::policy_basis::admit_policy_tenant_context;
+use crate::policy_basis::{AdmittedPolicyTenantContext, PolicyExecutionModeRequest};
 use crate::relationship_proof::RelationshipProofAdmission;
 use crate::runtime::{
     WorthQueryBranchBasisAdmission, WorthQueryGraphReadBasisBinding,
@@ -268,6 +270,7 @@ pub fn admit_graph_read_access_authority(
     })
 }
 
+#[cfg(test)]
 pub fn admit_graph_read_access_authority_from_policy_tenant_request(
     request: WorthQueryGraphReadPolicyTenantAuthorityRequest,
 ) -> Result<WorthQueryGraphReadAccessAuthorityContext, WorthQueryGraphReadAccessAuthorityDenial> {

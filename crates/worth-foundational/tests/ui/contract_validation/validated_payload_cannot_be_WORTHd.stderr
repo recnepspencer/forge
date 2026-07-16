@@ -1,5 +1,5 @@
 error[E0624]: associated function `scalar` is private
- --> tests/ui/contract_validation/validated_payload_cannot_be_worthd.rs:6:49
+ --> tests/ui/contract_validation/validated_payload_cannot_be_WORTHd.rs:6:49
   |
 6 |       let _worthd = ContractValidatedAspectValue::scalar(
   |                                                   ^^^^^^ private associated function
@@ -9,6 +9,30 @@ error[E0624]: associated function `scalar` is private
   | /     pub(crate) fn scalar(
   | |         key: AspectKey,
   | |         value: AspectValue,
+  | |         contract_identity: AspectIdentity,
   | |         contract_revision: AspectContractRevision,
   | |     ) -> Self {
   | |_____________- private associated function defined here
+
+error[E0061]: this function takes 4 arguments but 3 arguments were supplied
+  --> tests/ui/contract_validation/validated_payload_cannot_be_WORTHd.rs:6:19
+   |
+ 6 |     let _worthd = ContractValidatedAspectValue::scalar(
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+ 9 |         AspectContractRevision(1),
+   |         ------------------------- argument #3 of type `AspectIdentity` is missing
+   |
+note: associated function defined here
+  --> src/aspects/validation/validated_value.rs
+   |
+   |     pub(crate) fn scalar(
+   |                   ^^^^^^
+help: provide the argument
+   |
+ 6 |     let _worthd = ContractValidatedAspectValue::scalar(
+ 7 |         AspectKey::new("count").unwrap(),
+ 8 |         AspectValue::Int64(1),
+ 9 ~         /* AspectIdentity */,
+10 ~         AspectContractRevision(1),
+   |

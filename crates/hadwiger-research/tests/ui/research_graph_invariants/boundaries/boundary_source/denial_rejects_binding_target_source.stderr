@@ -1,22 +1,10 @@
-error[E0277]: the trait bound `WORTHQueryLowerRuntimeBoundaryEnvelopeBindingTarget: WORTHQueryLowerRuntimeBoundaryEnvelopeSource` is not satisfied
-  --> tests/ui/research_graph_invariants/boundaries/boundary_source/denial_rejects_binding_target_source.rs:13:44
-   |
-13 |         .for_lower_runtime_boundary_source(target);
-   |          --------------------------------- ^^^^^^ the trait `WORTHQueryLowerRuntimeBoundaryEnvelopeSource` is not implemented for `WORTHQueryLowerRuntimeBoundaryEnvelopeBindingTarget`
-   |          |
-   |          required by a bound introduced by this call
-   |
-   = help: the following other types implement trait `WORTHQueryLowerRuntimeBoundaryEnvelopeSource`:
-             WORTHQueryLowerRuntimeBoundaryEnvelope
-             LiveViewDeclarationAdmissionBoundaryReceipt
-             SignalInvalidationBoundaryReceipt
-             SubscriptionActivationBoundaryReceipt
-             WriteAuthorityExecutionReceipt
-note: required by a bound in `ResearchGraphInvariantDenialRequest::for_lower_runtime_boundary_source`
-  --> src/research_graph_invariants/requests.rs
-   |
-   |     pub fn for_lower_runtime_boundary_source<S>(mut self, source: &S) -> Self
-   |            --------------------------------- required by a bound in this associated function
-   |     where
-   |         S: WORTHQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
-   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `ResearchGraphInvariantDenialRequest::for_lower_runtime_boundary_source`
+error[E0432]: unresolved import `worth_query::facade::WorthQueryLowerRuntimeBoundaryEnvelopeBindingTarget`
+ --> tests/ui/research_graph_invariants/boundaries/boundary_source/denial_rejects_binding_target_source.rs:1:5
+  |
+1 | use worth_query::facade::WorthQueryLowerRuntimeBoundaryEnvelopeBindingTarget;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryLowerRuntimeBoundaryEnvelopeBindingTarget` in `facade`
+  |
+help: consider importing this struct instead
+  |
+1 | use worth_query::facade::runtime::WorthQueryLowerRuntimeBoundaryEnvelopeBindingTarget;
+  |                          +++++++++

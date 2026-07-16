@@ -11,7 +11,7 @@ use worth_server::{
 };
 
 #[path = "support/product_session_phase_ten/fixture.rs"]
-mod fixture;
+pub mod fixture;
 
 use fixture::{
     apply_payload, build_server, build_server_with_clock, direct_session,

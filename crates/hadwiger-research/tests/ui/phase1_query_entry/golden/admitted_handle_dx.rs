@@ -1,4 +1,4 @@
-use worth_query::facade::WORTHQueryDeclaredFamilyChecked;
+use worth_query::facade::domain::WorthQueryDeclaredFamilyChecked;
 use hadwiger_research::facade::{
     declare_research_request_checked, hadwiger_research_domain_package,
     research_declaration_entry_readiness, CandidateGraphDeclaration,
@@ -18,7 +18,7 @@ fn admitted_handle_dx() -> Result<(), String> {
     let readiness = research_declaration_entry_readiness::<CandidateGraphDeclaration>(&handle);
 
     match checked {
-        WORTHQueryDeclaredFamilyChecked::Admitted(declaration) => {
+        WorthQueryDeclaredFamilyChecked::Admitted(declaration) => {
             assert_eq!(
                 declaration.declaration_family_key(),
                 "hadwiger.candidate_graph"

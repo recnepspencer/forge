@@ -20,7 +20,7 @@ whole-refresh posture.
 - `workspace.computed_view(...)`
 - `workspace.computed_definition(...)`
 - `workspace.materialize_result(...)`
-- `workspace.inspect(...)`
+- `workspace.inspections()?.inspect(...)`
 - `workspace.state(...)`
 
 Preferred ordinary DX is `workspace.computed(...)`. Compatibility surfaces such
@@ -83,10 +83,10 @@ pretending a local incremental update was sufficient.
    plus the snapshot token, touched aspect paths, and any runtime-owned refresh
    metadata the basis or write path attached.
 7. `workspace.materialize_result(...)` returns current derived rows through the explicit runtime result boundary.
-8. `workspace.inspect(...)` explains dependencies, produced aspects, and patch
+8. `workspace.inspections()?.inspect(...)` explains dependencies, produced aspects, and patch
    posture.
 
-When a caller needs one typed retained row instead of raw `Vec<Value>` row
+When a caller needs one typed retained row instead of raw `Vec<WorthQueryUnrefinedLiveShape>` row
 archaeology, the admitted materialization lane is the stronger floor:
 
 - `workspace.materialize_intent(&derived).execute()` returns one retained
@@ -114,7 +114,7 @@ archaeology, the admitted materialization lane is the stronger floor:
 - when one mutation step already has a retained batch-write receipt and needs
   the matching inspection plus one exact retained derived artifact as the next
   authoritative package, use `materialize_batch_write_artifact_binding(...)`
-  instead of stitching `workspace.inspect(...)` and
+  instead of stitching `workspace.inspections()?.inspect(...)` and
   `materialize_derived_artifact_binding(...)` together in caller code
 - whole-refresh maintainers can also decode one retained computed upstream row
   through `WorthQueryRetainedUpstreamInputs::decode_single_computed_row(...)`
@@ -131,11 +131,11 @@ call order.
 
 ```rust
 use worth_query::facade::runtime::{WorthQueryDerivedViewHandle, WorthQueryLiveView};
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("tasks").unwrap();
 
-let live: WorthQueryLiveView<Value> = workspace
+let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.table", |q| {
         q.from("Task")
             .select(["identity.id", "title.value"])
@@ -143,7 +143,7 @@ let live: WorthQueryLiveView<Value> = workspace
     })
     .unwrap();
 
-let titles: WorthQueryDerivedViewHandle<Value> = workspace
+let titles: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
     .computed(
         "tasks.titles",
         |c| {
@@ -166,11 +166,11 @@ materialization.
 
 ```rust
 use worth_query::facade::runtime::{WorthQueryDerivedViewHandle, WorthQueryInspection, WorthQueryLiveView};
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("workflow").unwrap();
 
-let live: WorthQueryLiveView<Value> = workspace
+let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.table", |q| {
         q.from("Task")
             .select(["identity.id", "title.value"])
@@ -178,7 +178,7 @@ let live: WorthQueryLiveView<Value> = workspace
     })
     .unwrap();
 
-let titles: WorthQueryDerivedViewHandle<Value> = workspace
+let titles: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
     .computed(
         "computed.titles",
         |c| {
@@ -190,7 +190,7 @@ let titles: WorthQueryDerivedViewHandle<Value> = workspace
     )
     .unwrap();
 
-let summary: WorthQueryDerivedViewHandle<Value> = workspace
+let summary: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
     .computed(
         "computed.summary",
         |c| {
@@ -210,7 +210,7 @@ workspace
     .unwrap();
 
 let rows = workspace.materialize_result(&summary)?;
-let inspection = workspace.inspect(&summary).unwrap();
+let inspection = workspace.inspections()?.inspect(&summary).unwrap();
 
 match inspection {
     WorthQueryInspection::DerivedView(derived) => {
@@ -274,7 +274,7 @@ hide authoritative writes.
 
 ## Inspection And Debugging
 
-`workspace.inspect(&computed)` tells you:
+`workspace.inspections()?.inspect(&computed)` tells you:
 
 - authority lane
 - upstream live and computed dependencies
@@ -298,7 +298,7 @@ This is the main way to verify whether a computed surface is wired correctly.
 - Reconstructing sibling upstream truth yourself because a write touched only
   one live view. The runtime already hands whole-refresh maintainers the
   retained rows for every declared upstream live surface.
-- Decoding one retained computed row through local `Vec<Value>` helper folklore
+- Decoding one retained computed row through local `Vec<WorthQueryUnrefinedLiveShape>` helper folklore
   when the runtime already owns typed decode on retained upstream inputs or on
   the derived materialization result artifact.
 - Looping over several computed handles in caller code and pretending the

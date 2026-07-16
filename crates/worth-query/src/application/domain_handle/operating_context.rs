@@ -119,7 +119,7 @@ pub trait WorthQueryDomainOperatingContext<D: WorthQueryDomainEntryMarker>: Clon
         &[]
     }
 
-    fn context_identity_digest(&self) -> String;
+    fn context_identity(&self) -> super::WorthQueryDomainOperatingContextIdentityDeclaration;
 
     fn continuation_execution_readmission_observation(
         &self,

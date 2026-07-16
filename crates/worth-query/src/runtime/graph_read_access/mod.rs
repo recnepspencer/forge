@@ -24,11 +24,13 @@ mod shape_explanation;
 mod streaming_frontier_execution;
 mod vocabulary;
 
+pub(crate) use access_admission::admit_graph_read_access_for_family_in_authority_with_inventory_and_lookup;
+#[cfg(test)]
 pub(crate) use access_admission::{
-    admit_graph_read_access_for_family_in_authority_with_inventory,
-    admit_graph_read_access_for_family_in_authority_with_inventory_and_lookup,
-    admit_graph_read_access_for_family_with_inventory,
+    admit_graph_read_access_for_family, plan_admitted_graph_read_access_for_family,
 };
+#[cfg(test)]
+pub(crate) use access_authority_context::admit_graph_read_access_authority_from_policy_tenant_request;
 pub(crate) use boolean_expression::admit_boolean_predicate_expression_for_read_graph;
 pub(crate) use graph_index_inventory::match_graph_index_inventory_for_requirements;
 pub(crate) use installed_explanation::{
@@ -44,25 +46,20 @@ pub(crate) use shape_derivation::derive_graph_read_access_shape;
 
 pub(crate) use access_admission::WorthQueryGraphReadAccessExecutionRecorder;
 pub use access_admission::{
-    admit_graph_read_access_for_family, admit_graph_read_access_for_family_in_authority,
-    plan_admitted_graph_read_access_for_family,
-    plan_admitted_graph_read_access_for_family_in_authority, WorthQueryAdmittedGraphReadAccessPlan,
-    WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessAdmissionPosture,
-    WorthQueryGraphReadAccessCase, WorthQueryGraphReadAccessCaseRegistry,
-    WorthQueryGraphReadAccessDenial, WorthQueryGraphReadAccessDenialKind,
-    WorthQueryGraphReadAccessExecutionCounters, WorthQueryGraphReadAccessInventoryMatch,
-    WorthQueryGraphReadAccessPlanConsumption, WorthQueryGraphReadAccessPlanExplanation,
-    WorthQueryGraphReadBudgetExceededDenial, WorthQueryGraphReadPersistentArtifactAudit,
-    WorthQueryGraphReadRequiredCapabilityOwner,
+    WorthQueryAdmittedGraphReadAccessPlan, WorthQueryGraphReadAccessAdmission,
+    WorthQueryGraphReadAccessAdmissionPosture, WorthQueryGraphReadAccessCase,
+    WorthQueryGraphReadAccessCaseRegistry, WorthQueryGraphReadAccessDenial,
+    WorthQueryGraphReadAccessDenialKind, WorthQueryGraphReadAccessExecutionCounters,
+    WorthQueryGraphReadAccessInventoryMatch, WorthQueryGraphReadAccessPlanConsumption,
+    WorthQueryGraphReadAccessPlanExplanation, WorthQueryGraphReadBudgetExceededDenial,
+    WorthQueryGraphReadPersistentArtifactAudit, WorthQueryGraphReadRequiredCapabilityOwner,
 };
 pub use access_authority_context::{
-    admit_graph_read_access_authority,
-    admit_graph_read_access_authority_from_policy_tenant_request,
-    WorthQueryGraphReadAccessAuthorityContext, WorthQueryGraphReadAccessAuthorityCounters,
-    WorthQueryGraphReadAccessAuthorityDenial, WorthQueryGraphReadAccessAuthorityDenialKind,
-    WorthQueryGraphReadAccessAuthorityReceipt, WorthQueryGraphReadAccessAuthorityRequest,
-    WorthQueryGraphReadAccessBasisScope, WorthQueryGraphReadAccessBasisScopeKind,
-    WorthQueryGraphReadPolicyTenantAuthorityRequest,
+    admit_graph_read_access_authority, WorthQueryGraphReadAccessAuthorityContext,
+    WorthQueryGraphReadAccessAuthorityCounters, WorthQueryGraphReadAccessAuthorityDenial,
+    WorthQueryGraphReadAccessAuthorityDenialKind, WorthQueryGraphReadAccessAuthorityReceipt,
+    WorthQueryGraphReadAccessAuthorityRequest, WorthQueryGraphReadAccessBasisScope,
+    WorthQueryGraphReadAccessBasisScopeKind, WorthQueryGraphReadPolicyTenantAuthorityRequest,
 };
 pub use access_requirements::{
     WorthQueryGraphReadAccessComplexityContract, WorthQueryGraphReadAccessInvalidationBasis,
@@ -133,20 +130,18 @@ pub use ephemeral_index_provisioning::{
     WorthQueryEphemeralGraphIndexScopeKind,
 };
 pub use explanation_api::{
-    derive_graph_read_access_requirements, explain_boolean_selectivity_shape_for_family,
-    explain_boolean_selectivity_shape_for_family_with_operation_registry,
-    explain_graph_read_access_requirement_outcome_for_family,
-    explain_graph_read_access_requirement_outcome_for_family_in_authority,
-    explain_graph_read_access_requirement_outcome_for_family_with_operation_registry,
+    derive_graph_read_access_requirements, try_derive_graph_read_access_requirements,
+    WorthQueryGraphReadAccessShapeExplanationError,
+};
+#[cfg(test)]
+pub(crate) use explanation_api::{
+    explain_boolean_selectivity_shape_for_family,
+    explain_graph_read_access_requirement_outcome_for_family_with_operation_lookup,
     explain_graph_read_access_requirements_for_family,
-    explain_graph_read_access_requirements_for_family_in_authority,
-    explain_graph_read_access_requirements_for_family_with_operation_registry,
+    explain_graph_read_access_requirements_for_family_with_operation_lookup,
     explain_graph_read_access_shape_for_family,
-    explain_graph_read_access_shape_for_family_in_authority,
-    explain_graph_read_access_shape_for_family_with_operation_registry,
-    resolve_graph_read_operations_for_family_in_authority_with_registry,
-    resolve_graph_read_operations_for_family_with_registry,
-    try_derive_graph_read_access_requirements, WorthQueryGraphReadAccessShapeExplanationError,
+    explain_graph_read_access_shape_for_family_with_operation_lookup,
+    resolve_graph_read_operations_for_family_with_operation_lookup,
 };
 pub use graph_index_inventory::{
     match_current_graph_index_inventory_for_requirements, worth_query_graph_index_inventory,
@@ -167,12 +162,14 @@ pub use operation_resolution::{
     WorthQueryGraphReadOperationCapabilityRequirement,
     WorthQueryGraphReadOperationCapabilityRequirementDeclaration,
     WorthQueryGraphReadOperationCapabilityRequirementKind, WorthQueryGraphReadOperationOutcome,
-    WorthQueryGraphReadOperationRegistration, WorthQueryGraphReadOperationRegistry,
     WorthQueryGraphReadOperationResolution, WorthQueryGraphReadOperationUnsupportedDenial,
     WorthQueryGraphReadOperationUnsupportedDenialKind,
-    WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
-    WorthQueryGraphReadRegistryAdmissionError, WorthQueryGraphReadResolvedOperation,
+    WorthQueryGraphReadOperationUnsupportedShapeDeclaration, WorthQueryGraphReadResolvedOperation,
     WorthQueryGraphReadResolvedOperationFamily, WorthQueryGraphReadResolvedOperationKind,
+};
+pub(crate) use operation_resolution::{
+    WorthQueryGraphReadOperationRegistration, WorthQueryGraphReadOperationRegistry,
+    WorthQueryGraphReadRegistryAdmissionError,
 };
 pub use persistent_index_requirement::{
     WorthQueryGraphReadFamilyIndexContract, WorthQueryPersistentGraphIndexRequirementCounters,
@@ -182,8 +179,8 @@ pub use persistent_index_requirement::{
 pub use schema_reference_evidence::{
     WorthQueryAdmittedGraphReadOrderingField, WorthQueryAdmittedGraphReadPredicateField,
     WorthQueryAdmittedGraphReadProjectionField, WorthQueryAdmittedGraphReadRelation,
-    WorthQueryAdmittedGraphReadRelationDirection, WorthQueryAdmittedQuerySchemaReferences,
-    WorthQueryGraphReadAdmittedSchemaFieldKind, WorthQueryGraphReadSchemaReferenceAdmissionError,
+    WorthQueryAdmittedGraphReadRelationDirection, WorthQueryAdmittedNativeFieldFamily,
+    WorthQueryAdmittedQuerySchemaReferences, WorthQueryGraphReadSchemaReferenceAdmissionError,
     WorthQueryGraphReadSchemaReferenceAdmissionErrorKind,
 };
 pub use selectivity_shape::{

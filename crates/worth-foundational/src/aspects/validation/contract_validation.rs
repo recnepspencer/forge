@@ -56,6 +56,7 @@ fn validate_struct_value(
     TransitionOutcome::success(Artifact::new(ContractValidatedAspectValue::struct_value(
         contract.key().clone(),
         value,
+        contract.identity(),
         contract.revision(),
     )))
 }
@@ -83,6 +84,12 @@ fn first_struct_field_type_denial(
             return Some(ContractValidationDenial::UnknownField(key.clone()));
         };
         let found = field_value.value_family();
+        if !field_value.has_canonical_representation() {
+            return Some(ContractValidationDenial::NonCanonicalFieldValue {
+                field: key.clone(),
+                family: found,
+            });
+        }
         if found != field.value_type() {
             return Some(ContractValidationDenial::FieldTypeMismatch {
                 field: key.clone(),
@@ -100,10 +107,14 @@ fn validate_scalar_family(
     expected: ScalarAspectType,
 ) -> TransitionOutcome<ContractValidatedAspectArtifact, ContractValidationDenial> {
     let found = value.value_family();
+    if !value.has_canonical_representation() {
+        return TransitionOutcome::denied(ContractValidationDenial::NonCanonicalScalarValue(found));
+    }
     if found == expected {
         TransitionOutcome::success(Artifact::new(ContractValidatedAspectValue::scalar(
             contract.key().clone(),
             value,
+            contract.identity(),
             contract.revision(),
         )))
     } else {

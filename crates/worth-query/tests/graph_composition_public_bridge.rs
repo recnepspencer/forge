@@ -5,9 +5,9 @@ use worth_query::facade::runtime::{
     WorthQueryExistingTruthTargetBinding, WorthQueryGraphCompositionAdmissionTraceStage,
     WorthQueryGraphCompositionLifecycleOutcomeKind, WorthQueryGraphCompositionProgramStepKind,
     WorthQueryInspection, WorthQueryLiveView, WorthQueryMutationAuthorityIdentity,
-    WorthQueryNativeRow, WorthQueryRuntimeError, WorthQuerySymbolicTargetReference,
+    WorthQueryUnrefinedLiveShape, WorthQueryRuntimeError, WorthQuerySymbolicTargetReference,
 };
-mod support;
+use crate::support;
 
 use support::aspect_touch as touch;
 use support::public_bridge_runtime::{public_graph_support_profile, PublicBridgeRuntimeHarness};
@@ -55,7 +55,7 @@ fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retir
     let mut workspace = runtime
         .workspace("public.graph-composition-lifecycle")
         .expect("runtime should open a named workspace");
-    let tasks: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("public.graph-composition-lifecycle-tasks", |q| {
             q.from("Task")
                 .select([
@@ -77,7 +77,7 @@ fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retir
                 .schema_basis("public-graph-composition-lifecycle-tasks")
         })
         .expect("task live view should declare");
-    let edges: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let edges: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("public.graph-composition-lifecycle-edges", |q| {
             q.from("TaskEdge")
                 .select([

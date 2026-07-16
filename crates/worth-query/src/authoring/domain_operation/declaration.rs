@@ -8,10 +8,12 @@ pub struct WorthQueryGraphReadDomainOperationDeclaration {
     key: WorthQueryGraphReadOperationKey,
     admitted_references: Vec<WorthQueryAdmittedGraphReadDomainOperationReference>,
     support_families: Vec<String>,
+    installed_authority:
+        Option<crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness>,
 }
 
 impl WorthQueryGraphReadDomainOperationDeclaration {
-    pub fn new(
+    pub(crate) fn new(
         name: impl Into<String>,
         version: u32,
         owner: impl Into<String>,
@@ -20,10 +22,11 @@ impl WorthQueryGraphReadDomainOperationDeclaration {
             key: WorthQueryGraphReadOperationKey::new(name, version, owner)?,
             admitted_references: Vec::new(),
             support_families: Vec::new(),
+            installed_authority: None,
         })
     }
 
-    pub fn admit_relation_reference(
+    pub(crate) fn admit_relation_reference(
         mut self,
         relation_name: impl Into<String>,
     ) -> Result<Self, DomainGraphOperationDeclarationError> {
@@ -34,7 +37,7 @@ impl WorthQueryGraphReadDomainOperationDeclaration {
         Ok(self)
     }
 
-    pub fn requires_support_family(
+    pub(crate) fn requires_support_family(
         mut self,
         support_family: impl Into<String>,
     ) -> Result<Self, DomainGraphOperationDeclarationError> {
@@ -60,6 +63,24 @@ impl WorthQueryGraphReadDomainOperationDeclaration {
         &self.support_families
     }
 
+    pub(crate) fn authorized_by_installed_domain(
+        mut self,
+        authority: crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness,
+    ) -> Self {
+        debug_assert_eq!(
+            self.key.owner().as_str(),
+            authority.authority().domain_owner()
+        );
+        self.installed_authority = Some(authority);
+        self
+    }
+
+    pub(crate) fn installed_authority(
+        &self,
+    ) -> Option<&crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness> {
+        self.installed_authority.as_ref()
+    }
+
     pub fn digest_part(&self) -> String {
         let references = self
             .admitted_references
@@ -68,11 +89,16 @@ impl WorthQueryGraphReadDomainOperationDeclaration {
             .collect::<Vec<_>>()
             .join(",");
         let support = self.support_families.join(",");
-        format!(
+        let mut digest = format!(
             "domain_declaration:{}:{}:{}",
             self.key.digest_part(),
             references,
             support
-        )
+        );
+        if let Some(authority) = &self.installed_authority {
+            digest.push_str(":installed_authority=");
+            digest.push_str(authority.witness_identity().as_str());
+        }
+        digest
     }
 }

@@ -47,19 +47,18 @@ evidence, route plans, or receipts alone.
 - `WorthQueryDeclarationSignalCompatibilitySupportRow`
 - `WorthQueryDeclarationSignalCompatibilitySupportStatus`
 - `WorthQueryDeclarationSignalExecutionFamily`
-- `WorthQueryAdmittedConfiguredDomainHandle::signal_compatibility(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::signal_compatibility_checked(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::signal_compatibility_from_progressed(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::signal_compatibility_from_progressed_with_intent(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::signal_compatibility_support::<I>()`
-- `WorthQueryAdmittedConfiguredDomainHandle::orchestrate_signal_compatibility(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::orchestrate_signal_compatibility_outcome(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::orchestrate_signal_compatibility_checked(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::orchestrate_signal_compatibility_proof(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::declaration_entry_crossing_inventory::<I>()`
-- `WorthQueryAdmittedConfiguredDomainHandle::declaration_entry_readiness::<I>()`
-- `WorthQueryAdmittedConfiguredDomainHandle::inspect_declaration_entry(...)`
+- `WorthQueryInstalledDomainDeclarationContext::signal_compatibility(...)`
+- `WorthQueryInstalledDomainDeclarationContext::signal_compatibility_checked(...)`
+- `WorthQueryInstalledDomainDeclarationContext::signal_compatibility_from_progressed(...)`
+- `WorthQueryInstalledDomainDeclarationContext::signal_compatibility_from_progressed_with_intent(...)`
+- `WorthQueryInstalledDomainDeclarationContext::declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(...)`
+- `WorthQueryInstalledDomainDeclarationContext::signal_compatibility_support::<I>()`
+- `WorthQueryInstalledDomainDeclarationContext::orchestrate_signal_compatibility(...)`
+- `WorthQueryInstalledDomainDeclarationContext::orchestrate_signal_compatibility_outcome(...)`
+- `WorthQueryInstalledDomainDeclarationContext::orchestrate_signal_compatibility_checked(...)`
+- `WorthQueryInstalledDomainDeclarationContext::orchestrate_signal_compatibility_proof(...)`
+- `WorthQueryInstalledDomainDeclarationContext::declaration_entry_crossing_inventory::<I>()`
+- `WorthQueryInstalledDomainDeclarationContext::declaration_entry_readiness::<I>()`
 
 Good to know:
 
@@ -311,7 +310,7 @@ of filling them from broad signal family posture.
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
   composes this retained compatibility truth into one signal-facing next-step
   result that can stop at `Compatible` or advance into `Prepared`
-- [Configured Domain Handles](./configured-domain-handles.md) still own the
+- Runtime-Installed Domain Handles still own the
   support snapshot and admitted-world identity that compatibility classification
   must not rediscover
 - `basis_lifecycle` still owns basis-family vocabulary; signal compatibility
@@ -403,11 +402,11 @@ retained compatibility or advance into prepared continuation, move to
 
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)
-- [Configured Domain Handles](./configured-domain-handles.md)
+- Runtime-Installed Domain Handles
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
-- [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- Declaration Foundational Evidence
 - [Domain Capabilities](./README.md)

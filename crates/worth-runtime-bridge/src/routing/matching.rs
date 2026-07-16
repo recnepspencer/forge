@@ -15,7 +15,6 @@ pub enum FineGrainedMatchStatus {
     AmbiguousRegistration,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FineGrainedMatchOutcome {
     Matched {
@@ -34,12 +33,6 @@ pub enum FineGrainedMatchOutcome {
     SuppressedByRegistrationPolicy {
         truth_surface_kind: TruthDeltaSurfaceKind,
     },
-    UnsupportedSurfaceCategory {
-        truth_surface_kind: TruthDeltaSurfaceKind,
-    },
-    AmbiguousRegistration {
-        truth_surface_kind: TruthDeltaSurfaceKind,
-    },
 }
 
 impl FineGrainedMatchOutcome {
@@ -50,10 +43,6 @@ impl FineGrainedMatchOutcome {
             Self::SuppressedByRegistrationPolicy { .. } => {
                 FineGrainedMatchStatus::SuppressedByRegistrationPolicy
             }
-            Self::UnsupportedSurfaceCategory { .. } => {
-                FineGrainedMatchStatus::UnsupportedSurfaceCategory
-            }
-            Self::AmbiguousRegistration { .. } => FineGrainedMatchStatus::AmbiguousRegistration,
         }
     }
 
@@ -67,9 +56,7 @@ impl FineGrainedMatchOutcome {
                 subscription_slice_kind,
                 ..
             } => Some(subscription_slice_kind),
-            Self::SuppressedByRegistrationPolicy { .. }
-            | Self::UnsupportedSurfaceCategory { .. }
-            | Self::AmbiguousRegistration { .. } => None,
+            Self::SuppressedByRegistrationPolicy { .. } => None,
         }
     }
 
@@ -83,9 +70,7 @@ impl FineGrainedMatchOutcome {
                 snapshot_read_contract,
                 ..
             } => Some(snapshot_read_contract),
-            Self::SuppressedByRegistrationPolicy { .. }
-            | Self::UnsupportedSurfaceCategory { .. }
-            | Self::AmbiguousRegistration { .. } => None,
+            Self::SuppressedByRegistrationPolicy { .. } => None,
         }
     }
 }

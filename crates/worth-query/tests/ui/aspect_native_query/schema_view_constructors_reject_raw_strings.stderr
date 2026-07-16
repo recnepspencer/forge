@@ -1,7 +1,7 @@
 error[E0308]: arguments to this function are incorrect
  --> tests/ui/aspect_native_query/schema_view_constructors_reject_raw_strings.rs:4:18
   |
-4 |     let _field = SchemaFieldView::new("identity", "id", SchemaFieldKind::String);
+4 |     let _field = SchemaFieldView::new("identity", "id", ScalarAspectType::String);
   |                  ^^^^^^^^^^^^^^^^^^^^ ----------  ---- expected `FieldName`, found `&str`
   |                                       |
   |                                       expected `AspectName`, found `&str`
@@ -9,7 +9,7 @@ error[E0308]: arguments to this function are incorrect
 note: associated function defined here
  --> src/schema_view/field.rs
   |
-  |     pub fn new(aspect: AspectName, field: FieldName, kind: SchemaFieldKind) -> Self {
+  |     pub fn new(aspect: AspectName, field: FieldName, kind: ScalarAspectType) -> Self {
   |            ^^^
 
 error[E0308]: mismatched types

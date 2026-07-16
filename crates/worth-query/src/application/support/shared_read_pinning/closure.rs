@@ -134,28 +134,23 @@ impl WorthQuerySharedReadPinningBoundaryClosure {
     pub fn closure_digest(&self) -> &str {
         self.closure_identity.as_str()
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn inventory_failure_count(&self) -> usize {
         self.inventory_failure_count
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn counter_residue_count(&self) -> usize {
         self.counter_residue_count
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn hostile_matrix_green(&self) -> bool {
         self.hostile_matrix_green
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn send_sync_proven(&self) -> bool {
         self.send_sync_proven
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn stale_basis_denial_proven(&self) -> bool {
         self.stale_basis_denial_proven
     }

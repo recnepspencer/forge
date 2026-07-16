@@ -6,6 +6,8 @@ use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBa
 
 pub fn installed_hadwiger_research_handle() -> Result<HadwigerResearchHandle, String> {
     let schema = WorthQueryTestBackendSchema::single_collection("HadwigerCandidate")
+        .aspect_contracts(hadwiger_research::facade::hadwiger_native_aspect_contracts())
+        .map_err(|error| error.to_string())?
         .aspect("identity.id", "identity.id")
         .map_err(|error| error.to_string())?;
     let workspace = in_memory_test_runtime()

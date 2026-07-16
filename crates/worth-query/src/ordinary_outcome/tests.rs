@@ -12,10 +12,11 @@ use crate::application::{
     WorthQueryDomainOperatingContext, WorthQueryNeighborhoodCapableGrouping,
     WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
 };
-use crate::binding_pipeline::{WorthQueryBindingChecked, WorthQueryBindingLinkedArtifacts};
+use crate::binding_pipeline::{
+    WorthQueryBindingChecked, WorthQueryBindingLinkedArtifacts, WorthQueryDeclarationBindingRequest,
+};
 use crate::facade::foundation::{
-    WorthQueryApplicationFacade, WorthQueryBindingOutcome, WorthQueryBindingSourceKind,
-    WorthQueryBindingWrongWorld, WorthQueryDeclarationBindingRequest,
+    WorthQueryBindingOutcome, WorthQueryBindingSourceKind, WorthQueryBindingWrongWorld,
     WorthQueryDeclarationEntryOrchestrationRefusalClass,
     WorthQueryDeclarationEntryOrchestrationTerminalError,
 };
@@ -58,8 +59,11 @@ impl WorthQueryDomainOperatingContext<OrdinaryDomain> for OrdinaryWorld {
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        "ordinary-world".to_string()
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { "ordinary-world".to_string() };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 

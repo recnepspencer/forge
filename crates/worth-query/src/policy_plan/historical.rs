@@ -1,10 +1,14 @@
+#[cfg(test)]
+use crate::policy_execution_seam::PolicyAwareExecutionMode;
 use crate::policy_execution_seam::{
-    PolicyAwareExecutionMode, PolicyAwareExecutionSeamError, PolicyAwareExecutionSeamFailureClass,
-    PolicyAwareSeamCounters,
+    PolicyAwareExecutionSeamError, PolicyAwareExecutionSeamFailureClass, PolicyAwareSeamCounters,
 };
+#[cfg(test)]
 use crate::policy_narrowing::NarrowedPolicyQueryArtifact;
 
-use super::{PolicyAwarePlanCore, PolicyAwarePlanCostPosture};
+use super::PolicyAwarePlanCore;
+#[cfg(test)]
+use super::PolicyAwarePlanCostPosture;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PolicyAwareHistoricalBasis {
@@ -65,7 +69,7 @@ impl PolicyAwareHistoricalPlan {
         &self.basis
     }
 }
-
+#[cfg(test)]
 pub(crate) fn lower_policy_aware_historical_plan(
     artifact: &NarrowedPolicyQueryArtifact,
     basis: PolicyAwareHistoricalBasis,

@@ -6,7 +6,7 @@ use worth_foundational::facade::{
 };
 
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
+    WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationBridgeContinuationContract,
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
@@ -17,6 +17,11 @@ use crate::application::{
     WorthQueryTemporalDeclarationClause, WorthQueryTemporalDeclarationSupport,
     WorthQueryTemporalDuration,
 };
+
+use super::async_fixtures::{AsyncCurrentFamily, AsyncHistoricalFamily, AsyncPreviewFamily};
+
+mod installed_handle;
+pub(crate) use installed_handle::admitted_handle;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct GeometryDomain;
@@ -58,8 +63,11 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for CollaborativeWorld {
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("geometry.{}", self.regime)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("geometry.{}", self.regime) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -99,7 +107,7 @@ impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for IllegalRoleFamily {
     type GroupedPosture = WorthQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "split-edge-illegal-role"
     }
 
     fn legality_contract() -> WorthQueryDeclarationLegalityContract {
@@ -122,7 +130,7 @@ impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for IllegalDispositionFam
     type GroupedPosture = WorthQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "split-edge-illegal-disposition"
     }
 
     fn legality_contract() -> WorthQueryDeclarationLegalityContract {
@@ -145,7 +153,7 @@ impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for DeferredLegalityFamil
     type GroupedPosture = WorthQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "split-edge-deferred-legality"
     }
 
     fn legality_contract() -> WorthQueryDeclarationLegalityContract {
@@ -162,7 +170,7 @@ impl WorthQueryDeclarationFamilyMarker<GeometryDomain> for DurableAdmissionFamil
     type GroupedPosture = WorthQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "split-edge-durable-admission"
     }
 
     fn required_capability_families() -> &'static [WorthQueryCapabilityFamily] {
@@ -362,37 +370,3 @@ impl_temporal_input!(
     TemporalPreviewFamily,
     TemporalHistoricalFamily,
 );
-
-pub(super) fn admitted_handle(
-    regime: &'static str,
-) -> crate::application::WorthQueryInstalledDomainDeclarationContext<
-    GeometryDomain,
-    CollaborativeWorld,
-> {
-    crate::application::domain_test_support::installed_declaration_context(
-        GeometryDomain,
-        CollaborativeWorld::named(regime),
-        [
-            crate::application::domain_test_support::family::<GeometryDomain, LegalFamily>(),
-            crate::application::domain_test_support::family::<GeometryDomain, IllegalRoleFamily>(),
-            crate::application::domain_test_support::family::<
-                GeometryDomain,
-                IllegalDispositionFamily,
-            >(),
-            crate::application::domain_test_support::family::<GeometryDomain, DeferredLegalityFamily>(
-            ),
-            crate::application::domain_test_support::family::<GeometryDomain, DurableAdmissionFamily>(
-            ),
-            crate::application::domain_test_support::family::<GeometryDomain, MaskedCoverageFamily>(
-            ),
-            crate::application::domain_test_support::family::<GeometryDomain, TemporalCurrentFamily>(
-            ),
-            crate::application::domain_test_support::family::<GeometryDomain, TemporalPreviewFamily>(
-            ),
-            crate::application::domain_test_support::family::<
-                GeometryDomain,
-                TemporalHistoricalFamily,
-            >(),
-        ],
-    )
-}

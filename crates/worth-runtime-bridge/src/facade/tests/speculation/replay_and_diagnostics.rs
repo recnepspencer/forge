@@ -1,4 +1,3 @@
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::tests::runtime;
 use crate::facade::tests::speculation::{
     preview_declaration, structural_basis, StructuralBasisInput, StructuralSemanticsVersion,
@@ -7,6 +6,7 @@ use crate::facade::{
     BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgeRuntimePolicy,
     StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity,
 };
+use crate::speculation::BridgePreviewSessionIdentity;
 
 #[test]
 fn runtime_replays_discarded_preview_bundle_from_retained_records() {

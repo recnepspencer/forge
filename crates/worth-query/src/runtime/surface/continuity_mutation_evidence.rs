@@ -14,6 +14,7 @@ use worth_runtime_bridge::facade::{
 
 #[cfg(test)]
 #[path = "continuity_mutation_evidence/test_support.rs"]
+#[cfg(test)]
 mod test_support;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

@@ -11,8 +11,11 @@ use super::delivery_budget::QueryDeliveryWindowBudget;
 use super::delivery_cause::{QuerySubscriptionDeliveryCause, QuerySubscriptionDeliveryCauseKind};
 use super::delivery_error::{QueryDeliveryDenialKind, QueryDeliveryError};
 use super::delivery_work_packet::ActiveDeliveryWorkPacket;
+#[cfg(test)]
 use super::evidence_identities::{
     lifecycle_absent_performance_receipt_identity, lifecycle_absent_work_packet_identity,
+};
+use super::evidence_identities::{
     lifecycle_delivery_batch_identity, lifecycle_delivery_window_identity, typed_identity_drift,
 };
 use super::maintenance_delta::{
@@ -271,8 +274,7 @@ impl QueryDeliveryBatch {
             counters,
         })
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(super) fn new_time_only(
         window: QueryDeliveryWindow,
         delivery_cause: QuerySubscriptionDeliveryCause,
@@ -319,8 +321,7 @@ impl QueryDeliveryBatch {
             counters,
         })
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(super) fn new_mixed_cause(
         window: QueryDeliveryWindow,
         delivery_cause: QuerySubscriptionDeliveryCause,

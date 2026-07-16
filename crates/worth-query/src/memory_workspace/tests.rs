@@ -1,6 +1,12 @@
 use super::*;
-use crate::runtime::WorthQueryAdmittedAspectValue;
-use worth_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, FieldKey};
+use crate::runtime::WorthQueryAuthoredAspectMutation;
+use worth_foundational::facade::{
+    aspects, AbsenceLaw, AspectContract, AspectContractRevision, AspectEquivalenceBasis,
+    AspectEvolutionPolicy, AspectIdentity, AspectKey, AspectMaskContract, AspectValue,
+    CanonicalFieldPath, ContractValidationInput, FieldDeclaration, FieldKey, FieldRequirement,
+    ScalarAspectType, StructAspectShape, StructAspectValue,
+};
+use worth_relational::facade::runtime::InvariantCatalog;
 
 #[test]
 fn memory_workspace_insert_aspects_tracks_changed_paths() {
@@ -15,9 +21,9 @@ fn memory_workspace_insert_aspects_tracks_changed_paths() {
 
     let receipt = workspace
         .insert_aspects(vec![
-            WorthQueryAdmittedAspectValue::new(touch("identity.id"), text("task-1"))
+            WorthQueryAuthoredAspectMutation::new(touch("identity.id"), text("task-1"))
                 .expect("identity aspect"),
-            WorthQueryAdmittedAspectValue::new(touch("title.value"), text("First task"))
+            WorthQueryAuthoredAspectMutation::new(touch("title.value"), text("First task"))
                 .expect("title aspect"),
         ])
         .expect("insert should succeed");
@@ -44,9 +50,9 @@ fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
 
     let insert = workspace
         .insert_aspects(vec![
-            WorthQueryAdmittedAspectValue::new(touch("identity.id"), text("task-1"))
+            WorthQueryAuthoredAspectMutation::new(touch("identity.id"), text("task-1"))
                 .expect("identity aspect"),
-            WorthQueryAdmittedAspectValue::new(touch("title.value"), text("First task"))
+            WorthQueryAuthoredAspectMutation::new(touch("title.value"), text("First task"))
                 .expect("title aspect"),
         ])
         .expect("seed insert should succeed");
@@ -56,7 +62,7 @@ fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
         .update_aspects(
             entity_identity.clone(),
             vec![
-                WorthQueryAdmittedAspectValue::new(touch("title.value"), text("Updated task"))
+                WorthQueryAuthoredAspectMutation::new(touch("title.value"), text("Updated task"))
                     .expect("title aspect"),
             ],
         )
@@ -92,7 +98,7 @@ fn memory_workspace_matches_declared_aspects_with_native_touches() {
             .expect("memory workspace should build");
 
     workspace
-        .insert_aspects(vec![WorthQueryAdmittedAspectValue::new(
+        .insert_aspects(vec![WorthQueryAuthoredAspectMutation::new(
             touch("title.value"),
             text("Native match"),
         )
@@ -123,6 +129,135 @@ fn memory_workspace_aspect_rejects_mismatched_native_field_path() {
     assert!(denial
         .message()
         .contains("must use native field path rooted at `title`"));
+}
+
+#[test]
+fn memory_workspace_native_contract_path_supports_optional_clear() {
+    let contract = optional_string_contract("note");
+    let mut workspace = WorthQueryMemoryWorkspace::collection_with_native_contracts(
+        "Task",
+        [aspect("note.value", "note.value")],
+        [contract.clone()],
+        InvariantCatalog::default(),
+        [],
+    )
+    .unwrap();
+    let inserted = workspace
+        .insert_aspects(vec![WorthQueryAuthoredAspectMutation::new_set(
+            touch("note.value"),
+            text("remember"),
+        )
+        .unwrap()])
+        .unwrap();
+
+    workspace
+        .update_aspects(
+            inserted.deltas[0].entity_identity.clone(),
+            vec![WorthQueryAuthoredAspectMutation::new_clear(touch("note.value")).unwrap()],
+        )
+        .unwrap();
+
+    assert!(workspace.entities()[0]
+        .aspect_value(contract.key())
+        .is_none());
+    assert!(workspace.entities()[0]
+        .scalar_value_at(&field_path("note.value"))
+        .is_none());
+}
+
+#[test]
+fn memory_workspace_ignores_installed_contracts_unrelated_to_the_collection_mapping() {
+    let title = optional_string_contract("title");
+    let unrelated = optional_string_contract("note");
+    let mut workspace = WorthQueryMemoryWorkspace::collection_with_native_contracts(
+        "Task",
+        [aspect("title.value", "title.value")],
+        [title.clone(), unrelated],
+        InvariantCatalog::default(),
+        [],
+    )
+    .expect("an unrelated installed contract must not require a local physical mapping");
+
+    workspace
+        .insert_aspects(vec![WorthQueryAuthoredAspectMutation::new_set(
+            touch("title.value"),
+            text("Mapped title"),
+        )
+        .unwrap()])
+        .expect("the locally mapped contract should remain usable");
+
+    assert_eq!(
+        workspace.entities()[0].aspect_value(title.key()),
+        Some(&text("Mapped title"))
+    );
+}
+
+#[test]
+fn memory_workspace_denies_a_physical_mapping_without_its_native_contract() {
+    let mut workspace = WorthQueryMemoryWorkspace::collection_with_native_contracts(
+        "Task",
+        [aspect("title.value", "title.value")],
+        [optional_string_contract("note")],
+        InvariantCatalog::default(),
+        [],
+    )
+    .expect("an unrelated installed contract may coexist with the collection");
+
+    let denial = workspace
+        .insert_aspects(vec![WorthQueryAuthoredAspectMutation::new_set(
+            touch("title.value"),
+            text("Uncontracted title"),
+        )
+        .unwrap()])
+        .expect_err("a physical mapping must not become authority without its contract");
+
+    assert!(denial.message().contains("no Foundational contract"));
+}
+
+#[test]
+fn memory_workspace_native_contract_path_preserves_struct_field_semantics() {
+    let contract = summary_contract();
+    let mut workspace = WorthQueryMemoryWorkspace::collection_with_native_contracts(
+        "Task",
+        [
+            aspect("summary.title", "summary.title"),
+            aspect("summary.status", "summary.status"),
+        ],
+        [contract.clone()],
+        InvariantCatalog::default(),
+        [],
+    )
+    .unwrap();
+    let summary = StructAspectValue::new([
+        (FieldKey::new("title").unwrap(), text("Native summary")),
+        (FieldKey::new("status").unwrap(), text("open")),
+    ])
+    .unwrap();
+    let inserted = workspace
+        .insert_aspects(vec![WorthQueryAuthoredAspectMutation::new_set(
+            touch("summary"),
+            ContractValidationInput::Struct(summary),
+        )
+        .unwrap()])
+        .unwrap();
+
+    workspace
+        .update_aspects(
+            inserted.deltas[0].entity_identity.clone(),
+            vec![WorthQueryAuthoredAspectMutation::new_clear(touch("summary.status")).unwrap()],
+        )
+        .unwrap();
+
+    let entity = &workspace.entities()[0];
+    let summary = entity.struct_aspect_value(contract.key()).unwrap();
+    assert!(summary.get(&FieldKey::new("status").unwrap()).is_none());
+    assert_eq!(
+        summary.get(&FieldKey::new("title").unwrap()),
+        Some(&text("Native summary"))
+    );
+    assert!(entity
+        .scalar_value_at(&field_path("summary.status"))
+        .is_none());
 }
 
 fn aspect(label: &str, native_field_path: &str) -> crate::memory_workspace::WorthQueryAspect {
@@ -162,5 +297,49 @@ fn touch(touch_fixture: &str) -> crate::runtime::WorthQueryAspectTouch {
 }
 
 fn text(value: impl Into<String>) -> AspectValue {
-    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value)
+    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value)
+}
+
+fn optional_string_contract(name: &str) -> AspectContract {
+    aspects()
+        .contract()
+        .for_key(AspectKey::new(name).unwrap())
+        .identified_by(AspectIdentity(91))
+        .at_revision(AspectContractRevision(1))
+        .scalar_with(
+            ScalarAspectType::String,
+            AspectMaskContract::scalar(),
+            AbsenceLaw::Optional,
+            AspectEquivalenceBasis::ExactCanonicalValue,
+            AspectEvolutionPolicy::ExplicitBreakRequired,
+        )
+}
+
+fn summary_contract() -> AspectContract {
+    let fields = StructAspectShape::new([
+        struct_field("title", FieldRequirement::Required, AbsenceLaw::Required),
+        struct_field("status", FieldRequirement::Optional, AbsenceLaw::Optional),
+    ])
+    .unwrap();
+    aspects()
+        .contract()
+        .for_key(AspectKey::new("summary").unwrap())
+        .identified_by(AspectIdentity(92))
+        .at_revision(AspectContractRevision(1))
+        .struct_aspect(fields)
+}
+
+fn struct_field(
+    name: &str,
+    requirement: FieldRequirement,
+    absence: AbsenceLaw,
+) -> FieldDeclaration {
+    FieldDeclaration::new(
+        FieldKey::new(name).unwrap(),
+        ScalarAspectType::String,
+        requirement,
+        absence,
+        AspectEvolutionPolicy::ExplicitBreakRequired,
+    )
+    .unwrap()
 }

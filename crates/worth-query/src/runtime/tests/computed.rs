@@ -20,7 +20,7 @@ fn update_string_aspect(
 ) -> WorthQueryWriteCommand {
     WorthQueryWriteCommand::UpdateAspect {
         entity_identity,
-        aspect: WorthQueryAdmittedAspectValue::new_set(
+        aspect: WorthQueryAuthoredAspectMutation::new_set(
             touch(authored_touch_text),
             test_string_aspect_value(value),
         )
@@ -48,7 +48,7 @@ fn retained_value_aspects(rows: &[WorthQueryRetainedMaterializedRow]) -> Vec<Asp
     let value_path =
         retained_test_field_path("value").expect("test retained value path should parse");
     rows.iter()
-        .filter_map(|row| row.field_value_at(&value_path))
+        .filter_map(|row| row.scalar_value_at(&value_path))
         .cloned()
         .collect()
 }
@@ -57,7 +57,7 @@ fn retained_string_field(row: &WorthQueryRetainedMaterializedRow, field: &str) -
     let field_path =
         retained_test_field_path(field).expect("test retained string path should parse");
     let value = row
-        .field_value_at(&field_path)
+        .scalar_value_at(&field_path)
         .expect("retained row should carry requested string field");
     let AspectValue::String(worth_foundational::facade::InternedString::Raw(value)) = value else {
         panic!("expected retained string field `{field}`, got {value:?}");
@@ -69,7 +69,7 @@ fn retained_u64_field(row: &WorthQueryRetainedMaterializedRow, field: &str) -> u
     let field_path =
         retained_test_field_path(field).expect("test retained integer path should parse");
     let value = row
-        .field_value_at(&field_path)
+        .scalar_value_at(&field_path)
         .expect("retained row should carry requested integer field");
     let AspectValue::UInt64(value) = value else {
         panic!("expected retained u64 field `{field}`, got {value:?}");
@@ -99,7 +99,7 @@ fn dependency_or_produced_touches(view: &WorthQueryDerivedView) -> Vec<WorthQuer
 #[test]
 fn derived_view_receives_narrow_or_fallback_patch_notes() {
     let mut runtime = stateful_bridge_task_runtime();
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
     let task_titles = runtime
@@ -108,7 +108,7 @@ fn derived_view_receives_narrow_or_fallback_patch_notes() {
         )
         .expect("derived view should declare");
     let task_titles_handle =
-        WorthQueryDerivedViewHandle::<WorthQueryNativeRow>::new(task_titles.name());
+        WorthQueryDerivedViewHandle::<WorthQueryUnrefinedLiveShape>::new(task_titles.name());
     let insert = runtime
         .write(insert_command(
             "Task",
@@ -142,11 +142,11 @@ fn derived_view_receives_narrow_or_fallback_patch_notes() {
 #[test]
 fn maintained_derived_view_materializes_incremental_patches() {
     let mut runtime = stateful_bridge_task_runtime();
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
     let titles = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("task_titles", touches(["title"])),
             TitleListMaintainer,
         )
@@ -199,10 +199,14 @@ fn maintained_derived_view_materializes_incremental_patches() {
 fn nested_computed_views_route_in_deterministic_dependency_order() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare");
     let titles = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.titles", touches(["title"]))
                 .depends_on_live(&live)
                 .produces(touches(["title.summary"])),
@@ -210,7 +214,7 @@ fn nested_computed_views_route_in_deterministic_dependency_order() {
         )
         .expect("source computed view should declare");
     let summary = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.summary", touches(["title.summary"]))
                 .depends_on_derived(&titles)
                 .produces(touches(["validation.state"])),
@@ -279,17 +283,21 @@ fn nested_computed_views_route_in_deterministic_dependency_order() {
 fn computed_dependency_index_replaces_redeclared_view_membership() {
     let mut runtime = stateful_bridge_task_issue_runtime();
     let task_live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("task live should declare");
     let issue_live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "issues.table",
             issue_live_request(),
             issue_schema(),
         )
         .expect("issue live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.shared", touches(["title"]))
                 .depends_on_live(&task_live)
                 .produces(touches(["title.summary"])),
@@ -298,7 +306,7 @@ fn computed_dependency_index_replaces_redeclared_view_membership() {
         .expect("task-backed computed should declare");
 
     runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.shared", touches(["summary"]))
                 .depends_on_live(&issue_live)
                 .produces(touches(["issue.summary"])),
@@ -357,10 +365,14 @@ fn computed_dependency_index_replaces_redeclared_view_membership() {
 fn computed_handle_inspection_reports_dependencies_aspects_and_materialization() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.inspectable", touches(["title"]))
                 .depends_on_live(&live)
                 .produces(touches(["title.summary"])),
@@ -422,10 +434,14 @@ fn computed_handle_inspection_reports_dependencies_aspects_and_materialization()
 fn nested_computed_inspection_explains_dependency_and_patch_posture() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare");
     let titles = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.inspect.titles", touches(["title"]))
                 .depends_on_live(&live)
                 .produces(touches(["title.summary"])),
@@ -433,7 +449,7 @@ fn nested_computed_inspection_explains_dependency_and_patch_posture() {
         )
         .expect("source computed should declare");
     let summary = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.inspect.summary", touches(["title.summary"]))
                 .depends_on_derived(&titles)
                 .produces(touches(["validation.state"])),
@@ -498,7 +514,7 @@ fn nested_computed_inspection_explains_dependency_and_patch_posture() {
 #[test]
 fn refresh_fallback_computed_inspection_reports_fallback_posture() {
     let mut runtime = stateful_bridge_task_runtime();
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
     let computed_definition = runtime
@@ -507,8 +523,9 @@ fn refresh_fallback_computed_inspection_reports_fallback_posture() {
                 .whole_refresh_fallback(),
         )
         .expect("refresh fallback computed should declare");
-    let computed =
-        WorthQueryDerivedViewHandle::<WorthQueryNativeRow>::new(computed_definition.name());
+    let computed = WorthQueryDerivedViewHandle::<WorthQueryUnrefinedLiveShape>::new(
+        computed_definition.name(),
+    );
 
     let before = runtime
         .inspect_derived_view(&computed)
@@ -547,10 +564,14 @@ fn refresh_fallback_computed_inspection_reports_fallback_posture() {
 fn refresh_fallback_maintainer_rebuilds_from_retained_live_rows() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.refresh.count", touches(["title"]))
                 .depends_on_live(&live)
                 .produces(touches(["summary.count"]))
@@ -610,7 +631,11 @@ fn refresh_fallback_maintainer_rebuilds_from_retained_live_rows() {
 fn refresh_fallback_maintainer_seeds_retained_live_rows_during_declaration() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare");
 
     runtime
@@ -627,7 +652,7 @@ fn refresh_fallback_maintainer_seeds_retained_live_rows_during_declaration() {
         .expect("task insert should retain upstream live row before computed declaration");
 
     let computed = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.refresh.seeded", touches(["title"]))
                 .depends_on_live(&live)
                 .produces(touches(["summary.count"]))
@@ -660,17 +685,21 @@ fn refresh_fallback_maintainer_seeds_retained_live_rows_during_declaration() {
 fn refresh_fallback_maintainer_receives_all_declared_upstream_live_rows() {
     let mut runtime = stateful_bridge_task_issue_runtime();
     let tasks = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("task live view should declare");
     let issues = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "issues.table",
             issue_live_request(),
             issue_schema(),
         )
         .expect("issue live view should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.refresh.multi", touches(["title"]))
                 .depends_on_live(&tasks)
                 .depends_on_live(&issues)
@@ -795,10 +824,14 @@ fn downstream_refresh_fallback_seeds_retained_derived_and_live_rows_during_decla
 
     let mut runtime = stateful_bridge_task_issue_runtime();
     let tasks = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("task live view should declare");
     let issues = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "issues.table",
             issue_live_request(),
             issue_schema(),
@@ -831,7 +864,7 @@ fn downstream_refresh_fallback_seeds_retained_derived_and_live_rows_during_decla
         .expect("task insert should retain live upstream before declaration");
 
     let refresh = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.refresh.seed.count", touches(["title"]))
                 .depends_on_live(&tasks)
                 .produces(touches(["summary.count"]))
@@ -840,7 +873,7 @@ fn downstream_refresh_fallback_seeds_retained_derived_and_live_rows_during_decla
         )
         .expect("upstream refresh maintainer should seed during declaration");
     let downstream = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new(
                 "computed.refresh.seed.mixed",
                 touches(["summary.count", "summary"]),
@@ -870,10 +903,14 @@ fn downstream_refresh_fallback_seeds_retained_derived_and_live_rows_during_decla
 fn refresh_rebuilt_computed_wakes_downstream_dependencies_through_produced_aspects() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare");
     let refresh = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.refresh.count", touches(["title"]))
                 .depends_on_live(&live)
                 .produces(touches(["summary.count"]))
@@ -882,7 +919,7 @@ fn refresh_rebuilt_computed_wakes_downstream_dependencies_through_produced_aspec
         )
         .expect("refresh maintainer computed should declare");
     let downstream = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.refresh.summary", touches(["summary.count"]))
                 .depends_on_derived(&refresh)
                 .produces(touches(["validation.state"])),
@@ -994,17 +1031,21 @@ fn downstream_refresh_fallback_receives_declared_live_siblings_through_computed_
 
     let mut runtime = stateful_bridge_task_issue_runtime();
     let tasks = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("task live view should declare");
     let issues = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "issues.table",
             issue_live_request(),
             issue_schema(),
         )
         .expect("issue live view should declare");
     let refresh = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.refresh.count", touches(["title"]))
                 .depends_on_live(&tasks)
                 .produces(touches(["summary.count"]))
@@ -1013,7 +1054,7 @@ fn downstream_refresh_fallback_receives_declared_live_siblings_through_computed_
         )
         .expect("upstream refresh maintainer should declare");
     let downstream = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new(
                 "computed.refresh.mixed",
                 touches(["summary.count", "summary"]),
@@ -1132,10 +1173,14 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
 
     let mut runtime = stateful_bridge_task_issue_runtime();
     let tasks = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("task live view should declare");
     let issues = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "issues.table",
             issue_live_request(),
             issue_schema(),
@@ -1168,7 +1213,7 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
         .expect("task insert should retain live upstream before declaration");
 
     let refresh = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new(
                 "computed.refresh.seed.count",
                 test_aspect_touches(["title"]),
@@ -1180,7 +1225,7 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
         )
         .expect("upstream refresh maintainer should seed during declaration");
     let downstream = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new(
                 "computed.refresh.seed.mixed",
                 ["summary.count".to_string(), "summary".to_string()],
@@ -1289,7 +1334,7 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("computed.refresh.metadata")
         .expect("task runtime should open a named workspace");
-    let tasks: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
                 .select([
@@ -1305,7 +1350,7 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
                 .schema_basis("tasks-metadata-table")
         })
         .expect("task live view should declare");
-    let metadata: WorthQueryDerivedViewHandle<WorthQueryNativeRow> = workspace
+    let metadata: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
         .computed_view(
             WorthQueryDerivedView::new("computed.refresh.metadata", touches(["title"]))
                 .depends_on_live(&tasks)
@@ -1332,7 +1377,7 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
                 .retained_rows(),
         ),
         vec![test_string_aspect_value(format!(
-            "{}:title:value:worth-topo",
+            "{}:title:<whole-aspect>:worth-topo",
             receipt
                 .commit_identity()
                 .terminal_projection_for_reporting()
@@ -1351,14 +1396,14 @@ fn retained_upstreams_decode_single_computed_rows_through_query_runtime_floor() 
     );
 
     let materialized =
-        WorthQueryDerivedViewHandle::<WorthQueryNativeRow>::new("computed.materialized");
+        WorthQueryDerivedViewHandle::<WorthQueryUnrefinedLiveShape>::new("computed.materialized");
     let row = upstreams
         .single_retained_computed_row_for(&materialized)
         .expect("single retained computed row should be available");
     assert_eq!(retained_u64_field(row, "count"), 4);
 
     let missing_handle =
-        WorthQueryDerivedViewHandle::<WorthQueryNativeRow>::new("computed.missing");
+        WorthQueryDerivedViewHandle::<WorthQueryUnrefinedLiveShape>::new("computed.missing");
     let missing = upstreams
         .single_retained_computed_row_for(&missing_handle)
         .expect_err("missing retained row should fail closed");
@@ -1380,7 +1425,7 @@ fn retained_upstreams_decode_single_computed_rows_through_query_runtime_floor() 
     assert_eq!(retained_u64_field(declared_row, "count"), 4);
 
     let undeclared_handle =
-        WorthQueryDerivedViewHandle::<WorthQueryNativeRow>::new("computed.other");
+        WorthQueryDerivedViewHandle::<WorthQueryUnrefinedLiveShape>::new("computed.other");
     let undeclared = upstreams
         .single_declared_retained_computed_row_for(&declaration, &undeclared_handle)
         .expect_err("undeclared retained upstream row should fail closed");
@@ -1398,10 +1443,10 @@ fn retained_upstreams_decode_single_computed_rows_through_query_runtime_floor() 
 #[test]
 fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_runtime_floor() {
     struct TitleRowMaintainer {
-        tasks: WorthQueryLiveView<WorthQueryNativeRow>,
+        tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
     }
     struct CountRowMaintainer {
-        title_row: WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+        title_row: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape>,
     }
 
     impl WorthQueryDerivedViewMaintainer for TitleRowMaintainer {
@@ -1505,7 +1550,7 @@ fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_r
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("computed.materialization.bundle")
         .expect("task runtime should open a named workspace");
-    let tasks: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
                 .select([
@@ -1521,7 +1566,7 @@ fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_r
                 .schema_basis("tasks-bundle-table")
         })
         .expect("task live view should declare");
-    let title_row: WorthQueryDerivedViewHandle<WorthQueryNativeRow> = workspace
+    let title_row: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
         .computed_view(
             WorthQueryDerivedView::new("computed.bundle.title_row", touches(["title"]))
                 .depends_on_live(&tasks)
@@ -1532,7 +1577,7 @@ fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_r
             },
         )
         .expect("title-row computed should declare");
-    let count_row: WorthQueryDerivedViewHandle<WorthQueryNativeRow> = workspace
+    let count_row: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
         .computed_view(
             WorthQueryDerivedView::new("computed.bundle.count_row", touches(["title.row"]))
                 .depends_on_derived(&title_row)
@@ -1614,7 +1659,7 @@ fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_r
 fn computed_dependency_admission_rejects_missing_or_cyclic_upstream_views() {
     let mut runtime = stateful_bridge_task_runtime();
     let missing_live = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.missing-live", touches(["title"]))
                 .depends_on_live_name_from_workspace_declaration("tasks.not-declared"),
             TitleListMaintainer,
@@ -1628,7 +1673,7 @@ fn computed_dependency_admission_rejects_missing_or_cyclic_upstream_views() {
     }
 
     let missing = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.missing", touches(["title.summary"]))
                 .depends_on_derived_name_from_workspace_declaration("computed.unknown"),
             SummaryMaintainer,
@@ -1642,14 +1687,14 @@ fn computed_dependency_admission_rejects_missing_or_cyclic_upstream_views() {
     }
 
     let first = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.first", touches(["title"]))
                 .produces(touches(["title.summary"])),
             TitleListMaintainer,
         )
         .expect("first computed should declare");
     let second = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.second", touches(["title.summary"]))
                 .depends_on_derived(&first)
                 .produces(touches(["validation.state"])),
@@ -1658,7 +1703,7 @@ fn computed_dependency_admission_rejects_missing_or_cyclic_upstream_views() {
         .expect("second computed should declare");
 
     let cycle = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.first", touches(["validation.state"]))
                 .depends_on_derived(&second),
             SummaryMaintainer,
@@ -1675,10 +1720,10 @@ fn computed_dependency_admission_rejects_missing_or_cyclic_upstream_views() {
 #[test]
 fn derived_materialization_bundle_binds_one_exact_retained_artifact() {
     struct TitleRowMaintainer {
-        tasks: WorthQueryLiveView<WorthQueryNativeRow>,
+        tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
     }
     struct CountRowMaintainer {
-        title_row: WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+        title_row: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape>,
     }
 
     impl WorthQueryDerivedViewMaintainer for TitleRowMaintainer {
@@ -1781,7 +1826,7 @@ fn derived_materialization_bundle_binds_one_exact_retained_artifact() {
 
     let runtime = stateful_bridge_task_runtime();
     let mut workspace = runtime.workspace("computed-bundle-binding").unwrap();
-    let tasks: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("computed.bundle.binding.tasks", |q| {
             q.from("Task")
                 .select([
@@ -1797,7 +1842,7 @@ fn derived_materialization_bundle_binds_one_exact_retained_artifact() {
                 .schema_basis("computed-bundle-binding")
         })
         .expect("task live view should declare");
-    let title_row: WorthQueryDerivedViewHandle<WorthQueryNativeRow> = workspace
+    let title_row: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
         .computed_view(
             WorthQueryDerivedView::new("computed.bundle.binding.title_row", touches(["title"]))
                 .depends_on_live(&tasks)
@@ -1808,7 +1853,7 @@ fn derived_materialization_bundle_binds_one_exact_retained_artifact() {
             },
         )
         .expect("title-row computed should declare");
-    let count_row: WorthQueryDerivedViewHandle<WorthQueryNativeRow> = workspace
+    let count_row: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
         .computed_view(
             WorthQueryDerivedView::new("computed.bundle.binding.count_row", touches(["title.row"]))
                 .depends_on_derived(&title_row)

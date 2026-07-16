@@ -3,7 +3,8 @@ use crate::application::{
     WorthQueryAsyncFailurePosture, WorthQueryAsyncLoadingPosture, WorthQueryAsyncSourceFamily,
     WorthQueryDeclarationBridgeTruthContext, WorthQueryDeclarationEntryReadinessStatus,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
+    WorthQueryDomainOperatingContext, WorthQueryDomainOperatingRequirement,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::basis_lifecycle::BasisFamily;
 use crate::runtime::{WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupportStatus};
@@ -169,6 +170,14 @@ fn async_runtime_readiness<
 >(
     handle: &WorthQueryInstalledDomainDeclarationContext<D, C>,
 ) -> Option<(WorthQueryDeclarationEntryReadinessStatus, &'static str)> {
+    if !handle
+        .declares_operating_requirement(WorthQueryDomainOperatingRequirement::AsyncResourceQuery)
+    {
+        return Some((
+            WorthQueryDeclarationEntryReadinessStatus::Unsupported,
+            "async declaration-entry readiness requires installed domain async-resource-query authority",
+        ));
+    }
     match handle
         .support_snapshot()
         .runtime_support_matrix()

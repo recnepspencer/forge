@@ -10,6 +10,6 @@ error[E0624]: associated function `new` is private
   | |         aspect: AspectKey,
   | |         field: FieldKey,
   | |         direction: impl Into<String>,
-  | |         kind: WorthQueryGraphReadAdmittedSchemaFieldKind,
+  | |         kind: WorthQueryAdmittedNativeFieldFamily,
   | |     ) -> Self {
   | |_____________- private associated function defined here

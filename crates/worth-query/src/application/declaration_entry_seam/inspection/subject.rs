@@ -1,16 +1,18 @@
+#[cfg(test)]
+use crate::application::WorthQueryDeclarationEnvelope;
 use crate::application::{
-    WorthQueryDeclarationBridgeRoutingChecked, WorthQueryDeclarationEnvelope,
-    WorthQueryDeclarationEnvelopeChecked, WorthQueryDeclarationInput,
-    WorthQueryDeclarationRelationalRoutingChecked, WorthQueryDeclarationSignalCompatibilityChecked,
-    WorthQueryDomainEntryMarker,
+    WorthQueryDeclarationBridgeRoutingChecked, WorthQueryDeclarationEnvelopeChecked,
+    WorthQueryDeclarationInput, WorthQueryDeclarationRelationalRoutingChecked,
+    WorthQueryDeclarationSignalCompatibilityChecked, WorthQueryDomainEntryMarker,
 };
 
+use super::super::contribution::{
+    WorthQueryDeclarationEntryContributionEvidenceSet,
+    WorthQueryDeclarationEntryContributionProofScope,
+};
+#[cfg(test)]
 use super::{
-    super::contribution::{
-        WorthQueryDeclarationEntryContributionEvidenceSet,
-        WorthQueryDeclarationEntryContributionProofScope,
-        WorthQueryDeclarationEntryRetainedSubjectStrength,
-    },
+    super::contribution::WorthQueryDeclarationEntryRetainedSubjectStrength,
     artifact::{
         WorthQueryDeclarationEntryInspectionBridgePosture,
         WorthQueryDeclarationEntryInspectionRelationalPosture,
@@ -34,19 +36,6 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
 {
     pub fn envelope_checked(value: WorthQueryDeclarationEnvelopeChecked<D, I>) -> Self {
         Self::EnvelopeChecked(value)
-    }
-    pub fn relational_routing_checked(
-        value: WorthQueryDeclarationRelationalRoutingChecked<D, I>,
-    ) -> Self {
-        Self::RelationalRoutingChecked(value)
-    }
-    pub fn bridge_routing_checked(value: WorthQueryDeclarationBridgeRoutingChecked<D, I>) -> Self {
-        Self::BridgeRoutingChecked(value)
-    }
-    pub fn signal_compatibility_checked(
-        value: WorthQueryDeclarationSignalCompatibilityChecked<D, I>,
-    ) -> Self {
-        Self::SignalCompatibilityChecked(value)
     }
 }
 
@@ -110,6 +99,7 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
     }
 }
 
+#[cfg(test)]
 pub(crate) struct NormalizedInspectionSubject<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
@@ -121,6 +111,7 @@ pub(crate) struct NormalizedInspectionSubject<
     pub(crate) subject_strength: WorthQueryDeclarationEntryRetainedSubjectStrength,
 }
 
+#[cfg(test)]
 pub(crate) fn normalized_subject<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
@@ -139,6 +130,7 @@ pub(crate) fn normalized_subject<
     )
 }
 
+#[cfg(test)]
 pub(crate) fn normalize_retained_subject<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,

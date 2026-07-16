@@ -1,3 +1,7 @@
+use worth_foundational::facade::{
+    AbsenceLaw, AspectContract, AspectContractRevision, AspectEvolutionPolicy, AspectIdentity,
+    AspectKey, FieldDeclaration, FieldKey, FieldRequirement, ScalarAspectType, StructAspectShape,
+};
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::{domain, runtime};
 
@@ -31,6 +35,8 @@ pub fn workspace(name: &str) -> runtime::WorthQueryWorkspace {
     .requires_capability(domain::WorthQueryCapabilityFamily::WorkflowOrchestration)
     .requires_configuration(domain::WorthQueryConfigSectionFamily::Query);
     let schema = WorthQueryTestBackendSchema::single_collection("Task")
+        .aspect_contract(public_identity_contract())
+        .unwrap()
         .aspect("identity.id", "identity.id")
         .unwrap();
     in_memory_test_runtime()
@@ -38,4 +44,21 @@ pub fn workspace(name: &str) -> runtime::WorthQueryWorkspace {
         .domain_package(package)
         .workspace(name)
         .unwrap()
+}
+
+fn public_identity_contract() -> AspectContract {
+    let field = FieldDeclaration::new(
+        FieldKey::new("id").unwrap(),
+        ScalarAspectType::String,
+        FieldRequirement::Required,
+        AbsenceLaw::Required,
+        AspectEvolutionPolicy::ExplicitBreakRequired,
+    )
+    .unwrap();
+    AspectContract::struct_aspect(
+        AspectKey::new("identity").unwrap(),
+        AspectIdentity(0x5751_1901),
+        AspectContractRevision(1),
+        StructAspectShape::new([field]).unwrap(),
+    )
 }

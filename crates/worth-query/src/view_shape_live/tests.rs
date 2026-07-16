@@ -20,8 +20,8 @@ use crate::view_shape::{
     ViewShapeDescriptor,
 };
 use worth_foundational::facade::{
-    AspectKey, AspectLocator, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
-    ScalarAspectType,
+    prepare_aspect_value_identity_basis, AspectKey, AspectLocator, AspectValue, CanonicalFieldPath,
+    FieldKey, LocatorAuthority, ScalarAspectType,
 };
 use worth_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
@@ -61,21 +61,21 @@ fn schema_view() -> crate::schema_view::QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                crate::schema_view::SchemaFieldKind::String,
+                crate::schema_view::ScalarAspectType::String,
             ),
             crate::schema_view::SchemaFieldView::new(
                 crate::authoring::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                crate::schema_view::SchemaFieldKind::String,
+                crate::schema_view::ScalarAspectType::String,
             ),
             crate::schema_view::SchemaFieldView::new(
                 crate::authoring::AspectName::new("status")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("lane")
                     .expect("schema field literal must be valid"),
-                crate::schema_view::SchemaFieldKind::String,
+                crate::schema_view::ScalarAspectType::String,
             ),
         ],
         [],
@@ -219,21 +219,21 @@ impl GroupedRowFixture {
     fn new(member_key: &str, display_name: &str, lane: &str) -> Self {
         Self {
             member_key: member_key.to_string(),
-            display_name: crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+            display_name: crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                 display_name,
             ),
-            lane: crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(lane),
+            lane: crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(lane),
         }
     }
 
     fn value_for_snapshot_read(&self, aspect_key: &str) -> AspectValue {
         match aspect_key {
-            "identity.id" => crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+            "identity.id" => crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                 self.member_key.as_str(),
             ),
             "profile.display_name" => self.display_name.clone(),
             "status.lane" => self.lane.clone(),
-            _ => crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("unknown"),
+            _ => crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("unknown"),
         }
     }
 }
@@ -291,7 +291,7 @@ impl TruthSnapshotReader for StaticSnapshotReader {
                             .then(|| row.value_for_snapshot_read(read.aspect_key().as_str()))
                         })
                         .unwrap_or_else(|| {
-                            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                                 "unknown",
                             )
                         });
@@ -423,7 +423,7 @@ fn grouped_rows_result(
                         .then(|| row.value_for_snapshot_read(read.aspect_key().as_str()))
                     })
                     .unwrap_or_else(|| {
-                        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                             "unknown",
                         )
                     });
@@ -998,35 +998,23 @@ fn grouped_baseline_is_derived_from_authoritative_execution_bindings() {
     );
     assert_eq!(baseline.desired_state().result().row_count(), 2);
     assert_eq!(baseline.desired_state().result().lane_count(), 2);
+    let expected_member_key = prepare_aspect_value_identity_basis(
+        &crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("task-1"),
+    );
+    let expected_lane_key = prepare_aspect_value_identity_basis(
+        &crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("todo"),
+    );
     assert_eq!(
         baseline.desired_state().result().member_states()[0].member_key(),
-        "task-1"
+        expected_member_key.as_str()
     );
     assert_eq!(
         baseline.desired_state().result().member_states()[0]
             .lane()
             .lane_key(),
-        "todo"
+        expected_lane_key.as_str()
     );
 }
-
-#[allow(dead_code)]
-fn bridge_grouped_truth_view_evidence_identity_for_test(
-    truth_view: &BridgeGroupedTruthViewArtifact,
-) -> crate::evidence_identity::WorthQueryEvidenceIdentity {
-    crate::evidence_identity::WorthQueryEvidenceIdentity::compose(
-        crate::evidence_identity::WorthQueryEvidenceScope::BridgeGroupedTruthViewDigest,
-    )
-    .field_value(
-        crate::evidence_identity::WorthQueryEvidenceTag::new("bridge_grouped_truth"),
-        truth_view
-            .digest()
-            .bridge_admission_evidence()
-            .terminal_projection_for_reporting(),
-    )
-    .seal()
-}
-
 #[test]
 fn grouped_baseline_rejects_mismatched_grouped_execution_surface() {
     let planned = planned_view(

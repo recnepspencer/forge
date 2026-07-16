@@ -90,6 +90,7 @@ pub(crate) fn record_publication_effect_for_mutation(
             old_target,
             new_source,
             new_target,
+            authoritative_patch,
             ..
         } => {
             record_deleted_adjacency(effect, relation_id, old_source, old_target);
@@ -101,7 +102,7 @@ pub(crate) fn record_publication_effect_for_mutation(
                 relation_id,
                 new_source,
                 new_target,
-                None,
+                authoritative_patch,
             )
         }
         RecordMutation::RelationDeleted {

@@ -12,10 +12,7 @@ use crate::domain_capabilities::payloads::{
     WorthQueryInvariantCapabilityContributionPayload,
     WorthQueryInvariantCapabilityContributionPosture,
 };
-use crate::domain_capabilities::targets::{
-    WorthQueryDeclarationBoundContributionTarget, WorthQueryDomainCapabilityTargetBinding,
-    WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
-};
+use crate::domain_capabilities::targets::WorthQueryDomainCapabilityTargetBinding;
 use crate::domain_capabilities::{
     WorthQueryCanonicalInvariantCapabilityArtifact, WorthQueryDomainCapabilityTransitionOutcome,
     WorthQueryMaterializationReadyInvariantCapabilityContribution,
@@ -212,11 +209,12 @@ where
     })
 }
 
-pub fn materialize_graph_composition_capability_support_row(
-    contribution: WorthQueryMaterializationReadyInvariantCapabilityContribution<
-        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryGraphCompositionCapabilitySupportRow> {
+pub fn materialize_graph_composition_capability_support_row<T>(
+    contribution: WorthQueryMaterializationReadyInvariantCapabilityContribution<T>,
+) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryGraphCompositionCapabilitySupportRow>
+where
+    T: crate::domain_capabilities::WorthQueryLowerRuntimeContributionTargetBinding,
+{
     let domain_contribution = contribution.payload();
     let payload = domain_contribution.payload();
     let Some(graph_capability) = payload.graph_capability() else {

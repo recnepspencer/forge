@@ -583,6 +583,135 @@ The suite must include:
   manual invariant packs or consumer-local legality as the ordinary covered
   path
 
+## Milestone 9.13 Phases 13-20 Required Suite
+
+`Milestone 9.13 Runtime-Installed Domain Authority Certification` is required
+for the add-on Phase 13-20 boundary. It must prove that one typed package and
+one runtime installation are the only semantic authority path from domain
+setup through execution, contributions, recovery, inspection, and consumer
+adoption.
+
+The suite must include:
+
+- a source-backed authority inventory that classifies package input,
+  installation, installed-handle capabilities, derived indexes, diagnostics,
+  physical adapters, and prohibited competing authority by defining and
+  exporting path
+- package permutation, collision, callback-denial, and structured operating-
+  context identity coverage proving Query canonicalizes and seals all semantic
+  identity while failed validation produces no successor
+- atomic installation and runtime-affinity coverage proving equivalent
+  packages in distinct runtimes do not make their handles interchangeable and
+  a failed late substrate compilation publishes no partial registry state
+- substrate equivalence and rebuild coverage proving ordinary read,
+  explanation, live, and internal-oracle paths consume the same installed
+  operation definition without a caller-supplied registry, with bounded indexed
+  lookup under unrelated package and operation growth
+- installed contribution coverage proving evaluation, admission, preparation,
+  materialization, targets, and mixed outcomes retain one domain, package,
+  runtime, generation, world, and target authority chain
+- end-to-end execution coverage proving read, workflow, projection,
+  inspection, live continuation, stale-generation denial, and rebind preserve
+  their distinct proofs and perform zero later-phase work after invalid
+  authority
+- external-consumer DX coverage proving a downstream extension trait lowers
+  through `WorthQueryInstalledDomainHandle` without owning identity,
+  registration, planning, execution, receipts, or diagnostics
+- compile-fail coverage for all installed-domain sealed constructors and
+  transitions, including package admission, runtime generation, receipts,
+  contribution transitions, target restamping, raw domain authority, raw
+  operation ownership, caller-authored context digests, manual registries,
+  low-level materializers, and closed-live-handle revival
+- typed sabotage coverage for raw domain strings, caller-authored context
+  digests, application-facade executable authority, independent and caller-
+  supplied operation registries, Query phase-materializer imports, and
+  consumer-owned semantic domain adapters, while physical adapters remain
+  accepted
+- source-backed reference-consumer coverage across Hadwiger and Worth UI that
+  records the audited source inventory, proves zero competing-authority
+  findings, and executes representative installed read, workflow,
+  contribution, invariant, projection, and inspection journeys
+- documentation agreement coverage proving the current feature guide and
+  `AI_README.md` teach only package declaration, builder installation,
+  workspace lookup, installed handles, Query-sealed context identity, and
+  downstream extension vocabulary; every relative product-doc link must
+  resolve
+- one canonical certification bundle that composes the authority inventory,
+  compile-fail manifest, residue registry, domain-capability certification,
+  real reference-consumer journey, and audited source-inventory digests, and
+  reopens if any required evidence family is absent
+
+Phases 13-20 may report closed only when the named source-backed evidence map
+contains every phase exactly, the real consumer residue audit is clean, and the
+certification bundle reports zero authority findings, zero missing compile-fail
+boundaries, and zero missing installed-domain residue classes.
+
+## Milestone 9.13 Phases 21-30 Required Suite
+
+`Milestone 9.13 Foundational-Native Aspect Authority Certification` is required
+for the add-on Phase 21-30 boundary. It must prove that exact Foundational
+aspect value, patch, and state meaning survives every trust boundary and that
+Foundational admission is the only source of native aspect authority across
+Relational, Query, durability, replay, and consumers.
+
+The suite must include:
+
+- a source-backed authority inventory that classifies raw authored values,
+  portable patch/state candidates, contract validation, authoritative patches
+  and states, Relational intents and plans, durable payloads, Query wrappers,
+  result carriers, canonical encoders, and prohibited competing authority
+- Foundational portable-boundary coverage for whole set, whole clear, field
+  set, field clear, scalar and nested struct values, entity references, null,
+  absence, contract revision, mutation mask, canonical export, and fresh
+  readmission
+- hostile portable readmission coverage for missing and stale contracts,
+  malformed canonical wrappers, illegal masks, undeclared fields, duplicate or
+  contradictory operations, forged proof-shaped bytes, and atomic state
+  snapshot denial
+- Relational entity/relation and creation/update parity through the real
+  transaction boundary, proving native and compatible field authoring converge
+  only where Foundational operation meaning is identical
+- transaction permutation, batching, merge, conflict, precondition, invariant,
+  uniqueness, commit-strategy, touched-scope, receipt, publication, and exact
+  bounded-work coverage over native patches
+- checkpoint and replay restart coverage proving serialized payloads remain
+  non-authoritative, current contracts are consulted, full native state is
+  re-admitted before publication, and log/checkpoint rebuilds converge
+- public Query mutation coverage for every Foundational scalar family and
+  representative structs through ordinary runtime-backed execution with exact
+  patch identity and no field-map, JSON, display-text, or raw-id authority
+- contract-derived schema and predicate matrices covering exact native operand
+  families, legal operator capabilities, canonicalization, early denial, and
+  runtime/internal-oracle parity
+- result, live, retained-row, projection, consumed-fact, and typed-refinement
+  coverage proving scalar and complete struct meaning is never flattened or
+  reconstructed by consumers
+- canonical identity parity proving one Foundational value/patch basis is
+  composed with explicit artifact domain separation across transactions,
+  durability, Query mutation, results, projection, replay, and certification
+- compile-fail, visibility, facade, prohibition, residue, and sabotage coverage
+  rejecting raw-to-proof promotion, proof-bearing deserialization, direct
+  restored-state insertion, set-only native projection, Query-owned value
+  algebras, duplicate semantic encoders, scalar-only bridges, and consumer-local
+  native reconstruction
+- source-backed Hadwiger and Worth UI adoption coverage that records deleted
+  adapters, projections, local value models, and authority reconstruction and
+  executes representative scalar, struct, reference, clear, predicate, result,
+  and replay journeys through the ordinary facade
+- documentation agreement coverage proving feature docs and `AI_README.md`
+  teach only the present native authoring, installed-domain, result, and
+  refinement grammar without historical or competing methods
+- one canonical certification bundle composing phase evidence, native-family
+  and operation matrices, transaction and restart parity, compile boundaries,
+  residue and sabotage registries, consumer adoption, canonical identity, and
+  exact work counters
+
+Phases 21-30 may report closed only when every patch operation, native scalar
+family, and required struct journey has one authoritative owner and complete
+evidence; all portable, Relational, durable, Query, and consumer boundaries
+agree; and the certification bundle reports zero competing authority, semantic
+projection, proof-forging, replay-readmission, or consumer-residue findings.
+
 ## Section Index
 
 - [Milestones 1-4](./test-requirements-milestones-1-4.md)

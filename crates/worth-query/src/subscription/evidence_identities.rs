@@ -28,22 +28,6 @@ use super::slice_budget::QuerySubscriptionSliceBudget;
 
 const SUBSCRIPTION_IDENTITY_SCOPE: WorthQueryEvidenceScope =
     WorthQueryEvidenceScope::SubscriptionActivationReceipt;
-
-#[allow(dead_code)]
-pub(super) fn subscription_source_identity(
-    role: &str,
-    source_identity: &WorthQueryEvidenceIdentity,
-) -> WorthQueryEvidenceIdentity {
-    WorthQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
-        .field_shape(
-            WorthQueryEvidenceTag::new("identity_family"),
-            "query_subscription_source_identity_v1",
-        )
-        .field_shape(WorthQueryEvidenceTag::new("role"), role)
-        .field_evidence_identity(WorthQueryEvidenceTag::new("source"), source_identity)
-        .seal()
-}
-
 pub(super) fn live_relevance_identity(
     live_family: &LiveQueryFamily,
     query_identity: &WorthQueryEvidenceIdentity,
@@ -777,6 +761,7 @@ pub(super) fn subscription_performance_receipt_source_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(super) fn lifecycle_continuation_endpoint_identity(
     role: &str,
     source_identity: &WorthQueryEvidenceIdentity,
@@ -791,6 +776,7 @@ pub(super) fn lifecycle_continuation_endpoint_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(super) fn lifecycle_continuation_ordinary_checkpoint_identity(
     active_lane_identity: &WorthQueryEvidenceIdentity,
 ) -> WorthQueryEvidenceIdentity {
@@ -1499,6 +1485,7 @@ pub(super) fn lifecycle_active_lane_handle_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(super) fn lifecycle_absent_work_packet_identity() -> WorthQueryEvidenceIdentity {
     WorthQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
         .field_shape(
@@ -1830,6 +1817,7 @@ pub(super) fn lifecycle_delivery_batch_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(super) fn lifecycle_continuation_identity(
     lane_identity: &WorthQueryEvidenceIdentity,
     continuation_class: &str,
@@ -1997,6 +1985,7 @@ pub(super) fn diagnostic_source_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(super) fn preview_epoch_identity(epoch: &str) -> WorthQueryEvidenceIdentity {
     WorthQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
         .field_shape(
@@ -2008,6 +1997,7 @@ pub(super) fn preview_epoch_identity(epoch: &str) -> WorthQueryEvidenceIdentity 
 }
 
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 pub(super) fn preview_isolation_identity(
     lane_identity: &WorthQueryEvidenceIdentity,
     attachment_identity: &WorthQueryEvidenceIdentity,

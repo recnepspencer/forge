@@ -5,7 +5,7 @@ use crate::facade::runtime::{
     WorthQueryWorkspace,
 };
 use crate::identity::hash_parts;
-use crate::runtime::WorthQueryNativeRow;
+use crate::runtime::WorthQueryUnrefinedLiveShape;
 use crate::WorthQuerySessionLabel;
 
 use super::transcript_aspect_touch;
@@ -13,9 +13,9 @@ use super::transcripts::TranscriptSpec;
 
 pub(super) fn preview_proof(
     workspace: &mut WorthQueryWorkspace,
-    live: &WorthQueryLiveView<WorthQueryNativeRow>,
-    computed: &crate::facade::runtime::WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
-    effect: &WorthQueryEffectHandle<WorthQueryNativeRow>,
+    live: &WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
+    computed: &crate::facade::runtime::WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape>,
+    effect: &WorthQueryEffectHandle<WorthQueryUnrefinedLiveShape>,
     spec: &TranscriptSpec,
 ) -> (String, usize) {
     let mut preview = workspace

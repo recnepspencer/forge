@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_query::facade::runtime::prepare_admitted_domain_capability_contribution_for_materialization`
+ --> tests/ui/installed_domain/boundaries/contribution_preparation_is_not_public.rs:1:5
+  |
+1 | use worth_query::facade::runtime::prepare_admitted_domain_capability_contribution_for_materialization;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_admitted_domain_capability_contribution_for_materialization` in `facade::runtime`

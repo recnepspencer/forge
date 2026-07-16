@@ -58,6 +58,7 @@ impl FieldLevelAspectPatch {
 
         Ok(Self {
             contract: contract.clone(),
+            mask: mask.clone(),
             field_sets: canonical_sets,
             field_clears: canonical_clears,
         })

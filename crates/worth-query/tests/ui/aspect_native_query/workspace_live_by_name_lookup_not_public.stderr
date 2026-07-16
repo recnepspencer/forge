@@ -1,3 +1,9 @@
+error[E0423]: expected value, found enum `WorthQueryUnrefinedLiveShape`
+  --> tests/ui/aspect_native_query/workspace_live_by_name_lookup_not_public.rs:17:5
+   |
+17 |     WorthQueryUnrefinedLiveShape
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 error[E0624]: method `state_live_by_name` is private
  --> tests/ui/aspect_native_query/workspace_live_by_name_lookup_not_public.rs:6:23
   |
@@ -32,16 +38,8 @@ error[E0624]: method `subscription_basis_digest_by_name` is private
   | |     ) -> Result<String, WorthQueryRuntimeError> {
   | |_______________________________________________- private method defined here
 
-error[E0624]: method `inspect_live_by_name` is private
+error[E0599]: no method named `inspect_live_by_name` found for struct `WorthQueryWorkspace` in the current scope
  --> tests/ui/aspect_native_query/workspace_live_by_name_lookup_not_public.rs:9:23
   |
-9 |       let _ = workspace.inspect_live_by_name("live.example");
-  |                         ^^^^^^^^^^^^^^^^^^^^ private method
-  |
- ::: src/runtime/workspace_queries.rs
-  |
-  | /     pub(crate) fn inspect_live_by_name(
-  | |         &self,
-  | |         view_name: &str,
-  | |     ) -> Result<WorthQueryUnifiedInspectionResult, WorthQueryRuntimeError> {
-  | |__________________________________________________________________________- private method defined here
+9 |     let _ = workspace.inspect_live_by_name("live.example");
+  |                       ^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryWorkspace`

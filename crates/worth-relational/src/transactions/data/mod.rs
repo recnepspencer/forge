@@ -26,9 +26,11 @@ pub use commit_log::{
     CommitTraceEvent,
 };
 pub use intents::{
-    BulkEntityCreateIntent, BulkRelationCreateIntent, CreateIntent, DeleteEntityIntent,
-    DeleteRelationIntent, EntityMutationIntent, MutationIntent, RelationMutationIntent,
-    ReplaceEntityIntent, UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent,
+    ApplyEntityAspectPatchIntent, ApplyRelationAspectPatchIntent, BulkEntityCreateIntent,
+    BulkRelationCreateIntent, CreateIntent, DeleteEntityIntent, DeleteRelationIntent,
+    EntityAspectCreateIntent, EntityMutationIntent, MutationIntent, RelationAspectCreateIntent,
+    RelationMutationIntent, ReplaceEntityIntent, UpdateEntityFieldsIntent,
+    UpdateRelationEndpointsIntent,
 };
 pub use mutation_planning::CommitTopology;
 pub(crate) use outcomes::merge_commit_mutation_plan_token;
@@ -41,12 +43,11 @@ pub use outcomes::{
     CommitExecution, CommitOutcome, CommitPhaseTiming, CommitPublication, CommitResult,
     CommitSchemaSummary, CommitStructuralSummary, CommitValidation, CommitValidationSummary,
     ConflictClass, EntityAuthoritativeAspectStateDenial, EntityCascadeDeleteMissingState,
-    EntityFieldAspectPatchDenial, EntityFieldIntentValidationMissingState,
     EntityFieldUpdateMissingState, LoweredCommitPlan, MergeCommitMutationPlan,
     MergeExecutionOutcome, MergeExecutionStructuralSummary, MergeExecutionSummary,
     MergedCommitPlan, MutationStateInconsistencyEvidence, PublishedMergeExecutionAuthority,
-    RelationAuthoritativeAspectStateDenial, RelationEndpointUpdateMissingState, RollbackEffect,
-    RollbackOutcome, RollbackSummary, TransactionCommitError, UndoRecord,
+    RecordAspectPatchDenial, RecordAspectPatchTarget, RelationEndpointUpdateMissingState,
+    RollbackEffect, RollbackOutcome, RollbackSummary, TransactionCommitError, UndoRecord,
 };
 pub(crate) use primitives::{
     lineage_safe_bulk_mutation_batch, naming_stable_bulk_mutation_batch,

@@ -155,12 +155,6 @@ impl QuerySubscriptionFutureSelection {
     pub fn projection_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.projection_identity
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn projection_digest(&self) -> &str {
-        self.projection_identity.as_str()
-    }
-
     pub fn retained_facts(&self) -> Vec<String> {
         let mut facts = vec![format!("future-selection-class:{}", self.class.as_str())];
         if self.requests_completion_lifecycle {

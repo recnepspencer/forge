@@ -5,7 +5,7 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.mixed-authority-batch")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.mixed-authority-batch-table", |q| {
             q.from("Task")
                 .select([

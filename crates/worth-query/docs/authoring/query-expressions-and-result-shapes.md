@@ -168,7 +168,7 @@ What still happens at authoring time rather than runtime execution:
   immediate closure form in [Live Views](../runtime-surfaces/live-views.md).
 - Use it before validation, canonicalization, planning, or saved-query style
   workflows.
-- Use [Canonical Domain Declarations](../domain-capabilities/canonical-domain-declarations.md)
+- Use Installed Domain Declarations
   when you need declaration-native temporal meaning such as freshness limits,
   intervals, deadlines, or rolling/sliding windows, or declaration-native
   async/resource meaning such as canonical source family, request identity,
@@ -181,7 +181,7 @@ What still happens at authoring time rather than runtime execution:
 
 ## Inspection And Debugging
 
-This feature does not use `workspace.inspect(...)` because it is an authoring
+This feature does not use `workspace.inspections()?.inspect(...)` because it is an authoring
 surface, not a runtime handle family.
 
 The main debugging signals are:

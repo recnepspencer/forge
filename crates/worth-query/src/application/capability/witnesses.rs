@@ -44,6 +44,7 @@ pub struct QueryCompositionCapability {
 }
 
 impl QueryCompositionCapability {
+    #[cfg(test)]
     pub(crate) fn new(facade_digest: String) -> Self {
         Self { facade_digest }
     }
@@ -118,6 +119,7 @@ impl QueryCompositionCapability {
 }
 
 impl QueryReadCapability {
+    #[cfg(test)]
     pub(crate) fn new(facade_digest: String) -> Self {
         Self { facade_digest }
     }
@@ -137,6 +139,7 @@ pub struct LiveQueryCapability {
 }
 
 impl LiveQueryCapability {
+    #[cfg(test)]
     pub(crate) fn new(facade_digest: String) -> Self {
         Self { facade_digest }
     }
@@ -156,6 +159,7 @@ pub struct PreviewSessionCapability {
 }
 
 impl PreviewSessionCapability {
+    #[cfg(test)]
     pub(crate) fn new(facade_digest: String) -> Self {
         Self { facade_digest }
     }
@@ -176,6 +180,7 @@ pub struct WorkflowOrchestrationCapability {
 }
 
 impl WorkflowOrchestrationCapability {
+    #[cfg(test)]
     pub(crate) fn new(facade_digest: String) -> Self {
         Self { facade_digest }
     }
@@ -204,6 +209,7 @@ pub struct HistoricalEvaluationCapability {
 }
 
 impl HistoricalEvaluationCapability {
+    #[cfg(test)]
     pub(crate) fn new(facade_digest: String) -> Self {
         Self { facade_digest }
     }
@@ -224,6 +230,7 @@ pub struct QueryContextCapability {
 }
 
 impl QueryContextCapability {
+    #[cfg(test)]
     pub(crate) fn new(facade_digest: String) -> Self {
         Self { facade_digest }
     }
@@ -311,6 +318,7 @@ pub struct IdentityEvolutionCapability {
 }
 
 impl IdentityEvolutionCapability {
+    #[cfg(test)]
     pub(crate) fn new(facade_digest: String) -> Self {
         Self { facade_digest }
     }

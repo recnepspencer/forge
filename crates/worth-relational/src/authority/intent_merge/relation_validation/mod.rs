@@ -35,6 +35,19 @@ pub(super) fn validate_relation_intent(
                 spec,
             )
         }
+        MutationIntent::Create(CreateIntent::RelationAspects(spec)) => {
+            relation_creation_admission::validate_relation_creation(
+                state,
+                schema_source,
+                default_cross_context_policy,
+                instrumentation,
+                created_entities,
+                spec.partition_id,
+                spec.kind_id,
+                &spec.source,
+                &spec.target,
+            )
+        }
         MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
             relation_creation_admission::validate_bulk_relation_creation_intent(
                 state,
@@ -59,6 +72,14 @@ pub(super) fn validate_relation_intent(
                 spec,
             )
         }
+        MutationIntent::Relation(RelationMutationIntent::ApplyAspectPatch(spec)) => {
+            relation_target_admission::validate_existing_relation_target(
+                runtime,
+                state,
+                branch_basis_version_id,
+                spec.relation_id,
+            )
+        }
         MutationIntent::Relation(RelationMutationIntent::Delete(spec)) => {
             relation_target_admission::validate_existing_relation_target(
                 runtime,
@@ -68,6 +89,7 @@ pub(super) fn validate_relation_intent(
             )
         }
         MutationIntent::Create(CreateIntent::Entity(_))
+        | MutationIntent::Create(CreateIntent::EntityAspects(_))
         | MutationIntent::Create(CreateIntent::BulkEntities(_))
         | MutationIntent::Entity(_) => Ok(()),
     }

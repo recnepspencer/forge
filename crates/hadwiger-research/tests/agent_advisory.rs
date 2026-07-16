@@ -1,6 +1,6 @@
 use hadwiger_research::facade::*;
+use worth_query::facade::domain::WorthQuerySupportContributionAuthoring;
 use worth_query::facade::foundation::WorthQueryGroupedDeclarationInput;
-use worth_query::facade::runtime::WorthQuerySupportContributionAuthoring;
 
 fn handle() -> HadwigerResearchHandle {
     crate::installed_support::installed_hadwiger_research_handle()

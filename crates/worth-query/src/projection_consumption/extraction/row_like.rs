@@ -1,9 +1,10 @@
 use std::collections::BTreeSet;
 
-use worth_foundational::facade::{AspectValue, ContractValidatedAspectValueView};
+use worth_foundational::facade::ContractValidatedAspectValueView;
 use worth_relational::facade::grouped_truth::RelationalAuthoritativeRowSetArtifact;
 use worth_runtime_bridge::facade::BridgeMaterializedRowSetArtifact;
 
+use super::super::consumed::ConsumedNativeValue;
 use super::super::consumed::{
     ConsumedEntityIdentityFact, ConsumedFieldValueFact, ConsumedProjectionFactSet,
     ConsumedViewLocalIdentityFact, ProjectionFactExtractionCounters,
@@ -46,7 +47,7 @@ pub(super) fn extract_relational_row_set_facts(
                             contract,
                             row.row_identity().as_str(),
                             key,
-                            value.clone(),
+                            value,
                         )
                     })
                     .collect::<Result<Vec<_>, ProjectionFactExtractionError>>()?,
@@ -78,24 +79,11 @@ pub(super) fn extract_bridge_row_set_facts(
                     .iter()
                     .map(|(_key, bridge_field)| {
                         let value = match bridge_field.validated_value().payload().view() {
-                            ContractValidatedAspectValueView::Scalar(value) => value.clone(),
-                            ContractValidatedAspectValueView::Struct(_) => {
-                                return Err(
-                                    ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
-                                        source_family: contract.source_family(),
-                                        source_identity: compose_scoped_row_source_identity(
-                                            contract.source_identity(),
-                                            row.row_identity().as_str(),
-                                        ),
-                                        field_key: bridge_field
-                                            .projection()
-                                            .field_identity()
-                                            .as_str()
-                                            .to_string(),
-                                        fact_kind: ProjectionFactKind::DerivedScalarField,
-                                        expected_shape: "foundational scalar",
-                                    },
-                                );
+                            ContractValidatedAspectValueView::Scalar(value) => {
+                                ConsumedNativeValue::scalar(value.clone())
+                            }
+                            ContractValidatedAspectValueView::Struct(value) => {
+                                ConsumedNativeValue::struct_value(value.clone())
                             }
                         };
                         ProjectionMaterializedField::from_bridge_field_value(
@@ -238,13 +226,13 @@ where
         &'a RowData,
         &'a ProjectionFactFieldPath,
         ProjectionFactKind,
-    ) -> Result<&'a AspectValue, ProjectionFactExtractionError>,
+    ) -> Result<&'a ConsumedNativeValue, ProjectionFactExtractionError>,
 {
     let requested_field_keys = contract
         .fact_families()
         .iter()
         .filter_map(|fact: &BoundProjectionFactFamily| match fact.kind() {
-            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => fact
+            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => fact
                 .field_path()
                 .map(|field_path| field_path.terminal_projection_for_boundary().to_string()),
             _ => None,
@@ -264,7 +252,7 @@ where
     let mut entity_identities = Vec::new();
     let mut view_local_identities = Vec::new();
     let mut display_fields = Vec::new();
-    let mut derived_scalar_fields = Vec::new();
+    let mut derived_fields = Vec::new();
 
     for (row_identity, typed_entity_identity, row_data) in rows {
         for fact_family in contract.fact_families() {
@@ -285,7 +273,7 @@ where
                                 ProjectionFactKind::EntityIdentity,
                             )?;
                             crate::memory_workspace::admit_authored_entity_label(
-                                consumed_aspect_value_as_str(value).ok_or_else(|| {
+                                value.view().scalar().and_then(consumed_aspect_value_as_str).ok_or_else(|| {
                                     ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
                                         source_family: contract.source_family(),
                                         source_identity: compose_scoped_row_source_identity(
@@ -311,7 +299,7 @@ where
                         row_identity.as_str(),
                     ));
                 }
-                ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+                ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => {
                     let field_path = fact_family
                         .field_path()
                         .expect("field path required")
@@ -322,7 +310,8 @@ where
                         &field_path,
                         fact_family.kind(),
                     )?;
-                    let fact = ConsumedFieldValueFact::new(
+                    let fact = ConsumedFieldValueFact::new_native(
+                        contract,
                         row_identity.as_str(),
                         field_path.clone(),
                         value.clone(),
@@ -330,7 +319,7 @@ where
                     if fact_family.kind() == ProjectionFactKind::DisplayField {
                         display_fields.push(fact);
                     } else {
-                        derived_scalar_fields.push(fact);
+                        derived_fields.push(fact);
                     }
                 }
                 ProjectionFactKind::TargetIdentity
@@ -363,7 +352,7 @@ where
     let extracted_fact_count = entity_identities.len()
         + view_local_identities.len()
         + display_fields.len()
-        + derived_scalar_fields.len();
+        + derived_fields.len();
 
     Ok(ConsumedProjectionFactSet::new(
         contract.declaration_digest(),
@@ -383,7 +372,7 @@ where
         view_local_identities,
         Vec::new(),
         display_fields,
-        derived_scalar_fields,
+        derived_fields,
         Vec::new(),
         Vec::new(),
         Vec::new(),

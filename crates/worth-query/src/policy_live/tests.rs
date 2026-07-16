@@ -40,11 +40,11 @@ fn native_relevance_fields(
 ) -> Vec<(AspectKey, FieldKey)> {
     fields
         .iter()
-        .map(|field| {
-            (
+        .filter_map(|field| {
+            Some((
                 field.native_aspect_key().clone(),
-                field.native_field_key().clone(),
-            )
+                field.native_field_key()?.clone(),
+            ))
         })
         .collect()
 }

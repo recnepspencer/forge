@@ -103,32 +103,32 @@ const EXPECTED_SNAPSHOTS: &[ExpectedSnapshot] = &[
     expected_snapshot!(
         "read",
         "exports_read.rs",
-        86,
-        "0d08ebdad81d79eee0977f05d906ed1ec9d5e023df49b2fca0fb89c61dbb06c7"
+        91,
+        "18979fe4e9b574a860c6ae555e209e5b392167eea93d2dcd3e2687a21ee1e157"
     ),
     expected_snapshot!(
         "aggregate",
         "exports_aggregate.rs",
         53,
-        "7e5ac3ed3b094aa72c6301dd3b60d7934a02d7f0064f8636bd42216e2c62b837"
+        "0339c81f75e448641fb45e5a75ebfe4cce30fe84eeb9a935d01fe9bba6da6377"
     ),
     expected_snapshot!(
         "live",
         "exports_live_capability.rs",
         88,
-        "169430266b03b252915ca44f36f79f56266a152ca96ec6c75a07f878ecda1118"
+        "d84259916a502dcfcdde928d8c47dc45f9b8680b73936cbf5a326ab4343353f8"
     ),
     expected_snapshot!(
         "history",
         "exports_history.rs",
         53,
-        "d0e52f20abcb366fe435f7e986a08a93b5535be618f48acd0455811b09510316"
+        "295588ec0929f48e7cf12a626da5fa236de3fb3e9d7f53b6291f3aef9faa5641"
     ),
     expected_snapshot!(
         "comparison",
         "exports_comparison.rs",
         80,
-        "df1532a361775c0602acd9c5433a44bd72eb6ad57a8a2885a9260f973b2d71f6"
+        "8f786a560636d477eedd5f98794637fe8bd1e9bb13282fab90f58b4d2cbd62d6"
     ),
     expected_snapshot!(
         "mutation",
@@ -151,14 +151,14 @@ const EXPECTED_SNAPSHOTS: &[ExpectedSnapshot] = &[
     expected_snapshot!(
         "domain",
         "exports_domain.rs",
-        27,
-        "ab88b3f81e9621c15c626e57fd823547fda551281c17597ff06eff4100039f0c"
+        144,
+        "a66df4288b6a379bc2cf3c28862cf1fe1264b21a11cfcfb693f4a391237675d9"
     ),
     expected_snapshot!(
         "inspection",
         "exports_inspection.rs",
-        21,
-        "119acb84d2f4eca5629045cbfec7836d602a0570f6efdd02837a981b2d918bb5"
+        25,
+        "c1923031fcf7b723d0bd7a0e00739d70ae27722e83adc4ede8ec2351bc539776"
     ),
 ];
 

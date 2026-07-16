@@ -1,8 +1,7 @@
-use worth_query::facade::domain::{WorthQueryDomainHandleDenial, WorthQueryInstalledDomainHandle};
-use worth_query::facade::runtime::{
-    CustomInvariantRegistrationError, WorthQueryDomainCapabilityMaterializationError,
-    WorthQueryDomainCapabilityProgressionDenial, WorthQueryDomainCapabilityProgressionFailure,
-    WorthQueryDomainCapabilityRebindRequired, WorthQueryDomainCapabilityStale,
+use worth_query::facade::domain::{
+    WorthQueryDomainCapabilityMaterializationError, WorthQueryDomainCapabilityProgressionDenial,
+    WorthQueryDomainCapabilityProgressionFailure, WorthQueryDomainCapabilityRebindRequired,
+    WorthQueryDomainCapabilityStale, WorthQueryDomainHandleDenial, WorthQueryInstalledDomainHandle,
 };
 
 use crate::discovery_loop::{DiscoveryFrontier, ResearchEvidenceCorpus};
@@ -10,16 +9,12 @@ use crate::domain_artifacts::{HadwigerArtifactShapeError, HadwigerCanonicalArtif
 use crate::query_entry::HadwigerResearchHandle;
 
 use super::catalog::{
-    HadwigerResearchInvariantCatalog, ResearchGraphInvariantFamily,
-    ResearchGraphInvariantRegistrationPlan, ResearchGraphInvariantRule,
+    HadwigerResearchInvariantCatalog, ResearchGraphInvariantFamily, ResearchGraphInvariantRule,
     ResearchGraphInvariantScope,
 };
 use super::denials::ResearchGraphInvariantDenial;
 use super::requests::{ResearchGraphInvariantCheckRequest, ResearchGraphInvariantDenialRequest};
 use super::runtime_projection::ResearchGraphInvariantRuntimeProjection;
-use super::runtime_registration::{
-    registrations_for_catalog, HadwigerResearchInvariantRegistrationChecked,
-};
 use super::violations::{ResearchGraphInvariantViolation, ResearchGraphInvariantViolationKind};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -33,18 +28,11 @@ pub enum ResearchGraphInvariantError {
     QueryInvariantContributionRebindRequired(WorthQueryDomainCapabilityRebindRequired),
     QueryInvariantContributionFailed(WorthQueryDomainCapabilityProgressionFailure),
     InstalledDomain(WorthQueryDomainHandleDenial),
-    CustomInvariantRegistration(CustomInvariantRegistrationError),
 }
 
 impl From<HadwigerArtifactShapeError> for ResearchGraphInvariantError {
     fn from(value: HadwigerArtifactShapeError) -> Self {
         Self::Shape(value)
-    }
-}
-
-impl From<CustomInvariantRegistrationError> for ResearchGraphInvariantError {
-    fn from(value: CustomInvariantRegistrationError) -> Self {
-        Self::CustomInvariantRegistration(value)
     }
 }
 
@@ -138,6 +126,7 @@ pub fn materialize_research_graph_invariant_denial(
         .contributions_in(workspace)
         .map_err(ResearchGraphInvariantError::InstalledDomain)?
         .for_lower_runtime_boundary_source(source.envelope())
+        .map_err(ResearchGraphInvariantError::InstalledDomain)?
         .denies_graph_invariant(
             family,
             ["hadwiger_research_graph"],
@@ -156,14 +145,6 @@ pub fn materialize_research_graph_invariant_denial(
         .map_err(Into::into)
 }
 
-pub fn plan_research_graph_invariant_registration(
-    _handle: &HadwigerResearchHandle,
-    catalog: &HadwigerResearchInvariantCatalog,
-) -> Result<ResearchGraphInvariantRegistrationPlan, ResearchGraphInvariantError> {
-    ResearchGraphInvariantRegistrationPlan::custom_invariant_registrations_ready(catalog)
-        .map_err(Into::into)
-}
-
 pub fn project_research_graph_for_invariant_registration_checked(
     handle: &HadwigerResearchHandle,
     corpus: &ResearchEvidenceCorpus,
@@ -171,14 +152,6 @@ pub fn project_research_graph_for_invariant_registration_checked(
 ) -> Result<ResearchGraphInvariantRuntimeProjection, ResearchGraphInvariantError> {
     let catalog = draft_research_graph_invariant_catalog(handle, corpus, frontier)?;
     ResearchGraphInvariantRuntimeProjection::new(corpus, frontier, catalog).map_err(Into::into)
-}
-
-pub fn register_research_graph_invariants_checked(
-    _handle: &HadwigerResearchHandle,
-    catalog: &HadwigerResearchInvariantCatalog,
-) -> Result<HadwigerResearchInvariantRegistrationChecked, ResearchGraphInvariantError> {
-    let registrations = registrations_for_catalog(catalog)?;
-    HadwigerResearchInvariantRegistrationChecked::new(catalog, registrations).map_err(Into::into)
 }
 
 fn violation(

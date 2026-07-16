@@ -116,12 +116,6 @@ impl CanonicalResultShapeDigest {
     pub(crate) fn from_parts(parts: &[String]) -> Self {
         Self(AuthorityBackedDigestLabel::from_parts(parts))
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn from_evidence_identity(identity: &WorthQueryEvidenceIdentity) -> Self {
-        Self(AuthorityBackedDigestLabel::from_evidence_identity(identity))
-    }
-
     pub(crate) fn as_str(&self) -> &str {
         self.0.as_str()
     }
@@ -313,8 +307,7 @@ impl CorrespondenceOutcomeDigest {
     pub(crate) fn from_parts(parts: &[String]) -> Self {
         Self(digest_hash_parts(parts))
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn as_str(&self) -> &str {
         &self.0
     }
@@ -327,8 +320,7 @@ impl CorrespondenceCostPostureDigest {
     pub(crate) fn from_parts(parts: &[String]) -> Self {
         Self(digest_hash_parts(parts))
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn as_str(&self) -> &str {
         &self.0
     }
@@ -341,8 +333,7 @@ impl HistoricalPathClassDigest {
     pub(crate) fn from_parts(parts: &[String]) -> Self {
         Self(digest_hash_parts(parts))
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn as_str(&self) -> &str {
         &self.0
     }
@@ -355,8 +346,7 @@ impl HistoricalCostPostureDigest {
     pub(crate) fn from_parts(parts: &[String]) -> Self {
         Self(digest_hash_parts(parts))
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn as_str(&self) -> &str {
         &self.0
     }

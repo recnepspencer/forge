@@ -6,11 +6,13 @@ use worth_relational::facade::merge::{
 use super::MergeClassAdmission;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(test)]
 pub(super) struct RelationalMergeClassShape {
     pub family: &'static str,
     pub class: &'static str,
 }
 
+#[cfg(test)]
 pub(super) fn relational_merge_class_shape(
     row: &RelationalMergeInspectionRow,
 ) -> RelationalMergeClassShape {
@@ -20,10 +22,12 @@ pub(super) fn relational_merge_class_shape(
     }
 }
 
+#[cfg(test)]
 pub(super) fn relational_merge_class_label(row: &RelationalMergeInspectionRow) -> String {
     merge_class_display_label(relational_merge_class_shape(row)).to_string()
 }
 
+#[cfg(test)]
 pub(super) fn relational_merge_class_admission(
     row: &RelationalMergeInspectionRow,
 ) -> MergeClassAdmission {
@@ -35,6 +39,7 @@ pub(super) fn relational_merge_class_admission(
     }
 }
 
+#[cfg(test)]
 fn merge_class_display_label(shape: RelationalMergeClassShape) -> &'static str {
     match shape.family {
         "deletion" => deletion_merge_display_label(shape.class),
@@ -42,6 +47,7 @@ fn merge_class_display_label(shape: RelationalMergeClassShape) -> &'static str {
     }
 }
 
+#[cfg(test)]
 fn merge_conflict_class_shape(class: &MergeConflictClass) -> RelationalMergeClassShape {
     match class {
         MergeConflictClass::ExactSharedTruth => RelationalMergeClassShape {
@@ -75,6 +81,7 @@ fn merge_conflict_class_shape(class: &MergeConflictClass) -> RelationalMergeClas
     }
 }
 
+#[cfg(test)]
 fn blocked_reason_shape(reason: LoweredMergeBlockedReason) -> RelationalMergeClassShape {
     match reason {
         LoweredMergeBlockedReason::SourceDeletedTargetLive => RelationalMergeClassShape {
@@ -104,6 +111,7 @@ fn blocked_reason_shape(reason: LoweredMergeBlockedReason) -> RelationalMergeCla
     }
 }
 
+#[cfg(test)]
 fn deletion_merge_class_label(class: DeletionMergeClass) -> &'static str {
     match class {
         DeletionMergeClass::SourceDeletedTargetLive => "source_deleted_target_live",
@@ -114,6 +122,7 @@ fn deletion_merge_class_label(class: DeletionMergeClass) -> &'static str {
     }
 }
 
+#[cfg(test)]
 fn deletion_merge_display_label(class: &'static str) -> &'static str {
     match class {
         "source_deleted_target_live" => "deletion:source_deleted_target_live",
@@ -125,6 +134,7 @@ fn deletion_merge_display_label(class: &'static str) -> &'static str {
     }
 }
 
+#[cfg(test)]
 fn blocked_reason_label(reason: LoweredMergeBlockedReason) -> &'static str {
     match reason {
         LoweredMergeBlockedReason::ManualConflictResolutionRequired => {

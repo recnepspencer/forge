@@ -52,6 +52,15 @@ pub(crate) fn resolve_graph_read_operations_for_read_graph(
                 requirement.resolve_for_read_graph(read_graph.digest(), declared_relation_names),
             );
         }
+        let requirement =
+            super::WorthQueryGraphReadOperationCapabilityRequirementDeclaration::registration_required(
+                declaration.key().name().as_str(),
+                declaration.key().owner().as_str(),
+                "worth.query.installed-domain-operation",
+            );
+        return WorthQueryGraphReadOperationOutcome::RequiresAccessCapabilityRegistration(
+            requirement.resolve_for_read_graph(read_graph.digest(), declared_relation_names),
+        );
     }
 
     let mut operations = read_graph

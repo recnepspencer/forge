@@ -2,14 +2,13 @@ use std::marker::PhantomData;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
-    WorthQueryConfig, WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
+    WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
+    WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
     WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
     WorthQueryDeclarationRouteContract, WorthQueryDeclarationSignalCompatibilityContract,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryNeighborhoodCapableGrouping, WorthQueryRelationalConfig,
-    WorthQuerySignalCompatiblePosture,
+    WorthQueryNeighborhoodCapableGrouping, WorthQuerySignalCompatiblePosture,
 };
 use crate::family_helpers::{
     WorthQueryGeometryActiveFaceSelectionHelperFamily, WorthQueryGeometryNeighborhoodHelperFamily,
@@ -50,8 +49,11 @@ impl WorthQueryDomainOperatingContext<GeometryDomain> for GeometryWorld {
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("grouped-authoring-world-{}", self.0)
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("grouped-authoring-world-{}", self.0) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -240,7 +242,7 @@ fn installed_geometry_context(
     context: GeometryWorld,
 ) -> crate::application::WorthQueryInstalledDomainDeclarationContext<GeometryDomain, GeometryWorld>
 {
-    crate::application::domain_test_support::installed_declaration_context(
+    crate::application::domain_test_support::installed_declaration_context_with_contributions(
         GeometryDomain,
         context,
         [
@@ -249,6 +251,10 @@ fn installed_geometry_context(
                 GeometryDomain,
                 RequiredIntentGeometryFamily,
             >(),
+        ],
+        [
+            crate::application::WorthQueryDeclarationEntryContributionCategoryFamily::SupportTraceability,
+            crate::application::WorthQueryDeclarationEntryContributionCategoryFamily::ExplanationInspection,
         ],
     )
 }

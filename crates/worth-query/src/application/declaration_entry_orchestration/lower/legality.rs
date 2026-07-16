@@ -18,6 +18,7 @@ use crate::application::{
     WorthQueryDeclarationEntryOrchestrationStageRecord,
 };
 
+#[cfg(test)]
 pub(super) fn lower_from_legality_checked<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,
@@ -51,6 +52,7 @@ pub(super) fn lower_from_legality_checked<
     }
 }
 
+#[cfg(test)]
 fn lower_from_legality_denial<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>(
     automation_context: &WorthQueryDeclarationEntryOrchestrationAutomationContext<'_>,
     step_records: &mut Vec<WorthQueryDeclarationEntryOrchestrationStageRecord>,

@@ -4,14 +4,14 @@ use super::super::support::*;
 fn derive_only_preview_binds_handles_and_mutes_effects_without_residue() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.preview-bind",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new("computed.preview-bind", test_aspect_touches(["title"]))
                 .depends_on_live(&live)
                 .produces(test_aspect_touches(["title.summary"])),
@@ -19,14 +19,14 @@ fn derive_only_preview_binds_handles_and_mutes_effects_without_residue() {
         )
         .expect("computed should declare");
     let delivery_effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::deliver(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::deliver(
             "ui.preview-bind",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "ui.preview",
         ))
         .expect("delivery effect should declare");
     let intent_effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "intent.preview-bind",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "preview-intent",
@@ -172,14 +172,14 @@ fn derive_only_preview_binds_handles_and_mutes_effects_without_residue() {
 fn preview_write_routes_bound_live_computed_and_redirected_effect_without_authoritative_residue() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.preview-execution",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let computed = runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new(
                 "computed.preview-execution",
                 test_aspect_touches(["title"]),
@@ -190,7 +190,7 @@ fn preview_write_routes_bound_live_computed_and_redirected_effect_without_author
         )
         .expect("computed should declare");
     let delivery_effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::deliver(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::deliver(
             "ui.preview-execution",
             WorthQueryEffectTrigger::computed_view(
                 &computed,
@@ -283,14 +283,14 @@ fn preview_write_routes_bound_live_computed_and_redirected_effect_without_author
 fn preview_sandboxed_write_intent_execution_stays_separate_from_delivery_residue() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.preview-intent-exec",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let intent_effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "intent.preview-execution",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "preview-intent",

@@ -12,16 +12,22 @@ use worth_query::facade::runtime::WorthQueryEvidenceScope;
 
 #[path = "consumer_residue_audit_support/fixtures.rs"]
 mod consumer_residue_audit_fixtures;
+#[path = "consumer_residue_audit_support/installed_domain_fixtures.rs"]
+mod installed_domain_fixtures;
 use consumer_residue_audit_fixtures::{
     CLEAN_SOURCE, DEBUG_BINDING_SOURCE, FALSE_POSITIVE_CASES, HOSTILE_CLASS_CASES,
     LOCAL_QUERY_REPORT_SOURCE, RUNTIME_BRIDGE_SOURCE, SYNTAX_ROLE_CASES,
 };
+use installed_domain_fixtures::INSTALLED_DOMAIN_HOSTILE_CASES;
 
 static WORKSPACE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[test]
 fn each_residue_class_has_an_independent_hostile_fixture() {
-    for case in HOSTILE_CLASS_CASES {
+    for case in HOSTILE_CLASS_CASES
+        .iter()
+        .chain(INSTALLED_DOMAIN_HOSTILE_CASES)
+    {
         let workspace = residue_workspace(case.label, case.source);
         let report = query_consumer_residue_audit("downstream")
             .required_root(&workspace)
@@ -125,7 +131,10 @@ fn registry_rows_are_complete_unique_and_point_to_consumer_kit_lanes() {
         .collect::<std::collections::BTreeSet<_>>();
 
     assert_eq!(rows.len(), classes.len());
-    for case in HOSTILE_CLASS_CASES {
+    for case in HOSTILE_CLASS_CASES
+        .iter()
+        .chain(INSTALLED_DOMAIN_HOSTILE_CASES)
+    {
         let row = rows
             .iter()
             .find(|row| row.class() == case.class)
@@ -139,6 +148,11 @@ fn registry_rows_are_complete_unique_and_point_to_consumer_kit_lanes() {
                 | "support-pinning"
                 | "in-memory-test-backend"
                 | "downstream-authority-adoption"
+                | "installed-domain-handle"
+                | "installed-domain-context-identity"
+                | "installed-domain-execution-index"
+                | "installed-domain-capability"
+                | "installed-domain-extension"
         ));
         if case.class.is_proof_folklore_for_test() {
             assert_eq!(row.detection(), WorthQueryConsumerResidueDetection::Ast);
@@ -151,6 +165,50 @@ fn registry_rows_are_complete_unique_and_point_to_consumer_kit_lanes() {
         test_backend_classes.contains(&WorthQueryConsumerResidueClass::RuntimeBridgeHandAssembly)
     );
     assert!(!test_backend_classes.contains(&WorthQueryConsumerResidueClass::LocalQueryReport));
+}
+
+#[test]
+fn physical_domain_adapter_remains_a_legitimate_boundary() {
+    let root = residue_workspace("physical-domain-adapter", "fn clean() {}");
+    let physical_boundary = root.join("runtime").join("backend");
+    fs::create_dir_all(&physical_boundary).expect("physical boundary path should be creatable");
+    fs::write(
+        physical_boundary.join("physical_boundary.rs"),
+        "struct StorageDomainAdapter;",
+    )
+    .expect("physical adapter fixture should be writable");
+
+    let report = query_consumer_residue_audit("downstream")
+        .required_root(&root)
+        .evaluate()
+        .expect("physical adapter fixture must parse");
+
+    assert_eq!(report.finding_count(), 0, "{:?}", report.findings());
+}
+
+#[test]
+fn installed_domain_reference_consumers_have_no_competing_authority_residue() {
+    let repository_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(std::path::Path::parent)
+        .expect("worth-query should live below the repository root")
+        .to_path_buf();
+    let report = query_consumer_residue_audit("installed-domain-reference-consumers")
+        .required_root(repository_root.join("crates/hadwiger-research/src"))
+        .required_root(
+            repository_root.join("workspaces/worth-ui/crates/worth-ui-query-binding/src"),
+        )
+        .required_root(repository_root.join("workspaces/worth-ui/crates/worth-ui-runtime/src"))
+        .evaluate()
+        .expect("reference consumer authority sources must be auditable");
+
+    assert_eq!(report.finding_count(), 0, "{:?}", report.findings());
+    assert!(report.scanned_file_count() > 100);
+    assert_eq!(
+        report.audited_source_paths().len(),
+        report.scanned_file_count()
+    );
+    assert!(!report.source_inventory_digest().is_empty());
 }
 
 #[test]

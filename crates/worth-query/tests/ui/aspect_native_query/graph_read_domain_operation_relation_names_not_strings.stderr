@@ -10,9 +10,9 @@ error[E0308]: mismatched types
              found reference `&RelationName`
 
 error[E0308]: mismatched types
-  --> tests/ui/aspect_native_query/graph_read_domain_operation_relation_names_not_strings.rs:13:24
+  --> tests/ui/aspect_native_query/graph_read_domain_operation_relation_names_not_strings.rs:10:24
    |
-13 |     let _: &[String] = registration.accepted_relation_names();
+10 |     let _: &[String] = registration.accepted_relation_names();
    |            ---------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[String]`, found `&[RelationName]`
    |            |
    |            expected due to this

@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::delivery::WorthQueryRuntimeRetainedDelivery;
 use super::*;
 use crate::subscription::{

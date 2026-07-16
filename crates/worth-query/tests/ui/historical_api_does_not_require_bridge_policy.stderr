@@ -1,15 +1,5 @@
-error[E0308]: mismatched types
-  --> tests/ui/historical_api_does_not_require_bridge_policy.rs:14:33
-   |
-14 |     _expects_query_owned_policy(admit_historical_evaluation_path);
-   |     --------------------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected fn pointer, found fn item
-   |     |
-   |     arguments to this function are incorrect
-   |
-   = note: expected fn pointer `fn(HistoricalEvaluationRequest, ResolvedTruthViewPolicy) -> std::result::Result<HistoricalEvaluationAdmission, HistoricalEvaluationError>`
-                 found fn item `fn(HistoricalEvaluationRequest, HistoricalCapabilityDescriptor) -> std::result::Result<HistoricalEvaluationAdmission, HistoricalEvaluationError> {admit_historical_evaluation_path}`
-note: function defined here
-  --> tests/ui/historical_api_does_not_require_bridge_policy.rs:11:4
-   |
-11 | fn _expects_query_owned_policy(_: WrongFn) {}
-   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^ ----------
+error[E0432]: unresolved import `worth_query::facade::foundation::admit_historical_evaluation_path`
+ --> tests/ui/historical_api_does_not_require_bridge_policy.rs:1:39
+  |
+1 | use worth_query::facade::foundation::{admit_historical_evaluation_path, HistoricalEvaluationRequest};
+  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_historical_evaluation_path` in `facade::foundation`

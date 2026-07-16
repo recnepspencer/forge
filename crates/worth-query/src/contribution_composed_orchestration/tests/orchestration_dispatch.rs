@@ -1,11 +1,11 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    WorthQueryApplicationFacade, WorthQueryBridgeContinuationAuthority,
-    WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
-    WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationFamilyMarker,
-    WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract,
-    WorthQueryDeclarationRouteContract, WorthQueryGraphObligationOrchestrationBoundary,
+    WorthQueryBridgeContinuationAuthority, WorthQueryDeclarationAspectContract,
+    WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationCanonicalEntry,
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
+    WorthQueryDeclarationLegalityContract, WorthQueryDeclarationRouteContract,
+    WorthQueryGraphObligationOrchestrationBoundary,
     WorthQueryGraphObligationOrchestrationDispatchError, WorthQueryNeighborhoodCapableGrouping,
 };
 use crate::contribution_composed_orchestration::{
@@ -211,7 +211,7 @@ fn orchestration_handle() -> crate::application::WorthQueryInstalledDomainDeclar
     ContributionDomain,
     ContributionWorld,
 > {
-    crate::application::domain_test_support::installed_declaration_context(
+    crate::application::domain_test_support::installed_declaration_context_with_contributions(
         ContributionDomain,
         ContributionWorld("main"),
         [
@@ -228,6 +228,7 @@ fn orchestration_handle() -> crate::application::WorthQueryInstalledDomainDeclar
                 AdvisoryContributionFamily,
             >(),
         ],
+        [crate::application::WorthQueryDeclarationEntryContributionCategoryFamily::SupportTraceability],
     )
 }
 

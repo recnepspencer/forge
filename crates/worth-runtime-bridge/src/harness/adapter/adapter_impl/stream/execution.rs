@@ -1,5 +1,4 @@
 use super::{NativeStreamCommitWindow, StreamHarnessTarget};
-use crate::facade::foundation::StreamConsumerShape;
 use crate::facade::{
     AdmittedConsumerContract, BridgeRouteRequest, CanonicalStreamReplayRecord,
     ChangeStreamDeclaration, ConsumerCheckpointToken, PlannedChangeStreamWindow,
@@ -8,6 +7,7 @@ use crate::facade::{
     StreamResumeMode, StreamWindowDeliveryResult, ValidatedStreamProtocol,
 };
 use crate::harness::adapter::adapter_impl::BridgeHarnessError;
+use crate::stream::StreamConsumerShape;
 
 pub(in crate::harness::adapter::adapter_impl) enum StreamHarnessExecution {
     Routing {

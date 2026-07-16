@@ -158,7 +158,7 @@ mod tests {
         WorthQueryDerivedMaterializationResult, WorthQueryDerivedMaterializationTarget,
         WorthQueryRetainedFieldPath, WorthQueryRetainedMaterializedRow,
     };
-    use crate::runtime::WorthQueryNativeRow;
+    use crate::runtime::WorthQueryUnrefinedLiveShape;
 
     fn scalar_row(field: &str, value: AspectValue) -> WorthQueryRetainedMaterializedRow {
         WorthQueryRetainedMaterializedRow::from_scalar_values(BTreeMap::from([(
@@ -172,7 +172,7 @@ mod tests {
         WorthQueryDerivedMaterializationResult::from_retained_rows(
             vec![scalar_row(
                 "value",
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value),
             )],
             WorthQueryDerivedMaterializationReceipt::test_only(
                 view_name,
@@ -184,9 +184,9 @@ mod tests {
 
     fn binding() -> (
         WorthQueryDerivedArtifactBinding,
-        WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
-        WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
-        WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+        WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape>,
+        WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape>,
+        WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape>,
     ) {
         let first = WorthQueryDerivedViewHandle::new("derived.first");
         let second = WorthQueryDerivedViewHandle::new("derived.second");
@@ -223,7 +223,7 @@ mod tests {
 
     fn retained_string_value(
         binding: &WorthQueryDerivedArtifactBinding,
-        view: &WorthQueryDerivedViewHandle<WorthQueryNativeRow>,
+        view: &WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape>,
     ) -> String {
         let value_path = retained_field_path("value").expect("value path admits");
         let value = binding
@@ -231,7 +231,7 @@ mod tests {
             .expect("bound materialization should exist")
             .single_retained_row()
             .expect("bound materialization should carry one row")
-            .field_value_at(&value_path)
+            .scalar_value_at(&value_path)
             .expect("bound materialization should carry value field");
         let AspectValue::String(InternedString::Raw(value)) = value else {
             panic!("expected retained string value, got {value:?}");

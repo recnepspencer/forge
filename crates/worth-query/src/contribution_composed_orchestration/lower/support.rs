@@ -10,8 +10,8 @@ use crate::contribution_composed_orchestration::intent_result::{
     WorthQueryContributionComposedIntentResult, WorthQueryContributionComposedIntentStageResult,
 };
 use crate::domain_capabilities::{
-    WorthQueryDeclarationBoundContributionTarget, WorthQueryDomainCapabilityPayload,
-    WorthQueryDomainCapabilityTargetBinding,
+    WorthQueryDomainCapabilityPayload, WorthQueryDomainCapabilityTargetBinding,
+    WorthQueryInstalledDeclarationContributionTarget,
 };
 
 pub(super) fn denied_result(
@@ -91,7 +91,7 @@ pub(super) fn retained_after_admission_result(
 pub(super) fn evidence_from_admitted<P>(
     admitted: &crate::domain_capabilities::WorthQueryAdmittedDomainCapabilityContribution<
         P,
-        WorthQueryDeclarationBoundContributionTarget,
+        WorthQueryInstalledDeclarationContributionTarget,
     >,
 ) -> WorthQueryDeclarationEntryContributionEvidence
 where

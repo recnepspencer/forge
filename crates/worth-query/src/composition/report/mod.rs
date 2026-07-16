@@ -6,9 +6,11 @@ use super::counters::CompositionCounters;
 use super::digests::{CompositionDigest, ScopeLineageDigest, TemplateBindingDigest};
 use super::families::QueryCompositionFamily;
 
+#[cfg(test)]
+pub(crate) use support_profile::QueryCompositionTemporalAsyncPosture;
 pub use support_profile::{
     runtime_backed_query_composition_support_profile, QueryCompositionDeferredScopeMarker,
-    QueryCompositionSupportProfile, QueryCompositionTemporalAsyncPosture,
+    QueryCompositionSupportProfile,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]

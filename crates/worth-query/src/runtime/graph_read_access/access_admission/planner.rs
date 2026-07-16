@@ -1,25 +1,29 @@
 use super::super::streaming_frontier_is_admissible;
+#[cfg(test)]
+use super::WorthQueryAdmittedGraphReadAccessPlan;
 use super::{
-    WorthQueryAdmittedGraphReadAccessPlan, WorthQueryGraphReadAccessAdmission,
-    WorthQueryGraphReadAccessAdmissionPosture, WorthQueryGraphReadAccessCaseRegistry,
-    WorthQueryGraphReadAccessDenial, WorthQueryGraphReadBudgetExceededDenial,
+    WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessAdmissionPosture,
+    WorthQueryGraphReadAccessCaseRegistry, WorthQueryGraphReadAccessDenial,
+    WorthQueryGraphReadBudgetExceededDenial,
 };
+#[cfg(test)]
+use crate::runtime::worth_query_graph_index_inventory;
 use crate::runtime::{
     derive_graph_read_cost_evidence, estimate_graph_read_access_cost,
     explain_graph_read_access_requirements_for_family_in_authority_with_lookup,
-    match_graph_index_inventory_for_requirements, worth_query_graph_index_inventory,
-    WorthQueryGraphIndexInventory, WorthQueryGraphReadAccessAuthorityContext,
-    WorthQueryGraphReadAccessShapeExplanationError, WorthQueryGraphReadBudget,
-    WorthQueryGraphReadBudgetClassKind, WorthQueryGraphReadOperationLookup, WorthQueryReadFamily,
+    match_graph_index_inventory_for_requirements, WorthQueryGraphIndexInventory,
+    WorthQueryGraphReadAccessAuthorityContext, WorthQueryGraphReadAccessShapeExplanationError,
+    WorthQueryGraphReadBudget, WorthQueryGraphReadBudgetClassKind,
+    WorthQueryGraphReadOperationLookup, WorthQueryReadFamily,
 };
-
+#[cfg(test)]
 pub fn admit_graph_read_access_for_family(
     family: &WorthQueryReadFamily,
 ) -> Result<WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessShapeExplanationError> {
     let graph_index_inventory = worth_query_graph_index_inventory();
     admit_graph_read_access_for_family_with_inventory(family, graph_index_inventory)
 }
-
+#[cfg(test)]
 pub(crate) fn admit_graph_read_access_for_family_with_inventory(
     family: &WorthQueryReadFamily,
     graph_index_inventory: WorthQueryGraphIndexInventory,
@@ -31,19 +35,7 @@ pub(crate) fn admit_graph_read_access_for_family_with_inventory(
         graph_index_inventory,
     )
 }
-
-pub fn admit_graph_read_access_for_family_in_authority(
-    family: &WorthQueryReadFamily,
-    authority: &WorthQueryGraphReadAccessAuthorityContext,
-) -> Result<WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessShapeExplanationError> {
-    let graph_index_inventory = worth_query_graph_index_inventory();
-    admit_graph_read_access_for_family_in_authority_with_inventory(
-        family,
-        authority,
-        graph_index_inventory,
-    )
-}
-
+#[cfg(test)]
 pub(crate) fn admit_graph_read_access_for_family_in_authority_with_inventory(
     family: &WorthQueryReadFamily,
     authority: &WorthQueryGraphReadAccessAuthorityContext,
@@ -189,7 +181,7 @@ fn admitted_graph_read_access_posture(
     }
     WorthQueryGraphReadAccessAdmissionPosture::InlineIndexed
 }
-
+#[cfg(test)]
 pub fn plan_admitted_graph_read_access_for_family(
     family: &WorthQueryReadFamily,
 ) -> Result<
@@ -201,20 +193,6 @@ pub fn plan_admitted_graph_read_access_for_family(
         admission,
     ))
 }
-
-pub fn plan_admitted_graph_read_access_for_family_in_authority(
-    family: &WorthQueryReadFamily,
-    authority: &WorthQueryGraphReadAccessAuthorityContext,
-) -> Result<
-    Option<WorthQueryAdmittedGraphReadAccessPlan>,
-    WorthQueryGraphReadAccessShapeExplanationError,
-> {
-    let admission = admit_graph_read_access_for_family_in_authority(family, authority)?;
-    Ok(WorthQueryAdmittedGraphReadAccessPlan::from_admission(
-        admission,
-    ))
-}
-
 fn required_cases_include_posture(
     report: &crate::runtime::WorthQueryGraphIndexInventoryMatchReport,
     posture: &WorthQueryGraphReadAccessAdmissionPosture,

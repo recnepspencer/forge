@@ -1,5 +1,6 @@
-use worth_query::facade::foundation::{
+use worth_query::facade::domain::{
     WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDomainOperatingContext,
+    WorthQueryDomainOperatingContextIdentityDeclaration,
 };
 
 use super::HadwigerResearchDomainEntry;
@@ -98,12 +99,15 @@ impl WorthQueryDomainOperatingContext<HadwigerResearchDomainEntry>
         REAL_CONTEXT_SECTIONS
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!(
-            "assumption:{}|checker:{}|invalidation:{}",
-            self.assumption_regime.as_str(),
-            self.checker_support_regime.as_str(),
-            self.invalidation_regime.as_str()
-        )
+    fn context_identity(&self) -> WorthQueryDomainOperatingContextIdentityDeclaration {
+        WorthQueryDomainOperatingContextIdentityDeclaration::from_fields([
+            ("assumption_regime", self.assumption_regime.as_str()),
+            (
+                "checker_support_regime",
+                self.checker_support_regime.as_str(),
+            ),
+            ("invalidation_regime", self.invalidation_regime.as_str()),
+        ])
+        .expect("static Hadwiger operating-context identity fields must admit")
     }
 }

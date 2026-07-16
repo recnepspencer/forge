@@ -94,8 +94,8 @@ impl ProjectionAuthorityContract {
         self
     }
 
-    pub fn require_derived_scalar_field(mut self, field: ProjectionFactFieldPath) -> Self {
-        self.requested_facts = self.requested_facts.derived_scalar_field_path(field);
+    pub fn require_derived_field(mut self, field: ProjectionFactFieldPath) -> Self {
+        self.requested_facts = self.requested_facts.derived_field_path(field);
         self
     }
 

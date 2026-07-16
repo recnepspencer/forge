@@ -1,4 +1,4 @@
-use super::{WorthQueryAdmittedAspectValue, WorthQueryAspectMutationBuilder};
+use super::{WorthQueryAspectMutationBuilder, WorthQueryAuthoredAspectMutation};
 use crate::memory_workspace::WorthQueryWorkspaceError;
 use crate::runtime::{
     WorthQueryExistingTruthTargetBinding, WorthQueryRuntimeError, WorthQueryWriteCommand,
@@ -10,7 +10,7 @@ impl WorthQueryAspectMutationBuilder {
     pub(crate) fn finish_existing_truth_verification_aspects(
         self,
         lane_description: &'static str,
-    ) -> Result<Vec<WorthQueryAdmittedAspectValue>, WorthQueryRuntimeError> {
+    ) -> Result<Vec<WorthQueryAuthoredAspectMutation>, WorthQueryRuntimeError> {
         let WorthQueryAspectMutationBuilder {
             aspects,
             symbolic_aspect_references,
@@ -121,7 +121,7 @@ impl WorthQueryAspectMutationBuilder {
     pub(crate) fn build_update_existing_verified(
         self,
         binding: WorthQueryExistingTruthTargetBinding,
-        asserted_aspects: Vec<WorthQueryAdmittedAspectValue>,
+        asserted_aspects: Vec<WorthQueryAuthoredAspectMutation>,
     ) -> Result<WorthQueryWriteCommand, WorthQueryRuntimeError> {
         let WorthQueryAspectMutationBuilder {
             aspects,

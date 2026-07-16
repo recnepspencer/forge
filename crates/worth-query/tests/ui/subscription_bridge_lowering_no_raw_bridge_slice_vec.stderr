@@ -1,15 +1,5 @@
-error[E0308]: mismatched types
- --> tests/ui/subscription_bridge_lowering_no_raw_bridge_slice_vec.rs:6:52
+error[E0432]: unresolved import `worth_query::facade::runtime::lower_query_subscription_to_bridge`
+ --> tests/ui/subscription_bridge_lowering_no_raw_bridge_slice_vec.rs:1:36
   |
-6 |     let _plan = lower_query_subscription_to_bridge(raw_slices, budget);
-  |                 ---------------------------------- ^^^^^^^^^^ expected `QuerySubscriptionDeclarationArtifact`, found `Vec<BridgeSubscriptionSliceKind>`
-  |                 |
-  |                 arguments to this function are incorrect
-  |
-  = note: expected struct `QuerySubscriptionDeclarationArtifact`
-             found struct `Vec<BridgeSubscriptionSliceKind>`
-note: function defined here
- --> src/subscription/bridge_lowering.rs
-  |
-  | pub fn lower_query_subscription_to_bridge(
-  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1 | use worth_query::facade::runtime::{lower_query_subscription_to_bridge, BridgeSubscriptionSliceKind, QuerySubscriptionBridgeLoweringBu...
+  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `lower_query_subscription_to_bridge` in `facade::runtime`

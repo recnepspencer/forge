@@ -17,7 +17,7 @@ impl DeliveryWidthClass {
             Self::DeniedWidthInflation => "denied_width_inflation",
         }
     }
-
+    #[cfg(test)]
     pub(crate) fn budget_limit(&self) -> usize {
         match self {
             Self::ScalarDetail => 4,

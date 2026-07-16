@@ -9,4 +9,6 @@ mod aftermath_tests;
 #[cfg(test)]
 mod lower_runtime_tests;
 #[cfg(test)]
+mod test_support;
+#[cfg(test)]
 mod tests;

@@ -15,6 +15,7 @@ impl CorrespondenceAmbiguityEnvelope {
         self.reason
     }
 
+    #[cfg(test)]
     pub(crate) fn new(outcome: AdvisoryStructuralAmbiguous, reason: &'static str) -> Self {
         Self { outcome, reason }
     }
@@ -35,6 +36,7 @@ impl CorrespondenceDisagreementEnvelope {
         self.reason
     }
 
+    #[cfg(test)]
     pub(crate) fn new(outcome: LineageStructuralDisagreement, reason: &'static str) -> Self {
         Self { outcome, reason }
     }

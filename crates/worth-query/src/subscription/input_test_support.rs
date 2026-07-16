@@ -5,10 +5,9 @@ use crate::view_shape_live::LiveViewShapeFamily;
 
 use super::construction_source::QuerySubscriptionConstructionSource;
 use super::evidence_identities::{
-    diagnostic_source_identity, lifecycle_context_collection_absent_identity,
-    lifecycle_context_policy_identity, lifecycle_context_relationship_proof_identity,
-    lifecycle_context_tenant_basis_identity, live_delivery_intent_projection_identity,
-    live_relevance_identity,
+    diagnostic_source_identity, lifecycle_context_policy_identity,
+    lifecycle_context_relationship_proof_identity, lifecycle_context_tenant_basis_identity,
+    live_delivery_intent_projection_identity, live_relevance_identity,
 };
 use super::future_selection::QuerySubscriptionFutureSelection;
 use super::input::LiveQueryAdmissionArtifact;
@@ -146,19 +145,6 @@ impl LiveQueryAdmissionArtifact {
         artifact.diagnostic_source_identity = diagnostic_source_identity(&artifact);
         artifact
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn for_test_without_collection(
-        live_family: LiveQueryFamily,
-        view_family: Option<LiveViewShapeFamily>,
-        construction_source: QuerySubscriptionConstructionSource,
-    ) -> Self {
-        let mut artifact = Self::for_test(live_family, view_family, construction_source);
-        artifact.collection_identity = lifecycle_context_collection_absent_identity();
-        artifact.diagnostic_source_identity = diagnostic_source_identity(&artifact);
-        artifact
-    }
-
     pub(crate) fn for_test_grouped_with_missing_grouping_width() -> Self {
         let mut artifact = Self::for_test(
             LiveQueryFamily::OrderedCollection,

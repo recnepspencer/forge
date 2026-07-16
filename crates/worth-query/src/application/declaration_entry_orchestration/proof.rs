@@ -6,6 +6,7 @@ use super::artifacts::{
     WorthQueryDeclarationEntryOrchestrationTranscript,
 };
 
+#[cfg(test)]
 pub(crate) fn worth_query_declaration_entry_orchestration_proof_on_handle<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,

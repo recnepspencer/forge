@@ -93,9 +93,7 @@ impl WorthServerDirectProjectionRequest {
                 "derived scalar field `{field}` must be a foundational projection field path: {error}"
             )
         });
-        self.authority_contract = self
-            .authority_contract
-            .require_derived_scalar_field(field_path);
+        self.authority_contract = self.authority_contract.require_derived_field(field_path);
         self
     }
 

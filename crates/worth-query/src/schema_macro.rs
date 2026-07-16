@@ -58,7 +58,7 @@ macro_rules! worth_query_schema {
                 const FIELD: &'static str = $field;
             }
 
-            $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($caps)* ]);
+            $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, $kind, [ $($caps)* ]);
         )*
 
         $(
@@ -79,7 +79,7 @@ macro_rules! worth_query_schema {
                     .expect("typed schema aspect literal must be valid"),
                 $crate::facade::foundation::FieldName::new($field)
                     .expect("typed schema field literal must be valid"),
-                $crate::facade::runtime::SchemaFieldKind::$kind
+                $crate::facade::runtime::ScalarAspectType::$kind
             ),
             [ $($caps)* ]
         )
@@ -92,7 +92,7 @@ macro_rules! worth_query_schema {
     (@apply_schema_caps $expr:expr, [ equality($ty:tt) $(, $($rest:tt)*)? ]) => {
         $crate::worth_query_schema!(@apply_schema_caps $expr, [ $($($rest)*)? ])
     };
-    (@apply_schema_caps $expr:expr, [ integer_comparable $(, $($rest:tt)*)? ]) => {
+    (@apply_schema_caps $expr:expr, [ native_comparable $(, $($rest:tt)*)? ]) => {
         $crate::worth_query_schema!(@apply_schema_caps $expr, [ $($($rest)*)? ])
     };
     (@apply_schema_caps $expr:expr, [ contains $(, $($rest:tt)*)? ]) => {
@@ -148,62 +148,77 @@ macro_rules! worth_query_schema {
         )
     };
 
-    (@impl_field_caps $Schema:ident, $Field:ident, [ ]) => {};
-    (@impl_field_caps $Schema:ident, $Field:ident, [ projectable $(, $($rest:tt)*)? ]) => {
+    (@impl_field_caps $Schema:ident, $Field:ident, $kind:ident, [ ]) => {};
+    (@impl_field_caps $Schema:ident, $Field:ident, $kind:ident, [ projectable $(, $($rest:tt)*)? ]) => {
         impl $crate::facade::runtime::TypedProjectableField for $Field {}
-        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
+        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, $kind, [ $($($rest)*)? ]);
     };
-    (@impl_field_caps $Schema:ident, $Field:ident, [ equality($ty:tt) $(, $($rest:tt)*)? ]) => {
+    (@impl_field_caps $Schema:ident, $Field:ident, $kind:ident, [ equality($ty:tt) $(, $($rest:tt)*)? ]) => {
         impl $crate::facade::runtime::TypedEqualityField for $Field {
             type Value = $ty;
 
-            fn into_scalar(value: Self::Value) -> $crate::facade::foundation::ScalarPredicateValue {
-                $crate::worth_query_schema!(@into_scalar $ty, value)
+            fn into_scalar(value: Self::Value) -> $crate::facade::foundation::WorthQueryPredicateOperand {
+                $crate::worth_query_schema!(@native_operand $kind, value)
             }
         }
-        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
+        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, $kind, [ $($($rest)*)? ]);
     };
-    (@impl_field_caps $Schema:ident, $Field:ident, [ integer_comparable $(, $($rest:tt)*)? ]) => {
-        impl $crate::facade::runtime::TypedIntegerComparableField for $Field {}
-        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
+    (@impl_field_caps $Schema:ident, $Field:ident, $kind:ident, [ native_comparable $(, $($rest:tt)*)? ]) => {
+        impl $crate::facade::runtime::TypedNativeComparableField for $Field {}
+        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, $kind, [ $($($rest)*)? ]);
     };
-    (@impl_field_caps $Schema:ident, $Field:ident, [ contains $(, $($rest:tt)*)? ]) => {
+    (@impl_field_caps $Schema:ident, $Field:ident, $kind:ident, [ contains $(, $($rest:tt)*)? ]) => {
         impl $crate::facade::runtime::TypedStringContainsField for $Field {}
-        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
+        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, $kind, [ $($($rest)*)? ]);
     };
-    (@impl_field_caps $Schema:ident, $Field:ident, [ membership $(, $($rest:tt)*)? ]) => {
+    (@impl_field_caps $Schema:ident, $Field:ident, $kind:ident, [ membership $(, $($rest:tt)*)? ]) => {
         impl $crate::facade::runtime::TypedMembershipField for $Field {}
-        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
+        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, $kind, [ $($($rest)*)? ]);
     };
-    (@impl_field_caps $Schema:ident, $Field:ident, [ presence $(, $($rest:tt)*)? ]) => {
+    (@impl_field_caps $Schema:ident, $Field:ident, $kind:ident, [ presence $(, $($rest:tt)*)? ]) => {
         impl $crate::facade::runtime::TypedPresenceField for $Field {}
-        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
+        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, $kind, [ $($($rest)*)? ]);
     };
-    (@impl_field_caps $Schema:ident, $Field:ident, [ workflow $(, $($rest:tt)*)? ]) => {
-        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
+    (@impl_field_caps $Schema:ident, $Field:ident, $kind:ident, [ workflow $(, $($rest:tt)*)? ]) => {
+        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, $kind, [ $($($rest)*)? ]);
     };
-    (@impl_field_caps $Schema:ident, $Field:ident, [ orderable $(, $($rest:tt)*)? ]) => {
+    (@impl_field_caps $Schema:ident, $Field:ident, $kind:ident, [ orderable $(, $($rest:tt)*)? ]) => {
         impl $crate::facade::runtime::TypedOrderableField for $Field {}
-        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
+        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, $kind, [ $($($rest)*)? ]);
     };
-    (@impl_field_caps $Schema:ident, $Field:ident, [ ordering_only $(, $($rest:tt)*)? ]) => {
+    (@impl_field_caps $Schema:ident, $Field:ident, $kind:ident, [ ordering_only $(, $($rest:tt)*)? ]) => {
         impl $crate::facade::runtime::TypedOrderableField for $Field {}
-        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
+        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, $kind, [ $($($rest)*)? ]);
     };
-    (@impl_field_caps $Schema:ident, $Field:ident, [ non_queryable $(, $($rest:tt)*)? ]) => {
-        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
+    (@impl_field_caps $Schema:ident, $Field:ident, $kind:ident, [ non_queryable $(, $($rest:tt)*)? ]) => {
+        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, $kind, [ $($($rest)*)? ]);
     };
-    (@impl_field_caps $Schema:ident, $Field:ident, [ non_orderable $(, $($rest:tt)*)? ]) => {
-        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
+    (@impl_field_caps $Schema:ident, $Field:ident, $kind:ident, [ non_orderable $(, $($rest:tt)*)? ]) => {
+        $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, $kind, [ $($($rest)*)? ]);
     };
 
-    (@into_scalar String, $value:expr) => {
-        $crate::facade::foundation::ScalarPredicateValue::String($value)
-    };
-    (@into_scalar i64, $value:expr) => {
-        $crate::facade::foundation::ScalarPredicateValue::Integer($value)
-    };
-    (@into_scalar bool, $value:expr) => {
-        $crate::facade::foundation::ScalarPredicateValue::Boolean($value)
-    };
+    (@native_operand Null, $value:expr) => {{ let _ = $value; $crate::facade::foundation::WorthQueryPredicateOperand::null() }};
+    (@native_operand Bool, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::boolean($value) };
+    (@native_operand Int8, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::int8($value) };
+    (@native_operand Int16, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::int16($value) };
+    (@native_operand Int32, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::int32($value) };
+    (@native_operand Int64, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::int64($value) };
+    (@native_operand UInt8, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::uint8($value) };
+    (@native_operand UInt16, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::uint16($value) };
+    (@native_operand UInt32, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::uint32($value) };
+    (@native_operand UInt64, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::uint64($value) };
+    (@native_operand Float32, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::float32($value) };
+    (@native_operand Float64, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::float64($value) };
+    (@native_operand Decimal, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::decimal($value) };
+    (@native_operand BigInt, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::big_int($value) };
+    (@native_operand Rational, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::rational($value) };
+    (@native_operand String, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::interned_string($value) };
+    (@native_operand Bytes, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::bytes($value) };
+    (@native_operand Uuid, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::uuid($value) };
+    (@native_operand Date, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::date($value) };
+    (@native_operand Time, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::time($value) };
+    (@native_operand Timestamp, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::timestamp($value) };
+    (@native_operand TimestampTz, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::timestamp_tz($value) };
+    (@native_operand EntityRef, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::entity_ref($value) };
+    (@native_operand ContentRef, $value:expr) => { $crate::facade::foundation::WorthQueryPredicateOperand::content_ref($value) };
 }

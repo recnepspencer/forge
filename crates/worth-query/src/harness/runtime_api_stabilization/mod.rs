@@ -1,5 +1,6 @@
 mod builders;
 mod closeout;
+#[cfg(test)]
 mod tests;
 mod transcript_maintainer;
 mod transcript_runtime;

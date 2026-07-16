@@ -5,7 +5,7 @@ fn batch_verify_existing_preserves_aggregate_assertion_digest() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-verify-existing")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.batch-verify-existing-table", |q| {
             q.from("Task")
                 .select([
@@ -114,7 +114,7 @@ fn preview_verify_existing_requires_authoritative_lane() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-verify-existing")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.preview-verify-existing-table", |q| {
             q.from("Task")
                 .select([
@@ -180,7 +180,7 @@ fn verify_existing_relation_preserves_backend_verified_assertion_evidence() {
     let mut workspace = runtime
         .workspace("tasks.verify-existing-relation")
         .expect("workspace should open");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.verify-existing-relation-table", |q| {
             q.from("TaskRelation")
                 .select([

@@ -2,10 +2,9 @@ use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
 use super::super::evidence_projection::subscription_evidence_projection;
-use super::identities::{
-    bridge_parity_counter_identity, bridge_parity_failure_identity, bridge_parity_receipt_identity,
-    bridge_parity_width_identity,
-};
+use super::identities::{bridge_parity_counter_identity, bridge_parity_failure_identity};
+#[cfg(test)]
+use super::identities::{bridge_parity_receipt_identity, bridge_parity_width_identity};
 use super::witness::BridgeWitnessAssemblyPosture;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -83,6 +82,7 @@ impl QuerySubscriptionBridgeParityCounters {
         self.subscription_bridge_family_distinction_preservation_count
     }
 
+    #[cfg(test)]
     pub(crate) fn admitted(parity_class: QuerySubscriptionBridgeParityClass) -> Self {
         Self {
             subscription_bridge_parity_comparison_count: 1,
@@ -113,6 +113,7 @@ pub struct SubscriptionBridgeParityWidth {
 }
 
 impl SubscriptionBridgeParityWidth {
+    #[cfg(test)]
     pub(super) fn new(
         compared_family_dimension_count: usize,
         compared_slice_dimension_count: usize,
@@ -171,6 +172,7 @@ pub struct BridgeParityReceipt {
 }
 
 impl BridgeParityReceipt {
+    #[cfg(test)]
     pub(super) fn new(
         witness_assembly_posture: BridgeWitnessAssemblyPosture,
         parity_class: QuerySubscriptionBridgeParityClass,

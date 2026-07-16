@@ -1,18 +1,21 @@
 use crate::basis::{BasisAuthorityFamily, ExecutionPreflightBundle};
+#[cfg(test)]
+use crate::collection::MaterializationBreadthClass;
 use crate::collection::{
     AggregateFunctionFamily, CollectionResultFamily, DerivedFieldComputationClass,
-    MaterializationBreadthClass,
 };
-use crate::execution::{
-    execute_preflight_bundle, ExecutionCounters, ExecutionError, ExecutionResultEnvelope,
-};
+#[cfg(test)]
+use crate::execution::execute_preflight_bundle;
+use crate::execution::{ExecutionCounters, ExecutionError, ExecutionResultEnvelope};
 use crate::identity::{
     CanonicalQueryDigest, CanonicalResultShapeDigest, ValidatedQueryDigest,
     ValidatedResultShapeDigest,
 };
 use crate::identity::{CollectionPlanDigest, ResultDigest};
 use crate::live::LiveQueryPlan;
-use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag};
+use crate::WorthQueryEvidenceIdentity;
+#[cfg(test)]
+use crate::{WorthQueryEvidenceScope, WorthQueryEvidenceTag};
 #[cfg(test)]
 use worth_runtime_bridge::facade::bridge_identity_reporting_label;
 use worth_runtime_bridge::facade::{
@@ -35,9 +38,13 @@ pub(crate) use domain_capability::{
     materialize_contributed_preview_workflow_foundation_artifact,
 };
 pub(crate) use scoped::{
-    admit_scoped_preview_live_session_plan, admit_scoped_preview_session_plan_binding,
+    admit_scoped_preview_live_session_plan,
     admit_scoped_preview_session_plan_binding_from_preview_binding,
-    execute_scoped_preview_live_session_plan, scoped_observation_basis_for_preview_binding,
+};
+#[cfg(test)]
+pub(crate) use scoped::{
+    admit_scoped_preview_session_plan_binding, execute_scoped_preview_live_session_plan,
+    scoped_observation_basis_for_preview_binding,
 };
 pub use scoped::{ScopedPreviewLiveSessionPlanBinding, ScopedPreviewSessionPlanBinding};
 pub(crate) use workflow_context_identity::preview_lifecycle_state_label;
@@ -531,6 +538,7 @@ impl ReadOnlyPreviewSessionPlanBinding {
         self.inner.report()
     }
 
+    #[cfg(test)]
     pub(crate) fn as_preview_binding(&self) -> &PreviewSessionPlanBinding {
         &self.inner
     }
@@ -562,6 +570,7 @@ impl PromotionEligiblePreviewSessionPlanBinding {
         self.inner.report()
     }
 
+    #[cfg(test)]
     pub(crate) fn as_preview_binding(&self) -> &PreviewSessionPlanBinding {
         &self.inner
     }
@@ -1061,6 +1070,7 @@ impl PreviewExecutionEnvelope {
         &self.counters
     }
 
+    #[cfg(test)]
     pub fn check_invariants(&self) -> Result<(), PreviewExecutionError> {
         self.execution
             .check_invariants()
@@ -1267,6 +1277,7 @@ impl PromotionEligiblePreviewExecutionEnvelope {
         self.inner.counters()
     }
 
+    #[cfg(test)]
     pub(crate) fn as_preview_execution(&self) -> &PreviewExecutionEnvelope {
         &self.inner
     }
@@ -1576,6 +1587,7 @@ impl PreviewPromotionSnapshot {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 struct PreviewComparisonShapeContract {
     collection_digest: Option<CollectionPlanDigest>,
     result_family: String,
@@ -1584,7 +1596,9 @@ struct PreviewComparisonShapeContract {
     shape_check_width: usize,
 }
 
+#[cfg(test)]
 impl PreviewComparisonShapeContract {
+    #[cfg(test)]
     fn from_preflight(preflight: &ExecutionPreflightBundle) -> Self {
         let collection = preflight.plan().collection();
         let ordering_digest = workflow_context_identity::compose_preview_comparison_ordering_digest(
@@ -2062,6 +2076,7 @@ impl AuthoritativePreviewComparisonCandidate {
         self.artifact.shape_check_width()
     }
 
+    #[cfg(test)]
     pub(crate) fn artifact(&self) -> &PreviewComparisonCandidateArtifact {
         &self.artifact
     }
@@ -2156,6 +2171,7 @@ impl PromotionParityPreviewComparisonAdmission {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn derive_preview_comparison_eligibility(
     binding: &PreviewSessionPlanBinding,
 ) -> PreviewComparisonEligibilityArtifact {
@@ -2194,6 +2210,7 @@ pub(crate) fn derive_preview_comparison_eligibility(
     }
 }
 
+#[cfg(test)]
 fn derive_preview_workflow_foundation(
     binding: &PreviewSessionPlanBinding,
     request: PreviewWorkflowFoundationRequest,
@@ -2266,6 +2283,7 @@ fn derive_preview_workflow_foundation(
     }
 }
 
+#[cfg(test)]
 pub(crate) fn admit_preview_workflow_foundation(
     binding: &PreviewSessionPlanBinding,
 ) -> Result<AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationError> {
@@ -2275,6 +2293,7 @@ pub(crate) fn admit_preview_workflow_foundation(
     )
 }
 
+#[cfg(test)]
 pub(crate) fn admit_preview_workflow_foundation_request(
     binding: &PreviewSessionPlanBinding,
     request: PreviewWorkflowFoundationRequest,
@@ -2324,6 +2343,7 @@ pub(crate) fn admit_preview_workflow_foundation_request(
     })
 }
 
+#[cfg(test)]
 fn derive_preview_comparison_candidate(
     preflight: &ExecutionPreflightBundle,
     execution: &ExecutionResultEnvelope,
@@ -2363,6 +2383,7 @@ fn derive_preview_comparison_candidate(
     }
 }
 
+#[cfg(test)]
 pub(crate) fn admit_authoritative_preview_comparison_candidate(
     candidate_preflight: &ExecutionPreflightBundle,
     candidate_execution: &ExecutionResultEnvelope,
@@ -2420,6 +2441,7 @@ pub(crate) fn admit_authoritative_preview_comparison_candidate(
     })
 }
 
+#[cfg(test)]
 fn admit_preview_execution_comparison(
     preview_execution: &PreviewExecutionEnvelope,
     candidate: &AuthoritativePreviewComparisonCandidate,
@@ -2535,6 +2557,7 @@ fn admit_preview_execution_comparison(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn admit_preview_promotion_parity_comparison(
     preview_execution: &PromotionEligiblePreviewExecutionEnvelope,
     candidate: &AuthoritativePreviewComparisonCandidate,
@@ -2545,6 +2568,7 @@ pub(crate) fn admit_preview_promotion_parity_comparison(
     Ok(PromotionParityPreviewComparisonAdmission { inner: admission })
 }
 
+#[cfg(test)]
 pub(crate) fn execute_preview_session_plan(
     binding: &PreviewSessionPlanBinding,
 ) -> Result<PreviewExecutionEnvelope, PreviewExecutionError> {
@@ -2620,6 +2644,7 @@ pub(crate) fn execute_preview_session_plan(
     Ok(envelope)
 }
 
+#[cfg(test)]
 pub(crate) fn admit_read_only_preview_session_plan_binding(
     binding: PreviewSessionPlanBinding,
 ) -> Result<ReadOnlyPreviewSessionPlanBinding, PreviewExecutionError> {
@@ -2636,6 +2661,7 @@ pub(crate) fn admit_read_only_preview_session_plan_binding(
     Ok(ReadOnlyPreviewSessionPlanBinding { inner: binding })
 }
 
+#[cfg(test)]
 pub(crate) fn admit_promotion_eligible_preview_session_plan_binding(
     binding: PreviewSessionPlanBinding,
 ) -> Result<PromotionEligiblePreviewSessionPlanBinding, PreviewExecutionError> {
@@ -2652,6 +2678,7 @@ pub(crate) fn admit_promotion_eligible_preview_session_plan_binding(
     Ok(PromotionEligiblePreviewSessionPlanBinding { inner: binding })
 }
 
+#[cfg(test)]
 pub(crate) fn execute_read_only_preview_session_plan(
     binding: &ReadOnlyPreviewSessionPlanBinding,
 ) -> Result<ReadOnlyPreviewExecutionEnvelope, PreviewExecutionError> {
@@ -2660,6 +2687,7 @@ pub(crate) fn execute_read_only_preview_session_plan(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn execute_promotion_eligible_preview_session_plan(
     binding: &PromotionEligiblePreviewSessionPlanBinding,
 ) -> Result<PromotionEligiblePreviewExecutionEnvelope, PreviewExecutionError> {
@@ -2757,6 +2785,7 @@ pub(crate) fn admit_preview_live_session_plan_component(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn preview_live_execution_counters(
     preview_live: &PreviewLiveSessionPlanBinding,
 ) -> Result<PreviewLiveCounters, PreviewExecutionError> {

@@ -14,9 +14,10 @@ pub use inventory::{
 pub use ownership::{
     WorthUiStateOwnerIdentity, WorthUiStateOwnershipClass, WorthUiStatePersistencePosture,
 };
+#[cfg(test)]
+pub(crate) use transient::WorthUiTransientInteractionAdmission;
 pub(crate) use transient::WorthUiTransientInteractionAdmissionAuthority;
 pub use transient::{
-    WorthUiAdmittedTransientInteraction, WorthUiTransientInteractionAdmission,
-    WorthUiTransientInteractionAdmissionDenial, WorthUiTransientInteractionPolicy,
-    WorthUiTransientInteractionState,
+    WorthUiAdmittedTransientInteraction, WorthUiTransientInteractionAdmissionDenial,
+    WorthUiTransientInteractionPolicy, WorthUiTransientInteractionState,
 };

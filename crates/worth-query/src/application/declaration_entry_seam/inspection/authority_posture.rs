@@ -18,6 +18,7 @@ use super::{
     subject::NormalizedInspectionSubject,
 };
 
+#[cfg(test)]
 pub(super) fn normalized_relational<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
@@ -91,6 +92,7 @@ pub(super) fn normalized_relational<
     }
 }
 
+#[cfg(test)]
 pub(super) fn normalized_bridge<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
@@ -167,6 +169,7 @@ pub(super) fn normalized_bridge<
     }
 }
 
+#[cfg(test)]
 pub(super) fn normalized_signal<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
@@ -242,6 +245,7 @@ pub(super) fn normalized_signal<
     }
 }
 
+#[cfg(test)]
 pub(crate) fn envelope_relational_summary<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
@@ -255,6 +259,7 @@ pub(crate) fn envelope_relational_summary<
     )
 }
 
+#[cfg(test)]
 pub(crate) fn envelope_bridge_summary<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,
@@ -268,6 +273,7 @@ pub(crate) fn envelope_bridge_summary<
     )
 }
 
+#[cfg(test)]
 pub(crate) fn envelope_signal_summary<
     D: WorthQueryDomainEntryMarker,
     I: WorthQueryDeclarationInput<D>,

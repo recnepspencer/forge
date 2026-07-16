@@ -134,9 +134,7 @@ impl BridgeRouteRecordEntry {
             | FineGrainedMatchOutcome::WideningAdmitted {
                 truth_surface_kind, ..
             }
-            | FineGrainedMatchOutcome::SuppressedByRegistrationPolicy { truth_surface_kind }
-            | FineGrainedMatchOutcome::UnsupportedSurfaceCategory { truth_surface_kind }
-            | FineGrainedMatchOutcome::AmbiguousRegistration { truth_surface_kind } => {
+            | FineGrainedMatchOutcome::SuppressedByRegistrationPolicy { truth_surface_kind } => {
                 *truth_surface_kind
             }
         }
@@ -156,9 +154,7 @@ impl BridgeRouteRecordEntry {
                 aspect_registration_id,
                 ..
             } => Some(aspect_registration_id),
-            FineGrainedMatchOutcome::SuppressedByRegistrationPolicy { .. }
-            | FineGrainedMatchOutcome::UnsupportedSurfaceCategory { .. }
-            | FineGrainedMatchOutcome::AmbiguousRegistration { .. } => None,
+            FineGrainedMatchOutcome::SuppressedByRegistrationPolicy { .. } => None,
         }
     }
 
@@ -172,9 +168,7 @@ impl BridgeRouteRecordEntry {
                 widening_policy, ..
             } => Some(*widening_policy),
             FineGrainedMatchOutcome::Matched { .. } => Some(SliceWideningPolicy::Disallow),
-            FineGrainedMatchOutcome::SuppressedByRegistrationPolicy { .. }
-            | FineGrainedMatchOutcome::UnsupportedSurfaceCategory { .. }
-            | FineGrainedMatchOutcome::AmbiguousRegistration { .. } => None,
+            FineGrainedMatchOutcome::SuppressedByRegistrationPolicy { .. } => None,
         }
     }
 

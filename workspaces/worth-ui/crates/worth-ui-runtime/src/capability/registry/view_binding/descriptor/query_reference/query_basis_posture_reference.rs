@@ -1,7 +1,5 @@
 use worth_query::facade::foundation::{
-    BasisFamily,
-    BasisLifecycleSupportDiscovery,
-    BasisSupportPosture,
+    BasisFamily, BasisLifecycleSupportDiscovery, BasisSupportPosture,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]

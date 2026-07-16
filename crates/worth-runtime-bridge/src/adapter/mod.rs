@@ -31,21 +31,14 @@ pub use continuity_lineage::{
     BridgeHistoricalLineageTopology, BridgeHistoricalResolvedLineageIdentity,
     BridgeHistoricalResolvedRecordIdentity, ContinuityLineageSource,
 };
-#[allow(unused_imports)]
-pub use signal_sink::{
-    InvalidationSink, SignalBridgeSink, SignalBridgeSinkError, SignalBridgeSinkErrorTag,
-};
-#[allow(unused_imports)]
-pub use source_materialization::{
-    BridgeSourceAdapter, RelationalBridgeSourceError, RelationalBridgeSourceErrorTag,
-};
+pub use signal_sink::{InvalidationSink, SignalBridgeSink, SignalBridgeSinkError};
+pub use source_materialization::{BridgeSourceAdapter, RelationalBridgeSourceError};
 pub use truth_sources::{
     CommittedPatchSource, RelationalBridgeSource, RelationalCommittedPatchRequest,
     SnapshotReadSource, SnapshotReaderPool, TruthBranchHeadSource,
 };
 pub(crate) use truth_writeback::TruthWritebackRequestEvidence;
-#[allow(unused_imports)]
 pub use truth_writeback::{
-    TruthWritebackAuthority, TruthWritebackAuthorityError, TruthWritebackAuthorityErrorTag,
-    TruthWritebackReceipt, TruthWritebackRequest,
+    TruthWritebackAuthority, TruthWritebackAuthorityError, TruthWritebackReceipt,
+    TruthWritebackRequest,
 };

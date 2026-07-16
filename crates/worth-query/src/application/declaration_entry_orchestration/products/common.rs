@@ -1,8 +1,11 @@
 use crate::application::{
     WorthQueryDeclarationEnvelopeChecked, WorthQueryDeclarationEnvelopeTerminalError,
     WorthQueryDeclarationInput, WorthQueryDeclarationReceiptChecked,
-    WorthQueryDeclarationReceiptTerminalError, WorthQueryDeclarationRoutePlanChecked,
-    WorthQueryDeclarationRoutePlanTerminalError, WorthQueryDomainEntryMarker,
+    WorthQueryDeclarationRoutePlanChecked, WorthQueryDomainEntryMarker,
+};
+#[cfg(test)]
+use crate::application::{
+    WorthQueryDeclarationReceiptTerminalError, WorthQueryDeclarationRoutePlanTerminalError,
 };
 
 pub(crate) fn route_orchestration_identity<D, I>(
@@ -81,6 +84,7 @@ where
     }
 }
 
+#[cfg(test)]
 pub(crate) fn route_terminal_from_checked<D, I>(
     checked: WorthQueryDeclarationRoutePlanChecked<D, I>,
 ) -> WorthQueryDeclarationRoutePlanTerminalError<D, I>
@@ -104,6 +108,7 @@ where
     }
 }
 
+#[cfg(test)]
 pub(crate) fn receipt_terminal_from_checked<D, I>(
     checked: WorthQueryDeclarationReceiptChecked<D, I>,
 ) -> WorthQueryDeclarationReceiptTerminalError<D, I>

@@ -47,12 +47,12 @@ evidence, route plans, or receipts alone.
 - `WorthQueryDeclarationRelationalRoutingSupportReport`
 - `WorthQueryDeclarationRelationalRoutingSupportRow`
 - `WorthQueryDeclarationRelationalTruthRoutingSupportStatus`
-- `WorthQueryAdmittedConfiguredDomainHandle::route_relational_truth(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::route_relational_truth_checked(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::route_relational_truth_from_progressed(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::route_relational_truth_from_progressed_with_intent(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::declare_review_progress_describe_plan_receipt_envelope_and_route_relational_truth(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::relational_truth_support::<I>()`
+- `WorthQueryInstalledDomainDeclarationContext::route_relational_truth(...)`
+- `WorthQueryInstalledDomainDeclarationContext::route_relational_truth_checked(...)`
+- `WorthQueryInstalledDomainDeclarationContext::route_relational_truth_from_progressed(...)`
+- `WorthQueryInstalledDomainDeclarationContext::route_relational_truth_from_progressed_with_intent(...)`
+- `WorthQueryInstalledDomainDeclarationContext::declare_review_progress_describe_plan_receipt_envelope_and_route_relational_truth(...)`
+- `WorthQueryInstalledDomainDeclarationContext::relational_truth_support::<I>()`
 
 Good to know:
 
@@ -250,9 +250,9 @@ fields empty instead of synthesizing a best guess from family posture alone.
   the required public input to this surface
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md) still own
   crossing posture; routing does not replace them
-- [Declaration Route Plans](./declaration-route-plan.md) still own route
+- Declaration Route Plans still own route
   selection; routing only consumes the retained relational slice
-- [Configured Domain Handles](./configured-domain-handles.md) still own the
+- Runtime-Installed Domain Handles still own the
   public orchestration lane and support snapshot
 
 Use envelopes when you need one public crossing artifact. Use relational truth
@@ -321,11 +321,11 @@ real relational authority family. It still does not provide:
 
 ## Related Docs
 
-- [Configured Domain Handles](./configured-domain-handles.md)
+- Runtime-Installed Domain Handles
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
-- [Declaration Route Plans](./declaration-route-plan.md)
-- [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- Declaration Route Plans
+- Declaration Foundational Evidence
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Domain Capabilities](./README.md)

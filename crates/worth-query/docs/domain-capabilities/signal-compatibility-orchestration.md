@@ -110,7 +110,7 @@ truth.
 ## Small Example
 
 ```rust
-let envelope = handle.orchestrate_declaration_entry(
+let envelope = handle.declare_review_progress_describe_plan_receipt_and_envelope(
     geometry_session.prepare_preview_for_active_face_selection()?,
 )?;
 
@@ -140,7 +140,7 @@ compatibility lane and the optional continuation lane yourself.
 ## Real Example
 
 ```rust
-let envelope = handle.orchestrate_declaration_entry(
+let envelope = handle.declare_review_progress_describe_plan_receipt_and_envelope(
     geometry_session.prepare_preview_for_active_face_selection()?,
 )?;
 
@@ -281,5 +281,5 @@ Use the recovery lane when the app now needs one typed repair answer:
 - [Aspect-Native Recovery](./recovery/aspect-native-recovery.md)
 - [Family Helpers](./family-helpers.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
-- [Configured Domain Handles](./configured-domain-handles.md)
+- Runtime-Installed Domain Handles
 - [Domain Capabilities](./README.md)

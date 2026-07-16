@@ -9,7 +9,7 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-tasks", |q| {
             q.from("Task")
                 .select([identity_id_field_key(), title_value_field_key()])
@@ -17,7 +17,7 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
                 .schema_basis("tasks-graph-composition-tasks")
         })
         .expect("task live view should declare");
-    let edges: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let edges: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-edges", |q| {
             q.from("TaskEdge")
                 .select([
@@ -163,20 +163,15 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
                 .is_empty()
     );
     assert_eq!(edge_rows.len(), 1);
+    let expected_source = test_native_entity_ref_value(&draft_identity);
+    let expected_target = test_native_entity_ref_value(&test_entity_identity("task-existing"));
     assert_eq!(
-        test_native_string_value(&edge_rows[0], "edge.source_identity").as_deref(),
-        Some(
-            draft_identity
-                .evidence_identity()
-                .terminal_projection_for_reporting()
-        )
+        test_native_scalar_value(&edge_rows[0], "edge.source_identity"),
+        Some(&expected_source)
     );
     assert_eq!(
-        test_native_string_value(&edge_rows[0], "edge.target_identity").as_deref(),
-        Some(
-            test_relational_endpoint_identity_label(&test_entity_identity("task-existing"))
-                .as_str()
-        )
+        test_native_scalar_value(&edge_rows[0], "edge.target_identity"),
+        Some(&expected_target)
     );
 
     let support = workspace.public_authoritative_mutation_evidence_support();
@@ -271,8 +266,7 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
             );
             assert_eq!(
                 inspection.component_operations()[1].admitted_touched_aspects(),
-                test_aspect_touches(["edge.kind", "edge.source_identity", "edge.target_identity"])
-                    .as_slice()
+                test_aspect_touches(["edge", "edge.source_identity"]).as_slice()
             );
             assert_eq!(
                 inspection.component_operations()[1]

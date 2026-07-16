@@ -102,7 +102,7 @@ fn compose_graph_denies_relation_symbol_reuse_across_compositions_typed_and_earl
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-relation-leak")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-relation-leak-tasks", |q| {
             q.from("Task")
                 .select([
@@ -118,7 +118,7 @@ fn compose_graph_denies_relation_symbol_reuse_across_compositions_typed_and_earl
                 .schema_basis("tasks-graph-composition-relation-leak-tasks")
         })
         .expect("task live view should declare");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-relation-leak-edges", |q| {
             q.from("TaskEdge")
                 .select([
@@ -182,9 +182,9 @@ fn compose_graph_denies_relation_symbol_reuse_across_compositions_typed_and_earl
                         test_aspect_touch("edge.kind"),
                         test_authored_string_aspect_value("blocks"),
                     )
-                    .set_aspect(
+                    .existing_entity_identity(
                         test_aspect_touch("edge.target_identity"),
-                        test_authored_string_aspect_value("task-second-existing"),
+                        test_entity_identity("task-second-existing"),
                     )
             })?;
             Ok(())
@@ -225,7 +225,7 @@ fn compose_graph_denies_entity_symbol_reuse_across_compositions_typed_and_early(
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.graph-composition-entity-leak")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-entity-leak-tasks", |q| {
             q.from("Task")
                 .select([
@@ -296,7 +296,7 @@ fn compose_graph_denies_symbolic_collection_mismatch_typed_and_early() {
     let mut workspace = task_edge_runtime()
         .workspace("tasks.graph-composition-collection-mismatch")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-collection-mismatch-tasks", |q| {
             q.from("Task")
                 .select([
@@ -312,7 +312,7 @@ fn compose_graph_denies_symbolic_collection_mismatch_typed_and_early() {
                 .schema_basis("tasks-graph-composition-collection-mismatch-tasks")
         })
         .expect("task live view should declare");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.graph-composition-collection-mismatch-edges", |q| {
             q.from("TaskEdge")
                 .select([

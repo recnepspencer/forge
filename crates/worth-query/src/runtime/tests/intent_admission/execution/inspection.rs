@@ -3,12 +3,16 @@ use super::*;
 fn derived_titles_view(
     runtime: &mut WorthQueryRuntime,
     view_name: &str,
-) -> WorthQueryDerivedViewHandle<WorthQueryNativeRow> {
+) -> WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> {
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare");
     runtime
-        .declare_maintained_derived_view::<WorthQueryNativeRow>(
+        .declare_maintained_derived_view::<WorthQueryUnrefinedLiveShape>(
             WorthQueryDerivedView::new(view_name, test_aspect_touches(["title"]))
                 .depends_on_live(&live)
                 .produces(test_aspect_touches(["title.summary"])),
@@ -172,11 +176,11 @@ fn runtime_inspect_derived_view_delegates_to_derived_inspection_intent_execution
 }
 
 #[test]
-fn workspace_inspect_live_view_delegates_to_unified_inspection_intent_execution() {
+fn workspace_inspection_lane_delegates_to_unified_inspection_intent_execution() {
     let runtime = read_runtime();
     let mut workspace =
         WorthQueryWorkspace::new("generic-inspect-delegation", runtime).expect("workspace build");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.table", |q| {
             q.from("Task")
                 .select([
@@ -193,10 +197,13 @@ fn workspace_inspect_live_view_delegates_to_unified_inspection_intent_execution(
         })
         .expect("live view should declare");
 
-    let delegated = workspace
+    let inspections = workspace
+        .inspections()
+        .expect("inspection lane should be admitted");
+    let delegated = inspections
         .inspect(&live)
-        .expect("legacy generic inspection should succeed");
-    let canonical = workspace
+        .expect("inspection lane should inspect");
+    let canonical = inspections
         .inspect_intent(&live)
         .execute()
         .expect("canonical generic inspection should execute");
@@ -214,13 +221,13 @@ fn workspace_inspect_live_view_delegates_to_unified_inspection_intent_execution(
 #[test]
 fn runtime_inspect_live_view_delegates_to_unified_inspection_intent_execution() {
     let mut runtime = read_runtime();
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
 
     let delegated = runtime
         .inspect(&live)
-        .expect("legacy runtime generic inspection should succeed");
+        .expect("runtime generic inspection should succeed");
     let canonical = runtime
         .inspect_intent(&live)
         .execute()
@@ -305,14 +312,14 @@ fn runtime_specific_intent_denial_wrapper_delegates_to_unified_inspection_execut
 fn runtime_specific_effect_and_preview_wrappers_delegate_to_unified_inspection_execution() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.wrapper-delegation",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::deliver(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::deliver(
             "ui.wrapper-delegation",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "ui.preview",

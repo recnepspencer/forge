@@ -3,11 +3,9 @@ use worth_query::facade::runtime::{
     WorthQueryGraphReadAccessRequirementKind,
 };
 
-#[allow(dead_code)]
-mod graph_read_access_cost_model_support;
-mod support;
+use crate::support;
 
-use graph_read_access_cost_model_support::{dense_traversal_family, workspace};
+use crate::support::graph_read_access_cost_model::{dense_traversal_family, workspace};
 use support::aspect_touch as touch;
 use support::graph_index_inventory::read_families::traversal_collection_family;
 use support::graph_index_inventory::runtime_profiles::{

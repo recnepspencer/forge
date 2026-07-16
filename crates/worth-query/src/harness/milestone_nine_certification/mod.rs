@@ -1,8 +1,9 @@
+#[cfg(test)]
 mod tests;
 
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath, RawAuthoredQuery,
-    RawAuthoredResultShape, RootEntityKey,
+    RawAuthoredResultShape, RootEntityKey, TraversalSelector,
 };
 use crate::harness::certification::{
     digest_parts, CanonicalCertificationRow, CertificationMatrix, HostileExpectation, ParityAnchor,
@@ -623,6 +624,22 @@ fn canonical_query_with_secret_projection() -> crate::canonicalization::Canonica
     GuidedAuthoringPath::canonicalize_detail(query, result_shape).unwrap()
 }
 
+fn canonical_query_with_manager_traversal() -> crate::canonicalization::CanonicalQueryBundle {
+    let query = RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
+        .project(AspectFieldSelector::new("identity", "id").unwrap())
+        .project(AspectFieldSelector::new("profile", "display_name").unwrap())
+        .project(AspectFieldSelector::new("secret", "salary").unwrap())
+        .traverse(TraversalSelector::bounded("manager", 1).unwrap())
+        .build()
+        .unwrap();
+    let result_shape = RawAuthoredResultShape::detail_builder()
+        .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+        .field(AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap())
+        .build()
+        .unwrap();
+    GuidedAuthoringPath::canonicalize_detail(query, result_shape).unwrap()
+}
+
 fn canonical_query_with_secret_predicate() -> crate::canonicalization::CanonicalQueryBundle {
     let query = RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
         .project(AspectFieldSelector::new("identity", "id").unwrap())
@@ -631,7 +648,7 @@ fn canonical_query_with_secret_predicate() -> crate::canonicalization::Canonical
             crate::authoring::EqualityPredicate::new(
                 "secret",
                 "salary",
-                crate::authoring::ScalarPredicateValue::Integer(7),
+                crate::authoring::WorthQueryPredicateOperand::int64(7),
             )
             .unwrap(),
         )
@@ -1950,7 +1967,7 @@ fn canonical_rows() -> Vec<MilestoneNineCertificationRow> {
         RelationshipProofDescriptorSet::none(),
     );
     let phase_two_direct_proof = phase_two_bundle(
-        phase_two_canonical.clone(),
+        canonical_query_with_manager_traversal(),
         phase_two_mask.clone(),
         RelationshipProofDescriptorSet::new(
             vec![RelationshipProofDescriptor::direct_edge(

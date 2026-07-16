@@ -2,9 +2,9 @@ pub use crate::authoring::{
     AspectFieldSelector, AspectName, AuthoredResultShapeField, CollectionAuthoredQuery,
     CollectionAuthoredResultShape, CollectionQueryBuilder, CollectionResultShapeBuilder,
     DetailAuthoredQuery, DetailAuthoredResultShape, DetailQueryBuilder, DetailResultShapeBuilder,
-    EqualityPredicate, FieldName, IntegerComparisonPredicate, OrderingSelector, PredicateSelector,
-    PresencePredicate, RelationName, RootEntityKey, ScalarPredicateValue, SetMembershipPredicate,
-    StringContainsPredicate, TraversalSelector,
+    EqualityPredicate, FieldName, NativeComparisonPredicate, OrderingSelector, PredicateSelector,
+    PresencePredicate, RelationName, RootEntityKey, SetMembershipPredicate,
+    StringContainsPredicate, TraversalSelector, WorthQueryPredicateOperand,
 };
 pub use crate::composition::{
     QueryScopeDescriptor, QueryTemplateDescriptor, TemplateBindingSet, TemplateParameterSlot,
@@ -24,7 +24,9 @@ pub use crate::ordinary::read::{
 };
 pub use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
 pub use crate::projection_consumption::{
-    ConsumedProjectionAuthorityDenial, DeferredProjectionConsumption, DeniedProjectionConsumption,
+    ConsumedFieldValueFact, ConsumedNativeRefinementDenial, ConsumedNativeValueShape,
+    ConsumedNativeValueView, ConsumedProjectionAuthorityDenial, ConsumedProjectionFactSet,
+    DeferredProjectionConsumption, DeniedProjectionConsumption,
     ProjectionConsumptionDeclarationError, ProjectionConsumptionWarnings,
     ProjectionFactExtractionError, ProjectionFactFieldPath, SourceMismatchedProjectionConsumption,
     WorthQueryConsumedProjectionAuthority,
@@ -35,6 +37,6 @@ pub use crate::runtime::{
     WorthQueryReadResult, WorthQueryReadScopeClass,
 };
 pub use crate::schema_view::{
-    QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
+    QuerySchemaView, ScalarAspectType, SchemaFieldView, SchemaRelationView,
 };
 pub use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};

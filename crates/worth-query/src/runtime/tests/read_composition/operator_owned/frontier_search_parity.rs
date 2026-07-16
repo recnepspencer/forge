@@ -1,7 +1,7 @@
 use super::super::support::*;
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, OrderingSelector,
-    ScalarPredicateValue, TraversalSelector,
+    TraversalSelector, WorthQueryPredicateOperand,
 };
 use crate::runtime::{WorthQueryReadBuiltInOperator, WorthQueryReadScopeClass};
 
@@ -32,7 +32,7 @@ fn compose_read_frontier_search_detail_matches_open_coded_broad_search_detail_se
                             EqualityPredicate::new(
                                 "profile",
                                 "display_name",
-                                ScalarPredicateValue::String("Ada".to_string()),
+                                WorthQueryPredicateOperand::string("Ada".to_string()),
                             )
                             .expect("equality predicate should build"),
                         )
@@ -83,7 +83,7 @@ fn compose_read_frontier_search_detail_matches_open_coded_broad_search_detail_se
                             EqualityPredicate::new(
                                 "profile",
                                 "display_name",
-                                ScalarPredicateValue::String("Ada".to_string()),
+                                WorthQueryPredicateOperand::string("Ada".to_string()),
                             )
                             .expect("equality predicate should build"),
                         )
@@ -158,7 +158,7 @@ fn compose_read_frontier_search_collection_matches_open_coded_broad_search_colle
                             EqualityPredicate::new(
                                 "profile",
                                 "display_name",
-                                ScalarPredicateValue::String("Ada".to_string()),
+                                WorthQueryPredicateOperand::string("Ada".to_string()),
                             )
                             .expect("equality predicate should build"),
                         )
@@ -213,7 +213,7 @@ fn compose_read_frontier_search_collection_matches_open_coded_broad_search_colle
                             EqualityPredicate::new(
                                 "profile",
                                 "display_name",
-                                ScalarPredicateValue::String("Ada".to_string()),
+                                WorthQueryPredicateOperand::string("Ada".to_string()),
                             )
                             .expect("equality predicate should build"),
                         )

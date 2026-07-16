@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::SpatialDomain`
- --> tests/ui/domain_entry/boundaries/facade_does_not_export_concrete_domain_markers.rs:1:5
-  |
-1 | use worth_query::facade::SpatialDomain;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `SpatialDomain` in `facade`

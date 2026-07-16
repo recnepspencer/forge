@@ -5,8 +5,6 @@ pub struct WorthQueryJournalIdentityInventoryEvidence {
     missing_operation_count: usize,
     inventory_digest: String,
 }
-
-#[allow(dead_code)]
 impl WorthQueryJournalIdentityInventoryEvidence {
     pub fn new(
         forbidden_pattern_count: usize,
@@ -54,8 +52,6 @@ pub struct WorthQueryJournalIdentityScheduleEvidence {
     expected_position_count: usize,
     schedule_digest: String,
 }
-
-#[allow(dead_code)]
 impl WorthQueryJournalIdentityScheduleEvidence {
     pub fn derive(
         canonical: &WorthQueryJournalPositionSchedule,
@@ -114,8 +110,6 @@ pub struct WorthQueryJournalReplaySurfaceEvidence {
     replay_outcome_digest: String,
     counter_snapshot: WorthQueryJournalReplayCounterSnapshot,
 }
-
-#[allow(dead_code)]
 impl WorthQueryJournalReplaySurfaceEvidence {
     pub fn derive_from_committed_receipts(
         outcome: &WorthQueryJournalReplayOutcome,

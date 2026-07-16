@@ -14,7 +14,6 @@ impl WorthUiAllocationPlanningBasis {
     pub(crate) fn new(
         measurement_basis: UiMeasurementBasis,
         allocation_neighborhood: UiAllocationNeighborhood,
-        allocation_constraint_set: Option<UiAllocationConstraintSet>,
         portal_allocation_input: Option<crate::runtime::UiPortalAllocationPlanningBasis>,
     ) -> Self {
         Self {
@@ -48,19 +47,39 @@ impl WorthUiAllocationPlanningBasis {
         }
     }
     pub(crate) fn scroll_authority(&self) -> Option<&crate::graph::UiGraphScrollPlanningAuthority> {
-        self.admitted.as_ref().and_then(|admitted| admitted.scroll_authority())
+        self.admitted
+            .as_ref()
+            .and_then(|admitted| admitted.scroll_authority())
     }
 
     pub fn measurement_basis(&self) -> &UiMeasurementBasis {
-        self.admitted.as_ref().map_or_else(|| &**self.denied_measurement_basis.as_ref().expect("denied planning basis retains measurement basis"), |admitted| admitted.measurement_basis())
+        self.admitted.as_ref().map_or_else(
+            || {
+                &**self
+                    .denied_measurement_basis
+                    .as_ref()
+                    .expect("denied planning basis retains measurement basis")
+            },
+            |admitted| admitted.measurement_basis(),
+        )
     }
 
     pub fn allocation_neighborhood(&self) -> &UiAllocationNeighborhood {
-        self.admitted.as_ref().map_or_else(|| &**self.denied_allocation_neighborhood.as_ref().expect("denied planning basis retains neighborhood"), |admitted| admitted.neighborhood())
+        self.admitted.as_ref().map_or_else(
+            || {
+                &**self
+                    .denied_allocation_neighborhood
+                    .as_ref()
+                    .expect("denied planning basis retains neighborhood")
+            },
+            |admitted| admitted.neighborhood(),
+        )
     }
 
     pub fn allocation_constraint_set(&self) -> Option<&UiAllocationConstraintSet> {
-        self.admitted.as_ref().map(|admitted| admitted.constraint_set())
+        self.admitted
+            .as_ref()
+            .map(|admitted| admitted.constraint_set())
     }
 
     pub fn portal_allocation_input(
@@ -73,7 +92,18 @@ impl WorthUiAllocationPlanningBasis {
         &self,
     ) -> (Rc<UiMeasurementBasis>, Rc<UiAllocationNeighborhood>) {
         self.admitted.as_ref().map_or_else(
-            || (self.denied_measurement_basis.as_ref().expect("denied basis").clone(), self.denied_allocation_neighborhood.as_ref().expect("denied neighborhood").clone()),
+            || {
+                (
+                    self.denied_measurement_basis
+                        .as_ref()
+                        .expect("denied basis")
+                        .clone(),
+                    self.denied_allocation_neighborhood
+                        .as_ref()
+                        .expect("denied neighborhood")
+                        .clone(),
+                )
+            },
             |admitted| admitted.structural_parts(),
         )
     }

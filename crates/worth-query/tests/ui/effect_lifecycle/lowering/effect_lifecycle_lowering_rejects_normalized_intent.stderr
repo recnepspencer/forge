@@ -1,13 +1,5 @@
-error[E0308]: mismatched types
- --> tests/ui/effect_lifecycle/lowering/effect_lifecycle_lowering_rejects_normalized_intent.rs:8:48
+error[E0432]: unresolved import `worth_query::facade::foundation::lower_authority_scoped_effect_plan`
+ --> tests/ui/effect_lifecycle/lowering/effect_lifecycle_lowering_rejects_normalized_intent.rs:1:39
   |
-8 |     let _ = lower_authority_scoped_effect_plan(normalized_effect_intent());
-  |             ---------------------------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `AuthorityScopedEffectPlan`, found `NormalizedEffectIntent`
-  |             |
-  |             arguments to this function are incorrect
-  |
-note: function defined here
- --> src/effect_lifecycle/lowering.rs
-  |
-  | pub fn lower_authority_scoped_effect_plan(
-  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1 | use worth_query::facade::foundation::{lower_authority_scoped_effect_plan, NormalizedEffectIntent};
+  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `lower_authority_scoped_effect_plan` in `facade::foundation`

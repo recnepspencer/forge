@@ -1,9 +1,7 @@
 use super::*;
-use crate::runtime::mutation::terminal_aspect_value_digest_text;
-
 use std::collections::BTreeMap;
 
-use worth_foundational::facade::AspectValue;
+use worth_foundational::facade::{prepare_aspect_value_identity_basis, AspectValue};
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct TestExistingTruthKey {
@@ -60,7 +58,7 @@ impl WorthQueryRuntimeExistingTruthVerificationAdapter for TestExistingTruthVeri
     fn verify_existing_truth_assertion(
         &self,
         binding: &WorthQueryExistingTruthTargetBinding,
-        aspects: &[WorthQueryAdmittedAspectValue],
+        aspects: &[WorthQueryAuthoredAspectMutation],
     ) -> Result<(), WorthQueryExistingTruthAssertionDenial> {
         for aspect in aspects {
             let aspect_touch = aspect.aspect_touch();
@@ -133,7 +131,9 @@ impl WorthQueryRuntimeExistingTruthVerificationAdapter for TestExistingTruthVeri
 }
 
 fn terminal_digest_from_aspect_value(value: &AspectValue) -> String {
-    terminal_aspect_value_digest_text(value)
+    prepare_aspect_value_identity_basis(value)
+        .as_str()
+        .to_owned()
 }
 
 #[derive(Default)]
@@ -145,7 +145,7 @@ impl WorthQueryRuntimeExistingTruthVerificationAdapter
     fn verify_existing_truth_assertion(
         &self,
         _binding: &WorthQueryExistingTruthTargetBinding,
-        _aspects: &[WorthQueryAdmittedAspectValue],
+        _aspects: &[WorthQueryAuthoredAspectMutation],
     ) -> Result<(), WorthQueryExistingTruthAssertionDenial> {
         Ok(())
     }
@@ -160,7 +160,7 @@ impl WorthQueryRuntimeExistingTruthVerificationAdapter
             .map(|aspect_touch| {
                 WorthQueryExistingTruthProbeField::from_admitted_aspect_touch(
                     aspect_touch.clone(),
-                    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                         "permissive",
                     ),
                 )

@@ -284,15 +284,21 @@ pub fn certification_row_set(row_count: usize) -> RelationalAuthoritativeRowSetA
         let priority_read = scalar_read(entity, "metrics.priority", ScalarAspectType::UInt64);
         records.push(SnapshotReadRecord::for_request(
             &identity_read,
-            aspect_value(crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(task)),
+            aspect_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(task),
+            ),
         ));
         records.push(SnapshotReadRecord::for_request(
             &lane_read,
-            aspect_value(crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(lane)),
+            aspect_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(lane),
+            ),
         ));
         records.push(SnapshotReadRecord::for_request(
             &display_name_read,
-            aspect_value(crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(name)),
+            aspect_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(name),
+            ),
         ));
         records.push(SnapshotReadRecord::for_request(
             &priority_read,

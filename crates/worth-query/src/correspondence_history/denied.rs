@@ -19,6 +19,7 @@ impl CorrespondenceHistoricalDeniedEnvelope {
         &self.denied
     }
 
+    #[cfg(test)]
     pub(crate) fn new(
         correspondence: CorrespondenceEvidenceResolved,
         denied: CorrespondenceDenied,
@@ -65,6 +66,7 @@ impl HistoricalPathDeniedEnvelope {
         &self.compatibility_outcome
     }
 
+    #[cfg(test)]
     pub(crate) fn new(
         correspondence: CorrespondenceEvidenceResolved,
         admission: HistoricalEvaluationAdmission,
@@ -132,6 +134,7 @@ impl HistoricalPathAdmissionDeniedEnvelope {
         HistoricalPathCompatibilityOutcome::Denied
     }
 
+    #[cfg(test)]
     pub(crate) fn new(
         correspondence: CorrespondenceEvidenceResolved,
         request: HistoricalEvaluationRequest,

@@ -56,7 +56,7 @@ artifact, orchestration, grouping, and recovery model.
   [foundations/policy-tenant-and-relationship-proof-narrowing.md](./foundations/policy-tenant-and-relationship-proof-narrowing.md)
 - if you need basis phase lifecycle (not raw ids):
   [capabilities/basis-capability-lifecycle.md](./capabilities/basis-capability-lifecycle.md)
-- if you need cross-runtime “why” (not `workspace.inspect` alone):
+- if you need cross-runtime “why” (not `workspace.inspections()?.inspect` alone):
   [capabilities/cross-runtime-causal-inspection.md](./capabilities/cross-runtime-causal-inspection.md)
 - if you need graph touch obligation selection, support rows, or downstream
   graph-obligation proof:
@@ -70,6 +70,9 @@ artifact, orchestration, grouping, and recovery model.
   [domain-capabilities/contributions/README.md](./domain-capabilities/contributions/README.md)
 - if you need aspect and authority semantics first:
   [modeling/aspects-and-authority-lanes.md](./modeling/aspects-and-authority-lanes.md)
+- if you need exact scalar/struct authoring, predicate, and projection value
+  semantics:
+  [capabilities/native-aspect-values.md](./capabilities/native-aspect-values.md)
 
 ## Foundations (feature docs)
 
@@ -107,12 +110,13 @@ artifact, orchestration, grouping, and recovery model.
 - [Cross-runtime causal inspection](./capabilities/cross-runtime-causal-inspection.md)
 - [Authoritative mutation evidence](./capabilities/authoritative-mutation-evidence.md)
 - [Structural correspondence and historical materialization](./capabilities/structural-correspondence-and-historical-materialization.md)
+- [Native aspect values](./capabilities/native-aspect-values.md)
 
 ## Domain capabilities
 
+- [Runtime-installed domains](./domain-capabilities/runtime-installed-domains.md)
 - [Lower-runtime capability routing](./domain-capabilities/lower-runtime-capability-routing.md)
 - [Contributions hub](./domain-capabilities/contributions/README.md)
-- [Invariant and capability contributions](./domain-capabilities/invariants/invariant-and-capability-contributions.md)
 - Choosers: [live vs subscription](./domain-capabilities/choosing/live-view-vs-subscription.md), [inspection vs cross-runtime explanation](./domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md), [projection vs inspection](./domain-capabilities/choosing/projection-consumption-vs-inspection.md)
 
 

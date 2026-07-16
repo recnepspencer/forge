@@ -328,9 +328,9 @@ fn existing_truth_mode_summary_digest_changes_with_mutation_family() {
                 relational_entity(1, 1, 0),
             )
             .expect("binding should build"),
-            &[crate::runtime::WorthQueryAdmittedAspectValue::new(
+            &[crate::runtime::WorthQueryAuthoredAspectMutation::new(
                 title_value_touch(),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("Seed title"),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("Seed title"),
             )
             .expect("aspect should build")],
             crate::memory_workspace::admit_external_snapshot_label("snapshot:test"),
@@ -363,9 +363,9 @@ fn existing_truth_mode_summary_digest_changes_with_assertion_mode() {
                 relational_entity(1, 1, 0),
             )
             .expect("binding should build"),
-            &[crate::runtime::WorthQueryAdmittedAspectValue::new(
+            &[crate::runtime::WorthQueryAuthoredAspectMutation::new(
                 title_value_touch(),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("Seed title"),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("Seed title"),
             )
             .expect("aspect should build")],
             crate::memory_workspace::admit_external_snapshot_label("snapshot:test"),

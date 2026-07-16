@@ -167,3 +167,4 @@ fn preview_subscription_promotion_rejects_preview_work_trace_drift() {
         crate::facade::BridgeSubscriptionPreviewPromotionRejectionKind::PreviewWorkTraceMismatch
     );
 }
+use crate::subscription::BridgeSubscriptionDeclarationFamilyKind;

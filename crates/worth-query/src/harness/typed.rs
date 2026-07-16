@@ -1,6 +1,6 @@
 use crate::authoring::{AspectName, FieldName};
 use crate::facade::runtime::{
-    validate_canonical_bundle, QueryValidationError, SchemaFieldKind, TypedCollectionQueryBuilder,
+    validate_canonical_bundle, QueryValidationError, ScalarAspectType, TypedCollectionQueryBuilder,
     TypedCollectionResultShapeBuilder, TypedDetailQueryBuilder, TypedDetailResultShapeBuilder,
     TypedGuidedAuthoringPath, TypedSchemaField,
 };
@@ -11,11 +11,11 @@ worth_query_schema! {
         fields {
             field IdentityId("identity", "id", String) => [projectable, equality(String)];
             field DisplayName("profile", "display_name", String) => [projectable, equality(String), contains, membership, presence];
-            field Age("profile", "age", Integer) => [projectable, equality(i64), integer_comparable, membership, presence, orderable];
-            field Rank("profile", "rank", Integer) => [ordering_only];
+            field Age("profile", "age", Int64) => [projectable, equality(i64), native_comparable, membership, presence, orderable];
+            field Rank("profile", "rank", Int64) => [ordering_only];
             field PrivateNote("profile", "private_note", String) => [non_queryable];
-            field Bio("content", "bio", StructuredContent) => [non_queryable];
-            field WorkflowStatus("workflow", "status", WorkflowState) => [workflow];
+            field Bio("content", "bio", ContentRef) => [non_queryable];
+            field WorkflowStatus("workflow", "status", String) => [workflow];
         }
         relations {
             relation ManagerRelation("manager", 1);
@@ -63,7 +63,7 @@ fn generated_schema_view_matches_typed_surface_expectations() {
         schema_field(&schema, DisplayName::ASPECT, DisplayName::FIELD)
             .expect("display name field should exist")
             .kind(),
-        &SchemaFieldKind::String
+        &ScalarAspectType::String
     );
     assert_eq!(
         schema_field(&schema, DisplayName::ASPECT, DisplayName::FIELD)
@@ -93,13 +93,13 @@ fn generated_schema_view_matches_typed_surface_expectations() {
         schema_field(&schema, Bio::ASPECT, Bio::FIELD)
             .expect("bio field should exist")
             .kind(),
-        &SchemaFieldKind::StructuredContent
+        &ScalarAspectType::ContentRef
     );
     assert_eq!(
         schema_field(&schema, WorkflowStatus::ASPECT, WorkflowStatus::FIELD)
             .expect("workflow field should exist")
             .kind(),
-        &SchemaFieldKind::WorkflowState
+        &ScalarAspectType::String
     );
 }
 

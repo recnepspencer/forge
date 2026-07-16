@@ -56,7 +56,7 @@ the plan before execution when the cost or support posture matters.
 ```rust
 fn tenant_face_neighborhood(
     workspace: &mut WorthQueryWorkspace,
-    current_tenant: ScalarPredicateValue,
+    current_tenant: WorthQueryPredicateOperand,
 ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
     let family = workspace.define_read_family("tenant-face-neighborhood", |read| {
         read.local_successor_walk_collection(

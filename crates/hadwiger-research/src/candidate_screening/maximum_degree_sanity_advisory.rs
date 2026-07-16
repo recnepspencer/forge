@@ -1,8 +1,8 @@
+use worth_query::facade::domain::{
+    WorthQueryAdmissionContributionAuthoring, WorthQuerySupportContributionAuthoring,
+};
 use worth_query::facade::foundation::{
     WorthQueryContributionComposedOrchestrationInput, WorthQueryContributionIntent,
-};
-use worth_query::facade::runtime::{
-    WorthQueryAdmissionContributionAuthoring, WorthQuerySupportContributionAuthoring,
 };
 
 use crate::domain_artifacts::core_artifact::{

@@ -1,4 +1,4 @@
-use worth_query::facade::foundation::{AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, IntegerComparisonPredicate, OrderingSelector, PredicateSelector, PresencePredicate, ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate};
+use worth_query::facade::foundation::{AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, NativeComparisonPredicate, OrderingSelector, PredicateSelector, PresencePredicate, WorthQueryPredicateOperand, SetMembershipPredicate, StringContainsPredicate};
 
 fn main() {
     let projection = AspectFieldSelector::new("identity", "id").unwrap();
@@ -14,12 +14,12 @@ fn main() {
     let _ = ordering.field();
 
     let equality =
-        EqualityPredicate::new("identity", "id", ScalarPredicateValue::String("one".into()))
+        EqualityPredicate::new("identity", "id", WorthQueryPredicateOperand::string("one".into()))
             .unwrap();
     let _ = equality.aspect();
     let _ = equality.field();
 
-    let integer = IntegerComparisonPredicate::greater_than("metrics", "rank", 1).unwrap();
+    let integer = NativeComparisonPredicate::greater_than("metrics", "rank", 1).unwrap();
     let _ = integer.aspect();
     let _ = integer.field();
 
@@ -30,7 +30,7 @@ fn main() {
     let membership = SetMembershipPredicate::new(
         "status",
         "value",
-        [ScalarPredicateValue::String("open".into())],
+        [WorthQueryPredicateOperand::string("open".into())],
     )
     .unwrap();
     let _ = membership.aspect();

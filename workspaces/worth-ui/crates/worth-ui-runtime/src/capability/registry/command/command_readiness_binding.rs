@@ -1,8 +1,6 @@
 use worth_query::facade::foundation::{
-    WorthQueryDeclarationEntryReadinessReport,
-    WorthQueryDeclarationEntryReadinessStatus,
-    WorthQueryDeclarationInput,
-    WorthQueryDomainEntryMarker,
+    WorthQueryDeclarationEntryReadinessReport, WorthQueryDeclarationEntryReadinessStatus,
+    WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
 };
 
 /// Structured command readiness metadata for later runtime projection.

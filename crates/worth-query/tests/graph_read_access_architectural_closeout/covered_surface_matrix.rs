@@ -5,10 +5,10 @@ use worth_query::facade::policy::{
 use worth_query::facade::runtime::{
     WorthQueryGraphReadAccessAdmissionPosture, WorthQueryGraphReadAccessAuthorityRequest,
     WorthQueryGraphReadAccessBasisScopeKind, WorthQueryGraphReadAccessRequirementKind,
-    WorthQueryNativeRow, WorthQueryReadFamily, WorthQueryReadResult, WorthQueryWorkspace,
+    WorthQueryUnrefinedLiveShape, WorthQueryReadFamily, WorthQueryReadResult, WorthQueryWorkspace,
 };
 
-use crate::graph_read_access_cost_model_support::{
+use crate::support::graph_read_access_cost_model::{
     dense_traversal_family, frontier_search_family, projection_only_family, workspace,
 };
 use crate::support::graph_index_inventory::runtime_profiles::{
@@ -289,7 +289,7 @@ struct CloseoutAccessReceiptDigestReadout {
 fn assert_live_read_receipt_proves_no_caller_owned_n_plus_one() {
     let mut workspace = workspace("graph-read-access.closeout.surface.live");
     let live_view = workspace
-        .live_view::<WorthQueryNativeRow>("tasks.closeout.table", |query| {
+        .live_view::<WorthQueryUnrefinedLiveShape>("tasks.closeout.table", |query| {
             query
                 .from("Task")
                 .select([

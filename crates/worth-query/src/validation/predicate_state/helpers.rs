@@ -1,26 +1,27 @@
-use crate::authoring::ScalarPredicateValue;
+use crate::authoring::WorthQueryPredicateOperand;
 use crate::canonicalization::{
     CanonicalPredicateEntry, CanonicalPredicateOperand, CanonicalPredicateOperand::ScalarSet,
     CanonicalScalarSet,
 };
 
-pub(super) fn scalar_operand(predicate: &CanonicalPredicateEntry) -> &ScalarPredicateValue {
+pub(super) fn scalar_operand(predicate: &CanonicalPredicateEntry) -> &WorthQueryPredicateOperand {
     match &predicate.operand {
         CanonicalPredicateOperand::Scalar(value) => value,
         _ => unreachable!("scalar predicate expected scalar operand"),
     }
 }
 
-pub(super) fn integer_scalar(predicate: &CanonicalPredicateEntry) -> i64 {
-    match scalar_operand(predicate) {
-        ScalarPredicateValue::Integer(value) => *value,
-        _ => unreachable!("integer predicate expected integer scalar"),
-    }
+pub(super) fn comparison_scalar(
+    predicate: &CanonicalPredicateEntry,
+) -> &worth_foundational::facade::AspectValue {
+    scalar_operand(predicate).as_native()
 }
 
 pub(super) fn string_scalar(predicate: &CanonicalPredicateEntry) -> &str {
-    match scalar_operand(predicate) {
-        ScalarPredicateValue::String(value) => value,
+    match scalar_operand(predicate).as_native() {
+        worth_foundational::facade::AspectValue::String(
+            worth_foundational::facade::InternedString::Raw(value),
+        ) => value,
         _ => unreachable!("string predicate expected string scalar"),
     }
 }
@@ -32,6 +33,8 @@ pub(super) fn membership_values_set(predicate: &CanonicalPredicateEntry) -> &Can
     }
 }
 
-pub(super) fn membership_values(predicate: &CanonicalPredicateEntry) -> &[ScalarPredicateValue] {
+pub(super) fn membership_values(
+    predicate: &CanonicalPredicateEntry,
+) -> &[WorthQueryPredicateOperand] {
     membership_values_set(predicate).as_slice()
 }

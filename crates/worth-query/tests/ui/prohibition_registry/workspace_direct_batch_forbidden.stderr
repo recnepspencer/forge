@@ -1,13 +1,5 @@
-error[E0624]: method `batch` is private
+error[E0599]: no method named `batch` found for struct `WorthQueryWorkspace` in the current scope
  --> tests/ui/prohibition_registry/workspace_direct_batch_forbidden.rs:4:23
   |
-4 |       let _ = workspace.batch(|batch: WorthQueryMutationBatchBuilder| batch);
-  |                         ^^^^^ private method
-  |
- ::: src/runtime/workspace_mutations.rs
-  |
-  | /     pub(crate) fn batch(
-  | |         &mut self,
-  | |         declaration: impl FnOnce(WorthQueryMutationBatchBuilder) -> WorthQueryMutationBatchBuilder,
-  | |     ) -> Result<WorthQueryBatchWriteReceipt, WorthQueryRuntimeError> {
-  | |____________________________________________________________________- private method defined here
+4 |     let _ = workspace.batch(|batch: WorthQueryMutationBatchBuilder| batch);
+  |                       ^^^^^ method not found in `WorthQueryWorkspace`

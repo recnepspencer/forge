@@ -5,9 +5,9 @@ use worth_server::{
 };
 
 #[path = "support/product_operation_phase_eleven/backend.rs"]
-mod backend;
+pub mod backend;
 #[path = "support/product_session_phase_ten/fixture.rs"]
-mod fixture;
+pub mod fixture;
 
 use backend::{
     controlled_apply_payload, stateful_editor_registration, StatefulProductEditorBackend,

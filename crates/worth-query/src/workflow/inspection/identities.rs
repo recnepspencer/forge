@@ -3,6 +3,7 @@ use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
 
+#[cfg(test)]
 pub(super) fn conflict_scope_identity(
     declaration: &QueryWorkflowDeclaration,
     merge_declaration: &LoweredMergeWorkflowDeclaration,
@@ -52,6 +53,7 @@ pub(super) fn conflict_scope_identity(
         .seal()
 }
 
+#[cfg(test)]
 pub(super) fn post_merge_scope_identity(
     declaration: &QueryWorkflowDeclaration,
     outcome: &WorkflowAuthorityOutcomeArtifact,

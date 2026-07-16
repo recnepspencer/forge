@@ -1,10 +1,11 @@
 use std::collections::BTreeMap;
 
-use crate::authoring::{AspectFieldKey, ScalarPredicateValue};
+use crate::authoring::AspectFieldKey;
 use crate::canonicalization::{
     CanonicalPredicateEntry, CanonicalPredicateFamily, CanonicalPredicateOperand,
 };
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType};
+use worth_foundational::facade::{AspectValue, InternedString};
 
 use super::predicate_state::FieldPredicateState;
 use super::{
@@ -12,7 +13,7 @@ use super::{
     ValidatedPredicateEntry, ValidationEvent, ValidationRejectionMatrix,
 };
 
-type LegalPredicate = (CanonicalPredicateEntry, SchemaFieldKind, &'static str);
+type LegalPredicate = (CanonicalPredicateEntry, ScalarAspectType, &'static str);
 
 pub(crate) fn validate_predicate_entries(
     predicates: &[CanonicalPredicateEntry],
@@ -42,23 +43,7 @@ pub(crate) fn validate_predicate_entries(
         let predicate_family = predicate_family_name(predicate.family);
         let value_kind = operand_kind_name(&predicate.operand);
 
-        if matches!(field.kind(), SchemaFieldKind::StructuredContent) {
-            counters.record_rejection();
-            rejection_matrix.record_predicate_rejection();
-            return Err(ValidationFailureArtifact::new(
-                QueryValidationError::UnsupportedStructuredContentPredicate {
-                    aspect: key.aspect().to_string(),
-                    field: key.field().to_string(),
-                    predicate_family,
-                },
-                counters.clone(),
-                rejection_matrix.clone(),
-            ));
-        }
-
-        if matches!(field.kind(), SchemaFieldKind::WorkflowState)
-            && !field.is_workflow_predicate_queryable()
-        {
+        if field.is_workflow_semantic() && !field.is_workflow_predicate_queryable() {
             counters.record_rejection();
             rejection_matrix.record_predicate_rejection();
             return Err(ValidationFailureArtifact::new(
@@ -171,66 +156,75 @@ fn predicate_capability_is_admitted(
 
 fn predicate_operand_matches_field_kind(
     predicate: &CanonicalPredicateEntry,
-    field_kind: &SchemaFieldKind,
+    field_kind: &ScalarAspectType,
 ) -> bool {
+    let field_family = *field_kind;
     match predicate.family {
-        CanonicalPredicateFamily::Equality => matches!(
-            (field_kind, &predicate.operand),
-            (
-                SchemaFieldKind::String,
-                CanonicalPredicateOperand::Scalar(ScalarPredicateValue::String(_))
-            ) | (
-                SchemaFieldKind::WorkflowState,
-                CanonicalPredicateOperand::Scalar(ScalarPredicateValue::String(_))
-            ) | (
-                SchemaFieldKind::Integer,
-                CanonicalPredicateOperand::Scalar(ScalarPredicateValue::Integer(_))
-            ) | (
-                SchemaFieldKind::Boolean,
-                CanonicalPredicateOperand::Scalar(ScalarPredicateValue::Boolean(_))
-            )
-        ),
-        CanonicalPredicateFamily::IntegerGreaterThan
-        | CanonicalPredicateFamily::IntegerLessThan => matches!(
-            (field_kind, &predicate.operand),
-            (
-                SchemaFieldKind::Integer,
-                CanonicalPredicateOperand::Scalar(ScalarPredicateValue::Integer(_))
-            )
-        ),
-        CanonicalPredicateFamily::StringContains => matches!(
-            (field_kind, &predicate.operand),
-            (
-                SchemaFieldKind::String,
-                CanonicalPredicateOperand::Scalar(ScalarPredicateValue::String(_))
-            )
-        ),
-        CanonicalPredicateFamily::ScalarMembership => match (field_kind, &predicate.operand) {
-            (SchemaFieldKind::String, CanonicalPredicateOperand::ScalarSet(values)) => values
+        CanonicalPredicateFamily::Equality => scalar_operand_family(&predicate.operand)
+            .is_some_and(|operand_family| operand_family == field_family),
+        CanonicalPredicateFamily::NativeGreaterThan | CanonicalPredicateFamily::NativeLessThan => {
+            native_comparison_family(field_family)
+                && scalar_operand_family(&predicate.operand)
+                    .is_some_and(|operand_family| operand_family == field_family)
+        }
+        CanonicalPredicateFamily::StringContains => {
+            field_family == ScalarAspectType::String
+                && matches!(
+                    &predicate.operand,
+                    CanonicalPredicateOperand::Scalar(value)
+                        if matches!(value.as_native(), AspectValue::String(InternedString::Raw(_)))
+                )
+        }
+        CanonicalPredicateFamily::ScalarMembership => {
+            let CanonicalPredicateOperand::ScalarSet(values) = &predicate.operand else {
+                return false;
+            };
+            values
                 .as_slice()
                 .iter()
-                .all(|value| matches!(value, ScalarPredicateValue::String(_))),
-            (SchemaFieldKind::Integer, CanonicalPredicateOperand::ScalarSet(values)) => values
-                .as_slice()
-                .iter()
-                .all(|value| matches!(value, ScalarPredicateValue::Integer(_))),
-            (SchemaFieldKind::Boolean, CanonicalPredicateOperand::ScalarSet(values)) => values
-                .as_slice()
-                .iter()
-                .all(|value| matches!(value, ScalarPredicateValue::Boolean(_))),
-            _ => false,
-        },
+                .all(|value| value.value_family() == field_family)
+        }
         CanonicalPredicateFamily::PresenceIsPresent => {
             matches!(&predicate.operand, CanonicalPredicateOperand::Presence(_))
         }
     }
 }
 
+fn scalar_operand_family(operand: &CanonicalPredicateOperand) -> Option<ScalarAspectType> {
+    match operand {
+        CanonicalPredicateOperand::Scalar(value) => Some(value.value_family()),
+        CanonicalPredicateOperand::ScalarSet(_) | CanonicalPredicateOperand::Presence(_) => None,
+    }
+}
+
+fn native_comparison_family(family: ScalarAspectType) -> bool {
+    matches!(
+        family,
+        ScalarAspectType::Int8
+            | ScalarAspectType::Int16
+            | ScalarAspectType::Int32
+            | ScalarAspectType::Int64
+            | ScalarAspectType::UInt8
+            | ScalarAspectType::UInt16
+            | ScalarAspectType::UInt32
+            | ScalarAspectType::UInt64
+            | ScalarAspectType::Float32
+            | ScalarAspectType::Float64
+            | ScalarAspectType::Decimal
+            | ScalarAspectType::BigInt
+            | ScalarAspectType::Rational
+            | ScalarAspectType::Date
+            | ScalarAspectType::Time
+            | ScalarAspectType::Timestamp
+            | ScalarAspectType::TimestampTz
+    )
+}
+
 fn predicate_family_name(family: CanonicalPredicateFamily) -> &'static str {
     match family {
         CanonicalPredicateFamily::Equality => "equality",
-        CanonicalPredicateFamily::IntegerGreaterThan => "integer-greater-than",
-        CanonicalPredicateFamily::IntegerLessThan => "integer-less-than",
+        CanonicalPredicateFamily::NativeGreaterThan => "native-greater-than",
+        CanonicalPredicateFamily::NativeLessThan => "native-less-than",
         CanonicalPredicateFamily::StringContains => "string-contains",
         CanonicalPredicateFamily::ScalarMembership => "scalar-membership",
         CanonicalPredicateFamily::PresenceIsPresent => "presence-is-present",
@@ -239,25 +233,73 @@ fn predicate_family_name(family: CanonicalPredicateFamily) -> &'static str {
 
 fn operand_kind_name(operand: &CanonicalPredicateOperand) -> &'static str {
     match operand {
-        CanonicalPredicateOperand::Scalar(ScalarPredicateValue::String(_)) => "String",
-        CanonicalPredicateOperand::Scalar(ScalarPredicateValue::Integer(_)) => "Integer",
-        CanonicalPredicateOperand::Scalar(ScalarPredicateValue::Boolean(_)) => "Boolean",
+        CanonicalPredicateOperand::Scalar(value) => native_family_name(value.value_family()),
         CanonicalPredicateOperand::ScalarSet(values) => match values.first() {
-            Some(ScalarPredicateValue::String(_)) => "Set<String>",
-            Some(ScalarPredicateValue::Integer(_)) => "Set<Integer>",
-            Some(ScalarPredicateValue::Boolean(_)) => "Set<Boolean>",
+            Some(value) => native_set_family_name(value.value_family()),
             None => "Set<Empty>",
         },
         CanonicalPredicateOperand::Presence(_) => "Presence",
     }
 }
 
-fn field_kind_name(field_kind: &SchemaFieldKind) -> &'static str {
-    match field_kind {
-        SchemaFieldKind::String => "String",
-        SchemaFieldKind::Integer => "Integer",
-        SchemaFieldKind::Boolean => "Boolean",
-        SchemaFieldKind::StructuredContent => "StructuredContent",
-        SchemaFieldKind::WorkflowState => "WorkflowState",
+fn field_kind_name(field_kind: &ScalarAspectType) -> &'static str {
+    native_family_name(*field_kind)
+}
+
+fn native_family_name(family: ScalarAspectType) -> &'static str {
+    match family {
+        ScalarAspectType::Null => "Null",
+        ScalarAspectType::Bool => "Bool",
+        ScalarAspectType::Int8 => "Int8",
+        ScalarAspectType::Int16 => "Int16",
+        ScalarAspectType::Int32 => "Int32",
+        ScalarAspectType::Int64 => "Int64",
+        ScalarAspectType::UInt8 => "UInt8",
+        ScalarAspectType::UInt16 => "UInt16",
+        ScalarAspectType::UInt32 => "UInt32",
+        ScalarAspectType::UInt64 => "UInt64",
+        ScalarAspectType::Float32 => "Float32",
+        ScalarAspectType::Float64 => "Float64",
+        ScalarAspectType::Decimal => "Decimal",
+        ScalarAspectType::BigInt => "BigInt",
+        ScalarAspectType::Rational => "Rational",
+        ScalarAspectType::String => "String",
+        ScalarAspectType::Bytes => "Bytes",
+        ScalarAspectType::Uuid => "Uuid",
+        ScalarAspectType::Date => "Date",
+        ScalarAspectType::Time => "Time",
+        ScalarAspectType::Timestamp => "Timestamp",
+        ScalarAspectType::TimestampTz => "TimestampTz",
+        ScalarAspectType::EntityRef => "EntityRef",
+        ScalarAspectType::ContentRef => "ContentRef",
+    }
+}
+
+fn native_set_family_name(family: ScalarAspectType) -> &'static str {
+    match family {
+        ScalarAspectType::Null => "Set<Null>",
+        ScalarAspectType::Bool => "Set<Bool>",
+        ScalarAspectType::Int8 => "Set<Int8>",
+        ScalarAspectType::Int16 => "Set<Int16>",
+        ScalarAspectType::Int32 => "Set<Int32>",
+        ScalarAspectType::Int64 => "Set<Int64>",
+        ScalarAspectType::UInt8 => "Set<UInt8>",
+        ScalarAspectType::UInt16 => "Set<UInt16>",
+        ScalarAspectType::UInt32 => "Set<UInt32>",
+        ScalarAspectType::UInt64 => "Set<UInt64>",
+        ScalarAspectType::Float32 => "Set<Float32>",
+        ScalarAspectType::Float64 => "Set<Float64>",
+        ScalarAspectType::Decimal => "Set<Decimal>",
+        ScalarAspectType::BigInt => "Set<BigInt>",
+        ScalarAspectType::Rational => "Set<Rational>",
+        ScalarAspectType::String => "Set<String>",
+        ScalarAspectType::Bytes => "Set<Bytes>",
+        ScalarAspectType::Uuid => "Set<Uuid>",
+        ScalarAspectType::Date => "Set<Date>",
+        ScalarAspectType::Time => "Set<Time>",
+        ScalarAspectType::Timestamp => "Set<Timestamp>",
+        ScalarAspectType::TimestampTz => "Set<TimestampTz>",
+        ScalarAspectType::EntityRef => "Set<EntityRef>",
+        ScalarAspectType::ContentRef => "Set<ContentRef>",
     }
 }

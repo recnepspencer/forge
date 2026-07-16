@@ -27,7 +27,10 @@ pub(super) fn inspect_staging_surface(
                 MutationIntent::Create(create_intent) => {
                     intent_counts.create_count += 1;
                     match create_intent {
-                        CreateIntent::Entity(_) | CreateIntent::Relation(_) => {}
+                        CreateIntent::Entity(_)
+                        | CreateIntent::EntityAspects(_)
+                        | CreateIntent::Relation(_)
+                        | CreateIntent::RelationAspects(_) => {}
                         CreateIntent::BulkEntities(intent) => {
                             reserved_bulk_entity_slots += intent.field_patches.len() as u64;
                         }
@@ -44,6 +47,9 @@ pub(super) fn inspect_staging_surface(
                         EntityMutationIntent::UpdateFields(intent) => {
                             touched_records.insert(RecordRef::Entity(intent.entity_id));
                         }
+                        EntityMutationIntent::ApplyAspectPatch(intent) => {
+                            touched_records.insert(RecordRef::Entity(intent.entity_id));
+                        }
                         EntityMutationIntent::Replace(intent) => {
                             touched_records.insert(RecordRef::Entity(intent.entity_id));
                         }
@@ -56,6 +62,9 @@ pub(super) fn inspect_staging_surface(
                     intent_counts.relation_mutation_count += 1;
                     match relation_intent {
                         RelationMutationIntent::UpdateEndpoints(intent) => {
+                            touched_records.insert(RecordRef::Relation(intent.relation_id));
+                        }
+                        RelationMutationIntent::ApplyAspectPatch(intent) => {
                             touched_records.insert(RecordRef::Relation(intent.relation_id));
                         }
                         RelationMutationIntent::Delete(intent) => {

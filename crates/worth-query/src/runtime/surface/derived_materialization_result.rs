@@ -51,7 +51,15 @@ impl WorthQueryDerivedMaterializationResult {
         let Some(row) = self.rows.get(row_index) else {
             return Ok(None);
         };
-        Ok(row.field_value_at(field_path).cloned())
+        Ok(row.scalar_value_at(field_path).cloned())
+    }
+
+    pub fn retained_native_value_at_path(
+        &self,
+        row_index: usize,
+        field_path: &WorthQueryRetainedFieldPath,
+    ) -> Option<super::WorthQueryRetainedValueView<'_>> {
+        self.rows.get(row_index)?.native_value_at(field_path)
     }
 
     pub fn receipt(&self) -> &WorthQueryDerivedMaterializationReceipt {

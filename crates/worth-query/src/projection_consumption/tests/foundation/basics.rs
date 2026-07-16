@@ -145,7 +145,7 @@ fn query_context_support_and_admission_share_warning_posture() {
     let row = report
         .rows()
         .iter()
-        .find(|row| row.fact_kind() == ProjectionFactKind::DerivedScalarField)
+        .find(|row| row.fact_kind() == ProjectionFactKind::DerivedField)
         .expect("derived scalar support row should exist");
     assert!(matches!(
         row.posture(),
@@ -157,7 +157,7 @@ fn query_context_support_and_admission_share_warning_posture() {
     let declaration = declare_projection_consumption(
         source,
         test_binding(&["profile.display_name"]),
-        ProjectMaterializedFacts::declare().derived_scalar_field_path(
+        ProjectMaterializedFacts::declare().derived_field_path(
             crate::projection_consumption::projection_fact_field_path_from_segments([
                 worth_foundational::facade::FieldKey::new("profile")
                     .expect("projection fact field segment should admit"),

@@ -5,7 +5,7 @@ fn delete_existing_verified_preserves_backend_verified_assertion_evidence_on_del
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.delete-existing-verified")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.delete-existing-verified-table", |q| {
             q.from("Task")
                 .select([
@@ -134,7 +134,7 @@ fn delete_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.delete-existing-verified-mismatch")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.delete-existing-verified-mismatch-table", |q| {
             q.from("Task")
                 .select([
@@ -196,6 +196,8 @@ fn delete_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
 
     match error {
         WorthQueryRuntimeError::ExistingTruthAssertionDenied(denial) => {
+            let expected = test_authored_string_terminal_digest("status.value", "closed");
+            let found = test_native_string_value_identity("open");
             assert_eq!(
                 denial.kind(),
                 WorthQueryExistingTruthAssertionDenialKind::AssertedValueMismatch
@@ -206,9 +208,9 @@ fn delete_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
             );
             assert_eq!(
                 denial.expected_terminal_value_digest(),
-                Some("status:value=set:string:6:closed")
+                Some(expected.as_str())
             );
-            assert_eq!(denial.found_terminal_value_digest(), Some("string:4:open"));
+            assert_eq!(denial.found_terminal_value_digest(), Some(found.as_str()));
         }
         other => panic!("expected typed assertion denial, got {other:?}"),
     }
@@ -230,7 +232,7 @@ fn batch_delete_existing_verified_preserves_aggregate_assertion_digest() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-delete-existing-verified")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.batch-delete-existing-verified-table", |q| {
             q.from("Task")
                 .select([
@@ -394,7 +396,7 @@ fn preview_delete_existing_verified_requires_authoritative_lane() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-delete-existing-verified")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.preview-delete-existing-verified-table", |q| {
             q.from("Task")
                 .select([

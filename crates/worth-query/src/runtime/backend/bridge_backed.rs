@@ -1,4 +1,3 @@
-use worth_relational::facade::history::BranchId;
 use worth_relational::facade::runtime::RelationalRuntime;
 use worth_runtime_bridge::facade::RuntimeBridge;
 
@@ -179,7 +178,7 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
     fn verify_existing_truth_assertion(
         &self,
         binding: &WorthQueryExistingTruthTargetBinding,
-        aspects: &[crate::runtime::WorthQueryAdmittedAspectValue],
+        aspects: &[crate::runtime::WorthQueryAuthoredAspectMutation],
     ) -> Result<WorthQueryVerifiedExistingTruthAssertion, WorthQueryExistingTruthAssertionDenial>
     {
         let Some(adapter) = self.existing_truth_verification.as_ref() else {
@@ -267,8 +266,8 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
 
     fn capture_query_merge_authority(
         &self,
-        target_branch: BranchId,
-        source_branch: BranchId,
+        target_branch: &crate::runtime::WorthQueryAdmittedBranchName,
+        source_branch: &crate::runtime::WorthQueryAdmittedBranchName,
     ) -> Result<WorthQueryBackendMergeAuthority, WorthQueryWorkspaceError> {
         let runtime = self.relational_runtime.as_ref().ok_or_else(|| {
             WorthQueryWorkspaceError::new(

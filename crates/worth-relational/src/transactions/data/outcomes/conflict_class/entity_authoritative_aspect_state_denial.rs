@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use worth_foundational::facade::{
-    AspectFieldLocator, AuthoritativePatchConstructionDenial, AuthoritativeStateAdmissionDenial,
-    BoundarySourceLocator, ContractValidationDenial,
+    AspectFieldLocator, AspectKey, AuthoritativePatchConstructionDenial,
+    AuthoritativeStateAdmissionDenial, BoundarySourceLocator, ContractValidationDenial,
 };
 
 use crate::identity::data::KindId;
@@ -12,6 +12,9 @@ use super::AspectFieldTargetRejectionReason;
 pub enum EntityAuthoritativeAspectStateDenial {
     MissingAspectPlan {
         kind_id: KindId,
+    },
+    MissingAspectContract {
+        aspect_key: AspectKey,
     },
     ContractValidationDenied {
         #[serde(with = "crate::aspect_wire::serde_canonical_boundary_source_locator")]

@@ -21,28 +21,44 @@ impl WorthQueryRuntime {
     ) -> crate::intent_admission::WorthQueryAuthoritativeMutationIntentSeed {
         use crate::intent_admission::WorthQueryAuthoritativeMutationPreflight as Preflight;
 
-        let preflight = if let Some(reference) = command.symbolic_target_reference() {
-            Preflight::TargetReferenceDenied(WorthQuerySymbolicTargetReferenceDenial::new(
-                reference,
-                WorthQuerySymbolicTargetReferenceDenialKind::RequiresBatchContext,
-                "same-batch symbolic target references require batch execution",
-            ))
-        } else if let Some(reference) = command.symbolic_aspect_references().first() {
-            Preflight::TargetReferenceDenied(WorthQuerySymbolicTargetReferenceDenial::new(
-                reference.reference(),
-                WorthQuerySymbolicTargetReferenceDenialKind::RequiresBatchContext,
-                "same-batch symbolic aspect references require batch execution",
-            ))
-        } else if let Some(binding) = command.existing_truth_binding() {
-            match self.backend.admit_existing_truth_binding(binding) {
-                Err(denial) => Preflight::BindingDenied(denial),
-                Ok(()) => self.scalar_mutation_post_binding_preflight(&command),
+        let (preflight, admitted_mutation) = match self.admit_backend_write_command(command.clone())
+        {
+            Err(WorthQueryRuntimeError::MutationContractDenied(denial)) => {
+                (Preflight::ContractDenied(denial), None)
             }
-        } else {
-            self.scalar_mutation_post_binding_preflight(&command)
+            Err(other) => panic!("unexpected native mutation admission error: {other}"),
+            Ok(admitted_mutation) => {
+                let preflight = if let Some(reference) = command.symbolic_target_reference() {
+                    Preflight::TargetReferenceDenied(WorthQuerySymbolicTargetReferenceDenial::new(
+                        reference,
+                        WorthQuerySymbolicTargetReferenceDenialKind::RequiresBatchContext,
+                        "same-batch symbolic target references require batch execution",
+                    ))
+                } else if let Some(reference) = command.symbolic_aspect_references().first() {
+                    Preflight::TargetReferenceDenied(WorthQuerySymbolicTargetReferenceDenial::new(
+                        reference.reference(),
+                        WorthQuerySymbolicTargetReferenceDenialKind::RequiresBatchContext,
+                        "same-batch symbolic aspect references require batch execution",
+                    ))
+                } else if let Some(binding) = command.existing_truth_binding() {
+                    match self.backend.admit_existing_truth_binding(binding) {
+                        Err(denial) => Preflight::BindingDenied(denial),
+                        Ok(()) => self.scalar_mutation_post_binding_preflight(&command),
+                    }
+                } else {
+                    self.scalar_mutation_post_binding_preflight(&command)
+                };
+                let successor =
+                    matches!(preflight, Preflight::Admitted { .. }).then_some(admitted_mutation);
+                (preflight, successor)
+            }
         };
 
-        crate::intent_admission::WorthQueryAuthoritativeMutationIntentSeed::new(command, preflight)
+        crate::intent_admission::WorthQueryAuthoritativeMutationIntentSeed::new(
+            command,
+            preflight,
+            admitted_mutation,
+        )
     }
 
     fn scalar_mutation_post_binding_preflight(
@@ -128,6 +144,31 @@ impl WorthQueryRuntime {
         }
     }
 
+    pub(super) fn admit_backend_write_command(
+        &self,
+        command: WorthQueryWriteCommand,
+    ) -> Result<WorthQueryBackendAdmissibleMutation, WorthQueryRuntimeError> {
+        WorthQueryBackendAdmissibleMutation::from_authored_command(
+            command,
+            &self.native_aspect_contracts,
+        )
+        .map_err(WorthQueryRuntimeError::MutationContractDenied)
+    }
+
+    pub(super) fn preflight_native_mutation_contracts(
+        &self,
+        commands: &[WorthQueryWriteCommand],
+    ) -> Result<(), WorthQueryRuntimeError> {
+        for command in commands {
+            crate::runtime::native_aspect_contracts::admit_authoritative_mutation_patch(
+                command,
+                &self.native_aspect_contracts,
+            )
+            .map_err(WorthQueryRuntimeError::MutationContractDenied)?;
+        }
+        Ok(())
+    }
+
     pub fn probe_existing(
         &self,
         request: WorthQueryExistingTruthProbeRequest,
@@ -142,6 +183,7 @@ impl WorthQueryRuntime {
     pub(crate) fn execute_authoritative_write_command_direct(
         &mut self,
         command: WorthQueryWriteCommand,
+        admitted_mutation: WorthQueryBackendAdmissibleMutation,
         verified_existing_truth_assertion: Option<WorthQueryVerifiedExistingTruthAssertion>,
         shared_admission: Option<WorthQueryWriteAdmissionExecutionRecord>,
     ) -> Result<WorthQueryWriteReceipt, WorthQueryRuntimeError> {
@@ -157,8 +199,11 @@ impl WorthQueryRuntime {
         let declared_aspect_operations = command.declared_aspect_operations();
         let declared_aspect_value_digest = command_declared_aspect_value_identity(&command);
         let mutation_metadata = command.mutation_metadata();
-        let receipt = self
-            .execute_backend_or_synthetic_write(command, declared_aspect_value_digest.as_ref())?;
+        let receipt = self.execute_backend_or_synthetic_write(
+            command,
+            admitted_mutation,
+            declared_aspect_value_digest.as_ref(),
+        )?;
         let receipt = self.attach_optional_mutation_bundles(
             receipt,
             existing_truth_binding.as_ref(),
@@ -197,6 +242,7 @@ impl WorthQueryRuntime {
     fn execute_backend_or_synthetic_write(
         &mut self,
         command: WorthQueryWriteCommand,
+        admitted_mutation: WorthQueryBackendAdmissibleMutation,
         declared_aspect_value_digest: Option<&crate::evidence_identity::WorthQueryEvidenceIdentity>,
     ) -> Result<WorthQueryMutationReceipt, WorthQueryRuntimeError> {
         match &command {
@@ -208,12 +254,7 @@ impl WorthQueryRuntime {
                     declared_aspect_value_digest,
                 ))
             }
-            _ => self
-                .backend
-                .write(WorthQueryBackendAdmissibleMutation::from_admitted_command(
-                    Self::lower_backend_write_command(command),
-                ))
-                .map_err(Into::into),
+            _ => self.backend.write(admitted_mutation).map_err(Into::into),
         }
     }
 

@@ -204,7 +204,7 @@ let route_plan = handle.plan_routes(route_input)?;
 ## Real Example
 
 ```rust
-let envelope = handle.orchestrate_envelope_from_progressed(
+let envelope = handle.envelope_routes_from_progressed(
     handle.declare_review_and_progress(
         geometry_session.publish_boundary_change_for_active_face()?,
     )?,
@@ -236,16 +236,16 @@ This is the intended shape:
 
 ## How It Relates To Other Features
 
-- [Configured Domain Handles](./configured-domain-handles.md) own the admitted
+- Runtime-Installed Domain Handles own the admitted
   world the binding pipeline checks first.
 - [Continuation Pipeline](./continuation-pipeline.md) consumes
   continuation-ready binding results and turns them into prepared and executed
   continuation artifacts.
 - [Ordinary Outcomes](./ordinary-outcomes.md) provide the compact public result
   lane over `WorthQueryBindingChecked<T>`.
-- [Declaration Progression](./declaration-progression.md) introduces the first
+- Declaration Progression introduces the first
   retained artifact most binding flows start from.
-- [Declaration Route Plans](./declaration-route-plan.md),
+- Declaration Route Plans,
   [Declaration Boundary Receipts](./declaration-boundary-receipts.md), and
   [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) each
   expose `binding_target()` for later resolver surfaces.
@@ -298,10 +298,10 @@ This surface does not yet provide:
 
 ## Related Docs
 
-- [Configured Domain Handles](./configured-domain-handles.md)
+- Runtime-Installed Domain Handles
 - [Continuation Pipeline](./continuation-pipeline.md)
-- [Declaration Progression](./declaration-progression.md)
-- [Declaration Route Plans](./declaration-route-plan.md)
+- Declaration Progression
+- Declaration Route Plans
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)

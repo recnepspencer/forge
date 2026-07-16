@@ -1,6 +1,9 @@
 use super::super::*;
 use super::state::{NativeExternalRow, StatefulBridgeState};
-use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
+use worth_foundational::facade::{
+    AspectValue, CanonicalFieldPath, ContractValidatedAspectValueView, EntityId, FieldKey,
+    PartitionId,
+};
 use worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 
 use crate::memory_workspace::{WorthQueryCommitIdentity, WorthQuerySnapshotIdentity};
@@ -148,7 +151,7 @@ pub(super) fn apply_command(
             Ok(WorthQueryMutationKind::Created)
         }
         WorthQueryMutationFamily::Update | WorthQueryMutationFamily::Assertion => {
-            let resolved_aspects = resolved_aspects(state, mutation)?;
+            let symbolic_values = resolved_symbolic_aspect_values(state, mutation)?;
             let row = state
                 .rows_by_collection
                 .entry(collection.to_string())
@@ -159,7 +162,8 @@ pub(super) fn apply_command(
                         "stateful bridge update could not find `{entity_identity_key}` in `{collection}`"
                     ))
                 })?;
-            apply_aspects_to_external_row(row, &resolved_aspects)?;
+            apply_authoritative_patch_to_external_row(row, mutation.authoritative_patch())?;
+            apply_resolved_symbolic_values(row, symbolic_values)?;
             Ok(WorthQueryMutationKind::Updated)
         }
         WorthQueryMutationFamily::Delete => {
@@ -183,55 +187,111 @@ fn external_row_from_mutation(
     state: &StatefulBridgeState,
     mutation: &WorthQueryBackendAdmissibleMutation,
 ) -> Result<NativeExternalRow, WorthQueryWorkspaceError> {
-    external_row_from_aspects(&resolved_aspects(state, mutation)?)
-}
-
-fn resolved_aspects(
-    state: &StatefulBridgeState,
-    mutation: &WorthQueryBackendAdmissibleMutation,
-) -> Result<Vec<WorthQueryAdmittedAspectValue>, WorthQueryWorkspaceError> {
-    let mut aspects = mutation.admitted_aspect_values().to_vec();
-    for reference in mutation.symbolic_aspect_references() {
-        let resolved_identity = state
-            .identity_text_by_symbol
-            .get(reference.reference().symbol())
-            .cloned()
-            .ok_or_else(|| {
-                WorthQueryWorkspaceError::new(format!(
-                    "stateful bridge could not resolve symbolic aspect reference `{}`",
-                    reference.reference().symbol()
-                ))
-            })?;
-        aspects.push(WorthQueryAdmittedAspectValue::new_set(
-            reference.aspect_touch().clone(),
-            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(resolved_identity),
-        )?);
-    }
-    Ok(aspects)
-}
-
-fn external_row_from_aspects(
-    aspects: &[WorthQueryAdmittedAspectValue],
-) -> Result<NativeExternalRow, WorthQueryWorkspaceError> {
     let mut external_row = NativeExternalRow::new();
-    apply_aspects_to_external_row(&mut external_row, aspects)?;
+    apply_authoritative_patch_to_external_row(&mut external_row, mutation.authoritative_patch())?;
+    let symbolic_values = resolved_symbolic_aspect_values(state, mutation)?;
+    apply_resolved_symbolic_values(&mut external_row, symbolic_values)?;
     Ok(external_row)
 }
 
-fn apply_aspects_to_external_row(
+fn apply_authoritative_patch_to_external_row(
     external_row: &mut NativeExternalRow,
-    aspects: &[WorthQueryAdmittedAspectValue],
+    patch: &worth_foundational::facade::AuthoritativeRecordAspectPatch,
 ) -> Result<(), WorthQueryWorkspaceError> {
-    for aspect in aspects {
-        let aspect_touch = aspect.aspect_touch();
-        set_external_row_touch(
-            external_row,
-            &aspect_touch,
-            aspect
-                .foundational_value()
-                .cloned()
-                .unwrap_or(AspectValue::Null),
-        )?;
+    for aspect_key in patch.whole_aspect_clears() {
+        external_row.retain(|path, _| {
+            path.fields()
+                .first()
+                .is_none_or(|field| field.as_str() != aspect_key.as_str())
+        });
+    }
+    for (aspect_key, validated) in patch.whole_aspect_sets() {
+        external_row.retain(|path, _| {
+            path.fields()
+                .first()
+                .is_none_or(|field| field.as_str() != aspect_key.as_str())
+        });
+        match validated.view() {
+            ContractValidatedAspectValueView::Scalar(value) => {
+                set_external_row_touch(
+                    external_row,
+                    &WorthQueryAspectTouch::whole_aspect(aspect_key.clone()),
+                    value.clone(),
+                )?;
+            }
+            ContractValidatedAspectValueView::Struct(value) => {
+                for (field, value) in value.fields() {
+                    set_external_row_touch(
+                        external_row,
+                        &WorthQueryAspectTouch::aspect_field_path(
+                            aspect_key.clone(),
+                            CanonicalFieldPath::single(field.clone()),
+                        ),
+                        value.clone(),
+                    )?;
+                }
+            }
+        }
+    }
+    for (aspect_key, field_patch) in patch.field_patches() {
+        for field in field_patch.field_clears() {
+            external_row.remove(&native_external_field_path_for_touch(
+                &WorthQueryAspectTouch::aspect_field_path(
+                    aspect_key.clone(),
+                    CanonicalFieldPath::single(field.clone()),
+                ),
+            )?);
+        }
+        for (field, value) in field_patch.field_sets() {
+            set_external_row_touch(
+                external_row,
+                &WorthQueryAspectTouch::aspect_field_path(
+                    aspect_key.clone(),
+                    CanonicalFieldPath::single(field.clone()),
+                ),
+                value.clone(),
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn resolved_symbolic_aspect_values(
+    state: &StatefulBridgeState,
+    mutation: &WorthQueryBackendAdmissibleMutation,
+) -> Result<Vec<(WorthQueryAspectTouch, AspectValue)>, WorthQueryWorkspaceError> {
+    mutation
+        .symbolic_aspect_references()
+        .iter()
+        .map(|reference| {
+            let identity = state
+                .identity_by_symbol
+                .get(reference.reference().symbol())
+                .and_then(WorthQueryEntityIdentity::relational_entity_record_parts)
+                .ok_or_else(|| {
+                    WorthQueryWorkspaceError::new(format!(
+                        "stateful bridge could not resolve native symbolic entity reference `{}`",
+                        reference.reference().symbol()
+                    ))
+                })?;
+            Ok((
+                reference.aspect_touch().clone(),
+                AspectValue::EntityRef(EntityId::new(
+                    PartitionId(identity.partition_id()),
+                    identity.local_slot(),
+                    identity.generation(),
+                )),
+            ))
+        })
+        .collect()
+}
+
+fn apply_resolved_symbolic_values(
+    external_row: &mut NativeExternalRow,
+    values: Vec<(WorthQueryAspectTouch, AspectValue)>,
+) -> Result<(), WorthQueryWorkspaceError> {
+    for (touch, value) in values {
+        set_external_row_touch(external_row, &touch, value)?;
     }
     Ok(())
 }

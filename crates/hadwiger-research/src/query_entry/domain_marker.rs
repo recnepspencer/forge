@@ -1,4 +1,4 @@
-use worth_query::facade::foundation::{WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker};
+use worth_query::facade::domain::{WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker};
 
 const HADWIGER_ENTRY_CAPABILITIES: &[WorthQueryCapabilityFamily] = &[
     WorthQueryCapabilityFamily::QueryComposition,

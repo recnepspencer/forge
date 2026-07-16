@@ -1,15 +1,21 @@
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::identity_authority::{QueryProjectionIdentity, QuerySubscriptionIdentityKind};
 
+#[cfg(test)]
 use super::super::activation::SubscriptionActivationInput;
+#[cfg(test)]
 use super::super::bridge_lowering::BridgeSubscriptionLoweringPlan;
+#[cfg(test)]
 use super::super::declaration::QuerySubscriptionDeclarationArtifact;
 use super::super::evidence_projection::subscription_evidence_projection;
+#[cfg(test)]
 use super::identities::{bridge_parity_comparison_identity, bridge_parity_explanation_identity};
+#[cfg(test)]
 use super::support::{
-    BridgeParityReceipt, QuerySubscriptionBridgeParityClass, QuerySubscriptionBridgeParityCounters,
-    QuerySubscriptionBridgeParityError, SubscriptionBridgeParityWidth,
+    BridgeParityReceipt, QuerySubscriptionBridgeParityError, SubscriptionBridgeParityWidth,
 };
+use super::support::{QuerySubscriptionBridgeParityClass, QuerySubscriptionBridgeParityCounters};
+#[cfg(test)]
 use super::validation::{
     parity_class_for_family, validate_parity_sources, CanonicalBridgeParitySemantics,
 };
@@ -154,6 +160,7 @@ impl QuerySubscriptionBridgeParityExplanation {
     }
 }
 
+#[cfg(test)]
 pub fn explain_query_subscription_bridge_parity(
     declaration: &QuerySubscriptionDeclarationArtifact,
     lowering: &BridgeSubscriptionLoweringPlan,

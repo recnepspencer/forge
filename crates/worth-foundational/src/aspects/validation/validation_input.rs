@@ -1,7 +1,8 @@
 use crate::aspects::structs::StructAspectValue;
 use crate::values::AspectValue;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ContractValidationInput {
     Scalar(AspectValue),
     Struct(StructAspectValue),

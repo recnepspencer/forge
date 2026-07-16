@@ -16,15 +16,51 @@ macro_rules! causal_identity_type {
             pub(crate) fn from_identity(identity: WorthQueryEvidenceIdentity) -> Self {
                 Self(identity)
             }
-
-            #[allow(dead_code)]
             pub fn evidence_identity(&self) -> &WorthQueryEvidenceIdentity {
                 &self.0
             }
-
-            #[allow(dead_code)]
             pub fn bridge_admission_evidence(&self) -> BridgeIdentityEvidence {
                 self.0.bridge_evidence_identity()
+            }
+            pub fn as_str(&self) -> &str {
+                self.0.reporting_projection()
+            }
+        }
+
+        impl From<WorthQueryEvidenceIdentity> for $name {
+            fn from(value: WorthQueryEvidenceIdentity) -> Self {
+                Self::from_identity(value)
+            }
+        }
+
+        impl Ord for $name {
+            fn cmp(&self, other: &Self) -> Ordering {
+                self.as_str().cmp(other.as_str())
+            }
+        }
+
+        impl PartialOrd for $name {
+            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+                Some(self.cmp(other))
+            }
+        }
+
+        impl Hash for $name {
+            fn hash<H: Hasher>(&self, state: &mut H) {
+                self.as_str().hash(state);
+            }
+        }
+    };
+}
+
+macro_rules! causal_label_identity_type {
+    ($name:ident) => {
+        #[derive(Clone, Debug, Eq, PartialEq)]
+        pub struct $name(WorthQueryEvidenceIdentity);
+
+        impl $name {
+            pub(crate) fn from_identity(identity: WorthQueryEvidenceIdentity) -> Self {
+                Self(identity)
             }
 
             pub fn as_str(&self) -> &str {
@@ -66,13 +102,13 @@ causal_identity_type!(CausalResultShapeContextIdentity);
 causal_identity_type!(CausalQueryObservationReceiptIdentity);
 causal_identity_type!(CausalObservationAnchorDigest);
 causal_identity_type!(CausalObservationAnchorCountersIdentity);
-causal_identity_type!(CausalObservationAnchorFailureIdentity);
-causal_identity_type!(CausalEvidenceReferenceReceiptIdentity);
-causal_identity_type!(CausalEvidenceReferenceResolutionCountersIdentity);
-causal_identity_type!(CausalEvidenceReferenceResolutionDenialIdentity);
-causal_identity_type!(CausalEvidenceReferenceIndexIdentity);
+causal_label_identity_type!(CausalObservationAnchorFailureIdentity);
+causal_label_identity_type!(CausalEvidenceReferenceReceiptIdentity);
+causal_label_identity_type!(CausalEvidenceReferenceResolutionCountersIdentity);
+causal_label_identity_type!(CausalEvidenceReferenceResolutionDenialIdentity);
+causal_label_identity_type!(CausalEvidenceReferenceIndexIdentity);
 causal_identity_type!(CausalEvidenceReferenceIndexRecordIdentity);
-causal_identity_type!(CausalEvidenceReferenceIndexErrorIdentity);
+causal_label_identity_type!(CausalEvidenceReferenceIndexErrorIdentity);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalEvidenceReferenceDigest {

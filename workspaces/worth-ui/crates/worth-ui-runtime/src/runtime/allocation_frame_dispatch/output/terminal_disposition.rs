@@ -62,6 +62,7 @@ impl UiAllocationFrameQueueDisposition {
         }
     }
 
+    #[cfg(test)]
     pub fn reason(&self) -> UiAllocationFramePauseReason {
         match &self.representation {
             UiAllocationFrameQueueDispositionRepresentation::Disposed { reason, .. }
@@ -69,6 +70,7 @@ impl UiAllocationFrameQueueDisposition {
         }
     }
 
+    #[cfg(test)]
     pub fn ingress(&self) -> super::super::mailbox::UiAllocationFrameIngressView<'_> {
         match &self.representation {
             UiAllocationFrameQueueDispositionRepresentation::Disposed { ingress, .. } => {
@@ -80,6 +82,7 @@ impl UiAllocationFrameQueueDisposition {
         }
     }
 
+    #[cfg(test)]
     pub fn counters(&self) -> UiAllocationFrameDispatcherCounters {
         match &self.representation {
             UiAllocationFrameQueueDispositionRepresentation::Disposed { counters, .. } => *counters,
@@ -87,6 +90,7 @@ impl UiAllocationFrameQueueDisposition {
         }
     }
 
+    #[cfg(test)]
     pub fn successor_ingress(&self) -> super::super::mailbox::UiAllocationFrameIngressView<'_> {
         match &self.representation {
             UiAllocationFrameQueueDispositionRepresentation::Disposed {

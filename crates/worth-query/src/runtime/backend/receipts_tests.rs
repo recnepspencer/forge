@@ -5,11 +5,15 @@ use crate::memory_workspace::{
 };
 use crate::runtime::tests::support::test_bridge_with_writeback_authority;
 use crate::runtime::{
-    build_bridge_authority_bundle, WorthQueryAdmittedAspectValue, WorthQueryAspectTouch,
+    build_bridge_authority_bundle, WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation,
     WorthQueryBackendAdmissibleMutation, WorthQueryWriteCommand,
 };
 use crate::WorthQueryEvidenceScope;
-use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
+use worth_foundational::facade::{
+    AbsenceLaw, AspectContract, AspectContractRevision, AspectEvolutionPolicy, AspectIdentity,
+    AspectKey, CanonicalFieldPath, FieldDeclaration, FieldKey, FieldRequirement, ScalarAspectType,
+    StructAspectShape,
+};
 use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 
 #[test]
@@ -46,14 +50,14 @@ fn signal_invalidation_routing_receipt_summarizes_delta_width() {
     let command = WorthQueryWriteCommand::UpdateAspects {
         entity_identity: command_entity_identity.clone(),
         aspects: vec![
-            WorthQueryAdmittedAspectValue::new_set(
+            WorthQueryAuthoredAspectMutation::new_set(
                 title_value_touch(),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("Done"),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("Done"),
             )
             .expect("title aspect should build"),
-            WorthQueryAdmittedAspectValue::new_set(
+            WorthQueryAuthoredAspectMutation::new_set(
                 status_value_touch(),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value("closed"),
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value("closed"),
             )
             .expect("status aspect should build"),
         ],
@@ -61,7 +65,7 @@ fn signal_invalidation_routing_receipt_summarizes_delta_width() {
         naming_intent: None,
         continuity_intent: None,
     };
-    let mutation = WorthQueryBackendAdmissibleMutation::from_admitted_command(command);
+    let mutation = admit_test_mutation(command, [title_value_touch(), status_value_touch()]);
     let bridge = test_bridge_with_writeback_authority();
     let snapshot_identity =
         crate::memory_workspace::WorthQuerySnapshotIdentity::from_relational_snapshot(
@@ -133,7 +137,7 @@ fn bridge_writeback_effect_intent_accepts_whole_entity_delete_empty_patch() {
     let command = WorthQueryWriteCommand::Delete {
         entity_identity: entity_identity.clone(),
     };
-    let mutation = WorthQueryBackendAdmissibleMutation::from_admitted_command(command);
+    let mutation = admit_test_mutation(command, []);
     let bridge = test_bridge_with_writeback_authority();
     let snapshot_identity =
         crate::memory_workspace::WorthQuerySnapshotIdentity::from_relational_snapshot(
@@ -164,16 +168,16 @@ fn bridge_authority_for_title_value(
     let entity_identity = crate::memory_workspace::admit_authored_entity_label("task-1");
     let command = WorthQueryWriteCommand::UpdateAspects {
         entity_identity: entity_identity.clone(),
-        aspects: vec![WorthQueryAdmittedAspectValue::new_set(
+        aspects: vec![WorthQueryAuthoredAspectMutation::new_set(
             title_value_touch(),
-            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value),
+            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value),
         )
         .expect("title aspect should build")],
         metadata: Default::default(),
         naming_intent: None,
         continuity_intent: None,
     };
-    let mutation = WorthQueryBackendAdmissibleMutation::from_admitted_command(command);
+    let mutation = admit_test_mutation(command, [title_value_touch()]);
     let bridge = test_bridge_with_writeback_authority();
     let snapshot_identity =
         crate::memory_workspace::WorthQuerySnapshotIdentity::from_relational_snapshot(
@@ -208,4 +212,39 @@ fn aspect_field_touch(
     let field_path =
         CanonicalFieldPath::new([field_key]).expect("receipt test static field path should admit");
     WorthQueryAspectTouch::aspect_field_path(aspect_key, field_path)
+}
+
+fn admit_test_mutation<const N: usize>(
+    command: WorthQueryWriteCommand,
+    touches: [WorthQueryAspectTouch; N],
+) -> WorthQueryBackendAdmissibleMutation {
+    let contracts =
+        crate::runtime::native_aspect_contracts::WorthQueryNativeAspectContractRegistry::from_contracts(
+            touches.into_iter().map(string_field_contract),
+        )
+        .expect("receipt test contracts should agree");
+    WorthQueryBackendAdmissibleMutation::from_authored_command(command, &contracts)
+        .expect("receipt test mutation should satisfy native contracts")
+}
+
+fn string_field_contract(touch: WorthQueryAspectTouch) -> AspectContract {
+    let field = touch
+        .native_field_path()
+        .expect("receipt test field touch should contain a field")
+        .fields()[0]
+        .clone();
+    let declaration = FieldDeclaration::new(
+        field,
+        ScalarAspectType::String,
+        FieldRequirement::Optional,
+        AbsenceLaw::Optional,
+        AspectEvolutionPolicy::AdditiveFieldsAllowed,
+    )
+    .expect("receipt test field declaration should be coherent");
+    AspectContract::struct_aspect(
+        touch.native_aspect_key().clone(),
+        AspectIdentity(1),
+        AspectContractRevision(1),
+        StructAspectShape::new([declaration]).expect("receipt test shape should be unique"),
+    )
 }

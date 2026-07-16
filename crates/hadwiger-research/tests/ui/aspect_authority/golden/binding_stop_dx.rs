@@ -1,10 +1,10 @@
-use worth_query::facade::WORTHQueryBindingMissingRequiredAspect;
+use worth_query::facade::foundation::WorthQueryBindingMissingRequiredAspect;
 use hadwiger_research::facade::{AspectClosureStop, HadwigerAspectKind};
 
 fn binding_stop_dx() {
     let stop = AspectClosureStop::query_missing_required_aspect(
         HadwigerAspectKind::UnitDistanceEmbedding,
-        WORTHQueryBindingMissingRequiredAspect::new("unit-distance aspect missing"),
+        WorthQueryBindingMissingRequiredAspect::new("unit-distance aspect missing"),
     );
 
     assert!(stop.is_query_owned());

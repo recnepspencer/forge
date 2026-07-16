@@ -11,7 +11,7 @@ use super::refusal::WorthQueryDeclarationEntryOrchestrationRefusal;
 use super::step_record::WorthQueryDeclarationEntryOrchestrationStage;
 
 macro_rules! define_terminal_outcome {
-    ($name:ident) => {
+    ($(#[$new_meta:meta])* $name:ident) => {
         pub struct $name<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>> {
             declaration_family_key: &'static str,
             stop_stage: WorthQueryDeclarationEntryOrchestrationStage,
@@ -21,6 +21,7 @@ macro_rules! define_terminal_outcome {
         }
 
         impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>> $name<D, I> {
+            $(#[$new_meta])*
             pub(crate) fn new(
                 declaration_family_key: &'static str,
                 stop_stage: WorthQueryDeclarationEntryOrchestrationStage,
@@ -57,8 +58,14 @@ macro_rules! define_terminal_outcome {
 
 define_terminal_outcome!(WorthQueryDeclarationEntryOrchestrationDeferred);
 define_terminal_outcome!(WorthQueryDeclarationEntryOrchestrationDenied);
-define_terminal_outcome!(WorthQueryDeclarationEntryOrchestrationStale);
-define_terminal_outcome!(WorthQueryDeclarationEntryOrchestrationRebindRequired);
+define_terminal_outcome!(
+    #[cfg(test)]
+    WorthQueryDeclarationEntryOrchestrationStale
+);
+define_terminal_outcome!(
+    #[cfg(test)]
+    WorthQueryDeclarationEntryOrchestrationRebindRequired
+);
 define_terminal_outcome!(WorthQueryDeclarationEntryOrchestrationFailed);
 
 pub enum WorthQueryDeclarationEntryOrchestrationOutcome<

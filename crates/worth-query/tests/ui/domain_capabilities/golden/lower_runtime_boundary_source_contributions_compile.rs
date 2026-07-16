@@ -1,4 +1,15 @@
-use worth_query::facade::runtime::{worth_query_domain, WorthQueryAftermathContributionAuthoring, WorthQueryExplanationContributionAuthoring, WorthQueryInvariantCapabilityContributionAuthoring, WorthQueryLowerRuntimeBoundaryEnvelope, WorthQueryLowerRuntimeBoundaryEnvelopeSource, WorthQuerySupportContributionAuthoring, LiveViewDeclarationAdmissionBoundaryReceipt, SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt, WriteAuthorityExecutionReceipt};
+#[path = "../support/installed_domain.rs"]
+mod installed_domain;
+
+use worth_query::facade::domain::{
+    WorthQueryAftermathContributionAuthoring, WorthQueryExplanationContributionAuthoring,
+    WorthQueryInvariantCapabilityContributionAuthoring, WorthQuerySupportContributionAuthoring,
+};
+use worth_query::facade::runtime::{
+    LiveViewDeclarationAdmissionBoundaryReceipt, SignalInvalidationBoundaryReceipt,
+    SubscriptionActivationBoundaryReceipt, WorthQueryLowerRuntimeBoundaryEnvelope,
+    WorthQueryLowerRuntimeBoundaryEnvelopeSource, WriteAuthorityExecutionReceipt,
+};
 
 fn proof_authoring_accepts_any_boundary_source<S>(
     source: &S,
@@ -40,11 +51,13 @@ fn common_lane_accepts_receipt_sources(
     subscription: &SubscriptionActivationBoundaryReceipt,
     envelope: &WorthQueryLowerRuntimeBoundaryEnvelope,
 ) {
-    let _ = worth_query_domain("worth.spatial").for_lower_runtime_boundary_source(live);
-    let _ = worth_query_domain("worth.spatial").for_lower_runtime_boundary_source(write);
-    let _ = worth_query_domain("worth.spatial").for_lower_runtime_boundary_source(signal);
-    let _ = worth_query_domain("worth.spatial").for_lower_runtime_boundary_source(subscription);
-    let _ = worth_query_domain("worth.spatial").for_lower_runtime_boundary_source(envelope);
+    let installation = installed_domain::install("lower-runtime-source-golden");
+    let domain = installation.contributions();
+    let _ = domain.for_lower_runtime_boundary_source(live);
+    let _ = domain.for_lower_runtime_boundary_source(write);
+    let _ = domain.for_lower_runtime_boundary_source(signal);
+    let _ = domain.for_lower_runtime_boundary_source(subscription);
+    let _ = domain.for_lower_runtime_boundary_source(envelope);
 }
 
 fn main() {}

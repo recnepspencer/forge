@@ -4,7 +4,7 @@ use crate::authoring::{
     GuidedAuthoringPath, OrderingSelector, RootEntityKey, TraversalSelector,
 };
 use crate::canonicalization::CanonicalQueryBundle;
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView, SchemaRelationView};
 
 pub fn detail_schema_view() -> QuerySchemaView {
     QuerySchemaView::new(
@@ -14,14 +14,14 @@ pub fn detail_schema_view() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             )
             .text_predicate_queryable()
             .membership_predicate_queryable()
@@ -31,7 +31,7 @@ pub fn detail_schema_view() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("age")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::Integer,
+                ScalarAspectType::Int64,
             )
             .membership_predicate_queryable()
             .presence_predicate_queryable(),
@@ -40,7 +40,7 @@ pub fn detail_schema_view() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("rank")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::Integer,
+                ScalarAspectType::Int64,
             )
             .ordering_only(),
             SchemaFieldView::new(
@@ -48,7 +48,7 @@ pub fn detail_schema_view() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("private_note")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             )
             .non_queryable(),
             SchemaFieldView::new(
@@ -56,7 +56,7 @@ pub fn detail_schema_view() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("bio")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::StructuredContent,
+                ScalarAspectType::ContentRef,
             )
             .non_queryable(),
             SchemaFieldView::new(
@@ -64,8 +64,9 @@ pub fn detail_schema_view() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("status")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::WorkflowState,
-            ),
+                ScalarAspectType::String,
+            )
+            .workflow_semantic(),
         ],
         [SchemaRelationView::new(
             crate::authoring::RelationName::new("manager")
@@ -83,14 +84,14 @@ pub fn structured_content_queryable_schema_view() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("content")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("bio")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::StructuredContent,
+                ScalarAspectType::ContentRef,
             )
             .non_orderable(),
         ],
@@ -106,14 +107,14 @@ pub fn workflow_queryable_schema_view() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("workflow")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("status")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::WorkflowState,
+                ScalarAspectType::String,
             )
             .workflow_predicate_queryable()
             .non_orderable(),
@@ -130,14 +131,14 @@ pub fn alternate_detail_schema_view() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             )
             .text_predicate_queryable()
             .membership_predicate_queryable()
@@ -147,7 +148,7 @@ pub fn alternate_detail_schema_view() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("age")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::Integer,
+                ScalarAspectType::Int64,
             )
             .membership_predicate_queryable()
             .presence_predicate_queryable(),
@@ -156,7 +157,7 @@ pub fn alternate_detail_schema_view() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("rank")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::Integer,
+                ScalarAspectType::Int64,
             )
             .ordering_only(),
         ],
@@ -202,7 +203,7 @@ pub fn legal_workflow_predicate_bundle() -> CanonicalQueryBundle {
             crate::authoring::EqualityPredicate::new(
                 "workflow",
                 "status",
-                crate::authoring::ScalarPredicateValue::String("done".to_string()),
+                crate::authoring::WorthQueryPredicateOperand::string("done".to_string()),
             )
             .expect("workflow equality predicate should build"),
         )

@@ -59,6 +59,7 @@ pub use kind::WorthQueryGraphObligationKind;
 pub use policy_gate::{
     WorthQueryGraphMutationPolicyGateEvidence, WorthQueryGraphMutationPolicyGateVerdict,
 };
+#[cfg(test)]
 pub(crate) use registration::registrations_from_relational_invariant_catalog;
 pub use registration::{
     WorthQueryGraphObligationOperatingWorldSelector, WorthQueryGraphObligationRegistration,

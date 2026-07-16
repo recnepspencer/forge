@@ -1,11 +1,13 @@
 use std::marker::PhantomData;
 
+mod envelope;
+
 use crate::application::{
     review_declaration_legality, worth_query_checked_declaration_signal_compatibility_on_handle,
-    WorthQueryApplicationFacade, WorthQueryAsyncDeclarationClause,
-    WorthQueryAsyncDeclarationSupport, WorthQueryAsyncFailurePosture,
-    WorthQueryAsyncLoadingPosture, WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncSourceFamily,
-    WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily, WorthQueryConfig,
+    WorthQueryAsyncDeclarationClause, WorthQueryAsyncDeclarationSupport,
+    WorthQueryAsyncFailurePosture, WorthQueryAsyncLoadingPosture,
+    WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncSourceFamily,
+    WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationAspectContract,
     WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationBridgeContinuationMode,
     WorthQueryDeclarationBridgeContinuationRequest, WorthQueryDeclarationBridgeTruthContext,
@@ -19,12 +21,13 @@ use crate::application::{
     WorthQueryDeclarationSignalCompatibilityInput,
     WorthQueryDeclarationSignalCompatibilitySupportRow,
     WorthQueryDeclarationSignalCompatibilitySupportStatus, WorthQueryDomainEntryMarker,
-    WorthQueryDomainOperatingContext, WorthQueryInstalledDomainDeclarationContext,
-    WorthQueryNeighborhoodCapableGrouping, WorthQuerySignalCompatiblePosture,
-    WorthQueryTemporalDeclarationClause, WorthQueryTemporalDeclarationSupport,
-    WorthQueryTemporalDuration,
+    WorthQueryDomainOperatingContext, WorthQueryDomainOperatingRequirement,
+    WorthQueryInstalledDomainDeclarationContext, WorthQueryNeighborhoodCapableGrouping,
+    WorthQuerySignalCompatiblePosture, WorthQueryTemporalDeclarationClause,
+    WorthQueryTemporalDeclarationSupport, WorthQueryTemporalDuration,
 };
 use crate::runtime::WorthQueryRuntimeFamilySupportStatus;
+use envelope::future_supported_runtime_envelope_checked;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct FutureSignalDomain;
@@ -48,7 +51,11 @@ pub(crate) struct FutureSignalWorld(pub(crate) &'static str);
 
 impl WorthQueryDomainOperatingContext<FutureSignalDomain> for FutureSignalWorld {
     fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
-        &[WorthQueryCapabilityFamily::QueryComposition]
+        &[
+            WorthQueryCapabilityFamily::QueryComposition,
+            WorthQueryCapabilityFamily::WorkflowOrchestration,
+            WorthQueryCapabilityFamily::PreviewSession,
+        ]
     }
 
     fn required_config_sections(&self) -> &'static [WorthQueryConfigSectionFamily] {
@@ -59,8 +66,18 @@ impl WorthQueryDomainOperatingContext<FutureSignalDomain> for FutureSignalWorld 
         ]
     }
 
-    fn context_identity_digest(&self) -> String {
-        format!("future-signal-world-{}", self.0)
+    fn required_operating_requirements(&self) -> &'static [WorthQueryDomainOperatingRequirement] {
+        &[
+            WorthQueryDomainOperatingRequirement::TemporalQuery,
+            WorthQueryDomainOperatingRequirement::AsyncResourceQuery,
+        ]
+    }
+
+    fn context_identity(
+        &self,
+    ) -> crate::application::WorthQueryDomainOperatingContextIdentityDeclaration {
+        let value = { format!("future-signal-world-{}", self.0) };
+        crate::application::WorthQueryDomainOperatingContextIdentityDeclaration::single(value)
     }
 }
 
@@ -274,6 +291,10 @@ pub(crate) fn future_signal_admitted_handle(
         [
             crate::application::domain_test_support::family::<
                 FutureSignalDomain,
+                OrdinaryFutureSignalFamily,
+            >(),
+            crate::application::domain_test_support::family::<
+                FutureSignalDomain,
                 TemporalFutureSignalFamily,
             >(),
             crate::application::domain_test_support::family::<
@@ -344,56 +365,4 @@ where
         &support_rows,
         WorthQueryDeclarationSignalCompatibilityInput::envelope_checked(envelope_checked),
     )
-}
-
-fn future_supported_runtime_envelope_checked<F>(
-    handle: &WorthQueryInstalledDomainDeclarationContext<FutureSignalDomain, FutureSignalWorld>,
-    input: FutureSignalInput<F>,
-) -> crate::application::WorthQueryDeclarationEnvelopeChecked<
-    FutureSignalDomain,
-    FutureSignalInput<F>,
->
-where
-    F: WorthQueryDeclarationFamilyMarker<FutureSignalDomain>,
-    FutureSignalInput<F>: WorthQueryDeclarationInput<FutureSignalDomain, Family = F> + Clone,
-{
-    let canonical = handle
-        .declare(input.clone())
-        .unwrap_or_else(|_| panic!("future declaration should canonicalize"));
-    let support_report = handle.family_support::<F>();
-    let legal = match review_declaration_legality(
-        handle.handle_identity_digest(),
-        WorthQueryDeclarationLegalityInput::new(
-            canonical,
-            support_report,
-            F::legality_contract(),
-            handle.retained_world_basis(),
-            Some(WorthQueryRuntimeFamilySupportStatus::Supported),
-            Some(WorthQueryRuntimeFamilySupportStatus::Supported),
-        ),
-    ) {
-        WorthQueryDeclarationLegalityChecked::Legal(legal) => legal,
-        WorthQueryDeclarationLegalityChecked::Illegal(_) => {
-            panic!("future declaration should become legal under supported runtime test posture")
-        }
-    };
-    let progressed = handle
-        .progress_declaration(legal)
-        .unwrap_or_else(|_| panic!("future progression should admit"));
-    let evidence = handle
-        .describe_foundational(
-            WorthQueryDeclarationFoundationalEvidenceInput::admitted_progression(
-                progressed.clone(),
-            ),
-        )
-        .unwrap_or_else(|_| panic!("future foundational evidence should materialize"));
-    let route_checked = handle.plan_routes_checked(WorthQueryDeclarationRoutePlanInput::admitted(
-        progressed, evidence,
-    ));
-    let receipt_checked = handle.receipt_routes_checked(
-        WorthQueryDeclarationReceiptInput::route_checked(route_checked),
-    );
-    handle.envelope_routes_checked(WorthQueryDeclarationEnvelopeInput::receipt_checked(
-        receipt_checked,
-    ))
 }

@@ -1,13 +1,5 @@
-error[E0308]: mismatched types
- --> tests/ui/subscription_admission_requires_bridge_lowering.rs:6:47
+error[E0432]: unresolved import `worth_query::facade::runtime::admit_query_subscription`
+ --> tests/ui/subscription_admission_requires_bridge_lowering.rs:1:36
   |
-6 |     let _admission = admit_query_subscription(declaration.unwrap(), budget);
-  |                      ------------------------ ^^^^^^^^^^^^^^^^^^^^ expected `BridgeSubscriptionLoweringPlan`, found `QuerySubscriptionDeclarationArtifact`
-  |                      |
-  |                      arguments to this function are incorrect
-  |
-note: function defined here
- --> src/subscription/admission.rs
-  |
-  | pub fn admit_query_subscription(
-  |        ^^^^^^^^^^^^^^^^^^^^^^^^
+1 | use worth_query::facade::runtime::{admit_query_subscription, QuerySubscriptionAdmissionBudget, QuerySubscriptionDeclarationArtifact};
+  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_query_subscription` in `facade::runtime`

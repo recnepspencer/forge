@@ -1,12 +1,5 @@
-error[E0624]: method `validate` is private
-  --> tests/ui/installed_domain/boundaries/package_admission_is_not_consumer_callable.rs:35:6
-   |
-35 |       .validate()
-   |        ^^^^^^^^ private method
-   |
-  ::: src/domain_installation/package.rs
-   |
-   | /     pub(crate) fn validate(
-   | |         self,
-   | |     ) -> Result<WorthQueryValidatedDomainPackage<D>, WorthQueryDomainPackageValidationDenial> {
-   | |_____________________________________________________________________________________________- private method defined here
+error[E0432]: unresolved import `worth_query::facade::domain::admit_domain_package`
+ --> tests/ui/installed_domain/boundaries/package_admission_is_not_consumer_callable.rs:1:5
+  |
+1 | use worth_query::facade::domain::admit_domain_package;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_domain_package` in `facade::domain`

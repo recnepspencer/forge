@@ -1,14 +1,9 @@
 use worth_query::facade::foundation::{
-    discover_basis_lifecycle_support,
-    BasisFamily,
-    ResultShapeFamily,
-    WorthQueryApplicationFacade,
-    WorthQueryCapabilityFamily,
+    discover_basis_lifecycle_support, BasisFamily, ResultShapeFamily, WorthQueryCapabilityFamily,
+    WorthQuerySupportReport,
 };
 use worth_query::facade::runtime::{
-    QuerySubscriptionFamily,
-    QuerySubscriptionSupportPosture,
-    ViewShapeDescriptor,
+    QuerySubscriptionFamily, QuerySubscriptionSupportPosture, ViewShapeDescriptor,
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
@@ -26,10 +21,7 @@ use crate::declaration::{
     UiDeclaredMeasurementMode, UiDeclaredMeasurementPolicyPosture,
 };
 use crate::evidence::{admit_measurement_basis, MeasurementEvidenceInput};
-use crate::facade::{
-    WorthUi,
-    WorthUiApp,
-};
+use crate::facade::{WorthUi, WorthUiApp};
 use crate::graph::{UiGraphNodeIdentity, UiGraphSnapshot, UiGraphWorldProfile};
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
@@ -104,7 +96,7 @@ pub(super) fn intrinsic_basis(
 }
 
 pub(super) fn query_app() -> WorthUiApp {
-    let support_report = WorthQueryApplicationFacade::runtime_backed_default().support_report();
+    let support_report = WorthQuerySupportReport::runtime_backed_default();
     let query_capability = support_report
         .support_matrix()
         .descriptor(WorthQueryCapabilityFamily::QueryComposition)

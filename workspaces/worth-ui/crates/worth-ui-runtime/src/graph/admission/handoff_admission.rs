@@ -88,10 +88,7 @@ mod tests {
 
     use super::admit_graph_handoffs;
     use crate::declaration::UiDeclarationArtifact;
-    use crate::facade::{
-    WorthUi,
-    WorthUiDslPackage,
-};
+    use crate::facade::{WorthUi, WorthUiDslPackage};
     use crate::graph::{
         UiGraphInstantiationDenial, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
         UiRuntimeInstanceBasisAdmission,

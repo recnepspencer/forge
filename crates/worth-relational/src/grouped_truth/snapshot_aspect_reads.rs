@@ -1,15 +1,15 @@
 use worth_foundational::facade::AspectValue;
-use worth_runtime_bridge::facade::SnapshotReadRecord;
+use worth_runtime_bridge::facade::{SnapshotReadRecord, SnapshotReadValue};
 
 use super::grouped_projection::RelationalGroupedTruthError;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct SnapshotAspectReadValue {
-    value: AspectValue,
+    value: SnapshotReadValue,
 }
 
 impl SnapshotAspectReadValue {
-    pub(super) fn value(&self) -> &AspectValue {
+    pub(super) fn value(&self) -> &SnapshotReadValue {
         &self.value
     }
 }
@@ -17,11 +17,7 @@ impl SnapshotAspectReadValue {
 pub(super) fn decode_snapshot_aspect_read_value(
     record: &SnapshotReadRecord,
 ) -> Result<SnapshotAspectReadValue, RelationalGroupedTruthError> {
-    let value = record.scalar_aspect_value().cloned().ok_or_else(|| {
-        RelationalGroupedTruthError::AspectValueDecodeFailure {
-            request_key: record.correlation_id().as_str().to_string(),
-        }
-    })?;
+    let value = record.read_value().clone();
     Ok(SnapshotAspectReadValue { value })
 }
 

@@ -1,7 +1,7 @@
 use crate::runtime::{
-    WorthQueryAuthoritativeMutationObligationDispatch, WorthQueryGraphTouchDescriptor,
-    WorthQueryGraphTouchDescriptorDenial, WorthQueryVerifiedExistingTruthAssertion,
-    WorthQueryWriteCommand,
+    WorthQueryAuthoritativeMutationObligationDispatch, WorthQueryBackendAdmissibleMutation,
+    WorthQueryGraphTouchDescriptor, WorthQueryGraphTouchDescriptorDenial,
+    WorthQueryVerifiedExistingTruthAssertion, WorthQueryWriteCommand,
 };
 
 use super::{
@@ -16,6 +16,7 @@ pub struct WorthQueryAuthoritativeMutationExecutionPlan {
     inner: WorthQueryAdmittedIntentPlanCore,
     command: WorthQueryWriteCommand,
     verified_existing_truth_assertion: Option<WorthQueryVerifiedExistingTruthAssertion>,
+    admitted_mutation: WorthQueryBackendAdmissibleMutation,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -40,6 +41,11 @@ impl WorthQueryAuthoritativeMutationExecutionPlan {
             .expect("authoritative mutation plan requires mutation seed")
             .command()
             .clone();
+        let admitted_mutation = eligibility
+            .request()
+            .authoritative_mutation_seed()
+            .and_then(|seed| seed.admitted_mutation().cloned())
+            .expect("admitted authoritative mutation plan requires contract-admitted mutation");
         Self {
             inner: WorthQueryAdmittedIntentPlanCore::from_eligibility(
                 eligibility,
@@ -47,7 +53,12 @@ impl WorthQueryAuthoritativeMutationExecutionPlan {
             ),
             command,
             verified_existing_truth_assertion,
+            admitted_mutation,
         }
+    }
+
+    pub(crate) fn admitted_mutation(&self) -> &WorthQueryBackendAdmissibleMutation {
+        &self.admitted_mutation
     }
 
     pub(crate) fn core(&self) -> &WorthQueryAdmittedIntentPlanCore {

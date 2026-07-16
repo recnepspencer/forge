@@ -12,7 +12,7 @@ use crate::application::{
 
 use super::domain::{
     admitted_handle, Declaration, DeferredFamily, FailedFamily, IllegalRoleFamily, LegalFamily,
-    StaleFamily, WorldSensitiveFamily,
+    RebindRequiredFamily, StaleFamily,
 };
 
 #[test]
@@ -135,7 +135,7 @@ fn deferred_stale_rebind_and_failed_progression_map_honestly() {
             WorthQueryDeclarationFoundationalEvidenceInput::progression_checked(
                 restricted.progress_declaration_checked(
                     restricted
-                        .declare_and_review(Declaration::<WorldSensitiveFamily>::new("edge:42"))
+                        .declare_and_review(Declaration::<RebindRequiredFamily>::new("edge:42"))
                         .unwrap_or_else(|_| panic!("legality should pass")),
                 ),
             ),

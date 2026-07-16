@@ -12,19 +12,13 @@ pub use crate::saved_query::{
     SavedQueryReuseDescriptor, SavedQueryReuseOutcome, SchemaBasisEquivalenceEvidence,
 };
 pub use crate::schema_view::{
-    QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
+    QuerySchemaView, ScalarAspectType, SchemaFieldView, SchemaRelationView,
 };
 pub use crate::session_label::{
     WorthQuerySessionLabel, WorthQuerySessionLabelError, WorthQuerySessionLabelSegment,
     WorthQuerySessionNamespace,
 };
 pub use crate::subscription::PreviewSubscriptionDiscardCloseout;
-pub(crate) use crate::subscription::{
-    admit_active_subscription_lane, admit_preview_subscription_isolation, admit_query_subscription,
-    admit_subscription_continuation_evidence, declare_query_subscription,
-    explain_query_subscription_bridge_parity, lower_query_subscription_maintenance_delta,
-    lower_query_subscription_to_bridge,
-};
 pub use crate::subscription::{
     advance_subscription_acknowledgement, apply_active_subscription_continuation,
     apply_subscription_continuation, attach_subscription_consumer,
@@ -131,10 +125,11 @@ pub use crate::typed::{
     TypedCollectionQuery, TypedCollectionQueryBuilder, TypedCollectionResultShape,
     TypedCollectionResultShapeBuilder, TypedDetailQuery, TypedDetailQueryBuilder,
     TypedDetailResultShape, TypedDetailResultShapeBuilder, TypedEqualityField,
-    TypedGuidedAuthoringPath, TypedIntegerComparableField, TypedMembershipField,
+    TypedGuidedAuthoringPath, TypedMembershipField, TypedNativeComparableField,
     TypedOrderableField, TypedPresenceField, TypedProjectableField, TypedSchemaField,
     TypedSchemaRoot, TypedStringContainsField, TypedTraversalRelation,
 };
+#[cfg(test)]
 pub(crate) use crate::validation::validate_canonical_bundle;
 pub use crate::validation::{
     QueryValidationCounters, QueryValidationError, QueryValidationReport, ValidatedOrderingEntry,
@@ -142,9 +137,6 @@ pub use crate::validation::{
     ValidatedQueryArtifact, ValidatedQueryBundle, ValidatedResultShapeArtifact,
     ValidatedResultShapeBinding, ValidatedTraversalEntry, ValidationEvent, ValidationFailureClass,
     ValidationRejectionMatrix, ValidationWarning,
-};
-pub(crate) use crate::view_shape::{
-    admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
 };
 pub use crate::view_shape::{
     runtime_backed_view_shape_support_profile, AdmittedViewShape,
@@ -156,10 +148,6 @@ pub use crate::view_shape::{
     ViewShapeIdentityBinding, ViewShapeIdentityConsumption, ViewShapeInvalidationPosture,
     ViewShapeMaintenanceContract, ViewShapePatchPosture, ViewShapePlanArtifact,
     ViewShapePlanDigest, ViewShapeValidatedBundle,
-};
-pub(crate) use crate::view_shape_live::{
-    admit_grouped_live_view, execute_grouped_live_view_shape_change,
-    execute_live_view_shape_change, lower_view_shape_plan_to_live,
 };
 pub use crate::view_shape_live::{
     materialize_grouped_execution_surface_from_truth_view, AuthoritativeGroupedBaselineArtifact,
@@ -173,11 +161,6 @@ pub use crate::view_shape_live::{
     ViewShapeLiveLowering, ViewShapeLiveReport, ViewShapePatchEnvelope, ViewShapePatchFamily,
     ViewShapePatchPayload, ViewShapeRefreshDisposition, ViewShapeReplayBundle,
     ViewShapeSuppressionDisposition, WorthQueryGroupedBaselineMember,
-};
-pub(crate) use crate::workflow::{
-    admit_query_workflow_declaration, bind_workflow_context, inspect_merge_conflicts,
-    inspect_post_merge_outcome, lower_merge_workflow_declaration,
-    lower_mutation_intent_declaration, lower_query_writeback_declaration,
 };
 pub use crate::workflow::{
     build_workflow_replay_bundle, shape_merge_authority_outcome, shape_mutation_authority_outcome,

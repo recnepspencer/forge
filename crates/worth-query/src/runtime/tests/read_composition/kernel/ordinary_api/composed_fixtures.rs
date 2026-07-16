@@ -5,7 +5,7 @@ use crate::authoring::{
 use crate::composition::{
     QueryScopeDescriptor, QueryTemplateDescriptor, TemplateBindingSet, TemplateParameterSlot,
 };
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
 
 pub(super) fn local_named_direct_read<Output>(
     read: crate::runtime::WorthQueryReadBuilder<Output>,
@@ -72,7 +72,7 @@ fn schema_field(aspect: &str, field: &str) -> SchemaFieldView {
     SchemaFieldView::new(
         AspectName::new(aspect).expect("aspect should author"),
         FieldName::new(field).expect("field should author"),
-        SchemaFieldKind::String,
+        ScalarAspectType::String,
     )
 }
 

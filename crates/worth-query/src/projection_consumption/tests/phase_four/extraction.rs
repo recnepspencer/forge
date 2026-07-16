@@ -1,4 +1,7 @@
-use worth_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
+use worth_foundational::facade::{
+    aspects, AspectContract, AspectContractRevision, AspectIdentity, AspectKey, AspectValue,
+    FieldKey, ScalarAspectType, StructAspectValue,
+};
 use worth_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
 };
@@ -36,7 +39,7 @@ fn relational_row_set_extracts_identity_and_field_facts() {
                         .expect("projection fact field segment should admit"),
                 ]),
             )
-            .derived_scalar_field_path(
+            .derived_field_path(
                 crate::projection_consumption::projection_fact_field_path_from_segments([
                     worth_foundational::facade::FieldKey::new("profile")
                         .expect("projection fact field segment should admit"),
@@ -64,7 +67,7 @@ fn relational_row_set_extracts_identity_and_field_facts() {
         "entity:1:1:1"
     );
     assert_eq!(consumed.display_fields().len(), 2);
-    assert_eq!(consumed.derived_scalar_fields().len(), 2);
+    assert_eq!(consumed.derived_fields().len(), 2);
     assert_eq!(consumed.counters().declared_fact_family_count(), 4);
     assert_eq!(consumed.counters().extracted_fact_count(), 8);
     assert_eq!(consumed.counters().source_row_width_consumed(), 6);
@@ -74,6 +77,77 @@ fn relational_row_set_extracts_identity_and_field_facts() {
             .canonical_field_path(),
         &canonical_field_path("profile.display_name")
     );
+}
+
+#[test]
+fn relational_row_set_preserves_struct_facts_and_typed_refinement_denials() {
+    let entity = RelationalBridgeRecordIdentityParts::entity(1, 1, 1);
+    let identity_read = relational_snapshot_read(entity, "identity.id");
+    let profile_read = SnapshotReadRequest::for_relational_record(
+        entity,
+        SnapshotReadContract::new(AspectContract::struct_aspect(
+            AspectKey::new("profile").unwrap(),
+            AspectIdentity(27),
+            AspectContractRevision(1),
+            aspects()
+                .struct_fields()
+                .required("name", ScalarAspectType::String)
+                .finish()
+                .unwrap(),
+        )),
+    );
+    let profile = StructAspectValue::new([(
+        FieldKey::new("name").unwrap(),
+        AspectValue::String("Ada".into()),
+    )])
+    .unwrap();
+    let packet = SnapshotReadPacket::new(vec![identity_read.clone(), profile_read.clone()]);
+    let row_set = materialize_relational_authoritative_row_set(
+        &packet,
+        &SnapshotReadPacketResult::new(
+            phase_four_truth_snapshot_identity("snapshot-struct"),
+            vec![
+                SnapshotReadRecord::for_request(
+                    &identity_read,
+                    AspectValue::String("task-1".into()),
+                ),
+                SnapshotReadRecord::for_request(&profile_read, profile.clone()),
+            ],
+        ),
+    )
+    .unwrap();
+    let contract = admitted(
+        ProjectionConsumptionSource::from_relational_row_set(&row_set),
+        binding(&["profile"]),
+        ProjectMaterializedFacts::declare().derived_field_path(
+            crate::projection_consumption::projection_fact_field_path_from_segments([
+                FieldKey::new("profile").unwrap(),
+            ]),
+        ),
+    )
+    .bind_contract();
+
+    let consumed = contract.extract_from_relational_row_set(&row_set).unwrap();
+    let fact = &consumed.derived_fields()[0];
+    assert_eq!(fact.as_struct().unwrap(), &profile);
+    let denial = fact.as_int64().unwrap_err();
+    assert_eq!(
+        denial.expected(),
+        crate::projection_consumption::ConsumedNativeValueShape::Scalar(ScalarAspectType::Int64)
+    );
+    assert_eq!(
+        denial.actual(),
+        crate::projection_consumption::ConsumedNativeValueShape::Struct
+    );
+    assert_eq!(
+        denial.field_path().canonical_field_path(),
+        &canonical_field_path("profile")
+    );
+    assert_eq!(
+        denial.source_family(),
+        ProjectionSourceFamily::RelationalRowSet
+    );
+    assert_eq!(denial.projection_authority(), contract.contract_digest());
 }
 
 #[test]
@@ -202,7 +276,7 @@ fn extraction_rejects_missing_field_evidence_and_family_mismatch() {
                 SnapshotReadRecord::for_request(
                     &entity_one_display_read,
                     aspect_value(
-                        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                             "Task One",
                         ),
                     ),
@@ -210,7 +284,7 @@ fn extraction_rejects_missing_field_evidence_and_family_mismatch() {
                 SnapshotReadRecord::for_request(
                     &entity_two_display_read,
                     aspect_value(
-                        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                             "Task Two",
                         ),
                     ),

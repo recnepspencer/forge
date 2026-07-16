@@ -146,7 +146,7 @@ fn predicate_family(
         .iter()
         .map(|predicate| match predicate.family() {
             "equality" => WorthQueryGraphReadPredicateFamily::Equality,
-            "integer-comparison" => WorthQueryGraphReadPredicateFamily::Range,
+            "native-comparison" => WorthQueryGraphReadPredicateFamily::Range,
             "string-contains" => WorthQueryGraphReadPredicateFamily::Text,
             "set-membership" => WorthQueryGraphReadPredicateFamily::Membership,
             "presence" => WorthQueryGraphReadPredicateFamily::Presence,

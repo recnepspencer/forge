@@ -226,8 +226,7 @@ impl WorthQuerySharedReadContext {
             ),
         }
     }
-
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(in crate::runtime) fn from_runtime(runtime: &WorthQueryRuntime) -> Self {
         runtime
             .mint_shared_read_context()
@@ -265,8 +264,6 @@ impl WorthQueryRuntime {
             published_artifacts: self.published_artifacts.clone(),
         })
     }
-
-    #[allow(dead_code)]
     pub fn shared_read_counters(&self) -> super::WorthQuerySharedReadCounters {
         self.shared_read_pins
             .counters()

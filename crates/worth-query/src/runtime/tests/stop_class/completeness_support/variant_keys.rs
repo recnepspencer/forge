@@ -26,6 +26,7 @@ pub(in crate::runtime::tests::stop_class) fn runtime_error_variant_key(
         WorthQueryRuntimeError::ExistingTruthProbeDenied(_) => "existing_truth_probe_denied",
         WorthQueryRuntimeError::MutationBindingDenied(_) => "mutation_binding_denied",
         WorthQueryRuntimeError::MutationContinuityDenied(_) => "mutation_continuity_denied",
+        WorthQueryRuntimeError::MutationContractDenied(_) => "mutation_contract_denied",
         WorthQueryRuntimeError::GraphObligationTouchDescriptorDenied(_) => {
             "graph_obligation_touch_descriptor_denied"
         }
@@ -115,6 +116,7 @@ pub(in crate::runtime::tests::stop_class) fn stop_class_variant_key(
         WorthQueryStopClass::ExistingTruthProbeDenied { .. } => "existing_truth_probe_denied",
         WorthQueryStopClass::MutationBindingDenied { .. } => "mutation_binding_denied",
         WorthQueryStopClass::MutationContinuityDenied { .. } => "mutation_continuity_denied",
+        WorthQueryStopClass::MutationContractDenied { .. } => "mutation_contract_denied",
         WorthQueryStopClass::GraphObligationTouchDescriptorDenied { .. } => {
             "graph_obligation_touch_descriptor_denied"
         }

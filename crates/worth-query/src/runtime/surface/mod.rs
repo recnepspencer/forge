@@ -49,7 +49,6 @@ mod read_result;
 mod retained_materialized_row;
 mod retained_scalar_alignment;
 mod retained_scalar_facts;
-mod retained_scalar_values;
 mod symbolic_aspect_resolution_evidence;
 mod symbolic_target_reference_evidence;
 mod unified_inspection_receipt;
@@ -94,7 +93,7 @@ pub use graph_composition_resolution_map::{
     WorthQueryGraphCompositionResolutionEntry, WorthQueryGraphCompositionResolutionMap,
 };
 pub use inspection_artifact::{WorthQueryArtifactInspector, WorthQueryInspectedArtifact};
-pub use live::{WorthQueryLiveView, WorthQueryNativeRow, WorthQueryPatchBatch};
+pub use live::{WorthQueryLiveView, WorthQueryPatchBatch, WorthQueryUnrefinedLiveShape};
 pub use live_artifact_binding::WorthQueryLiveArtifactBinding;
 pub use live_artifact_bundle::{WorthQueryLiveArtifactBundle, WorthQueryLiveArtifactTarget};
 pub use live_read_receipt::WorthQueryLiveReadReceipt;
@@ -148,7 +147,7 @@ pub use read_relationship_proof_denial::{
 };
 pub use read_result::WorthQueryReadResult;
 pub use retained_materialized_row::{
-    WorthQueryRetainedFieldPath, WorthQueryRetainedMaterializedRow,
+    WorthQueryRetainedFieldPath, WorthQueryRetainedMaterializedRow, WorthQueryRetainedValueView,
 };
 pub use retained_scalar_alignment::{
     WorthQueryRetainedScalarAlignment, WorthQueryRetainedScalarAlignmentFact,
@@ -157,9 +156,7 @@ pub use retained_scalar_facts::{
     WorthQueryRetainedScalarFactSet, WorthQueryRetainedScalarFieldFact,
 };
 pub use symbolic_aspect_resolution_evidence::WorthQuerySymbolicAspectResolutionEvidence;
-pub use symbolic_target_reference_evidence::{
-    WorthQuerySymbolicTargetReferenceEvidence, WorthQuerySymbolicTargetReferenceOutcome,
-};
+pub use symbolic_target_reference_evidence::WorthQuerySymbolicTargetReferenceEvidence;
 pub use unified_inspection_receipt::WorthQueryUnifiedInspectionReceipt;
 pub use unified_inspection_result::WorthQueryUnifiedInspectionResult;
 pub use verified_assumption_set::{

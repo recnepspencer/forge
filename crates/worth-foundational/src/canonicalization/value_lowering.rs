@@ -1,7 +1,36 @@
+use crate::aspects::StructAspectValue;
 use crate::canonicalization::basis::{
     CanonicalBasisValue, CanonicalFloatWidth, CanonicalIntegerWidth,
 };
 use crate::values::{AspectValue, EntityId};
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CanonicalAspectValueIdentityBasis(String);
+
+impl CanonicalAspectValueIdentityBasis {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+pub fn prepare_aspect_value_identity_basis(
+    value: &AspectValue,
+) -> CanonicalAspectValueIdentityBasis {
+    let mut material = String::new();
+    crate::canonicalization::digest_slots::append_value_material(
+        &mut material,
+        &canonical_basis_value_for_aspect_value(value),
+    );
+    CanonicalAspectValueIdentityBasis(material)
+}
+
+pub fn prepare_struct_aspect_value_identity_basis(
+    value: &StructAspectValue,
+) -> CanonicalAspectValueIdentityBasis {
+    let mut material = String::new();
+    crate::canonicalization::digest_slots::append_struct_value_material(&mut material, value);
+    CanonicalAspectValueIdentityBasis(material)
+}
 
 pub(crate) fn canonical_basis_value_for_aspect_value(value: &AspectValue) -> CanonicalBasisValue {
     match value {

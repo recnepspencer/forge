@@ -13,21 +13,16 @@ use crate::policy_plan::PolicyAwareCurrentPlan;
 use crate::validation::ValidatedQueryBundle;
 
 #[cfg(test)]
-#[allow(unused_imports)]
 pub(crate) use crate::frontier_planning::{
-    BoundedMaterializationFrontierPreflight, BundleResolvedBasisDigest, FrontierAwarePlan,
-    FrontierBreadthPrediction, FrontierBundlePlan, FrontierBundleRoutePlanningError,
-    FrontierComplexityContract, FrontierCounterSnapshot, FrontierDisjointnessClass,
-    FrontierParityBundle, FrontierParityBundleError, FrontierPerformanceStatus, FrontierPlanFamily,
-    FrontierPlanningCounters, FrontierPlanningError, FrontierPlanningInput, FrontierPlanningReport,
-    FrontierPostureDigest, FrontierPredictionDriftOutcome, FrontierPreflightAdmissionError,
-    FrontierRouteCounters, FrontierRoutePlanningError, FrontierRouteReport, FrontierSurfaceDigest,
-    OrderedCollectionFrontierPreflight, PacketEquivalenceContract, PacketMergeBoundary,
-    PacketMergeContract, ParallelAdmissionBundleEvidence, ParallelAdmissionDecision,
-    ParallelAdmissionEvidence, ParallelAdmissionRoute, ParallelAdmissionRouteSet,
-    PlannedRouteFamily, PlannedWorkPacket, PlannedWorkPacketDigest, PlannedWorkPacketFamily,
-    PlannedWorkPacketSet, SerialFallbackBundleEvidence, SerialFallbackBundleRoutes,
-    SerialFallbackEvidence, SerialFallbackReason, SerialFallbackRoute,
+    BoundedMaterializationFrontierPreflight, FrontierAwarePlan, FrontierBundlePlan,
+    FrontierBundleRoutePlanningError, FrontierCounterSnapshot, FrontierDisjointnessClass,
+    FrontierParityBundle, FrontierPlanFamily, FrontierPlanningError, FrontierPlanningInput,
+    FrontierPredictionDriftOutcome, FrontierPreflightAdmissionError, FrontierRoutePlanningError,
+    FrontierSurfaceDigest, OrderedCollectionFrontierPreflight, PacketMergeContract,
+    ParallelAdmissionBundleEvidence, ParallelAdmissionEvidence, ParallelAdmissionRoute,
+    ParallelAdmissionRouteSet, PlannedRouteFamily, PlannedWorkPacketFamily,
+    SerialFallbackBundleEvidence, SerialFallbackBundleRoutes, SerialFallbackEvidence,
+    SerialFallbackReason, SerialFallbackRoute,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

@@ -17,15 +17,15 @@ use super::family::LiveViewShapeFamily;
 use super::grouped_delta::{build_grouped_delta, GroupedDeltaInvariantFailure};
 use super::grouped_execution::GroupedExecutionSurfaceArtifact;
 use super::grouped_state::{desired_state_from_members, WorthQueryGroupedBaselineMember};
-
+#[cfg(test)]
 fn patch_field_count(patch: &DetailPatch) -> usize {
     patch.field_deltas().len()
 }
-
+#[cfg(test)]
 fn ordered_patch_width(patch: &OrderedCollectionPatch) -> usize {
     patch.projected_field_deltas().len() + 1
 }
-
+#[cfg(test)]
 fn focus_projection<'a>(
     deltas: &'a [ProjectionFieldDelta],
     focus_aspect: &AspectKey,
@@ -45,7 +45,7 @@ fn focus_projection<'a>(
         Err(rejected)
     }
 }
-
+#[cfg(test)]
 pub fn execute_live_view_shape_change(
     live_view: &LiveViewShapeArtifact,
     change: &BridgeChangeSummary,
@@ -59,7 +59,7 @@ pub fn execute_live_view_shape_change(
     }
     execute_live_view_shape_change_inner(live_view, change, None)
 }
-
+#[cfg(test)]
 pub fn admit_grouped_live_view<'a>(
     live_view: &'a LiveViewShapeArtifact,
 ) -> Result<GroupedLiveViewShapeArtifact<'a>, ViewShapeLiveError> {
@@ -82,7 +82,7 @@ pub fn admit_grouped_live_view<'a>(
     }
     Ok(GroupedLiveViewShapeArtifact::new(live_view))
 }
-
+#[cfg(test)]
 pub fn execute_grouped_live_view_shape_change(
     live_view: GroupedLiveViewShapeArtifact<'_>,
     change: &BridgeChangeSummary,
@@ -94,7 +94,7 @@ pub fn execute_grouped_live_view_shape_change(
         Some(next_grouped_execution),
     )
 }
-
+#[cfg(test)]
 fn execute_live_view_shape_change_inner(
     live_view: &LiveViewShapeArtifact,
     change: &BridgeChangeSummary,
@@ -353,7 +353,7 @@ fn execute_live_view_shape_change_inner(
         next_live_view,
     ))
 }
-
+#[cfg(test)]
 fn execute_grouped_live_view_shape_change_inner(
     live_view: &LiveViewShapeArtifact,
     change: &BridgeChangeSummary,

@@ -1,17 +1,17 @@
 use worth_query::facade::foundation::{
     AspectFieldSelector, AuthoredResultShapeField, CollectionQueryBuilder, EqualityPredicate,
-    IntegerComparisonPredicate, OrderingSelector, PresencePredicate, RelationName,
-    ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate,
+    NativeComparisonPredicate, OrderingSelector, PresencePredicate, RelationName,
+    WorthQueryPredicateOperand, SetMembershipPredicate, StringContainsPredicate,
 };
 use worth_query::facade::runtime::{
-    QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
+    QuerySchemaView, ScalarAspectType, SchemaFieldView, SchemaRelationView,
     WorthQueryAdmittedGraphReadRelationDirection, WorthQueryGraphReadAccessShape,
     WorthQueryGraphReadFanoutPosture, WorthQueryGraphReadOrderingPosture,
     WorthQueryGraphReadPredicateFamily, WorthQueryGraphReadResultPressure,
     WorthQueryGraphReadRootPosture, WorthQueryGraphReadTraversalOperator, WorthQueryReadScopeClass,
 };
 
-mod support;
+use crate::support;
 
 use support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
@@ -75,7 +75,7 @@ fn graph_read_access_shape_changes_for_relation_direction_and_depth() {
             max_depth: 2,
             fanout: WorthQueryGraphReadFanoutPosture::SingleRelation,
             predicate: WorthQueryGraphReadPredicateFamily::None,
-            ordering: WorthQueryGraphReadOrderingPosture::Unordered,
+            ordering: WorthQueryGraphReadOrderingPosture::Ordered,
             result: WorthQueryGraphReadResultPressure::CollectionNarrow,
         },
     );
@@ -94,7 +94,7 @@ fn graph_read_access_shape_classifies_predicate_families_and_mixed_predicates() 
                 EqualityPredicate::new(
                     "status",
                     "value",
-                    ScalarPredicateValue::String("active".to_string()),
+                    WorthQueryPredicateOperand::string("active".to_string()),
                 )
                 .expect("equality predicate should build"),
             )
@@ -103,7 +103,7 @@ fn graph_read_access_shape_classifies_predicate_families_and_mixed_predicates() 
     let range = predicate_shape("range", |query| {
         query
             .where_greater_than(
-                IntegerComparisonPredicate::greater_than("profile", "age", 21)
+                NativeComparisonPredicate::greater_than("profile", "age", 21)
                     .expect("range predicate should build"),
             )
             .project(field("identity", "id"))
@@ -122,7 +122,7 @@ fn graph_read_access_shape_classifies_predicate_families_and_mixed_predicates() 
                 SetMembershipPredicate::new(
                     "status",
                     "value",
-                    [ScalarPredicateValue::String("active".to_string())],
+                    [WorthQueryPredicateOperand::string("active".to_string())],
                 )
                 .expect("membership predicate should build"),
             )
@@ -143,7 +143,7 @@ fn graph_read_access_shape_classifies_predicate_families_and_mixed_predicates() 
                     .expect("text predicate should build"),
             )
             .where_greater_than(
-                IntegerComparisonPredicate::greater_than("profile", "age", 21)
+                NativeComparisonPredicate::greater_than("profile", "age", 21)
                     .expect("range predicate should build"),
             )
             .project(field("identity", "id"))
@@ -176,14 +176,14 @@ fn graph_read_access_shape_classifies_predicate_families_and_mixed_predicates() 
 }
 
 #[test]
-fn graph_read_access_shape_classifies_ordering_without_digest_theater() {
+fn graph_read_access_shape_distinguishes_canonical_and_explicit_ordering() {
     let harness = PublicBridgeRuntimeHarness::new();
     let runtime = harness.bridge_backed_runtime();
     let mut workspace = runtime
         .workspace("graph-read-access.phase-one.ordering")
         .expect("runtime should open workspace");
-    let unordered = workspace
-        .define_read_family("unordered", |read| {
+    let canonical_ordered = workspace
+        .define_read_family("canonical-ordered", |read| {
             read.local_collection(
                 "user",
                 predicate_schema(),
@@ -191,7 +191,7 @@ fn graph_read_access_shape_classifies_ordering_without_digest_theater() {
                 |shape| shape.field(result_field("identity", "id", "id")),
             )
         })
-        .expect("unordered family should be admitted");
+        .expect("canonically ordered family should be admitted");
     let ordered = workspace
         .define_read_family("ordered", |read| {
             read.local_collection(
@@ -208,25 +208,35 @@ fn graph_read_access_shape_classifies_ordering_without_digest_theater() {
         })
         .expect("ordered family should be admitted");
 
-    let unordered_shape = access_shape(&workspace, &unordered);
+    let canonical_shape = access_shape(&workspace, &canonical_ordered);
     let ordered_shape = access_shape(&workspace, &ordered);
 
-    assert_ne!(unordered_shape.digest(), ordered_shape.digest());
+    assert_ne!(canonical_shape.digest(), ordered_shape.digest());
     assert_eq!(
-        unordered_shape.ordering_posture(),
-        &WorthQueryGraphReadOrderingPosture::Unordered
+        canonical_shape.ordering_posture(),
+        &WorthQueryGraphReadOrderingPosture::Ordered
     );
     assert_eq!(
         ordered_shape.ordering_posture(),
         &WorthQueryGraphReadOrderingPosture::Ordered
     );
+    let canonical_orderings = canonical_shape
+        .operation_resolution()
+        .references()
+        .orderings();
+    let explicit_orderings = ordered_shape
+        .operation_resolution()
+        .references()
+        .orderings();
+    assert_eq!(canonical_orderings.len(), 1);
+    assert_eq!(canonical_orderings[0].native_aspect_key().as_str(), "identity");
+    assert_eq!(canonical_orderings[0].native_field_key().as_str(), "id");
+    assert_eq!(canonical_orderings[0].direction(), "ascending");
+    assert_eq!(explicit_orderings.len(), 1);
+    assert_eq!(explicit_orderings[0].native_aspect_key().as_str(), "profile");
     assert_eq!(
-        ordered_shape
-            .operation_resolution()
-            .references()
-            .orderings()
-            .len(),
-        1
+        explicit_orderings[0].native_field_key().as_str(),
+        "display_name"
     );
 }
 
@@ -313,7 +323,7 @@ fn relation_schema() -> QuerySchemaView {
                 .expect("schema aspect literal must be valid"),
             worth_query::facade::foundation::FieldName::new("id")
                 .expect("schema field literal must be valid"),
-            SchemaFieldKind::String,
+            ScalarAspectType::String,
         )],
         [SchemaRelationView::new(
             worth_query::facade::foundation::RelationName::new("manager")
@@ -332,14 +342,14 @@ fn predicate_schema() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("id")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("status")
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("value")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             )
             .membership_predicate_queryable(),
             SchemaFieldView::new(
@@ -347,14 +357,14 @@ fn predicate_schema() -> QuerySchemaView {
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("age")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::Integer,
+                ScalarAspectType::Int64,
             ),
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 worth_query::facade::foundation::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             )
             .text_predicate_queryable()
             .presence_predicate_queryable(),

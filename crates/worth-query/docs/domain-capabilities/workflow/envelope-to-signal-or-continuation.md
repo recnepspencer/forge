@@ -60,7 +60,7 @@ That separation is important. Prepared does not mean executed.
 ## Small Example
 
 ```rust
-let envelope = handle.orchestrate_declaration_entry(
+let envelope = handle.declare_review_progress_describe_plan_receipt_and_envelope(
     geometry_session.prepare_preview_for_active_face_selection()?,
 )?;
 
@@ -77,7 +77,7 @@ envelope story.
 ## Real Example
 
 ```rust
-let envelope = handle.orchestrate_declaration_entry(
+let envelope = handle.declare_review_progress_describe_plan_receipt_and_envelope(
     geometry_session.prepare_preview_for_active_face_selection()?,
 )?;
 

@@ -30,14 +30,17 @@ pub use inspection::{
     WorthQueryDeclarationEntryInspectionRelationalPosture,
     WorthQueryDeclarationEntryInspectionSignalPosture,
 };
-pub use inspection::{
+#[cfg(test)]
+pub(crate) use inspection::{
     WorthQueryDeclarationEntryInspectionInput, WorthQueryDeclarationEntryRetainedSubjectInput,
 };
 pub use inventory::WorthQueryDeclarationEntryCrossingInventory;
 pub use row::{WorthQueryDeclarationEntryCrossingRow, WorthQueryDeclarationEntryCrossingSurface};
+#[cfg(test)]
+pub(crate) use support::WorthQueryDeclarationEntryReadinessRequest;
 pub use support::{
-    WorthQueryDeclarationEntryReadinessReport, WorthQueryDeclarationEntryReadinessRequest,
-    WorthQueryDeclarationEntryReadinessRow, WorthQueryDeclarationEntryReadinessStatus,
+    WorthQueryDeclarationEntryReadinessReport, WorthQueryDeclarationEntryReadinessRow,
+    WorthQueryDeclarationEntryReadinessStatus,
 };
 
 pub(crate) use authority_support::{
@@ -45,12 +48,12 @@ pub(crate) use authority_support::{
     worth_query_relational_routing_support_from_entry_readiness,
     worth_query_signal_compatibility_support_from_entry_readiness,
 };
+#[cfg(test)]
 pub(crate) use inspection::worth_query_declaration_entry_inspection_on_handle;
 pub(crate) use inventory::worth_query_declaration_entry_crossing_inventory;
-pub(crate) use support::{
-    worth_query_declaration_entry_readiness_report,
-    worth_query_declaration_entry_readiness_report_with_request,
-};
+pub(crate) use support::worth_query_declaration_entry_readiness_report;
+#[cfg(test)]
+pub(crate) use support::worth_query_declaration_entry_readiness_report_with_request;
 
 #[cfg(test)]
 mod tests;

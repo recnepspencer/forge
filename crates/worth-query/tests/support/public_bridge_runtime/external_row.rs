@@ -1,10 +1,10 @@
 use super::state::NativeExternalRow;
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use worth_query::facade::foundation::WorthQueryWorkspaceError;
-use worth_query::facade::runtime::{WorthQueryAdmittedAspectValue, WorthQueryAspectTouch};
+use worth_query::facade::runtime::{WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation};
 
 pub(super) fn external_row_from_aspects(
-    aspects: &[WorthQueryAdmittedAspectValue],
+    aspects: &[WorthQueryAuthoredAspectMutation],
 ) -> Result<NativeExternalRow, WorthQueryWorkspaceError> {
     let mut external_row = NativeExternalRow::new();
     apply_aspects_to_external_row(&mut external_row, aspects)?;
@@ -13,7 +13,7 @@ pub(super) fn external_row_from_aspects(
 
 pub(super) fn apply_aspects_to_external_row(
     external_row: &mut NativeExternalRow,
-    aspects: &[WorthQueryAdmittedAspectValue],
+    aspects: &[WorthQueryAuthoredAspectMutation],
 ) -> Result<(), WorthQueryWorkspaceError> {
     for aspect in aspects {
         let aspect_touch = aspect.aspect_touch();

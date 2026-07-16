@@ -111,7 +111,7 @@ fn display_colliding_preview_labels_produce_distinct_write_receipt_identities() 
 fn display_colliding_preview_labels_produce_distinct_execution_digests() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.render-collision-execution",
             task_live_request(),
             task_schema(),

@@ -12,23 +12,23 @@ pub(in crate::runtime::tests) use crate::program::{
 };
 pub(in crate::runtime::tests) use crate::runtime::async_result_state::WorthQueryRuntimeAsyncResultProjection;
 pub(in crate::runtime::tests) use crate::runtime::remask_posture::WorthQueryRuntimeRemaskProjection;
-pub(in crate::runtime::tests) use crate::schema_view::{SchemaFieldKind, SchemaFieldView};
+pub(in crate::runtime::tests) use crate::schema_view::SchemaFieldView;
 pub(in crate::runtime::tests) use crate::subscription::QueryPatchGroupKind;
 pub(in crate::runtime::tests) use worth_foundational::facade::{
-    AspectKey, AspectLocator, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
-    ScalarAspectType,
+    prepare_aspect_value_identity_basis, AspectKey, AspectLocator, AspectValue, CanonicalFieldPath,
+    FieldKey, LocatorAuthority, ScalarAspectType,
 };
 pub(in crate::runtime::tests) use worth_runtime_bridge::facade::{
     BridgeAsyncCompletionClass, BridgeAsyncCompletionDenialClass, BridgeAsyncCompletionState,
     BridgeAsyncForwardCausalityClass, BridgeCommittedPatchEnvelope,
     BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem, BridgeCommittedPatchTarget,
     BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration, CoarseRoutingMode,
-    InvalidationSink, MappingSelector, RelationalBridgeRecordIdentityKind,
-    RelationalBridgeRecordIdentityParts, RelationalBridgeSourceError,
-    RelationalCommittedPatchRequest, RuntimeBridgeBuilder, SignalBridgeSinkError,
-    SignalInvalidationScope, SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult,
-    SnapshotReadRecord, SnapshotReadSource, TruthBranchIdentity, TruthCommitIdentity,
-    TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
+    InvalidationSink, MappingSelector, RelationalBridgeRecordIdentityParts,
+    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridgeBuilder,
+    SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract, SnapshotReadPacket,
+    SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource, TruthBranchIdentity,
+    TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity,
+    TruthSnapshotReader,
 };
 mod adapters;
 mod bridge;
@@ -38,6 +38,7 @@ mod graph_composition;
 mod mixed_cause;
 mod mutation_authority_bridge;
 mod mutation_receipt_support;
+mod native_aspect_contracts;
 mod program;
 mod schema;
 mod stateful_bridge_runtime;
@@ -50,6 +51,7 @@ pub(in crate::runtime::tests) use graph_composition::*;
 pub(in crate::runtime::tests) use mixed_cause::*;
 pub(in crate::runtime::tests) use mutation_authority_bridge::*;
 pub(in crate::runtime::tests) use mutation_receipt_support::*;
+pub(in crate::runtime::tests) use native_aspect_contracts::*;
 pub(in crate::runtime::tests) use program::*;
 pub(in crate::runtime::tests) use schema::*;
 pub(crate) use stateful_bridge_runtime::*;
@@ -136,26 +138,18 @@ fn relational_test_entity_identity_named_fixture(
             Some(RelationalBridgeRecordIdentityParts::entity(1, 2, 0))
         }
         "task-existing-right" => Some(RelationalBridgeRecordIdentityParts::entity(1, 3, 0)),
+        "task-second-existing" => Some(RelationalBridgeRecordIdentityParts::entity(1, 4, 0)),
+        "vertex-split" => Some(RelationalBridgeRecordIdentityParts::entity(1, 4, 0)),
+        "vertex-merged" => Some(RelationalBridgeRecordIdentityParts::entity(1, 5, 0)),
+        "vertex-c" => Some(RelationalBridgeRecordIdentityParts::entity(1, 6, 0)),
+        "he-1" => Some(RelationalBridgeRecordIdentityParts::entity(3, 1, 0)),
+        "he-2" => Some(RelationalBridgeRecordIdentityParts::entity(3, 2, 0)),
+        "he-3" => Some(RelationalBridgeRecordIdentityParts::entity(3, 3, 0)),
+        "loop-a" => Some(RelationalBridgeRecordIdentityParts::entity(4, 1, 0)),
+        "loop-b" => Some(RelationalBridgeRecordIdentityParts::entity(4, 2, 0)),
+        "loop-c" => Some(RelationalBridgeRecordIdentityParts::entity(4, 3, 0)),
         _ => None,
     }
-}
-
-pub(in crate::runtime::tests) fn test_relational_endpoint_identity_label(
-    identity: &WorthQueryEntityIdentity,
-) -> String {
-    let parts = identity
-        .relational_record_parts()
-        .expect("test relational endpoint identity must carry relational record authority");
-    let kind = match parts.kind() {
-        RelationalBridgeRecordIdentityKind::Entity => "entity",
-        RelationalBridgeRecordIdentityKind::Relation => "relation",
-    };
-    format!(
-        "{kind}:{}:{}:{}",
-        parts.partition_id(),
-        parts.local_slot(),
-        parts.generation()
-    )
 }
 
 pub(in crate::runtime::tests) fn test_write_adjacent_origin_identity(
@@ -237,7 +231,7 @@ pub(in crate::runtime::tests) fn retained_string_test_row(
 ) -> WorthQueryRetainedMaterializedRow {
     retained_test_row([(
         field.into(),
-        crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value),
+        crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value),
     )])
 }
 
@@ -339,13 +333,45 @@ pub(in crate::runtime::tests) fn status_value_field_key() -> crate::authoring::A
 }
 
 pub(in crate::runtime::tests) fn test_string_aspect_value(value: impl Into<String>) -> AspectValue {
-    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(value)
+    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(value)
 }
 
 pub(in crate::runtime::tests) fn test_authored_string_aspect_value(
     value: impl Into<String>,
 ) -> WorthQueryAuthoredAspectValue {
     WorthQueryAuthoredAspectValue::string(value)
+}
+
+pub(in crate::runtime::tests) fn test_native_string_value_identity(
+    value: impl Into<String>,
+) -> String {
+    prepare_aspect_value_identity_basis(&test_string_aspect_value(value))
+        .as_str()
+        .to_string()
+}
+
+pub(in crate::runtime::tests) fn test_authored_string_terminal_digest(
+    aspect_path: &str,
+    value: impl Into<String>,
+) -> String {
+    format!(
+        "{}=set:{}",
+        test_aspect_touch(aspect_path).admitted_touch_digest_part(),
+        test_native_string_value_identity(value)
+    )
+}
+
+pub(in crate::runtime::tests) fn test_native_entity_ref_value(
+    identity: &WorthQueryEntityIdentity,
+) -> AspectValue {
+    let parts = identity
+        .relational_entity_record_parts()
+        .expect("test native entity references require relational entity authority");
+    AspectValue::EntityRef(worth_foundational::facade::EntityId::new(
+        worth_foundational::facade::PartitionId(parts.partition_id()),
+        parts.local_slot(),
+        parts.generation(),
+    ))
 }
 
 pub(in crate::runtime::tests) fn test_update_string_aspect_command(
@@ -355,7 +381,7 @@ pub(in crate::runtime::tests) fn test_update_string_aspect_command(
 ) -> WorthQueryWriteCommand {
     WorthQueryWriteCommand::UpdateAspect {
         entity_identity,
-        aspect: WorthQueryAdmittedAspectValue::new_set(
+        aspect: WorthQueryAuthoredAspectMutation::new_set(
             test_aspect_touch(touch_fixture),
             test_string_aspect_value(value),
         )

@@ -106,6 +106,9 @@ impl WorthQueryRuntime {
             WorthQueryAuthoritativeMutationPreflight::ContinuityDenied(denial) => {
                 WorthQueryRuntimeError::MutationContinuityDenied(denial.clone())
             }
+            WorthQueryAuthoritativeMutationPreflight::ContractDenied(denial) => {
+                WorthQueryRuntimeError::MutationContractDenied(denial.clone())
+            }
             WorthQueryAuthoritativeMutationPreflight::NamingDenied(denial) => {
                 WorthQueryRuntimeError::MutationNamingDenied(denial.clone())
             }
@@ -142,6 +145,7 @@ impl WorthQueryRuntime {
         };
         self.execute_authoritative_write_command_direct(
             handoff.command().clone(),
+            handoff.admitted_mutation().clone(),
             handoff.verified_existing_truth_assertion().cloned(),
             Some(shared_admission),
         )

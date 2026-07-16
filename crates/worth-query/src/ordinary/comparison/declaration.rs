@@ -8,14 +8,16 @@ pub enum WorthQueryComparisonIntent {
     Lineage,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryComparisonDeclaration {
-    read: WorthQueryReadDeclaration,
+    left_read: WorthQueryReadDeclaration,
+    right_read: WorthQueryReadDeclaration,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryComparisonRefinement {
-    pub(crate) read: WorthQueryReadDeclaration,
+    pub(crate) left_read: WorthQueryReadDeclaration,
+    pub(crate) right_read: WorthQueryReadDeclaration,
     pub(crate) intent: WorthQueryComparisonIntent,
     pub(crate) candidate_budget: usize,
 }
@@ -57,7 +59,8 @@ impl WorthQueryComparisonDeclaration {
         candidate_budget: usize,
     ) -> WorthQueryComparisonRefinement {
         WorthQueryComparisonRefinement {
-            read: self.read,
+            left_read: self.left_read,
+            right_read: self.right_read,
             intent,
             candidate_budget,
         }
@@ -90,6 +93,12 @@ pub fn declare(
     >,
 ) -> Result<WorthQueryComparisonDeclaration, WorthQueryComparisonDeclarationStop> {
     read::declare(author)
-        .map(|read| WorthQueryComparisonDeclaration { read })
+        .map(|read| {
+            let (left_read, right_read) = read.into_comparison_pair();
+            WorthQueryComparisonDeclaration {
+                left_read,
+                right_read,
+            }
+        })
         .map_err(|read_stop| WorthQueryComparisonDeclarationStop { read_stop })
 }

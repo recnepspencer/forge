@@ -146,7 +146,7 @@ fn assert_task_live_row_count(runtime: WorthQueryRuntime, workspace: &str, expec
     let mut workspace = runtime
         .workspace(workspace)
         .expect("runtime should open workspace for state verification");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.policy-denial-state", |q| {
             q.from("Task")
                 .select([

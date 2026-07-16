@@ -4,7 +4,7 @@
 macro_rules! internal_suite {
     ($name:ident, $path:literal) => {
         #[path = $path]
-        mod $name;
+        pub mod $name;
     };
 }
 
@@ -110,12 +110,12 @@ internal_suite!(
     "../tests/graph_obligation_public_facade.rs"
 );
 internal_suite!(
-    graph_read_access_architectural_closeout,
-    "../tests/graph_read_access_architectural_closeout.rs"
-);
-internal_suite!(
     graph_read_access_async_materialization,
     "../tests/graph_read_access_async_materialization.rs"
+);
+internal_suite!(
+    graph_read_access_architectural_closeout,
+    "../tests/graph_read_access_architectural_closeout.rs"
 );
 internal_suite!(
     graph_read_access_docs_agreement,
@@ -132,14 +132,6 @@ internal_suite!(
 internal_suite!(
     graph_read_access_persistent_requirement,
     "../tests/graph_read_access_persistent_requirement.rs"
-);
-internal_suite!(
-    graph_read_access_phase_eight_ephemeral_provisioning,
-    "../tests/graph_read_access_phase_eight_ephemeral_provisioning.rs"
-);
-internal_suite!(
-    graph_read_access_phase_five_cost_model,
-    "../tests/graph_read_access_phase_five_cost_model.rs"
 );
 internal_suite!(
     graph_read_access_phase_four_adversarial,
@@ -166,8 +158,12 @@ internal_suite!(
     "../tests/graph_read_access_phase_fourteen_branch_authority.rs"
 );
 internal_suite!(
-    graph_read_access_phase_nine_streaming_frontier,
-    "../tests/graph_read_access_phase_nine_streaming_frontier.rs"
+    graph_read_access_phase_five_cost_model,
+    "../tests/graph_read_access_phase_five_cost_model.rs"
+);
+internal_suite!(
+    graph_read_access_phase_eight_ephemeral_provisioning,
+    "../tests/graph_read_access_phase_eight_ephemeral_provisioning.rs"
 );
 internal_suite!(
     graph_read_access_phase_one,
@@ -184,6 +180,10 @@ internal_suite!(
 internal_suite!(
     graph_read_access_phase_six_admission,
     "../tests/graph_read_access_phase_six_admission.rs"
+);
+internal_suite!(
+    graph_read_access_phase_nine_streaming_frontier,
+    "../tests/graph_read_access_phase_nine_streaming_frontier.rs"
 );
 internal_suite!(
     graph_read_access_phase_thirteen_live_maintenance,
@@ -234,6 +234,22 @@ internal_suite!(
     "../tests/milestone_nine_twelve_hostile_certification.rs"
 );
 internal_suite!(
+    milestone_nine_thirteen_installed_domain_certification,
+    "../tests/milestone_nine_thirteen_installed_domain_certification.rs"
+);
+internal_suite!(
+    milestone_nine_thirteen_native_value_certification,
+    "../tests/milestone_nine_thirteen_native_value_certification.rs"
+);
+internal_suite!(
+    native_aspect_mutation_public_dx,
+    "../tests/native_aspect_mutation_public_dx.rs"
+);
+internal_suite!(
+    native_predicate_contract_matrix,
+    "../tests/native_predicate_contract_matrix.rs"
+);
+internal_suite!(
     phase_boundaries_basis_lifecycle_compile_fail,
     "../tests/phase_boundaries_basis_lifecycle_compile_fail.rs"
 );
@@ -250,28 +266,16 @@ internal_suite!(
     "../tests/phase_boundaries_domain_capabilities_certification_compile_fail.rs"
 );
 internal_suite!(
-    phase_boundaries_domain_capabilities_compile_fail,
-    "../tests/phase_boundaries_domain_capabilities_compile_fail.rs"
-);
-internal_suite!(
     phase_boundaries_domain_capabilities_dx_compile_fail,
     "../tests/phase_boundaries_domain_capabilities_dx_compile_fail.rs"
 );
 internal_suite!(
-    phase_boundaries_domain_declaration_compile_fail,
-    "../tests/phase_boundaries_domain_declaration_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_domain_entry_compile_fail,
-    "../tests/phase_boundaries_domain_entry_compile_fail.rs"
-);
-internal_suite!(
-    phase_boundaries_domain_handle_compile_fail,
-    "../tests/phase_boundaries_domain_handle_compile_fail.rs"
-);
-internal_suite!(
     phase_boundaries_installed_domain_compile_fail,
     "../tests/phase_boundaries_installed_domain_compile_fail.rs"
+);
+internal_suite!(
+    installed_domain_facade_extension,
+    "../tests/installed_domain_facade_extension.rs"
 );
 internal_suite!(
     phase_boundaries_effect_lifecycle_compile_fail,

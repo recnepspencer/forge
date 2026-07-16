@@ -36,6 +36,7 @@ pub(crate) enum RecordMutation {
         new_target: EntityId,
         old_authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
         new_authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
+        authoritative_patch: Option<worth_foundational::facade::AuthoritativeRecordAspectPatch>,
     },
     RelationDeleted {
         relation_id: RelationId,

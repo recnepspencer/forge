@@ -24,11 +24,15 @@ use crate::runtime::{
     WorthQueryIntentDeclaration, WorthQueryIntentInput, WorthQueryReadBuilder,
     WorthQueryReadFamily, WorthQueryRuntime, WorthQueryRuntimeBuilder,
 };
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView, SchemaRelationView};
 
 mod authority;
 mod journey;
+mod live_lifecycle;
+mod lookup_scaling;
+mod operation_path_equivalence;
 mod rebind;
+mod substrates;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct InstalledDomain;
@@ -196,21 +200,26 @@ fn runtime_installation_reports_platform_support_admission_before_compilation() 
 }
 
 #[test]
-fn ordinary_explanation_and_admission_resolve_installed_operation_by_index() {
-    let runtime = installed_runtime();
-    let family = installed_operation_family();
-    let admission = runtime
-        .admit_graph_read_access_for_family(&family)
-        .expect("installed operation must resolve without an injected registry");
-    assert!(admission.is_admitted());
-    let workspace = runtime.workspace("installed-domain-test").unwrap();
-    workspace
-        .explain_graph_read_access_shape(&family)
-        .expect("ordinary explanation must use runtime-installed operations");
+fn installed_operation_declaration_cannot_cross_runtime_authority() {
+    let owner = installed_runtime();
+    let foreign = installed_runtime();
+    let declaration = installed_operation_family(&owner.domain(InstalledDomain).unwrap());
 
-    let counters = workspace.runtime.domain_installation_lookup_counters();
-    assert_eq!(counters.indexed_operation_lookups(), 2);
-    assert_eq!(counters.package_content_scans(), 0);
+    owner
+        .workspace("installed-operation-owner")
+        .unwrap()
+        .explain_graph_read_access_shape(&declaration)
+        .expect("the installing runtime must resolve its handle-bound operation");
+    let denial = foreign
+        .workspace("installed-operation-foreign")
+        .unwrap()
+        .explain_graph_read_access_shape(&declaration)
+        .expect_err("an equivalent foreign runtime must not resolve another runtime's declaration");
+    assert!(matches!(
+        denial,
+        crate::runtime::WorthQueryGraphReadAccessShapeExplanationError::
+            OperationRequiresAccessCapabilityRegistration(_)
+    ));
 }
 
 #[test]
@@ -243,15 +252,22 @@ fn handle_lookup_is_constant_width_and_installation_is_self_describing() {
     assert_eq!(counters.package_content_scans(), 0);
 }
 
-fn installed_operation_family() -> WorthQueryReadFamily {
-    let operation = WorthQueryGraphReadDomainOperationDeclaration::new(
-        "neighbors",
-        1,
-        "WORTH.tests.installed-domain",
-    )
-    .unwrap()
-    .admit_relation_reference("manager")
-    .unwrap();
+fn installed_operation_family(
+    handle: &crate::domain_installation::WorthQueryInstalledDomainHandle<InstalledDomain>,
+) -> WorthQueryReadFamily {
+    let operation = handle.graph_read_operation(
+        &WorthQueryDomainGraphReadOperationDefinition::new(
+            WorthQueryDomainIdentityName::new("neighbors").unwrap(),
+            1,
+        )
+        .accepts_relation(RelationName::new("manager").unwrap()),
+    );
+    operation_family(operation)
+}
+
+fn operation_family(
+    operation: WorthQueryGraphReadDomainOperationDeclaration,
+) -> WorthQueryReadFamily {
     let graph = WorthQueryReadBuilder::standalone()
         .local_detail(
             "user",
@@ -278,7 +294,7 @@ fn schema() -> QuerySchemaView {
         [SchemaFieldView::new(
             crate::authoring::AspectName::new("identity").unwrap(),
             crate::authoring::FieldName::new("id").unwrap(),
-            SchemaFieldKind::String,
+            ScalarAspectType::String,
         )],
         [SchemaRelationView::new(
             RelationName::new("manager").unwrap(),

@@ -3,8 +3,7 @@ use crate::facade::{
     BridgeSubscriptionReferenceWorkloadFamilyKind, BridgeSubscriptionReferenceWorkloadLaneIdSet,
     BridgeSubscriptionReferenceWorkloadLaneKind, BridgeSubscriptionReferenceWorkloadLaneRequest,
     BridgeSubscriptionReferenceWorkloadProductIdSet,
-    BridgeSubscriptionTemporalAsyncCertificationCloseoutRequest,
-    BridgeTemporalAsyncCertificationDiagnosticsRichness, RuntimeBridge,
+    BridgeSubscriptionTemporalAsyncCertificationCloseoutRequest, RuntimeBridge,
 };
 
 use super::super::*;

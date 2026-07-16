@@ -22,11 +22,6 @@ impl QuerySubscriptionMeaningDigest {
     fn from_evidence_identity(identity: &WorthQueryEvidenceIdentity) -> Self {
         Self(identity.as_str().to_string())
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn as_str(&self) -> &str {
-        &self.0
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -68,12 +63,6 @@ impl QuerySubscriptionEquivalenceBasis {
     pub fn evidence_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.equivalence_identity
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn digest(&self) -> &QuerySubscriptionMeaningDigest {
-        &self.digest
-    }
-
     pub fn digest_part_count(&self) -> usize {
         self.digest_part_count
     }

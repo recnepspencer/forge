@@ -10,6 +10,7 @@ use super::super::materialization::foundational_materialization_tier;
 use super::super::sequencing::WorthQueryDeclarationEntryOrchestrationAutomationContext;
 use super::route::lower_from_route_checked;
 
+#[cfg(test)]
 pub(super) fn lower_from_progressed<
     D: WorthQueryDomainEntryMarker,
     C: crate::application::WorthQueryDomainOperatingContext<D>,

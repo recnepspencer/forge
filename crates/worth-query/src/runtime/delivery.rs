@@ -221,11 +221,6 @@ impl WorthQueryRuntimeRetainedDelivery {
         &self.delivery_batch_identity
     }
 
-    #[allow(dead_code)]
-    pub(super) fn delivery_batch_for_reporting(&self) -> &str {
-        self.delivery_batch_identity.as_str()
-    }
-
     pub(super) fn delivery_cause_kind(&self) -> QuerySubscriptionDeliveryCauseKind {
         self.delivery_cause_kind
     }

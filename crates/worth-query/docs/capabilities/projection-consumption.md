@@ -34,7 +34,13 @@ Import the ordinary surface from `worth_query::facade::read`:
 Available fact declarations include `entity_identities()`,
 `view_local_identities()`, `target_identity()`, `source_references()`,
 `effect_continuity_facts()`, `memberships()`, `relation_endpoints()`,
-`display_field(...)`, and `derived_scalar_field(...)`.
+`display_field(...)`, and `derived_field(...)`.
+
+Field facts preserve Foundational native values. Use `native_value()` to match
+the complete scalar-or-struct shape, or use a borrowed refinement such as
+`as_uint64()`, `as_timestamp_tz()`, or `as_struct()`. A wrong refinement
+returns `ConsumedNativeRefinementDenial` with the actual and expected shape;
+it never coerces or reconstructs a value.
 
 ## Core Mental Model
 

@@ -1,7 +1,6 @@
 use worth_query::facade::foundation::worth_ui_query_binding_evidence_identity;
 use worth_query::facade::runtime::{
-    WorthQueryEvidenceIdentity,
-    WorthQueryRuntimeAsyncResultState,
+    WorthQueryEvidenceIdentity, WorthQueryRuntimeAsyncResultState,
     WorthQueryRuntimeAsyncResultStateKind,
 };
 use worth_ui::facade::{

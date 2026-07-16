@@ -4,7 +4,7 @@ use super::super::support::*;
 fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residue() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.preview-closeout",
             task_live_request(),
             task_schema(),
@@ -66,7 +66,11 @@ fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residu
 fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_mutation() {
     let mut runtime = stateful_bridge_task_runtime();
     runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare before preview-safe operation runs");
     let program = preview_safe_program();
     let installed = runtime
@@ -115,7 +119,7 @@ fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_muta
     );
 
     let view = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.after-promotion-closeout",
             task_live_request(),
             task_schema(),
@@ -141,6 +145,8 @@ fn preview_promotion_rejects_stale_basis_before_authority_execution() {
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native preview promotion contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("drifting backend should build");
@@ -196,6 +202,8 @@ fn preview_promotion_write_failure_is_typed_and_not_silently_dropped() {
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native preview promotion contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("denying write backend should build");
@@ -252,6 +260,8 @@ fn preview_promotion_rejects_multi_write_batch_before_partial_authority_executio
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native preview promotion contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("counting write backend should build");

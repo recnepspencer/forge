@@ -8,7 +8,7 @@ and signal boundaries. It starts from an observation receipt plus a sealed
 inspection-basis capability, then produces an admitted explanation plan and an
 inspectable artifact.
 
-This is different from `workspace.inspect(...)`, which explains one retained
+This is different from `workspace.inspections()?.inspect(...)`, which explains one retained
 workspace target. Use causal inspection when the question crosses runtime
 boundaries.
 
@@ -139,7 +139,7 @@ authority inputs.
   result followed.
 - [Lower-Runtime Capability Routing](../domain-capabilities/lower-runtime-capability-routing.md)
   owns bridge-facing materialization boundaries.
-- [Lower-runtime explanation contributions](../domain-capabilities/explanation/lower-runtime-explanation-contributions.md) describe
+- Lower-runtime explanation contributions describe
   domain explanation posture; they do not execute this runtime lane.
 
 ## Inspection And Debugging
@@ -171,7 +171,7 @@ deferred explanation families before authoring a production workflow.
 - Calling `CausalInspection::for_observation(...)` without a scoped inspection
   basis.
 - Reconstructing inspection authority from receipt, basis, or evidence digests.
-- Calling `workspace.inspect(...)` and describing it as cross-runtime causal
+- Calling `workspace.inspections()?.inspect(...)` and describing it as cross-runtime causal
   inspection.
 - Importing bridge or signal internals into product code to assemble a local
   explanation.

@@ -48,7 +48,8 @@ fn kv07_multiple_escalations_recorded() {
         r = &r * &large;
         r = &r * &small;
     }
-    r = budget.enforce(r);
+    let compressed = budget.enforce(r);
+    assert!(budget.within_budget(&compressed));
 
     assert_eq!(
         budget.escalation_count(),

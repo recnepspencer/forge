@@ -18,7 +18,7 @@ pub(super) fn consume_artifact_title(
             .facts()
             .display_fields()
             .first()
-            .and_then(|fact| match fact.value() {
+            .and_then(|fact| match fact.native_value().scalar()? {
                 AspectValue::String(InternedString::Raw(value)) => Some(value.as_str()),
                 AspectValue::String(InternedString::Symbol(_)) => None,
                 _ => None,

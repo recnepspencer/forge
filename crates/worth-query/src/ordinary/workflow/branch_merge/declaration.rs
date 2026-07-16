@@ -1,4 +1,5 @@
 use crate::ordinary::WorthQueryOrdinaryInspectionPolicy;
+use crate::runtime::WorthQueryAdmittedBranchName;
 use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag};
 
 use super::{WorthQueryBranchMergeContext, WorthQueryBranchMergeRequest};
@@ -45,8 +46,8 @@ impl WorthQueryBranchMergeDeclarationIdentity {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryBranchMergeDeclaration {
     identity: WorthQueryBranchMergeDeclarationIdentity,
-    target_branch: String,
-    source_branch: String,
+    target_branch: WorthQueryAdmittedBranchName,
+    source_branch: WorthQueryAdmittedBranchName,
     inspection_policy: WorthQueryOrdinaryInspectionPolicy,
 }
 
@@ -60,11 +61,11 @@ impl WorthQueryBranchMergeDeclaration {
     }
 
     pub fn target_branch(&self) -> &str {
-        &self.target_branch
+        self.target_branch.as_str()
     }
 
     pub fn source_branch(&self) -> &str {
-        &self.source_branch
+        self.source_branch.as_str()
     }
 
     pub fn with_rich_inspection(mut self) -> Self {
@@ -82,26 +83,32 @@ impl WorthQueryBranchMergeDeclaration {
     pub(crate) fn inspection_policy(&self) -> WorthQueryOrdinaryInspectionPolicy {
         self.inspection_policy
     }
+
+    pub(crate) fn admitted_target_branch(&self) -> &WorthQueryAdmittedBranchName {
+        &self.target_branch
+    }
+
+    pub(crate) fn admitted_source_branch(&self) -> &WorthQueryAdmittedBranchName {
+        &self.source_branch
+    }
 }
 
 pub fn declare_branch_merge(
     target_branch: impl Into<String>,
     source_branch: impl Into<String>,
 ) -> Result<WorthQueryBranchMergeDeclaration, WorthQueryBranchMergeDeclarationStop> {
-    let target_branch = target_branch.into().trim().to_string();
-    let source_branch = source_branch.into().trim().to_string();
-    if target_branch.is_empty() {
-        return Err(stop(
+    let target_branch = WorthQueryAdmittedBranchName::admit(target_branch).ok_or_else(|| {
+        stop(
             WorthQueryBranchMergeDeclarationDenialKind::EmptyTargetBranch,
             "branch merge target may not be empty",
-        ));
-    }
-    if source_branch.is_empty() {
-        return Err(stop(
+        )
+    })?;
+    let source_branch = WorthQueryAdmittedBranchName::admit(source_branch).ok_or_else(|| {
+        stop(
             WorthQueryBranchMergeDeclarationDenialKind::EmptySourceBranch,
             "branch merge source may not be empty",
-        ));
-    }
+        )
+    })?;
     if target_branch == source_branch {
         return Err(stop(
             WorthQueryBranchMergeDeclarationDenialKind::SameBranch,
@@ -120,8 +127,14 @@ pub fn declare_branch_merge(
             WorthQueryEvidenceTag::new("family"),
             WorthQueryWorkflowFamily::BranchMerge.as_str(),
         )
-        .field_shape(WorthQueryEvidenceTag::new("target_branch"), &target_branch)
-        .field_shape(WorthQueryEvidenceTag::new("source_branch"), &source_branch)
+        .field_shape(
+            WorthQueryEvidenceTag::new("target_branch"),
+            target_branch.as_str(),
+        )
+        .field_shape(
+            WorthQueryEvidenceTag::new("source_branch"),
+            source_branch.as_str(),
+        )
         .seal(),
     };
     Ok(WorthQueryBranchMergeDeclaration {

@@ -118,7 +118,7 @@ fn task_schema() -> read::QuerySchemaView {
         [read::SchemaFieldView::new(
             read::AspectName::new("identity").expect("static aspect"),
             read::FieldName::new("id").expect("static field"),
-            read::SchemaFieldKind::String,
+            read::ScalarAspectType::String,
         )],
         [],
     )

@@ -4,6 +4,7 @@ use crate::application::{
     WorthQueryDeclarationSignalAuthorityAspectSummary,
 };
 use crate::application::{WorthQueryDeclarationInput, WorthQueryDomainEntryMarker};
+#[cfg(test)]
 use crate::identity::hash_parts;
 
 use super::super::materialization::{
@@ -28,6 +29,7 @@ pub struct WorthQueryDeclarationEntryOrchestrationProof<
 impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
     WorthQueryDeclarationEntryOrchestrationProof<D, I>
 {
+    #[cfg(test)]
     pub(crate) fn new(
         plan: WorthQueryDeclarationEntryOrchestrationPlan<D, I>,
         outcome: WorthQueryDeclarationEntryOrchestrationOutcome<D, I>,

@@ -7,7 +7,7 @@ pub(super) fn execute_promotion_certification(
     fixture: &BridgeHarnessFixture,
 ) -> Result<SpeculationHarnessExecution, BridgeHarnessError> {
     let promotion_session_identity =
-        crate::facade::runtime::BridgePreviewSessionIdentity::admit_bridge_owned(
+        crate::speculation::BridgePreviewSessionIdentity::admit_bridge_owned(
             "harness:speculation-promotion",
         );
     let admitted = runtime_bridge
@@ -43,7 +43,7 @@ pub(super) fn execute_promotion_certification(
         .map_err(|error| BridgeHarnessError::new(format!("speculation replay failed: {error}")))?;
 
     let discard_sibling_session_identity =
-        crate::facade::runtime::BridgePreviewSessionIdentity::admit_bridge_owned(
+        crate::speculation::BridgePreviewSessionIdentity::admit_bridge_owned(
             "harness:speculation-discard-sibling",
         );
     let discarded_admitted = runtime_bridge

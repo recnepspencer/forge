@@ -1,12 +1,12 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::certification::resolve_runtime_current_snapshot_basis_for_certification;
+use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::foundation::{
     snapshot_resolution_report, ProjectionFactFieldPath, QuerySchemaBasisAuthority,
 };
 use worth_query::facade::read::{
     current, declare, project_facts, AspectFieldSelector, AuthoredResultShapeField,
-    EqualityPredicate, QuerySchemaView, ScalarPredicateValue, SchemaFieldKind, SchemaFieldView,
+    EqualityPredicate, QuerySchemaView, SchemaFieldView, WorthQueryPredicateOperand,
     WorthQueryProjectionOutcome,
 };
 use worth_query::facade::runtime::{
@@ -204,9 +204,9 @@ fn equivalent_projection_consumption_paths_yield_equivalent_measurement_fact_rec
 #[test]
 fn foreign_query_basis_denies_before_worth_ui_settlement_exists() {
     let (first_prerequisites, _) =
-        display_field_projection_consumption_with_extent("foreign-left", "240");
+        display_field_projection_consumption_with_extent("foreign-left", 240.0);
     let (_, foreign_authority) =
-        display_field_projection_consumption_with_extent("foreign-right", "241");
+        display_field_projection_consumption_with_extent("foreign-right", 241.0);
 
     let denial = WorthUiQueryBindingSubsystem::bootstrap()
         .allocation_admission()
@@ -223,14 +223,20 @@ fn foreign_query_basis_denies_before_worth_ui_settlement_exists() {
 
 fn display_field_projection_consumption(
     lane_label: &str,
-) -> (WorthUiQueryPrerequisiteEvidence, WorthQueryProjectionOutcome) {
-    display_field_projection_consumption_with_extent(lane_label, "240")
+) -> (
+    WorthUiQueryPrerequisiteEvidence,
+    WorthQueryProjectionOutcome,
+) {
+    display_field_projection_consumption_with_extent(lane_label, 240.0)
 }
 
 fn display_field_projection_consumption_with_extent(
     lane_label: &str,
-    extent: &str,
-) -> (WorthUiQueryPrerequisiteEvidence, WorthQueryProjectionOutcome) {
+    extent: f32,
+) -> (
+    WorthUiQueryPrerequisiteEvidence,
+    WorthQueryProjectionOutcome,
+) {
     let (mut workspace, schema_basis_authority) =
         measurement_projection_workspace(lane_label, extent);
     let completion = declare(|read| {
@@ -243,7 +249,7 @@ fn display_field_projection_consumption_with_extent(
                         EqualityPredicate::new(
                             "identity",
                             "id",
-                            ScalarPredicateValue::String("task".to_string()),
+                            WorthQueryPredicateOperand::string("task".to_string()),
                         )
                         .expect("identity anchor predicate should build"),
                     )
@@ -257,9 +263,8 @@ fn display_field_projection_consumption_with_extent(
     .run(&mut workspace)
     .into_result()
     .expect("ordinary query read should execute");
-    let outcome = completion.consume_projection(project_facts().display_field(
-        size_value_field_path(),
-    ));
+    let outcome =
+        completion.consume_projection(project_facts().display_field(size_value_field_path()));
     let basis = resolve_runtime_current_snapshot_basis_for_certification(
         &workspace.snapshot_identity().evidence_identity(),
         schema_basis_authority,
@@ -274,9 +279,11 @@ fn display_field_projection_consumption_with_extent(
 
 fn measurement_projection_workspace(
     lane_label: &str,
-    extent: &str,
+    extent: f32,
 ) -> (WorthQueryWorkspace, QuerySchemaBasisAuthority) {
     let schema = WorthQueryTestBackendSchema::single_collection("task")
+        .aspect_contracts(crate::worth_ui_native_aspect_contracts())
+        .expect("Worth UI native aspect contracts should admit")
         .aspect("identity.id", "identity.id")
         .expect("identity aspect should admit")
         .aspect("size.value", "size.value")
@@ -293,11 +300,15 @@ fn measurement_projection_workspace(
             )
             .set_aspect(
                 aspect_touch("size.value"),
-                WorthQueryAuthoredAspectValue::string(extent),
+                WorthQueryAuthoredAspectValue::native(
+                    worth_foundational::facade::AspectValue::Float32(
+                        worth_foundational::facade::CanonicalF32::from_f32(extent),
+                    ),
+                ),
             )
         })
         .expect("fixture insert should admit");
-    if extent != "240" {
+    if extent != 240.0 {
         workspace
             .insert("task", |task| {
                 task.set_aspect(
@@ -306,7 +317,11 @@ fn measurement_projection_workspace(
                 )
                 .set_aspect(
                     aspect_touch("size.value"),
-                    WorthQueryAuthoredAspectValue::string("0"),
+                    WorthQueryAuthoredAspectValue::native(
+                        worth_foundational::facade::AspectValue::Float32(
+                            worth_foundational::facade::CanonicalF32::from_f32(0.0),
+                        ),
+                    ),
                 )
             })
             .expect("generation-drift fixture insert should admit");
@@ -321,13 +336,16 @@ fn task_query_schema() -> QuerySchemaView {
             SchemaFieldView::new(
                 worth_query::facade::foundation::AspectName::new("identity")
                     .expect("schema aspect should admit"),
-                worth_query::facade::foundation::FieldName::new("id").expect("schema field should admit"),
-                SchemaFieldKind::String,
+                worth_query::facade::foundation::FieldName::new("id")
+                    .expect("schema field should admit"),
+                worth_foundational::facade::ScalarAspectType::String,
             ),
             SchemaFieldView::new(
-                worth_query::facade::foundation::AspectName::new("size").expect("schema aspect should admit"),
-                worth_query::facade::foundation::FieldName::new("value").expect("schema field should admit"),
-                SchemaFieldKind::String,
+                worth_query::facade::foundation::AspectName::new("size")
+                    .expect("schema aspect should admit"),
+                worth_query::facade::foundation::FieldName::new("value")
+                    .expect("schema field should admit"),
+                worth_foundational::facade::ScalarAspectType::Float32,
             ),
         ],
         [],

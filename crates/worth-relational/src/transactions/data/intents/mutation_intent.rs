@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::identity::data::{KindId, PartitionId, RelationId};
 use crate::symbols::data::ClientKey;
+use worth_foundational::facade::PortableRecordAspectPatch;
 
 use super::super::AspectFieldPatch;
 
@@ -13,6 +14,20 @@ pub struct BulkEntityCreateIntent {
     pub kind_id: KindId,
     pub client_keys: Vec<ClientKey>,
     pub field_patches: Vec<AspectFieldPatch>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EntityAspectCreateIntent {
+    pub partition_id: PartitionId,
+    pub kind_id: KindId,
+    pub client_key: ClientKey,
+    pub aspect_patch: PortableRecordAspectPatch,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ApplyEntityAspectPatchIntent {
+    pub entity_id: crate::identity::data::EntityId,
+    pub aspect_patch: PortableRecordAspectPatch,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,6 +56,22 @@ pub struct BulkRelationCreateIntent {
     pub field_patches: Vec<AspectFieldPatch>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RelationAspectCreateIntent {
+    pub partition_id: PartitionId,
+    pub kind_id: KindId,
+    pub client_key: ClientKey,
+    pub source: EntityReference,
+    pub target: EntityReference,
+    pub aspect_patch: PortableRecordAspectPatch,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ApplyRelationAspectPatchIntent {
+    pub relation_id: RelationId,
+    pub aspect_patch: PortableRecordAspectPatch,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeleteRelationIntent {
     pub relation_id: RelationId,
@@ -57,14 +88,17 @@ pub struct UpdateRelationEndpointsIntent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CreateIntent {
     Entity(EntitySpec),
+    EntityAspects(EntityAspectCreateIntent),
     BulkEntities(BulkEntityCreateIntent),
     Relation(RelationSpec),
+    RelationAspects(RelationAspectCreateIntent),
     BulkRelations(BulkRelationCreateIntent),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntityMutationIntent {
     UpdateFields(UpdateEntityFieldsIntent),
+    ApplyAspectPatch(ApplyEntityAspectPatchIntent),
     Replace(ReplaceEntityIntent),
     Delete(DeleteEntityIntent),
 }
@@ -72,6 +106,7 @@ pub enum EntityMutationIntent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RelationMutationIntent {
     UpdateEndpoints(UpdateRelationEndpointsIntent),
+    ApplyAspectPatch(ApplyRelationAspectPatchIntent),
     Delete(DeleteRelationIntent),
 }
 

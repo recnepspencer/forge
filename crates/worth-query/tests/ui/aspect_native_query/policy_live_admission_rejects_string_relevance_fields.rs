@@ -1,15 +1,10 @@
-use worth_query::facade::policy::{admit_policy_aware_live_plan, NarrowedPolicyQueryArtifact, PolicyDriftDisposition, PolicyLiveDensityPosture};
+use worth_query::facade::policy::PolicyAwareLiveRelevanceContract;
 
 fn main() {
-    let fields = vec!["profile.display_name".to_string()];
-    let _ = admit_policy_aware_live_plan(
-        narrowed_policy_query_artifact(),
-        &fields,
-        PolicyDriftDisposition::NoChange,
-        PolicyLiveDensityPosture::SparseDelta,
-    );
+    let relevance = relevance_fixture();
+    let _: &[String] = relevance.authorized_field_paths();
 }
 
-fn narrowed_policy_query_artifact() -> &'static NarrowedPolicyQueryArtifact {
+fn relevance_fixture() -> PolicyAwareLiveRelevanceContract {
     panic!("fixture only")
 }

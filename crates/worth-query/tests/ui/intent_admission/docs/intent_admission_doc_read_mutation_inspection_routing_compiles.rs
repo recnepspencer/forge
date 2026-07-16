@@ -1,5 +1,5 @@
 
-use worth_query::facade::runtime::{WorthQueryExistingTruthProbeRequest, WorthQueryLiveView, WorthQueryRuntime, WorthQueryNativeRow, WorthQueryRuntimeError, WorthQueryWorkspace};
+use worth_query::facade::runtime::{WorthQueryExistingTruthProbeRequest, WorthQueryLiveView, WorthQueryRuntime, WorthQueryUnrefinedLiveShape, WorthQueryRuntimeError, WorthQueryWorkspace};
 
 fn mutation_common_path(
     runtime: &mut WorthQueryRuntime,
@@ -23,10 +23,11 @@ fn live_read_common_path<T>(
 
 fn inspection_common_path(
     workspace: &WorthQueryWorkspace,
-    target: &WorthQueryLiveView<WorthQueryNativeRow>,
+    target: &WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
 ) -> Result<(), WorthQueryRuntimeError> {
-    let inspection = workspace.inspect(target)?;
-    let inspection_result = workspace.inspect_intent(target).execute()?;
+    let inspections = workspace.inspections()?;
+    let inspection = inspections.inspect(target)?;
+    let inspection_result = inspections.inspect_intent(target).execute()?;
     let _ = inspection;
     let _ = inspection_result.receipt().decision_trace_envelope();
     Ok(())

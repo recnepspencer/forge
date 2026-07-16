@@ -4,17 +4,10 @@ use crate::domain_capabilities::identity::domain_capability_scope_encoder;
 use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceTag};
 
 use crate::domain_capabilities::payloads::WorthQuerySupportContributionPosture;
-use crate::domain_capabilities::targets::{
-    WorthQueryAdmittedPlanBoundContributionTarget, WorthQueryDeclarationBoundContributionTarget,
-    WorthQueryDomainCapabilityTargetBinding, WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
-};
+use crate::domain_capabilities::targets::WorthQueryDomainCapabilityTargetBinding;
 use crate::domain_capabilities::{
     WorthQueryCanonicalSupportTraceabilityArtifact, WorthQueryDomainCapabilityTransitionOutcome,
     WorthQueryMaterializationReadySupportContribution,
-};
-use crate::intent_admission::{
-    WorthQueryIntentAdmissionSupportTraceabilityReport,
-    WorthQueryIntentAdmissionSupportTraceabilityRow,
 };
 
 pub fn materialize_canonical_support_traceability_artifact<T>(
@@ -318,74 +311,7 @@ where
     })
 }
 
-pub fn materialize_intent_admission_support_traceability_report(
-    contribution: WorthQueryMaterializationReadySupportContribution<
-        WorthQueryAdmittedPlanBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryIntentAdmissionSupportTraceabilityReport>
-{
-    match support_traceability_row(&contribution) {
-        TransitionOutcome::Success(row) => TransitionOutcome::Success(
-            WorthQueryIntentAdmissionSupportTraceabilityReport::from_rows(vec![row]),
-        ),
-        TransitionOutcome::Denied(denial) => TransitionOutcome::Denied(denial),
-        TransitionOutcome::Stale(stale) => TransitionOutcome::Stale(stale),
-        TransitionOutcome::RebindRequired(rebind) => TransitionOutcome::RebindRequired(rebind),
-        TransitionOutcome::Failed(failure) => TransitionOutcome::Failed(failure),
-        TransitionOutcome::Deferred(never) => match never {},
-    }
-}
-
-pub fn materialize_intent_admission_support_traceability_row(
-    contribution: WorthQueryMaterializationReadySupportContribution<
-        WorthQueryAdmittedPlanBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryIntentAdmissionSupportTraceabilityRow> {
-    support_traceability_row(&contribution)
-}
-
-fn support_traceability_row(
-    contribution: &WorthQueryMaterializationReadySupportContribution<
-        WorthQueryAdmittedPlanBoundContributionTarget,
-    >,
-) -> WorthQueryDomainCapabilityTransitionOutcome<WorthQueryIntentAdmissionSupportTraceabilityRow> {
-    let domain_contribution = contribution.payload();
-    let payload = domain_contribution.payload();
-    let Some((family, entrypoint, ..)) = domain_contribution
-        .target()
-        .semantics()
-        .admitted_intent_plan()
-    else {
-        unreachable!("admitted-plan target should preserve admitted-plan semantics");
-    };
-    let Some((_, _, request_digest, eligibility_digest, decision_digest)) = domain_contribution
-        .target()
-        .semantics()
-        .admitted_intent_plan()
-    else {
-        unreachable!("admitted-plan target should preserve admitted-plan semantics");
-    };
-    TransitionOutcome::Success(
-        WorthQueryIntentAdmissionSupportTraceabilityRow::new_domain_scoped(
-            support_lane(payload.posture()),
-            family.as_str(),
-            entrypoint.as_str(),
-            support_detail_label(payload.semantic_code(), payload.detail()),
-            Some(
-                domain_contribution
-                    .target()
-                    .binding_identity()
-                    .as_str()
-                    .to_string(),
-            ),
-            Some(request_digest.to_string()),
-            Some(eligibility_digest.to_string()),
-            Some(decision_digest.to_string()),
-        ),
-    )
-}
-
-fn support_lane(posture: WorthQuerySupportContributionPosture) -> &'static str {
+pub(super) fn support_lane(posture: WorthQuerySupportContributionPosture) -> &'static str {
     match posture {
         WorthQuerySupportContributionPosture::DeclarationSupport => "domain_support",
         WorthQuerySupportContributionPosture::DeclarationTraceability => "domain_traceability",
@@ -393,7 +319,7 @@ fn support_lane(posture: WorthQuerySupportContributionPosture) -> &'static str {
     }
 }
 
-fn support_detail_label(semantic_code: &str, detail: &str) -> String {
+pub(super) fn support_detail_label(semantic_code: &str, detail: &str) -> String {
     let mut label = String::with_capacity(
         semantic_code
             .len()

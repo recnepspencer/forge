@@ -1,15 +1,11 @@
 use super::super::support::*;
 
-fn task_edge_runtime() -> WorthQueryRuntime {
-    stateful_bridge_task_edge_runtime()
-}
-
 #[test]
 fn mixed_batch_symbolic_and_existing_targets_preserve_distinct_evidence() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.mixed-target-batch")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.mixed-target-table", |q| {
             q.from("Task")
                 .select([
@@ -207,7 +203,7 @@ fn preview_batch_symbolic_target_preserves_symbolic_evidence() {
     let mut workspace = runtime
         .workspace("tasks.preview-symbolic")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.preview-symbolic-table", |q| {
             q.from("Task")
                 .select([
@@ -273,7 +269,7 @@ fn preview_batch_symbolic_target_preserves_symbolic_evidence() {
 
 #[test]
 fn symbolic_aspect_reference_requires_batch_context() {
-    let mut workspace = task_edge_runtime()
+    let mut workspace = stateful_bridge_task_edge_runtime()
         .workspace("tasks.symbolic-aspect-single")
         .expect("runtime should open a named workspace");
     let command = WorthQueryAspectMutationBuilder::new()
@@ -286,9 +282,9 @@ fn symbolic_aspect_reference_requires_batch_context() {
             WorthQuerySymbolicTargetReference::new("draft-task")
                 .expect("symbolic reference should build"),
         )
-        .set_aspect(
+        .existing_entity_identity(
             test_aspect_touch("edge.target_identity"),
-            test_authored_string_aspect_value("task-existing"),
+            test_entity_identity("task-existing"),
         )
         .build_insert("TaskEdge")
         .expect("insert command should build");
@@ -310,10 +306,10 @@ fn symbolic_aspect_reference_requires_batch_context() {
 
 #[test]
 fn symbolic_aspect_reference_resolves_same_batch_created_entity_identity() {
-    let mut workspace = task_edge_runtime()
+    let mut workspace = stateful_bridge_task_edge_runtime()
         .workspace("tasks.symbolic-aspect-batch")
         .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.symbolic-aspect-tasks", |q| {
             q.from("Task")
                 .select([
@@ -329,7 +325,7 @@ fn symbolic_aspect_reference_resolves_same_batch_created_entity_identity() {
                 .schema_basis("tasks-symbolic-aspect-tasks")
         })
         .expect("task live view should declare");
-    let edges: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let edges: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.symbolic-aspect-edges", |q| {
             q.from("TaskEdge")
                 .select([
@@ -375,9 +371,9 @@ fn symbolic_aspect_reference_resolves_same_batch_created_entity_identity() {
                         WorthQuerySymbolicTargetReference::new("draft-task")
                             .expect("symbolic reference should build"),
                     )
-                    .set_aspect(
+                    .existing_entity_identity(
                         test_aspect_touch("edge.target_identity"),
-                        test_authored_string_aspect_value("task-existing"),
+                        test_entity_identity("task-existing"),
                     )
                 })
         })
@@ -388,16 +384,14 @@ fn symbolic_aspect_reference_resolves_same_batch_created_entity_identity() {
         .clone();
     let edge_rows = workspace.read(&edges);
     assert_eq!(edge_rows.len(), 1);
+    let expected_source = test_native_entity_ref_value(&draft_identity);
+    let expected_target = test_native_entity_ref_value(&test_entity_identity("task-existing"));
     assert_eq!(
-        test_native_string_value(&edge_rows[0], "edge.source_identity").as_deref(),
-        Some(
-            draft_identity
-                .evidence_identity()
-                .terminal_projection_for_reporting()
-        )
+        test_native_scalar_value(&edge_rows[0], "edge.source_identity"),
+        Some(&expected_source)
     );
     assert_eq!(
-        test_native_string_value(&edge_rows[0], "edge.target_identity").as_deref(),
-        Some("task-existing")
+        test_native_scalar_value(&edge_rows[0], "edge.target_identity"),
+        Some(&expected_target)
     );
 }

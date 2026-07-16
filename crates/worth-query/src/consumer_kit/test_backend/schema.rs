@@ -1,14 +1,15 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::memory_workspace::WorthQueryAspect;
 use crate::runtime::WorthQueryAspectTouch;
-use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
+use worth_foundational::facade::{AspectContract, AspectShape, CanonicalFieldPath, FieldKey};
 
 use super::error::{WorthQueryTestBackendError, WorthQueryTestBackendErrorKind};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryTestBackendSchema {
     collection: String,
+    contracts: BTreeMap<worth_foundational::facade::AspectKey, AspectContract>,
     aspects: Vec<WorthQueryTestBackendAspect>,
 }
 
@@ -16,8 +17,40 @@ impl WorthQueryTestBackendSchema {
     pub fn single_collection(collection: impl Into<String>) -> Self {
         Self {
             collection: collection.into(),
+            contracts: BTreeMap::new(),
             aspects: Vec::new(),
         }
+    }
+
+    pub fn aspect_contract(
+        mut self,
+        contract: AspectContract,
+    ) -> Result<Self, WorthQueryTestBackendError> {
+        match self.contracts.get(contract.key()) {
+            Some(installed) if installed == &contract => return Ok(self),
+            Some(_) => {
+                return Err(WorthQueryTestBackendError::new(
+                    WorthQueryTestBackendErrorKind::ConflictingAspectContract,
+                    format!(
+                        "test backend schema declares conflicting Foundational contracts for aspect `{}`",
+                        contract.key().as_str()
+                    ),
+                ));
+            }
+            None => {}
+        }
+        self.contracts.insert(contract.key().clone(), contract);
+        Ok(self)
+    }
+
+    pub fn aspect_contracts(
+        mut self,
+        contracts: impl IntoIterator<Item = AspectContract>,
+    ) -> Result<Self, WorthQueryTestBackendError> {
+        for contract in contracts {
+            self = self.aspect_contract(contract)?;
+        }
+        Ok(self)
     }
 
     pub fn aspect(
@@ -40,6 +73,7 @@ impl WorthQueryTestBackendSchema {
                     ),
                 )
             })?;
+        self.validate_mapping_contract(&aspect_touch)?;
         let projection_field_path_text = projection_field_path_text.into();
         ensure_non_blank(
             &projection_field_path_text,
@@ -75,6 +109,10 @@ impl WorthQueryTestBackendSchema {
             .map(|aspect| (&aspect.touch, &aspect.native_field_path))
     }
 
+    pub fn contracts(&self) -> impl Iterator<Item = &AspectContract> {
+        self.contracts.values()
+    }
+
     pub(crate) fn memory_aspects(
         &self,
     ) -> Result<Vec<WorthQueryAspect>, WorthQueryTestBackendError> {
@@ -96,6 +134,7 @@ impl WorthQueryTestBackendSchema {
         let mut labels = BTreeSet::new();
         let mut paths = BTreeSet::new();
         for aspect in &self.aspects {
+            self.validate_mapping_contract(&aspect.touch)?;
             ensure_unique(
                 labels.insert(aspect.touch.clone()),
                 WorthQueryTestBackendErrorKind::DuplicateAspectLabel,
@@ -117,6 +156,59 @@ impl WorthQueryTestBackendSchema {
             return Err(WorthQueryTestBackendError::new(
                 WorthQueryTestBackendErrorKind::EmptyAspectSet,
                 "test backend schema must declare at least one aspect",
+            ));
+        }
+        Ok(())
+    }
+
+    fn validate_mapping_contract(
+        &self,
+        touch: &WorthQueryAspectTouch,
+    ) -> Result<(), WorthQueryTestBackendError> {
+        let contract = self
+            .contracts
+            .get(touch.native_aspect_key())
+            .ok_or_else(|| {
+                WorthQueryTestBackendError::new(
+                    WorthQueryTestBackendErrorKind::MissingAspectContract,
+                    format!(
+                        "test backend mapping `{}` has no installed Foundational aspect contract",
+                        reporting_projection_from_admitted_touch(touch)
+                    ),
+                )
+            })?;
+        let Some(path) = touch.native_field_path() else {
+            return Ok(());
+        };
+        let fields = path.fields();
+        if fields.len() != 1 {
+            return Err(WorthQueryTestBackendError::new(
+                WorthQueryTestBackendErrorKind::NestedAspectFieldUnsupported,
+                format!(
+                    "test backend mapping `{}` addresses a nested field, but Foundational struct contracts currently declare one field level",
+                    reporting_projection_from_admitted_touch(touch)
+                ),
+            ));
+        }
+        let AspectShape::Struct(shape) = contract.shape() else {
+            return Err(WorthQueryTestBackendError::new(
+                WorthQueryTestBackendErrorKind::AspectFieldRequiresStructContract,
+                format!(
+                    "test backend mapping `{}` addresses a field beneath non-struct aspect `{}`",
+                    reporting_projection_from_admitted_touch(touch),
+                    contract.key().as_str()
+                ),
+            ));
+        };
+        if shape.field(&fields[0]).is_none() {
+            return Err(WorthQueryTestBackendError::new(
+                WorthQueryTestBackendErrorKind::UndeclaredAspectField,
+                format!(
+                    "test backend mapping `{}` addresses field `{}` absent from Foundational contract `{}`",
+                    reporting_projection_from_admitted_touch(touch),
+                    fields[0].as_str(),
+                    contract.key().as_str()
+                ),
             ));
         }
         Ok(())

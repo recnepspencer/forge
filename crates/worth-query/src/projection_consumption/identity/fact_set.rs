@@ -1,4 +1,4 @@
-use worth_foundational::facade::{AspectValue, InternedString};
+use worth_foundational::facade::prepare_aspect_value_identity_basis;
 
 use super::core::compose_extraction_counters_digest;
 use super::scope::{scope_encoder, seal};
@@ -27,7 +27,7 @@ pub(crate) fn compose_consumed_projection_fact_set_digest(
     view_local_identities: &[ConsumedViewLocalIdentityFact],
     memberships: &[ConsumedMembershipFact],
     display_fields: &[ConsumedFieldValueFact],
-    derived_scalar_fields: &[ConsumedFieldValueFact],
+    derived_fields: &[ConsumedFieldValueFact],
     target_identities: &[ConsumedTargetIdentityFact],
     source_references: &[ConsumedSourceReferenceFact],
     effect_continuity_facts: &[ConsumedEffectContinuityFact],
@@ -73,9 +73,9 @@ pub(crate) fn compose_consumed_projection_fact_set_digest(
         .iter()
         .map(|fact| compose_field_value_entry("display_field", fact))
         .collect::<Vec<_>>();
-    let derived_scalar_entries = derived_scalar_fields
+    let derived_field_entries = derived_fields
         .iter()
-        .map(|fact| compose_field_value_entry("derived_scalar", fact))
+        .map(|fact| compose_field_value_entry("derived_field", fact))
         .collect::<Vec<_>>();
     let target_entries = target_identities
         .iter()
@@ -120,8 +120,8 @@ pub(crate) fn compose_consumed_projection_fact_set_digest(
                 display_field_entries,
             )
             .field_value_sequence(
-                WorthQueryEvidenceTag::new("derived_scalar"),
-                derived_scalar_entries,
+                WorthQueryEvidenceTag::new("derived_field"),
+                derived_field_entries,
             )
             .field_value_sequence(
                 WorthQueryEvidenceTag::new("target_identity"),
@@ -184,12 +184,13 @@ fn compose_membership_entry(fact: &ConsumedMembershipFact) -> String {
             )
             .field_value(
                 WorthQueryEvidenceTag::new("grouping_value"),
-                native_aspect_value_text(fact.grouping_value()),
+                prepare_aspect_value_identity_basis(fact.grouping_value()).as_str(),
             ),
     )
 }
 
 fn compose_field_value_entry(family: &str, fact: &ConsumedFieldValueFact) -> String {
+    let value_basis = fact.value_canonical_identity_basis();
     seal(
         scope_encoder("consumed_field_value_entry_v1")
             .field_shape(WorthQueryEvidenceTag::new("family"), family)
@@ -201,10 +202,7 @@ fn compose_field_value_entry(family: &str, fact: &ConsumedFieldValueFact) -> Str
                 WorthQueryEvidenceTag::new("field_key"),
                 fact.field_path().terminal_projection_for_boundary(),
             )
-            .field_value(
-                WorthQueryEvidenceTag::new("value"),
-                native_aspect_value_text(fact.value()),
-            ),
+            .field_value(WorthQueryEvidenceTag::new("value"), value_basis.as_str()),
     )
 }
 
@@ -299,7 +297,7 @@ fn compose_relation_endpoint_entry(fact: &ConsumedRelationEndpointFact) -> Strin
                 )
                 .field_value(
                     WorthQueryEvidenceTag::new("grouping_value"),
-                    native_aspect_value_text(grouping_value),
+                    prepare_aspect_value_identity_basis(grouping_value).as_str(),
                 ),
         ),
     }
@@ -311,52 +309,4 @@ fn continuity_family_label(family: WorthQueryContinuityMutationFamily) -> &'stat
 
 fn continuity_outcome_label(outcome: WorthQueryContinuityOutcomeClass) -> &'static str {
     outcome.as_str()
-}
-
-fn native_aspect_value_text(value: &AspectValue) -> String {
-    match value {
-        AspectValue::String(text) => interned_string_text(text),
-        AspectValue::Null => "null".to_string(),
-        AspectValue::Bool(value) => format!("bool:{value}"),
-        AspectValue::Int8(value) => format!("i8:{value}"),
-        AspectValue::Int16(value) => format!("i16:{value}"),
-        AspectValue::Int32(value) => format!("i32:{value}"),
-        AspectValue::Int64(value) => format!("i64:{value}"),
-        AspectValue::UInt8(value) => format!("u8:{value}"),
-        AspectValue::UInt16(value) => format!("u16:{value}"),
-        AspectValue::UInt32(value) => format!("u32:{value}"),
-        AspectValue::UInt64(value) => format!("u64:{value}"),
-        AspectValue::Float32(value) => format!("f32-bits:{}", value.bits()),
-        AspectValue::Float64(value) => format!("f64-bits:{}", value.bits()),
-        AspectValue::Decimal(value) => format!("decimal:{}", value.as_str()),
-        AspectValue::BigInt(value) => format!("bigint:{}", value.as_str()),
-        AspectValue::Rational(value) => format!(
-            "rational:{}/{}",
-            value.numerator.as_str(),
-            value.denominator.as_str()
-        ),
-        AspectValue::Bytes(value) => format!("bytes-ref:{}", value.0),
-        AspectValue::Uuid(value) => value.iter().map(|byte| format!("{byte:02x}")).collect(),
-        AspectValue::Date(value) => format!("date-days:{}", value.days_from_unix_epoch),
-        AspectValue::Time(value) => format!("time-nanos:{}", value.nanos_since_midnight),
-        AspectValue::Timestamp(value) => {
-            format!("timestamp-micros:{}", value.micros_since_unix_epoch)
-        }
-        AspectValue::TimestampTz(value) => format!(
-            "timestamp-tz:{}:{}",
-            value.utc_micros_since_unix_epoch, value.offset_minutes
-        ),
-        AspectValue::EntityRef(value) => format!(
-            "entity-ref:{}:{}:{}",
-            value.partition_id.0, value.local_slot.0, value.generation.0
-        ),
-        AspectValue::ContentRef(value) => format!("content-ref:{}", value.0),
-    }
-}
-
-fn interned_string_text(value: &InternedString) -> String {
-    match value {
-        InternedString::Raw(text) => text.clone(),
-        InternedString::Symbol(symbol) => format!("symbol:{}", symbol.0),
-    }
 }

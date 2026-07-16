@@ -1,4 +1,3 @@
-use worth_foundational::facade::{AspectValue, InternedString};
 use worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority;
 
 use super::{WorthUiQueryMeasurementFactFamily, WorthUiQueryPrerequisiteEvidence};
@@ -26,8 +25,7 @@ impl WorthUiQueryMeasurementFactObservation {
         let mut observations = Vec::new();
 
         if authority.contract().fact_families().iter().any(|family| {
-            family.kind().as_str() == "display_field"
-                || family.kind().as_str() == "derived_scalar_field"
+            family.kind().as_str() == "display_field" || family.kind().as_str() == "derived_field"
         }) {
             let family = WorthUiQueryMeasurementFactFamily::ScrollContentExtent;
             let extent_bits = extract_single_extent_bits(authority, family)?;
@@ -58,10 +56,11 @@ fn extract_single_extent_bits(
         .facts()
         .display_fields()
         .iter()
-        .chain(authority.facts().derived_scalar_fields().iter())
+        .chain(authority.facts().derived_fields().iter())
     {
-        let bits = scalar_extent_bits(fact.value())
-            .ok_or(WorthUiQueryMeasurementFactObservationError::UnsupportedObservedValue(family))?;
+        let bits = fact.as_float32().map(|value| value.bits()).map_err(|_| {
+            WorthUiQueryMeasurementFactObservationError::UnsupportedObservedValue(family)
+        })?;
         match observed_bits {
             None => observed_bits = Some(bits),
             Some(existing) if existing == bits => {}
@@ -74,24 +73,4 @@ fn extract_single_extent_bits(
     }
 
     observed_bits.ok_or(WorthUiQueryMeasurementFactObservationError::MissingObservedValue(family))
-}
-
-fn scalar_extent_bits(value: &AspectValue) -> Option<u32> {
-    match value {
-        AspectValue::Int8(value) => Some((*value as f32).to_bits()),
-        AspectValue::Int16(value) => Some((*value as f32).to_bits()),
-        AspectValue::Int32(value) => Some((*value as f32).to_bits()),
-        AspectValue::Int64(value) => Some((*value as f32).to_bits()),
-        AspectValue::UInt8(value) => Some((*value as f32).to_bits()),
-        AspectValue::UInt16(value) => Some((*value as f32).to_bits()),
-        AspectValue::UInt32(value) => Some((*value as f32).to_bits()),
-        AspectValue::UInt64(value) => Some((*value as f32).to_bits()),
-        AspectValue::Float32(value) => Some(value.bits()),
-        AspectValue::Float64(value) => Some((f64::from_bits(value.bits()) as f32).to_bits()),
-        AspectValue::String(InternedString::Raw(value)) => {
-            value.parse::<f32>().ok().map(f32::to_bits)
-        }
-        AspectValue::String(InternedString::Symbol(_)) => None,
-        _ => None,
-    }
 }

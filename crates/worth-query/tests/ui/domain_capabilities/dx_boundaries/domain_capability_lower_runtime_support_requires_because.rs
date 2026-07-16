@@ -1,9 +1,17 @@
-use worth_query::facade::runtime::{WorthQueryLowerRuntimeBoundaryBoundContributionTarget, WorthQueryLowerRuntimeSupportDraft};
+#[path = "../support/installed_domain.rs"]
+mod installed_domain;
+
+use worth_query::facade::runtime::WorthQueryLowerRuntimeBoundaryEnvelope;
+
+fn envelope() -> WorthQueryLowerRuntimeBoundaryEnvelope {
+    todo!()
+}
 
 fn main() {
-    let _ = WorthQueryLowerRuntimeSupportDraft {
-        domain: "worth.spatial".to_string(),
-        target: unsafe { std::mem::zeroed::<WorthQueryLowerRuntimeBoundaryBoundContributionTarget>() },
-        semantic_code: "routing.signal_invalidation".to_string(),
-    };
+    let installation = installed_domain::install("lower-runtime-support-requires-because");
+    let _ = installation
+        .contributions()
+        .for_lower_runtime_boundary_envelope(&envelope()).expect("installed contribution authority must remain current")
+        .supports_boundary_traceability("routing.signal_invalidation")
+        .materialize();
 }

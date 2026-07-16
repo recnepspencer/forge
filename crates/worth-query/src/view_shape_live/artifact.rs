@@ -82,7 +82,7 @@ impl TableRowPatchArtifact {
     pub fn row_delta_count(&self) -> usize {
         self.row_delta_count
     }
-
+    #[cfg(test)]
     pub(crate) fn new(digest: impl Into<String>, row_delta_count: usize) -> Self {
         Self {
             digest: digest.into(),
@@ -105,7 +105,7 @@ impl DetailFieldPatchArtifact {
     pub fn field_delta_count(&self) -> usize {
         self.field_delta_count
     }
-
+    #[cfg(test)]
     pub(crate) fn new(digest: impl Into<String>, field_delta_count: usize) -> Self {
         Self {
             digest: digest.into(),
@@ -138,7 +138,7 @@ impl ObservedInspectorPatchArtifact {
     pub fn inspector_identity(&self) -> Option<&InspectorIdentityArtifact> {
         self.inspector_identity.as_ref()
     }
-
+    #[cfg(test)]
     pub(crate) fn new(
         digest: impl Into<String>,
         field_delta_count: usize,
@@ -178,7 +178,7 @@ impl FocusedInspectorAspectPatchArtifact {
     pub fn inspector_identity(&self) -> Option<&InspectorIdentityArtifact> {
         self.inspector_identity.as_ref()
     }
-
+    #[cfg(test)]
     pub(crate) fn new(
         digest: impl Into<String>,
         focus_aspect: AspectKey,
@@ -247,7 +247,7 @@ impl ViewShapePatchEnvelope {
     pub fn payload(&self) -> &ViewShapePatchPayload {
         &self.payload
     }
-
+    #[cfg(test)]
     pub(crate) fn new(
         family: LiveViewShapeFamily,
         patch_family: Option<ViewShapePatchFamily>,
@@ -289,7 +289,7 @@ impl ViewShapeReplayBundle {
     pub fn counters(&self) -> &ViewShapeLiveCounters {
         &self.counters
     }
-
+    #[cfg(test)]
     pub(crate) fn new(
         delivery_digest: impl Into<String>,
         replay_digest: impl Into<String>,
@@ -329,7 +329,7 @@ impl ViewShapeLiveReport {
     pub fn replay_digest(&self) -> &str {
         &self.replay_digest
     }
-
+    #[cfg(test)]
     pub(crate) fn new(
         family: LiveViewShapeFamily,
         delivery_digest: impl Into<String>,
@@ -428,7 +428,7 @@ impl<'a> GroupedLiveViewShapeArtifact<'a> {
     pub fn live_view(&self) -> &'a LiveViewShapeArtifact {
         self.live_view
     }
-
+    #[cfg(test)]
     pub(crate) fn new(live_view: &'a LiveViewShapeArtifact) -> Self {
         Self { live_view }
     }
@@ -468,7 +468,7 @@ impl LiveViewShapeExecutionEnvelope {
     pub fn next_live_view(&self) -> &LiveViewShapeArtifact {
         &self.next_live_view
     }
-
+    #[cfg(test)]
     pub(crate) fn new(
         report: ViewShapeLiveReport,
         patch_envelope: ViewShapePatchEnvelope,

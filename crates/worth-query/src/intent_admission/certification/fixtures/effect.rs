@@ -4,7 +4,7 @@ use super::runtime::{
 };
 use super::title_value_touch;
 use crate::facade::runtime::{WorthQueryEffectDeclaration, WorthQueryEffectTrigger};
-use crate::runtime::WorthQueryNativeRow;
+use crate::runtime::WorthQueryUnrefinedLiveShape;
 
 #[derive(Clone)]
 pub(in crate::intent_admission::certification) struct CertifiedEffectIntentFixture {
@@ -22,14 +22,14 @@ pub(in crate::intent_admission::certification) fn certified_effect_intent_fixtur
 ) -> CertifiedEffectIntentFixture {
     let mut runtime = certification_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "certification.effect-live",
             certification_task_live_request(),
             certification_task_schema(),
         )
         .expect("effect certification live view should declare");
     let effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "effects.certification.reconcile",
             WorthQueryEffectTrigger::live_view(&live, [title_value_touch()]),
             "strategy.intent.reconcile",
@@ -39,9 +39,9 @@ pub(in crate::intent_admission::certification) fn certified_effect_intent_fixtur
         .write(
             crate::facade::runtime::WorthQueryWriteCommand::UpdateAspect {
                 entity_identity: certification_entity_identity("task-1"),
-                aspect: crate::facade::runtime::WorthQueryAdmittedAspectValue::new_set(
+                aspect: crate::facade::runtime::WorthQueryAuthoredAspectMutation::new_set(
                     title_value_touch(),
-                    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                    crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                         "title from certification effect",
                     ),
                 )

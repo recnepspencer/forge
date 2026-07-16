@@ -1,12 +1,16 @@
 use crate::application::{WorthQueryDeclarationInput, WorthQueryDomainEntryMarker};
 
 mod adapter;
+#[cfg(test)]
 mod reconciliation;
+#[cfg(test)]
 mod scope;
 
+#[cfg(test)]
 pub(crate) use reconciliation::{
     reconcile_contribution_evidence, WorthQueryDeclarationEntryContributionReconciliationContext,
 };
+#[cfg(test)]
 pub(crate) use scope::WorthQueryDeclarationEntryContributionProofScope;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -237,6 +241,7 @@ pub struct WorthQueryDeclarationEntryContributionCompositionError<
 impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
     WorthQueryDeclarationEntryContributionCompositionError<D, I>
 {
+    #[cfg(test)]
     pub(crate) fn new(
         declaration_family_key: &'static str,
         failure_class: WorthQueryDeclarationEntryContributionCompositionFailureClass,
@@ -272,6 +277,7 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[cfg(test)]
 pub(crate) enum WorthQueryDeclarationEntryRetainedSubjectStrength {
     Envelope,
     Relational,

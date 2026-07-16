@@ -16,6 +16,7 @@ pub enum WorthQuerySignalCompatibilityOrchestrationOutcome<
     Unavailable(String),
     WrongWorld(String),
     WrongHandle(String),
+    InstalledAuthorityDrift(crate::domain_installation::WorthQueryInstalledDomainExecutionDrift),
     Stale(String),
     RebindRequired(String),
     MissingRequiredAspect(String),
@@ -115,6 +116,14 @@ pub fn ordinary_outcome_from_signal_compatibility_orchestration_checked<
                 WorthQueryOrdinaryPostureKind::WrongHandle,
                 WorthQueryOrdinaryNextStep::CorrectHandle,
                 topology(WorthQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind::WrongHandle),
+            ))
+        }
+        WorthQuerySignalCompatibilityOrchestrationOutcome::InstalledAuthorityDrift(drift) => {
+            WorthQueryOrdinaryOutcome::RebindRequired(WorthQueryOrdinaryPosture::new(
+                drift.to_string(),
+                WorthQueryOrdinaryPostureKind::RebindRequired,
+                WorthQueryOrdinaryNextStep::RebindContext,
+                topology(WorthQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind::InstalledAuthorityDrift),
             ))
         }
         WorthQuerySignalCompatibilityOrchestrationOutcome::Stale(reason) => {

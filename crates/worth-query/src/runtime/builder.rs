@@ -1,13 +1,17 @@
 use super::*;
+#[cfg(test)]
 use crate::domain_capabilities::WorthQueryInvariantCatalogRegistrationArtifact;
+#[cfg(test)]
 use crate::runtime::registrations_from_relational_invariant_catalog;
 use worth_relational::facade::runtime::{
-    CustomInvariantRegistration, CustomInvariantRule, InvariantCatalog, RelationalRuntimeBuilder,
+    CustomInvariantRegistration, InvariantCatalog, RelationalRuntimeBuilder,
 };
 
 mod domain_packages;
 mod queued_graph_obligation_registrations;
-use queued_graph_obligation_registrations::QueuedGraphObligationRegistrations;
+use queued_graph_obligation_registrations::{
+    graph_obligation_registration_error, QueuedGraphObligationRegistrations,
+};
 
 #[derive(Default)]
 struct QueuedInvariantRegistrations {
@@ -20,6 +24,7 @@ impl QueuedInvariantRegistrations {
         self.invariant_catalog.is_none() && self.custom_invariants.is_empty()
     }
 
+    #[cfg(test)]
     fn push_invariant_catalog(&mut self, invariant_catalog: InvariantCatalog) {
         match &mut self.invariant_catalog {
             Some(existing) => {
@@ -55,6 +60,8 @@ pub struct WorthQueryRuntimeBuilder {
     graph_obligation_registration_catalog:
         Option<Result<WorthQueryGraphObligationRegistrationCatalog, WorthQueryRuntimeError>>,
     pending_domain_installations: crate::domain_installation::WorthQueryPendingDomainInstallations,
+    native_aspect_contracts:
+        crate::runtime::native_aspect_contracts::WorthQueryNativeAspectContractRegistry,
 }
 
 impl WorthQueryRuntimeBuilder {
@@ -72,14 +79,16 @@ impl WorthQueryRuntimeBuilder {
         self
     }
 
-    pub fn invariant_catalog(mut self, invariant_catalog: InvariantCatalog) -> Self {
+    #[cfg(test)]
+    pub(crate) fn invariant_catalog(mut self, invariant_catalog: InvariantCatalog) -> Self {
         self.queue_relational_schema_contract_obligations(&invariant_catalog);
         self.queued_invariant_registrations
             .push_invariant_catalog(invariant_catalog);
         self
     }
 
-    pub fn invariant_registration_artifact(
+    #[cfg(test)]
+    pub(crate) fn invariant_registration_artifact(
         mut self,
         artifact: WorthQueryInvariantCatalogRegistrationArtifact,
     ) -> Self {
@@ -89,13 +98,17 @@ impl WorthQueryRuntimeBuilder {
         self
     }
 
-    pub fn graph_obligation(mut self, registration: WorthQueryGraphObligationRegistration) -> Self {
+    pub(crate) fn graph_obligation(
+        mut self,
+        registration: WorthQueryGraphObligationRegistration,
+    ) -> Self {
         self.queued_graph_obligation_registrations
             .push(registration);
         self
     }
 
-    pub fn graph_scoped_custom_invariant(
+    #[cfg(test)]
+    pub(crate) fn graph_scoped_custom_invariant(
         mut self,
         registration: WorthQueryGraphScopedCustomInvariantRegistration,
     ) -> Self {
@@ -108,14 +121,8 @@ impl WorthQueryRuntimeBuilder {
         self
     }
 
-    pub fn custom_invariant(mut self, custom_invariant: CustomInvariantRegistration) -> Self {
-        self.queued_invariant_registrations
-            .custom_invariants
-            .push(custom_invariant);
-        self
-    }
-
-    pub fn register_invariant<R>(mut self, rule: R) -> Result<Self, WorthQueryRuntimeError>
+    #[cfg(test)]
+    pub(crate) fn register_invariant<R>(mut self, rule: R) -> Result<Self, WorthQueryRuntimeError>
     where
         R: CustomInvariantRule + std::panic::UnwindSafe + 'static,
     {
@@ -226,7 +233,26 @@ impl WorthQueryRuntimeBuilder {
         self
     }
 
+    pub fn aspect_contract(
+        mut self,
+        contract: worth_foundational::facade::AspectContract,
+    ) -> Result<Self, crate::runtime::WorthQueryAspectContractRegistrationDenial> {
+        self.native_aspect_contracts.install(contract)?;
+        Ok(self)
+    }
+
+    pub fn aspect_contracts(
+        mut self,
+        contracts: impl IntoIterator<Item = worth_foundational::facade::AspectContract>,
+    ) -> Result<Self, crate::runtime::WorthQueryAspectContractRegistrationDenial> {
+        for contract in contracts {
+            self.native_aspect_contracts.install(contract)?;
+        }
+        Ok(self)
+    }
+
     pub fn build_backend_from_parts(mut self) -> Self {
+        self.queue_installed_domain_substrates();
         if self.backend.is_some() {
             self.backend = Some(Err(WorthQueryRuntimeError::InvariantRegistration {
                 stage: "runtime_backend_authority_selection",
@@ -262,7 +288,8 @@ impl WorthQueryRuntimeBuilder {
         self
     }
 
-    pub fn build(self) -> Result<WorthQueryRuntime, WorthQueryRuntimeError> {
+    pub fn build(mut self) -> Result<WorthQueryRuntime, WorthQueryRuntimeError> {
+        self.queue_installed_domain_substrates();
         if self.backend.is_some() && !self.backend_parts.is_empty() {
             return Err(WorthQueryRuntimeError::InvariantRegistration {
                 stage: "runtime_backend_authority_selection",
@@ -275,12 +302,7 @@ impl WorthQueryRuntimeBuilder {
                 message: "queued Query-owned invariant registrations cannot be applied after selecting an explicit runtime backend; lower them through WorthQueryRuntimeBuilder before backend(...) or relational_runtime(...)".to_string(),
             });
         }
-        if self.backend.is_some() && !self.queued_graph_obligation_registrations.is_empty() {
-            return Err(WorthQueryRuntimeError::InvariantRegistration {
-                stage: "runtime_backend_selection",
-                message: "queued Query-owned graph obligation registrations cannot be applied after selecting an explicit runtime backend; lower them through WorthQueryRuntimeBuilder before backend(...) or build_backend_from_parts()".to_string(),
-            });
-        }
+        self.assemble_graph_obligation_registration_catalog()?;
         let backend = self
             .backend
             .ok_or(WorthQueryRuntimeError::MissingBackend)??;
@@ -297,11 +319,13 @@ impl WorthQueryRuntimeBuilder {
                 self.pending_domain_installations.into_artifacts(),
                 authority_identity,
             );
+        let native_aspect_contracts = self.native_aspect_contracts;
         Ok(WorthQueryRuntime {
             backend,
             evidence_authority: WorthQueryRuntimeEvidenceAuthority::new(),
             authority_identity,
             domain_installation_registry,
+            native_aspect_contracts,
             preview_session_labels: BTreeSet::new(),
             branch_session_labels: BTreeSet::new(),
             active_subscriptions: ActiveSubscriptionRuntime::new(),
@@ -325,6 +349,7 @@ impl WorthQueryRuntimeBuilder {
         })
     }
 
+    #[cfg(test)]
     fn queue_relational_schema_contract_obligations(&mut self, catalog: &InvariantCatalog) {
         match registrations_from_relational_invariant_catalog(catalog) {
             Ok(registrations) => {
@@ -386,15 +411,5 @@ impl WorthQueryRuntimeBuilder {
         Ok(Box::new(
             WorthQueryBridgeBackedRuntimeBackend::from_validated_bootstrap(bootstrap),
         ))
-    }
-}
-
-fn graph_obligation_registration_error(
-    stage: &'static str,
-    error: WorthQueryGraphObligationRegistrationDenial,
-) -> WorthQueryRuntimeError {
-    WorthQueryRuntimeError::InvariantRegistration {
-        stage,
-        message: format!("{error}"),
     }
 }

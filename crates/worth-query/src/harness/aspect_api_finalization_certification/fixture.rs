@@ -18,7 +18,7 @@ impl WorthQueryDerivedViewMaintainer for CertificationTitleListMaintainer {
     ) -> WorthQueryDerivedPatch {
         let retained_scalar = (
             retained_field_path("value"),
-            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                 delta
                     .entity_identity
                     .terminal_projection_for_reporting()

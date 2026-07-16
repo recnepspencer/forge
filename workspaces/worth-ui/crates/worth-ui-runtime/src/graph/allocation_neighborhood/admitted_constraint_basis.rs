@@ -36,9 +36,6 @@ impl UiAdmittedAllocationConstraintBasis {
     pub(crate) fn constraint_set(&self) -> &crate::evidence::UiAllocationConstraintSet {
         &self.provenance.constraint_set
     }
-    pub(crate) fn scroll_authority(&self) -> Option<&super::UiGraphScrollPlanningAuthority> {
-        self.provenance.scroll_authority.as_ref()
-    }
     pub(crate) fn into_provenance(self) -> std::rc::Rc<UiAllocationConstraintProvenance> {
         self.provenance
     }

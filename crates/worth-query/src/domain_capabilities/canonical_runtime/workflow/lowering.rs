@@ -24,6 +24,7 @@ use super::semantics::{
 };
 use super::WorthQueryWorkflowDeclarationMaterializationTarget;
 
+#[cfg(test)]
 pub fn materialize_lowered_mutation_intent_declaration<T>(
     contribution: WorthQueryMaterializationReadyWorkflowContribution<T>,
 ) -> WorthQueryDomainCapabilityTransitionOutcome<LoweredMutationIntentDeclaration>
@@ -77,6 +78,7 @@ where
         )
 }
 
+#[cfg(test)]
 pub fn materialize_lowered_merge_workflow_declaration<T>(
     contribution: WorthQueryMaterializationReadyWorkflowContribution<T>,
 ) -> WorthQueryDomainCapabilityTransitionOutcome<LoweredMergeWorkflowDeclaration>
@@ -129,6 +131,7 @@ where
     )
 }
 
+#[cfg(test)]
 pub fn materialize_query_writeback_lowering<T>(
     contribution: WorthQueryMaterializationReadyWorkflowContribution<T>,
 ) -> WorthQueryDomainCapabilityTransitionOutcome<QueryWritebackDeclaration>
@@ -181,6 +184,7 @@ where
     )
 }
 
+#[cfg(test)]
 fn extract_workflow_lowering_semantics<'a, T>(
     operation_label: &'static str,
     contribution: &'a crate::domain_capabilities::WorthQueryDomainCapabilityContribution<
@@ -222,6 +226,7 @@ where
     Ok(lowering_semantics)
 }
 
+#[cfg(test)]
 fn lowering_error_outcome<S>(
     category: &'static str,
     target_kind: crate::domain_capabilities::WorthQueryDomainCapabilityTargetKind,
@@ -254,6 +259,7 @@ fn lowering_error_outcome<S>(
     }
 }
 
+#[cfg(test)]
 fn lowering_error_denial(
     category: &'static str,
     request_identity: WorthQueryEvidenceIdentity,
@@ -276,6 +282,7 @@ fn lowering_error_denial(
     )
 }
 
+#[cfg(test)]
 fn workflow_lowering_posture_identity(
     target_identity: &WorthQueryEvidenceIdentity,
     error: &WorkflowLoweringError,

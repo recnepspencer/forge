@@ -161,3 +161,4 @@ fn runtime_deactivates_and_replays_retained_subscription_bundle() {
     );
     assert_eq!(replay.counters().replay_reconstruction_count(), 1);
 }
+use crate::subscription::BridgeSubscriptionDeclarationFamilyKind;

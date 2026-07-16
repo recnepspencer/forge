@@ -1,18 +1,15 @@
-use worth_relational::facade::history::BranchId;
-
 use crate::ordinary::workflow::WorthQueryWorkflowCounters;
 use crate::runtime::{
     WorthQueryOrdinaryAuthorityAdmission, WorthQueryOrdinaryAuthorityFamily,
     WorthQueryRuntimeError, WorthQueryWorkspace,
 };
 
-use super::WorthQueryBranchMergeDeclaration;
+use super::{WorthQueryBranchMergeDeclaration, WorthQueryBranchMergeDeclarationIdentity};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryBranchMergeContext {
     pub(crate) authority: WorthQueryOrdinaryAuthorityAdmission,
-    pub(crate) target_branch: String,
-    pub(crate) source_branch: String,
+    pub(crate) declaration_identity: WorthQueryBranchMergeDeclarationIdentity,
 }
 
 #[derive(Debug)]
@@ -39,12 +36,10 @@ pub fn branch_merge(
     workspace: &WorthQueryWorkspace,
     declaration: &WorthQueryBranchMergeDeclaration,
 ) -> Result<WorthQueryBranchMergeContext, WorthQueryBranchMergeContextStop> {
-    let target_branch = declaration.target_branch().to_string();
-    let source_branch = declaration.source_branch().to_string();
     let authority = workspace
         .capture_ordinary_merge_authority(
-            BranchId(target_branch.clone()),
-            BranchId(source_branch.clone()),
+            declaration.admitted_target_branch(),
+            declaration.admitted_source_branch(),
         )
         .map_err(|error| WorthQueryBranchMergeContextStop {
             error,
@@ -56,7 +51,6 @@ pub fn branch_merge(
     );
     Ok(WorthQueryBranchMergeContext {
         authority,
-        target_branch,
-        source_branch,
+        declaration_identity: declaration.identity().clone(),
     })
 }

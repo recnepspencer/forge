@@ -33,10 +33,16 @@ impl MutationIntent {
             Self::Create(CreateIntent::Entity(spec)) => {
                 touched.insert(spec.partition_id);
             }
+            Self::Create(CreateIntent::EntityAspects(spec)) => {
+                touched.insert(spec.partition_id);
+            }
             Self::Create(CreateIntent::BulkEntities(spec)) => {
                 touched.insert(spec.partition_id);
             }
             Self::Entity(EntityMutationIntent::UpdateFields(spec)) => {
+                touched.insert(spec.entity_id.partition_id);
+            }
+            Self::Entity(EntityMutationIntent::ApplyAspectPatch(spec)) => {
                 touched.insert(spec.entity_id.partition_id);
             }
             Self::Entity(EntityMutationIntent::Replace(spec)) => {
@@ -47,6 +53,11 @@ impl MutationIntent {
                 touched.insert(spec.entity_id.partition_id);
             }
             Self::Create(CreateIntent::Relation(spec)) => {
+                touched.insert(spec.partition_id);
+                touched.insert(spec.source.partition_id());
+                touched.insert(spec.target.partition_id());
+            }
+            Self::Create(CreateIntent::RelationAspects(spec)) => {
                 touched.insert(spec.partition_id);
                 touched.insert(spec.source.partition_id());
                 touched.insert(spec.target.partition_id());
@@ -62,6 +73,9 @@ impl MutationIntent {
                 touched.insert(spec.relation_id.partition_id);
                 touched.insert(spec.source.partition_id());
                 touched.insert(spec.target.partition_id());
+            }
+            Self::Relation(RelationMutationIntent::ApplyAspectPatch(spec)) => {
+                touched.insert(spec.relation_id.partition_id);
             }
             Self::Relation(RelationMutationIntent::Delete(spec)) => {
                 touched.insert(spec.relation_id.partition_id);
@@ -89,13 +103,18 @@ impl MutationIntent {
 
     pub(crate) fn rollback_effect(&self) -> RollbackEffect {
         match self {
-            Self::Create(CreateIntent::Entity(_)) | Self::Create(CreateIntent::BulkEntities(_)) => {
+            Self::Create(CreateIntent::Entity(_))
+            | Self::Create(CreateIntent::EntityAspects(_))
+            | Self::Create(CreateIntent::BulkEntities(_)) => {
                 RollbackEffect::DiscardedEntityCreation
             }
             Self::Entity(EntityMutationIntent::UpdateFields(super::UpdateEntityFieldsIntent {
                 entity_id,
                 ..
             }))
+            | Self::Entity(EntityMutationIntent::ApplyAspectPatch(
+                super::ApplyEntityAspectPatchIntent { entity_id, .. },
+            ))
             | Self::Entity(EntityMutationIntent::Replace(ReplaceEntityIntent {
                 entity_id, ..
             }))
@@ -103,10 +122,14 @@ impl MutationIntent {
                 RollbackEffect::RestoredEntity(*entity_id)
             }
             Self::Create(CreateIntent::Relation(_))
+            | Self::Create(CreateIntent::RelationAspects(_))
             | Self::Create(CreateIntent::BulkRelations(_)) => {
                 RollbackEffect::DiscardedRelationCreation
             }
             Self::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
+                RollbackEffect::RestoredRelation(spec.relation_id)
+            }
+            Self::Relation(RelationMutationIntent::ApplyAspectPatch(spec)) => {
                 RollbackEffect::RestoredRelation(spec.relation_id)
             }
             Self::Relation(RelationMutationIntent::Delete(spec)) => {
@@ -120,6 +143,9 @@ impl MutationIntent {
             Self::Entity(EntityMutationIntent::UpdateFields(spec)) => {
                 Some(ExistingRecordTarget::Entity(spec.entity_id))
             }
+            Self::Entity(EntityMutationIntent::ApplyAspectPatch(spec)) => {
+                Some(ExistingRecordTarget::Entity(spec.entity_id))
+            }
             Self::Entity(EntityMutationIntent::Replace(spec)) => {
                 Some(ExistingRecordTarget::Entity(spec.entity_id))
             }
@@ -127,6 +153,9 @@ impl MutationIntent {
                 Some(ExistingRecordTarget::Entity(spec.entity_id))
             }
             Self::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
+                Some(ExistingRecordTarget::Relation(spec.relation_id))
+            }
+            Self::Relation(RelationMutationIntent::ApplyAspectPatch(spec)) => {
                 Some(ExistingRecordTarget::Relation(spec.relation_id))
             }
             Self::Relation(RelationMutationIntent::Delete(spec)) => {
@@ -144,6 +173,14 @@ impl MutationIntent {
                 source: spec.source.clone(),
                 target: spec.target.clone(),
             }),
+            Self::Create(CreateIntent::RelationAspects(spec)) => {
+                identities.push(RelationIdentity {
+                    partition_id: spec.partition_id,
+                    kind_id: spec.kind_id,
+                    source: spec.source.clone(),
+                    target: spec.target.clone(),
+                })
+            }
             Self::Create(CreateIntent::BulkRelations(BulkRelationCreateIntent {
                 partition_id,
                 kind_id,
@@ -185,7 +222,9 @@ impl super::MergedCommitPlan {
         let invalidated_groups = self.invariant_contract().may_invalidate_groups();
         if invalidated_groups == InvariantGroupSet::of(InvariantGroup::StorageCoherence) {
             CommitTopology::FlatEntityBatch
-        } else if invalidated_groups.contains(InvariantGroup::AdjacencyIntegrity) {
+        } else if invalidated_groups.contains(InvariantGroup::AdjacencyIntegrity)
+            || invalidated_groups.contains(InvariantGroup::RelationIntegrity)
+        {
             CommitTopology::GraphMutation
         } else {
             CommitTopology::FlatEntityBatch

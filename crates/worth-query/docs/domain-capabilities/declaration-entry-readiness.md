@@ -41,9 +41,9 @@ seams are attempted.
 - `WorthQueryDeclarationEntryCrossingInventory`
 - `WorthQueryDeclarationEntryCrossingRow`
 - `WorthQueryDeclarationEntryCrossingSurface`
-- `WorthQueryAdmittedConfiguredDomainHandle::declaration_entry_readiness::<I>()`
-- `WorthQueryAdmittedConfiguredDomainHandle::try_declaration_entry_readiness::<I>(...)`
-- `WorthQueryAdmittedConfiguredDomainHandle::declaration_entry_crossing_inventory::<I>()`
+- `WorthQueryInstalledDomainDeclarationContext::declaration_entry_readiness::<I>()`
+- `WorthQueryInstalledDomainDeclarationContext::try_declaration_entry_readiness::<I>(...)`
+- `WorthQueryInstalledDomainDeclarationContext::declaration_entry_crossing_inventory::<I>()`
 
 ## API Reference
 
@@ -273,5 +273,5 @@ Use readiness when you need to know:
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
-- [Configured Domain Handles](./configured-domain-handles.md)
+- Runtime-Installed Domain Handles
 - [Recovery Boundary](./recovery-boundary.md)

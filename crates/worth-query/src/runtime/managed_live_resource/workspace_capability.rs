@@ -1,18 +1,18 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use super::super::{WorthQueryLiveView, WorthQueryNativeRow};
+use super::super::{WorthQueryLiveView, WorthQueryUnrefinedLiveShape};
 
 #[derive(Debug)]
 pub(crate) struct WorthQueryAbandonedManagedLiveResource {
-    view: WorthQueryLiveView<WorthQueryNativeRow>,
+    view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape>,
 }
 
 impl WorthQueryAbandonedManagedLiveResource {
-    pub(crate) fn new(view: WorthQueryLiveView<WorthQueryNativeRow>) -> Self {
+    pub(crate) fn new(view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape>) -> Self {
         Self { view }
     }
 
-    pub(crate) fn view(&self) -> &WorthQueryLiveView<WorthQueryNativeRow> {
+    pub(crate) fn view(&self) -> &WorthQueryLiveView<WorthQueryUnrefinedLiveShape> {
         &self.view
     }
 
@@ -35,7 +35,7 @@ impl WorthQueryManagedLiveWorkspaceCapability {
         Arc::ptr_eq(left, right)
     }
 
-    pub(crate) fn abandon(&self, view: WorthQueryLiveView<WorthQueryNativeRow>) {
+    pub(crate) fn abandon(&self, view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape>) {
         self.abandoned_resources()
             .push(WorthQueryAbandonedManagedLiveResource::new(view));
     }

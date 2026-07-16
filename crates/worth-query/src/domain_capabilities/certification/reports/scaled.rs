@@ -7,8 +7,9 @@ use crate::domain_capabilities::identity::{
     compose_scaled_category_digest, compose_scaled_contribution_digest,
     compose_scaled_support_digest, compose_scaled_trace_digest,
 };
-use crate::domain_capabilities::materialize_intent_admission_support_traceability_report;
-use crate::domain_capabilities::{worth_query_domain, WorthQueryDomainCapabilityCategory};
+use crate::domain_capabilities::{
+    materialize_intent_admission_support_traceability_report, WorthQueryDomainCapabilityCategory,
+};
 use crate::intent_admission::dx::WorthQueryRuntimeIntentAdmissionReviewData;
 use crate::intent_admission::WorthQueryIntentAdmissionCoveredEntrypoint;
 
@@ -57,17 +58,28 @@ impl WorthQueryDomainCapabilityScaledEvidence {
     }
 }
 
-pub(crate) fn worth_query_domain_capability_scaled_evidence(
+pub(crate) fn worth_query_domain_capability_scaled_evidence_in(
+    domain: &crate::domain_capabilities::WorthQueryInstalledDomainContributionSurface,
 ) -> [WorthQueryDomainCapabilityScaledEvidence; 3] {
-    [scaled_evidence(1), scaled_evidence(2), scaled_evidence(3)]
+    [
+        scaled_evidence(1, domain),
+        scaled_evidence(2, domain),
+        scaled_evidence(3, domain),
+    ]
 }
 
-fn scaled_evidence(scale: usize) -> WorthQueryDomainCapabilityScaledEvidence {
+fn scaled_evidence(
+    scale: usize,
+    domain: &crate::domain_capabilities::WorthQueryInstalledDomainContributionSurface,
+) -> WorthQueryDomainCapabilityScaledEvidence {
     let declaration = intent_declaration(&format!("domain-capability-scale-{scale}"));
     let admitted_plan = admitted_basis_observation_plan();
     let projection_plan = admitted_projection_consumption_plan();
     let lower_runtime = lower_runtime_envelope(&format!("domain-capability-scale-{scale}"));
     let categories = category_set_for_scale(scale);
+    let admitted_plan_target = domain
+        .admitted_plan_target(&admitted_plan)
+        .expect("installed contribution authority must remain current");
 
     let mut contribution_digests = Vec::new();
     let mut trace_digests = Vec::new();
@@ -76,8 +88,9 @@ fn scaled_evidence(scale: usize) -> WorthQueryDomainCapabilityScaledEvidence {
     let mut trace_width = 0usize;
 
     if categories.contains(&WorthQueryDomainCapabilityCategory::Admission) {
-        let admission = worth_query_domain("worth.spatial")
+        let admission = domain
             .for_admitted_intent_plan(&admitted_plan)
+            .expect("installed contribution authority must remain current")
             .advises(format!("admission.scale_{scale}"))
             .because("scaled admission evidence should remain canonical")
             .materialize()
@@ -86,8 +99,9 @@ fn scaled_evidence(scale: usize) -> WorthQueryDomainCapabilityScaledEvidence {
     }
 
     if categories.contains(&WorthQueryDomainCapabilityCategory::SupportTraceability) {
-        let support = worth_query_domain("worth.spatial")
+        let support = domain
             .for_intent(&declaration)
+            .expect("installed contribution authority must remain current")
             .supports_traceability(format!("traceability.scale_{scale}"))
             .because("scaled support evidence should remain declaration scoped")
             .materialize()
@@ -96,7 +110,7 @@ fn scaled_evidence(scale: usize) -> WorthQueryDomainCapabilityScaledEvidence {
 
         for _ in 0..scale {
             let report = success(materialize_intent_admission_support_traceability_report(
-                admitted_ready(plan_support_requested(&admitted_plan)),
+                admitted_ready(plan_support_requested(admitted_plan_target.clone())),
             ));
             support_width += report.rows().len();
             support_digests.push(report.decision_support_traceability_digest().to_string());
@@ -104,8 +118,9 @@ fn scaled_evidence(scale: usize) -> WorthQueryDomainCapabilityScaledEvidence {
     }
 
     if categories.contains(&WorthQueryDomainCapabilityCategory::WorkflowPreview) {
-        let workflow = worth_query_domain("worth.spatial")
+        let workflow = domain
             .for_intent(&declaration)
+            .expect("installed contribution authority must remain current")
             .plans_preview_mutation(
                 format!("workflow.scale_{scale}"),
                 crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(format!(
@@ -125,8 +140,9 @@ fn scaled_evidence(scale: usize) -> WorthQueryDomainCapabilityScaledEvidence {
     }
 
     if categories.contains(&WorthQueryDomainCapabilityCategory::ContinuityLineage) {
-        let continuity = worth_query_domain("worth.spatial")
+        let continuity = domain
             .for_admitted_intent_plan(&admitted_plan)
+            .expect("installed contribution authority must remain current")
             .preserves_continuity(
                 format!("continuity.scale_{scale}"),
                 format!("edge:{scale}:before"),
@@ -144,8 +160,9 @@ fn scaled_evidence(scale: usize) -> WorthQueryDomainCapabilityScaledEvidence {
     }
 
     if categories.contains(&WorthQueryDomainCapabilityCategory::ConsequenceAftermath) {
-        let aftermath = worth_query_domain("worth.spatial")
+        let aftermath = domain
             .for_admitted_intent_plan(&projection_plan)
+            .expect("installed contribution authority must remain current")
             .consumes_projection_contract(
                 format!("aftermath.scale_{scale}"),
                 projection_contract_request(),
@@ -157,8 +174,9 @@ fn scaled_evidence(scale: usize) -> WorthQueryDomainCapabilityScaledEvidence {
     }
 
     if categories.contains(&WorthQueryDomainCapabilityCategory::ExplanationInspection) {
-        let explanation = worth_query_domain("worth.spatial")
+        let explanation = domain
             .for_lower_runtime_boundary_envelope(&lower_runtime)
+            .expect("installed contribution authority must remain current")
             .explains_store_backed_replay_gap(
                 format!("explanation.scale_{scale}"),
                 store_backed_replay_gap_request(),
@@ -170,8 +188,9 @@ fn scaled_evidence(scale: usize) -> WorthQueryDomainCapabilityScaledEvidence {
     }
 
     if categories.contains(&WorthQueryDomainCapabilityCategory::InvariantCapability) {
-        let invariant = worth_query_domain("worth.spatial")
+        let invariant = domain
             .for_intent(&declaration)
+            .expect("installed contribution authority must remain current")
             .register_invariant_catalog(
                 format!("invariant.scale_{scale}"),
                 worth_relational::facade::runtime::InvariantCatalog::default(),

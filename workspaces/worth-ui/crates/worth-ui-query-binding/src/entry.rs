@@ -7,12 +7,12 @@ pub struct WorthUiQueryBindingSubsystem {
 /// projection attempts are not an accepted boundary shape.
 ///
 /// ```compile_fail
-/// fn legacy_attempt_cannot_admit(
+/// fn decomposed_authority_cannot_admit(
 ///     admission: &mut worth_ui_query_binding::WorthUiQueryAllocationAdmission<'_>,
 ///     prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-///     outcome: worth_query::facade::read::WorthQueryProjectionOutcome,
+///     authority: &worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
 /// ) {
-///     let _ = admission.admit(prerequisites, outcome);
+///     let _ = admission.admit(prerequisites, authority);
 /// }
 /// ```
 pub struct WorthUiQueryAllocationAdmission<'a> {

@@ -43,7 +43,6 @@ macro_rules! mutation_authority_label_type {
         }
 
         impl $name {
-            #[allow(dead_code)]
             pub fn new(label: impl Into<String>) -> Result<Self, WorthQueryWorkspaceError> {
                 Ok(Self {
                     label: normalize_non_empty_authority_label(label.into())?,

@@ -14,7 +14,7 @@ use crate::runtime::{
     CausalInspection, QueryObservationReceipt, WorthQueryAspectMutationBuilder,
     WorthQueryReadFamily, WorthQueryReadResult, WorthQueryWorkspace,
 };
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
 use worth_signal::facade::adapters::{
     DedupedNodeBatch, FrontierEntryClassification, FrontierExecutionCounters,
     FrontierExecutionSummary, FrontierInclusionBasis, FrontierPlan, FrontierPredictedCounters,
@@ -248,14 +248,14 @@ fn certification_read_family(
                                 .expect("schema aspect literal must be valid"),
                             crate::authoring::FieldName::new("id")
                                 .expect("schema field literal must be valid"),
-                            SchemaFieldKind::String,
+                            ScalarAspectType::String,
                         ),
                         SchemaFieldView::new(
                             crate::authoring::AspectName::new("title")
                                 .expect("schema aspect literal must be valid"),
                             crate::authoring::FieldName::new("value")
                                 .expect("schema field literal must be valid"),
-                            SchemaFieldKind::String,
+                            ScalarAspectType::String,
                         ),
                     ],
                     [],

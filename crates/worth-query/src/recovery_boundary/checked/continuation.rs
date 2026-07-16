@@ -110,18 +110,18 @@ fn explanation_with_base(
         )
         .with_source_family(explanation.source_family())
         .with_conflict_posture(explanation.conflict_posture())
-        .with_support_context_if_present(explanation)
+        .with_retained_context_if_present(explanation)
 }
 
 trait RecoveryExplanationMerge {
-    fn with_support_context_if_present(
+    fn with_retained_context_if_present(
         self,
         source: crate::recovery_boundary::WorthQueryRecoveryExplanation,
     ) -> Self;
 }
 
 impl RecoveryExplanationMerge for crate::recovery_boundary::WorthQueryRecoveryExplanation {
-    fn with_support_context_if_present(
+    fn with_retained_context_if_present(
         mut self,
         source: crate::recovery_boundary::WorthQueryRecoveryExplanation,
     ) -> Self {
@@ -135,6 +135,9 @@ impl RecoveryExplanationMerge for crate::recovery_boundary::WorthQueryRecoveryEx
                     source.degraded_recovery_posture(),
                 ),
             );
+        }
+        if let Some(drift) = source.installed_domain_execution_drift() {
+            self = self.with_installed_domain_execution_drift(drift.clone());
         }
         self
     }
@@ -162,6 +165,9 @@ fn continuation_prepared_explanation<
         }
         WorthQueryPreparedContinuationOutcome::WrongHandle(_) => {
             WorthQueryRecoveryStopKind::WrongHandle
+        }
+        WorthQueryPreparedContinuationOutcome::InstalledAuthorityDrift(_) => {
+            WorthQueryRecoveryStopKind::RebindRequired
         }
         WorthQueryPreparedContinuationOutcome::Stale(_) => WorthQueryRecoveryStopKind::Stale,
         WorthQueryPreparedContinuationOutcome::RebindRequired(_) => {
@@ -196,6 +202,9 @@ fn continuation_prepared_explanation<
         base = base.with_profile(profile);
     }
     match outcome {
+        WorthQueryPreparedContinuationOutcome::InstalledAuthorityDrift(drift) => {
+            base.with_installed_domain_execution_drift(drift.clone())
+        }
         WorthQueryPreparedContinuationOutcome::Stale(_) => base
             .with_basis_posture(WorthQueryRecoveryBasisPosture::StaleBasis)
             .with_support_context(support_context_for_stale_basis()),
@@ -232,12 +241,18 @@ fn continuation_execution_explanation<
         WorthQueryContinuationExecutionOutcome::PreviewCrossedResidue(_) => {
             WorthQueryRecoveryStopKind::PreviewCrossedResidue
         }
+        WorthQueryContinuationExecutionOutcome::InstalledAuthorityDrift(_) => {
+            WorthQueryRecoveryStopKind::RebindRequired
+        }
         WorthQueryContinuationExecutionOutcome::Stale(_) => WorthQueryRecoveryStopKind::Stale,
         WorthQueryContinuationExecutionOutcome::StaleCompletion(_) => {
             WorthQueryRecoveryStopKind::StaleCompletion
         }
         WorthQueryContinuationExecutionOutcome::BasisMismatch(_) => {
             WorthQueryRecoveryStopKind::BasisMismatch
+        }
+        WorthQueryContinuationExecutionOutcome::LowerBindingMismatch(_) => {
+            WorthQueryRecoveryStopKind::AuthorityMismatch
         }
         WorthQueryContinuationExecutionOutcome::AuthorityMismatch(_) => {
             WorthQueryRecoveryStopKind::AuthorityMismatch
@@ -263,6 +278,9 @@ fn continuation_execution_explanation<
         base = base.with_profile(profile);
     }
     match outcome {
+        WorthQueryContinuationExecutionOutcome::InstalledAuthorityDrift(drift) => {
+            base.with_installed_domain_execution_drift(drift.clone())
+        }
         WorthQueryContinuationExecutionOutcome::ReplayDrift(_)
         | WorthQueryContinuationExecutionOutcome::StaleCompletion(_) => base
             .with_basis_posture(WorthQueryRecoveryBasisPosture::StaleBasis)

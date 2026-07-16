@@ -27,7 +27,7 @@ Stable targets today:
 
 Related boundaries:
 
-- `workspace.inspect(...)` gives richer retained evidence
+- `workspace.inspections()?.inspect(...)` gives richer retained evidence
 - `workspace.public_support_matrix()` and `workspace.admit_public_api_family(...)`
   are the source of truth for stable versus support-gated, deferred, and
   unsupported family posture
@@ -93,11 +93,11 @@ runtime root.
 use worth_query::facade::runtime::{
     WorthQueryDerivedViewHandle, WorthQueryLiveView, WorthQueryRuntimeFacadeFamily,
 };
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("state-workspace").unwrap();
 
-let view: WorthQueryLiveView<Value> = workspace
+let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.state-table", |q| {
         q.from("Task")
             .select(["identity.id", "title.value"])
@@ -105,7 +105,7 @@ let view: WorthQueryLiveView<Value> = workspace
     })
     .unwrap();
 
-let titles: WorthQueryDerivedViewHandle<Value> = workspace
+let titles: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
     .computed(
         "tasks.state-title-list",
         |c| {

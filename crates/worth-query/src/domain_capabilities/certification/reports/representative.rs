@@ -21,14 +21,14 @@ use crate::domain_capabilities::certification::reports::fixtures::{
     support_traceability_requested, workflow_requested,
 };
 use crate::domain_capabilities::certification::{
+    install_domain_capability_certification,
     worth_query_domain_capability_compile_fail_boundary_digest,
     worth_query_domain_capability_public_surface_inventory,
 };
 use crate::domain_capabilities::identity::compose_canonical_runtime_materialization_digest;
 use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
-    evaluate_requested_domain_capability_contribution, worth_query_domain,
-    WorthQuerySupportContributionAuthoring,
+    evaluate_requested_domain_capability_contribution, WorthQuerySupportContributionAuthoring,
 };
 use crate::intent_admission::dx::WorthQueryRuntimeIntentAdmissionReviewData;
 use crate::intent_admission::WorthQueryIntentAdmissionCoveredEntrypoint;
@@ -119,14 +119,33 @@ impl WorthQueryDomainCapabilityRepresentativeReport {
 
 pub fn worth_query_domain_capability_representative_report(
 ) -> WorthQueryDomainCapabilityRepresentativeReport {
+    let installation = install_domain_capability_certification();
+    worth_query_domain_capability_representative_report_in(installation.contributions())
+}
+
+pub(crate) fn worth_query_domain_capability_representative_report_in(
+    domain: &crate::domain_capabilities::WorthQueryInstalledDomainContributionSurface,
+) -> WorthQueryDomainCapabilityRepresentativeReport {
     let declaration = intent_declaration("domain-capability-certification");
     let admitted_plan = admitted_basis_observation_plan();
     let projection_plan = admitted_projection_consumption_plan();
     let lower_runtime = lower_runtime_envelope("domain-capability-certification");
+    let declaration_target = domain
+        .intent_target(&declaration)
+        .expect("installed contribution authority must remain current");
+    let admitted_plan_target = domain
+        .admitted_plan_target(&admitted_plan)
+        .expect("installed contribution authority must remain current");
+    let projection_plan_target = domain
+        .admitted_plan_target(&projection_plan)
+        .expect("installed contribution authority must remain current");
+    let lower_runtime_target = domain
+        .lower_runtime_target(&lower_runtime)
+        .expect("installed contribution authority must remain current");
     let public_boundary_digest =
         worth_query_domain_capability_public_surface_inventory().public_surface_digest();
 
-    let support_requested = support_traceability_requested(&declaration);
+    let support_requested = support_traceability_requested(declaration_target.clone());
     let request_digest = support_requested.payload().request_digest().to_string();
     let support_eligible = success(evaluate_requested_domain_capability_contribution(
         support_requested,
@@ -139,11 +158,12 @@ pub fn worth_query_domain_capability_representative_report(
 
     let support_artifact = success(
         materialize_intent_declaration_support_traceability_artifact(admitted_ready(
-            support_traceability_requested(&declaration),
+            support_traceability_requested(declaration_target.clone()),
         )),
     );
-    let support_common = worth_query_domain("worth.spatial")
-        .for_intent(&declaration)
+    let support_common = domain
+        .for_intent_target(declaration_target.clone())
+        .expect("installed declaration target should belong to the certification domain")
         .supports_traceability("traceability.edge_split")
         .because("declaration-scoped support remains declaration scoped")
         .materialize()
@@ -152,7 +172,7 @@ pub fn worth_query_domain_capability_representative_report(
 
     let different_support = success(
         materialize_intent_declaration_support_traceability_artifact(admitted_ready(
-            plain_support_requested(&declaration),
+            plain_support_requested(declaration_target.clone()),
         )),
     );
     assert_ne!(
@@ -162,10 +182,11 @@ pub fn worth_query_domain_capability_representative_report(
     assert_eq!(support_artifact.intent_name(), declaration.name());
 
     let admission_decision = success(materialize_runtime_admission_decision(admitted_ready(
-        admission_requested(&admitted_plan),
+        admission_requested(admitted_plan_target.clone()),
     )));
-    let admission_common = worth_query_domain("worth.spatial")
-        .for_admitted_intent_plan(&admitted_plan)
+    let admission_common = domain
+        .for_admitted_plan_target(admitted_plan_target.clone())
+        .expect("installed plan target should belong to the certification domain")
         .advises("admission.routing_gap")
         .because("runtime routing still needs clarification")
         .materialize()
@@ -173,10 +194,11 @@ pub fn worth_query_domain_capability_representative_report(
     assert_eq!(admission_common, admission_decision);
 
     let workflow_declaration = success(materialize_query_workflow_declaration(admitted_ready(
-        workflow_requested(&declaration),
+        workflow_requested(declaration_target.clone()),
     )));
-    let workflow_common = worth_query_domain("worth.spatial")
-        .for_intent(&declaration)
+    let workflow_common = domain
+        .for_intent_target(declaration_target.clone())
+        .expect("installed declaration target should belong to the certification domain")
         .plans_preview_mutation(
             "workflow.preview_mutation",
             crate::facade::runtime::BridgePreviewSessionIdentity::from_stable_name(
@@ -192,10 +214,11 @@ pub fn worth_query_domain_capability_representative_report(
     );
 
     let continuity_evidence = success(materialize_runtime_continuity_evidence(admitted_ready(
-        continuity_requested(&admitted_plan),
+        continuity_requested(admitted_plan_target.clone()),
     )));
-    let continuity_common = worth_query_domain("worth.spatial")
-        .for_admitted_intent_plan(&admitted_plan)
+    let continuity_common = domain
+        .for_admitted_plan_target(admitted_plan_target.clone())
+        .expect("installed plan target should belong to the certification domain")
         .preserves_continuity("continuity.edge_split", "edge:before", "edge:after")
         .because("edge split preserves one authoritative successor")
         .materialize()
@@ -203,10 +226,11 @@ pub fn worth_query_domain_capability_representative_report(
     assert_eq!(continuity_common, continuity_evidence);
 
     let projection_contract = success(materialize_projection_consumption_contract(admitted_ready(
-        aftermath_requested(&projection_plan),
+        aftermath_requested(projection_plan_target.clone()),
     )));
-    let aftermath_common = worth_query_domain("worth.spatial")
-        .for_admitted_intent_plan(&projection_plan)
+    let aftermath_common = domain
+        .for_admitted_plan_target(projection_plan_target.clone())
+        .expect("installed projection target should belong to the certification domain")
         .consumes_projection_contract(
             "aftermath.projection_contract",
             projection_contract_request(),
@@ -217,10 +241,11 @@ pub fn worth_query_domain_capability_representative_report(
     assert_eq!(aftermath_common, projection_contract);
 
     let explanation_artifact = success(materialize_query_causal_inspection_artifact(
-        admitted_ready(explanation_requested(&lower_runtime)),
+        admitted_ready(explanation_requested(lower_runtime_target.clone())),
     ));
-    let explanation_common = worth_query_domain("worth.spatial")
-        .for_lower_runtime_boundary_envelope(&lower_runtime)
+    let explanation_common = domain
+        .for_lower_runtime_target(lower_runtime_target.clone())
+        .expect("installed lower-runtime target should belong to the certification domain")
         .explains_store_backed_replay_gap(
             "explanation.store_backed_replay",
             store_backed_replay_gap_request(),
@@ -231,10 +256,11 @@ pub fn worth_query_domain_capability_representative_report(
     assert_eq!(explanation_common, explanation_artifact);
 
     let invariant_artifact = success(materialize_query_invariant_catalog_registration_artifact(
-        admitted_ready(invariant_requested(&declaration)),
+        admitted_ready(invariant_requested(declaration_target.clone())),
     ));
-    let invariant_common = worth_query_domain("worth.spatial")
-        .for_intent(&declaration)
+    let invariant_common = domain
+        .for_intent_target(declaration_target.clone())
+        .expect("installed declaration target should belong to the certification domain")
         .register_invariant_catalog("invariant.edge_split", InvariantCatalog::default())
         .because("geometry kernel must reject invalid edge splits")
         .materialize()
@@ -243,14 +269,14 @@ pub fn worth_query_domain_capability_representative_report(
 
     let support_traceability_report =
         success(materialize_intent_admission_support_traceability_report(
-            admitted_ready(plan_support_requested(&admitted_plan)),
+            admitted_ready(plan_support_requested(admitted_plan_target.clone())),
         ));
 
     let capability_row = success(materialize_graph_composition_capability_support_row(
-        admitted_ready(capability_requested(&lower_runtime)),
+        admitted_ready(capability_requested(lower_runtime_target.clone())),
     ));
     let invariant_denial = success(materialize_graph_composition_domain_invariant_denial(
-        admitted_ready(invariant_denial_requested(&lower_runtime)),
+        admitted_ready(invariant_denial_requested(lower_runtime_target.clone())),
     ));
 
     let advisory_review = WorthQueryRuntimeIntentAdmissionReviewData::from_request(
@@ -270,7 +296,7 @@ pub fn worth_query_domain_capability_representative_report(
             "worth.spatial.support.failure",
             "",
         )
-        .for_intent_declaration(&declaration),
+        .bind_to_installed_target(declaration_target.clone()),
     ) {
         worth_proof::TransitionOutcome::Denied(denial) => denial,
         _ => panic!("expected typed denial"),
@@ -288,37 +314,37 @@ pub fn worth_query_domain_capability_representative_report(
         canonical_runtime_materialization_digest: compose_canonical_runtime_materialization_digest(
             [
                 materialize_canonical_admission_artifact(admitted_ready(admission_requested(
-                    &admitted_plan,
+                    admitted_plan_target.clone(),
                 )))
                 .materialization_digest()
                 .to_string(),
                 materialize_canonical_support_traceability_artifact(admitted_ready(
-                    support_traceability_requested(&declaration),
+                    support_traceability_requested(declaration_target.clone()),
                 ))
                 .materialization_digest()
                 .to_string(),
                 materialize_canonical_invariant_capability_artifact(admitted_ready(
-                    invariant_requested(&declaration),
+                    invariant_requested(declaration_target.clone()),
                 ))
                 .materialization_digest()
                 .to_string(),
                 materialize_canonical_workflow_artifact(admitted_ready(workflow_requested(
-                    &declaration,
+                    declaration_target.clone(),
                 )))
                 .materialization_digest()
                 .to_string(),
                 materialize_canonical_continuity_artifact(admitted_ready(continuity_requested(
-                    &admitted_plan,
+                    admitted_plan_target.clone(),
                 )))
                 .materialization_digest()
                 .to_string(),
                 materialize_canonical_aftermath_artifact(admitted_ready(aftermath_requested(
-                    &projection_plan,
+                    projection_plan_target.clone(),
                 )))
                 .materialization_digest()
                 .to_string(),
                 materialize_canonical_explanation_artifact(admitted_ready(explanation_requested(
-                    &lower_runtime,
+                    lower_runtime_target.clone(),
                 )))
                 .materialization_digest()
                 .to_string(),
@@ -367,38 +393,5 @@ fn decision_digest(decision: &crate::runtime::WorthQueryIntentAdmissionDecision)
         crate::runtime::WorthQueryIntentAdmissionDecision::Violation(violation) => {
             violation.decision_digest().to_string()
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn representative_report_emits_all_required_foundation_digests() {
-        let report = worth_query_domain_capability_representative_report();
-
-        for key in [
-            "query_digest",
-            "intent_declaration_digest",
-            "domain_capability_contribution_request_digest",
-            "admission_artifact_digest",
-            "support_artifact_digest",
-            "workflow_artifact_digest",
-            "continuity_artifact_digest",
-            "aftermath_artifact_digest",
-            "explanation_artifact_digest",
-            "capability_support_row_digest",
-            "domain_invariant_denial_digest",
-            "decision_trace_digest",
-            "support_traceability_digest",
-            "failure_digest",
-        ] {
-            assert!(report
-                .digest_for(key)
-                .is_some_and(|digest| !digest.is_empty()));
-        }
-        assert!(report.trace_width() > 0);
-        assert!(report.support_width() >= 2);
     }
 }

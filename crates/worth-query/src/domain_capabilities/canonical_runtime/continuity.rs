@@ -9,8 +9,7 @@ use crate::domain_capabilities::payloads::{
     WorthQueryContinuityRuntimeSemantics,
 };
 use crate::domain_capabilities::targets::{
-    WorthQueryAdmittedPlanBoundContributionTarget, WorthQueryDomainCapabilityTargetBinding,
-    WorthQueryDomainCapabilityTargetKind,
+    WorthQueryDomainCapabilityTargetBinding, WorthQueryDomainCapabilityTargetKind,
 };
 use crate::domain_capabilities::{
     WorthQueryCanonicalContinuityArtifact, WorthQueryDomainCapabilityTransitionOutcome,

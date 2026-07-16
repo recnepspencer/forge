@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
+use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
 
 use super::identity::compose_materialized_fact_posture_digest;
 
@@ -8,22 +8,6 @@ use super::identity::compose_materialized_fact_posture_digest;
 pub struct ProjectionFactFieldPath {
     path: CanonicalFieldPath,
     terminal_projection: String,
-}
-
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub(crate) struct ProjectionFactAspectFieldKey {
-    aspect_key: AspectKey,
-    field_key: FieldKey,
-}
-
-impl ProjectionFactAspectFieldKey {
-    pub(crate) fn native_aspect_key(&self) -> &AspectKey {
-        &self.aspect_key
-    }
-
-    pub(crate) fn native_field_key(&self) -> &FieldKey {
-        &self.field_key
-    }
 }
 
 impl ProjectionFactFieldPath {
@@ -47,17 +31,6 @@ impl ProjectionFactFieldPath {
     pub fn canonical_field_path(&self) -> &CanonicalFieldPath {
         &self.path
     }
-
-    pub(crate) fn native_aspect_field_key(&self) -> Option<ProjectionFactAspectFieldKey> {
-        let [aspect, field] = self.path.fields() else {
-            return None;
-        };
-        Some(ProjectionFactAspectFieldKey {
-            aspect_key: AspectKey::new(aspect.as_str())
-                .expect("canonical projection fact aspect segment should be non-empty"),
-            field_key: field.clone(),
-        })
-    }
 }
 
 pub(crate) fn projection_fact_field_path_from_segments(
@@ -79,7 +52,7 @@ pub enum ProjectionFactRequest {
     Membership,
     RelationEndpoint,
     DisplayField(ProjectionFactFieldPath),
-    DerivedScalarField(ProjectionFactFieldPath),
+    DerivedField(ProjectionFactFieldPath),
 }
 
 impl ProjectionFactRequest {
@@ -93,13 +66,13 @@ impl ProjectionFactRequest {
             Self::Membership => ProjectionFactKind::Membership,
             Self::RelationEndpoint => ProjectionFactKind::RelationEndpoint,
             Self::DisplayField(_) => ProjectionFactKind::DisplayField,
-            Self::DerivedScalarField(_) => ProjectionFactKind::DerivedScalarField,
+            Self::DerivedField(_) => ProjectionFactKind::DerivedField,
         }
     }
 
     pub fn field_path(&self) -> Option<&ProjectionFactFieldPath> {
         match self {
-            Self::DisplayField(field) | Self::DerivedScalarField(field) => Some(field),
+            Self::DisplayField(field) | Self::DerivedField(field) => Some(field),
             _ => None,
         }
     }
@@ -115,7 +88,7 @@ pub enum ProjectionFactKind {
     Membership,
     RelationEndpoint,
     DisplayField,
-    DerivedScalarField,
+    DerivedField,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -213,7 +186,7 @@ impl ProjectionFactKind {
             Self::Membership => "membership",
             Self::RelationEndpoint => "relation_endpoint",
             Self::DisplayField => "display_field",
-            Self::DerivedScalarField => "derived_scalar_field",
+            Self::DerivedField => "derived_field",
         }
     }
 
@@ -227,7 +200,7 @@ impl ProjectionFactKind {
             Self::Membership,
             Self::RelationEndpoint,
             Self::DisplayField,
-            Self::DerivedScalarField,
+            Self::DerivedField,
         ]
     }
 }
@@ -287,9 +260,9 @@ impl ProjectMaterializedFacts {
         self
     }
 
-    pub fn derived_scalar_field_path(mut self, field: ProjectionFactFieldPath) -> Self {
+    pub fn derived_field_path(mut self, field: ProjectionFactFieldPath) -> Self {
         self.requested
-            .insert(ProjectionFactRequest::DerivedScalarField(field));
+            .insert(ProjectionFactRequest::DerivedField(field));
         self
     }
 

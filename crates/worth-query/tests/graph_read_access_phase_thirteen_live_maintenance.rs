@@ -1,15 +1,13 @@
-#[allow(dead_code)]
-mod graph_read_access_cost_model_support;
-#[path = "support/mod.rs"]
-mod support;
+use crate::support;
 
-use worth_query::facade::runtime::{
-    plan_admitted_graph_read_access_for_family, QueryPatchGroupKind,
+use crate::runtime::{
+    plan_admitted_graph_read_access_for_family,
     WorthQueryLiveGraphReadAccessPosture, WorthQueryLiveGraphReadMaintenanceBudget,
-    WorthQueryNativeRow,
+    WorthQueryUnrefinedLiveShape,
 };
+use crate::subscription::QueryPatchGroupKind;
 
-use graph_read_access_cost_model_support::{
+use crate::support::graph_read_access_cost_model::{
     dense_traversal_family, simple_traversal_family, workspace,
 };
 use support::aspect_touch as touch;
@@ -96,7 +94,7 @@ fn dense_live_planning_denial_still_returns_live_specific_support_posture() {
 fn live_read_receipt_exposes_live_graph_access_counters() {
     let mut workspace = workspace("phase-thirteen-live-receipt");
     let live_view = workspace
-        .live_view::<WorthQueryNativeRow>("tasks.table", |query| {
+        .live_view::<WorthQueryUnrefinedLiveShape>("tasks.table", |query| {
             query
                 .from("Task")
                 .select([
@@ -145,7 +143,7 @@ fn live_read_receipt_exposes_live_graph_access_counters() {
 fn live_mutation_delivery_carries_graph_read_maintenance_receipt() {
     let mut workspace = workspace("phase-thirteen-live-mutation-maintenance");
     let live_view = workspace
-        .live_view::<WorthQueryNativeRow>("tasks.table", |query| {
+        .live_view::<WorthQueryUnrefinedLiveShape>("tasks.table", |query| {
             query
                 .from("Task")
                 .select([
@@ -211,7 +209,7 @@ fn live_mutation_delivery_carries_graph_read_maintenance_receipt() {
 fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery() {
     let mut workspace = workspace("phase-thirteen-live-update-maintenance");
     let live_view = workspace
-        .live_view::<WorthQueryNativeRow>("tasks.update.table", |query| {
+        .live_view::<WorthQueryUnrefinedLiveShape>("tasks.update.table", |query| {
             query
                 .from("Task")
                 .select([
@@ -285,6 +283,6 @@ fn live_maintenance_receipt_tracks_projected_updates_without_hidden_overdelivery
 
 fn authored_text(
     value: impl Into<String>,
-) -> worth_query::facade::runtime::WorthQueryAuthoredAspectValue {
-    worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(value)
+) -> crate::runtime::WorthQueryAuthoredAspectValue {
+    crate::runtime::WorthQueryAuthoredAspectValue::string(value)
 }

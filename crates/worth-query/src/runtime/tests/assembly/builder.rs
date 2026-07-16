@@ -174,10 +174,12 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("native test aspect contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("complete backend parts should build");
-    let view: WorthQueryLiveView<WorthQueryNativeRow> = runtime
+    let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = runtime
         .declare_live_view("external.tasks", task_live_request(), task_schema())
         .expect("external backend should declare live view");
     let receipt = runtime

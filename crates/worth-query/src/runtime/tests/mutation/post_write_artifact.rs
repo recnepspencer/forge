@@ -5,7 +5,7 @@ fn batch_write_retained_artifact_keeps_receipt_inspection_and_exact_retained_bin
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.post-write-artifact")
         .expect("task runtime should open a named workspace");
-    let live: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.post-write-table", |q| {
             q.from("Task")
                 .select([
@@ -21,7 +21,7 @@ fn batch_write_retained_artifact_keeps_receipt_inspection_and_exact_retained_bin
                 .schema_basis("tasks-post-write-table")
         })
         .expect("live view should declare");
-    let computed: WorthQueryDerivedViewHandle<WorthQueryNativeRow> = workspace
+    let computed: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
         .computed(
             "tasks.post-write-summary",
             |c| {

@@ -4,9 +4,9 @@ use worth_query::facade::runtime::{
     WorthQueryExistingEntityTarget, WorthQueryExistingTruthBindingAuthorityLabel,
     WorthQueryExistingTruthProbeDenialKind, WorthQueryExistingTruthProbeMode,
     WorthQueryExistingTruthProbeRequest, WorthQueryExistingTruthTargetBinding, WorthQueryLiveView,
-    WorthQueryMutationAuthorityIdentity, WorthQueryNativeRow, WorthQueryRuntimeError,
+    WorthQueryMutationAuthorityIdentity, WorthQueryUnrefinedLiveShape, WorthQueryRuntimeError,
 };
-mod support;
+use crate::support;
 
 use support::aspect_touch as touch;
 use support::public_bridge_runtime::{
@@ -61,7 +61,7 @@ fn public_bridge_runtime_common_bootstrap_lane_builds_runtime_backed_live_reads(
     let mut workspace = runtime
         .workspace("public.bridge-runtime-bootstrap.common-lane")
         .expect("runtime should open a named workspace");
-    let tasks: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let tasks: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("public.bridge-runtime-bootstrap.common-lane.tasks", |q| {
             q.from("Task")
                 .select([

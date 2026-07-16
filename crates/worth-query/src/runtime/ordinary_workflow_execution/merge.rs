@@ -17,7 +17,6 @@ use super::super::{WorthQueryRuntime, WorthQueryValidatedMergeAuthority};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum WorthQueryOrdinaryMergeFailureStage {
-    Authority,
     Basis,
     Intent,
     Eligibility,
@@ -82,19 +81,11 @@ impl WorthQueryRuntime {
         &mut self,
         authority: WorthQueryValidatedMergeAuthority,
         declaration_identity: &WorthQueryEvidenceIdentity,
-        target_branch: worth_relational::facade::history::BranchId,
-        source_branch: worth_relational::facade::history::BranchId,
         materialize_inspection: bool,
     ) -> Result<WorthQueryLowerRuntimeMergeExecution, WorthQueryOrdinaryMergeExecutionError> {
         let merge_authority = authority.backend_authority();
-        if merge_authority.target_branch() != &target_branch
-            || merge_authority.source_branch() != &source_branch
-        {
-            return Err(WorthQueryOrdinaryMergeExecutionError::new(
-                WorthQueryOrdinaryMergeFailureStage::Authority,
-                "ordinary branch-merge declaration does not match its captured authority",
-            ));
-        }
+        let target_branch = merge_authority.target_branch().clone();
+        let source_branch = merge_authority.source_branch().clone();
         let scope = WorkflowBindingScopeField::Identity(declaration_identity);
         let binding =
             synthetic_runtime_workflow_binding_scoped_for_branch_snapshot_binding_identity(

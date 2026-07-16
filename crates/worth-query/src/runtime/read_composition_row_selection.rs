@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::authoring::{
-    AspectFieldKey, IntegerComparisonOperator, RelationName, ScalarPredicateValue,
+    AspectFieldKey, NativeComparisonOperator, RelationName, WorthQueryPredicateOperand,
 };
 use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativePredicateFilter};
 use crate::memory_workspace::WorthQueryEntity;
@@ -80,7 +80,7 @@ pub(super) fn synthetic_detail_rows_for_request(
         BTreeMap::from([
             (
                 native_field_path("identity.id"),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                     anchor_identity.to_string(),
                 ),
             ),
@@ -185,8 +185,8 @@ fn identity_anchor(request: &DeclarativeLiveQueryRequest) -> Option<&str> {
             DeclarativePredicateFilter::Equality(filter)
                 if is_identity_field_key(filter.source_field_key()) =>
             {
-                match filter.value() {
-                    ScalarPredicateValue::String(value) => Some(value.as_str()),
+                match filter.value().as_native() {
+                    AspectValue::String(InternedString::Raw(value)) => Some(value.as_str()),
                     _ => None,
                 }
             }
@@ -254,12 +254,14 @@ fn row_matches_predicate(row: &WorthQueryEntity, predicate: &DeclarativePredicat
         DeclarativePredicateFilter::Equality(filter) => {
             value.is_some_and(|value| aspect_value_matches_scalar(value, filter.value()))
         }
-        DeclarativePredicateFilter::IntegerComparison(filter) => value
-            .and_then(as_integer_scalar)
-            .is_some_and(|value| match filter.operator() {
-                IntegerComparisonOperator::GreaterThan => value > filter.value(),
-                IntegerComparisonOperator::LessThan => value < filter.value(),
-            }),
+        DeclarativePredicateFilter::NativeComparison(filter) => value.is_some_and(|value| {
+            let expected = filter.value().as_native();
+            value.value_family() == expected.value_family()
+                && match filter.operator() {
+                    NativeComparisonOperator::GreaterThan => value > expected,
+                    NativeComparisonOperator::LessThan => value < expected,
+                }
+        }),
         DeclarativePredicateFilter::StringContains(filter) => value
             .and_then(as_string_scalar)
             .is_some_and(|value| value.contains(filter.value())),
@@ -281,16 +283,8 @@ fn predicate_field_path(field: &AspectFieldKey) -> CanonicalFieldPath {
     ))
 }
 
-fn aspect_value_matches_scalar(value: &AspectValue, expected: &ScalarPredicateValue) -> bool {
-    match expected {
-        ScalarPredicateValue::String(expected) => {
-            as_string_scalar(value) == Some(expected.as_str())
-        }
-        ScalarPredicateValue::Integer(expected) => as_integer_scalar(value) == Some(*expected),
-        ScalarPredicateValue::Boolean(expected) => {
-            matches!(value, AspectValue::Bool(value) if value == expected)
-        }
-    }
+fn aspect_value_matches_scalar(value: &AspectValue, expected: &WorthQueryPredicateOperand) -> bool {
+    value == expected.as_native()
 }
 
 fn is_identity_field_key(field: &AspectFieldKey) -> bool {
@@ -309,16 +303,6 @@ fn identity_field_key() -> FieldKey {
 fn as_string_scalar(value: &AspectValue) -> Option<&str> {
     match value {
         AspectValue::String(InternedString::Raw(value)) => Some(value.as_str()),
-        _ => None,
-    }
-}
-
-fn as_integer_scalar(value: &AspectValue) -> Option<i64> {
-    match value {
-        AspectValue::Int8(value) => Some(i64::from(*value)),
-        AspectValue::Int16(value) => Some(i64::from(*value)),
-        AspectValue::Int32(value) => Some(i64::from(*value)),
-        AspectValue::Int64(value) => Some(*value),
         _ => None,
     }
 }

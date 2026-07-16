@@ -34,7 +34,7 @@ through Query.
 
 Related explanation surfaces:
 
-- `workspace.inspect(...)`
+- `workspace.inspections()?.inspect(...)`
 - `workspace.state(...)`
 
 Narrower helper:
@@ -112,11 +112,11 @@ for that live surface since the last drain.
 
 ```rust
 use worth_query::facade::runtime::WorthQueryLiveView;
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("tasks").unwrap();
 
-let table: WorthQueryLiveView<Value> = workspace
+let table: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.table", |q| {
         q.from("Task")
             .select(["identity.id", "title.value"])
@@ -142,11 +142,11 @@ consumption paths on the same handle.
 
 ```rust
 use worth_query::facade::runtime::{WorthQueryDerivedViewHandle, WorthQueryLiveView};
-use serde_json::Value;
+use worth_query::facade::runtime::WorthQueryUnrefinedLiveShape;
 
 let mut workspace = runtime.workspace("builder").unwrap();
 
-let view: WorthQueryLiveView<Value> = workspace
+let view: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
     .live_view("tasks.builder-table", |q| {
         q.from("Task")
             .select(["identity.id", "title.value"])
@@ -156,7 +156,7 @@ let view: WorthQueryLiveView<Value> = workspace
     })
     .unwrap();
 
-let titles: WorthQueryDerivedViewHandle<Value> = workspace
+let titles: WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> = workspace
     .computed(
         "tasks.builder-title-list",
         |c| {

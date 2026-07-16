@@ -1,4 +1,5 @@
 mod builders;
+#[cfg(test)]
 mod tests;
 
 use crate::harness::certification::{

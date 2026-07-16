@@ -8,13 +8,8 @@ warning: unreachable statement
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-error[E0624]: method `as_terminal_label` is private
+error[E0599]: no method named `as_terminal_label` found for struct `TerminalProjectionLabel` in the current scope
  --> tests/ui/subscription_phase_seven/subscription_terminal_label_as_str_escape_removed.rs:5:19
   |
 5 |     let _ = label.as_terminal_label();
-  |                   ^^^^^^^^^^^^^^^^^ private method
-  |
- ::: src/subscription/terminal_projection_label.rs
-  |
-  |     pub(crate) fn as_terminal_label(&self) -> &str {
-  |     ---------------------------------------------- private method defined here
+  |                   ^^^^^^^^^^^^^^^^^ method not found in `TerminalProjectionLabel`

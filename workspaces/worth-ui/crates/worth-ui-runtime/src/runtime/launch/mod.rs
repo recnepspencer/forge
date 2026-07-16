@@ -13,8 +13,6 @@ mod preservation;
 pub(crate) use preservation::WorthUiLastValidRuntimeState;
 pub(crate) mod runtime_instance;
 mod runtime_instance_accessors;
-#[cfg(all(feature = "certification-support", not(test)))]
-mod runtime_instance_certification_support;
 #[cfg(test)]
 mod runtime_instance_test_support;
 mod seal_artifact;

@@ -1,4 +1,4 @@
-use worth_query::facade::runtime::WorthQueryDomainCapabilityCategory;
+use worth_query::facade::domain::WorthQueryDomainCapabilityCategory;
 use worth_query::facade::certification::WorthQueryDomainCapabilityCertifiedSurfaceRow;
 
 fn main() {

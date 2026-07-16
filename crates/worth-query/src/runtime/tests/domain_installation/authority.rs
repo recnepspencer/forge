@@ -6,7 +6,7 @@ fn handle_bound_contribution_matches_internal_oracle_and_retains_installed_witne
     let handle = runtime.domain(InstalledDomain).unwrap();
     let contributions = handle.contributions(&runtime).unwrap();
     let declaration = contribution_declaration("installed-authority");
-    let target = contributions.intent_target(&declaration);
+    let target = contributions.intent_target(&declaration).unwrap();
     let materialized = contributions
         .for_intent_target(target.clone())
         .unwrap()
@@ -61,7 +61,8 @@ fn contribution_authority_denies_foreign_targets_and_uninstalled_categories_firs
     let foreign_target = left_handle
         .contributions(&left)
         .unwrap()
-        .intent_target(&declaration);
+        .intent_target(&declaration)
+        .unwrap();
     let denial = right_handle
         .contributions(&right)
         .unwrap()
@@ -75,6 +76,7 @@ fn contribution_authority_denies_foreign_targets_and_uninstalled_categories_firs
         .contributions(&left)
         .unwrap()
         .for_intent(&declaration)
+        .unwrap()
         .supports_capability("")
         .because("authority is checked before semantic content")
         .try_materialize();
@@ -85,12 +87,118 @@ fn contribution_authority_denies_foreign_targets_and_uninstalled_categories_firs
 }
 
 #[test]
+fn foreign_handle_and_stale_generation_deny_before_contribution_successors_are_issued() {
+    let owner = installed_runtime();
+    let foreign = installed_runtime();
+    let owner_handle = owner.domain(InstalledDomain).unwrap();
+    let foreign_denial = owner_handle.contributions(&foreign).unwrap_err();
+    assert_eq!(
+        foreign_denial.kind(),
+        WorthQueryDomainHandleDenialKind::ForeignRuntime
+    );
+
+    let mut current = installed_runtime();
+    let stale_handle = current.domain(InstalledDomain).unwrap();
+    let stale_surface = stale_handle.contributions(&current).unwrap();
+    let stale_generation = stale_handle.installation_generation();
+    current.replace_domain_installation_with_successor_generation();
+    let current_handle = current.domain(InstalledDomain).unwrap();
+    assert!(current_handle.installation_generation() > stale_generation);
+    let stale_denial = stale_handle.contributions(&current).unwrap_err();
+    assert_eq!(
+        stale_denial.kind(),
+        WorthQueryDomainHandleDenialKind::StaleInstallationGeneration
+    );
+    let stale_denial = stale_surface
+        .for_intent(&contribution_declaration("stale-surface"))
+        .unwrap_err();
+    assert_eq!(
+        stale_denial.kind(),
+        WorthQueryDomainHandleDenialKind::StaleInstallationGeneration
+    );
+    current_handle
+        .contributions(&current)
+        .expect("the successor-generation handle must remain usable");
+}
+
+#[test]
+fn generation_turnover_denies_each_query_owned_contribution_transition() {
+    let mut admission_runtime = installed_runtime();
+    let admission_handle = admission_runtime.domain(InstalledDomain).unwrap();
+    let admission_target = admission_handle
+        .contributions(&admission_runtime)
+        .unwrap()
+        .intent_target(&contribution_declaration("stale-before-admission"))
+        .unwrap();
+    let admission_requested = WorthQueryAdmissionContributionAuthoring::advisory(
+        "WORTH.tests.installed-domain.stale-before-admission",
+        "generation turnover must invalidate an eligible contribution",
+    )
+    .bind_to_installed_target(admission_target);
+    let worth_proof::TransitionOutcome::Success(eligible) =
+        evaluate_requested_domain_capability_contribution(admission_requested)
+    else {
+        panic!("fixture must become eligible before generation turnover")
+    };
+    admission_runtime.replace_domain_installation_with_successor_generation();
+    let worth_proof::TransitionOutcome::Denied(admission_denial) =
+        admit_eligible_domain_capability_contribution(eligible)
+    else {
+        panic!("stale eligible contribution must not produce an admitted successor")
+    };
+    assert_eq!(
+        admission_denial.kind(),
+        WorthQueryDomainCapabilityProgressionDenialKind::StaleInstallationGeneration
+    );
+
+    let mut preparation_runtime = installed_runtime();
+    let preparation_handle = preparation_runtime.domain(InstalledDomain).unwrap();
+    let preparation_target = preparation_handle
+        .contributions(&preparation_runtime)
+        .unwrap()
+        .intent_target(&contribution_declaration("stale-before-preparation"))
+        .unwrap();
+    let preparation_requested = WorthQueryAdmissionContributionAuthoring::advisory(
+        "WORTH.tests.installed-domain.stale-before-preparation",
+        "generation turnover must invalidate an admitted contribution",
+    )
+    .bind_to_installed_target(preparation_target.clone());
+    let worth_proof::TransitionOutcome::Success(eligible) =
+        evaluate_requested_domain_capability_contribution(preparation_requested)
+    else {
+        panic!("fixture must become eligible before admission")
+    };
+    let worth_proof::TransitionOutcome::Success(admitted) =
+        admit_eligible_domain_capability_contribution(eligible)
+    else {
+        panic!("fixture must become admitted before generation turnover")
+    };
+    preparation_runtime.replace_domain_installation_with_successor_generation();
+    let worth_proof::TransitionOutcome::Denied(preparation_denial) =
+        prepare_admitted_domain_capability_contribution_for_materialization(
+            admitted,
+            preparation_target,
+        )
+    else {
+        panic!("stale admitted contribution must not become materialization-ready")
+    };
+    assert_eq!(
+        preparation_denial.kind(),
+        WorthQueryDomainCapabilityProgressionDenialKind::StaleInstallationGeneration
+    );
+}
+
+#[test]
 fn contribution_target_mismatch_requires_rebind_without_a_ready_successor() {
     let runtime = installed_runtime();
     let handle = runtime.domain(InstalledDomain).unwrap();
     let contributions = handle.contributions(&runtime).unwrap();
-    let bound_target = contributions.intent_target(&contribution_declaration("bound"));
-    let current_target = contributions.intent_target(&contribution_declaration("current"));
+    let bound_target = contributions
+        .intent_target(&contribution_declaration("bound"))
+        .unwrap();
+    let current_target = contributions
+        .intent_target(&contribution_declaration("current"))
+        .unwrap();
     let requested = WorthQueryAdmissionContributionAuthoring::advisory(
         "WORTH.tests.installed-domain.rebind",
         "target identity is exact",

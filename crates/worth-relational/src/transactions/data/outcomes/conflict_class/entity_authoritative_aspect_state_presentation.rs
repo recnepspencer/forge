@@ -15,6 +15,10 @@ pub(super) fn entity_authoritative_aspect_state_denial_detail(
                 kind_id.0
             )
         }
+        EntityAuthoritativeAspectStateDenial::MissingAspectContract { aspect_key } => format!(
+            "entity authoritative state references undeclared aspect {}",
+            aspect_key.as_str()
+        ),
         EntityAuthoritativeAspectStateDenial::ContractValidationDenied {
             source_locator,
             denial,

@@ -1,14 +1,8 @@
-error[E0308]: mismatched types
- --> tests/ui/preview_workflow_foundation_requires_admitted_witness.rs:7:46
+error[E0432]: unresolved import `worth_query::facade::policy::admit_preview_workflow_foundation_request`
+ --> tests/ui/preview_workflow_foundation_requires_admitted_witness.rs:1:35
   |
-4 |       let _: fn(
-  |  ____________-
-5 | |         &PreviewSessionPlanBinding,
-6 | |         PreviewWorkflowFoundationRequest,
-7 | |     ) -> PreviewWorkflowFoundationArtifact = admit_preview_workflow_foundation_request;
-  | |                                          -   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected fn pointer, found fn item
-  | |__________________________________________|
-  |                                            expected due to this
-  |
-  = note: expected fn pointer `for<'a> fn(&'a PreviewSessionPlanBinding, PreviewWorkflowFoundationRequest) -> PreviewWorkflowFoundationArtifact`
-                found fn item `for<'a> fn(&'a PreviewSessionPlanBinding, PreviewWorkflowFoundationRequest) -> std::result::Result<AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationError> {admit_preview_workflow_foundation_request}`
+1 | ...cy::{admit_preview_workflow_foundation_request, PreviewSessionPlanBinding, PreviewWorkflowFoundationArtifact, PreviewWorkflowFound...
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |         |
+  |         no `admit_preview_workflow_foundation_request` in `facade::policy`
+  |         help: a similar name exists in the module: `PreviewWorkflowFoundationRequest`

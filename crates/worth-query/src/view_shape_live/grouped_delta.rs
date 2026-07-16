@@ -1,7 +1,10 @@
-use std::collections::BTreeMap;
-
+#[cfg(test)]
 use crate::identity::hash_parts;
-use crate::view_shape::{GroupedDeltaAdmissionPolicy, KanbanGroupedLiveContract};
+#[cfg(test)]
+use crate::view_shape::GroupedDeltaAdmissionPolicy;
+use crate::view_shape::KanbanGroupedLiveContract;
+#[cfg(test)]
+use std::collections::BTreeMap;
 
 use super::grouped_state::{GroupedDesiredStateArtifact, GroupedLaneIdentity};
 
@@ -73,7 +76,7 @@ impl GroupedDeltaArtifact {
         &self.contract
     }
 }
-
+#[cfg(test)]
 pub(crate) fn build_grouped_delta(
     prior_state: &GroupedDesiredStateArtifact,
     next_state: &GroupedDesiredStateArtifact,

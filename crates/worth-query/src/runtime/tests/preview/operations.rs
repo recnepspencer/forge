@@ -5,7 +5,11 @@ use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvide
 fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
     let mut runtime = stateful_bridge_task_runtime();
     runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare before preview-safe operation runs");
     let program = preview_safe_program();
     let installed = runtime
@@ -95,7 +99,7 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
     }
 
     let view = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.after-preview",
             task_live_request(),
             task_schema(),
@@ -113,7 +117,11 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
 fn preview_run_operation_discard_keeps_authoritative_state_unchanged() {
     let mut runtime = stateful_bridge_task_runtime();
     runtime
-        .declare_live_view::<WorthQueryNativeRow>("tasks.table", task_live_request(), task_schema())
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
+            "tasks.table",
+            task_live_request(),
+            task_schema(),
+        )
         .expect("live view should declare before preview-safe operation runs");
     let program = preview_safe_program();
     let installed = runtime
@@ -144,7 +152,7 @@ fn preview_run_operation_discard_keeps_authoritative_state_unchanged() {
     }
 
     let view = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.after-discard",
             task_live_request(),
             task_schema(),
@@ -195,7 +203,7 @@ fn preview_run_operation_rejects_declaration_effects_before_runtime_mutation() {
     }
 
     let view = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.after-denied-declaration",
             task_live_request(),
             task_schema(),

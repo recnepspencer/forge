@@ -1,6 +1,6 @@
 use worth_query::facade::runtime::WorthQueryGraphReadAccessRequirementKind;
 
-mod support;
+use crate::support;
 
 use support::graph_index_inventory::runtime_profiles::profile_requiring_store_backed_graph_index;
 use support::graph_read_access::persistent_requirements::{

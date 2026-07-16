@@ -1,4 +1,5 @@
-use super::{worth_query_domain, WorthQueryDomainCapabilityOutcomeKind};
+use super::{test_support::success, WorthQueryDomainCapabilityOutcomeKind};
+use crate::domain_capabilities::certification::install_domain_capability_certification;
 use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
     evaluate_requested_domain_capability_contribution,
@@ -27,9 +28,15 @@ use crate::runtime::{
 #[test]
 fn common_lower_runtime_support_lane_matches_proof_lane_materialization() {
     let envelope = lower_runtime_envelope("boundary-support");
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let target = domain
+        .lower_runtime_target(&envelope)
+        .expect("installed contribution authority must remain current");
 
-    let common = worth_query_domain("worth.spatial")
-        .for_lower_runtime_boundary_envelope(&envelope)
+    let common = domain
+        .for_lower_runtime_target(target.clone())
+        .expect("certification target should belong to its installed domain")
         .supports_boundary_traceability("routing.signal_invalidation")
         .because("lower-runtime routing narrows the supported authority seam")
         .materialize()
@@ -39,7 +46,7 @@ fn common_lower_runtime_support_lane_matches_proof_lane_materialization() {
         "worth.spatial.routing.signal_invalidation",
         "lower-runtime routing narrows the supported authority seam",
     )
-    .for_lower_runtime_boundary_envelope(&envelope);
+    .bind_to_installed_target(target);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
         evaluate_requested_domain_capability_contribution(proof_requested),
     )));
@@ -58,9 +65,15 @@ fn common_lower_runtime_support_lane_matches_proof_lane_materialization() {
 fn common_lower_runtime_explanation_review_matches_proof_lane_review() {
     let envelope = lower_runtime_envelope("boundary-explanation-review");
     let (reference_set, inspection_target) = replay_gap_inputs();
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let target = domain
+        .lower_runtime_target(&envelope)
+        .expect("installed contribution authority must remain current");
 
-    let common = worth_query_domain("worth.spatial")
-        .for_lower_runtime_boundary_envelope(&envelope)
+    let common = domain
+        .for_lower_runtime_target(target.clone())
+        .expect("certification target should belong to its installed domain")
         .explains_store_backed_replay_gap(
             "replay.store_gap",
             WorthQueryLowerRuntimeExplanationRequest::explains_store_backed_replay_gap(
@@ -85,7 +98,7 @@ fn common_lower_runtime_explanation_review_matches_proof_lane_review() {
             CausalInspectionRedactionPolicy::PreserveDetail,
             CausalInspectionMaterializationPolicy::OfflineInterpretableArtifact,
         )
-        .for_lower_runtime_boundary_envelope(&envelope);
+        .bind_to_installed_target(target);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
         evaluate_requested_domain_capability_contribution(proof_requested),
     )));
@@ -104,9 +117,15 @@ fn common_lower_runtime_explanation_review_matches_proof_lane_review() {
 fn common_lower_runtime_explanation_artifact_matches_proof_lane_materialization() {
     let envelope = lower_runtime_envelope("boundary-explanation-artifact");
     let (reference_set, inspection_target) = replay_gap_inputs();
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let target = domain
+        .lower_runtime_target(&envelope)
+        .expect("installed contribution authority must remain current");
 
-    let common = worth_query_domain("worth.spatial")
-        .for_lower_runtime_boundary_envelope(&envelope)
+    let common = domain
+        .for_lower_runtime_target(target.clone())
+        .expect("certification target should belong to its installed domain")
         .explains_store_backed_replay_gap(
             "replay.store_gap",
             WorthQueryLowerRuntimeExplanationRequest::explains_store_backed_replay_gap(
@@ -131,7 +150,7 @@ fn common_lower_runtime_explanation_artifact_matches_proof_lane_materialization(
             CausalInspectionRedactionPolicy::PreserveDetail,
             CausalInspectionMaterializationPolicy::OfflineInterpretableArtifact,
         )
-        .for_lower_runtime_boundary_envelope(&envelope);
+        .bind_to_installed_target(target);
     let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
         evaluate_requested_domain_capability_contribution(proof_requested),
     )));
@@ -151,8 +170,10 @@ fn checked_lower_runtime_review_lane_preserves_denied_metadata() {
     let envelope = lower_runtime_envelope("boundary-explanation-denial");
     let (reference_set, inspection_target) = replay_gap_inputs();
 
-    let checked = worth_query_domain("worth.spatial")
+    let checked = install_domain_capability_certification()
+        .contributions()
         .for_lower_runtime_boundary_envelope(&envelope)
+        .expect("installed contribution authority must remain current")
         .explains_store_backed_replay_gap(
             "replay.store_gap",
             WorthQueryLowerRuntimeExplanationRequest::explains_store_backed_replay_gap(
@@ -182,14 +203,18 @@ fn checked_lower_runtime_review_lane_preserves_denied_metadata() {
 #[test]
 fn lower_runtime_source_support_binding_matches_envelope_binding() {
     let source = write_authority_boundary_source("boundary-source-support");
-    let source_artifact = worth_query_domain("worth.spatial")
+    let installation = install_domain_capability_certification();
+    let domain = installation.contributions();
+    let source_artifact = domain
         .for_lower_runtime_boundary_source(&source)
+        .expect("installed contribution authority must remain current")
         .supports_boundary_traceability("routing.write_authority")
         .because("write authority receipt carries the lower-runtime boundary envelope")
         .materialize()
         .expect("source-bound support should materialize");
-    let envelope_artifact = worth_query_domain("worth.spatial")
+    let envelope_artifact = domain
         .for_lower_runtime_boundary_envelope(source.boundary_envelope())
+        .expect("installed contribution authority must remain current")
         .supports_boundary_traceability("routing.write_authority")
         .because("write authority receipt carries the lower-runtime boundary envelope")
         .materialize()
@@ -205,15 +230,6 @@ fn lower_runtime_source_invariant_denial_matches_envelope_binding() {
     let envelope_denial = materialize_invariant_denial_from_envelope(source.boundary_envelope());
 
     assert_eq!(source_denial, envelope_denial);
-}
-
-fn success<T>(
-    outcome: crate::domain_capabilities::WorthQueryDomainCapabilityTransitionOutcome<T>,
-) -> T {
-    match outcome {
-        worth_proof::TransitionOutcome::Success(value) => value,
-        _ => panic!("expected success"),
-    }
 }
 
 fn lower_runtime_envelope(target_digest: &str) -> WorthQueryLowerRuntimeBoundaryEnvelope {

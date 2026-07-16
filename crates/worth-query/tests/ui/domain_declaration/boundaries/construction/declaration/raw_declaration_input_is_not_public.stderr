@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::WorthQueryRawDeclarationInput`
- --> tests/ui/domain_declaration/boundaries/construction/declaration/raw_declaration_input_is_not_public.rs:1:5
-  |
-1 | use worth_query::facade::WorthQueryRawDeclarationInput;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryRawDeclarationInput` in `facade`

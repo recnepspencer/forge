@@ -1,5 +1,5 @@
 use super::super::{
-    WorthQueryGraphReadAdmittedSchemaFieldKind, WorthQueryPredicateOperandOperator,
+    WorthQueryAdmittedNativeFieldFamily, WorthQueryPredicateOperandOperator,
     WorthQueryPredicateSelectivityClass,
 };
 use worth_foundational::facade::{AspectKey, FieldKey};
@@ -12,7 +12,7 @@ pub struct WorthQueryBooleanPredicateSelectivityRow {
     operand_identity: String,
     operator: WorthQueryPredicateOperandOperator,
     normalized_operand_values: Vec<String>,
-    field_kind: WorthQueryGraphReadAdmittedSchemaFieldKind,
+    field_kind: WorthQueryAdmittedNativeFieldFamily,
     selectivity_class: WorthQueryPredicateSelectivityClass,
     pre_traversal_eligible: bool,
 }
@@ -42,7 +42,7 @@ impl WorthQueryBooleanPredicateSelectivityRow {
         &self.normalized_operand_values
     }
 
-    pub fn field_kind(&self) -> &WorthQueryGraphReadAdmittedSchemaFieldKind {
+    pub fn field_kind(&self) -> &WorthQueryAdmittedNativeFieldFamily {
         &self.field_kind
     }
 
@@ -60,7 +60,7 @@ impl WorthQueryBooleanPredicateSelectivityRow {
         family: impl Into<String>,
         operator: WorthQueryPredicateOperandOperator,
         normalized_operand_values: Vec<String>,
-        field_kind: WorthQueryGraphReadAdmittedSchemaFieldKind,
+        field_kind: WorthQueryAdmittedNativeFieldFamily,
         selectivity_class: WorthQueryPredicateSelectivityClass,
     ) -> Self {
         let pre_traversal_eligible = selectivity_class.is_pre_traversal_eligible();

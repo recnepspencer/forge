@@ -1,6 +1,6 @@
 use super::super::consumed::{
-    ConsumedFieldValueFact, ConsumedProjectionFactSet, ConsumedSourceReferenceFact,
-    ConsumedViewLocalIdentityFact, ProjectionFactExtractionCounters,
+    ConsumedFieldValueFact, ConsumedNativeValue, ConsumedProjectionFactSet,
+    ConsumedSourceReferenceFact, ConsumedViewLocalIdentityFact, ProjectionFactExtractionCounters,
 };
 use super::super::contracts::MaterializedProjectionContract;
 use super::super::facts::ProjectionFactKind;
@@ -9,8 +9,8 @@ use super::super::identity::{
 };
 use super::super::source::ProjectionSourceFamily;
 use crate::projection_consumption::ProjectionFactExtractionError;
-use crate::runtime::WorthQueryRetainedFieldPath;
 use crate::runtime::{WorthQueryDerivedArtifactBinding, WorthQueryDerivedMaterializationTarget};
+use crate::runtime::{WorthQueryRetainedFieldPath, WorthQueryRetainedValueView};
 use std::collections::BTreeSet;
 
 pub(super) fn extract_retained_binding_facts(
@@ -31,7 +31,7 @@ pub(super) fn extract_retained_binding_facts(
         .fact_families()
         .iter()
         .filter_map(|fact| match fact.kind() {
-            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => fact
+            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => fact
                 .field_path()
                 .map(|field_path| field_path.terminal_projection_for_boundary().to_string()),
             _ => None,
@@ -44,7 +44,7 @@ pub(super) fn extract_retained_binding_facts(
 
     let mut view_local_identities = Vec::new();
     let mut display_fields = Vec::new();
-    let mut derived_scalar_fields = Vec::new();
+    let mut derived_fields = Vec::new();
     let mut row_count = 0;
 
     for target in binding.targets() {
@@ -64,7 +64,7 @@ pub(super) fn extract_retained_binding_facts(
                             row_identity.as_str(),
                         ));
                     }
-                    ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+                    ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedField => {
                         let consumed_field_path = fact_family
                             .field_path()
                             .expect("field path required")
@@ -74,19 +74,7 @@ pub(super) fn extract_retained_binding_facts(
                             consumed_field_path.canonical_field_path().clone(),
                         );
                         let value = materialization
-                            .retained_scalar_value_at_path(index, &field_path)
-                            .map_err(|_message| {
-                                ProjectionFactExtractionError::InvalidDeclaredFieldValueShape {
-                                    source_family: contract.source_family(),
-                                    source_identity: compose_scoped_row_source_identity(
-                                        contract.source_identity(),
-                                        row_identity.as_str(),
-                                    ),
-                                    field_key: field_key.to_string(),
-                                    fact_kind: fact_family.kind(),
-                                    expected_shape: "foundational scalar",
-                                }
-                            })?
+                            .retained_native_value_at_path(index, &field_path)
                             .ok_or_else(|| {
                                 ProjectionFactExtractionError::MissingDeclaredFieldEvidence {
                                     source_family: contract.source_family(),
@@ -98,7 +86,16 @@ pub(super) fn extract_retained_binding_facts(
                                     fact_kind: fact_family.kind(),
                                 }
                             })?;
-                        let fact = ConsumedFieldValueFact::new(
+                        let value = match value {
+                            WorthQueryRetainedValueView::Scalar(value) => {
+                                ConsumedNativeValue::scalar(value.clone())
+                            }
+                            WorthQueryRetainedValueView::Struct(value) => {
+                                ConsumedNativeValue::struct_value(value.clone())
+                            }
+                        };
+                        let fact = ConsumedFieldValueFact::new_native(
+                            contract,
                             row_identity.as_str(),
                             consumed_field_path,
                             value,
@@ -106,7 +103,7 @@ pub(super) fn extract_retained_binding_facts(
                         if fact_family.kind() == ProjectionFactKind::DisplayField {
                             display_fields.push(fact);
                         } else {
-                            derived_scalar_fields.push(fact);
+                            derived_fields.push(fact);
                         }
                     }
                     ProjectionFactKind::EntityIdentity
@@ -142,7 +139,7 @@ pub(super) fn extract_retained_binding_facts(
     let row_width_per_row = requested_field_keys.len() + usize::from(extracts_view_local_identity);
     let extracted_fact_count = view_local_identities.len()
         + display_fields.len()
-        + derived_scalar_fields.len()
+        + derived_fields.len()
         + source_references.len();
 
     Ok(ConsumedProjectionFactSet::new(
@@ -163,7 +160,7 @@ pub(super) fn extract_retained_binding_facts(
         view_local_identities,
         Vec::new(),
         display_fields,
-        derived_scalar_fields,
+        derived_fields,
         Vec::new(),
         source_references,
         Vec::new(),

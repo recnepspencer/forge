@@ -1,6 +1,5 @@
 use worth_query::facade::foundation::{
-    WorthQueryOrdinaryPostureKind,
-    WorthQueryOrdinaryRuntimePostureKind,
+    WorthQueryOrdinaryPostureKind, WorthQueryOrdinaryRuntimePostureKind,
 };
 use worth_query::facade::runtime::WorthQueryRuntimeAsyncResultStateKind;
 

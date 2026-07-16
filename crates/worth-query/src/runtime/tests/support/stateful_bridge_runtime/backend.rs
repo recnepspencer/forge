@@ -13,7 +13,6 @@ use crate::memory_workspace::{
 };
 use crate::subscription::SubscriptionActivationInput;
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_relational::facade::history::BranchId;
 
 use super::SharedState;
 
@@ -146,7 +145,7 @@ impl WorthQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
     fn verify_existing_truth_assertion(
         &self,
         binding: &WorthQueryExistingTruthTargetBinding,
-        aspects: &[WorthQueryAdmittedAspectValue],
+        aspects: &[WorthQueryAuthoredAspectMutation],
     ) -> Result<WorthQueryVerifiedExistingTruthAssertion, WorthQueryExistingTruthAssertionDenial>
     {
         let state = self.state.borrow();
@@ -190,8 +189,8 @@ impl WorthQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
 
     fn capture_query_merge_authority(
         &self,
-        target_branch: BranchId,
-        source_branch: BranchId,
+        target_branch: &crate::runtime::WorthQueryAdmittedBranchName,
+        source_branch: &crate::runtime::WorthQueryAdmittedBranchName,
     ) -> Result<WorthQueryBackendMergeAuthority, WorthQueryWorkspaceError> {
         capture_merge_authority(&self.state, target_branch, source_branch)
     }

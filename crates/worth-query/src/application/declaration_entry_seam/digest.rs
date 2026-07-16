@@ -108,6 +108,7 @@ pub(crate) fn derive_readiness_digest(parts: &[String]) -> String {
     hash_parts(parts)
 }
 
+#[cfg(test)]
 pub(crate) fn derive_inspection_digest(parts: &[String]) -> String {
     hash_parts(parts)
 }

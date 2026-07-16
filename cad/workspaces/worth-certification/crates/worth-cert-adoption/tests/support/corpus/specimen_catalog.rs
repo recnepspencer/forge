@@ -87,10 +87,13 @@ pub const SPECIMENS: &[Specimen] = &[
         enforcement: Enforcement::BoundaryCheck(BoundaryFixture::QueryAudience {
             band: "derived",
             facade: "worth-query-host",
-            item: "WorthQueryApplicationFacade",
+            item: "runtime",
         }),
         fragments: &["BC3002_WRONG_QUERY_AUDIENCE", "worth-query-host"],
-        facade_pairs: &[("worth-query-host", "WorthQueryApplicationFacade")],
+        facade_pairs: &[
+            ("worth-query-host", "domain"),
+            ("worth-query-host", "runtime"),
+        ],
     },
     Specimen {
         path: "replay_facade_in_ordinary_band.rs",
@@ -99,7 +102,7 @@ pub const SPECIMENS: &[Specimen] = &[
             dependency: EntryDependency::Replay,
         }),
         fragments: &["BC4001_ORDINARY_REPLAY_IMPORT", "cert-only"],
-        facade_pairs: &[("worth-query-replay", "ReplayBasisCapability")],
+        facade_pairs: &[("worth-query-replay", "ScopedReplayBasis")],
     },
     Specimen {
         path: "generic_authority_bound_public_surface.rs",

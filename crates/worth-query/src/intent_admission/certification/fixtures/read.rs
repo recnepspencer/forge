@@ -12,7 +12,7 @@ use crate::facade::runtime::{
 };
 use crate::intent_admission::{WorthQueryAdmittedIntentPlan, WorthQueryRawIntentAdmissionRequest};
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
-use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
+use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView, SchemaRelationView};
 
 use super::{certification_snapshot_identity, runtime::certification_runtime};
 
@@ -207,14 +207,14 @@ fn certification_manager_schema() -> QuerySchemaView {
                 crate::authoring::AspectName::new("identity")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
             SchemaFieldView::new(
                 crate::authoring::AspectName::new("profile")
                     .expect("schema aspect literal must be valid"),
                 crate::authoring::FieldName::new("display_name")
                     .expect("schema field literal must be valid"),
-                SchemaFieldKind::String,
+                ScalarAspectType::String,
             ),
         ],
         [SchemaRelationView::new(

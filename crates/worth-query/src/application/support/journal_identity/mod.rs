@@ -5,14 +5,13 @@ mod inventory;
 #[cfg(test)]
 mod scans;
 
+#[cfg(test)]
+pub use certification::WorthQueryJournalIdentityCertification;
 pub use certification::{
-    WorthQueryJournalIdentityBoundaryPosture, WorthQueryJournalIdentityCertification,
-    WorthQueryJournalReplayBoundaryCertification,
+    WorthQueryJournalIdentityBoundaryPosture, WorthQueryJournalReplayBoundaryCertification,
 };
-pub use evidence::{
-    WorthQueryJournalIdentityInventoryEvidence, WorthQueryJournalIdentityScheduleEvidence,
-    WorthQueryJournalReplaySurfaceEvidence,
-};
+#[cfg(test)]
+pub use evidence::*;
 #[cfg(test)]
 pub(crate) use inventory::{
     worth_query_journal_identity_inventory, WorthQueryJournalIdentityOperationKind,

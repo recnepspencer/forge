@@ -10,7 +10,8 @@ pub(super) fn core_phase_surface_rows() -> &'static [Row] {
 
 #[rustfmt::skip]
 const CORE_PHASE_ROWS: &[Row] = &[
-    Row::method("src/authoring/domain_operation/declaration.rs", "WorthQueryGraphReadDomainOperationDeclaration", "admit_relation_reference", Family::DomainExtension, Phase::Refine, Class::ExtensionContract, Class::ExtensionContract, "domain extension author", "typed domain operation declaration"),
+    Row::method("src/domain_installation/installed_authority/capabilities/mutation.rs", "WorthQueryInstalledDomainMutationDeclaration", "using", Family::DomainExtension, Phase::Refine, Class::OrdinaryDeclaration, Class::OrdinaryDeclaration, "installed-domain consumer", "installed domain mutation request"),
+    Row::method("src/domain_installation/installed_authority/capabilities/mutation.rs", "WorthQueryInstalledDomainMutationRequest", "run", Family::DomainExtension, Phase::Execute, Class::OrdinaryDeclaration, Class::OrdinaryDeclaration, "installed-domain consumer", "installed domain mutation outcome"),
     authoring_method("canonicalize_detail"),
     authoring_method("canonicalize_detail_with_bindings"),
     authoring_method("canonicalize_collection"),

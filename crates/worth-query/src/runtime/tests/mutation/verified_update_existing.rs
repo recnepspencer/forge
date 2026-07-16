@@ -5,7 +5,7 @@ fn update_existing_verified_preserves_backend_verified_assertion_evidence_on_upd
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.update-existing-verified")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.update-existing-verified-table", |q| {
             q.from("Task")
                 .select([
@@ -123,7 +123,7 @@ fn update_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.update-existing-verified-mismatch")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.update-existing-verified-mismatch-table", |q| {
             q.from("Task")
                 .select([
@@ -190,6 +190,8 @@ fn update_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
 
     match error {
         WorthQueryRuntimeError::ExistingTruthAssertionDenied(denial) => {
+            let expected = test_authored_string_terminal_digest("status.value", "closed");
+            let found = test_native_string_value_identity("open");
             assert_eq!(
                 denial.kind(),
                 WorthQueryExistingTruthAssertionDenialKind::AssertedValueMismatch
@@ -200,9 +202,9 @@ fn update_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
             );
             assert_eq!(
                 denial.expected_terminal_value_digest(),
-                Some("status:value=set:string:6:closed")
+                Some(expected.as_str())
             );
-            assert_eq!(denial.found_terminal_value_digest(), Some("string:4:open"));
+            assert_eq!(denial.found_terminal_value_digest(), Some(found.as_str()));
         }
         other => panic!("expected typed assertion denial, got {other:?}"),
     }
@@ -224,7 +226,7 @@ fn batch_update_existing_verified_preserves_aggregate_assertion_digest() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-update-existing-verified")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.batch-update-existing-verified-table", |q| {
             q.from("Task")
                 .select([
@@ -365,6 +367,8 @@ fn primary_multi_verified_update_batch_shares_one_commit_boundary() {
             "test-preview-basis",
             "test-inspector-evidence",
         ))
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("verified update test aspect contracts should admit")
         .build_backend_from_parts()
         .build()
         .expect("primary bridge-backed runtime should build");
@@ -495,7 +499,7 @@ fn preview_update_existing_verified_requires_authoritative_lane() {
     let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-update-existing-verified")
         .expect("task runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryNativeRow> = workspace
+    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view("tasks.preview-update-existing-verified-table", |q| {
             q.from("Task")
                 .select([

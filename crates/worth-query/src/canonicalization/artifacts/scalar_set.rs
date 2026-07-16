@@ -1,17 +1,17 @@
-use crate::authoring::ScalarPredicateValue;
+use crate::authoring::WorthQueryPredicateOperand;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct CanonicalScalarSet(Vec<ScalarPredicateValue>);
+pub struct CanonicalScalarSet(Vec<WorthQueryPredicateOperand>);
 
 impl CanonicalScalarSet {
-    pub(crate) fn new(values: impl IntoIterator<Item = ScalarPredicateValue>) -> Self {
+    pub(crate) fn new(values: impl IntoIterator<Item = WorthQueryPredicateOperand>) -> Self {
         let mut values: Vec<_> = values.into_iter().collect();
         values.sort();
         values.dedup();
         Self(values)
     }
 
-    pub(crate) fn as_slice(&self) -> &[ScalarPredicateValue] {
+    pub(crate) fn as_slice(&self) -> &[WorthQueryPredicateOperand] {
         &self.0
     }
 
@@ -23,11 +23,11 @@ impl CanonicalScalarSet {
         self.0.is_empty()
     }
 
-    pub(crate) fn first(&self) -> Option<&ScalarPredicateValue> {
+    pub(crate) fn first(&self) -> Option<&WorthQueryPredicateOperand> {
         self.0.first()
     }
 
-    pub(crate) fn contains(&self, value: &ScalarPredicateValue) -> bool {
+    pub(crate) fn contains(&self, value: &WorthQueryPredicateOperand) -> bool {
         self.0.binary_search(value).is_ok()
     }
 
@@ -53,7 +53,10 @@ impl CanonicalScalarSet {
         Self(intersection)
     }
 
-    pub(crate) fn filtered(&self, mut keep: impl FnMut(&ScalarPredicateValue) -> bool) -> Self {
+    pub(crate) fn filtered(
+        &self,
+        mut keep: impl FnMut(&WorthQueryPredicateOperand) -> bool,
+    ) -> Self {
         let mut reduced = Vec::with_capacity(self.len());
         reduced.extend(self.0.iter().filter(|value| keep(value)).cloned());
         Self(reduced)
@@ -74,23 +77,23 @@ impl CanonicalScalarSet {
 #[cfg(test)]
 mod tests {
     use super::CanonicalScalarSet;
-    use crate::authoring::ScalarPredicateValue;
+    use crate::authoring::WorthQueryPredicateOperand;
 
     #[test]
     fn canonical_scalar_set_normalizes_order_and_duplicates() {
         let set = CanonicalScalarSet::new([
-            ScalarPredicateValue::Integer(3),
-            ScalarPredicateValue::Integer(1),
-            ScalarPredicateValue::Integer(3),
-            ScalarPredicateValue::Integer(2),
+            WorthQueryPredicateOperand::int64(3),
+            WorthQueryPredicateOperand::int64(1),
+            WorthQueryPredicateOperand::int64(3),
+            WorthQueryPredicateOperand::int64(2),
         ]);
 
         assert_eq!(
             set.as_slice(),
             &[
-                ScalarPredicateValue::Integer(1),
-                ScalarPredicateValue::Integer(2),
-                ScalarPredicateValue::Integer(3),
+                WorthQueryPredicateOperand::int64(1),
+                WorthQueryPredicateOperand::int64(2),
+                WorthQueryPredicateOperand::int64(3),
             ]
         );
     }

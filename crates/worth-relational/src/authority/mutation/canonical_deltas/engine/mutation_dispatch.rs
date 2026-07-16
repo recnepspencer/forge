@@ -7,7 +7,9 @@ use crate::authority::mutation::outcomes::RecordMutation;
 use crate::authority::mutation::MutationWorkspace;
 
 use super::entity_delta::{evaluate_entity_lifecycle_delta, evaluate_entity_update_delta};
-use super::relation_delta::{evaluate_relation_delta, evaluate_relation_lifecycle_delta};
+use super::relation_delta::{
+    evaluate_relation_delta, evaluate_relation_lifecycle_delta, evaluate_relation_update_delta,
+};
 use super::state_views::{EntityAuthoritativeState, RelationState};
 
 pub(crate) fn canonical_delta_for_mutation(
@@ -82,8 +84,8 @@ pub(crate) fn canonical_delta_for_mutation(
             new_target,
             old_authoritative_aspect_state,
             new_authoritative_aspect_state,
-            ..
-        } => evaluate_relation_delta(
+            authoritative_patch,
+        } => evaluate_relation_update_delta(
             workspace,
             *relation_id,
             *kind_id,
@@ -97,7 +99,7 @@ pub(crate) fn canonical_delta_for_mutation(
                 target: Some(*new_target),
                 authoritative_state: new_authoritative_aspect_state.as_ref(),
             },
-            RecordStructuralChange::Updated,
+            authoritative_patch.as_ref(),
         ),
         RecordMutation::RelationDeleted {
             relation_id,

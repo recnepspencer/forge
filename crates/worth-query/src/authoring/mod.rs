@@ -7,6 +7,7 @@ mod error;
 mod names;
 mod ordering;
 mod predicate;
+mod predicate_operand;
 mod projection;
 mod query_family;
 mod raw_query;
@@ -34,9 +35,10 @@ pub use error::{AuthoringError, AuthoringFailureClass};
 pub use names::{AspectFieldKey, AspectName, DeliveredFieldName, FieldName, RelationName};
 pub use ordering::{OrderingDirection, OrderingSelector};
 pub use predicate::{
-    EqualityPredicate, IntegerComparisonOperator, IntegerComparisonPredicate, PredicateSelector,
-    PresencePredicate, ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate,
+    EqualityPredicate, NativeComparisonOperator, NativeComparisonPredicate, PredicateSelector,
+    PresencePredicate, SetMembershipPredicate, StringContainsPredicate,
 };
+pub use predicate_operand::WorthQueryPredicateOperand;
 pub use projection::AspectFieldSelector;
 pub use query_family::{AuthoredQuery, QueryAuthoringFamily, QueryBuilder};
 pub(crate) use raw_query::InternalQueryFamily;

@@ -1,7 +1,7 @@
 use super::super::super::support::*;
 use crate::authoring::{
-    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, ScalarPredicateValue,
-    TraversalSelector,
+    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, TraversalSelector,
+    WorthQueryPredicateOperand,
 };
 use crate::ordinary::read::declare;
 use crate::runtime::WorthQueryReadDenialKind;
@@ -105,7 +105,7 @@ fn predicate_type_mismatch_is_denied_during_declaration() {
                     EqualityPredicate::new(
                         "profile",
                         "display_name",
-                        ScalarPredicateValue::Integer(42),
+                        WorthQueryPredicateOperand::int64(42),
                     )
                     .expect("predicate syntax should author"),
                 )

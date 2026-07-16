@@ -4,21 +4,21 @@ use super::super::support::*;
 fn preview_effect_policy_bindings_distinguish_delivery_and_write_intent() {
     let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
-        .declare_live_view::<WorthQueryNativeRow>(
+        .declare_live_view::<WorthQueryUnrefinedLiveShape>(
             "tasks.preview-policy",
             task_live_request(),
             task_schema(),
         )
         .expect("live should declare");
     let delivery_effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::deliver(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::deliver(
             "ui.preview-policy",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "ui.preview",
         ))
         .expect("delivery effect should declare");
     let intent_effect = runtime
-        .declare_effect::<WorthQueryNativeRow>(WorthQueryEffectDeclaration::write_intent(
+        .declare_effect::<WorthQueryUnrefinedLiveShape>(WorthQueryEffectDeclaration::write_intent(
             "intent.preview-policy",
             WorthQueryEffectTrigger::live_view(&live, test_aspect_touches(["title"])),
             "preview-intent",

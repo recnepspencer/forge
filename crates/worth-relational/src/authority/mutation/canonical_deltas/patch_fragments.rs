@@ -143,7 +143,7 @@ fn accumulate_patch_action(
     target: &RecordRef,
     binding: &EvaluatedAspectBinding,
     sets: &mut Vec<worth_foundational::facade::ContractValidatedAspectArtifact>,
-    clears: &mut Vec<worth_foundational::facade::AspectKey>,
+    clears: &mut Vec<worth_foundational::facade::AspectContract>,
 ) -> Result<(), CanonicalDeltaError> {
     match &binding.evidence {
         CanonicalAspectDeltaEvidence::ScalarAspectValueTransition {
@@ -162,7 +162,7 @@ fn accumulate_patch_action(
                 };
                 sets.push(validate_patch_value(target, binding, value)?);
             } else if *old_present {
-                clears.push(binding.contract.key().clone());
+                clears.push(binding.contract.clone());
             }
         }
         CanonicalAspectDeltaEvidence::StructAspectValueTransition {
@@ -181,7 +181,7 @@ fn accumulate_patch_action(
                 };
                 sets.push(validate_struct_patch_value(target, binding, value)?);
             } else if *old_present {
-                clears.push(binding.contract.key().clone());
+                clears.push(binding.contract.clone());
             }
         }
         CanonicalAspectDeltaEvidence::EndpointIdentity { old, new, .. } => {
@@ -189,7 +189,7 @@ fn accumulate_patch_action(
                 let value = FoundationalAspectValue::EntityRef(foundational_entity_id(*entity_id));
                 sets.push(validate_patch_value(target, binding, value)?);
             } else if old.is_some() {
-                clears.push(binding.contract.key().clone());
+                clears.push(binding.contract.clone());
             }
         }
         CanonicalAspectDeltaEvidence::Lifecycle { transition, .. } => {

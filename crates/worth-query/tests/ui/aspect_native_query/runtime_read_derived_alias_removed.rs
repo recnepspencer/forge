@@ -1,4 +1,4 @@
-use worth_query::facade::runtime::{WorthQueryDerivedViewHandle, WorthQueryNativeRow, WorthQueryRuntime};
+use worth_query::facade::runtime::{WorthQueryDerivedViewHandle, WorthQueryUnrefinedLiveShape, WorthQueryRuntime};
 
 fn main() {
     let runtime = runtime_fixture();
@@ -10,6 +10,6 @@ fn runtime_fixture() -> WorthQueryRuntime {
     panic!("fixture only")
 }
 
-fn view_fixture() -> WorthQueryDerivedViewHandle<WorthQueryNativeRow> {
+fn view_fixture() -> WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> {
     panic!("fixture only")
 }

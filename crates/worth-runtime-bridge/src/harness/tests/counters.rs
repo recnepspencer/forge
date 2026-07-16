@@ -4,7 +4,6 @@ use super::support::{
     build_runtime_with_aspects, committed_patch, field_aspect_registration, field_slice_snapshot,
     registration,
 };
-use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::{
     BridgeDeliveryIntent, BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
     BridgePreviewSessionDeclarationIdentity, BridgeReplayMode, BridgeRequestKind,
@@ -14,6 +13,7 @@ use crate::facade::{
     TruthBranchIdentity, TruthSnapshotIdentity,
 };
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
+use crate::speculation::BridgePreviewSessionIdentity;
 
 struct CounterPreviewSessionBasisInput {
     truth_branch_identity: TruthBranchIdentity,

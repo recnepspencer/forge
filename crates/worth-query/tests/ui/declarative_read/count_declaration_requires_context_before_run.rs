@@ -1,4 +1,4 @@
-use worth_query::facade::read::WorthQueryCountDeclaration;
+use worth_query::facade::aggregate::WorthQueryCountDeclaration;
 use worth_query::facade::runtime::WorthQueryWorkspace;
 
 fn run_without_context(

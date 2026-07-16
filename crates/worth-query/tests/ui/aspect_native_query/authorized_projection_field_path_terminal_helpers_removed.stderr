@@ -4,11 +4,16 @@ error[E0599]: no function or associated item named `from_terminal_projection` fo
 5 |     let _ = AuthorizedProjectionFieldPath::from_terminal_projection("profile.display_name");
   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `AuthorizedProjectionFieldPath`
   |
-note: if you're trying to build a new `AuthorizedProjectionFieldPath`, consider using `AuthorizedProjectionFieldPath::from_native_keys` which returns `AuthorizedProjectionFieldPath`
+note: if you're trying to build a new `AuthorizedProjectionFieldPath` consider using one of the following associated functions:
+      AuthorizedProjectionFieldPath::from_native_keys
+      AuthorizedProjectionFieldPath::from_native_aspect_key
  --> src/authorized_projection/field_path.rs
   |
   |     pub fn from_native_keys(aspect_key: AspectKey, field_key: FieldKey) -> Self {
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn from_native_aspect_key(aspect_key: AspectKey) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0599]: no method named `terminal_projection` found for struct `AuthorizedProjectionFieldPath` in the current scope
   --> tests/ui/aspect_native_query/authorized_projection_field_path_terminal_helpers_removed.rs:10:24

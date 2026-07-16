@@ -94,7 +94,7 @@ mod tests {
                     .map(|read| {
                         SnapshotReadRecord::for_request(
                             read,
-                            crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                            crate::runtime::WorthQueryAuthoredAspectMutation::native_string_value(
                                 "fixture",
                             ),
                         )
