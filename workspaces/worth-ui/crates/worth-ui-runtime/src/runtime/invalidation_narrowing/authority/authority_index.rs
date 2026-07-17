@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 impl super::UiAllocationInvalidationAuthority {
     pub(super) fn rebuild_indexes(&mut self) {
-        let mut query = BTreeMap::<Box<str>, Vec<usize>>::new();
+        let mut query =
+            BTreeMap::<worth_ui_query_binding::WorthUiQueryAuthorityIndexKey, Vec<usize>>::new();
         let mut host_targets = BTreeMap::<
             crate::evidence::UiHostMeasurementAuthorityWitness,
             Vec<crate::graph::UiGraphNodeIdentity>,
@@ -17,7 +18,7 @@ impl super::UiAllocationInvalidationAuthority {
         let mut durable = BTreeMap::<u64, Vec<usize>>::new();
         for (ordinal, context) in self.active_contexts.iter().enumerate() {
             for (source, _) in context.basis.query_allocation_mappings() {
-                query.entry(source.into()).or_default().push(ordinal);
+                query.entry(source.clone()).or_default().push(ordinal);
             }
             for request in context.basis.host_allocation_requests() {
                 if let Some(result) = context.basis.host_measurement_result(request) {

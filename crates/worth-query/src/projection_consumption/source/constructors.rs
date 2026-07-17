@@ -38,7 +38,9 @@ impl ProjectionConsumptionSource {
             ),
             result_digest: Some(receipt.result_digest().to_string()),
             result_shape_digest: Some(result_shape.digest().as_str().to_string()),
-            source_identity: ProjectionSourceIdentity::artifact(receipt.read_graph_digest()),
+            source_identity: ProjectionSourceIdentity::from_evidence_identity(
+                receipt.read_graph_identity().clone(),
+            ),
             materialized_fact_posture: receipt.materialized_fact_posture().cloned(),
         }
     }
@@ -56,7 +58,9 @@ impl ProjectionConsumptionSource {
             ),
             result_digest: Some(receipt.result_digest().to_string()),
             result_shape_digest: Some(receipt.view_shape_digest().to_string()),
-            source_identity: ProjectionSourceIdentity::artifact(receipt.installation_digest()),
+            source_identity: ProjectionSourceIdentity::from_evidence_identity(
+                receipt.installation_identity().clone(),
+            ),
             source_reference_identities: Vec::new(),
             materialized_fact_posture: receipt.materialized_fact_posture().cloned(),
         }

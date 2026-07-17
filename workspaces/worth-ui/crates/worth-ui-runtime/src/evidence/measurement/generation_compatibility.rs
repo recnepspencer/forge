@@ -2,6 +2,13 @@ use worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum UiQueryWorldCompatibilityFailure {
+    InstalledAuthorityMismatch,
+    SnapshotBasisMismatch,
+    QueryAuthorityUnavailable,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiMeasurementGenerationCompatibility {
     Compatible,
     StaleQueryFactReceipt {
@@ -17,8 +24,7 @@ pub enum UiMeasurementGenerationCompatibility {
         observed: WorthUiHostCapabilityObservationGeneration,
     },
     IncompatibleWorld {
-        expected_query_basis_digest: Box<str>,
-        observed_world_basis_digest: Option<Box<str>>,
+        reason: UiQueryWorldCompatibilityFailure,
     },
     IncompatibleHostProfile {
         expected_profile_digest: u64,

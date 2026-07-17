@@ -66,8 +66,8 @@ pub use receipt::{
     UiInspectionMeasurementFailureSource, UiInspectionMeasurementGenerationCompatibility,
     UiInspectionMeasurementNeighborhoodClassHint, UiInspectionMeasurementOwnershipPosture,
     UiInspectionMeasurementQueryFactFamily, UiInspectionMeasurementQueryUnsupportedReason,
-    UiInspectionRefLifecycleLane, UiInspectionScopeSupportRow, UiInspectionSliceLane,
-    UiInspectionSupportReport,
+    UiInspectionQueryWorldCompatibilityFailure, UiInspectionRefLifecycleLane,
+    UiInspectionScopeSupportRow, UiInspectionSliceLane, UiInspectionSupportReport,
 };
 
 // Scope lane

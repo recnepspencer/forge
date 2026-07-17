@@ -9,4 +9,5 @@ pub use inspection_measurement_evidence_receipt::{
     UiInspectionMeasurementFailureSource, UiInspectionMeasurementGenerationCompatibility,
     UiInspectionMeasurementNeighborhoodClassHint, UiInspectionMeasurementOwnershipPosture,
     UiInspectionMeasurementQueryFactFamily, UiInspectionMeasurementQueryUnsupportedReason,
+    UiInspectionQueryWorldCompatibilityFailure,
 };

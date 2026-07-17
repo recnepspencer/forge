@@ -48,7 +48,8 @@ pub use prerequisites::{
     WorthUiQueryMeasurementFactSettlementDenial, WorthUiQueryMeasurementRefinementCounters,
     WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
     WorthUiQueryPrerequisiteEvidenceError, WorthUiQueryProjectionConsumptionLane,
-    WorthUiQueryProjectionWarningKind, WorthUiQueryResolutionMode,
+    WorthUiQueryProjectionContractIdentity, WorthUiQueryProjectionWarningKind,
+    WorthUiQueryResolutionMode,
 };
 
 #[cfg(test)]

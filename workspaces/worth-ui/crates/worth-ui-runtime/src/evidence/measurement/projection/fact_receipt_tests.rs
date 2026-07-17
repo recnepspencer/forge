@@ -45,9 +45,15 @@ fn projection_fact_receipts_preserve_declaration_dependency_identity_for_basis_a
         receipt.required_query_fact_family_set_digest(),
         receipt.consumed_fact_family_set_digest()
     );
-    assert!(!receipt.projection_contract_digest().is_empty());
-    assert!(!receipt.projection_consumption_receipt_digest().is_empty());
-    assert!(!receipt.projection_fact_set_digest().is_empty());
+    assert!(!receipt
+        .projection_contract_digest_for_diagnostics()
+        .is_empty());
+    assert!(!receipt
+        .projection_consumption_receipt_digest_for_diagnostics()
+        .is_empty());
+    assert!(!receipt
+        .projection_fact_set_digest_for_diagnostics()
+        .is_empty());
 }
 
 #[test]

@@ -62,7 +62,7 @@ pub enum UiGraphWorldProfile {
         session_label: UiGraphSessionLabel,
     },
     QuerySnapshotBasis {
-        prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+        prerequisites: Box<worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence>,
     },
     InstalledQueryBasis {
         authority: worth_ui_query_binding::WorthUiQueryBasisAuthority,
@@ -99,7 +99,9 @@ impl UiGraphWorldProfile {
     pub fn query_snapshot_basis(
         prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
     ) -> Self {
-        Self::QuerySnapshotBasis { prerequisites }
+        Self::QuerySnapshotBasis {
+            prerequisites: Box::new(prerequisites),
+        }
     }
     pub fn installed_query_basis(
         authority: worth_ui_query_binding::WorthUiQueryBasisAuthority,

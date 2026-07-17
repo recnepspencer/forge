@@ -82,7 +82,7 @@ Rules:
 |---|---|---|---|
 | `schema` | shared truth grammar, contract nouns | nothing in the tree | executing anything |
 | `dsl` | language: syntax, AST, binding, lowering | `schema-*` | runtime execution |
-| `entry` | Query-native runtime entry & orchestration | `schema-*`, `resolver-*`, `derived-*`, `worth-query-decl`, `worth-query-host` | direct `worth-query`, replay surfaces (Fence 2) |
+| `entry` | Query-native runtime entry & orchestration through one installed operating-world root | `schema-*`, `resolver-*`, `derived-*`, `worth-query-decl`, `worth-query-host` | direct `worth-query`, replay surfaces (Fence 2), alternate runtime roots |
 | `resolver` | domain semantic decisions | `schema-*`, `solver-*` | Query entry, publication folklore |
 | `solver` | pure computation kernels | `schema-*` | `worth-query`, any entry surface |
 | `derived` | published derived artifacts | `schema-*`, `solver-*` (math only) | minting source authority |
@@ -139,6 +139,22 @@ Road 1 public routing uses these reserved follow-on names without birthing them:
 â—‹ `construct` Â· â—‹ `boolean` Â· â—‹ `transform` Â· â—‹ `component` Â· â—‹ `route` Â·
 â—‹ `structure` Â· â—‹ `analysis` Â· â—‹ `assumption` Â· â—‹ `measure` Â· â—‹ `policy` Â·
 â—‹ `jurisdiction` Â· â—‹ `cost` Â· â—‹ `approval` Â· â—‹ `recovery`
+
+Multiple entry-family crates do not mean multiple public entry authorities.
+Every family contributes typed operation definitions and lowering, then borrows
+from one installed operating-world root. No `worthy-entry-*` crate may create
+an independent Query runtime, accept raw graph/provider handles as authority,
+or expose a generic untyped operation bag.
+
+Graph participation adapters are named responsibilities inside the entry
+boundary that owns their admission and lowering. Do not birth a generic
+`*-adapter-*` band substitute or hide adapters in app/UI crates. One logical
+graph requires no adapter; a separate adapter is justified only by genuinely
+separate authority, provider, tenant, basis lifecycle, or commit ownership.
+
+`worthy-entry-recovery` owns ordinary declared reversal, compensation, retry,
+and re-execution. It does not import replay; trace-driven replay and
+reconstruction remain `worthy-cert-replay` responsibilities.
 
 **resolver** - `worthy-resolver-*`
 â—‹ `component` Â· â—‹ `placement` Â· â—‹ `assembly` Â· â—‹ `structure` Â· â— `envelope` Â·

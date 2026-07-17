@@ -111,7 +111,7 @@ fn query_prerequisites_for_world(
         return None;
     };
 
-    Some(prerequisites.clone())
+    Some(prerequisites.as_ref().clone())
 }
 
 fn query_basis_from_evidence(evidence: &WorthUiQueryPrerequisiteEvidence) -> UiAdmissionQueryBasis {

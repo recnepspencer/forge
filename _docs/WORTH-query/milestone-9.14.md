@@ -4,16 +4,21 @@
 
 Make the safe downstream Query path mechanically complete. Stable domain views,
 workflows, and operation semantics are installed once as typed Query
-definitions. One non-detachable runtime-affine operation capability then
-carries declaration, installation, cross-domain binding, basis, workflow
-progression, execution trace, replay admission, reversal posture, lineage,
+definitions. One installed operating-world root owns graph participation and
+is the only authority-bearing entry point. Typed operation-family facades
+borrow from that root; none can construct an independent runtime or graph
+world. One non-detachable runtime-affine operation capability then carries
+declaration, installation, cross-domain and cross-graph binding, basis,
+workflow progression, execution trace, re-execution and cert-only replay
+posture, reversal posture, lineage,
 consumption, native refinement, dependency impact, sharing, and lifecycle
 proof through the consumer journey without permitting callers to reassemble
 authority from individually valid parts. The same capability mints its
 consumer support contract, managed observation leases, invalidation deltas,
 and collection/window delivery so downstream runtimes never reconstruct Query
-posture, operation meaning, stage ledgers, replay catalogs, undo scope,
-identity lineage, impact closure, shared work, or patch semantics locally.
+posture, operation meaning, graph adapters, stage ledgers, replay catalogs,
+undo scope, identity lineage, impact closure, shared work, or patch semantics
+locally.
 
 ## Why This Milestone Exists
 
@@ -21,8 +26,10 @@ Milestone 9.13 makes ordinary Query declarative, runtime-installed, and
 Foundational-native. Downstream integrations can still make serious mistakes
 if stable domain operations rebuild schema, selectors, result shape, workflow
 graphs, stage ledgers, replay catalogs, reversal scope, or lineage meaning in
-extension methods; if independently valid domain capabilities are treated as
-atomic cross-domain authority; if consumers maintain local dependency graphs
+extension methods; if operation families expose independent public roots; if
+hidden adapters translate between graph authorities; if independently valid
+domain or graph capabilities are treated as atomic cross-domain authority; if
+consumers maintain local dependency graphs
 or recompute policy; if equivalent projections create duplicate execution and
 subscription resources; or if separately exposed definitions, executions,
 consumed facts, basis identities, support families, lifecycle receipts,
@@ -33,6 +40,9 @@ certification oracle and before Store integration multiplies the same boundary
 across physical providers. It does so generically: Query owns semantic
 progression and proof, domain packages own domain algorithms and correspondence
 policy, and Store continues to own durable journals, checkpoints, and restart.
+One logical operating graph remains the default; separate graph participation
+exists only for genuinely separate authority, lifecycle, or provider
+boundaries.
 
 ## Governing Summaries
 
@@ -44,12 +54,14 @@ policy, and Store continues to own durable journals, checkpoints, and restart.
   identity authority; each transition consumes the proof from the prior phase,
   and representations cannot promote themselves.
 - `composition_laws.md` protects one predictable semantic responsibility per
-  file and function; installed definitions, binding, support, compatibility,
-  refinement, dependency impact, sharing, lifecycle, invalidation, collection
-  delivery, identity, and accounting remain separately named responsibilities.
+  file and function; installed definitions, graph participation, entry-root
+  authority, binding, support, compatibility, refinement, dependency impact,
+  sharing, lifecycle, invalidation, collection delivery, identity, and
+  accounting remain separately named responsibilities.
 - `domain_structure_laws.md` protects physical boundaries that reveal
-  authority, lifecycle, truth source, and dependency direction; the public
-  facade is narrower than the internal capability topology.
+  authority, lifecycle, truth source, and dependency direction; graph adapters
+  are visible named boundaries and the public facade is narrower than the
+  internal capability topology.
 - `perf_laws.md` protects cost honesty and bounded execution breadth; installed
   operation lookup, native access, dependency closure, sharing admission,
   invalidation, window resolution, and patch delivery expose exact counters
@@ -57,18 +69,39 @@ policy, and Store continues to own durable journals, checkpoints, and restart.
 - `WORTH_query_roadmap.md` protects one canonical runtime-backed Query meaning
   that later providers must preserve; 9.14 closes downstream consumer safety
   after 9.13 and before Milestone 13 exports provider-independent oracles.
+- CAD `ROAD.md` protects foundation-first kernel sequencing; the entry,
+  publication, lineage, and graph-participation substrate must close before
+  later B-rep, boolean, feature, modification, UI, and AI roads depend on it.
+- CAD `ARCHITECTURE.md` protects one authority-bearing entry root, one logical
+  graph by default, projection-based ordinary handoffs, promotion-on-reference,
+  and cert-only replay; 9.14 must make those claims mechanically expressible.
+- CAD `BOUNDARIES.md` protects routability from real task sentences; recovery
+  therefore means declared reversal or compensation, while cross-graph work
+  routes through installed participation and a bound operation.
+- Road 1 protects the dependency order from pure meaning through Query
+  adoption, ordinary entry/publication, and certification; adapter grammar and
+  the root handle precede ordinary multi-family execution.
+- CAD `NAMING.md` protects authority-bearing band meaning; multiple
+  `worthy-entry-*` family crates may improve routing but cannot imply multiple
+  public roots or a generic adapter band.
+- CAD `GLOSSARY.md` protects the distinctions agents must preserve: entry root
+  versus entry family, publication versus execution trace, ordinary re-
+  execution versus replay, and explicit graph participation versus hidden
+  bridging.
 
 ## Adversarial Constraint
 
-Given any number of independently valid installed-domain handles, stage
-receipts, portable or locally rebuilt operation definitions, execution
-completions, replay scopes, reversal scopes, lineage candidates, basis
+Given any number of independently valid installed-domain handles, graph
+adapters, operation-family facades, stage receipts, portable or locally rebuilt
+operation definitions, execution completions, replay scopes, reversal scopes,
+lineage candidates, basis
 projections, consumed fact receipts, support projections, dependency labels,
 equivalence tokens, diagnostic digests, invalidation labels, collection
 patches, and lifecycle artifacts from foreign runtimes, stale generations, or
 different declarations, a consumer must be unable to combine them into an
-atomic multi-domain operation capability, legal workflow advancement,
-semantic replay, reversal or compensation authority, persistent naming
+second operating-world root, atomic multi-domain or multi-graph operation
+capability, legal workflow advancement, ordinary access to cert-only replay,
+reversal or compensation authority, persistent naming
 authority, operational projection capability, compatibility proof, shared
 execution, observation lease, replacement admission, rebind admission, native
 value access, impact closure, invalidation delta, collection window, patch
@@ -90,6 +123,16 @@ contact, native refinement, invalidation, or lifecycle work.
 - Stable domain-native views, workflows, and operations are installed package
   definitions; downstream extension traits may expose vocabulary but may only
   resolve those definitions through an installed handle.
+- One installed operating-world root is the sole authority-bearing ordinary
+  entry point. Operation-family facades are typed borrowed views over it, not
+  independent runtime constructors or alternate roots.
+- One logical graph is the default. A separate graph participates only through
+  a named, sealed, runtime-affine adapter when authority, provider, tenant, or
+  lifecycle is genuinely separate.
+- Cross-graph operations consume typed source projections and produce typed
+  target effects. They are atomic only when Query proves shared commit
+  authority; otherwise their installed contract exposes compensation and
+  partial-failure posture.
 - Installed operation definitions declare dependency, workflow, read, touch,
   effect, invariant, replay, reversal, lineage, result, failure, and cost
   posture as one semantic closure. Portable definitions never contain
@@ -98,9 +141,11 @@ contact, native refinement, invalidation, or lifecycle work.
   valid domain capabilities is not an operation capability.
 - Workflow stages and run traces are Query-minted proof progression; domain
   packages retain ownership of stage algorithms and semantic lowering.
-- Replay and reversal are distinct. Replay creates a new attempt identity and
-  proves declared semantic equivalence; reversal executes a declared inverse
-  or compensation posture and may be explicitly unavailable.
+- Re-execution, cert-only replay, and reversal are distinct. Ordinary entry
+  may retry or re-execute through the installed operation; trace-driven replay
+  and reconstruction are exposed only to the certification audience; reversal
+  executes a declared inverse or compensation posture and may be explicitly
+  unavailable.
 - Persistent naming and identity continuity consume typed lineage evidence;
   raw identities, strings, digests, coordinates, rendered values, and debug
   representations cannot authorize continuity.
@@ -139,9 +184,10 @@ identity and version, parameter contract, native aspect contract and projection
 mask, canonical Query intent, result shape, collection/order posture, required
 installed capabilities, optional typed workflow-stage graph, graph-read
 contract, touch and effect contract, invariants, replay posture, reversal or
-compensation posture, lineage contract, terminal result and failure classes,
-cost contract, support, and lowering family. The runtime validates and installs
-the definition once and returns only an installed typed operation capability.
+compensation posture, lineage and promotion-on-reference contract, derived-
+publication contract, terminal result and failure classes, cost contract,
+support, and lowering family. The runtime validates and installs the definition
+once and returns only an installed typed operation capability.
 
 Generic ad hoc Query authoring remains legitimate. A downstream operation with
 stable domain meaning, however, cannot repeatedly construct schema, selectors,
@@ -153,6 +199,7 @@ that local construction domain-native authority.
 - installed-domain operation indexes and handle lookup
 - ordinary read, collection, mutation, and workflow declarations
 - Foundational-native schema contracts, masks, selectors, and result shapes
+- derived publication, projection consumption, and sparse identity promotion
 
 **Relevant APIs**
 - `WorthQueryDomainPackage<D>` and installed-domain handle surfaces
@@ -162,6 +209,8 @@ that local construction domain-native authority.
   operation key, and installed operation capability
 - existing graph-read, graph-touch, authority-scoped effect, identity-
   evolution, and deterministic execution contracts
+- proposed derived-publication and promotion-on-reference roles in the
+  installed operation semantic closure
 
 **Warnings**
 - An extension trait that hides local reconstruction of a stable query is still
@@ -180,6 +229,11 @@ that local construction domain-native authority.
   definitions against Query's contracts and may expose their own vocabulary.
 - Installed domain operation definitions are versioned product semantics, not
   user-saved query instances or durable provider records.
+- Completion is not publication. Downstream stages consume a separately minted
+  derived-publication receipt rather than reopening the operation trace.
+- An output does not acquire durable graph identity merely because execution
+  produced it; promotion requires the declared reference posture and typed
+  lineage evidence.
 
 **Test requirements**
 - Adversarial definition convergence test: equivalent package view and workflow
@@ -197,8 +251,9 @@ that local construction domain-native authority.
   no planning or lower-runtime work on a miss.
 - Adversarial semantic-closure test: removing or drifting a required capability,
   workflow edge, graph-read, touch/effect, invariant, replay, reversal,
-  lineage, result/failure, or cost role changes canonical operation meaning and
-  conflicts atomically rather than producing a partially installed operation.
+  lineage, promotion, publication, result/failure, or cost role changes
+  canonical operation meaning and conflicts atomically rather than producing a
+  partially installed operation.
 - Adversarial callback test: portable operation definitions cannot carry or
   recover executable callbacks, backend objects, or consumer-owned stage
   implementations.
@@ -211,8 +266,12 @@ that local construction domain-native authority.
 - Definitions describe semantic intent and lowering family, never a physical
   provider plan or executable callback.
 - The operation definition is the single canonical source for workflow,
-  replay, reversal, lineage, dependency-impact, and certification semantics;
-  later phases compile derived indexes and proof artifacts from it.
+  replay, reversal, lineage, promotion, publication, dependency-impact, and
+  certification semantics; later phases compile derived indexes and proof
+  artifacts from it.
+- The canonical execution trace and the canonical derived publication are
+  distinct artifacts: certification may inspect the trace, while ordinary
+  downstream stages consume the publication through projection consumption.
 - Installed view and workflow indexes are derived, rebuildable, and powerless
   without the retained installed package artifact and runtime authority.
 
@@ -221,26 +280,112 @@ that local construction domain-native authority.
   common sealed definition envelope are implementation choices; their distinct
   result, cost, lifecycle, and failure contracts must remain visible.
 
-### Phase 2: Non-Detachable Bound Projection Authority
+### Phase 2: Installed Graph Participation Adapters
 
-This phase introduces the one downstream authority root from which every later
-operation proceeds. A bound operation capability, with projection-specialized
-views where applicable, retains the exact installed-domain authorities,
-canonical operation definition, native value contract, runtime generation,
-basis, policy, tenant, preview or branch scope, and required cross-domain
-capability set as private state. Only Query can construct it by atomically
-binding every installed capability declared by the operation.
+This phase makes every genuinely separate graph authority enter the operating
+world through one named, sealed, runtime-affine participation adapter. The
+default remains one logical graph with multiple domain schemas, aspects,
+partitions, and packs. A separate adapter is justified only when authority,
+provider, tenant, basis lifecycle, or commit ownership is actually separate;
+domain taxonomy alone does not justify graph federation.
+
+A portable graph-participation definition declares the graph's typed role,
+observation and projection contracts, touch and effect capabilities, identity
+and lineage posture, locality and budget contract, commit posture, compensation
+requirements, and failure topology. It contains no executable callback. The
+owning runtime installs the corresponding lowering provider and mints the only
+operational adapter capability. Query can then prove which installed
+operations that graph may satisfy without exposing provider internals or
+allowing an application to bridge graphs directly.
+
+**Relevant subsystems**
+- operating-world installation and installed domain packages
+- graph-read planning, projection consumption, graph touches, and effects
+- basis, policy, tenant, branch, preview, identity, and lineage authority
+- commit admission, compensation posture, and provider boundary envelopes
+
+**Relevant APIs**
+- installed domain handles and lower-runtime capability routing
+- graph-read access plans and projection-consumption contracts
+- graph-touch obligations and authority-scoped effect plans
+- proposed graph-participation definition, installed graph adapter,
+  participation denial, and adapter support receipt
+
+**Warnings**
+- Do not create one adapter per domain merely because topology, geometry,
+  physics, or UI use different vocabulary. Multiple domains may inhabit one
+  logical graph without a federation boundary.
+- A generic callback, object-safe "adapter bag," raw provider pointer, or
+  application-owned bridge would hide authority and failure semantics.
+- An adapter may lower declared reads and effects; it may not translate raw
+  identities, copy authority, or invent cross-graph correspondence.
+- Shared IDs, matching digests, event-bus topics, and equal payloads do not
+  establish graph compatibility or causal continuity.
+- Physical persistence and transport remain provider and Store concerns; this
+  phase installs semantic participation and runtime-affine routing only.
+
+**Test requirements**
+- Adversarial single-graph convergence test: domain packages installed into one
+  logical graph resolve without artificial adapters and produce the same
+  operation meaning as the direct single-graph path.
+- Adversarial adapter convergence test: equivalent participation definitions
+  and provider installations mint equivalent support and routing meaning
+  regardless of declaration order or derived-index rebuild.
+- Adversarial construction test: raw graph handles, provider objects, copied
+  adapter fields, matching digests, and foreign or stale adapter capabilities
+  cannot join an operating world or satisfy an operation requirement.
+- Adversarial authority test: an adapter cannot widen observation, mutation,
+  identity, lineage, basis, tenant, or commit authority beyond the capability
+  installed by the owning runtime.
+- Adversarial cost test: adapter resolution is bounded indexed work over the
+  operation's declared graph roles and does not scan unrelated graphs, domains,
+  providers, consumers, or diagnostics.
+
+**Engineering decisions**
+- Graph adapters are explicit authority boundaries, not convenience wrappers.
+- Portable participation meaning and executable lowering remain separate;
+  Query installs and binds them but does not own graph semantics.
+- One logical graph is the ordinary case. Multi-graph participation is an
+  admitted capability used only when a real authority boundary exists.
+- Cross-graph correspondence and lineage must arrive as typed domain evidence;
+  the adapter transports that evidence but cannot manufacture it.
+
+**Open questions**
+- Exact public names remain open until the single-root facade transcript proves
+  they are discoverable without making adapters ordinary application objects.
+
+### Phase 3: Single Runtime Entry And Non-Detachable Multi-Graph Authority
+
+This phase introduces one installed operating-world root from which every
+ordinary operation-family facade and later capability proceeds. Construct,
+boolean, transform, route, recovery, and future families are typed borrowed
+views over this root; they cannot install their own runtime, retain an
+independent graph world, or expose an alternate authority constructor.
+
+A bound operation capability, with projection-specialized views where
+applicable, retains the exact installed-domain and graph-participation
+authorities, canonical operation definition, native value contract, runtime
+generation, basis, policy, tenant, preview or branch scope, and required cross-
+domain and cross-graph capability set as private state. Only Query can
+construct it by atomically binding every installed capability declared by the
+operation. Cross-graph execution is admitted as atomic only when the adapters
+share an admitted commit authority; otherwise the bound capability carries the
+installed compensation and partial-failure contract before execution starts.
 
 **Relevant subsystems**
 - installed domain capability and runtime-affine handle authority
 - downstream basis and projection authority
 - atomic multi-domain capability binding
+- single operating-world root and operation-family facade borrowing
+- installed graph-participation adapter binding
 - public domain/read facade
 
 **Relevant APIs**
 - `WorthQueryInstalledDomainHandle<D>`
 - installed-domain view declaration surfaces
-- proposed bound operation/projection capability and binding denial
+- installed graph-participation adapters
+- proposed installed operating-world root, borrowed operation-family facade,
+  bound operation/projection capability, commit posture, and binding denial
 
 **Warnings**
 - A convenience struct with public fields is still an ingredient list, not a
@@ -251,10 +396,17 @@ binding every installed capability declared by the operation.
   owning runtime.
 - Do not erase legitimate view-family or domain-family distinctions behind one
   dynamically typed bag.
+- One root does not mean one untyped `execute(any)` method. Typed operation
+  families and their cost/failure contracts remain visible.
+- An operation-family crate may contribute definitions and lowering but cannot
+  construct, own, clone, or replace the operating-world root.
 - A tuple, struct, or map of independently bound topology, spatial, relational,
   or other domain capabilities is not atomic operation authority.
 - Query must reject mixed runtime, installation generation, basis, policy,
   tenant, preview, and branch scope before producing the bound capability.
+- Separate graph adapters do not imply distributed atomicity. Query must prove
+  shared commit authority or expose compensated, partially committed, and
+  recovery-required outcomes explicitly.
 
 **Test requirements**
 - Adversarial convergence test: equivalent installed declarations in the same
@@ -270,12 +422,25 @@ binding every installed capability declared by the operation.
   with mismatched basis, policy, tenant, preview, branch, or installation
   generation cannot be bundled, reordered, partially bound, or substituted to
   mint operation authority.
+- Adversarial single-entry test: public operation-family facades cannot create
+  an operating world, accept raw runtime or graph handles, or execute without a
+  borrow from the one installed root.
+- Adversarial cross-graph test: adapters with separate commit authorities
+  cannot obtain an atomic execution capability; they receive the declared
+  compensation/partial-failure posture before lowering or graph mutation.
+- Adversarial same-commit convergence test: a genuinely shared commit authority
+  produces one atomic bound operation regardless of operation-family facade or
+  adapter registration order.
 
 **Engineering decisions**
 - The bound capability owns the complete prerequisite set for downstream
   operation and projection work and exposes read-only semantic inspection.
 - Cross-domain binding is one Query decision and one proof artifact, not a
   consumer-authored aggregation of successful independent binds.
+- Cross-graph binding is the same authority decision over explicit installed
+  adapters; graph-to-graph direct calls and application bridges are forbidden.
+- One root centralizes authority and lifecycle while typed borrowed facades
+  preserve operation-family meaning, cost, failure, and discoverability.
 - Construction is sealed behind the installed-domain declaration path.
 - Canonical portable declarations remain non-authoritative inputs; the bound
   capability is runtime-affine operational authority.
@@ -284,7 +449,7 @@ binding every installed capability declared by the operation.
 - Exact generic parameters and final public name remain open until compiler
   inference and facade transcripts prove the smallest honest surface.
 
-### Phase 3: Query-Minted Consumer Support Contract
+### Phase 4: Query-Minted Consumer Support Contract
 
 This phase makes the bound projection mint one typed consumer contract that
 states the Query meaning and support required downstream. The contract carries
@@ -347,23 +512,27 @@ hook kinds, or fold Query reporting digests into a local posture product.
   follow existing Query capability families; the one-contract authority is
   fixed.
 
-### Phase 4: Installed Execution And Consumption Progression
+### Phase 5: Installed Execution And Consumption Progression
 
 This phase makes execution and projection consumption a proof-widening chain
-owned by the bound capability. The ordinary progression is structurally
-equivalent to `bound -> executed -> consumed -> settled`; each transition
-consumes or immutably borrows the exact prior proof and returns the only type
-accepted by the next transition.
+owned by the bound capability. For operations with declared downstream output,
+the ordinary progression is structurally equivalent to `bound -> executed ->
+published -> consumed -> settled`; each transition consumes or immutably
+borrows the exact prior proof and returns the only type accepted by the next
+transition. Operations without publication cannot be treated as downstream
+artifact producers merely because they completed.
 
 **Relevant subsystems**
 - ordinary read execution and installed-domain execution receipts
 - projection consumption declarations, contracts, facts, and receipts
+- derived publication definitions, artifacts, and publication receipts
 - downstream authority settlement and result-state handling
 
 **Relevant APIs**
 - `WorthQueryInstalledDomainExecutionReceipt`
 - `WorthQueryConsumedProjectionAuthority`
-- proposed bound execution, consumed projection, and settlement capabilities
+- proposed bound execution, derived publication, consumed projection, and
+  settlement capabilities
 
 **Warnings**
 - A tuple containing the same artifacts is not a proof-bearing phase type.
@@ -373,6 +542,9 @@ accepted by the next transition.
   same chain instead of being flattened into booleans or side-channel errors.
 - Do not make consumers replay Query's internal phase graph manually under new
   method names.
+- Ordinary downstream code cannot inspect a completed execution trace to
+  reconstruct output. It consumes the declared publication through projection
+  consumption.
 
 **Test requirements**
 - Adversarial continuity test: installation authority, declaration identity,
@@ -384,19 +556,27 @@ accepted by the next transition.
 - Adversarial phase-order test: consumption before execution, settlement before
   consumption, and reuse of a moved single-use transition are uncallable or
   deny at the earliest trust boundary with zero later-phase work.
+- Adversarial publication test: a completion without a declared and minted
+  publication receipt cannot enter projection consumption; a publication from
+  another operation, run, basis, or graph adapter cannot be consumed.
+- Adversarial ordinary-path test: a downstream operation obtains every required
+  upstream fact from the typed publication and cannot reopen trace, replay, or
+  provider internals.
 
 **Engineering decisions**
 - Phase types encode what has been proven, not merely which fields are present.
 - Execution and consumption transitions preserve the installed authority
   privately and expose semantic outcomes through contracted views.
+- Execution trace is certification evidence; derived publication is the
+  ordinary inter-operation handoff. Neither can substitute for the other.
 - Multi-consumer observation, when legitimate, uses an explicit shared
   authority lifecycle rather than arbitrary packet cloning.
 
 **Open questions**
 - None. Snapshot settlement remains move-only unless a later explicit
-  observation lease is admitted through Phase 13.
+  observation lease is admitted through Phase 14.
 
-### Phase 5: Installed Workflow Graph And Query-Minted Run Trace
+### Phase 6: Installed Workflow Graph And Query-Minted Run Trace
 
 This phase turns an operation's optional workflow posture into an installed,
 validated graph and a proof-bearing execution trace. An installed operation may
@@ -471,29 +651,35 @@ maintain a parallel evidence ledger.
   proofs rather than storing consumer-authored summaries of them.
 - Stage receipts are proof-bearing inputs to later stages and to replay,
   reversal, lineage, dependency impact, inspection, and certification.
+- A workflow terminal or declared publishable stage mints its publication from
+  the trace once. Work outside that installed workflow consumes the publication
+  rather than treating a stage receipt as a public handoff.
 
 **Open questions**
 - The concrete representation of joins and parallel frontiers remains an
   implementation choice, but it must preserve exact predecessor authority and
   deterministic semantic trace ordering.
 
-### Phase 6: Semantic Replay And Re-execution Authority
+### Phase 7: Re-execution Semantics And Cert-Only Replay Authority
 
-This phase admits semantic replay from the installed operation and a completed
-Query-minted execution trace. It distinguishes four different mechanisms:
-idempotent retry of one stage attempt, full semantic re-execution against the
-same basis, admitted historical re-execution against a related basis, and
-durable restart replay from a persisted journal. The first three receive Query
-contracts here. Durable journal persistence, checkpoint recovery, and restart
+This phase separates ordinary retry and re-execution from certification-only
+replay. It distinguishes four mechanisms: idempotent retry of one stage
+attempt, full ordinary re-execution from installed intent against the same
+basis, certification replay against an admitted same or historical basis, and
+durable restart reconstruction from a persisted journal. Ordinary entry
+facades may expose the first two without access to the original execution
+trace. Trace-driven replay is exported only through Query's certification
+audience. Durable journal persistence, checkpoint recovery, and restart
 reconstruction remain Store-owned.
 
-A completed trace mints replay capability only when the installed operation
-declares an admitted replay posture. Replay consumes normalized intent, the
+A completed trace mints certification replay capability only when the installed
+operation declares an admitted replay posture and the caller holds the cert
+audience capability. Certification replay consumes normalized intent, the
 installed operation definition, exact bound context, and the original trace,
 then creates a new run and attempt identity. Equivalence is determined by the
-operation's declared semantic comparator over typed results, effects, lineage,
-and explicitly allowed nondeterministic noise—not by raw execution identity,
-digest equality, or a consumer-maintained parity checklist.
+operation's declared semantic comparator over typed results, publications,
+effects, lineage, and explicitly allowed nondeterministic noise—not by raw
+execution identity, digest equality, or a consumer-maintained parity checklist.
 
 **Relevant subsystems**
 - installed operation replay posture and normalized intent
@@ -504,11 +690,16 @@ digest equality, or a consumer-maintained parity checklist.
 **Relevant APIs**
 - completed workflow execution trace and bound operation capability
 - Query basis use and historical evaluation capabilities
-- proposed replay admission, replay run capability, semantic equivalence
+- ordinary retry and re-execution through the installed operation facade
+- cert-audience replay admission, replay run capability, semantic equivalence
   contract, replay comparison, and typed divergence result
 
 **Warnings**
 - Replay is not reversal and does not promise to undo the original operation.
+- Ordinary entry, derived, UI, app, resolver, solver, and pack crates cannot
+  import or receive the completed-trace replay capability.
+- An ordinary downstream stage that needs upstream meaning consumes the
+  declared publication; reopening the upstream trace is a boundary failure.
 - Raw run identifiers, trace digests, output digests, and byte equality cannot
   define semantic equivalence unless the installed operation explicitly names
   byte identity as its domain guarantee.
@@ -523,7 +714,14 @@ digest equality, or a consumer-maintained parity checklist.
 - Adversarial same-basis convergence test: an admitted semantic re-execution
   creates distinct run and attempt identities while proving equivalent typed
   intent, result, effect, lineage, and exact-counter posture.
-- Adversarial historical-basis test: admitted historical re-execution records
+- Adversarial replay-fence test: ordinary entry and downstream consumer crates
+  cannot import, receive, or reconstruct trace-driven replay authority, while
+  the cert audience can replay the same installed operation through the sealed
+  facade.
+- Adversarial publication-path test: the ordinary downstream path converges
+  with certification replay outcomes while consuming only the typed derived
+  publication and never accessing the execution trace.
+- Adversarial historical-basis test: admitted certification replay records
   the exact basis relationship and correspondence evidence; a foreign,
   unrelated, stale, or unsupported basis denies before stage execution.
 - Adversarial divergence test: omitted stages, changed semantic outputs,
@@ -537,23 +735,24 @@ digest equality, or a consumer-maintained parity checklist.
   produce comparable traces without a replay-specific operation catalog.
 
 **Engineering decisions**
-- Replay admission derives exclusively from the installed operation semantic
-  closure and completed trace.
+- Ordinary re-execution derives from installed intent and current bound
+  authority; certification replay admission additionally requires the original
+  completed trace and cert-audience capability.
 - A replay result carries original and replay identities, shared normalized
   intent, basis relationship, trace comparison, output/effect/lineage
   equivalence, divergence locus, and exact counters.
 - Idempotent retry, semantic re-execution, historical re-execution, and durable
   restart replay remain separately named because their authority, cost, and
   failure contracts differ.
-- Query owns replay admission, semantic comparison orchestration, and proof
-  artifacts; domains own the comparator semantics they declare, and Store owns
-  persistence and recovery mechanics.
+- Query owns the audience fence, replay admission, semantic comparison
+  orchestration, and proof artifacts; domains own the comparator semantics they
+  declare, and Store owns persistence and recovery mechanics.
 
 **Open questions**
 - None. Any future cross-process replay transport must readmit portable meaning
   through the runtime rather than serializing operational replay authority.
 
-### Phase 7: Reversal, Compensation, And Irreversibility Contracts
+### Phase 8: Reversal, Compensation, And Irreversibility Contracts
 
 This phase makes aftermath posture explicit and binds any reversal path to the
 original installed operation and completed execution trace. The operation
@@ -625,7 +824,7 @@ consumer-authored "undo completed" label.
 - None. Operations whose honest aftermath posture is not yet known must install
   as explicitly irreversible or unsupported rather than exposing a weak undo.
 
-### Phase 8: Typed Lineage And Identity-Evolution Binding
+### Phase 9: Typed Lineage And Identity-Evolution Binding
 
 This phase binds Query's existing lineage, correspondence, and identity-
 evolution semantics to installed operation outputs and the Query-minted
@@ -643,12 +842,20 @@ selection continuity, and derived-product reuse consume this same lineage
 contract. Ambiguous or advisory correspondence may be presented for
 adjudication but cannot silently authorize persistent naming.
 
+Promotion on reference is the ordinary sparse-identity path. An artifact
+subelement remains payload until a durable declared reference requests graph
+identity. Query admits promotion only from the operation's installed promotion
+contract, exact carrying publication, typed reference intent, and trace-bound
+lineage evidence. Merely producing, selecting, displaying, or caching a
+subelement does not promote it.
+
 **Relevant subsystems**
 - existing lineage, structural correspondence, and identity evolution
 - installed operation output and effect contracts
 - workflow execution trace and typed native result carriers
 - persistent naming, compatibility, invalidation, replay, and consumer
   continuity
+- derived publications, durable reference intent, and sparse promotion
 
 **Relevant APIs**
 - lineage traversal and correspondence artifacts from Milestones 5.4 and 7
@@ -656,6 +863,7 @@ adjudication but cannot silently authorize persistent naming.
 - Foundational native identity and value types
 - proposed operation-lineage declaration, trace-bound lineage evidence,
   identity-evolution result, and persistent-naming admission
+- graph-schema promotion grammar and proposed promotion-on-reference admission
 
 **Warnings**
 - Coordinates, topology summaries, rendered values, debug strings, raw IDs,
@@ -670,6 +878,8 @@ adjudication but cannot silently authorize persistent naming.
   evidence.
 - Plural split and merge outcomes must not collapse into an optional singular
   successor.
+- Dense artifact payload must not acquire graph identity eagerly. Promotion is
+  caused by an admitted durable reference, not by publication or observation.
 
 **Test requirements**
 - Adversarial representation test: raw strings, raw identifiers, digests,
@@ -690,6 +900,12 @@ adjudication but cannot silently authorize persistent naming.
 - Adversarial boundedness test: lineage binding is proportional to declared
   output and correspondence width and does not scan unrelated execution
   traces, identities, or consumer state.
+- Adversarial promotion test: producing, projecting, rendering, caching, or
+  selecting an artifact subelement cannot mint graph identity; the same
+  subelement gains identity only when an admitted durable reference presents
+  matching carrying-publication and lineage evidence.
+- Adversarial sparse-identity test: promotion work is proportional to newly
+  referenced subelements and does not enumerate unreferenced artifact payload.
 
 **Engineering decisions**
 - Existing Query identity-evolution semantics are reused and bound to installed
@@ -699,6 +915,8 @@ adjudication but cannot silently authorize persistent naming.
   typed evolution outcomes, and proof-preserving transport.
 - Persistent naming accepts only typed lineage evidence from an admitted
   operation trace or an explicitly adjudicated correspondence capability.
+- Promotion-on-reference consumes the graph schema's promotion grammar; Query
+  binds and records the authority but does not invent product naming semantics.
 - The same lineage result feeds replay, reversal inspection, dependency impact,
   compatibility, reuse, invalidation, and consumer continuity.
 
@@ -707,7 +925,7 @@ adjudication but cannot silently authorize persistent naming.
   implementation choice, but no public surface may accept representation-level
   substitutes for typed lineage evidence.
 
-### Phase 9: Declaration-Indexed Native Access
+### Phase 10: Declaration-Indexed Native Access
 
 This phase derives native value access from the admitted projection declaration
 and Foundational contract. Declaring a projected field produces a typed access
@@ -759,7 +977,7 @@ or local value-family switches.
 - The final accessor grammar may use generated typed selectors, declaration
   return values, or both; the no-scan and no-forging properties are fixed.
 
-### Phase 10: Authority-Native Compatibility Decisions
+### Phase 11: Authority-Native Compatibility Decisions
 
 This phase moves downstream sameness and transition decisions into Query.
 Consumers ask semantic questions such as whether two capabilities share an
@@ -812,7 +1030,7 @@ authority dimension.
 **Open questions**
 - None.
 
-### Phase 11: Capability-Bound Lifecycle Transitions
+### Phase 12: Capability-Bound Lifecycle Transitions
 
 This phase attaches live promotion, replacement, rebind, cancellation, and
 disposal to the bound projection capability. The framework tracks every managed
@@ -854,12 +1072,12 @@ illegal lifecycle calls unavailable.
 - The framework owns resource registration, continuation, and disposal.
 - Each lifecycle transition consumes the preceding state and returns the next
   proof-bearing state plus retained inspection evidence.
-- Explicit rebind requires Query-minted compatibility proof from Phase 10.
+- Explicit rebind requires Query-minted compatibility proof from Phase 11.
 
 **Open questions**
 - None.
 
-### Phase 12: Query-Compiled Semantic Dependency And Impact Closure
+### Phase 13: Query-Compiled Semantic Dependency And Impact Closure
 
 This phase makes every bound projection carry the complete semantic dependency
 contract that determines how changes affect its meaning. Query compiles the
@@ -947,7 +1165,7 @@ delivery begins.
 - Exact eager versus borrowed closure representation is an implementation
   choice governed by the same semantic and exact-counter contract.
 
-### Phase 13: Equivalent Capability Coalescing And Managed Consumer Leases
+### Phase 14: Equivalent Capability Coalescing And Managed Consumer Leases
 
 This phase turns canonical equivalence into framework-owned shared work. Query
 may coalesce bound projections only when a sealed equivalence decision proves
@@ -1019,11 +1237,11 @@ digests, definitions, or output rows cannot authorize coalescing.
   observer topology, but it must preserve the phase, authority, and counter
   contracts above.
 
-### Phase 14: Capability-Bound Consumer Invalidation Delta
+### Phase 15: Capability-Bound Consumer Invalidation Delta
 
 This phase makes Query emit one typed invalidation delta from the managed bound
 capability or shared execution owner whenever Query meaning relevant to a
-consumer changes. The delta carries the Phase 12 impact decision and names the
+consumer changes. The delta carries the Phase 13 impact decision and names the
 exact capability generation, shared-resource generation where applicable,
 target lease, affected declared access keys, result-state or lifecycle cause,
 locality/region posture where admitted, continuation posture, and the Query-
@@ -1091,7 +1309,7 @@ of Query invalidation surfaces.
   borrowed iterator must be decided from allocation and delivery cost, with
   identical semantic and counter contracts.
 
-### Phase 15: Operational Identity Opacity
+### Phase 16: Operational Identity Opacity
 
 This phase separates operational identity authority from reporting and
 diagnostic representation. Operational handles and witnesses expose semantic
@@ -1146,7 +1364,7 @@ operational state.
   requirements of legitimate collections without reopening generic authority
   comparison.
 
-### Phase 16: Consumption Cost Evidence And Exact Counters
+### Phase 17: Consumption Cost Evidence And Exact Counters
 
 This phase makes the bound capability's costs visible at every downstream
 boundary. Installed operation lookup, binding, support-contract minting,
@@ -1212,7 +1430,7 @@ bounds without timing-based guesses or consumer instrumentation.
 **Open questions**
 - None.
 
-### Phase 17: Bound Collection Identity And Window Declaration
+### Phase 18: Bound Collection Identity And Window Declaration
 
 This phase specializes the bound projection for collection-shaped results. A
 bound collection capability retains canonical result shape, entity and view-
@@ -1267,7 +1485,7 @@ concerns select from canonical Query meaning.
 - Collection identity and ordering remain Query-owned parts of the bound
   capability; consumers receive typed row handles and declared native access.
 - Window admission binds cursor, ordering, basis, capability generation, and
-  consumer breadth policy into one proof-bearing request and extends Phase 12's
+  consumer breadth policy into one proof-bearing request and extends Phase 13's
   dependency roles with collection membership, ordering, grouping, and window-
   boundary impact.
 - Unsupported grouping, cursor, or live-window neighbors deny explicitly rather
@@ -1278,7 +1496,7 @@ concerns select from canonical Query meaning.
   authoring remains open to transcript testing; all must lower to the same
   admitted window contract.
 
-### Phase 18: Query-Shaped Window And Patch Delivery
+### Phase 19: Query-Shaped Window And Patch Delivery
 
 This phase delivers collection evolution as capability-bound Query patches.
 Insert, remove, move, update, reset-required, result-state, warning,
@@ -1345,18 +1563,22 @@ Query does not own UI mounting, overscan policy, or allocation.
 **Open questions**
 - None.
 
-### Phase 19: Public Facade, DX, And Reference-Consumer Cutover
+### Phase 20: Public Facade, DX, And Reference-Consumer Cutover
 
-This phase makes installed domain operations and the bound capability the
-ordinary discoverable path. The facade lets a consumer install a domain with
-typed view and workflow definitions, resolve a domain-native operation, bind
-it atomically across required domains, advance its typed workflow, inspect its
-Query-minted trace, request admitted replay or reversal, consume typed lineage,
-execute or promote it, access declared native values, ask named compatibility
-questions, inspect compiled impact, acquire or dispose managed observation
-leases, consume support contracts and invalidation deltas, declare collection
-windows, apply query-shaped patches, and dispose managed resources without
-importing internal phase topology or manually carrying authority ingredients.
+This phase makes one installed operating-world root, its typed operation-family
+views, and the bound capability the ordinary discoverable path. The facade lets
+a host install domains and any genuinely required graph adapters once, then
+lets consumers borrow construct, boolean, transform, route, recovery, and
+future family views from that root. Through those views they resolve a domain-
+native operation, bind it atomically across required domains and graphs,
+advance its typed workflow, consume its declared publication, request ordinary
+re-execution or reversal, consume typed lineage, execute or promote it, access
+declared native values, ask named compatibility questions, inspect compiled
+impact, acquire or dispose managed observation leases, consume support
+contracts and invalidation deltas, declare collection windows, apply query-
+shaped patches, and dispose managed resources without importing internal phase
+topology or manually carrying authority ingredients. Trace-driven replay is
+absent from this ordinary facade and remains certification-only.
 
 Worth UI is the primary hostile reference consumer because its allocation,
 rebind, and virtualization boundaries exercise installation, projection,
@@ -1367,6 +1589,7 @@ locally.
 
 **Relevant subsystems**
 - Query domain/read/live/foundation facade modules
+- operating-world installation and graph-participation adapter facade
 - consumer kit and external compile transcripts
 - `worth-ui-query-binding` and other serious downstream reference consumers
 - Query discovery documentation
@@ -1375,14 +1598,19 @@ locally.
 - installed-domain capability facade
 - installed view/workflow resolution, bound projection facade, and declaration-
   derived access grammar
-- workflow-run, replay, reversal/compensation, lineage, and persistent-naming
-  admission grammar
+- workflow-run, ordinary re-execution, reversal/compensation, lineage, and
+  persistent-naming admission grammar
+- separate cert-audience replay facade
 - consumer support/invalidation contract, collection window, patch delivery,
   named compatibility, dependency impact, sharing lease, and lifecycle methods
 
 **Warnings**
 - A facade that reexports every ingredient and internal phase type has not
   simplified or sealed the boundary.
+- One entry root must not collapse into an untyped operation bag. Typed family
+  views remain the discoverable grammar and share only root authority.
+- Operation-family facades and graph adapters cannot expose public root,
+  runtime, provider, or independent execution constructors.
 - Do not preserve detached constructors for tests; hostile fixtures belong in
   certification-only support.
 - Examples teach only the positive current path, not historical methods framed
@@ -1392,14 +1620,19 @@ locally.
 
 **Test requirements**
 - Adversarial DX transcript: an external crate completes install, declaration,
-  installed operation resolution, binding, snapshot execution, native access,
-  live promotion, compatibility, shared observation, explicit rebind,
-  workflow advancement, replay comparison, aftermath handling, lineage-aware
-  continuity, invalidation, collection window delivery, patch application,
-  inspection, lease release, and disposal using ordinary facade modules with
-  no local schema reconstruction, stage ledger, replay or undo catalog,
-  lineage string, dependency graph, manual digest, raw path, hook enum, deep
-  import, or detached receipt plumbing.
+  operating-world construction, graph participation where genuinely required,
+  typed family borrowing, installed operation resolution, binding, snapshot
+  execution, native access, live promotion, compatibility, shared observation,
+  explicit rebind, workflow advancement, publication consumption, ordinary re-
+  execution, aftermath handling, lineage-aware continuity, invalidation,
+  collection window delivery, patch application, inspection, lease release,
+  and disposal using ordinary facade modules with no local schema
+  reconstruction, graph bridge, stage ledger, replay or undo catalog, lineage
+  string, dependency graph, manual digest, raw path, hook enum, deep import, or
+  detached receipt plumbing.
+- Adversarial single-root transcript: construct, boolean, transform, and a
+  representative cross-domain operation all borrow from one installed root;
+  none can create or accept an alternate root or raw adapter collection.
 - Adversarial reference convergence test: Worth UI and at least one non-UI
   consumer produce the same canonical results, authority decisions, denials,
   and counters through the bound capability as Query's internal oracle.
@@ -1412,8 +1645,9 @@ locally.
   mirrors can be deleted without preserving fragments elsewhere.
 
 **Engineering decisions**
-- Progressive disclosure begins with one installed domain operation and one
-  bound capability; advanced inspection does not expose construction power.
+- Progressive disclosure begins with one installed operating-world root, one
+  typed operation-family view, one installed operation, and one bound
+  capability; advanced inspection does not expose construction power.
 - Worth UI retains ownership of Query-to-allocation semantic refinement but no
   longer reconstructs Query installation, basis, compatibility, or lifecycle
   authority, support posture, dependency impact, sharing eligibility,
@@ -1425,7 +1659,7 @@ locally.
 - Final method names remain open to golden transcript review; the authority
   grammar and required journey are fixed.
 
-### Phase 20: Mechanical Prohibitions And Hostile Certification
+### Phase 21: Mechanical Prohibitions And Hostile Certification
 
 This phase makes regression structurally expensive. Compile-fail probes,
 facade snapshots, boundary checks, source residue audits, sabotage fixtures,
@@ -1462,19 +1696,30 @@ cannot reappear as an alternate public path.
 
 **Test requirements**
 - Adversarial sabotage matrix: foreign installation, stale generation,
-  locally reconstructed installed operation, detached completion, copied
+  second operating-world root, hidden or forged graph adapter, independently
+  constructed operation-family facade, locally reconstructed installed
+  operation, detached completion, copied
   consumed facts, wrong declaration key, forged dependency closure, reporting
   digest collision, forged support projection, false sharing-equivalence token,
   wrong compatibility witness, foreign lease or invalidation delta, copied
   cursor, stale collection patch, disposed lifecycle, cross-run stage receipt,
   forged replay or reversal scope, representation-derived lineage, and cross-
   provider artifacts all fail at the earliest boundary with exact counters.
+- Adversarial replay-fence test: ordinary entry, derived, app, UI, resolver,
+  solver, and pack consumers cannot import or obtain trace-driven replay;
+  certification can replay through the dedicated audience facade and cannot
+  leak that capability back into ordinary code.
+- Adversarial graph-boundary test: direct graph-to-graph calls, raw provider
+  access, shared-ID joins, digest-authorized correspondence, and application-
+  owned bridges cannot substitute for installed graph participation and a
+  bound cross-graph operation.
 - Adversarial facade/prohibition test: public API snapshots and compile-fail
   probes report zero consumer-executable portable operation definitions,
   detached capability constructors, raw operational identity extractors,
   consumer-mintable access/window/dependency/share keys, support/invalidation
-  constructors, patch constructors, or lifecycle entrypoints that skip bound
-  predecessors.
+  constructors, patch constructors, alternate operating-world roots,
+  operation-family runtime constructors, public adapter bags, cert replay on
+  ordinary facades, or lifecycle entrypoints that skip bound predecessors.
 - Adversarial residue test: production source and reference consumers contain
   zero stable domain-operation reconstruction, operational digest comparisons,
   consumer-side authority assembly, local dependency or recompute authority,
@@ -1494,6 +1739,9 @@ cannot reappear as an alternate public path.
   denial, exact counter proof, and reference-consumer deletion evidence.
 - Boundary rules name allowed production owners and reject dependency or
   reexport bypasses mechanically.
+- Boundary rules enforce the single-root and replay-audience contracts across
+  Query and downstream entry, derived, app/UI, solver, resolver, pack, and cert
+  bands.
 - The provider-independent parity bundle becomes a required Milestone 13 input,
   not a separate interpretation of Query meaning.
 - Generic construction impossibility is certified once at Query's facade;
@@ -1507,18 +1755,23 @@ cannot reappear as an alternate public path.
 
 - complete typed installed operation semantic closure with indexed runtime
   resolution and no consumer-local reconstruction of stable operation meaning
+- one installed operating-world root as the sole ordinary authority-bearing
+  entry point, with typed borrowed operation-family facades
+- sealed installed graph-participation adapters for genuinely separate graph
+  authorities, with explicit atomic or compensated commit posture
 - one sealed runtime-affine bound projection capability
-- atomic multi-domain operation binding
+- atomic multi-domain and admitted multi-graph operation binding
 - one Query-minted consumer support contract
-- proof-bearing installed execution, consumption, and settlement progression
+- proof-bearing installed execution, derived publication, consumption, and
+  settlement progression
 - installed typed workflow DAGs, Query-minted run/stage traces, and legal
   predecessor progression
-- semantic replay and re-execution admission with distinct attempt identity and
-  typed convergence or divergence
+- ordinary retry/re-execution plus cert-audience-only trace replay with distinct
+  attempt identity and typed convergence or divergence
 - exact-inverse, compensation, rebuild/recovery, provisional-discard, and
   irreversibility contracts with no scope-only undo
 - trace-bound typed lineage and identity-evolution evidence for persistent
-  naming and consumer continuity
+  naming, promotion-on-reference, and consumer continuity
 - declaration-indexed Foundational-native value access and typed denials
 - Query-owned installation, basis, replacement, rebind, and reuse decisions
 - framework-owned live, replacement, rebind, cancellation, and disposal states
@@ -1544,12 +1797,16 @@ cannot reappear as an alternate public path.
   dependency impact, sharing admission, invalidation, collection identity/
   ordering/cursors, patch meaning, and managed query lifecycle
 - Query ownership of atomic cross-domain binding, workflow progression and
-  trace assembly, replay admission, reversal binding, lineage evidence
-  transport, and typed identity-evolution outcomes
+  trace assembly, cert replay admission, reversal binding, lineage evidence
+  transport, graph-participation binding, and typed identity-evolution outcomes
+- one-root authority with operation-family facades retaining distinct domain,
+  cost, failure, and lifecycle contracts
 - domain ownership of stage algorithms, inverse and compensation semantics,
   persistent naming policy, correspondence policy, and product meaning
 - Store ownership of durable journals, checkpoints, restart replay, and
   recovery persistence
+- single logical graph as the default and multi-graph participation only for
+  explicit independent authority boundaries
 - lower-runtime ownership of truth, reactive scheduling, and physical provider
   semantics
 - backend-independent canonical Query meaning and provider parity
@@ -1564,6 +1821,8 @@ cannot reappear as an alternate public path.
 - replay remains distinct from reversal, execution identity remains distinct
   from semantic equivalence, and touch/effect scope remains distinct from
   inverse authority
+- execution traces remain certification evidence while derived publications
+  remain the ordinary inter-operation consumption path
 - Query remains a generic semantic framework rather than becoming a geometry
   kernel, product workflow registry, or executable callback host
 - consumer ownership of viewport, overscan, graph, mounting, allocation, and
@@ -1575,16 +1834,25 @@ cannot reappear as an alternate public path.
 
 - equivalent installed view and workflow definitions converge, conflicting
   definitions fail atomically, and local lookalikes cannot execute
+- one installed operating-world root is required by every ordinary operation-
+  family facade; no family or application can construct an alternate root
+- same-graph domain composition requires no artificial federation, while
+  foreign, stale, or forged graph adapters cannot satisfy operation authority
+- multi-graph work is atomic only with shared commit authority and otherwise
+  exposes declared compensation, partial failure, and recovery posture
 - invalid workflow graphs fail package installation, and independently valid
   stage receipts or domain capabilities cannot be combined into legal
   progression or atomic operation authority
-- admitted replay creates a distinct run/attempt identity while proving the
-  installed operation's declared semantic equivalence; meaningful divergence
-  localizes to typed trace, result, effect, or lineage evidence
+- cert-audience replay creates a distinct run/attempt identity while proving
+  the installed operation's declared semantic equivalence; ordinary crates
+  cannot import replay and meaningful divergence localizes to typed trace,
+  result, publication, effect, or lineage evidence
 - scope-only undo is impossible; exact inverse, compensation, rebuild/recovery,
   and irreversibility remain typed and separately testable
 - persistent naming cannot be authorized from raw strings, identifiers,
   digests, coordinates, rendered values, or advisory correspondence
+- promotion-on-reference is proportional to newly durable references and never
+  eagerly promotes unreferenced artifact payload
 - independent valid artifacts cannot be recombined into operational authority
 - the ordinary facade carries one exact installation-to-settlement authority
   chain with no consumer restamping
@@ -1620,11 +1888,14 @@ cannot reappear as an alternate public path.
 This milestone follows 9.13 because it hardens the installed-domain and
 Foundational-native product boundary that 9.13 establishes; it must not invent
 parallel declaration or value semantics while 9.13 remains open. Installed
-domain operation definitions come first because atomic binding, workflow
+domain operation definitions come first because graph participation, single-
+root authority, atomic binding, workflow
 progression, replay, reversal, lineage, dependency impact, sharing equivalence,
 invalidation, and patch delivery must all consume one canonical operation
-meaning rather than reconcile locally authored lookalikes. Workflow graph and
-trace, replay, reversal, and lineage close before native access and downstream
+meaning rather than reconcile locally authored lookalikes. Graph participation
+closes before binding so the root cannot accept raw providers or hidden
+application bridges. Workflow graph and trace, replay, reversal, and lineage
+close before native access and downstream
 lifecycle work because every later compatibility, impact, reuse, invalidation,
 collection, and certification decision must consume the trace rather than
 retrofit a parallel ledger.

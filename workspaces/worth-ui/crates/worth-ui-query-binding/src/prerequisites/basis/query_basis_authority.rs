@@ -37,7 +37,10 @@ impl WorthUiQueryBasisAuthority {
     }
 
     pub fn shares_authority_with(&self, other: &Self) -> bool {
-        self.identity == other.identity && self.query_authority == other.query_authority
+        self.identity == other.identity
+            && self
+                .query_authority
+                .shares_authority_with(&other.query_authority)
     }
 }
 

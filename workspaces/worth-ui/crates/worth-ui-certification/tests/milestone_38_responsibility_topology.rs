@@ -120,3 +120,65 @@ fn phase_18_required_responsibility_homes_exist() {
         missing.join("\n")
     );
 }
+
+#[test]
+fn phase_16_query_reporting_projections_stay_out_of_operational_code() {
+    let root = workspace_root();
+    let production_roots = [
+        root.join("crates/worth-ui-query-binding/src"),
+        root.join("crates/worth-ui-runtime/src"),
+    ];
+    let reporting_projection_home = root.join(
+        "crates/worth-ui-runtime/src/evidence/measurement/projection/inspection_receipt/query_reporting_projection.rs",
+    );
+    let banned_operational_calls = [
+        ".contract().contract_digest()",
+        ".receipt().declaration_digest()",
+        ".receipt().receipt_digest()",
+        ".receipt().fact_set_digest()",
+        ".source_identity().as_str()",
+        "terminal_projection_for_reporting(",
+    ];
+    let banned_mirror_names = [
+        "QueryViewBindingKey",
+        "QueryViewCapabilityReference",
+        "QueryResultShapeReference",
+        "QueryBasisPostureReference",
+        "QueryLiveCompatibility",
+    ];
+    let mut findings = Vec::new();
+    for production_root in production_roots {
+        visit_production_directories(&production_root, &mut |directory| {
+            for entry in fs::read_dir(directory).expect("production responsibility directory") {
+                let path = entry.expect("production source entry").path();
+                if path.extension().and_then(|value| value.to_str()) != Some("rs") {
+                    continue;
+                }
+                let source = fs::read_to_string(&path).expect("production Rust source");
+                let compact = source
+                    .chars()
+                    .filter(|character| !character.is_whitespace())
+                    .collect::<String>();
+                if path != reporting_projection_home {
+                    for banned in banned_operational_calls {
+                        if compact.contains(banned) {
+                            findings.push(format!(
+                                "{} uses Query reporting projection `{banned}` outside the inspection-only projection home",
+                                path.display()
+                            ));
+                        }
+                    }
+                }
+                for banned in banned_mirror_names {
+                    if source.contains(banned) {
+                        findings.push(format!(
+                            "{} recreates deleted Query mirror `{banned}`",
+                            path.display()
+                        ));
+                    }
+                }
+            }
+        });
+    }
+    assert!(findings.is_empty(), "{}", findings.join("\n"));
+}

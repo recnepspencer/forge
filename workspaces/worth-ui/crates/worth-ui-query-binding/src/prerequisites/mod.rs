@@ -25,6 +25,8 @@ mod query_measurement_fact_settlement;
 mod query_prerequisite_boundary;
 #[path = "basis/query_prerequisite_evidence.rs"]
 mod query_prerequisite_evidence;
+#[path = "measurement/query_projection_contract_identity.rs"]
+mod query_projection_contract_identity;
 #[path = "basis/receipt_construction.rs"]
 mod receipt_construction;
 
@@ -58,6 +60,7 @@ pub use query_prerequisite_evidence::{
     WorthUiQueryPrerequisiteEvidence, WorthUiQueryPrerequisiteEvidenceError,
     WorthUiQueryResolutionMode,
 };
+pub use query_projection_contract_identity::WorthUiQueryProjectionContractIdentity;
 #[path = "allocation/query_allocation_invalidation_basis.rs"]
 mod query_allocation_invalidation_basis;
 pub use query_allocation_invalidation_basis::{

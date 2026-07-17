@@ -163,9 +163,9 @@ impl UiMeasurementBasis {
 
     pub(crate) fn query_allocation_mappings_for_source(
         &self,
-        source_identity: &str,
+        authority_index_key: &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
     ) -> &[super::UiQueryAllocationTargetMapping] {
-        self.evidence_index.query_mappings(source_identity)
+        self.evidence_index.query_mappings(authority_index_key)
     }
 
     pub(crate) fn host_measurement_result(
@@ -198,7 +198,12 @@ impl UiMeasurementBasis {
 
     pub(crate) fn query_allocation_mappings(
         &self,
-    ) -> impl Iterator<Item = (&str, &super::UiQueryAllocationTargetMapping)> {
+    ) -> impl Iterator<
+        Item = (
+            &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
+            &super::UiQueryAllocationTargetMapping,
+        ),
+    > {
         self.evidence_index.query_rows()
     }
 

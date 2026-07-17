@@ -10,11 +10,10 @@ ALLOWLIST="scripts/ci/workspace_rust_line_cap_allowlist.txt"
 echo "[workspace-rust-line-caps] enforcing ${CAP}-line cap for tracked Rust files"
 
 violations=0
-while IFS= read -r file; do
+while read -r line_count file; do
   [[ -n "$file" ]] || continue
-  [[ -f "$file" ]] || continue
+  [[ "$file" != "total" ]] || continue
 
-  line_count="$(wc -l < "$file" | tr -d ' ')"
   if (( line_count > CAP )); then
     if [[ -f "$ALLOWLIST" ]] && grep -Fxq "$file" "$ALLOWLIST"; then
       echo "[workspace-rust-line-caps] allowlisted: ${file} (${line_count} lines)"
@@ -23,7 +22,16 @@ while IFS= read -r file; do
       violations=1
     fi
   fi
-done < <(git ls-files 'crates/**/*.rs' | sort)
+done < <(
+  git ls-files -z \
+    'crates/**/*.rs' \
+    'workspaces/worth-ui/crates/**/*.rs' \
+    | while IFS= read -r -d '' file; do
+        [[ -f "$file" ]] && printf '%s\0' "$file"
+      done \
+    | sort -zu \
+    | xargs -0 -r -n 128 wc -l
+)
 
 if (( violations != 0 )); then
   exit 1

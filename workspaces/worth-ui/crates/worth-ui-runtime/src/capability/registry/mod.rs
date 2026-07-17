@@ -135,7 +135,7 @@ pub use theme_token::{
 pub(crate) use theme_token::{ThemeTokenAcceptedRegistrationProof, ThemeTokenRegistry};
 pub use view_binding::{
     FrozenViewBindingCapabilities, FrozenViewBindingEntry, QueryDenialPresentation,
-    QueryViewBindingKey, ViewBindingDescriptor, ViewBindingFamily, VisibleStateBindingDeclaration,
-    WorthUiQueryViewRegistration,
+    ViewBindingDescriptor, ViewBindingFamily, VisibleStateBindingDeclaration,
+    WorthUiQueryViewRegistration, WorthUiViewBindingIdentity,
 };
 pub(crate) use view_binding::{ViewBindingAcceptedRegistrationProof, ViewBindingRegistry};

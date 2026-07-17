@@ -179,17 +179,21 @@ fn compatibility_digest(compatibility: &UiMeasurementGenerationCompatibility) ->
                 ^ expected.as_u64().rotate_left(7)
                 ^ observed.as_u64().rotate_left(13)
         }
-        UiMeasurementGenerationCompatibility::IncompatibleWorld {
-            expected_query_basis_digest,
-            observed_world_basis_digest,
-        } => {
-            stable_text_digest("compatibility:incompatible-world")
-                ^ stable_text_digest(expected_query_basis_digest).rotate_left(7)
-                ^ observed_world_basis_digest
-                    .as_ref()
-                    .map(|digest| stable_text_digest(digest).rotate_left(13))
-                    .unwrap_or_default()
-        }
+        UiMeasurementGenerationCompatibility::IncompatibleWorld { reason } => stable_text_digest(
+            "compatibility:incompatible-world",
+        )
+            ^ stable_text_digest(match reason {
+                crate::evidence::UiQueryWorldCompatibilityFailure::InstalledAuthorityMismatch => {
+                    "installed-authority-mismatch"
+                }
+                crate::evidence::UiQueryWorldCompatibilityFailure::SnapshotBasisMismatch => {
+                    "snapshot-basis-mismatch"
+                }
+                crate::evidence::UiQueryWorldCompatibilityFailure::QueryAuthorityUnavailable => {
+                    "query-authority-unavailable"
+                }
+            })
+            .rotate_left(7),
         UiMeasurementGenerationCompatibility::IncompatibleHostProfile {
             expected_profile_digest,
             observed_profile_digest,

@@ -1,18 +1,13 @@
-use crate::declaration::UiDeclarationArtifact;
+mod origin_receipts;
+
 use crate::graph::{
     UiGraphMountedReceiptTransition, UiGraphNodeIdentity, UiGraphSnapshot, UiGraphTopologyRecord,
     UiGraphWorldProfile,
 };
 use crate::obligations::touch::{
-    inspection_authored_provenance_digests, normalize_aspects, require_host_observation_alignment,
-    require_runtime_diagnostic_alignment, require_service_event_alignment, UiGraphTouchAspects,
-    UiGraphTouchDenial, UiGraphTouchDescriptor, UiGraphTouchOriginAuthority,
-    UiGraphTouchOriginReceipt, UiGraphTouchOriginWitness, UiGraphTouchTarget, UiGraphTouchTiming,
+    normalize_aspects, UiGraphTouchAspects, UiGraphTouchDenial, UiGraphTouchDescriptor,
+    UiGraphTouchOriginAuthority, UiGraphTouchOriginWitness, UiGraphTouchTarget, UiGraphTouchTiming,
     UiGraphTouchWorld,
-};
-use crate::runtime::{
-    WorthUiActiveRuntimeObservation, WorthUiExecutionPlanInspection,
-    WorthUiOrdinaryLaneFrameReceipt, WorthUiReplacementCandidate, WorthUiRuntimeDiagnosticReport,
 };
 
 #[derive(Clone, Copy)]
@@ -23,140 +18,6 @@ pub struct UiGraphTouchAuthority<'a> {
 impl<'a> UiGraphTouchAuthority<'a> {
     pub(crate) const fn new(snapshot: &'a UiGraphSnapshot) -> Self {
         Self { snapshot }
-    }
-
-    pub fn declaration_change_receipt(
-        self,
-        artifact: &UiDeclarationArtifact,
-    ) -> Result<UiGraphTouchOriginWitness, UiGraphTouchDenial> {
-        if self
-            .snapshot
-            .lookup()
-            .declaration_instances(artifact.identity())
-            .value()
-            .is_empty()
-        {
-            return Err(UiGraphTouchDenial::DeclarationChangeOutsideGraphAuthority {
-                declaration_identity: artifact.identity().clone(),
-            });
-        }
-
-        Ok(UiGraphTouchOriginWitness::declaration_instances(
-            UiGraphTouchOriginReceipt::declaration_change(artifact),
-            artifact.identity().clone(),
-        ))
-    }
-
-    pub fn query_fact_change_receipt(
-        self,
-    ) -> Result<UiGraphTouchOriginWitness, UiGraphTouchDenial> {
-        match self.snapshot.world_profile() {
-            UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } => {
-                Ok(UiGraphTouchOriginWitness::query_basis(
-                    UiGraphTouchOriginReceipt::query_fact_change(prerequisites),
-                    prerequisites.clone(),
-                ))
-            }
-            UiGraphWorldProfile::InstalledQueryBasis { authority } => {
-                Ok(UiGraphTouchOriginWitness::installed_query_basis(
-                    UiGraphTouchOriginReceipt::installed_query_fact_change(authority),
-                    authority.clone(),
-                ))
-            }
-            _ => Err(UiGraphTouchDenial::QueryFactChangeUnavailableInCurrentWorld),
-        }
-    }
-
-    pub fn host_observation_receipt(
-        self,
-        observation: WorthUiActiveRuntimeObservation,
-        inspection: &WorthUiExecutionPlanInspection,
-    ) -> Result<UiGraphTouchOriginWitness, UiGraphTouchDenial> {
-        require_host_observation_alignment(observation, inspection)?;
-        let digests = inspection_authored_provenance_digests(inspection.provenance().iter());
-        if digests.is_empty() {
-            return Err(UiGraphTouchDenial::OriginAuthorityUnavailable {
-                origin_class: crate::obligations::touch::UiGraphTouchOriginClass::HostObservation,
-            });
-        }
-
-        Ok(UiGraphTouchOriginWitness::authored_provenance_digests(
-            UiGraphTouchOriginReceipt::host_observation(
-                observation.artifact_digest().rotate_left(7) ^ observation.active_plan_digest(),
-            ),
-            digests,
-        ))
-    }
-
-    pub fn service_event_receipt(
-        self,
-        frame_receipt: &WorthUiOrdinaryLaneFrameReceipt,
-        inspection: &WorthUiExecutionPlanInspection,
-    ) -> Result<UiGraphTouchOriginWitness, UiGraphTouchDenial> {
-        require_service_event_alignment(frame_receipt, inspection)?;
-        let touched_indexes = frame_receipt.touched_plan_indexes();
-        let digests = inspection_authored_provenance_digests(
-            inspection
-                .provenance()
-                .iter()
-                .filter(|row| touched_indexes.contains(&row.plan_index())),
-        );
-        if digests.is_empty() {
-            return Err(UiGraphTouchDenial::OriginAuthorityUnavailable {
-                origin_class: crate::obligations::touch::UiGraphTouchOriginClass::ServiceEvent,
-            });
-        }
-
-        let authority_digest = touched_indexes.iter().fold(0u64, |digest, index| {
-            digest ^ (*index as u64).rotate_left(9)
-        });
-        Ok(UiGraphTouchOriginWitness::authored_provenance_digests(
-            UiGraphTouchOriginReceipt::service_event(authority_digest),
-            digests,
-        ))
-    }
-
-    pub fn intent_submission_receipt(
-        self,
-        candidate: &WorthUiReplacementCandidate,
-    ) -> Result<UiGraphTouchOriginWitness, UiGraphTouchDenial> {
-        let digests = candidate
-            .artifact_bundle()
-            .artifact()
-            .authored_provenance_digests();
-        if digests.is_empty() {
-            return Err(UiGraphTouchDenial::OriginAuthorityUnavailable {
-                origin_class: crate::obligations::touch::UiGraphTouchOriginClass::IntentSubmission,
-            });
-        }
-
-        Ok(UiGraphTouchOriginWitness::authored_provenance_digests(
-            UiGraphTouchOriginReceipt::intent_submission(
-                candidate.provenance_handle().raw() ^ candidate.basis().lowering_basis_digest(),
-            ),
-            digests,
-        ))
-    }
-
-    pub fn diagnostic_only_report_receipt(
-        self,
-        report: &WorthUiRuntimeDiagnosticReport,
-        inspection: &WorthUiExecutionPlanInspection,
-    ) -> Result<UiGraphTouchOriginWitness, UiGraphTouchDenial> {
-        require_runtime_diagnostic_alignment(report, inspection)?;
-        let digests = inspection_authored_provenance_digests(inspection.provenance().iter());
-        if digests.is_empty() {
-            return Err(UiGraphTouchDenial::OriginAuthorityUnavailable {
-                origin_class: crate::obligations::touch::UiGraphTouchOriginClass::DiagnosticOnly,
-            });
-        }
-
-        Ok(UiGraphTouchOriginWitness::authored_provenance_digests(
-            UiGraphTouchOriginReceipt::diagnostic_only(
-                report.active_artifact_digest() ^ report.active_plan_digest().rotate_left(11),
-            ),
-            digests,
-        ))
     }
 
     pub fn from_node(

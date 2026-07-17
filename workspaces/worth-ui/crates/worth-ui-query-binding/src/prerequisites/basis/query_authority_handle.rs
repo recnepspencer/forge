@@ -46,7 +46,9 @@ impl WorthUiQueryAuthorityHandle {
         prerequisites: &super::WorthUiQueryPrerequisiteEvidence,
     ) -> bool {
         self.0.binds_resolved_basis(prerequisites.basis())
-            && prerequisites.accepts_projection_contract(self.0.contract().contract_digest())
+            && prerequisites.accepts_projection_contract(
+                super::WorthUiQueryProjectionContractIdentity::from_authority(&self.0),
+            )
     }
 
     pub fn bind_prerequisites(
@@ -62,34 +64,21 @@ impl WorthUiQueryAuthorityHandle {
         )
     }
 
+    pub fn authority_index_key(
+        &self,
+    ) -> Result<super::WorthUiQueryAuthorityIndexKey, super::WorthUiQueryMeasurementFactReceiptError>
+    {
+        super::WorthUiQueryAuthorityIndexKey::from_authority(self)
+    }
+
     pub fn basis_digest_for_diagnostics(&self) -> &str {
         self.0.contract().basis_digest().unwrap_or_default()
-    }
-
-    pub fn projection_contract_digest_for_diagnostics(&self) -> &str {
-        self.0.contract().contract_digest()
-    }
-
-    pub fn projection_consumption_receipt_digest_for_diagnostics(&self) -> &str {
-        self.0.receipt().receipt_digest()
-    }
-
-    pub fn projection_consumption_declaration_digest_for_diagnostics(&self) -> &str {
-        self.0.receipt().declaration_digest()
-    }
-
-    pub fn projection_fact_set_digest_for_diagnostics(&self) -> &str {
-        self.0.receipt().fact_set_digest()
-    }
-
-    pub fn projection_source_identity_for_diagnostics(&self) -> &str {
-        self.0.source_identity().as_str()
     }
 }
 
 impl PartialEq for WorthUiQueryAuthorityHandle {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0) || self.0.structurally_equivalent(&other.0)
+        self.shares_authority_with(other)
     }
 }
 

@@ -75,9 +75,11 @@ impl UiAllocationFrameSourceIdentity {
         }
     }
 
-    pub fn as_opaque(&self) -> Option<&str> {
+    pub fn query_authority_index_key(
+        &self,
+    ) -> Option<&worth_ui_query_binding::WorthUiQueryAuthorityIndexKey> {
         match self {
-            Self::Query(value) => Some(value.as_str()),
+            Self::Query(value) => Some(value.authority_index_key()),
             Self::Numeric(_) => None,
         }
     }

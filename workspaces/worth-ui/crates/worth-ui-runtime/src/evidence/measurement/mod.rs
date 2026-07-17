@@ -32,7 +32,9 @@ pub use dependency::{
     UiMeasurementNeighborhoodClassHint,
 };
 pub use evidence_category::UiMeasurementEvidenceCategory;
-pub use generation_compatibility::UiMeasurementGenerationCompatibility;
+pub use generation_compatibility::{
+    UiMeasurementGenerationCompatibility, UiQueryWorldCompatibilityFailure,
+};
 pub(crate) use host_authority_witness::UiHostMeasurementAuthorityWitness;
 pub(crate) use host_request_shape_digest::host_measurement_request_shape_digest;
 pub use inputs::{

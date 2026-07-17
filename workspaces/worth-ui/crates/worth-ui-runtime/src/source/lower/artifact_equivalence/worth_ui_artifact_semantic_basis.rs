@@ -237,8 +237,8 @@ fn view_binding_reference_basis(view_binding: &WorthUiBoundViewBindingReference)
             view_binding.view_binding().id().as_str()
         ),
         format!(
-            "query_binding_key:{}",
-            view_binding.entry().query_binding_key().as_str()
+            "view_binding_identity:{}",
+            view_binding.entry().identity().as_u64()
         ),
         format!("query_definition:{}", query.definition().digest().as_u64()),
         format!("query_view:{}", query.definition().identity().as_str()),

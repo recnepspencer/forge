@@ -18,7 +18,11 @@ use super::{
 
 impl WorthQueryReadReceipt {
     pub fn read_graph_digest(&self) -> &str {
-        &self.read_graph_digest
+        self.read_graph_identity.as_str()
+    }
+
+    pub fn read_graph_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.read_graph_identity
     }
 
     pub fn graph_family(&self) -> &WorthQueryReadGraphFamily {
@@ -252,8 +256,21 @@ impl WorthQueryReadReceipt {
         execution_engine: WorthQueryReadExecutionEngine,
     ) -> Self {
         let query_digest = query_digest.into();
+        let read_graph_digest = read_graph_digest.into();
+        let read_graph_identity = WorthQueryEvidenceIdentity::compose(
+            crate::evidence_identity::WorthQueryEvidenceScope::ReadGraphDigest,
+        )
+        .field_shape(
+            crate::evidence_identity::WorthQueryEvidenceTag::new("identity_family"),
+            "test_read_graph",
+        )
+        .field_value(
+            crate::evidence_identity::WorthQueryEvidenceTag::new("read_graph"),
+            &read_graph_digest,
+        )
+        .seal();
         Self {
-            read_graph_digest: read_graph_digest.into(),
+            read_graph_identity,
             graph_family: WorthQueryReadGraphFamily::Collection,
             collection_result_family: Some(
                 crate::collection::CollectionResultFamily::OrdinaryCollection,

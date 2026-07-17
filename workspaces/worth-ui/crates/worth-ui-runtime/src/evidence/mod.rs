@@ -52,7 +52,7 @@ pub use measurement::{
     UiMeasurementGenerationCompatibility, UiMeasurementNeighborhoodClassHint, UiMeasurementResult,
     UiMeasurementRoundingPosture, UiMeasurementSiblingResizeSupport,
     UiMeasurementSiblingResizeSupportSource, UiMeasurementUnitPosture, UiMeasurementValue,
-    UiProjectionFactReceipt, UiProjectionFactReceiptDenial,
+    UiProjectionFactReceipt, UiProjectionFactReceiptDenial, UiQueryWorldCompatibilityFailure,
 };
 pub use obligation::{
     UiInspectionObligationEvidenceReceipt, UiInspectionObligationReasonProjection,

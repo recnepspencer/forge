@@ -216,7 +216,10 @@ fn query_gateway_derives_and_submits_real_projection_consumption() {
     let settlement = framework
         .admit_query_projection_for_test(query.project())
         .expect("Query source should admit before submission");
-    let expected_source_identity = settlement.allocation_source_identity().as_str().to_string();
+    let expected_source_identity = settlement
+        .allocation_source_identity()
+        .authority_index_key()
+        .clone();
     let mut outcome = Box::new(None);
     let turn_outcome = run_framework_turn(&mut framework, |turn| {
         *outcome = Some(turn.submit_query_projection(settlement));
@@ -232,8 +235,8 @@ fn query_gateway_derives_and_submits_real_projection_consumption() {
             .ingress()
             .key()
             .source_identity()
-            .as_opaque(),
-        Some(expected_source_identity.as_str())
+            .query_authority_index_key(),
+        Some(&expected_source_identity)
     );
     assert!(matches!(
         outcome

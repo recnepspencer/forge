@@ -16,16 +16,20 @@ pub enum WorthUiQueryMeasurementFactEligibilityError {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiQueryMeasurementFactEligibility {
     prerequisites: WorthUiQueryPrerequisiteEvidence,
-    projection_contract_digest: Box<str>,
+    projection_contract_identity: super::WorthUiQueryProjectionContractIdentity,
     available_families: Box<[WorthUiQueryMeasurementFactFamily]>,
 }
 
 impl WorthUiQueryMeasurementFactEligibility {
     fn from_projection_contract_unchecked(
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        contract: &MaterializedProjectionContract,
+        authority: &WorthQueryConsumedProjectionAuthority,
     ) -> Result<Self, WorthUiQueryMeasurementFactEligibilityError> {
-        let prerequisites = prerequisites.bound_to_projection_contract(contract.contract_digest());
+        let projection_contract_identity =
+            super::WorthUiQueryProjectionContractIdentity::from_authority(authority);
+        let prerequisites =
+            prerequisites.bound_to_projection_contract(projection_contract_identity);
+        let contract: &MaterializedProjectionContract = authority.contract();
 
         let mut available_families = contract
             .fact_families()
@@ -48,7 +52,7 @@ impl WorthUiQueryMeasurementFactEligibility {
 
         Ok(Self {
             prerequisites,
-            projection_contract_digest: contract.contract_digest().into(),
+            projection_contract_identity,
             available_families: available_families.into_boxed_slice(),
         })
     }
@@ -58,7 +62,7 @@ impl WorthUiQueryMeasurementFactEligibility {
         authority: &WorthQueryConsumedProjectionAuthority,
     ) -> Result<Self, WorthUiQueryMeasurementFactEligibilityError> {
         validate_query_authority(&prerequisites, authority)?;
-        Self::from_projection_contract_unchecked(prerequisites, authority.contract())
+        Self::from_projection_contract_unchecked(prerequisites, authority)
     }
 
     pub(crate) fn bind_query_authority(
@@ -66,32 +70,19 @@ impl WorthUiQueryMeasurementFactEligibility {
         authority: &WorthQueryConsumedProjectionAuthority,
     ) -> Result<WorthUiQueryPrerequisiteEvidence, WorthUiQueryMeasurementFactEligibilityError> {
         validate_query_authority(&prerequisites, authority)?;
-        Ok(prerequisites.bound_to_projection_contract(authority.contract().contract_digest()))
-    }
-
-    #[cfg(feature = "certification-construction")]
-    pub(crate) fn for_certification(
-        prerequisites: WorthUiQueryPrerequisiteEvidence,
-        projection_contract_digest: impl Into<Box<str>>,
-        mut available_families: Vec<WorthUiQueryMeasurementFactFamily>,
-    ) -> Self {
-        available_families.sort_unstable();
-        available_families.dedup();
-        let projection_contract_digest = projection_contract_digest.into();
-        Self {
-            prerequisites: prerequisites
-                .bound_to_projection_contract(projection_contract_digest.as_ref()),
-            projection_contract_digest,
-            available_families: available_families.into_boxed_slice(),
-        }
+        Ok(prerequisites.bound_to_projection_contract(
+            super::WorthUiQueryProjectionContractIdentity::from_authority(authority),
+        ))
     }
 
     pub fn prerequisites(&self) -> &WorthUiQueryPrerequisiteEvidence {
         &self.prerequisites
     }
 
-    pub fn projection_contract_digest(&self) -> &str {
-        &self.projection_contract_digest
+    pub const fn projection_contract_identity(
+        &self,
+    ) -> super::WorthUiQueryProjectionContractIdentity {
+        self.projection_contract_identity
     }
 
     pub fn available_families(&self) -> &[WorthUiQueryMeasurementFactFamily] {
@@ -111,7 +102,9 @@ fn validate_query_authority(
     if !authority.binds_resolved_basis(prerequisites.basis()) {
         return Err(WorthUiQueryMeasurementFactEligibilityError::BasisDigestMismatch);
     }
-    if !prerequisites.accepts_projection_contract(authority.contract().contract_digest()) {
+    if !prerequisites.accepts_projection_contract(
+        super::WorthUiQueryProjectionContractIdentity::from_authority(authority),
+    ) {
         return Err(WorthUiQueryMeasurementFactEligibilityError::ProjectionContractMismatch);
     }
     Ok(())

@@ -24,6 +24,7 @@ pub use measurement::{
     UiInspectionMeasurementFailureSource, UiInspectionMeasurementGenerationCompatibility,
     UiInspectionMeasurementNeighborhoodClassHint, UiInspectionMeasurementOwnershipPosture,
     UiInspectionMeasurementQueryFactFamily, UiInspectionMeasurementQueryUnsupportedReason,
+    UiInspectionQueryWorldCompatibilityFailure,
 };
 pub use scope_support_row::UiInspectionScopeSupportRow;
 pub use support_report::UiInspectionSupportReport;

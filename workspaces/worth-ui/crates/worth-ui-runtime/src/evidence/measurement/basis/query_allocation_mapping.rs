@@ -27,28 +27,19 @@ impl UiQueryAllocationTargetMapping {
         ) {
             purposes.push(UiQueryAllocationPurpose::ScrollContentExtent);
         }
-        let identity_digest =
-            crate::declaration::stable_text_digest(receipt.projection_source_identity())
-                ^ crate::declaration::stable_text_digest(receipt.query_basis_digest())
-                    .rotate_left(11)
-                ^ crate::declaration::stable_text_digest(receipt.projection_contract_digest())
-                    .rotate_left(23)
-                ^ crate::declaration::stable_text_digest(
-                    receipt.projection_consumption_receipt_digest(),
-                )
-                .rotate_left(37)
-                ^ target.digest().rotate_left(47)
-                ^ purposes.iter().fold(0_u64, |digest, purpose| {
-                    digest.rotate_left(5)
-                        ^ crate::declaration::stable_text_digest(match purpose {
-                            UiQueryAllocationPurpose::Measurement => {
-                                "worth-ui.query-purpose.measurement"
-                            }
-                            UiQueryAllocationPurpose::ScrollContentExtent => {
-                                "worth-ui.query-purpose.scroll-content-extent"
-                            }
-                        })
-                });
+        let identity_digest = receipt.authority_index_key().identity_digest()
+            ^ target.digest().rotate_left(47)
+            ^ purposes.iter().fold(0_u64, |digest, purpose| {
+                digest.rotate_left(5)
+                    ^ crate::declaration::stable_text_digest(match purpose {
+                        UiQueryAllocationPurpose::Measurement => {
+                            "worth-ui.query-purpose.measurement"
+                        }
+                        UiQueryAllocationPurpose::ScrollContentExtent => {
+                            "worth-ui.query-purpose.scroll-content-extent"
+                        }
+                    })
+            });
         Self {
             query_authority: receipt.query_authority().clone(),
             authority_index_key: receipt.authority_index_key().clone(),
@@ -58,9 +49,6 @@ impl UiQueryAllocationTargetMapping {
         }
     }
 
-    pub(crate) fn source_identity(&self) -> &str {
-        self.authority_index_key.projection_source_identity()
-    }
     pub(crate) fn query_authority(&self) -> &worth_ui_query_binding::WorthUiQueryAuthorityHandle {
         &self.query_authority
     }

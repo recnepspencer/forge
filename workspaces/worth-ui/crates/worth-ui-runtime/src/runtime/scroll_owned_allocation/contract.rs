@@ -95,10 +95,6 @@ impl UiAdmittedScrollExtentSource {
 }
 
 impl UiAdmittedScrollQuerySource {
-    pub(crate) fn query_authority(&self) -> &worth_ui_query_binding::WorthUiQueryAuthorityHandle {
-        &self.query_authority
-    }
-
     pub(crate) fn authority_index_key(
         &self,
     ) -> &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey {
@@ -111,21 +107,7 @@ impl UiAdmittedScrollQuerySource {
 
     pub(super) fn identity_digest(&self) -> u64 {
         crate::declaration::stable_text_digest("worth-ui.scroll-query-source")
-            ^ crate::declaration::stable_text_digest(
-                self.authority_index_key.projection_source_identity(),
-            )
-            .rotate_left(7)
-            ^ crate::declaration::stable_text_digest(self.authority_index_key.query_basis_digest())
-                .rotate_left(17)
-            ^ crate::declaration::stable_text_digest(
-                self.authority_index_key.projection_contract_digest(),
-            )
-            .rotate_left(29)
-            ^ crate::declaration::stable_text_digest(
-                self.authority_index_key
-                    .projection_consumption_receipt_digest(),
-            )
-            .rotate_left(41)
+            ^ self.authority_index_key.identity_digest().rotate_left(17)
             ^ self.target.digest().rotate_left(53)
     }
 }
