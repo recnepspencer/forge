@@ -6,6 +6,8 @@
     "node": "24.x"
   },
   "scripts": {
+    "docs:surface-report": "node package/product/documentation/public_surface_report.mjs",
+    "test:documentation": "node --test package/product/documentation/*.test.mjs",
     "typecheck:package-surface": "tsc -p ./tsconfig.package-types.json --pretty false",
     "test:signals-runtime": "node --experimental-wasm-modules --test package/product/signals.runtime.test.mjs",
     "test:resource-runtime": "node --experimental-wasm-modules --test package/product/resource.runtime.test.mjs",

@@ -272,13 +272,13 @@ test("phase-1 shared route grammar and navigation artifacts expose typed evidenc
 
     const replacePlan = replaceIntent.policy({
       continuity: "preserve-visible-while-pending",
-      projectionRefresh: "explicit",
+      projectionRefresh: "after-admission",
       artifactPolicy: "diagnostics",
       deployment: "workerFirst",
     }).compile();
     assert.equal(replacePlan.kind, "replace");
     assert.equal(replacePlan.href, detailLocation.href);
-    assert.equal(replacePlan.projectionPolicy().projectionRefresh, "explicit");
+    assert.equal(replacePlan.projectionPolicy().projectionRefresh, "after-admission");
     assert.equal(
       replacePlan.projectionPolicy().continuity,
       "preserve-visible-while-pending",
@@ -297,7 +297,7 @@ test("phase-1 shared route grammar and navigation artifacts expose typed evidenc
           kind: "replace",
           policy: {
             continuity: "preserve-visible-while-pending",
-            projectionRefresh: "explicit",
+            projectionRefresh: "after-admission",
             artifactPolicy: "diagnostics",
             deployment: "workerFirst",
           },

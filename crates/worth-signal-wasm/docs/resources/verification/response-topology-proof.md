@@ -87,5 +87,5 @@ schema meaning.
 
 ## Related Docs
 
-- [Response Topology Proof](../../resource-contracts/response-topology-proof.md)
+- [Response Topology Proof](./response-topology-proof.md)
 - [Branch-Native Effects](../effects/branch-native-effects.md)

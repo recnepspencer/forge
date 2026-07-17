@@ -27,4 +27,4 @@ for comparing, auditing, and debugging resource behavior honestly.
 ## Related Docs
 
 - [Inspecting And Debugging Resources](../debugging/README.md)
-- [Resource Contracts](../../resource-contracts/history-and-restore.md)
+- [Resource Contracts](../debugging/restore-replay-and-recover.md)

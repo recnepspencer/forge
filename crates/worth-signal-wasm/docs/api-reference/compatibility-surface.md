@@ -1,311 +1,144 @@
-# Compatibility Surface Reference
+# Lower-Level Compatibility Surface
 
-## What This Feature Is
+The compatibility surface exposes explicit structural authoring and lower-level
+runtime operations. It is supported for migration and specialist work. It is
+not the recommended starting point for ordinary application state.
 
-The compatibility surface is the lower-level runtime-facing lane in
-`worth-signals-wasm`.
+## Published Entrypoints
 
-It exposes `SignalApp`, `SignalRuntime`, lower-level definition registration,
-keyed-family helpers, aspect-aware reads, and lower-level diagnostics/history
-doors.
+| Entrypoint | What it does |
+| --- | --- |
+| `createSignals({ deployment: "mainThreadCompatibility" })` | Creates the callable facade over a main-thread runtime. |
+| `createCallableSignals(options?)` | Compatibility alias that always selects `mainThreadCompatibility`. |
+| `wrapSignals(rawSignals, options?)` | Wraps an existing raw `Signals` instance. |
+| `signals.compatibilityApp()` | Returns the lower-level application-oriented `SignalApp`. |
+| `signals.compatibilityRuntime()` | Returns the lower-level `SignalRuntime`. |
+| package default export | Initializes the lower-level Wasm module only. |
+| `worth-signals-wasm/raw` | Publishes raw runtime types and constructors. |
+| `worth-signals-wasm/raw_surface.js` | Published alias of `./raw`. |
 
-This surface is supported, but it is intentionally secondary to the main
-`createSignals()` app lane.
-
-## Why You Use It
-
-- port older wasm consumers
-- work with lower-level source/recipe definitions directly
-- use keyed-family or packed-grid helpers the app surface does not foreground
-- control explicit aspect declarations and aspect-targeted invalidation
-- consume lower-level runtime artifacts intentionally
-
-## What Distinguishes This
-
-This surface gives you direct access to the lower-level structural runtime
-shape instead of the newer handle-first app lane.
-
-What distinguishes it is not Ã¢â‚¬Å“more powerÃ¢â‚¬Â in some vague sense. It is that this
-lane exposes:
-
-- explicit named source and recipe definitions
-- keyed-family and packed-grid helpers
-- lower-level aspect-aware invalidation
-- runtime policy and lower-level artifact doors
-
-That makes it useful for migration and specialized lower-level consumers, even
-though it is not the recommended starting point for normal browser app code.
-
-## Stable Entry Points
-
-The compatibility surface is available only from an explicitly constructed
-compatibility root:
+## Construct It Explicitly
 
 ```ts
-const signals = await createSignals({
+// runtime/signals.compatibility.ts
+import { createSignals } from "worth-signals-wasm";
+
+export const signals = await createSignals({
   deployment: "mainThreadCompatibility",
 });
+
+export const app = signals.compatibilityApp();
+export const runtime = signals.compatibilityRuntime();
 ```
 
-From that explicitly compatibility-owned root:
+The default worker-first runtime does not quietly move synchronous specialist
+work onto the UI thread. If a feature depends on these lower-level doors, make
+that main-thread compatibility deployment choice visible where the runtime is
+constructed.
 
-- `signals.compatibilityApp()`
-- `signals.compatibilityRuntime()`
-
-Within those surfaces:
-
-- definition registration
-- lower-level reads
-- keyed-family helpers
-- aspect-aware writes and invalidation
-- lower-level diagnostics/history/adapters
-
-## Core Mental Model
-
-This is still the same runtime truth model.
-
-The compatibility surface is not a separate engine. It is a lower-level
-doorway into the same runtime.
-
-So the rule is:
-
-- use the main app surface for ordinary app code
-- use the compatibility surface when you truly need lower-level runtime shapes
-
-If you are starting a normal browser app today, begin with:
+`createCallableSignals()` exists for older callers:
 
 ```ts
-const signals = await createSignals();
+import { createCallableSignals } from "worth-signals-wasm";
+
+const signals = await createCallableSignals();
+console.log(signals.contract().deployment); // "mainThreadCompatibility"
 ```
 
-Do not assume a worker-first root exposes `signals.compatibilityApp()` or
-`signals.compatibilityRuntime()`. Those compatibility doors belong to the
-explicit `mainThreadCompatibility` construction lane.
+The function forces compatibility deployment. Use `createSignals()` in new
+code so the deployment decision is visible in the call.
 
-## How It Executes
-
-The compatibility surface registers and reads lower-level definitions directly:
-
-- sources
-- recipes
-- source families
-- recipe families
-
-It also exposes aspect-aware invalidation and keyed-family helpers directly.
-
-These operations still feed the same underlying runtime truth as the app
-surface. They do not create their own semantic model.
-
-## Small Example
+## The Default Wasm Initializer
 
 ```ts
-const signals = await createSignals({
-  deployment: "mainThreadCompatibility",
-});
-const app = signals.compatibilityApp();
+import initializeWasm from "worth-signals-wasm";
 
-const count = app.source({
-  id: "count",
-  value: 1,
-});
-
-console.log(app.read("count"));
+await initializeWasm();
 ```
 
-This is the smallest honest example because it shows the compatibility posture
-directly:
+The default export initializes the lower-level Wasm module. It does not create
+the worker-first callable facade and it is not another spelling of
+`createSignals()`.
 
-- explicit named definition
-- lower-level registration
-- lower-level read
+## Prefer The Callable Surface When
 
-## Real Example
+- local handles and callbacks describe the feature clearly;
+- names do not need to be portable structural contracts;
+- a published graph can express the application boundary;
+- resources, forms, or router already own the larger lifecycle.
 
 ```ts
-const signals = await createSignals({
-  deployment: "mainThreadCompatibility",
-});
-const runtime = signals.compatibilityRuntime();
+const count = signals.input(1);
+const doubled = signals.computed(() => count() * 2);
+```
 
-runtime.define_source({
-  id: "inventory",
-  value: {
-    quantity: 10,
-    reserved: 2,
-  },
-  producesAspects: [1, 2],
-});
+## Use The Explicit Spec Lane When Names Are Contract
 
-runtime.define_recipe({
-  id: "availableInventory",
-  reads: [
-    { id: "inventory", aspect: 1 },
-    { id: "inventory", aspect: 2 },
-  ],
+```ts
+const count = signals.spec.input("count", 1);
+const doubled = signals.spec.computed("doubled", {
+  reads: [count.id],
   expr: {
-    kind: "call",
-    fn: "subtract",
+    kind: "sum",
     args: [
-      { kind: "read", id: "inventory" },
-      { kind: "value", value: 2 },
+      { kind: "read", id: count.id },
+      { kind: "read", id: count.id },
     ],
   },
+  identity: { kind: "exact" },
 });
-
-runtime.markChanged("inventory", [1]);
-
-console.log(runtime.read("availableInventory"));
 ```
 
-What this gives you:
+The spec lane is useful for portable definitions, aspect-filtered structural
+reads, and migration from explicit ID-based authoring. Do not use it merely to
+make private local state look official.
 
-- explicit structural naming
-- direct aspect-aware definition work
-- lower-level mutation and invalidation
-- the same runtime truth model the app surface uses
+## SignalApp And SignalRuntime
 
-## `SignalApp`
+`signals.compatibilityApp()` exposes explicit definition registration, keyed
+families, direct reads and writes, diagnostics, history, and adapters.
 
-Use `signals.compatibilityApp()` when you want the lower-level app-oriented
-compatibility door:
+`signals.compatibilityRuntime()` exposes runtime-oriented definition,
+mutation, policy, packed-grid, diagnostics, history, and specialist operations.
+Runtime policy presets are specialist configuration, not an ordinary component
+concern.
+
+Inspect the active facade before depending on a capability:
 
 ```ts
-const signals = await createSignals({
-  deployment: "mainThreadCompatibility",
+const contract = signals.assertCompatibility({
+  requires: ["callableSurface", "specNamespace"],
 });
-const app = signals.compatibilityApp();
+
+console.log(contract.surfaceFamily, contract.deployment);
 ```
 
-Important capability families on `SignalApp`:
+`assertCompatibility(...)` throws when a required capability is absent. Do not
+infer deployment from method presence.
 
-- definition registration:
-  - `source(spec)`
-  - `recipe(spec)`
-  - `source_family(spec)`
-  - `recipe_family(spec)`
-- reads:
-  - `read(id)`
-  - `read_many(ids)`
-  - `read_keyed(familyId, key)`
-  - `read_keyed_many(familyId, keys)`
-- keyed grid / packed field helpers
-- writes and invalidation
-- diagnostics/history/specialist/adapters access
+## Authority And Limits
 
-## `SignalRuntime`
-
-Use `signals.compatibilityRuntime()` when you want the runtime-oriented lower
-door:
-
-```ts
-const signals = await createSignals({
-  deployment: "mainThreadCompatibility",
-});
-const runtime = signals.compatibilityRuntime();
-```
-
-Important capability families on `SignalRuntime`:
-
-- definition registration:
-  - `define_source(spec)`
-  - `define_recipe(spec)`
-  - `define_source_family(spec)`
-  - `define_recipe_family(spec)`
-- reads and keyed-family helpers
-- direct mutation and invalidation
-- runtime policy changes with `set_runtime_policy(policy)`
-- lower-level diagnostics/history/specialist/adapters access
-
-## Aspect Model
-
-The compatibility surface is fully aspect-aware.
-
-Definition specs can declare produced aspects:
-
-- `SourceSpec.producesAspects`
-- `KeyedSourceFamilySpec.producesAspects`
-- `RecipeSpec.producesAspects`
-- `KeyedRecipeFamilySpec.producesAspects`
-
-Read specs can also select aspects:
-
-- `RecipeReadSpec` object reads use `aspect` or `aspects`
-- `RecipeFamilyReadSpec` uses `aspects: { aspect?, aspects? }`
-
-If you omit aspect metadata, the lower-level compatibility behavior still falls
-back to default aspect `0`.
-
-## Keyed Families And Packed Helpers
-
-The compatibility lane still exposes direct family/grid helpers for advanced
-consumers:
-
-- `read_keyed_many_packed_fields(...)`
-- `read_keyed_grid_packed_fields(...)`
-- `read_keyed_rect_packed_fields(...)`
-- `prewarm_keyed_grid(...)`
-- `seed_keyed_grid_coords(...)`
-- `transaction_with_packed_grid_rgba(...)`
-
-Use these when you genuinely need them. They are not the normal app-facing
-starting point.
-
-## Runtime Policy
-
-`SignalRuntime` is also where lower-level runtime policy changes remain
-explicit:
-
-- `operational`
-- `webDevelopment`
-- `development`
-- `forensic`
-
-Use this lane when you are deliberately managing runtime policy. Do not teach
-ordinary application code to depend on it casually.
-
-## How It Relates To Other Features
-
-- Use the app surface for most browser application code.
-- Use aspects with the compatibility surface when you need explicit structural
-  aspect contracts.
-- Use diagnostics/history together with compatibility only when you need
-  lower-level artifacts rather than graph-shaped inspection.
-- Use the compatibility lane for migration or specialized lower-level control,
-  not because the newer app surface feels unfamiliar.
-
-## Inspection And Debugging
-
-The compatibility surface still exposes:
-
-- `diagnostics()`
-- `history()`
-- `specialist()`
-- `adapters()`
-
-If you are debugging a published graph, the graph-scoped inspection surfaces
-are usually better. Drop to compatibility only when the question is genuinely
-about lower-level runtime structure.
+- Compatibility definitions and callable definitions use the same underlying
+  runtime truth model where their behavior overlaps.
+- Explicit IDs are structural identity on the spec and raw surfaces.
+- The compatibility runtime is main-thread by construction.
+- `debugName` remains diagnostic metadata, not structural identity.
+- Raw and specialist methods can expose more runtime detail than a published
+  graph; do not leak that detail into application contracts casually.
+- Compatibility is process-local and does not add durable server authority.
 
 ## Anti-Patterns
 
-- starting new ordinary app code on `SignalApp` or `SignalRuntime`
-- treating the compatibility surface as a more Ã¢â‚¬Å“realÃ¢â‚¬Â state model than the app
-  surface
-- using lower-level keyed/grid helpers when ordinary graph/controller code
-  already fits
-- mixing app-surface and compatibility definitions without being explicit about
-  who owns the boundary
-
-## Current Limits
-
-- this is a lower-level lane by design
-- it is supported, but it is not the primary product path
-- explicit structural naming remains part of the contract here
-- this surface should converge to the same committed truth as the app surface
-  where they overlap
+- Starting new ordinary app code on `SignalApp` or `SignalRuntime`.
+- Treating compatibility as the "real" API and the callable facade as a toy.
+- Mixing opaque local handles and explicit IDs without a named boundary.
+- Depending on packed or keyed operations without understanding their cost and
+  lifecycle contract.
+- importing `./raw` only to avoid awaiting worker-first operations.
 
 ## Related Docs
 
-- [App Surface Overview](../app-surface/overview.md)
-- [Diagnostics And History](../app-surface/diagnostics-and-history.md)
-- [Aspects](../app-surface/aspects.md)
+- [Construction API](./construction.md)
+- [Callable Signals API](./callable-signals.md)
+- [Package Entrypoints And Runtime Contracts](../reference/package-entrypoints-and-contracts.md)
+- [Support Status](../reference/support-status.md)

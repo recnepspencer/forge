@@ -7,6 +7,7 @@
     "noEmit": true,
     "allowJs": false,
     "checkJs": false,
+    "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "lib": [
@@ -29,6 +30,12 @@
     "./package/runtime-contract-types-smoke.ts",
     "./package/resource-types-smoke.ts",
     "./package/worker-first-callback-types-smoke.ts",
-    "./package/local-truth-types-smoke.ts"
+    "./package/local-truth-types-smoke.ts",
+    "./package/documentation-core-types-smoke.ts",
+    "./package/documentation-resource-types-smoke.ts",
+    "./package/documentation-form-types-smoke.ts",
+    "./package/documentation-form-react-smoke.tsx",
+    "./package/documentation-router-types-smoke.ts",
+    "./package/documentation-reference-types-smoke.ts"
   ]
 }

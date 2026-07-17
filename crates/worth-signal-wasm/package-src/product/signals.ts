@@ -3,6 +3,7 @@ import { buildControllerContract } from "./controllers.js";
 import { createHostCapabilities } from "./host_capabilities.js";
 import { wrapDiagnostics } from "./diagnostics.js";
 import { createFormController } from "./forms/form_controller.js";
+import { defineFormDeclaration } from "./forms/form_declaration.js";
 import { createFormSourceFactory } from "./forms/sources/form_sources.js";
 import { requireRouteFormsAuthorityArtifact } from "./router/projection/admission/router_forms_authority_artifact.js";
 import { createApiFactory, createApiScopeFactory } from "./api/api_namespace.js";
@@ -74,6 +75,10 @@ export function wrapSignals(rawSignals, options) {
   Object.defineProperty(createForm, "source", {
     enumerable: true,
     value: formSourceFactory,
+  });
+  Object.defineProperty(createForm, "define", {
+    enumerable: true,
+    value: defineFormDeclaration,
   });
   const callableSignals = {
     host: hostCapabilities.host,

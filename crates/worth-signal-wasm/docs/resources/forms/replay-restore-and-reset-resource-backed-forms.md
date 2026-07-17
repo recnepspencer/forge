@@ -77,4 +77,4 @@ form helper does not invent history the resource line no longer has.
 ## Related Docs
 
 - [Replay And Restore](../../forms/resource-backed/replay-and-restore.md)
-- [History And Restore](../../resource-contracts/history-and-restore.md)
+- [History And Restore](../debugging/restore-replay-and-recover.md)

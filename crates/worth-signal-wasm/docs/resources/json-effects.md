@@ -139,11 +139,11 @@ materialize missing intermediate containers.
 
 - [Branch-Native Resource Effects](./branch-native-effects.md) explains the
   effect profile and rollback behavior.
-- [Effect Envelope Contract](../resource-contracts/effect-envelope.md) explains
+- [Effect Envelope Contract](./effects/effect-envelopes-and-closeout.md) explains
   `patch.jsonPath` and cost counters.
-- [Response Topology Proof](../resource-contracts/response-topology-proof.md)
+- [Response Topology Proof](./verification/response-topology-proof.md)
   explains how the enclosing response topology is proved.
-- [History And Restore](../resource-contracts/history-and-restore.md) separates
+- [History And Restore](./debugging/restore-replay-and-recover.md) separates
   targeted effect rejection from explicit exact history restore.
 
 ## Inspection And Debugging
@@ -179,6 +179,6 @@ the value was not plain JSON data.
 ## Related Docs
 
 - [Branch-Native Resource Effects](./branch-native-effects.md)
-- [Effect Envelope Contract](../resource-contracts/effect-envelope.md)
-- [Response Topology Proof](../resource-contracts/response-topology-proof.md)
-- [History And Restore](../resource-contracts/history-and-restore.md)
+- [Effect Envelope Contract](./effects/effect-envelopes-and-closeout.md)
+- [Response Topology Proof](./verification/response-topology-proof.md)
+- [History And Restore](./debugging/restore-replay-and-recover.md)

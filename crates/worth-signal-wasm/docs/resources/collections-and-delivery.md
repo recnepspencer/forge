@@ -326,4 +326,4 @@ that owns the bad shape, such as `resource.response.array(...)` or
 - line reads and diagnostics:
   [Line Inspection](./line-inspection.md)
 - lower-level reconciliation reference:
-  [Reconciliation Contract](../resource-contracts/reconciliation.md)
+  [Reconciliation Contract](./responses/README.md)

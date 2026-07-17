@@ -44,6 +44,12 @@ jobs:
       - name: Verify npm package
         run: node scripts/wasm/verify-worth-signals-wasm-package.mjs crates/worth-signal-wasm/pkg
 
+      - name: Verify public documentation coverage
+        working-directory: crates/worth-signal-wasm
+        run: |
+          npm run test:documentation
+          npm run typecheck:package-surface
+
       - name: Publish to npm
         working-directory: crates/worth-signal-wasm/pkg
         env:

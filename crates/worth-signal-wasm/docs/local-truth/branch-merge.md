@@ -1,247 +1,215 @@
 # Branch Merge And Manual Resolution
 
-## What This Feature Is
+## The Frame
 
-Local truth gives a standalone browser application an in-memory place to keep
-branch values and decide merges. Use it when independent edits must compose,
-overlapping edits must be reviewed, and the result must remain explainable
-after derived Signal work is rebuilt.
+The happy path is short: preview two branches, inspect the aspect-level plan,
+then publish it. Disjoint changes compose automatically. Equivalent changes
+collapse. Overlapping changes become an explicit review instead of a silent
+last-write-wins decision.
 
-You hold a `LocalTruthAuthority<T>` returned by `signals.localTruth(...)`.
-The authority owns application values. Signal receives committed values and
-recomputes derived work; it does not decide the merge.
+The same path extends to manual source, target, or custom resolution without
+moving authority into UI state. It remains in-memory and process-local. Use
+Query and Relational when the merge itself must be durable, shared, or governed
+across processes.
 
-## Why You Use It
-
-- Two screens or workflows edit different fields of the same object and should
-  compose without overwriting one another.
-- Two edits overlap and a reviewer must choose source, target, or a separately
-  authored custom value.
-- A regulated workflow needs the exact basis, alternatives, decision, commit,
-  and derived-state posture for inspection.
-
-This feature is process-local. Use a server or the Worth Query and Relational
-platform when values need durable, shared, or cross-process authority.
-
-## Stable Entry Points
-
-- `localTruthSchema(...)` declares the top-level fields that are mergeable.
-- `signals.localTruth(...)` creates one authority and binds its entities to
-  Signal inputs.
-- `localTruth.branch(...)` reads a branch and its current basis.
-- `localTruth.commit(...)` changes declared aspects on one branch.
-- `localTruth.previewMerge(...)` classifies each selected aspect.
-- `localTruth.createResolutionBranch(...)` opens the only lane for a custom
-  conflict value.
-- `localTruth.resolveMerge(...)` admits runtime-issued alternative IDs and
-  publishes one merge commit.
-- `localTruth.inspect(...)` reads values, heads, decisions, and counters.
-- `localTruth.history(...)` reads the retained commit segment for one branch.
-- `localTruth.historicalSnapshot(...)` reads the sealed values at one retained
-  ancestor commit without changing the branch head.
-- `localTruth.derivation(...)`, `destroyDerivation(...)`, and
-  `rebuildDerivation(...)` inspect and test the disposable Signal projection.
-
-The lower-level native Signal branch merge API remains available for derived
-execution state. It is not an application-value merge API.
-
-## Core Mental Model
-
-The standalone direction is:
+## Mental Model
 
 ```text
 TypeScript Local Truth -> Signal derivation
+
+base snapshot
+  |-- source: teeth = 20
+  `-- target: thickness = 0.62
+             |
+          preview by declared aspect
+             |
+          resolve and publish one target merge commit
 ```
 
-Local truth owns values, branch history, merge policy, reviews, and decisions.
-A **basis** is the exact branch head a request expects. If that head changes,
-the request is stale and publishes nothing.
+Local Truth owns branch values, ancestry, reviews, decisions, and commits.
+Signal receives the committed target snapshot plus exact invalidation aspects.
+Native Signal branches are derived execution branches; they do not decide an
+application-value merge.
 
-Each declared aspect maps one semantic ID, such as `teeth`, to one top-level
-field. The declaration supplies validation and equivalence posture. Merge
-planning never guesses aspects from an arbitrary object diff.
+## Aspects Make The Merge Honest
 
-Every admitted mutation or merge produces one immutable `LocalTruthCommit`.
-Branch heads, inspection, Signal transactions, and UI views derive from that
-commit.
-
-## How It Executes
-
-1. The authority validates the request, schema, branch, and expected basis.
-2. It plans exact aspect operations without changing state.
-3. It reconstructs and seals the complete next snapshot and commit.
-4. It publishes the snapshot, commit, head, history, and lineage in one
-   synchronous authority-local move.
-5. Signal consumes the commit through an exact aspect-aware transaction.
-6. If Signal delivery fails, truth stays committed and derivation becomes
-   `RebuildRequired`.
-
-Merge preview compares each selected entity/aspect locus independently.
-Disjoint work becomes `AdoptSource` or `PreserveTarget`. Equivalent values are
-recognized by the declared comparator. Real overlap becomes
-`ResolutionRequired`.
-
-## Small Example
+A schema declares semantic loci such as `teeth` and `thickness`, maps each to
+one top-level field, validates its value type, and states equivalence:
 
 ```ts
-import { createSignals, localTruthSchema } from "worth-signals-wasm";
-
-const signals = await createSignals();
-const gearSchema = localTruthSchema({
+const gearSchema = localTruthSchema<Gear>({
   id: "gear",
+  version: 1,
   aspects: [
     { id: "teeth", field: "teeth", valueType: "number",
       equivalence: { kind: "exact" }, costClass: "constant" },
-    { id: "label", field: "label", valueType: "string",
-      equivalence: { kind: "exact" }, costClass: "constant" },
+    { id: "thickness", field: "thickness", valueType: "number",
+      equivalence: { kind: "numberEpsilon", epsilon: 0.001 },
+      costClass: "constant" },
   ],
-});
-
-const initial = { teeth: 18, label: "Drive gear" };
-const gear = signals.input(initial, { producesAspects: [0, 1] });
-const gearTruth = signals.localTruth({
-  authorityId: "gear-editor",
-  schema: gearSchema,
-  initialEntities: { gear: initial },
-  bindings: [{
-    entityId: "gear",
-    input: gear,
-    aspectMap: { teeth: 0, label: 1 },
-  }],
-});
-
-const main = await gearTruth.branch();
-if (main.posture !== "success") throw new Error(main.message);
-
-await gearTruth.commit({
-  requestId: crypto.randomUUID(),
-  branchId: main.value.id,
-  expectedBasis: main.value.basis,
-  operations: [{ entityId: "gear", aspectId: "teeth", value: 20 }],
 });
 ```
 
-The bound Signal input must start with the same value as the local-truth
-entity. `aspectMap` translates semantic truth aspects to native numeric Signal
-aspects for exact invalidation.
+Merge planning compares each selected entity/aspect locus against the
+structural ancestor. It does not diff arbitrary JavaScript objects or infer
+business meaning from field names.
 
-## Real Example
-
-This example resolves one overlapping edit. The UI may choose an alternative
-ID, but it never submits a merged gear object.
+## Preview, Then Publish
 
 ```ts
-const preview = await gearTruth.previewMerge({
-  sourceBranchId: source.id,
-  targetBranchId: target.id,
-  expectedSourceBasis: source.basis,
-  expectedTargetBasis: target.basis,
-  scope: { entityIds: ["gear"], aspectIds: ["teeth"] },
-});
-
-if (preview.posture !== "reviewRequired") {
-  throw new Error("Expected a tooth-count conflict");
+const source = await truth.branch(sourceBranchId);
+const target = await truth.branch(targetBranchId);
+if (source.posture !== "success" || target.posture !== "success") {
+  throw new Error("Both branches must be current");
 }
 
-const conflict = preview.review.conflicts[0];
-const resolution = await gearTruth.createResolutionBranch({
-  reviewId: preview.review.id,
+const preview = await truth.previewMerge({
+  sourceBranchId,
+  targetBranchId,
+  expectedSourceBasis: source.value.basis,
+  expectedTargetBasis: target.value.basis,
+  policy: { overlap: "review" },
+});
+```
+
+Each locus is classified as:
+
+- `Unchanged`: neither side changed from the ancestor;
+- `AdoptSource`: only source changed;
+- `PreserveTarget`: only target changed;
+- `Equivalent`: both changed to equivalent values under the schema comparator;
+- `ResolutionRequired`: both changed incompatibly;
+- `UnsupportedStructure`: the runtime cannot honestly plan that structure.
+
+Preview never mutates either branch. Even a conflict-free or policy-resolved
+preview must be published with `resolveMerge(...)`:
+
+```ts
+const review = preview.posture === "reviewRequired"
+  ? preview.review
+  : preview.posture === "success"
+    ? preview.value
+    : (() => { throw new Error(preview.message); })();
+
+const merged = await truth.resolveMerge({
+  requestId: crypto.randomUUID(),
+  reviewId: review.id,
+  selections: [],
+});
+if (merged.posture !== "success") throw new Error(merged.message);
+```
+
+`resolveMerge` publishes one merge commit on the target branch. The source
+branch remains intact.
+
+## Automatic Policy Is Still A Decision
+
+`policy.overlap` accepts `review`, `preferSource`, or `preferTarget`. A prefer
+policy can classify an overlap without asking for a manual selection, but it
+does not skip preview or publish by itself. The review still captures the
+bases, classifications, policy result, and eventual merge decision.
+
+Use a prefer policy only when it is a real domain rule. Do not choose it merely
+to make a demo avoid conflicts.
+
+## Manual Source Or Target Resolution
+
+A `ResolutionRequired` conflict contains runtime-issued alternatives. Submit
+their IDs; never send an arbitrary value directly to `resolveMerge`:
+
+```ts
+const conflict = review.conflicts[0];
+const sourceChoice = conflict.alternatives.find(
+  alternative => alternative.choice === "source",
+);
+if (!sourceChoice) throw new Error("Source alternative unavailable");
+
+await truth.resolveMerge({
+  requestId: crypto.randomUUID(),
+  reviewId: review.id,
+  selections: [{
+    reviewId: review.id,
+    conflictId: conflict.id,
+    alternativeId: sourceChoice.id,
+  }],
+});
+```
+
+Every unresolved conflict needs exactly one admitted selection. Alternatives
+from another review, conflict, authority, or stale basis are denied.
+
+## Author A Custom Resolution
+
+Custom values travel through a narrow resolution branch so they receive the
+same schema validation, basis checking, immutable commit, and inspection as
+ordinary edits:
+
+```ts
+const resolution = await truth.createResolutionBranch({
+  reviewId: review.id,
   conflictId: conflict.id,
-  name: "Engineering resolution",
+  name: "reviewed-thickness",
 });
 if (resolution.posture !== "success") throw new Error(resolution.message);
 
-const resolutionBranch = resolution.value.branch;
-await gearTruth.commit({
+const authored = await truth.commit({
   requestId: crypto.randomUUID(),
-  branchId: resolutionBranch.id,
-  expectedBasis: resolutionBranch.basis,
-  operations: [{ entityId: "gear", aspectId: "teeth", value: 21 }],
+  branchId: resolution.value.branch.id,
+  expectedBasis: resolution.value.branch.basis,
+  operations: [{
+    entityId: resolution.value.entityId,
+    aspectId: resolution.value.aspectId,
+    value: 0.6,
+  }],
 });
+if (authored.posture !== "success") throw new Error(authored.message);
 
-const custom = await gearTruth.resolutionAlternative({
-  reviewId: preview.review.id,
+const custom = await truth.resolutionAlternative({
+  reviewId: review.id,
   conflictId: conflict.id,
-  resolutionBranchId: resolutionBranch.id,
+  resolutionBranchId: resolution.value.branch.id,
 });
 if (custom.posture !== "success") throw new Error(custom.message);
 
-await gearTruth.resolveMerge({
+await truth.resolveMerge({
   requestId: crypto.randomUUID(),
-  reviewId: preview.review.id,
+  reviewId: review.id,
   selections: [{
-    reviewId: preview.review.id,
+    reviewId: review.id,
     conflictId: conflict.id,
     alternativeId: custom.value.id,
   }],
 });
 ```
 
-The custom value is an ordinary schema-validated commit on a dedicated
-resolution branch. The final submission contains only IDs issued by the
-authority. If source, target, schema, policy, review, or resolution head has
-changed, resolution is denied before publication.
-After a successful merge, every resolution branch admitted for that review is
-retired, including unselected candidates, and its disposable Signal projection
-is destroyed. The merge receipt lists those retired branch IDs.
+A resolution branch admits exactly one commit at its allowed locus. A
+successful merge retires all resolution branches and projections attached to
+that review, including alternatives that were not selected.
 
-## How It Relates To Other Features
+## Staleness And Failure
 
-- Pair local truth with ordinary inputs, computed signals, and outputs when a
-  standalone app needs branch-aware application state.
-- Resource optimistic effects remain one branch per pending effect. Confirmed
-  resource observations use the same explicit local-truth boundary, while
-  effect envelopes remain speculative intent.
-- Use native Signal history for derived execution inspection and replay. Do
-  not promote a Signal receipt into a local-truth basis.
-- Use Query -> Relational -> Bridge -> Signal for durable platform workflows.
+A review seals the source and target bases, schema identity, structural
+ancestor, classifications, and alternatives. If either head advances before
+resolution, the review is stale and publishes nothing. Preview again from
+fresh branch receipts.
 
-## Inspection And Debugging
+Merge publication is atomic at the Local Truth boundary. If downstream Signal
+projection fails afterward, the target merge commit remains authoritative and
+its derivation reports `RebuildRequired`. See
+[History, Compaction, And Rebuild](./history-and-rebuild.md).
 
-`inspect()` returns immutable branch heads, values, the decision log, exact
-counters, and a digest. `derivation(branchId)` reports `Current`,
-`CommittedDerivationPending`, `RebuildRequired`, `Unavailable`, or `Failed`.
+## Practical Boundaries
 
-If derivation is stale, call `rebuildDerivation(branchId)`. Rebuild uses the
-committed truth snapshot and does not create a second truth commit.
-
-`checkpoint(branchId)` seals that branch's receipt and fork ancestry, exact
-values, locus heads, lineage, compacted commit identities, and segment digest.
-The runtime validates these fields before rebuilding disposable indexes. Once every active branch is checkpointed at its
-current head, the authority discards the covered in-memory commit and snapshot
-segments. `history(branchId)` then returns the checkpoint plus only the bounded
-post-checkpoint segment. A later checkpoint binds the prior checkpoint digest.
-
-`historicalSnapshot({ branchId, commitId })` first proves that the commit is in
-the selected branch's retained ancestry. It then returns the authority-sealed
-snapshot values and the exact number of commits visited. A sibling commit is
-denied, and reading a historical snapshot never changes truth or Signal
-derivation. Individual pre-checkpoint commits are intentionally unavailable
-after compaction; the checkpoint head remains inspectable.
-
-## Anti-Patterns
-
-- Do not spread source and target objects together in React or Three.js.
-- Do not infer merge aspects from changed object keys.
-- Do not submit a raw custom JSON value in a resolution selection.
-- Do not treat a Signal snapshot, branch receipt, or projection digest as an
-  application truth basis.
-- Do not retry a stale review by editing its IDs. Request a new preview.
-
-## Current Limits
-
-- Local truth is in-memory and process-local. It is not durable or shared.
-- V1 supports declared top-level fields on plain-object entity values.
-- Nested paths, collections, deletion topology, and identity migration are
-  typed unsupported until they have dedicated materializers.
-- Actor, reason, and correlation metadata are host assertions, not
-  authenticated identity.
-- Native extended profiles currently expose 32 numeric Signal aspects. Every
-  projected truth aspect needs a valid native binding in the active profile.
+- Merge scope selects declared entity and aspect IDs, not arbitrary paths.
+- The current schema covers declared top-level fields on plain objects.
+- `numberEpsilon` changes equivalence, not validation or rounding.
+- Reviews and decision logs are inspectable process memory, not durable audit.
+- There is no network collaboration, authenticated reviewer identity, MVCC,
+  or cross-process locking in this package.
 
 ## Related Docs
 
-- [Standalone And Platform Authority Boundaries](./authority-boundaries.md)
-- [Aspects](../app-surface/aspects.md)
-- [Diagnostics And History](../app-surface/diagnostics-and-history.md)
-- [Concurrent Optimistic Effects](../resources/effects/concurrency-and-dependencies.md)
+- [Branches And Snapshots](./branches-and-snapshots.md)
+- [History, Compaction, And Rebuild](./history-and-rebuild.md)
+- [Authority Boundaries](./authority-boundaries.md)
+- [Local Truth API Reference](./api-reference.md)

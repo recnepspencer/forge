@@ -1,4 +1,5 @@
 import { createFormController } from "../forms/form_controller.js";
+import { defineFormDeclaration } from "../forms/form_declaration.js";
 import { createFormSourceFactory } from "../forms/sources/form_sources.js";
 import { freezeObject } from "../graph_support.js";
 import { requireRouteFormsAuthorityArtifact } from "../router/projection/admission/router_forms_authority_artifact.js";
@@ -15,6 +16,10 @@ export function createWorkerFirstFormFactory(signalNamespace) {
   Object.defineProperty(createForm, "source", {
     enumerable: true,
     value: formSourceFactory,
+  });
+  Object.defineProperty(createForm, "define", {
+    enumerable: true,
+    value: defineFormDeclaration,
   });
 
   return freezeObject(createForm);

@@ -3,29 +3,19 @@ import { createSignals } from "worth-signals-wasm";
 import { DxCorner } from "./DxCorner";
 import { FormsSectionCodeSample } from "./FormsSectionCodeSample";
 
-const FORMS_DX_SAMPLE = `const form = useSignalsForm({
-  source: localFormSource.source,
-  fields: ({ field }) => ({
-    email: field("email"),
-    role: field("role"),
-  }),
-  actions: { submit: updateUserLine },
-});
+const FORMS_DX_SAMPLE = `export function ProfileEditor() {
+  const editor = useProfileEditor();
 
-return (
-  <form>
-    <input {...form.field("email")} />
-    <select {...form.select("role", roleOptions)} />
-
-    <button onClick={() => form.reset()}>Cancel</button>
-    <button
-      disabled={form.actions.submit.disabled}
-      onClick={() => form.actions.submit.execute()}
-    >
-      {form.actions.submit.pending ? "Savingâ€¦" : "Save"}
-    </button>
-  </form>
-);`;
+  return (
+    <form onSubmit={editor.save}>
+      <TextInput label="Email" field={editor.email} />
+      <NumberInput label="Seats" min={1} field={editor.seats} />
+      <SubmitButton action={editor.submit}>
+        Save profile
+      </SubmitButton>
+    </form>
+  );
+}`;
 import {
   ACTOR_META,
   DANA_COMMENT_BODIES,
@@ -163,7 +153,7 @@ const DIRECTOR_SCENES: Scene[] = [
     const justification = PRIYA_JUSTIFICATIONS[ctx.cycle.current % PRIYA_JUSTIFICATIONS.length];
     try {
       ctx.office.forms.priya.fields.justification.set(justification);
-      ctx.narrate("priya", "edit", "Priya is drafting the justification â€” her draft, nobody else's.");
+      ctx.narrate("priya", "edit", "Priya is drafting the justification — her draft, nobody else's.");
     } catch {
       ctx.narrate("priya", "info", "Priya could not edit the justification right now.");
     }
@@ -188,7 +178,7 @@ const DIRECTOR_SCENES: Scene[] = [
       reason: "dana flagged the limit for review",
     };
     ctx.sync();
-    ctx.narrate("dana", "comment", `Dana commented on the limit: â€œ${body}â€`);
+    ctx.narrate("dana", "comment", `Dana commented on the limit: “${body}”`);
     return true;
   },
   (ctx) => {
@@ -202,14 +192,14 @@ const DIRECTOR_SCENES: Scene[] = [
       reason: "dana-r is reviewing the payout limit",
     };
     ctx.sync();
-    ctx.narrate("dana", "lease", "Dana took the lease on the limit. One report â€” three different verdicts below.");
+    ctx.narrate("dana", "lease", "Dana took the lease on the limit. One report — three different verdicts below.");
     return true;
   },
   (ctx) => {
     const reviewed = ctx.office.forms.dana.effective().limit >= 40_000 ? 38_000 : 30_000;
     try {
       ctx.office.forms.dana.fields.limit.set(reviewed);
-      ctx.narrate("dana", "edit", `Dana adjusted the limit to ${currency.format(reviewed)} â€” she owns the lease, so her write is admitted.`);
+      ctx.narrate("dana", "edit", `Dana adjusted the limit to ${currency.format(reviewed)} — she owns the lease, so her write is admitted.`);
     } catch {
       ctx.narrate("dana", "info", "Dana could not adjust the limit.");
     }
@@ -236,7 +226,7 @@ const DIRECTOR_SCENES: Scene[] = [
       return true;
     }
     ctx.office.setSource(priya.effective());
-    ctx.narrate("priya", "submit", "Priya submitted. Server truth moved underneath every draft â€” including yours.");
+    ctx.narrate("priya", "submit", "Priya submitted. Server truth moved underneath every draft — including yours.");
     return true;
   },
   (ctx) => {
@@ -258,7 +248,7 @@ function SubmitPill({ readiness }: { readiness: FormReadiness }): React.ReactEle
   if (readiness.canSubmit) {
     return <span className="fc-pill fc-pill-ready">submit ready</span>;
   }
-  // "unchanged" is the runtime saying there is nothing to submit â€” not a conflict
+  // "unchanged" is the runtime saying there is nothing to submit — not a conflict
   if (readiness.blockers.length === 1 && readiness.blockers[0]?.kind === "unchanged") {
     return <span className="fc-pill fc-pill-idle">nothing to submit</span>;
   }
@@ -290,11 +280,11 @@ function ActorCard({
       <header>
         <span className={presenceDotClass(collab.presence[actor])} aria-hidden="true" />
         <strong>{meta.name}</strong>
-        <em>{meta.role}{meta.simulated ? " Â· simulated" : ""}</em>
+        <em>{meta.role}{meta.simulated ? " · simulated" : ""}</em>
         <SubmitPill readiness={readiness} />
       </header>
       <p className="fc-actor-line">
-        {holdsLease ? "holds the lease on limit â€” canWrite: true for her alone" : lastLine ?? "watching the form"}
+        {holdsLease ? "holds the lease on limit — canWrite: true for her alone" : lastLine ?? "watching the form"}
       </p>
       <footer>
         <span>
@@ -382,7 +372,7 @@ function FormsWorkbench({ office }: { office: Office }): React.ReactElement {
   const lastLineFor = (actor: Actor): string | null =>
     feed.find((entry) => entry.actor === actor)?.text ?? null;
 
-  const liveCodeLine = `// â†’ { canWrite: ${limitPosture.canWrite}${
+  const liveCodeLine = `// → { canWrite: ${limitPosture.canWrite}${
     limitPosture.blockers[0]?.collaborator ? `, collaborator: "${limitPosture.blockers[0].collaborator}"` : ""
   } }`;
 
@@ -419,7 +409,7 @@ function FormsWorkbench({ office }: { office: Office }): React.ReactElement {
           <header className="fc-panel-head">
             <div>
               <h3>Payout limit change</h3>
-              <span className="fc-caption-line">dual control Â· actorId: "you"</span>
+              <span className="fc-caption-line">dual control · actorId: "you"</span>
             </div>
             <SubmitPill readiness={readiness} />
           </header>
@@ -439,11 +429,11 @@ function FormsWorkbench({ office }: { office: Office }): React.ReactElement {
             />
             {!limitPosture.canWrite ? (
               <small className="fc-lock-line">
-                locked Â· {limitPosture.blockers[0]?.collaborator ?? "collaboration"} â€” {limitPosture.reason}
+                locked · {limitPosture.blockers[0]?.collaborator ?? "collaboration"} · {limitPosture.reason}
               </small>
             ) : collab.comment?.target === "limit" ? (
               <small className="fc-comment-line">
-                {ACTOR_META[collab.comment.authorId].name} commented: â€œ{collab.comment.body}â€
+                {ACTOR_META[collab.comment.authorId].name} commented: “{collab.comment.body}”
               </small>
             ) : (
               <small className="fc-field-hint">server truth: {currency.format(office.sourceValue().limit)}</small>
@@ -460,7 +450,7 @@ function FormsWorkbench({ office }: { office: Office }): React.ReactElement {
               type="text"
               value={effective.justification}
             />
-            <small className="fc-field-hint">shared field â€” Priya edits her own draft of it, not yours</small>
+            <small className="fc-field-hint">shared field — Priya edits her own draft of it, not yours</small>
           </label>
 
           <label className="fc-field">
@@ -506,7 +496,7 @@ function FormsWorkbench({ office }: { office: Office }): React.ReactElement {
           <ActorCard actor="priya" collab={collab} form={office.forms.priya} lastLine={lastLineFor("priya")} />
           <ActorCard actor="dana" collab={collab} form={office.forms.dana} lastLine={lastLineFor("dana")} />
           <p className="fc-honesty-note">
-            The coworkers are scripted. Everything they cause â€” locks, verdicts, reasons â€” is derived by the runtime,
+            The coworkers are scripted. Everything they cause — locks, verdicts, reasons — is derived by the runtime,
             per actor, from the same report.
           </p>
         </div>
@@ -528,7 +518,7 @@ function FormsWorkbench({ office }: { office: Office }): React.ReactElement {
                 <span className="fc-feed-text">{entry.text}</span>
               </li>
             ))}
-            {feed.length === 0 ? <li className="fc-feed-row"><span className="fc-feed-text">The office is waking upâ€¦</span></li> : null}
+            {feed.length === 0 ? <li className="fc-feed-row"><span className="fc-feed-text">The office is waking up…</span></li> : null}
           </ul>
           <details className="signals-audit-payload fc-recorder-raw">
             <summary>raw collaboration events + counters</summary>
@@ -545,16 +535,16 @@ function FormsWorkbench({ office }: { office: Office }): React.ReactElement {
         <aside className="fc-truth-panel" aria-label="Your form truth">
           <header className="signals-panel-head">
             <h3>Your form truth</h3>
-            <code>form.dirty() Â· form.readiness()</code>
+            <code>form.dirty() · form.readiness()</code>
           </header>
           <dl className="signals-why-grid">
             <div>
               <dt>server truth</dt>
-              <dd>{currency.format(office.sourceValue().limit)} Â· â€œ{office.sourceValue().justification.slice(0, 32)}â€¦â€</dd>
+              <dd>{currency.format(office.sourceValue().limit)} · “{office.sourceValue().justification.slice(0, 32)}…”</dd>
             </div>
             <div>
               <dt>your dirty fields</dt>
-              <dd>{dirtyFields.size > 0 ? [...dirtyFields].join(", ") : "none â€” draft matches source"}</dd>
+              <dd>{dirtyFields.size > 0 ? [...dirtyFields].join(", ") : "none — draft matches source"}</dd>
             </div>
             <div>
               <dt>limit write posture</dt>
@@ -577,14 +567,14 @@ function FormsWorkbench({ office }: { office: Office }): React.ReactElement {
       </section>
 
       <section className="signals-code-section" aria-labelledby="fc-code-title">
-        <h2 id="fc-code-title">One report in, one verdict out â€” per actor</h2>
+        <h2 id="fc-code-title">One report in, one verdict out — per actor</h2>
         <FormsSectionCodeSample liveLine={liveCodeLine} />
       </section>
 
       <DxCorner
         code={FORMS_DX_SAMPLE}
         filename="edit-user-dialog.tsx"
-        subtitle="Dual-control forms sound like enterprise sludge. This is regulation-grade behavior with one mental model â€” not React plus React Query plus Formik plus Zustand agreeing by convention."
+        subtitle="Dual-control forms sound like enterprise sludge. This is regulation-grade behavior with one mental model — not React plus React Query plus Formik plus Zustand agreeing by convention."
         receipts={[
           {
             claim: "A field binding is a spread.",
@@ -592,11 +582,11 @@ function FormsWorkbench({ office }: { office: Office }): React.ReactElement {
           },
           {
             claim: "The submit button wires itself.",
-            api: "form.actions.submit.disabled Â· .pending Â· .execute()",
+            api: "form.actions.submit.disabled · .pending · .execute()",
           },
           {
             claim: "Even closing the form is a signal read.",
-            api: "form.exit() â€” dirty- and pending-aware",
+            api: "form.exit() · dirty- and pending-aware",
           },
         ]}
       />
@@ -626,12 +616,12 @@ export function FormsSection({ onNavigate }: FormsSectionProps): React.ReactElem
   return (
     <div className="accent-forms fc-section">
       {bootError ? <div className="signals-runtime-message">{bootError}</div> : null}
-      {!office && !bootError ? <div className="signals-runtime-message">Connecting to the Worth runtimeâ€¦</div> : null}
+      {!office && !bootError ? <div className="signals-runtime-message">Connecting to the Worth runtime…</div> : null}
       {office ? <FormsWorkbench office={office} /> : null}
 
       <div className="signals-docs-row">
-        <button onClick={() => onNavigate("#/docs/forms/index")} type="button">
-          Explore forms in the documentation <span aria-hidden="true">â†’</span>
+        <button onClick={() => onNavigate("#/docs/forms/collaboration/README")} type="button">
+          Read collaboration forms <span aria-hidden="true">→</span>
         </button>
       </div>
     </div>

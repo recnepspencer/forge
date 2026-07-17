@@ -81,7 +81,7 @@ form.fulfillAsyncValidation(pending.operationId, {
 ## Related Docs
 
 - [Forms Overview](./index.md)
-- [Getting Started](./getting-started/README.md)
+- [Getting Started](./getting-started/your-first-form.md)
 - [Form State](./state/README.md)
 - [Changes And Patching](./changes/README.md)
 - [Validation](./validation/README.md)

@@ -84,5 +84,5 @@ the underlying line, diagnostics, or history reads.
 
 ## Related Docs
 
-- [Delivery And Compatibility Contract](../../resource-contracts/delivery-and-compatibility.md)
+- [Delivery And Compatibility Contract](../debugging/read-delivery-and-compatibility.md)
 - [Verification Packages](./verification-packages.md)

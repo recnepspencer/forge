@@ -92,4 +92,4 @@ to support?"
 
 - [What Happens After A Write](./what-happens-after-a-write.md)
 - [Older Branch-Native Resource Effects](../branch-native-effects.md)
-- [Effect Closeout Matrix](../../resource-contracts/closeout-matrix.md)
+- [Effect Closeout Matrix](../effects/README.md)

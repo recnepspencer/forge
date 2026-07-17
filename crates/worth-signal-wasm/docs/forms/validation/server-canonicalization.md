@@ -2,8 +2,9 @@
 
 ## What This Feature Is
 
-Server canonicalization is the lane where an action completion replaces source
-truth with a canonical server value and updates draft posture accordingly.
+Server canonicalization is the lane where an action completion installs a
+canonical server projection on the controller and updates draft posture. A
+later value from the declared authoritative source supersedes that projection.
 
 ## Why You Use It
 
@@ -27,28 +28,32 @@ against it.
 
 1. an action runs
 2. the action completion supplies a canonical value
-3. the runtime updates source truth
+3. the controller installs the canonical source projection
 4. draft truth is cleared or reconciled according to the canonicalization lane
 5. verification and diagnostics history retain the canonicalization result
 
 ## Small Example
 
 ```ts
-const pending = form.executeAction("submit");
+const execution = await form.executeAction("submit");
 
-form.fulfillAction(pending.operationId, {
-  canonicalValue: { title: "Ship docs", status: "published" },
-});
+if (execution.resultKind === "pending") {
+  form.fulfillAction(execution.operationId, {
+    canonicalValue: { title: "Ship docs", status: "published" },
+  });
+}
 ```
 
 ## Real Example
 
 ```ts
-const pending = form.executeAction("submit");
+const execution = await form.executeAction("submit");
 
-form.fulfillAction(pending.operationId, {
-  canonicalValue: { title: "Ship docs", status: "published" },
-});
+if (execution.resultKind === "pending") {
+  form.fulfillAction(execution.operationId, {
+    canonicalValue: { title: "Ship docs", status: "published" },
+  });
+}
 
 console.log(form.source());
 console.log(form.effective());
@@ -74,6 +79,8 @@ console.log(form.verification().digests.canonicalizationDigest);
 
 - treating canonicalization like an arbitrary local state overwrite
 - assuming canonical completion always preserves draft
+- assuming the controller mutated the declared signal or resource line; newer
+  authoritative source drift still wins
 
 ## Current Limits
 

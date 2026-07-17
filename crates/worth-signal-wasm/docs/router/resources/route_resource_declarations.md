@@ -1,81 +1,62 @@
 # Route Resource Declarations
 
-## What This Feature Is
-
-Route resource declarations attach native resource families to routes with
-`signals.router.resourceLine(...)`.
-
-## Why You Use It
-
-- declare route-local data needs beside the route
-- prefetch or warm those resources before admission
-- keep router resource behavior on the same native resource line substrate
-
-## Stable Entry Points
-
-- `signals.router.resourceLine(...)`
-- `route(..., { resources: { ... } })`
-
-## Core Mental Model
-
-The router does not invent a second route loader cache. A route resource
-declaration just teaches the router how to map route truth into a real resource
-family line.
-
-## How It Executes
-
-1. choose a resource family
-2. declare how route params/search/hash become family params
-3. declare a prefetch posture
-4. let projected or admitted routes materialize the line
-
-## Small Example
+Route resources connect a route to an existing Worth resource family. They do
+not create a router cache or a second source of server truth.
 
 ```ts
-const detail = signals.router.resourceLine(userFamily, {
-  params: ({ params }) => ({ userId: params.userId }),
-  prefetch: "hover",
+const projectDetail = signals.router.resourceLine(projectFamily, {
+  params: ({ params }) => ({ projectId: params.projectId }),
+  prefetch: "intent",
 });
-```
 
-## Real Example
-
-```ts
 const routes = signals.router.define({
-  userDetail: signals.router.route("/users/:userId", {
-    resources: {
-      detail: signals.router.resourceLine(userFamily, {
-        params: ({ params }) => ({ userId: params.userId }),
-        prefetch: "hover",
-      }),
-    },
+  project: signals.router.route("/projects/:projectId", {
+    resources: { detail: projectDetail },
   }),
 });
 ```
 
-## How It Relates To Other Features
+`params` maps canonical route input into the resource family's normal `line`
+parameters. `prefetch` declares the expected trigger: `hover`, `focus`,
+`viewport`, or `intent`.
 
-- projected behavior is covered in [Projected Resource Capabilities](./projected_resource_capabilities.md)
-- admitted behavior is covered in [Admitted Resource Capabilities](./admitted_resource_capabilities.md)
+## Projection Can Warm; Admission Can Use
 
-## Inspection And Debugging
+Before admission, the projected route exposes preview capabilities:
 
-- `route.resourceNames()`
-- `route.resource(name).prefetchPosture()`
-- `resource.verification()`
+```ts
+const candidate = routes.project("/projects/p7");
 
-## Anti-Patterns
+if (candidate) {
+  const prefetched = candidate.route().resource("detail").prefetch("intent");
 
-- treating route resources as a separate fake cache
-- declaring plain objects instead of `signals.router.resourceLine(...)`
-- hiding trigger posture in app-local conventions
+  try {
+    console.log(prefetched.current().status);
+  } finally {
+    prefetched.free();
+  }
+}
+```
 
-## Current Limits
+After admission, the capability exposes the native resource line:
 
-- declarations must lower to supported route resource families
-- invalid declarations fail closed at route authoring time
+```ts
+const outcome = await routes.admit("/projects/p7");
 
-## Related Docs
+if (outcome.kind === "admitted") {
+  const detail = outcome.route().resource("detail");
+  console.log(detail.line(), detail.current().freshness);
+}
+```
 
-- [Projected Resource Capabilities](./projected_resource_capabilities.md)
-- [Admitted Resource Capabilities](./admitted_resource_capabilities.md)
+The family owns fetch, cache, freshness, invalidation, and line identity. The
+router owns the mapping from route truth to that line and records how it was
+prefetched or used during admission and transition.
+
+Prefetch artifacts own a lifetime. Call `free()` or use explicit disposal when
+the preview is no longer needed. Do not keep a parallel application cache just
+because the resource was reached through a route.
+
+Next: [Projected Resource Capabilities](./projected_resource_capabilities.md),
+[Admitted Resource Capabilities](./admitted_resource_capabilities.md), and
+[Resource Warmup](./resource_warmup.md).

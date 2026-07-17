@@ -1,258 +1,166 @@
 # Resource Line Reference
 
-If you want the shortest path to line reads, start with
-[Line Inspection](../resources/line-inspection.md) before using this
-full line reference.
+A resource line is the live browser-runtime handle for one canonical member of
+a resource family. Pass the line when consumers need value plus lifecycle;
+peeling off `value()` loses the state that explains whether that value is
+pending, stale, projected, or confirmed.
 
-## What This Feature Is
-
-A resource line is the live handle you get back for one specific resource
-member.
-
-If the family is the reusable definition, the line is the thing you actually
-work with in app code.
-
-Use the line to:
-
-- read the current value
-- check whether it is loading, fresh, stale, rejected, or timed out
-- inspect request info
-- refresh or invalidate the resource
-- inspect diagnostics and history
-
-## Why You Use It
-
-- keep value, loading state, request state, and debug state on one object
-- refresh or revalidate without building your own cache layer
-- inspect what actually happened on the same object you already use in the UI
-- work with uploads, downloads, patching, and delivery from the same surface
-
-## Stable Entry Points
-
-You always get a line from a family:
+## Obtain A Line
 
 ```ts
 const line = family.line(params);
 ```
 
-Stable line methods:
-
-- `line.value()`
-- `line.signal()`
-- `line.summarySignal()`
-- `line.descriptor()`
-- `line.request()`
-- `line.summary()`
-- `line.status()`
-- `line.freshness()`
-- `line.refresh()`
-- `line.revalidate()`
-- `line.awaitSettlement(options?)`
-- `line.execute(options?)`
-- `line.invalidate()`
-- `line.view(...)`
-- `line.processing()`
-- `line.upload()`
-- `line.download()`
-- `line.diagnostics()`
-- `line.diagnosticsSummary()`
-- `line.history()`
-- `line.free()`
-
-Collection and paged lines can also expose:
-
-- `line.patch(...)`
-- `line.deliver(...)`
-- `line.reconciliation()`
-
-Families also expose final-form convenience lanes:
-
-- `family.optionalLine(selection)`
-- `family.execute(params, options?)`
-
-## Core Mental Model
-
-Do not think of the line as "just the loaded data".
-
-The line is the full local state for that resource member:
-
-- current visible value
-- lifecycle state
-- request state
-- upload and processing state
-- download state
-- diagnostics and history
-
-That is why it is usually better to pass a line around than to peel off only
-`line.value()`.
-
-## How It Executes
-
-Once a line exists, the runtime keeps these pieces aligned:
-
-1. request posture
-2. visible value
-3. status and freshness
-4. diagnostics
-5. history
-
-Operations such as `refresh()`, `revalidate()`, `invalidate()`, `patch(...)`,
-`deliver(...)`, and `restoreExact()` all update that same line state.
-
-When a line is pending and the caller needs the next settled truth, use:
-
-- `await line.awaitSettlement()`
-- or `await line.execute().settled()`
-
-That lane waits on the line's own runtime lifecycle instead of polling
-`line.status()` in app code.
-
-The history surface also exposes `replayExact()`, but on the shipped wasm
-Signals runtime that action currently reports typed unavailability rather than
-executing exact replay.
-
-## Small Example
+Families also expose:
 
 ```ts
-import { createSignals } from "worth-signals-wasm";
-
-const signals = await createSignals();
-
-const productDetail = signals.api({
-  baseUrl: "/api",
-}).url("/products/:productId").detail({
-  load: ({ productId }) => ({
-    id: productId,
-    title: `Product ${productId}`,
-  }),
-});
-
-const line = productDetail.line({ productId: "p1" });
-
-console.log(line.value());
-console.log(line.status());
-console.log(line.freshness());
+const optional = family.optionalLine(enabled ? params : null);
+const execution = family.execute(params, { freeOnSettle: true });
+const result = await execution.settled();
 ```
 
-This is the smallest useful line example because it shows the three things you
-usually need first:
+`optionalLine(...)` returns `null` for `null`, `undefined`, or
+`{ enabled: false }`. `execute(...)` groups a line with settlement and cleanup
+for one-shot workflows.
 
-- value
-- status
-- freshness
+## Value And Subscription
 
-If you want the first product-shaped read instead of stitching a few calls
-together, start with:
+- `value()` — current projected value; can be `null` before first settlement;
+- `signal()` — computed signal handle for the value;
+- `view(project)` — a derived signal view of the line value;
+- `summary()` — grouped current resource posture;
+- `summarySignal()` — live signal handle for that grouped posture.
 
-- `line.summary()`
-- `line.summarySignal()` when React or another subscription layer needs the
-  grouped line truth as a live signal handle
+`view(...)` does not create a second line or a new source of server truth.
 
-That grouped read keeps the common lane on one object:
+## Identity And Request
 
-- current status and freshness
-- request posture
-- upload, processing, and download state
-- diagnostics summary plus explainability availability
+- `descriptor()` — family identity, canonical params, runtime line ID, scope,
+  and compatibility posture;
+- `request()` — canonical params, target URL, method, body, auth, context,
+  continuation, processing, upload, and effect posture.
 
-## Real Example
+The request descriptor records what the family admitted. The `load` function
+uses it to perform I/O; the descriptor does not send a request itself.
+
+## Lifecycle
+
+- `status()` — pending, fulfilled, rejected, or timed out;
+- `freshness()` — fresh or stale;
+- `awaitSettlement({ timeoutMs? })` — wait for the next settled line truth;
+- `invalidate()` — retain visible value and mark stale;
+- `refresh()` — start a new load;
+- `revalidate()` — run the family's revalidation behavior;
+- `free()` / `[Symbol.dispose]()` — release the consumer's line handle.
+
+Settlement returns a discriminated `resultKind`:
 
 ```ts
-import {
-  createSignals,
-  resourceAuth,
-  resourceRequestContext,
-} from "worth-signals-wasm";
+const result = await line.awaitSettlement({ timeoutMs: 5_000 });
 
-const signals = await createSignals();
+switch (result.resultKind) {
+  case "fulfilled":
+  case "partial":
+    console.log(result.value, result.freshness);
+    break;
+  case "rejected":
+  case "timedOut":
+    console.error(result.status, result.diagnosticsSummary);
+    break;
+}
+```
 
-const workspaceApi = signals.api({
-  auth: resourceAuth.workspace(),
-}).scope({
-  requestContext: ({ workspaceId }) =>
-    resourceRequestContext({
-      headers: { "x-workspace-id": workspaceId },
-      correlationId: `account:${workspaceId}`,
-    }),
-});
+`partial` carries a value but records that the runtime does not have complete
+canonical truth. It should not be flattened into full fulfillment when later
+behavior depends on completeness.
 
-const accountDetail = workspaceApi.url(
-  "/workspaces/:workspaceId/accounts/:accountId",
-).detail({
-  load: ({ accountId }) => ({
-    id: accountId,
-    label: `Account ${accountId}`,
-    balance: 42,
-  }),
-});
+## Processing, Uploads, And Downloads
 
-const line = accountDetail.line({
-  workspaceId: "acme",
-  accountId: "acct-7",
-});
+- `processing()` — ready, accepted, or in-progress remote processing posture;
+- `upload()` — ready, prepared, or uploaded transfer posture;
+- `download()` — ready, unavailable, or incompatible download descriptors.
 
-const balanceView = line.view((account) => account?.balance ?? 0);
+These are adjacent lifecycle reads on the same line. Remote jobs, browser file
+APIs, network transport, and storage remain external boundaries.
 
-console.log(line.descriptor());
-console.log(line.request());
-console.log(line.diagnosticsSummary());
+## Diagnostics And History
+
+- `diagnosticsSummary()` — compact current and recent explanation;
+- `diagnostics()` — detailed request, lifecycle, reconciliation, delivery, and
+  effect evidence;
+- `history()` — availability, lifecycle entries, basis, exact recovery actions,
+  targeted effect rollback, and verification package.
+
+```ts
+console.log(line.summary());
+console.log(line.diagnosticsSummary().latest);
 console.log(line.history().availability);
-console.log(balanceView());
 ```
 
-Use this pattern when:
+History availability is explicit. `replayExact()` and `restoreExact()` return
+typed unavailable variants when the line lacks the required executable history
+or exact retained state. Diagnostic history alone does not imply replay.
 
-- the UI needs both data and loading/debug state
-- request posture matters
-- you want a lightweight derived view with `line.view(...)`
+## Mutation Responses
 
-## How It Relates To Other Features
+`mutationResponse()` returns the declared reconciliation plan for the latest
+write response, or `null` when the family has no such plan. Use it to understand
+which detail, item, summary, delete, tombstone, or identity-migration targets
+the response was allowed to update.
 
-- Family docs explain how the line was declared.
-- Request/policy docs explain where auth, headers, retry, and continuation come
-  from.
-- Inspection/history docs explain the debugging side, exact restore behavior,
-  and current exact-replay availability limits.
+## Patch-Capable Lines
 
-## Inspection And Debugging
+Detail, collection, and paged lines expose these methods through their typed
+family surface:
 
-When a line is not behaving the way you expect, start with:
+- `patch(family.patch.*(...), options?)`;
+- `effects()`;
+- `deliver(family.delivery.*(...))`;
+- `reconciliation()`.
 
-- `line.summary()`
-- `line.status()`
-- `line.freshness()`
-- `line.request()`
-- `line.diagnosticsSummary()`
-- `line.history().availability`
+The actual patch and delivery helpers are constrained by declaration. A family
+that declares only broad replacement does not acquire field, item, path,
+aspect, or summary authority at runtime.
 
-If that is not enough, move to:
+## Concurrent Effects
 
-- `line.diagnostics()`
-- `line.history().lifecycle`
-- `line.history().basis`
-- `line.history().verificationPackage()`
+For a line using `signals.resource.effects.branchNative()`:
 
-## Anti-Patterns
+```ts
+const effects = line.effects();
 
-- storing only `line.value()` when you still care about loading or debugging
-- treating `refresh()` and `revalidate()` like they mean the same thing
-- assuming `view(...)` creates a second resource line
-- building new UI helper objects first when `line.summary()` already gives the
-  common grouped read
+console.log(effects.open());
+console.log(effects.get(effectId));
+console.log(effects.projection());
+console.log(effects.counters());
 
-## Current Limits
+await effects.confirm(effectId, { responseId, serverPatch });
+// or
+await effects.reject(effectId, { responseId });
+```
 
-- exact replay and exact restore depend on what the runtime supports
-- exact restore is the currently supported same-runtime exact action on the
-  shipped wasm Signals runtime
-- exact replay is present as a typed history action surface, but currently
-  reports unavailability because the shipped runtime does not yet expose
-  signal-exact replay execution
-- patching and delivery only exist on patch-capable collection and paged lines
+Always settle the runtime-issued effect identity for the request that finished.
+`diagnostics().lastEffect` is not a concurrent settlement selector.
+
+## Resource Line Summary
+
+`summary()` is the ordinary debugging and presentation read. It groups current
+status/freshness, request posture, processing, upload, download, diagnostics,
+and history availability. It deliberately does not inline the full lifecycle,
+replay artifacts, or exact restore results.
+
+## Cleanup Rules
+
+- Keep a line alive while UI or workflow code consumes it.
+- Use `execute(..., { freeOnSettle: true })` for one-shot work.
+- Settle or reject open effects before freeing a branch-native line.
+- Do not recreate a family or copy `value()` into another cache as a cleanup
+  strategy.
 
 ## Related Docs
 
-- [Resource Overview](../resources/overview.md)
-- [Resource Family Authoring Reference](./resource-family-authoring.md)
-- [Resource Request And Policy Reference](./resource-request-and-policy.md)
-- [Inspection And History Contract](../resource-contracts/inspection-and-history.md)
+- [Resource API Reference](./resources.md)
+- [Resource Family Authoring](./resource-family-authoring.md)
+- [Reading And Caching](../resources/caching/README.md)
+- [Debugging And Recovery](../resources/debugging/README.md)
+- [Optimistic Updates](../resources/effects/README.md)

@@ -76,5 +76,5 @@ mutation-response plan or digests on a real line.
 
 ## Related Docs
 
-- [Mutation Response Closeout Matrix](../../resource-contracts/mutation-response-closeout-matrix.md)
+- [Mutation Response Closeout Matrix](../responses/README.md)
 - [Understand Mutation Responses](../responses/understand-mutation-responses.md)

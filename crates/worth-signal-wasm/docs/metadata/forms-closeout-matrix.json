@@ -79,7 +79,7 @@
       ]
     },
     {
-      "family": "laterSectionsPending",
+      "family": "actionsPresentationAndLifecycle",
       "runtime": [
         "package/product/signals_runtime/forms/host/form_host_facts.test.mjs",
         "package/product/signals_runtime/forms/accessibility/form_accessibility_artifacts.test.mjs",
@@ -89,7 +89,16 @@
       "typeSurface": [
         "package/forms-phase-ten-types-smoke.ts"
       ],
-      "docs": [],
+      "docs": [
+        "docs/forms/availability/README.md",
+        "docs/forms/actions/README.md",
+        "docs/forms/steps/README.md",
+        "docs/forms/layout/README.md",
+        "docs/forms/inputs/README.md",
+        "docs/forms/interaction/README.md",
+        "docs/forms/lifecycle/README.md",
+        "docs/forms/media/README.md"
+      ],
       "diagnosticsHistory": [
         "package/product/signals_runtime/forms/presentation/form_presentation_lifecycle.test.mjs",
         "package/product/signals_runtime/forms/messages/form_message_visibility.test.mjs"
@@ -107,7 +116,7 @@
       ]
     },
     {
-      "family": "resourceBackedAndCollaborationPending",
+      "family": "resourceBackedAndCollaboration",
       "runtime": [
         "package/product/signals_runtime/forms/resource_source/state/form_resource_source_readback.test.mjs",
         "package/product/signals_runtime/forms/resource_source/state/form_resource_replay_restore.test.mjs",
@@ -118,7 +127,13 @@
         "package/forms-phase-eight-resource-types-smoke.ts",
         "package/forms-phase-ten-types-smoke.ts"
       ],
-      "docs": [],
+      "docs": [
+        "docs/forms/resource-backed/README.md",
+        "docs/forms/collaboration/README.md",
+        "docs/forms/route-coupling/README.md",
+        "docs/forms/diagnostics/README.md",
+        "docs/forms/verification/README.md"
+      ],
       "diagnosticsHistory": [
         "package/product/signals_runtime/forms/form_diagnostics_summary.test.mjs",
         "package/product/signals_runtime/forms/resource_source/state/form_resource_reset.test.mjs"
@@ -141,7 +156,8 @@
       "family": "docsAndCloseout",
       "runtime": [
         "package/product/signals_runtime/forms/closeout/forms_feature_docs_happy_path.test.mjs",
-        "package/product/signals_runtime/forms/closeout/forms_closeout_matrix.test.mjs"
+        "package/product/signals_runtime/forms/closeout/forms_closeout_matrix.test.mjs",
+        "package/product/documentation/form_export_catalog.test.mjs"
       ],
       "typeSurface": [
         "package/forms-phase-ten-types-smoke.ts"
@@ -149,6 +165,8 @@
       "docs": [
         "docs/forms/README.md",
         "docs/forms/index.md",
+        "docs/api-reference/forms.md",
+        "docs/api-reference/form-export-catalog.md",
         "docs/forms/recipes.md",
         "docs/forms/milestone-crosswalk.md"
       ],

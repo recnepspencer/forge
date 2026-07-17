@@ -90,4 +90,4 @@ console.log(line.request().context.basisId);
 - line reads and history:
   [Line Inspection](./line-inspection.md)
 - lower-level delivery reference:
-  [Delivery And Compatibility Contract](../resource-contracts/delivery-and-compatibility.md)
+  [Delivery And Compatibility Contract](./debugging/read-delivery-and-compatibility.md)

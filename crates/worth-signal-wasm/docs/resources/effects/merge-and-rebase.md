@@ -77,7 +77,7 @@ if (result.kind === "planned" || result.kind === "merged") {
 - [Branch-Native Effects](./branch-native-effects.md) creates effect branches.
 - [Concurrent Optimistic Effects](./concurrency-and-dependencies.md) covers
   request closeout and derived projection.
-- [History And Restore](../../resource-contracts/history-and-restore.md) covers
+- [History And Restore](../debugging/restore-replay-and-recover.md) covers
   retained historical targets, not branch merging.
 
 ## Inspection And Debugging

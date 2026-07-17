@@ -101,4 +101,4 @@ partial object merge performed by the native runtime.
 - [Branch-Native Effects](./effects/branch-native-effects.md)
 - [Rollback And Recovery](./effects/rollback-and-recovery.md)
 - [Effect Merge And Rebase](./merge-and-rebase.md)
-- [History And Restore](../resource-contracts/history-and-restore.md)
+- [History And Restore](./debugging/restore-replay-and-recover.md)

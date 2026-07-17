@@ -5,7 +5,7 @@ start with:
 
 - [start_here.md](../start_here.md)
 - [Fetch And Write Resources](../resources/fetch-and-write.md)
-- [Resource Recipes](../learn/recipes.md)
+- [Resource Recipes](../start_here.md)
 
 ## What This Feature Is
 
@@ -266,7 +266,7 @@ The `download` builder inside `.downloads(...)` now covers both:
 - Move to [Resource Request And Policy Reference](./resource-request-and-policy.md)
   when you need to reason about auth, headers, continuation, upload, or
   processing posture.
-- Move to [Reconciliation Contract](../resource-contracts/reconciliation.md)
+- Move to [Reconciliation Contract](../resources/responses/README.md)
   when a collection needs more advanced patch or summary behavior.
 - Move to [Resource Family Authoring Reference](./resource-family-authoring.md)
   when you intentionally need the raw family declaration lane.
@@ -314,6 +314,6 @@ base URL came from.
 - [Resource Overview](../resources/overview.md)
 - [Resource Line Reference](./resource-line.md)
 - [Resource Request And Policy Reference](./resource-request-and-policy.md)
-- [Reconciliation Contract](../resource-contracts/reconciliation.md)
+- [Reconciliation Contract](../resources/responses/README.md)
 - [Resource Binary And Download Reference](./resource-binary-and-download.md)
 - [Resource Family Authoring Reference](./resource-family-authoring.md)
